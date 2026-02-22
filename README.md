@@ -97,6 +97,27 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 | **Claude Code** | [`adapters/claude-code.md`](adapters/claude-code.md) | `claude -p`, `CLAUDE.md`, `--allowedTools` |
 | **OpenClaw** | [`adapters/openclaw.md`](adapters/openclaw.md) | `sessions_spawn`, Telegram buttons, `exec` |
 
+## Migrating from Code Captain
+
+Already using Code Captain? Migrate in seconds — all specs, stories, ADRs, and progress preserved:
+
+```bash
+# Clone writ, run migration from your project root
+git clone https://github.com/sellke/writ.git /tmp/writ
+bash /tmp/writ/scripts/migrate.sh
+
+# Then install Writ commands + agents
+cp /tmp/writ/commands/*.md .cursor/commands/
+cp /tmp/writ/agents/*.md .cursor/agents/
+```
+
+Preview first with `--dry-run`:
+```bash
+bash /tmp/writ/scripts/migrate.sh --dry-run
+```
+
+See [`commands/migrate.md`](commands/migrate.md) for the full interactive migration command.
+
 ## Quick Start
 
 ### Cursor
