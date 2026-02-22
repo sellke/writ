@@ -2,7 +2,7 @@
 
 AI-powered development workflow framework — contract-first specs, multi-agent SDLC, automated quality gates.
 
-Gawd issues writs. The framework executes them. ⚡
+Issue writs. The framework executes them. ⚡
 
 ## What is Writ?
 
