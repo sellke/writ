@@ -55,6 +55,11 @@ When a user requests any Writ command, read the corresponding command file and f
 |---------|------|---------|
 | `/security-audit` | `commands/security-audit.md` | Full security audit: dependencies, secrets, code analysis, infrastructure, auto-fix |
 
+### Migration
+| Command | File | Purpose |
+|---------|------|---------|
+| `/migrate` | `commands/migrate.md` | Migrate Code Captain → Writ (rename dirs, update refs, preserve all content) |
+
 ### Setup & Maintenance
 | Command | File | Purpose |
 |---------|------|---------|
