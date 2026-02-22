@@ -1,6 +1,6 @@
 # Claude Code Platform Adapter
 
-Maps Cursor-specific tool calls to Claude Code CLI equivalents for running Writ commands via `claude` (Anthropic's CLI agent).
+Native integration with Claude Code's subagent system, git worktrees, agent teams, and hooks. Writ agents are defined as `.claude/agents/` markdown files with YAML frontmatter — no shell scripting needed.
 
 ---
 
@@ -10,12 +10,12 @@ Maps Cursor-specific tool calls to Claude Code CLI equivalents for running Writ 
 
 ```bash
 # From your project root
-mkdir -p .claude/commands .claude/agents .writ/state
+mkdir -p .claude/agents .claude/commands .writ/state
 ```
 
-### Step 2: Install CLAUDE.md (Project Instructions)
+### Step 2: Install CLAUDE.md
 
-Create `CLAUDE.md` in your project root — Claude Code auto-loads this file every session:
+Create `CLAUDE.md` in your project root (auto-loaded every session):
 
 ```bash
 cat > CLAUDE.md << 'EOF'
@@ -30,45 +30,34 @@ Run Writ commands by reading the command file and following its workflow:
 | Command | File | Purpose |
 |---------|------|---------|
 | `/create-spec` | `.claude/commands/create-spec.md` | Contract-first feature specification |
-| `/implement-story` | `.claude/commands/implement-story.md` | Full SDLC via multi-phase workflow |
-| `/execute-task` | `.claude/commands/execute-task.md` | TDD implementation (100% test pass) |
+| `/implement-story` | `.claude/commands/implement-story.md` | Full SDLC via multi-agent pipeline |
+| `/verify-spec` | `.claude/commands/verify-spec.md` | 8-check comprehensive validation |
+| `/refactor` | `.claude/commands/refactor.md` | Scoped, verified refactoring |
+| `/release` | `.claude/commands/release.md` | Changelog, version bump, git tag |
+| `/security-audit` | `.claude/commands/security-audit.md` | Full security audit with auto-fix |
 | `/plan-product` | `.claude/commands/plan-product.md` | Product planning |
 | `/create-adr` | `.claude/commands/create-adr.md` | Architecture Decision Records |
 | `/create-issue` | `.claude/commands/create-issue.md` | Quick issue capture |
 | `/research` | `.claude/commands/research.md` | Systematic research |
-| `/edit-spec` | `.claude/commands/edit-spec.md` | Modify existing specs |
-| `/verify-spec` | `.claude/commands/verify-spec.md` | Verify spec sync |
 | `/status` | `.claude/commands/status.md` | Project status report |
-| `/swab` | `.claude/commands/swab.md` | One small cleanup |
-| `/refresh-docs` | `.claude/commands/refresh-docs.md` | Sync docs with code |
 | `/initialize` | `.claude/commands/initialize.md` | Project setup |
 | `/explain-code` | `.claude/commands/explain-code.md` | Code explanation |
-| `/new-command` | `.claude/commands/new-command.md` | Create new commands |
-| `/test-database` | `.claude/commands/test-database.md` | Database diagnostics |
-| `/prisma-migration` | `.claude/commands/prisma-migration.md` | Prisma migrations |
 
-When a user types a command, read the corresponding file and follow it precisely.
+## Agents
 
-## Agent Specs
+Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:
+- `writ-architect.md` — Pre-implementation design review (read-only, worktree)
+- `writ-coder.md` — TDD implementation (worktree isolation)
+- `writ-reviewer.md` — Quality + security gate (read-only, persistent memory)
+- `writ-tester.md` — Test execution + coverage enforcement
+- `writ-documenter.md` — Framework-adaptive documentation
+- `writ-story-gen.md` — Parallel story file creation (fast model, worktree)
 
-Sub-agent prompts and output formats are defined in `.claude/agents/`:
-- `coding-agent.md` — TDD implementation
-- `review-agent.md` — Code review quality gate
-- `testing-agent.md` — Test execution & verification
-- `documentation-agent.md` — VitePress documentation
-- `user-story-generator.md` — Parallel story creation
+## Pipeline
 
-## Tool Translations
-
-Writ commands reference Cursor tools. In Claude Code:
-- `Task()` → Execute inline or spawn via `Bash("claude -p '...'")` for parallel work
-- `AskQuestion()` → Present numbered text options, ask user to reply
-- `codebase_search` → `Bash("rg 'pattern' src/")`
-- `file_search` → `Bash("fd 'pattern'")`
-- `todo_write` → `Write .writ/state/tracking.json`
-- `readonly: true` → Use only `Read` and `Bash` (no `Write`/`Edit`)
-
-See `.claude/agents/` files for full prompt templates.
+```
+/plan-product → /create-spec → /implement-story --all → /verify-spec → /release
+```
 
 ## Principles
 - **Contract-first**: Establish agreement before creating files
@@ -78,311 +67,456 @@ See `.claude/agents/` files for full prompt templates.
 EOF
 ```
 
-### Step 3: Copy Commands and Agents
+### Step 3: Install Agent Definitions
+
+These are native Claude Code subagent files using YAML frontmatter. Claude Code auto-discovers them in `.claude/agents/`.
+
+#### Architecture Check Agent
 
 ```bash
-# Copy all commands
-cp path/to/writ/commands/*.md .claude/commands/
+cat > .claude/agents/writ-architect.md << 'EOF'
+---
+name: writ-architect
+description: Pre-implementation design review for Writ stories. Use before coding to validate approach, check integration risk, and catch design issues early.
+tools: Read, Grep, Glob, Bash
+disallowedTools: Write, Edit
+model: inherit
+permissionMode: plan
+isolation: worktree
+maxTurns: 15
+skills:
+  - writ-commands
+memory: project
+---
 
-# Copy agent specifications
-cp path/to/writ/agents/*.md .claude/agents/
+You are the Architecture Check Agent for Writ.
+
+## Your Mission
+Review the planned implementation approach for a user story and flag structural concerns BEFORE any code is written. You operate in read-only mode — analyze only, never modify.
+
+## Review Areas
+
+### 1. Approach Viability
+- Does the story's task list make technical sense for this codebase?
+- Are there established patterns this should follow?
+- Will this approach scale?
+
+### 2. Integration Risk
+- Could this break existing functionality?
+- Hidden dependencies not listed?
+- Database migrations needed?
+- Environment variable changes?
+
+### 3. Complexity Assessment
+- Tasks underestimated?
+- Simpler approach available?
+- Over-engineering?
+
+### 4. Missing Considerations
+- Error handling gaps?
+- Performance implications?
+- Backwards compatibility?
+
+## Output Format
+
+### ARCH_CHECK: [PROCEED/CAUTION/ABORT]
+
+### Summary
+[2-3 sentence assessment]
+
+### Findings
+- **Finding:** [description]
+  **Risk:** [Low/Medium/High]
+  **Recommendation:** [what to do]
+
+### Warnings for Coding Agent
+[Things the coder should be careful about]
+
+Update your agent memory with architectural patterns and decisions you discover.
+EOF
 ```
 
-### Step 4: Add Project Context (Optional but Recommended)
+#### Coding Agent
+
+```bash
+cat > .claude/agents/writ-coder.md << 'EOF'
+---
+name: writ-coder
+description: TDD implementation agent for Writ stories. Writes tests first, then implements code to make them pass. Use for story implementation.
+tools: Read, Write, Edit, Bash, Grep, Glob
+model: inherit
+permissionMode: acceptEdits
+isolation: worktree
+maxTurns: 50
+memory: project
+---
+
+You are the Coding Agent for Writ story implementation.
+
+## Your Mission
+Implement code changes for a user story following TDD principles.
+
+## Implementation Requirements
+1. **Follow TDD**: Write tests FIRST, then implement to make them pass
+2. **Match patterns**: Follow existing codebase conventions
+3. **Small commits**: Make logical, incremental changes
+4. **Document as you go**: Add inline comments for complex logic
+
+## Output Requirements
+When complete, provide a summary:
+- Files created/modified (with brief description)
+- Tests written (file paths and test names)
+- Any deviations from the plan and why
+- Any concerns needing review attention
+
+Do NOT mark the story as complete — review and testing phases handle that.
+
+Update your agent memory with patterns and conventions you discover in this codebase.
+EOF
+```
+
+#### Review Agent
+
+```bash
+cat > .claude/agents/writ-reviewer.md << 'EOF'
+---
+name: writ-reviewer
+description: Code quality and security review gate for Writ. Reviews implementations against acceptance criteria, code quality standards, and security best practices. Returns PASS or FAIL.
+tools: Read, Grep, Glob, Bash
+disallowedTools: Write, Edit
+model: inherit
+permissionMode: plan
+maxTurns: 20
+memory: project
+---
+
+You are the Review Agent for Writ story validation.
+
+## Your Mission
+Review implementations and determine if they meet quality standards.
+
+## Review Checklist
+
+### 1. Acceptance Criteria — verify each is satisfied
+### 2. Code Quality — patterns, readability, error handling, no debug statements
+### 3. Security — input validation, injection prevention, auth checks, no hardcoded secrets
+### 4. Test Coverage — tests for all criteria, edge cases, error paths
+### 5. Integration — no breaking changes, proper imports, no circular deps
+
+## Output Format
+
+### REVIEW_RESULT: [PASS/FAIL]
+
+### Summary
+[2-3 sentence review summary]
+
+### Security Assessment
+**Risk Level:** [Clean/Low/Medium/High]
+
+### Issues Found (if FAIL)
+- **Issue:** [description]
+- **Location:** [file:line]
+- **Severity:** [Critical/Major/Minor]
+- **Suggested Fix:** [concrete steps]
+
+Consult your agent memory for patterns and issues seen in previous reviews.
+Update memory with new patterns discovered during this review.
+EOF
+```
+
+#### Testing Agent
+
+```bash
+cat > .claude/agents/writ-tester.md << 'EOF'
+---
+name: writ-tester
+description: Test execution and coverage enforcement for Writ. Runs tests, fixes failures, ensures 80% coverage on new code. Returns PASS or FAIL.
+tools: Read, Write, Edit, Bash, Grep, Glob
+model: inherit
+permissionMode: acceptEdits
+maxTurns: 30
+---
+
+You are the Testing Agent for Writ story verification.
+
+## Your Mission
+Run all tests, ensure 100% pass rate, and verify adequate coverage.
+
+## Testing Process
+1. Detect test runner and coverage tools
+2. Run story-specific tests
+3. Run regression tests
+4. Run coverage analysis
+5. Fix failures (prefer fixing implementation over changing tests)
+6. Expand coverage if below threshold
+
+## Coverage Requirements
+- New files: ≥80% line coverage (MANDATORY)
+- Modified files: coverage must not decrease (MANDATORY)
+- Overall: report only (informational)
+
+## Output Format
+
+### TEST_RESULT: [PASS/FAIL]
+
+### Test Summary
+- Total/Passed/Failed/Skipped
+
+### Coverage Report
+| File | Lines | Status |
+|------|-------|--------|
+
+### Failures Addressed (if any)
+[What was fixed and how]
+
+**100% pass rate is MANDATORY before reporting PASS.**
+EOF
+```
+
+#### Documentation Agent
+
+```bash
+cat > .claude/agents/writ-documenter.md << 'EOF'
+---
+name: writ-documenter
+description: Framework-adaptive documentation agent for Writ. Detects the project's doc framework (VitePress, Docusaurus, README, etc.) and creates/updates documentation accordingly.
+tools: Read, Write, Edit, Bash, Grep, Glob
+model: sonnet
+permissionMode: acceptEdits
+maxTurns: 25
+---
+
+You are the Documentation Agent for Writ.
+
+## Your Mission
+Create or update developer documentation for implemented stories.
+
+## Framework Detection
+First detect what documentation system this project uses:
+1. `docs/.vitepress/` → VitePress
+2. `docusaurus.config.*` → Docusaurus
+3. `.storybook/` → Storybook (component docs)
+4. `mkdocs.yml` → MkDocs
+5. None → README + inline docs only
+
+Adapt your output to the detected framework.
+
+## Documentation Tasks (for ANY project)
+1. Inline documentation — JSDoc/docstrings for public functions
+2. README updates — if story adds user-facing features
+3. CHANGELOG entry — add to CHANGELOG.md
+
+## If framework detected:
+4. Feature docs page
+5. Component docs (if applicable)
+6. Architecture diagram updates (Mermaid)
+7. Navigation/sidebar config updates
+
+## Output Format
+### DOCS_UPDATED: [YES/NO]
+### Framework Detected: [name or None]
+### Documentation Changes
+[List of files created/updated]
+EOF
+```
+
+#### User Story Generator
+
+```bash
+cat > .claude/agents/writ-story-gen.md << 'EOF'
+---
+name: writ-story-gen
+description: Parallel story file generator for Writ create-spec. Creates individual user story markdown files. Designed to run multiple instances simultaneously in worktrees.
+tools: Read, Write, Bash
+model: haiku
+permissionMode: acceptEdits
+isolation: worktree
+maxTurns: 10
+---
+
+You are a User Story Generator for Writ.
+
+## Your Task
+Create a single user story file at the specified path.
+
+## Story Format
+
+# Story N: [Title]
+
+> **Status:** Not Started
+> **Priority:** [High/Medium/Low]
+> **Dependencies:** [List or None]
+
+## User Story
+**As a** [user type]
+**I want to** [action]
+**So that** [value]
+
+## Acceptance Criteria
+- [ ] Given [context], when [action], then [outcome]
+(3-5 criteria, Given/When/Then format)
+
+## Implementation Tasks
+- [ ] N.1 Write tests for [component]
+- [ ] N.2 [Implementation step]
+(5-7 tasks, always start with tests, end with verification)
+
+## Notes
+[Technical considerations, risks, integration points]
+
+## Definition of Done
+- [ ] All tasks completed
+- [ ] All acceptance criteria met
+- [ ] Tests passing
+- [ ] Code reviewed
+- [ ] Documentation updated
+
+Write the file and confirm completion with file path, criteria count, and task count.
+EOF
+```
+
+### Step 4: Copy Command Files
+
+```bash
+cp path/to/writ/commands/*.md .claude/commands/
+```
+
+### Step 5: Project Context (Optional)
 
 ```bash
 mkdir -p .writ/docs
 
-# Tech stack
 cat > .writ/docs/tech-stack.md << 'EOF'
 # Tech Stack
-- Runtime: Node.js 22 / Bun
+- Runtime: [your runtime]
 - Framework: [your framework]
 - Database: [your DB]
 - Testing: [your test runner]
 EOF
-
-# Code style
-cat > .writ/docs/code-style.md << 'EOF'
-# Code Style
-- [Your conventions here]
-EOF
 ```
 
-### Step 5: .gitignore
+### Step 6: .gitignore
 
 ```gitignore
 # Writ ephemeral state
 .writ/state/
 
-# Keep everything else (specs, ADRs, research are valuable)
+# Claude Code agent memory (project-level, consider committing for team use)
+# .claude/agent-memory/
 ```
 
 ### Final Structure
 
 ```
 your-project/
-├── CLAUDE.md                      # Auto-loaded by Claude Code every session
+├── CLAUDE.md                          # Auto-loaded every session
 ├── .claude/
-│   ├── commands/                  # Command workflows
+│   ├── agents/                        # Native subagent definitions
+│   │   ├── writ-architect.md          # isolation: worktree, plan mode
+│   │   ├── writ-coder.md             # isolation: worktree, acceptEdits
+│   │   ├── writ-reviewer.md          # read-only, persistent memory
+│   │   ├── writ-tester.md            # acceptEdits
+│   │   ├── writ-documenter.md        # sonnet model, acceptEdits
+│   │   └── writ-story-gen.md         # haiku model, worktree
+│   ├── commands/                      # Writ command workflows
 │   │   ├── create-spec.md
 │   │   ├── implement-story.md
-│   │   ├── execute-task.md
-│   │   └── ... (14 more)
-│   └── agents/                    # Sub-agent prompt templates
-│       ├── coding-agent.md
-│       ├── review-agent.md
-│       ├── testing-agent.md
-│       ├── documentation-agent.md
-│       └── user-story-generator.md
-├── .writ/                 # Runtime artifacts
-│   ├── specs/
-│   ├── product/
-│   ├── research/
-│   ├── decision-records/
-│   ├── docs/
-│   │   ├── tech-stack.md
-│   │   └── code-style.md
-│   ├── issues/
-│   ├── explanations/
-│   └── state/
-└── ...
+│   │   └── ... (all commands)
+│   └── agent-memory/                  # Persistent agent memory (auto-created)
+│       ├── writ-architect/
+│       ├── writ-coder/
+│       └── writ-reviewer/
+└── .writ/                             # Runtime artifacts
+    ├── specs/
+    ├── decision-records/
+    └── state/
 ```
 
 ---
 
-## Usage
+## Key Features Used
 
-### Interactive Session
+### Git Worktree Isolation (`isolation: worktree`)
 
-```bash
-cd your-project
-claude
+The game-changer for parallel execution. When a subagent has `isolation: worktree`, Claude Code:
+1. Creates a temporary git worktree (isolated copy of the repo)
+2. Runs the subagent in that worktree (no file conflicts with other agents)
+3. Merges changes back when the subagent completes
+4. Auto-cleans the worktree if no changes were made
 
-# Then type commands in the chat:
-> /create-spec "user authentication"
-> /implement-story
-> /status
+**Writ agents using worktrees:**
+- `writ-architect` — reads codebase without interfering
+- `writ-coder` — implements in isolation, no conflicts with parallel stories
+- `writ-story-gen` — generates story files in parallel without conflicts
+
+**Why this matters for `/implement-story --all`:**
+Multiple stories can be implemented simultaneously in separate worktrees. Each coder gets its own branch/worktree, implements independently, and changes merge back. No file locking, no conflicts on shared files.
+
+### Persistent Memory (`memory: project`)
+
+Agents learn across sessions. The review agent remembers patterns it's seen, the architect remembers architectural decisions, the coder remembers conventions.
+
+```
+.claude/agent-memory/
+├── writ-architect/MEMORY.md    # "This project uses repository pattern for data access"
+├── writ-coder/MEMORY.md        # "Tests use vitest with MSW for API mocking"
+└── writ-reviewer/MEMORY.md     # "Previous review caught SQL injection in routes/search.ts"
 ```
 
-### One-Shot (Non-Interactive)
+### Model Selection
 
-```bash
-claude -p "/status" 
-claude -p "/create-issue 'Login page crashes on empty email'"
-```
+Each agent uses the most cost-effective model for its role:
 
-### With Permission Bypass (for CI/automation)
+| Agent | Model | Rationale |
+|-------|-------|-----------|
+| writ-architect | inherit (Opus/Sonnet) | Needs deep reasoning about architecture |
+| writ-coder | inherit | Needs full coding capability |
+| writ-reviewer | inherit | Needs thorough analysis |
+| writ-tester | inherit | Needs to understand and fix code |
+| writ-documenter | sonnet | Good enough for docs, saves cost |
+| writ-story-gen | haiku | Template-based generation, fast + cheap |
 
-```bash
-claude -p "/execute-task story-1" --permission-mode acceptEdits
-claude -p "/implement-story" --permission-mode bypassPermissions  # ⚠️ sandbox only
-```
+### Permission Modes
+
+| Agent | Mode | Why |
+|-------|------|-----|
+| writ-architect | `plan` | Read-only analysis, no modifications |
+| writ-coder | `acceptEdits` | Auto-accept file changes (TDD flow) |
+| writ-reviewer | `plan` | Read-only review, cannot modify |
+| writ-tester | `acceptEdits` | May need to fix tests |
+| writ-documenter | `acceptEdits` | Creates/updates doc files |
+| writ-story-gen | `acceptEdits` | Creates story files |
 
 ---
 
-## Multi-Agent Patterns
+## Tool Mapping (Cursor → Claude Code)
 
-### Using `--agents` Flag
+### Quick Reference
 
-Claude Code supports custom agent definitions via JSON:
-
-```bash
-claude --agents '{
-  "writ": {
-    "description": "Methodical development partner",
-    "prompt": "You are Writ. Read .claude/commands/ for available workflows."
-  },
-  "reviewer": {
-    "description": "Code review specialist", 
-    "prompt": "You are the Review Agent. Read .claude/agents/review-agent.md for your mission. Do NOT modify any files."
-  }
-}'
-```
-
-Then switch agents mid-session with `/agent writ` or `/agent reviewer`.
-
-### Parallel Sub-Agents via Background Processes
-
-For `implement-story` and `create-spec` parallel work:
-
-```bash
-# Orchestrator spawns parallel story generators
-claude -p "Create story-1-auth.md at .writ/specs/2026-02-22-feature/user-stories/. [full prompt]" \
-  --allowedTools Read,Write,Bash \
-  --permission-mode acceptEdits \
-  --no-session-persistence &
-
-claude -p "Create story-2-api.md at .writ/specs/2026-02-22-feature/user-stories/. [full prompt]" \
-  --allowedTools Read,Write,Bash \
-  --permission-mode acceptEdits \
-  --no-session-persistence &
-
-# Wait for all to complete
-wait
-```
-
-### Review Loop Pattern
-
-```bash
-# Phase 1: Coding agent
-claude -p "Read .writ/state/story-context.json. Implement the story. Write summary to .writ/state/coding-output.md" \
-  --allowedTools Read,Write,Edit,Bash \
-  --permission-mode acceptEdits
-
-# Phase 2: Review agent (read-only)
-claude -p "Read .writ/state/coding-output.md. Review against acceptance criteria. Write REVIEW_RESULT to .writ/state/review-result.md" \
-  --allowedTools Read,Bash \
-  --permission-mode acceptEdits
-
-# Phase 3: Check result, loop if needed
-RESULT=$(grep "REVIEW_RESULT" .writ/state/review-result.md)
-if [[ "$RESULT" == *"FAIL"* ]]; then
-  claude -p "Read .writ/state/review-result.md for feedback. Fix all issues. Update .writ/state/coding-output.md" \
-    --allowedTools Read,Write,Edit,Bash \
-    --permission-mode acceptEdits
-fi
-```
-
----
-
-## Quick Reference
-
-| Cursor Tool | Claude Code Equivalent | Notes |
+| Cursor Tool | Claude Code Native | Notes |
 |---|---|---|
-| `Task({ prompt })` | `claude -p "prompt"` via `exec` | One-shot, or background for parallel |
-| `Task({ resume: id })` | Kill + respawn with accumulated context | No native resume |
-| `AskQuestion({ questions })` | Formatted text with numbered options | No interactive UI |
-| `codebase_search` | `Bash("rg 'pattern' src/")` | ripgrep |
-| `file_search` | `Bash("fd 'pattern'")` | fd or find |
-| `todo_write` | `Write(".writ/state/tracking.json", ...)` | File-based |
+| `Task({ prompt })` | Automatic delegation to named subagent | Claude routes based on `description` field |
+| `Task({ readonly: true })` | `permissionMode: plan` + `disallowedTools: Write, Edit` | Enforced at tool level |
+| `AskQuestion()` | Formatted text with numbered options | No interactive UI |
+| `codebase_search` | `Grep("pattern")` or `Bash("rg 'pattern'")` | Built-in Grep tool |
+| `file_search` | `Glob("**/pattern*")` | Built-in Glob tool |
+| `todo_write` | `Write(".writ/state/tracking.json")` | File-based |
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Direct equivalent |
-| `list_dir` | `Bash("ls -la path/")` | Direct equivalent |
-| `readonly: true` | `--allowedTools Read,Bash` | Restricts tool access |
+| `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |
 
----
+### Triggering Agents
 
-## Running Modes
+Claude Code delegates to subagents automatically based on the `description` field. In Writ command workflows, you can explicitly request delegation:
 
-### Standalone Claude Code (user runs `claude` directly)
-
-When a developer runs `claude` in their terminal and invokes Writ commands, the tools map naturally — Claude Code already has `Read`, `Write`, `Edit`, `Bash`.
-
-The key difference is **sub-agents**. Claude Code doesn't have `Task()`, so you need:
-
-### Pattern A: Sequential (simple)
-Run each agent phase inline — orchestrator does everything in one session.
-
-### Pattern B: Parallel via background processes
-Spawn multiple `claude -p` processes for parallel work.
-
-### Pattern C: OpenClaw-hosted Claude Code
-Use `exec pty:true command:"claude -p '...'"` from an OpenClaw agent, combining both platforms.
-
----
-
-## Detailed Mappings
-
-### 1. Spawning Sub-Agents (`Task` → `claude -p` via Bash)
-
-**Cursor:**
 ```
-Task({
-  subagent_type: "generalPurpose",
-  model: "fast",
-  description: "Create user story 1",
-  prompt: "You are a User Story Generator agent..."
-})
+Use the writ-coder agent to implement this story.
+Use the writ-reviewer agent to review the implementation.
 ```
 
-**Claude Code (inline — no sub-agent):**
-Just execute the work directly. Claude Code is already an agent with file access.
+Or Claude will delegate automatically when the task matches an agent's description.
 
-**Claude Code (parallel via background):**
-```bash
-# From an OpenClaw orchestrator or shell script:
-
-# Story 1 (background)
-exec({
-  command: "claude -p 'You are a User Story Generator. Create story-1-auth.md in .writ/specs/2026-02-22-feature/user-stories/ with the following requirements: ...' --allowedTools Read,Write,Bash",
-  workdir: "/path/to/project",
-  pty: true,
-  background: true
-})
-
-# Story 2 (background, parallel)
-exec({
-  command: "claude -p 'You are a User Story Generator. Create story-2-api.md ...' --allowedTools Read,Write,Bash",
-  workdir: "/path/to/project",
-  pty: true,
-  background: true
-})
-```
-
-**Monitor parallel agents:**
-```
-process({ action: "list" })                    // See all running
-process({ action: "poll", sessionId: "..." })  // Check if done
-process({ action: "log", sessionId: "..." })   // Read output
-```
-
-### 2. Resuming Agents (no native resume — use context passing)
-
-**Cursor:**
-```
-Task({
-  resume: "{coding_agent_id}",
-  prompt: "Fix these review issues..."
-})
-```
-
-**Claude Code:**
-There's no session resume. Instead, capture the previous agent's output and pass it as context to a new invocation:
-
-```bash
-# Capture coding agent output to file
-process({ action: "log", sessionId: "coding-agent-session" })
-# Save relevant output to a context file
-
-# Spawn new agent with accumulated context
-exec({
-  command: "claude -p 'PREVIOUS IMPLEMENTATION:\n[paste or reference output]\n\nREVIEW FEEDBACK:\n[issues]\n\nFix the issues above and re-run tests.' --allowedTools Read,Write,Edit,Bash",
-  workdir: "/path/to/project",
-  pty: true
-})
-```
-
-**File-based context passing (recommended for large contexts):**
-```bash
-# After coding agent completes, it writes summary:
-# .writ/state/coding-output.md
-
-# Review agent reads it:
-exec({
-  command: "claude -p 'Read .writ/state/coding-output.md for implementation context. Review the changes and output REVIEW_RESULT: PASS or FAIL with details.' --allowedTools Read,Bash",
-  ...
-})
-
-# If FAIL, next coding run reads both:
-exec({
-  command: "claude -p 'Read .writ/state/coding-output.md and .writ/state/review-feedback.md. Fix all issues marked Critical or Major.' --allowedTools Read,Write,Edit,Bash",
-  ...
-})
-```
-
-### 3. Structured Questions (`AskQuestion` → formatted text)
-
-**Cursor:**
-```
-AskQuestion({
-  title: "Feature Clarification",
-  questions: [{ id: "user_type", prompt: "Who is the primary user?", options: [...] }]
-})
-```
-
-**Claude Code:**
-No interactive UI available. Use formatted text:
+### Structured Questions (no AskQuestion equivalent)
 
 ```
 **Feature Clarification - Round 1**
@@ -396,220 +530,150 @@ Who is the primary user of this feature?
 Reply with the number of your choice.
 ```
 
-For multi-question rounds:
-```
-**Round 1 — Core Understanding**
-
-1. **Primary user?**
-   a) End users  b) Admins  c) Developers  d) Multiple
-
-2. **Integration approach?**
-   a) Standalone  b) Extends existing  c) Replaces existing  d) Deep integration
-
-3. **Priority?**
-   a) MVP first  b) Complete feature  c) Iterative
-
-Reply like: "1a, 2b, 3c"
-```
-
-### 4. Code Search (`codebase_search` → `Bash` with ripgrep)
-
-**Cursor:**
-```
-codebase_search("authentication pattern")
-```
-
-**Claude Code:**
-```bash
-Bash("rg -n 'authenticate|authorize' src/ --type ts")
-Bash("rg -l 'auth' src/ --type ts --type tsx")
-Bash("rg -C 3 'export.*Auth' src/")
-```
-
-### 5. File Search (`file_search` → `Bash` with fd)
-
-**Cursor:**
-```
-file_search("AuthService")
-```
-
-**Claude Code:**
-```bash
-Bash("fd AuthService")
-Bash("fd -e ts -e tsx auth")
-Bash("find . -name '*auth*' -not -path '*/node_modules/*'")
-```
-
-### 6. Progress Tracking (`todo_write` → file-based JSON)
-
-**Cursor:**
-```
-todo_write({ todos: [{ id: "phase-1", content: "Gather context", status: "completed" }] })
-```
-
-**Claude Code:**
-```
-Write(".writ/state/tracking.json", JSON.stringify({
-  phases: {
-    "context-gathering": { status: "completed", completedAt: "2026-02-22T17:40:00Z" },
-    "coding-phase": { status: "in_progress" },
-    "review-phase": { status: "pending" }
-  }
-}, null, 2))
-```
-
-### 7. Read-Only Agents (`readonly: true` → `--allowedTools`)
-
-**Cursor:**
-```
-Task({ readonly: true, prompt: "Review the implementation..." })
-```
-
-**Claude Code:**
-```bash
-claude -p "Review the implementation..." --allowedTools Read,Bash
-```
-
-This restricts the agent to only reading files and running shell commands (for grep/find). No `Write`, `Edit`, or destructive operations.
-
-**Tool restriction patterns:**
-| Mode | `--allowedTools` | Use Case |
-|------|---|---|
-| Read-only | `Read,Bash` | Review agent, analysis |
-| Full access | `Read,Write,Edit,Bash` | Coding agent, docs agent |
-| Minimal | `Read` | Pure analysis, no shell |
-
 ---
 
 ## Workflow Patterns
 
-### implement-story: Sequential (Single Session)
-
-When running in a single `claude` session (no parallelism), the orchestrator just does each phase inline:
+### implement-story: Single Story
 
 ```
-1. Read story file and spec
-2. Search codebase for patterns (rg, fd)
-3. Write tests (TDD)
-4. Implement code
-5. Self-review against acceptance criteria
-6. Run tests (Bash)
-7. Update documentation
-8. Update story status
+1. Orchestrator gathers context (reads story, spec, codebase)
+2. Delegates to writ-architect (worktree, read-only)
+   → Returns PROCEED/CAUTION/ABORT
+3. Delegates to writ-coder (worktree, full access)
+   → Implements in isolation, returns summary
+4. Orchestrator runs lint/typecheck inline
+5. Delegates to writ-reviewer (read-only, uses memory)
+   → Returns PASS/FAIL
+6. If FAIL: re-delegate to writ-coder with feedback (max 3×)
+7. Delegates to writ-tester (full access)
+   → Returns PASS/FAIL with coverage
+8. Delegates to writ-documenter (sonnet, full access)
+   → Updates docs
+9. Orchestrator updates story status, commits
 ```
 
-This is simpler but loses the multi-agent quality gates.
+### implement-story --all: Agent Teams (Experimental)
 
-### implement-story: Multi-Agent (Parallel Processes)
+For full spec execution with inter-agent communication:
 
-```bash
-# Phase 1: Context (orchestrator gathers, writes to state file)
-Write(".writ/state/story-context.json", { story, spec, patterns })
-
-# Phase 2: Coding agent
-exec({
-  pty: true,
-  workdir: "/project",
-  command: "claude -p 'Read .writ/state/story-context.json. Implement the story following TDD. Write your output summary to .writ/state/coding-output.md when done.' --allowedTools Read,Write,Edit,Bash"
-})
-
-# Phase 3: Review agent (read-only)
-exec({
-  pty: true,
-  workdir: "/project",
-  command: "claude -p 'Read .writ/state/coding-output.md. Review against the story acceptance criteria in .writ/state/story-context.json. Write REVIEW_RESULT to .writ/state/review-result.md.' --allowedTools Read,Bash"
-})
-
-# Check review result
-Read(".writ/state/review-result.md")
-# Parse PASS/FAIL, loop if needed
-
-# Phase 4: Testing agent
-exec({
-  pty: true,
-  workdir: "/project",
-  command: "claude -p 'Run all tests. Read .writ/state/coding-output.md for files to test. Fix failures if possible. Write TEST_RESULT to .writ/state/test-result.md.' --allowedTools Read,Write,Edit,Bash"
-})
-
-# Phase 5: Documentation agent
-exec({
-  pty: true,
-  workdir: "/project",
-  command: "claude -p 'Read .writ/state/coding-output.md. Create/update VitePress docs in docs/. Write summary to .writ/state/docs-result.md.' --allowedTools Read,Write,Edit,Bash"
-})
 ```
+Enable agent teams:
+  CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+
+Create a team to implement the spec at .writ/specs/2026-02-22-feature/.
+Spawn teammates:
+  - Story 1 implementer (use writ-coder agent in worktree)
+  - Story 3 implementer (use writ-coder agent in worktree)
+  - Reviewer (use writ-reviewer agent, reviews stories as they complete)
+
+Stories 1 and 3 have no dependencies and can run in parallel.
+After both complete, the reviewer reviews them.
+Then spawn Story 2 (depends on 1) and Story 4 (depends on 3).
+```
+
+Agent teams provide:
+- Shared task list (stories become tasks)
+- Inter-agent messaging (reviewer can send feedback to coders)
+- Self-coordination (agents claim available tasks)
+- Plan approval (architect reviews before coders implement)
 
 ### create-spec: Parallel Story Generation
 
-```bash
-# After contract is locked, spawn story generators in parallel:
-
-# All background with PTY
-exec({ pty: true, background: true, workdir: "/project",
-  command: "claude -p 'Create story-1-auth.md at [path]. [Full template + context]' --allowedTools Read,Write,Bash"
-})
-exec({ pty: true, background: true, workdir: "/project",
-  command: "claude -p 'Create story-2-api.md at [path]. [Full template + context]' --allowedTools Read,Write,Bash"
-})
-exec({ pty: true, background: true, workdir: "/project",
-  command: "claude -p 'Create story-3-ui.md at [path]. [Full template + context]' --allowedTools Read,Write,Bash"
-})
-
-# Monitor completion
-process({ action: "list" })
-# Wait for all to finish, then create README.md
 ```
+# Orchestrator locks contract, then delegates story generation:
+# Each runs in its own worktree — no file conflicts
+
+Use the writ-story-gen agent to create story-1-auth.md at [path].
+  Context: [contract + requirements for story 1]
+
+Use the writ-story-gen agent to create story-2-api.md at [path].
+  Context: [contract + requirements for story 2]
+
+Use the writ-story-gen agent to create story-3-ui.md at [path].
+  Context: [contract + requirements for story 3]
+
+# All run in parallel in separate worktrees
+# Changes merge back automatically
+```
+
+### Quality Gates with Hooks
+
+Use Claude Code hooks to enforce quality gates automatically:
+
+```json
+// .claude/settings.json
+{
+  "hooks": {
+    "SubagentCompleted": [
+      {
+        "matcher": "writ-coder",
+        "hooks": [{
+          "type": "command",
+          "command": "cd $WORKTREE && npm test && npx tsc --noEmit"
+        }]
+      }
+    ]
+  }
+}
+```
+
+If tests fail after the coder completes, the hook returns exit code 2 and sends the coder back to fix.
 
 ---
 
-## Claude Code CLI Reference
+## CLI Usage
 
-### Key Flags
-
-| Flag | Purpose | Example |
-|------|---------|---------|
-| `-p "prompt"` | Non-interactive one-shot | `claude -p "Explain this code"` |
-| `--allowedTools` | Restrict available tools | `--allowedTools Read,Bash` |
-| `--model` | Model override | `--model claude-sonnet-4-20250514` |
-| `--max-turns` | Limit agent iterations | `--max-turns 20` |
-| `--output-format json` | Structured output | For parsing results |
-| `--no-input` | No stdin prompts | Prevents hanging in background |
-
-### Common Invocation
+### Interactive Session
 
 ```bash
-claude -p "Your detailed prompt here" \
-  --allowedTools Read,Write,Edit,Bash \
-  --max-turns 30 \
-  --no-input
+cd your-project
+claude
+
+> /create-spec "user authentication"
+> /implement-story
+> /status
 ```
 
-### Output Capture
+### One-Shot
 
 ```bash
-# Capture to file for next agent
-claude -p "..." --output-format text > .writ/state/output.md
+claude -p "/status"
+claude -p "/create-issue 'Login page crashes on empty email'"
+```
 
-# Or have the agent write its own output file (more reliable)
-claude -p "... When done, write your summary to .writ/state/result.md"
+### With Specific Agents
+
+```bash
+# Run with inline agent override
+claude --agents '{
+  "quick-reviewer": {
+    "description": "Quick code review",
+    "prompt": "Review the last commit for issues.",
+    "tools": ["Read", "Grep", "Glob", "Bash"],
+    "model": "haiku"
+  }
+}'
+```
+
+### Permission Bypass (CI/automation)
+
+```bash
+claude -p "/verify-spec --check" --permission-mode acceptEdits
 ```
 
 ---
 
 ## Gotchas
 
-1. **No session resume**: Claude Code doesn't support resuming sessions. Use file-based context passing between agent phases. Write outputs to `.writ/state/`, read them in the next phase.
+1. **Worktree merges can conflict**: If two parallel coders modify the same file, the merge will conflict. Design stories with minimal overlap. The dependency graph in `/implement-story` helps prevent this.
 
-2. **No interactive UI**: No `AskQuestion` equivalent. Use numbered text options. This means contract-first clarification in `create-spec` will be more conversational and less structured.
+2. **Agent teams are experimental**: Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. Known limitations around session resumption and shutdown. For production use, prefer sequential subagent delegation.
 
-3. **`-p` flag for non-interactive**: Always use `-p` when running as a sub-process. Without it, `claude` expects interactive terminal input and may hang.
+3. **Memory bootstrapping**: Agent memory starts empty. First few runs will be less effective. Ask agents explicitly to "update your memory with patterns you discover."
 
-4. **`--no-input` for background**: Add this flag when running in background to prevent the process from waiting on stdin.
+4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
 
-5. **Working directory matters**: Each `claude -p` invocation starts fresh. Set `workdir` to the project root so the agent has proper context.
+5. **Subagents can't spawn subagents**: This is a Claude Code limitation. The orchestrator (main session) must handle all delegation. Agents can't delegate to each other — use agent teams if you need inter-agent communication.
 
-6. **Tool restrictions are advisory**: `--allowedTools` restricts what tools Claude Code will use, but the agent could still be instructed to write via `Bash("echo > file")`. For true read-only, combine `--allowedTools Read,Bash` with explicit prompt instructions.
-
-7. **Cost control**: Each `claude -p` invocation is a separate API session. For 4 parallel story generators, that's 4× the context loading cost. Consider whether sequential is acceptable for smaller specs.
-
-8. **Max turns**: Set `--max-turns` to prevent runaway agents. 20-30 turns is usually enough for a single story implementation. Review agents need fewer (5-10).
+6. **Plan mode is truly read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer genuinely cannot modify files, even if prompted to.
