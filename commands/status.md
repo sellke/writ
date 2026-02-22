@@ -63,7 +63,7 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
 
 ### Standard Status Report
 
-⚓ Writ Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -91,7 +91,7 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
 
 ### Clean State Example
 
-⚓ Writ Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -115,7 +115,7 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
 
 ### Problem State Example
 
-⚓ Writ Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -151,7 +151,7 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
 
 **Critical**: When Writ executes the status command, the report should be presented as **clean, formatted text** directly in the chat response, NOT wrapped in code blocks or markdown formatting. This ensures maximum readability and a professional presentation.
 
-The status report uses Unicode characters (⚓, 📍, 📋, 🎯, ⚡, ⚠️) and box-drawing characters (━) for visual appeal. These should be output exactly as shown in the examples above.
+The status report uses Unicode characters (⚡, 📍, 📋, 🎯, 🔥, ⚠️) and box-drawing characters (━) for visual appeal. These should be output exactly as shown in the examples above.
 
 ### Git Analysis
 **Commands to Run:**
@@ -319,7 +319,7 @@ $ /status
 
 ### No Writ Structure
 ```bash
-⚓ Writ Status Report
+⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
@@ -410,7 +410,7 @@ $ /status
 
 ---
 
-*⚓ Keep your bearings, maintain your heading, and always know where you stand in the code.*
+*⚡ Know thy codebase. Know thy standing. The truth shall set your project free.*
 
 ## Suggested Next Actions
 

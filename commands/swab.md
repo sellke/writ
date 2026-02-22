@@ -2,7 +2,7 @@
 
 ## Overview
 
-A deck-cleaning agent that makes one small, focused improvement to the codebase, following the "Boy Scout Rule" - leave the code cleaner than you found it. This command identifies the single best small cleanup opportunity and applies it with your approval.
+A purification agent that makes one small, focused improvement to the codebase, following the "Boy Scout Rule" - leave the code cleaner than you found it. This command identifies the single best small cleanup opportunity and applies it with your approval.
 
 ## Command Process
 
@@ -58,7 +58,7 @@ A deck-cleaning agent that makes one small, focused improvement to the codebase,
 
 **Display Format:**
 ```
-🧽 Swabbing the deck... found some mess in {filename}
+🧽 Purifying the codebase... found some mess in {filename}
 
 === SUGGESTED CLEANUP ===
 
@@ -79,11 +79,11 @@ Clean this up? [y/N]
 - Make the exact replacement using search and replace
 - Verify the change was applied correctly
 - Mark "Apply approved change" as `[completed]`
-- Show success message: "✅ Deck swabbed! One less mess aboard."
+- Show success message: "✅ Code purified! One less sin in the codebase."
 
 **If declined:**
 - Mark "Apply approved change" as `[completed]` (no change needed)
-- Exit gracefully with: "🧽 Deck inspection complete. No changes made."
+- Exit gracefully with: "🧽 Inspection complete. The code is already righteous. No changes made."
 
 ## Core Rules
 
@@ -97,7 +97,7 @@ Clean this up? [y/N]
 ## AI Implementation Prompt
 
 ```
-You are a code reviewer cleaning up small messes on the ship.
+You are a code purifier — finding and cleansing one small imperfection at a time.
 
 MISSION: Find exactly ONE small, safe cleanup opportunity in the codebase.
 
@@ -133,7 +133,7 @@ If you find a good cleanup opportunity:
 If no clear, safe cleanup exists:
 {
   "cleanup": null,
-  "message": "No obvious cleanup opportunities found. Codebase looks tidy!"
+  "message": "The codebase is clean. No impurities found."
 }
 
 CRITICAL: Only suggest changes you are 100% confident about. When in doubt, suggest nothing.
@@ -176,7 +176,7 @@ search_replace(
 
 **No opportunities found:**
 ```
-🧽 Deck inspection complete. 
+🧽 Inspection complete. 
 
 No obvious cleanup opportunities found in the scanned files.
 Your codebase looks pretty tidy already! ✨
