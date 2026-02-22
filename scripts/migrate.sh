@@ -138,6 +138,10 @@ done
 if [ -d ".cursor" ]; then
   find .cursor -name "*.md" -exec sed -i 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
   find .cursor -name "*.md" -exec sed -i 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
+  find .cursor -name "*.mdc" -exec sed -i 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
+  find .cursor -name "*.mdc" -exec sed -i 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
+  # Remove old Code Captain rules file, replace with Writ
+  rm -f .cursor/rules/cc.mdc 2>/dev/null || true
 fi
 
 # Step 3: Update .gitignore
@@ -191,8 +195,9 @@ fi
 
 echo ""
 echo "Next steps:"
-echo "  1. Install Writ commands: copy writ/commands/*.md to .cursor/commands/"
-echo "  2. Install Writ agents:   copy writ/agents/*.md to .cursor/agents/"
-echo "  3. Run /status to see your project through Writ"
+echo "  1. Install Writ commands: cp writ/commands/*.md .cursor/commands/"
+echo "  2. Install Writ agents:   cp writ/agents/*.md .cursor/agents/"
+echo "  3. Install Writ rules:    cp writ/cursor/writ.mdc .cursor/rules/"
+echo "  4. Run /status to see your project through Writ"
 echo ""
 echo "⚡ Gawd issues writs. The framework executes them."

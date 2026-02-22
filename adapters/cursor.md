@@ -4,52 +4,58 @@ Writ commands and agents are written natively for Cursor. This guide covers inst
 
 ## Quick Install
 
-Copy the commands and agents into your project's `.writ/` directory:
+Copy the commands, agents, and rules into your project's `.cursor/` directory:
 
 ```bash
 # From your project root
-mkdir -p .writ/commands .writ/agents
+mkdir -p .cursor/commands .cursor/agents .cursor/rules
 
 # Commands
-cp path/to/writ/commands/*.md commands/
+cp path/to/writ/commands/*.md .cursor/commands/
 
 # Agents
-cp path/to/writ/agents/*.md agents/
+cp path/to/writ/agents/*.md .cursor/agents/
 
-# System instructions (applies to all Cursor sessions)
-cp path/to/writ/system-instructions.md .writ/
+# Rules file (alwaysApply: true — loads every Cursor session)
+cp path/to/writ/cursor/writ.mdc .cursor/rules/
+
+# Remove old Code Captain rules if present
+rm -f .cursor/rules/cc.mdc
 ```
 
 ## Directory Structure
 
 ```
 your-project/
-├── .writ/
-│   ├── system-instructions.md     # Writ identity & rules (alwaysApply: true)
+├── .cursor/
+│   ├── rules/
+│   │   └── writ.mdc               # Writ identity & rules (alwaysApply: true)
 │   ├── commands/
 │   │   ├── create-spec.md         # /create-spec
 │   │   ├── implement-story.md     # /implement-story
-│   │   ├── execute-task.md        # /execute-task
+│   │   ├── refactor.md            # /refactor
 │   │   ├── plan-product.md        # /plan-product
 │   │   ├── create-adr.md          # /create-adr
 │   │   ├── create-issue.md        # /create-issue
 │   │   ├── research.md            # /research
 │   │   ├── edit-spec.md           # /edit-spec
 │   │   ├── verify-spec.md         # /verify-spec
+│   │   ├── release.md             # /release
+│   │   ├── security-audit.md      # /security-audit
 │   │   ├── status.md              # /status
-│   │   ├── swab.md                # /swab
-│   │   ├── refresh-docs.md        # /refresh-docs
+│   │   ├── migrate.md             # /migrate
 │   │   ├── initialize.md          # /initialize
 │   │   ├── explain-code.md        # /explain-code
 │   │   ├── new-command.md         # /new-command
 │   │   ├── test-database.md       # /test-database
 │   │   └── prisma-migration.md    # /prisma-migration
 │   └── agents/
-│       ├── coding-agent.md        # Spawned by implement-story
-│       ├── review-agent.md        # Spawned by implement-story
-│       ├── testing-agent.md       # Spawned by implement-story
-│       ├── documentation-agent.md # Spawned by implement-story
-│       └── user-story-generator.md # Spawned by create-spec
+│       ├── architecture-check-agent.md  # Pre-implementation gate
+│       ├── coding-agent.md              # TDD implementation
+│       ├── review-agent.md              # Quality + security gate
+│       ├── testing-agent.md             # Tests + coverage
+│       ├── documentation-agent.md       # Framework-adaptive docs
+│       └── user-story-generator.md      # Parallel story creation
 └── .writ/                 # Created at runtime (add to .gitignore or commit)
     ├── specs/
     ├── product/
