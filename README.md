@@ -55,7 +55,7 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 | Command | Purpose |
 |---------|---------|
 | `/implement-story` | **Primary executor.** Full SDLC pipeline with 6 quality gates. Runs single stories, partial specs, or full specs with dependency resolution + parallelism. |
-| `/swab` | One small cleanup (Boy Scout rule) |
+| `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | Comprehensive project status report |
 
 ### Validation & Release

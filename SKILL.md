@@ -42,7 +42,7 @@ When a user requests any Writ command, read the corresponding command file and f
 | Command | File | Purpose |
 |---------|------|---------|
 | `/implement-story` | `commands/implement-story.md` | **Primary executor.** Full SDLC pipeline: arch-check → code → lint → review → test (+ coverage) → docs. Runs single stories, partial specs, or full specs with dependency resolution + parallelism. |
-| `/swab` | `commands/swab.md` | One small cleanup (Boy Scout rule) |
+| `/refactor` | `commands/refactor.md` | Scoped refactoring: file/module analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | `commands/status.md` | Comprehensive project status report |
 
 ### Release & Delivery
@@ -69,6 +69,7 @@ When a user requests any Writ command, read the corresponding command file and f
 |---------|------|-------------|
 | `/execute-task` | `commands/execute-task.md` | `/implement-story` (or `--quick` for TDD-only) |
 | `/refresh-docs` | `commands/refresh-docs.md` | `/verify-spec` (with `--sync-trello` for Trello) |
+| `/swab` | `commands/swab.md` | `/refactor` (scoped, verified, more powerful) |
 
 ## Sub-Agent Specifications
 
