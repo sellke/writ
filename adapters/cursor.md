@@ -75,7 +75,7 @@ Commands are invoked directly in Cursor's chat:
 /create-spec "real-time notifications"
 /implement-story
 /status
-/swab
+/refactor
 ```
 
 Cursor auto-discovers `.md` files in `commands/` and makes them available as slash commands.
@@ -90,9 +90,9 @@ These Cursor tools are used directly — no adapter needed:
 | `AskQuestion()` | create-spec, implement-story | Structured multi-choice questions with UI rendering |
 | `codebase_search` | Most commands | Semantic code search across the project |
 | `file_search` | Most commands | Find files by name/pattern |
-| `todo_write` | execute-task, implement-story | Visual progress tracking in Cursor sidebar |
+| `todo_write` | implement-story | Visual progress tracking in Cursor sidebar |
 | `read_file` | All commands | Read file contents |
-| `run_terminal_cmd` | execute-task, test-database | Run shell commands |
+| `run_terminal_cmd` | implement-story, test-database | Run shell commands |
 | `list_dir` | initialize, status | List directory contents |
 
 ## Agent Configuration Notes
@@ -157,7 +157,7 @@ Create these files in `.writ/docs/` to give commands better context:
 - **`best-practices.md`** — Project-specific practices, things to avoid
 - **`objective.md`** — What the project does, who it's for
 
-Commands like `create-spec` and `execute-task` auto-load these during context scanning.
+Commands like `create-spec` and `implement-story` auto-load these during context scanning.
 
 ### Creating New Commands
 

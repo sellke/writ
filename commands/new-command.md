@@ -16,7 +16,7 @@ A meta command that creates new Writ commands following established patterns and
 
 - Scan existing commands in `commands/` to understand patterns
 - Analyze existing Writ ecosystem using `codebase_search`
-- Load command patterns from successful commands (`create-spec`, `execute-task`, etc.)
+- Load command patterns from successful commands (`create-spec`, `implement-story`, etc.)
 - **Output:** Context summary (no files created yet)
 
 #### Step 1.2: Gap Analysis & Silent Enumeration
@@ -179,7 +179,7 @@ Options:
 - Echo check/contract proposal phase
 - Explicit user agreement before proceeding
 
-**Direct Execution Commands** (like `swab`, `execute-task`):
+**Direct Execution Commands** (like `refactor`, `implement-story`):
 
 - Immediate action workflows
 - Minimal clarification if needed
@@ -328,13 +328,13 @@ ls .writ/commands/ | grep "^command-name.md$"
    - Structured output formats
    - Contract-based workflows
 
-3. **Implementation** (`execute-task`, `swab`)
+3. **Implementation** (`implement-story`, `refactor`)
 
    - Code modification workflows
    - TDD patterns
    - Verification steps
 
-4. **Quality** (`status`, `swab`)
+4. **Quality** (`status`, `refactor`)
 5. **Meta** (`new-command`, `explain-code`)
    - Command scaffolding and template generation
    - Documentation updates across the ecosystem

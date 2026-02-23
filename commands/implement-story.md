@@ -661,7 +661,7 @@ If failures: identify which story broke integration, report to user.
 
 ## Next Steps
 - Run `/verify-spec` for final validation
-- Run `/refresh-docs` to sync all documentation
+- Run `/verify-spec` to sync all documentation
 - Consider `/release` when ready to ship
 ```
 
@@ -740,7 +740,7 @@ The full pipeline can be run later on quick-mode code:
 |---------|-------------|
 | `/create-spec` | Creates the stories that implement-story executes |
 | `/verify-spec` | Auto-runs after --all completion |
-| `/refresh-docs` | Run after spec completion for full sync |
+| `/verify-spec` | Run after spec completion for full sync |
 | `/status` | Shows progress of in-flight executions |
 | `/create-adr` | Use when architecture check reveals major decisions |
 

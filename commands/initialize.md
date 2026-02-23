@@ -119,7 +119,7 @@ Your development environment is now set up and documented:
 
 ### For Existing Products:
 /create-spec "feature description" - Create detailed feature specifications
-/execute-task - Implement features with TDD workflow
+/implement-story - Implement features with TDD workflow
 
 ### For Research:
 /research "topic" - Conduct systematic technical research
@@ -266,7 +266,7 @@ Your existing project has been analyzed and documented:
 
 ### For Feature Development:
 /create-spec "feature description" - Create detailed feature specifications
-/execute-task - Implement features following established patterns
+/implement-story - Implement features following established patterns
 
 ### For Technical Improvements:
 /research "technical topic" - Research solutions for identified gaps
@@ -300,7 +300,7 @@ Ready to define your product strategy and enhance your codebase!
 
 ### For Feature Development:
 /create-spec "feature description" - Create detailed feature specifications
-/execute-task - Implement features
+/implement-story - Implement features
 
 ### For Technical Improvements:
 /research "topic" - Research solutions for gaps

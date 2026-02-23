@@ -381,7 +381,7 @@ Please review the planning documents and let me know:
 
 Once you're satisfied with the product plan, you can use:
 - `/create-spec` to detail specific features from the roadmap
-- `/execute-task` to begin implementing planned features
+- `/implement-story` to begin implementing planned features
 - `/research` to investigate any market or product unknowns
 ```
 
@@ -431,7 +431,7 @@ Once you're satisfied with the product plan, you can use:
 
 **Cross-command integration:**
 - Feeds into `/create-spec` for detailed feature planning
-- Supports `/execute-task` with clear product context
+- Supports `/implement-story` with clear product context
 - Can trigger `/research` for market or technical investigation
 
 **Output integration:**

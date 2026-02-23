@@ -355,7 +355,7 @@ Each package gets its own version bump and changelog entry. Tags follow the patt
 |---------|-------------|
 | `/implement-story --all` | Completes the stories that /release documents |
 | `/verify-spec` | Should pass before releasing |
-| `/refresh-docs` | Run before /release to ensure docs are current |
+| `/verify-spec` | Run before /release to ensure docs are current |
 | `/status` | Quick check before releasing |
 
 **Recommended pre-release checklist:**

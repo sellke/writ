@@ -52,10 +52,10 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
 
 ### 4. Contextual Command Suggestions
 **Based on Current State:**
-- If mid-task: Suggest `/execute-task`
+- If mid-task: Suggest `/implement-story`
 - If no active work: Suggest `/create-spec`
-- If specifications exist: Suggest implementation with `/execute-task`
-- Always suggest `/swab` for code cleanup
+- If specifications exist: Suggest implementation with `/implement-story`
+- Always suggest `/refactor` for code cleanup
 
 ## Output Format
 
@@ -84,10 +84,10 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
    • Review recent main branch changes (3 new commits)
 
 ⚡ QUICK COMMANDS
-   /execute-task     # Continue current task
+   /implement-story     # Continue current task
    /commit-wip       # Commit work in progress  
    /sync-main        # Pull latest from main
-   /swab             # Quick code cleanup
+   /refactor             # Quick code cleanup
 
 ### Clean State Example
 
@@ -110,7 +110,7 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
 
 ⚡ QUICK COMMANDS
    /create-spec      # Plan new feature
-   /swab             # Clean up existing code
+   /refactor             # Clean up existing code
    /review-specs     # Check previous specifications
 
 ### Problem State Example
@@ -142,8 +142,8 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
    • Continue or restart task 1.4
 
 ⚡ QUICK COMMANDS
-  /execute-task     # Continue current task
-  /swab            # Code cleanup
+  /implement-story     # Continue current task
+  /refactor            # Code cleanup
 
 ## Implementation Details
 
@@ -275,7 +275,7 @@ pip check
 4. **Is there an active task?** → Suggest continue task
 5. **Is current task complete?** → Suggest next task
 6. **No active work?** → Suggest create spec
-7. **Always:** → Suggest swab for cleanup
+7. **Always:** → Suggest refactor for cleanup
 
 ## Usage Patterns
 
@@ -417,8 +417,8 @@ $ /status
 Based on project state analysis, suggest relevant next steps:
 
 - **No specs**: Suggest `/create-spec` or `/plan-product`
-- **Specs ready for implementation**: Suggest `/execute-task`
-- **Tasks ready**: Suggest `/execute-task`
-- **Code quality issues**: Suggest `/swab`
+- **Specs ready for implementation**: Suggest `/implement-story`
+- **Tasks ready**: Suggest `/implement-story`
+- **Code quality issues**: Suggest `/refactor`
 - **Missing architecture**: Suggest `/create-adr`
 - **Research needed**: Suggest `/research`

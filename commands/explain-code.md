@@ -152,7 +152,7 @@ Get current date by running: `npx @devobsessed/writ date`
 # Saved explanations can be referenced by other commands
 /research authentication
 /create-spec payment-processing
-/execute-task "optimize the user search"
+/implement-story "optimize the user search"
 
 # AI can access saved explanations from .writ/explanations/
 # to provide better context for other commands

@@ -69,12 +69,11 @@ When a user requests any Writ command, read the corresponding command file and f
 | `/new-command` | `commands/new-command.md` | Create new Writ commands |
 | `/prisma-migration` | `commands/prisma-migration.md` | Prisma migration workflow |
 
-### Deprecated
-| Command | File | Replacement |
-|---------|------|-------------|
-| `/execute-task` | `commands/execute-task.md` | `/implement-story` (or `--quick` for TDD-only) |
-| `/refresh-docs` | `commands/refresh-docs.md` | `/verify-spec` (with `--sync-trello` for Trello) |
-| `/swab` | `commands/swab.md` | `/refactor` (scoped, verified, more powerful) |
+### Removed (Migration Notes)
+If you used these Code Captain commands, here are the Writ replacements:
+- `/execute-task` → `/implement-story` (or `--quick` for TDD-only)
+- `/refresh-docs` → `/verify-spec` (with `--sync-trello` for Trello)
+- `/swab` → `/refactor` (scoped, verified, more powerful)
 
 ## Sub-Agent Specifications
 

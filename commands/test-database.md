@@ -383,7 +383,7 @@ This command integrates with the existing Writ ecosystem by:
 
 1. **Following established patterns** - Uses same markdown structure and tool integration as other commands
 2. **Leveraging project standards** - Works with existing database setup patterns (Prisma + PostgreSQL + Docker)
-3. **Complementing other commands** - Supports development workflow alongside `status`, `execute-task`, and `swab`
+3. **Complementing other commands** - Supports development workflow alongside `status`, `implement-story`, and `refactor`
 4. **Respecting user control** - Asks permission for destructive changes while auto-fixing safe issues
 5. **Progress transparency** - Uses `todo_write` for visibility into diagnostic and repair process
 6. **Comprehensive coverage** - Addresses full database stack rather than individual components
