@@ -121,34 +121,33 @@ echo "  [1/4] Renaming $CC_DIR/ → .writ/"
 mv "$CC_DIR" .writ
 
 # Step 2: Update references in all markdown and JSON files
+# Using perl -pi -e which works identically on macOS and Linux
 echo "  [2/4] Updating internal references..."
-find .writ -name "*.md" -exec sed -i 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
-find .writ -name "*.md" -exec sed -i 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
-find .writ -name "*.json" -exec sed -i 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
+find .writ -name "*.md" -exec perl -pi -e 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
+find .writ -name "*.md" -exec perl -pi -e 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
+find .writ -name "*.json" -exec perl -pi -e 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
 
 # Update root-level files
 for f in README.md CLAUDE.md CONTRIBUTING.md; do
   if [ -f "$f" ]; then
-    sed -i 's|\.code-captain/|.writ/|g' "$f" 2>/dev/null || true
-    sed -i 's|\.code-captain|.writ|g' "$f" 2>/dev/null || true
+    perl -pi -e 's|\.code-captain/|.writ/|g' "$f" 2>/dev/null || true
+    perl -pi -e 's|\.code-captain|.writ|g' "$f" 2>/dev/null || true
   fi
 done
 
 # Update .cursor files if present
 if [ -d ".cursor" ]; then
-  find .cursor -name "*.md" -exec sed -i 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
-  find .cursor -name "*.md" -exec sed -i 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
-  find .cursor -name "*.mdc" -exec sed -i 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
-  find .cursor -name "*.mdc" -exec sed -i 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
-  # Remove old Code Captain rules file, replace with Writ
+  find .cursor -name "*.md" -name "*.mdc" -exec perl -pi -e 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
+  find .cursor -name "*.md" -name "*.mdc" -exec perl -pi -e 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
+  # Remove old Code Captain rules file
   rm -f .cursor/rules/cc.mdc 2>/dev/null || true
 fi
 
 # Step 3: Update .gitignore
 echo "  [3/4] Updating .gitignore..."
 if [ -f .gitignore ]; then
-  sed -i 's|\.code-captain/state/|.writ/state/|g' .gitignore 2>/dev/null || true
-  sed -i 's|\.code-captain|.writ|g' .gitignore 2>/dev/null || true
+  perl -pi -e 's|\.code-captain/state/|.writ/state/|g' .gitignore 2>/dev/null || true
+  perl -pi -e 's|\.code-captain|.writ|g' .gitignore 2>/dev/null || true
 fi
 
 if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
