@@ -9,7 +9,7 @@ Issue writs. The framework executes them. ⚡
 Writ is a structured development workflow system that turns rough ideas into shipped code through a disciplined pipeline:
 
 ```
-/plan-product → /create-spec → /implement-story --all → /verify-spec → /release
+/plan-product → /create-spec → /implement-spec → /verify-spec → /release
 ```
 
 Each stage is documented as a command file that AI agents (Claude, GPT, etc.) follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, OpenClaw, or any AI coding assistant that can read markdown instructions.
@@ -27,10 +27,12 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 ```
 ┌──────────┐   ┌─────────────┐   ┌─────────────────┐   ┌─────────────┐   ┌─────────┐
 │  plan-   │──▶│  create-    │──▶│  implement-     │──▶│  verify-    │──▶│ release │
-│  product │   │  spec       │   │  story --all    │   │  spec       │   │         │
+│  product │   │  spec       │   │  spec           │   │  spec       │   │         │
 └──────────┘   └─────────────┘   └─────────────────┘   └─────────────┘   └─────────┘
                                          │
-                                    Per story:
+                              Dependency graph + parallel batches
+                                         │
+                                    Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
                               ├─ Coding agent (TDD)
                               ├─ Lint/typecheck gate
@@ -54,7 +56,8 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 ### Implementation & Quality
 | Command | Purpose |
 |---------|---------|
-| `/implement-story` | **Primary executor.** Full SDLC pipeline with 6 quality gates. Runs single stories, partial specs, or full specs with dependency resolution + parallelism. |
+| `/implement-spec` | **Spec orchestrator.** Reads a spec, builds dependency graph, resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
+| `/implement-story` | **Per-story executor.** 6-gate SDLC pipeline: arch-check → code → lint → review → test → docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | Comprehensive project status report |
 
