@@ -2,7 +2,7 @@
 
 ## Overview
 
-Modify existing feature specifications using a contract-first approach that ensures complete alignment between developer and AI before updating any supporting files. This command prevents assumptions by establishing a clear "modification contract" through structured clarification rounds.
+Modify existing feature specifications using a contract-first approach that ensures complete alignment between developer and AI before updating any supporting files. This command prevents assumptions by establishing a clear "modification contract" through structured clarification rounds using `AskQuestion`.
 
 ## Command Process
 
@@ -11,86 +11,191 @@ Modify existing feature specifications using a contract-first approach that ensu
 **Mission Statement:**
 > Your goal is to help me modify an existing specification safely and precisely. You will deliver the updated spec package only after we both agree on the modification contract. **Important: Challenge changes that could break existing functionality or create technical debt - it's better to surface concerns early than implement problematic modifications.**
 
-#### Step 1.1: Specification Discovery & Loading
+#### Step 1.1: Specification Discovery & Selection
 
-**Locate Target Specification:**
-1. **SCAN** `.writ/specs/` directory for all existing specifications
-2. **IF** spec-identifier provided:
-   - **SEARCH** for exact folder name match: `[DATE]-{spec-identifier}`
-   - **SEARCH** for partial name match in folder names
-   - **SEARCH** for identifier in spec.md titles/content
-3. **IF** spec-identifier is "latest":
-   - **FIND** most recent folder by date prefix
-4. **IF** no spec-identifier provided:
-   - **LIST** all available specifications for user selection
-5. **IF** multiple matches found:
-   - **PRESENT** options for user disambiguation
+**If spec-identifier provided:**
+1. **SEARCH** `.writ/specs/` for exact or partial folder name match
+2. **IF** multiple matches, use AskQuestion for disambiguation
 
-**Load Current State:**
+**If no spec-identifier provided:**
+
+```
+AskQuestion({
+  title: "Edit Specification - Select Target",
+  questions: [
+    {
+      id: "spec_target",
+      prompt: "Which specification do you want to modify?",
+      options: [
+        // Dynamically populated from .writ/specs/
+        { id: "spec_1", label: "[DATE] Feature Name (X stories, Y% complete)" },
+        { id: "spec_2", label: "[DATE] Feature Name (X stories, Y% complete)" },
+        { id: "spec_3", label: "[DATE] Feature Name (X stories, Y% complete)" }
+      ]
+    }
+  ]
+})
+```
+
+#### Step 1.2: Load Current State
+
 1. **READ** primary specification file (`spec.md`)
 2. **READ** user stories overview (`user-stories/README.md`)
 3. **READ** all individual story files in `user-stories/` directory
 4. **READ** all sub-specifications in `sub-specs/` directory
 5. **SCAN** codebase for any implementation progress related to this spec
-6. **OUTPUT:** Current specification summary with story status (no modifications yet)
 
-#### Step 1.2: Impact Analysis & Change Assessment
+**Present current state summary** (no modifications yet):
+
+```
+## Current Specification: [Feature Name]
+
+**Created:** [DATE]
+**Stories:** X total (Y complete, Z in progress, W not started)
+**Implementation Progress:** N/M tasks complete (X%)
+
+### Story Status
+| # | Title | Status | Tasks | Progress |
+|---|-------|--------|-------|----------|
+| 1 | [Name] | ✅ Complete | 6 | 6/6 |
+| 2 | [Name] | 🔄 In Progress | 5 | 3/5 |
+| 3 | [Name] | ⬜ Not Started | 7 | 0/7 |
+```
+
+#### Step 1.3: Change Type Classification
+
+**If user described their change upfront**, analyze it and skip to Step 1.4.
+
+**If change is vague or not provided:**
+
+```
+AskQuestion({
+  title: "What kind of change?",
+  questions: [
+    {
+      id: "change_type",
+      prompt: "What type of modification are you making?",
+      options: [
+        { id: "add_feature", label: "Add new functionality (new stories)" },
+        { id: "modify_existing", label: "Change existing stories or requirements" },
+        { id: "remove_scope", label: "Remove or descope functionality" },
+        { id: "refactor_stories", label: "Reorganize/split/combine stories" },
+        { id: "update_technical", label: "Change technical approach (same features)" },
+        { id: "multiple", label: "Multiple types of changes" }
+      ]
+    },
+    {
+      id: "change_scope",
+      prompt: "How broad is this change?",
+      options: [
+        { id: "single_story", label: "Affects a single story" },
+        { id: "few_stories", label: "Affects 2-3 stories" },
+        { id: "broad", label: "Affects most or all stories" },
+        { id: "unsure", label: "Not sure yet" }
+      ]
+    }
+  ]
+})
+```
+
+If `single_story` selected, follow up:
+
+```
+AskQuestion({
+  title: "Which story?",
+  questions: [
+    {
+      id: "target_story",
+      prompt: "Which story needs changes?",
+      options: [
+        // Dynamically populated from story files
+        { id: "story_1", label: "Story 1: [Title] (✅ Complete)" },
+        { id: "story_2", label: "Story 2: [Title] (🔄 In Progress - 3/5)" },
+        { id: "story_3", label: "Story 3: [Title] (⬜ Not Started)" }
+      ]
+    }
+  ]
+})
+```
+
+#### Step 1.4: Impact Analysis (Internal)
 
 **Internal Process (not shown to user):**
 - Analyze proposed changes against current specification
-- Identify affected individual story files and task groups
+- Identify affected story files and task groups
 - Note potential ripple effects on:
-  - Existing implementation (if any)
-  - Specific user story files in user-stories/ folder
+  - Existing implementation (completed work at risk)
   - Story dependencies and sequencing
-  - Technical architecture
+  - Technical architecture and sub-specs
   - Acceptance criteria within affected stories
-  - Project timelines and story priorities
-- Catalog modification domains:
-  - Scope changes (adding/removing/splitting stories)
-  - Technical approach modifications
-  - Individual story adjustments or combinations
-  - Task group reorganization (keeping 5-7 tasks max)
-  - Performance/security requirement changes
-  - Integration point modifications
-  - Success criteria updates within stories
+- Classify risks:
+  - **Breaking Changes**: Will this invalidate completed work?
+  - **Architecture Impact**: Does this conflict with existing patterns?
+  - **Scope Creep**: Are we expanding beyond original boundaries?
+  - **Dependency Chain**: Will this cascade to other stories?
 
-#### Step 1.3: Change Clarification Loop
+#### Step 1.5: Structured Clarification Loop
 
-**Rules:**
-- Ask ONE focused question at a time about the proposed changes
-- After each answer, re-analyze the existing spec and codebase for new context
-- Continue until reaching 95% confidence on modification impact
-- Each question should target the highest-impact unknown or risk
-- **Never declare "final question"** - let the conversation flow naturally
-- **Challenge changes that could break existing functionality or create technical debt**
+**Use `AskQuestion` for structured clarification, batching related questions (max 5-7 per round).**
+
+**Round 1 — Change Details & Impact Tolerance:**
+
+```
+AskQuestion({
+  title: "Change Clarification - Round 1",
+  questions: [
+    {
+      id: "completed_work",
+      prompt: "Story 1 is already complete and would be affected. How should we handle it?",
+      options: [
+        { id: "preserve", label: "Preserve completed work, add changes on top" },
+        { id: "rework", label: "Rework is acceptable if needed" },
+        { id: "avoid", label: "Adjust the change to avoid touching completed stories" }
+      ]
+    },
+    {
+      id: "migration",
+      prompt: "There's existing implementation. What's your migration preference?",
+      options: [
+        { id: "incremental", label: "Incremental - keep what works, modify in place" },
+        { id: "clean", label: "Clean break - rewrite affected areas" },
+        { id: "recommend", label: "Recommend the safest approach" }
+      ]
+    },
+    {
+      id: "timeline_impact",
+      prompt: "This change adds ~2 stories worth of work. Is that acceptable?",
+      options: [
+        { id: "yes", label: "Yes, scope increase is fine" },
+        { id: "trade", label: "Add this but remove something else to compensate" },
+        { id: "minimal", label: "Find the minimal version of this change" }
+      ]
+    }
+  ]
+})
+```
+
+**Round 2+ — Technical & Scope Questions (as needed):**
+
+Adapt questions based on Round 1 answers. Continue until 95% confidence on modification impact. Use free-text follow-up only when structured options can't capture the nuance.
 
 **Critical Analysis Responsibility:**
 - If proposed changes conflict with existing implementation, explain impact and suggest migration strategies
-- If scope changes affect other dependent specifications, identify and discuss dependencies
+- If scope changes affect dependent specifications, identify and discuss dependencies
 - If modifications introduce technical complexity, assess if benefits justify the cost
-- If changes affect user stories that may already be in progress, surface timeline implications
-- If proposed changes contradict original business value, question the modification rationale
+- If changes affect in-progress stories, surface timeline implications
+- If proposed changes contradict original business value, question the rationale
 
-**Risk Assessment Categories:**
-- **Breaking Changes**: Will this break existing functionality?
-- **Implementation Impact**: How much existing work needs to be modified/discarded?
-- **Architecture Consistency**: Do changes align with existing patterns?
-- **Scope Creep**: Are we expanding beyond the original contract boundaries?
-- **Business Value**: Do changes improve or compromise original user value?
+**Pushback Phrasing Examples:**
+- "This change would invalidate 3 completed tasks in Story 2. Is the rework worth the improvement?"
+- "I see a simpler way to achieve this that only touches Story 4 instead of Stories 2-5. Want to explore that?"
+- "This conflicts with your existing [pattern]. Should we update the pattern or adjust the change?"
+- "Adding this would push Story 3 to 9 tasks — I'd recommend splitting it. Agree?"
 
-**Question Categories (examples):**
-- "This change would affect [existing user story]. Should we modify that story or create a new one?"
-- "I see this conflicts with [existing implementation]. Should we plan a migration strategy?"
-- "This modification increases complexity in [area]. Is the added value worth the technical cost?"
-- "The original spec was focused on [goal]. How does this change serve that same goal?"
-- "This would require changes to [dependent system]. Have you considered the downstream impact?"
+#### Step 1.6: Modification Contract Proposal
 
-#### Step 1.4: Modification Contract Proposal
+When confident about changes, present the contract:
 
-When confident about changes, present a modification contract:
-
-**Format:**
 ```
 ## Modification Contract
 
@@ -101,60 +206,79 @@ When confident about changes, present a modification contract:
 **Change Type:** [Addition/Removal/Modification/Refactor]
 
 **Impact Assessment:**
-- **Story Files Affected:** [List of specific story-N-{name}.md files that need changes]
-- **New Stories Required:** [Any additional story files to be created]
-- **Stories to Remove/Combine:** [Any story files that become obsolete]
-- **Task Groups Affected:** [Which task groups within stories need modification]
-- **Technical Components Affected:** [Code/architecture areas needing updates]  
-- **Implementation Status:** [How much existing work across stories is affected]
+- **Stories Modified:** [List of specific story files that change]
+- **Stories Added:** [Any new story files to create]
+- **Stories Removed/Archived:** [Any stories becoming obsolete]
+- **Tasks Affected:** [Task groups needing modification]
+- **Completed Work at Risk:** [What finished work gets touched, if any]
 
 **Migration Strategy:**
 - [How to handle existing implementation]
 - [Steps to preserve completed work]
 - [Rollback plan if needed]
 
-**Updated Success Criteria:** [How success metrics change]
-
-**Revised Scope Boundaries:**
-- **Still In Scope:** [What remains from original]
-- **Now In Scope:** [What gets added]
-- **Removed From Scope:** [What gets removed]
+**Updated Scope Boundaries:**
+- **Still In Scope:** [Unchanged from original]
+- **Now In Scope:** [Additions]
+- **Removed From Scope:** [Removals]
 - **Still Out of Scope:** [Unchanged exclusions]
 
 **⚠️ Risks & Concerns:**
-- [Specific technical or business risks from the changes]
+- [Specific risks from the changes]
 - [Potential complications or dependencies]
 
 **💡 Recommendations:**
-- [Suggestions for safer implementation approaches]
-- [Ways to minimize disruption to existing work]
+- [Safer implementation approaches]
+- [Ways to minimize disruption]
 
-**Effort Estimate:** [How much additional/changed work is involved]
-
----
-Options:
-- Type 'yes' to lock this modification contract and update the specification
-- Type 'edit: [your changes]' to modify the contract
-- Type 'compare' to see a detailed before/after comparison
-- Type 'risks' to explore implementation risks in detail
-- Type 'rollback' to understand how to undo these changes later
-- Ask more questions if anything needs clarification
+**Effort Estimate:** [Additional/changed work involved]
 ```
+
+**Then IMMEDIATELY use AskQuestion for contract decision:**
+
+```
+AskQuestion({
+  title: "Modification Contract Decision",
+  questions: [
+    {
+      id: "contract_action",
+      prompt: "How would you like to proceed?",
+      options: [
+        { id: "yes", label: "Lock contract and update the specification" },
+        { id: "edit", label: "Edit the contract (I'll specify changes)" },
+        { id: "compare", label: "Show detailed before/after comparison" },
+        { id: "risks", label: "Explore implementation risks in detail" },
+        { id: "rollback", label: "Understand how to undo these changes later" },
+        { id: "questions", label: "I have more questions before deciding" }
+      ]
+    }
+  ]
+})
+```
+
+**Handling responses:**
+- **yes**: Proceed to Phase 2
+- **edit**: Ask free-text: "What changes would you like to make to the contract?"
+- **compare**: Present side-by-side before/after for affected stories, then re-present AskQuestion
+- **risks**: Present detailed risk analysis with mitigation strategies, then re-present AskQuestion
+- **rollback**: Explain backup/restore process, then re-present AskQuestion
+- **questions**: Ask "What would you like to clarify?" then return to clarification loop
 
 ### Phase 2: Specification Update (Post-Agreement Only)
 
 **Triggered only after user confirms modification contract with 'yes'**
 
 #### Step 2.1: Initialize Modification Tracking
+
 ```bash
 # Use todo_write to track modification process
-1. Backup original specification files and user-stories folder
-2. Update core specification document
-3. Modify affected individual story files in user-stories/
-4. Update user-stories/README.md with new progress tracking
-5. Create/remove/combine story files as needed
+1. Create backup of original specification files
+2. Update core specification document (spec.md, spec-lite.md)
+3. Modify affected individual story files
+4. Create/remove/archive story files as needed
+5. Update user-stories/README.md with new progress tracking
 6. Update technical sub-specifications
-7. Adjust task groups within stories (maintain 5-7 tasks max)
+7. Adjust task groups (maintain 5-7 tasks max per story)
 8. Create change log entry
 9. Present updated package for validation
 ```
@@ -162,16 +286,13 @@ Options:
 #### Step 2.2: Create Backup & Change Documentation
 
 **Backup Process:**
-1. **CREATE** backup folder: `.writ/specs/[spec-folder]/backups/`
-2. **COPY** all current files to `backups/[timestamp]/`
-3. **CREATE** change log entry in `CHANGELOG.md` within spec folder
+1. **CREATE** backup folder: `.writ/specs/[spec-folder]/backups/[timestamp]/`
+2. **COPY** all current files to backup
+3. **CREATE** or **APPEND** to `CHANGELOG.md` within spec folder
 
 **Change Log Format:**
 ```markdown
-# Specification Change Log
-
 ## [Date] - [Change Type]
-**Modified by:** [User identifier or "Manual edit"]
 **Modification Contract:** [Brief summary]
 
 ### Changes Made:
@@ -182,211 +303,231 @@ Options:
 - spec.md - [what changed]
 - user-stories/README.md - [progress tracking updates]
 - user-stories/story-N-{name}.md - [specific story changes]
-- sub-specs/[file] - [what changed]
 
 ### Backup Location:
 `backups/[timestamp]/`
-
----
 ```
 
-#### Step 2.3: Update Core Specification Files
+#### Step 2.3: Update Core Specification
 
 **spec.md Updates:**
 - Modify contract summary to reflect new agreement
-- Update detailed requirements based on clarification
+- Update detailed requirements
 - Revise implementation approach if changed
 - Add change log reference
-- Update status if appropriate
 
-**user-stories/ folder Updates:**
-- **README.md**: Update progress tracking table and story dependencies
-- **Individual story files**: Modify affected story-N-{name}.md files
-- **Story additions**: Create new story files with focused task groups (5-7 tasks max)
-- **Story combinations**: Merge related stories if they become too granular
-- **Story removals**: Archive or delete story files no longer needed
-- **Task reorganization**: Ensure task groups within stories remain manageable
-- **Status updates**: Mark completed tasks that might need rework across all stories
+**spec-lite.md Updates:**
+- Regenerate condensed version reflecting all changes
 
-#### Step 2.4: Update Technical Sub-Specifications
+#### Step 2.4: Update Story Files
 
-**Selective Updates:**
+**For modified stories:**
+- Update tasks, acceptance criteria, and notes
+- Preserve task completion status where work is still valid
+- Annotate tasks needing rework:
+  ```markdown
+  - [x] 1.1 Write tests for user auth ✅ (Still valid)
+  - [ ] 1.2 Implement OAuth provider ⚠️ (Needs modification per change contract)
+  - [ ] 1.3 Create social login UI 🆕 (New task)
+  ```
+
+**For new stories:**
+- Spawn parallel `Task` subagents (same pattern as `create-spec` Step 2.6)
+- Use `agents/user-story-generator.md` agent reference
+- Max 4 subagents at a time
+
+**For removed/archived stories:**
+- Move to `user-stories/archived/` with timestamp
+- Do NOT delete — preserve for rollback
+
+**Story management rules:**
+- If modifications push a story beyond 7 tasks → split into multiple stories
+- If modifications shrink a story below 3 tasks → consider combining with related story
+- Update all dependency declarations across affected stories
+
+#### Step 2.5: Update README & Sub-Specs
+
+**user-stories/README.md:**
+- Update story table (add/remove/modify rows)
+- Update progress percentages
+- Update dependency graph
+- Add/remove quick links
+
+**Sub-specifications:**
 - Only update sub-specs affected by the changes
 - Create new sub-specs if new technical areas introduced
 - Archive sub-specs no longer relevant
-- Update cross-references between documents
 
-#### Step 2.5: Story-Based Task Reconciliation
+#### Step 2.6: Final Validation
 
-**Task Status Assessment Across Stories:**
-- **Review each story file** for task status and relevance
-- **Identify completed tasks** within stories that remain valid
-- **Flag tasks requiring rework** due to changes
-- **Add new tasks** while maintaining 5-7 task limit per story
-- **Split stories** if task count would exceed 7 tasks
-- **Combine stories** if task counts become too small
-- **Reorder stories** if dependencies changed
+Present updated package and use AskQuestion for validation:
 
-**Story-Level Task Annotations:**
-```markdown
-# In story-1-user-auth.md:
-- [x] 1.1 Write tests for user authentication ✅ (Still valid)
-- [ ] 1.2 Implement OAuth provider ⚠️ (Needs modification)
-- [ ] 1.3 Create social login UI 🆕 (New task from scope change)
-- [~~] 1.4 Implement mobile-specific auth ❌ (Moved to new story-4-mobile-auth.md)
-
-# New story-4-mobile-auth.md created if mobile auth becomes separate feature
-```
-
-**Story Management:**
-- **Split large stories**: If modifications would create >7 tasks, create additional story files
-- **Archive obsolete stories**: Move removed stories to archived/ subfolder with timestamp
-- **Update story dependencies**: Modify README.md to reflect new story relationships
-- **Maintain story cohesion**: Ensure each story delivers standalone user value
-
-#### Step 2.6: Final Update Review & Validation
-
-Present updated package with change summary:
 ```
 ✅ Specification successfully updated!
 
 📁 .writ/specs/[DATE]-feature-name/
-├── 📋 spec.md - ⭐ Updated specification
-├── 📝 spec-lite.md - ⭐ Updated AI context summary  
-├── 👥 user-stories/ - ⭐ Updated story organization
-│   ├── 📊 README.md - ⭐ Updated progress tracking and dependencies
-│   ├── 📝 story-1-{name}.md - ⭐ Modified stories (5-7 tasks each)
-│   ├── 📝 story-2-{name}.md - 🆕 New stories or combinations
-│   ├── 📂 archived/ - 🗃️ Obsolete stories (if any)
-│   └── 📝 story-N-{name}.md - ⭐ Focused task groups
-├── 📂 sub-specs/
-│   ├── 🔧 technical-spec.md - ⭐ Updated if affected
-│   └── [other sub-specs...]
-├── 💾 backups/[timestamp]/ - Original files and stories preserved
-└── 📝 CHANGELOG.md - ⭐ Change documentation
+├── 📋 spec.md - ⭐ Updated
+├── 📝 spec-lite.md - ⭐ Updated
+├── 👥 user-stories/
+│   ├── 📊 README.md - ⭐ Updated progress & dependencies
+│   ├── 📝 story-1-{name}.md - [status indicator]
+│   ├── 📝 story-2-{name}.md - [status indicator]
+│   ├── 📝 story-N-{name}.md - 🆕 New
+│   └── 📂 archived/ - 🗃️ Removed stories preserved
+├── 📂 sub-specs/ - [update indicators]
+├── 💾 backups/[timestamp]/ - Original preserved
+└── 📝 CHANGELOG.md - ⭐ Change documented
 
-## Summary of Changes:
-- **Stories Modified:** [X] existing story files updated
-- **Stories Added:** [Y] new story files created
-- **Stories Removed/Archived:** [Z] story files no longer needed
-- **Task Groups Affected:** [N] task groups reorganized
-- **Modified Components:** [List of changed technical components]
-
-## Impact on Implementation:
-- **Stories Still Valid:** [X] out of [Y] stories remain unchanged  
-- **Stories Requiring Rework:** [N] stories need modification
-- **New Stories Added:** [N] new stories created (with focused task groups)
-- **Stories Archived:** [N] stories no longer needed
-- **Total Tasks:** [N] tasks across all stories (max 5-7 per story)
-
-Please review the updated specification:
-- Does this accurately reflect the agreed modifications?
-- Are the user stories appropriately organized (5-7 tasks per story)?
-- Should any stories be further split or combined?
-- Are story dependencies correctly updated in the README?
-- Should any additional changes be made?
-
-The updated user-stories folder structure provides:
-- **Focused development**: Work on one story at a time
-- **Better organization**: Each story file is manageable and self-contained
-- **Team collaboration**: Different stories can be assigned to different developers
-- **Clear progress tracking**: README overview shows status across all stories
-- **Flexible workflow**: Stories can be completed independently where possible
-
-The original version is safely backed up in the backups folder. If you need to rollback any changes, I can help restore from backup.
+## Summary
+- **Stories Modified:** X
+- **Stories Added:** Y
+- **Stories Archived:** Z
+- **Tasks Affected:** N task groups reorganized
+- **Completed Work Preserved:** X/Y completed tasks still valid
 ```
 
-## Key Features
+```
+AskQuestion({
+  title: "Validation",
+  questions: [
+    {
+      id: "validation",
+      prompt: "Does the updated specification look correct?",
+      options: [
+        { id: "approved", label: "Looks good — specification is updated" },
+        { id: "adjustments", label: "Needs minor adjustments (I'll specify)" },
+        { id: "rollback", label: "Rollback — restore from backup" }
+      ]
+    }
+  ]
+})
+```
 
-### 1. Safe Modification Process
-- **Backup creation** before any changes
-- **Change tracking** with detailed logs
-- **Rollback capability** to restore previous versions
-- **Impact assessment** before making changes
-
-### 2. Precise Change Control
-- **Focused clarification** about specific modifications
-- **Risk assessment** for breaking changes
-- **Migration strategy** for existing implementation
-- **Selective updates** only to affected components
-
-### 3. Implementation Continuity
-- **Task status preservation** for completed work
-- **Clear annotation** of what needs rework
-- **Priority reassessment** based on changes
-- **Timeline impact** analysis
-
-### 4. Change Documentation
-- **Detailed change logs** for audit trail
-- **Before/after comparison** capability
-- **Modification rationale** capture
-- **Rollback instructions** for safety
+**Handling responses:**
+- **approved**: Done. Spec is updated and ready for `/implement-spec` or `/implement-story`.
+- **adjustments**: Ask free-text: "What needs adjusting?" Apply changes inline (no new contract needed for minor tweaks).
+- **rollback**: Restore all files from `backups/[timestamp]/`, confirm restoration.
 
 ## Example Usage Flow
 
 ```
 Developer: /edit-spec "user-auth" "add biometric authentication"
 
-Agent: I found your user authentication specification from 2024-01-15. Let me load the current state...
+Agent: [Loads spec, scans codebase]
 
-[Loads spec.md, tasks.md, and sub-specs]
+## Current Specification: User Authentication System
 
-Current specification includes email/password auth with OAuth social login. I see there are 8 user stories, with 3 already implemented in your codebase.
+**Created:** 2026-02-15
+**Stories:** 8 total (3 complete, 1 in progress, 4 not started)
+**Implementation Progress:** 18/42 tasks (43%)
 
-I have a concern about adding biometric authentication: your current implementation is web-focused, but biometric auth typically requires native mobile or desktop apps. I see no mobile components in your existing specification.
+I found your user auth specification. You want to add biometric authentication.
+Before I dig into questions — your current implementation is web-focused, but biometric
+auth typically needs native apps or WebAuthn. I see no mobile components in your spec.
 
-First question: Are you planning to add mobile app development to this specification, or do you want to use WebAuthn for browser-based biometric authentication?
+[Uses AskQuestion]
 
-Developer: WebAuthn for browser-based
+┌─────────────────────────────────────────────────────────────┐
+│ Change Clarification - Round 1                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. What kind of biometric authentication?                   │
+│    ○ WebAuthn (browser-based, fingerprint/face via OS)      │
+│    ○ Native mobile biometrics (Face ID, Touch ID)           │
+│    ○ Both web and mobile                                    │
+│    ○ Let me recommend based on your current architecture    │
+│                                                             │
+│ 2. Should biometric auth be required or optional?           │
+│    ○ Required for all users                                 │
+│    ○ Optional enhancement for supported devices             │
+│    ○ Required for sensitive actions only (payments, etc.)   │
+│                                                             │
+│ 3. Story 2 (Login Flow) is in progress (3/5 tasks done).   │
+│    This change would affect it. How to handle?              │
+│    ○ Preserve progress, add biometric as additional tasks   │
+│    ○ It's fine to rework Story 2 if needed                  │
+│    ○ Create a separate story for biometric login instead    │
+└─────────────────────────────────────────────────────────────┘
 
-Agent: That makes more sense with your existing web architecture. However, WebAuthn requires HTTPS and has limited browser support. I see your current implementation supports users who may be on older browsers.
+Developer: [Selects: "WebAuthn", "Optional enhancement", "Create a separate story"]
 
-Should we make biometric authentication an optional enhancement for supported browsers, or do you want to require it for all users (which might break compatibility)?
+Agent: Good call — separate story keeps the in-progress work clean. WebAuthn as
+optional means no breaking changes to existing auth. One more round:
 
-Developer: Optional enhancement for supported browsers
+┌─────────────────────────────────────────────────────────────┐
+│ Change Clarification - Round 2                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Browser support strategy?                                │
+│    ○ Modern only (Chrome 67+, Firefox 60+, Safari 14+)      │
+│    ○ Progressive — offer when available, hide when not      │
+│    ○ Show prompt to upgrade if browser doesn't support it   │
+│                                                             │
+│ 2. Where in the UX flow?                                    │
+│    ○ Login page — "Sign in with fingerprint" button         │
+│    ○ Settings — "Enable biometric login" toggle             │
+│    ○ Both — setup in settings, use on login                 │
+└─────────────────────────────────────────────────────────────┘
 
-Agent: [Continues with more questions about UX, fallback behavior, etc.]
+Developer: [Selects: "Progressive", "Both"]
+
+Agent: Clear. Here's the modification contract:
 
 ## Modification Contract
 
-**Target Specification:** User Authentication System (2024-01-15)
+**Target:** User Authentication System (2026-02-15)
+**Change Type:** Addition (non-breaking)
 
-**Proposed Changes:** Add WebAuthn biometric authentication as optional enhancement
-
-**Change Type:** Addition (with graceful degradation)
+**Proposed Changes:** Add WebAuthn biometric authentication as optional
+progressive enhancement. New story for biometric setup + login.
 
 **Impact Assessment:**
-- **User Stories Affected:** Story 2 (Login flow) needs biometric option
-- **Technical Components Affected:** Frontend auth component, browser capability detection
-- **Implementation Status:** 3/8 stories completed, none affected by this change
+- **Stories Modified:** None (existing stories untouched)
+- **Stories Added:** 1 new story (Story 9: Biometric Authentication)
+- **Completed Work at Risk:** None
 
 **Migration Strategy:**
-- Existing auth flows remain unchanged
-- Add biometric as progressive enhancement
-- No breaking changes to current implementation
+- No changes to existing implementation
+- New story is independent — can be implemented in any order
 
-**Updated Success Criteria:** Users can log in with biometrics on supported browsers, fallback to existing methods
+**⚠️ Risks:**
+- WebAuthn requires HTTPS in production
+- Credential storage needs secure server-side handling
 
-**⚠️ Risks & Concerns:**
-- Browser support varies (Chrome 67+, Firefox 60+, Safari 14+)
-- Requires HTTPS in production
-- UX complexity for unsupported browsers
+**Effort Estimate:** 1 new story, ~6 tasks, modest complexity
 
-**💡 Recommendations:**
-- Feature detection before offering biometric option
-- Clear messaging when biometric unavailable
-- Analytics to track adoption rates
+┌─────────────────────────────────────────────────────────────┐
+│ Modification Contract Decision                              │
+├─────────────────────────────────────────────────────────────┤
+│    ○ Lock contract and update the specification             │
+│    ○ Edit the contract (I'll specify changes)               │
+│    ○ Show detailed before/after comparison                  │
+│    ○ Explore implementation risks in detail                 │
+│    ○ Understand how to undo these changes later             │
+│    ○ I have more questions before deciding                  │
+└─────────────────────────────────────────────────────────────┘
 
-**Effort Estimate:** ~2-3 additional days (1 story addition, modest technical complexity)
+Developer: [Selects: "Lock contract"]
 
----
-Options: [yes/edit/compare/risks/rollback]
+Agent: ✅ Contract locked! Updating specification...
 
-Developer: yes
+[Creates backup, spawns subagent for new story, updates README, logs change]
 
-Agent: ✅ Modification contract locked! Updating specification...
+✅ Specification updated!
 
-[Updates files, creates backups, documents changes]
+- Story 9: Biometric Authentication (6 tasks) — 🆕 Created
+- README.md — ⭐ Updated with new story + dependencies
+- CHANGELOG.md — ⭐ Change documented
+- Backup at backups/2026-02-23T02-45-00/
+
+┌─────────────────────────────────────────────────────────────┐
+│ Validation                                                  │
+├─────────────────────────────────────────────────────────────┤
+│    ○ Looks good — specification is updated                  │
+│    ○ Needs minor adjustments (I'll specify)                 │
+│    ○ Rollback — restore from backup                         │
+└─────────────────────────────────────────────────────────────┘
+
+Developer: [Selects: "Looks good"]
+
+Agent: Done! You can implement it with `/implement-story story-9` or include it
+in your next `/implement-spec` run.
 ```
-
-This approach ensures that specification modifications are as careful and controlled as the original creation process, while preserving existing work and providing safety mechanisms for complex changes.
