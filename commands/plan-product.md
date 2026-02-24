@@ -18,6 +18,33 @@ Generate comprehensive product planning documentation using a contract-first app
 - Review any existing product mission or objectives
 - **Output:** Product context summary and foundation assessment
 
+#### Step 1.1b: Product Direction (AskQuestion)
+
+**If user didn't specify a clear product idea, use AskQuestion immediately:**
+
+```
+AskQuestion({
+  title: "Product Planning - What are we building?",
+  questions: [
+    {
+      id: "product_direction",
+      prompt: "What kind of product are you envisioning?",
+      options: [
+        // Dynamically generate options based on existing codebase, .writ/product/, and project context
+        { id: "option_1", label: "[Product type suggestion based on codebase/domain]" },
+        { id: "option_2", label: "[Another relevant product direction]" },
+        { id: "option_3", label: "[Third suggestion from roadmap/existing docs]" },
+        { id: "other", label: "Something else (I'll describe it)" }
+      ]
+    }
+  ]
+})
+```
+
+If user selects "Something else", follow up with a free-text question to get their idea.
+
+**If user already described the product idea clearly, skip this step.**
+
 #### Step 1.2: Gap Analysis & Silent Enumeration
 
 **Internal Process (not shown to user):**
@@ -45,6 +72,77 @@ Generate comprehensive product planning documentation using a contract-first app
 - **Never declare "final question"** - let the conversation flow naturally
 - Let the user signal when they're ready to lock the contract
 - **Challenge ideas that don't make business or technical sense** - better to surface concerns early than plan the wrong product
+- **Use AskQuestion for structured choices** - when the question has a finite set of likely answers (scope decisions, model selection, audience targeting), present them as selectable options rather than free text. Reserve free-text questions for open-ended discovery (pain points, vision, differentiation).
+
+#### Step 1.3a: Structured Decision Points (AskQuestion)
+
+At key decision moments during discovery, use AskQuestion instead of free text:
+
+**MVP Scope Focus** (after understanding the problem space):
+```
+AskQuestion({
+  title: "MVP Scope - Where should we focus first?",
+  questions: [
+    {
+      id: "mvp_focus",
+      prompt: "Based on our discussion, which area should the MVP prioritize?",
+      options: [
+        // Generate 3-5 options from the discovered feature space
+        { id: "focus_1", label: "[Core feature area A] - [user value]" },
+        { id: "focus_2", label: "[Core feature area B] - [user value]" },
+        { id: "focus_3", label: "[Core feature area C] - [user value]" },
+        { id: "all", label: "All of the above (larger MVP scope)" }
+      ],
+      allowMultiple: true
+    }
+  ]
+})
+```
+
+**Business Model** (when discussing monetization):
+```
+AskQuestion({
+  title: "Business Model - How will this generate revenue?",
+  questions: [
+    {
+      id: "business_model",
+      prompt: "What monetization approach fits this product?",
+      options: [
+        { id: "freemium", label: "Freemium - Free tier + paid upgrades" },
+        { id: "subscription", label: "Subscription - Monthly/annual recurring" },
+        { id: "one_time", label: "One-time purchase" },
+        { id: "marketplace", label: "Marketplace/transaction fees" },
+        { id: "open_source", label: "Open source + services/support" },
+        { id: "ad_supported", label: "Ad-supported / data monetization" },
+        { id: "other", label: "Something else (I'll describe it)" },
+        { id: "none", label: "Not monetized (internal tool / side project)" }
+      ]
+    }
+  ]
+})
+```
+
+**Target Audience** (when narrowing market):
+```
+AskQuestion({
+  title: "Target Audience - Who are we building for first?",
+  questions: [
+    {
+      id: "target_audience",
+      prompt: "Which user segment should we target first?",
+      options: [
+        // Dynamically generate from discovery conversation
+        { id: "segment_1", label: "[User segment A] - [size/accessibility]" },
+        { id: "segment_2", label: "[User segment B] - [size/accessibility]" },
+        { id: "segment_3", label: "[User segment C] - [size/accessibility]" },
+        { id: "broad", label: "General audience (no specific segment)" }
+      ]
+    }
+  ]
+})
+```
+
+**Use these at natural moments in the conversation — not all at once.** The discovery loop (Step 1.3) still drives the conversation; these structured questions replace specific free-text questions where options are clearer and faster.
 
 **Critical Analysis Responsibility:**
 - If product scope seems too large for available resources, recommend phasing
