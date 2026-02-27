@@ -61,14 +61,85 @@ echo "  📜 Rules:     1 (writ.mdc)"
 echo "  📖 System:    1 (system-instructions.md)"
 echo ""
 
+# --- Overlay-aware copy ---
+# Copies files from $1 (source dir) to $2 (local dir), preserving local modifications.
+# Returns counts via global variables.
+OVERLAY_COPIED=0
+OVERLAY_PRESERVED=0
+OVERLAY_UNCHANGED=0
+
+overlay_copy() {
+  local src_dir="$1"
+  local local_dir="$2"
+  local label="$3"
+
+  OVERLAY_COPIED=0
+  OVERLAY_PRESERVED=0
+  OVERLAY_UNCHANGED=0
+
+  for src_file in "$src_dir"/*.md; do
+    [ -f "$src_file" ] || continue
+    local fname
+    fname=$(basename "$src_file")
+    local local_file="$local_dir/$fname"
+
+    if [ -f "$local_file" ]; then
+      if diff -q "$src_file" "$local_file" > /dev/null 2>&1; then
+        OVERLAY_UNCHANGED=$((OVERLAY_UNCHANGED + 1))
+      else
+        echo "    ⚡ Preserved: $label/$fname (local modifications detected)"
+        OVERLAY_PRESERVED=$((OVERLAY_PRESERVED + 1))
+      fi
+    else
+      cp "$src_file" "$local_file"
+      OVERLAY_COPIED=$((OVERLAY_COPIED + 1))
+    fi
+  done
+}
+
+overlay_preview() {
+  local src_dir="$1"
+  local local_dir="$2"
+  local label="$3"
+  local new=0 preserved=0 unchanged=0
+
+  for src_file in "$src_dir"/*.md; do
+    [ -f "$src_file" ] || continue
+    local fname
+    fname=$(basename "$src_file")
+    local local_file="$local_dir/$fname"
+
+    if [ -f "$local_file" ]; then
+      if diff -q "$src_file" "$local_file" > /dev/null 2>&1; then
+        unchanged=$((unchanged + 1))
+      else
+        echo "    ⚡ $label/$fname — local modifications (would be preserved)"
+        preserved=$((preserved + 1))
+      fi
+    else
+      echo "    ✨ $label/$fname — new (would be copied)"
+      new=$((new + 1))
+    fi
+  done
+
+  [ "$new" -gt 0 ] && echo "    $new new"
+  [ "$preserved" -gt 0 ] && echo "    $preserved preserved (local modifications kept)"
+  [ "$unchanged" -gt 0 ] && echo "    $unchanged unchanged"
+}
+
 if [ "$DRY_RUN" = true ]; then
   echo "🏃 DRY RUN — No changes will be made"
   echo ""
-  echo "Would install to:"
-  echo "  .cursor/commands/*.md"
-  echo "  .cursor/agents/*.md"
-  echo "  .cursor/rules/writ.mdc"
-  echo "  .cursor/system-instructions.md"
+  echo "  Commands:"
+  overlay_preview "$WRIT_SRC/commands" ".cursor/commands" "commands"
+  echo ""
+  echo "  Agents:"
+  overlay_preview "$WRIT_SRC/agents" ".cursor/agents" "agents"
+  echo ""
+  echo "  Rules:   writ.mdc (always updated)"
+  echo "  System:  system-instructions.md (always updated)"
+  echo ""
+  echo "💡 To reset a file to core: delete the local copy and re-run install."
   exit 0
 fi
 
@@ -78,10 +149,14 @@ echo "Installing..."
 mkdir -p .cursor/commands .cursor/agents .cursor/rules
 
 echo "  [1/4] Commands..."
-cp "$WRIT_SRC/commands/"*.md .cursor/commands/
+overlay_copy "$WRIT_SRC/commands" ".cursor/commands" "commands"
+CMD_COPIED=$OVERLAY_COPIED
+CMD_PRESERVED=$OVERLAY_PRESERVED
 
 echo "  [2/4] Agents..."
-cp "$WRIT_SRC/agents/"*.md .cursor/agents/
+overlay_copy "$WRIT_SRC/agents" ".cursor/agents" "agents"
+AGENT_COPIED=$OVERLAY_COPIED
+AGENT_PRESERVED=$OVERLAY_PRESERVED
 
 echo "  [3/4] Rules..."
 cp "$WRIT_SRC/cursor/writ.mdc" .cursor/rules/
@@ -111,6 +186,19 @@ fi
 
 echo ""
 echo "✅ Writ installed!"
+
+# Overlay summary
+TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED))
+if [ "$TOTAL_PRESERVED" -gt 0 ]; then
+  echo ""
+  echo "  📋 Overlay summary:"
+  [ "$CMD_COPIED" -gt 0 ] && echo "     Commands — $CMD_COPIED new"
+  [ "$CMD_PRESERVED" -gt 0 ] && echo "     Commands — $CMD_PRESERVED preserved (local modifications kept)"
+  [ "$AGENT_COPIED" -gt 0 ] && echo "     Agents   — $AGENT_COPIED new"
+  [ "$AGENT_PRESERVED" -gt 0 ] && echo "     Agents   — $AGENT_PRESERVED preserved (local modifications kept)"
+  echo ""
+  echo "  💡 To reset a file to core: delete the local copy and re-run install."
+fi
 
 # Commit
 if [ "$NO_COMMIT" = false ]; then

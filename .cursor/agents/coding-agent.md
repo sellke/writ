@@ -178,6 +178,56 @@ The Coding Agent must return a structured summary:
 - Inline comments for complex logic
 - Update any affected existing comments
 
+## Scope Detection Heuristic
+
+When running in **prototype mode** (spawned by `/prototype`), the coding agent must actively monitor for signs that a change has outgrown its lightweight scope. This is a soft gate — the agent completes the work regardless, but flags the concern for the user.
+
+### Triggers
+
+Flag a scope escalation if **any** of the following are true during implementation:
+
+| Trigger | Threshold | Rationale |
+|---|---|---|
+| **File count** | >5 files created or modified | High surface area means higher risk of unintended side effects |
+| **Schema changes** | Any new database migration, schema alteration, or model change | Schema changes have cascading effects and need careful planning |
+| **Core architecture** | Modifies base classes, shared utilities, middleware, or configuration that other modules depend on | Changes here ripple across the entire codebase |
+| **Low test coverage** | Affected area has <50% existing line coverage | Making changes in under-tested code without a full spec increases regression risk |
+| **Incomplete dependencies** | The change requires work that isn't done yet (missing APIs, pending migrations, unmerged branches) | Building on unstable foundations leads to rework |
+| **New external dependencies** | Adding new packages, services, or third-party integrations | External dependencies need vetting for security, licensing, and maintenance burden |
+
+### Detection Method
+
+During implementation, track:
+
+1. **Count every file you create or modify** — maintain a running tally
+2. **Watch for schema/migration files** — anything in `migrations/`, `prisma/schema.prisma`, `*.sql`, model definitions
+3. **Check import graphs** — if you're modifying a file imported by >5 other files, it's core architecture
+4. **Scan existing tests** — before modifying a file, check if it has corresponding test coverage
+5. **Note any TODOs or "when X is done" comments** — these signal incomplete dependencies
+
+### Reporting
+
+When scope flags trigger, include a `### Scope Flags` section in the output:
+
+```markdown
+### Scope Flags
+
+⚠️ **Scope escalation recommended** — this change may benefit from a full specification.
+
+**Triggered flags:**
+- **File count exceeded:** 8 files modified (threshold: 5)
+- **Core architecture:** Modified `src/lib/base-repository.ts` which is imported by 12 modules
+
+**Recommendation:** Consider running `/create-spec "[change description]"` to formalize this work, especially if follow-up changes are anticipated.
+```
+
+When no flags trigger:
+
+```markdown
+### Scope Flags
+NONE — change is well-scoped for prototype execution.
+```
+
 ## Error Handling
 
 If the agent encounters blocking issues:

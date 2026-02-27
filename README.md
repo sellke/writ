@@ -40,6 +40,10 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
                               ├─ Testing agent (+ coverage)
                               ├─ Visual QA (optional, when mockups exist)
                               └─ Documentation agent
+
+Lightweight path (/prototype) — no spec required:
+   Quick Contract (2-3 Q's) → Coding Agent (TDD) → Lint & Typecheck → Done
+                                     ↑ complexity? → escalate to /create-spec
 ```
 
 ## Commands
@@ -58,6 +62,7 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 ### Implementation & Quality
 | Command | Purpose |
 |---------|---------|
+| `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, builds dependency graph, resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
 | `/implement-story` | **Per-story executor.** 6-gate SDLC pipeline: arch-check → code → lint → review → test → docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
@@ -69,6 +74,11 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 | `/verify-spec` | 8-check validation: integrity, status sync, completion, dependencies, tests, coverage, contract drift |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Changelog generation, version bump, git tag, GitHub release |
+
+### Learning & Maintenance
+| Command | Purpose |
+|---------|---------|
+| `/refresh-command` | **Learning loop.** Scans agent transcripts, identifies friction patterns, proposes concrete diffs to command files. Commands get better through use. |
 
 ### Setup & Utilities
 | Command | Purpose |
@@ -87,7 +97,7 @@ The `/implement-story` command orchestrates these specialized agents:
 |-------|------|
 | Architecture Check | Pre-implementation design review (PROCEED/CAUTION/ABORT) |
 | Coding Agent | TDD implementation — tests first, then code |
-| Review Agent | Code quality + security gate (PASS/FAIL, max 3 iterations) |
+| Review Agent | Code quality + security gate + spec drift analysis (PASS/FAIL/PAUSE, max 3 iterations) |
 | Testing Agent | Test execution + coverage enforcement (≥80% on new code) |
 | Documentation Agent | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) |
 | Visual QA | Optional UI validation — compares implementation screenshots against mockups |
@@ -176,6 +186,7 @@ When Writ runs, it creates a `.writ/` directory in your project:
 │       ├── user-stories/     # Individual story files
 │       │   ├── README.md     # Progress tracking
 │       │   └── story-N-*.md  # 5-7 tasks each
+│       ├── drift-log.md      # Spec amendment record (auto-generated)
 │       └── sub-specs/        # Technical deep-dives
 ├── product/                  # Product planning docs
 ├── decision-records/         # Architecture Decision Records
