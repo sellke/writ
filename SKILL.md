@@ -35,6 +35,7 @@ When a user requests any Writ command, read the corresponding command file and f
 | `/edit-spec` | `commands/edit-spec.md` | Safely modify existing specifications |
 | `/verify-spec` | `commands/verify-spec.md` | Comprehensive spec validation: integrity, status sync, completion checks, tests, coverage, contract drift, auto-fix |
 | `/create-adr` | `commands/create-adr.md` | Architecture Decision Records (auto-researches first) |
+| `/design` | `commands/design.md` | Visual design companion — wireframes, mockups, screenshot capture, visual comparison |
 | `/create-issue` | `commands/create-issue.md` | Quick issue capture (<2 minutes) |
 | `/research` | `commands/research.md` | Systematic 4-phase research workflow |
 
@@ -83,6 +84,7 @@ If you used these Code Captain commands, here are the Writ replacements:
 | Coding Agent | `agents/coding-agent.md` | TDD implementation of story code |
 | Review Agent | `agents/review-agent.md` | Quality + security gate (PASS/FAIL with feedback loop) |
 | Testing Agent | `agents/testing-agent.md` | Test execution, regression, coverage enforcement (≥80%) |
+| Visual QA | `agents/visual-qa-agent.md` | Optional UI validation — compares screenshots against mockups |
 | Documentation Agent | `agents/documentation-agent.md` | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) |
 | User Story Generator | `agents/user-story-generator.md` | Parallel story file creation for create-spec |
 

@@ -18,17 +18,17 @@ This is the **per-story execution engine**. For full spec execution with depende
 ## Agent Pipeline
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│  GATE 0  │──▶│  GATE 1  │──▶│  GATE 2  │──▶│  GATE 3  │──▶│  GATE 4  │──▶│  GATE 5  │
-│ ARCH     │   │ CODING   │   │ LINT &   │   │ REVIEW   │   │ TESTING  │   │  DOCS    │
-│ CHECK    │   │ AGENT    │   │TYPECHECK │   │ AGENT    │   │ AGENT    │   │ AGENT    │
-│(readonly)│   │ (TDD)    │   │ (auto)   │   │(readonly)│   │(+coverage│   │(adaptive)│
-└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
-     │              ▲              │               │
-     │ ABORT?       │ fix loop     │ fail?         │ FAIL?
-     ▼              └──────────────┘               │
-  ask user                                    back to Gate 1
-                                              (max 3 iterations)
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│  GATE 0  │──▶│  GATE 1  │──▶│  GATE 2  │──▶│  GATE 3  │──▶│  GATE 4  │──▶│ GATE 4.5 │──▶│  GATE 5  │
+│ ARCH     │   │ CODING   │   │ LINT &   │   │ REVIEW   │   │ TESTING  │   │ VISUAL QA│   │  DOCS    │
+│ CHECK    │   │ AGENT    │   │TYPECHECK │   │ AGENT    │   │ AGENT    │   │(optional)│   │ AGENT    │
+│(readonly)│   │ (TDD)    │   │ (auto)   │   │(readonly)│   │(+coverage│   │(readonly)│   │(adaptive)│
+└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+     │              ▲              │               │                             │
+     │ ABORT?       │ fix loop     │ fail?         │ FAIL?                       │ FAIL?
+     ▼              └──────────────┘               │                             │
+  ask user                                    back to Gate 1               back to Gate 1
+                                              (max 3 iterations total across review + visual QA)
 ```
 
 ## Command Process
@@ -56,6 +56,11 @@ AskQuestion({
 2. **Read spec-lite.md** — overall spec context
 3. **Scan codebase** — identify patterns, related files, tech stack
 4. **Check dependencies** — warn if upstream stories aren't complete
+5. **Load visual references** — if the story has a `## Visual References` section:
+   - Read linked mockup images via vision model
+   - Read `mockups/component-inventory.md` for component specs
+   - Read `.writ/docs/design-system.md` for design tokens
+   - Pass visual context to the coding agent alongside the story tasks
 
 If dependencies are incomplete:
 ```
@@ -160,6 +165,29 @@ Spawns a **read-only** sub-agent for code review.
 - **Coverage must not decrease on modified files**
 
 **On failure:** Send test output back to coding agent. 2 fix iterations max, then escalate.
+
+---
+
+#### Gate 4.5: Visual QA (Optional)
+
+> **Agent:** `agents/visual-qa-agent.md`
+> **Skip in:** `--quick` mode, when no visual references exist for this story
+
+**Auto-activates when:**
+- The story file has a `## Visual References` section
+- The spec has a `mockups/` directory with files
+
+Spawns a **read-only** sub-agent that:
+1. Captures the current UI via browser/Playwright
+2. Compares against mockups linked in the story
+3. Reports structural, spacing, and styling matches/mismatches
+
+**Results:**
+- **PASS** (≥85% match) → continue to docs
+- **SOFT PASS** (≥70% match, only cosmetic issues) → continue, log issues
+- **FAIL** (<70% match or high-priority mismatches) → send fixes back to coding agent
+
+Failures count toward the shared 3-iteration review loop cap.
 
 ---
 

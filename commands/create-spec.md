@@ -221,6 +221,43 @@ AskQuestion({
 - **blueprint**: Show planned folder structure, then re-present contract with AskQuestion
 - **questions**: Ask "What would you like to clarify?" then return to clarification loop
 
+#### Step 1.5: Visual References (Optional)
+
+**After contract lock, before creating files**, check if this feature has UI components:
+
+If the spec involves any user-facing UI, ask:
+
+```
+AskQuestion({
+  title: "Visual References",
+  questions: [
+    {
+      id: "visuals",
+      prompt: "Do you have any visual references for this feature?",
+      options: [
+        { id: "screenshots", label: "I have screenshots or mockups to share" },
+        { id: "sketch", label: "I have an Excalidraw sketch" },
+        { id: "generate", label: "Generate wireframes from the spec" },
+        { id: "existing", label: "Match existing app patterns (capture current UI)" },
+        { id: "none", label: "No visual references — text spec is enough" }
+      ]
+    }
+  ]
+})
+```
+
+**Handling responses:**
+- **screenshots**: Accept image uploads/paths. Store in `mockups/`. Analyze with vision model to extract layout structure, components, and design patterns. Generate `mockups/README.md` and `mockups/component-inventory.md`.
+- **sketch**: Accept `.excalidraw` file. Store in `mockups/`. Parse JSON to extract component names and layout.
+- **generate**: After creating `spec.md`, generate Excalidraw wireframes for each screen/view described in the spec. Store in `mockups/`. Follow wireframe conventions from `/design` command.
+- **existing**: Capture screenshots of the current app at relevant routes. Store in `mockups/current/`. These become the "before" state.
+- **none**: Create empty `mockups/` directory. Skip visual references in story files.
+
+**When mockups are provided or generated:**
+- Add `## Visual References` section to each relevant story file, linking to the specific mockups that story should implement
+- Generate `mockups/component-inventory.md` listing all components, their states, and which stories own them
+- Reference design system tokens from `.writ/docs/design-system.md` if it exists; if not, extract one from the mockups
+
 ### Phase 2: Spec Package Creation (Post-Agreement Only)
 
 **Triggered only after user confirms contract with 'yes'**
@@ -253,6 +290,9 @@ This returns the current date in `YYYY-MM-DD` format for folder naming:
 .writ/specs/[DATE]-{feature-name}/
 ├── spec.md                    # Main specification (from contract)
 ├── spec-lite.md              # Condensed version for AI context
+├── mockups/                  # Visual references (screenshots, wireframes, Excalidraw)
+│   ├── README.md             # Catalog of all visual references
+│   └── component-inventory.md # Component list with states and notes
 ├── user-stories/             # Individual user story files
 │   ├── README.md             # Overview and progress tracking
 │   ├── story-1-{name}.md     # Individual user story with focused tasks

@@ -38,6 +38,7 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
                               ├─ Lint/typecheck gate
                               ├─ Review agent (+ security)
                               ├─ Testing agent (+ coverage)
+                              ├─ Visual QA (optional, when mockups exist)
                               └─ Documentation agent
 ```
 
@@ -49,6 +50,7 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 | `/plan-product` | Product planning with contract-first approach |
 | `/create-spec` | Feature specification with structured clarification |
 | `/edit-spec` | Safely modify existing specifications |
+| `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
 | `/create-issue` | Quick issue capture (<2 minutes) |
 | `/research` | Systematic 4-phase research workflow |
@@ -88,6 +90,7 @@ The `/implement-story` command orchestrates these specialized agents:
 | Review Agent | Code quality + security gate (PASS/FAIL, max 3 iterations) |
 | Testing Agent | Test execution + coverage enforcement (≥80% on new code) |
 | Documentation Agent | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) |
+| Visual QA | Optional UI validation — compares implementation screenshots against mockups |
 | User Story Generator | Parallel story file creation during `/create-spec` |
 
 ## Platform Support
