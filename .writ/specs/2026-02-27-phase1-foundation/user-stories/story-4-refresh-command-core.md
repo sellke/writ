@@ -1,6 +1,6 @@
 # Story 4: /refresh-command Core
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** None
 
@@ -12,21 +12,21 @@
 
 ## Acceptance Criteria
 
-- [ ] **AC1:** Given I invoke `/refresh-command` with no arguments, when the command runs, then I am prompted interactively to select a command (from available Writ commands) and a transcript (from agent-transcripts/); the command lists transcripts with metadata (date, command inferred if detectable) to aid selection.
-- [ ] **AC2:** Given I invoke `/refresh-command create-spec`, when the command runs, then I am prompted only to select a transcript; the command to refresh is fixed as `create-spec`.
-- [ ] **AC3:** Given I invoke `/refresh-command create-spec --last`, when the command runs, then the most recent transcript that used `create-spec` is selected automatically; no interactive transcript selection is required.
-- [ ] **AC4:** Given a transcript is selected, when the command scans it, then it identifies real friction signals (agent struggled, unnecessary questions, low-quality output, many iterations), skip signals (user skipped/dismissed steps), surprise signals (unexpectedly good or bad output), and duration signals (disproportionately long steps); the analysis determines root cause (command design, prompt quality, context gap), impact, frequency, and fixability.
-- [ ] **AC5:** Given friction patterns are identified, when the command proposes amendments, then each proposal includes: (1) a concrete diff — specific changes to the command markdown file, (2) rationale — why each change improves the command, (3) confidence — High/Medium/Low, and (4) scope assessment — project-specific or universally applicable; amendments are applied to the local command copy (e.g., `.cursor/commands/[command].md`) and a changelog entry is written to `.writ/refresh-log.md`.
+- [x] **AC1:** Given I invoke `/refresh-command` with no arguments, when the command runs, then I am prompted interactively to select a command (from available Writ commands) and a transcript (from agent-transcripts/); the command lists transcripts with metadata (date, command inferred if detectable) to aid selection.
+- [x] **AC2:** Given I invoke `/refresh-command create-spec`, when the command runs, then I am prompted only to select a transcript; the command to refresh is fixed as `create-spec`.
+- [x] **AC3:** Given I invoke `/refresh-command create-spec --last`, when the command runs, then the most recent transcript that used `create-spec` is selected automatically; no interactive transcript selection is required.
+- [x] **AC4:** Given a transcript is selected, when the command scans it, then it identifies real friction signals (agent struggled, unnecessary questions, low-quality output, many iterations), skip signals (user skipped/dismissed steps), surprise signals (unexpectedly good or bad output), and duration signals (disproportionately long steps); the analysis determines root cause (command design, prompt quality, context gap), impact, frequency, and fixability.
+- [x] **AC5:** Given friction patterns are identified, when the command proposes amendments, then each proposal includes: (1) a concrete diff — specific changes to the command markdown file, (2) rationale — why each change improves the command, (3) confidence — High/Medium/Low, and (4) scope assessment — project-specific or universally applicable; amendments are applied to the local command copy (e.g., `.cursor/commands/[command].md`) and a changelog entry is written to `.writ/refresh-log.md`.
 
 ## Implementation Tasks
 
-- [ ] 4.1 Write tests for the refresh-command flow — mock transcript .jsonl content, verify command identification from transcript, verify friction signal extraction (friction, skip, surprise, duration), verify amendment proposal format (diff + rationale + confidence + scope); verify local apply and changelog write.
-- [ ] 4.2 Create `commands/refresh-command.md` — document the full command process: invocation modes (interactive, specific command, --last), pipeline stages (SELECT → SCAN → ANALYZE → PROPOSE → LOCAL APPLY + changelog), transcript scanning targets, analysis criteria, output format, and local-first application paths.
-- [ ] 4.3 Implement transcript scanning logic — parse .jsonl files from agent-transcripts/, extract conversation turns; implement command identification (detect which Writ command was executed from user messages, tool calls, or context); implement signal extraction for friction, skip, surprise, and duration patterns.
-- [ ] 4.4 Implement friction analysis — for each extracted signal, determine root cause (command design, prompt quality, context gap), impact, frequency (if cross-transcript data available), and fixability; produce structured analysis output for the proposal phase.
-- [ ] 4.5 Implement amendment proposal — given analysis output, generate concrete diffs to the command markdown file; attach rationale, confidence (High/Medium/Low), and scope assessment (project-specific vs universal) per amendment; support local apply to `.cursor/commands/`, `.claude/commands/`, etc.; write changelog entry to `.writ/refresh-log.md`.
-- [ ] 4.6 Copy `commands/refresh-command.md` to `.cursor/commands/refresh-command.md` for Cursor command discovery.
-- [ ] 4.7 Verify end-to-end: run `/refresh-command` interactive → select command and transcript → confirm scan, analysis, proposal, and local apply; run `/refresh-command create-spec --last` → confirm automatic transcript selection; run `/refresh-command refresh-command --last` → confirm bootstrap property (refresh-command can refresh itself).
+- [x] 4.1 Write tests for the refresh-command flow — mock transcript .jsonl content, verify command identification from transcript, verify friction signal extraction (friction, skip, surprise, duration), verify amendment proposal format (diff + rationale + confidence + scope); verify local apply and changelog write.
+- [x] 4.2 Create `commands/refresh-command.md` — document the full command process: invocation modes (interactive, specific command, --last), pipeline stages (SELECT → SCAN → ANALYZE → PROPOSE → LOCAL APPLY + changelog), transcript scanning targets, analysis criteria, output format, and local-first application paths.
+- [x] 4.3 Implement transcript scanning logic — parse .jsonl files from agent-transcripts/, extract conversation turns; implement command identification (detect which Writ command was executed from user messages, tool calls, or context); implement signal extraction for friction, skip, surprise, and duration patterns.
+- [x] 4.4 Implement friction analysis — for each extracted signal, determine root cause (command design, prompt quality, context gap), impact, frequency (if cross-transcript data available), and fixability; produce structured analysis output for the proposal phase.
+- [x] 4.5 Implement amendment proposal — given analysis output, generate concrete diffs to the command markdown file; attach rationale, confidence (High/Medium/Low), and scope assessment (project-specific vs universal) per amendment; support local apply to `.cursor/commands/`, `.claude/commands/`, etc.; write changelog entry to `.writ/refresh-log.md`.
+- [x] 4.6 Copy `commands/refresh-command.md` to `.cursor/commands/refresh-command.md` for Cursor command discovery.
+- [x] 4.7 Verify end-to-end: run `/refresh-command` interactive → select command and transcript → confirm scan, analysis, proposal, and local apply; run `/refresh-command create-spec --last` → confirm automatic transcript selection; run `/refresh-command refresh-command --last` → confirm bootstrap property (refresh-command can refresh itself).
 
 ## Notes
 
@@ -48,11 +48,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] `commands/refresh-command.md` created and copied to `.cursor/commands/`
-- [ ] Transcript scanning identifies real friction patterns
-- [ ] Proposed amendments are concrete diffs with rationale, confidence, and scope
-- [ ] Local apply and changelog write verified
-- [ ] Bootstrap property validated: `/refresh-command refresh-command --last` runs successfully
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] `commands/refresh-command.md` created and copied to `.cursor/commands/`
+- [x] Transcript scanning identifies real friction patterns
+- [x] Proposed amendments are concrete diffs with rationale, confidence, and scope
+- [x] Local apply and changelog write verified
+- [x] Bootstrap property validated: `/refresh-command refresh-command --last` runs successfully
