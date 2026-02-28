@@ -1,8 +1,23 @@
-# Writ
+<div align="center">
+<pre>
+/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+  ██╗    ██╗██████╗ <span style="color: #FF9900;">  ██╗    </span>████████╗  
+  ██║    ██║██╔══██╗<span style="color: #FF9900;">  ╚██╗   </span>╚══██╔══╝  
+  ██║ █╗ ██║██████╔╝<span style="color: #FF9900;"> ██████╗ </span>   ██║     
+  ██║███╗██║██╔══██╗<span style="color: #FF9900;"> ╚══██╔╝ </span>   ██║     
+  ╚███╔███╔╝██║  ██║<span style="color: #FF9900;">   ██╔╝  </span>   ██║     
+   ╚══╝╚══╝ ╚═╝  ╚═╝<span style="color: #FF9900;">   ╚═╝   </span>   ╚═╝     
+\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+</pre>
 
-AI-powered development workflow framework — contract-first specs, multi-agent SDLC, automated quality gates.
+**AI-powered development workflow framework**<br>
+Contract-first specs · Multi-agent SDLC · Automated quality gates
 
-Issue writs. The framework executes them. ⚡
+⚡ *Issue writs. The framework executes them.*
+
+</div>
+
+---
 
 ## What is Writ?
 
