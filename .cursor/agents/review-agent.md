@@ -142,7 +142,7 @@ Compare the implementation against the Spec Contract above. For each acceptance 
 **Handling by severity:**
 - **Small:** Propose a spec amendment in your output. The pipeline continues PASS.
 - **Medium:** Flag with ⚠️. The pipeline continues PASS with warning.
-- **Large:** Report the conflict and STOP. Do NOT continue with remaining review sections. The pipeline will PAUSE for human decision.
+- **Large:** Report the conflict and set REVIEW_RESULT to PAUSE. Still include all completed review sections in the output — drift analysis is additive. The pipeline will PAUSE for human decision.
 
 If NO deviations found, report "Overall Drift: None" and continue.
 
@@ -206,7 +206,7 @@ The review agent performs **spec drift detection** — comparing the implementat
 |------|--------|----------|-------------------|
 | **Small** | Implementation detail changed, spec intent preserved | Different function/variable name; minor API shape change; parameter ordering differs; cosmetic implementation detail | Auto-amend proposed. Log to `drift-log.md`. Continue PASS. |
 | **Medium** | Scope or integration impact, spec intent met with notable changes | Scope expansion beyond spec; new dependency not in spec; approach variation affecting integration; additional unrequested features | Flag with ⚠️. Continue PASS with warning. Review post-implementation. |
-| **Large** | Fundamental deviation, spec intent NOT met or constraints violated | Wrong architectural approach; constraint violation; security model change; incompatible data model; missing core requirement | PAUSE pipeline. Surface conflict to human. Do NOT continue. |
+| **Large** | Fundamental deviation, spec intent NOT met or constraints violated | Wrong architectural approach; constraint violation; security model change; incompatible data model; missing core requirement | PAUSE pipeline. Surface conflict to human. Include all review sections in output. |
 
 **⚠️ When severity is ambiguous → default to Medium.** Under-classifying a Large deviation as Small is worse than over-classifying a Small deviation as Medium.
 

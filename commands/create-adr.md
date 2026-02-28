@@ -19,7 +19,7 @@ Create comprehensive Architecture Decision Records (ADRs) that systematically do
 **MANDATORY:** This command **automatically executes research** if no relevant research exists. The ADR creation process will:
 
 1. Check for existing research on the decision topic
-2. If no research found: **automatically read and execute** the complete research workflow from `.writ/commands/research.md`
+2. If no research found: **automatically read and execute** the complete research workflow from `commands/research.md`
 3. Only proceed with ADR creation after research is completed and documented
 
 ## Command Process
@@ -32,9 +32,9 @@ Create comprehensive Architecture Decision Records (ADRs) that systematically do
 
 1. **Check for existing research:**
 
-   - Use `file_search` to look for related research in `.writ/research/` directory
+   - Use `Grep` to search for related research content in `.writ/research/` directory
    - Search for research documents that might relate to the architectural decision
-   - Use `list_dir` to explore the research directory structure
+   - Use `Glob` to explore the research directory structure (e.g., `.writ/research/*.md`)
 
 2. **Automatic research execution if missing:**
 
@@ -46,12 +46,12 @@ Create comprehensive Architecture Decision Records (ADRs) that systematically do
 
    🔄 AUTOMATICALLY EXECUTING RESEARCH WORKFLOW FIRST...
 
-   Reading .writ/commands/research.md and executing complete research process..."
+   Reading commands/research.md and executing complete research process..."
    ```
 
 3. **Execute research workflow automatically:**
 
-   - **IMMEDIATELY** use `read_file` to read `.writ/commands/research.md`
+   - **IMMEDIATELY** use `Read` to read `commands/research.md`
    - **EXECUTE** the complete 4-phase research methodology as defined in research.md:
      - Phase 1: Define Research Scope
      - Phase 2: Initial Discovery

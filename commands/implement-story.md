@@ -148,7 +148,7 @@ Spawns a **read-only** sub-agent for code review.
 - **FAIL** → send feedback to coding agent for fixes
 - **PAUSE** → Large drift detected; surface conflict to user before continuing
 
-**Review loop:** Max 3 iterations across all gates. After 3 failures → escalate to user.
+**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user.
 
 #### Gate 3.5: Drift Response Handling
 
@@ -239,7 +239,7 @@ All drift writes target **`.writ/specs/[spec-folder]/drift-log.md`** where `[spe
 Options:
 1. Accept deviation — continue pipeline, log as accepted drift
 2. Reject deviation — send back to coding agent with spec constraints
-3. Modify spec — update spec-lite.md to reflect new approach, then continue
+3. Modify spec — update spec.md to reflect new approach, then continue
 ```
 
 4. Wait for user response via `AskQuestion`
@@ -251,10 +251,10 @@ Options:
    - **Resolution:** `Pipeline paused — rejected, sent back to coding agent`
    - **Spec amendment:** `N/A — implementation revised to match spec`
    - Send review feedback + spec constraints back to coding agent (counts as review iteration)
-7. **On "Modify spec":** User updates spec, append Large deviation entry with:
+7. **On "Modify spec":** User updates `spec.md`, append Large deviation entry with:
    - **Resolution:** `Pipeline paused — spec modified by user`
    - **Spec amendment:** [description of spec change]
-   - Re-run from Gate 3
+   - Regenerate `spec-lite.md` from the updated `spec.md`, reload both, then re-run from Gate 3 (counts as review iteration)
 
 **Mixed severities:** The overall drift level is the **highest** severity present. If the report contains 1 Small + 1 Large, the pipeline PAUSES for the Large deviation. Small and Medium amendments are still logged immediately — only Large entries wait for user decision.
 
@@ -276,7 +276,7 @@ Options:
 - **≥80% line coverage on new files** — mandatory
 - **Coverage must not decrease on modified files**
 
-**On failure:** Send test output back to coding agent. 2 fix iterations max, then escalate.
+**On failure:** Send test output back to coding agent. 2 fix iterations max (separate from the review loop's 3-iteration cap), then escalate.
 
 ---
 

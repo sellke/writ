@@ -114,15 +114,15 @@ Your development environment is now set up and documented:
 
 ## Recommended Next Steps:
 
-### For New Products:
-/plan-product "your product idea" - Define product vision, strategy, and roadmap
+### For Product Strategy (Recommended First):
+/plan-product "your product idea" - Define product strategy and roadmap
 
-### For Existing Products:
+### For Feature Development:
 /create-spec "feature description" - Create detailed feature specifications
-/implement-story - Implement features with TDD workflow
+/implement-story - Implement features
 
-### For Research:
-/research "topic" - Conduct systematic technical research
+### For Technical Improvements:
+/research "topic" - Research solutions for gaps
 /create-adr "decision" - Document architectural decisions
 
 Ready to define your product strategy and start building!
@@ -324,7 +324,7 @@ Ready to define your product strategy and enhance your codebase!
 
 ```
 .writ/
-├── commands/                 # CC command definitions (pre-installed)
+├── commands/                 # Writ command definitions (pre-installed)
 └── docs/
     ├── best-practices.md     # Development best practices (pre-installed)
     ├── code-style.md         # Code conventions and patterns
@@ -347,7 +347,7 @@ Ready to define your product strategy and enhance your codebase!
 
 **Commands Directory** (`.writ/commands/`):
 
-- Pre-installed CC command definitions (managed by system)
+- Pre-installed Writ command definitions (managed by system)
 
 **Root Directory**:
 

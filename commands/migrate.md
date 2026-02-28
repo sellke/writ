@@ -56,7 +56,7 @@ fi
 # Check for existing Writ (abort if already migrated)
 if [ -d ".writ" ]; then
   echo "⚠️ .writ/ already exists. This project may already be migrated."
-  echo "If this is a partial migration, run /migrate --force to continue."
+  echo "If this is a partial migration, remove .writ/ and run /migrate again, or run /migrate --yes to continue."
   exit 1
 fi
 
@@ -193,22 +193,32 @@ done
 
 #### Step 2.4: Install Writ Commands
 
+Resolve Writ source first (same logic as `scripts/install.sh`):
+```bash
+# If running from cloned repo, use that; otherwise clone fresh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WRIT_ROOT="$(dirname "$SCRIPT_DIR")"
+if [ -f "$WRIT_ROOT/SKILL.md" ] && [ -d "$WRIT_ROOT/commands" ]; then
+  WRIT_SRC="$WRIT_ROOT"
+else
+  WRIT_SRC=$(mktemp -d)
+  git clone --depth 1 https://github.com/sellke/writ.git "$WRIT_SRC" 2>/dev/null
+  trap "rm -rf $WRIT_SRC" EXIT
+fi
+```
+
 **For Cursor:**
 ```bash
 mkdir -p .cursor/commands .cursor/agents
 
-# Remove old Code Captain commands
-rm -f .cursor/commands/*.md
+# Install Writ commands (overwrites matching CC commands, preserves custom commands)
+cp "$WRIT_SRC/commands/"*.md .cursor/commands/
 
-# Install Writ commands
-cp path/to/writ/commands/*.md .cursor/commands/
-
-# Install Writ agents
-rm -f .cursor/agents/*.md
-cp path/to/writ/agents/*.md .cursor/agents/
+# Install Writ agents (overwrites matching CC agents, preserves custom agents)
+cp "$WRIT_SRC/agents/"*.md .cursor/agents/
 
 # Update system instructions
-cp path/to/writ/system-instructions.md .cursor/system-instructions.md
+cp "$WRIT_SRC/system-instructions.md" .cursor/system-instructions.md
 ```
 
 **For Claude Code:**
@@ -216,7 +226,7 @@ cp path/to/writ/system-instructions.md .cursor/system-instructions.md
 mkdir -p .claude/commands .claude/agents
 
 # Install Writ commands
-cp path/to/writ/commands/*.md .claude/commands/
+cp "$WRIT_SRC/commands/"*.md .claude/commands/
 
 # Install native subagent definitions (see adapters/claude-code.md)
 # These are the proper .claude/agents/ files with YAML frontmatter

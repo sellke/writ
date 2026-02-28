@@ -7,9 +7,8 @@ Optional pipeline gate that validates UI implementation against mockups, wirefra
 ## Activation
 
 **Auto-activates when:**
-- The story's spec has a `mockups/` directory with files
 - The story file contains a `## Visual References` section
-- The spec has a `component-inventory.md`
+- The spec has a `mockups/` directory with files
 
 **Skipped when:**
 - No visual references exist (most backend stories)
@@ -144,9 +143,9 @@ The visual QA gate runs as **Gate 4.5** — after tests pass, before docs:
 
 ```
 arch-check → code → lint → review → test → VISUAL QA → docs
-                      ▲                        │
-                      │         FAIL           │
-                      └────────────────────────┘
+               ▲                                 │
+               │              FAIL               │
+               └─────────────────────────────────┘
 ```
 
 Failures route back to the coding agent (same as review failures). Counts toward the shared 3-iteration cap.

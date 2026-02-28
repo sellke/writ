@@ -8,6 +8,7 @@ Specialized agent for creating and maintaining comprehensive developer documenta
 
 ```
 subagent_type: "generalPurpose"
+model: default (inherits from parent)
 readonly: false  # CRITICAL: Must be false - agent creates documentation files!
 ```
 
@@ -68,7 +69,7 @@ Task({
   subagent_type: "generalPurpose",
   description: "Update VitePress documentation",
   readonly: false,
-  prompt: `You are the Documentation Agent for the Weather App VitePress documentation.
+  prompt: `You are the Documentation Agent for project documentation.
 
 ## Your Mission
 
