@@ -1,0 +1,22 @@
+<svg width="600" height="180" viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .ascii {
+      font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 16px;
+      white-space: pre;
+    }
+    .base { fill: #c9d1d9; }
+    .bolt { fill: #FF9900; }
+    @media (prefers-color-scheme: light) {
+      .base { fill: #24292f; }
+    }
+  </style>
+  <text x="50%" y="30" text-anchor="middle" class="ascii base" xml:space="preserve">/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\</text>
+  <text x="50%" y="49" text-anchor="middle" class="ascii" xml:space="preserve"><tspan class="base">  ˆˆW    ˆˆWˆˆˆˆˆˆW </tspan><tspan class="bolt">  ˆˆW    </tspan><tspan class="base">ˆˆˆˆˆˆˆˆW  </tspan></text>
+  <text x="50%" y="68" text-anchor="middle" class="ascii" xml:space="preserve"><tspan class="base">  ˆˆQ    ˆˆQˆˆTPPˆˆW</tspan><tspan class="bolt">  ZˆˆW   </tspan><tspan class="base">ZPPˆˆTPP]  </tspan></text>
+  <text x="50%" y="87" text-anchor="middle" class="ascii" xml:space="preserve"><tspan class="base">  ˆˆQ ˆW ˆˆQˆˆˆˆˆˆT]</tspan><tspan class="bolt"> ˆˆˆˆˆˆW </tspan><tspan class="base">   ˆˆQ     </tspan></text>
+  <text x="50%" y="106" text-anchor="middle" class="ascii" xml:space="preserve"><tspan class="base">  ˆˆQˆˆˆWˆˆQˆˆTPPˆˆW</tspan><tspan class="bolt"> ZPPˆˆT] </tspan><tspan class="base">   ˆˆQ     </tspan></text>
+  <text x="50%" y="125" text-anchor="middle" class="ascii" xml:space="preserve"><tspan class="base">  ZˆˆˆTˆˆˆT]ˆˆQ  ˆˆQ</tspan><tspan class="bolt">   ˆˆT]  </tspan><tspan class="base">   ˆˆQ     </tspan></text>
+  <text x="50%" y="144" text-anchor="middle" class="ascii" xml:space="preserve"><tspan class="base">   ZPP]ZPP] ZP]  ZP]</tspan><tspan class="bolt">   ZP]   </tspan><tspan class="base">   ZP]     </tspan></text>
+  <text x="50%" y="163" text-anchor="middle" class="ascii base" xml:space="preserve">\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/</text>
+</svg>

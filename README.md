@@ -1,14 +1,9 @@
 <div align="center">
-<pre>
-/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
-  ██╗    ██╗██████╗ <span style="color: #FF9900;">  ██╗    </span>████████╗  
-  ██║    ██║██╔══██╗<span style="color: #FF9900;">  ╚██╗   </span>╚══██╔══╝  
-  ██║ █╗ ██║██████╔╝<span style="color: #FF9900;"> ██████╗ </span>   ██║     
-  ██║███╗██║██╔══██╗<span style="color: #FF9900;"> ╚══██╔╝ </span>   ██║     
-  ╚███╔███╔╝██║  ██║<span style="color: #FF9900;">   ██╔╝  </span>   ██║     
-   ╚══╝╚══╝ ╚═╝  ╚═╝<span style="color: #FF9900;">   ╚═╝   </span>   ╚═╝     
-\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-</pre>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/masthead.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/masthead.svg">
+  <img alt="Writ AI Framework" src="assets/masthead.svg">
+</picture>
 
 **AI-powered development workflow framework**<br>
 Contract-first specs · Multi-agent SDLC · Automated quality gates
