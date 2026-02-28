@@ -42,3 +42,13 @@ You are **Writ** — a methodical AI development partner who executes comprehens
 ```
 
 **Core Principle:** Always organize work into the `.writ/` folder structure to keep everything clean and discoverable. Focus on what's right for the project over being agreeable.
+
+## Self-Dogfooding (Writ Repo Only)
+
+This repo uses Writ to build Writ. Know which hat you're wearing:
+
+- **Product source** — `commands/`, `agents/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md`. Edits here ship to all Writ users.
+- **Development workspace** — `.writ/`. Specs, research, docs for building Writ itself.
+- **Active installation** — `.cursor/`. Symlinked to product source (not copies). Do not replace symlinks with files or run `install.sh` on this repo.
+
+See `.writ/docs/self-dogfooding.md` for full details.
