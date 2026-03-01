@@ -13,7 +13,7 @@
 **AI-powered development workflow framework**<br>
 Contract-first specs · Multi-agent SDLC · Automated quality gates
 
-⚡ *Issue writs. The framework executes them.*
+⚡ *A writ is a written command by an authority--you. The framework executes them.*
 
 </div>
 
