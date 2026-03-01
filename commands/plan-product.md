@@ -45,9 +45,21 @@ If user selects "Something else", follow up with a free-text question to get the
 
 **If user already described the product idea clearly, skip this step.**
 
-#### Step 1.2: Gap Analysis & Silent Enumeration
+#### Step 1.2: Switch to Plan Mode for Product Discovery
 
-**Internal Process (not shown to user):**
+**After context scan and initial product direction selection, switch to Plan Mode:**
+
+```
+SwitchMode({ target_mode_id: "plan" })
+```
+
+**Why Plan Mode:** Product strategy is inherently open-ended. Business models, audience targeting, MVP scope — these have enumerable options, but the real value is in the *discussion around them*. Forcing "freemium vs subscription vs marketplace" into a multiple-choice box loses the nuance of why, when, and for whom.
+
+> **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
+
+#### Step 1.3: Product Discovery Conversation (Plan Mode)
+
+**Internal Process (not shown to user) — do this before speaking:**
 - Silently list every missing product detail and requirement
 - Identify ambiguities in the initial product description
 - Note potential market and technical constraints
@@ -62,87 +74,24 @@ If user selects "Something else", follow up with a free-text question to get the
   - Timeline expectations and resource constraints
   - Risk factors and mitigation strategies
 
-#### Step 1.3: Structured Product Discovery Loop
-
-**Rules:**
-- Ask ONE focused question at a time
+**Conversation Rules:**
+- Ask ONE focused question at a time, targeting the highest-impact unknown
 - After each answer, re-analyze context and technical feasibility
 - Continue until reaching 95% confidence on product deliverable
-- Each question should target the highest-impact unknown
-- **Never declare "final question"** - let the conversation flow naturally
-- Let the user signal when they're ready to lock the contract
-- **Challenge ideas that don't make business or technical sense** - better to surface concerns early than plan the wrong product
-- **Use AskQuestion for structured choices** - when the question has a finite set of likely answers (scope decisions, model selection, audience targeting), present them as selectable options rather than free text. Reserve free-text questions for open-ended discovery (pain points, vision, differentiation).
+- **Never declare "final question"** — let the conversation flow naturally
+- Let the user signal when they're ready to see a contract
+- **Challenge ideas that don't make business or technical sense** — better to surface concerns early than plan the wrong product
 
-#### Step 1.3a: Structured Decision Points (AskQuestion)
-
-At key decision moments during discovery, use AskQuestion instead of free text:
-
-**MVP Scope Focus** (after understanding the problem space):
-```
-AskQuestion({
-  title: "MVP Scope - Where should we focus first?",
-  questions: [
-    {
-      id: "mvp_focus",
-      prompt: "Based on our discussion, which area should the MVP prioritize?",
-      options: [
-        // Generate 3-5 options from the discovered feature space
-        { id: "focus_1", label: "[Core feature area A] - [user value]" },
-        { id: "focus_2", label: "[Core feature area B] - [user value]" },
-        { id: "focus_3", label: "[Core feature area C] - [user value]" },
-        { id: "all", label: "All of the above (larger MVP scope)" }
-      ],
-      allowMultiple: true
-    }
-  ]
-})
-```
-
-**Business Model** (when discussing monetization):
-```
-AskQuestion({
-  title: "Business Model - How will this generate revenue?",
-  questions: [
-    {
-      id: "business_model",
-      prompt: "What monetization approach fits this product?",
-      options: [
-        { id: "freemium", label: "Freemium - Free tier + paid upgrades" },
-        { id: "subscription", label: "Subscription - Monthly/annual recurring" },
-        { id: "one_time", label: "One-time purchase" },
-        { id: "marketplace", label: "Marketplace/transaction fees" },
-        { id: "open_source", label: "Open source + services/support" },
-        { id: "ad_supported", label: "Ad-supported / data monetization" },
-        { id: "other", label: "Something else (I'll describe it)" },
-        { id: "none", label: "Not monetized (internal tool / side project)" }
-      ]
-    }
-  ]
-})
-```
-
-**Target Audience** (when narrowing market):
-```
-AskQuestion({
-  title: "Target Audience - Who are we building for first?",
-  questions: [
-    {
-      id: "target_audience",
-      prompt: "Which user segment should we target first?",
-      options: [
-        // Dynamically generate from discovery conversation
-        { id: "segment_1", label: "[User segment A] - [size/accessibility]" },
-        { id: "segment_2", label: "[User segment B] - [size/accessibility]" },
-        { id: "segment_3", label: "[User segment C] - [size/accessibility]" },
-        { id: "broad", label: "General audience (no specific segment)" }
-      ]
-    }
-  ]
-})
-```
-
-**Use these at natural moments in the conversation — not all at once.** The discovery loop (Step 1.3) still drives the conversation; these structured questions replace specific free-text questions where options are clearer and faster.
+**Topic Areas to Explore (across the conversation):**
+- "Who specifically has this problem, and how painful is it for them?"
+- "What would make someone switch from their current solution to yours?"
+- "How will you measure product success in the first 6 months?"
+- "What's your biggest constraint — time, budget, technical expertise, or market access?"
+- "How does this align with your existing business/project goals?"
+- "What happens if your first assumption about users turns out to be wrong?"
+- Business model and monetization — discuss trade-offs conversationally
+- MVP scope — collaboratively identify what delivers core value fastest
+- Target audience — explore segments through dialogue, not dropdown
 
 **Critical Analysis Responsibility:**
 - If product scope seems too large for available resources, recommend phasing
@@ -157,17 +106,9 @@ AskQuestion({
 - "The market you're describing sounds very broad. Should we focus on [specific segment] to start?"
 - "I'm concerned that [requirement] could face [specific challenge]. Have you considered [alternative approach]?"
 
-**Question Categories (examples):**
-- "Who specifically has this problem, and how painful is it for them?"
-- "What would make someone switch from their current solution to yours?"
-- "How will you measure product success in the first 6 months?"
-- "What's your biggest constraint - time, budget, technical expertise, or market access?"
-- "How does this align with your existing business/project goals?"
-- "What happens if your first assumption about users turns out to be wrong?"
-
 **Transition to Contract:**
-- When confidence is high, present contract without declaring it "final"
-- Use phrases like "I think I have enough to create a solid product contract" or "Based on our discussion, here's what I understand"
+- When confidence is high, present the contract (still in Plan Mode)
+- Use phrases like "I think I have a clear picture — here's the product contract" or "Based on our discussion, here's what I'd propose"
 - Always leave room for more questions if needed
 
 #### Step 1.4: Product Contract Proposal
@@ -208,14 +149,39 @@ When confident, present a product contract proposal with any concerns surfaced:
 - Phase 2 (Growth): [Key expansion features - months]
 - Phase 3 (Scale): [Advanced capabilities - quarters]
 
----
-Options:
-- Type 'yes' to lock this contract and create the product planning package
-- Type 'edit: [your changes]' to modify the contract
-- Type 'risks' to explore potential market/technical risks in detail
-- Type 'competition' to analyze competitive landscape
-- Ask more questions if anything needs clarification
 ```
+
+Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+
+#### Step 1.4b: Contract Decision (Agent Mode)
+
+**When the user returns to Agent Mode after approving the contract direction, use AskQuestion to confirm:**
+
+```
+AskQuestion({
+  title: "Product Contract Decision",
+  questions: [
+    {
+      id: "contract_action",
+      prompt: "How would you like to proceed with this product contract?",
+      options: [
+        { id: "yes", label: "Lock contract and create product planning package" },
+        { id: "edit", label: "Edit the contract (I'll specify changes)" },
+        { id: "risks", label: "Explore market/technical risks first" },
+        { id: "competition", label: "Analyze competitive landscape first" },
+        { id: "questions", label: "I have more questions before deciding" }
+      ]
+    }
+  ]
+})
+```
+
+**Handling responses:**
+- **yes**: Proceed to Phase 2 (Product Planning Package Creation)
+- **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
+- **risks**: Present detailed risk analysis, then re-present contract with AskQuestion
+- **competition**: Analyze competitive landscape, then re-present contract with AskQuestion
+- **questions**: Switch back to Plan Mode and return to discovery conversation
 
 ### Phase 2: Product Planning Package Creation (Post-Agreement Only)
 

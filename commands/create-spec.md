@@ -2,7 +2,7 @@
 
 ## Overview
 
-Generate comprehensive feature specifications using a contract-first approach that ensures complete alignment between developer and AI before creating any supporting files. This command eliminates presumptuous file creation by establishing a clear "contract" through structured clarification rounds.
+Generate comprehensive feature specifications using a contract-first approach that ensures complete alignment between developer and AI before creating any supporting files. This command uses **Plan Mode for open-ended discovery** and **AskQuestion for bounded decisions**, eliminating presumptuous file creation by establishing a clear "contract" through collaborative conversation.
 
 ## Command Process
 
@@ -45,9 +45,24 @@ If user selects "Something else", follow up with a free-text question to get the
 - Load project context files (`tech-stack.md`, `code-style.md`, `objective.md`)
 - **Output:** Context summary (no files created yet)
 
-#### Step 1.2: Gap Analysis & Silent Enumeration
+#### Step 1.2: Switch to Plan Mode for Discovery
 
-**Internal Process (not shown to user):**
+**After the context scan, switch to Plan Mode before asking any discovery questions:**
+
+```
+SwitchMode({ target_mode_id: "plan" })
+```
+
+**Why Plan Mode:** The discovery phase is a conversation, not a questionnaire. Plan Mode provides:
+- **Read-only enforcement** — structurally prevents premature file creation
+- **Conversational UX** — open-ended back-and-forth instead of multiple-choice boxes
+- **Clear phase signal** — the mode switch itself tells the user "we're shaping the idea, not building yet"
+
+> **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
+
+#### Step 1.3: Discovery Conversation (Plan Mode)
+
+**Internal Process (not shown to user) — do this before speaking:**
 
 - Silently list every missing fact, constraint, or requirement
 - Identify ambiguities in the initial description
@@ -64,83 +79,26 @@ If user selects "Something else", follow up with a free-text question to get the
   - Integration points with existing systems
   - Risk tolerance & implementation approach
 
-#### Step 1.3: Structured Clarification Loop
+**Conversation Rules:**
 
-**Rules:**
+- Ask ONE focused question at a time, targeting the highest-impact unknown
+- After each answer, re-scan codebase for additional context if relevant
+- Continue until reaching 95% confidence on the deliverable
+- **Never declare "final question"** — let the conversation flow naturally
+- Let the user signal when they're ready to see a contract
+- **Challenge ideas that don't make technical or business sense** — better to surface concerns early than build the wrong thing
 
-- Use the **AskQuestion tool** for structured multiple-choice clarification
-- Batch related questions together (max 5-7 questions per round)
-- After each answer set, re-scan codebase for additional context if relevant
-- Continue rounds until reaching 95% confidence on deliverable
-- Follow up with free-text questions only when choices need elaboration
-- **Challenge ideas that don't make technical or business sense** - better to surface concerns early than build the wrong thing
+**Topic Areas to Explore (across the conversation):**
 
-**Using AskQuestion Tool:**
-
-Use the `AskQuestion` tool to gather structured information efficiently. Example:
-
-```
-AskQuestion({
-  title: "Feature Clarification - Round 1",
-  questions: [
-    {
-      id: "user_type",
-      prompt: "Who is the primary user of this feature?",
-      options: [
-        { id: "end_user", label: "End users/customers" },
-        { id: "admin", label: "Administrators/internal staff" },
-        { id: "developer", label: "Developers/API consumers" },
-        { id: "both", label: "Multiple user types" }
-      ]
-    },
-    {
-      id: "integration",
-      prompt: "How should this integrate with existing systems?",
-      options: [
-        { id: "standalone", label: "Standalone - minimal integration" },
-        { id: "extends", label: "Extends existing feature" },
-        { id: "replaces", label: "Replaces existing functionality" },
-        { id: "new_system", label: "New system with deep integration" }
-      ]
-    },
-    {
-      id: "priority",
-      prompt: "What's the implementation priority?",
-      options: [
-        { id: "mvp", label: "MVP - minimal viable first" },
-        { id: "complete", label: "Complete feature set" },
-        { id: "iterative", label: "Iterative - start small, expand" }
-      ]
-    }
-  ]
-})
-```
-
-**Question Categories to Cover (across rounds):**
-
-Round 1 - Core Understanding:
-- User type / persona
-- Integration approach
-- Implementation priority / risk tolerance
-
-Round 2 - Technical Requirements:
-- Performance requirements (response time, scale)
+- Who has this problem and how painful is it?
+- How should this integrate with what already exists?
+- What's the implementation approach — MVP, complete, iterative?
+- Performance, scale, and latency requirements
 - UI/UX constraints (web, mobile, accessibility)
-- Data persistence needs
-- Security/compliance level
-
-Round 3 - Scope & Success (if needed):
-- Feature boundaries (what's in/out)
-- Success metrics
-- Timeline constraints
-- Dependencies on other features
-
-**When to Use Free-Text Follow-up:**
-
-- User selects "Other" or "Multiple" options
-- Need specific details (numbers, names, examples)
-- Clarifying edge cases or complex requirements
-- Discussing technical concerns or alternatives
+- Data persistence and security needs
+- Feature boundaries — what's in scope, what's explicitly out?
+- Success criteria and how we'll know it's working
+- Timeline constraints and dependencies
 
 **Critical Analysis Responsibility:**
 
@@ -159,11 +117,11 @@ Round 3 - Scope & Success (if needed):
 
 **Transition to Contract:**
 
-- When confidence is high after structured Q&A, present contract
-- Use phrases like "Based on your selections, here's my understanding" or "The answers have given me enough to propose a contract"
+- When confidence is high, present the contract (still in Plan Mode)
+- Use phrases like "I think I have a clear picture now — here's what I'd propose" or "Based on our discussion, here's the contract"
 - Always leave room for more questions if needed
 
-#### Step 1.4: Echo Check (Contract Proposal)
+#### Step 1.4: Contract Proposal (Still in Plan Mode)
 
 When confident, present a contract proposal with any concerns surfaced:
 
@@ -193,7 +151,11 @@ When confident, present a contract proposal with any concerns surfaced:
 - [Ways to reduce risk or complexity]
 ```
 
-**Then IMMEDIATELY use AskQuestion for contract decision:**
+Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+
+#### Step 1.4b: Contract Decision (Agent Mode)
+
+**When the user returns to Agent Mode after approving the contract direction, use AskQuestion to confirm:**
 
 ```
 AskQuestion({
@@ -219,7 +181,7 @@ AskQuestion({
 - **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
 - **risks**: Present detailed risk analysis, then re-present contract with AskQuestion
 - **blueprint**: Show planned folder structure, then re-present contract with AskQuestion
-- **questions**: Ask "What would you like to clarify?" then return to clarification loop
+- **questions**: Switch back to Plan Mode and return to discovery conversation
 
 #### Step 1.5: Visual References (Optional)
 
@@ -590,7 +552,7 @@ Developer: /create-spec
 
 Agent: [Scans codebase to identify potential features]
 
-[Uses AskQuestion tool IMMEDIATELY]
+[Uses AskQuestion tool IMMEDIATELY — feature selection is a bounded choice]
 
 ┌─────────────────────────────────────────────────────────────┐
 │ Feature Specification - What would you like to build?       │
@@ -605,7 +567,7 @@ Agent: [Scans codebase to identify potential features]
 
 Developer: [Selects: "7-day forecast"]
 
-Agent: [Continues with clarification rounds using AskQuestion...]
+Agent: [Switches to Plan Mode for discovery conversation...]
 ```
 
 ### Example 2: Feature Provided with Full Flow
@@ -614,94 +576,77 @@ Agent: [Continues with clarification rounds using AskQuestion...]
 Developer: /create-spec "real-time multiplayer chat with blockchain integration"
 
 Agent: [Scans existing code, finds a simple React app with basic authentication]
+       [Switches to Plan Mode for discovery]
 
-I found your existing React application with basic user authentication. Before I dive into questions, I'm noticing a potential concern: real-time chat typically requires sub-100ms latency, but blockchain transactions can take seconds or minutes.
+--- PLAN MODE ---
 
-[Uses AskQuestion tool]
+I found your existing React application with basic user authentication.
+Before I dive in, I'm noticing a potential concern: real-time chat typically
+requires sub-100ms latency, but blockchain transactions can take seconds
+or minutes. What problem does blockchain solve in this chat context?
 
-┌─────────────────────────────────────────────────────────────┐
-│ Feature Clarification - Round 1                             │
-├─────────────────────────────────────────────────────────────┤
-│ 1. What problem does blockchain solve in this chat context? │
-│    ○ Permanent message storage & verification               │
-│    ○ Spam prevention via crypto payments                    │
-│    ○ Decentralized ownership / censorship resistance        │
-│    ○ Token-gated access to chat rooms                       │
-│    ☑ Multiple of the above                                  │
-│                                                             │
-│ 2. What's your latency expectation for messages?            │
-│    ○ Real-time (<1 second)                                  │
-│    ○ Near real-time (1-5 seconds)                           │
-│    ○ Async is fine (minutes)                                │
-│                                                             │
-│ 3. How should blockchain and real-time interact?            │
-│    ○ Messages must be confirmed on-chain before display     │
-│    ○ Hybrid: instant delivery, background blockchain        │
-│    ○ Pre-purchase credits, instant spend                    │
-└─────────────────────────────────────────────────────────────┘
+Developer: We want spam prevention via crypto micropayments and eventually
+permanent message storage, but spam prevention is the must-have.
 
-Developer: [Selects: "Multiple of the above", "Real-time (<1 second)", "Hybrid: instant delivery, background blockchain"]
+Agent: That makes sense. If spam prevention is the core value, we need the
+blockchain interaction to not block the real-time UX. I'm thinking a hybrid
+approach — messages deliver instantly, blockchain settlement happens in the
+background. Does that match your mental model, or do you need messages to
+be confirmed on-chain before they're visible?
 
-Agent: Good choices. The hybrid approach makes sense for real-time UX. Since you selected "Multiple" for blockchain purpose, let me clarify with a follow-up:
+Developer: Hybrid is exactly right. Instant delivery, background settlement.
 
-Which blockchain benefits are must-haves vs nice-to-haves?
-- Permanent storage: Must-have / Nice-to-have / Not needed
-- Spam prevention via payments: Must-have / Nice-to-have / Not needed
+Agent: Good. For the cost target — Ethereum mainnet would be $1-5+ per message
+during congestion, which kills the micropayment model. A Layer 2 like Polygon
+would put you in the $0.01-0.10 range. Do you have a target cost per message,
+or should I recommend based on the spam prevention use case?
 
-Developer: Spam prevention is must-have, permanent storage is nice-to-have
+Developer: $0.01-0.10 range sounds right. What happens if settlement fails?
 
-Agent: [Uses AskQuestion for Round 2 - Technical Requirements]
+Agent: Three options: hide the message until settled (bad UX), show with a
+"pending" badge (confusing for chat), or show normally and notify the user
+only if settlement fails (cleanest UX, rare failure case). I'd recommend
+the third — it keeps chat feeling real-time. Thoughts?
 
-┌─────────────────────────────────────────────────────────────┐
-│ Technical Requirements - Round 2                            │
-├─────────────────────────────────────────────────────────────┤
-│ 1. Which blockchain/network?                                │
-│    ○ Ethereum mainnet                                       │
-│    ○ Layer 2 (Polygon, Arbitrum, Optimism)                  │
-│    ○ Solana                                                 │
-│    ○ Let me recommend based on requirements                 │
-│                                                             │
-│ 2. Target cost per message for users?                       │
-│    ○ Free (you absorb costs)                                │
-│    ○ Micro (<$0.01)                                         │
-│    ○ Small ($0.01-$0.10)                                    │
-│    ○ Significant ($0.10+) - spam prevention priority        │
-│                                                             │
-│ 3. What happens if blockchain settlement fails?             │
-│    ○ Hide message until settled                             │
-│    ○ Show message with "pending" indicator                  │
-│    ○ Show message, notify user of settlement failure        │
-└─────────────────────────────────────────────────────────────┘
+Developer: Agreed, show normally and notify on failure. I think that covers it.
 
-Developer: [Selects: "Let me recommend", "Small ($0.01-$0.10)", "Show message, notify user of settlement failure"]
-
-Agent: Based on your $0.01-$0.10 target, I'd recommend Polygon - Ethereum mainnet would cost $1-5+ per message during congestion. Here's the contract:
+Agent: Here's the contract:
 
 ## Specification Contract
 
-**Deliverable:** Hybrid real-time chat with immediate message delivery and background Polygon verification for anti-spam
+**Deliverable:** Hybrid real-time chat with immediate message delivery and
+background Polygon verification for anti-spam
 
-**Must Include:** Sub-second message delivery while maintaining blockchain verification for spam prevention
+**Must Include:** Sub-second message delivery while maintaining blockchain
+verification for spam prevention
 
-**Hardest Constraint:** Balancing real-time UX with blockchain settlement delays and gas cost management
+**Hardest Constraint:** Balancing real-time UX with blockchain settlement
+delays and gas cost management
 
 **⚠️ Technical Concerns:**
 - Background settlement failures need graceful handling and user notification
-- Wallet integration adds authentication complexity to existing simple auth system
+- Wallet integration adds authentication complexity to existing simple auth
 - Need message batching strategy to keep costs in target range
 
 **💡 Recommendations:**
 - Use Polygon for $0.01-0.10 per message cost target
-- Implement message batching to settle multiple messages in single transaction
+- Implement message batching to settle multiple messages per transaction
 - Add fallback mode for when blockchain settlement fails
 
-**Success Criteria:** Messages appear instantly, spam is prevented via crypto payments, blockchain verification happens within 5 minutes
+**Success Criteria:** Messages appear instantly, spam is prevented via crypto
+payments, blockchain verification happens within 5 minutes
 
 **Scope Boundaries:**
 - Included: Real-time chat, wallet integration, background Polygon settlement
-- Excluded: Advanced chat features (file sharing, voice), custom token creation, permanent storage (deferred to v2)
+- Excluded: Advanced chat features (file sharing, voice), custom token
+  creation, permanent storage (deferred to v2)
 
-[Uses AskQuestion for contract decision]
+Developer: Looks good, let's lock it.
+           [Switches back to Agent Mode]
+
+--- AGENT MODE ---
+
+Agent: [Uses AskQuestion to confirm contract decision]
 
 ┌─────────────────────────────────────────────────────────────┐
 │ Contract Decision                                           │
@@ -717,8 +662,6 @@ Agent: Based on your $0.01-$0.10 target, I'd recommend Polygon - Ethereum mainne
 Developer: [Selects: "Lock contract and create spec package"]
 
 Agent: ✅ Contract locked! Creating specification package...
-
-[Creates files that account for the technical concerns and hybrid architecture discussed]
 ```
 
-This approach ensures that every specification is built on solid understanding rather than assumptions, while respecting the developer's time and maintaining control over the process. The structured AskQuestion tool speeds up clarification while still allowing free-text follow-ups for nuanced details.
+**Key UX difference:** The discovery conversation felt natural — open-ended questions, real dialogue, collaborative pushback. The AskQuestion confirmation at the end is a clean gate before file creation. Plan Mode for discovery, AskQuestion for decisions.

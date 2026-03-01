@@ -19,9 +19,21 @@ A meta command that creates new Writ commands following established patterns and
 - Load command patterns from successful commands (`create-spec`, `implement-story`, etc.)
 - **Output:** Context summary (no files created yet)
 
-#### Step 1.2: Gap Analysis & Silent Enumeration
+#### Step 1.2: Switch to Plan Mode for Command Discovery
 
-**Internal Process (not shown to user):**
+**After the context scan, switch to Plan Mode:**
+
+```
+SwitchMode({ target_mode_id: "plan" })
+```
+
+**Why Plan Mode:** Designing a new command is an open-ended conversation — understanding the workflow it serves, how it fits with existing commands, what patterns to follow, and where simplification opportunities exist. Multiple-choice boxes can't capture this.
+
+> **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
+
+#### Step 1.3: Command Discovery Conversation (Plan Mode)
+
+**Internal Process (not shown to user) — do this before speaking:**
 
 - Silently list every missing detail about the command's purpose and implementation
 - Identify ambiguities in the initial command description
@@ -37,17 +49,14 @@ A meta command that creates new Writ commands following established patterns and
   - Integration with existing commands
   - Documentation & help text needs
 
-#### Step 1.3: Structured Clarification Loop
+**Conversation Rules:**
 
-**Rules:**
-
-- Ask ONE focused question at a time
+- Ask ONE focused question at a time, targeting the highest-impact unknown
 - After each answer, re-scan existing commands for additional context if relevant
 - Continue until reaching 95% confidence on command specification
-- Each question should target the highest-impact unknown
-- **Never declare "final question"** - let the conversation flow naturally
-- Let the user signal when they're ready to lock the contract
-- **Challenge command ideas that create complexity or don't fit** - better to surface concerns early than build problematic commands
+- **Never declare "final question"** — let the conversation flow naturally
+- Let the user signal when they're ready to see a contract
+- **Challenge command ideas that create complexity or don't fit** — better to surface concerns early than build problematic commands
 
 **Critical Analysis Responsibility:**
 
@@ -64,18 +73,18 @@ A meta command that creates new Writ commands following established patterns and
 - "I'm concerned that [proposed approach] would break Writ's [established pattern]. Have you considered [alternative]?"
 - "This command would need significant ongoing maintenance. Could we achieve the same goal with [simpler approach]?"
 
-**Question Categories (examples):**
+**Topic Areas to Explore (across the conversation):**
 
 - "What specific developer workflow does this solve that existing commands don't cover?"
 - "Should this integrate with [existing command found in scan], or remain separate?"
-- "What does 'success' look like - how will developers know the command worked correctly?"
-- "Should this be a contract-style command (extensive clarification like create-spec) or direct execution (immediate action like swab)?"
-- "Where should outputs be stored - new folder or existing (.writ/[folder])?"
-- "What Cursor tools will it need - codebase_search, file_search, edit_file, web_search?"
+- "What does 'success' look like — how will developers know the command worked correctly?"
+- "Should this be a contract-style command (extensive clarification like create-spec) or direct execution (immediate action like refactor)?"
+- "Where should outputs be stored — new folder or existing (.writ/[folder])?"
+- "What tools will it need — codebase_search, file_search, edit_file, web_search?"
 
 **Transition to Contract:**
 
-- When confidence is high, present contract without declaring it "final"
+- When confidence is high, present the contract (still in Plan Mode)
 - Use phrases like "I think I understand the command you need" or "Based on our discussion, here's the command specification"
 - Always leave room for more questions if needed
 
@@ -112,14 +121,39 @@ When confident, present a command contract proposal with any concerns surfaced:
 - [Suggestions for improving the command based on ecosystem analysis]
 - [Ways to reduce complexity or improve consistency]
 
----
-Options:
-- Type 'yes' to lock this contract and create the command
-- Type 'edit: [your changes]' to modify the contract
-- Type 'examples' to see similar commands for reference
-- Type 'blueprint' to see the planned file structure and documentation
-- Ask more questions if anything needs clarification
 ```
+
+Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+
+#### Step 1.4b: Contract Decision (Agent Mode)
+
+**When the user returns to Agent Mode after approving the contract direction, use AskQuestion to confirm:**
+
+```
+AskQuestion({
+  title: "Command Contract Decision",
+  questions: [
+    {
+      id: "contract_action",
+      prompt: "How would you like to proceed with this command contract?",
+      options: [
+        { id: "yes", label: "Lock contract and create the command" },
+        { id: "edit", label: "Edit the contract (I'll specify changes)" },
+        { id: "examples", label: "See similar commands for reference" },
+        { id: "blueprint", label: "See the planned file structure and documentation" },
+        { id: "questions", label: "I have more questions before deciding" }
+      ]
+    }
+  ]
+})
+```
+
+**Handling responses:**
+- **yes**: Proceed to Phase 2 (Command Package Creation)
+- **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
+- **examples**: Show similar command structures, then re-present contract with AskQuestion
+- **blueprint**: Show planned file structure, then re-present contract with AskQuestion
+- **questions**: Switch back to Plan Mode and return to discovery conversation
 
 ### Phase 2: Command Package Creation (Post-Agreement Only)
 
