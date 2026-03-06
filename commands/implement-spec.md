@@ -187,18 +187,22 @@ Options:
 
 #### Step 4.1: Integration Verification
 
-After all stories complete, run full project checks:
+After all stories complete, choose a verification strategy proportional to the change surface:
 
-```bash
-# Full test suite
-npm test           # or equivalent
+**Assess the change surface before running anything:**
 
-# Full typecheck
-npm run typecheck  # or equivalent
+| Change Surface | Verification | Examples |
+|---|---|---|
+| **Style-only** (CSS classes, className props, Tailwind utilities) | Typecheck only | Adding `max-h-[85vh]`, changing colors, responsive tweaks |
+| **Single-component logic** (state, handlers, props in one component) | Typecheck + targeted test file (if one exists) | Adding a form field, fixing a handler bug |
+| **Cross-component / shared** (utils, hooks, context, API routes) | Typecheck + targeted test files + related integration tests | Refactoring a shared hook, changing an API response shape |
+| **Full-stack / multi-story** (new features, schema changes, migrations) | Full test suite (`npm test`), typecheck, lint | New CRUD feature, auth changes, data model migration |
 
-# Full lint
-npm run lint       # or equivalent
-```
+**Rules:**
+- Default to the **lightest verification that covers the risk**. Err toward less, not more.
+- Never run a multi-minute E2E suite for changes that don't touch logic, state, or data flow.
+- Typecheck (`tsc --noEmit`) is always fast and always worth running — it's the universal baseline.
+- If tests exist that directly exercise the changed component, run those specifically (`npx playwright test [file]`) rather than the full suite.
 
 If integration failures: identify which story likely broke it, report to user.
 
