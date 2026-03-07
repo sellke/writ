@@ -2,7 +2,7 @@
 
 ## Overview
 
-Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change, answer 2-3 fast questions, ship code with TDD and lint verification — no spec files, no multi-gate ceremony.
+Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change, ship code with TDD and lint verification — no spec files, no multi-gate ceremony, no pre-flight questions.
 
 Use `/prototype` when the cost of creating a specification exceeds the value of the change itself. For anything that touches core architecture, requires cross-team coordination, or spans many files, use `/create-spec` + `/implement-story` instead.
 
@@ -11,24 +11,27 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 | | `/prototype` | `/implement-story --quick` |
 |---|---|---|
 | **Spec required?** | No — operates without any spec | Yes — requires an existing story file |
-| **Input** | Freeform description + 2-3 questions | Story file with tasks and acceptance criteria |
-| **Pipeline** | Contract → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
+| **Input** | Description (inline, attached file, or conversation context) | Story file with tasks and acceptance criteria |
+| **Pipeline** | Scan → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
 | **Best for** | Ad-hoc changes, bug fixes, small features | Prototyping a specific story within a larger spec |
 
 ## Invocation
 
 | Invocation | Behavior |
 |---|---|
-| `/prototype` | Interactive — asks what you want to build (full quick contract) |
-| `/prototype "description"` | Pre-filled — skips the "what" question, asks only about scope and constraints |
+| `/prototype` | Uses the conversation context — attached files, preceding messages, or user's description |
+| `/prototype "description"` | Explicit inline description |
+| `/prototype @issue-file.md` | Reads the attached issue/file as the change description |
+
+All invocations go straight to Context Scan — no interactive questions. The description, constraints, and scope are extracted from whatever the user provides. If the input is ambiguous or insufficient, the agent asks a single clarifying question in natural language rather than presenting a menu.
 
 ## Pipeline
 
 ```
 ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│  QUICK        │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
-│  CONTRACT     │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
-│ (2-3 Q's)     │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
+│  CONTEXT      │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
+│  SCAN         │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
+│ (auto)        │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
 └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
                            │
                            │ complexity detected?
@@ -38,107 +41,31 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 
 ## Command Process
 
-### Step 1: Quick Contract
+### Step 1: Extract Intent
 
-The quick contract establishes just enough shared understanding to code confidently. No spec files are created — the contract lives in conversation context only.
+Parse the change description from the user's input. The description can come from:
 
----
+1. **Inline text** — `/prototype "fix pagination off-by-one"`
+2. **Attached file** — `/prototype @issue-file.md` (read the file for description, relevant files, constraints)
+3. **Conversation context** — `/prototype` with preceding messages describing the change
+4. **Bare invocation** — `/prototype` with no context → ask one natural-language question: "What do you want to build or change?"
 
-#### Path A: No Arguments (`/prototype`)
+Extract from the input:
+- **What** — the change to make
+- **Where** — any files or areas mentioned (hints for the context scan, not constraints)
+- **Watch-outs** — any constraints, compatibility requirements, or design notes the user mentioned
 
-All three questions are asked:
-
-```
-AskQuestion({
-  title: "Prototype — Quick Contract",
-  questions: [
-    {
-      id: "change_description",
-      prompt: "What do you want to build or change?",
-      options: [
-        { id: "describe", label: "I'll describe it (free text follow-up)" },
-        { id: "bug_fix", label: "Fix a bug" },
-        { id: "small_feature", label: "Add a small feature" },
-        { id: "refactor", label: "Refactor / improve existing code" },
-        { id: "utility", label: "Add a utility or helper" }
-      ]
-    },
-    {
-      id: "scope",
-      prompt: "What area of the codebase does this touch?",
-      options: [
-        { id: "single_file", label: "Single file" },
-        { id: "one_module", label: "One module / directory" },
-        { id: "few_files", label: "A few related files (2-4)" },
-        { id: "cross_cutting", label: "Cross-cutting (multiple areas)" },
-        { id: "unsure", label: "Not sure — let the agent figure it out" }
-      ]
-    },
-    {
-      id: "constraints",
-      prompt: "Any constraints or things to watch out for?",
-      options: [
-        { id: "none", label: "No constraints — just make it work" },
-        { id: "backwards_compat", label: "Must be backwards-compatible" },
-        { id: "perf_sensitive", label: "Performance-sensitive area" },
-        { id: "shared_code", label: "Touches shared/imported code" },
-        { id: "other", label: "Other (I'll explain)" }
-      ]
-    }
-  ]
-})
-```
-
-**Follow-ups:**
-- If `change_description` is "describe" → ask free-text: "Describe what you want to build in a sentence or two."
-- If `constraints` is "other" → ask free-text: "What constraints should the agent be aware of?"
-
----
-
-#### Path B: With Description (`/prototype "add dark mode toggle to settings"`)
-
-The description is captured from the argument. Skip the first question and ask only scope and constraints:
-
-```
-AskQuestion({
-  title: "Prototype — Quick Contract",
-  questions: [
-    {
-      id: "scope",
-      prompt: "What area of the codebase does this touch?",
-      options: [
-        { id: "single_file", label: "Single file" },
-        { id: "one_module", label: "One module / directory" },
-        { id: "few_files", label: "A few related files (2-4)" },
-        { id: "cross_cutting", label: "Cross-cutting (multiple areas)" },
-        { id: "unsure", label: "Not sure — let the agent figure it out" }
-      ]
-    },
-    {
-      id: "constraints",
-      prompt: "Any constraints or things to watch out for?",
-      options: [
-        { id: "none", label: "No constraints — just make it work" },
-        { id: "backwards_compat", label: "Must be backwards-compatible" },
-        { id: "perf_sensitive", label: "Performance-sensitive area" },
-        { id: "shared_code", label: "Touches shared/imported code" },
-        { id: "other", label: "Other (I'll explain)" }
-      ]
-    }
-  ]
-})
-```
-
----
+If the user provided an issue file, it likely contains all three. If they gave a one-liner, the context scan discovers the rest.
 
 ### Step 2: Context Scan
 
-Before spawning the coding agent, gather lightweight context:
+Gather lightweight context from the codebase before coding:
 
-1. **Scan the target area** — if the user specified a module or directory, read its structure and key files
+1. **Scan the target area** — read relevant files mentioned in the description or issue, plus their surrounding module
 2. **Detect tech stack** — identify language, framework, test runner, linter configuration
-3. **Find related patterns** — look for similar implementations in the codebase to guide the agent
-4. **Check for test conventions** — identify test file locations and patterns
+3. **Find related patterns** — look for similar implementations in the codebase to guide the approach
+4. **Check for test conventions** — identify test file locations and naming patterns
+5. **Discover scope** — determine which files need modification (the agent figures this out, not the user)
 
 Output a brief context summary (not shown to user — passed to coding agent):
 
@@ -148,13 +75,14 @@ Context:
 - Target area: src/components/settings/
 - Related patterns: existing toggle components use `useLocalStorage` hook
 - Test location: __tests__/components/settings/
+- Files to modify: [list]
 ```
 
 ### Step 3: Spawn Coding Agent
 
 > **Agent:** `agents/coding-agent.md` (prototype mode)
 
-Spawn the coding agent with the prototype contract and codebase context. The agent follows TDD — tests first, then implementation.
+Spawn the coding agent with the extracted intent and codebase context. The agent follows TDD — tests first, then implementation.
 
 ```
 Task({
@@ -162,11 +90,13 @@ Task({
   description: "Prototype: [brief description]",
   prompt: `You are the Coding Agent running in **prototype mode** — a lightweight pipeline for small-to-medium changes.
 
-## Prototype Contract
+## Change Description
 
-**Change:** {change_description}
-**Scope:** {scope}
-**Constraints:** {constraints}
+{change_description}
+
+## Watch-outs
+
+{constraints_if_any, or "None specified — use your judgment."}
 
 ## Codebase Context
 
@@ -330,8 +260,7 @@ Options:
 3. Discard changes
 ```
 
-**User cancels during contract:**
-No files have been created or modified. Clean exit.
+**Insufficient context:** If the user's input doesn't give enough to act on, ask a single natural-language clarifying question. Don't present menus — just ask what you need to know.
 
 ## When to Use /prototype vs Other Commands
 
@@ -340,6 +269,7 @@ No files have been created or modified. Clean exit.
 | Quick bug fix | `/prototype "fix off-by-one in pagination"` |
 | Add a utility function | `/prototype "add string truncation helper"` |
 | Small UI tweak | `/prototype "add loading spinner to save button"` |
+| Bug with issue file | `/prototype @issue-file.md` |
 | Multi-file feature with dependencies | `/create-spec` + `/implement-story` |
 | Refactoring a specific file | `/refactor` |
 | Exploring an approach before committing | `/prototype` (then escalate if it works out) |
