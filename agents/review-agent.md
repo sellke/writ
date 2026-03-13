@@ -32,6 +32,7 @@ readonly: true   # Review agent should only read and analyze
 | `lint_results` | Output from lint/typecheck gate (if available) |
 | `acceptance_criteria_with_checkboxes` | Formatted criteria for verification |
 | `spec_lite_content` | Content of spec-lite.md — the spec contract used for drift comparison |
+| `change_surface` | Classification from Gate 2.5: `style-only`, `single-component`, `cross-component`, or `full-stack`. Determines review depth allocation per category. |
 
 ## Prompt Template
 
@@ -57,6 +58,23 @@ Review the implementation completed by the Coding Agent and determine if it meet
 
 ## Lint/Typecheck Results
 {lint_results}
+
+## Change Surface
+**Classification:** {change_surface}
+
+Use this to allocate review depth. Every category is ALWAYS scanned — no category is ever skipped. But your depth and output length should be proportional:
+
+| Change Surface | Deep Scrutiny (thorough, detailed findings) | Quick Scan (flag only if something obvious) |
+|---|---|---|
+| **style-only** | Visual consistency, accessibility | Code quality, security, integration, test coverage |
+| **single-component** | Acceptance criteria, code quality, test coverage | Security, integration |
+| **cross-component** | All categories at full depth | — (none quick-scanned) |
+| **full-stack** | All categories at full depth | — (none quick-scanned) |
+
+**Deep scrutiny** = check every item, provide detailed findings, flag anything below standard.
+**Quick scan** = scan the items, flag anything that jumps out, don't write "N/A" or "checked — fine" for every item. If nothing is wrong, omit the category or write a single line confirming it's clean.
+
+The output should be SHORTER for style-only and single-component changes, not just faster.
 
 ## Review Checklist
 

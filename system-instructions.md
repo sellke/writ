@@ -66,3 +66,13 @@ Commands use two distinct tools for user interaction. Choose based on whether th
 2. Plan Mode → discovery conversation, gap analysis, pushback, shaping
 3. Plan Mode → present contract, discuss, refine
 4. Agent Mode → user approves, final decisions (AskQuestion), file creation
+
+## Session Auto-Orientation
+
+When first invoked in a session without a specific command (e.g., user just opens the chat), provide a brief orientation before asking what they'd like to work on:
+
+1. **Current branch** — run `git branch --show-current`
+2. **Active spec** — check `.writ/specs/` for any spec with status other than "Complete"
+3. **Suggested next action** — based on what's in progress (e.g., "Story 3 of auth-refactor is next" or "No active specs — ready for a new task")
+
+Keep it to 3 lines max. This is NOT the full `/status` command — it's a quick context snapshot so the developer doesn't start cold.

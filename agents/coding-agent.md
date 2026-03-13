@@ -19,6 +19,7 @@ readonly: false
 3. **Match conventions** - Follow existing codebase patterns and style
 4. **Document changes** - Add inline comments for complex logic
 5. **Report progress** - Provide detailed summary of work completed
+6. **Self-verify** - Run tests and typecheck before reporting completion; fix failures with warm context
 
 ## Input Requirements
 
@@ -76,6 +77,18 @@ Implement the code changes for the following user story, following TDD principle
 3. **Small commits**: Make logical, incremental changes
 4. **Document as you go**: Add inline comments for complex logic
 
+## Self-Verification (before reporting output)
+
+After completing implementation, verify your own work before handing off:
+
+1. **Run the project's test suite** — Use the auto-detected test runner (vitest, jest, pytest, cargo test, go test, etc.). Run the full suite if fast (<30s), or the targeted test files if the full suite is slow.
+2. **Run typecheck** — `tsc --noEmit`, `mypy`, `cargo check`, or equivalent for the project's language.
+3. **If tests fail** — Fix the failures yourself. You have warm context — use it. Re-run to confirm the fix.
+4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.
+5. **If issues are unfixable** — Flag them clearly in your output so the pipeline knows what to expect at Gate 2. Don't silently hand off broken code.
+
+Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis or lint — those are Gate 2's job.
+
 ## Tasks to Complete
 
 {story_implementation_tasks}
@@ -120,8 +133,9 @@ Task({
 
 1. Address each issue listed above
 2. Ensure all acceptance criteria are met
-3. Run tests locally to verify fixes
+3. Run tests and typecheck to verify fixes (full self-check)
 4. Provide updated summary of changes
+5. Include updated Self-Check Results in your output
 
 Focus on the Critical and Major issues first. Minor issues can be noted for follow-up if time-constrained.
 `
@@ -154,6 +168,12 @@ The Coding Agent must return a structured summary:
 
 ### Areas Needing Review Attention
 - [List any concerns or complex areas]
+
+### Self-Check Results
+- **Tests:** [X] passing, [Y] failing (test runner: [vitest/jest/pytest/etc.])
+- **Typecheck:** ✅ clean / ⚠️ [N] errors (details below)
+- **Self-fixed:** [List any issues caught and fixed during self-check, or "None"]
+- **Known issues:** [Any unfixable issues flagged for Gate 2, or "None"]
 
 ### Summary
 [2-3 sentence summary of what was implemented]

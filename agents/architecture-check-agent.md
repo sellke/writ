@@ -8,7 +8,7 @@ Pre-implementation review agent that validates the planned approach before any c
 
 ```
 subagent_type: "generalPurpose"
-model: default (inherits from parent)
+model: "fast"
 readonly: true   # This agent MUST NOT modify any files
 ```
 
@@ -36,6 +36,7 @@ readonly: true   # This agent MUST NOT modify any files
 ```
 Task({
   subagent_type: "generalPurpose",
+  model: "fast",
   readonly: true,
   description: "Architecture pre-check for story N",
   prompt: `You are the Architecture Check Agent. Your job is to review the planned implementation approach and flag concerns BEFORE any code is written.

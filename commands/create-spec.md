@@ -67,17 +67,12 @@ SwitchMode({ target_mode_id: "plan" })
 - Silently list every missing fact, constraint, or requirement
 - Identify ambiguities in the initial description
 - Note potential integration points and dependencies
-- Catalog unknowns across these domains:
-  - Purpose & business value
-  - Target audience & user personas
-  - Technical constraints & requirements
-  - Success criteria & acceptance tests
-  - Scope boundaries (in/out of scope)
-  - UI/UX requirements & design constraints
-  - Performance & scalability needs
-  - Security & compliance requirements
-  - Integration points with existing systems
-  - Risk tolerance & implementation approach
+- Catalog unknowns — what concrete information is still missing?
+
+  **Experience gaps:** Entry point, happy path flow, key interaction moments, feedback/confirmation model, error/empty/loading states, responsive behavior
+  **Business rule gaps:** Permissions & access control, validation rules & limits, state transitions & lifecycle, time-based rules, pricing/billing implications, domain edge cases, compliance requirements
+  **Technical gaps:** Integration points, performance requirements, security needs, data persistence
+  **Scope gaps:** Success criteria, in/out boundaries, implementation approach, timeline
 
 **Conversation Rules:**
 
@@ -90,11 +85,33 @@ SwitchMode({ target_mode_id: "plan" })
 
 **Topic Areas to Explore (across the conversation):**
 
-- Who has this problem and how painful is it?
+Start with *experience*, then fill in *rules*, then address *technical* constraints. This ordering ensures the spec captures what the feature should feel like — not just what it does.
+
+**Experience first — how should this feel to use?**
+- Walk me through the ideal interaction: the user does X, sees Y, feels Z
+- What's the first thing they see? What draws their eye? What do they do first?
+- What's the "wow" moment — the instant they get the value and think "this is great"?
+- What happens when there's no data yet? (empty states, onboarding, first-use experience)
+- What happens when something fails? (error messages, recovery paths, graceful degradation)
+- Are there moments that need to feel *fast*? Moments that can afford a loading state?
+- What existing patterns in the app should this mirror? What should it deliberately break from?
+- How does the user know the action succeeded? (toast, redirect, inline update, animation?)
+- Is discoverability important, or is this a power-user feature?
+
+**Rules next — what business logic constrains the design space?**
+- Who can and can't do this? (roles, permissions, subscription tiers, feature gates)
+- What validation rules apply? (input constraints, format requirements, limits)
+- Are there state machines or lifecycle rules? (draft → published → archived, pending → approved)
+- Are there time-based rules? (expiration, cooldowns, scheduling, rate limiting)
+- Are there pricing/billing/usage implications?
+- What domain-specific edge cases exist? (timezone handling, currency, localization, leap years)
+- Are there audit, compliance, or regulatory requirements?
+- What happens at the boundaries? (max items, storage limits, concurrent access)
+
+**Technical last — what does the system need?**
 - How should this integrate with what already exists?
-- What's the implementation approach — MVP, complete, iterative?
+- Implementation approach — MVP, complete, iterative?
 - Performance, scale, and latency requirements
-- UI/UX constraints (web, mobile, accessibility)
 - Data persistence and security needs
 - Feature boundaries — what's in scope, what's explicitly out?
 - Success criteria and how we'll know it's working
@@ -107,6 +124,9 @@ SwitchMode({ target_mode_id: "plan" })
 - If user requests conflict with existing patterns found in codebase, point out the inconsistency
 - If business logic doesn't align with stated user value, ask clarifying questions
 - If performance/security/scalability concerns arise, surface them proactively
+- If the error/empty/loading experience hasn't been discussed, ask — these states are where users form lasting impressions
+- If business rules are vague or assumed ("admins can do it"), probe for specifics — who exactly, under what conditions, what are the exceptions?
+- If the described experience has unnecessary friction (extra clicks, confirmations, page reloads), suggest smoother alternatives
 
 **Pushback Phrasing Examples:**
 
@@ -114,12 +134,29 @@ SwitchMode({ target_mode_id: "plan" })
 - "Based on your existing codebase, [proposed approach] might conflict with [existing pattern]. How should we handle this?"
 - "The scope you're describing sounds like it might be 3-4 separate features. Should we focus on [core piece] first?"
 - "I'm concerned that [requirement] could create [specific problem]. Have you considered [alternative]?"
+- "We haven't talked about what happens when [error/empty case]. Users will hit this — what should they see?"
+- "You mentioned [role] can do this. What about [other role]? And what happens if someone tries without permission?"
+- "That flow has the user [extra steps]. What if we [shorter path] instead? It would feel faster."
 
 **Transition to Contract:**
 
 - When confidence is high, present the contract (still in Plan Mode)
 - Use phrases like "I think I have a clear picture now — here's what I'd propose" or "Based on our discussion, here's the contract"
 - Always leave room for more questions if needed
+
+#### Step 1.3b: Cross-Spec Overlap Check (Automatic)
+
+Before presenting the contract, scan for potential conflicts with other in-progress specifications:
+
+1. **List all spec folders** in `.writ/specs/`
+2. **Filter out completed specs** — read each `spec.md` header and skip specs with `Status: Complete`
+3. **Read each remaining `spec-lite.md`** — these are small, condensed files designed for quick scanning
+4. **Extract domain keywords** from the new contract: models/entities mentioned, routes/endpoints, shared utilities, domain-specific terms, files to be modified
+5. **Compare against existing specs** — check for keyword overlap in domain areas (same models, same routes, same shared utilities)
+6. **If overlap detected** — add a `⚠️ Cross-Spec Overlap` section to the contract (see format below)
+7. **If no overlap** — proceed silently (no section added to contract)
+
+This check is a lightweight heuristic — keyword matching, not deep semantic analysis. False positives are acceptable (user can dismiss). The goal is to catch obvious planning-level conflicts before they reach implementation.
 
 #### Step 1.4: Contract Proposal (Still in Plan Mode)
 
@@ -136,6 +173,19 @@ When confident, present a contract proposal with any concerns surfaced:
 
 **Hardest Constraint:** [Biggest technical/business limitation to navigate]
 
+**🎯 Experience Design:**
+- **Entry point:** [How the user reaches this feature]
+- **Happy path:** [The ideal flow in 2-3 steps]
+- **Moment of truth:** [The instant the user gets the value]
+- **Feedback model:** [How the user knows it worked — toast, redirect, animation, etc.]
+- **Error experience:** [What failure looks like to the user — not the system]
+
+**📋 Business Rules:**
+- [Key rule 1 — e.g., "Only workspace admins can invite members"]
+- [Key rule 2 — e.g., "Free tier limited to 3 projects"]
+- [Key rule 3 — e.g., "Invoices transition: draft → sent → paid → void"]
+- [Edge cases or domain-specific constraints discovered during conversation]
+
 **Success Criteria:** [How we'll know it's working correctly]
 
 **Scope Boundaries:**
@@ -149,6 +199,10 @@ When confident, present a contract proposal with any concerns surfaced:
 **💡 Recommendations:**
 - [Suggestions for improving the approach based on codebase analysis]
 - [Ways to reduce risk or complexity]
+
+**⚠️ Cross-Spec Overlap (if detected):**
+- [Spec name] ([status]) also touches [domain area] — [specific overlap details]
+- Consider: sequencing these specs, declaring a dependency, or coordinating the shared area
 ```
 
 Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
@@ -281,6 +335,23 @@ This returns the current date in `YYYY-MM-DD` format for folder naming:
 ## Contract Summary
 
 [Echo check content verbatim]
+
+## Experience Design
+
+[Expanded from the 🎯 Experience Design section of the contract]
+- User journey: entry point → key interactions → moment of truth → confirmation
+- State catalog: empty, loading, populated, error, edge cases
+- Interaction patterns: what existing app patterns this mirrors or departs from
+- Responsive behavior and accessibility considerations
+
+## Business Rules
+
+[Expanded from the 📋 Business Rules section of the contract]
+- Permission and access rules
+- Validation rules and constraints
+- State transitions and lifecycle rules
+- Domain-specific edge cases
+- Billing/usage/compliance implications (if any)
 
 ## Detailed Requirements
 

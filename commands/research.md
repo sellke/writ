@@ -2,7 +2,7 @@
 
 ## Overview
 
-Conduct systematic research on a topic using structured phases that build upon each other, creating actionable todos and leveraging web search capabilities.
+Conduct systematic research on a topic using structured phases that build upon each other, creating actionable todos and leveraging high-quality web search capabilities.
 
 ## When to Use
 
@@ -11,6 +11,30 @@ Conduct systematic research on a topic using structured phases that build upon e
 - Competitive analysis and market research
 - Technical feasibility studies
 - Learning about best practices in unfamiliar areas
+
+## Search Tooling
+
+Choose the best available search tool. Exa produces higher-quality results with richer content extraction and should be preferred when available.
+
+### With Exa (preferred)
+
+If the **Exa skill** is listed in your available skills, read it first to learn the API. Use Exa as your primary search engine throughout the research.
+
+Key capabilities to leverage:
+- **`/search`** — Primary search. Use `type: "auto"` by default.
+- **`/answer`** — Quick Q&A with citations. Ideal for getting oriented on a topic fast.
+- **`/contents`** — Extract full text from known URLs. Use to deep-read important pages found during search.
+- **Categories** — `github`, `paper`, `news`, `company`, `people`, `tweet` — focus results by type.
+- **Domain filtering** — `includeDomains` / `excludeDomains` to target authoritative sources.
+- **Date filtering** — `startPublishedDate` to limit to recent content.
+- **Content options** — `text` for full content, `highlights` for key excerpts, `summary` for AI summaries.
+
+### Without Exa (fallback)
+
+Use the built-in `web_search` tool. It works for all phases but returns less structured content. When using `web_search`, compensate by:
+- Running more queries with varied phrasing
+- Using `fetch_url` to extract full content from promising results
+- Being more aggressive about cross-referencing
 
 ## Process
 
@@ -40,7 +64,7 @@ Conduct systematic research on a topic using structured phases that build upon e
 
 **Actions:**
 
-1. Use `web_search` with broad search terms related to your topic
+1. Run broad searches to map the topic landscape
 2. Search for:
    - Overview articles and introductory content
    - Current trends and recent developments
@@ -49,9 +73,16 @@ Conduct systematic research on a topic using structured phases that build upon e
 3. Document initial findings and emerging themes
 4. Identify knowledge gaps that need deeper investigation
 
-**Search Strategy:**
+**With Exa:**
 
-- Start with general terms: "[topic] overview", "[topic] 2024", "[topic] trends"
+- Start with `/answer` to get a cited overview: `"What is [topic] and what are the current best practices?"`
+- Follow with `/search` using `type: "auto"` and broad queries
+- Use `category: "news"` to find recent developments
+- Request `highlights` (not full text) to scan many results quickly without burning tokens
+
+**Without Exa:**
+
+- Start with general terms: "[topic] overview", "[topic] [current year]", "[topic] trends"
 - Look for authoritative sources: documentation, whitepapers, industry reports
 - Note recurring themes and terminology for Phase 3
 
@@ -61,7 +92,7 @@ Conduct systematic research on a topic using structured phases that build upon e
 
 **Actions:**
 
-1. Use `web_search` with specific, targeted queries based on Phase 2 findings
+1. Run targeted searches based on Phase 2 findings
 2. Research specific sub-topics:
    - Technical implementation details
    - Pros and cons of different approaches
@@ -70,7 +101,15 @@ Conduct systematic research on a topic using structured phases that build upon e
 3. Compare alternatives and trade-offs
 4. Validate claims from multiple sources
 
-**Search Strategy:**
+**With Exa:**
+
+- Use `category: "paper"` for academic/technical depth, `"github"` for implementation examples
+- Use `includeDomains` to target authoritative sources (e.g., `["arxiv.org", "docs.python.org"]`)
+- Use `startPublishedDate` to filter for recent content on fast-moving topics
+- Request `text` with `max_characters` for full content on the most relevant results
+- Use `/contents` to deep-read specific URLs found in Phase 2
+
+**Without Exa:**
 
 - Use specific terminology discovered in Phase 2
 - Search for: "[specific approach] vs [alternative]", "[topic] case study", "[topic] performance"
@@ -236,6 +275,15 @@ Use the following structure:
 - Look for recent content (last 1-2 years) for rapidly evolving topics
 - Cross-reference information from multiple sources
 - Search for both benefits AND criticisms
+
+**Exa-specific tips:**
+
+- Use `type: "auto"` unless you have a reason not to — it has built-in fallback
+- Use `highlights` for scanning, `text` for reading — don't request full text on exploratory queries
+- Set `max_characters` on text content (10000–20000) to avoid token blowout
+- Run parallel searches with different categories to cover more ground efficiently
+- Use `/answer` for factual questions; use `/search` for open-ended exploration
+- Combine `startPublishedDate` with `category: "news"` for current events
 
 ### Critical Thinking
 
