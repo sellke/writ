@@ -12,7 +12,7 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 |---|---|---|
 | **Spec required?** | No — operates without any spec | Yes — requires an existing story file |
 | **Input** | Description (inline, attached file, or conversation context) | Story file with tasks and acceptance criteria |
-| **Pipeline** | Scan → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
+| **Pipeline** | Scan → [Visual Preview] → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
 | **Best for** | Ad-hoc changes, bug fixes, small features | Prototyping a specific story within a larger spec |
 
 ## Invocation
@@ -28,15 +28,15 @@ All invocations go straight to Context Scan — no interactive questions. The de
 ## Pipeline
 
 ```
-┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│  CONTEXT      │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
-│  SCAN         │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
-│ (auto)        │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
-└───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
-                           │
-                           │ complexity detected?
-                           ▼
-                    ESCALATE → suggest /create-spec
+┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+│  CONTEXT      │──▶│  VISUAL       │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
+│  SCAN         │   │  PREVIEW      │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
+│ (auto)        │   │  (UI only)    │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
+└───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
+                           │                   │
+                     skip if no UI        complexity detected?
+                                               ▼
+                                        ESCALATE → suggest /create-spec
 ```
 
 ## Command Process
@@ -66,6 +66,17 @@ Gather lightweight context from the codebase before coding:
 3. **Find related patterns** — look for similar implementations in the codebase to guide the approach
 4. **Check for test conventions** — identify test file locations and naming patterns
 5. **Discover scope** — determine which files need modification (the agent figures this out, not the user)
+6. **Sniff nearby rules** — scan files in the target area for permission checks, validation logic, state machines, or business rules the change must respect. Include any discovered rules in the context passed to the coding agent.
+7. **Detect UI surface** — determine whether this change touches user-facing UI (see below)
+
+**UI detection heuristic** — classify the change as UI-touching if ANY of:
+- Files to modify match frontend patterns: `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
+- Target area includes: `components/`, `pages/`, `app/`, `views/`, `layouts/`, `screens/`
+- Description contains visual language: "button", "modal", "layout", "form", "page", "dashboard", "sidebar", "card", "table", "nav", "header", "footer", "responsive", "style", "CSS", "UI", "design"
+
+If UI-touching → set `ui_change: true` in context. This triggers the Visual Preview step.
+
+**Figma MCP detection** — if the `cursor-ide-browser` MCP is available AND a `design-system.md` or Figma MCP server is configured, note this in the context. Design tokens will be passed to the coding agent so it generates token-referenced code (`text-primary`) instead of hardcoded values (`text-gray-900`).
 
 Output a brief context summary (not shown to user — passed to coding agent):
 
@@ -76,13 +87,63 @@ Context:
 - Related patterns: existing toggle components use `useLocalStorage` hook
 - Test location: __tests__/components/settings/
 - Files to modify: [list]
+- Nearby rules: [e.g., "requireAuth middleware on this route", "max 10 items enforced in useCart hook", or "none found"]
+- UI change: true
+- Design tokens: .writ/docs/design-system.md (loaded)
 ```
+
+### Step 2.5: Visual Preview (UI Changes Only)
+
+**Skip this step entirely if `ui_change: false`.** For API-only, backend, utility, or non-visual changes, go directly to Step 3.
+
+When a change touches user-facing UI, generate a quick visual preview *before* writing production code. This lets the user see the intended direction and course-correct early — a 30-second preview that saves 10-15 minutes of rework.
+
+**How it works:**
+
+1. **Generate a canvas-based HTML mockup** using the `cursor-ide-browser` canvas tool. The canvas should be a live, interactive HTML page that approximates the intended UI change — layout, key components, interaction states. Use the project's CSS framework (Tailwind, CSS Modules, etc.) and any design tokens found in Step 2.
+
+2. **Keep it low-fidelity but structurally accurate.** The goal is layout, hierarchy, and flow — not pixel-perfect polish. Use placeholder content, approximate colors, and real component names as labels. Think wireframe-in-code, not production UI.
+
+3. **Present the canvas to the user** with a brief description of what they're seeing:
+
+```
+🎨 Visual Preview
+
+Here's a quick mockup of the [change description]:
+[Canvas opens in browser — live HTML preview]
+
+Key decisions shown:
+- [Layout choice, e.g., "sidebar nav with collapsible sections"]
+- [Component structure, e.g., "card grid with 3 columns on desktop, stacks on mobile"]
+- [Interaction pattern, e.g., "modal triggered by the settings icon"]
+
+Does this match what you had in mind? I can adjust the layout,
+component structure, or interaction pattern before I write the
+production code.
+```
+
+4. **Wait for user response:**
+   - **Approval** (explicit or implicit — e.g., "looks good", "yes", "go ahead") → proceed to Step 3 with the visual as a reference
+   - **Adjustment** (e.g., "make it a dropdown instead of a modal", "use tabs not cards") → regenerate the canvas with the feedback, then re-present
+   - **Skip** (e.g., "just build it", "skip the preview") → proceed to Step 3 without visual reference
+
+**Canvas guidelines:**
+- Use the project's actual component library names and CSS framework in the mockup
+- Reference design tokens from `design-system.md` if available
+- Include responsive behavior if the description mentions mobile or the project uses responsive patterns
+- Show multiple states if relevant (empty, loading, error, populated)
+- Keep it to a single focused screen — don't mock the entire app
+
+**What the canvas is NOT:**
+- Not a design deliverable — it's a conversation starter
+- Not production code — the coding agent builds the real implementation
+- Not required — if the change is small enough that the user would rather just see the code, they can skip it
 
 ### Step 3: Spawn Coding Agent
 
 > **Agent:** `agents/coding-agent.md` (prototype mode)
 
-Spawn the coding agent with the extracted intent and codebase context. The agent follows TDD — tests first, then implementation.
+Spawn the coding agent with the extracted intent and codebase context. The agent follows TDD — tests first, then implementation. If a visual preview was approved in Step 2.5, include it as a reference.
 
 ```
 Task({
@@ -102,12 +163,29 @@ Task({
 
 {context_scan_output}
 
+## Approved Visual Reference
+
+{If visual preview was approved: "A canvas mockup was approved by the user. The HTML source is at {canvas_file_path}. Read it for layout structure, component hierarchy, and design decisions. Match the approved layout and interaction patterns in your implementation."
+
+If no visual preview: "No visual preview was generated for this change."}
+
+## Design Tokens
+
+{If design-system.md exists: "Reference these design tokens in your implementation. Use token names (e.g., `text-primary`, `rounded-lg`, `shadow-sm`) instead of hardcoded values."
+
+If Figma MCP is available: "Figma MCP is configured. Query it for component specs and design tokens when implementing UI components."
+
+Otherwise: "No design system found — use your judgment for styling, matching existing codebase patterns."}
+
 ## Instructions
 
 1. **Write tests first** (TDD) — cover the core behavior and obvious edge cases
 2. **Implement the change** — match existing codebase patterns and conventions
-3. **Keep it focused** — this is a prototype, not a full feature build
-4. **Document only if non-obvious** — skip docs for straightforward changes
+3. **If a visual reference was approved**, match its layout structure and component hierarchy — the user already signed off on the direction
+4. **Respect nearby rules** — if the context scan found permission checks, validation, or state logic in the target area, honor them. Don't bypass auth, skip validation, or ignore state transitions just because this is a prototype.
+5. **Don't ship only the happy path** — if this touches UI, handle what the user sees on error, on empty, and on success. If it touches data, handle invalid input. A prototype that crashes on edge cases isn't lightweight — it's broken.
+6. **Keep it focused** — this is a prototype, not a full feature build
+7. **Document only if non-obvious** — skip docs for straightforward changes
 
 ## Scope Detection (IMPORTANT)
 
@@ -141,6 +219,9 @@ Return your results in this exact structure:
 
 ### Scope Flags
 [NONE | List any scope detection flags that triggered]
+
+### Experience Gaps
+[NONE | List any user-facing states not handled — e.g., "no empty state for the list", "no error feedback on failed save", "no loading indicator during fetch". Flag these honestly rather than shipping silently.]
 
 ### Concerns
 [Any risks, edge cases not covered, or follow-up work needed]
@@ -183,6 +264,7 @@ Present the final results to the user.
 **Tests:** [N] passing
 **Lint:** ✅ clean
 **Typecheck:** ✅ clean
+**Visual preview:** ✅ approved (or "skipped — no UI changes")
 
 Ready to commit. Run `git add -A && git commit -m "feat: [description]"` or ask me to commit.
 ```

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Specialized agent for creating and maintaining comprehensive developer documentation using VitePress. Generates structured documentation in `docs/` that can be built into a searchable documentation site with Mermaid diagrams.
+Specialized agent for creating and maintaining developer documentation. Detects the project's documentation framework (or lack thereof) and adapts its approach accordingly — from inline docs + README for framework-free projects to full site generation for VitePress, Docusaurus, or other frameworks.
 
 ## Agent Configuration
 
@@ -14,43 +14,17 @@ readonly: false  # CRITICAL: Must be false - agent creates documentation files!
 
 **IMPORTANT:** Do NOT set `readonly: true` when launching this agent.
 
-## Documentation Structure (VitePress)
+## Documentation Structure
 
-The agent maintains documentation in `docs/` at the project root:
-
-```
-docs/
-├── .vitepress/
-│   └── config.ts              # VitePress configuration (sidebar, nav)
-├── index.md                   # Home page
-├── guide/
-│   ├── index.md              # Getting started
-│   ├── quick-start.md        # Quick start guide
-│   └── development.md        # Development workflow
-├── architecture/
-│   ├── index.md              # Architecture overview
-│   ├── data-flow.md          # Data flow diagrams
-│   └── technology-choices.md # Tech rationale
-├── features/
-│   ├── index.md              # Features index
-│   └── {feature-name}.md     # Individual feature docs
-├── components/
-│   ├── index.md              # Components index
-│   ├── ui.md                 # shadcn/ui components
-│   └── {component-name}.md   # Individual component docs
-└── reference/
-    ├── api.md                # Server actions
-    ├── types.md              # TypeScript types
-    └── hooks.md              # Custom hooks
-```
+The documentation structure depends on the detected framework. See the Framework Detection phase below — the agent determines the correct structure before creating any files.
 
 ## Responsibilities
 
-1. **Document features** - Create `docs/features/{feature-name}.md` with Mermaid diagrams
-2. **Document components** - Create `docs/components/{component-name}.md`
-3. **Update architecture** - Add to `docs/architecture/index.md` when major changes
-4. **Update sidebar** - Add new pages to `docs/.vitepress/config.ts`
-5. **Add inline docs** - Add JSDoc comments to source files
+1. **Detect framework** - Identify the project's documentation setup before any work
+2. **Document features** - Create feature documentation appropriate to the detected framework
+3. **Document components** - Create component documentation with usage examples
+4. **Update architecture** - Add architecture docs when major changes occur
+5. **Add inline docs** - Add JSDoc/docstring comments to source files (always, regardless of framework)
 
 ## Input Requirements
 
@@ -67,13 +41,13 @@ docs/
 ```
 Task({
   subagent_type: "generalPurpose",
-  description: "Update VitePress documentation",
+  description: "Update project documentation",
   readonly: false,
   prompt: `You are the Documentation Agent for project documentation.
 
 ## Your Mission
 
-Create or update developer documentation for the implemented story. The documentation lives in \`docs/\` and uses VitePress with Mermaid diagrams.
+Create or update developer documentation for the implemented story. First detect the project's documentation framework, then follow the appropriate documentation approach.
 
 ## Story Implemented
 
@@ -95,127 +69,84 @@ Create or update developer documentation for the implemented story. The document
 
 ## Documentation Tasks
 
-### 1. Feature Documentation
+### Step 0: Framework Detection (ALWAYS run first)
 
-Create \`docs/features/{feature-name}.md\` with this structure:
+Check for these documentation frameworks in order:
 
-\`\`\`markdown
-# Feature Name
+| Check | Framework | Key indicator |
+|-------|-----------|---------------|
+| 1 | VitePress | \`.vitepress/config.ts\` or \`.vitepress/config.js\` |
+| 2 | Docusaurus | \`docusaurus.config.js\` or \`docusaurus.config.ts\` |
+| 3 | Nextra | \`next.config.js\` + \`nextra\` in dependencies |
+| 4 | MkDocs | \`mkdocs.yml\` |
+| 5 | Storybook | \`.storybook/\` directory |
+| 6 | None | No framework detected — use default path |
 
-Brief description of the feature.
+Report which framework was detected (or "none") before proceeding.
 
-## Overview
+### If VitePress detected:
 
-What this feature does and why it exists.
+Follow the VitePress documentation approach:
+1. **Feature docs** → Create \`docs/features/{feature-name}.md\` with Mermaid diagrams, component tables, state management, usage examples
+2. **Component docs** → Create \`docs/components/{component-name}.md\` with props tables, usage examples
+3. **Architecture updates** → Update \`docs/architecture/index.md\` with new subsystems/diagrams
+4. **Sidebar config** → Add new pages to \`docs/.vitepress/config.ts\` sidebar
+5. **Feature index** → Update \`docs/features/index.md\` table
+6. **Inline docs** → Add JSDoc to source files
 
-## Architecture
+### If Docusaurus detected:
 
-\`\`\`mermaid
-graph TB
-    A[Component] --> B[Hook]
-    B --> C[Service]
-\`\`\`
+Follow Docusaurus conventions:
+1. **Feature docs** → Create \`docs/{feature-name}.md\` or \`docs/{category}/{feature-name}.md\`
+2. **Sidebar config** → Update \`sidebars.js\` to include new pages
+3. **MDX support** → Use MDX for interactive examples where appropriate
+4. **Category metadata** → Create \`_category_.json\` for new directories
+5. **Inline docs** → Add JSDoc to source files
 
-## Components
+### If Nextra detected:
 
-| Component | Purpose | Location |
-|-----------|---------|----------|
-| ComponentName | What it does | \`src/path/file.tsx\` |
+Follow Nextra conventions:
+1. **Feature docs** → Create pages in \`pages/docs/{feature-name}.mdx\`
+2. **Meta files** → Update \`_meta.json\` for navigation ordering
+3. **MDX components** → Use MDX for interactive examples
+4. **Inline docs** → Add JSDoc to source files
 
-## State Management
+### If MkDocs detected:
 
-How state is handled (context, local state, etc.)
+Follow MkDocs conventions:
+1. **Feature docs** → Create \`docs/{feature-name}.md\`
+2. **Nav config** → Update \`mkdocs.yml\` nav section
+3. **Inline docs** → Add docstrings to source files (Python projects likely)
 
-## Usage Examples
+### If Storybook detected:
 
-\`\`\`tsx
-// Code example showing how to use this feature
-\`\`\`
+Follow Storybook conventions:
+1. **Story files** → Create \`{component}.stories.tsx\` alongside components
+2. **MDX docs** → Create \`{component}.mdx\` for extended documentation
+3. **Args/controls** → Document component props as Storybook args
+4. **Inline docs** → Add JSDoc to source files
 
-## Related Files
+### If no framework detected (DEFAULT — most common path):
 
-- \`src/path/file.ts\` - Description
-- \`src/path/other.ts\` - Description
-\`\`\`
+This is the primary path. Most projects using Writ won't have a documentation site.
 
-### 2. Component Documentation
+1. **Inline documentation (always):**
+   - Add JSDoc/docstring comments to all public functions, classes, and exported types
+   - Include \`@param\`, \`@returns\`, and \`@example\` tags
+   - Document non-obvious behavior, edge cases, and constraints
 
-For new reusable components, create \`docs/components/{component-name}.md\`:
+2. **README updates:**
+   - Add or update the relevant section in the project's README.md
+   - If the feature is significant, add a dedicated section with usage examples
+   - Keep it concise — README is for humans getting started, not exhaustive reference
 
-\`\`\`markdown
-# ComponentName
+3. **CHANGELOG entry:**
+   - Add an entry to CHANGELOG.md if it exists (don't create one if it doesn't)
+   - Follow the existing changelog format (Keep a Changelog, conventional, etc.)
 
-Brief description.
-
-## Usage
-
-\`\`\`tsx
-import { ComponentName } from '@/components/path'
-
-<ComponentName prop="value" />
-\`\`\`
-
-## Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| prop | string | - | Description |
-
-## Examples
-
-[Code examples for different use cases]
-\`\`\`
-
-### 3. Architecture Updates
-
-If the story adds major components or changes data flow, update \`docs/architecture/index.md\`:
-
-- Add to the component architecture diagram
-- Update data flow if patterns changed
-- Document new subsystems
-
-### 4. Update VitePress Sidebar
-
-Add new pages to \`docs/.vitepress/config.ts\` in the appropriate sidebar section:
-
-\`\`\`typescript
-// In the sidebar config for features:
-{
-  text: 'Features',
-  items: [
-    { text: 'Overview', link: '/features/' },
-    { text: 'New Feature', link: '/features/new-feature' },  // Add this
-  ]
-}
-\`\`\`
-
-### 5. Update Feature Index
-
-Add the new feature to the table in \`docs/features/index.md\`:
-
-\`\`\`markdown
-| Feature | Status | Description |
-|---------|--------|-------------|
-| [New Feature](/features/new-feature) | ✅ Complete | Description |
-\`\`\`
-
-### 6. Inline Documentation
-
-Add JSDoc comments to source files:
-
-\`\`\`typescript
-/**
- * Brief description of the function/component.
- * 
- * @param paramName - Description
- * @returns Description of return value
- * 
- * @example
- * \`\`\`ts
- * const result = functionName(arg)
- * \`\`\`
- */
-\`\`\`
+4. **Architecture docs (if significant):**
+   - For major architectural changes, create or update an \`ARCHITECTURE.md\` at the project root
+   - Use Mermaid diagrams for visual architecture documentation
 
 ## Mermaid Diagram Types
 
@@ -274,6 +205,8 @@ Brief summary of documentation changes.
 
 ## Output Format
 
+The output format is the same regardless of framework. The file paths will differ based on the detected framework.
+
 ### When Documentation Created
 
 ```markdown
@@ -327,32 +260,17 @@ The story implemented internal refactoring only. No new features, components, or
 - Consider documenting in future if this utility becomes public API
 ```
 
-## VitePress Commands
-
-To preview documentation locally:
-
-```bash
-# Install VitePress (one-time)
-pnpm add -D vitepress
-
-# Start dev server
-pnpm docs:dev
-
-# Build for production
-pnpm docs:build
-```
-
 ## Documentation Guidelines
 
 ### When to Create New Docs
 
 | Change Type | Documentation Action |
 |-------------|---------------------|
-| New feature | Create `docs/features/{name}.md` |
-| New component | Create `docs/components/{name}.md` |
-| Architecture change | Update `docs/architecture/index.md` |
-| New API/hook | Update `docs/reference/` |
-| Config change | Update relevant guide |
+| New feature | Feature docs (framework-specific location) + inline JSDoc |
+| New component | Component docs + props documentation + inline JSDoc |
+| Architecture change | Architecture docs (ARCHITECTURE.md or framework equivalent) |
+| New API/hook | API reference docs + inline JSDoc with examples |
+| Config change | Update relevant guide or README section |
 
 ### Mermaid Best Practices
 

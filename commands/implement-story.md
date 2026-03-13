@@ -127,13 +127,36 @@ Auto-detect and run project linters:
 
 ---
 
+#### Gate 2.5: Change Surface Classification
+
+**Runs inline — no sub-agent needed.**
+
+After lint/typecheck passes, classify the change surface based on files the coding agent created or modified. This classification determines how the review agent allocates its attention.
+
+| Classification | Criteria | Examples |
+|---|---|---|
+| **style-only** | Only CSS/SCSS/Tailwind files changed, or only `className`/`style` props modified in component files | Adding `max-h-[85vh]`, changing colors, responsive tweaks, CSS module changes |
+| **single-component** | Changes scoped to one component file (state, handlers, props, JSX) | Adding a form field, fixing a handler bug, new local state |
+| **cross-component** | Shared code changed: hooks, utils, context, types used by multiple components | Refactoring a shared hook, changing a context shape, updating a utility |
+| **full-stack** | API routes, schema, migrations, auth, middleware, or multiple system layers | New CRUD endpoint, auth changes, database migration, new middleware |
+
+**Classification heuristic:**
+1. List all files created/modified from the coding agent output
+2. If ALL changes are `.css`, `.scss`, `.module.css`, Tailwind config, or only `className`/`style` prop changes in `.tsx`/`.jsx` → **style-only**
+3. If changes touch exactly one component file (plus its test file) → **single-component**
+4. If changes touch shared code (files in `hooks/`, `utils/`, `context/`, `lib/`, or files imported by >3 other files) → **cross-component**
+5. If changes touch API routes, database schema, migrations, auth, or middleware → **full-stack**
+6. When ambiguous, classify UP one level (prefer more scrutiny over less)
+
+---
+
 #### Gate 3: Review Agent
 
 > **Agent:** `agents/review-agent.md`
 
 Spawns a **read-only** sub-agent for code review.
 
-**Input:** Pass all standard review inputs plus `spec_lite_content` (loaded from the spec folder's `spec-lite.md` in Step 2) for drift analysis.
+**Input:** Pass all standard review inputs plus `spec_lite_content` (loaded from the spec folder's `spec-lite.md` in Step 2) for drift analysis, and `change_surface` (from Gate 2.5) to guide review depth allocation.
 
 **Reviews:**
 - Acceptance criteria verification
@@ -202,10 +225,20 @@ All drift writes target **`.writ/specs/[spec-folder]/drift-log.md`** where `[spe
 - **Reason:** [why the deviation occurred]
 - **Resolution:** Auto-amended
 - **Spec amendment:** [proposed spec change text from review agent]
+- **Spec-lite updated:** Yes
 ```
 
 3. Write/append to `drift-log.md` using the procedure above
-4. Include in pipeline summary: `drift: N small (auto-amended)`
+4. **Auto-apply amendments to spec-lite.md:**
+   - Read the current `spec-lite.md` from the spec folder
+   - For each Small deviation's `**Spec amendment:**` text, interpret the proposed change and apply it to the relevant section of `spec-lite.md`
+   - The amendment text is a plain-language description (e.g., "Update spec to reference `validateRegistrationData` instead of `validateUserInput`") — find the relevant passage and make the described substitution
+   - If multiple Small deviations exist, apply all amendments in a single read-modify-write cycle
+   - Write the updated `spec-lite.md`
+5. Update each drift-log entry for auto-amended deviations to include: `Spec-lite updated: Yes`
+6. Include in pipeline summary: `drift: N small (auto-amended, spec-lite updated)`
+
+> **Important:** Only `spec-lite.md` is auto-modified. The full `spec.md` is never auto-modified — it remains the human-approved contract.
 
 **On `Overall Drift: Medium`** — pipeline continues PASS with warning:
 1. Parse each deviation from the review output's drift report
@@ -256,7 +289,7 @@ Options:
    - **Spec amendment:** [description of spec change]
    - Regenerate `spec-lite.md` from the updated `spec.md`, reload both, then re-run from Gate 3 (counts as review iteration)
 
-**Mixed severities:** The overall drift level is the **highest** severity present. If the report contains 1 Small + 1 Large, the pipeline PAUSES for the Large deviation. Small and Medium amendments are still logged immediately — only Large entries wait for user decision.
+**Mixed severities:** The overall drift level is the **highest** severity present. If the report contains 1 Small + 1 Large, the pipeline PAUSES for the Large deviation. Small and Medium amendments are still logged immediately — only Large entries wait for user decision. Small deviations still get their spec-lite auto-amendments applied regardless of the overall drift level.
 
 ---
 
@@ -325,8 +358,36 @@ After all gates pass:
 
 1. **Update story status** → `Completed ✅` with date
 2. **Mark tasks and AC** as checked in story file
-3. **Update `user-stories/README.md`** progress percentages
-4. **Commit:**
+3. **Append "What Was Built" record** to the story file (see below)
+4. **Update `user-stories/README.md`** progress percentages
+#### "What Was Built" Record (Step 3)
+
+Before committing, append a `## What Was Built` section to the story file after the `## Definition of Done` section. This creates the "system spec" — a record of implementation reality alongside the original plan.
+
+**Source the content from:**
+- Coding agent output summary (files created/modified, key decisions)
+- Drift log entries for this story (deviation IDs, if any)
+- Git diff stats (`git diff --stat` for file counts)
+
+**Format:**
+
+```markdown
+## What Was Built
+
+**Implemented:** YYYY-MM-DD
+**Files:** N created, M modified
+
+**Key decisions made during implementation:**
+- [Decision 1 — e.g., "Used `useLocalStorage` hook instead of context (simpler, story-scoped state)"]
+- [Decision 2 — e.g., "Added debounce to search input (not in spec, but UX required it)"]
+- [Or "None — implementation followed the plan exactly"]
+
+**Deviations from plan:** None | See drift-log.md DEV-XXX, DEV-YYY
+```
+
+If the coding agent reported no deviations and the drift log has no entries for this story, use "None" for the deviations line. If key decisions are routine, write "None — implementation followed the plan exactly."
+
+5. **Commit:**
 
 ```bash
 git add -A
@@ -336,10 +397,11 @@ git commit -m "feat: complete story N - [title]
 - Tests: N passing, X% coverage
 - Review: passed (iteration count)
 - Drift: none | N small (auto-amended), M medium ⚠️ — see drift-log.md
-- Docs: updated"
+- Docs: updated
+- What Was Built: recorded"
 ```
 
-5. **Report results:**
+6. **Report results:**
 
 ```
 ✅ Story 3: API Endpoints — Complete
