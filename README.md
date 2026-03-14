@@ -128,53 +128,65 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 | **Claude Code** | [`adapters/claude-code.md`](adapters/claude-code.md) | `claude -p`, `CLAUDE.md`, `--allowedTools` |
 | **OpenClaw** | [`adapters/openclaw.md`](adapters/openclaw.md) | `sessions_spawn`, Telegram buttons, `exec` |
 
-## Migrating from Code Captain
-
-Already using Code Captain? Migrate in seconds — all specs, stories, ADRs, and progress preserved:
-
-```bash
-# Clone writ, run migration from your project root
-git clone https://github.com/sellke/writ.git /tmp/writ
-bash /tmp/writ/scripts/migrate.sh
-
-# Then install Writ commands + agents
-cp /tmp/writ/commands/*.md .cursor/commands/
-cp /tmp/writ/agents/*.md .cursor/agents/
-```
-
-Preview first with `--dry-run`:
-```bash
-bash /tmp/writ/scripts/migrate.sh --dry-run
-```
-
-See [`commands/migrate.md`](commands/migrate.md) for the full interactive migration command.
-
 ## Quick Start
 
-### Cursor
+### Cursor (one-line install)
+
+From your project root:
 
 ```bash
-# Copy commands and agents into your project
-mkdir -p .cursor/commands .cursor/agents
-cp writ/commands/*.md .cursor/commands/
-cp writ/agents/*.md .cursor/agents/
-cp writ/system-instructions.md .cursor/
-
-# Start using
-# In Cursor chat: /create-spec "my feature"
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh)
 ```
+
+This copies all commands, agents, rules, and system instructions into `.cursor/`, creates the `.writ/` workspace, and commits the result. Preview first with `--dry-run`:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --dry-run
+```
+
+Then in Cursor chat: `/create-spec "my feature"`
+
+### Link mode (power users)
+
+If you use Writ across many projects and want them all to stay in sync automatically:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --link
+```
+
+This clones Writ once to `~/.writ` and symlinks your project to it. All projects share the same files — update everywhere at once with `bash update.sh`. You can also link to a specific checkout:
+
+```bash
+bash install.sh --link /path/to/your/writ-fork
+```
+
+> **Copy vs Link:** Copy mode (default) is self-contained, git-portable, and supports per-project customization — files you modify are preserved across updates. Link mode is always current but doesn't support per-file customization. See `install.sh --help` for details.
+
+### Updating
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update.sh)
+```
+
+The updater uses a manifest (`.cursor/.writ-manifest`) to track what was installed. Files you haven't touched update silently. Files you've customized are **never overwritten** — you're told which ones were preserved. Files removed upstream are cleaned up.
+
+| Flag | Effect |
+|------|--------|
+| `--dry-run` | Preview changes without applying |
+| `--force` | Overwrite all files, including your customizations |
+| `--no-commit` | Don't auto-commit after update |
+
+To reset a single file to upstream: delete it and re-run update.
 
 ### Claude Code
 
 ```bash
-# Copy to .claude/ directory
 mkdir -p .claude/commands .claude/agents
 cp writ/commands/*.md .claude/commands/
 cp writ/agents/*.md .claude/agents/
 
 # Create CLAUDE.md (see adapters/claude-code.md for template)
 
-# Start using
 claude
 > /create-spec "my feature"
 ```
@@ -182,11 +194,24 @@ claude
 ### OpenClaw
 
 ```bash
-# Install as a skill
 cp -r writ/ ~/.openclaw/workspace/skills/writ/
-
-# Commands are available via the skill system
 ```
+
+## Migrating from Code Captain
+
+Already using Code Captain? Migrate in seconds — all specs, stories, ADRs, and progress preserved:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/migrate.sh)
+```
+
+Preview first with `--dry-run`:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/migrate.sh) --dry-run
+```
+
+Then install Writ with `install.sh` as shown above. See [`commands/migrate.md`](commands/migrate.md) for the full interactive migration command.
 
 ## Directory Structure
 
