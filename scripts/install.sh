@@ -7,209 +7,532 @@
 #   bash /tmp/writ/scripts/install.sh
 #
 # Flags:
-#   --dry-run    Preview changes without applying
-#   --no-commit  Don't auto-commit after install
+#   --dry-run      Preview changes without applying
+#   --no-commit    Don't auto-commit after install
+#   --force        Overwrite all files, ignoring local modifications
+#   --link [path]  Symlink to a writ checkout instead of copying
 
 set -euo pipefail
 
+WRIT_REPO="https://github.com/sellke/writ.git"
+WRIT_GLOBAL="$HOME/.writ"
+MANIFEST_FILE=".cursor/.writ-manifest"
+
 DRY_RUN=false
 NO_COMMIT=false
-WRIT_SRC=""
+FORCE=false
+LINK_MODE=false
+LINK_PATH=""
 
-for arg in "$@"; do
-  case $arg in
+while [ $# -gt 0 ]; do
+  case $1 in
     --dry-run)    DRY_RUN=true ;;
     --no-commit)  NO_COMMIT=true ;;
+    --force)      FORCE=true ;;
+    --link)
+      LINK_MODE=true
+      if [ $# -gt 1 ] && [[ ! "$2" =~ ^-- ]]; then
+        LINK_PATH="$2"
+        shift
+      fi
+      ;;
     --help|-h)
-      echo "Usage: bash install.sh [--dry-run] [--no-commit]"
+      echo "Usage: bash install.sh [--dry-run] [--no-commit] [--force] [--link [path]]"
       echo ""
       echo "Installs Writ commands, agents, and rules into .cursor/"
       echo "Run from your project root."
+      echo ""
+      echo "Modes:"
+      echo "  (default)      Copy files into .cursor/ — self-contained, git-portable,"
+      echo "                 supports per-project customization via overlay."
+      echo "  --link [path]  Symlink .cursor/ to a writ checkout — always in sync,"
+      echo "                 update with 'git pull'. Not committed to git."
+      echo "                 Without a path, uses ~/.writ (auto-cloned if needed)."
+      echo ""
+      echo "Flags:"
+      echo "  --dry-run      Preview changes without applying"
+      echo "  --no-commit    Don't auto-commit after install"
+      echo "  --force        Overwrite existing files/directories"
       exit 0
       ;;
+    *)
+      echo "Unknown option: $1 (try --help)"
+      exit 1
+      ;;
   esac
+  shift
 done
 
 echo "⚡ Writ Installer"
 echo "=================="
 echo ""
 
-# Find writ source — either script's directory or clone fresh
+# ---------------------------------------------------------------------------
+# Guards
+# ---------------------------------------------------------------------------
+
+if [ -f "SKILL.md" ] && [ -d "commands" ] && [ -d "agents" ] && [ -d "scripts" ]; then
+  echo "❌ This appears to be the Writ source repository."
+  echo "   install.sh is for installing Writ into other projects."
+  echo "   This repo uses symlinks — see .writ/docs/self-dogfooding.md"
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Portable SHA-256
+# ---------------------------------------------------------------------------
+
+hash_file() {
+  if command -v shasum &>/dev/null; then
+    shasum -a 256 "$1" | cut -d' ' -f1
+  elif command -v sha256sum &>/dev/null; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    openssl dgst -sha256 "$1" | awk '{print $NF}'
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Manifest helpers
+# ---------------------------------------------------------------------------
+
+manifest_version() {
+  [ -f "$MANIFEST_FILE" ] && grep '^# version:' "$MANIFEST_FILE" | sed 's/^# version: //' || true
+}
+
+manifest_mode() {
+  if [ -f "$MANIFEST_FILE" ] && grep -q '^# mode:' "$MANIFEST_FILE"; then
+    grep '^# mode:' "$MANIFEST_FILE" | sed 's/^# mode: //'
+  else
+    echo "copy"
+  fi
+}
+
+manifest_hash_for() {
+  local path="$1"
+  [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
+}
+
+write_copy_manifest() {
+  local version="$1" target="$2"
+
+  cat > "$target" << EOF
+# Writ Manifest — do not edit manually
+# Tracks installed file baselines for safe overlay updates.
+# mode: copy
+# version: $version
+# date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+# source: $WRIT_REPO
+EOF
+
+  local f rel
+  for f in .cursor/commands/*.md .cursor/agents/*.md; do
+    [ -f "$f" ] || continue
+    rel="${f#.cursor/}"
+    echo "$(hash_file "$f")  $rel" >> "$target"
+  done
+  for f in .cursor/rules/writ.mdc .cursor/system-instructions.md; do
+    [ -f "$f" ] || continue
+    rel="${f#.cursor/}"
+    echo "$(hash_file "$f")  $rel" >> "$target"
+  done
+}
+
+write_link_manifest() {
+  local version="$1" target="$2" link_target="$3"
+
+  cat > "$target" << EOF
+# Writ Manifest — do not edit manually
+# mode: link
+# link_target: $link_target
+# version: $version
+# date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+# source: $WRIT_REPO
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# Resolve writ source
+# ---------------------------------------------------------------------------
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WRIT_ROOT="$(dirname "$SCRIPT_DIR")"
+WRIT_SRC=""
 
-if [ -f "$WRIT_ROOT/SKILL.md" ] && [ -d "$WRIT_ROOT/commands" ]; then
+if [ "$LINK_MODE" = true ] && [ -n "$LINK_PATH" ]; then
+  # Explicit --link /path
+  if [ ! -d "$LINK_PATH" ]; then
+    echo "❌ Path not found: $LINK_PATH"
+    exit 1
+  fi
+  WRIT_SRC="$(cd "$LINK_PATH" && pwd)"
+  if [ ! -f "$WRIT_SRC/SKILL.md" ] || [ ! -d "$WRIT_SRC/commands" ]; then
+    echo "❌ $WRIT_SRC doesn't look like a writ checkout."
+    exit 1
+  fi
+  echo "🔗 Link target: $WRIT_SRC"
+
+elif [ -f "$WRIT_ROOT/SKILL.md" ] && [ -d "$WRIT_ROOT/commands" ]; then
+  # Running from a local writ checkout (e.g. /tmp/writ/scripts/install.sh)
   WRIT_SRC="$WRIT_ROOT"
-  echo "📦 Using local writ: $WRIT_SRC"
+  if [ "$LINK_MODE" = true ]; then
+    echo "🔗 Link target: $WRIT_SRC"
+  else
+    echo "📦 Using local writ: $WRIT_SRC"
+  fi
+
+elif [ "$LINK_MODE" = true ]; then
+  # --link with no path and no local checkout → use ~/.writ
+  WRIT_SRC="$WRIT_GLOBAL"
+  if [ ! -d "$WRIT_SRC" ]; then
+    if ! command -v git &>/dev/null; then
+      echo "❌ git is required to clone Writ. Install git or pass --link /path."
+      exit 1
+    fi
+    echo "📥 Cloning writ to $WRIT_SRC..."
+    if ! git clone "$WRIT_REPO" "$WRIT_SRC" 2>&1 | tail -1; then
+      echo "❌ Failed to clone $WRIT_REPO"
+      rm -rf "$WRIT_SRC"
+      exit 1
+    fi
+    echo "   Done."
+  fi
+  if [ ! -f "$WRIT_SRC/SKILL.md" ] || [ ! -d "$WRIT_SRC/commands" ]; then
+    echo "❌ $WRIT_SRC doesn't look like a writ checkout."
+    exit 1
+  fi
+  echo "🔗 Link target: $WRIT_SRC"
+
 else
+  # Copy mode — clone to temp dir
+  if ! command -v git &>/dev/null; then
+    echo "❌ git is required to clone Writ. Install git or clone manually first."
+    exit 1
+  fi
   echo "📥 Cloning writ from GitHub..."
   WRIT_SRC=$(mktemp -d)
-  git clone --depth 1 https://github.com/sellke/writ.git "$WRIT_SRC" 2>/dev/null
-  trap "rm -rf $WRIT_SRC" EXIT
+  if ! git clone --depth 1 "$WRIT_REPO" "$WRIT_SRC" 2>&1 | tail -1; then
+    echo "❌ Failed to clone $WRIT_REPO"
+    echo "   Check your network connection and try again."
+    rm -rf "$WRIT_SRC"
+    exit 1
+  fi
+  cleanup() { rm -rf "$WRIT_SRC"; }
+  trap cleanup EXIT
   echo "   Done."
 fi
 
+VERSION=$(cd "$WRIT_SRC" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
+VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
+
 echo ""
 
-# Count what we're installing
-CMD_COUNT=$(find "$WRIT_SRC/commands" -name "*.md" | wc -l | tr -d ' ')
-AGENT_COUNT=$(find "$WRIT_SRC/agents" -name "*.md" | wc -l | tr -d ' ')
+# ---------------------------------------------------------------------------
+# Inventory
+# ---------------------------------------------------------------------------
+
+CMD_COUNT=0
+for f in "$WRIT_SRC/commands"/*.md; do [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1)); done
+AGENT_COUNT=0
+for f in "$WRIT_SRC/agents"/*.md; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
 
 echo "  📋 Commands:  $CMD_COUNT"
 echo "  🤖 Agents:    $AGENT_COUNT"
 echo "  📜 Rules:     1 (writ.mdc)"
 echo "  📖 System:    1 (system-instructions.md)"
+echo "  📌 Version:   $VERSION_LONG"
+if [ "$LINK_MODE" = true ]; then
+  echo "  🔗 Mode:      linked → $WRIT_SRC"
+fi
 echo ""
 
-# --- Overlay-aware copy ---
-# Copies files from $1 (source dir) to $2 (local dir), preserving local modifications.
-# Returns counts via global variables.
-OVERLAY_COPIED=0
-OVERLAY_PRESERVED=0
-OVERLAY_UNCHANGED=0
+EXISTING_VERSION=$(manifest_version)
+EXISTING_MODE=$(manifest_mode)
 
-overlay_copy() {
-  local src_dir="$1"
-  local local_dir="$2"
-  local label="$3"
+if [ -n "$EXISTING_VERSION" ]; then
+  echo "  ℹ️  Existing installation (version: $EXISTING_VERSION, mode: $EXISTING_MODE)"
+  if [ "$EXISTING_MODE" = "link" ] && [ "$LINK_MODE" = false ]; then
+    echo "  ⚠️  Switching from linked → copied installation"
+  elif [ "$EXISTING_MODE" != "link" ] && [ "$LINK_MODE" = true ]; then
+    echo "  ⚠️  Switching from copied → linked installation"
+  fi
+  echo ""
+fi
 
-  OVERLAY_COPIED=0
-  OVERLAY_PRESERVED=0
-  OVERLAY_UNCHANGED=0
+# ---------------------------------------------------------------------------
+# Shared: .writ/ workspace + legacy cleanup
+# ---------------------------------------------------------------------------
 
+init_writ_workspace() {
+  if [ ! -d ".writ" ]; then
+    echo ""
+    echo "  📁 Creating .writ/ directory structure..."
+    mkdir -p .writ/{specs,product,research,decision-records,docs,issues,explanations,state}
+
+    if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
+      printf '\n# Writ ephemeral state\n.writ/state/\n' >> .gitignore
+    fi
+  fi
+
+  if [ -f ".cursor/rules/cc.mdc" ]; then
+    echo "  🧹 Removing old Code Captain rules..."
+    rm -f .cursor/rules/cc.mdc
+  fi
+}
+
+# ===========================================================================
+# LINK MODE
+# ===========================================================================
+
+if [ "$LINK_MODE" = true ]; then
+
+  # --- Dry run (link) ---
+  if [ "$DRY_RUN" = true ]; then
+    echo "🏃 DRY RUN — No changes will be made"
+    echo ""
+    echo "  Would create symlinks:"
+    echo "    .cursor/commands/              → $WRIT_SRC/commands/"
+    echo "    .cursor/agents/                → $WRIT_SRC/agents/"
+    echo "    .cursor/rules/writ.mdc         → $WRIT_SRC/cursor/writ.mdc"
+    echo "    .cursor/system-instructions.md → $WRIT_SRC/system-instructions.md"
+    echo ""
+    for dir in commands agents; do
+      if [ -d ".cursor/$dir" ] && [ ! -L ".cursor/$dir" ]; then
+        echo "  ⚠️  .cursor/$dir/ exists as a regular directory (use --force to replace)"
+      fi
+    done
+    echo "  ℹ️  Symlinks are machine-specific and not auto-committed."
+    echo "     Update writ with: cd $WRIT_SRC && git pull"
+    exit 0
+  fi
+
+  # --- Install (link) ---
+  echo "Installing (linked)..."
+  mkdir -p .cursor/rules
+
+  # Check for existing non-symlink directories that would conflict
+  for dir in commands agents; do
+    if [ -d ".cursor/$dir" ] && [ ! -L ".cursor/$dir" ]; then
+      if [ "$FORCE" = true ]; then
+        echo "  ⚠️  Replacing .cursor/$dir/ directory with symlink"
+        rm -rf ".cursor/$dir"
+      else
+        echo ""
+        echo "❌ .cursor/$dir/ exists as a regular directory."
+        echo "   Use --force to replace it with a symlink."
+        echo "   Warning: locally modified files in .cursor/$dir/ will be removed."
+        exit 1
+      fi
+    fi
+  done
+
+  echo "  [1/3] Linking commands and agents..."
+  ln -sfn "$WRIT_SRC/commands" .cursor/commands
+  echo "         .cursor/commands/ → $WRIT_SRC/commands/"
+  ln -sfn "$WRIT_SRC/agents" .cursor/agents
+  echo "         .cursor/agents/   → $WRIT_SRC/agents/"
+
+  echo "  [2/3] Linking rules and system instructions..."
+  ln -sf "$WRIT_SRC/cursor/writ.mdc" .cursor/rules/writ.mdc
+  ln -sf "$WRIT_SRC/system-instructions.md" .cursor/system-instructions.md
+
+  echo "  [3/3] Writing manifest..."
+  write_link_manifest "$VERSION" "$MANIFEST_FILE" "$WRIT_SRC"
+
+  init_writ_workspace
+
+  echo ""
+  echo "✅ Writ installed! (version: $VERSION, linked to $WRIT_SRC)"
+  echo ""
+  echo "  ℹ️  Symlinks are machine-specific and not auto-committed."
+  echo "     Update writ: cd $WRIT_SRC && git pull"
+  echo "     Or run:      bash update.sh"
+
+  # Only commit non-symlink artifacts (manifest, .writ/, .gitignore)
+  if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
+    git add "$MANIFEST_FILE" 2>/dev/null || true
+    [ -d .writ ] && git add .writ/ 2>/dev/null || true
+    [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
+
+    git commit -m "$(cat <<'EOF'
+chore: install Writ development workflow (linked)
+
+See: https://github.com/sellke/writ
+EOF
+)" 2>/dev/null && echo "  📦 Git commit created." || echo "  ℹ️  Nothing to commit (already up to date)."
+  fi
+
+  echo ""
+  echo "Usage:"
+  echo "  In Cursor chat, try: /initialize, /create-spec, /implement-story"
+  echo ""
+  echo "⚡ So it is written. So it shall be built."
+  exit 0
+fi
+
+# ===========================================================================
+# COPY MODE
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Three-way overlay logic
+#
+# For each source file, determine action by comparing three states:
+#   upstream  — the new file from writ source
+#   baseline  — the hash recorded in the manifest at last install/update
+#   local     — the file currently on disk
+#
+# Decision matrix:
+#   No local file             → install (new)
+#   local == upstream         → skip (already current)
+#   local == baseline         → update (user hasn't touched it)
+#   local != baseline         → preserve (user modified) unless --force
+#   No baseline (old install) → preserve if differs (conservative)
+# ---------------------------------------------------------------------------
+
+_NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
+
+overlay_scan() {
+  local src_dir="$1" local_dir="$2" label="$3" mode="$4"
+  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
+
+  local src_file fname local_file rel_path upstream_hash local_hash baseline_hash
   for src_file in "$src_dir"/*.md; do
     [ -f "$src_file" ] || continue
-    local fname
     fname=$(basename "$src_file")
-    local local_file="$local_dir/$fname"
+    local_file="$local_dir/$fname"
+    rel_path="${label}/${fname}"
+    upstream_hash=$(hash_file "$src_file")
 
-    if [ -f "$local_file" ]; then
-      if diff -q "$src_file" "$local_file" > /dev/null 2>&1; then
-        OVERLAY_UNCHANGED=$((OVERLAY_UNCHANGED + 1))
-      else
-        echo "    ⚡ Preserved: $label/$fname (local modifications detected)"
-        OVERLAY_PRESERVED=$((OVERLAY_PRESERVED + 1))
-      fi
+    if [ ! -f "$local_file" ]; then
+      _NEW=$((_NEW + 1))
+      [ "$mode" = "preview" ] && echo "    ✨ New:       $rel_path"
+      [ "$mode" = "apply" ]   && cp "$src_file" "$local_file"
+      continue
+    fi
+
+    local_hash=$(hash_file "$local_file")
+
+    if [ "$local_hash" = "$upstream_hash" ]; then
+      _UNCHANGED=$((_UNCHANGED + 1))
+      continue
+    fi
+
+    baseline_hash=$(manifest_hash_for "$rel_path")
+
+    if [ "$FORCE" = true ]; then
+      _UPDATED=$((_UPDATED + 1))
+      [ "$mode" = "preview" ] && echo "    🔄 Update:    $rel_path (forced)"
+      [ "$mode" = "apply" ]   && cp "$src_file" "$local_file"
+    elif [ -z "$baseline_hash" ]; then
+      _PRESERVED=$((_PRESERVED + 1))
+      [ "$mode" = "preview" ] && echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"
+    elif [ "$local_hash" = "$baseline_hash" ]; then
+      _UPDATED=$((_UPDATED + 1))
+      [ "$mode" = "preview" ] && echo "    🔄 Update:    $rel_path"
+      [ "$mode" = "apply" ]   && cp "$src_file" "$local_file"
     else
-      cp "$src_file" "$local_file"
-      OVERLAY_COPIED=$((OVERLAY_COPIED + 1))
+      _PRESERVED=$((_PRESERVED + 1))
+      [ "$mode" = "preview" ] && echo "    ⚡ Preserved: $rel_path (local modifications)"
     fi
   done
 }
 
-overlay_preview() {
-  local src_dir="$1"
-  local local_dir="$2"
-  local label="$3"
-  local new=0 preserved=0 unchanged=0
-
-  for src_file in "$src_dir"/*.md; do
-    [ -f "$src_file" ] || continue
-    local fname
-    fname=$(basename "$src_file")
-    local local_file="$local_dir/$fname"
-
-    if [ -f "$local_file" ]; then
-      if diff -q "$src_file" "$local_file" > /dev/null 2>&1; then
-        unchanged=$((unchanged + 1))
-      else
-        echo "    ⚡ $label/$fname — local modifications (would be preserved)"
-        preserved=$((preserved + 1))
-      fi
-    else
-      echo "    ✨ $label/$fname — new (would be copied)"
-      new=$((new + 1))
-    fi
-  done
-
-  [ "$new" -gt 0 ] && echo "    $new new"
-  [ "$preserved" -gt 0 ] && echo "    $preserved preserved (local modifications kept)"
-  [ "$unchanged" -gt 0 ] && echo "    $unchanged unchanged"
-}
+# --- Dry run (copy) ---
 
 if [ "$DRY_RUN" = true ]; then
   echo "🏃 DRY RUN — No changes will be made"
   echo ""
-  echo "  Commands:"
-  overlay_preview "$WRIT_SRC/commands" ".cursor/commands" "commands"
-  echo ""
-  echo "  Agents:"
-  overlay_preview "$WRIT_SRC/agents" ".cursor/agents" "agents"
-  echo ""
-  echo "  Rules:   writ.mdc (always updated)"
-  echo "  System:  system-instructions.md (always updated)"
+  if [ "$EXISTING_MODE" = "link" ]; then
+    echo "  Would replace symlinks with copies ($CMD_COUNT commands, $AGENT_COUNT agents,"
+    echo "  rules, and system instructions)."
+  else
+    echo "  Commands:"
+    overlay_scan "$WRIT_SRC/commands" ".cursor/commands" "commands" "preview"
+    echo ""
+    echo "  Agents:"
+    overlay_scan "$WRIT_SRC/agents" ".cursor/agents" "agents" "preview"
+    echo ""
+    echo "  Rules:   writ.mdc → always updated"
+    echo "  System:  system-instructions.md → always updated"
+  fi
   echo ""
   echo "💡 To reset a file to core: delete the local copy and re-run install."
+  echo "💡 To force overwrite all: install.sh --force"
+  echo "💡 To symlink instead:     install.sh --link"
   exit 0
 fi
 
-# Install
+# --- Install (copy) ---
+
 echo "Installing..."
+
+# Remove symlinks if switching from link to copy mode
+if [ "$EXISTING_MODE" = "link" ]; then
+  echo "  Removing symlinks..."
+  for item in .cursor/commands .cursor/agents .cursor/rules/writ.mdc .cursor/system-instructions.md; do
+    [ -L "$item" ] && rm -f "$item"
+  done
+fi
 
 mkdir -p .cursor/commands .cursor/agents .cursor/rules
 
-echo "  [1/4] Commands..."
-overlay_copy "$WRIT_SRC/commands" ".cursor/commands" "commands"
-CMD_COPIED=$OVERLAY_COPIED
-CMD_PRESERVED=$OVERLAY_PRESERVED
+echo "  [1/5] Commands..."
+overlay_scan "$WRIT_SRC/commands" ".cursor/commands" "commands" "apply"
+CMD_NEW=$_NEW; CMD_UPDATED=$_UPDATED; CMD_PRESERVED=$_PRESERVED
 
-echo "  [2/4] Agents..."
-overlay_copy "$WRIT_SRC/agents" ".cursor/agents" "agents"
-AGENT_COPIED=$OVERLAY_COPIED
-AGENT_PRESERVED=$OVERLAY_PRESERVED
+echo "  [2/5] Agents..."
+overlay_scan "$WRIT_SRC/agents" ".cursor/agents" "agents" "apply"
+AGENT_NEW=$_NEW; AGENT_UPDATED=$_UPDATED; AGENT_PRESERVED=$_PRESERVED
 
-echo "  [3/4] Rules..."
+echo "  [3/5] Rules..."
 cp "$WRIT_SRC/cursor/writ.mdc" .cursor/rules/
 
-echo "  [4/4] System instructions..."
+echo "  [4/5] System instructions..."
 cp "$WRIT_SRC/system-instructions.md" .cursor/
 
-# Initialize .writ directory if it doesn't exist
-if [ ! -d ".writ" ]; then
-  echo ""
-  echo "  📁 Creating .writ/ directory structure..."
-  mkdir -p .writ/{specs,product,research,decision-records,docs,issues,explanations,state}
-  
-  # Add state to gitignore
-  if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
-    echo "" >> .gitignore
-    echo "# Writ ephemeral state" >> .gitignore
-    echo ".writ/state/" >> .gitignore
-  fi
-fi
+echo "  [5/5] Writing manifest..."
+write_copy_manifest "$VERSION" "$MANIFEST_FILE"
 
-# Remove old Code Captain rules if present
-if [ -f ".cursor/rules/cc.mdc" ]; then
-  echo "  🧹 Removing old Code Captain rules..."
-  rm -f .cursor/rules/cc.mdc
-fi
+init_writ_workspace
+
+# --- Summary (copy) ---
 
 echo ""
-echo "✅ Writ installed!"
+echo "✅ Writ installed! (version: $VERSION)"
 
-# Overlay summary
+TOTAL_NEW=$((CMD_NEW + AGENT_NEW))
+TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED))
 TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED))
-if [ "$TOTAL_PRESERVED" -gt 0 ]; then
+
+if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" -gt 0 ]; then
   echo ""
-  echo "  📋 Overlay summary:"
-  [ "$CMD_COPIED" -gt 0 ] && echo "     Commands — $CMD_COPIED new"
-  [ "$CMD_PRESERVED" -gt 0 ] && echo "     Commands — $CMD_PRESERVED preserved (local modifications kept)"
-  [ "$AGENT_COPIED" -gt 0 ] && echo "     Agents   — $AGENT_COPIED new"
-  [ "$AGENT_PRESERVED" -gt 0 ] && echo "     Agents   — $AGENT_PRESERVED preserved (local modifications kept)"
-  echo ""
-  echo "  💡 To reset a file to core: delete the local copy and re-run install."
+  echo "  📋 Summary:"
+  [ "$TOTAL_NEW" -gt 0 ]       && echo "     $TOTAL_NEW new file(s) installed"
+  [ "$TOTAL_UPDATED" -gt 0 ]   && echo "     $TOTAL_UPDATED file(s) updated"
+  [ "$TOTAL_PRESERVED" -gt 0 ] && echo "     $TOTAL_PRESERVED file(s) preserved (local modifications kept)"
+  if [ "$TOTAL_PRESERVED" -gt 0 ]; then
+    echo ""
+    echo "  💡 To reset a file to core: delete it and re-run install."
+    echo "  💡 To force overwrite all: install.sh --force"
+  fi
 fi
 
-# Commit
-if [ "$NO_COMMIT" = false ]; then
-  if command -v git &> /dev/null && [ -d .git ]; then
-    git add -A
-    git commit -m "chore: install Writ development workflow
+# --- Scoped git commit (copy) ---
 
-Installed $CMD_COUNT commands, $AGENT_COUNT agents, rules, and system instructions.
+if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
+  git add \
+    .cursor/commands/ .cursor/agents/ .cursor/rules/writ.mdc \
+    .cursor/system-instructions.md "$MANIFEST_FILE" 2>/dev/null || true
+  [ -d .writ ] && git add .writ/ 2>/dev/null || true
+  [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
 
-See: https://github.com/sellke/writ" 2>/dev/null && echo "  📦 Git commit created." || echo "  ℹ️  Nothing to commit (already up to date)."
-  fi
+  git commit -m "$(cat <<'EOF'
+chore: install Writ development workflow
+
+See: https://github.com/sellke/writ
+EOF
+)" 2>/dev/null && echo "  📦 Git commit created." || echo "  ℹ️  Nothing to commit (already up to date)."
 fi
 
 echo ""

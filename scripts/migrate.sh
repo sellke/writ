@@ -32,6 +32,13 @@ echo "⚡ Writ Migration — Code Captain → Writ"
 echo "========================================="
 echo ""
 
+# Self-dogfooding guard
+if [ -f "SKILL.md" ] && [ -d "commands" ] && [ -d "agents" ] && [ -d "scripts" ]; then
+  echo "❌ This appears to be the Writ source repository."
+  echo "   migrate.sh is for migrating other projects from Code Captain."
+  exit 1
+fi
+
 # Detect Code Captain
 CC_DIR=""
 if [ -d ".code-captain" ]; then
@@ -137,9 +144,8 @@ done
 
 # Update .cursor files if present
 if [ -d ".cursor" ]; then
-  find .cursor -name "*.md" -name "*.mdc" -exec perl -pi -e 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
-  find .cursor -name "*.md" -name "*.mdc" -exec perl -pi -e 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
-  # Remove old Code Captain rules file
+  find .cursor \( -name "*.md" -o -name "*.mdc" \) -exec perl -pi -e 's|\.code-captain/|.writ/|g' {} + 2>/dev/null || true
+  find .cursor \( -name "*.md" -o -name "*.mdc" \) -exec perl -pi -e 's|\.code-captain|.writ|g' {} + 2>/dev/null || true
   rm -f .cursor/rules/cc.mdc 2>/dev/null || true
 fi
 
@@ -178,18 +184,26 @@ echo "  Completed:  $COMPLETED_AFTER (statuses intact)"
 echo ""
 
 # Commit
-if [ "$NO_COMMIT" = false ]; then
-  if command -v git &> /dev/null && [ -d .git ]; then
-    git add -A
-    git commit -m "chore: migrate Code Captain → Writ
+if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
+  git add .writ/ 2>/dev/null || true
+  [ -d .cursor ] && git add .cursor/ 2>/dev/null || true
+  [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
+  for f in README.md CLAUDE.md CONTRIBUTING.md; do
+    [ -f "$f" ] && git add "$f" 2>/dev/null || true
+  done
+  # Stage removal of old directory
+  git add "$CC_DIR" 2>/dev/null || true
+
+  git commit -m "$(cat <<'EOF'
+chore: migrate Code Captain → Writ
 
 Renamed .code-captain/ → .writ/
 Updated all internal path references.
 All specs, stories, ADRs, and research preserved.
 
-See: https://github.com/sellke/writ"
-    echo "  📦 Git commit created."
-  fi
+See: https://github.com/sellke/writ
+EOF
+)" 2>/dev/null && echo "  📦 Git commit created." || echo "  ℹ️  Nothing to commit."
 fi
 
 echo ""
