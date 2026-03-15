@@ -1,9 +1,8 @@
 # Phase 1: Foundation — Technical Specification
 
 > Created: 2026-02-27
-> Last Updated: 2026-03-14
 > Spec: Phase 1 Foundation
-> Status: In Progress — Dogfooding Pending
+> Status: Complete ✅
 
 ## Architecture Overview
 
@@ -13,7 +12,6 @@ All Phase 1 deliverables are **markdown files** — command definitions and agen
 commands/
 ├── prototype.md          ← NEW (Story 1)
 ├── refresh-command.md    ← NEW (Story 4)
-├── plan-product.md       ← MODIFIED (Story 8 — gstack-inspired enhancements)
 └── implement-story.md    ← MODIFIED (Stories 2, 3 — pass spec context to reviewer)
 
 agents/
@@ -26,8 +24,6 @@ scripts/
 
 .writ/
 ├── refresh-log.md        ← NEW (Story 5 — changelog for command refreshes)
-├── product/              ← MODIFIED (Story 8 — mission, roadmap, decisions updated)
-├── research/             ← NEW (Story 8 — gstack analysis research)
 └── docs/
     └── drift-report-format.md  ← NEW (Story 3 — canonical format reference)
 ```
@@ -199,45 +195,6 @@ This is a **documentation and script convention**, not a runtime system. AI agen
 - If local copy is unmodified (matches previous core version): update to new core
 - If local copy has modifications: warn and skip, show diff
 - New flag: `--merge` to attempt automatic merge of core updates with local modifications
-
-## Feature 4: /plan-product gstack Enhancement
-
-### File: `commands/plan-product.md` (modification)
-
-~100 lines added implementing six gstack-inspired techniques:
-
-**New step: 1.1c Planning Posture Selection**
-AskQuestion with three options: EXPANSION (dream big, 10-star product), HOLD (pressure-test the framing), REDUCTION (strip to minimum viable). Selected posture shapes all downstream discovery and recommendations.
-
-**New opening move: Premise Challenge**
-Before any information-gathering, challenge the premise: "Is this the right problem? What would happen if we did nothing? Who benefits most?" This is mandatory regardless of posture.
-
-**New discovery technique: Dream State Mapping**
-`CURRENT STATE → THIS PLAN → 12-MONTH IDEAL` progression. Required in EXPANSION mode, encouraged in HOLD. Forces long-horizon thinking and tests whether the MVP points toward the right future.
-
-**Modified posture: Opinionated Recommendations**
-All recommendations throughout discovery and contract phases use "I recommend X because Y" format instead of neutral option menus. Pushback phrasing leads with the recommendation, not the concern.
-
-**New contract section: Failure Surface Analysis**
-Mandatory table in product contracts for Moderate/Complex products: User Flow → What Can Break → User Impact → Mitigation. Identifies critical failure modes before code is written.
-
-**New contract section: Architecture Diagrams**
-Mandatory ASCII diagrams for Moderate/Complex products. Forces hidden assumptions into the open. Not optional.
-
-### Files Modified (Product Layer)
-
-| File | Changes |
-|------|---------|
-| `.writ/product/mission-lite.md` | Added opinionated guidance differentiator, design principle 6 |
-| `.writ/product/mission.md` | Added last-updated date |
-| `.writ/product/decisions.md` | Added DEC-006 (Opinionated & Aspirational Posture) |
-| `.writ/product/roadmap.md` | Added `/plan-product` enhancement as Phase 1 feature, new Phase 2 items, design principle 6 |
-
-### Adapter Considerations
-
-Changes to `commands/plan-product.md` are platform-agnostic. The Cursor mirror (`.cursor/commands/plan-product.md`) should be synchronized after modification.
-
----
 
 ## Cross-Cutting Concerns
 

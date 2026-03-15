@@ -5,11 +5,11 @@
 
 ## Core Value
 
-Writ is a self-improving development methodology for AI-assisted software development. It gives solo builders the engineering discipline of a great team — structured pipelines, specialized agents, quality gates, and a learning loop that improves through use. Methodology-first, platform-agnostic, pure open-source.
+Writ is a self-improving development methodology for AI-assisted software development. It gives solo builders the engineering discipline of a great team — structured pipelines, specialized agents, quality gates, opinionated guidance, and a learning loop that improves through use. Methodology-first, platform-agnostic, pure open-source.
 
 ## Target Users
 
-Solo developers shipping real products with AI coding tools who've hit the quality ceiling of unstructured AI development. They need a process, not more prompts.
+Solo developers shipping real products with AI coding tools who've hit the quality ceiling of unstructured AI development. They need judgment and process, not more prompts.
 
 ## Key Differentiators
 
@@ -17,6 +17,7 @@ Solo developers shipping real products with AI coding tools who've hit the quali
 2. **Self-correcting pipeline** — Tiered spec-healing when reality diverges from plan (auto-heal small, flag medium, pause large)
 3. **Compounding intelligence** — `/refresh-command` loop improves commands through use. Local-first with upstream promotion.
 4. **Methodology, not tooling** — Markdown-as-instructions works on any AI platform. Tooling hooks (MCP, skills) extend range without creating lock-in.
+5. **Opinionated guidance** — Commands lead with recommendations, challenge premises before gathering details, and push for the best version of every idea. Planning uses posture selection (EXPANSION / HOLD / REDUCTION), dream state mapping, and mandatory failure surface analysis. Judgment, not menus.
 
 ## Success Definition
 
@@ -24,7 +25,7 @@ Personal leverage — Writ makes projects dramatically better as measured by: le
 
 ## Current Phase
 
-**Phase 1 — Foundation:** `/prototype` (adaptive ceremony), tiered spec-healing (self-correction), `/refresh-command` (learning loop).
+**Phase 1 — Foundation:** `/prototype` (adaptive ceremony), tiered spec-healing (self-correction), `/refresh-command` (learning loop). `/plan-product` enhanced with aspirational framing and opinionated posture (2026-03-14).
 
 ## Design Principles
 
@@ -33,3 +34,4 @@ Personal leverage — Writ makes projects dramatically better as measured by: le
 3. Dogfood everything — use Writ to build Writ
 4. Commands are the unit — learning, improvement, distribution all operate on commands
 5. Aplomb — agents handle complexity with grace, not checklists
+6. Opinionated by default — lead with the recommendation, explain why, then offer alternatives

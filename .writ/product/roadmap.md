@@ -1,6 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27
+> Last Updated: 2026-03-14
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 ---
@@ -8,6 +9,8 @@
 ## Phase 1: Foundation (4-6 weeks)
 
 **Goal:** Eliminate the biggest friction points — ceremony overhead and spec drift — while introducing the learning loop that makes everything else compound.
+
+**Status:** 6/7 spec stories complete. All command files and agent modifications written. Structural validation passes. **Dogfooding is the remaining gate** — see `.writ/specs/2026-02-27-phase1-foundation/validation-report.md`.
 
 ### Success Criteria
 
@@ -18,32 +21,47 @@
 
 ### Features
 
-- [ ] **`/prototype` command** — Lightweight execution for small-to-medium changes `Effort: M`
+- [~] **`/prototype` command** — Lightweight execution for small-to-medium changes `Effort: M` — **Implemented, awaiting dogfood**
   - Reduced gate set: arch-check (optional) → code → lint → quick-review
   - Auto-detection heuristic: suggests `/prototype` vs. `/implement-story` based on change scope
   - Escape hatch: can escalate to full pipeline mid-flight if complexity warrants
+  - Spec: Story 1 ✅ | Command file: `commands/prototype.md` (347 lines)
+  - Dogfood needed: run on a real small change, measure < 5 min wall-clock target
 
-- [ ] **Tiered spec-healing agent** — Self-correcting pipeline `Effort: L`
+- [~] **Tiered spec-healing agent** — Self-correcting pipeline `Effort: L` — **Implemented, awaiting dogfood**
   - Deviation detection: compare implementation against spec contract at each gate
   - Severity classification: small (naming, minor API shape) / medium (scope expansion, new dependency) / large (wrong approach, constraint violation)
   - Small: auto-amend spec, log change, continue
   - Medium: flag for post-implementation review, continue with warning
   - Large: pause pipeline, surface conflict, wait for human decision
   - Drift report: generated at end of every `/implement-story` run
+  - Spec: Story 2 ✅ | Agent modified: `agents/review-agent.md` (+171 lines)
+  - Dogfood needed: ≥3/5 real drift detections, zero false positives
 
-- [ ] **`/refresh-command` command** — The learning loop `Effort: M`
+- [~] **`/refresh-command` command** — The learning loop `Effort: M` — **Implemented, awaiting dogfood**
   - Scans a command-initiated thread (agent transcript or chat history)
   - Identifies: what worked, what caused friction, what was wrong, what was missing
   - Proposes specific amendments to the command file
   - Local-first: changes land in project's copy (`.cursor/commands/` or equivalent)
   - Promotion review: suggests which improvements are universal enough to upstream
   - Generates a changelog entry for the refinement
+  - Spec: Stories 4+5 ✅ | Command file: `commands/refresh-command.md` (1047 lines)
+  - Dogfood needed: ≥1 actionable improvement per command analyzed, bootstrap self-refresh
+
+- [x] **`/plan-product` gstack enhancement** — Aspirational framing and opinionated posture `Effort: S` ✅ 2026-03-14
+  - Planning posture selection (EXPANSION / HOLD / REDUCTION) before discovery
+  - Mandatory premise challenge as opening move
+  - Dream State Mapping for long-horizon thinking
+  - Failure surface analysis and architecture diagrams in contracts
+  - Opinionated recommendation format throughout ("I recommend X because Y")
+  - Research: `.writ/research/2026-03-14-gstack-analysis-research.md`
+  - Decision: DEC-006
 
 ### Technical Foundation
 
-- [ ] Deviation detection logic for spec-healing (usable across commands)
-- [ ] Thread scanning capability for `/refresh-command`
-- [ ] Command overlay system: project-local commands override Writ core when present
+- [~] Deviation detection logic for spec-healing (usable across commands) — **Implemented, awaiting dogfood**
+- [~] Thread scanning capability for `/refresh-command` — **Implemented, awaiting dogfood**
+- [~] Command overlay system: project-local commands override Writ core when present — **Implemented** (Story 6 ✅)
 
 ### Validation Targets
 
@@ -89,11 +107,34 @@
   - Feedback loop: patterns feed into coding agent prompts to prevent repeat mistakes
   - Privacy-aware: patterns are abstracted, no project-specific code leaks across boundaries
 
-- [ ] **`/retrospective` command** — Post-implementation analysis `Effort: S`
-  - What went well, what dragged, where did specs drift
-  - Auto-generates lessons learned
-  - Updates best-practices.md with new insights
-  - Feeds into `/refresh-command` with specific improvement targets
+- [ ] **`/retro` command** — Git-based retrospective with gstack-inspired depth `Effort: M`
+  - Git-based metrics: commits, LOC, test ratio, session detection, streaks
+  - Team-aware analysis with specific, commit-anchored praise
+  - Persistent JSON snapshots in `.writ/retros/` with trend comparison
+  - Ship of the week + tweetable summary
+  - Integration with Writ specs: "Specs completed this period"
+  - Auto-detect timezone and default branch (not hardcoded)
+
+- [ ] **`/ship` command** — Unified shipping workflow (branch → PR) `Effort: M`
+  - Merge origin/default-branch before tests
+  - Run test suites (auto-detect test runner from project)
+  - Pre-landing diff review (lightweight checklist, not full `/review`)
+  - Bisectable commit splitting (infra → models → logic → version bump)
+  - Auto-generate PR body from commits/diff
+  - Push and open PR — non-interactive by default, momentum over ceremony
+  - Sits between `/implement-story` and `/release`
+
+- [ ] **Standalone `/review` command** — Pre-landing code review `Effort: S`
+  - Error & rescue map: method → what fails → exception class → rescued? → user sees
+  - Shadow path tracing: happy, nil input, empty input, upstream error
+  - Interaction edge cases: double-click, navigate-away, stale state, back button
+  - Failure modes registry with critical gap detection (RESCUED=N, TEST=N, USER SEES=Silent)
+  - Mandatory ASCII diagrams for non-trivial flows
+
+- [ ] **Enhanced error mapping in `/create-spec`** — Failure-aware specs `Effort: S`
+  - Error & rescue map as required section in technical sub-specs
+  - Shadow paths for critical data flows
+  - Interaction edge cases for user-facing features
 
 ### Dependencies
 
@@ -133,6 +174,12 @@
   - Dynamic spec-lite: context-aware summaries that expand sections relevant to current task
   - Smart agent prompts: load skills, patterns, and context based on task signature
 
+- [ ] **Browser QA integration** — Diff-aware visual testing `Effort: L`
+  - Analyze git diff → identify affected routes → auto-test them
+  - Screenshot comparison and console error detection
+  - Integration with Cursor MCP browser tools (or equivalent)
+  - Route-aware test generation from spec
+
 ### Market Position
 
 - Writ is the reference methodology for AI-assisted development
@@ -146,8 +193,8 @@
 | Size | Duration | Example |
 |------|----------|---------|
 | **XS** | 1-2 days | Bug fix, documentation update |
-| **S** | 3-5 days | `/retrospective` command, small agent improvement |
-| **M** | 1-2 weeks | `/prototype` command, PR agent, `/refresh-command` |
+| **S** | 3-5 days | `/review` command, `/plan-product` enhancement, error mapping in specs |
+| **M** | 1-2 weeks | `/prototype` command, `/retro`, `/ship`, PR agent, `/refresh-command` |
 | **L** | 3-4 weeks | Spec-healing agent, skill system, cross-project patterns |
 | **XL** | 1+ months | Self-improving agents, advanced delegation |
 
@@ -160,3 +207,4 @@
 3. **Dogfood everything** — Use Writ to build Writ. Every feature goes through the pipeline.
 4. **Commands are the unit** — Learning, improvement, distribution, customization all operate on commands.
 5. **Aplomb** — Agents should handle complexity with grace, not grind through checklists.
+6. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.
