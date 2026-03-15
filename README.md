@@ -11,7 +11,7 @@
 </pre>
 
 **AI-powered development workflow framework**<br>
-Contract-first specs · Multi-agent SDLC · Automated quality gates
+Contract-first specs · Multi-agent SDLC · Automated quality gates · Opinionated by default
 
 ⚡ *A writ is a written command by an authority--you. The framework executes them.*
 
@@ -21,13 +21,13 @@ Contract-first specs · Multi-agent SDLC · Automated quality gates
 
 ## What is Writ?
 
-Writ is a structured development workflow system that turns rough ideas into shipped code through a disciplined pipeline:
+Writ is a self-improving development methodology that turns rough ideas into shipped code through a disciplined pipeline:
 
 ```
-/plan-product → /create-spec → /implement-spec → /verify-spec → /release
+/plan-product → /create-spec → /implement-spec → /review → /ship → /release
 ```
 
-Each stage is documented as a command file that AI agents (Claude, GPT, etc.) follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, OpenClaw, or any AI coding assistant that can read markdown instructions.
+Each stage is a markdown command file that AI agents follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, OpenClaw, or any AI coding assistant that can read markdown. Commands lead with opinionated recommendations, challenge premises, and improve through use.
 
 ## Key Features
 
@@ -35,30 +35,36 @@ Each stage is documented as a command file that AI agents (Claude, GPT, etc.) fo
 - **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
 - **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%)
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
+- **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
+- **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
 - **Platform adapters** — Native support for Cursor, Claude Code, and OpenClaw
 
 ## Pipeline
 
 ```
-┌──────────┐   ┌─────────────┐   ┌─────────────────┐   ┌─────────────┐   ┌─────────┐
-│  plan-   │──▶│  create-    │──▶│  implement-     │──▶│  verify-    │──▶│ release │
-│  product │   │  spec       │   │  spec           │   │  spec       │   │         │
-└──────────┘   └─────────────┘   └─────────────────┘   └─────────────┘   └─────────┘
-                                         │
-                              Dependency graph + parallel batches
-                                         │
-                                    Per story (/implement-story):
+┌──────────┐   ┌─────────────┐   ┌─────────────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐
+│  plan-   │──▶│  create-    │──▶│  implement-     │──▶│  review  │──▶│  ship    │──▶│ release │
+│  product │   │  spec       │   │  spec           │   │ (opt.)   │   │          │   │         │
+└──────────┘   └─────────────┘   └─────────────────┘   └──────────┘   └──────────┘   └─────────┘
+                     │                   │                    │              │
+               Error mapping     Parallel batches      Failure modes   Merge → Test
+               Shadow paths      Dependency graph      Shadow paths    Split commits
+               Edge cases              │               Edge cases      Open PR
+                                  Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
                               ├─ Coding agent (TDD)
                               ├─ Lint/typecheck gate
-                              ├─ Review agent (+ security)
+                              ├─ Review agent (+ security + drift)
                               ├─ Testing agent (+ coverage)
-                              ├─ Visual QA (optional, when mockups exist)
+                              ├─ Visual QA (optional)
                               └─ Documentation agent
 
 Lightweight path (/prototype) — no spec required:
-   Quick Contract (2-3 Q's) → Coding Agent (TDD) → Lint & Typecheck → Done
-                                     ↑ complexity? → escalate to /create-spec
+   Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
+                                              ↑ complexity? → escalate to /create-spec
+
+Feedback loop (/retro + /refresh-command):
+   Git metrics → Patterns → Trends    |    Transcript scan → Friction → Command diffs
 ```
 
 ## Commands
@@ -83,6 +89,12 @@ Lightweight path (/prototype) — no spec required:
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | Comprehensive project status report |
 
+### Shipping & Review
+| Command | Purpose |
+|---------|---------|
+| `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. |
+| `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → run tests → split commits → create PR with structured body and auto-labels. One command from branch to merged PR. |
+
 ### Validation & Release
 | Command | Purpose |
 |---------|---------|
@@ -90,9 +102,10 @@ Lightweight path (/prototype) — no spec required:
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Changelog generation, version bump, git tag, GitHub release |
 
-### Learning & Maintenance
+### Feedback & Learning
 | Command | Purpose |
 |---------|---------|
+| `/retro` | **Git-based retrospective.** Commits, LOC, test ratio, session detection, streaks, Ship of the Week, trend comparison. Persistent JSON snapshots for long-term analysis. |
 | `/refresh-command` | **Learning loop.** Scans agent transcripts, identifies friction patterns, proposes concrete diffs to command files. Commands get better through use. |
 
 ### Setup & Utilities
@@ -231,6 +244,7 @@ When Writ runs, it creates a `.writ/` directory in your project:
 ├── product/                  # Product planning docs
 ├── decision-records/         # Architecture Decision Records
 ├── research/                 # Research outputs
+├── retros/                   # Retrospective JSON snapshots
 ├── security/                 # Security audit reports
 ├── issues/                   # Quick-captured issues
 ├── docs/                     # Project documentation
@@ -244,10 +258,12 @@ When Writ runs, it creates a `.writ/` directory in your project:
 ## Philosophy
 
 1. **Contract-first** — Establish agreement before creating files. Challenge bad ideas early.
-2. **TDD always** — Tests first, then implementation. 100% pass rate mandatory.
-3. **Quality gates, not quality hopes** — Automated checks at every stage.
-4. **Parallel by default** — Independent work runs simultaneously.
-5. **Platform-agnostic** — Markdown instructions work anywhere AI agents run.
+2. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.
+3. **TDD always** — Tests first, then implementation. 100% pass rate mandatory.
+4. **Quality gates, not quality hopes** — Automated checks at every stage.
+5. **Parallel by default** — Independent work runs simultaneously.
+6. **Self-improving** — Commands get better through use. `/refresh-command` + `/retro` close the feedback loop.
+7. **Platform-agnostic** — Markdown instructions work anywhere AI agents run.
 
 ## Attribution
 

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "period": {
+    "start": "2026-03-08",
+    "end": "2026-03-15",
+    "days": 7
+  },
+  "branch": "all",
+  "timezone": "CDT",
+  "git": {
+    "commits": 6,
+    "lines_added": 6951,
+    "lines_removed": 519,
+    "lines_net": 6432,
+    "files_touched": 67,
+    "test_files_touched": 0,
+    "test_ratio": null
+  },
+  "sessions": {
+    "count": 3,
+    "avg_duration_hours": 0.4,
+    "longest_duration_hours": 0.4,
+    "distribution": {
+      "morning": 2,
+      "afternoon": 0,
+      "evening": 1,
+      "night": 0
+    }
+  },
+  "streaks": {
+    "current": 3,
+    "longest_in_period": 3,
+    "active_days": 3,
+    "active_day_pct": 0.43
+  },
+  "writ": {
+    "specs_completed": 1,
+    "stories_completed": 13,
+    "drift_small": 0,
+    "drift_medium": 0,
+    "drift_large": 0,
+    "commands_refreshed": 0
+  },
+  "ship_of_week": {
+    "title": "Phase 2a: Shipping & Review — /ship, /review, /retro commands",
+    "commit": "3d7b91e",
+    "date": "2026-03-15"
+  }
+}
