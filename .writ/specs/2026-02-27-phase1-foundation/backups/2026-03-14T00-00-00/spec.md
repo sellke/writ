@@ -1,19 +1,17 @@
 # Phase 1: Foundation — Specification
 
 > Created: 2026-02-27
-> Last Updated: 2026-03-14
-> Status: In Progress — Dogfooding Pending
+> Status: Complete ✅
 > Contract Locked: ✅
 
 ## Contract Summary
 
-**Deliverable:** Four capabilities that address Writ's top pain points — adaptive ceremony (`/prototype`), self-correcting pipeline (tiered spec-healing), compounding intelligence (`/refresh-command`), and aspirational product planning (`/plan-product` gstack enhancement).
+**Deliverable:** Three interconnected capabilities that address Writ's top pain points — adaptive ceremony (`/prototype`), self-correcting pipeline (tiered spec-healing), and compounding intelligence (`/refresh-command`).
 
 **Must Include:**
 - `/prototype` as a standalone top-level command — no spec required
 - Tiered spec-healing integrated into the review agent
 - `/refresh-command` that scans agent transcripts and proposes command improvements
-- `/plan-product` enhanced with aspirational framing: posture selection, premise challenge, dream state mapping, failure surfaces, opinionated recommendations (DEC-006)
 
 **Hardest Constraint:** Spec-healing severity classification — determining whether a deviation is small (auto-heal), medium (flag), or large (pause) requires judgment that's difficult to encode reliably.
 
@@ -21,11 +19,10 @@
 - `/prototype` completes a small change in under 5 minutes of human wall-clock time
 - Spec-healing catches real drift in ≥3 of 5 story implementations without false positives
 - `/refresh-command` produces at least one actionable improvement per command analyzed
-- `/plan-product` discovery conversations challenge premises and lead with opinionated recommendations
 
 **Scope Boundaries:**
-- Included: `/prototype` command, spec-healing review agent extension, `/refresh-command` command, drift report format, command overlay system, `/plan-product` gstack enhancement (posture selection, premise challenge, dream state mapping, failure surfaces, opinionated posture)
-- Excluded: Cross-project patterns (Phase 2), self-improving agents (Phase 3), CLI tooling, MCP integration, PR agent, `/retro`, `/ship`, standalone `/review`, browser QA
+- Included: `/prototype` command, spec-healing review agent extension, `/refresh-command` command, drift report format, command overlay system
+- Excluded: Cross-project patterns (Phase 2), self-improving agents (Phase 3), CLI tooling, MCP integration, PR agent
 
 ---
 
@@ -279,45 +276,6 @@ Promotion generates a changelog entry in `.writ/refresh-log.md`:
 
 ---
 
-### Feature 4: `/plan-product` gstack Enhancement
-
-#### Purpose
-
-Inject aspirational, opinionated product thinking into Writ's planning commands — inspired by patterns from gstack (Garry Tan's AI workflow system). The key insight: changing the *quality* of the discovery conversation costs nothing extra but produces better products. Writ's existing discovery flow is thorough but informationally neutral; this enhancement makes it opinionated and aspirational.
-
-#### Research & Decision
-
-- Research: `.writ/research/2026-03-14-gstack-analysis-research.md`
-- Decision: DEC-006 (Opinionated & Aspirational Posture)
-- Option selected: Option B (Comprehensive Adoption) — beyond `/plan-product`, the roadmap includes `/ship`, `/retro`, standalone `/review`, enhanced error mapping, and browser QA in later phases
-
-#### Changes to `commands/plan-product.md`
-
-Six concrete additions to the existing command:
-
-1. **Planning Posture Selection** — New step (1.1c) where users choose EXPANSION / HOLD / REDUCTION before discovery. Shapes the entire conversation's lens.
-2. **Premise Challenge** — Every planning conversation opens by questioning whether the framing is correct: "Is this the right problem to solve? What would happen if we did nothing?"
-3. **Dream State Mapping** — `CURRENT STATE → THIS PLAN → 12-MONTH IDEAL` progression forces long-horizon thinking. Required in EXPANSION mode, encouraged in HOLD.
-4. **Opinionated Recommendations** — Commands lead with "I recommend X because Y", then offer alternatives. Replaces neutral menu-style option listing throughout.
-5. **Failure Surface Analysis** — Product contracts include a mandatory failure mode table for critical user flows: what can break, user impact, mitigation.
-6. **Mandatory Architecture Diagrams** — ASCII art required for Moderate/Complex products in contracts. Forces hidden assumptions into the open.
-
-#### Cross-Cutting: Design Principle 6
-
-This feature also introduced a new design principle that applies across all Writ commands:
-
-> **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.
-
-#### Product Artifacts Updated
-
-- `commands/plan-product.md` — ~100 lines added (posture selection, premise challenge, dream state mapping, failure surfaces, opinionated format, architecture diagrams)
-- `.writ/product/mission.md` — Updated with last-updated date
-- `.writ/product/mission-lite.md` — Added opinionated guidance differentiator, design principle 6
-- `.writ/product/decisions.md` — Added DEC-006
-- `.writ/product/roadmap.md` — Added `/plan-product` gstack enhancement, new Phase 2 items, design principle 6
-
----
-
 ## Implementation Approach
 
 ### Dependency Graph
@@ -330,14 +288,13 @@ Story 4: /refresh-command core ────────────────�
 Story 5: /refresh-command promotion pipeline ─── depends on Story 4
 Story 6: Command overlay system ──────────────── depends on Stories 1, 4
 Story 7: Integration testing & dogfooding ────── depends on all above
-Story 8: /plan-product gstack enhancement ────── (independent — research-driven)
 ```
 
 ### Parallel Execution Batches
 
 ```
 Batch 1 (parallel): Story 1, Story 2, Story 4
-Batch 2 (parallel): Story 3, Story 5, Story 6, Story 8
+Batch 2 (parallel): Story 3, Story 5, Story 6
 Batch 3 (sequential): Story 7
 ```
 

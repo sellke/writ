@@ -510,6 +510,73 @@ Task({ ... story 4 ... })
 
 **Cross-reference integration**: Each sub-spec references relevant user stories from the user-stories/ folder to maintain traceability between technical details and user value.
 
+**Error Mapping Sections (Required for Data Flow Features):**
+
+When the spec involves user-facing data flows, `technical-spec.md` gains three required sections. These use the same table formats as `/review`, enabling plan-vs-actual comparison during code review.
+
+**Scope detection — include error mapping when the spec touches:**
+- API routes or data endpoints
+- Authentication or authorization flows
+- Payment or financial transactions
+- File operations (upload, download, processing)
+- External service integrations
+
+**Skip error mapping for:** pure UI/CSS changes, documentation-only changes, configuration changes, internal refactors with no user-facing surface. When in doubt, include it — planning error handling is cheap, discovering gaps in production is expensive.
+
+**Section 1: Error & Rescue Map (Planning Phase)**
+
+```markdown
+## Error & Rescue Map
+
+| Operation | What Can Fail | Planned Handling | Test Strategy |
+|---|---|---|---|
+| Create session | DB unavailable | Retry 3x, then error page | Integration test with DB down |
+| Validate token | Token expired | Redirect to login | Unit test with expired fixture |
+| Process payment | Stripe timeout | [UNPLANNED] | — |
+```
+
+The `[UNPLANNED]` marker is the highest-value output. It forces the spec author to either plan the error handling or explicitly declare it out of scope. Every `[UNPLANNED]` marker must be resolved before implementation begins — either by adding a handling plan or by marking it as `[OUT OF SCOPE — reason]`.
+
+I recommend **starting with operations that touch external services** (databases, APIs, payment providers) — these are where unplanned failures cause the most damage.
+
+**Section 2: Shadow Paths (Planning Phase)**
+
+```markdown
+## Shadow Paths
+
+For each critical data flow, document planned behavior:
+
+| Flow | Happy Path | Nil Input | Empty Input | Upstream Error |
+|---|---|---|---|---|
+| User registration | Create account → welcome email | 422 + field errors | 422 + "required" msg | 503 + retry prompt |
+| File upload | Store + thumbnail | 400 + "no file" msg | 400 + "empty file" msg | 502 + "service unavailable" |
+```
+
+Each cell should describe what the *user sees*, not what the system does internally. "500 error" is not a plan — "Error page with retry button and support link" is a plan.
+
+**Section 3: Interaction Edge Cases (Planning Phase)**
+
+```markdown
+## Interaction Edge Cases
+
+| Edge Case | Planned Handling |
+|---|---|
+| Double-click on submit | Debounce — disable button after first click |
+| Navigate away during async | Cancel pending requests, no cleanup needed |
+| Stale state after tab switch | Refetch on window focus |
+| Back button after mutation | Invalidate cache, show fresh state |
+```
+
+Include the standard four edge cases above for any interactive feature, plus feature-specific cases. A payment form needs "card declined during processing." A search feature needs "rapid keystroke filtering." Think about what's specific to *this* feature.
+
+**Shared Format Principle:**
+
+These three tables use identical structures to the output of `/review`. This is intentional — during code review, the reviewer can compare:
+- **Planned** error handling (from the spec's error mapping) against
+- **Actual** error handling (from `/review`'s analysis of the code)
+
+Discrepancies are drift signals. An `[UNPLANNED]` marker in the spec that remains unhandled in the code is a critical gap. A planned rescue that doesn't exist in the implementation is a spec deviation.
+
 #### User Stories Best Practices
 
 **Structure Philosophy:**

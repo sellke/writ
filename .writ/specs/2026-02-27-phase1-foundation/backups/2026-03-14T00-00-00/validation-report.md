@@ -1,17 +1,15 @@
 # Phase 1: Foundation — Validation Report
 
 > Generated: 2026-02-27
-> Last Updated: 2026-03-14
 > Status: Structural Validation Complete — Dogfooding Pending
 
 ## Executive Summary
 
-Phase 1 delivers four capabilities addressing Writ's top pain points:
+Phase 1 delivers three interconnected capabilities addressing Writ's top pain points:
 
 1. **`/prototype`** — Lightweight execution for small-to-medium changes without spec overhead
 2. **Tiered spec-healing** — Self-correcting pipeline that detects and classifies spec drift proportionally
 3. **`/refresh-command`** — Learning loop that improves commands through transcript analysis
-4. **`/plan-product` gstack enhancement** — Aspirational framing and opinionated posture for product planning (DEC-006)
 
 All deliverables are markdown files (commands, agents, documentation, scripts). Structural validation passes across all checks. Dogfooding validation requires real-world usage and is documented in the validation checklist.
 
@@ -36,7 +34,6 @@ All deliverables are markdown files (commands, agents, documentation, scripts). 
 | File | Changes |
 |------|---------|
 | `commands/implement-story.md` | +114 lines — Gate 3.5 drift response handling, spec-lite loading |
-| `commands/plan-product.md` | +~100 lines — posture selection, premise challenge, dream state mapping, failure surfaces, opinionated format, architecture diagrams |
 
 ### New Documentation
 
@@ -52,21 +49,6 @@ All deliverables are markdown files (commands, agents, documentation, scripts). 
 |------|---------|
 | `scripts/install.sh` | Overlay-aware — preserves existing local modifications on re-install |
 | `scripts/update.sh` | Conflict-aware — warns and skips locally modified files |
-
-### Updated Product Documents
-
-| File | Changes |
-|------|---------|
-| `.writ/product/mission-lite.md` | Added opinionated guidance differentiator, design principle 6 |
-| `.writ/product/mission.md` | Added last-updated date |
-| `.writ/product/decisions.md` | Added DEC-006 (Opinionated & Aspirational Posture) |
-| `.writ/product/roadmap.md` | Added /plan-product enhancement, new Phase 2 items, design principle 6 |
-
-### New Research
-
-| File | Description |
-|------|-------------|
-| `.writ/research/2026-03-14-gstack-analysis-research.md` | Comprehensive gstack analysis — patterns, commands, philosophy comparison |
 
 ### Updated Documentation
 
@@ -89,7 +71,6 @@ All files in `commands/` and `agents/` verified identical to their `.cursor/` co
 | 5 | `/refresh-command` Promotion Pipeline | ✅ Complete | 2 |
 | 6 | Command Overlay System | ✅ Complete | 2 |
 | 7 | Integration Testing & Dogfooding | ⏳ Structural pass, dogfood pending | 3 |
-| 8 | `/plan-product` gstack Enhancement | ✅ Complete (2026-03-14) | 2 |
 
 ## Structural Validation Results
 
@@ -111,21 +92,20 @@ All files in `commands/` and `agents/` verified identical to their `.cursor/` co
 | Spec-healing zero false positives | 0 FP | Awaiting dogfood (Scenario 2) |
 | `/refresh-command` ≥1 improvement | ≥1 per command | Awaiting dogfood (Scenario 3) |
 | Bootstrap (self-refresh) | Works | Awaiting dogfood (Scenario 6) |
-| `/plan-product` opinionated posture | Challenges premises, leads with recommendations | ✅ Implemented (command file updated) |
 
 ## Execution Statistics
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 8 |
-| Stories complete | 7 (Stories 1-6, 8) |
+| Total stories | 7 |
+| Stories complete | 6 (Stories 1-6) |
 | Stories pending dogfood | 1 (Story 7) |
 | Batch 1 (parallel) | Stories 1, 2, 4 — all complete |
-| Batch 2 (parallel) | Stories 3, 5, 6, 8 — all complete |
+| Batch 2 (parallel) | Stories 3, 5, 6 — all complete |
 | Batch 3 (sequential) | Story 7 — structural validation complete |
-| New files created | 8 (2 commands, 3 docs, 1 checklist, 1 report, 1 research) |
-| Files modified | 10 (2 agents, 2 commands, 2 scripts, 1 README, 3 product docs) |
-| Cursor mirrors synced | 5 pairs verified (plan-product.md sync pending) |
+| New files created | 7 (2 commands, 3 docs, 1 checklist, 1 report) |
+| Files modified | 6 (2 agents, 1 command, 2 scripts, 1 README) |
+| Cursor mirrors synced | 5 pairs verified |
 
 ## Next Steps
 

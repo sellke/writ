@@ -1,6 +1,7 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
+> Last Updated: 2026-03-14
 > Status: Planning
 > Contract Locked: ✅
 

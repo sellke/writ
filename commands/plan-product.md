@@ -9,7 +9,7 @@ Generate comprehensive product planning documentation using a contract-first app
 ### Phase 1: Product Discovery & Contract Establishment (No File Creation)
 
 **Mission Statement:**
-> Your goal is to transform a rough product idea into a comprehensive, actionable product plan. You will deliver the complete product planning package only after we both agree on the product contract. **Important: Challenge ideas that don't make business or technical sense - it's better to surface concerns early than build the wrong product.**
+> Your goal is to find the best possible version of a product idea and turn it into a comprehensive, actionable plan. You will deliver the complete product planning package only after we both agree on the product contract. **Don't just gather information — challenge the premise, push for the version that makes users' hearts sing, and surface the product that *should* exist.** It's better to discover the wrong framing early than build the wrong product well.
 
 #### Step 1.1: Initial Context Scan
 
@@ -45,6 +45,34 @@ If user selects "Something else", follow up with a free-text question to get the
 
 **If user already described the product idea clearly, skip this step.**
 
+#### Step 1.1c: Planning Posture Selection (AskQuestion)
+
+**Always present — this shapes the entire discovery conversation:**
+
+```
+AskQuestion({
+  title: "Planning Posture",
+  questions: [
+    {
+      id: "planning_posture",
+      prompt: "What posture should I take for this product plan?",
+      options: [
+        { id: "expansion", label: "SCOPE EXPANSION — Dream big. Find the 10-star product hiding in this idea." },
+        { id: "hold", label: "HOLD SCOPE — Your framing is right. Pressure-test it for gaps and make it bulletproof." },
+        { id: "reduction", label: "SCOPE REDUCTION — Strip to the absolute minimum that delivers core value." }
+      ]
+    }
+  ]
+})
+```
+
+**How posture shapes everything downstream:**
+- **EXPANSION:** Challenge whether the vision is ambitious *enough*. Ask "what's the version that's 10x more ambitious for 2x the effort?" Look for delight opportunities — adjacent 30-minute improvements that make the product sing. Push scope *up*, not just down. Dream State Mapping is mandatory.
+- **HOLD:** The user's framing is roughly correct. Focus on pressure-testing assumptions, finding gaps, validating feasibility. This is the classic Writ discovery flow — thorough, balanced, critical.
+- **REDUCTION:** Ruthlessly strip features. Every feature must justify its existence against "could we launch without this?" The goal is the smallest thing that proves the core value proposition.
+
+The posture is a commitment — once selected, fully adopt that lens for the entire discovery and contract phase.
+
 #### Step 1.2: Switch to Plan Mode for Product Discovery
 
 **After context scan and initial product direction selection, switch to Plan Mode:**
@@ -63,6 +91,7 @@ SwitchMode({ target_mode_id: "plan" })
 - Silently list every missing product detail and requirement
 - Identify ambiguities in the initial product description
 - Note potential market and technical constraints
+- Assess whether the user's framing of the problem is *correct* (not just complete)
 - Catalog unknowns across these domains:
   - Product vision and core value proposition
   - Target market and user personas
@@ -73,6 +102,25 @@ SwitchMode({ target_mode_id: "plan" })
   - Success metrics and validation criteria
   - Timeline expectations and resource constraints
   - Risk factors and mitigation strategies
+  - Failure modes and recovery paths for key user flows
+
+**Opening Move — Premise Challenge (mandatory, before any other questions):**
+
+Before gathering details, challenge the premise of the request itself:
+- "Is this the right problem to solve? What would happen if we did nothing?"
+- "Who benefits most from this — and is that who you think it is?"
+- "What's the version of this that would make users *fall in love*, not just sign up?"
+
+This isn't combative — it's clarifying. Most products fail not because of bad execution but because the framing was slightly off. Surface that now.
+
+**Dream State Mapping (required in EXPANSION mode, encouraged in HOLD):**
+
+At some point during discovery, construct this progression with the user:
+
+    CURRENT STATE          →  THIS PLAN           →  12-MONTH IDEAL
+    [How users solve today]   [What MVP delivers]    [The product that should exist]
+
+This forces long-horizon thinking. The 12-month ideal isn't a commitment — it's a compass. It reveals whether the MVP is pointed in the right direction or just solving today's problem.
 
 **Conversation Rules:**
 - Ask ONE focused question at a time, targeting the highest-impact unknown
@@ -80,7 +128,13 @@ SwitchMode({ target_mode_id: "plan" })
 - Continue until reaching 95% confidence on product deliverable
 - **Never declare "final question"** — let the conversation flow naturally
 - Let the user signal when they're ready to see a contract
+- **Be opinionated.** Lead with your recommendation, explain why, then offer alternatives. "I think the right move here is X because Y — but you could also Z" beats "here are three options, what do you think?"
 - **Challenge ideas that don't make business or technical sense** — better to surface concerns early than plan the wrong product
+
+**Posture-Specific Behavior:**
+- **EXPANSION:** Actively look for the bigger opportunity. "What if this wasn't just [stated scope] but actually [larger vision]?" Ask about delight opportunities: "What adjacent 30-minute improvements would make this feature sing?" Push the user to articulate the 10-star version — the one that's 10x more ambitious for 2x the effort.
+- **HOLD:** Balanced pressure-testing. Validate the framing, find gaps, confirm feasibility. Challenge where needed but respect the user's scope judgment.
+- **REDUCTION:** Every feature is guilty until proven essential. "Could we launch without this? What's the absolute minimum that proves the core thesis?"
 
 **Topic Areas to Explore (across the conversation):**
 - "Who specifically has this problem, and how painful is it for them?"
@@ -89,26 +143,29 @@ SwitchMode({ target_mode_id: "plan" })
 - "What's your biggest constraint — time, budget, technical expertise, or market access?"
 - "How does this align with your existing business/project goals?"
 - "What happens if your first assumption about users turns out to be wrong?"
+- "What are the critical failure modes — where does this product break, and what does the user see?"
 - Business model and monetization — discuss trade-offs conversationally
 - MVP scope — collaboratively identify what delivers core value fastest
 - Target audience — explore segments through dialogue, not dropdown
+- **Delight opportunities** (EXPANSION mode): "What small touches would create outsized positive perception?"
 
 **Critical Analysis Responsibility:**
-- If product scope seems too large for available resources, recommend phasing
-- If target market is unclear or too broad, suggest narrowing focus
-- If technical requirements conflict with existing codebase, explain implications
-- If business model doesn't align with user value, ask clarifying questions
-- If competitive landscape presents challenges, surface them proactively
+- If product scope seems too large for available resources, **recommend** phasing and explain why: "I'd phase this into [A, then B] because [reason]. Trying to ship both at once risks [specific consequence]."
+- If target market is unclear or too broad, **recommend** a segment: "I'd start with [segment] because [reason] — they have the most acute pain and shortest sales cycle."
+- If technical requirements conflict with existing codebase, **state the cost**: "This would require [specific changes]. That's [effort estimate]. Worth it if [condition], not if [condition]."
+- If business model doesn't align with user value, **name the tension**: "There's a tension between [monetization approach] and [user behavior]. Here's how I'd resolve it."
+- If competitive landscape presents challenges, surface them with a recommendation attached
 
-**Pushback Phrasing Examples:**
-- "I see a potential issue with [scope] because [business/technical reason]. Would focusing on [core value] first work better?"
-- "Based on your existing codebase, [proposed approach] might require significant architecture changes. Are you prepared for that?"
-- "The market you're describing sounds very broad. Should we focus on [specific segment] to start?"
-- "I'm concerned that [requirement] could face [specific challenge]. Have you considered [alternative approach]?"
+**Pushback Format — Always Lead with the Recommendation:**
+- "I'd recommend [approach] because [reason]. The alternative is [other approach], but that risks [downside]."
+- "Based on your existing codebase, [proposed approach] requires [specific changes]. I'd suggest [alternative] instead because [reason]."
+- "The market you're describing is broad. I'd focus on [specific segment] first — they're the most underserved and give you the fastest feedback loop."
+- "This feature has a failure mode worth thinking about: [scenario]. I'd handle it by [approach]."
 
 **Transition to Contract:**
 - When confidence is high, present the contract (still in Plan Mode)
-- Use phrases like "I think I have a clear picture — here's the product contract" or "Based on our discussion, here's what I'd propose"
+- Lead with conviction: "Here's the product I think you should build, and why" — not just "here's what I gathered"
+- Include the Dream State Map in the contract if one was developed
 - Always leave room for more questions if needed
 
 #### Step 1.4: Product Contract Proposal
@@ -119,6 +176,8 @@ When confident, present a product contract proposal with any concerns surfaced:
 ```
 ## Product Planning Contract
 
+**Planning Posture:** [EXPANSION / HOLD / REDUCTION]
+
 **Product Vision:** [One clear sentence describing the product and its primary value]
 
 **Target Market:** [Specific user segment with their core problem]
@@ -126,6 +185,11 @@ When confident, present a product contract proposal with any concerns surfaced:
 **Unique Value:** [What makes this different/better than alternatives]
 
 **Success Criteria:** [How you'll measure product-market fit and growth]
+
+**Dream State Map** (if developed):
+
+    CURRENT STATE          →  THIS PLAN           →  12-MONTH IDEAL
+    [How users solve today]   [What MVP delivers]    [The product that should exist]
 
 **MVP Scope:** 
 - Core Features: [3-5 essential features for first version]
@@ -136,13 +200,24 @@ When confident, present a product contract proposal with any concerns surfaced:
 - Integration Needs: [How this fits with existing business systems]
 - Scale Requirements: [Expected user growth and feature expansion]
 
+**Architecture Diagram** (mandatory for Moderate/Complex):
+
+    [ASCII diagram showing key components, data flows, and integration points]
+    [Forces hidden assumptions into the open — not optional]
+
+**Critical Failure Surfaces:**
+| User Flow | What Can Break | User Impact | Mitigation |
+|-----------|---------------|-------------|------------|
+| [Core flow 1] | [Failure mode] | [What user sees] | [How we handle it] |
+| [Core flow 2] | [Failure mode] | [What user sees] | [How we handle it] |
+
 **⚠️ Product Risks (if any):**
 - [Market risk, technical risk, or business model concerns]
 - [Suggested validation approach or risk mitigation]
 
-**💡 Recommendations:**
-- [Suggestions for improving product-market fit]
-- [Ways to validate assumptions early and reduce risk]
+**💡 Recommendations (opinionated — lead with what you think they should do):**
+- We recommend [approach] because [specific reason tied to user value or market dynamics]
+- [Additional recommendations with rationale — not a neutral menu]
 
 **Roadmap Phases:**
 - Phase 1 (MVP): [Core value delivery - weeks/months]
@@ -455,19 +530,32 @@ Once you're satisfied with the product plan, you can use:
 - **No presumptuous planning** - Nothing gets created until product contract is locked
 - **Structured discovery** - One question at a time, building complete understanding
 - **Critical analysis** - Challenges assumptions and surfaces risks early
+- **Premise challenge** - Questions whether the framing is correct before gathering details
 
-### 2. Context-Aware Planning
+### 2. Aspirational Product Thinking
+- **Planning posture selection** - EXPANSION / HOLD / REDUCTION shapes the entire conversation
+- **Dream State Mapping** - Forces long-horizon thinking: current state → plan → 12-month ideal
+- **Delight opportunities** - Identifies small touches that create outsized user perception
+- **10-star vision** - In EXPANSION mode, pushes for the version that's 10x more ambitious for 2x the effort
+
+### 3. Opinionated Guidance
+- **Lead with recommendations** - Every suggestion comes with a reason, not just a menu of options
+- **Failure surface analysis** - Critical user flows mapped for what breaks and how to handle it
+- **Mandatory architecture diagrams** - ASCII art forces hidden assumptions into the open
+- **Direct trade-off language** - "This gains X at the cost of Y" instead of neutral listing
+
+### 4. Context-Aware Planning
 - **Product continuity** - Plans build on existing product foundation if present
 - **Integration considerations** - Product features consider current business context
 - **Realistic scoping** - Development effort estimates based on team capabilities
 
-### 3. User Control & Risk Assessment
+### 5. User Control & Risk Assessment
 - **Clear decision points** - User explicitly approves before file creation
 - **Risk exploration option** - Can analyze market/technical risks before committing
 - **Edit capability** - Can modify contract before locking
 - **Competition analysis** - Can explore competitive landscape
 
-### 4. AI-Optimized Output
+### 6. AI-Optimized Output
 - **Mission-lite for context** - Efficient AI consumption during development
 - **Decision tracking** - Clear rationale for AI to follow in future work
 - **Integration with specs** - Seamless flow to detailed feature specification
@@ -506,19 +594,30 @@ Once you're satisfied with the product plan, you can use:
 ## Best Practices
 
 **Product discovery:**
-- Challenge assumptions early and often
+- **Challenge the premise first** — "Is this the right problem?" before "How do we solve it?"
 - Focus on user problems over solution features
 - Validate business model alignment with user value
 - Surface technical constraints before committing to features
+- Use Dream State Mapping to test whether the MVP points toward the right future
+- Explore delight opportunities — small touches that create outsized user perception
+
+**Opinionated posture:**
+- **Lead with the recommendation**, explain the reasoning, then offer alternatives
+- Map every recommendation to the user's stated constraints, goals, or preferences
+- "We recommend X because Y" — not "Here are some options"
+- Be direct about trade-offs: "This gains [benefit] at the cost of [tradeoff]"
+- Diagrams are mandatory for Moderate/Complex architectures, not optional
 
 **Documentation quality:**
 - Keep mission-lite focused and efficient for AI context
 - Maintain decision rationale for future reference
 - Structure roadmap for incremental value delivery
 - Connect technical decisions to product requirements
+- Include failure surface analysis for critical user flows
 
 **Risk management:**
 - Identify market risks and validation strategies
 - Assess technical feasibility realistically
 - Plan for scope reduction if needed
 - Build learning and iteration into roadmap phases
+- Map critical failure modes early — what breaks, what does the user see, how do we handle it?

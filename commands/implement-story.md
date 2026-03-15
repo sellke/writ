@@ -409,6 +409,8 @@ git commit -m "feat: complete story N - [title]
 Pipeline: arch-check ✅ → code ✅ → lint ✅ → review ✅ (1 iter) → test ✅ (15/15, 91%) → docs ✅
 Files changed: 8 (3 created, 5 modified)
 Drift: 1 small (auto-amended), 1 medium ⚠️ — see drift-log.md
+
+🚀 Your branch is ready — run /ship to merge, test, and open a PR.
 ```
 
 ---

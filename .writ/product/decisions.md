@@ -200,3 +200,73 @@ The SWOT identified spec drift as having no structured resolution path. The cont
 **Negative:**
 - Severity classification is a judgment call — misclassification can hide real issues or over-escalate trivial ones
 - More complex than simple pass/fail — more states to test and maintain
+
+---
+
+## 2026-03-14: Opinionated & Aspirational Posture (gstack-Inspired)
+
+**ID:** DEC-006
+**Status:** Accepted
+**Category:** Product Philosophy
+**Stakeholders:** Adam (product owner, primary user)
+
+### Decision
+
+Writ adopts an opinionated, aspirational posture across all planning and review commands — inspired by patterns from gstack (Garry Tan's AI workflow system). Six concrete changes:
+
+1. **Planning Posture Selection** — Users choose EXPANSION / HOLD / REDUCTION before discovery, shaping the entire conversation's lens
+2. **Premise Challenge** — Every planning conversation opens by questioning whether the framing is correct, not just gathering details within it
+3. **Dream State Mapping** — `CURRENT STATE → THIS PLAN → 12-MONTH IDEAL` progression forces long-horizon thinking
+4. **Opinionated Recommendations** — Commands lead with "I recommend X because Y", then offer alternatives. Not neutral menus.
+5. **Failure Surface Analysis** — Product contracts include mandatory failure mode mapping for critical user flows
+6. **Mandatory Architecture Diagrams** — ASCII art required for moderate/complex products to force hidden assumptions into the open
+
+This is Option B (Comprehensive Adoption) from the gstack analysis. Beyond `/plan-product`, the roadmap includes `/ship`, `/retro`, standalone `/review`, enhanced error mapping in specs, and eventual browser QA.
+
+### Context
+
+Research analysis of gstack (`.writ/research/2026-03-14-gstack-analysis-research.md`) identified that Writ's discovery conversations were thorough but informationally neutral — they gathered requirements without challenging whether the requirements were *right*. gstack's `/plan-ceo-review` challenges the premise of requests, pushes for "10-star" product thinking, and forces explicit mode selection. The key insight: changing the *quality* of the conversation costs nothing extra but produces better products.
+
+### Alternatives Considered
+
+1. **Option A: Focused Uplift** — Only `/plan-product` enhancement + `/retro` + `/ship`
+   - Pros: Manageable scope, addresses known SWOT gaps
+   - Cons: Misses engineering review depth and the cross-cutting posture shift
+   - Why rejected: The philosophical shift (opinionated posture) is the highest-leverage change and applies across all commands, not just planning
+
+2. **Option C: Philosophy-First** — Tone adjustment across existing commands + `/retro` only
+   - Pros: Least disruption, improves everything incrementally
+   - Cons: Misses structural additions (posture selection, failure surfaces, dream state mapping)
+   - Why rejected: The structural additions are concrete techniques with proven implementations in gstack, not just vibes
+
+### Rationale
+
+- gstack's most transferable insight isn't any single command — it's the consistent opinionated posture: "I'm paying for your judgment, not a menu"
+- Premise challenging catches framing errors that no amount of thorough information-gathering can fix
+- Planning posture selection gives users explicit control over the AI's mindset without reducing rigor
+- Failure surface analysis at the product level prevents "works in demo, breaks in production" outcomes
+- Mandatory diagrams force hidden assumptions into the open — ASCII art is cheap and revealing
+
+### Consequences
+
+**Positive:**
+- Planning conversations produce better products by challenging framing, not just gathering requirements
+- Users get judgment and recommendations, not just organized information
+- Failure modes identified early, before code is written
+- Architecture decisions forced into the open via mandatory diagrams
+
+**Negative:**
+- More opinionated means more potential for friction — users who want a neutral assistant may find it pushy
+- Premise challenging could feel adversarial if not calibrated well (mitigated by framing it as clarifying, not combative)
+- Mandatory contract sections (diagrams, failure surfaces) add weight to the planning phase
+
+### Success Metrics
+
+- Product plans show stronger premise validation and scope clarity
+- Users select appropriate planning posture without confusion
+- Failure surfaces identified in contracts correspond to real issues found later
+- The opinionated posture feels like judgment, not nagging
+
+### Review Trigger
+
+Revisit if users consistently override or skip the premise challenge, or if the opinionated posture creates friction that slows down rather than improves the discovery conversation.
