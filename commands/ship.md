@@ -238,7 +238,7 @@ I recommend **conventional commits** because they're machine-parseable (changelo
 4. After each commit, verify the repo is in a buildable state
 5. If any split commit would break the build, merge it with the adjacent commit
 
-**Present the plan before executing:**
+**Present the plan and wait for approval before executing:**
 
 ```
 📦 Commit plan (3 commits):
@@ -248,8 +248,24 @@ I recommend **conventional commits** because they're machine-parseable (changelo
 
 I recommend this split because it separates the dependency update from the feature,
 making bisection possible if the auth library upgrade causes issues.
-Use --no-split to ship as a single commit instead.
 ```
+
+```
+AskQuestion({
+  title: "Confirm Commit Plan",
+  questions: [{
+    id: "commit_plan",
+    prompt: "Proceed with this commit plan?",
+    options: [
+      { id: "yes", label: "Execute this plan" },
+      { id: "no_split", label: "Ship as a single commit instead" },
+      { id: "edit", label: "Adjust the plan (I'll specify changes)" }
+    ]
+  }]
+})
+```
+
+This gate prevents the commit plan from executing without explicit approval — restructuring git history is not something to auto-proceed on.
 
 ### Step 5: PR Creation
 
@@ -312,6 +328,15 @@ If any section has no data (no spec, no drift log, no review), use clear placeho
 
 Multiple labels can apply to the same PR. A change that adds a feature and updates CI gets both `feature` and `infra`.
 
+**Label fallback:** Before applying labels, check if they exist in the repo (`gh label list`). If a label doesn't exist, skip it silently — don't let label creation failure block PR creation. Log which labels were skipped:
+
+```
+ℹ️ Labels "feature", "auth" not found in repo — PR created without labels.
+   Create them with: gh label create feature
+```
+
+Never fail the entire `/ship` flow because of missing labels. The PR is the deliverable, not the labels.
+
 **Draft vs. Ready determination:**
 
 | Condition | PR Status |
@@ -345,7 +370,13 @@ Then re-run /ship.
    Commits: 3 (infra → logic → tests)
    PR: https://github.com/user/repo/pull/42 (Ready for review)
    Labels: feature, auth
+
+⚠️ The PR is now the source of truth. If you push more commits to this
+   branch, make sure the PR is still open — commits pushed after merge
+   will be orphaned. For follow-up changes, open a new branch.
 ```
+
+This warning prevents the scenario where additional commits are pushed to the branch after the PR is merged on GitHub, resulting in lost work that requires manual cherry-pick recovery.
 
 **`--dry-run` output for Steps 4-5:**
 
@@ -405,8 +436,13 @@ No changes made.
 **Not on a feature branch:**
 ```
 ⚠️ You're on the default branch (main). /ship works on feature branches.
-Create a branch: git checkout -b feature/my-change
+
+Options:
+1. Create a branch now — I'll name it from the diff and check it out
+2. Abort — create the branch yourself, then re-run /ship
 ```
+
+If the user picks option 1, generate a branch name from the diff (e.g., `feat/session-timeout` from the most significant change), run `git checkout -b [name]`, and continue the pipeline. This eliminates the round-trip of telling the user to do something they'll immediately ask you to do anyway.
 
 **No git remote configured:**
 ```
@@ -435,12 +471,26 @@ Or push manually and create the PR in your browser:
 ⚠️ You have uncommitted changes. /ship works with committed code.
 
 Options:
-1. Stash changes — git stash, ship, then git stash pop
-2. Commit first — stage and commit, then re-run /ship
-3. Abort
+1. Commit now — I'll stage everything and create a commit, then continue shipping
+2. Stash changes — git stash, ship, then git stash pop
+3. Abort — commit or stash manually, then re-run /ship
 ```
 
-I recommend **committing first** — stashing and shipping risks losing track of uncommitted work.
+I recommend **option 1** (commit now) — it's the most common intent. The commit will go through Step 4's splitting heuristic anyway, so the initial commit message is a draft. Stashing risks losing track of uncommitted work.
+
+**Combined scenario — on main with uncommitted changes:**
+
+When both issues are present (on default branch + uncommitted changes), handle them in sequence: create the branch first, then commit. Don't present two separate error flows — combine into one:
+
+```
+⚠️ You're on main with uncommitted changes. Let me fix both:
+
+1. Create branch: git checkout -b [generated-name]
+2. Commit changes: git add -A && git commit -m "[draft message]"
+3. Continue /ship pipeline
+
+Proceed? [Enter to continue, or specify a branch name]
+```
 
 ## When to Use /ship vs Other Commands
 
