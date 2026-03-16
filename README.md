@@ -24,7 +24,7 @@ Contract-first specs · Multi-agent SDLC · Automated quality gates · Opinionat
 Writ is a self-improving development methodology that turns rough ideas into shipped code through a disciplined pipeline:
 
 ```
-/plan-product → /create-spec → /implement-spec → /review → /ship → /release
+/plan-product → /create-spec → /assess-spec → /implement-spec → /review → /ship → /release
 ```
 
 Each stage is a markdown command file that AI agents follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, OpenClaw, or any AI coding assistant that can read markdown. Commands lead with opinionated recommendations, challenge premises, and improve through use.
@@ -34,6 +34,7 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 - **Contract-first specifications** — No code until requirements are agreed upon
 - **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
 - **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%)
+- **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
@@ -42,15 +43,15 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 ## Pipeline
 
 ```
-┌──────────┐   ┌─────────────┐   ┌─────────────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐
-│  plan-   │──▶│  create-    │──▶│  implement-     │──▶│  review  │──▶│  ship    │──▶│ release │
-│  product │   │  spec       │   │  spec           │   │ (opt.)   │   │          │   │         │
-└──────────┘   └─────────────┘   └─────────────────┘   └──────────┘   └──────────┘   └─────────┘
-                     │                   │                    │              │
-               Error mapping     Parallel batches      Failure modes   Merge → Test
-               Shadow paths      Dependency graph      Shadow paths    Split commits
-               Edge cases              │               Edge cases      Open PR
-                                  Per story (/implement-story):
+┌──────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────────────┐   ┌──────────┐   ┌──────────┐   ┌─────────┐
+│  plan-   │──▶│  create-    │──▶│  assess-    │──▶│  implement-     │──▶│  review  │──▶│  ship    │──▶│ release │
+│  product │   │  spec       │   │  spec       │   │  spec           │   │ (opt.)   │   │          │   │         │
+└──────────┘   └─────────────┘   └─────────────┘   └─────────────────┘   └──────────┘   └──────────┘   └─────────┘
+                     │              Sizing checks       │                    │              │
+               Error mapping     Context budget    Parallel batches   Failure modes   Merge → Test
+               Shadow paths      Decomposition     Dependency graph   Shadow paths    Split commits
+               Edge cases        recommendations         │            Edge cases      Open PR
+                                                    Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
                               ├─ Coding agent (TDD)
                               ├─ Lint/typecheck gate
@@ -98,6 +99,7 @@ Feedback loop (/retro + /refresh-command):
 ### Validation & Release
 | Command | Purpose |
 |---------|---------|
+| `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
 | `/verify-spec` | 8-check validation: integrity, status sync, completion, dependencies, tests, coverage, contract drift |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Changelog generation, version bump, git tag, GitHub release |

@@ -76,6 +76,41 @@ For each story, count:
 - Acceptance criteria
 - Estimated complexity (task count × avg)
 
+#### Step 2.3b: Pre-Flight Assessment
+
+Run a lightweight subset of `/assess-spec` checks (1, 2, 3, and 6) against the remaining stories. This catches sizing and context problems before the user commits to execution.
+
+**Checks to run (inline — no subagent needed):**
+
+1. **Spec sizing** — Flag if >8 remaining stories or >50 remaining tasks
+2. **Dependency depth** — Flag if max depth >3 or any bottleneck story has >3 dependents
+3. **Story sizing** — Flag any story with >7 tasks or >8 acceptance criteria
+4. **Context cost** — Estimate per-story context weight (task count × change surface breadth), sum across remaining stories
+
+**If no flags:** Proceed silently to Step 2.4. No output.
+
+**If flags found:** Insert an assessment block above the execution plan:
+
+```
+⚠️ Pre-Flight Assessment: 2 concerns detected
+
+ STORY SIZING        🛑  Story 3 has 9 tasks (limit: 7)
+ CONTEXT BUDGET      ⚠️  Score 18 — moderate-high accumulation risk
+
+ Recommendation: Run /assess-spec for full analysis with decomposition options.
+ Or proceed — these are risks, not blockers.
+```
+
+The flags are shown *above* the execution plan so the user sees them before being asked to confirm. The confirmation step (Step 2.5) gains an additional option when flags are present:
+
+```
+{ id: "assess", label: "Run /assess-spec for full analysis first" }
+```
+
+If the user selects "assess," hand off to `/assess-spec` with the current spec pre-selected. After assessment completes (with or without decomposition), the user can re-invoke `/implement-spec` to get a fresh execution plan.
+
+**Pre-flight does NOT block execution.** The user can always select "Execute the plan" despite warnings. The assessment is advisory — the user may have good reasons to proceed (e.g., tight deadline, the oversized story is straightforward despite its task count).
+
 #### Step 2.4: Present Execution Plan
 
 ```
@@ -107,12 +142,16 @@ AskQuestion({
         { id: "yes", label: "Execute the plan" },
         { id: "edit", label: "Change which stories to include" },
         { id: "reorder", label: "Change execution order" },
-        { id: "quick", label: "Execute in quick mode (skip review + docs)" }
+        { id: "quick", label: "Execute in quick mode (skip review + docs)" },
+        // Include only when Step 2.3b found flags:
+        { id: "assess", label: "Run /assess-spec for full analysis first" }
       ]
     }
   ]
 })
 ```
+
+If the user selects "assess," run `/assess-spec` with this spec pre-selected. After assessment completes, the user re-invokes `/implement-spec` for a fresh plan.
 
 ### Phase 3: Execution
 
@@ -256,6 +295,7 @@ If a session is interrupted mid-execution:
 | Command | Relationship |
 |---------|-------------|
 | `/create-spec` | Creates the spec that `/implement-spec` executes |
+| `/assess-spec` | Pre-flight sizing check runs automatically in Step 2.3b; full assessment available on demand |
 | `/implement-story` | Called per-story by `/implement-spec` for the 6-gate pipeline |
 | `/verify-spec` | Auto-runs after spec completion |
 | `/release` | Ship after spec is verified |

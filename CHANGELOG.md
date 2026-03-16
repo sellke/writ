@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-03-16
+
+### Added
+
+- `/assess-spec` command — pre-implementation health check that flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts with specific decomposition recommendations
+- Pre-flight assessment hook in `/implement-spec` (Step 2.3b) — runs lightweight sizing checks automatically before showing the execution plan, with option to hand off to full `/assess-spec`
+- AI workflow best practices research (`.writ/research/2026-03-16-ai-workflow-best-practices-research.md`) with self-challenge appendix validating Writ's thin-rule architecture
+
+### Changed
+
+- `install.sh` link mode now creates per-file symlinks instead of directory symlinks, enabling per-project command customization alongside linked Writ commands
+- `install.sh` link mode auto-cleans stale symlinks when source files are removed upstream
+- `install.sh` link mode now commits linked command and agent files to git (previously only committed manifest)
+- README updated with `/assess-spec` in pipeline diagram, commands table, and key features
+
 ## [0.1.0] - 2026-03-15
 
 First public release. Three completed specs deliver the full Writ pipeline — from product planning through retrospective.

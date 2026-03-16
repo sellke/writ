@@ -290,53 +290,73 @@ if [ "$LINK_MODE" = true ]; then
   if [ "$DRY_RUN" = true ]; then
     echo "🏃 DRY RUN — No changes will be made"
     echo ""
-    echo "  Would create symlinks:"
-    echo "    .cursor/commands/              → $WRIT_SRC/commands/"
-    echo "    .cursor/agents/                → $WRIT_SRC/agents/"
+    echo "  Would create per-file symlinks:"
+    for f in "$WRIT_SRC/commands"/*.md; do
+      [ -f "$f" ] && echo "    .cursor/commands/$(basename "$f") → $f"
+    done
+    for f in "$WRIT_SRC/agents"/*.md; do
+      [ -f "$f" ] && echo "    .cursor/agents/$(basename "$f")   → $f"
+    done
     echo "    .cursor/rules/writ.mdc         → $WRIT_SRC/cursor/writ.mdc"
     echo "    .cursor/system-instructions.md → $WRIT_SRC/system-instructions.md"
     echo ""
-    for dir in commands agents; do
-      if [ -d ".cursor/$dir" ] && [ ! -L ".cursor/$dir" ]; then
-        echo "  ⚠️  .cursor/$dir/ exists as a regular directory (use --force to replace)"
-      fi
-    done
-    echo "  ℹ️  Symlinks are machine-specific and not auto-committed."
-    echo "     Update writ with: cd $WRIT_SRC && git pull"
+    echo "  ℹ️  Update writ with: cd $WRIT_SRC && git pull"
+    echo "     Then re-run install to pick up new files."
     exit 0
   fi
 
   # --- Install (link) ---
   echo "Installing (linked)..."
-  mkdir -p .cursor/rules
+  mkdir -p .cursor/commands .cursor/agents .cursor/rules
 
-  # Check for existing non-symlink directories that would conflict
+  # If commands/ or agents/ is currently a directory symlink (old-style link
+  # install), remove it so we can recreate as a real directory with file symlinks.
   for dir in commands agents; do
-    if [ -d ".cursor/$dir" ] && [ ! -L ".cursor/$dir" ]; then
-      if [ "$FORCE" = true ]; then
-        echo "  ⚠️  Replacing .cursor/$dir/ directory with symlink"
-        rm -rf ".cursor/$dir"
-      else
-        echo ""
-        echo "❌ .cursor/$dir/ exists as a regular directory."
-        echo "   Use --force to replace it with a symlink."
-        echo "   Warning: locally modified files in .cursor/$dir/ will be removed."
-        exit 1
-      fi
+    if [ -L ".cursor/$dir" ]; then
+      echo "  ⚠️  Replacing .cursor/$dir/ directory symlink with per-file symlinks"
+      rm -f ".cursor/$dir"
+      mkdir -p ".cursor/$dir"
     fi
   done
 
-  echo "  [1/3] Linking commands and agents..."
-  ln -sfn "$WRIT_SRC/commands" .cursor/commands
-  echo "         .cursor/commands/ → $WRIT_SRC/commands/"
-  ln -sfn "$WRIT_SRC/agents" .cursor/agents
-  echo "         .cursor/agents/   → $WRIT_SRC/agents/"
+  echo "  [1/4] Linking commands..."
+  LINK_CMD=0
+  for f in "$WRIT_SRC/commands"/*.md; do
+    [ -f "$f" ] || continue
+    fname=$(basename "$f")
+    ln -sf "$f" ".cursor/commands/$fname"
+    LINK_CMD=$((LINK_CMD + 1))
+  done
+  echo "         $LINK_CMD command(s) → $WRIT_SRC/commands/"
 
-  echo "  [2/3] Linking rules and system instructions..."
+  # Remove stale command symlinks that no longer exist in source
+  for f in .cursor/commands/*.md; do
+    [ -L "$f" ] || continue
+    fname=$(basename "$f")
+    [ -f "$WRIT_SRC/commands/$fname" ] || rm -f "$f"
+  done
+
+  echo "  [2/4] Linking agents..."
+  LINK_AGENT=0
+  for f in "$WRIT_SRC/agents"/*.md; do
+    [ -f "$f" ] || continue
+    fname=$(basename "$f")
+    ln -sf "$f" ".cursor/agents/$fname"
+    LINK_AGENT=$((LINK_AGENT + 1))
+  done
+  echo "         $LINK_AGENT agent(s)  → $WRIT_SRC/agents/"
+
+  for f in .cursor/agents/*.md; do
+    [ -L "$f" ] || continue
+    fname=$(basename "$f")
+    [ -f "$WRIT_SRC/agents/$fname" ] || rm -f "$f"
+  done
+
+  echo "  [3/4] Linking rules and system instructions..."
   ln -sf "$WRIT_SRC/cursor/writ.mdc" .cursor/rules/writ.mdc
   ln -sf "$WRIT_SRC/system-instructions.md" .cursor/system-instructions.md
 
-  echo "  [3/3] Writing manifest..."
+  echo "  [4/4] Writing manifest..."
   write_link_manifest "$VERSION" "$MANIFEST_FILE" "$WRIT_SRC"
 
   init_writ_workspace
@@ -344,13 +364,13 @@ if [ "$LINK_MODE" = true ]; then
   echo ""
   echo "✅ Writ installed! (version: $VERSION, linked to $WRIT_SRC)"
   echo ""
-  echo "  ℹ️  Symlinks are machine-specific and not auto-committed."
-  echo "     Update writ: cd $WRIT_SRC && git pull"
-  echo "     Or run:      bash update.sh"
+  echo "  ℹ️  Update writ: cd $WRIT_SRC && git pull"
+  echo "     Then re-run install to pick up new files."
 
-  # Only commit non-symlink artifacts (manifest, .writ/, .gitignore)
   if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "$MANIFEST_FILE" 2>/dev/null || true
+    git add .cursor/commands/ .cursor/agents/ .cursor/rules/writ.mdc \
+            .cursor/system-instructions.md 2>/dev/null || true
     [ -d .writ ] && git add .writ/ 2>/dev/null || true
     [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
 
