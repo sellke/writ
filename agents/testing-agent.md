@@ -54,17 +54,7 @@ Run all tests related to the implemented story, ensure 100% pass rate, and verif
 ## Testing Process
 
 ### Step 1: Detect Test Runner & Coverage Tool
-Detect the project's test setup:
-- **Node/TS:** Check for vitest, jest, mocha in package.json
-- **Python:** Check for pytest, unittest
-- **Go:** Native go test
-- **Rust:** Native cargo test
-
-Detect coverage tools:
-- **Node/TS:** c8, istanbul/nyc, vitest --coverage, jest --coverage
-- **Python:** pytest-cov, coverage.py
-- **Go:** go test -cover
-- **Rust:** cargo-tarpaulin, cargo-llvm-cov
+Detect the project's test runner and coverage tool from configuration files.
 
 ### Step 2: Run Story-Specific Tests
 Run tests for newly implemented functionality:
@@ -77,25 +67,7 @@ Run related test suites to ensure no breaking changes:
 - Integration tests if applicable
 
 ### Step 4: Run Coverage Analysis
-Run tests with coverage enabled:
-
-**Auto-detect and run:**
-\`\`\`bash
-# Node/TS (vitest)
-npx vitest run --coverage --reporter=verbose 2>&1
-
-# Node/TS (jest)
-npx jest --coverage --verbose 2>&1
-
-# Node/TS (c8 + any runner)
-npx c8 --reporter=text --reporter=json npm test 2>&1
-
-# Python
-python -m pytest --cov={module} --cov-report=term-missing 2>&1
-
-# Go
-go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out 2>&1
-\`\`\`
+Run tests with coverage enabled using the detected tools.
 
 **Coverage Requirements:**
 | Scope | Threshold | Action on Fail |

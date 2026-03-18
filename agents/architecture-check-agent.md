@@ -114,18 +114,13 @@ For each finding:
 ### ARCH_CHECK: PROCEED
 
 ### Summary
-The story's approach aligns well with the existing React + Drizzle patterns. Task breakdown is appropriate, and TDD is feasible for all tasks.
+Approach aligns with existing React + Drizzle patterns. Task breakdown appropriate, TDD feasible.
 
 ### Findings
-- **Finding:** Story uses localStorage for preference storage
-- **Risk:** Low
-- **Recommendation:** Fine for MVP, but consider migrating to database in future for cross-device sync
-
-### Suggested Task Modifications
-None.
+- **Finding:** localStorage for preference storage — **Risk:** Low — **Recommendation:** Fine for MVP; consider DB migration later for cross-device sync.
 
 ### Warnings for Coding Agent
-- The existing `useAuth` hook returns null during loading — handle this in your component tests.
+- `useAuth` hook returns null during loading — handle this in component tests.
 ```
 
 ### CAUTION
@@ -158,25 +153,14 @@ The approach is viable but touches the shared authentication layer. The coding a
 ### ARCH_CHECK: ABORT
 
 ### Summary
-The story requires WebSocket support but the current infrastructure (serverless on Vercel) cannot maintain persistent connections. The approach needs rethinking before implementation.
+Story requires WebSocket support but current infrastructure (serverless/Vercel) cannot maintain persistent connections. Needs rethinking.
 
 ### Findings
-- **Finding:** Story assumes WebSocket connections for real-time updates
-- **Risk:** Critical
-- **Recommendation:** Either switch to SSE (Server-Sent Events) which works on serverless, use a third-party service (Pusher/Ably), or migrate to a non-serverless deployment
-
-- **Finding:** Task estimates don't account for infrastructure changes
-- **Risk:** High
-- **Recommendation:** This is likely a 2-3 story effort, not a single story
+- **Finding:** WebSocket assumption incompatible with serverless — **Risk:** Critical — **Recommendation:** Switch to SSE, use third-party service (Pusher/Ably), or migrate deployment.
+- **Finding:** Task estimates don't account for infrastructure changes — **Risk:** High — **Recommendation:** This is a 2-3 story effort, not a single story.
 
 ### Suggested Task Modifications
-Story should be split:
-1. Story A: Evaluate real-time approach (research + ADR)
-2. Story B: Implement chosen approach
-3. Story C: Integrate real-time into the feature
-
-### Warnings for Coding Agent
-N/A — do not proceed with implementation until approach is resolved.
+Split into: (A) Evaluate real-time approach (research + ADR), (B) Implement chosen approach, (C) Integrate into feature.
 ```
 
 ## Guidelines

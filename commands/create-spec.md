@@ -47,16 +47,11 @@ If user selects "Something else", follow up with a free-text question to get the
 
 #### Step 1.2: Switch to Plan Mode for Discovery
 
-**After the context scan, switch to Plan Mode before asking any discovery questions:**
+**After the context scan, this discovery phase works best in Plan Mode.** The user controls when to switch — the discovery phase is a conversation, not a questionnaire.
 
-```
-SwitchMode({ target_mode_id: "plan" })
-```
-
-**Why Plan Mode:** The discovery phase is a conversation, not a questionnaire. Plan Mode provides:
 - **Read-only enforcement** — structurally prevents premature file creation
 - **Conversational UX** — open-ended back-and-forth instead of multiple-choice boxes
-- **Clear phase signal** — the mode switch itself tells the user "we're shaping the idea, not building yet"
+- **Clear phase signal** — the mode switch tells the user "we're shaping the idea, not building yet"
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 
@@ -280,435 +275,112 @@ AskQuestion({
 
 #### Step 2.1: Initialize Tracking
 
-```bash
-# Use todo_write to track creation process
-1. Get current date and create spec folder structure
-2. Generate core specification document (spec.md, spec-lite.md)
-3. Plan user stories (identify stories, dependencies, task counts)
-4. Launch parallel subagents to create all user story files
-5. Create user-stories/README.md after subagents complete
-6. Generate technical sub-specifications (can parallel with step 4)
-7. Present package for user review and validation
-```
+Track creation progress with `todo_write`: folder structure, core documents, user stories (parallel), sub-specs, and final review.
 
 #### Step 2.2: Determine Current Date
 
 Get current date by running: `npx @devobsessed/writ date`
 
-This returns the current date in `YYYY-MM-DD` format for folder naming:
-`.writ/specs/[DATE]-[feature-name]/`
+This returns `YYYY-MM-DD` format for folder naming: `.writ/specs/[DATE]-[feature-name]/`
 
 #### Step 2.3: Create Directory Structure
 
-**Generated folder (using determined date):**
-
 ```
 .writ/specs/[DATE]-{feature-name}/
-├── spec.md                    # Main specification (from contract)
-├── spec-lite.md              # Condensed version for AI context
-├── mockups/                  # Visual references (screenshots, wireframes, Excalidraw)
-│   ├── README.md             # Catalog of all visual references
-│   └── component-inventory.md # Component list with states and notes
-├── user-stories/             # Individual user story files
-│   ├── README.md             # Overview and progress tracking
-│   ├── story-1-{name}.md     # Individual user story with focused tasks
-│   ├── story-2-{name}.md     # Each story kept small and manageable
-│   └── story-N-{name}.md     # Max 5-7 implementation tasks per story
-└── sub-specs/                # Technical deep-dives
-    ├── technical-spec.md     # Architecture & implementation details
-    ├── database-schema.md    # Database changes (if needed)
-    ├── api-spec.md          # API documentation (if needed)
-    └── ui-wireframes.md     # UI/UX specifications (if needed)
+├── spec.md
+├── spec-lite.md
+├── mockups/
+├── user-stories/
+│   ├── README.md
+│   ├── story-1-{name}.md
+│   └── story-N-{name}.md
+└── sub-specs/
+    └── technical-spec.md (+ database-schema.md, api-spec.md, ui-wireframes.md as needed)
 ```
 
 #### Step 2.4: Generate Core Documents
 
-**spec.md** - Built directly from the locked contract:
+**spec.md** — Main specification built from the locked contract. Must contain:
 
-```markdown
-# [Feature Name] Specification
+- **Contract summary** — echo the locked contract verbatim
+- **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
+- **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
+- **Detailed requirements** — expanded from clarification responses
+- **Implementation approach** — technical strategy based on codebase analysis
 
-> Created: [DATE from Step 2.2 determination process]
-> Status: Planning  
-> Contract Locked: ✅
-
-## Contract Summary
-
-[Echo check content verbatim]
-
-## Experience Design
-
-[Expanded from the 🎯 Experience Design section of the contract]
-- User journey: entry point → key interactions → moment of truth → confirmation
-- State catalog: empty, loading, populated, error, edge cases
-- Interaction patterns: what existing app patterns this mirrors or departs from
-- Responsive behavior and accessibility considerations
-
-## Business Rules
-
-[Expanded from the 📋 Business Rules section of the contract]
-- Permission and access rules
-- Validation rules and constraints
-- State transitions and lifecycle rules
-- Domain-specific edge cases
-- Billing/usage/compliance implications (if any)
-
-## Detailed Requirements
-
-[Expanded from clarification responses]
-
-## Implementation Approach
-
-[Technical strategy based on codebase analysis]
-```
-
-**spec-lite.md** - Condensed version for AI context windows.
+**spec-lite.md** — Condensed version for AI context windows. Covers: what's being built, key constraints, key changes from current state, files in scope, and success criteria. Keep under 100 lines.
 
 #### Step 2.5: Plan User Stories
 
-Before creating user story files, plan out the stories based on the contract:
+Before creating files, plan the stories:
 
 1. Analyze the contract deliverable and scope
-2. Break down into logical user stories (each delivering standalone value)
+2. Break into logical user stories (each delivering standalone value)
 3. Identify dependencies between stories
-4. Ensure each story will have 5-7 implementation tasks max
+4. Ensure each story has 5-7 implementation tasks max
 
-**Output a story plan like:**
+Output a story plan:
 
 ```
 Story Plan:
-1. story-1-{name}: [Brief description] - Dependencies: None
-2. story-2-{name}: [Brief description] - Dependencies: Story 1
-3. story-3-{name}: [Brief description] - Dependencies: None
-4. story-4-{name}: [Brief description] - Dependencies: Story 2, 3
+1. story-1-{name}: [Description] - Dependencies: None
+2. story-2-{name}: [Description] - Dependencies: Story 1
+3. story-3-{name}: [Description] - Dependencies: None
 ```
 
-#### Step 2.6: Generate User Stories in Parallel (Using Task Subagents)
+#### Step 2.6: Generate User Stories in Parallel
 
-**Launch parallel subagents to create all user story files simultaneously.**
+Launch parallel Task subagents to create all story files simultaneously. Reference `agents/user-story-generator.md` for the agent spec and prompt template.
 
-> **Agent Reference:** See `agents/user-story-generator.md` for the full agent specification and prompt template.
+For each story, spawn a Task subagent (`generalPurpose`, model `fast`) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, and relevant codebase patterns.
 
-For each planned story, spawn a Task subagent:
+Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, and definition of done.
 
-```
-// Launch ALL story subagents in a SINGLE message (parallel execution)
-// Maximum 4 subagents at a time - batch if more stories needed
-
-Task({
-  subagent_type: "generalPurpose",
-  model: "fast",
-  description: "Create user story 1",
-  prompt: `Create the user story file for:
-  
-**Spec folder:** .writ/specs/[DATE]-[feature-name]/user-stories/
-**Story file:** story-1-{name}.md
-**Story number:** 1
-**Story title:** [Title]
-**Story description:** [Description from plan]
-**Dependencies:** [Dependencies from plan]
-
-**Contract context:**
-[Include relevant contract details]
-
-**Codebase context:**
-[Include relevant patterns/architecture found during clarification]
-
-Create the story file following this template:
-
-# Story 1: [Title]
-
-> **Status:** Not Started
-> **Priority:** [High/Medium/Low]
-> **Dependencies:** [List or None]
-
-## User Story
-
-**As a** [user type]
-**I want to** [action]
-**So that** [value]
-
-## Acceptance Criteria
-
-- [ ] Given [context], when [action], then [outcome]
-[3-5 acceptance criteria]
-
-## Implementation Tasks
-
-- [ ] 1.1 Write tests for [specific component]
-- [ ] 1.2 [Focused technical step]
-[5-7 tasks max, always start with tests, end with verification]
-
-## Notes
-
-[Technical considerations, risks, or dependencies]
-
-## Definition of Done
-
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
-
-Write the file and confirm completion.`
-})
-
-// Repeat for each story - ALL in the same message for parallel execution
-Task({ ... story 2 ... })
-Task({ ... story 3 ... })
-Task({ ... story 4 ... })
-```
-
-**Important:** Launch up to 4 Task subagents simultaneously in a single message. If more than 4 stories, batch them (first 4, then next 4, etc.).
+Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
 
 #### Step 2.7: Create User Stories README
 
-**After all subagents complete**, create the README.md that links all stories:
+After all subagents complete, create `user-stories/README.md` with: stories summary table (status, task counts, progress), dependency descriptions, and quick links to each story file.
 
-**user-stories/README.md** - Overview and progress tracking:
+#### Step 2.8: Generate Technical Sub-Specs
 
-```markdown
-# User Stories Overview
+Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories for traceability.
 
-> **Specification:** [Feature Name]
-> **Created:** [DATE]
-> **Status:** Planning
+**Error Mapping (Required for Data Flow Features):**
 
-## Stories Summary
+Include when the spec touches: API routes, auth flows, payments, file operations, or external integrations. Skip for pure UI/CSS, docs, config, or internal refactors. When in doubt, include it. These tables use identical structures to `/review`'s output, enabling plan-vs-actual comparison.
 
-| Story | Title         | Status      | Tasks | Progress |
-| ----- | ------------- | ----------- | ----- | -------- |
-| 1     | [Story title] | Not Started | 5     | 0/5      |
-| 2     | [Story title] | Not Started | 4     | 0/4      |
-| 3     | [Story title] | Not Started | 6     | 0/6      |
-
-**Total Progress:** 0/15 tasks (0%)
-
-## Story Dependencies
-
-- Story 2 depends on Story 1 completion
-- Story 3 can run parallel to Story 2
-
-## Quick Links
-
-- [Story 1: {Title}](./story-1-{name}.md)
-- [Story 2: {Title}](./story-2-{name}.md)
-- [Story 3: {Title}](./story-3-{name}.md)
-```
-
-#### Step 2.8: Generate Technical Sub-Specs (Parallel with User Stories)
-
-**Can run in parallel with user story generation using additional subagents.**
-
-**Only create relevant sub-specs based on contract requirements:**
-
-- **technical-spec.md**: Always created - architecture, patterns, dependencies
-- **database-schema.md**: Only if database changes needed (determined during clarification)
-- **api-spec.md**: Only if new API endpoints required
-- **ui-wireframes.md**: Only if UI/UX requirements were discussed
-
-**Cross-reference integration**: Each sub-spec references relevant user stories from the user-stories/ folder to maintain traceability between technical details and user value.
-
-**Error Mapping Sections (Required for Data Flow Features):**
-
-When the spec involves user-facing data flows, `technical-spec.md` gains three required sections. These use the same table formats as `/review`, enabling plan-vs-actual comparison during code review.
-
-**Scope detection — include error mapping when the spec touches:**
-- API routes or data endpoints
-- Authentication or authorization flows
-- Payment or financial transactions
-- File operations (upload, download, processing)
-- External service integrations
-
-**Skip error mapping for:** pure UI/CSS changes, documentation-only changes, configuration changes, internal refactors with no user-facing surface. When in doubt, include it — planning error handling is cheap, discovering gaps in production is expensive.
-
-**Section 1: Error & Rescue Map (Planning Phase)**
-
-```markdown
-## Error & Rescue Map
+**Error & Rescue Map:**
 
 | Operation | What Can Fail | Planned Handling | Test Strategy |
 |---|---|---|---|
 | Create session | DB unavailable | Retry 3x, then error page | Integration test with DB down |
-| Validate token | Token expired | Redirect to login | Unit test with expired fixture |
-| Process payment | Stripe timeout | [UNPLANNED] | — |
-```
 
-The `[UNPLANNED]` marker is the highest-value output. It forces the spec author to either plan the error handling or explicitly declare it out of scope. Every `[UNPLANNED]` marker must be resolved before implementation begins — either by adding a handling plan or by marking it as `[OUT OF SCOPE — reason]`.
+The `[UNPLANNED]` marker is the highest-value output — it forces planning or an explicit `[OUT OF SCOPE — reason]` declaration. Every `[UNPLANNED]` must be resolved before implementation. Start with external service operations.
 
-I recommend **starting with operations that touch external services** (databases, APIs, payment providers) — these are where unplanned failures cause the most damage.
-
-**Section 2: Shadow Paths (Planning Phase)**
-
-```markdown
-## Shadow Paths
-
-For each critical data flow, document planned behavior:
+**Shadow Paths** — each cell describes what the *user sees*, not what the system does:
 
 | Flow | Happy Path | Nil Input | Empty Input | Upstream Error |
 |---|---|---|---|---|
-| User registration | Create account → welcome email | 422 + field errors | 422 + "required" msg | 503 + retry prompt |
-| File upload | Store + thumbnail | 400 + "no file" msg | 400 + "empty file" msg | 502 + "service unavailable" |
-```
+| User registration | Account → welcome email | 422 + field errors | 422 + "required" msg | 503 + retry prompt |
 
-Each cell should describe what the *user sees*, not what the system does internally. "500 error" is not a plan — "Error page with retry button and support link" is a plan.
-
-**Section 3: Interaction Edge Cases (Planning Phase)**
-
-```markdown
-## Interaction Edge Cases
+**Interaction Edge Cases** — standard four for any interactive feature, plus feature-specific:
 
 | Edge Case | Planned Handling |
 |---|---|
-| Double-click on submit | Debounce — disable button after first click |
-| Navigate away during async | Cancel pending requests, no cleanup needed |
-| Stale state after tab switch | Refetch on window focus |
-| Back button after mutation | Invalidate cache, show fresh state |
-```
+| Double-click submit | Debounce — disable after first click |
 
-Include the standard four edge cases above for any interactive feature, plus feature-specific cases. A payment form needs "card declined during processing." A search feature needs "rapid keystroke filtering." Think about what's specific to *this* feature.
+A payment form needs "card declined." A search needs "rapid keystrokes." Think about what's specific to *this* feature.
 
-**Shared Format Principle:**
+**Shared Format Principle:** Discrepancies between spec error mapping and `/review`'s code analysis are drift signals. An `[UNPLANNED]` that remains unhandled in code is a critical gap.
 
-These three tables use identical structures to the output of `/review`. This is intentional — during code review, the reviewer can compare:
-- **Planned** error handling (from the spec's error mapping) against
-- **Actual** error handling (from `/review`'s analysis of the code)
+#### Step 2.9: Final Package Review
 
-Discrepancies are drift signals. An `[UNPLANNED]` marker in the spec that remains unhandled in the code is a critical gap. A planned rescue that doesn't exist in the implementation is a spec deviation.
+Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps.
 
-#### User Stories Best Practices
+## Example Usage
 
-**Structure Philosophy:**
-
-- Each user story gets its own file for better organization
-- Implementation tasks are kept small and focused (max 5-7 per story)
-- Complex stories are broken into multiple smaller stories
-- README.md provides overview and progress tracking
-- Acceptance criteria become verification checkpoints
-- Each story follows TDD: test → implement → verify acceptance criteria
-
-**Benefits of Parallel Generation:**
-
-- **Speed**: All stories created simultaneously instead of sequentially
-- **Consistency**: Each subagent follows the same template
-- **Manageability**: Each file stays focused and readable
-- **Parallel Work**: Multiple developers can work on different stories
-- **Progress Tracking**: Clear visibility of completion status
-
-**File Organization:**
-
-- **README.md**: Overview, progress summary, dependencies
-- **story-N-{name}.md**: Individual stories with focused tasks (5-7 tasks max)
-- **Story Naming**: Clear, descriptive names for easy identification
-- **Task Numbering**: N.1, N.2, N.3... within each story file
-
-**Task Breakdown Strategy:**
-
-- If a story would have >7 tasks, split into multiple stories
-- Each story should deliver standalone user value
-- Tasks within a story should be cohesive and related
-- Always start with tests (N.1 Write tests...)
-- Always end with verification (N.X Verify acceptance criteria met)
-
-#### Step 2.9: Final Package Review & User Validation
-
-Present complete package with file references:
-
-```
-✅ Specification package created successfully!
-
-📁 .writ/specs/[DATE]-feature-name/
-├── 📋 spec.md - Main specification document
-├── 📝 spec-lite.md - AI context summary
-├── 👥 user-stories/ - Individual user story files
-│   ├── 📊 README.md - Overview and progress tracking
-│   ├── 📝 story-1-{name}.md - Focused story with 5-7 tasks
-│   ├── 📝 story-2-{name}.md - Manageable task groups
-│   └── 📝 story-N-{name}.md - Easy navigation and parallel work
-└── 📂 sub-specs/
-    ├── 🔧 technical-spec.md - Technical requirements
-    [Additional specs as created]
-
-**Stories Created:** [N] user stories with focused task groups (max 5-7 tasks each)
-**Total Tasks:** [X] implementation tasks across all stories
-**Organization:** Each story is self-contained for better workflow management
-
-Please take a moment to review the specification documents. The spec captures everything we discussed, including:
-- [Brief summary of key features/requirements]
-- [Notable technical approach or constraint]
-- [Implementation approach or user story highlights]
-
-Please read through the files and let me know:
-- Does this accurately capture your vision?
-- Are there any missing requirements or incorrect assumptions?
-- Are the user stories appropriately sized (5-7 tasks each)?
-- Should any stories be split further or combined?
-
-The user-stories folder structure allows you to:
-- Work on one story at a time for focused development
-- Track progress easily with the README overview
-- Assign different stories to different team members
-- Keep task lists manageable and actionable
-
-Once you're satisfied with the specification, I can help you start implementation with the first story, or we can make any needed adjustments.
-```
-
-## Key Improvements Over Original
-
-### 1. Contract-First Approach
-
-- **No presumptuous file creation** - Nothing gets built until contract is locked
-- **Structured clarification** - One question at a time, building understanding
-- **Echo check validation** - Clear contract summary before proceeding
-
-### 2. Codebase-Aware Questioning
-
-- **Context scanning between questions** - Each answer triggers fresh codebase analysis
-- **Integration-focused queries** - Questions shaped by what exists in the codebase
-- **Architecture consistency** - Recommendations align with existing patterns
-
-### 3. User Control & Transparency
-
-- **Clear decision points** - User explicitly approves before file creation
-- **Risk assessment option** - Can explore implementation risks before committing
-- **Blueprint preview** - Can see planned structure before creation
-- **Edit capability** - Can modify contract before locking
-
-### 4. Efficient Clarification Process
-
-- **Gap enumeration** - Systematically identifies all unknowns
-- **95% confidence threshold** - Stops asking when ready to deliver
-- **Token efficiency** - Focused questions, no verbose explanations during clarification
-
-## Example Usage Flows
-
-### Example 1: No Feature Provided
-
-```
-Developer: /create-spec
-
-Agent: [Scans codebase to identify potential features]
-
-[Uses AskQuestion tool IMMEDIATELY — feature selection is a bounded choice]
-
-┌─────────────────────────────────────────────────────────────┐
-│ Feature Specification - What would you like to build?       │
-├─────────────────────────────────────────────────────────────┤
-│ What feature would you like to create a specification for?  │
-│    ○ Location search - Let users find and select cities     │
-│    ○ 7-day forecast - Display weekly weather data           │
-│    ○ Saved locations - Store multiple cities                │
-│    ○ Settings - Temperature units, dark mode, etc.          │
-│    ○ Something else (I'll describe it)                      │
-└─────────────────────────────────────────────────────────────┘
-
-Developer: [Selects: "7-day forecast"]
-
-Agent: [Switches to Plan Mode for discovery conversation...]
-```
-
-### Example 2: Feature Provided with Full Flow
+### Example: Feature Provided with Full Flow
 
 ```
 Developer: /create-spec "real-time multiplayer chat with blockchain integration"
@@ -780,26 +452,7 @@ payments, blockchain verification happens within 5 minutes
   creation, permanent storage (deferred to v2)
 
 Developer: Looks good, let's lock it.
-           [Switches back to Agent Mode]
-
---- AGENT MODE ---
-
-Agent: [Uses AskQuestion to confirm contract decision]
-
-┌─────────────────────────────────────────────────────────────┐
-│ Contract Decision                                           │
-├─────────────────────────────────────────────────────────────┤
-│ How would you like to proceed with this contract?           │
-│    ○ Lock contract and create spec package                  │
-│    ○ Edit the contract (I'll specify changes)               │
-│    ○ Explore potential implementation risks first           │
-│    ○ See the planned folder structure and documents         │
-│    ○ I have more questions before deciding                  │
-└─────────────────────────────────────────────────────────────┘
-
-Developer: [Selects: "Lock contract and create spec package"]
-
-Agent: ✅ Contract locked! Creating specification package...
+           [Switches back to Agent Mode → AskQuestion confirms → Phase 2 begins]
 ```
 
 **Key UX difference:** The discovery conversation felt natural — open-ended questions, real dialogue, collaborative pushback. The AskQuestion confirmation at the end is a clean gate before file creation. Plan Mode for discovery, AskQuestion for decisions.

@@ -76,51 +76,25 @@ Use this to allocate review depth. Every category is ALWAYS scanned — no categ
 
 The output should be SHORTER for style-only and single-component changes, not just faster.
 
-## Review Checklist
+## Review Categories
 
-### 1. Acceptance Criteria Verification
-For each acceptance criterion, verify the implementation satisfies it:
+Review against these five categories. Depth per category is governed by the Change Surface table above.
+
+### 1. Acceptance Criteria (primary gate)
+Verify each criterion is satisfied by the implementation. This is non-negotiable — every criterion must map to working code and a passing test.
 {acceptance_criteria_with_checkboxes}
 
-### 2. Code Quality Review
-- [ ] Follows existing codebase patterns and conventions
-- [ ] No obvious bugs or logic errors
-- [ ] Proper error handling (no swallowed errors, no bare catch)
-- [ ] Code is readable and maintainable
-- [ ] No hardcoded values that should be configuration
-- [ ] No commented-out code left behind
-- [ ] No console.log/print debugging statements in production code
-- [ ] Appropriate logging levels (not over/under-logging)
-- [ ] Functions/methods have reasonable size and single responsibility
+### 2. Code Quality
+Pattern consistency with existing codebase. Proper error handling (no swallowed errors, no bare catch). No debug artifacts (console.log, commented-out code). Reasonable function size and single responsibility.
 
-### 3. Security Review
-- [ ] User inputs are validated and sanitized before use
-- [ ] No SQL injection vulnerabilities (parameterized queries used)
-- [ ] No XSS vulnerabilities (output properly escaped/sanitized)
-- [ ] No command injection (user input not passed to shell/exec)
-- [ ] Authentication/authorization checks present where needed
-- [ ] Sensitive data not exposed in logs, error messages, or API responses
-- [ ] No hardcoded secrets, tokens, API keys, or credentials
-- [ ] New dependencies checked for known vulnerabilities
-- [ ] CORS/CSP headers appropriate (if applicable)
-- [ ] File uploads validated (type, size) if applicable
+### 3. Security
+Input validation/sanitization, parameterized queries, XSS/injection prevention, auth checks, no hardcoded secrets, dependency vulnerability check, CORS/CSP headers, file upload validation (type and size), sensitive data not exposed in logs or error responses. **Security is never Minor** — any security issue is at least Major severity.
 
-### 4. Test Coverage Review
-- [ ] Tests exist for all acceptance criteria
-- [ ] Tests cover error/failure paths
-- [ ] Tests cover edge cases (empty input, null, boundary values)
-- [ ] Tests follow project conventions
-- [ ] Test names are descriptive (describe what, not how)
-- [ ] No tests that assert nothing or always pass
-- [ ] Mocks are appropriate (not mocking the thing being tested)
+### 4. Test Coverage
+Tests for all acceptance criteria. Error/failure paths covered. Edge cases (empty, null, boundary). No vacuous assertions (tests that always pass or assert nothing). Mocks are appropriate (not mocking the thing being tested).
 
-### 5. Integration Review
-- [ ] No breaking changes to existing public APIs
-- [ ] Proper imports and exports
-- [ ] No circular dependencies
-- [ ] Database migrations included if schema changed
-- [ ] Environment variables documented if new ones added
-- [ ] Backwards compatible with existing data (if applicable)
+### 5. Integration
+No breaking changes to public APIs. No circular dependencies. Migrations included if schema changed. New env vars documented.
 
 ### 6. Drift Analysis (Spec Healing)
 
@@ -236,84 +210,35 @@ The review agent performs **spec drift detection** — comparing the implementat
 - **Security and constraint violations are always Large** — no exceptions
 - **Accumulation matters** — many Small deviations may indicate a Medium-level pattern
 
-### Drift Report Format
-
-The drift report is included in the review output as a structured section:
-
-```markdown
-### Drift Analysis
-
-**Overall Drift:** None | Small | Medium | Large
-
-#### [DEV-001] [Brief description]
-- **Severity:** Small / Medium / Large
-- **Spec said:** [What the spec expected]
-- **Implementation did:** [What actually happened]
-- **Reason:** [Why the deviation occurred or matters]
-- **Resolution:** Auto-amend proposed / Flagged for review / Pipeline paused
-- **Spec amendment:** [Proposed spec change text, if Small severity]
-```
-
-**Overall Drift** is the highest severity among all deviations found. If no deviations: `None`.
+**Overall Drift** is the highest severity among all deviations found. If no deviations: `None`. See the Drift Analysis section in the Output Format above for the report structure.
 
 ## Output Examples
 
-### On PASS
+### On PASS (with Small Drift)
 
 ```markdown
 ### REVIEW_RESULT: PASS
 
 ### Summary
-The implementation correctly satisfies all acceptance criteria. Code follows existing patterns, includes comprehensive test coverage, and has no security concerns.
+All acceptance criteria satisfied. Code follows existing patterns, comprehensive test coverage, no security concerns. One cosmetic spec deviation (function renamed).
 
 ### Checklist Results
 
-#### Acceptance Criteria Verification
+#### Acceptance Criteria
 - [x] Given a new user, when they submit the registration form, then an account is created — Verified in `auth.test.ts`
 - [x] Given invalid email, when submitted, then validation error is shown — Verified in `auth.test.ts`
 
-#### Code Quality Review
-- [x] Follows existing codebase patterns
-- [x] No obvious bugs or logic errors
-- [x] Proper error handling
-- [x] Code is readable and maintainable
-- [x] No hardcoded values
-- [x] No commented-out code
-- [x] No debug statements
-- [x] Appropriate logging
-- [x] Reasonable function size
+#### Code Quality
+Clean. Follows existing patterns, proper error handling, no debug artifacts.
 
-#### Security Review
-- [x] Inputs validated and sanitized
-- [x] Parameterized queries used
-- [x] No XSS vulnerabilities
-- [x] No command injection
-- [x] Auth checks present
-- [x] No sensitive data in logs
-- [x] No hardcoded secrets
-- [x] Dependencies clean
-- [x] CORS headers appropriate
-- N/A File uploads
+#### Security
+**Risk Level:** Clean — zod validation, bcrypt hashing, httpOnly session cookies.
 
-#### Test Coverage Review
-- [x] Tests for all acceptance criteria
-- [x] Error paths covered
-- [x] Edge cases covered
-- [x] Follows conventions
-- [x] Descriptive names
-- [x] All tests assert meaningful conditions
-- [x] Mocks appropriate
+#### Test Coverage
+All criteria covered. Error and edge case paths tested. Assertions are meaningful.
 
-#### Integration Review
-- [x] No breaking changes
-- [x] Proper imports/exports
-- [x] No circular dependencies
-- [x] Migration included for new `users` table
-- [x] New `AUTH_SECRET` env var documented in .env.example
-
-### Security Assessment
-**Risk Level:** Clean
-No security concerns identified. Input validation uses zod schemas, passwords hashed with bcrypt, sessions use httpOnly cookies.
+#### Integration
+Migration included for `users` table. `AUTH_SECRET` env var documented in `.env.example`. No breaking changes.
 
 ### Drift Analysis
 
@@ -321,66 +246,35 @@ No security concerns identified. Input validation uses zod schemas, passwords ha
 
 #### [DEV-001] Validation function renamed
 - **Severity:** Small
-- **Spec said:** Validation function named `validateUserInput`
-- **Implementation did:** Named `validateRegistrationData` — more specific to context
-- **Reason:** Cosmetic naming difference; behavior identical to spec
+- **Spec said:** `validateUserInput`
+- **Implementation did:** `validateRegistrationData` — more specific to context
+- **Reason:** Cosmetic; behavior identical to spec
 - **Resolution:** Auto-amend proposed
-- **Spec amendment:** Update spec to reference `validateRegistrationData` instead of `validateUserInput`
-
-### Recommendations
-- Consider adding rate limiting to the registration endpoint in a future story
-- The `validateEmail` utility could be extracted to a shared validation module
+- **Spec amendment:** Update spec to reference `validateRegistrationData`
 ```
 
-### On PASS (No Drift)
-
-```markdown
-### REVIEW_RESULT: PASS
-
-### Summary
-Implementation matches spec exactly. All acceptance criteria satisfied, no deviations detected.
-
-### Drift Analysis
-
-**Overall Drift:** None
-```
-
-### On FAIL
+### On FAIL (with Large Drift)
 
 ```markdown
 ### REVIEW_RESULT: FAIL
 
 ### Summary
-Two critical issues found: an acceptance criterion is not satisfied, and a SQL injection vulnerability exists in the search endpoint.
-
-### Checklist Results
-
-#### Acceptance Criteria Verification
-- [x] Given a new user, when they register, then account is created
-- [ ] Given existing email, when registering, then error is shown — **NOT SATISFIED**
-
-#### Security Review
-- [ ] No SQL injection — **VULNERABILITY FOUND**
-
-[... remaining checklist ...]
-
-### Security Assessment
-**Risk Level:** High
-SQL injection vulnerability in `src/routes/search.ts:34` — user input concatenated directly into query string.
+Two critical issues: acceptance criterion not satisfied (duplicate email rejection missing) and SQL injection vulnerability. Large drift — JWT/localStorage instead of spec'd session auth.
 
 ### Issues Found
 
 - **Issue:** Acceptance criterion "duplicate email rejection" not implemented
 - **Location:** `src/routes/auth.ts:45` — no uniqueness check before insert
 - **Severity:** Critical
-- **Suggested Fix:** Add `SELECT count(*) FROM users WHERE email = $1` check before INSERT, return 409 Conflict if exists. Add test case for this path.
-
----
+- **Suggested Fix:** Add `SELECT count(*) FROM users WHERE email = $1` check before INSERT, return 409 Conflict. Add test case.
 
 - **Issue:** SQL injection in search endpoint
 - **Location:** `src/routes/search.ts:34` — `db.query(\`SELECT * FROM items WHERE name LIKE '%${query}%'\`)`
 - **Severity:** Critical
 - **Suggested Fix:** Use parameterized query: `db.query('SELECT * FROM items WHERE name LIKE $1', [\`%${query}%\`])`. Add test with malicious input.
+
+### Security Assessment
+**Risk Level:** High — SQL injection via string concatenation in query.
 
 ### Drift Analysis
 
@@ -391,34 +285,7 @@ SQL injection vulnerability in `src/routes/search.ts:34` — user input concaten
 - **Spec said:** Session-based authentication with httpOnly cookies
 - **Implementation did:** Stateless JWT tokens stored in localStorage
 - **Reason:** Security model change — localStorage is vulnerable to XSS; other stories assume session-based auth
-- **Resolution:** Pipeline paused
-- **Spec amendment:** N/A — requires human decision
-
-### Recommendations
-- Consider using an ORM query builder instead of raw SQL throughout
-```
-
-### On PASS (Medium Drift — Warning)
-
-```markdown
-### REVIEW_RESULT: PASS
-
-### Summary
-Implementation satisfies all acceptance criteria. One medium deviation detected — a new dependency was added that wasn't in the original spec.
-
-### Drift Analysis
-
-**Overall Drift:** Medium
-
-#### [DEV-001] Added zod dependency for input validation
-- **Severity:** Medium
-- **Spec said:** Input validation using built-in checks
-- **Implementation did:** Added `zod` as a new dependency for schema validation
-- **Reason:** Scope expansion — adds external dependency not mentioned in spec; improves validation but affects dependency footprint
-- **Resolution:** Flagged for review
-
-### Recommendations
-- The zod dependency is well-maintained and widely used; consider adopting it as a project standard
+- **Resolution:** Pipeline paused — requires human decision
 ```
 
 ## Review Guidelines

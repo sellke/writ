@@ -35,20 +35,7 @@ This is the **per-story execution engine**. For full spec execution with depende
 
 ### Step 1: Story Selection
 
-**If no argument provided:**
-
-```
-AskQuestion({
-  title: "Select Story",
-  questions: [
-    {
-      id: "story",
-      prompt: "Which user story do you want to implement?",
-      options: [list of not-started/in-progress stories from current spec]
-    }
-  ]
-})
-```
+If no argument provided, present story selection from current spec (not-started and in-progress stories).
 
 ### Step 2: Load Context
 
@@ -99,14 +86,7 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 
 Spawns the coding agent with full story context + any arch-check warnings.
 
-**Requirements:**
-1. Write tests first (TDD)
-2. Match existing codebase patterns
-3. Implement all tasks in the story
-4. Satisfy all acceptance criteria
-5. Report: files changed, tests written, deviations, concerns
-
-**Output:** Structured implementation summary.
+**Report:** files changed, tests written, deviations from plan, concerns.
 
 ---
 
@@ -175,121 +155,41 @@ Spawns a **read-only** sub-agent for code review.
 
 #### Gate 3.5: Drift Response Handling
 
-> **Format reference:** `.writ/docs/drift-report-format.md` — canonical drift report structure, field definitions, DEV-ID numbering, parsing guide, and validation rules.
+> **Format reference:** `.writ/docs/drift-report-format.md`
 
-After the review agent returns, inspect the `### Drift Analysis` section of the review output.
+After the review agent returns, inspect the `### Drift Analysis` section. Handle by severity:
 
-##### Drift-Log Write Procedure
+**Small drift** (naming, cosmetic — spec intent preserved):
+- Auto-amend `spec-lite.md` with the proposed changes
+- Log to `drift-log.md`
+- Continue PASS
+- Always include spec-lite changes in pipeline summary
 
-All drift writes target **`.writ/specs/[spec-folder]/drift-log.md`** where `[spec-folder]` is the spec folder loaded in Step 2 (e.g., `.writ/specs/2026-02-27-phase1-foundation/drift-log.md`).
+**Medium drift** (scope/integration impact — spec intent met with notable changes):
+- Flag with ⚠️ warning in pipeline output
+- Log to `drift-log.md`
+- Continue PASS
 
-**DEV-ID continuation:** Before writing, scan the existing `drift-log.md` for the highest `DEV-XXX` number. The next deviation starts at highest + 1. If the file doesn't exist, start at `DEV-001`.
+**Large drift** (fundamental deviation — spec intent NOT met or constraints violated):
+- PAUSE pipeline
+- Present to user with options: accept deviation, reject (send back to coding agent), or modify spec
+- Wait for user decision before continuing
 
-**File creation (first drift):**
-```markdown
-# Drift Log
+**Principles:**
+- Overall drift = highest severity present. Mixed runs pause for Large while still auto-amending Small deviations.
+- Only `spec-lite.md` is auto-modified. Full `spec.md` is never auto-modified — it remains the human-approved contract.
+- Log all drift to `.writ/specs/[spec-folder]/drift-log.md` — append-only, never modify existing entries. Continue DEV-ID numbering from the highest existing entry.
 
-> Spec: .writ/specs/[spec-folder]/
-> Created: YYYY-MM-DD
-> ⚠️ Append-only — do not modify existing entries.
-
----
-
-[story section goes here]
-```
-
-**File append (subsequent drift):** Read existing content, append `\n---\n\n` followed by the new story section. Do not modify existing entries.
-
-**Atomic write:** Write to `drift-log.md.tmp`, then rename to `drift-log.md`. This prevents partial writes if interrupted.
-
-##### Handling by Overall Drift Level
-
-**On `Overall Drift: None`** — no write to drift-log.md. Continue pipeline.
-
-**On `Overall Drift: Small`** — pipeline continues PASS:
-1. Parse each `Small` deviation from the review output's drift report
-2. Format a story section per the canonical format:
+**Drift-log entry format:**
 
 ```markdown
-## Story N: [Story Title] — Drift Report
-
-> Run: YYYY-MM-DD
-> Overall Drift: Small
-
-### Deviations
-
-#### [DEV-XXX] [Brief description]
+#### [DEV-003] Used shared hook instead of local state
 - **Severity:** Small
-- **Spec said:** [what spec expected]
-- **Implementation did:** [what actually happened]
-- **Reason:** [why the deviation occurred]
+- **Spec said:** Local useState for form validation
+- **Implementation did:** Extracted to shared useFormValidation hook
 - **Resolution:** Auto-amended
-- **Spec amendment:** [proposed spec change text from review agent]
 - **Spec-lite updated:** Yes
 ```
-
-3. Write/append to `drift-log.md` using the procedure above
-4. **Auto-apply amendments to spec-lite.md:**
-   - Read the current `spec-lite.md` from the spec folder
-   - For each Small deviation's `**Spec amendment:**` text, interpret the proposed change and apply it to the relevant section of `spec-lite.md`
-   - The amendment text is a plain-language description (e.g., "Update spec to reference `validateRegistrationData` instead of `validateUserInput`") — find the relevant passage and make the described substitution
-   - If multiple Small deviations exist, apply all amendments in a single read-modify-write cycle
-   - Write the updated `spec-lite.md`
-5. Update each drift-log entry for auto-amended deviations to include: `Spec-lite updated: Yes`
-6. Include in pipeline summary: `drift: N small (auto-amended, spec-lite updated)`
-
-> **Important:** Only `spec-lite.md` is auto-modified. The full `spec.md` is never auto-modified — it remains the human-approved contract.
-
-**On `Overall Drift: Medium`** — pipeline continues PASS with warning:
-1. Parse each deviation from the review output's drift report
-2. Surface warning to user in pipeline output:
-
-```
-⚠️ Spec drift detected (Medium):
-- [DEV-XXX] [description] — flagged for post-implementation review
-```
-
-3. Format and write/append to `drift-log.md` — Medium deviations use:
-   - **Resolution:** `Flagged for review`
-   - **Spec amendment:** `N/A — flagged for post-implementation review` (or amendment text if the review agent proposed one)
-4. Any Small deviations in the same run are also logged with their own entries
-5. Include in pipeline summary: `drift: N medium ⚠️, M small (auto-amended)`
-6. Continue to Gate 4
-
-**On `Overall Drift: Large`** — pipeline PAUSES:
-1. Parse each deviation from the review output's drift report
-2. Log all Small and Medium deviations to `drift-log.md` immediately (they don't depend on user decision)
-3. Surface Large deviations to user:
-
-```
-🛑 Large spec drift detected — pipeline paused.
-
-[DEV-XXX] [Brief description]
-  Spec said:          [what spec expected]
-  Implementation did: [what actually happened]
-  Why it matters:     [impact assessment]
-
-Options:
-1. Accept deviation — continue pipeline, log as accepted drift
-2. Reject deviation — send back to coding agent with spec constraints
-3. Modify spec — update spec.md to reflect new approach, then continue
-```
-
-4. Wait for user response via `AskQuestion`
-5. **On "Accept":** Append Large deviation entry to `drift-log.md` with:
-   - **Resolution:** `Pipeline paused — accepted by user`
-   - **Spec amendment:** `N/A — deviation accepted as-is` (or amendment text if user provided one)
-   - Continue pipeline to Gate 4
-6. **On "Reject":** Append Large deviation entry to `drift-log.md` with:
-   - **Resolution:** `Pipeline paused — rejected, sent back to coding agent`
-   - **Spec amendment:** `N/A — implementation revised to match spec`
-   - Send review feedback + spec constraints back to coding agent (counts as review iteration)
-7. **On "Modify spec":** User updates `spec.md`, append Large deviation entry with:
-   - **Resolution:** `Pipeline paused — spec modified by user`
-   - **Spec amendment:** [description of spec change]
-   - Regenerate `spec-lite.md` from the updated `spec.md`, reload both, then re-run from Gate 3 (counts as review iteration)
-
-**Mixed severities:** The overall drift level is the **highest** severity present. If the report contains 1 Small + 1 Large, the pipeline PAUSES for the Large deviation. Small and Medium amendments are still logged immediately — only Large entries wait for user decision. Small deviations still get their spec-lite auto-amendments applied regardless of the overall drift level.
 
 ---
 
@@ -358,92 +258,18 @@ After all gates pass:
 
 1. **Update story status** → `Completed ✅` with date
 2. **Mark tasks and AC** as checked in story file
-3. **Append "What Was Built" record** to the story file (see below)
+3. **Append `## What Was Built`** to the story file: implementation date, files created/modified counts, key decisions made during implementation, and deviation references (if any). This is the "system spec" — implementation reality alongside the original plan.
 4. **Update `user-stories/README.md`** progress percentages
-#### "What Was Built" Record (Step 3)
-
-Before committing, append a `## What Was Built` section to the story file after the `## Definition of Done` section. This creates the "system spec" — a record of implementation reality alongside the original plan.
-
-**Source the content from:**
-- Coding agent output summary (files created/modified, key decisions)
-- Drift log entries for this story (deviation IDs, if any)
-- Git diff stats (`git diff --stat` for file counts)
-
-**Format:**
-
-```markdown
-## What Was Built
-
-**Implemented:** YYYY-MM-DD
-**Files:** N created, M modified
-
-**Key decisions made during implementation:**
-- [Decision 1 — e.g., "Used `useLocalStorage` hook instead of context (simpler, story-scoped state)"]
-- [Decision 2 — e.g., "Added debounce to search input (not in spec, but UX required it)"]
-- [Or "None — implementation followed the plan exactly"]
-
-**Deviations from plan:** None | See drift-log.md DEV-XXX, DEV-YYY
-```
-
-If the coding agent reported no deviations and the drift log has no entries for this story, use "None" for the deviations line. If key decisions are routine, write "None — implementation followed the plan exactly."
-
-5. **Commit:**
-
-```bash
-git add -A
-git commit -m "feat: complete story N - [title]
-
-- Files: X created, Y modified
-- Tests: N passing, X% coverage
-- Review: passed (iteration count)
-- Drift: none | N small (auto-amended), M medium ⚠️ — see drift-log.md
-- Docs: updated
-- What Was Built: recorded"
-```
-
-6. **Report results:**
-
-```
-✅ Story 3: API Endpoints — Complete
-
-Pipeline: arch-check ✅ → code ✅ → lint ✅ → review ✅ (1 iter) → test ✅ (15/15, 91%) → docs ✅
-Files changed: 8 (3 created, 5 modified)
-Drift: 1 small (auto-amended), 1 medium ⚠️ — see drift-log.md
-
-🚀 Your branch is ready — run /ship to merge, test, and open a PR.
-```
+5. **Commit** with a descriptive message including story title, file counts, test results, and drift status
+6. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
 
 ---
 
 ## Error Handling
 
-**Agent crash:** Retry once automatically. If retry fails, present error to user.
-
-**Review loop exceeded (3 iterations):**
-```
-⚠️ Review loop exceeded for Story N.
-
-Remaining issues:
-{issues}
-
-Options:
-1. Continue to testing anyway (issues noted)
-2. Manual intervention needed
-3. Skip this story
-```
-
-**Blocking issue during coding:**
-```
-⚠️ Implementation blocked.
-
-Blocker: {description}
-Attempted: {what was tried}
-Partial progress: {what's done}
-
-Options:
-1. Provide guidance and retry
-2. Skip this story
-```
+- **Agent crash:** Retry once automatically. If retry fails, present error to user.
+- **Review loop exceeded (3 iterations):** Surface remaining issues and offer: continue anyway (noted), manual intervention, or skip story.
+- **Blocking issue during coding:** Surface the blocker, what was attempted, and partial progress. Offer: guidance + retry, or skip story.
 
 ---
 
@@ -457,13 +283,3 @@ Use for prototyping, spikes, internal tools. Run full pipeline later:
 /implement-story story-3 --review-only
 ```
 
----
-
-## Deprecation Note
-
-**`/execute-task` is deprecated.** Use `/implement-story` instead:
-- `/execute-task story-1` → `/implement-story story-1`
-
-**Spec-level execution has moved to `/implement-spec`:**
-- `/implement-story --all` → `/implement-spec`
-- `/implement-story --from story-3` → `/implement-spec --from story-3`

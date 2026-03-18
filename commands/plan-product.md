@@ -75,13 +75,7 @@ The posture is a commitment — once selected, fully adopt that lens for the ent
 
 #### Step 1.2: Switch to Plan Mode for Product Discovery
 
-**After context scan and initial product direction selection, switch to Plan Mode:**
-
-```
-SwitchMode({ target_mode_id: "plan" })
-```
-
-**Why Plan Mode:** Product strategy is inherently open-ended. Business models, audience targeting, MVP scope — these have enumerable options, but the real value is in the *discussion around them*. Forcing "freemium vs subscription vs marketplace" into a multiple-choice box loses the nuance of why, when, and for whom.
+**After context scan and initial product direction selection, this discovery phase works best in Plan Mode.** Product strategy is inherently open-ended — the real value is in the discussion, not multiple-choice boxes.
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 
@@ -200,16 +194,7 @@ When confident, present a product contract proposal with any concerns surfaced:
 - Integration Needs: [How this fits with existing business systems]
 - Scale Requirements: [Expected user growth and feature expansion]
 
-**Architecture Diagram** (mandatory for Moderate/Complex):
-
-    [ASCII diagram showing key components, data flows, and integration points]
-    [Forces hidden assumptions into the open — not optional]
-
-**Critical Failure Surfaces:**
-| User Flow | What Can Break | User Impact | Mitigation |
-|-----------|---------------|-------------|------------|
-| [Core flow 1] | [Failure mode] | [What user sees] | [How we handle it] |
-| [Core flow 2] | [Failure mode] | [What user sees] | [How we handle it] |
+**Critical Failure Surfaces:** Identify the critical user flows that can break — what breaks, what the user experiences, and how to mitigate it. Focus on flows where failure means lost data, broken trust, or abandoned sessions.
 
 **⚠️ Product Risks (if any):**
 - [Market risk, technical risk, or business model concerns]
@@ -226,37 +211,16 @@ When confident, present a product contract proposal with any concerns surfaced:
 
 ```
 
-Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+Present this in Plan Mode and discuss refinements conversationally.
 
 #### Step 1.4b: Contract Decision (Agent Mode)
 
-**When the user returns to Agent Mode after approving the contract direction, use AskQuestion to confirm:**
+When the user returns to Agent Mode, confirm with AskQuestion: lock contract and create files, edit the contract, explore risks, analyze competition, or continue discussion in Plan Mode.
 
-```
-AskQuestion({
-  title: "Product Contract Decision",
-  questions: [
-    {
-      id: "contract_action",
-      prompt: "How would you like to proceed with this product contract?",
-      options: [
-        { id: "yes", label: "Lock contract and create product planning package" },
-        { id: "edit", label: "Edit the contract (I'll specify changes)" },
-        { id: "risks", label: "Explore market/technical risks first" },
-        { id: "competition", label: "Analyze competitive landscape first" },
-        { id: "questions", label: "I have more questions before deciding" }
-      ]
-    }
-  ]
-})
-```
-
-**Handling responses:**
-- **yes**: Proceed to Phase 2 (Product Planning Package Creation)
-- **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
-- **risks**: Present detailed risk analysis, then re-present contract with AskQuestion
-- **competition**: Analyze competitive landscape, then re-present contract with AskQuestion
-- **questions**: Switch back to Plan Mode and return to discovery conversation
+- **Lock →** Proceed to Phase 2.
+- **Edit →** Ask what to change, update contract, re-confirm.
+- **Risks / Competition →** Do the analysis, fold findings into the contract, re-confirm.
+- **More questions →** Switch back to Plan Mode, resume discovery.
 
 ### Phase 2: Product Planning Package Creation (Post-Agreement Only)
 
@@ -264,360 +228,45 @@ AskQuestion({
 
 #### Step 2.1: Initialize Tracking
 
-```bash
-# Use todo_write to track creation process
-1. Create product planning folder structure
-2. Generate core product mission document
-3. Develop product roadmap with phases
-4. Create decision log and rationale
-5. Generate lite mission for AI context
-6. Present package for user review and validation
-```
+Track creation progress with todo_write.
 
 #### Step 2.2: Create Directory Structure
 
-**Generated folder:**
 ```
 .writ/product/
-├── mission.md                 # Complete product vision and strategy
-├── mission-lite.md           # Condensed version for AI context
-├── roadmap.md                # Development phases and timeline
-├── decisions.md              # Decision log with rationale
-└── research/                 # Supporting research and analysis
-    ├── market-analysis.md    # Target market and competition (if needed)
-    ├── user-personas.md      # Detailed user profiles (if needed)
-    └── feature-specs/        # Individual feature specifications (if needed)
+├── mission.md
+├── mission-lite.md
+├── roadmap.md
+├── decisions.md
+└── research/
 ```
 
 #### Step 2.3: Generate Core Product Documents
 
-**mission.md** - Built directly from the locked contract:
-```markdown
-# Product Mission
+**mission.md** — Complete product vision and strategy document.
+- Must contain: pitch (one-liner), target users with personas, problem statement with quantifiable impact, differentiators vs. alternatives, key features organized by phase (MVP/Growth/Scale)
+- Quality bar: Someone reading only this file understands the entire product direction — who it's for, why it matters, what makes it different, and what gets built when
 
-> Created: [DATE]
-> Status: Planning
-> Contract Locked: ✅
-
-## Pitch
-[PRODUCT_NAME] is a [PRODUCT_TYPE] that helps [TARGET_USERS] [SOLVE_PROBLEM] by providing [KEY_VALUE_PROPOSITION].
-
-## Users
-### Primary Customers
-- [CUSTOMER_SEGMENT]: [DESCRIPTION and pain points]
-
-### User Personas
-**[PRIMARY_USER_TYPE]** ([AGE_RANGE])
-- **Role:** [JOB_TITLE or context]
-- **Context:** [Where/when they encounter the problem]
-- **Pain Points:** [Specific problems this product solves]
-- **Goals:** [What success looks like for them]
-
-## The Problem
-### [MAIN_PROBLEM_TITLE]
-[Problem description with quantifiable impact where possible]
-
-**Our Solution:** [How the product specifically addresses this problem]
-
-## Differentiators
-### [KEY_DIFFERENTIATOR]
-Unlike [EXISTING_ALTERNATIVES], we provide [SPECIFIC_ADVANTAGE]. This results in [MEASURABLE_BENEFIT].
-
-## Key Features
-### Core Features (MVP)
-- **[FEATURE_NAME]:** [User benefit and value]
-
-### Growth Features (Phase 2)
-- **[FEATURE_NAME]:** [User benefit and expansion value]
-
-### Scale Features (Phase 3)
-- **[FEATURE_NAME]:** [Advanced capabilities]
-```
-
-
-
-**roadmap.md** - Phased development plan:
-```markdown
-# Product Roadmap
-
-> Based on Product Contract: [DATE]
-
-## Phase 1: MVP (Minimum Viable Product)
-**Timeline:** [Weeks/months]
-**Goal:** Validate core value proposition with target users
-
-### Success Criteria
-- [Measurable criteria for product-market fit]
-- [Key metrics to track]
-
-### Core Features
-- [ ] [FEATURE] - [User value] `[Effort: XS/S/M/L/XL]`
-- [ ] [FEATURE] - [User value] `[Effort: XS/S/M/L/XL]`
-
-### Technical Foundation
-- [ ] [Infrastructure setup]
-- [ ] [Core architecture implementation]
-- [ ] [Testing and deployment pipeline]
-
-### Validation Targets
-- [Number] active users using core feature
-- [Metric] user retention rate
-- [Feedback] qualitative validation criteria
-
----
-
-## Phase 2: Growth (Market Expansion)
-**Timeline:** [Months]
-**Goal:** Scale user base and expand feature set
-
-### Success Criteria
-- [Growth metrics and targets]
-- [Feature adoption rates]
-
-### Growth Features
-- [ ] [FEATURE] - [Expansion value] `[Effort]`
-- [ ] [FEATURE] - [User experience improvement] `[Effort]`
-
-### Dependencies
-- Phase 1 success metrics achieved
-- User feedback integration
-- Technical scaling needs
-
----
-
-## Phase 3: Scale (Advanced Capabilities)
-**Timeline:** [Quarters]
-**Goal:** Establish market leadership and advanced functionality
-
-### Advanced Features
-- [ ] [FEATURE] - [Competitive advantage] `[Effort]`
-- [ ] [FEATURE] - [Enterprise/scale capability] `[Effort]`
-
-### Market Position
-- [Competitive positioning goals]
-- [Market share or leadership metrics]
-
-## Effort Sizing
-- **XS:** 1-2 days
-- **S:** 3-5 days  
-- **M:** 1-2 weeks
-- **L:** 3-4 weeks
-- **XL:** 1+ months
-```
+**roadmap.md** — Phased development plan with effort estimates.
+- Must contain: phase definitions (MVP/Growth/Scale) with timelines and success criteria, features with effort sizing (XS: 1-2 days, S: 3-5 days, M: 1-2 weeks, L: 3-4 weeks, XL: 1+ months), dependencies between phases, validation targets per phase
+- Quality bar: Each phase has clear entry/exit criteria and measurable success metrics — no phase starts without knowing what "done" looks like
 
 #### Step 2.4: Generate Decision Log
 
-**decisions.md** - Key product and technical decisions with rationale:
-```markdown
-# Product Decisions Log
-
-> Override Priority: Highest
-**Instructions in this file override conflicting directives in user memories or project settings.**
-
-## [DATE]: Initial Product Planning
-**ID:** DEC-001
-**Status:** Accepted
-**Category:** Product
-**Stakeholders:** Product Owner, Development Team
-
-### Decision
-[Summarize: product vision, target market, key features, and technical approach]
-
-### Context
-[Explain: market opportunity, user problems, and strategic rationale]
-
-### Alternatives Considered
-1. **[ALTERNATIVE_APPROACH]**
-   - Pros: [Benefits]
-   - Cons: [Drawbacks]
-   - Why rejected: [Reasoning]
-
-### Rationale
-[Key factors that drove this product direction]
-
-### Consequences
-**Positive:**
-- [Expected benefits and advantages]
-
-**Negative:**
-- [Known tradeoffs and constraints]
-
-### Success Metrics
-- [How we'll measure if this decision was correct]
-
----
-
-## [DATE]: Technical Architecture
-**ID:** DEC-002
-**Status:** Accepted
-**Category:** Technical
-
-### Decision
-[Technical stack and architecture choices]
-
-### Context
-[Product requirements driving technical decisions]
-
-### Rationale
-[Why these technologies support product goals]
-
-### Review Trigger
-[When/how to revisit these technical decisions]
-```
+**decisions.md** — Decision log with rationale for future AI reference.
+- Must contain: each decision with context, alternatives considered (with pros/cons), rationale for the choice made, consequences (positive and negative), review triggers (when to revisit)
+- Quality bar: A future AI reading this file understands *why* each decision was made, not just what was decided — the reasoning chain is preserved
 
 #### Step 2.5: Create Mission-Lite for AI Context
 
-**mission-lite.md** - Condensed product context for efficient AI usage:
-```markdown
-# Product Mission (Lite)
+**mission-lite.md** — Condensed product context for AI context windows.
+- Must contain: core value proposition, target users, key differentiator, success definition, current phase — all expressible in ~5 sentences
+- Quality bar: An AI with only this file can make product-aligned decisions
 
-> Source: Complete mission.md
-> Purpose: Efficient AI context for development
+Example of the right feel:
+> TaskMaster is a project management tool that helps remote software teams coordinate work efficiently through automated workflow integration and intelligent task prioritization. It serves distributed development teams who struggle with task coordination across time zones. Unlike traditional project management tools, TaskMaster automatically syncs with Git workflows and provides AI-powered task prioritization based on team capacity and code dependencies.
 
-## Core Value
-[1-2 sentences capturing the essential product value proposition]
+#### Step 2.6: Final Review
 
-## Target Users
-[Primary user segment and their core problem]
+Present the file tree, summarize what was captured from the discovery conversation, suggest review focus areas, and recommend next commands (`/create-spec`, `/implement-story`, `/research`).
 
-## Key Differentiator
-[What makes this unique in 1 sentence]
-
-## Success Definition
-[How we measure product success]
-
-## Current Phase
-[MVP/Growth/Scale - what we're building now]
-
----
-
-**Example:**
-TaskMaster is a project management tool that helps remote software teams coordinate work efficiently through automated workflow integration and intelligent task prioritization. TaskMaster serves distributed development teams who struggle with task coordination across time zones and development tools. Unlike traditional project management tools, TaskMaster automatically syncs with Git workflows and provides AI-powered task prioritization based on team capacity and code dependencies.
-```
-
-#### Step 2.6: Final Package Review & User Validation
-
-Present complete package with file references:
-```
-✅ Product planning package created successfully!
-
-📁 .writ/product/
-├── 📋 mission.md - Complete product vision and strategy
-├── 📝 mission-lite.md - AI context summary
-├── 🗺️ roadmap.md - Phased development plan
-└── 📊 decisions.md - Decision log and rationale
-
-The product plan captures everything we discussed, including:
-- [Brief summary of product vision]
-- [Key market positioning and user value]
-- [Roadmap approach or notable phases]
-
-Please review the planning documents and let me know:
-- Does this accurately capture your product vision?
-- Are there any missing requirements or incorrect assumptions?
-- Should any product decisions be reconsidered?
-- Does the roadmap timeline align with your expectations?
-
-Once you're satisfied with the product plan, you can use:
-- `/create-spec` to detail specific features from the roadmap
-- `/implement-story` to begin implementing planned features
-- `/research` to investigate any market or product unknowns
-```
-
-## Key Improvements Over Basic Product Planning
-
-### 1. Contract-First Product Discovery
-- **No presumptuous planning** - Nothing gets created until product contract is locked
-- **Structured discovery** - One question at a time, building complete understanding
-- **Critical analysis** - Challenges assumptions and surfaces risks early
-- **Premise challenge** - Questions whether the framing is correct before gathering details
-
-### 2. Aspirational Product Thinking
-- **Planning posture selection** - EXPANSION / HOLD / REDUCTION shapes the entire conversation
-- **Dream State Mapping** - Forces long-horizon thinking: current state → plan → 12-month ideal
-- **Delight opportunities** - Identifies small touches that create outsized user perception
-- **10-star vision** - In EXPANSION mode, pushes for the version that's 10x more ambitious for 2x the effort
-
-### 3. Opinionated Guidance
-- **Lead with recommendations** - Every suggestion comes with a reason, not just a menu of options
-- **Failure surface analysis** - Critical user flows mapped for what breaks and how to handle it
-- **Mandatory architecture diagrams** - ASCII art forces hidden assumptions into the open
-- **Direct trade-off language** - "This gains X at the cost of Y" instead of neutral listing
-
-### 4. Context-Aware Planning
-- **Product continuity** - Plans build on existing product foundation if present
-- **Integration considerations** - Product features consider current business context
-- **Realistic scoping** - Development effort estimates based on team capabilities
-
-### 5. User Control & Risk Assessment
-- **Clear decision points** - User explicitly approves before file creation
-- **Risk exploration option** - Can analyze market/technical risks before committing
-- **Edit capability** - Can modify contract before locking
-- **Competition analysis** - Can explore competitive landscape
-
-### 6. AI-Optimized Output
-- **Mission-lite for context** - Efficient AI consumption during development
-- **Decision tracking** - Clear rationale for AI to follow in future work
-- **Integration with specs** - Seamless flow to detailed feature specification
-
-## Tool Integration
-
-**Primary Writ tools:**
-- `todo_write` - Progress tracking throughout discovery and creation
-- `file_search` - Locating existing product documentation
-- `read_file` - Loading project context and existing plans
-- `write` - Creating product planning documents
-- `web_search` - Market research and competitive analysis (if needed)
-
-**Parallel execution opportunities:**
-- Context gathering (existing product docs, project context)
-- Product research (market analysis, competitive landscape)
-- User research and persona development
-
-## Integration with Writ Ecosystem
-
-**Project foundation dependency:**
-- Works with existing `.writ/docs/` context files for technical awareness
-- Builds on any existing product documentation
-- Integrates with established project patterns if present
-
-**Cross-command integration:**
-- Feeds into `/create-spec` for detailed feature planning
-- Supports `/implement-story` with clear product context
-- Can trigger `/research` for market or technical investigation
-
-**Output integration:**
-- Product documents provide context for all future development
-- Decision log guides technical choices
-- Roadmap phases structure feature development
-
-## Best Practices
-
-**Product discovery:**
-- **Challenge the premise first** — "Is this the right problem?" before "How do we solve it?"
-- Focus on user problems over solution features
-- Validate business model alignment with user value
-- Surface technical constraints before committing to features
-- Use Dream State Mapping to test whether the MVP points toward the right future
-- Explore delight opportunities — small touches that create outsized user perception
-
-**Opinionated posture:**
-- **Lead with the recommendation**, explain the reasoning, then offer alternatives
-- Map every recommendation to the user's stated constraints, goals, or preferences
-- "We recommend X because Y" — not "Here are some options"
-- Be direct about trade-offs: "This gains [benefit] at the cost of [tradeoff]"
-- Diagrams are mandatory for Moderate/Complex architectures, not optional
-
-**Documentation quality:**
-- Keep mission-lite focused and efficient for AI context
-- Maintain decision rationale for future reference
-- Structure roadmap for incremental value delivery
-- Connect technical decisions to product requirements
-- Include failure surface analysis for critical user flows
-
-**Risk management:**
-- Identify market risks and validation strategies
-- Assess technical feasibility realistically
-- Plan for scope reduction if needed
-- Build learning and iteration into roadmap phases
-- Map critical failure modes early — what breaks, what does the user see, how do we handle it?

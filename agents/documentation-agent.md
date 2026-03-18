@@ -84,51 +84,7 @@ Check for these documentation frameworks in order:
 
 Report which framework was detected (or "none") before proceeding.
 
-### If VitePress detected:
-
-Follow the VitePress documentation approach:
-1. **Feature docs** → Create \`docs/features/{feature-name}.md\` with Mermaid diagrams, component tables, state management, usage examples
-2. **Component docs** → Create \`docs/components/{component-name}.md\` with props tables, usage examples
-3. **Architecture updates** → Update \`docs/architecture/index.md\` with new subsystems/diagrams
-4. **Sidebar config** → Add new pages to \`docs/.vitepress/config.ts\` sidebar
-5. **Feature index** → Update \`docs/features/index.md\` table
-6. **Inline docs** → Add JSDoc to source files
-
-### If Docusaurus detected:
-
-Follow Docusaurus conventions:
-1. **Feature docs** → Create \`docs/{feature-name}.md\` or \`docs/{category}/{feature-name}.md\`
-2. **Sidebar config** → Update \`sidebars.js\` to include new pages
-3. **MDX support** → Use MDX for interactive examples where appropriate
-4. **Category metadata** → Create \`_category_.json\` for new directories
-5. **Inline docs** → Add JSDoc to source files
-
-### If Nextra detected:
-
-Follow Nextra conventions:
-1. **Feature docs** → Create pages in \`pages/docs/{feature-name}.mdx\`
-2. **Meta files** → Update \`_meta.json\` for navigation ordering
-3. **MDX components** → Use MDX for interactive examples
-4. **Inline docs** → Add JSDoc to source files
-
-### If MkDocs detected:
-
-Follow MkDocs conventions:
-1. **Feature docs** → Create \`docs/{feature-name}.md\`
-2. **Nav config** → Update \`mkdocs.yml\` nav section
-3. **Inline docs** → Add docstrings to source files (Python projects likely)
-
-### If Storybook detected:
-
-Follow Storybook conventions:
-1. **Story files** → Create \`{component}.stories.tsx\` alongside components
-2. **MDX docs** → Create \`{component}.mdx\` for extended documentation
-3. **Args/controls** → Document component props as Storybook args
-4. **Inline docs** → Add JSDoc to source files
-
-### If no framework detected (DEFAULT — most common path):
-
-This is the primary path. Most projects using Writ won't have a documentation site.
+### Default Path (no framework — most common)
 
 1. **Inline documentation (always):**
    - Add JSDoc/docstring comments to all public functions, classes, and exported types
@@ -137,16 +93,19 @@ This is the primary path. Most projects using Writ won't have a documentation si
 
 2. **README updates:**
    - Add or update the relevant section in the project's README.md
-   - If the feature is significant, add a dedicated section with usage examples
    - Keep it concise — README is for humans getting started, not exhaustive reference
 
 3. **CHANGELOG entry:**
    - Add an entry to CHANGELOG.md if it exists (don't create one if it doesn't)
-   - Follow the existing changelog format (Keep a Changelog, conventional, etc.)
+   - Follow the existing changelog format
 
 4. **Architecture docs (if significant):**
-   - For major architectural changes, create or update an \`ARCHITECTURE.md\` at the project root
+   - For major architectural changes, create or update \`ARCHITECTURE.md\` at the project root
    - Use Mermaid diagrams for visual architecture documentation
+
+### If a documentation framework is detected
+
+If VitePress, Docusaurus, Nextra, MkDocs, or Storybook is detected, follow its conventions for file placement, navigation config, and page format. Add new pages to the framework's sidebar/nav configuration. Always add inline JSDoc/docstrings regardless of framework.
 
 ## Mermaid Diagram Types
 
@@ -203,83 +162,7 @@ Brief summary of documentation changes.
 })
 ```
 
-## Output Format
-
-The output format is the same regardless of framework. The file paths will differ based on the detected framework.
-
-### When Documentation Created
-
-```markdown
-### DOCS_UPDATED: YES
-
-### Documentation Changes
-
-#### Files Created
-
-1. **File:** `docs/features/weather-backgrounds.md`
-   - Complete feature documentation with Mermaid diagrams
-   - Component table, state management, usage examples
-
-#### Files Updated
-
-1. **File:** `docs/.vitepress/config.ts`
-   - Added weather-backgrounds to features sidebar
-
-2. **File:** `docs/features/index.md`
-   - Added weather-backgrounds to feature index table
-
-3. **File:** `docs/architecture/index.md`
-   - Added Weather Backgrounds subsystem to component architecture diagram
-
-#### Diagrams Added
-
-1. Component hierarchy diagram showing:
-   - WeatherThemeProvider → GradientBackground
-   - WeatherThemeProvider → ParticleSystem
-
-2. Data flow sequence diagram showing theme updates
-
-#### Inline Documentation
-
-- `src/components/background/GradientBackground.tsx` - JSDoc for component and props
-- `src/components/background/hooks/useReducedMotion.ts` - JSDoc for hook
-
-### Summary
-Created comprehensive feature documentation for Weather Backgrounds with architecture diagrams, updated VitePress sidebar, and added inline documentation to source files.
-```
-
-### When No Updates Needed
-
-```markdown
-### DOCS_UPDATED: NO
-
-### Assessment
-The story implemented internal refactoring only. No new features, components, or API changes that would require documentation updates.
-
-### Recommendations
-- Consider documenting in future if this utility becomes public API
-```
-
-## Documentation Guidelines
-
-### When to Create New Docs
-
-| Change Type | Documentation Action |
-|-------------|---------------------|
-| New feature | Feature docs (framework-specific location) + inline JSDoc |
-| New component | Component docs + props documentation + inline JSDoc |
-| Architecture change | Architecture docs (ARCHITECTURE.md or framework equivalent) |
-| New API/hook | API reference docs + inline JSDoc with examples |
-| Config change | Update relevant guide or README section |
-
-### Mermaid Best Practices
-
-- Keep diagrams focused (max 10-15 nodes)
-- Use subgraphs for grouping related items
-- Add labels to connections when helpful
-- Use consistent styling across docs
-
-### JSDoc Standards
+## JSDoc Standards
 
 ```typescript
 /**
