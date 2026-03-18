@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-03-18
+
+### Changed
+
+- **Core A-Grade Refinement** — all 9 core command and agent files refined from mixed B-/B/B+/A- grades to A-grade quality (Spec: `2026-03-18-core-agrade-refinement`)
+  - Templates replaced with principles — the AI knows how to format; tell it what matters
+  - `/plan-product` reduced 56% (623 → 272 lines) — Phase 1 discovery preserved intact, Phase 2 templates replaced with principles
+  - `/create-spec` reduced 43% (805 → 458 lines) — discovery phase untouched, file-creation templates condensed to principled guidance
+  - `/implement-story` reduced 39% (469 → 285 lines) — drift response rewritten from 117 procedural lines to ~40 lines of principles
+  - `/implement-spec` reduced 17% (294 → 244 lines) — already near A-grade, minor tightening
+  - Review agent: 31-item checklist → 5 categorized review dimensions; examples condensed 50%
+  - Documentation agent: framework-specific sections (VitePress, Docusaurus, Nextra, MkDocs, Storybook) replaced with single "follow detected conventions" principle
+  - Coding agent: verbose scope detection heuristic → single-paragraph principle
+  - Architecture-check and testing agents: condensed examples and removed redundant sections
+- Clean testing boundaries between `/implement-spec` and `/verify-spec` — clarified which command owns test execution vs. verification
+
+### Removed
+
+- Redundant "Key Improvements," "Best Practices," "Tool Integration," and "Integration with Writ Ecosystem" sections from all commands
+- `SwitchMode` API calls replaced with natural language guidance (Cursor doesn't support programmatic mode switching)
+- Verbose output format examples in review and documentation agents — one example demonstrates judgment, not three
+
 ## [0.2.0] - 2026-03-16
 
 ### Added
