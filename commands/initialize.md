@@ -1,132 +1,82 @@
-# Initialize Command Workflow
+# Initialize Command (initialize)
 
 ## Overview
 
-### Purpose
-
-Set up technical foundation and development infrastructure by detecting if this is a greenfield (new) or brownfield (existing) project and executing the appropriate technical setup workflow.
+Set up technical foundation by detecting whether this is a greenfield (new) or brownfield (existing) project, then executing the appropriate workflow. This command handles *technical infrastructure only* — product strategy belongs to `/plan-product`.
 
 ### Detection Logic
 
+Auto-detect project type — never ask the user which workflow to run.
+
 1. **Scan current directory** for indicators:
+   - Dependency manifests (package.json, requirements.txt, Cargo.toml, go.mod, etc.)
+   - Source directories (src/, lib/, app/, etc.)
+   - Git history depth and commit count
+   - Configuration files (.eslintrc, tsconfig.json, Dockerfile, etc.)
 
-   - Presence of package.json, requirements.txt, Cargo.toml, go.mod, etc.
-   - Existing source code directories (src/, lib/, app/, etc.)
-   - Git repository status
-   - Configuration files
+2. **Classify as:**
+   - **Greenfield** — empty directory or only boilerplate files (README, LICENSE, .gitignore)
+   - **Brownfield** — existing codebase with established structure and dependencies
 
-2. **Classify as**:
-   - **Greenfield**: Empty directory or minimal files
-   - **Brownfield**: Existing codebase with established structure
+**Edge case:** A freshly scaffolded project (e.g., `create-react-app` just ran) is greenfield — it has structure but no custom code. Look for meaningful source files and git history beyond the initial commit, not just directory presence.
+
+After classification, announce the result and the evidence: *"Detected brownfield project — found package.json with 47 dependencies, src/ with 200+ files, 6 months of git history."* This gives the user a chance to correct a misclassification before proceeding.
+
+`.writ/` exists from installation; create docs within `.writ/docs/`.
+
+## Invocation
+
+| Invocation | Behavior |
+|---|---|
+| `/initialize` | Auto-detect project type and run appropriate workflow |
 
 ---
 
 ## Greenfield Workflow
 
-### Phase 1: Technical Foundation Setup
+### Phase 1: Technical Discovery
 
-#### Greenfield Todo Checklist
+Ask focused questions to determine technical requirements. Four areas matter:
 
-Use `todo_write` to track progress through technical setup:
+| Area | What to learn |
+|---|---|
+| **Project type** | Web app, API, mobile, library, CLI, etc. |
+| **Constraints** | Required technologies, frameworks, platforms |
+| **Environment** | Local, containerized, cloud-based development |
+| **Scale** | Prototype, small team, enterprise |
 
-```json
-{
-  "todos": [
-    {
-      "id": "greenfield-tech-analysis",
-      "content": "Determine technology stack and development requirements",
-      "status": "in_progress"
-    },
-    {
-      "id": "greenfield-tech-stack",
-      "content": "Document technology stack in .writ/docs/tech-stack.md",
-      "status": "pending"
-    },
-    {
-      "id": "greenfield-structure",
-      "content": "Create project directory structure and config files",
-      "status": "pending"
-    },
-    {
-      "id": "greenfield-dev-setup",
-      "content": "Set up development configuration and tooling",
-      "status": "pending"
-    },
-    {
-      "id": "greenfield-readme",
-      "content": "Generate technical README.md with setup instructions",
-      "status": "pending"
-    }
-  ]
-}
-```
-
-**Ask focused technical questions**:
-
-1. **Project Type**: "What type of application are you building? (web app, API, mobile app, library, CLI tool, etc.)"
-2. **Technical Constraints**: "Any required technologies, frameworks, or platforms?"
-3. **Development Environment**: "What's your preferred development setup? (local, containerized, cloud-based)"
-4. **Scale Requirements**: "Expected technical scale? (prototype, small team, enterprise)"
+Batch related questions. Skip areas with obvious answers from context.
 
 ### Phase 2: Technology Recommendations
 
-Based on technical requirements, recommend:
+Present recommendations across these categories before building anything:
 
-- **Tech Stack**: Languages, frameworks, databases suitable for the project type
-- **Architecture Pattern**: Monolith, microservices, serverless based on scale needs
-- **Development Tools**: Testing frameworks, build tools, linting/formatting
-- **Project Structure**: Directory layout, naming conventions, configuration
+- **Tech stack** — languages, frameworks, databases matched to project type and scale
+- **Architecture pattern** — monolith, microservices, serverless with rationale
+- **Development tooling** — testing, build tools, linting/formatting
+- **Project structure** — directory layout, naming conventions
 
-### Phase 3: Technical Foundation Setup
+Get explicit agreement before proceeding. Push back if the user's preferences conflict with their stated requirements.
 
-#### Directory Structure (Pre-existing)
+**Recommendation principles:** Favor ecosystem maturity and community support over novelty. For enterprise scale, flag risk of bleeding-edge choices. For prototypes, optimize for speed-to-working-demo over long-term scalability — but note the trade-off explicitly.
 
-The `.writ/` directory structure already exists from installation:
+### Phase 3: Build Foundation
 
-- `.writ/docs/` - For technical documentation
-- `.writ/research/` - For research outputs
-- `.writ/commands/` - Pre-installed command definitions
+Create the project skeleton and documentation.
 
-#### Configuration Files
+**Project files:** Dependency manifests, git configuration (.gitignore, .gitattributes), development tool configs (linter, formatter, test runner), build/deploy configuration as needed. When the chosen framework has its own project structure conventions (Next.js, Rails, Django, etc.), follow them — don't invent a custom layout.
 
-- **Package/dependency files** (package.json, requirements.txt, etc.)
-- **Git configuration** (.gitignore, .gitattributes)
-- **Development configuration** (prettier, eslint, testing config, etc.)
-- **Build and deployment configuration** (if applicable)
+**Documentation — three required files:**
 
-#### Documentation Creation (Exact File Paths)
+| File | Content |
+|---|---|
+| `.writ/docs/tech-stack.md` | Languages, frameworks, infrastructure, architecture pattern — each with version and rationale for selection |
+| `.writ/docs/code-style.md` | File organization patterns, naming conventions, code patterns, testing patterns, documentation style |
+| `README.md` | Project overview, prerequisites, setup instructions, development workflow |
 
-1. **`.writ/docs/tech-stack.md`** - Technology stack decisions and rationale
-2. **`.writ/docs/code-style.md`** - Coding standards and development patterns
-3. **`README.md`** - Technical overview and setup instructions
+**Quality bar:** Each doc captures *decisions and reasoning*, not just lists. A new developer should understand both what was chosen and why.
 
-### Phase 4: Next Steps Guidance
-
-After technical foundation is complete, provide clear next steps:
-
-```
-🚀 Technical Foundation Complete!
-
-Your development environment is now set up and documented:
-- Technology stack documented and configured
-- Development tools and standards established
-- Project structure and configuration ready
-
-## Recommended Next Steps:
-
-### For Product Strategy (Recommended First):
-/plan-product "your product idea" - Define product strategy and roadmap
-
-### For Feature Development:
-/create-spec "feature description" - Create detailed feature specifications
-/implement-story - Implement features
-
-### For Technical Improvements:
-/research "topic" - Research solutions for gaps
-/create-adr "decision" - Document architectural decisions
-
-Ready to define your product strategy and start building!
-```
+After creating all files, verify the project runs — execute the basic dev command (e.g., `npm run dev`, `cargo build`) and fix any setup issues before declaring the foundation complete.
 
 ---
 
@@ -134,265 +84,70 @@ Ready to define your product strategy and start building!
 
 ### Phase 1: Codebase Analysis
 
-#### Brownfield Todo Checklist
+Scan the existing project systematically. No questions needed — the code tells the story.
 
-Use `todo_write` to track analysis progress:
+**Scan strategy:** Read dependency files, but also check what's *actually imported* in source code — some dependencies are vestigial. Check CI configs and deployment scripts for the real build/deploy story. Git log frequency by directory reveals which areas are actively developed. For monorepos, scope analysis to the relevant package unless the user indicates otherwise.
 
-```json
-{
-  "todos": [
-    {
-      "id": "brownfield-analysis",
-      "content": "Analyze existing codebase structure, dependencies, and patterns",
-      "status": "in_progress"
-    },
-    {
-      "id": "brownfield-tech-stack",
-      "content": "Document current tech stack in .writ/docs/tech-stack.md",
-      "status": "pending"
-    },
-    {
-      "id": "brownfield-code-style",
-      "content": "Analyze and document code patterns in .writ/docs/code-style.md",
-      "status": "pending"
-    },
-    {
-      "id": "brownfield-architecture",
-      "content": "Document system architecture and technical decisions",
-      "status": "pending"
-    }
-  ]
-}
-```
-
-**Scan and analyze**:
-
-- **File structure** and organization patterns
-- **Dependencies** and technology stack
-- **Code patterns**, conventions, and architecture
-- **Configuration files** and build processes
-- **Testing setup** and development tools
-- **Documentation gaps** and technical debt
+| Analyze | What to capture |
+|---|---|
+| **File structure** | Organization patterns, module boundaries |
+| **Dependencies** | Full technology stack with versions; distinguish primary from supporting (e.g., a TS project with Python scripts) |
+| **Code patterns** | Conventions, architecture, recurring idioms |
+| **Configuration** | Build processes, environment setup |
+| **Testing** | Framework, coverage approach, test organization |
+| **Documentation** | What exists, what's missing |
 
 ### Phase 2: Documentation Generation
 
-#### tech-stack.md
+Create the same three files as greenfield, derived from analysis rather than choices:
 
-```markdown
-# Technology Stack
+| File | Content |
+|---|---|
+| `.writ/docs/tech-stack.md` | Discovered stack — languages, frameworks, infrastructure, architecture pattern with observed rationale |
+| `.writ/docs/code-style.md` | Observed patterns — file organization, naming conventions, code idioms, testing patterns |
+| `README.md` | Only create if missing; update if incomplete. Never overwrite a curated README — append a "Development Setup" section if one is missing |
 
-## Languages
+**Quality bar:** Document what the codebase *actually does*, not what it should do. Distinguish intentional patterns (consistent across the codebase) from accidental ones (copy-paste artifacts). Flag inconsistencies as observations, not corrections.
 
-- [Primary language with version]
-- [Secondary languages if any]
+### Phase 3: Gap Analysis
 
-## Frameworks & Libraries
+Identify improvement opportunities across these categories:
 
-- [Main framework with version and purpose]
-- [Key dependencies with purposes]
+| Category | Look for |
+|---|---|
+| **Documentation gaps** | Missing or outdated docs, undocumented decisions |
+| **Pattern inconsistencies** | Conflicting conventions, mixed approaches |
+| **Technical debt** | Known shortcuts, deprecated dependencies, security concerns |
+| **Testing coverage** | Untested areas, missing test types |
+| **Developer experience** | Workflow friction, missing automation |
+| **Architecture** | Scaling concerns, optimization opportunities |
 
-## Infrastructure
+Present findings as a prioritized list with effort estimates (quick win / moderate / significant). This becomes the backlog for future `/create-adr` and `/research` work.
 
-- [Database technology]
-- [Deployment platform]
-- [CI/CD tools]
-
-## Development Tools
-
-- [Package manager]
-- [Testing framework]
-- [Linting/formatting tools]
-
-## Architecture Pattern
-
-[Monolith/Microservices/Serverless/etc. with reasoning]
-```
-
-#### code-style.md
-
-```markdown
-# Code Style Guide
-
-## File Organization
-
-[Directory structure patterns observed]
-
-## Naming Conventions
-
-- [Variable naming patterns]
-- [Function naming patterns]
-- [File naming patterns]
-
-## Code Patterns
-
-[Common patterns observed in codebase]
-
-## Testing Patterns
-
-[How tests are structured and named]
-
-## Documentation Style
-
-[Comment and documentation patterns]
-```
-
-### Phase 3: Gap Analysis & Recommendations
-
-Identify and document:
-
-- **Missing technical documentation**
-- **Inconsistent code patterns**
-- **Technical debt and improvement opportunities**
-- **Testing coverage gaps**
-- **Development workflow improvements**
-- **Architecture optimization opportunities**
-
-### Phase 4: Next Steps Guidance
-
-After brownfield analysis is complete, provide clear next steps:
-
-```
-🔍 Technical Foundation Analysis Complete!
-
-Your existing project has been analyzed and documented:
-- Current technology stack and architecture documented
-- Code patterns and conventions identified
-- Technical gaps and improvement opportunities noted
-
-## Recommended Next Steps:
-
-### For Product Strategy (Recommended First):
-/plan-product "enhanced product vision" - Define product strategy and roadmap
-
-### For Feature Development:
-/create-spec "feature description" - Create detailed feature specifications
-/implement-story - Implement features following established patterns
-
-### For Technical Improvements:
-/research "technical topic" - Research solutions for identified gaps
-/create-adr "technical decision" - Document architectural improvements
-
-Ready to define your product strategy and enhance your codebase!
-```
+**Prioritization principle:** Lead with gaps that block developer onboarding or cause silent bugs. Cosmetic inconsistencies go last.
 
 ---
 
----
+## Next Steps
 
-## CRITICAL: Final Message Requirements
+Present a completion summary showing what was created or documented, then recommend next steps. `/plan-product` is the natural next step for both workflows — initialize handles technical foundation, plan-product handles product strategy. Users need both before feature development.
 
-**MANDATORY**: The initialize command MUST end with a message that prominently recommends `plan-product` as the next logical step for both greenfield and brownfield projects. This is required because:
+**Completion summary should include:** files created/updated, key decisions documented, and (for brownfield) top 3 gap findings.
 
-1. Initialize handles ONLY technical foundation
-2. plan-product handles product strategy and vision
-3. Users need both for complete project setup
-4. plan-product should be the next step before feature development
+Present the recommendation prominently:
 
-**Required message format**:
+- **Primary:** `/plan-product "your product vision"` — define product strategy and roadmap
+- **Alternatives:** `/create-spec` to jump to feature specs, `/research` to investigate identified gaps, `/create-adr` to document architectural decisions
 
-```
-🚀 Technical Foundation Complete! / 🔍 Technical Foundation Analysis Complete!
-
-## Recommended Next Steps:
-
-### For Product Strategy (Recommended First):
-/plan-product "your product idea/vision" - Define product strategy and roadmap
-
-### For Feature Development:
-/create-spec "feature description" - Create detailed feature specifications
-/implement-story - Implement features
-
-### For Technical Improvements:
-/research "topic" - Research solutions for gaps
-/create-adr "decision" - Document architectural decisions
-```
+Do not end the command without presenting this recommendation. It's the bridge between technical setup and product development.
 
 ---
 
-## Implementation Notes
+## Integration with Writ
 
-### Tool Integration
-
-- Use `codebase_search` for semantic understanding
-- Use `file_search` for pattern discovery
-- Use `todo_write` for progress tracking throughout both workflows
-- Use `edit_file` to create documentation files
-
-### Output Locations & File Structure
-
-#### Directory Structure (Created by Install Script)
-
-```
-.writ/
-├── commands/                 # Writ command definitions (pre-installed)
-└── docs/
-    ├── best-practices.md     # Development best practices (pre-installed)
-    ├── code-style.md         # Code conventions and patterns
-    ├── tech-stack.md         # Technology decisions and rationale
-    └── architecture.md       # System architecture (if complex)
-```
-
-#### Specific File Locations
-
-**Docs Directory** (`.writ/docs/`):
-
-- `best-practices.md` - Development best practices (pre-installed)
-- `code-style.md` - Coding standards, naming conventions, patterns
-- `tech-stack.md` - Technology choices with justifications
-- `architecture.md` - System architecture and technical decisions (if complex)
-
-**Research Directory** (`.writ/research/`):
-
-- Research outputs, technical analysis, and investigation results
-
-**Commands Directory** (`.writ/commands/`):
-
-- Pre-installed Writ command definitions (managed by system)
-
-**Root Directory**:
-
-- `README.md` - Project overview and quick start (only for new projects)
-
-### Todo Integration
-
-Each phase should update todos to show progress, enabling Cursor's todo tracking:
-
-#### Example Todo Updates
-
-```javascript
-// Mark analysis complete and start documentation phase
-todo_write({
-  merge: true,
-  todos: [
-    { id: "greenfield-tech-analysis", status: "completed" },
-    { id: "greenfield-tech-stack", status: "in_progress" },
-  ],
-});
-
-// Update when creating documentation files
-todo_write({
-  merge: true,
-  todos: [
-    { id: "greenfield-tech-stack", status: "completed" },
-    { id: "greenfield-dev-setup", status: "completed" },
-    { id: "greenfield-readme", status: "in_progress" },
-  ],
-});
-```
-
-#### Todo Best Practices
-
-- **Always include file paths** in todo content for clarity
-- **Use descriptive IDs** that indicate workflow type (greenfield/brownfield)
-- **Update todos immediately** after completing each task
-- **Mark todos as completed** only after files are actually created
-- **Use `merge: true`** to update existing todos without replacing the entire list
-
-#### File Creation Verification
-
-Before marking documentation todos as complete, ensure:
-
-1. **Directory exists**: `.writ/docs/`
-2. **File is created**: Use `write` tool to create the actual file
-3. **Content is complete**: File contains all required sections
-4. **Path is correct**: Double-check exact file path matches todo description
+| Command | Relationship |
+|---|---|
+| `/plan-product` | Natural next step — defines product strategy using the technical foundation established here |
+| `/create-spec` | Uses tech-stack.md and code-style.md to inform feature specifications |
+| `/research` | Investigates gaps identified during brownfield analysis |
+| `/create-adr` | Documents architectural decisions surfaced during initialization |
