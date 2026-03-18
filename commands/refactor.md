@@ -4,18 +4,24 @@
 
 Scoped, safe refactoring with automated verification. Analyzes a file, module, or pattern across the codebase, proposes structural improvements, and executes them with tests passing before AND after every change.
 
+**Core discipline:** Each refactoring is an isolated, verified, revertable commit. Never batch changes. Never skip verification. Never refactor on a broken baseline. Refactoring changes structure, never behavior — if a change alters observable behavior, it's not a refactor.
+
+**Scope boundary:** Refactoring does not add features, fix bugs, or change APIs. If the user needs behavioral changes, direct them to `/implement-story`. If they need security fixes, use `/security-audit`. This command makes existing code cleaner, not different.
+
 ## Modes
 
 | Invocation | Mode | Behavior |
 |---|---|---|
 | `/refactor src/lib/auth.ts` | File | Analyze one file, propose improvements |
 | `/refactor src/lib/` | Module | Analyze a directory, propose structural changes |
-| `/refactor --duplicates` | Deduplication | Find duplicated code across the project, propose consolidation |
-| `/refactor --dead-code` | Dead code removal | Find and remove unused exports, functions, files |
-| `/refactor --modernize` | Pattern upgrades | Upgrade legacy patterns to modern equivalents |
+| `/refactor --duplicates` | Deduplication | Find duplicated code, propose consolidation |
+| `/refactor --dead-code` | Dead code | Find and remove unused exports, functions, files |
+| `/refactor --modernize` | Modernize | Upgrade legacy patterns to modern equivalents |
 | `/refactor --types` | Type safety | Strengthen TypeScript types (remove `any`, add missing types) |
-| `/refactor --extract pattern` | Extract | Pull a pattern into a shared utility/component |
+| `/refactor --extract pattern` | Extract | Pull a named pattern into a shared utility/component |
 | `/refactor --dry-run` | Preview | Analyze and report without making changes |
+
+All modes follow the same four-phase workflow. The mode determines *what to scan for* (Step 1.3), not *how to execute*.
 
 ## Command Process
 
@@ -23,176 +29,46 @@ Scoped, safe refactoring with automated verification. Analyzes a file, module, o
 
 #### Step 1.1: Determine Scope
 
-**If target provided:**
-```
-/refactor src/lib/auth.ts
-→ Scope: single file analysis + cross-references
-```
+If a target is provided in the invocation, use it directly and proceed to Step 1.2.
 
-**If no target:**
-```
-AskQuestion({
-  title: "Refactoring Scope",
-  questions: [
-    {
-      id: "scope",
-      prompt: "What would you like to refactor?",
-      options: [
-        { id: "file", label: "A specific file (I'll specify)" },
-        { id: "module", label: "A directory/module (I'll specify)" },
-        { id: "duplicates", label: "Find and consolidate duplicate code" },
-        { id: "dead_code", label: "Find and remove dead code" },
-        { id: "modernize", label: "Upgrade legacy patterns" },
-        { id: "types", label: "Strengthen TypeScript types" },
-        { id: "hotspots", label: "Analyze project and suggest refactoring targets" }
-      ]
-    }
-  ]
-})
-```
+If no target, present scope selection via AskQuestion with these options:
+
+- A specific file (follow up for path)
+- A directory/module (follow up for path)
+- Find and consolidate duplicate code
+- Find and remove dead code
+- Upgrade legacy patterns
+- Strengthen TypeScript types
+- Analyze the project and suggest refactoring targets
+
+The last option triggers a **hotspot analysis**: scan the project for files with the highest complexity, most frequent git churn, largest size, and weakest test coverage. Present the top candidates ranked by refactoring value — complexity × churn is a strong signal for high-value targets. Let the user choose which to proceed with.
 
 #### Step 1.2: Baseline Verification
 
-**Before touching anything, establish a green baseline:**
+**Before touching anything, establish a green baseline.** Run the project's test suite, typechecker, and linter. All three must pass.
 
-```bash
-# Run tests — MUST pass before any refactoring begins
-npm test 2>&1          # or equivalent
-npx tsc --noEmit 2>&1  # typecheck
-npx eslint . 2>&1      # lint
-```
+**If the baseline fails, stop.** Report the specific failures and instruct the user to fix them first. Do not offer to "work around" failing tests or proceed with partial verification. Refactoring on a broken baseline makes it impossible to verify changes are safe — you cannot distinguish regressions you introduced from pre-existing failures.
 
-**If baseline fails:**
-```
-⚠️ Cannot refactor — baseline tests/lint are failing.
-
-Failing:
-  - 3 test failures in auth.test.ts
-  - 2 type errors in utils.ts
-
-Fix these first, then re-run /refactor. Refactoring on a broken baseline
-makes it impossible to verify changes are safe.
-```
-
-**Store baseline metrics:**
-```json
-{
-  "baseline": {
-    "tests": { "total": 45, "passing": 45 },
-    "typeErrors": 0,
-    "lintErrors": 0,
-    "timestamp": "2026-02-22T18:00:00Z"
-  }
-}
-```
+Store baseline metrics for the Phase 4 comparison: test count and pass rate, type error count, lint error count, and mode-specific baselines (e.g., `any` count for `--types`, dead export count for `--dead-code`).
 
 #### Step 1.3: Deep Analysis
 
-**For file/module mode:**
+Analyze the target scope and produce a structured analysis report. What to detect per mode:
 
-```bash
-# Understand the target
-rg -n '(export|function|class|const|interface|type)\s' target_file
-# Count lines, complexity
-wc -l target_file
-# Find all importers (who depends on this?)
-rg -l "from ['\"].*target_module" src/
-# Find all imports (what does this depend on?)
-rg "^import" target_file
-```
+| Mode | What to analyze |
+|---|---|
+| **File / Module** | Size, export count, importer count, dependency count, test coverage. Issues: god modules, deep nesting (3+ levels), magic strings/numbers, internal duplication, legacy patterns, tight coupling |
+| **Duplicates** | Similar function signatures and bodies, repeated patterns across files. Group by similarity; identify extraction targets (shared utilities, base classes, HOCs, hooks) |
+| **Dead code** | Unexported or unimported exports, orphan files, unreachable paths, unused package dependencies. Assign confidence: high/medium/low — some "dead" code may be used dynamically |
+| **Modernize** | `var` → const/let, `require`/`module.exports` → ESM, `.then()` → async/await, callbacks → try/catch, class components → functions, `React.FC` → direct signatures |
+| **Types** | `any` annotations, `as any` casts, `@ts-ignore`/`@ts-expect-error`, missing return types, untyped parameters. Propose specific replacements where inferable from usage |
+| **Extract** | All occurrences of the named pattern, variation points between them, proposed shared abstraction (utility, component, hook, or base class) with parameterized variations |
 
-**Produce analysis report:**
+**Report format:** For each issue, state the problem, recommended change, risk level (Low / Medium / High), and impact (Low / Medium / High). Risk reflects breakage likelihood and dependent count. Impact reflects improvement value.
 
-```
-## Refactoring Analysis: src/lib/auth.ts
+**Order findings low → high risk.** This ordering determines execution priority in Phase 3 — safe changes land first, building confidence before riskier transformations.
 
-**Size:** 342 lines (large — consider splitting)
-**Exports:** 12 (high — possible God module)
-**Importers:** 8 files depend on this module
-**Dependencies:** 6 external imports
-**Test coverage:** 78% (from last coverage run)
-
-### Issues Found
-
-1. **God module** — 12 exports spanning auth, session, and token concerns
-   - Recommendation: Split into auth.ts, session.ts, token.ts
-   - Risk: Medium (8 importers need updating)
-   - Impact: High (separation of concerns)
-
-2. **Duplicated validation** — Lines 45-62 duplicate logic in src/lib/validate.ts
-   - Recommendation: Extract to shared validator
-   - Risk: Low
-   - Impact: Medium (DRY)
-
-3. **Nested conditionals** — Lines 120-180, 4 levels deep
-   - Recommendation: Extract early returns, simplify flow
-   - Risk: Low
-   - Impact: Medium (readability)
-
-4. **Magic strings** — 7 hardcoded role names scattered through file
-   - Recommendation: Extract to constants
-   - Risk: Low
-   - Impact: Low (maintainability)
-
-5. **Legacy pattern** — Callback-style error handling (lines 200-230)
-   - Recommendation: Convert to async/await with try/catch
-   - Risk: Medium (behavior change if callers expect callbacks)
-   - Impact: Medium (modernization)
-```
-
-**For `--duplicates` mode:**
-
-```bash
-# Find similar code blocks (heuristic)
-# Look for functions with similar signatures and bodies
-rg -n 'function\s+\w+.*\{' src/ --type ts
-# Look for repeated patterns
-rg -c 'pattern' src/ --type ts | sort -t: -k2 -rn | head -20
-```
-
-**For `--dead-code` mode:**
-
-```bash
-# Find exports that nobody imports
-for export in $(rg -o 'export (const|function|class|type|interface)\s+(\w+)' src/ -r '$2' --no-filename | sort -u); do
-  count=$(rg -l "$export" src/ --type ts | wc -l)
-  if [ "$count" -le 1 ]; then
-    echo "DEAD: $export (only defined, never imported)"
-  fi
-done
-
-# Find files with no importers
-for file in src/**/*.ts; do
-  module=$(echo $file | sed 's|src/||;s|\.ts$||')
-  count=$(rg -l "from.*$module" src/ | wc -l)
-  if [ "$count" -eq 0 ]; then
-    echo "ORPHAN: $file (never imported)"
-  fi
-done
-```
-
-**For `--modernize` mode:**
-
-```bash
-# Find legacy patterns
-rg -n 'var\s' src/ --type ts              # var → const/let
-rg -n '\.then\(' src/ --type ts           # Promise chains → async/await
-rg -n 'require\(' src/ --type ts          # require → import
-rg -n 'module\.exports' src/ --type ts    # CJS → ESM
-rg -n 'React\.FC' src/ --type tsx         # React.FC → function components
-rg -n 'componentDidMount\|componentWillUnmount' src/  # Class → hooks
-```
-
-**For `--types` mode:**
-
-```bash
-# Find weak types
-rg -n ': any\b' src/ --type ts
-rg -n 'as any\b' src/ --type ts
-rg -n '@ts-ignore\|@ts-expect-error' src/ --type ts
-# Find missing return types on exported functions
-rg -n 'export (async )?function \w+\([^)]*\)\s*\{' src/ --type ts
-```
+For file/module mode, also report cross-cutting context: which files depend on the target (at risk during changes), the target's own dependencies, and test coverage gaps that increase refactoring risk.
 
 ---
 
@@ -200,210 +76,115 @@ rg -n 'export (async )?function \w+\([^)]*\)\s*\{' src/ --type ts
 
 #### Step 2.1: Propose Changes
 
-Present a prioritized plan:
+Present the prioritized plan as a risk-ordered table:
 
-```
-## Refactoring Plan: src/lib/auth.ts
+| # | Change | Risk | Impact |
+|---|---|---|---|
+| 1 | Extract magic strings to constants | Low | Low |
+| 2 | Deduplicate validation into shared utility | Low | Medium |
+| 3 | Simplify nested conditionals with early returns | Low | Medium |
+| 4 | Convert callback error handling to async/await | Med | Medium |
+| 5 | Split module into single-responsibility files | Med | High |
 
-Proposed changes (ordered by risk, low → high):
+Adapt table contents to the active mode — a `--types` plan lists specific type replacements, `--dead-code` lists exports/files to remove, `--extract` shows the shared abstraction and replacement sites.
 
-┌─────┬──────────────────────────────┬──────┬────────┐
-│  #  │ Change                       │ Risk │ Impact │
-├─────┼──────────────────────────────┼──────┼────────┤
-│  1  │ Extract magic strings        │ Low  │ Low    │
-│  2  │ Deduplicate validation       │ Low  │ Medium │
-│  3  │ Simplify nested conditionals │ Low  │ Medium │
-│  4  │ Modernize error handling     │ Med  │ Medium │
-│  5  │ Split into 3 modules        │ Med  │ High   │
-└─────┴──────────────────────────────┴──────┴────────┘
+For module splits and extractions, include a dependency summary: how many files import the target and will need updates. This helps the user assess blast radius before approving.
 
-Tests will be verified after EACH change.
-If any change breaks tests, it will be rolled back.
+Include total change count and time estimate. State that tests are verified after each change and any failure triggers immediate rollback.
 
-Estimated: 5 changes, ~15 minutes
-```
+For large plans (7+ changes), recommend splitting into sessions: complete low-risk changes first, then return for medium and high-risk changes with a fresh baseline.
 
-```
-AskQuestion({
-  title: "Refactoring Plan",
-  questions: [
-    {
-      id: "action",
-      prompt: "How would you like to proceed?",
-      options: [
-        { id: "all", label: "Execute all changes (stop on failure)" },
-        { id: "pick", label: "Let me pick which changes to apply" },
-        { id: "low_only", label: "Only low-risk changes" },
-        { id: "preview", label: "Show me detailed diffs first" },
-        { id: "adr", label: "Create an ADR for the major changes first" }
-      ]
-    }
-  ]
-})
-```
+#### Step 2.2: Plan Approval
 
-#### Step 2.2: Create ADR (for significant refactors)
+Present execution options via AskQuestion:
 
-If splitting modules or making architectural changes, auto-create an ADR:
+- **Execute all** — apply all changes in risk order, stop on first failure
+- **Pick changes** — let the user select which changes to apply
+- **Low-risk only** — apply only Low-risk changes, defer Medium and High
+- **Preview diffs** — show detailed diffs for each proposed change before applying
+- **Create ADR first** — document the architectural rationale before executing
 
-```
-Auto-creating ADR for this refactoring...
-→ .writ/decision-records/XXXX-split-auth-module.md
+If the user selects "Create ADR first," produce one following `/create-adr` conventions: document the refactoring rationale, what will change, impact on dependent code, and how to navigate the new structure. Then return to execution.
 
-This documents why the refactoring was done, what changed,
-and how to navigate the new structure.
-```
+For `--dry-run` mode, the command ends here — present analysis and plan, then stop.
 
 ---
 
 ### Phase 3: Execution
 
-**Golden rule: Tests pass after EVERY individual change.**
+**Golden rule: Tests pass after every individual change.**
 
-For each approved change:
+For each approved change, follow this cycle:
 
-```
-Step 1: Create git checkpoint
-  → git stash or note current state
+1. **Checkpoint** — note the current git state for rollback
+2. **Apply** — edit files with surgical, minimal diffs. Touch only what's necessary for this specific step.
+3. **Verify** — run tests, typecheck, and lint. All three must pass.
+4. **Commit or revert:**
+   - **Green:** commit with a descriptive `refactor:` prefix message. Proceed to next change.
+   - **Red:** revert immediately, report what broke and why, ask whether to skip this change or abort the remaining plan.
 
-Step 2: Apply the change
-  → Edit files (surgical, minimal diffs)
+**Commit per change, not per batch.** Each refactoring step gets its own isolated commit. This makes every change independently revertable, bisectable, and code-reviewable. Example sequence:
 
-Step 3: Verify
-  → Run tests (must pass)
-  → Run typecheck (must pass)
-  → Run lint (must pass)
+- `refactor: extract auth role constants`
+- `refactor: deduplicate validation logic into shared validator`
+- `refactor: split auth.ts into auth, session, token modules`
 
-Step 4: If verification passes
-  → git commit -m "refactor: [description]"
-  → Proceed to next change
+**When moving or extracting code,** update all import paths across dependent files in the same commit as the structural change. Verify that no file still references the old location. Never leave broken imports for the user to clean up.
 
-Step 4b: If verification fails
-  → Revert the change
-  → Report what broke
-  → Ask whether to skip or abort
-```
+**Execution order matters.** Process changes low → high risk as planned. If a low-risk change unexpectedly fails, reconsider whether higher-risk changes are still safe — the failure may reveal assumptions the plan didn't account for.
 
-**Commit after each change** — not in a batch at the end. Each refactoring step gets its own commit:
-
-```
-refactor: extract auth role constants
-refactor: deduplicate validation logic into shared validator
-refactor: simplify nested conditionals with early returns
-refactor: convert callback error handling to async/await
-refactor: split auth.ts into auth.ts, session.ts, token.ts
-```
-
-**Update imports automatically** when extracting/splitting:
-
-```bash
-# When moving exports to a new file, update all importers
-rg -l "from.*auth" src/ | while read file; do
-  # Update import paths in each file that depends on the refactored module
-done
-```
+**Mid-plan failure handling:** If a reverted change was a prerequisite for later changes, skip those automatically. Present the updated remaining plan and let the user decide whether to continue, adjust, or stop.
 
 ---
 
 ### Phase 4: Verification & Report
 
-After all changes applied:
+Run the full verification suite one final time. Compare against the Step 1.2 baseline and produce a completion report:
 
-```bash
-# Full verification suite
-npm test 2>&1
-npx tsc --noEmit 2>&1
-npx eslint . 2>&1
-```
+- **Before/after metrics table** — file count, total lines, exports per file, max nesting depth, mode-specific counts (e.g., `any` remaining, dead exports removed), test results, type errors, lint errors. Show baseline, final, and delta.
+- **All commits** — hash and message for each refactoring commit, in execution order
+- **Files changed** — each file with a one-line summary (modified, created, deleted, moved)
+- **ADRs created** — link to any architecture decision records produced
 
-**Compare against baseline:**
+**Quality bar:** Every metric should be equal or improved. If any metric regressed (e.g., file count increased from a module split), explain why the trade-off is acceptable. A reviewer reading this report should have complete confidence the refactoring was safe.
 
-```
-✅ Refactoring Complete: src/lib/auth.ts
-
-## Before → After
-
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Files | 1 | 3 | +2 (split) |
-| Lines (total) | 342 | 298 | -44 (-13%) |
-| Exports per file | 12 | 4/4/4 | Balanced |
-| Max nesting depth | 4 | 2 | -2 |
-| Magic strings | 7 | 0 | Eliminated |
-| Duplicated logic | 18 lines | 0 | Consolidated |
-| Tests | 45 passing | 45 passing | No regression |
-| Type errors | 0 | 0 | Clean |
-
-## Commits Made
-1. `abc1234` refactor: extract auth role constants
-2. `def5678` refactor: deduplicate validation logic
-3. `ghi9012` refactor: simplify nested conditionals
-4. `jkl3456` refactor: convert to async/await
-5. `mno7890` refactor: split auth into auth/session/token
-
-## Files Changed
-- `src/lib/auth.ts` — Reduced to auth-only concerns (98 lines)
-- `src/lib/session.ts` — NEW — Session management (104 lines)
-- `src/lib/token.ts` — NEW — Token generation/validation (96 lines)
-- `src/lib/constants/roles.ts` — NEW — Role constants
-- `src/lib/validate.ts` — Added shared validation (moved from auth)
-- `src/routes/*.ts` — Updated imports (8 files)
-
-## ADR Created
-- `.writ/decision-records/XXXX-split-auth-module.md`
-```
-
----
-
-## Mode-Specific Workflows
-
-### `--duplicates`
-
-1. Scan entire `src/` for repeated code patterns
-2. Group duplicates by similarity
-3. Propose extraction targets (shared utilities, base classes, HOCs)
-4. Execute extractions one at a time with verification
-
-### `--dead-code`
-
-1. Find unused exports, orphan files, unreachable code
-2. Present list with confidence levels
-3. Remove confirmed dead code
-4. Verify nothing breaks after each removal
-
-### `--modernize`
-
-1. Detect legacy patterns (var, require, callbacks, class components, etc.)
-2. Group by pattern type
-3. Propose modernization for each group
-4. Apply per-file with verification
-
-### `--types`
-
-1. Find all `any` types, `@ts-ignore`, missing return types
-2. Propose specific type replacements
-3. Apply per-file with typecheck verification
-4. Report remaining type weaknesses that need manual decisions
-
-### `--extract pattern`
-
-1. Find all occurrences of the named pattern across the codebase
-2. Propose a shared utility/component/hook
-3. Create the shared module
-4. Replace all occurrences with imports to the shared module
-5. Verify after each replacement
+If any changes were skipped or reverted during execution, list them with the failure reason. This gives the user a clear picture of what was accomplished and what remains for a follow-up session.
 
 ---
 
 ## Safety Guarantees
 
-1. **Green baseline required** — won't start if tests are already failing
-2. **Verify after every change** — tests + typecheck + lint after each individual refactoring
-3. **Automatic rollback** — if any change breaks anything, it's reverted immediately
-4. **Commit per change** — each refactoring is an isolated, revertable commit
-5. **Import updates included** — when moving code, all dependents are updated
-6. **No behavior changes** — refactoring changes structure, not behavior
-7. **ADR for major changes** — architectural refactors get documented
+These seven invariants hold for every refactoring operation:
+
+1. **Green baseline required** — won't start if tests, types, or lint are already failing
+2. **Verify after every change** — tests + typecheck + lint after each individual refactoring step
+3. **Automatic rollback** — if any change breaks verification, it's reverted immediately
+4. **Commit per change** — each refactoring is an isolated, independently revertable commit
+5. **Import updates included** — when moving code, all dependent files are updated in the same commit
+6. **No behavior changes** — refactoring changes structure, not observable behavior
+7. **ADR for major changes** — module splits and architectural restructuring get decision records
+
+---
+
+## Refactoring Discipline
+
+Non-obvious principles that prevent common refactoring failures:
+
+**Stay in scope.** If you discover new issues during execution that weren't in the approved plan, note them for a follow-up session — don't silently expand scope. The user approved a specific plan; changing it mid-execution without consent erodes trust.
+
+**Don't refactor without tests.** If the target code has no test coverage, flag this in the analysis report. Refactoring untested code is gambling — you can't verify behavioral preservation. Recommend adding characterization tests first.
+
+**Don't refactor doomed code.** Check whether the target is scheduled for replacement or deletion in an active spec. Refactoring code that's about to be rewritten is wasted effort — surface this and let the user decide.
+
+**Respect backward compatibility.** When splitting modules, consider whether external consumers import from the original path. If so, create a re-export barrel at the original location so existing imports continue working, then migrate consumers incrementally.
+
+**Dead code confidence.** Not all "unused" exports are actually dead — they may be consumed dynamically via string-based lookups, reflection, test utilities, plugin systems, or CLI entry points. Flag low-confidence findings rather than auto-removing.
+
+**One concern per commit.** Each commit should address exactly one refactoring concern. Don't combine "extract constants" with "simplify conditionals" in the same commit, even if they touch the same file. Atomic commits make review and rollback trivial.
+
+**Preserve the public interface.** Unless the plan explicitly calls for API changes, keep function signatures, return types, and export names stable. Internal restructuring should be invisible to consumers.
+
+---
 
 ## Integration with Writ
 
@@ -413,4 +194,5 @@ npx eslint . 2>&1
 | `/verify-spec` | Run after refactoring to confirm spec alignment |
 | `/create-adr` | Auto-created for significant architectural refactors |
 | `/security-audit` | Refactoring can address security findings |
+| `/research` | Investigate modernization patterns or architectural approaches before refactoring |
 | `/status` | Shows recent refactoring commits |
