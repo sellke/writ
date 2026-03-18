@@ -353,15 +353,16 @@ Each package gets its own version bump and changelog entry. Tags follow the patt
 
 | Command | Relationship |
 |---------|-------------|
-| `/implement-story --all` | Completes the stories that /release documents |
-| `/verify-spec` | Should pass before releasing |
-| `/verify-spec` | Run before /release to ensure docs are current |
+| `/implement-spec` | Orchestrates implementation; run before releasing |
+| `/verify-spec` | Metadata validation; run before releasing to ensure docs are current |
+| `/verify-spec --pre-deploy` | Full release gate — tests, coverage, build |
 | `/status` | Quick check before releasing |
 
 **Recommended pre-release checklist:**
 ```
 /status                        # Everything looks good?
-/verify-spec                   # README in sync?
+/verify-spec                   # Spec metadata in sync?
+/verify-spec --pre-deploy      # Full release gate (tests + build)
 /release --dry-run             # Preview the release
 /release                       # Ship it
 ```

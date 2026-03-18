@@ -56,7 +56,7 @@ Writ uses Claude Code's native subagent system. Agents are defined in `.claude/a
 ## Pipeline
 
 ```
-/plan-product → /create-spec → /implement-story --all → /verify-spec → /release
+/plan-product → /create-spec → /implement-spec → /verify-spec → /release
 ```
 
 ## Principles

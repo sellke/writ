@@ -105,7 +105,7 @@ When running a Writ command, read the appropriate adapter for your platform's to
 The intended workflow from idea to shipped code:
 
 ```
-/plan-product → /create-spec → /implement-story --all → /verify-spec → /release
+/plan-product → /create-spec → /implement-spec → /verify-spec → /release
 ```
 
 **`/implement-story`** is the quarterback. Per story it runs:
