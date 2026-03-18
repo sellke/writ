@@ -2,19 +2,21 @@
 
 ## Overview
 
-Comprehensive specification validation and synchronization. Verifies that story files, README tracking, tests, coverage, and documentation are all consistent and correct. Optionally syncs discrepancies and updates external trackers (Trello, GitHub).
+Specification metadata validation and synchronization. Verifies that story files, README tracking, statuses, deliverables, dependencies, and contract alignment are all consistent and correct. Optionally syncs discrepancies and updates external trackers (Trello, GitHub).
 
-This is the "pre-flight check" before `/release`. Run it after `/implement-story` completes, or anytime you suspect drift.
+Default mode is fast and **metadata-only** — no test execution. Use `--pre-deploy` to add full test/coverage/build regression as a release gate.
+
+Run after `/implement-spec` completes, or anytime you suspect drift.
 
 ## Modes
 
 | Invocation | Mode | Behavior |
 |---|---|---|
-| `/verify-spec` | Interactive | Select spec, full verification, prompt to fix |
-| `/verify-spec --check` | Read-only | Verify only, report issues, change nothing |
-| `/verify-spec --fix` | Auto-fix | Verify and fix all discrepancies without prompting |
+| `/verify-spec` | Interactive | Select spec, metadata checks (1-5, 8), prompt to fix |
+| `/verify-spec --check` | Read-only | Metadata checks only, report issues, change nothing |
+| `/verify-spec --fix` | Auto-fix | Metadata checks + fix all discrepancies without prompting |
 | `/verify-spec --sync-trello` | With Trello | Include Trello card sync (update/create/move) |
-| `/verify-spec --pre-deploy` | Deployment gate | Full test suite + lint + typecheck + verification |
+| `/verify-spec --pre-deploy` | Deployment gate | Full verification: metadata + test suite + coverage + build + lint + typecheck |
 
 ## Command Process
 
@@ -88,7 +90,10 @@ Build complete data model:
 
 ### Phase 2: Verification Checks
 
-Run all checks, collect findings. Never stop at the first failure — report everything.
+Run all applicable checks, collect findings. Never stop at the first failure — report everything.
+
+**Default mode** runs Checks 1-5 and 8 (metadata only — fast, no test execution).
+**`--pre-deploy` mode** runs all 8 checks (adds Checks 6-7 for test/coverage verification).
 
 ---
 
@@ -229,14 +234,15 @@ If ALL stories completed AND all deliverables checked:
 
 ---
 
-#### Check 6: Test Verification
+#### Check 6: Test Verification (`--pre-deploy` only)
 
-**Run actual tests (not just trust checkboxes):**
+> **Skipped in default mode.** Per-story tests run in `/implement-story` Gate 4, and integration tests run in `/implement-spec` Step 4.1. This check re-verifies as a release gate.
+
+**Run full test and quality suite:**
 
 ```bash
-# Detect test runner
+# Detect test runner and run full suite
 if [ -f package.json ]; then
-  # Check for spec-specific test scripts first
   npm run test:${spec_name} 2>/dev/null || npm test
 elif [ -f pyproject.toml ] || [ -f setup.py ]; then
   python -m pytest
@@ -245,24 +251,22 @@ elif [ -f Cargo.toml ]; then
 elif [ -f go.mod ]; then
   go test ./...
 fi
+
+# Full regression suite (always in --pre-deploy)
+npx tsc --noEmit           # typecheck
+npx eslint .               # lint
+npx prettier --check .     # format
 ```
 
 **Report results:**
 - Total tests, passed, failed, skipped
 - If any failures → flag (stories cannot be "Complete" with failing tests)
 
-**In `--pre-deploy` mode, additionally run:**
-```bash
-# Full regression suite
-npm test                    # all tests
-npx tsc --noEmit           # typecheck
-npx eslint .               # lint
-npx prettier --check .     # format
-```
-
 ---
 
-#### Check 7: Coverage Verification
+#### Check 7: Coverage Verification (`--pre-deploy` only)
+
+> **Skipped in default mode.** Coverage is enforced per-story in `/implement-story` Gate 4 (≥80% new files, no decrease on modified). This check re-verifies as a release gate.
 
 **Run coverage analysis:**
 
@@ -302,7 +306,9 @@ This check is heuristic and may have false positives. Report with lower confiden
 
 ### Phase 3: Verification Report
 
-Present all findings in a structured report:
+Present all findings in a structured report.
+
+**Default mode report (metadata only):**
 
 ```
 🔍 Spec Verification Report: 2026-02-22-feature-name
@@ -315,13 +321,38 @@ Present all findings in a structured report:
  3. Completion integrity        ⚠️       1 unchecked DoD item
  4. Dependency validation       ✅       All satisfied
  5. Deliverables checklist      ❌       3 items unsync'd
+ 6. Test verification           ⏭️       Skipped (use --pre-deploy)
+ 7. Coverage                    ⏭️       Skipped (use --pre-deploy)
+ 8. Contract vs implementation  ✅       All scope items implemented
+══════════════════════════════════════════════════
+
+Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
+```
+
+**`--pre-deploy` mode report (full regression):**
+
+```
+🔍 Spec Verification Report: 2026-02-22-feature-name (pre-deploy)
+
+══════════════════════════════════════════════════
+ CHECK                          STATUS   FINDINGS
+══════════════════════════════════════════════════
+ 1. Story file integrity        ✅       All clean
+ 2. Status consistency          ✅       README in sync
+ 3. Completion integrity        ✅       All criteria and DoD checked
+ 4. Dependency validation       ✅       All satisfied
+ 5. Deliverables checklist      ✅       All deliverables verified
  6. Test verification           ✅       45/45 passing
  7. Coverage                    ⚠️       72% (below 80% threshold)
  8. Contract vs implementation  ✅       All scope items implemented
 ══════════════════════════════════════════════════
 
-Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
+Overall: ⚠️ 1 issue needs attention
+```
 
+**Findings detail (both modes):**
+
+```
 ── Auto-Fixable ──────────────────────────────────
 
 [FIX-1] README status mismatch
@@ -347,7 +378,7 @@ Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
   → Was documentation actually updated? If yes, check it off.
     If no, run documentation agent.
 
-[WARN-2] Coverage below threshold
+[WARN-2] Coverage below threshold (--pre-deploy only)
   src/lib/feature.ts: 72% line coverage (threshold: 80%)
   → Add tests for uncovered lines 45-62, 78-85
 ```
@@ -425,6 +456,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 
 > **Date:** YYYY-MM-DD
 > **Spec:** [spec folder]
+> **Mode:** metadata | pre-deploy
 > **Result:** ✅ Passed / ⚠️ Passed with warnings / ❌ Failed
 
 ## Summary
@@ -436,11 +468,11 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 | Completion integrity | ✅ | All criteria and DoD checked |
 | Dependency validation | ✅ | All dependencies satisfied |
 | Deliverables checklist | ✅ | N/N deliverables verified |
-| Test verification | ✅ | X/X tests passing |
-| Coverage | ⚠️ | X% average (threshold: 80%) |
+| Test verification | ✅ / ⏭️ | X/X tests passing / Skipped (metadata mode) |
+| Coverage | ⚠️ / ⏭️ | X% average / Skipped (metadata mode) |
 | Contract alignment | ✅ | All scope items implemented |
 
-## Test Results
+## Test Results (--pre-deploy only)
 - Total: X tests
 - Passed: X
 - Failed: 0
@@ -465,9 +497,11 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 
 ---
 
-### Phase 6: Build Verification (when spec is complete)
+### Phase 6: Build Verification (`--pre-deploy` only)
 
-If all stories are "Completed ✅" after fixes:
+> **Skipped in default mode.** Build verification is part of the release gate, not the metadata check.
+
+If `--pre-deploy` and all stories are "Completed ✅" after fixes:
 
 ```bash
 # Full build check
@@ -478,7 +512,7 @@ npm test 2>&1            # full test suite
 
 **Pass:**
 ```
-✅ Spec verification COMPLETE
+✅ Spec verification COMPLETE (pre-deploy)
 
 All 8 checks passed.
 Build: ✅ successful
@@ -495,7 +529,17 @@ This spec is ready for /release.
 Build error in src/components/Feature.tsx:34
   Type 'string' is not assignable to type 'number'
 
-Spec is NOT ready for release. Fix build errors and re-run /verify-spec.
+Spec is NOT ready for release. Fix build errors and re-run /verify-spec --pre-deploy.
+```
+
+**Default mode completion (no build verification):**
+```
+✅ Spec verification COMPLETE (metadata)
+
+Checks 1-5, 8 passed.
+Spec metadata is consistent.
+
+Run /verify-spec --pre-deploy for full release gate (tests + build + coverage).
 ```
 
 ---
@@ -504,15 +548,18 @@ Spec is NOT ready for release. Fix build errors and re-run /verify-spec.
 
 | Command | Relationship |
 |---------|-------------|
-| `/implement-story --all` | Auto-runs verify-spec after all stories complete |
-| `/release` | Run verify-spec before releasing (verify-spec → release) |
+| `/implement-spec` | Orchestrates implementation; run `/verify-spec` after it completes |
+| `/release` | Run `verify-spec --pre-deploy` before releasing |
 | `/security-audit` | Complementary — verify-spec checks correctness, security-audit checks safety |
 | `/status` | Quick overview; verify-spec is the deep validation |
 
 **Recommended flow:**
 ```
-/implement-story --all    # Build everything
-/verify-spec              # Validate everything
+/implement-spec           # Build everything (includes per-story + integration tests)
+/verify-spec              # Validate spec metadata (fast — no test execution)
+/verify-spec --pre-deploy # Full release gate (tests + coverage + build)
 /security-audit --quick   # Security check
 /release                  # Ship it
 ```
+
+**Boundary principle:** `/implement-spec` owns test execution during the build. `/verify-spec` default mode owns metadata integrity (fast, complements implementation). `/verify-spec --pre-deploy` is the independent release gate that re-verifies everything from scratch.

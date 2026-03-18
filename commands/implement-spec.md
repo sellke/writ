@@ -226,30 +226,21 @@ Options:
 
 #### Step 4.1: Integration Verification
 
-After all stories complete, choose a verification strategy proportional to the change surface:
+After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work *together*.
 
-**Assess the change surface before running anything:**
+```bash
+# 1. Typecheck — catches cross-story type conflicts (always fast)
+npx tsc --noEmit
 
-| Change Surface | Verification | Examples |
-|---|---|---|
-| **Style-only** (CSS classes, className props, Tailwind utilities) | Typecheck only | Adding `max-h-[85vh]`, changing colors, responsive tweaks |
-| **Single-component logic** (state, handlers, props in one component) | Typecheck + targeted test file (if one exists) | Adding a form field, fixing a handler bug |
-| **Cross-component / shared** (utils, hooks, context, API routes) | Typecheck + targeted test files + related integration tests | Refactoring a shared hook, changing an API response shape |
-| **Full-stack / multi-story** (new features, schema changes, migrations) | Full test suite (`npm test`), typecheck, lint | New CRUD feature, auth changes, data model migration |
-
-**Rules:**
-- Default to the **lightest verification that covers the risk**. Err toward less, not more.
-- Never run a multi-minute E2E suite for changes that don't touch logic, state, or data flow.
-- Typecheck (`tsc --noEmit`) is always fast and always worth running — it's the universal baseline.
-- If tests exist that directly exercise the changed component, run those specifically (`npx playwright test [file]`) rather than the full suite.
+# 2. Full test suite — catches integration breakage between stories
+npm test    # or equivalent (pytest, cargo test, go test ./...)
+```
 
 If integration failures: identify which story likely broke it, report to user.
 
-#### Step 4.2: Auto-run verify-spec
+> **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
 
-Execute `/verify-spec` to confirm spec integrity, README sync, and story status consistency.
-
-#### Step 4.3: Summary Report
+#### Step 4.2: Summary Report
 
 ```
 ✅ Specification Complete: feature-name
@@ -269,8 +260,9 @@ Execution Stats:
 - Integration tests: ✅ passing
 
 Next steps:
-- Run `/release` when ready to ship
+- Run `/verify-spec` to validate spec integrity
 - Run `/security-audit` for a security review
+- Run `/release` when ready to ship
 ```
 
 ---
@@ -297,6 +289,6 @@ If a session is interrupted mid-execution:
 | `/create-spec` | Creates the spec that `/implement-spec` executes |
 | `/assess-spec` | Pre-flight sizing check runs automatically in Step 2.3b; full assessment available on demand |
 | `/implement-story` | Called per-story by `/implement-spec` for the 6-gate pipeline |
-| `/verify-spec` | Auto-runs after spec completion |
+| `/verify-spec` | Run after spec completion to validate metadata integrity; `--pre-deploy` for full regression |
 | `/release` | Ship after spec is verified |
 | `/status` | Shows progress of in-flight executions |
