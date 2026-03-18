@@ -68,7 +68,41 @@ SPECS=$(scan .writ/specs/ for specs completed after last release date)
    - Check if database migrations are destructive
    - Check if environment variables were added/removed/renamed
 
-#### Step 1.3: Propose Version Bump
+#### Step 1.3: README Freshness Check
+
+Cross-reference `README.md` against the actual repo to catch silent staleness — the release is the natural checkpoint because you're already enumerating what changed.
+
+**Automated checks:**
+
+| Check | How | Flag when |
+|---|---|---|
+| Commands table | Compare `commands/*.md` filenames against every command listed in README tables | File exists with no README entry, or README lists a command with no file |
+| Agents table | Compare `agents/*.md` against README agents table | Same — missing or stale entries |
+| Pipeline diagram | Verify commands named in the ASCII pipeline still exist | Diagram references a renamed or removed command |
+| Install URLs | Verify repo name and branch in install/update `curl` commands match `git remote` | URL points to wrong repo or non-existent branch |
+
+**On all checks pass:** Continue silently — `📋 README: ✅ current`.
+
+**On discrepancies found:**
+
+```
+⚠️ README discrepancies detected:
+
+- commands/foo.md exists but is not listed in any README table
+- README lists /bar but commands/bar.md does not exist
+- Install URL references 'sellke/old-name', remote is 'sellke/writ'
+
+Options:
+1. Fix now — I'll update README.md, include in the release commit
+2. Skip — release without README changes
+3. Abort — fix manually first
+```
+
+I recommend **option 1** (fix now) — bundling the README fix into the release commit is the cleanest outcome. The discrepancy was already shipped; the release is the right moment to heal it.
+
+**What this check does NOT do:** Validate that command *descriptions* in the README are accurate. Descriptions are judgment calls — the check catches structural drift (missing/extra entries), not semantic drift. If a command's purpose fundamentally changed, the changelog entry is the signal to review its README description manually.
+
+#### Step 1.4: Propose Version Bump
 
 **Automatic determination:**
 | Changes Found | Suggested Bump | Reason |
@@ -272,6 +306,7 @@ Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERS
 ## Summary
 - **Version:** ${PREVIOUS} → ${VERSION}
 - **Changelog:** Updated with ${N} entries
+- **README:** ✅ Current / 🔧 Updated (N fixes)
 - **Tag:** v${VERSION} pushed to origin
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
 
@@ -290,11 +325,12 @@ ${changelog_summary}
 
 When `--dry-run` is specified, the command:
 1. ✅ Gathers all context (versions, commits, specs)
-2. ✅ Generates the changelog entry
-3. ✅ Shows the version bump proposal
-4. ✅ Displays exactly what files would change
-5. ❌ Does NOT modify any files
-6. ❌ Does NOT commit, tag, or push
+2. ✅ Runs README freshness check
+3. ✅ Generates the changelog entry
+4. ✅ Shows the version bump proposal
+5. ✅ Displays exactly what files would change
+6. ❌ Does NOT modify any files
+7. ❌ Does NOT commit, tag, or push
 
 Output:
 ```
@@ -302,6 +338,8 @@ Output:
 
 Current version: 1.2.3
 Proposed version: 1.3.0 (minor — new features detected)
+
+README check: ✅ Current (or: ⚠️ 2 discrepancies — details above)
 
 Changelog entry that would be generated:
 [full entry]
