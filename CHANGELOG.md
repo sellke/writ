@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-03-18
+
+### Changed
+
+- **A-Grade Command Refinement** — 12 commands refined across 4 spec batches, applying the litmus test: every line must teach something non-obvious, set a quality bar, or prevent a specific mistake — or it gets cut. Templates become principles. Net reduction of ~2,700 lines, zero capability lost.
+  - `assess-spec` and `edit-spec` — continued core refinement; compressed assessment tables, replaced edit-spec templates with principles (-633 lines)
+  - `initialize`, `research`, `create-adr` — utility commands refined ~57%; cut duplicate next-steps blocks, replaced 86-line document template and 155-line ADR template with principles, converted auto-execute research to prerequisite gate
+  - `create-issue`, `design`, `prototype` — secondary commands refined ~47%; cut Excalidraw JSON schema and component primitives, rewrote 80-line agent prompt to 25 lines of principles
+  - `new-command`, `refactor`, `review`, `retro` — remaining commands refined ~47%; collapsed 5 mode-specific refactor workflows into one principle, cut JSON/markdown templates and bash pseudocode
+
+### Removed
+
+- Verbose templates in all 12 commands — replaced with concise principles the AI can generalize from
+- Redundant "AI Implementation Prompt," "Best Practices," "Common Pitfalls," "Future Enhancements," and "Integration Notes" sections across all refined commands
+- Hardcoded line-number references in `new-command` template selection logic (broke on any edit)
+- Excalidraw JSON schema and component primitive definitions in `design` (the AI knows SVG primitives)
+- Dialog mockups and bash pseudocode that restated CLI behavior the AI already knows
+
+### Added
+
+- Refinement specs for 4 command groups: utility, secondary, remaining, infrastructure (Specs: `2026-03-18-*-command-refinement`)
+- Infrastructure command refinement spec for the next batch (migrate, prisma-migration, test-database) — planning documentation, not yet implemented
+
 ## [0.3.0] - 2026-03-18
 
 ### Changed
