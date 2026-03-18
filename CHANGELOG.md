@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-03-18
+
+### Added
+
+- **README freshness check in `/release`** — new Step 1.3 cross-references `README.md` against the repo before each release, catching silent staleness in command tables, agent tables, pipeline diagrams, and install URLs. Structural drift detection only; semantic accuracy remains a human judgment call.
+
 ## [0.4.0] - 2026-03-18
 
 ### Changed
