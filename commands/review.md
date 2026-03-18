@@ -8,16 +8,6 @@ Pre-landing code review that identifies failure modes, shadow paths, and interac
 
 Use it independently on any code — pipeline output, external contributions, or your own work before shipping. When run before `/ship`, findings automatically flow into the PR's Review Notes section.
 
-**How `/review` differs from the pipeline review agent:**
-
-| | Pipeline Review (Gate 3) | Standalone `/review` |
-|---|---|---|
-| **Focus** | Spec adherence, code quality, drift detection | Failure modes, rescue gaps, production risk |
-| **Scope** | Single story's changes | Any diff, any context |
-| **Depth** | Broad — covers all review dimensions | Deep — focuses on the ways code fails |
-| **Output** | PASS/FAIL with feedback for coding agent | Structured failure report with severity ratings |
-| **When** | During `/implement-story` pipeline | Before `/ship`, or standalone on any code |
-
 ## Invocation
 
 | Invocation | Behavior |
@@ -31,29 +21,11 @@ Use it independently on any code — pipeline output, external contributions, or
 
 ### Step 1: Identify Review Scope
 
-Determine what code to analyze based on invocation.
+Determine what code to analyze based on invocation. Default: `git diff origin/[default-branch]...HEAD`. The `--diff` and `--file` flags narrow the base or path accordingly.
 
-**Default (`/review`):**
-```bash
-git diff origin/[default-branch]...HEAD
-```
+With `--spec`, load `spec-lite.md` from the spec folder and compare planned error handling (from spec's error mapping tables) against actual implementation using the shared error mapping format.
 
-**With `--diff [base]`:**
-```bash
-git diff [base]...HEAD
-```
-
-**With `--file [path]`:**
-```bash
-git diff origin/[default-branch]...HEAD -- [path]
-```
-
-**With `--spec [path]`:**
-- Load `spec-lite.md` from the spec folder for context on planned behavior
-- Compare planned error handling (from spec's error mapping tables) against actual implementation
-- This enables plan-vs-actual comparison using the shared error mapping format
-
-**Print the review scope before starting:**
+Print the scope before starting:
 
 ```
 🔍 Review scope: 8 files changed (+247, -31) vs origin/main
@@ -64,12 +36,12 @@ git diff origin/[default-branch]...HEAD -- [path]
 
 Read the full diff and build a mental model of what changed:
 
-1. **Categorize files** — which are data flows, which are UI, which are infrastructure
-2. **Identify trust boundaries** — where does user input enter? Where does data cross services?
+1. **Categorize files** — data flows vs UI vs infrastructure
+2. **Identify trust boundaries** — where user input enters, where data crosses services
 3. **Map external dependencies** — database calls, API requests, file I/O, third-party SDKs
 4. **Note what's absent** — error handling not added, tests not updated, edge cases not covered
 
-This scan determines which review techniques to prioritize. Not every technique applies to every diff.
+This scan determines which techniques to prioritize. Not every technique applies to every diff.
 
 ### Step 3: Apply Review Techniques
 
@@ -79,7 +51,7 @@ Apply all applicable techniques. **Prioritize depth over breadth** — deeply an
 
 #### Technique 1: Error & Rescue Map
 
-For every method or function in the diff that can fail, produce this table:
+For every method in the diff that can fail:
 
 | Method | What Fails | Exception Class | Rescued? | Test? | User Sees |
 |---|---|---|---|---|---|
@@ -87,7 +59,7 @@ For every method or function in the diff that can fail, produce this table:
 | `validateToken()` | Token expired | `AuthError` | Yes — redirect | Yes | Login page |
 | `processPayment()` | Stripe timeout | `TimeoutError` | **No** | **No** | **Silent failure** |
 
-**Critical gap detection — the rightmost columns are the signal:**
+**The rightmost columns are the signal:**
 
 | Pattern | Severity | Meaning |
 |---|---|---|
@@ -104,7 +76,7 @@ I recommend **starting with methods that handle external I/O** — database, net
 
 #### Technique 2: Shadow Path Tracing
 
-For critical data flows in the diff, trace four paths through each:
+For critical data flows, trace four paths through each:
 
 | Path | Input | Expected | Actual |
 |---|---|---|---|
@@ -126,7 +98,7 @@ I recommend **tracing at most 5 critical flows**. Beyond that, diminishing retur
 
 #### Technique 3: Interaction Edge Cases
 
-For user-facing features in the diff, evaluate these standard scenarios:
+For user-facing features, evaluate these standard scenarios:
 
 | Edge Case | Handled? | How |
 |---|---|---|
@@ -138,11 +110,11 @@ For user-facing features in the diff, evaluate these standard scenarios:
 | Network loss mid-operation | | |
 | Concurrent edits (two tabs) | | |
 
-Mark each as: ✅ Handled (with description), ⚠️ Partial (with gap), ❌ Unhandled.
+Mark each as: ✅ Handled, ⚠️ Partial (with gap), ❌ Unhandled.
 
-**Add feature-specific edge cases** beyond the standard set. A payment form needs "card declined" and "duplicate charge" scenarios. A file upload needs "oversized file" and "wrong format" scenarios. Think about what's specific to *this* code.
+**Add feature-specific edge cases** beyond the standard set. A payment form needs "card declined" and "duplicate charge". A file upload needs "oversized file" and "wrong format". Think about what's specific to *this* code.
 
-**Skip this technique for backend-only changes.** If the diff doesn't touch UI components or user-facing endpoints, note "No user-facing interactions in scope" and move on.
+**Skip this technique for backend-only changes.**
 
 ---
 
@@ -172,7 +144,7 @@ I recommend **addressing all Critical and High items before shipping**. Medium i
 
 #### Technique 5: Architecture Diagram
 
-For non-trivial flows in the diff, produce a mandatory ASCII diagram showing the data path and failure points:
+For non-trivial flows, produce an ASCII diagram showing the data path and failure points:
 
 ```
 User → [Form Submit] → API Route → [Validate] → DB Write → [Notify] → Response
@@ -183,19 +155,11 @@ User → [Form Submit] → API Route → [Validate] → DB Write → [Notify] �
 
 Annotate each failure point with its registry ID and rescue status. The diagram makes the failure topology visible at a glance — something tables alone can't do.
 
-**Include a diagram when:**
-- The diff touches 3+ files in a request/response chain
-- There's a data flow with multiple failure points
-- The relationship between components isn't obvious from file names alone
-
-**Skip when:**
-- Single-file changes with no cross-component flow
-- Pure utility/helper modifications
-- Test-only changes
+**Include when** the diff touches 3+ files in a chain, has multiple failure points, or the component relationship isn't obvious. **Skip for** single-file changes, pure utility modifications, or test-only changes.
 
 ### Step 4: Produce Report
 
-Generate a structured markdown report. This is the primary output of `/review`.
+Generate a structured markdown report:
 
 ```markdown
 # Code Review: [branch-name]
@@ -205,88 +169,30 @@ Generate a structured markdown report. This is the primary output of `/review`.
 > Spec: [path if --spec provided, else "Standalone review"]
 
 ## Architecture
-
-[ASCII diagram showing data flow and failure points]
+[ASCII diagram from Technique 5]
 
 ## Error & Rescue Map
-
 [Table from Technique 1]
 
 ## Shadow Paths
-
 [Tables from Technique 2, one per critical flow]
 
 ## Interaction Edge Cases
-
 [Table from Technique 3, or "No user-facing interactions in scope"]
 
 ## Failure Modes Registry
-
 [Aggregated table from Technique 4]
-
 **Summary:** N findings — X critical, Y high, Z medium, W low
 
 ## Recommendation
-
 **The critical gap is [most important finding] because [concrete impact].**
-
-[Specific recommendation for addressing it — code-level guidance, not just "fix this".]
-
-[If additional findings warrant attention, list them with brief recommendations.]
-
-[If no critical/high findings: "This code is ready to ship. The medium/low findings
-are worth noting but don't block merge."]
+[Code-level guidance for addressing it, not just "fix this".]
 ```
 
-**The Recommendation section is the soul of `/review`.** Don't bury the lead in tables — open with the single most important thing the developer needs to know, and why it matters.
+**The Recommendation section is the soul of `/review`.** Don't bury the lead in tables — open with the single most important thing the developer needs to know, and why it matters. If no critical/high findings: state the code is ready to ship.
 
-### Step 5: Save Report & Integrate with /ship
+### Step 5: Integration with /ship
 
-1. Create `.writ/state/` directory if it doesn't exist, then save the review report to `.writ/state/review-[branch-name].md`
-2. When `/ship` runs on the same branch, it checks for this file
-3. If found, the Failure Modes Registry is included in the PR body's "Review Notes" section
-4. Critical and High findings are highlighted in the PR description
+Save the report to `.writ/state/review-[branch-name].md` (create `.writ/state/` if needed). When `/ship` runs on the same branch, it reads this file and includes the Failure Modes Registry in the PR body's Review Notes section, highlighting Critical and High findings.
 
-This integration is output-based: `/review` writes a file, `/ship` reads it. No tight coupling between the commands.
-
-## Error Handling
-
-**No changes to review:**
-```
-⚠️ No changes detected on this branch vs [base].
-Nothing to review.
-```
-
-**Diff too large (>2000 lines):**
-```
-⚠️ Large diff detected (2,847 lines across 34 files).
-
-I recommend narrowing the review scope:
-  /review --file src/auth/session.ts    (specific file)
-  /review --diff HEAD~5                 (recent commits only)
-
-Or I can proceed with a focused review of the highest-risk files
-(external I/O, authentication, data mutations).
-
-Proceed with focused review? [Enter to continue, or specify scope]
-```
-
-I recommend **focused review over comprehensive-but-shallow** for large diffs. Three deeply-analyzed critical paths are worth more than forty superficially-checked functions.
-
-**No default branch detected:**
-```
-⚠️ Can't detect default branch. Specify a base:
-  /review --diff main
-  /review --diff develop
-```
-
-## When to Use /review vs Other Commands
-
-| Scenario | Command |
-|---|---|
-| Deep failure analysis before shipping | `/review` → `/ship` |
-| Full story with pipeline review + drift | `/implement-story` (Gate 3 handles this) |
-| Quick prototype check | `/prototype` (has built-in lint) |
-| Review with plan-vs-actual comparison | `/review --spec .writ/specs/...` |
-| Post-mortem on a production incident | `/review --diff [release-tag]` |
-| Review a specific file in isolation | `/review --file path/to/file.ts` |
+This integration is output-based: `/review` writes a file, `/ship` reads it. No tight coupling.
