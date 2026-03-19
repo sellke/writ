@@ -265,8 +265,8 @@ overlay_scan() {
 
     if [ ! -f "$local_file" ]; then
       _NEW=$((_NEW + 1))
-      [ "$mode" = "preview" ] && echo "    ✨ New:       $rel_path"
-      [ "$mode" = "apply" ]   && cp "$src_file" "$local_file"
+      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_file" "$local_file"; fi
       continue
     fi
 
@@ -281,20 +281,20 @@ overlay_scan() {
 
     if [ "$FORCE" = true ]; then
       _UPDATED=$((_UPDATED + 1))
-      [ "$mode" = "preview" ] && echo "    🔄 Update:    $rel_path (forced)"
-      [ "$mode" = "apply" ]   && cp "$src_file" "$local_file"
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_file" "$local_file"; fi
     elif [ -z "$baseline_hash" ]; then
       _PRESERVED=$((_PRESERVED + 1))
       _PRESERVED_FILES="${_PRESERVED_FILES}    ${rel_path}\n"
-      [ "$mode" = "preview" ] && echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
     elif [ "$local_hash" = "$baseline_hash" ]; then
       _UPDATED=$((_UPDATED + 1))
-      [ "$mode" = "preview" ] && echo "    🔄 Update:    $rel_path"
-      [ "$mode" = "apply" ]   && cp "$src_file" "$local_file"
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_file" "$local_file"; fi
     else
       _PRESERVED=$((_PRESERVED + 1))
       _PRESERVED_FILES="${_PRESERVED_FILES}    ${rel_path}\n"
-      [ "$mode" = "preview" ] && echo "    ⚡ Preserved: $rel_path (local modifications)"
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
     fi
   done
 }

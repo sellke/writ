@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-03-19
+
+### Fixed
+
+- `install.sh` and `update.sh` `overlay_scan` silently exiting on `set -e` when the last file alphabetically needed an update — `[ "$mode" = "apply" ] && cp ...` returns exit code 1 in preview mode, which became the function's return value and killed the script. Replaced all `[ ... ] && ...` conditionals with `if/fi` blocks. Affected copy-mode install and update on all platforms.
+
 ## [0.4.1] - 2026-03-18
 
 ### Added
