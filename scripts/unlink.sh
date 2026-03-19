@@ -182,12 +182,12 @@ echo ""
 if [ "$DRY_RUN" = true ]; then
   echo "🏃 DRY RUN — No changes will be made"
   echo ""
-  for entry in "${DIR_SYMLINKS[@]}"; do
+  for entry in ${DIR_SYMLINKS[@]+"${DIR_SYMLINKS[@]}"}; do
     local_path="${entry%%|*}"
     target="${entry##*|}"
     echo "  📁 $local_path → $target (would replace directory symlink with copies)"
   done
-  for entry in "${SYMLINKS[@]}"; do
+  for entry in ${SYMLINKS[@]+"${SYMLINKS[@]}"}; do
     local_path="${entry%%|*}"
     target="${entry##*|}"
     echo "  📄 $local_path → $target"
@@ -206,7 +206,7 @@ echo "Converting..."
 CONVERTED=0
 
 # Handle directory symlinks first (older link installs)
-for entry in "${DIR_SYMLINKS[@]}"; do
+for entry in ${DIR_SYMLINKS[@]+"${DIR_SYMLINKS[@]}"}; do
   local_path="${entry%%|*}"
   target="${entry##*|}"
   echo "  📁 Replacing directory symlink: $local_path"
@@ -222,7 +222,7 @@ for entry in "${DIR_SYMLINKS[@]}"; do
 done
 
 # Handle per-file symlinks
-for entry in "${SYMLINKS[@]}"; do
+for entry in ${SYMLINKS[@]+"${SYMLINKS[@]}"}; do
   local_path="${entry%%|*}"
   target="${entry##*|}"
 

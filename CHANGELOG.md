@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.4] - 2026-03-19
+
+### Fixed
+
+- `unlink.sh` crashing with `unbound variable` on bash 3.2 (macOS default) when `DIR_SYMLINKS` array is empty — `set -u` treats `"${arr[@]}"` on an empty array as unbound. Fixed all four array iterations to use the `${arr[@]+"${arr[@]}"}` safe expansion pattern.
+
 ## [0.4.3] - 2026-03-19
 
 ### Removed
