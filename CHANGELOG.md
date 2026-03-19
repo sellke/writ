@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.3] - 2026-03-19
+
+### Removed
+
+- **Symlink install mode** — `install.sh --link` is no longer offered. Copy mode is the only installation method for external users. Linked installations posed risks around shared mutable state and non-portable `.cursor/` directories.
+- Link mode update handler in `update.sh` — now errors with guidance to convert via `unlink.sh`
+- README "Link mode (power users)" section and "Copy vs Link" callout
+
+### Added
+
+- `scripts/unlink.sh` — converts existing symlinked Writ installations to independent file copies with manifest rewrite, supporting both per-file and directory-level symlinks
+- `/migrate` entry in README command table (was documented in migration section but missing from the table)
+
+### Changed
+
+- `install.sh` retains defensive symlink-removal when it detects an existing linked installation, ensuring a clean conversion to copy mode
+- `update.sh` rejects linked installations with a clear error pointing to `unlink.sh`
+
 ## [0.4.2] - 2026-03-19
 
 ### Fixed

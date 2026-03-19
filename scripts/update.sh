@@ -90,10 +90,6 @@ manifest_mode() {
   fi
 }
 
-manifest_link_target() {
-  [ -f "$MANIFEST_FILE" ] && grep '^# link_target:' "$MANIFEST_FILE" | sed 's/^# link_target: //' || true
-}
-
 manifest_hash_for() {
   local path="$1"
   [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
@@ -128,68 +124,19 @@ EOF
   done
 }
 
-# ===========================================================================
-# LINK MODE — just git pull the linked checkout
-# ===========================================================================
+# ---------------------------------------------------------------------------
+# Linked installation guard — must convert first
+# ---------------------------------------------------------------------------
 
 if [ "$(manifest_mode)" = "link" ]; then
-  LINK_TARGET=$(manifest_link_target)
-  CURRENT_VERSION=$(manifest_version)
-
-  if [ -z "$LINK_TARGET" ] || [ ! -d "$LINK_TARGET" ]; then
-    echo "❌ Linked writ checkout not found: ${LINK_TARGET:-<none>}"
-    echo "   Re-run install.sh --link to fix."
-    exit 1
-  fi
-
-  if [ ! -d "$LINK_TARGET/.git" ]; then
-    echo "❌ $LINK_TARGET is not a git repository."
-    echo "   Re-run install.sh --link with a valid writ checkout."
-    exit 1
-  fi
-
-  echo "🔗 Linked installation: $LINK_TARGET"
-  echo "   Current: ${CURRENT_VERSION:-unknown}"
+  echo "❌ This is a linked Writ installation."
+  echo "   Linked installations cannot be updated with update.sh."
   echo ""
-
-  if [ "$DRY_RUN" = true ]; then
-    echo "🏃 DRY RUN — Would run 'git pull' in $LINK_TARGET"
-    exit 0
-  fi
-
-  echo "Pulling latest..."
-  PULL_OUTPUT=$(cd "$LINK_TARGET" && git pull 2>&1) || {
-    echo "❌ git pull failed in $LINK_TARGET:"
-    echo "$PULL_OUTPUT"
-    exit 1
-  }
-  echo "$PULL_OUTPUT"
-
-  NEW_VERSION=$(cd "$LINK_TARGET" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
-  NEW_VERSION_LONG=$(cd "$LINK_TARGET" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
-
-  # Update manifest timestamp and version
-  MANIFEST_ABS="$(pwd)/$MANIFEST_FILE"
-  cat > "$MANIFEST_ABS" << EOF
-# Writ Manifest — do not edit manually
-# mode: link
-# link_target: $LINK_TARGET
-# version: $NEW_VERSION
-# date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-# source: $WRIT_REPO
-EOF
-
+  echo "   To convert to a copy-based installation:"
+  echo "     bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/unlink.sh)"
   echo ""
-  if [ "$CURRENT_VERSION" = "$NEW_VERSION" ]; then
-    echo "✅ Already up to date! ($NEW_VERSION)"
-  else
-    echo "✅ Writ updated! ($CURRENT_VERSION → $NEW_VERSION)"
-    echo "   Latest: $NEW_VERSION_LONG"
-  fi
-
-  echo ""
-  echo "⚡ So it is written. So it shall be built."
-  exit 0
+  echo "   Then re-run update.sh."
+  exit 1
 fi
 
 # ===========================================================================

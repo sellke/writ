@@ -116,6 +116,7 @@ Feedback loop (/retro + /refresh-command):
 | `/initialize` | Project setup (greenfield/brownfield detection) |
 | `/explain-code` | Code explanation with diagrams |
 | `/new-command` | Create new Writ commands |
+| `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |
 | `/test-database` | Database diagnostic and auto-fixing |
 | `/prisma-migration` | Prisma migration workflow |
 
@@ -160,22 +161,6 @@ bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/instal
 ```
 
 Then in Cursor chat: `/create-spec "my feature"`
-
-### Link mode (power users)
-
-If you use Writ across many projects and want them all to stay in sync automatically:
-
-```bash
-bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --link
-```
-
-This clones Writ once to `~/.writ` and symlinks your project to it. All projects share the same files — update everywhere at once with `bash update.sh`. You can also link to a specific checkout:
-
-```bash
-bash install.sh --link /path/to/your/writ-fork
-```
-
-> **Copy vs Link:** Copy mode (default) is self-contained, git-portable, and supports per-project customization — files you modify are preserved across updates. Link mode is always current but doesn't support per-file customization. See `install.sh --help` for details.
 
 ### Updating
 
