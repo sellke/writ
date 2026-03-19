@@ -4,7 +4,7 @@
 
 Unified shipping workflow that takes a green branch to a merged PR. Replaces the manual sequence of merge-main → run-tests → organize-commits → write-PR → push → open-PR. Non-interactive by default — momentum over ceremony.
 
-`/ship` is the *last mile* command. It assumes the code is ready (tests pass, review complete) and focuses on getting it merged cleanly. It's not a second review gate — that's what `/review` and the pipeline are for.
+`/ship` is the *last mile* command. It assumes the code is ready (review complete, confidence in correctness) and focuses on getting it merged cleanly. **Tests do not run by default** — use `/ship --test` when you want the suite after merging the default branch. It's not a second review gate — that's what `/review` is for.
 
 Use `/ship` standalone on any branch, or as the natural next step after `/implement-story` completes.
 
@@ -16,7 +16,8 @@ The roadmap listed a "PR agent" and a "`/ship` command" separately. Both create 
 
 | Invocation | Behavior |
 |---|---|
-| `/ship` | Full workflow from current branch |
+| `/ship` | Full workflow from current branch (no test run) |
+| `/ship --test` | After merge/rebase, run the full test suite before commit intelligence |
 | `/ship --no-split` | Skip commit splitting (ship as-is) |
 | `/ship --draft` | Force draft PR regardless of test results |
 | `/ship --rebase` | Use rebase instead of merge in Step 2 |
@@ -24,22 +25,23 @@ The roadmap listed a "PR agent" and a "`/ship` command" separately. Both create 
 
 ## Pipeline
 
+Default path **omits** tests. With `/ship --test`, the dashed box runs after merge.
+
 ```
-┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│ DETECT       │──▶│ MERGE &      │──▶│ RUN          │──▶│ COMMIT       │──▶│ PR           │
-│ CONVENTIONS  │   │ REBASE       │   │ TESTS        │   │ INTELLIGENCE │   │ CREATION     │
-│              │   │              │   │              │   │              │   │              │
-│ • branch     │   │ • fetch      │   │ • auto-      │   │ • bisectable │   │ • structured │
-│ • test runner│   │   origin     │   │   detect     │   │   splitting  │   │   body       │
-│ • PR style   │   │ • merge or   │   │   runner     │   │ • logical    │   │ • auto-label │
-│              │   │   rebase     │   │ • report     │   │   grouping   │   │ • draft/ready│
-└──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘
+┌──────────────┐   ┌──────────────┐   ┌ ╍╍╍╍╍╍╍╍╍╍╍╍ ┐   ┌──────────────┐   ┌──────────────┐
+│ DETECT       │──▶│ MERGE &      │ ╷ │ RUN TESTS    │ ╷ │ COMMIT       │──▶│ PR           │
+│ CONVENTIONS  │   │ REBASE       │ ╷ │ (--test)     │ ╷ │ INTELLIGENCE │   │ CREATION     │
+│              │   │              │ ╵ │ optional     │ ╵ │              │   │              │
+│ • branch     │   │ • fetch      │   └ ╍╍╍╍╍╍╍╍╍╍╍╍ ┘   │ • splitting  │   │ • structured │
+│ • test runner│   │ • merge /    │          ▲            │ • grouping   │   │   body       │
+│ • PR style   │   │   rebase     │    only if --test     │              │   │ • spec health│
+└──────────────┘   └──────────────┘          │            └──────────────┘   └──────────────┘
                           │                  │                                      │
-                     conflict?          test fail?                            ┌─────┴─────┐
-                          ▼                  ▼                                │ PUSH &    │
+                     conflict?          test fail? (--test only)           ┌─────┴─────┐
+                          ▼                  ▼                             │ PUSH &    │
                    ┌──────────────┐   ┌──────────────┐                       │ OPEN PR   │
-                   │ PAUSE        │   │ REPORT &     │                       │ + URL     │
-                   │ show conflict│   │ FIX OPTION   │                       └───────────┘
+                   │ PAUSE        │   │ FIX / DRAFT  │                       │ + URL     │
+                   │ show conflict│   │ / ABORT      │                       └───────────┘
                    └──────────────┘   └──────────────┘
 ```
 
@@ -140,9 +142,11 @@ git rebase origin/[default-branch]
 
 Same conflict handling applies. On rebase conflict, offer `git rebase --abort` as the abort option.
 
-### Step 3: Run Tests
+### Step 3: Run Tests (optional — `/ship --test`)
 
-Execute the detected test command. Stream output so the user sees progress in real time.
+**If `--test` is not set:** Skip this step entirely — go to Step 4.
+
+**If `--test` is set:** Execute the test command detected in Step 1. Stream output so the user sees progress in real time.
 
 ```bash
 # Runs the command detected in Step 1:
@@ -153,41 +157,25 @@ cargo test            # Rust
 make test             # Makefile-based
 ```
 
-**On success:** Continue silently to Step 4. Passing tests speak for themselves — no confirmation needed.
+**On success:** Continue silently to Step 4.
 
 **On failure:**
 
 ```
 ❌ Tests failed (3 failures, 47 passing)
 
-Failed:
-  ✗ auth.test.ts > createSession > handles expired tokens
-  ✗ auth.test.ts > validateToken > rejects malformed JWT
-  ✗ api.test.ts > /users > returns 401 without auth header
+[Failures summarized from runner output]
 
-Options:
-1. Fix and retry — analyze failures and attempt fixes
-2. Ship anyway (draft PR) — opens as draft with test failure notes
-3. Abort — stop shipping, fix tests manually
+1. Fix and retry
+2. Ship anyway — draft PR + tests-failing label, continue
+3. Abort
 ```
 
-I recommend **option 1** (fix and retry) unless the failures are known flaky tests or unrelated to your changes. Shipping broken tests creates noise for reviewers and blocks CI.
+**On option 1:** Analyze failures against the diff, attempt one focused fix pass, re-run tests; if still failing, present 1–3 again.
 
-**On "Fix and retry":**
-1. Analyze test failure output alongside the diff
-2. Identify likely causes (changed behavior, missing mocks, stale fixtures)
-3. Apply fixes
-4. Re-run tests
-5. If still failing after one fix attempt, present the three options again
+**On option 2:** Force `--draft`, add **`tests-failing`** label, include failure summary under **Test Results** in the PR body, continue to Step 4.
 
-**On "Ship anyway (draft PR)":**
-- Force `--draft` mode for the remainder of the pipeline
-- Include test failure summary in the PR body's Test Results section
-- Add `⚠️ tests-failing` label to the PR
-
-**On "Abort":**
-- Clean up any merge from Step 2 if the user wants (`git merge --abort`)
-- Print the failure summary for reference
+**On option 3:** Offer `git merge --abort` / `git rebase --abort` if helpful; stop.
 
 ### Step 4: Commit Intelligence
 
@@ -209,7 +197,7 @@ Analyze the diff and organize changes into bisectable commits when beneficial. T
 - All changes are tightly coupled — splitting would create broken intermediate states (e.g., a type change + all its call sites)
 - `--no-split` flag is set
 
-**Each intermediate commit must build and pass tests.** If splitting would create a commit where tests fail, merge that commit with the next one. Broken intermediate states are worse than a fat commit.
+**Each intermediate commit should leave the repo in a good state.** When `/ship --test` is used, avoid splits that would leave tests failing midway — merge layers if needed. When `--test` was not used, prioritize **buildability** (no syntax/type errors obvious from the split).
 
 **Commit message format — conventional commits with Writ references:**
 
@@ -290,8 +278,11 @@ Focus on *what changed and why*, not implementation details.]
 - Story: story-3-session-management.md
 
 ## Test Results
-[Pass/fail summary from Step 3:]
-✅ 47 passing, 0 failing
+[/ship --test: pass/fail summary from Step 3]
+[/ship without --test: "Tests not run (use `/ship --test` to execute the suite before opening the PR)."]
+
+## Spec Health
+[Omitted when clean — populated only if inline checks 1–3 find unfixable issues; see Step 5.]
 
 ## Drift Report
 [Summary from spec-healing drift-log if available:]
@@ -310,11 +301,18 @@ Run /review before /ship for failure mode analysis."]
 | Summary | Generated from commit messages + diff analysis |
 | Changes | Parsed from commits created in Step 4 (or full diff if --no-split) |
 | Spec Reference | Detected from `.writ/specs/` in the repo — match branch name or recent story file references in commits |
-| Test Results | Captured from Step 3 output |
+| Test Results | Step 3 if `--test`; otherwise explicit "not run" line (see template) |
+| Spec Health | Step 5 — incomplete metadata issues that could not be auto-fixed (checks 1–3 only); **omit entire subsection** when clean |
 | Drift Report | Read from `drift-log.md` in the active spec folder if it exists |
 | Review Notes | Read from `.writ/state/review-[branch-name].md` if `/review` was run before `/ship` |
 
-If any section has no data (no spec, no drift log, no review), use clear placeholder text — don't leave the section empty or omit it. The consistent structure helps reviewers know where to look.
+If any section has no data (no spec, no drift log, no review), use clear placeholder text — don't leave the section empty or omit it, **except Spec Health** which must be omitted when there is nothing to report. The consistent structure helps reviewers know where to look.
+
+**Inline spec health (silent):** During Step 5, if `.writ/specs/` exists **and** an active spec is identified (same discovery as **Spec Reference**):
+
+1. Run **`/verify-spec` checks 1–3 only** — story file integrity, status consistency, completion integrity (definitions identical to the standalone command).
+2. **Auto-fix** safe metadata issues with no user prompts (README table, task totals, status headers, premature status, etc.).
+3. If **unfixable** problems remain (phantom stories, false completions, structural gaps): add a `## Spec Health` subsection to the PR body with short bullets. If everything is clean after fixes, **omit** `## Spec Health` entirely.
 
 **Auto-labeling — additive, not exclusive:**
 
@@ -341,10 +339,11 @@ Never fail the entire `/ship` flow because of missing labels. The PR is the deli
 
 | Condition | PR Status |
 |---|---|
-| All tests pass + no medium/large drift | **Ready for review** |
+| Default (`/ship` without `--test`), no `--draft`, drift acceptable | **Ready for review** — tests were not executed in this flow |
+| `/ship --test` with all tests passing + drift acceptable | **Ready for review** |
+| `/ship --test` with failures shipped via "Ship anyway" | **Draft** with `tests-failing` label |
 | Test warnings or medium drift | **Draft** with notes explaining why |
 | `--draft` flag set | **Draft** regardless of status |
-| Test failures shipped via "Ship anyway" | **Draft** with `⚠️ tests-failing` label |
 
 User can override in both directions — force draft on a clean PR, or force ready on a draft.
 
@@ -414,7 +413,8 @@ Step 2 — Merge:
   Current state: 3 commits behind origin/main
 
 Step 3 — Tests:
-  Would run: npm test
+  Skipped (default — pass --test to run)
+  [With --test: Would run: npm test]
 
 Step 4 — Commit Intelligence:
   Would split into 3 commits:
@@ -497,8 +497,20 @@ Proceed? [Enter to continue, or specify a branch name]
 | Scenario | Command |
 |---|---|
 | Feature branch ready to merge | `/ship` |
+| Want tests after merging default branch | `/ship --test` |
 | Need code review before shipping | `/review` → `/ship` |
 | Implementing a spec story | `/implement-story` → `/ship` |
+| After PR merges — cut a version | `/release` (see Integration) |
 | Quick prototype, not ready for PR | `/prototype` |
 | Need to split commits only (no PR) | Manual `git rebase -i` |
 | Shipping without commit reorganization | `/ship --no-split` |
+
+## Integration with Writ
+
+| Command | Relationship |
+|---------|-------------|
+| `/review` | Optional quality pass before `/ship` |
+| `/release` | Natural follow-up **after** the PR lands — runs its own gate (build + conditional tests + changelog) |
+| `/verify-spec` | Standalone metadata diagnostic; `/ship` embeds checks **1–3** only when opening a PR |
+
+**Typical flow:** `/ship` → merge PR → `/release --dry-run` → `/release`.

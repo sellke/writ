@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-03-19
+
+### Changed
+
+- **Pipeline streamlining** (`/verify-spec`, `/ship`, `/release`) — each command owns one job. `/verify-spec` is a metadata-only diagnostic (checks 1–5 and 8) with default auto-fix; `/ship` skips tests unless `/ship --test`; `/release` runs an inline gate (spec validation, build probes when configured, conditional full test suite via `gh` merge-commit vs `HEAD`) before changelog work. Added `/release --skip-gate`. README command summaries aligned.
+- **Migration docs** — `SKILL.md` and `commands/migrate.md` updated for the new flow (no `--pre-deploy` / Trello).
+
 ## [0.4.4] - 2026-03-19
 
 ### Fixed

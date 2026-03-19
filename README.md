@@ -94,15 +94,15 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. |
-| `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → run tests → split commits → create PR with structured body and auto-labels. One command from branch to merged PR. |
+| `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → (optional `/ship --test`) → split commits → create PR with structured body, optional inline spec health, and auto-labels. |
 
 ### Validation & Release
 | Command | Purpose |
 |---------|---------|
 | `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
-| `/verify-spec` | 8-check validation: integrity, status sync, completion, dependencies, tests, coverage, contract drift |
+| `/verify-spec` | Metadata diagnostic (checks 1–5, 8): story/README integrity, completion, dependencies, deliverables, contract drift — auto-fix by default; optional standalone pass |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
-| `/release` | Changelog generation, version bump, git tag, GitHub release |
+| `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release |
 
 ### Feedback & Learning
 | Command | Purpose |

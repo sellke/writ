@@ -2,27 +2,28 @@
 
 ## Overview
 
-Specification metadata validation and synchronization. Verifies that story files, README tracking, statuses, deliverables, dependencies, and contract alignment are all consistent and correct. Optionally syncs discrepancies and updates external trackers (Trello, GitHub).
+Fast **metadata diagnostic** for Writ specs. Confirms story files, README tracking, statuses, deliverables, dependencies, and contract alignment are consistent. **Default mode auto-fixes** everything that can be repaired safely, then reports what still needs human judgment.
 
-Default mode is fast and **metadata-only** — no test execution. Use `--pre-deploy` to add full test/coverage/build regression as a release gate.
-
-Run after `/implement-spec` completes, or anytime you suspect drift.
+This command is **not a pipeline gate** — run it when you suspect spec drift, like a linter. Release-time tests, build verification, and changelog work live in `/release`.
 
 ## Modes
 
 | Invocation | Mode | Behavior |
 |---|---|---|
-| `/verify-spec` | Interactive | Select spec, metadata checks (1-5, 8), prompt to fix |
-| `/verify-spec --check` | Read-only | Metadata checks only, report issues, change nothing |
-| `/verify-spec --fix` | Auto-fix | Metadata checks + fix all discrepancies without prompting |
-| `/verify-spec --sync-trello` | With Trello | Include Trello card sync (update/create/move) |
-| `/verify-spec --pre-deploy` | Deployment gate | Full verification: metadata + test suite + coverage + build + lint + typecheck |
+| `/verify-spec` | Default | Select spec (if needed); run checks 1–5 and 8; **auto-fix** fixable issues; report the rest — no confirmation prompt |
+| `/verify-spec --check` | Read-only | Same checks; report only; no file changes |
+| `/verify-spec --spec [path]` | Targeted | Verify the spec at path (folder under `.writ/specs/` or path to `spec.md`) |
+| `/verify-spec --all` | All specs | Run the full diagnostic for every spec under `.writ/specs/` |
 
 ## Command Process
 
 ### Phase 1: Spec Discovery & Loading
 
 #### Step 1.1: Select Specification
+
+**If `/verify-spec --spec [path]`:** Resolve to a spec folder (directory containing `spec.md`). Skip selection.
+
+**If `/verify-spec --all`:** Build the list of all `.writ/specs/*/` folders that contain `spec.md`. Process each sequentially (or report per spec); aggregate a summary at the end.
 
 **If not specified:**
 ```
@@ -42,17 +43,17 @@ AskQuestion({
   ]
 })
 ```
+Choosing **all** here is equivalent to `--all`.
 
 #### Step 1.2: Load Everything
 
 ```
 1. Read spec.md (contract, deliverables checklist)
-2. Read spec-lite.md (summary)
+2. Read spec-lite.md (summary) if present
 3. Read user-stories/README.md (progress table)
 4. Read ALL user-stories/story-N-*.md files
-5. Read sub-specs/ (technical-spec, api-spec, etc.)
-6. Read CHANGELOG.md (if exists)
-7. Scan git log for commits referencing this spec
+5. Read sub-specs/ (technical-spec, api-spec, etc.) if present
+6. Scan git log for commits referencing this spec (optional context for Check 8)
 ```
 
 Build complete data model:
@@ -90,10 +91,11 @@ Build complete data model:
 
 ### Phase 2: Verification Checks
 
-Run all applicable checks, collect findings. Never stop at the first failure — report everything.
+Run checks **1–5 and 8** only. Collect every finding before reporting — do not stop at the first issue.
 
-**Default mode** runs Checks 1-5 and 8 (metadata only — fast, no test execution).
-**`--pre-deploy` mode** runs all 8 checks (adds Checks 6-7 for test/coverage verification).
+**Default mode:** After reporting, apply all auto-fixes (Phase 4) unless contradicted by `--check`.
+
+**`--check` mode:** Report only; Phase 4 does not run.
 
 ---
 
@@ -168,11 +170,6 @@ If story status is "Completed ✅":
 ```
 If story status is "Completed ✅":
   Is the entire Definition of Done section checked?
-  - [x] All tasks completed
-  - [x] All acceptance criteria met
-  - [x] Tests passing
-  - [x] Code reviewed
-  - [x] Documentation updated
   Any unchecked items → flag as incomplete DoD
 ```
 
@@ -206,11 +203,13 @@ Build dependency graph
 Check for cycles → flag if found
 ```
 
-**4c. Missing dependency declarations:**
+**4c. Missing dependency declarations (heuristic):**
 ```
 Cross-reference with spec.md and sub-specs/technical-spec.md
-Flag if obvious dependencies are undeclared (heuristic — based on shared files/modules)
+Flag if obvious dependencies are undeclared
 ```
+
+> Checks **4** is **report-only** in both default and `--check` — dependency fixes need human judgment.
 
 ---
 
@@ -234,56 +233,6 @@ If ALL stories completed AND all deliverables checked:
 
 ---
 
-#### Check 6: Test Verification (`--pre-deploy` only)
-
-> **Skipped in default mode.** Per-story tests run in `/implement-story` Gate 4, and integration tests run in `/implement-spec` Step 4.1. This check re-verifies as a release gate.
-
-**Run full test and quality suite:**
-
-```bash
-# Detect test runner and run full suite
-if [ -f package.json ]; then
-  npm run test:${spec_name} 2>/dev/null || npm test
-elif [ -f pyproject.toml ] || [ -f setup.py ]; then
-  python -m pytest
-elif [ -f Cargo.toml ]; then
-  cargo test
-elif [ -f go.mod ]; then
-  go test ./...
-fi
-
-# Full regression suite (always in --pre-deploy)
-npx tsc --noEmit           # typecheck
-npx eslint .               # lint
-npx prettier --check .     # format
-```
-
-**Report results:**
-- Total tests, passed, failed, skipped
-- If any failures → flag (stories cannot be "Complete" with failing tests)
-
----
-
-#### Check 7: Coverage Verification (`--pre-deploy` only)
-
-> **Skipped in default mode.** Coverage is enforced per-story in `/implement-story` Gate 4 (≥80% new files, no decrease on modified). This check re-verifies as a release gate.
-
-**Run coverage analysis:**
-
-```bash
-# Auto-detect and run
-npx vitest run --coverage 2>/dev/null || \
-  npx jest --coverage 2>/dev/null || \
-  npx c8 npm test 2>/dev/null
-```
-
-**Check thresholds:**
-- New files (created by this spec): ≥80% line coverage
-- Modified files: coverage not decreased
-- Report overall coverage
-
----
-
 #### Check 8: Spec Contract vs Implementation
 
 **Drift detection — does the built thing match the specced thing?**
@@ -297,121 +246,64 @@ For each "Included" item:
   If not → flag as unimplemented scope
 
 For each "Excluded" item:
-  Is there implementation that shouldn't be there? (scope creep detection — heuristic)
+  Is there implementation that shouldn't be there? (scope creep — heuristic)
 ```
 
-This check is heuristic and may have false positives. Report with lower confidence.
+> Check **8** is **report-only** in both modes — heuristic; may have false positives.
 
 ---
 
 ### Phase 3: Verification Report
 
-Present all findings in a structured report.
-
-**Default mode report (metadata only):**
+Present all findings in a structured report (console). The table always has **six** checks — no "Skipped" rows, no alternate layouts.
 
 ```
 🔍 Spec Verification Report: 2026-02-22-feature-name
 
-══════════════════════════════════════════════════
- CHECK                          STATUS   FINDINGS
-══════════════════════════════════════════════════
- 1. Story file integrity        ✅       All clean
- 2. Status consistency          ❌       2 discrepancies
- 3. Completion integrity        ⚠️       1 unchecked DoD item
- 4. Dependency validation       ✅       All satisfied
- 5. Deliverables checklist      ❌       3 items unsync'd
- 6. Test verification           ⏭️       Skipped (use --pre-deploy)
- 7. Coverage                    ⏭️       Skipped (use --pre-deploy)
- 8. Contract vs implementation  ✅       All scope items implemented
-══════════════════════════════════════════════════
+═══════════════════════════════════════════════════
+ CHECK                           STATUS   FINDINGS
+═══════════════════════════════════════════════════
+ 1. Story file integrity         ✅       All clean
+ 2. Status consistency           ❌       2 discrepancies
+ 3. Completion integrity         ⚠️       1 unchecked DoD item
+ 4. Dependency validation        ✅       All satisfied
+ 5. Deliverables checklist       ❌       3 items unsync'd
+ 8. Contract vs implementation   ✅       All scope items implemented
+═══════════════════════════════════════════════════
 
 Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
 ```
 
-**`--pre-deploy` mode report (full regression):**
-
-```
-🔍 Spec Verification Report: 2026-02-22-feature-name (pre-deploy)
-
-══════════════════════════════════════════════════
- CHECK                          STATUS   FINDINGS
-══════════════════════════════════════════════════
- 1. Story file integrity        ✅       All clean
- 2. Status consistency          ✅       README in sync
- 3. Completion integrity        ✅       All criteria and DoD checked
- 4. Dependency validation       ✅       All satisfied
- 5. Deliverables checklist      ✅       All deliverables verified
- 6. Test verification           ✅       45/45 passing
- 7. Coverage                    ⚠️       72% (below 80% threshold)
- 8. Contract vs implementation  ✅       All scope items implemented
-══════════════════════════════════════════════════
-
-Overall: ⚠️ 1 issue needs attention
-```
-
-**Findings detail (both modes):**
+**Findings detail:**
 
 ```
 ── Auto-Fixable ──────────────────────────────────
 
 [FIX-1] README status mismatch
   Story 2: file says "Completed ✅", README says "In Progress"
-  → Will update README
-
-[FIX-2] README task count wrong
-  Story 3: README says "3/5", actual is "5/5"
-  → Will update README
-
-[FIX-3] Deliverables checklist unsync'd
-  3 deliverables exist but aren't checked in spec.md
-  → Will check them off
-
-[FIX-4] Spec status header
-  All stories complete but spec.md says "Planning"
-  → Will update to "Complete"
+  → Updating README (default mode only)
 
 ── Needs Attention ───────────────────────────────
 
 [WARN-1] Unchecked Definition of Done
   Story 2: "Documentation updated" is unchecked
-  → Was documentation actually updated? If yes, check it off.
-    If no, run documentation agent.
-
-[WARN-2] Coverage below threshold (--pre-deploy only)
-  src/lib/feature.ts: 72% line coverage (threshold: 80%)
-  → Add tests for uncovered lines 45-62, 78-85
+  → Confirm manually, then check it off if accurate.
 ```
 
-Then prompt:
-```
-AskQuestion({
-  title: "Verification Actions",
-  questions: [
-    {
-      id: "action",
-      prompt: "How would you like to proceed?",
-      options: [
-        { id: "fix_all", label: "Auto-fix all fixable issues" },
-        { id: "fix_and_report", label: "Auto-fix + generate report file" },
-        { id: "report_only", label: "Generate report file only (no changes)" },
-        { id: "done", label: "I'll handle it manually" }
-      ]
-    }
-  ]
-})
-```
+**`--check` mode:** Stop after this phase (no auto-fix).
+
+**Default mode:** Continue to Phase 4 automatically — **do not** prompt for fix confirmation.
 
 ---
 
-### Phase 4: Auto-Fix (if requested)
+### Phase 4: Auto-Fix (default mode only)
 
 #### 4.1: Sync README with Story Files
 
 - Update status column to match story file headers
 - Update task counts to match actual checked/total counts
 - Recalculate total progress
-- Update Quick Links with completion markers
+- Update Quick Links with completion markers when applicable
 
 #### 4.2: Sync Deliverables Checklist
 
@@ -425,26 +317,6 @@ AskQuestion({
 - Stories with no tasks done → "Not Started"
 - Spec with all stories done → "Complete"
 
-#### 4.4: Generate/Update CHANGELOG
-
-If all stories are complete and no CHANGELOG entry exists for this spec:
-- Generate a Keep a Changelog entry from completed stories
-- Prepend to CHANGELOG.md
-
-#### 4.5: Trello Sync (if `--sync-trello`)
-
-```
-1. Search Trello board for cards matching spec/feature name
-2. If found:
-   - Update card description with completion summary
-   - Move to "live" list if spec complete
-3. If not found:
-   - Create cards for completed features
-   - Place in appropriate list
-4. If multiple matches:
-   - Present options for user to select
-```
-
 ---
 
 ### Phase 5: Verification Report File
@@ -456,7 +328,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 
 > **Date:** YYYY-MM-DD
 > **Spec:** [spec folder]
-> **Mode:** metadata | pre-deploy
+> **Mode:** default | check
 > **Result:** ✅ Passed / ⚠️ Passed with warnings / ❌ Failed
 
 ## Summary
@@ -468,15 +340,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 | Completion integrity | ✅ | All criteria and DoD checked |
 | Dependency validation | ✅ | All dependencies satisfied |
 | Deliverables checklist | ✅ | N/N deliverables verified |
-| Test verification | ✅ / ⏭️ | X/X tests passing / Skipped (metadata mode) |
-| Coverage | ⚠️ / ⏭️ | X% average / Skipped (metadata mode) |
-| Contract alignment | ✅ | All scope items implemented |
-
-## Test Results (--pre-deploy only)
-- Total: X tests
-- Passed: X
-- Failed: 0
-- Coverage: X%
+| Contract alignment | ✅ | No scope drift flagged |
 
 ## Stories
 | # | Title | Status | Tasks | Criteria | DoD |
@@ -489,57 +353,23 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 - [FIX-2] Task count correction (auto-fixed)
 
 ## Outstanding Warnings
-- [WARN-1] Coverage below threshold on src/lib/feature.ts
+- [WARN-1] Heuristic: possible scope gap in "Included" list (see Check 8)
 
-## Recommendation
-[Ready for release / Needs attention before release]
+## Notes
+Diagnostic only. Use `/release` when you are ready to publish; it runs build checks, conditional tests, and changelog work.
 ```
 
----
+**Completion message (default):**
+```
+✅ Spec verification complete.
 
-### Phase 6: Build Verification (`--pre-deploy` only)
-
-> **Skipped in default mode.** Build verification is part of the release gate, not the metadata check.
-
-If `--pre-deploy` and all stories are "Completed ✅" after fixes:
-
-```bash
-# Full build check
-npm run build 2>&1      # or equivalent
-npx tsc --noEmit 2>&1   # typecheck
-npm test 2>&1            # full test suite
+Checks 1–5 and 8 evaluated; fixable metadata updated.
+See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 ```
 
-**Pass:**
+**Completion message (`--check`):**
 ```
-✅ Spec verification COMPLETE (pre-deploy)
-
-All 8 checks passed.
-Build: ✅ successful
-Tests: 45/45 passing
-Coverage: 87% average
-
-This spec is ready for /release.
-```
-
-**Fail:**
-```
-❌ Build verification FAILED
-
-Build error in src/components/Feature.tsx:34
-  Type 'string' is not assignable to type 'number'
-
-Spec is NOT ready for release. Fix build errors and re-run /verify-spec --pre-deploy.
-```
-
-**Default mode completion (no build verification):**
-```
-✅ Spec verification COMPLETE (metadata)
-
-Checks 1-5, 8 passed.
-Spec metadata is consistent.
-
-Run /verify-spec --pre-deploy for full release gate (tests + build + coverage).
+✅ Spec verification (--check) complete — no files modified.
 ```
 
 ---
@@ -548,18 +378,12 @@ Run /verify-spec --pre-deploy for full release gate (tests + build + coverage).
 
 | Command | Relationship |
 |---------|-------------|
-| `/implement-spec` | Orchestrates implementation; run `/verify-spec` after it completes |
-| `/release` | Run `verify-spec --pre-deploy` before releasing |
-| `/security-audit` | Complementary — verify-spec checks correctness, security-audit checks safety |
-| `/status` | Quick overview; verify-spec is the deep validation |
+| `/implement-spec` | May leave spec metadata noisy after bulk story work — `/verify-spec` cleans it up |
+| `/ship` | Optionally runs a **subset** of these checks (1–3) inline when opening a PR |
+| `/release` | Runs the **full** checks 1–5 and 8 again as part of its **internal** release gate (self-sufficient) — same logic, different entry point |
+| `/security-audit` | Complementary — verify-spec checks spec structure; security-audit checks safety |
+| `/status` | Quick overview; verify-spec is the deep metadata pass |
 
-**Recommended flow:**
-```
-/implement-spec           # Build everything (includes per-story + integration tests)
-/verify-spec              # Validate spec metadata (fast — no test execution)
-/verify-spec --pre-deploy # Full release gate (tests + coverage + build)
-/security-audit --quick   # Security check
-/release                  # Ship it
-```
+**Recommended posture:** `/verify-spec` is **optional**. Many sessions go straight `/ship` → `/release`. Run `/verify-spec` when you want a dedicated hygiene pass without releasing.
 
-**Boundary principle:** `/implement-spec` owns test execution during the build. `/verify-spec` default mode owns metadata integrity (fast, complements implementation). `/verify-spec --pre-deploy` is the independent release gate that re-verifies everything from scratch.
+**Boundary principle:** `/verify-spec` owns **spec metadata integrity** only. `/release` owns **tests, build verification, and changelog** for publishing.

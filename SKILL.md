@@ -73,7 +73,7 @@ When a user requests any Writ command, read the corresponding command file and f
 ### Removed (Migration Notes)
 If you used these Code Captain commands, here are the Writ replacements:
 - `/execute-task` → `/implement-story` (or `--quick` for TDD-only)
-- `/refresh-docs` → `/verify-spec` (with `--sync-trello` for Trello)
+- `/refresh-docs` → `/verify-spec` (metadata sync + auto-fix)
 - `/swab` → `/refactor` (scoped, verified, more powerful)
 
 ## Sub-Agent Specifications

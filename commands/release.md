@@ -2,18 +2,21 @@
 
 ## Overview
 
-Automate the release lifecycle: generate changelogs from completed stories, bump version numbers, create git tags, and optionally publish GitHub releases. Designed to run after a spec is fully implemented and verified.
+Automate the release lifecycle: generate changelogs from completed stories, bump version numbers, create git tags, and optionally publish GitHub releases.
+
+**Self-sufficient:** `/release` runs an **inline release gate** (spec metadata validation, build verification, conditional test suite) before changelog generation, unless `--skip-gate` is set.
 
 ## Modes
 
 | Invocation | Mode | Behavior |
 |---|---|---|
-| `/release` | Interactive | Detects changes since last release, proposes version bump |
+| `/release` | Interactive | Run release gate (unless skipped), then detects changes since last release, proposes version bump |
 | `/release patch` | Explicit | Force a patch release (0.0.X) |
 | `/release minor` | Explicit | Force a minor release (0.X.0) |
 | `/release major` | Explicit | Force a major release (X.0.0) |
-| `/release --dry-run` | Preview | Show what would happen without making changes |
+| `/release --dry-run` | Preview | Show gate preview + what would happen without making changes |
 | `/release --no-tag` | Changelog only | Generate changelog and bump version, skip git tag + GitHub release |
+| `/release --skip-gate` | Bypass validation | Skip spec validation, build verification, and test suite (use when CI already validated) |
 
 ## Command Process
 
@@ -68,7 +71,53 @@ SPECS=$(scan .writ/specs/ for specs completed after last release date)
    - Check if database migrations are destructive
    - Check if environment variables were added/removed/renamed
 
-#### Step 1.3: README Freshness Check
+#### Step 1.3: Release Gate
+
+Unless `--skip-gate` is set, run **before** README freshness and version proposal. If any **blocking** step fails (build verification or test suite), stop — do not generate changelog or bump versions.
+
+**1.3a: Spec metadata validation**
+
+For **completed specs** relevant to this release (same inventory you use for changelog context — e.g. specs marked complete or stories done since `LAST_TAG`):
+
+- Run `/verify-spec` **checks 1–5 and 8** inline against each applicable spec (same logic as the standalone command).
+- **Auto-fix** discrepancies the same way `/verify-spec` default mode would.
+- **Unfixable issues** (e.g. Check 4/8 findings needing judgment): emit **warnings** and continue — do not block the release unless the team policy treats a finding as critical (default: warn only).
+
+**1.3b: Build verification (always runs)**
+
+Fast checks; run only when tooling/config is present — do not fail the repo for missing tools:
+
+Run each check **only** when configuration exists (probe for `tsconfig.json`, ESLint config variants, Prettier config variants — same heuristics as `/ship`). Example pattern:
+
+```bash
+[ -f tsconfig.json ] && npx tsc --noEmit
+# eslint / prettier: run only after detecting a config file for that tool
+```
+
+If a tool is not configured, skip it — **do not** treat “no config” as failure.
+
+**On failure:** Block release. Report which command failed and where.
+
+**1.3c: Conditional test suite**
+
+```bash
+LAST_MERGED_SHA=$(gh pr list --state merged --limit 1 --json mergeCommit --jq '.[0].mergeCommit.oid' 2>/dev/null)
+HEAD_SHA=$(git rev-parse HEAD)
+```
+
+| Condition | Behavior |
+|---|---|
+| `gh` unavailable, errors, or returns empty | Log `gh CLI unavailable or no merge data — running full test suite` → run **full** suite |
+| `LAST_MERGED_SHA` equals `HEAD_SHA` | Log `Tests skipped — HEAD matches last merged PR (${HEAD_SHA}). Build verification still runs.` → **skip** test suite |
+| Otherwise | Run **full** test suite |
+
+**Test runner:** Use the same detection chain as `/ship` Step 1 (`npm test`, `pytest`, `cargo test`, `make test`, etc.).
+
+**On test failure:** Block release. Suggest fixing and re-running, or `--skip-gate` only if the user explicitly accepts skipping validation.
+
+**`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
+
+#### Step 1.4: README Freshness Check
 
 Cross-reference `README.md` against the actual repo to catch silent staleness — the release is the natural checkpoint because you're already enumerating what changed.
 
@@ -102,7 +151,7 @@ I recommend **option 1** (fix now) — bundling the README fix into the release 
 
 **What this check does NOT do:** Validate that command *descriptions* in the README are accurate. Descriptions are judgment calls — the check catches structural drift (missing/extra entries), not semantic drift. If a command's purpose fundamentally changed, the changelog entry is the signal to review its README description manually.
 
-#### Step 1.4: Propose Version Bump
+#### Step 1.5: Propose Version Bump
 
 **Automatic determination:**
 | Changes Found | Suggested Bump | Reason |
@@ -134,6 +183,8 @@ AskQuestion({
 ```
 
 ### Phase 2: Changelog Generation
+
+> **Order:** Phase 2 runs only after Phase 1 completes successfully (including the release gate unless `--skip-gate`).
 
 #### Step 2.1: Generate Changelog Entry
 
@@ -325,16 +376,22 @@ ${changelog_summary}
 
 When `--dry-run` is specified, the command:
 1. ✅ Gathers all context (versions, commits, specs)
-2. ✅ Runs README freshness check
-3. ✅ Generates the changelog entry
-4. ✅ Shows the version bump proposal
-5. ✅ Displays exactly what files would change
-6. ❌ Does NOT modify any files
-7. ❌ Does NOT commit, tag, or push
+2. ✅ **Previews the release gate** — spec checks that would run, build commands that would run, and whether the **test suite would run or be skipped** (HEAD vs last merged PR via `gh`, or full suite if `gh` unavailable)
+3. ✅ Runs README freshness check (read-only assessment)
+4. ✅ Generates the changelog entry (display only)
+5. ✅ Shows the version bump proposal
+6. ✅ Displays exactly what files would change
+7. ❌ Does NOT modify any files
+8. ❌ Does NOT commit, tag, or push
 
 Output:
 ```
 🏃 DRY RUN — No changes will be made
+
+Release gate preview:
+- Spec metadata (same as `/verify-spec` checks 1–5, 8): would run on [N] spec(s); auto-fix where applicable
+- Build verification: typecheck/lint/format where configured — would run
+- Tests: would run | would skip (HEAD matches last merged PR SHA …) | would run (gh unavailable — safe default)
 
 Current version: 1.2.3
 Proposed version: 1.3.0 (minor — new features detected)
@@ -391,19 +448,18 @@ Each package gets its own version bump and changelog entry. Tags follow the patt
 
 | Command | Relationship |
 |---------|-------------|
-| `/implement-spec` | Orchestrates implementation; run before releasing |
-| `/verify-spec` | Metadata validation; run before releasing to ensure docs are current |
-| `/verify-spec --pre-deploy` | Full release gate — tests, coverage, build |
+| `/implement-spec` | Finishes implementation and per-story tests; often followed by `/ship` |
+| `/ship` | Opens the PR; default path toward merging |
+| `/verify-spec` | **Optional** metadata diagnostic — not a prerequisite; `/release` re-runs the same checks internally |
 | `/status` | Quick check before releasing |
 
-**Recommended pre-release checklist:**
+**Recommended release flow:**
 ```
-/status                        # Everything looks good?
-/verify-spec                   # Spec metadata in sync?
-/verify-spec --pre-deploy      # Full release gate (tests + build)
-/release --dry-run             # Preview the release
-/release                       # Ship it
+/release --dry-run             # Preview gate + changelog + version
+/release                       # Execute (gate runs again for real unless --skip-gate)
 ```
+
+Run `/verify-spec` when you want a **standalone** spec hygiene pass without cutting a release.
 
 ## Error Handling
 
