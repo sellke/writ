@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-03-20
+
+### Added
+
+- **Quick Start cheatsheet** (`README.md`) — Five-command onboarding path (`/prototype`, `/create-spec`, `/implement-spec`, `/ship`, `/status`) before the full command tables.
+- **Prime Directive** (`system-instructions.md`, `cursor/writ.mdc`) — Anti-sycophancy behavioral guidelines inlined into system instructions. Three hard constraints (no position reversal without evidence, no unverified confirmation, no empty affirmation) and five judgment principles (separate facts from assumptions, generate alternatives, name problems early, match confidence to evidence, disagree with evidence not attitude). Loads every session via `alwaysApply: true`.
+
+### Fixed
+
+- **Phantom reference removed** — Both `system-instructions.md` and `cursor/writ.mdc` referenced a non-existent `.writ/docs/best-practices.md` for "critical thinking guidelines." Every session wasted context on a failed read. The reference is replaced with the inline Prime Directive section. See `.writ/research/2026-03-20-anti-sycophancy-prime-directive-research.md` for background.
+
 ## [0.6.1] - 2026-03-20
 
 ### Fixed
