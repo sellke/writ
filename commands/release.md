@@ -24,7 +24,13 @@ Automate the release lifecycle: generate changelogs from completed stories, bump
 
 #### Step 1.1: Detect Current State
 
-**Auto-detect version source:**
+**Load conventions from `.writ/config.md` first:**
+
+1. **Read `.writ/config.md`** — if present, load: Default Branch, Test Runner, Version File, Changelog, Test Coverage Tool. See `.writ/docs/config-format.md` for the key reference.
+2. **Detect missing keys** — for any convention not in config, use the detection chains below.
+3. **Offer to persist** — after detection fills any missing key, offer once: *"Detected [values]. Save to `.writ/config.md`? (y/n)"* — only write on **y**.
+
+**Auto-detect version source** (check `Version File` from config first, then fall back to):
 ```bash
 # Check in order of priority:
 1. package.json         → "version" field (Node/Bun)
@@ -111,7 +117,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 | `LAST_MERGED_SHA` equals `HEAD_SHA` | Log `Tests skipped — HEAD matches last merged PR (${HEAD_SHA}). Build verification still runs.` → **skip** test suite |
 | Otherwise | Run **full** test suite |
 
-**Test runner:** Use the same detection chain as `/ship` Step 1 (`npm test`, `pytest`, `cargo test`, `make test`, etc.).
+**Test runner:** Use the `Test Runner` value from `.writ/config.md` if present; otherwise use the same detection chain as `/ship` Step 1 (`npm test`, `pytest`, `cargo test`, `make test`, etc.).
 
 **On test failure:** Block release. Suggest fixing and re-running, or `--skip-gate` only if the user explicitly accepts skipping validation.
 

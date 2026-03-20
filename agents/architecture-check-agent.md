@@ -24,6 +24,7 @@ readonly: true   # This agent MUST NOT modify any files
 
 | Parameter | Description |
 |-----------|-------------|
+| `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
 | `spec_lite_content` | Condensed specification for context |
@@ -40,6 +41,12 @@ Task({
   readonly: true,
   description: "Architecture pre-check for story N",
   prompt: `You are the Architecture Check Agent. Your job is to review the planned implementation approach and flag concerns BEFORE any code is written.
+
+## Project Context
+
+{context_md_content}
+
+---
 
 ## Story to Review
 **Story file path:** {story_file_path}

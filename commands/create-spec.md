@@ -6,6 +6,161 @@ Generate comprehensive feature specifications using a contract-first approach th
 
 ## Command Process
 
+### `--from-prototype` Mode
+
+**Invocation:** `/create-spec --from-prototype`
+
+Used when a `/prototype` run triggered scope escalation signals and you want to formalize the prototype work as Story 1 (already complete) and plan Story 2+ onward.
+
+**This mode replaces Phase 1 (discovery) with a shorter, prototype-anchored flow:**
+
+#### Step 0: Read Prototype Context
+
+1. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged). Extract: files changed, lines added/removed, new dependencies added.
+2. **Read the coding agent implementation summary** from the conversation thread if available — it describes what was built and how.
+3. **Build a pre-populated contract draft:**
+   - **Deliverable:** Inferred from diff file names and implementation summary (e.g., "Adds [feature] to [area]")
+   - **Files in Scope:** Directly from the diff — list every file created or modified
+   - **Implementation Approach:** From the coding agent summary where available; fall back to diff analysis
+   - **Story 1:** `[Prototype: description of what was built] — Status: Completed ✅`
+
+If no git diff exists (clean working tree), warn: *"No changes detected in working tree. `--from-prototype` requires an uncommitted or staged diff to read context from."* and offer: proceed with manual description, or cancel.
+
+#### Step 1: Shortened Discovery Conversation (Plan Mode)
+
+Switch to Plan Mode. The prototype is done — **do not re-litigate what was already built.** Discovery is focused exclusively on what comes next.
+
+**Opening framing:**
+> "The prototype built [summary from diff]. Story 1 is already complete. Let's figure out what Story 2+ should accomplish — what does this need to grow into?"
+
+**Discovery anchor questions (focused on the future, not the past):**
+- What's the gap between this prototype and something you'd actually ship?
+- What does Story 2 unlock that the prototype didn't have?
+- Are there error states, edge cases, or production concerns the prototype skipped?
+- What's the first thing you'd add after this? What would make users actually love it?
+- Are there integration points or shared components the prototype touched that need productionizing?
+
+Skip questions that are already answered by the diff (files in scope, approach used, features built). The discovery conversation should take 3–5 exchanges, not 15.
+
+#### Step 2: Contract Proposal (Plan Mode)
+
+Use the pre-populated contract draft from Step 0 as the base. Augment with discovery answers. Present in Plan Mode for review — the contract should reflect both what's already built (Story 1) and what comes next.
+
+**Key contract shape for `--from-prototype`:**
+```
+## Specification Contract
+
+**Deliverable:** [inferred from diff + discovery]
+**Origin:** Formalized from prototype (Story 1 already complete)
+
+**Story 1 (Complete):** [description of prototype work — what was built]
+**Story 2+:** [what the discovery conversation revealed comes next]
+
+**Files in Scope:** [from git diff — already in the codebase]
+
+[standard contract sections: Constraints, Success Criteria, Scope Boundaries]
+```
+
+#### Step 3: Phase 2 with Story 1 Pre-Marked Complete
+
+When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one modification:
+
+- **Story 1** is generated with `Status: Completed ✅` immediately — do not mark it Not Started
+- Story 1's description captures the prototype work: what was implemented, files touched, and that it was done via `/prototype`
+- Story 1's Implementation Tasks are all checked: `- [x] [task]`
+- Story 1's Definition of Done is all checked
+- All subsequent stories start at `Status: Not Started`
+- The `user-stories/README.md` progress reflects Story 1 as already complete
+
+**Why Story 1 is auto-complete:** The prototype work already exists in the codebase. Marking it Not Started would misrepresent the project state and confuse `/implement-spec` into trying to re-implement existing work.
+
+---
+
+### `--from-issue` Mode
+
+**Invocation:** `/create-spec --from-issue [path]`
+
+Used when a captured issue under `.writ/issues/` is ready to be promoted into a full specification. This mode pre-populates the discovery contract from the issue file so triage work flows directly into the pipeline — no manual translation.
+
+**This mode replaces Phase 1 (discovery) with a shorter, issue-anchored flow:**
+
+#### Step 0: Read Issue Context
+
+1. **Validate the path** — confirm the file exists under `.writ/issues/{bugs,features,improvements}/`. If the path is invalid or the file is missing:
+   ```
+   ⚠️ Issue file not found: [path]
+   Expected under .writ/issues/{bugs,features,improvements}/YYYY-MM-DD-{slug}.md
+   Provide a valid path or cancel.
+   ```
+   Do not modify the issue file on error.
+
+2. **Parse the issue file** — extract these fields:
+   - `Type` (from frontmatter line `**Type:**`)
+   - `Priority` (from `**Priority:**`)
+   - `Effort` (from `**Effort:**`)
+   - `TL;DR` section → one-sentence summary
+   - `Current State` section → what's broken/missing
+   - `Expected Outcome` section → what success looks like
+   - `Relevant Files` section → affected files list
+
+3. **Build a pre-populated contract draft:**
+   - **Deliverable:** Inferred from issue TL;DR and type (e.g., "Fix [bug summary]" or "Add [feature summary]")
+   - **Origin:** `Promoted from issue: [path]`
+   - **Files in Scope:** From the issue's Relevant Files section
+   - **Priority signal:** From issue Priority field
+   - **Effort signal:** From issue Effort field
+
+#### Step 1: Shortened Discovery Conversation (Plan Mode)
+
+Switch to Plan Mode. The issue describes the problem space — **do not re-ask what's already documented in the issue.** Discovery focuses on shaping the solution into stories.
+
+**Opening framing:**
+> "This issue captures [TL;DR from issue]. Let's shape it into a spec. What does the fix/feature need to accomplish beyond what the issue describes?"
+
+**Discovery anchor questions (forward-looking, gap-filling):**
+- What story decomposition makes sense — single story or multiple?
+- Are there edge cases or error states the issue didn't capture?
+- What acceptance criteria would confirm this is fully resolved?
+- Any integration points or dependencies not mentioned in the issue?
+- Are there constraints (performance, backward-compat, scope limits) the issue omits?
+
+Skip questions that are already answered by the issue. The discovery conversation should take 2–4 exchanges.
+
+#### Step 2: Contract Proposal (Plan Mode)
+
+Use the pre-populated contract draft from Step 0 as the base. Augment with discovery answers. Present for review.
+
+**Key contract shape for `--from-issue`:**
+```
+## Specification Contract
+
+**Deliverable:** [inferred from issue + discovery]
+**Origin:** Promoted from issue: [path]
+
+**Stories:** [decomposition revealed by discovery]
+
+**Files in Scope:** [from issue Relevant Files + discovery additions]
+
+[standard contract sections: Constraints, Success Criteria, Scope Boundaries]
+```
+
+#### Step 3: Phase 2 with `spec_ref` Writeback
+
+When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one addition:
+
+**After the spec directory is created** (after `spec.md` is written), update the source issue file with the spec reference:
+
+1. Read the issue file
+2. Replace the `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with the actual spec path:
+   ```
+   > **spec_ref:** .writ/specs/[date]-[name]/spec.md
+   ```
+3. Write the issue file back — **only the `spec_ref` line changes**. All other issue content is preserved exactly as-is. The issue is never deleted or archived.
+
+**If the spec_ref line is absent** from the issue file (older issue predating this field), append it to the frontmatter block rather than failing.
+
+---
+
 ### Phase 1: Contract Establishment (No File Creation)
 
 **Mission Statement:**

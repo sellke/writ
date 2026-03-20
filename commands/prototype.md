@@ -173,7 +173,38 @@ Visual preview: [approved / skipped — no UI changes]
 Ready to commit.
 ```
 
-**On scope escalation:** Same as above, plus a ⚠️ block listing the specific flags that triggered. Recommend `/create-spec` to formalize as a tracked feature if follow-up work is needed.
+**On scope escalation:** Same as above, plus a ⚠️ block listing the specific flags that triggered, followed by an active escalation offer — not just a note. Present the following:
+
+```
+⚠️ Scope Escalation Detected
+
+This implementation grew beyond prototype scope. Signals triggered:
+  • [list each signal that fired: >5 files modified, schema change, core architecture, external dependency, etc.]
+
+The implementation is complete and in your working tree. Want to formalize it?
+
+Running /create-spec --from-prototype will:
+  • Create a spec using the current diff as context for files-in-scope and approach
+  • Mark the prototype work as Story 1 (already complete — it's already built)
+  • Start discovery focused on Story 2+ (what comes next)
+```
+
+```
+AskQuestion({
+  title: "Formalize as Spec?",
+  questions: [{
+    id: "escalation_path",
+    prompt: "What would you like to do with this prototype?",
+    options: [
+      { id: "formalize", label: "Yes — run /create-spec --from-prototype now" },
+      { id: "later", label: "Not now — I'll formalize it manually later" },
+      { id: "leave", label: "Leave as-is — this stays a prototype" }
+    ]
+  }]
+})
+```
+
+If the user selects **"Yes — run /create-spec --from-prototype now"**, immediately invoke the `--from-prototype` flow from `create-spec.md` (no need to re-invoke as a separate command — continue inline).
 
 **On lint/typecheck failure after retries:**
 

@@ -78,6 +78,29 @@ Create the project skeleton and documentation.
 
 After creating all files, verify the project runs — execute the basic dev command (e.g., `npm run dev`, `cargo build`) and fix any setup issues before declaring the foundation complete.
 
+**Write `.writ/config.md`** after the project runs successfully. This is the natural save point — the user just configured everything, so no confirmation is needed. Use the format defined in `.writ/docs/config-format.md`. Record the conventions established during setup: Default Branch, Test Runner, Merge Strategy, Version File, Test Coverage Tool, and Changelog path. Example:
+
+```markdown
+# Writ Project Config
+
+> Last Updated: [date]
+> Auto-generated — edit manually if needed
+
+## Conventions
+
+- **Default Branch:** main
+- **Test Runner:** npm test
+- **Merge Strategy:** merge
+- **Version File:** package.json
+- **Test Coverage Tool:** jest --coverage
+
+## Paths
+
+- **Changelog:** CHANGELOG.md
+- **Writ Specs:** .writ/specs/
+- **Writ Issues:** .writ/issues/
+```
+
 ---
 
 ## Brownfield Workflow
@@ -140,6 +163,8 @@ Present the recommendation prominently:
 - **Alternatives:** `/create-spec` to jump to feature specs, `/research` to investigate identified gaps, `/create-adr` to document architectural decisions
 
 Do not end the command without presenting this recommendation. It's the bridge between technical setup and product development.
+
+**Write `.writ/config.md`** with conventions discovered during analysis (same format as the greenfield path — see above). For brownfield, offer to save: *"Detected conventions: [values]. Save to `.writ/config.md`? (y/n)"* — write only on **y**. If a `.writ/config.md` already exists, do not overwrite it without explicit confirmation.
 
 ---
 

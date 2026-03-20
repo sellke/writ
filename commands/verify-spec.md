@@ -10,8 +10,9 @@ This command is **not a pipeline gate** — run it when you suspect spec drift, 
 
 | Invocation | Mode | Behavior |
 |---|---|---|
-| `/verify-spec` | Default | Select spec (if needed); run checks 1–5 and 8; **auto-fix** fixable issues; report the rest — no confirmation prompt |
+| `/verify-spec` | Default | Select spec (if needed); run checks 1–5, 8, and 9; **auto-fix** fixable issues; report the rest — no confirmation prompt |
 | `/verify-spec --check` | Read-only | Same checks; report only; no file changes |
+| `/verify-spec --fix` | Fix spec-lite | Run Check 9; if divergence found, fully regenerate `spec-lite.md` from `spec.md` |
 | `/verify-spec --spec [path]` | Targeted | Verify the spec at path (folder under `.writ/specs/` or path to `spec.md`) |
 | `/verify-spec --all` | All specs | Run the full diagnostic for every spec under `.writ/specs/` |
 
@@ -91,11 +92,13 @@ Build complete data model:
 
 ### Phase 2: Verification Checks
 
-Run checks **1–5 and 8** only. Collect every finding before reporting — do not stop at the first issue.
+Run checks **1–5, 8, and 9**. Collect every finding before reporting — do not stop at the first issue.
 
 **Default mode:** After reporting, apply all auto-fixes (Phase 4) unless contradicted by `--check`.
 
 **`--check` mode:** Report only; Phase 4 does not run.
+
+**`--fix` mode:** Run Check 9 and, if divergence is found, fully regenerate `spec-lite.md` from `spec.md` (see Check 9 and Phase 4 below).
 
 ---
 
@@ -253,9 +256,61 @@ For each "Excluded" item:
 
 ---
 
+#### Check 9: Spec-Lite Integrity
+
+**Purpose:** Confirm that `spec-lite.md` accurately reflects the authoritative `spec.md`. `implement-story` may auto-amend `spec-lite.md` on Small drift without touching `spec.md` — over time, the derivative can silently diverge from the contract.
+
+**Skip** if `spec-lite.md` does not exist (not all specs have one — no flag, just skip).
+
+**Section mapping — compare these pairs:**
+
+| spec-lite.md section | spec.md section |
+|---|---|
+| `## What We're Building` (or `## What`) | `## Contract Summary` (or equivalent top-level summary) |
+| Key Constraints (inline bullets or `## Key Constraints`) | `## Business Rules` + constraint bullets in contract |
+| Success Criteria (`## Success Criteria`) | `## Success Criteria (Phase A)` or `## Success Criteria` |
+| Files in Scope (`## Files in Scope`) | `## Scope Boundaries` → Included list |
+
+**Heading normalization:** If headings differ slightly (e.g. "What We're Building" vs "What"), match by semantic intent, not exact string. If no clear match exists, skip that pair and note it in the report.
+
+**Material divergence — flag when:**
+```
+For each mapped section pair:
+  Compare the substantive content (ignore formatting differences, bullet style, whitespace)
+  Flag as DIVERGED if:
+    - A key fact, constraint, or deliverable in spec.md is absent from spec-lite.md
+    - spec-lite.md describes something not in spec.md (scope creep in the derivative)
+    - Success criteria list differs materially (added, removed, or changed items)
+    - Files in Scope lists differ by more than cosmetic renaming
+  
+  Do NOT flag:
+    - Shorter phrasing that preserves intent
+    - Formatting differences (bold vs plain, bullets vs prose)
+    - spec-lite is condensed — brevity is expected; absence of detail is not divergence
+```
+
+**Report shape for Check 9:**
+```
+9. Spec-lite integrity     ✅       spec-lite aligned with spec.md
+   — or —
+9. Spec-lite integrity     ❌       Divergence in 2 sections:
+                                    • Success Criteria: 2 items in spec.md missing from spec-lite
+                                    • Files in Scope: spec-lite lists commands/foo.md (not in spec.md)
+```
+
+**`--fix` behavior:** When `--fix` is passed (or via default mode auto-fix trigger — see Phase 4), fully regenerate `spec-lite.md` from `spec.md`:
+- Read `spec.md` in full
+- Produce a condensed version (~100 lines max) covering: What We're Building, Key Constraints, Success Criteria, Files in Scope, and any Phase/dependency context
+- Prepend a regeneration marker at the top: `> Regenerated from spec.md on YYYY-MM-DD`
+- Write the full file — do not patch individual sections
+
+> Check **9** divergence findings are **auto-fixable** in default mode (triggers regeneration). In `--check` mode: report only, no regeneration. In `--fix` mode: runs Check 9 and regenerates if diverged.
+
+---
+
 ### Phase 3: Verification Report
 
-Present all findings in a structured report (console). The table always has **six** checks — no "Skipped" rows, no alternate layouts.
+Present all findings in a structured report (console). The table always has **seven** checks — no "Skipped" rows (except Check 9 when `spec-lite.md` is absent), no alternate layouts.
 
 ```
 🔍 Spec Verification Report: 2026-02-22-feature-name
@@ -269,10 +324,13 @@ Present all findings in a structured report (console). The table always has **si
  4. Dependency validation        ✅       All satisfied
  5. Deliverables checklist       ❌       3 items unsync'd
  8. Contract vs implementation   ✅       All scope items implemented
+ 9. Spec-lite integrity          ✅       spec-lite aligned with spec.md
 ═══════════════════════════════════════════════════
 
 Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
 ```
+
+If `spec-lite.md` does not exist, omit row 9 from the table and note: `(Check 9 skipped — no spec-lite.md found)`.
 
 **Findings detail:**
 
@@ -317,6 +375,22 @@ Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
 - Stories with no tasks done → "Not Started"
 - Spec with all stories done → "Complete"
 
+#### 4.4: Regenerate Spec-Lite (Check 9 finding or `--fix` flag)
+
+If Check 9 flagged divergence **and** mode is default (not `--check`), or if `--fix` was passed:
+
+1. Read `spec.md` in full — this is the source of truth
+2. Produce a condensed `spec-lite.md` (~100 lines max) covering:
+   - `## What We're Building` — condensed Contract Summary
+   - `## Key Constraints` — business rules and hard limits
+   - `## Success Criteria` — all success criteria items
+   - `## Files in Scope` — Included list from Scope Boundaries
+   - Phase/dependency context if applicable
+3. Prepend regeneration marker: `> Regenerated from spec.md on YYYY-MM-DD`
+4. Write the full file — always a complete replacement, never a partial patch
+
+`spec.md` is never modified by this step — it is always the source, never the target.
+
 ---
 
 ### Phase 5: Verification Report File
@@ -341,6 +415,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 | Dependency validation | ✅ | All dependencies satisfied |
 | Deliverables checklist | ✅ | N/N deliverables verified |
 | Contract alignment | ✅ | No scope drift flagged |
+| Spec-lite integrity | ✅ | spec-lite aligned with spec.md |
 
 ## Stories
 | # | Title | Status | Tasks | Criteria | DoD |
@@ -363,7 +438,7 @@ Diagnostic only. Use `/release` when you are ready to publish; it runs build che
 ```
 ✅ Spec verification complete.
 
-Checks 1–5 and 8 evaluated; fixable metadata updated.
+Checks 1–5, 8, and 9 evaluated; fixable metadata updated.
 See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 ```
 

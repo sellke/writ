@@ -39,11 +39,12 @@ If no argument provided, present story selection from current spec (not-started 
 
 ### Step 2: Load Context
 
-1. **Read the story file** — tasks, acceptance criteria, dependencies
-2. **Read spec-lite.md** — overall spec context
-3. **Scan codebase** — identify patterns, related files, tech stack
-4. **Check dependencies** — warn if upstream stories aren't complete
-5. **Load visual references** — if the story has a `## Visual References` section:
+1. **Read `.writ/context.md`** (if present) — product mission, active spec state, recent drift, open issues. This is the **first** context item loaded; it primes all subsequent steps.
+2. **Read the story file** — tasks, acceptance criteria, dependencies
+3. **Read spec-lite.md** — overall spec context
+4. **Scan codebase** — identify patterns, related files, tech stack
+5. **Check dependencies** — warn if upstream stories aren't complete
+6. **Load visual references** — if the story has a `## Visual References` section:
    - Read linked mockup images via vision model
    - Read `mockups/component-inventory.md` for component specs
    - Read `.writ/docs/design-system.md` for design tokens
@@ -55,7 +56,48 @@ If dependencies are incomplete:
 Proceeding anyway — some integration points may be unavailable.
 ```
 
+### `.writ/context.md` — Format & Regeneration
+
+`.writ/context.md` is the running project context snapshot. It is **always fully regenerated** (never patched or appended) by `implement-story`, `implement-spec`, and `status`. The file lives at `.writ/context.md` (project root, not inside a spec folder).
+
+**Schema:**
+
+```markdown
+# Writ Context
+
+> Last Updated: {ISO 8601 timestamp}
+
+## Product Mission
+
+{1–3 sentences from `.writ/product/mission-lite.md` — omit section if file is absent}
+
+## Active Spec
+
+- **Spec:** {spec-folder-id} — {spec title}
+- **Status:** {spec status}
+- **Story:** {N} of {M} — {current story title} ({story status})
+- **Progress:** {X}/{Y} tasks complete ({Z}%)
+
+## Recent Drift
+
+{Last 3 entries from `.writ/specs/{spec}/drift-log.md` — omit section if absent or empty}
+
+## Open Issues
+
+{Count of files in `.writ/issues/` subdirectories — omit section if `.writ/issues/` absent}
+```
+
+**Fallbacks when sources are missing:**
+- `mission-lite.md` absent → omit "Product Mission" section entirely
+- No active spec → omit "Active Spec" section
+- `drift-log.md` absent or empty → omit "Recent Drift" section
+- `.writ/issues/` absent → omit "Open Issues" section
+
+---
+
 ### Step 3: Run Pipeline
+
+> **Context refresh:** After each gate completes, fully regenerate `.writ/context.md` using the schema above. Each write replaces the entire file — do not append, merge, or patch.
 
 ---
 
@@ -87,6 +129,25 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 Spawns the coding agent with full story context + any arch-check warnings.
 
 **Report:** files changed, tests written, deviations from plan, concerns.
+
+**On `STATUS: BLOCKED`:** If the coding agent returns a `STATUS: BLOCKED` result (hit `MAX_SELF_FIX_ITERATIONS = 3`), surface to the user immediately:
+
+```
+AskQuestion({
+  title: "Coding Agent Blocked",
+  questions: [{
+    id: "blocked_action",
+    prompt: "The coding agent hit its iteration cap (3 attempts).\n\nAgent: coding-agent\nFailure: [FAILURE from BLOCKED output]\nPartial state: [PARTIAL_STATE from BLOCKED output]\n\nHow do you want to proceed?",
+    options: [
+      { id: "retry", label: "Retry — restart Gate 1 with fresh context" },
+      { id: "skip", label: "Skip gate with warning — continue pipeline (story marked degraded)" },
+      { id: "abort", label: "Abort pipeline — preserve current state" }
+    ]
+  }]
+})
+```
+
+**Skip with warning:** Continue the pipeline but add a visible `⚠️ DEGRADED` flag to the final story report. The story is NOT marked `Completed ✅` — it is marked `In Progress` with a note: *"Gate 1 skipped after BLOCKED — review required."*
 
 ---
 
@@ -211,6 +272,25 @@ After the review agent returns, inspect the `### Drift Analysis` section. Handle
 
 **On failure:** Send test output back to coding agent. 2 fix iterations max (separate from the review loop's 3-iteration cap), then escalate.
 
+**On `STATUS: BLOCKED`:** If the testing agent returns a `STATUS: BLOCKED` result (hit `MAX_SELF_FIX_ITERATIONS = 3`), surface to the user:
+
+```
+AskQuestion({
+  title: "Testing Agent Blocked",
+  questions: [{
+    id: "blocked_action",
+    prompt: "The testing agent hit its iteration cap (3 attempts).\n\nAgent: testing-agent\nFailure: [FAILURE from BLOCKED output]\nPartial state: [PARTIAL_STATE from BLOCKED output]\n\nHow do you want to proceed?",
+    options: [
+      { id: "retry", label: "Retry — restart Gate 4 with fresh context" },
+      { id: "skip", label: "Skip gate with warning — continue to docs (story marked degraded)" },
+      { id: "abort", label: "Abort pipeline — preserve current state" }
+    ]
+  }]
+})
+```
+
+**Skip with warning:** Continue to Gate 5 but mark the story `⚠️ DEGRADED` in the final report. Do NOT mark `Completed ✅`.
+
 ---
 
 #### Gate 4.5: Visual QA (Optional)
@@ -258,10 +338,11 @@ After all gates pass:
 
 1. **Update story status** → `Completed ✅` with date
 2. **Mark tasks and AC** as checked in story file
-3. **Append `## What Was Built`** to the story file: implementation date, files created/modified counts, key decisions made during implementation, and deviation references (if any). This is the "system spec" — implementation reality alongside the original plan.
-4. **Update `user-stories/README.md`** progress percentages
-5. **Commit** with a descriptive message including story title, file counts, test results, and drift status
-6. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
+3. **Regenerate `.writ/context.md`** — full rewrite using the schema defined in Step 2, reflecting the newly completed story status and updated progress counts.
+4. **Append `## What Was Built`** to the story file: implementation date, files created/modified counts, key decisions made during implementation, and deviation references (if any). This is the "system spec" — implementation reality alongside the original plan.
+5. **Update `user-stories/README.md`** progress percentages
+6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
+7. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
 
 ---
 
@@ -270,6 +351,7 @@ After all gates pass:
 - **Agent crash:** Retry once automatically. If retry fails, present error to user.
 - **Review loop exceeded (3 iterations):** Surface remaining issues and offer: continue anyway (noted), manual intervention, or skip story.
 - **Blocking issue during coding:** Surface the blocker, what was attempted, and partial progress. Offer: guidance + retry, or skip story.
+- **`STATUS: BLOCKED` from coding or testing agent:** The agent hit `MAX_SELF_FIX_ITERATIONS = 3`. Parse the `FAILURE` and `PARTIAL_STATE` fields from the BLOCKED output and present the AskQuestion repair decision at the relevant gate (see Gate 1 and Gate 4 above). Never silently continue past a BLOCKED result.
 
 ---
 

@@ -1,102 +1,208 @@
-# Writ Status Command (status)
+# Status Command (status)
 
 ## Overview
-A command that provides developers with a comprehensive status report when starting work or switching context. Analyzes current git state, active work, and project health to orient developers and suggest next actions.
 
-## Command Structure
+Session orientation command. Reads stable project state — config, active spec, in-flight batch work, and refresh opportunities — and produces a skimmable report that tells you exactly where you are and what to do next. Under 10 seconds. No convention-detection questions when `.writ/config.md` is present.
+
+## Invocation
 
 ```bash
 /status
 ```
 
-Simple, no parameters needed. Works in any git repository with optional Writ project structure.
+No parameters. Works in any git repository.
 
-## Core Functionality
+---
 
-### 1. Git Status & Context Analysis
-**Current Position:**
-- Branch name and relationship to main/origin
-- Commits ahead/behind main branch
-- Last commit message and timestamp
-- Uncommitted changes summary (files modified, added, deleted)
-- Stash status if any
+## Command Process
 
-**Recent Activity:**
-- Last 3-5 commits on current branch
-- Recent activity on main branch that might affect current work
-- Branch age and creation context
+### Step 1: Load Config
 
-### 2. Active Work Detection
-**Writ Integration:**
-- Scan `.writ/specs/` for active specifications
-- Parse current task progress from most recent spec's tasks.md
-- Identify completed vs pending tasks
-- Determine current user story context
+**Read `.writ/config.md` first.** If present, parse:
+- `Default Branch` — used for git position display
+- `Test Runner` — informational, shown in project health
+- `Writ Specs` — path to spec folder (default: `.writ/specs/`)
+- `Writ Issues` — path to issues folder (default: `.writ/issues/`)
 
-**Project Context:**
-- Detect if work appears to be mid-feature vs starting fresh
-- Identify obvious next steps based on file changes
-- Check for TODO comments in recently modified files
+If `.writ/config.md` is **missing or incomplete** for any needed key, run detection for that key only. After detection, offer once: *"Save detected conventions to `.writ/config.md`? (y/n)"* — only write on **y**. Never auto-save.
 
-### 3. Project Health Check
-**Basic Viability:**
-- Can the project build/compile? (language-specific checks)
-- Are core services startable?
-- Any obvious configuration issues?
-- Dependencies status (package.json, requirements.txt, etc.)
+See `.writ/docs/config-format.md` for the key reference and file format.
 
-**Immediate Blockers:**
-- Merge conflicts that need resolution
-- Missing environment variables or config files
-- Failed builds or critical errors
+### Step 2: Gather Git Position
 
-### 4. Contextual Command Suggestions
-**Based on Current State:**
-- If mid-task: Suggest `/implement-story`
-- If no active work: Suggest `/create-spec`
-- If specifications exist: Suggest implementation with `/implement-story`
-- Always suggest `/refactor` for code cleanup
+```bash
+git branch --show-current           # Current branch
+git status --porcelain              # Uncommitted changes
+git log --oneline -5                # Recent commits
+git log main..HEAD --oneline        # Commits ahead (use Default Branch from config)
+git log HEAD..main --oneline        # Commits behind
+git stash list                      # Stashed changes
+```
+
+Extract: branch name, commits ahead/behind default branch, last commit message and timestamp, uncommitted file count, stash count.
+
+### Step 3: Detect Active Spec
+
+```bash
+# Find specs with non-Complete status (most recently modified first)
+ls -t .writ/specs/*/spec.md
+```
+
+For the most recently modified spec that is not `Status: Complete`:
+1. Read `spec.md` header — name, status, phase
+2. Read `user-stories/README.md` — overall progress (X/Y tasks, Z%)
+3. Find the active story: `In Progress` status, or first `Not Started` if none in progress
+4. Read active story file — next unchecked task
+
+### Step 4: Check for In-Flight Batch Jobs
+
+```bash
+ls .writ/state/execution-*.json 2>/dev/null
+```
+
+For each execution state file found, read and summarize:
+- Spec name (from `"spec"` field)
+- Started timestamp (from `"startedAt"` field)
+- Story statuses from the `"stories"` object: count pending, in_progress, completed, failed
+- Report as: *"Batch job in flight: [spec-name] — [N] of [M] stories complete"*
+
+If no execution state files exist, omit this section from the output.
+
+### Step 5: Needs Triage — Stale Issues
+
+```bash
+# Find issue files older than 7 days with no spec_ref
+find .writ/issues -name "*.md" -type f 2>/dev/null
+```
+
+For each issue file found:
+1. **Extract the date** — from filename prefix `YYYY-MM-DD-` (preferred) or file mtime as fallback
+2. **Check age** — if the issue date is more than 7 days before today, it qualifies
+3. **Check spec_ref** — read the file; if `spec_ref:` line is absent, empty, or still reads `_(set automatically...)_`, the issue has no promotion link
+4. **Surface if both conditions met** (older than 7 days AND no spec_ref)
+
+**Report format:**
+```
+⚠️ NEEDS TRIAGE (issues older than 7 days, not yet promoted):
+   • .writ/issues/bugs/2026-03-01-login-timeout.md (19 days old)
+   • .writ/issues/features/2026-02-28-export-csv.md (21 days old)
+   → /create-spec --from-issue [path] to promote to a spec
+```
+
+If no issues qualify (all are recent or already have spec_ref), omit this section entirely. If `.writ/issues/` does not exist, omit silently.
+
+### Step 6: Surface Refresh Opportunities
+
+Check `.writ/state/refresh-log.md` (the canonical refresh log maintained by `/refresh-command`).
+
+**How "last refresh" is determined:** For each command, find the most recent entry in `.writ/refresh-log.md` matching that command name (e.g., a line starting with `## [DATE] — /implement-story refreshed`). The date on that line is the last refresh timestamp. If no entry exists for a command, treat the command as never refreshed (threshold: 3+ any transcripts = suggest).
+
+**How "new transcripts" are counted:** Count `.jsonl` files in the agent-transcripts directory whose modification time (or content timestamps) is after the last refresh date for that command, and whose content references that command (via the command identification logic in Phase 2.2 of `refresh-command.md`).
+
+**Trigger threshold:** If **3 or more** new transcripts exist since the last logged refresh for a command, surface it as a refresh opportunity and suggest `--batch` mode.
+
+**Report format (one line per command):**
+```
+🔄 Refresh opportunities:
+   • 4 new /implement-story sessions since last refresh — consider: /refresh-command implement-story --batch
+   • 3 new /ship sessions since last refresh — consider: /refresh-command ship --batch
+```
+
+If no command has 3+ new transcripts, omit this section.
+
+If `.writ/state/refresh-log.md` does not exist yet, omit this section silently — no error.
+
+### Step 7: Project Health Signals
+
+Quick checks — run only what's fast and relevant:
+- **Uncommitted changes:** flag count if > 0
+- **Merge conflicts:** `git status --porcelain` — flag if `UU` entries exist
+- **Stashed changes:** flag count if > 0
+- **Branch age:** flag if branch was last committed > 5 days ago and has uncommitted changes
+
+Do **not** run build or test commands inline in `/status` — those belong in `/release` and `/implement-story`.
+
+### Step 8: Regenerate `.writ/context.md`
+
+After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using the schema defined in `implement-story.md` Step 2. Each `/status` run replaces the entire file — no append, merge, or patch. Sources:
+
+- **Product Mission** — 1–3 sentences from `.writ/product/mission-lite.md` (omit section if absent)
+- **Active Spec** — spec id, title, status, active story N of M, tasks X/Y complete (from Steps 3–4)
+- **Recent Drift** — last 3 entries from `.writ/specs/{spec}/drift-log.md` (omit if absent)
+- **Open Issues** — count from `.writ/issues/` (omit if absent)
+- **Last Updated** — current ISO 8601 timestamp
+
+This ensures every agent run that follows a `/status` call starts with fresh, accurate context.
+
+### Step 9: Suggest Next Actions
+
+Based on the gathered state, produce 2–4 suggested next actions. Rules:
+
+| Condition | Suggestion |
+|---|---|
+| Merge conflicts exist | Resolve conflicts before continuing |
+| Uncommitted changes + active story | Commit or continue implementing |
+| Active story in progress | `/implement-story` to continue the current story |
+| Active spec, no story in progress | `/implement-story` to start next story |
+| Active spec, all stories complete | `/ship` to open a PR |
+| No active spec, clean state | `/create-spec` to plan new work |
+| Stale untriaged issues (Step 5) | `/create-spec --from-issue [path]` to promote |
+| Refresh opportunities exist (3+ new transcripts) | `/refresh-command [command] --batch` |
+| In-flight batch job exists | `/implement-spec --resume` if needed |
+
+**Command allowlist — only suggest commands that exist in the suite:**
+`/create-spec`, `/implement-story`, `/implement-spec`, `/prototype`, `/review`, `/verify-spec`, `/refresh-command`, `/assess-spec`, `/ship`, `/release`, `/plan-product`, `/design`, `/research`, `/refactor`, `/status`, `/new-command`, `/initialize`, `/create-adr`, `/create-issue`, `/edit-spec`, `/migrate`, `/prisma-migration`, `/test-database`, `/retro`, `/security-audit`, `/explain-code`
+
+Never suggest a command not in this list. If you need to suggest something that doesn't match an existing command, describe the action in plain English instead (e.g., "Resolve merge conflicts manually").
+
+---
 
 ## Output Format
 
-**Important**: The status report should be output as **clean, formatted text** (not wrapped in code blocks) for optimal readability in the chat interface.
+Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode characters and box-drawing for visual clarity.
 
-### Standard Status Report
+### Standard Output
 
+```
 ⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
-   Branch: feature/dashboard-websockets (2 commits ahead of main)
-   Last commit: "Add WebSocket connection hook" (2 hours ago)
-   Uncommitted: 3 modified files in src/components/
+   Branch: feature/auth-refresh (3 commits ahead of main)
+   Last commit: "Add session token rotation" (4 hours ago)
+   Uncommitted: 2 modified files in src/auth/
 
 📋 ACTIVE WORK
-   Spec: Real-time Dashboard with WebSocket Integration 
-   Progress: Story 2 (User receives real-time notifications) - In Progress
-   Tasks completed: 3/6 tasks (50%)
-   Last completed: 2.3 Create notification display component ✅
-   Next task: 2.4 Implement client-side WebSocket connection
+   Spec: 2026-03-15-auth-system (In Progress)
+   Progress: Story 3 of 5 — "Session timeout handling" (In Progress)
+   Tasks: 3/6 complete (50%)
+   Next task: 3.4 Add rotation grace period for active sessions
+
+🔄 REFRESH OPPORTUNITIES
+   • 4 new /implement-story sessions since last refresh
+     → /refresh-command implement-story --batch
+
+⚙️ IN-FLIGHT BATCH JOBS
+   • 2026-03-18-dashboard-refactor: 3/5 stories complete (started 2 hours ago)
 
 🎯 SUGGESTED ACTIONS
-   • Continue with task 2.4 (WebSocket connection management)
-   • Commit current changes before switching tasks
-   • Review recent main branch changes (3 new commits)
+   • Continue task 3.4 (session rotation grace period)
+   • Commit current changes first
 
 ⚡ QUICK COMMANDS
-   /implement-story     # Continue current task
-   /commit-wip       # Commit work in progress  
-   /sync-main        # Pull latest from main
-   /refactor             # Quick code cleanup
+   /implement-story     # Continue Story 3
+   /refresh-command implement-story --batch   # Update command from session patterns
+```
 
 ### Clean State Example
 
+```
 ⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📍 CURRENT POSITION
    Branch: main (up to date)
-   Last commit: "Fix user authentication bug" (1 day ago)
+   Last commit: "chore: release v1.4.0" (1 day ago)
    Working directory: Clean ✅
 
 📋 ACTIVE WORK
@@ -104,17 +210,17 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
    Ready to start new work
 
 🎯 SUGGESTED ACTIONS
-   • Start new feature development
-   • Review pending issues or backlog
-   • Perform maintenance tasks
+   • Plan a new feature
 
 ⚡ QUICK COMMANDS
    /create-spec      # Plan new feature
-   /refactor             # Clean up existing code
-   /review-specs     # Check previous specifications
+   /plan-product     # Define product strategy
+   /research         # Investigate a technical question
+```
 
 ### Problem State Example
 
+```
 ⚡ Writ Status Report
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -123,302 +229,124 @@ Simple, no parameters needed. Works in any git repository with optional Writ pro
    Last commit: "WIP: payment validation" (3 days ago)
    Uncommitted: 7 modified files, 2 conflicts
 
-⚠️  IMMEDIATE ATTENTION
-   • Merge conflicts in src/api/payments.js, package.json
-   • Branch is 2 commits behind main (potential conflicts)
+⚠️ IMMEDIATE ATTENTION
+   • Merge conflicts: src/api/payments.js, package.json
+   • Branch 2 commits behind main (potential conflicts)
    • Stashed changes from 2 days ago
 
 📋 ACTIVE WORK
-   Spec: Payment Processing Integration
-   Progress: Story 1 (User completes payment flow) - In Progress
-   Tasks completed: 3/5 tasks (60%)
-   Status: Task 1.4 appears incomplete
+   Spec: 2026-03-10-payment-integration (In Progress)
+   Progress: Story 1 — "User completes payment flow" (In Progress)
+   Tasks: 3/5 complete (60%)
    Next task: 1.4 Validate payment with external API
 
 🎯 SUGGESTED ACTIONS
    • Resolve merge conflicts first
-   • Sync with main branch changes
-   • Review stashed changes for relevance
-   • Continue or restart task 1.4
+   • Review stashed changes — they may be relevant
+   • Continue task 1.4 after conflicts cleared
 
 ⚡ QUICK COMMANDS
-  /implement-story     # Continue current task
-  /refactor            # Code cleanup
+   /implement-story     # Continue after conflicts resolved
+   /refactor            # Code cleanup once stable
+```
+
+---
 
 ## Implementation Details
 
-### Output Presentation
+### Git Analysis Commands
 
-**Critical**: When Writ executes the status command, the report should be presented as **clean, formatted text** directly in the chat response, NOT wrapped in code blocks or markdown formatting. This ensures maximum readability and a professional presentation.
-
-The status report uses Unicode characters (⚡, 📍, 📋, 🎯, 🔥, ⚠️) and box-drawing characters (━) for visual appeal. These should be output exactly as shown in the examples above.
-
-### Git Analysis
-**Commands to Run:**
 ```bash
-git status --porcelain              # File changes
+git status --porcelain              # File changes and conflicts
 git log --oneline -5                # Recent commits
-git log main..HEAD --oneline        # Commits ahead
+git log main..HEAD --oneline        # Commits ahead (substitute configured default branch)
 git log HEAD..main --oneline        # Commits behind
 git stash list                      # Stashed changes
 git branch -v                       # Branch info
 ```
 
-**Parsing Logic:**
-- Extract meaningful context from commit messages
-- Detect work patterns (feature vs bug fix vs refactor)
-- Identify if work appears complete or in-progress
-- Calculate time since last activity
-
-### Writ Integration
-
-**Spec Detection:**
-```bash
-# Find most recent spec directory
-LATEST_SPEC=$(ls -t .writ/specs/*/spec.md | head -1 | xargs dirname)
-
-# Read overall progress from user stories overview
-cat "$LATEST_SPEC/user-stories/README.md"
-
-# Find all individual story files
-ls "$LATEST_SPEC/user-stories/story-"*.md
-```
-
-**Task Progress Analysis:**
-
-For each individual story file (`user-stories/story-N-{name}.md`), parse the Implementation Tasks section:
+### Spec Detection
 
 ```bash
-# Count completed tasks (marked with [x])
-grep -c "^\- \[x\].*✅" story-file.md
+# Find most recently modified non-complete spec
+ls -t .writ/specs/*/spec.md | while read f; do
+  grep -q "Status: Complete" "$f" || { echo "$f"; break; }
+done
 
-# Count total tasks (any checkbox)
-grep -c "^\- \[[x ]\]" story-file.md
+# Read overall progress
+cat "$SPEC_DIR/user-stories/README.md"
 
-# Find next incomplete task
-grep -n "^\- \[ \]" story-file.md | head -1
+# Find active story
+grep -l "Status: In Progress" "$SPEC_DIR/user-stories/story-"*.md | head -1
+
+# Count tasks
+grep -c "^\- \[x\]" "$STORY_FILE"   # completed
+grep -c "^\- \[[x ]\]" "$STORY_FILE" # total
 ```
 
-**Story Status Detection:**
+### Task Progress Parsing
 
-Parse the story status from the header:
-```bash
-# Extract status from story file header
-grep "^> \*\*Status:\*\*" story-file.md
-```
-
-Possible statuses:
-- `Not Started` - No tasks completed
-- `In Progress` - Some tasks completed, some remaining  
-- `Completed ✅` - All tasks and acceptance criteria completed
-
-**Progress Analysis:**
-- Count completed vs total tasks across all stories
-- Identify current active story (has In Progress status)
-- Extract next logical task from current story
-- Detect if entire spec work is complete
-- Parse progress summary from `user-stories/README.md` table
-
-**Active Work Prioritization:**
-
-1. **Multiple specs exist**: Show the most recently modified spec (based on file timestamps)
-2. **Single spec, multiple stories**: Show the story with "In Progress" status, or first "Not Started" story if none in progress
-3. **All stories complete**: Show overall completion status and suggest next actions
-4. **No specs found**: Indicate no Writ specifications exist
-
-**Task Parsing Edge Cases:**
-
-Handle various task formats that may exist in story files:
-```bash
-# Standard format with checkmark
-- [x] 1.1 Implement authentication ✅
-
-# Format without checkmark emoji
-- [x] 1.1 Implement authentication
-
-# Incomplete task
-- [ ] 1.2 Add validation logic
-
-# Tasks with sub-items (count as single task)
-- [x] 1.3 Database setup
-  - Created user table
-  - Added indexes
-```
-
-**Validation:**
-- Only count top-level task items (lines starting with `- [`)
+- Count top-level task items only (lines starting with `- [`)
 - Ignore indented sub-items
-- Handle both `[x]` and `[X]` as completed
-- Treat any other character in brackets as incomplete
+- `[x]` and `[X]` both count as complete
+- Any other character in brackets = incomplete
 
-### Project Health Checks
-**Language-Specific:**
-```bash
-# Node.js
-npm run build --if-present
-node -c package.json
+### In-Flight Batch Job Parsing
 
-# Python  
-python -m py_compile main.py
-pip check
+Read `.writ/state/execution-*.json` — fields to extract:
 
-# General
-# Check for .env.example vs .env
-# Verify critical config files exist
-```
+| JSON field | Used for |
+|---|---|
+| `"spec"` | Spec name to display |
+| `"startedAt"` | Start time (ISO 8601) |
+| `"stories"` | Object — each key is a story ID, value has `"status"` field |
 
-### Command Suggestion Logic
-**Decision Tree:**
-1. **Is there a merge conflict?** → Suggest conflict resolution
-2. **Is working directory dirty?** → Suggest commit or stash
-3. **Is branch behind main?** → Suggest sync
-4. **Is there an active task?** → Suggest continue task
-5. **Is current task complete?** → Suggest next task
-6. **No active work?** → Suggest create spec
-7. **Always:** → Suggest refactor for cleanup
+A story is "in-flight" if its `"status"` is `"in_progress"` or `"pending"` (not yet reached). A job is "complete" if all stories are `"completed"`. Only show jobs that are not yet fully complete.
 
-## Usage Patterns
+---
 
-### Morning Routine
-```bash
-# Developer starts their day
-$ /status
+## Maintainer Note: Command Allowlist
 
-# Gets oriented on yesterday's work
-# Sees exactly what to do next
-# Jumps into flow state quickly
-```
+The ⚡ QUICK COMMANDS section and 🎯 SUGGESTED ACTIONS section must only name commands from this allowlist. Future edits must not introduce commands that do not exist in `commands/*.md`:
 
-### Context Switching
-```bash
-# After meetings, interruptions, or breaks
-$ /status
+`create-spec`, `implement-story`, `implement-spec`, `prototype`, `review`, `verify-spec`, `refresh-command`, `assess-spec`, `ship`, `release`, `plan-product`, `design`, `research`, `refactor`, `status`, `new-command`, `initialize`, `create-adr`, `create-issue`, `edit-spec`, `migrate`, `prisma-migration`, `test-database`, `retro`, `security-audit`, `explain-code`
 
-# Quick reminder of current state
-# Understand what changed while away
-# Resume work efficiently
-```
+If a new command is added to the suite, add it here. If a command is removed, remove it here.
 
-### Project Handoff
-```bash
-# When picking up someone else's work
-$ /status
-
-# Understand current project state
-# See what was being worked on
-# Get oriented without diving into code
-```
+---
 
 ## Error Handling
 
 ### Not a Git Repository
-```bash
+
+```
 ❌ Not in a git repository
    Initialize git first: git init
 ```
 
 ### No Writ Structure
-```bash
-⚡ Writ Status Report
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📍 CURRENT POSITION
-   Branch: main (up to date)
-   Last commit: "Initial commit" (1 hour ago)
-   Working directory: Clean ✅
+The report still runs — git position, health signals, and suggested next actions work without `.writ/`. Simply omit the ACTIVE WORK section and adjust suggestions accordingly.
 
-📋 ACTIVE WORK
-   No Writ specifications found
-   Project structure: Standard git repository
+### Corrupted or Partial Spec State
 
-🎯 SUGGESTED ACTIONS
-   • Set up Writ workflow
-   • Create first feature specification
+If spec files exist but cannot be parsed (malformed README, missing story files), report what's available and flag the issue:
 
-⚡ QUICK COMMANDS
-   /init             # Initialize Writ
-   /create-spec      # Create first specification
 ```
-
-### Corrupted Project State
-```bash
-⚠️  PROJECT ISSUES DETECTED
-   • package.json syntax error
-   • Missing critical dependencies
-   • Build process failing
-
-🔧 SUGGESTED FIXES
-   • Fix package.json syntax
-   • Run npm install or equivalent
-   • Check build configuration
-
-⚡ RECOVERY COMMANDS
-   /doctor           # Diagnose and fix common issues
-   /reset-deps       # Reinstall dependencies
+⚠️ Spec state partially readable
+   Some story files could not be parsed — run /verify-spec to diagnose
 ```
-
-## Security & Privacy
-
-### Local-Only Analysis
-- All analysis happens locally
-- No external API calls or data transmission
-- Git history and file contents remain private
-
-### Sensitive Information
-- Avoid displaying sensitive data in commit messages
-- Mask environment variables or config values
-- Sanitize file paths that might contain personal info
-
-## Performance Considerations
-
-### Fast Execution
-- Target <2 second execution time
-- Cache expensive operations when possible
-- Limit git log queries to reasonable ranges
-
-### Incremental Analysis
-- Store last analysis timestamp
-- Only re-analyze changed files/commits
-- Use git's efficient diffing for change detection
-
-## Integration Points
-
-### Existing Writ Commands
-- Status should inform other commands about current state
-- Share analysis results to avoid duplicate work
-- Coordinate with task execution and spec management
-
-### Future Enhancements
-- Integration with GitHub/GitLab for PR status
-- Team activity awareness (without external dependencies)
-- Customizable status report sections
-- Export status for external tools or dashboards
-
-## Success Metrics
-
-### Developer Experience
-- Time to context restoration after interruptions
-- Frequency of "what was I working on?" moments
-- Accuracy of suggested next actions
-- Adoption rate and daily usage patterns
-
-### Project Health
-- Early detection of project issues
-- Improved workflow consistency
-- Better task completion rates
-- Reduced context switching overhead
 
 ---
 
-*⚡ Know thy codebase. Know thy standing. The truth shall set your project free.*
+## Integration with Writ
 
-## Suggested Next Actions
-
-Based on project state analysis, suggest relevant next steps:
-
-- **No specs**: Suggest `/create-spec` or `/plan-product`
-- **Specs ready for implementation**: Suggest `/implement-story`
-- **Tasks ready**: Suggest `/implement-story`
-- **Code quality issues**: Suggest `/refactor`
-- **Missing architecture**: Suggest `/create-adr`
-- **Research needed**: Suggest `/research`
+| Command | Relationship |
+|---------|-------------|
+| `/initialize` | Seeds `.writ/config.md` — `/status` reads it on every run |
+| `/implement-spec` | Writes `.writ/state/execution-*.json` — `/status` surfaces in-flight jobs |
+| `/refresh-command` | Maintains `.writ/refresh-log.md` — `/status` surfaces `--batch` refresh opportunities when 3+ new transcripts |
+| `/create-issue` | Creates issues in `.writ/issues/` — `/status` surfaces stale untriaged issues (Step 5) |
+| `/create-spec --from-issue` | Promotes issues to specs — clears the Needs Triage flag by writing `spec_ref` |
+| `/verify-spec` | Deep metadata diagnostic — use when `/status` flags spec inconsistencies |
+| `/ship` | Next step when active spec is complete |

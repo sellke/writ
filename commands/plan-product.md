@@ -237,9 +237,15 @@ Track creation progress with todo_write.
 ├── mission.md
 ├── mission-lite.md
 ├── roadmap.md
-├── decisions.md
 └── research/
+
+.writ/decision-records/
+├── ADR-000-[product-posture].md
+├── ADR-001-[market-focus].md
+└── ADR-00N-[decision-title].md
 ```
+
+> **Note:** This command no longer creates `decisions.md`. Foundational product decisions are now recorded as numbered ADR files in `.writ/decision-records/`. If your project already has a `.writ/product/decisions.md` from a previous run, it is **not** modified or deleted — soft deprecation only.
 
 #### Step 2.3: Generate Core Product Documents
 
@@ -251,11 +257,53 @@ Track creation progress with todo_write.
 - Must contain: phase definitions (MVP/Growth/Scale) with timelines and success criteria, features with effort sizing (XS: 1-2 days, S: 3-5 days, M: 1-2 weeks, L: 3-4 weeks, XL: 1+ months), dependencies between phases, validation targets per phase
 - Quality bar: Each phase has clear entry/exit criteria and measurable success metrics — no phase starts without knowing what "done" looks like
 
-#### Step 2.4: Generate Decision Log
+#### Step 2.4: Generate Foundational ADR Files
 
-**decisions.md** — Decision log with rationale for future AI reference.
-- Must contain: each decision with context, alternatives considered (with pros/cons), rationale for the choice made, consequences (positive and negative), review triggers (when to revisit)
-- Quality bar: A future AI reading this file understands *why* each decision was made, not just what was decided — the reasoning chain is preserved
+For each major decision surfaced during the discovery conversation, create a numbered ADR file in `.writ/decision-records/`. These are the **000-series product ADRs** — they capture product posture and market focus, not technical architecture.
+
+**Standard ADRs to generate (always):**
+- `ADR-000-product-posture.md` — The planning posture chosen (EXPANSION / HOLD / REDUCTION) and why; what product tier/ambition level this product targets
+- `ADR-001-market-focus.md` — The target user segment chosen and why; what segments were considered and rejected
+
+**Additional ADRs for each major product decision from discovery** (examples):
+- `ADR-002-positioning.md` — How this product differentiates from alternatives (if discussed)
+- `ADR-003-monetization.md` — Business model decision (if discussed)
+- `ADR-004-mvp-scope.md` — Why these features and not others (if scope tradeoffs were significant)
+
+**Each ADR file must follow the standard ADR format** (aligned with `/create-adr`):
+
+```markdown
+# ADR-000: [Decision Title]
+
+> Status: Accepted
+> Date: YYYY-MM-DD
+> Deciders: [product owner / team]
+> Part of: /plan-product discovery for [product name]
+
+## Context
+
+[What decision needed to be made and why — the forces at play]
+
+## Decision Drivers
+
+[Force-ranked criteria that tipped this decision]
+
+## Considered Options
+
+[Each option with pros, cons, effort estimate]
+
+## Decision
+
+[Chosen option and rationale tied to drivers]
+
+## Consequences
+
+[Positive and negative consequences; review triggers]
+```
+
+**Number assignment:** Start at ADR-000 for the first product-level ADR. If `.writ/decision-records/` already has ADRs from a prior `plan-product` or `/create-adr` run, continue the sequence from the highest existing number.
+
+**Quality bar:** A future AI reading these files understands *why* each product decision was made — the reasoning chain is preserved, not just the outcome. Alternatives considered with honest pros/cons. Every negative consequence documented.
 
 #### Step 2.5: Create Mission-Lite for AI Context
 
@@ -268,5 +316,5 @@ Example of the right feel:
 
 #### Step 2.6: Final Review
 
-Present the file tree, summarize what was captured from the discovery conversation, suggest review focus areas, and recommend next commands (`/create-spec`, `/implement-story`, `/research`).
+Present the file tree (including all ADR files created under `.writ/decision-records/`), summarize what was captured from the discovery conversation, suggest review focus areas, and recommend next commands (`/create-spec`, `/implement-story`, `/research`).
 

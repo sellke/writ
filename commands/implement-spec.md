@@ -167,6 +167,7 @@ For each batch in order:
 After each `/implement-story` completes:
 - Update execution state file with result
 - Log: pass/fail, review iterations, test count, coverage
+- **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2, reflecting the updated story progress. Each write replaces the entire file.
 
 **On story failure:** Present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 

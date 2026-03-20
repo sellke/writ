@@ -204,6 +204,27 @@ None — all tests passed on first run.
 ⚠️ Below threshold. 2 acceptance criteria have insufficient test coverage.
 ```
 
+## Iteration Cap
+
+`MAX_SELF_FIX_ITERATIONS = 3`
+
+When fixing test failures or coverage gaps, count each fix attempt. After **3 failed attempts** on the same failure, stop immediately — do not attempt a fourth. Output the following structured block and halt:
+
+```
+STATUS: BLOCKED
+AGENT: testing-agent
+ATTEMPTS: 3
+FAILURE: [specific description of what failed and why — include failing test names, error messages, coverage numbers, and what was tried]
+PARTIAL_STATE: [what passed successfully before the block — passing tests, coverage on non-failing files, tasks completed]
+NEXT_STEP: Surface to orchestrator for human decision
+```
+
+**What counts as an attempt:** Each fix-and-rerun cycle targeting the same failing test or uncovered file. A failure on a different test resets the counter for that test. The cap is per-failure, not per-session.
+
+**Do not** attempt a workaround that weakens the test (e.g., marking it skip, lowering a threshold, deleting the assertion). The cap means: this needs human judgment. Report partial state clearly — it lets the user decide: retry, skip gate, or abort pipeline.
+
+---
+
 ## Testing Strategy
 
 ### Test Execution Order

@@ -77,6 +77,7 @@ Quick scan of `.writ/issues/` with `Glob` for existing issues in the same area o
 > **Priority:** {Low|Normal|High|Critical}
 > **Effort:** {Small|Medium|Large}
 > **Created:** {YYYY-MM-DD}
+> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
 
 ## TL;DR
 
@@ -107,6 +108,7 @@ Quick scan of `.writ/issues/` with `Glob` for existing issues in the same area o
 - **Related Issues** — omit entirely if none found
 - **Notes** — omit entirely if nothing to add
 - **Relevant Files** — max 3 files, omit if none identified
+- **spec_ref** — always include in the frontmatter block, empty by default; set to the spec path (e.g. `.writ/specs/2026-03-20-fix-login/spec.md`) when the issue is promoted via `/create-spec --from-issue`
 
 ### Step 6: Confirm
 

@@ -49,7 +49,11 @@ Default path **omits** tests. With `/ship --test`, the dashed box runs after mer
 
 ### Step 1: Detect Conventions
 
-Auto-detect project conventions without configuration. Print results for user verification before proceeding.
+Load project conventions using the following priority order:
+
+1. **Read `.writ/config.md`** — if present, parse supported keys (Default Branch, Test Runner, Merge Strategy) and use those values directly. See `.writ/docs/config-format.md` for the full key reference.
+2. **Detect missing keys** — for any convention not found in config, run the detection chain below.
+3. **Offer to persist** — after detection fills any key that was missing from config, offer once: *"Detected [values]. Save to `.writ/config.md`? (y/n)"* — only write on **y**.
 
 | Convention | Detection Chain | Fallback |
 |---|---|---|

@@ -151,6 +151,20 @@ Present the evaluation and discuss trade-offs before committing to a recommendat
 
 ---
 
+## ADR Families
+
+Writ produces two families of ADRs. They share the same format but serve different purposes:
+
+**Product-level ADRs (000-series):** Seeded automatically by `/plan-product` during the product discovery phase. Cover foundational product choices — planning posture, market focus, positioning, business model, MVP scope tradeoffs. These are created once per product planning session and change rarely. File names follow `ADR-000-product-posture.md`, `ADR-001-market-focus.md`, etc.
+
+**Technical ADRs (sequential from the next available number):** Created via `/create-adr` for architectural, infrastructure, implementation, and tooling decisions. These are what you create when you hit a meaningful technical fork in the road. They continue the numbering sequence after any product-level ADRs already in place.
+
+**When in doubt about which to use:** If the decision is about *what to build and for whom*, it's a product ADR (seed it via `/plan-product` or create manually in the 000-series). If the decision is about *how to build it*, use `/create-adr`.
+
+**Migration note:** If your project has a `.writ/product/decisions.md` from an earlier `/plan-product` run, it is **not** modified, migrated, or deleted by these instructions. That file continues to exist as-is. You may optionally create ADRs to formalize the decisions it documents — but migration is entirely optional and unscripted.
+
+---
+
 ## ADR Conventions
 
 **Numbering:** Sequential four-digit format — `0001`, `0002`, `0003`. Never reuse numbers, even for deprecated ADRs.

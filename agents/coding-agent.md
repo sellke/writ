@@ -27,6 +27,7 @@ The orchestration agent must provide:
 
 | Parameter | Description |
 |-----------|-------------|
+| `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
 | `spec_lite_content` | Condensed specification for context |
@@ -43,6 +44,12 @@ Task({
   subagent_type: "generalPurpose",
   description: "Implement story code",
   prompt: `You are the Coding Agent for story implementation.
+
+## Project Context
+
+{context_md_content}
+
+---
 
 ## Your Mission
 
@@ -178,6 +185,27 @@ The Coding Agent must return a structured summary:
 ### Summary
 [2-3 sentence summary of what was implemented]
 ```
+
+## Iteration Cap
+
+`MAX_SELF_FIX_ITERATIONS = 3`
+
+When self-fixing failures (test failures, typecheck errors, lint errors), count each fix attempt. After **3 failed attempts** on the same issue, stop immediately — do not attempt a fourth. Output the following structured block and halt:
+
+```
+STATUS: BLOCKED
+AGENT: coding-agent
+ATTEMPTS: 3
+FAILURE: [specific description of what failed and why — include the failing command, error message, and what was tried]
+PARTIAL_STATE: [what was completed successfully before the block — files created, tests written, tasks checked off]
+NEXT_STEP: Surface to orchestrator for human decision
+```
+
+**What counts as an attempt:** Each edit-and-rerun cycle on the same failing check. A fresh failure on a different check resets the counter for that check. The cap is per-issue, not per-session.
+
+**Do not** soften this with "let me try one more thing." The cap is a hard stop. Partial state is valuable — preserve and report it clearly so the user can decide: retry, skip, or abort.
+
+---
 
 ## Scope Detection (Prototype Mode Only)
 

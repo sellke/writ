@@ -26,6 +26,7 @@ readonly: true   # Review agent should only read and analyze
 
 | Parameter | Description |
 |-----------|-------------|
+| `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
 | `coding_agent_output` | Summary from the Coding Agent |
@@ -42,6 +43,12 @@ Task({
   readonly: true,
   description: "Review implementation",
   prompt: `You are the Review Agent for story implementation validation.
+
+## Project Context
+
+{context_md_content}
+
+---
 
 ## Your Mission
 Review the implementation completed by the Coding Agent and determine if it meets quality standards.

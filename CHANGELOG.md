@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-03-20
+
+### Added
+
+- **Config persistence layer** (`/initialize`, `/ship`, `/release`, `/status`) — `.writ/config.md` as a shared convention store; commands load from it first, fall back to detection, and offer to persist detected values. Eliminates repeated convention re-detection across sessions.
+- **Agent iteration caps** (`coding-agent`, `testing-agent`, `/implement-story`) — `MAX_SELF_FIX_ITERATIONS = 3` hard limit; agents emit `STATUS: BLOCKED` after 3 attempts; orchestrator surfaces a repair decision (retry / skip / abort) instead of silently continuing.
+- **Spec-lite integrity check** (`/verify-spec`) — Check 9 detects material divergence between `spec-lite.md` and `spec.md`; `--fix` flag (and default auto-fix mode) fully regenerates spec-lite from the authoritative spec.
+- **`/status` North Star rewrite** — Reads `.writ/config.md` for instant orientation; surfaces in-flight batch jobs from execution state files; surfaces `/refresh-command --batch` opportunities when 3+ transcripts accumulate; removes all legacy phantom command references.
+- **Prototype → spec escalation** (`/prototype`, `/create-spec`) — On scope escalation, `/prototype` actively offers `/create-spec --from-prototype`; the new `--from-prototype` mode reads the current git diff, pre-populates the discovery contract, and marks Story 1 complete.
+- **ADR unification** (`/plan-product`, `/create-adr`) — `/plan-product` now outputs foundational decisions as numbered ADR files (ADR-000-series) in `.writ/decision-records/` instead of `decisions.md`; `/create-adr` documents both ADR families and when to use each.
+- **`.writ/context.md` auto-loading** (`/implement-story`, `/implement-spec`, `/status`, coding/review/arch-check agents) — Auto-maintained context snapshot (product mission, active spec, recent drift, open issue count); fully regenerated at each gate transition and story completion; loaded as the first context item by all three implementation agents.
+- **Issue → spec promotion pipeline** (`/create-issue`, `/create-spec`, `/status`) — `spec_ref` field in issue template; `/create-spec --from-issue [path]` pre-populates the discovery contract from issue fields and writes `spec_ref` back on completion; `/status` surfaces stale untriaged issues (7+ days, no spec_ref).
+- **`/refresh-command --batch` mode** — Ingests last N transcripts (default 5, overridable via `--n`); detects friction patterns recurring across 2+ sessions; recurrence-weighted proposals include frequency strings ("Observed in N/M sessions"); `/status` auto-triggers the suggestion when 3+ new transcripts accumulate since the last logged refresh.
+
 ## [0.5.0] - 2026-03-19
 
 ### Changed

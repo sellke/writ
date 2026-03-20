@@ -15,7 +15,90 @@ This is **local-first**: amendments are applied to the project's local command c
 | `/refresh-command` | Interactive — select command and transcript |
 | `/refresh-command create-spec` | Fixed command, select transcript interactively |
 | `/refresh-command create-spec --last` | Auto-selects most recent transcript for that command |
+| `/refresh-command create-spec --batch` | Batch mode — analyze last 5 transcripts for cross-session patterns |
+| `/refresh-command create-spec --batch --n 10` | Batch mode — analyze last 10 transcripts |
 | `/refresh-command refresh-command --last` | Bootstrap — refresh-command analyzes and improves itself |
+
+## `--batch` Mode
+
+**Purpose:** Single-transcript refresh is iterative — it optimizes from one session. Batch mode makes improvement **compound** by ingesting the last N transcripts and detecting patterns that recur across sessions. Recurring friction carries more signal weight than a one-off bad run.
+
+**Defaults:**
+- `N = 5` transcripts (overridable via `--n [number]`)
+- Only the last N transcripts for the specified command are analyzed (most recent first)
+- Minimum recurrence threshold for "pattern" status: **2 of N sessions**
+
+### Batch Phase 1: Select Command + Transcripts
+
+Same as standard Phase 1 command selection. Then, instead of selecting one transcript:
+1. Auto-collect the **last N** transcripts for the specified command (sorted by date descending)
+2. Report collection: *"Collected N transcripts for /[command] (last M days)"*
+3. No interactive transcript selection — batch mode auto-selects
+
+### Batch Phase 2: Scan All N Transcripts
+
+Run the standard Phase 2 scan on each transcript. Aggregate signals:
+- Maintain a **signal frequency map**: for each distinct signal type/location, count how many of the N sessions it appears in
+- A signal appearing in 1 session = **isolated** (low priority)
+- A signal appearing in 2+ sessions = **pattern** (higher priority, worth amending)
+- A signal appearing in 4+ of 5 sessions = **systematic** (highest priority)
+
+### Batch Phase 3: Cross-Session Analysis
+
+The analysis agent receives **all N transcripts plus a cross-session summary** — not a single log. Prompt:
+
+```
+Task({
+  subagent_type: "generalPurpose",
+  readonly: true,
+  description: "Batch friction analysis — [N] transcripts for /[command]",
+  prompt: `You are the Refresh Analysis Agent running in batch mode.
+You have been given [N] transcripts from [N] sessions of the /[command] command.
+Your job: identify friction patterns that recur across multiple sessions — these
+are structural issues worth fixing. One-off signals are lower priority.
+
+## Command Under Analysis
+[full contents of commands/[command].md]
+
+## Cross-Session Signal Summary
+[frequency map: signal type → count of sessions it appeared in]
+
+## All [N] Transcripts
+[Transcript 1 (most recent)]:
+[signal list from Phase 2]
+
+[Transcript 2]:
+[signal list from Phase 2]
+
+...
+
+## Analysis Framework
+For each signal in the frequency map:
+- Recurrence: N_sessions/M_total (where M = actual transcripts analyzed, may be < N if fewer exist)
+- If N_sessions >= 2: classify as a "pattern" — full root-cause analysis applies
+- If N_sessions == 1: classify as "isolated" — note it, lower priority
+- Confidence mapping: 1/M = low, 2/M = medium, 3+/M = high, 4+/M = very high
+`
+})
+```
+
+### Batch Phase 4: Recurrence-Weighted Proposals
+
+When generating amendment proposals in batch mode:
+1. **Include recurrence frequency** in every proposal: *"Observed in N/M analyzed sessions."* (M = actual transcripts analyzed)
+2. **Order proposals by recurrence**: highest recurrence first
+3. **Confidence from recurrence:**
+   - 4+/M → Very High confidence
+   - 3/M → High confidence
+   - 2/M → Medium confidence
+   - 1/M → Low confidence (propose but flag as isolated)
+4. **Label each proposal** with its recurrence string in the AskQuestion options, e.g. `"🔴 [High, 3/5 sessions] Deduplicate clarification questions"`
+
+### Batch Phase 5–6: Apply + Promote
+
+Same as standard phases. High-frequency batch findings (3+/M sessions) carry weight equivalent to High confidence single-transcript findings when evaluating promotion eligibility in Phase 6.
+
+---
 
 ## Pipeline
 
@@ -29,7 +112,8 @@ This is **local-first**: amendments are applied to the project's local command c
        │                  │                  │                  │                  │                  │
   interactive or     parse lines,      root cause,       diff + rationale   .cursor/commands/   Yes → PR
   arg-based          extract signals   impact, fixability + confidence       + refresh-log.md    No → local only
-                                                                                                 Later → queued
+ (--batch: auto-   (--batch: all N    (--batch: cross-  (--batch: ordered  (unchanged)          Later → queued
+  selects last N)   transcripts)       session context)  by recurrence)
 ```
 
 ## Command Process
