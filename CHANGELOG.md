@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.1] - 2026-03-20
+
+### Fixed
+
+- **`/implement-story` context schema title** — `context.md` schema heading corrected from `# Writ Context` to `# Writ Project Context`, matching the authoritative definition in the technical spec. Eliminates title inconsistency that could cause schema validation or parsing failures.
+- **`/implement-story` context regeneration note** — Step 3 preamble now accurately states that `.writ/context.md` is regenerated once at Story Completion (Step 4), not after each gate. The prior wording implied per-gate regeneration that no gate implementation actually performed.
+
 ## [0.6.0] - 2026-03-20
 
 ### Added
