@@ -63,7 +63,7 @@ Proceeding anyway — some integration points may be unavailable.
 **Schema:**
 
 ```markdown
-# Writ Context
+# Writ Project Context
 
 > Last Updated: {ISO 8601 timestamp}
 
@@ -97,7 +97,7 @@ Proceeding anyway — some integration points may be unavailable.
 
 ### Step 3: Run Pipeline
 
-> **Context refresh:** After each gate completes, fully regenerate `.writ/context.md` using the schema above. Each write replaces the entire file — do not append, merge, or patch.
+> **Context refresh:** `.writ/context.md` is regenerated once at Story Completion (Step 4), not between gates. Each write replaces the entire file — do not append, merge, or patch.
 
 ---
 
