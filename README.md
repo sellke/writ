@@ -146,6 +146,18 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
+Writ ships 22 commands, but you only need five to go from idea to PR:
+
+| Command | What it does |
+|---------|--------------|
+| `/prototype` | Quick changes — no spec needed. Describe it, ship it. |
+| `/create-spec` | Turn a feature idea into a structured contract with stories. |
+| `/implement-spec` | Execute a spec end-to-end: dependency graph → parallel stories → quality gates. |
+| `/ship` | Merge, split commits, open a PR. |
+| `/status` | See where everything stands — specs, branches, progress. |
+
+Everything else (planning, reviews, retros, releases) is there when you need it. Start here.
+
 ### Cursor (one-line install)
 
 From your project root:
