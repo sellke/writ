@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-03-20
+
+### Added
+
+- **File ownership boundaries (Gate 0.5)** — `commands/implement-story.md` now computes a `boundary_map` (owned / readable / out-of-scope) before Gate 1 from story tasks, tech spec paths, shallow import graph, arch-check overrides, and optional **assess-spec Check 5** data in `.writ/specs/{spec}/assessment-report.md` (or embedded `## Check 5 — File overlap` section). Skipped for `--quick`, `--review-only`, and not used on the `/prototype` path. `agents/coding-agent.md` and `agents/review-agent.md` accept optional `boundary_map` + `boundary_overlap_summary`; architecture-check warnings can prefix **BOUNDARY OVERRIDE:** for path demotion.
+
+### Changed
+
+- **README** — Pipeline diagram and `/implement-story` command description updated for Gate 0.5 and full gate list (`--quick` skips called out).
+
 ## [0.7.0] - 2026-03-20
 
 ### Added

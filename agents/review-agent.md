@@ -34,6 +34,8 @@ readonly: true   # Review agent should only read and analyze
 | `acceptance_criteria_with_checkboxes` | Formatted criteria for verification |
 | `spec_lite_content` | Content of spec-lite.md — the spec contract used for drift comparison |
 | `change_surface` | Classification from Gate 2.5: `style-only`, `single-component`, `cross-component`, or `full-stack`. Determines review depth allocation per category. |
+| `boundary_map` | **Optional.** Same Gate 0.5 markdown block passed to the coding agent. If empty/omitted, skip boundary compliance scrutiny (legacy behavior). |
+| `boundary_overlap_summary` | **Optional.** One-line summary of overlap / high-overlap areas from the map (for extra scrutiny). Empty if none. |
 
 ## Prompt Template
 
@@ -83,9 +85,17 @@ Use this to allocate review depth. Every category is ALWAYS scanned — no categ
 
 The output should be SHORTER for style-only and single-component changes, not just faster.
 
+## File Ownership Boundaries (optional)
+
+{boundary_map}
+
+**Overlap / high-overlap summary:** {boundary_overlap_summary}
+
+If `boundary_map` is empty, whitespace-only, or `(none)`, **ignore** this entire section and the Boundary Compliance category below.
+
 ## Review Categories
 
-Review against these five categories. Depth per category is governed by the Change Surface table above.
+Review against the categories below. Depth per category is governed by the Change Surface table above. **Boundary Compliance** applies only when a non-empty `boundary_map` was provided.
 
 ### 1. Acceptance Criteria (primary gate)
 Verify each criterion is satisfied by the implementation. This is non-negotiable — every criterion must map to working code and a passing test.
@@ -103,7 +113,19 @@ Tests for all acceptance criteria. Error/failure paths covered. Edge cases (empt
 ### 5. Integration
 No breaking changes to public APIs. No circular dependencies. Migrations included if schema changed. New env vars documented.
 
-### 6. Drift Analysis (Spec Healing)
+### 6. Boundary Compliance (only if `boundary_map` was provided above)
+
+Compare **files created/modified** (from the coding agent summary) against **Owned / Readable / Out-of-scope** in the boundary map.
+
+- **Owned** changes — no boundary issue.
+- **Readable** changes — acceptable only if the coding agent documented a **BOUNDARY_DEVIATION** with a **credible reason** (e.g. required type export). Judge **justified** vs **unjustified** scope creep.
+- **Out-of-scope** changes — treat as **high risk**; **unjustified** violations should be **Major** findings (or **Critical** if they break contract or security). Justified violations should be **rare** and explicitly argued.
+
+**High-overlap** and **overlap** annotations: apply **stricter** scrutiny to integration and justification for any file touching those paths.
+
+**Do not** auto-FAIL solely for a justified deviation. **Do** FAIL (or flag Major) for unjustified violations.
+
+### 7. Drift Analysis (Spec Healing)
 
 Compare the implementation against the Spec Contract above. For each acceptance criterion and key spec requirement:
 
@@ -166,6 +188,16 @@ For each issue:
 - **Location:** [File path and line number if applicable]
 - **Severity:** [Critical/Major/Minor]
 - **Suggested Fix:** [Concrete steps to resolve — not vague guidance]
+
+### Boundary Compliance
+
+_If no `boundary_map` was provided, write a single line: **Not applicable** (no boundary map)._
+
+| File | Tier (Owned / Readable / Out-of-scope) | Action (created/modified/unchanged) | Justified? | Notes |
+|------|----------------------------------------|-------------------------------------|------------|-------|
+| … | … | … | ✅ Yes / ❌ No / N/A | … |
+
+**Summary:** [One sentence — e.g. "All changes within Owned; one justified deviation on Readable types file."]
 
 ### Drift Analysis
 

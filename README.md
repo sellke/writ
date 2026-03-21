@@ -53,6 +53,7 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
                Edge cases        recommendations         │            Edge cases      Open PR
                                                     Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
+                              ├─ Boundary map (Gate 0.5 — owned/readable scope)
                               ├─ Coding agent (TDD)
                               ├─ Lint/typecheck gate
                               ├─ Review agent (+ security + drift)
@@ -86,7 +87,7 @@ Feedback loop (/retro + /refresh-command):
 |---------|---------|
 | `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, builds dependency graph, resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
-| `/implement-story` | **Per-story executor.** 6-gate SDLC pipeline: arch-check → code → lint → review → test → docs. |
+| `/implement-story` | **Per-story executor.** SDLC pipeline: arch-check → **boundary map (Gate 0.5)** → coding (TDD) → lint → review → drift → testing → visual QA (optional) → docs. `--quick` skips arch, boundary, review, drift, docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | Comprehensive project status report |
 

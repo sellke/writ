@@ -2,7 +2,7 @@
 
 ## Overview
 
-Runs a single user story through the full SDLC pipeline: architecture check → coding (TDD) → lint/typecheck → review → drift handling → testing → documentation.
+Runs a single user story through the full SDLC pipeline: architecture check → **boundary map (Gate 0.5)** → coding (TDD) → lint/typecheck → review → drift handling → testing → documentation.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -18,12 +18,12 @@ This is the **per-story execution engine**. For full spec execution with depende
 ## Agent Pipeline
 
 ```
-┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
-│  GATE 0  │──▶│  GATE 1  │──▶│  GATE 2  │──▶│  GATE 3  │──▶│ GATE 3.5 │──▶│  GATE 4  │──▶│ GATE 4.5 │──▶│  GATE 5  │
-│ ARCH     │   │ CODING   │   │ LINT &   │   │ REVIEW   │   │  DRIFT   │   │ TESTING  │   │ VISUAL QA│   │  DOCS    │
-│ CHECK    │   │ AGENT    │   │TYPECHECK │   │ AGENT    │   │ RESPONSE │   │ AGENT    │   │(optional)│   │ AGENT    │
-│(readonly)│   │ (TDD)    │   │ (auto)   │   │(readonly)│   │ (auto)   │   │(+coverage│   │(readonly)│   │(adaptive)│
-└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
+┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+│  GATE 0  │──▶│ GATE 0.5 │──▶│  GATE 1  │──▶│  GATE 2  │──▶│  GATE 3  │──▶│ GATE 3.5 │──▶│  GATE 4  │──▶│ GATE 4.5 │──▶│  GATE 5  │
+│ ARCH     │   │ BOUNDARY │   │ CODING   │   │ LINT &   │   │ REVIEW   │   │  DRIFT   │   │ TESTING  │   │ VISUAL QA│   │  DOCS    │
+│ CHECK    │   │   MAP    │   │ AGENT    │   │TYPECHECK │   │ AGENT    │   │ RESPONSE │   │ AGENT    │   │(optional)│   │ AGENT    │
+│(readonly)│   │ (inline) │   │ (TDD)    │   │ (auto)   │   │(readonly)│   │ (auto)   │   │(+coverage│   │(readonly)│   │(adaptive)│
+└──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘   └──────────┘
      │              ▲              │               │               │                             │
      │ ABORT?       │ fix loop     │ fail?         │ FAIL?         │ PAUSE?                      │ FAIL?
      ▼              └──────────────┘               │               ▼                             │
@@ -121,12 +121,107 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 
 ---
 
+#### Gate 0.5: Boundary Computation (File Ownership Map)
+
+> **Agent:** None — **inline orchestration step** (data transformation, not a judgment call)
+> **Skip in:** `--quick` mode, `--review-only` mode, `/prototype` path (see below)
+
+Before Gate 1, compute a **`boundary_map`** so the coding and review agents have explicit **owned / readable / out-of-scope** scope. Boundaries are **advisory**: the coding agent **flags** cross-boundary edits in its output; the review agent **verifies** compliance (Gate 3). There is no hard file locking.
+
+**Not applicable — `/prototype`:** The `/prototype` command (`commands/prototype.md`) does not run `implement-story`; that path stays boundary-free. Gate 0.5 exists only on the full `implement-story` pipeline.
+
+##### `boundary_map` schema (markdown block)
+
+Pass this block as the `boundary_map` parameter to the coding agent and review agent. Use **file paths or globs** (e.g. `src/auth/*.ts`). Annotate entries when needed.
+
+```markdown
+### File Ownership Boundaries
+
+**Owned** (create or modify):
+- `path/to/owned.ts`
+- `path/to/owned.test.ts`
+
+**Readable** (import/reference; do not modify unless you emit a BOUNDARY_DEVIATION):
+- `path/to/types.ts` _(imported by owned files)_
+- `path/to/shared.ts` _(overlap: also touched by Story N — READABLE unless tasks above explicitly modify this path)_
+- `path/to/hot.ts` _(⚠️ high-overlap: assess-spec Check 5 warn — extra scrutiny at review)_
+
+**Out-of-scope** (do not modify; if you must, emit BOUNDARY_VIOLATION):
+- Everything not listed above as Owned or Readable
+```
+
+**Flags (annotations):**
+- **`(overlap: …)`** — File area appears in **assess-spec Check 5** as shared between stories; still **Owned** if the current story’s tasks explicitly name that path; otherwise prefer **Readable** with this note.
+- **`(⚠️ high-overlap: …)`** — Check 5 severity was **warn** (e.g. three+ stories share the area). Review agent should treat as **higher scrutiny** for boundary compliance and integration.
+
+##### Computation algorithm (orchestrator)
+
+Run in order:
+
+1. **Collect candidate OWNED paths**
+   - From the **story file** `## Implementation Tasks` (and inline task bullets): extract paths matching common phrasing — `` `path` ``, "Modify `path`", "Create `path`", "Update `path`", "Add to `path`", file paths in fenced or inline code that look like project paths (contain `/` or `.\`).
+   - From **`sub-specs/technical-spec.md`** (or `technical-spec.md` in the spec folder): **File Map** / architecture sections — if a row ties a file to **this story**, treat as OWNED; if tied to **another** story, treat as **overlap hint** (see step 5).
+
+2. **Normalize**
+   - Deduplicate; preserve globs as written.
+   - If a path is listed as both owned and readable, **Owned wins** unless step 3 or 4 demotes it.
+
+3. **Import graph (depth 1)**
+   - For each **existing** OWNED file in the repo, list **direct** imports/references the orchestrator can resolve (language-aware scan: `import`, `require`, `#include`, etc.).
+   - Imported files not already OWNED → add to **Readable** with `_(imported by owned files)_`.
+
+4. **Gate 0 overrides**
+   - Parse **Architecture Check** output section **### Warnings for Coding Agent**.
+   - For each path the warning says **not** to modify (e.g. "Do NOT modify `src/middleware/auth.ts`"), **demote** that path: if it was OWNED → move to **Readable** and append `_(arch-check: do not modify — boundary override)_`; if it must not even be edited with deviation → mark as **out-of-scope** in the narrative (list under Readable with strong wording, or exclude from Owned and treat as readable-only for review). Prefer matching explicit `` `...` `` paths from warnings.
+
+5. **Assess-spec Check 5 (optional)**
+   - If **persisted overlap data** exists (see **Check 5 persistence** below), merge:
+     - Paths/areas flagged as shared: if **not** explicitly OWNED by this story’s tasks → classify as **Readable** with `_(overlap: …)_`.
+     - Items with **warn** / “three+ stories” / **⚠️** from assess-spec → add `_(⚠️ high-overlap: …)_` on the **Readable** line (or on Owned if tasks own the path but overlap remains).
+   - If **no** persisted data → skip this step; baseline map from steps 1–4 only.
+
+6. **Fallback — no extractable paths**
+   - If steps 1–2 yield **no** OWNED paths:
+     - Infer **approximate** directories from task wording (e.g. “auth”, “billing module”) and list **candidate Owned** globs such as `src/auth/**` **only** if the story clearly implies that directory.
+     - Emit a visible warning in pipeline output: **`⚠️ boundary_map approximate — no concrete file paths in tasks; review agent should use extra caution.`**
+
+7. **Readable / out-of-scope**
+   - **Readable** = union of step 3, 4, 5 additions plus any tech-spec “other story” files, minus anything still OWNED.
+   - **Out-of-scope** is **implicit** (everything else); do not enumerate the whole tree — the schema sentence is enough.
+
+**Performance:** Heuristic string extraction + shallow import scan only; target **&lt; 10 seconds** pre–Gate 1.
+
+##### Check 5 persistence (for Gate 0.5 step 5)
+
+Assess-spec output is often **chat-only**. To feed Check 5 into Gate 0.5, persist overlap data in either place:
+
+1. **Recommended:** `.writ/specs/{spec-folder}/assessment-report.md`  
+   Include a section headed exactly:
+
+   `## Check 5 — File overlap`
+
+   Use a **table** optional for tooling:
+
+   | File / area | Stories sharing | Severity (note / warn) |
+   |-------------|-----------------|-------------------------|
+   | `src/lib/utils.ts` | 1, 2, 3 | warn |
+
+   **warn** → maps to **high-overlap** annotations on the boundary map.
+
+2. **Optional:** Embed the same `## Check 5 — File overlap` section in `user-stories/README.md` or `spec.md` / `spec-lite.md` notes after the user applies assess-spec recommendations — same parsing rules.
+
+If **no** such section exists in the active spec folder, Gate 0.5 proceeds without Check 5 data (graceful degradation).
+
+---
+
 #### Gate 1: Coding Agent (TDD Implementation)
 
 > **Agent:** `agents/coding-agent.md`
 > **Skip in:** `--review-only` mode
 
-Spawns the coding agent with full story context + any arch-check warnings.
+Spawns the coding agent with full story context, any arch-check warnings, and **`boundary_map`** from Gate 0.5.
+
+**When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking” (see `agents/coding-agent.md`).
 
 **Report:** files changed, tests written, deviations from plan, concerns.
 
@@ -172,7 +267,7 @@ Auto-detect and run project linters:
 
 **Runs inline — no sub-agent needed.**
 
-After lint/typecheck passes, classify the change surface based on files the coding agent created or modified. This classification determines how the review agent allocates its attention.
+After lint/typecheck passes, classify the change surface based on files the coding agent created or modified. This classification determines how the review agent allocates its attention. Optionally cross-check those paths against **`boundary_map`** (Gate 0.5) when present — e.g. unexpected **full-stack** classification for a file listed as Readable may warrant a stricter review posture.
 
 | Classification | Criteria | Examples |
 |---|---|---|
@@ -197,7 +292,7 @@ After lint/typecheck passes, classify the change surface based on files the codi
 
 Spawns a **read-only** sub-agent for code review.
 
-**Input:** Pass all standard review inputs plus `spec_lite_content` (loaded from the spec folder's `spec-lite.md` in Step 2) for drift analysis, and `change_surface` (from Gate 2.5) to guide review depth allocation.
+**Input:** Pass all standard review inputs plus `spec_lite_content` (loaded from the spec folder's `spec-lite.md` in Step 2) for drift analysis, and `change_surface` (from Gate 2.5) to guide review depth allocation. Also pass **`boundary_map`** (same markdown block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines that carry `overlap` or `high-overlap` — so the review agent can calibrate scrutiny.
 
 **Reviews:**
 - Acceptance criteria verification
@@ -357,7 +452,7 @@ After all gates pass:
 
 ## Quick Mode (`--quick`)
 
-**Skips:** Gate 0 (arch-check), Gate 3 (review), Gate 3.5 (drift handling), Gate 5 (docs)
+**Skips:** Gate 0 (arch-check), **Gate 0.5 (boundary map)**, Gate 3 (review), Gate 3.5 (drift handling), Gate 5 (docs)
 **Keeps:** Gate 1 (coding/TDD), Gate 2 (lint), Gate 4 (testing)
 
 Use for prototyping, spikes, internal tools. Run full pipeline later:

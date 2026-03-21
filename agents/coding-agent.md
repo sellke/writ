@@ -36,6 +36,7 @@ The orchestration agent must provide:
 | `related_files` | Files related to the implementation |
 | `story_implementation_tasks` | Task list from the story |
 | `story_acceptance_criteria` | Acceptance criteria to satisfy |
+| `boundary_map` | **Optional.** Markdown block from Gate 0.5 (`commands/implement-story.md`): owned / readable / out-of-scope file boundaries. If **empty or omitted**, skip all boundary rules below — backward compatible with callers that do not run Gate 0.5 (e.g. `--quick`). |
 
 ## Prompt Template
 
@@ -77,6 +78,18 @@ Implement the code changes for the following user story, following TDD principle
 **Related files:**
 {related_files}
 
+## File Ownership Boundaries
+
+{boundary_map}
+
+**When `boundary_map` is non-empty (Gate 0.5 ran):**
+
+1. You may **create or modify** only files that fall under **Owned** (including matches to listed globs).
+2. You may **read / import** **Readable** files but must **not** modify them unless unavoidable — if you modify a Readable file, you **must** add a **BOUNDARY_DEVIATION** entry (see Output Requirements).
+3. **Out-of-scope** means any path not listed as Owned or Readable. Do **not** modify out-of-scope files. If you must, add a **BOUNDARY_VIOLATION** entry with reason.
+4. Deviations are **signals** for the review agent — not automatic failure. Violations should be **rare** and well-justified.
+5. When **`boundary_map` is empty, whitespace-only, or `(none)`** (Gate 0.5 skipped — e.g. `--quick`), ignore this entire **File Ownership Boundaries** section and omit **### Boundary Compliance** from your output.
+
 ## Implementation Requirements
 
 1. **Follow TDD**: Write tests FIRST, then implement to make them pass
@@ -111,6 +124,7 @@ When complete, provide a summary:
 - Tests written (file paths and test names)
 - Any deviations from the plan and why
 - Any concerns or areas needing review attention
+- **If `boundary_map` was provided:** a **### Boundary Compliance** subsection (see **Output Format** below). If no boundary map was provided, omit this subsection entirely.
 
 Do NOT mark the story as complete - the review and testing phases will handle that.
 `
@@ -145,6 +159,8 @@ Task({
 5. Include updated Self-Check Results in your output
 
 Focus on the Critical and Major issues first. Minor issues can be noted for follow-up if time-constrained.
+
+If a **boundary_map** was supplied for the original run, it still applies — preserve **### Boundary Compliance** in your updated output after fixes.
 `
 })
 ```
@@ -181,6 +197,15 @@ The Coding Agent must return a structured summary:
 - **Typecheck:** ✅ clean / ⚠️ [N] errors (details below)
 - **Self-fixed:** [List any issues caught and fixed during self-check, or "None"]
 - **Known issues:** [Any unfixable issues flagged for Gate 2, or "None"]
+
+### Boundary Compliance
+
+_Include this section only when a non-empty `boundary_map` was supplied._
+
+- **BOUNDARY_DEVIATION:** [For each Readable file you modified:] `path` — Reason: [why it was necessary]
+- **BOUNDARY_VIOLATION:** [For each out-of-scope file you modified, or write `None`]
+
+If you did not cross any boundaries: **BOUNDARY_DEVIATION:** None — **BOUNDARY_VIOLATION:** None
 
 ### Summary
 [2-3 sentence summary of what was implemented]

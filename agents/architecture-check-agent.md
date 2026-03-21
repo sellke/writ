@@ -110,6 +110,8 @@ For each finding:
 
 ### Warnings for Coding Agent
 [List anything the coding agent should be especially careful about during implementation]
+
+**Boundary overrides (Gate 0.5):** When a warning means **do not modify** a specific file or path, state it explicitly with a backtick path so Gate 0.5 can reclassify boundaries — e.g. **Do NOT modify `src/middleware/auth.ts`** — create a wrapper instead. Prefer **BOUNDARY OVERRIDE:** as a prefix on that line when the intent is to demote a path from "owned" to "readable" or "out-of-scope" for the story.
 `
 })
 ```
