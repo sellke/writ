@@ -30,6 +30,7 @@ The documentation structure depends on the detected framework. See the Framework
 
 | Parameter | Description |
 |-----------|-------------|
+| `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
 | `spec_context` | Relevant specification context |
@@ -44,6 +45,12 @@ Task({
   description: "Update project documentation",
   readonly: false,
   prompt: `You are the Documentation Agent for project documentation.
+
+## Project Context
+
+{context_md_content}
+
+---
 
 ## Your Mission
 

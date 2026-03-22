@@ -25,6 +25,7 @@ readonly: false   # May need to fix tests or implementation
 
 | Parameter | Description |
 |-----------|-------------|
+| `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `acceptance_criteria` | Criteria that tests must verify |
 | `modified_files` | Files changed by Coding Agent |
@@ -37,6 +38,12 @@ Task({
   subagent_type: "generalPurpose",
   description: "Run and verify tests",
   prompt: `You are the Testing Agent for story verification.
+
+## Project Context
+
+{context_md_content}
+
+---
 
 ## Your Mission
 Run all tests related to the implemented story, ensure 100% pass rate, and verify adequate test coverage.

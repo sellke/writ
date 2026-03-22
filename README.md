@@ -118,8 +118,6 @@ Feedback loop (/retro + /refresh-command):
 | `/explain-code` | Code explanation with diagrams |
 | `/new-command` | Create new Writ commands |
 | `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |
-| `/test-database` | Database diagnostic and auto-fixing |
-| `/prisma-migration` | Prisma migration workflow |
 
 ## Agents
 

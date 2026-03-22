@@ -309,7 +309,7 @@ Just use /writ commands instead of /code-captain commands going forward.
                        (replaces /swab)
   /release           — Changelog + versioning + GitHub releases; inline release gate (build + conditional tests)
   /security-audit    — 5-phase security analysis with auto-fix
-  /verify-spec       — metadata diagnostic (checks 1–5, 8) with auto-fix
+  /verify-spec       — metadata diagnostic (checks 1–7) with auto-fix
 
   New agents:
   - Architecture Check — reviews approach BEFORE coding

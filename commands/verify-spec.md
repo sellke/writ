@@ -10,9 +10,9 @@ This command is **not a pipeline gate** — run it when you suspect spec drift, 
 
 | Invocation | Mode | Behavior |
 |---|---|---|
-| `/verify-spec` | Default | Select spec (if needed); run checks 1–5, 8, and 9; **auto-fix** fixable issues; report the rest — no confirmation prompt |
+| `/verify-spec` | Default | Select spec (if needed); run checks 1–7; **auto-fix** fixable issues; report the rest — no confirmation prompt |
 | `/verify-spec --check` | Read-only | Same checks; report only; no file changes |
-| `/verify-spec --fix` | Fix spec-lite | Run Check 9; if divergence found, fully regenerate `spec-lite.md` from `spec.md` |
+| `/verify-spec --fix` | Fix spec-lite | Run Check 7; if divergence found, fully regenerate `spec-lite.md` from `spec.md` |
 | `/verify-spec --spec [path]` | Targeted | Verify the spec at path (folder under `.writ/specs/` or path to `spec.md`) |
 | `/verify-spec --all` | All specs | Run the full diagnostic for every spec under `.writ/specs/` |
 
@@ -54,7 +54,7 @@ Choosing **all** here is equivalent to `--all`.
 3. Read user-stories/README.md (progress table)
 4. Read ALL user-stories/story-N-*.md files
 5. Read sub-specs/ (technical-spec, api-spec, etc.) if present
-6. Scan git log for commits referencing this spec (optional context for Check 8)
+6. Scan git log for commits referencing this spec (optional context for Check 6)
 ```
 
 Build complete data model:
@@ -92,13 +92,13 @@ Build complete data model:
 
 ### Phase 2: Verification Checks
 
-Run checks **1–5, 8, and 9**. Collect every finding before reporting — do not stop at the first issue.
+Run checks **1–7**. Collect every finding before reporting — do not stop at the first issue.
 
 **Default mode:** After reporting, apply all auto-fixes (Phase 4) unless contradicted by `--check`.
 
 **`--check` mode:** Report only; Phase 4 does not run.
 
-**`--fix` mode:** Run Check 9 and, if divergence is found, fully regenerate `spec-lite.md` from `spec.md` (see Check 9 and Phase 4 below).
+**`--fix` mode:** Run Check 7 and, if divergence is found, fully regenerate `spec-lite.md` from `spec.md` (see Check 7 and Phase 4 below).
 
 ---
 
@@ -236,7 +236,7 @@ If ALL stories completed AND all deliverables checked:
 
 ---
 
-#### Check 8: Spec Contract vs Implementation
+#### Check 6: Spec Contract vs Implementation
 
 **Drift detection — does the built thing match the specced thing?**
 
@@ -252,11 +252,11 @@ For each "Excluded" item:
   Is there implementation that shouldn't be there? (scope creep — heuristic)
 ```
 
-> Check **8** is **report-only** in both modes — heuristic; may have false positives.
+> Check **6** is **report-only** in both modes — heuristic; may have false positives.
 
 ---
 
-#### Check 9: Spec-Lite Integrity
+#### Check 7: Spec-Lite Integrity
 
 **Purpose:** Confirm that `spec-lite.md` accurately reflects the authoritative `spec.md`. `implement-story` may auto-amend `spec-lite.md` on Small drift without touching `spec.md` — over time, the derivative can silently diverge from the contract.
 
@@ -289,11 +289,11 @@ For each mapped section pair:
     - spec-lite is condensed — brevity is expected; absence of detail is not divergence
 ```
 
-**Report shape for Check 9:**
+**Report shape for Check 7:**
 ```
-9. Spec-lite integrity     ✅       spec-lite aligned with spec.md
+7. Spec-lite integrity     ✅       spec-lite aligned with spec.md
    — or —
-9. Spec-lite integrity     ❌       Divergence in 2 sections:
+7. Spec-lite integrity     ❌       Divergence in 2 sections:
                                     • Success Criteria: 2 items in spec.md missing from spec-lite
                                     • Files in Scope: spec-lite lists commands/foo.md (not in spec.md)
 ```
@@ -304,13 +304,13 @@ For each mapped section pair:
 - Prepend a regeneration marker at the top: `> Regenerated from spec.md on YYYY-MM-DD`
 - Write the full file — do not patch individual sections
 
-> Check **9** divergence findings are **auto-fixable** in default mode (triggers regeneration). In `--check` mode: report only, no regeneration. In `--fix` mode: runs Check 9 and regenerates if diverged.
+> Check **7** divergence findings are **auto-fixable** in default mode (triggers regeneration). In `--check` mode: report only, no regeneration. In `--fix` mode: runs Check 7 and regenerates if diverged.
 
 ---
 
 ### Phase 3: Verification Report
 
-Present all findings in a structured report (console). The table always has **seven** checks — no "Skipped" rows (except Check 9 when `spec-lite.md` is absent), no alternate layouts.
+Present all findings in a structured report (console). The table always has **seven** checks — no "Skipped" rows (except Check 7 when `spec-lite.md` is absent), no alternate layouts.
 
 ```
 🔍 Spec Verification Report: 2026-02-22-feature-name
@@ -323,14 +323,14 @@ Present all findings in a structured report (console). The table always has **se
  3. Completion integrity         ⚠️       1 unchecked DoD item
  4. Dependency validation        ✅       All satisfied
  5. Deliverables checklist       ❌       3 items unsync'd
- 8. Contract vs implementation   ✅       All scope items implemented
- 9. Spec-lite integrity          ✅       spec-lite aligned with spec.md
+ 6. Contract vs implementation   ✅       All scope items implemented
+ 7. Spec-lite integrity          ✅       spec-lite aligned with spec.md
 ═══════════════════════════════════════════════════
 
 Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
 ```
 
-If `spec-lite.md` does not exist, omit row 9 from the table and note: `(Check 9 skipped — no spec-lite.md found)`.
+If `spec-lite.md` does not exist, omit row 7 from the table and note: `(Check 7 skipped — no spec-lite.md found)`.
 
 **Findings detail:**
 
@@ -375,9 +375,9 @@ If `spec-lite.md` does not exist, omit row 9 from the table and note: `(Check 9 
 - Stories with no tasks done → "Not Started"
 - Spec with all stories done → "Complete"
 
-#### 4.4: Regenerate Spec-Lite (Check 9 finding or `--fix` flag)
+#### 4.4: Regenerate Spec-Lite (Check 7 finding or `--fix` flag)
 
-If Check 9 flagged divergence **and** mode is default (not `--check`), or if `--fix` was passed:
+If Check 7 flagged divergence **and** mode is default (not `--check`), or if `--fix` was passed:
 
 1. Read `spec.md` in full — this is the source of truth
 2. Produce a condensed `spec-lite.md` (~100 lines max) covering:
@@ -428,7 +428,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 - [FIX-2] Task count correction (auto-fixed)
 
 ## Outstanding Warnings
-- [WARN-1] Heuristic: possible scope gap in "Included" list (see Check 8)
+- [WARN-1] Heuristic: possible scope gap in "Included" list (see Check 6)
 
 ## Notes
 Diagnostic only. Use `/release` when you are ready to publish; it runs build checks, conditional tests, and changelog work.
@@ -438,7 +438,7 @@ Diagnostic only. Use `/release` when you are ready to publish; it runs build che
 ```
 ✅ Spec verification complete.
 
-Checks 1–5, 8, and 9 evaluated; fixable metadata updated.
+Checks 1–7 evaluated; fixable metadata updated.
 See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 ```
 
@@ -455,7 +455,7 @@ See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 |---------|-------------|
 | `/implement-spec` | May leave spec metadata noisy after bulk story work — `/verify-spec` cleans it up |
 | `/ship` | Optionally runs a **subset** of these checks (1–3) inline when opening a PR |
-| `/release` | Runs the **full** checks 1–5 and 8 again as part of its **internal** release gate (self-sufficient) — same logic, different entry point |
+| `/release` | Runs the **full** checks 1–6 again as part of its **internal** release gate (self-sufficient) — same logic, different entry point |
 | `/security-audit` | Complementary — verify-spec checks spec structure; security-audit checks safety |
 | `/status` | Quick overview; verify-spec is the deep metadata pass |
 

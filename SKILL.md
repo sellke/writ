@@ -65,10 +65,8 @@ When a user requests any Writ command, read the corresponding command file and f
 | Command | File | Purpose |
 |---------|------|---------|
 | `/initialize` | `commands/initialize.md` | Project setup (greenfield/brownfield detection) |
-| `/test-database` | `commands/test-database.md` | Database diagnostic and auto-fixing |
 | `/explain-code` | `commands/explain-code.md` | Code explanation with diagrams |
 | `/new-command` | `commands/new-command.md` | Create new Writ commands |
-| `/prisma-migration` | `commands/prisma-migration.md` | Prisma migration workflow |
 
 ### Removed (Migration Notes)
 If you used these Code Captain commands, here are the Writ replacements:
