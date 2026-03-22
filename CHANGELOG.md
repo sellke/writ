@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.1] - 2026-03-22
+
+### Changed
+
+- **`/refresh-command` rewrite** — Reduced from 1130 to 184 lines. Removed Cursor-only transcript parsing (`.jsonl` dependency), batch mode, analysis sub-agent, promotion pipeline, and signal taxonomy. Now works from conversation context — fully platform-agnostic. Core loop preserved: select command → gather feedback → propose diffs → apply & log.
+
 ## [0.8.0] - 2026-03-20
 
 ### Added
