@@ -47,8 +47,6 @@ your-project/
 │   │   ├── initialize.md          # /initialize
 │   │   ├── explain-code.md        # /explain-code
 │   │   ├── new-command.md         # /new-command
-│   │   ├── test-database.md       # /test-database
-│   │   └── prisma-migration.md    # /prisma-migration
 │   └── agents/
 │       ├── architecture-check-agent.md  # Pre-implementation gate
 │       ├── coding-agent.md              # TDD implementation
@@ -92,7 +90,7 @@ These Cursor tools are used directly — no adapter needed:
 | `file_search` | Most commands | Find files by name/pattern |
 | `todo_write` | implement-story | Visual progress tracking in Cursor sidebar |
 | `read_file` | All commands | Read file contents |
-| `run_terminal_cmd` | implement-story, test-database | Run shell commands |
+| `run_terminal_cmd` | implement-story | Run shell commands |
 | `list_dir` | initialize, status | List directory contents |
 
 ## Agent Configuration Notes
