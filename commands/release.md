@@ -85,7 +85,7 @@ Unless `--skip-gate` is set, run **before** README freshness and version proposa
 
 For **completed specs** relevant to this release (same inventory you use for changelog context — e.g. specs marked complete or stories done since `LAST_TAG`):
 
-- Run `/verify-spec` **checks 1–5 and 8** inline against each applicable spec (same logic as the standalone command).
+- Run `/verify-spec` **checks 1–6** inline against each applicable spec (same logic as the standalone command).
 - **Auto-fix** discrepancies the same way `/verify-spec` default mode would.
 - **Unfixable issues** (e.g. Check 4/8 findings needing judgment): emit **warnings** and continue — do not block the release unless the team policy treats a finding as critical (default: warn only).
 
@@ -395,7 +395,7 @@ Output:
 🏃 DRY RUN — No changes will be made
 
 Release gate preview:
-- Spec metadata (same as `/verify-spec` checks 1–5, 8): would run on [N] spec(s); auto-fix where applicable
+- Spec metadata (same as `/verify-spec` checks 1–6): would run on [N] spec(s); auto-fix where applicable
 - Build verification: typecheck/lint/format where configured — would run
 - Tests: would run | would skip (HEAD matches last merged PR SHA …) | would run (gh unavailable — safe default)
 
