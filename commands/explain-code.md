@@ -1,270 +1,89 @@
-# Explain Code Command
-
-## Purpose
-
-The `explain-code` command provides comprehensive, AI-powered explanations of code segments, functions, classes, or entire files. It combines natural language explanations with visual diagrams to help developers understand complex code quickly and thoroughly.
-
-## Command Syntax
-
-```bash
-/explain-code [target]
-```
-
-## Parameters
-
-### Target (Required)
-
-- `[function-name]` - Specific function to explain
-- `[class-name]` - Entire class explanation
-- `[file-path]` - Explain entire file
-- `[line-range]` - Explain specific lines (e.g., "125-150")
-- `current-selection` - Explain currently selected code in IDE
-
-The command automatically:
-
-- Includes visual diagrams (flowcharts, sequence diagrams, class diagrams)
-- Uses intermediate complexity level (technical but accessible)
-- Provides full context (includes dependencies and related components)
-- Saves explanations to `.writ/explanations/` for future reference
-
-## Examples
-
-```bash
-# Explain a specific function
-/explain-code calculateUserDiscount
-
-# Explain a class
-/explain-code PaymentProcessor
-
-# Explain entire file
-/explain-code src/auth/AuthService.js
-
-# Explain specific line range
-/explain-code "src/utils/helpers.js:45-78"
-
-# Explain currently selected code in IDE
-/explain-code current-selection
-```
-
-## Output Structure
-
-All explanations are displayed in chat and automatically saved to `.writ/explanations/`
-
-### Chat Display
-
-```
-📋 Function Overview
-├── Purpose: What this code does
-├── Parameters: Input expectations
-├── Return Value: What it outputs
-├── Key Logic: Step-by-step breakdown
-└── Usage Examples: How to call it
-
-🔄 Execution Flow
-├── [Flowchart diagram showing decision paths]
-├── Decision points and branches
-├── Error handling paths
-└── Performance characteristics
-
-🏗️ Architecture Context
-├── Where this fits in the system
-├── Dependencies and related components
-├── Design patterns used
-└── Integration points
-
-⚡ Technical Details
-├── Time complexity
-├── Memory usage
-├── Potential issues
-└── Optimization opportunities
-```
-
-### Saved Format
-
-````markdown
-# Code Explanation: [Target Name]
-
-_Generated on [DATE]_
+# Explain Code Command (explain-code)
 
 ## Overview
 
-[Natural language summary]
+On-demand code explanation. Reads a function, class, file, or code region and produces a clear, structured explanation in the conversation. Adapts depth and format to the target — simple code gets a concise summary, complex code gets detailed breakdowns with diagrams where they genuinely aid understanding.
 
-## Execution Flow
+**Scope boundary:** This command explains existing code. It does not modify code, generate tests, or propose changes. If the user needs improvements, direct them to `/refactor`. If they need to understand a broader system, use `/research`.
 
-```mermaid
-[Generated diagram]
-```
-````
+## Modes
 
-## Detailed Breakdown
+| Invocation | Mode | Behavior |
+|---|---|---|
+| `/explain-code src/auth.ts` | File | Explain the full file — purpose, exports, key logic |
+| `/explain-code handlePayment` | Symbol | Explain a specific function, class, or method |
+| `/explain-code src/utils.ts:45-78` | Region | Explain a specific line range |
+| `/explain-code` | Interactive | Ask what to explain, then proceed |
 
-[Step-by-step explanation]
+## Command Process
 
-## Architecture Context
+### Step 1: Identify Target
 
-[How it fits in the system]
+If a target is provided in the invocation, locate it and proceed to Step 2.
 
-## Usage Examples
+If no target, ask the user what they want explained. Accept a file path, function/class name, or line range. If the name is ambiguous (multiple matches), present the options and let the user choose.
 
-[Code examples]
+### Step 2: Read and Analyze
 
-## Related Components
+Read the target code and its immediate context:
 
-[Links to other explanations]
+- **The code itself** — full source of the target
+- **Direct dependencies** — what the target imports or calls
+- **Callers** — who uses this code (scan for references)
+- **Types** — relevant type definitions, interfaces, or schemas
+
+Do not read the entire codebase. Read only what is needed to explain the target accurately.
+
+### Step 3: Explain
+
+Produce a structured explanation adapted to the target. Every explanation includes these sections, but their depth scales with complexity:
+
+**Purpose** — What this code does, in one or two sentences. Lead with this.
+
+**How It Works** — Step-by-step walkthrough of the logic. For simple functions, a paragraph suffices. For complex flows, use a numbered breakdown. Cover:
+- Input handling and validation
+- Core logic and decision points
+- Error handling and edge cases
+- Return values and side effects
+
+**Context** — Where this code fits in the system:
+- What calls it and when
+- What it depends on
+- Design patterns in use (name them only if they're genuinely present)
+
+**Diagrams** — Include a Mermaid diagram only when it adds clarity that prose cannot:
+- Flowcharts for multi-branch decision logic
+- Sequence diagrams for multi-service or multi-step call chains
+- Class diagrams for inheritance hierarchies with 3+ classes
+
+Do not generate diagrams for simple functions, CRUD operations, or linear flows. A diagram that restates what the prose already says adds noise, not clarity.
+
+**Complexity Notes** (only if relevant) — Time/space complexity, performance characteristics, or known gotchas. Skip this section for straightforward code.
+
+### Step 4: Deliver
+
+Print the explanation to the conversation. Do not auto-save to any file.
+
+If the explanation is substantial and the user might want to reference it later, offer to save it to a location of their choice. Do not assume a default directory.
 
 ---
 
-_Generated by Writ on [timestamp]_
-_Last updated: [timestamp]_
+## Output Guidelines
 
-```
+**Adapt to the audience.** Match the technical level of the codebase. A React component explanation uses React terminology; a systems-level function explanation uses systems terminology. Do not over-explain language fundamentals unless the user asks.
 
-## File Organization
+**Be honest about uncertainty.** If the code's intent is unclear, say so. If a pattern looks unusual and you're not sure why it was chosen, flag it rather than inventing a rationale.
 
-Saved explanations are stored with date prefixes for chronological organization:
+**Stay concise.** A 10-line utility function needs a 3-sentence explanation, not a page. Scale output to match input complexity.
 
-```
+---
 
-.writ/
-└── explanations/
-├── 2024-01-15-AuthenticationFlow.md
-├── 2024-01-16-PaymentProcessor.md
-├── 2024-01-16-UserService.md
-└── 2024-01-17-SearchAlgorithm.md
+## Integration with Writ
 
-````
-
-Files are named using the format: `[DATE]-[target-name].md` where DATE is YYYY-MM-DD format.
-
-## Auto-Save Behavior
-
-All explanations are automatically saved to `.writ/explanations/` using the format `[DATE]-[target-name].md`.
-
-Get current date by running: `npx @devobsessed/writ date`
-
-**Example filename:** `.writ/explanations/2025-09-27-AuthenticationFlow.md`
-
-## Integration Points
-
-### With Other Commands
-```bash
-# Saved explanations can be referenced by other commands
-/research authentication
-/create-spec payment-processing
-/implement-story "optimize the user search"
-
-# AI can access saved explanations from .writ/explanations/
-# to provide better context for other commands
-```
-
-### With IDE Integration
-
-- Hover over function calls to see saved explanations
-- Right-click context menu: "Explain with Writ"
-- Inline explanation widgets for complex code blocks
-
-## Management Commands
-
-```bash
-# List all saved explanations
-/list-explanations
-
-# Search explanations
-/search-explanations "authentication"
-
-# Show explanation history
-/explanation-history calculateDiscount
-
-# Update outdated explanations when code changes
-/refresh-explanations --check-code-changes
-```
-
-## Diagram Types Generated
-
-### Flowcharts
-
-- Control flow through functions
-- Decision trees for complex logic
-- Error handling paths
-
-### Sequence Diagrams
-
-- Function call sequences
-- API interaction flows
-- Database transaction flows
-
-### Class Diagrams
-
-- Object relationships
-- Inheritance hierarchies
-- Dependency structures
-
-### Architecture Diagrams
-
-- Component interactions
-- Data flow through system
-- Service communication patterns
-
-## Output Characteristics
-
-All explanations use a consistent intermediate technical level that balances accessibility with depth:
-
-- **Technical but accessible**: Explains how the code works with some optimization details
-- **Full context**: Always includes related functions, dependencies, and architectural context
-- **Visual diagrams**: Every explanation includes appropriate flowcharts, sequence diagrams, or class diagrams
-- **Comprehensive coverage**: Shows how the code fits in the entire system
-
-## AI Processing Workflow
-
-1. **Code Analysis**: Parse syntax, identify patterns, measure complexity
-2. **Context Gathering**: Understand surrounding code and dependencies
-3. **Explanation Generation**: Create intermediate-level natural language description
-4. **Diagram Creation**: Generate appropriate visual representations (flowcharts, sequence, class diagrams)
-5. **Formatting**: Structure output for both chat display and markdown file
-6. **Auto-Save**: Save explanation to `.writ/explanations/` with date-prefixed filename `[DATE]-[target-name].md`
-
-## Error Handling
-
-### Common Issues
-
-- **Code not found**: "Could not locate [target]. Please check the path/name."
-- **Too complex**: "This code is very complex. Consider breaking into smaller explanations."
-- **Limited context**: "Some context may be missing. Ensure related files are accessible."
-
-### Fallback Behaviors
-
-- If diagrams fail to generate, provide text-based flow description
-- If target is ambiguous, offer multiple options to choose from
-- If code is too large, suggest breaking into smaller segments
-
-## Success Metrics
-
-Track effectiveness through:
-
-- Explanation clarity ratings from users
-- Frequency of re-explanations for same code
-- Time saved in code reviews and onboarding
-- Reduction in "what does this do?" questions during development
-
-## Future Enhancements
-
-### Planned Features
-
-- Interactive explanations with expandable sections
-- Voice-generated explanations for accessibility
-- Integration with code review tools
-- Automatic explanation updates when code changes
-- Explanation versioning and history tracking
-
-### Advanced Capabilities
-
-- Performance profiling integration
-- Security vulnerability highlighting in explanations
-- Code quality suggestions as part of explanations
-- Integration with documentation generation tools
-
-```
-
-```
-````
+| Command | Relationship |
+|---------|-------------|
+| `/research` | For broader system-level understanding beyond a single target |
+| `/refactor` | When explanation reveals code that should be restructured |
+| `/create-spec` | Understanding existing code before specifying changes |
+| `/implement-story` | Reference during implementation to understand existing patterns |
+| `/create-adr` | When explanation uncovers architectural decisions worth documenting |
