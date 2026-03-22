@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.2] - 2026-03-22
+
+### Changed
+
+- **`/explain-code` rewrite** — Rewrote from 270 to 89 lines. Removed broken markdown, non-existent sub-command references (`/list-explanations`, `/search-explanations`, etc.), fabricated IDE features, auto-save bloat, and mandatory Mermaid diagrams. Now follows suite patterns (Overview, Invocation table, Command Process, Integration table) with adaptive output.
+
+- **Agent input consistency** — Added `context_md_content` as the first input parameter to `agents/testing-agent.md` and `agents/documentation-agent.md`, with matching `## Project Context` prompt template sections. All five pipeline agents now share a consistent input contract.
+
+- **`/verify-spec` check renumbering** — Renumbered checks from 1-5, 8, 9 to sequential 1-7. Updated all internal references and cross-references in `/release` and `/migrate`.
+
+- **`/security-audit` platform fix** — Replaced OpenClaw-specific `cron add` example with platform-agnostic scheduling guidance.
+
+- **Project-specific commands moved to `contrib/`** — Moved `prisma-migration.md` and `test-database.md` out of `commands/` into a new `contrib/` directory. Updated `SKILL.md`, `README.md`, `adapters/cursor.md`, and `/status` allowlists.
+
 ## [0.8.1] - 2026-03-22
 
 ### Changed
