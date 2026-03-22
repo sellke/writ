@@ -489,16 +489,7 @@ Task({
 - `/security-audit` — monthly, or after major dependency updates
 - `/security-audit --diff` — during code review of large PRs
 
-**Cron integration (OpenClaw):**
-```bash
-openclaw cron add \
-  --name "weekly-security-audit" \
-  --cron "0 9 * * 1" \
-  --tz UTC \
-  --session isolated \
-  --message "/security-audit --quick for the project at ~/project. Report findings only if Critical or High issues found. Otherwise reply HEARTBEAT_OK." \
-  --timeout-seconds 120
-```
+**Automated scheduling:** Schedule periodic audits using your platform's task scheduling (cron, CI pipeline, or platform-native scheduling). Run `--quick` weekly and full audit monthly.
 
 ## Integration with Writ
 
