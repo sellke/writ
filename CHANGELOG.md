@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.3] - 2026-03-23
+
+### Removed
+
+- **Contrib Prisma commands** — Removed `contrib/prisma-migration.md` and `contrib/test-database.md`. Stack-specific database workflows are outside core Writ’s scope; teams should own their own DB tooling.
+
+### Changed
+
+- **Dogfood (Claude Code)** — Tracked `.claude/commands` and `.claude/agents` as symlinks to repo-root `commands/` and `agents/`, matching the `.cursor/` layout for a single source of truth.
+- **Documentation** — `AGENTS.md` and `.writ/docs/self-dogfooding.md` describe Claude Code symlink dogfooding alongside Cursor.
+
+### Fixed
+
+- **README** — Command count (24) and `/verify-spec` check numbering (1–7) aligned with the current suite.
+
 ## [0.8.2] - 2026-03-22
 
 ### Changed

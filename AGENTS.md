@@ -17,8 +17,9 @@ This repo uses Writ to build Writ. Three concerns live here:
 | **Product source** | `commands/`, `agents/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md`, `SKILL.md` | The distributable methodology — what `install.sh` copies into other projects |
 | **Development workspace** | `.writ/` | Specs, research, product docs, ADRs — artifacts from using Writ to build itself |
 | **Active installation (Cursor)** | `.cursor/` | **Symlinks** to product source, not copies. Do not replace with regular files or run `install.sh` on this repo. |
+| **Active installation (Claude Code)** | `.claude/` | Same pattern: `commands` and `agents` symlink to repo-root `commands/` and `agents/`. Keep `settings.local.json` and other Claude-only files as real files. |
 
-Editing `commands/foo.md` and `.cursor/commands/foo.md` changes the same file via symlink.
+Editing `commands/foo.md`, `.cursor/commands/foo.md`, or `.claude/commands/foo.md` changes the same file via symlink.
 
 ## Development Commands
 

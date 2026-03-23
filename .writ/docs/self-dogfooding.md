@@ -10,22 +10,27 @@ This repository contains three distinct things:
 |---|---|---|
 | **Product Source** | `commands/`, `agents/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md` | The distributable methodology — what `install.sh` copies into other projects |
 | **Development Workspace** | `.writ/` | Specs, research, product docs, decisions — artifacts from using Writ to build this project |
-| **Active Installation** | `.cursor/` | Symlinks to product source — what Cursor reads at runtime |
+| **Active Installation** | `.cursor/`, `.claude/` | Symlinks to product source — what Cursor and Claude Code read at runtime |
 
 ## How Symlinks Work
 
-In a normal project, `scripts/install.sh` **copies** product files into `.cursor/`. In this repo, `.cursor/` uses **symlinks** instead:
+In a normal project, `scripts/install.sh` **copies** product files into `.cursor/`. In this repo, `.cursor/` and `.claude/` use **symlinks** instead:
 
 ```
-.cursor/commands/             → ../commands/
-.cursor/agents/               → ../agents/
+.cursor/commands/              → ../commands/
+.cursor/agents/                → ../agents/
 .cursor/system-instructions.md → ../system-instructions.md
-.cursor/rules/writ.mdc        → ../../cursor/writ.mdc
+.cursor/rules/writ.mdc         → ../../cursor/writ.mdc
+
+.claude/commands/              → ../commands/
+.claude/agents/                → ../agents/
 ```
+
+(`.claude/` may also contain Claude-only files such as `settings.local.json` or `worktrees/` — those stay as regular files.)
 
 This means:
 
-- **Single source of truth.** Editing `commands/prototype.md` or `.cursor/commands/prototype.md` changes the same file.
+- **Single source of truth.** Editing `commands/prototype.md`, `.cursor/commands/prototype.md`, or `.claude/commands/prototype.md` changes the same file.
 - **`/refresh-command` improves the product directly.** When it edits `.cursor/commands/foo.md`, it's editing the canonical source via symlink.
 - **No drift.** There's no stale copy to get out of sync.
 
@@ -41,7 +46,7 @@ Work in `.writ/` as usual — specs, research, decisions, docs. This is the work
 
 ### What NOT to do
 
-- **Don't replace symlinks with regular files.** If `.cursor/commands/` stops being a symlink, the source and installation will diverge silently.
+- **Don't replace symlinks with regular files.** If `.cursor/commands/` or `.claude/commands/` stops being a symlink, the source and installation will diverge silently.
 - **Don't run `install.sh` on this repo.** It would overwrite the symlinks with copies, breaking the single-source-of-truth setup.
 
 ## For AI Agents
