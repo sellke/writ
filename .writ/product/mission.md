@@ -1,15 +1,15 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-03-14
+> Last Updated: 2026-03-22
 > Status: Planning
 > Contract Locked: ✅
 
 ## Pitch
 
-Writ is a self-improving development methodology that gives solo builders the engineering discipline of a great team — adaptive enough to stay out of the way, intelligent enough to learn from every project.
+Writ is an elegant development workflow that gives solo builders the engineering discipline of a great team — clear steps, firm boundaries, and consistent outcomes that turn AI speed into AI quality.
 
-AI coding tools made generating code trivially easy and building good software harder. Writ provides the discipline layer that turns AI speed into AI quality: structured pipelines, specialized agents, quality gates, and a learning loop that makes every project better than the last.
+AI coding tools made generating code trivially easy and building good software harder. Writ provides the discipline layer: structured pipelines, specialized agents, quality gates, and adaptive ceremony that right-sizes process to the work. The result is high-quality, efficient, and consistent outcomes for the products being created with it.
 
 ## Users
 
@@ -54,7 +54,7 @@ AI coding tools have a quality ceiling. Without external structure, they:
 
 **The result:** Developers ship faster in the small but spend *more* time debugging, refactoring, and fixing integration issues in the large. The net productivity gain is smaller than it appears.
 
-**Our Solution:** Writ treats AI agents like brilliant junior engineers who need structure. It provides a complete development methodology — from product planning through release — designed specifically for how AI agents work: contract-first specs, separation of concerns across specialized agents, automated quality gates, adaptive ceremony that matches process to change size, and a learning loop where commands improve through use.
+**Our Solution:** Writ treats AI agents like brilliant junior engineers who need structure. It provides a complete development workflow — from product planning through release — designed specifically for how AI agents work: contract-first specs, separation of concerns across specialized agents, automated quality gates, and adaptive ceremony that matches process to change size. Clear steps and firm boundaries drive consistent, high-quality outcomes.
 
 ## Differentiators
 
@@ -70,9 +70,9 @@ Unlike rigid pipelines that apply the same process to every change, Writ right-s
 
 Unlike pipelines that hard-fail when reality diverges from plan, Writ's tiered spec-healing responds proportionally. Small deviations auto-heal. Medium deviations get flagged for review. Large deviations pause the pipeline. The process adapts to reality instead of pretending the plan was perfect.
 
-### Compounding Intelligence
+### Clear Steps, Firm Boundaries
 
-Unlike frameworks where every project starts from zero, Writ's `/refresh-command` loop means every use of the methodology improves the methodology. Commands refine through real-world use. Patterns discovered in one project inform the next. The framework gets smarter because you use it.
+Unlike flexible-but-vague AI workflows, Writ defines explicit steps with firm boundaries at every stage. Each command has a clear entry point, structured phases, and a defined exit. Agents know exactly what they're responsible for and when to hand off. The result is predictable, repeatable quality — not brilliant one day and embarrassing the next.
 
 ## Key Features
 
@@ -82,15 +82,11 @@ Unlike frameworks where every project starts from zero, Writ's `/refresh-command
 - **Tiered spec-healing:** When implementation reveals the spec was wrong, the pipeline self-corrects proportionally. Small deviations auto-heal with logged amendments. Medium deviations get flagged for post-implementation review. Large deviations pause the pipeline and surface the conflict for human decision.
 - **`/refresh-command`:** The learning loop. After using a command, scan the thread, identify what worked and what was friction, propose amendments to the command file. Local-first: improvements land in the project's copy, with a promotion review process for upstreaming to Writ core.
 
-### Growth Features (Phase 2 — Reach & Autonomy)
+### Growth Features (Phase 2 — Reach)
 
-- **PR agent:** Automates the gap between "pipeline green" and "PR open." Structured PR descriptions linked to specs, test results, and coverage.
-- **MCP integration points:** Agents can call external tools — browsers, databases, deployment APIs — when the methodology requires verification beyond file operations.
-- **Skill system:** Reusable agent capabilities that persist and compound. Not one-off prompt instructions — encoded competence that agents carry across sessions.
-- **Cross-project pattern extraction:** What `/refresh-command` does for single commands, this does across projects. Review patterns, common failures, and proven approaches feed back into agent prompts.
+- **`/ship` command:** Unified shipping workflow from branch to PR — merge, test, commit splitting, structured PR body. Absorbs the PR agent concept.
+- **Standalone `/review` command:** Pre-landing code review with error mapping, shadow path tracing, and failure modes registry.
+- **`/retro` command:** Git-based retrospective with metrics, trend comparison, and persistent snapshots.
+- **Enhanced error mapping in `/create-spec`:** Failure-aware specs with error & rescue maps, shadow paths, and interaction edge cases.
 
-### Scale Features (Phase 3 — Intelligence)
-
-- **Self-improving agent behaviors:** Agents that adjust their approach based on accumulated feedback. The coding agent that stops making the same mistake. The reviewer that learns what matters for *your* codebase.
-- **Advanced delegation:** Agents that spawn sub-agents, coordinate parallel work, and manage their own task breakdown. More autonomy, less micromanagement.
-- **Promotion pipeline:** Structured review process for graduating local command improvements to Writ core. The framework evolves through use.
+> **Note:** A separate product extension for skill-based automation, self-improving agents, and advanced delegation will be pursued independently.

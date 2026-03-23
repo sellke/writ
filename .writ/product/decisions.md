@@ -270,3 +270,102 @@ Research analysis of gstack (`.writ/research/2026-03-14-gstack-analysis-research
 ### Review Trigger
 
 Revisit if users consistently override or skip the premise challenge, or if the opinionated posture creates friction that slows down rather than improves the discovery conversation.
+
+---
+
+## 2026-03-22: Strategic Descope — Workflow Focus, Skills Separated
+
+**ID:** DEC-007
+**Status:** Accepted
+**Category:** Product Strategy
+**Stakeholders:** Adam (product owner, primary user)
+
+### Decision
+
+Descope the skill system from Phase 2 and eliminate Phase 3 entirely. Writ becomes a hyperfocused workflow framework — clear steps, firm boundaries, consistent outcomes. The skill system, self-improving agents, advanced delegation, cross-project pattern extraction, and autonomous loops will be pursued as a **separate product extension** that builds on Writ's workflow foundation.
+
+### Context
+
+As Writ matured through Phase 1 development, the scope split became clear: the workflow (commands, agents, pipeline, quality gates) and the intelligence layer (skills, learning loops, autonomy) are two different products with different design pressures. The workflow needs elegance, predictability, and firm boundaries. The intelligence layer needs experimentation, loose coupling, and tolerance for failure. Combining them in one roadmap dilutes focus on both.
+
+Phase 2 was carrying two L-effort items (skill system, cross-project patterns) that serve the intelligence vision, not the workflow vision. Phase 3 was entirely intelligence-layer work. Removing them lets Phase 2 focus on closing workflow gaps: `/ship`, `/review`, `/retro`, PR agent, MCP integration, and enhanced error mapping in specs.
+
+### Alternatives Considered
+
+1. **Keep skills in Phase 2, defer Phase 3**
+   - Pros: Preserves the compounding intelligence narrative
+   - Cons: Skills are an L-effort distraction from workflow completeness; delays the commands that close real daily gaps
+   - Why rejected: Workflow gaps (/ship, /review, /retro) have more immediate impact than skills
+
+2. **Move everything to Phase 3 (don't separate)**
+   - Pros: Keeps one roadmap, one product
+   - Cons: Phase 3 becomes a dumping ground with no clear identity or timeline
+   - Why rejected: A separate product extension with its own scope and roadmap is more honest and actionable
+
+### Rationale
+
+- Writ's core value is the workflow, not the learning system — doubling down on that is the right move
+- A complete, elegant workflow with zero gaps is more valuable than a partial workflow with nascent intelligence
+- The separate product extension can move faster without being constrained by workflow stability requirements
+- `/refresh-command` (Phase 1) still provides a learning loop within the workflow — this isn't abandoning improvement, it's scoping it appropriately
+
+### Consequences
+
+**Positive:**
+- Phase 2 is tighter, more achievable, and focused on closing real workflow gaps
+- No Phase 3 means no indefinite horizon of speculative work in this roadmap
+- The workflow product can stabilize and mature without being pulled toward experimentation
+- The separate extension gets freedom to experiment without destabilizing the workflow
+
+**Negative:**
+- "Self-improving" and "compounding intelligence" were compelling narrative differentiators — the workflow product loses that story
+- Users attracted by the intelligence vision may see the descope as a retreat
+- Two products to maintain instead of one (when the extension launches)
+
+### Success Metrics
+
+- Phase 2 ships faster without skill/pattern work competing for attention
+- End-to-end workflow (plan → spec → implement → review → ship → retro → release) has zero manual gaps
+- The workflow is described as "elegant" and "consistent" by users, not "heavy" or "incomplete"
+
+### Review Trigger
+
+Revisit if the separate product extension never materializes, or if workflow users consistently ask for skills/intelligence features that can't wait for the extension.
+
+---
+
+## 2026-03-22: Remove MCP Integration Points from Phase 2
+
+**ID:** DEC-008
+**Status:** Accepted
+**Category:** Product Scope
+**Stakeholders:** Adam (product owner, primary user)
+
+### Decision
+
+Remove "MCP integration points" from the Phase 2 roadmap. MCP server configuration is a platform concern (Claude Code, Cursor, etc.), not a workflow concern. Writ commands can reference MCP tools with one-line notes when relevant — that's an incremental edit, not a roadmap feature.
+
+### Context
+
+The roadmap carried an M-effort item for MCP integration: browser automation, database access, deployment APIs, and "a framework for adding new MCP capabilities." On review, this item conflicts with DEC-001 (methodology, not tooling). Writ defines *what* to verify at each workflow step. *How* to connect to the verification tool is the platform's job. Building an MCP capability framework creates coupling and maintenance burden for zero user value — platforms already handle MCP discovery and registration.
+
+### Rationale
+
+- MCP servers are configured at the platform level, not the workflow level
+- "Framework for adding MCP capabilities" is tooling infrastructure, contradicting DEC-001
+- Commands can already reference available MCP tools without a dedicated feature
+- Removing it makes Phase 2 entirely implemented (awaiting dogfood) — clean and focused
+
+### Consequences
+
+**Positive:**
+- Phase 2 has zero remaining `[ ]` items — all features are implemented, awaiting dogfood
+- No platform-coupling risk from building an MCP abstraction layer
+- Keeps Writ purely methodology-focused
+
+**Negative:**
+- Commands won't proactively detect or suggest MCP tools — users must configure them independently
+
+### Review Trigger
+
+Revisit if a specific workflow step consistently fails without MCP access and a one-line command note isn't sufficient guidance.

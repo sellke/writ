@@ -5,7 +5,7 @@
 
 ## Core Value
 
-Writ is a self-improving development methodology for AI-assisted software development. It gives solo builders the engineering discipline of a great team — structured pipelines, specialized agents, quality gates, opinionated guidance, and a learning loop that improves through use. Methodology-first, platform-agnostic, pure open-source.
+Writ is an elegant development workflow for AI-assisted software development. It gives solo builders the engineering discipline of a great team — clear steps, firm boundaries, quality gates, and adaptive ceremony that right-sizes process to the work. The result is high-quality, efficient, and consistent outcomes for the products being created with it. Methodology-first, platform-agnostic, pure open-source.
 
 ## Target Users
 
@@ -15,17 +15,21 @@ Solo developers shipping real products with AI coding tools who've hit the quali
 
 1. **Adaptive ceremony** — Right-sized process for the size of the change, not one-size-fits-all
 2. **Self-correcting pipeline** — Tiered spec-healing when reality diverges from plan (auto-heal small, flag medium, pause large)
-3. **Compounding intelligence** — `/refresh-command` loop improves commands through use. Local-first with upstream promotion.
-4. **Methodology, not tooling** — Markdown-as-instructions works on any AI platform. Tooling hooks (MCP, skills) extend range without creating lock-in.
-5. **Opinionated guidance** — Commands lead with recommendations, challenge premises before gathering details, and push for the best version of every idea. Planning uses posture selection (EXPANSION / HOLD / REDUCTION), dream state mapping, and mandatory failure surface analysis. Judgment, not menus.
+3. **Clear steps, firm boundaries** — Every command has explicit phases, defined handoffs, and predictable outcomes. Agents know exactly what they're responsible for.
+4. **Methodology, not tooling** — Markdown-as-instructions works on any AI platform without lock-in
+5. **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea. Judgment, not menus.
 
 ## Success Definition
 
-Personal leverage — Writ makes projects dramatically better as measured by: less rework, fewer drift incidents, commands that visibly improve, and the confidence to ship without manual verification of everything.
+Personal leverage — Writ makes projects dramatically better as measured by: less rework, fewer drift incidents, and the confidence to ship without manual verification of everything.
 
 ## Current Phase
 
 **Phase 1 — Foundation:** `/prototype` (adaptive ceremony), tiered spec-healing (self-correction), `/refresh-command` (learning loop). `/plan-product` enhanced with aspirational framing and opinionated posture (2026-03-14).
+
+**Phase 2 — Reach:** PR agent, `/ship`, `/review`, `/retro`, MCP integration, enhanced error mapping. Focused on closing every gap in the end-to-end workflow.
+
+> A separate product extension will pursue skill-based automation, self-improving agents, and advanced delegation independently.
 
 ## Design Principles
 

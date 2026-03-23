@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27
-> Last Updated: 2026-03-14
+> Last Updated: 2026-03-22
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 ---
@@ -71,120 +71,64 @@
 
 ---
 
-## Phase 2: Reach & Autonomy (2-4 months)
+## Phase 2: Reach (2-4 months)
 
-**Goal:** Extend agent capabilities beyond file operations. Build the skill and memory layer. Close remaining automation gaps.
+**Goal:** Close remaining automation gaps in the workflow. Every step from idea to shipped PR has a Writ command with clear boundaries.
 
 ### Success Criteria
 
-- PR agent eliminates manual PR creation for 90%+ of pipeline completions
-- At least 3 MCP-powered agent capabilities in active use
-- Skill system has 5+ encoded competences that persist across sessions
-- Cross-project patterns improve coding agent output measurably
+- `/ship` eliminates manual PR creation for 90%+ of pipeline completions
+- `/ship` + `/review` + `/retro` in regular use across projects
+- End-to-end workflow (plan → spec → implement → review → ship → retro → release) has zero manual gaps
 
 ### Features
 
-- [ ] **PR agent** — Automated PR creation after pipeline completion `Effort: M`
-  - Structured PR description: links to spec, test results, coverage delta, drift report
-  - Auto-labels: based on spec category and change scope
-  - Draft vs. ready: based on pipeline result (all gates pass = ready, warnings = draft)
+- [~] **`/ship` command** — Unified shipping workflow (branch → PR) `Effort: M` — **Implemented, awaiting dogfood**
+  - Absorbs the PR agent concept — one command owns the full "branch to merged" path
+  - Merge origin/default-branch before tests (optional `--test` flag)
+  - Bisectable commit splitting with approval gate (infra → models → logic → tests → version)
+  - Structured PR body: summary, changes, spec reference, test results, spec health, drift report, review notes
+  - Auto-labeling, draft/ready detection, dry-run mode
+  - Convention detection with `.writ/config.md` persistence
+  - Command file: `commands/ship.md` (520 lines)
+  - Dogfood needed: run on a real feature branch, verify commit splitting and PR quality
 
-- [ ] **MCP integration points** — External tool access for agents `Effort: M`
-  - Browser automation: visual QA, deployment verification
-  - Database access: migration validation, data integrity checks
-  - Deployment APIs: staging deploy, smoke test, rollback
-  - Framework for adding new MCP capabilities without modifying core commands
+- [~] **Standalone `/review` command** — Pre-landing code review `Effort: S` — **Implemented, awaiting dogfood**
+  - Error & rescue map: method → what fails → exception class → rescued? → user sees
+  - Shadow path tracing: happy, nil input, empty input, upstream error
+  - Interaction edge cases: double-click, navigate-away, stale state, back button
+  - Failure modes registry with critical gap detection (RESCUED=N, TEST=N, USER SEES=Silent)
+  - Mandatory ASCII diagrams for non-trivial flows
+  - Integration with `/ship`: saves report to `.writ/state/`, `/ship` reads it into PR body
+  - Command file: `commands/review.md` (199 lines)
+  - Dogfood needed: run on a real diff, verify failure mode detection quality
 
-- [ ] **Skill system** — Persistent agent competences `Effort: L`
-  - Skill format: structured markdown files in `.writ/skills/`
-  - Skill acquisition: extracted from successful patterns via `/refresh-command` and cross-project analysis
-  - Skill application: agents load relevant skills based on task context
-  - Skill versioning: skills improve over time, old versions archived
-
-- [ ] **Cross-project pattern extraction** — Learning across projects `Effort: L`
-  - Pattern detection: common review findings, recurring drift types, successful approaches
-  - Pattern encoding: structured format that agents can consume
-  - Feedback loop: patterns feed into coding agent prompts to prevent repeat mistakes
-  - Privacy-aware: patterns are abstracted, no project-specific code leaks across boundaries
-
-- [ ] **`/retro` command** — Git-based retrospective with gstack-inspired depth `Effort: M`
+- [~] **`/retro` command** — Git-based retrospective with gstack-inspired depth `Effort: M` — **Implemented, awaiting dogfood**
   - Git-based metrics: commits, LOC, test ratio, session detection, streaks
   - Team-aware analysis with specific, commit-anchored praise
   - Persistent JSON snapshots in `.writ/retros/` with trend comparison
   - Ship of the week + tweetable summary
   - Integration with Writ specs: "Specs completed this period"
   - Auto-detect timezone and default branch (not hardcoded)
+  - Command file: `commands/retro.md` (199 lines)
+  - Dogfood needed: run on a real 7-day period, verify session detection and pattern quality
 
-- [ ] **`/ship` command** — Unified shipping workflow (branch → PR) `Effort: M`
-  - Merge origin/default-branch before tests
-  - Run test suites (auto-detect test runner from project)
-  - Pre-landing diff review (lightweight checklist, not full `/review`)
-  - Bisectable commit splitting (infra → models → logic → version bump)
-  - Auto-generate PR body from commits/diff
-  - Push and open PR — non-interactive by default, momentum over ceremony
-  - Sits between `/implement-story` and `/release`
-
-- [ ] **Standalone `/review` command** — Pre-landing code review `Effort: S`
-  - Error & rescue map: method → what fails → exception class → rescued? → user sees
-  - Shadow path tracing: happy, nil input, empty input, upstream error
-  - Interaction edge cases: double-click, navigate-away, stale state, back button
-  - Failure modes registry with critical gap detection (RESCUED=N, TEST=N, USER SEES=Silent)
-  - Mandatory ASCII diagrams for non-trivial flows
-
-- [ ] **Enhanced error mapping in `/create-spec`** — Failure-aware specs `Effort: S`
+- [~] **Enhanced error mapping in `/create-spec`** — Failure-aware specs `Effort: S` — **Implemented, awaiting dogfood**
   - Error & rescue map as required section in technical sub-specs
   - Shadow paths for critical data flows
   - Interaction edge cases for user-facing features
+  - Shared format with `/review` enables plan-vs-actual comparison
+  - Implemented in: `commands/create-spec.md` (lines 504-530)
+  - Dogfood needed: create a spec with data flow features, verify error mapping tables are generated
 
 ### Dependencies
 
 - Phase 1 `/refresh-command` operational and producing useful refinements
-- Phase 1 spec-healing generating drift reports that inform pattern detection
-- MCP server infrastructure available in target platforms
+- Phase 1 spec-healing generating drift reports
 
 ---
 
-## Phase 3: Intelligence (6+ months)
-
-**Goal:** Agents that genuinely improve through use. Advanced delegation. The framework becomes a learning system, not just an execution system.
-
-### Features
-
-- [ ] **Self-improving agent behaviors** — Adaptive agent prompts `Effort: XL`
-  - Review feedback → coding agent improvement loop
-  - Per-project agent tuning: agents adapt to codebase patterns and conventions
-  - Confidence calibration: agents learn when to proceed vs. when to ask for help
-  - Anti-pattern detection: agents flag approaches they've seen fail before
-
-- [ ] **Advanced delegation** — Agent autonomy `Effort: XL`
-  - Sub-agent spawning: primary agents can delegate subtasks
-  - Coordination: parallel sub-agent work with dependency awareness
-  - Escalation: sub-agents can escalate to parent agent or human
-  - Task breakdown: agents decompose complex work without human micro-management
-
-- [ ] **Promotion pipeline** — Local → upstream flow `Effort: M`
-  - Review process for graduating local command refinements to Writ core
-  - Automated diff generation: shows exactly what changed and why
-  - Impact assessment: how many projects would benefit from the change
-  - PR generation: auto-creates upstream PR with context and rationale
-
-- [ ] **Adaptive context loading** — Context window management `Effort: L`
-  - Progressive loading: agents receive only relevant context, expanding as needed
-  - Command compression: `/refresh-command` also optimizes commands for token efficiency
-  - Dynamic spec-lite: context-aware summaries that expand sections relevant to current task
-  - Smart agent prompts: load skills, patterns, and context based on task signature
-
-- [ ] **Browser QA integration** — Diff-aware visual testing `Effort: L`
-  - Analyze git diff → identify affected routes → auto-test them
-  - Screenshot comparison and console error detection
-  - Integration with Cursor MCP browser tools (or equivalent)
-  - Route-aware test generation from spec
-
-### Market Position
-
-- Writ is the reference methodology for AI-assisted development
-- "Commands that improve through use" is a unique and defensible differentiator
-- Community contributions (if any) flow through the promotion pipeline naturally
+> **Beyond Phase 2:** A separate product extension will pursue skill-based automation, self-improving agents, advanced delegation, cross-project pattern extraction, and autonomous loops. That work builds on Writ's workflow foundation but has its own scope, roadmap, and identity.
 
 ---
 
@@ -195,8 +139,8 @@
 | **XS** | 1-2 days | Bug fix, documentation update |
 | **S** | 3-5 days | `/review` command, `/plan-product` enhancement, error mapping in specs |
 | **M** | 1-2 weeks | `/prototype` command, `/retro`, `/ship`, PR agent, `/refresh-command` |
-| **L** | 3-4 weeks | Spec-healing agent, skill system, cross-project patterns |
-| **XL** | 1+ months | Self-improving agents, advanced delegation |
+| **L** | 3-4 weeks | Spec-healing agent |
+| **XL** | 1+ months | (reserved for future product extension) |
 
 ---
 
