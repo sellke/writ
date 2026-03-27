@@ -57,7 +57,7 @@ Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 4. Testing agent (coverage enforcement, >=80%)
 5. Documentation agent (framework-adaptive)
 
-Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`).
+Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
 
 ### Adapters (`adapters/`)
 Platform-specific integration guides. `Codex.md` maps Writ concepts to Codex's native subagent system (YAML frontmatter, worktrees, memory). `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system.

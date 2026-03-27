@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Context hints in user stories** — User story files now include a "## Context for Agents" section with structured hints that index into spec content (error map rows, shadow paths, business rules, experience elements). Generated automatically by `user-story-generator` during `/create-spec`. Enables targeted spec context delivery to pipeline agents instead of generic spec summaries. See `.writ/docs/context-hint-format.md` for full format specification.
+
 ## [0.8.3] - 2026-03-23
 
 ### Removed
