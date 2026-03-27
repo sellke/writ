@@ -664,6 +664,52 @@ claude -p "/verify-spec --check" --permission-mode acceptEdits
 
 ---
 
+## Ralph / CLI Story Pipeline
+
+Ralph extends Writ with autonomous multi-spec execution via CLI. The developer plans in Cursor (`/ralph plan`), hands off to a CLI loop (`./ralph.sh`), and reviews in Cursor (`/ralph status`).
+
+### When to Use the CLI Pipeline
+
+| Use Case | Tool |
+|----------|------|
+| Interactive single-story implementation | `/implement-story` (Cursor) |
+| Supervised multi-story execution | `/implement-spec` (Cursor) |
+| Autonomous overnight/batch execution | `./ralph.sh` (CLI) |
+
+### How It Works
+
+1. **Plan** — `/ralph plan` in Cursor scans specs, resolves dependencies, generates `scripts/PROMPT_build.md` and `scripts/ralph.sh` tailored to the project
+2. **Execute** — `./ralph.sh` loops: each iteration pipes `PROMPT_build.md` to the CLI agent (fresh context), implements one story, validates with tests/lint, commits, pushes
+3. **Review** — `/ralph status` in Cursor reads `.writ/state/ralph-*.json` and presents progress
+
+### CLI Agent Invocation
+
+```bash
+claude -p "$(cat PROMPT_build.md)" \
+  --dangerously-skip-permissions \
+  --model opus \
+  --verbose
+```
+
+Flags are configurable via `.writ/config.md` Ralph keys (`Ralph CLI Agent`, `Ralph CLI Model`, `Ralph CLI Flags`).
+
+### Key Differences from Supervised Pipeline
+
+- **No separate subagents** — one CLI agent handles orient + implement + validate inline
+- **No boundary map** — story isolation provides implicit boundaries
+- **No review agent** — tests + lint are the quality gate; human reviews afterward
+- **No visual QA** — headless environment, no browser
+- **Fresh context each iteration** — no accumulated state; Ralph state file bridges iterations
+
+### References
+
+- **PROMPT template:** `scripts/PROMPT_build.md` — single-iteration instruction set
+- **CLI pipeline docs:** `.writ/docs/ralph-cli-pipeline.md` — gate mapping, back pressure, state protocol
+- **State format:** `.writ/docs/ralph-state-format.md` — JSON schema for `ralph-*.json`
+- **Loop script:** `scripts/ralph.sh` — outer loop with stop conditions
+
+---
+
 ## Gotchas
 
 1. **Worktree merges can conflict**: If two parallel coders modify the same file, the merge will conflict. Design stories with minimal overlap. The dependency graph in `/implement-story` helps prevent this.
