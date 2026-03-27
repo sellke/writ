@@ -17,3 +17,10 @@
 - **Implementation did:** Documented validation strategy (golden file comparison, manual verification) in context-hint-format.md
 - **Resolution:** Auto-amended — markdown system has no test harness, validation strategy is appropriate
 - **Spec-lite updated:** No change needed (implementation note only)
+
+#### [DEV-003] Validation checklist vs. dogfood format variety
+- **Severity:** Small
+- **Spec said:** Golden-file validation should check bracketed lists and exact names where applicable (context-hint-format.md validation checklist)
+- **Implementation did:** Dogfood stories mix bracketed lines, extended `spec.md → ## Section` paths, and prose descriptions
+- **Resolution:** Auto-amended — updated validation checklist to explicitly allow bracketed AND/OR extended format
+- **Spec-lite updated:** No (documentation file updated: context-hint-format.md line 353)

@@ -132,7 +132,7 @@
 - **Gate 0 (Architecture Check):** CAUTION — warnings about AC overlap with Story 4, technical-spec timing, and test strategy (all addressed in implementation)
 - **Gate 1 (Coding):** Complete — format docs + agent template + command updates
 - **Gate 2 (Lint):** PASS — no linter errors
-- **Gate 3 (Review):** PASS — boundary compliant, quality good, medium drift logged
-- **Gate 3.5 (Drift):** Logged DEV-001 (orchestrator ACs) and DEV-002 (test approach) to drift-log.md
+- **Gate 3 (Review):** PASS — boundary compliant, quality good, small drift logged
+- **Gate 3.5 (Drift):** Logged DEV-001 (orchestrator ACs), DEV-002 (test approach), and DEV-003 (format variety in validation checklist) to drift-log.md. Auto-amended context-hint-format.md line 353 to allow bracketed AND/OR extended format.
 - **Gate 4 (Testing):** PASS — 100% validation coverage via documented strategy
 - **Gate 5 (Documentation):** Complete — CHANGELOG, AGENTS.md updated

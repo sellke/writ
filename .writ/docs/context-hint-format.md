@@ -350,10 +350,10 @@ Since Writ is a markdown-based workflow system with no automated test suite, val
 3. **Inspect:** Manually read generated story files' `## Context for Agents` sections
 4. **Validate:**
    - [ ] Section header is exactly `## Context for Agents`
-   - [ ] Hints use bracketed format `[item 1, item 2, ...]`
+   - [ ] Hints use bracketed lists `[item 1, item 2, ...]` and/or extended `spec.md →` / `technical-spec.md` references per this document; bracketed items should match table Operation / path names when using bracket form
    - [ ] Referenced content exists in spec files
-   - [ ] Error map row names match table exactly
-   - [ ] Shadow path names match table exactly
+   - [ ] Error map row names match table exactly (when using bracketed format)
+   - [ ] Shadow path names match table exactly (when using bracketed format)
    - [ ] Business rules are concise summaries, not full duplication
    - [ ] Experience elements reference specific subsections
 5. **Document:** Record results in story implementation summary
