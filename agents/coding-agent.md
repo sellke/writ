@@ -30,12 +30,13 @@ The orchestration agent must provide:
 | `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
-| `spec_lite_content` | Condensed specification for context |
+| `spec_lite_content` | Agent-specific spec-lite section ("For Coding Agents" — implementation approach, error handling, files in scope). Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
 | `technical_spec_summary` | Relevant technical approach details |
 | `codebase_patterns` | Patterns found during codebase analysis |
 | `related_files` | Files related to the implementation |
 | `story_implementation_tasks` | Task list from the story |
 | `story_acceptance_criteria` | Acceptance criteria to satisfy |
+| `dependency_wwb_context` | **Optional.** Aggregated "What Was Built" records from completed dependency stories. Provides cross-story continuity — what upstream stories actually produced (files, decisions, test results). Empty string if no dependencies or dependencies not yet complete. See `.writ/docs/what-was-built-format.md`. |
 | `boundary_map` | **Optional.** Markdown block from Gate 0.5 (`commands/implement-story.md`): owned / readable / out-of-scope file boundaries. If **empty or omitted**, skip all boundary rules below — backward compatible with callers that do not run Gate 0.5 (e.g. `--quick`). |
 
 ## Prompt Template
@@ -77,6 +78,12 @@ Implement the code changes for the following user story, following TDD principle
 
 **Related files:**
 {related_files}
+
+## Dependency Context: What Was Built in Upstream Stories
+
+{dependency_wwb_context}
+
+_When empty or absent: no dependency stories, or upstream stories not yet complete. Proceed without cross-story context._
 
 ## File Ownership Boundaries
 

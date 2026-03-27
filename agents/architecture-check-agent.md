@@ -27,7 +27,7 @@ readonly: true   # This agent MUST NOT modify any files
 | `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
-| `spec_lite_content` | Condensed specification for context |
+| `spec_lite_content` | Agent-specific spec-lite section ("For Coding Agents" — implementation approach, error handling, files in scope). Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
 | `codebase_patterns` | Patterns found during codebase analysis |
 | `related_files` | Files related to the implementation |
 | `tech_stack_content` | Project tech stack documentation |

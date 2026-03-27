@@ -147,7 +147,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 24 commands, but you only need five to go from idea to PR:
+Writ ships 25 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|

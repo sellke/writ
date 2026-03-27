@@ -33,7 +33,7 @@ The documentation structure depends on the detected framework. See the Framework
 | `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
-| `spec_context` | Relevant specification context |
+| `spec_context` | Full spec-lite content (documentation agents need a cross-cutting view across all spec sections). May include supplementary content fetched via context hints. Falls back to condensed specification summary if spec-lite not available. |
 | `files_changed` | List of files created/modified |
 | `functionality_summary` | Summary of new functionality |
 

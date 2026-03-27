@@ -47,3 +47,21 @@
 - **Implementation did:** Also modified `.writ/product/mission-lite.md`, `mission.md`, `roadmap.md` with Phase 3 documentation
 - **Resolution:** Flagged for cleanup — product changes should be in separate commit
 - **Spec-lite updated:** No
+
+## Story 4: Context Routing Improvements
+
+#### [DEV-007] Variable naming convention for agent-specific sections
+- **Severity:** Small
+- **Spec said:** `spec_lite_content["## For Coding Agents"]` array-access style
+- **Implementation did:** Used `spec_lite_for_coding`, `spec_lite_for_review`, `spec_lite_for_testing` as variable names in routing table and Gate descriptions
+- **Resolution:** Auto-amended — descriptive variable names are clearer for markdown-based orchestrator instructions where array indexing isn't meaningful
+- **Spec-lite updated:** No
+
+## Story 5: UAT Plan Generation
+
+#### [DEV-007] Experience Design extraction added as fifth source category
+- **Severity:** Small
+- **Spec said:** Scenarios from four sources: acceptance criteria, error maps, shadow paths, edge cases
+- **Implementation did:** Added Step 2.5 (Experience Design) as fifth extraction source, generating UX validation scenarios from spec.md
+- **Resolution:** Auto-amended — additive enhancement improving scenario coverage without removing the four required sources
+- **Spec-lite updated:** No

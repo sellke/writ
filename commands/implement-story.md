@@ -42,10 +42,12 @@ If no argument provided, present story selection from current spec (not-started 
 1. **Read `.writ/context.md`** (if present) — product mission, active spec state, recent drift, open issues. This is the **first** context item loaded; it primes all subsequent steps.
 2. **Read the story file** — tasks, acceptance criteria, dependencies
 3. **Read spec-lite.md** — overall spec context
-4. **Scan codebase** — identify patterns, related files, tech stack
-5. **Check dependencies** — warn if upstream stories aren't complete
-6. **Load "What Was Built" from dependencies** — see detailed process below
-7. **Load visual references** — if the story has a `## Visual References` section:
+4. **Parse context hints and fetch referenced content** — see detailed process below
+5. **Extract agent-specific spec-lite sections** — parse spec-lite.md into per-role sections for targeted delivery
+6. **Scan codebase** — identify patterns, related files, tech stack
+7. **Check dependencies** — warn if upstream stories aren't complete
+8. **Load "What Was Built" from dependencies** — see detailed process below
+9. **Load visual references** — if the story has a `## Visual References` section:
    - Read linked mockup images via vision model
    - Read `mockups/component-inventory.md` for component specs
    - Read `.writ/docs/design-system.md` for design tokens
@@ -56,6 +58,81 @@ If dependencies are incomplete:
 ⚠️ Story 5 depends on Story 2 (not yet complete).
 Proceeding anyway — some integration points may be unavailable.
 ```
+
+#### Parsing Context Hints and Fetching Referenced Content
+
+> **Format reference:** `.writ/docs/context-hint-format.md`
+
+After reading the story file and spec-lite.md, the orchestrator parses context hints from the story's `## Context for Agents` section and fetches the referenced spec content. This delivers targeted context to agents — error map rows, shadow paths, business rules, and experience elements relevant to this specific story.
+
+**Process:**
+
+1. **Locate context hints section:**
+   - Search story file content for `## Context for Agents` header
+   - If not found → proceed without hints (legacy story file), log: `ℹ️ No "## Context for Agents" section — proceeding with spec-lite only`
+   - If found → extract all lines from header to next `##` heading or EOF
+
+2. **Parse hint categories:**
+   - For each line matching `- **{Category}:**`:
+     - **Bracketed format:** `[item 1, item 2, item 3]` → split on commas, trim whitespace
+     - **Extended reference format:** `file.md → ## Section → ### Subsection` → parse file path and section hierarchy
+   - Recognized categories: `Error map rows`, `Shadow paths`, `Business rules`, `Experience`
+   - Additional metadata lines (e.g., `Format reference`, `Files in scope`) are informational — note but don't fetch content for them
+   - Store parsed hints in `context_hints` map: `{ category: [references] }`
+
+3. **Fetch referenced content from spec files:**
+
+   | Category | Primary Source | Fallback Source |
+   |----------|---------------|-----------------|
+   | Error map rows | `technical-spec.md` → error map table rows by name | `spec.md → ## 🎯 Experience Design → ### Error Experience` |
+   | Shadow paths | `technical-spec.md` → shadow path scenarios by name | `spec.md → ## 🎯 Experience Design → ### Happy Path Flow` |
+   | Business rules | `spec.md → ## 📋 Business Rules` → matching rule items | — |
+   | Experience | `spec.md → ## 🎯 Experience Design` → matching subsection | — |
+
+   - For bracketed references: search source file for matching rows/entries by name
+   - For extended references (`file.md → ## Section → ### Subsection`): navigate directly to the specified section path in the referenced file
+   - Aggregate all fetched content into `fetched_context` (keyed by category)
+
+4. **Graceful degradation:**
+
+   | Scenario | Behavior |
+   |----------|----------|
+   | `## Context for Agents` section missing | Proceed with spec-lite only (legacy compatibility) |
+   | Hint category malformed or unrecognized | Skip that category, log: `⚠️ Unrecognized context hint category: "{category}"` |
+   | Referenced content not found in source file | Skip that reference, log: `⚠️ Context hint references missing content: "{reference}" in {file}` |
+   | Empty brackets `[]` | Skip that category (valid: no relevant content for this story) |
+   | Source file not found (`spec.md` or `technical-spec.md`) | Log error, proceed with spec-lite only |
+   | Category prefix typo (e.g., `Eror map rows`) | Skip that line, log warning |
+
+**Output variables:**
+- `context_hints` — structured map of parsed references by category
+- `fetched_context` — actual spec content retrieved for each reference
+- `context_warnings` — list of any warnings generated during parsing/fetching
+
+#### Extracting Agent-Specific Spec-Lite Sections
+
+Parse spec-lite.md into role-specific sections for targeted delivery to each pipeline agent:
+
+- `spec_lite_for_coding` — content from `## For Coding Agents` section (header to next `---` or `##` heading)
+- `spec_lite_for_review` — content from `## For Review Agents` section
+- `spec_lite_for_testing` — content from `## For Testing Agents` section
+
+**Routing table — what each agent receives:**
+
+| Agent | Spec-Lite Section | Supplementary Context (from hints) |
+|-------|-------------------|-----------------------------------|
+| Architecture Check (Gate 0) | `spec_lite_for_coding` | `fetched_context` (all categories) |
+| Coding Agent (Gate 1) | `spec_lite_for_coding` | `fetched_context` (error maps, business rules) + dependency WWB records |
+| Review Agent (Gate 3) | `spec_lite_for_review` | `fetched_context` (business rules, experience) |
+| Testing Agent (Gate 4) | `spec_lite_for_testing` | `fetched_context` (shadow paths, edge cases) |
+| Documentation Agent (Gate 5) | Full spec-lite content | `fetched_context` (all categories) |
+
+**Graceful degradation:**
+- Spec-lite.md doesn't use agent-specific format (legacy specs without `## For {Role} Agents` headers) → use full spec-lite content for all agents
+- Specific section missing → fall back to full spec-lite content for that agent, log: `⚠️ Spec-lite.md missing "## For {Role} Agents" section — using full content`
+- `fetched_context` is empty (no hints parsed or all references missing) → agents receive spec-lite section only (still an improvement over full file for non-legacy specs)
+
+---
 
 #### Loading "What Was Built" from Dependencies
 
@@ -237,6 +314,8 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 - **CAUTION** → continue, inject warnings into coding agent prompt
 - **ABORT** → present findings to user, ask whether to proceed/modify/skip
 
+**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` (implementation approach is most relevant for architecture review). If agent-specific sections not available, pass full spec-lite. Also pass `fetched_context` as supplementary spec content if context hints were parsed in Step 2.
+
 ---
 
 #### Gate 0.5: Boundary Computation (File Ownership Map)
@@ -339,6 +418,8 @@ If **no** such section exists in the active spec folder, Gate 0.5 proceeds witho
 
 Spawns the coding agent with full story context, any arch-check warnings, and **`boundary_map`** from Gate 0.5.
 
+**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules) as supplementary context. If dependency stories have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` to the coding agent — positioned after spec context, before implementation tasks.
+
 **When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking” (see `agents/coding-agent.md`).
 
 **Report:** files changed, tests written, deviations from plan, concerns.
@@ -410,7 +491,7 @@ After lint/typecheck passes, classify the change surface based on files the codi
 
 Spawns a **read-only** sub-agent for code review.
 
-**Input:** Pass all standard review inputs plus `spec_lite_content` (loaded from the spec folder's `spec-lite.md` in Step 2) for drift analysis, and `change_surface` (from Gate 2.5) to guide review depth allocation. Also pass **`boundary_map`** (same markdown block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines that carry `overlap` or `high-overlap` — so the review agent can calibrate scrutiny.
+**Input:** Pass all standard review inputs plus `spec_lite_for_review` as `spec_lite_content` (the review-specific section from spec-lite.md, extracted in Step 2) for drift analysis, and `change_surface` (from Gate 2.5) to guide review depth allocation. Also pass **`boundary_map`** (same markdown block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines that carry `overlap` or `high-overlap` — so the review agent can calibrate scrutiny. If agent-specific sections not available (legacy spec-lite), pass full spec-lite content.
 
 **Reviews:**
 - Acceptance criteria verification
@@ -537,6 +618,8 @@ what_was_built_data = {
 
 > **Agent:** `agents/testing-agent.md`
 
+**Context routing:** Pass `spec_lite_for_testing` as `spec_lite_content` — success criteria, shadow paths, and edge cases relevant to testing. If agent-specific sections not available, pass full spec-lite.
+
 **Process:**
 1. Run story-specific tests
 2. Run regression tests (related suites)
@@ -599,6 +682,8 @@ Failures count toward the shared 3-iteration review loop cap.
 
 > **Agent:** `agents/documentation-agent.md`
 > **Skip in:** `--quick` mode
+
+**Context routing:** Pass full spec-lite content as `spec_context` — documentation agents need a cross-cutting view across all spec sections. Also pass `fetched_context` if available for supplementary context.
 
 **Auto-detects documentation framework** (VitePress, Docusaurus, Nextra, MkDocs, Storybook, or plain README).
 

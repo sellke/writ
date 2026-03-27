@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-03-27T22:45:00Z
+> Last Updated: 2026-03-27
 
 ## Product Mission
 
@@ -9,17 +9,30 @@ Writ is an elegant development workflow for AI-assisted software development. It
 ## Active Spec
 
 - **Spec:** 2026-03-27-context-engine — Context Engine
-- **Status:** In Progress
-- **Story:** 3 of 5 — "What Was Built" Records (Completed ✅)
-- **Progress:** 22/40 tasks complete (55%)
+- **Status:** Complete
+- **Story:** 5 of 5 — all stories completed ✅
+- **Progress:** 40/40 tasks complete (100%)
 
 ## Recent Drift
 
-#### [DEV-004] Implementation section renamed from Gate 5 to Step 4
-- **Severity:** Small — WWB assembly correctly placed in Step 4 after all gates complete
-
-#### [DEV-005] Additional verification files created
-- **Severity:** Small — Positive scope expansion (5 verification files vs 3 specified)
+#### [DEV-007] Variable naming convention for agent-specific sections
+- **Severity:** Small
+- **Spec said:** `spec_lite_content["## For Coding Agents"]` array-access style
+- **Implementation did:** Used `spec_lite_for_coding`, `spec_lite_for_review`, `spec_lite_for_testing`
+- **Resolution:** Auto-amended — descriptive variable names clearer for markdown orchestrator
 
 #### [DEV-006] Product files modified out of scope
-- **Severity:** Small — Phase 3 roadmap updates should be separate commit
+- **Severity:** Small
+- **Spec said:** Boundary map includes only `.writ/docs/what-was-built-format.md` and `commands/implement-story.md`
+- **Implementation did:** Also modified `.writ/product/mission-lite.md`, `mission.md`, `roadmap.md` with Phase 3 documentation
+- **Resolution:** Flagged for cleanup — product changes should be in separate commit
+
+#### [DEV-005] Additional verification files created
+- **Severity:** Small
+- **Spec said:** Task 3.2 — Write tests for WWB generation
+- **Implementation did:** Created 5 verification files (3 specified + 2 extra)
+- **Resolution:** Auto-amended — positive scope expansion, improves validation thoroughness
+
+## Open Issues
+
+- 2 issues tracked in `.writ/issues/`

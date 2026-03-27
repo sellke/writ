@@ -44,6 +44,7 @@ When a user requests any Writ command, read the corresponding command file and f
 |---------|------|---------|
 | `/implement-story` | `commands/implement-story.md` | **Primary executor.** Full SDLC pipeline: arch-check → code → lint → review → test (+ coverage) → docs. Runs single stories, partial specs, or full specs with dependency resolution + parallelism. |
 | `/refactor` | `commands/refactor.md` | Scoped refactoring: file/module analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
+| `/create-uat-plan` | `commands/create-uat-plan.md` | Generate UAT plan from completed stories — human-readable test scenarios with preconditions, steps, expected results, pass/fail checkboxes. Enriched with "What Was Built" implementation details. |
 | `/status` | `commands/status.md` | Comprehensive project status report |
 
 ### Release & Delivery

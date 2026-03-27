@@ -47,7 +47,7 @@ bash scripts/update.sh --dry-run     # Preview update
 ### Commands (`commands/`)
 Markdown workflow files with structured phases. Each command is self-contained — read it and follow the steps. Commands reference agents and other commands but don't import anything.
 
-Key commands in the pipeline: `plan-product` → `create-spec` → `implement-spec` (orchestrates `implement-story` per story) → `verify-spec` → `release`.
+Key commands in the pipeline: `plan-product` → `create-spec` → `implement-spec` (orchestrates `implement-story` per story) → `create-uat-plan` (optional UAT validation) → `verify-spec` → `release`.
 
 ### Agents (`agents/`)
 Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
