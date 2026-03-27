@@ -104,6 +104,7 @@ Feedback loop (/retro + /refresh-command):
 |---------|---------|
 | `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
 | `/verify-spec` | Metadata diagnostic (checks 1–7): story/README integrity, completion, dependencies, deliverables, contract drift — auto-fix by default; optional standalone pass |
+| `/create-uat-plan` | **UAT plan generation.** Reads completed stories and generates human-readable test scenarios from acceptance criteria, error maps, shadow paths, and edge cases. Enriches with "What Was Built" details. |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release |
 
@@ -147,7 +148,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 25 commands, but you only need five to go from idea to PR:
+Writ ships 26 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|
