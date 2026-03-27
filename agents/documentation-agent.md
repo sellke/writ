@@ -110,6 +110,8 @@ Report which framework was detected (or "none") before proceeding.
    - For major architectural changes, create or update \`ARCHITECTURE.md\` at the project root
    - Use Mermaid diagrams for visual architecture documentation
 
+5. **Do NOT create ad-hoc documentation files** outside of what the story tasks specify. Never create files like "verification-guide.md", "validation-results.md", "final-verification.md", etc. in spec or user-stories directories. Your documentation should update existing project docs (README, CHANGELOG, inline), not proliferate new files.
+
 ### If a documentation framework is detected
 
 If VitePress, Docusaurus, Nextra, MkDocs, or Storybook is detected, follow its conventions for file placement, navigation config, and page format. Add new pages to the framework's sidebar/nav configuration. Always add inline JSDoc/docstrings regardless of framework.

@@ -96,6 +96,7 @@ Implement the code changes for the following user story, following TDD principle
 2. **Match patterns**: Follow existing codebase conventions
 3. **Small commits**: Make logical, incremental changes
 4. **Document as you go**: Add inline comments for complex logic
+5. **Only create files listed in the tasks**: Do NOT create supplementary files (verification guides, validation reports, acceptance-criteria checklists, integration test plans, etc.) that aren't specified in the implementation tasks. Your findings, verification results, and analysis belong in your **output summary** — not in new files on disk. If a task says "create X," create X. If it doesn't, don't.
 
 ## Self-Verification (before reporting output)
 

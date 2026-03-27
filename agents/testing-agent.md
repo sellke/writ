@@ -134,6 +134,7 @@ If coverage thresholds aren't met:
 - **100% pass rate is MANDATORY before reporting PASS.**
 - **≥80% line coverage on new files is MANDATORY.**
 - **Coverage must not decrease on modified files.**
+- **Do NOT create verification/validation files.** All test results, coverage data, and verification analysis belong in your **output summary** — not in new files on disk. Never create files like "verification-guide.md", "test-plan.md", "acceptance-criteria-check.md", or similar. For documentation-only projects with no test runner, report verification results in your structured output.
 If any requirement cannot be met, report FAIL with detailed explanation.
 `
 })

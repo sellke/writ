@@ -215,6 +215,8 @@ This context enables Story 3's coding agent to build on **actual implementation*
 
 > **Context refresh:** `.writ/context.md` is regenerated once at Story Completion (Step 4), not between gates. Each write replaces the entire file — do not append, merge, or patch.
 
+> **File creation discipline:** Agents must only create files that are explicitly listed in the story's implementation tasks. Verification results, validation reports, acceptance-criteria checklists, test plans, and other analysis artifacts belong in the agent's **structured output** — never as new files on disk. This prevents spec and user-stories directories from being polluted with supplementary files that look like duplicate stories. The orchestrator should not commit any files that aren't in the story's task list or a known pipeline output (drift-log, context.md, story status updates).
+
 ---
 
 #### Gate 0: Architecture Check (Pre-Implementation)
