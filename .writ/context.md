@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-03-27T20:15:00Z
+> Last Updated: 2026-03-27T21:30:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is an elegant development workflow for AI-assisted software development. It
 
 - **Spec:** 2026-03-27-context-engine — Context Engine
 - **Status:** In Progress
-- **Story:** 2 of 5 — Agent-Specific Spec Views (Completed ✅)
-- **Progress:** 14/40 tasks complete (35%)
+- **Story:** 3 of 5 — "What Was Built" Records (Completed ✅)
+- **Progress:** 22/40 tasks complete (55%)
 
 ## Recent Drift
 

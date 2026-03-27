@@ -89,4 +89,11 @@ Unlike flexible-but-vague AI workflows, Writ defines explicit steps with firm bo
 - **`/retro` command:** Git-based retrospective with metrics, trend comparison, and persistent snapshots.
 - **Enhanced error mapping in `/create-spec`:** Failure-aware specs with error & rescue maps, shadow paths, and interaction edge cases.
 
-> **Note:** A separate product extension for skill-based automation, self-improving agents, and advanced delegation will be pursued independently.
+### Context Engine (Phase 3 — Intelligence)
+
+- **Per-story context hints:** Story files index into full specs with `## Context for Agents` sections — which error map rows, shadow paths, business rules, and experience design elements are relevant to *this* story. Agents get targeted context, not everything or nothing.
+- **"What Was Built" records:** After each story completes, a structured summary is appended to the story file. Downstream stories know exactly what their dependencies actually produced — files created, implementation decisions, error handling approach, test coverage.
+- **Agent-specific spec views:** `spec-lite.md` restructured with labeled sections (`## For Coding Agents`, `## For Review Agents`, `## For Testing Agents`). Each agent gets exactly what matters to their role. Same <100 line budget, better targeting.
+- **UAT plan generation:** Human-readable test scenarios generated from acceptance criteria, error maps, and shadow paths. Bridges the gap between "AI says it works" and "a human confirmed it works."
+
+> **Note:** Autonomous execution with Ralph loop orchestration, cross-project learning, and self-improving context routing will follow as Phase 3b.

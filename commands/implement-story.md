@@ -44,7 +44,8 @@ If no argument provided, present story selection from current spec (not-started 
 3. **Read spec-lite.md** — overall spec context
 4. **Scan codebase** — identify patterns, related files, tech stack
 5. **Check dependencies** — warn if upstream stories aren't complete
-6. **Load visual references** — if the story has a `## Visual References` section:
+6. **Load "What Was Built" from dependencies** — see detailed process below
+7. **Load visual references** — if the story has a `## Visual References` section:
    - Read linked mockup images via vision model
    - Read `mockups/component-inventory.md` for component specs
    - Read `.writ/docs/design-system.md` for design tokens
@@ -55,6 +56,121 @@ If dependencies are incomplete:
 ⚠️ Story 5 depends on Story 2 (not yet complete).
 Proceeding anyway — some integration points may be unavailable.
 ```
+
+#### Loading "What Was Built" from Dependencies
+
+> **Format reference:** `.writ/docs/what-was-built-format.md`
+
+For stories with dependencies (specified in the story file's `## User Story` or `Dependencies:` metadata), load "What Was Built" (WWB) records from completed upstream stories to provide cross-story continuity.
+
+**Process:**
+
+1. **Parse dependencies from story file:**
+   - Check story metadata: `> **Dependencies:** Story 1, Story 2`
+   - Or parse `## User Story` section for dependency mentions
+   - Extract story numbers or IDs
+
+2. **Locate dependency story files:**
+   - Construct paths: `.writ/specs/{spec-folder}/user-stories/story-{N}-{slug}.md`
+   - Read each dependency story file
+
+3. **Check completion status:**
+   - Look for `> **Status:** Completed ✅` in story file header
+   - If dependency not complete, log warning (existing behavior):
+     ```
+     ⚠️ Story 3 depends on Story 1 (not yet complete).
+     Proceeding anyway — some integration points may be unavailable.
+     ```
+
+4. **Extract WWB sections:**
+   - For each **completed** dependency, locate `## What Was Built` section
+   - Read the entire section (from `## What Was Built` to next `##` heading or EOF)
+   - If section not found, log warning:
+     ```
+     ⚠️ Story 1 is marked complete but has no "What Was Built" record.
+     Proceeding with reduced context — cross-story continuity may be degraded.
+     ```
+
+5. **Apply size limits and truncation:**
+   - For each WWB record, count lines
+   - If record exceeds 1000 lines, truncate using priority order:
+     1. **Files Created** — keep full (highest priority)
+     2. **Files Modified** — keep full
+     3. **Implementation Decisions** — keep full if space allows, otherwise first 20 lines
+     4. **Test Results** — keep summary line only, drop detailed test list
+     5. **Review Outcome** — keep full
+     6. **Deviations from Spec** — keep DEV-IDs and titles, truncate details to first 2 lines each
+     7. **Lessons Learned** (if present) — drop if space needed
+   - Log truncation: `⚠️ Truncated Story {N} "What Was Built" record ({original} → 1000 lines)`
+   - Preserve markdown structure in truncated version
+   - **Only load direct dependencies** — not transitive (e.g., Story 3 loads Story 2's WWB, but not Story 1's WWB even if Story 2 depended on Story 1)
+
+6. **Aggregate WWB records:**
+   - Collect all WWB sections (full or truncated) from completed dependencies
+   - Format for coding agent context:
+     ```markdown
+     ## Dependency Context: What Was Built in Upstream Stories
+
+     ### From Story 1: {story title}
+     {WWB content from Story 1}
+
+     ### From Story 2: {story title}
+     {WWB content from Story 2}
+     ```
+
+7. **Pass to coding agent:**
+   - Include aggregated WWB records in coding agent prompt
+   - Position after story content and spec context, before implementation tasks
+   - This gives coding agent visibility into what dependencies actually produced
+
+**Graceful Degradation:**
+
+- **Dependency incomplete:** Continue with warning (existing behavior)
+- **Dependency complete but no WWB section:** Continue with warning, note degraded context
+- **Multiple dependencies, some with WWB, some without:** Include available WWB records, log warnings for missing
+- **No dependencies:** Skip this step entirely
+
+**Example Coding Agent Context (with WWB):**
+
+```
+## Dependency Context: What Was Built in Upstream Stories
+
+### From Story 1: Context Hints Generation
+
+**Implementation Date:** 2026-03-25
+
+**Files Created:**
+- `agents/user-story-generator.md` — Updated to generate context hints
+
+**Implementation Decisions:**
+- Context hints format: Error map rows, shadow paths, business rules, experience
+- Hints are indexes, not content duplication
+- Generated during story creation (not post-processing)
+
+**Test Results:**
+- Manual verification: 3 example specs generated with hints
+
+### From Story 2: Agent-Specific Spec Views
+
+**Implementation Date:** 2026-03-27
+
+**Files Created:**
+- `.writ/docs/spec-lite-format-verification.md` — Verification guide
+
+**Files Modified:**
+- `commands/create-spec.md` Step 2.4 — Three-section spec-lite template
+
+**Implementation Decisions:**
+- Line budget: 35/35/30 for coding/review/testing sections
+- Truncation strategy: 4-step priority-based
+- Backward compatibility maintained
+
+**Test Results:**
+- Manual verification complete
+- Dogfood spec-lite.md verified: 121 lines (demonstrates format)
+```
+
+This context enables Story 3's coding agent to build on **actual implementation** from Stories 1-2, not assumptions about what they produced.
 
 ### `.writ/context.md` — Format & Regeneration
 
@@ -309,11 +425,15 @@ Spawns a **read-only** sub-agent for code review.
 
 **Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user.
 
-#### Gate 3.5: Drift Response Handling
+#### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
-> **Format reference:** `.writ/docs/drift-report-format.md`
+> **Format reference:** `.writ/docs/drift-report-format.md`, `.writ/docs/what-was-built-format.md`
 
-After the review agent returns, inspect the `### Drift Analysis` section. Handle by severity:
+After the review agent returns, perform two operations:
+
+##### A. Drift Response (existing behavior)
+
+Inspect the `### Drift Analysis` section. Handle by severity:
 
 **Small drift** (naming, cosmetic — spec intent preserved):
 - Auto-amend `spec-lite.md` with the proposed changes
@@ -346,6 +466,68 @@ After the review agent returns, inspect the `### Drift Analysis` section. Handle
 - **Resolution:** Auto-amended
 - **Spec-lite updated:** Yes
 ```
+
+##### B. "What Was Built" Data Extraction (new)
+
+Extract implementation data from review agent output and store in orchestrator state for later use at Gate 5. Parse defensively with graceful degradation.
+
+**Extract from review agent output:**
+
+1. **Files Created/Modified** (mandatory)
+   - Source: Look for coding agent output sections in review agent response
+   - Parse `### Files Created` and `### Files Modified` sections
+   - Extract file paths (in backticks) and descriptions
+   - Fallback: If sections missing, run `git diff --name-status` against branch start
+   - Validation: If no files found, log `⚠️ "What Was Built" record incomplete — no files found` and continue with empty lists
+
+2. **Implementation Decisions** (best-effort)
+   - Source: Coding agent output → `### Implementation Decisions`
+   - Parse list items or paragraphs
+   - Fallback: If missing, omit section in final record
+
+3. **Test Results** (best-effort)
+   - Source: Review agent → `### Test Coverage` and Gate 4 results (if available)
+   - Extract coverage percentages and verification approach
+   - Fallback: If missing, use `**Verification:** N/A`
+
+4. **Review Outcome** (mandatory + best-effort)
+   - **Result** (mandatory): Parse `### REVIEW_RESULT: [PASS/FAIL/PAUSE]`
+   - **Drift** (best-effort): Parse `### Drift Analysis → **Overall Drift:** [level]`
+   - **Security** (best-effort): Parse `### Security Assessment → **Risk Level:** [level]`
+   - **Boundary Compliance** (best-effort): Parse `### Boundary Compliance → **Summary:**` line
+   - **Iteration count**: Track in orchestrator (number of Gate 3 review loops)
+   - Validation: If Result missing, log error and use "Unknown"
+   - Fallback: For missing best-effort fields, use "None" / "Not assessed" / omit
+
+5. **Deviations from Spec** (best-effort)
+   - Source: Review agent → `### Drift Analysis` deviation entries
+   - Parse `#### [DEV-NNN]` entries with all fields
+   - Preserve DEV-ID numbering
+   - Fallback: If "Overall Drift: None", use "None"
+
+**Store in orchestrator state:**
+
+Create a `what_was_built_data` object with extracted fields:
+
+```javascript
+what_was_built_data = {
+  implementation_date: new Date().toISOString().split('T')[0],  // YYYY-MM-DD
+  files_created: [...],
+  files_modified: [...],
+  implementation_decisions: [...],
+  test_results: { verification: "...", coverage: "...", details: [...] },
+  review_outcome: {
+    result: "PASS/FAIL/PAUSE",
+    iteration_count: N,
+    drift: "None/Small/Medium/Large",
+    security: "Clean/Low/Medium/High",
+    boundary_compliance: "..."
+  },
+  deviations: [...]  // Full DEV entries
+}
+```
+
+**Do NOT append to story file yet** — that happens at Gate 5 after documentation completes.
 
 ---
 
@@ -434,10 +616,123 @@ After all gates pass:
 1. **Update story status** → `Completed ✅` with date
 2. **Mark tasks and AC** as checked in story file
 3. **Regenerate `.writ/context.md`** — full rewrite using the schema defined in Step 2, reflecting the newly completed story status and updated progress counts.
-4. **Append `## What Was Built`** to the story file: implementation date, files created/modified counts, key decisions made during implementation, and deviation references (if any). This is the "system spec" — implementation reality alongside the original plan.
+4. **Append `## What Was Built`** to the story file — see detailed assembly process below
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
+
+#### "What Was Built" Record Assembly
+
+> **Format reference:** `.writ/docs/what-was-built-format.md`
+
+The "What Was Built" (WWB) record captures **implementation reality** for cross-story continuity. Data is extracted at Gate 3.5 and stored in `what_was_built_data`, then formatted and appended to the story file at Step 4.
+
+**Data Flow:**
+
+1. **Gate 3.5:** Extract and validate data from review agent output (see Gate 3.5 section above for extraction logic)
+2. **Gate 4:** Update `what_was_built_data.test_results` with testing agent results
+3. **Step 4:** Format `what_was_built_data` as markdown and append to story file
+
+**Formatting Template:**
+
+Use data from `what_was_built_data` object (populated at Gate 3.5):
+
+```markdown
+---
+
+## What Was Built
+
+**Implementation Date:** {what_was_built_data.implementation_date}
+
+### Files Created
+
+{For each file in what_was_built_data.files_created:}
+1. **`{file.path}`** ({file.line_count} lines)
+   - {file.description}
+
+{If empty: "[None created]"}
+
+### Files Modified
+
+{For each file in what_was_built_data.files_modified:}
+- **`{file.path}`** ({file.section_reference})
+  - {file.changes}
+
+{If empty: "[None modified]"}
+
+### Implementation Decisions
+
+{For each decision in what_was_built_data.implementation_decisions:}
+{N}. **{decision.title}** — {decision.rationale}
+
+{If empty: omit section entirely — don't write "None"}
+
+### Test Results
+
+**Verification:** {what_was_built_data.test_results.verification}
+{If coverage present: "**Coverage:** {coverage}%"}
+{For each detail in test_results.details:}
+- ✅ {detail}
+
+### Review Outcome
+
+**Result:** {what_was_built_data.review_outcome.result}
+
+- **Iteration count:** {review_outcome.iteration_count} iteration(s)
+- **Drift:** {review_outcome.drift}
+- **Security:** {review_outcome.security}
+{If boundary_compliance present: "- **Boundary Compliance:** {boundary_compliance}"}
+
+### Deviations from Spec
+
+{If what_was_built_data.deviations is empty or drift is "None":}
+None
+
+{Otherwise, for each deviation in what_was_built_data.deviations:}
+- **[{dev.id}] {dev.title}** — Severity: {dev.severity}
+  - Spec said: {dev.spec_said}
+  - Reality: {dev.implementation_did}
+  - Resolution: {dev.resolution}
+  {If spec_amendment present: "- Spec amendment: {dev.spec_amendment}"}
+```
+
+**Appending to Story File:**
+
+1. Open story file for append (e.g., `.writ/specs/{spec-folder}/user-stories/story-N-{slug}.md`)
+2. Add separator: `\n---\n\n`
+3. Add formatted WWB content from template above
+4. Save file
+
+**Graceful Degradation:**
+
+- **`--quick` mode** (Gate 3.5 skipped):
+  - No `what_was_built_data` available
+  - Construct minimal record from coding agent and testing agent outputs:
+    ```markdown
+    ## What Was Built
+    
+    > Note: Review skipped (`--quick` mode) — record sourced from coding and testing agents only
+    
+    **Implementation Date:** {current_date}
+    
+    ### Files Created
+    {From coding agent output}
+    
+    ### Files Modified
+    {From coding agent output}
+    
+    ### Test Results
+    {From testing agent output}
+    ```
+
+- **Incomplete data at Gate 3.5:**
+  - Already handled via validation warnings and fallback values in `what_was_built_data`
+  - Use partial data; log warnings but continue
+
+- **Missing Gate 4 results:**
+  - If testing skipped or failed, use `**Verification:** N/A` in test_results
+
+**The pipeline must NEVER block story completion due to incomplete WWB data. Partial records are better than no records.**
 
 ---
 

@@ -24,3 +24,26 @@
 - **Implementation did:** Dogfood stories mix bracketed lines, extended `spec.md → ## Section` paths, and prose descriptions
 - **Resolution:** Auto-amended — updated validation checklist to explicitly allow bracketed AND/OR extended format
 - **Spec-lite updated:** No (documentation file updated: context-hint-format.md line 353)
+
+## Story 3: "What Was Built" Records
+
+#### [DEV-004] Implementation section renamed from Gate 5 to Step 4
+- **Severity:** Small
+- **Spec said:** Task 3.5 — Update `Gate 5 (Documentation)` to append WWB record
+- **Implementation did:** Implementation in section titled `Step 4: Story Completion` → `"What Was Built" Record Assembly` (lines 624-737)
+- **Resolution:** Auto-amended — functionally correct location, better naming for story completion phase
+- **Spec-lite updated:** No
+
+#### [DEV-005] Additional verification files created
+- **Severity:** Small
+- **Spec said:** Task 3.2 — Write tests for WWB generation
+- **Implementation did:** Created 5 verification files (3 specified + 2 extra)
+- **Resolution:** Auto-amended — positive scope expansion, improves validation thoroughness
+- **Spec-lite updated:** No
+
+#### [DEV-006] Product files modified out of scope
+- **Severity:** Small
+- **Spec said:** Boundary map includes only `.writ/docs/what-was-built-format.md` and `commands/implement-story.md`
+- **Implementation did:** Also modified `.writ/product/mission-lite.md`, `mission.md`, `roadmap.md` with Phase 3 documentation
+- **Resolution:** Flagged for cleanup — product changes should be in separate commit
+- **Spec-lite updated:** No

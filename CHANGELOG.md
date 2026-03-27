@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Context hints in user stories** — User story files now include a "## Context for Agents" section with structured hints that index into spec content (error map rows, shadow paths, business rules, experience elements). Generated automatically by `user-story-generator` during `/create-spec`. Enables targeted spec context delivery to pipeline agents instead of generic spec summaries. See `.writ/docs/context-hint-format.md` for full format specification.
 
+- **"What Was Built" records** — Cross-story continuity enhancement that captures implementation reality from review + testing agent outputs, appends to completed stories as `## What Was Built` sections, and passes to downstream coding agents via Step 2 dependency loading. Sourced from third-party verification (not self-reports), enables downstream stories to build on actual implementation rather than assumptions. Supports graceful degradation (incomplete data doesn't block completion) and `--quick` mode (uses coding + testing outputs only). See `.writ/docs/what-was-built-format.md` for format specification and `.writ/docs/what-was-built-verification.md` for verification guide. Updated `commands/implement-story.md` Step 2 (dependency WWB loading with size limits and truncation) and Step 4 (WWB assembly and append after Gate 5).
+
 ## [0.8.3] - 2026-03-23
 
 ### Removed

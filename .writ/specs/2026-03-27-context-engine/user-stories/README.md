@@ -2,7 +2,7 @@
 
 > **Spec:** `.writ/specs/2026-03-27-context-engine/`
 > **Total Stories:** 5
-> **Status:** In Progress (2/5 complete)
+> **Status:** In Progress (3/5 complete)
 
 ## Stories Overview
 
@@ -10,11 +10,11 @@
 |---|-------|--------|----------|-------|----------|
 | 1 | [Per-Story Context Hints](story-1-per-story-context-hints.md) | Completed ✅ | High | 7 | 7/7 |
 | 2 | [Agent-Specific Spec Views](story-2-agent-specific-spec-views.md) | Completed ✅ | High | 7 | 7/7 |
-| 3 | ["What Was Built" Records](story-3-what-was-built-records.md) | Not Started | High | 8 | 0/8 |
+| 3 | ["What Was Built" Records](story-3-what-was-built-records.md) | Completed ✅ | High | 8 | 8/8 |
 | 4 | [Context Routing Improvements](story-4-context-routing-improvements.md) | Not Started | High | 9 | 0/9 |
 | 5 | [UAT Plan Generation](story-5-uat-plan-generation.md) | Not Started | Medium | 9 | 0/9 |
 
-**Total Tasks:** 40 (14 complete, 26 remaining)
+**Total Tasks:** 40 (22 complete, 18 remaining)
 
 ## Dependencies
 

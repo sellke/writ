@@ -35,6 +35,7 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 - **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
 - **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%)
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
+- **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, enabling accurate dependency integration
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
@@ -54,12 +55,13 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
                                                     Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
                               ├─ Boundary map (Gate 0.5 — owned/readable scope)
-                              ├─ Coding agent (TDD)
+                              ├─ Coding agent (TDD) + loads "What Was Built" from deps
                               ├─ Lint/typecheck gate
                               ├─ Review agent (+ security + drift)
                               ├─ Testing agent (+ coverage)
                               ├─ Visual QA (optional)
-                              └─ Documentation agent
+                              ├─ Documentation agent
+                              └─ "What Was Built" record appended to story file
 
 Lightweight path (/prototype) — no spec required:
    Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
