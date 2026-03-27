@@ -47,17 +47,17 @@ bash scripts/update.sh --dry-run     # Preview update
 ### Commands (`commands/`)
 Markdown workflow files with structured phases. Each command is self-contained — read it and follow the steps. Commands reference agents and other commands but don't import anything.
 
-Key commands in the pipeline: `plan-product` → `create-spec` → `implement-spec` (orchestrates `implement-story` per story) → `verify-spec` → `release`.
+Key commands in the pipeline: `plan-product` → `create-spec` → `implement-spec` (orchestrates `implement-story` per story) → `create-uat-plan` (optional UAT validation) → `verify-spec` → `release`.
 
 ### Agents (`agents/`)
 Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 1. Architecture check (read-only, PROCEED/CAUTION/ABORT)
-2. Coding agent (TDD, worktree isolation)
-3. Review agent (read-only, PASS/FAIL, max 3 iterations)
+2. Coding agent (TDD, worktree isolation, loads "What Was Built" from dependencies)
+3. Review agent (read-only, PASS/FAIL, max 3 iterations, outputs parsed for "What Was Built" records)
 4. Testing agent (coverage enforcement, >=80%)
 5. Documentation agent (framework-adaptive)
 
-Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`).
+Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
 
 ### Adapters (`adapters/`)
 Platform-specific integration guides. `Codex.md` maps Writ concepts to Codex's native subagent system (YAML frontmatter, worktrees, memory). `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system.

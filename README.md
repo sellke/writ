@@ -35,6 +35,7 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 - **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
 - **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%)
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
+- **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, enabling accurate dependency integration
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
@@ -54,16 +55,21 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
                                                     Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
                               ├─ Boundary map (Gate 0.5 — owned/readable scope)
-                              ├─ Coding agent (TDD)
+                              ├─ Coding agent (TDD) + loads "What Was Built" from deps
                               ├─ Lint/typecheck gate
                               ├─ Review agent (+ security + drift)
                               ├─ Testing agent (+ coverage)
                               ├─ Visual QA (optional)
-                              └─ Documentation agent
+                              ├─ Documentation agent
+                              └─ "What Was Built" record appended to story file
 
 Lightweight path (/prototype) — no spec required:
    Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
                                               ↑ complexity? → escalate to /create-spec
+
+Autonomous path (/ralph — plan in Cursor, execute in CLI, review in Cursor):
+   /ralph plan → ./ralph.sh (fresh context per iteration) → /ralph status
+                      ↑ one story per loop: orient → implement → validate → commit
 
 Feedback loop (/retro + /refresh-command):
    Git metrics → Patterns → Trends    |    Transcript scan → Friction → Command diffs
@@ -91,6 +97,12 @@ Feedback loop (/retro + /refresh-command):
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | Comprehensive project status report |
 
+### Autonomous Execution
+| Command | Purpose |
+|---------|---------|
+| `/ralph plan` | **Cross-spec execution planning.** Scan non-complete specs, resolve dependencies, assess codebase, generate CLI handoff artifacts (`PROMPT_build.md`, `ralph.sh`, state file) for autonomous Ralph loop execution. |
+| `/ralph status` | **Execution monitoring.** Read Ralph state files, display progress dashboard, surface blockers and escalation reports, provide next-step guidance. Closes the Cursor→CLI→Cursor loop. |
+
 ### Shipping & Review
 | Command | Purpose |
 |---------|---------|
@@ -102,6 +114,7 @@ Feedback loop (/retro + /refresh-command):
 |---------|---------|
 | `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
 | `/verify-spec` | Metadata diagnostic (checks 1–7): story/README integrity, completion, dependencies, deliverables, contract drift — auto-fix by default; optional standalone pass |
+| `/create-uat-plan` | **UAT plan generation.** Reads completed stories and generates human-readable test scenarios from acceptance criteria, error maps, shadow paths, and edge cases. Enriches with "What Was Built" details. |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release |
 
@@ -145,7 +158,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 24 commands, but you only need five to go from idea to PR:
+Writ ships 27 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|

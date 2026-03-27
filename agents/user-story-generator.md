@@ -35,6 +35,8 @@ The agent expects the following context in its prompt:
 | `user_type` | Target user persona from clarification |
 | `codebase_patterns` | Relevant patterns/architecture from codebase analysis |
 | `acceptance_criteria_hints` | Key behaviors to verify |
+| `spec_content` | Full text of `spec.md` for context hint generation |
+| `technical_spec_content` | Full text of `technical-spec.md` (or empty if not present) |
 
 ## Prompt Template
 
@@ -67,6 +69,14 @@ Task({
 ## Codebase Context
 
 {codebase_patterns}
+
+## Specification Content (for Context Hint Generation)
+
+**Full spec.md:**
+{spec_content}
+
+**Technical spec.md:**
+{technical_spec_content}
 
 ## Your Task
 
@@ -119,6 +129,32 @@ Include:
 - [ ] Tests passing
 - [ ] Code reviewed
 - [ ] Documentation updated
+
+## Context for Agents
+
+Analyze the specification content provided above and identify which spec elements are relevant to THIS story specifically. Generate context hints that index into the spec — do not duplicate content, only reference it.
+
+Format (include only categories with relevant content):
+
+- **Error map rows:** [Operation 1, Operation 2] — from technical-spec.md error map, or spec.md → Error Experience
+- **Shadow paths:** [Path name 1, Path name 2] — from technical-spec.md shadow paths, or spec.md → Happy Path Flow
+- **Business rules:** [Rule 1 (brief summary), Rule 2 (brief summary)] — from spec.md → Business Rules section
+- **Experience:** [Element 1 (detail), Element 2 (detail)] — from spec.md → Experience Design section
+
+**Selection criteria:**
+- Error map rows: Only include operations this story implements or modifies
+- Shadow paths: Only include user journeys this story affects
+- Business rules: Only include rules this story must enforce
+- Experience: Only include UX elements this story implements (error states, loading, feedback, empty states)
+
+**Quality rules:**
+- Be specific with names (use exact operation/path/rule names from spec)
+- Be concise (only what's directly relevant to this story)
+- Be accurate (reference content that actually exists)
+- Use empty brackets [] if a category has no relevant content
+- If technical_spec_content is empty, reference spec.md sections directly using format: "spec.md → ## Section → ### Subsection"
+
+Reference: `.writ/docs/context-hint-format.md` for full format specification.
 
 ---
 

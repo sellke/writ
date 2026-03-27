@@ -463,7 +463,126 @@ This returns `YYYY-MM-DD` format for folder naming: `.writ/specs/[DATE]-[feature
 - **Detailed requirements** — expanded from clarification responses
 - **Implementation approach** — technical strategy based on codebase analysis
 
-**spec-lite.md** — Condensed version for AI context windows. Covers: what's being built, key constraints, key changes from current state, files in scope, and success criteria. Keep under 100 lines.
+**spec-lite.md** — Condensed version for AI context windows with agent-specific sections. Total budget: <100 lines (hard limit). Format:
+
+```markdown
+# [Feature Name] (Lite)
+
+> Source: .writ/specs/[DATE]-[name]/spec.md
+> Purpose: Efficient AI context for implementation
+
+## For Coding Agents
+
+[35 lines max]
+
+**Deliverable:** [One-sentence summary]
+
+**Implementation Approach:**
+- [Key technical decisions]
+- [Architecture patterns to use]
+- [Integration strategy]
+
+**Files in Scope:**
+- `path/to/file.ext` — [what changes here]
+
+**Error Handling:**
+- [Error case] → [planned handling]
+
+**Integration Points:**
+- [Command/agent interactions]
+
+**Line Budget Constraints:** [if relevant to this spec]
+
+---
+
+## For Review Agents
+
+[35 lines max]
+
+**Acceptance Criteria:**
+1. [Measurable criterion with target]
+2. [Business rule verification]
+3. [Integration success condition]
+
+**Business Rules:**
+- [Permission/access control rules]
+- [Validation constraints]
+- [State transition rules]
+- [Domain-specific edge cases]
+
+**Experience Design:**
+- Entry: [How user reaches this]
+- Happy path: [Ideal flow]
+- Moment of truth: [Value realization point]
+- Feedback: [Success confirmation]
+- Error: [Failure experience]
+
+**[Domain-Specific Section if applicable]:**
+- Error & Rescue Map structure
+- Shadow Paths format
+- Drift Analysis thresholds
+
+---
+
+## For Testing Agents
+
+[30 lines max]
+
+**Success Criteria:**
+1. [Quantifiable metric with threshold]
+2. [Coverage requirement]
+3. [Performance/quality target]
+
+**Shadow Paths to Verify:**
+- **Happy path:** [Normal flow outcome]
+- **Nil input:** [Missing data handling]
+- **Empty input:** [Zero-state handling]
+- **Upstream error:** [External failure handling]
+
+**Edge Cases:**
+- [Feature-specific edge case] → [expected behavior]
+- [Interaction edge case] → [expected behavior]
+
+**Coverage Requirements:**
+- New code: ≥80%
+- Critical paths: 100%
+- Error paths: 100%
+
+**Test Strategy:**
+- [Test types needed]
+- [Key scenarios to verify]
+```
+
+**Content Selection Guidelines:**
+
+When building each section, prioritize based on feature type:
+
+- **Data flow features** (APIs, auth, payments, integrations): emphasize error handling, shadow paths, business rules
+- **UI features**: emphasize experience design, interaction edge cases, responsive behavior
+- **Refactors**: emphasize affected files, integration points, backward compatibility
+- **Documentation/tooling**: emphasize success criteria, verification approach
+
+**Line Budget Enforcement:**
+
+The total spec-lite.md must stay under 100 lines. The agent-specific sections target 35/35/30 lines, but the three horizontal rules (`---`) and section headers add ~10 lines, leaving ~90 lines for content. Budget breakdown:
+
+- Header block (title, source, purpose): ~5 lines
+- Section headers + dividers: ~10 lines
+- Coding section content: ≤35 lines
+- Review section content: ≤35 lines
+- Testing section content: ≤30 lines
+- **Total: ~90 content + 10 structural = 100 lines**
+
+When content risks exceeding limits:
+
+1. **Cut nice-to-haves first**: Remove verbose descriptions, combine bullets, use terse phrasing
+2. **Prioritize critical information**: Error maps, business rules, and acceptance criteria are highest value
+3. **Use references**: Point to spec.md sections instead of duplicating content (e.g., "See spec.md → ## Technical Decisions")
+4. **Truncate sections proportionally**: If total exceeds 100, reduce all three sections by same percentage
+
+**Backward Compatibility Note:**
+
+Older specs may use the previous single-block format (no agent-specific sections). This is expected — only specs created after Context Engine (Story 2) should use the new format. Do not retroactively convert old specs unless explicitly requested.
 
 #### Step 2.5: Plan User Stories
 
@@ -487,9 +606,15 @@ Story Plan:
 
 Launch parallel Task subagents to create all story files simultaneously. Reference `agents/user-story-generator.md` for the agent spec and prompt template.
 
-For each story, spawn a Task subagent (`generalPurpose`, model `fast`) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, and relevant codebase patterns.
+For each story, spawn a Task subagent (`generalPurpose`, model `fast`) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, **and full specification content for context hint generation**.
 
-Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, and definition of done.
+**Context hint generation (new):** Pass these additional parameters to each user-story-generator agent:
+- `spec_content` — full text of `spec.md` (read from `.writ/specs/{spec-folder}/spec.md`)
+- `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise pass empty string `""` with note that hints should reference `spec.md` sections directly
+
+**Timing note:** If running Step 2.6 in parallel with Step 2.8 (technical sub-spec generation), `technical-spec.md` may not exist yet. In that case, pass empty string for `technical_spec_content` and note in the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')."
+
+Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, definition of done, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
 
 Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
 

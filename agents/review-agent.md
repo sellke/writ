@@ -32,7 +32,7 @@ readonly: true   # Review agent should only read and analyze
 | `coding_agent_output` | Summary from the Coding Agent |
 | `lint_results` | Output from lint/typecheck gate (if available) |
 | `acceptance_criteria_with_checkboxes` | Formatted criteria for verification |
-| `spec_lite_content` | Content of spec-lite.md — the spec contract used for drift comparison |
+| `spec_lite_content` | Agent-specific spec-lite section ("For Review Agents" — acceptance criteria, business rules, experience design). Used for drift analysis. Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
 | `change_surface` | Classification from Gate 2.5: `style-only`, `single-component`, `cross-component`, or `full-stack`. Determines review depth allocation per category. |
 | `boundary_map` | **Optional.** Same Gate 0.5 markdown block passed to the coding agent. If empty/omitted, skip boundary compliance scrutiny (legacy behavior). |
 | `boundary_overlap_summary` | **Optional.** One-line summary of overlap / high-overlap areas from the map (for extra scrutiny). Empty if none. |

@@ -353,3 +353,7 @@ Agents writing drift entries MUST verify before committing the write:
 | **Story number is correct** | `## Story N:` header references the story being implemented |
 | **Small requires amendment text** | Small deviations always have concrete amendment text — never `N/A` |
 | **Append-only invariant** | Existing content is never modified; new sections are only appended after `---` |
+
+## Related Documentation
+
+- **"What Was Built" records** — `.writ/docs/what-was-built-format.md` — Complementary format that captures implementation reality from review outputs and passes to downstream stories. Drift entries appear in both `drift-log.md` (spec amendment history) and "What Was Built" records (cross-story continuity context).

@@ -29,7 +29,9 @@ Personal leverage — Writ makes projects dramatically better as measured by: le
 
 **Phase 2 — Reach:** PR agent, `/ship`, `/review`, `/retro`, MCP integration, enhanced error mapping. Focused on closing every gap in the end-to-end workflow.
 
-> A separate product extension will pursue skill-based automation, self-improving agents, and advanced delegation independently.
+**Phase 3 — Context Engine:** Intelligent spec context routing to pipeline agents. Per-story context hints, "What Was Built" records, agent-specific spec views, UAT plan generation. Makes spec quality determine code quality.
+
+> Phase 3b will pursue autonomous execution with Ralph loop orchestration and progressive autonomy.
 
 ## Design Principles
 

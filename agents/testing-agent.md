@@ -27,6 +27,7 @@ readonly: false   # May need to fix tests or implementation
 |-----------|-------------|
 | `context_md_content` | **First context item.** Contents of `.writ/context.md` if present — product mission, active spec state, recent drift. Pass empty string if file doesn't exist yet. |
 | `story_file_path` | Full path to the story file |
+| `spec_lite_content` | **Optional.** Agent-specific spec-lite section ("For Testing Agents" — success criteria, shadow paths, edge cases). Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
 | `acceptance_criteria` | Criteria that tests must verify |
 | `modified_files` | Files changed by Coding Agent |
 | `test_files` | Test files to run |
@@ -51,6 +52,9 @@ Run all tests related to the implemented story, ensure 100% pass rate, and verif
 ## Story Context
 **Story file path:** {story_file_path}
 **Acceptance criteria:** {acceptance_criteria}
+
+## Specification Context
+{spec_lite_content}
 
 ## Files Modified by Coding Agent
 {modified_files}
@@ -134,6 +138,7 @@ If coverage thresholds aren't met:
 - **100% pass rate is MANDATORY before reporting PASS.**
 - **≥80% line coverage on new files is MANDATORY.**
 - **Coverage must not decrease on modified files.**
+- **Do NOT create verification/validation files.** All test results, coverage data, and verification analysis belong in your **output summary** — not in new files on disk. Never create files like "verification-guide.md", "test-plan.md", "acceptance-criteria-check.md", or similar. For documentation-only projects with no test runner, report verification results in your structured output.
 If any requirement cannot be met, report FAIL with detailed explanation.
 `
 })
