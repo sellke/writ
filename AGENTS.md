@@ -52,8 +52,8 @@ Key commands in the pipeline: `plan-product` → `create-spec` → `implement-sp
 ### Agents (`agents/`)
 Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 1. Architecture check (read-only, PROCEED/CAUTION/ABORT)
-2. Coding agent (TDD, worktree isolation)
-3. Review agent (read-only, PASS/FAIL, max 3 iterations)
+2. Coding agent (TDD, worktree isolation, loads "What Was Built" from dependencies)
+3. Review agent (read-only, PASS/FAIL, max 3 iterations, outputs parsed for "What Was Built" records)
 4. Testing agent (coverage enforcement, >=80%)
 5. Documentation agent (framework-adaptive)
 

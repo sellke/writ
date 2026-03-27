@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-03-27T21:30:00Z
+> Last Updated: 2026-03-27T22:45:00Z
 
 ## Product Mission
 
@@ -15,4 +15,11 @@ Writ is an elegant development workflow for AI-assisted software development. It
 
 ## Recent Drift
 
-No drift log entries yet for this spec.
+#### [DEV-004] Implementation section renamed from Gate 5 to Step 4
+- **Severity:** Small — WWB assembly correctly placed in Step 4 after all gates complete
+
+#### [DEV-005] Additional verification files created
+- **Severity:** Small — Positive scope expansion (5 verification files vs 3 specified)
+
+#### [DEV-006] Product files modified out of scope
+- **Severity:** Small — Phase 3 roadmap updates should be separate commit
