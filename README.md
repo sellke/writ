@@ -67,6 +67,10 @@ Lightweight path (/prototype) — no spec required:
    Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
                                               ↑ complexity? → escalate to /create-spec
 
+Autonomous path (/ralph — plan in Cursor, execute in CLI, review in Cursor):
+   /ralph plan → ./ralph.sh (fresh context per iteration) → /ralph status
+                      ↑ one story per loop: orient → implement → validate → commit
+
 Feedback loop (/retro + /refresh-command):
    Git metrics → Patterns → Trends    |    Transcript scan → Friction → Command diffs
 ```
@@ -92,6 +96,12 @@ Feedback loop (/retro + /refresh-command):
 | `/implement-story` | **Per-story executor.** SDLC pipeline: arch-check → **boundary map (Gate 0.5)** → coding (TDD) → lint → review → drift → testing → visual QA (optional) → docs. `--quick` skips arch, boundary, review, drift, docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/status` | Comprehensive project status report |
+
+### Autonomous Execution
+| Command | Purpose |
+|---------|---------|
+| `/ralph plan` | **Cross-spec execution planning.** Scan non-complete specs, resolve dependencies, assess codebase, generate CLI handoff artifacts (`PROMPT_build.md`, `ralph.sh`, state file) for autonomous Ralph loop execution. |
+| `/ralph status` | **Execution monitoring.** Read Ralph state files, display progress dashboard, surface blockers and escalation reports, provide next-step guidance. Closes the Cursor→CLI→Cursor loop. |
 
 ### Shipping & Review
 | Command | Purpose |
@@ -148,7 +158,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 26 commands, but you only need five to go from idea to PR:
+Writ ships 27 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|

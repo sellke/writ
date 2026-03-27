@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-03-27
+
+### Added
+
+- **Ralph Loop Orchestration** — Autonomous multi-spec execution via CLI (Phase 3b). Plan interactively in Cursor, hand off to a CLI loop for overnight execution, return to review structured results. Spec: `.writ/specs/2026-03-27-ralph-loop-orchestration/`.
+
+- **`/ralph plan` command** — Cross-spec execution planning in Cursor. Scans non-complete specs, resolves intra-spec and cross-spec dependencies (with cycle detection), performs codebase assessment, and generates CLI handoff artifacts: `PROMPT_build.md`, `ralph.sh`, and initialized `.writ/state/ralph-*.json`. Plans are disposable — regenerate anytime from current codebase reality.
+
+- **`/ralph status` command** — Execution monitoring and Cursor re-entry. Reads Ralph state files, presents human-readable progress dashboard (completed/failed/blocked stories), surfaces escalation reports in plain language, classifies current phase (planned/executing/paused/escalated/complete), and provides next-step guidance. Closes the Cursor→CLI→Cursor loop.
+
+- **`scripts/ralph.sh`** — Loop script template for CLI autonomous execution. Supports plan/build modes, config-driven max iterations, CLI agent invocation (`claude` default), git push after each successful iteration, and stop conditions (max iterations, all complete, all blocked, stop-on-failure, environment error). Portable bash with `.writ/config.md` integration.
+
+- **`scripts/PROMPT_build.md`** — CLI agent single-iteration instruction set. Four phases: orient (load state, story, spec-lite) → implement (code the story) → validate (tests + lint with 3-iteration fix loop) → commit (state update, git commit, exit). Includes environment error detection to prevent wasted retries on infrastructure failures.
+
+- **Ralph state format** (`.writ/docs/ralph-state-format.md`) — Complete JSON schema for `.writ/state/ralph-*.json` with composite `storyKey` format (`specFolder::storySlug`), per-story pipeline metrics, append-only iteration log, structured escalation records, and rolling summary statistics. Schema-versioned for forward compatibility.
+
+- **CLI pipeline reference** (`.writ/docs/ralph-cli-pipeline.md`) — Gate mapping between Cursor's 9-gate `/implement-story` pipeline and Ralph's 4-phase CLI pipeline. Documents back pressure mechanics, fix loop behavior, state update protocol, environment vs. code failure heuristics, context engine consumption in CLI mode, and story sizing guidance.
+
+- **5 Ralph configuration keys** in `.writ/docs/config-format.md` — `Ralph Max Iterations`, `Ralph CLI Agent`, `Ralph CLI Model`, `Ralph CLI Flags`, `Ralph Stop on Failure`. All optional with sensible defaults.
+
+### Changed
+
+- **`adapters/claude-code.md`** — Added Ralph CLI execution subsection with invocation patterns, key differences from supervised pipeline, and cross-references.
+- **`SKILL.md`** — Added Autonomous Execution section with `/ralph plan` and `/ralph status`. Updated pipeline diagram.
+- **`commands/status.md`** — Added `/ralph` to command allowlist.
+- **README.md** — Added Autonomous Execution command table, updated command count (26 → 27), added Ralph path to pipeline diagram.
+- **Roadmap** — Marked Phase 3a (Context Engine) and Phase 3b (Ralph Loop Orchestration) complete. Documented architecture evolution from progressive autonomy to Ralph fresh-context approach.
+
 ## [0.9.0] - 2026-03-27
 
 ### Added
