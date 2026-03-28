@@ -200,6 +200,20 @@ The coding agent (Gate 1) loads visual references when present:
 
 See: `agents/visual-qa-agent.md` — optional Gate 4.5 in the implement-story pipeline. Auto-activates when a story has visual references. Uses the same mockup files and comparison table format as Mode D.
 
+## Completion
+
+This command succeeds when the selected mode's output exists and is linked into the spec:
+
+| Mode | Success Condition |
+|------|-------------------|
+| **wireframe** | Excalidraw files saved to `mockups/`, `component-inventory.md` generated, state wireframes created for interactive components |
+| **attach** | Images stored in `mockups/`, `mockups/README.md` catalog generated, relevant stories updated with `## Visual References` section |
+| **capture** | Screenshots saved to `mockups/current/` at all relevant viewports |
+| **compare** | Comparison table produced with per-aspect match assessment, recommended fixes listed by visual impact |
+| **review** | Existing mockups reviewed and any gaps or inconsistencies reported |
+
+If the mode cannot complete (e.g., no running dev server for capture, no mockups exist for compare), report the blocker and suggest how to unblock rather than producing partial output.
+
 ## Integration with Writ
 
 | Command | Relationship |

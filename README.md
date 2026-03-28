@@ -202,17 +202,24 @@ The updater uses a manifest (`.cursor/.writ-manifest`) to track what was install
 
 To reset a single file to upstream: delete it and re-run update.
 
-### Claude Code
+### Claude Code (one-line install)
 
 ```bash
-mkdir -p .claude/commands .claude/agents
-cp writ/commands/*.md .claude/commands/
-cp writ/agents/*.md .claude/agents/
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude
+```
 
-# Create CLAUDE.md (see adapters/claude-code.md for template)
+This copies all commands and Claude Code–native agents (with YAML frontmatter) into `.claude/`, creates `CLAUDE.md` at your project root, and commits the result. Preview first with `--dry-run`:
 
-claude
-> /create-spec "my feature"
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude --dry-run
+```
+
+Then in Claude Code: `/create-spec "my feature"`
+
+**Updating:**
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update.sh) --platform claude
 ```
 
 ### OpenClaw

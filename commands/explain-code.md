@@ -76,6 +76,12 @@ If the explanation is substantial and the user might want to reference it later,
 
 **Stay concise.** A 10-line utility function needs a 3-sentence explanation, not a page. Scale output to match input complexity.
 
+## Completion
+
+This command succeeds when a structured explanation (Purpose, How It Works, Context) has been delivered to the conversation. The explanation should be proportional to the target's complexity — a simple utility gets a concise summary, a complex flow gets a detailed breakdown with diagrams.
+
+If the target cannot be located (file missing, symbol not found, ambiguous name with no user resolution), report the failure clearly rather than explaining something the user didn't ask about.
+
 ---
 
 ## Integration with Writ

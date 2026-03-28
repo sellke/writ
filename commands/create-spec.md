@@ -658,6 +658,18 @@ A payment form needs "card declined." A search needs "rapid keystrokes." Think a
 
 Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps.
 
+## Completion
+
+This command succeeds when all of:
+
+1. **Contract was locked** — the user explicitly approved the specification contract
+2. **Spec package exists** — `spec.md`, `spec-lite.md`, all story files, and `user-stories/README.md` are written
+3. **Stories are actionable** — each story has 3-5 acceptance criteria (Given/When/Then) and 5-7 implementation tasks
+4. **Sub-specs generated** — `technical-spec.md` and any additional sub-specs the contract requires exist in `sub-specs/`
+5. **Package reviewed** — the final package summary was presented to the user
+
+If `--from-prototype`: Story 1 is marked `Completed ✅` with all tasks checked. If `--from-issue`: the source issue file's `spec_ref` line is updated with the spec path.
+
 ## Example Usage
 
 ### Example: Feature Provided with Full Flow

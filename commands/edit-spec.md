@@ -106,6 +106,18 @@ Present the updated package: file tree with change indicators (⭐ Updated, 🆕
 
 Then offer: approve, request minor adjustments, or rollback from backup.
 
+## Completion
+
+This command succeeds when all of:
+
+1. **Modification contract was locked** — the user explicitly approved the proposed changes
+2. **Backup created** — pre-edit state preserved in `backups/[timestamp]/`
+3. **Files updated** — all affected spec files, stories, and sub-specs reflect the agreed changes
+4. **Changelog appended** — the spec's `CHANGELOG.md` records what changed, when, and why
+5. **Package validated** — the updated package summary was presented and the user approved or acknowledged
+
+If the user selects rollback at Step 2.3, restoring from backup is a valid successful outcome — the command completed its job by preserving the user's intent.
+
 ---
 
 ## Integration with Writ
