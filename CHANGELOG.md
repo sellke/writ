@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-03-27
+
+### Added
+
+- **Claude Code platform support** — One-line install for Claude Code via `install.sh --platform claude`. Installs commands, native agent definitions (YAML frontmatter with `name`, `tools`, `model`, `permissionMode`, `isolation`, `maxTurns`, `memory`), and a root `CLAUDE.md` prompt file. Update and unlink scripts also support `--platform claude`. Agents source from `claude-code/agents/` with platform-specific YAML frontmatter.
+
+- **Command completion criteria** — Five commands (`/create-spec`, `/design`, `/edit-spec`, `/explain-code`, `/review`) now define explicit success conditions in a `## Completion` section, documenting what "done" means for each workflow and how to handle blockers.
+
+- **Documentation agent BLOCKED status** — `DOCS_UPDATED: BLOCKED` output path for cases where documentation cannot be generated (missing source files, broken framework config). Includes blocker description, partial progress report, and suggested resolution. Prevents half-finished documentation artifacts.
+
+### Changed
+
+- **`adapters/claude-code.md`** — Replaced ~380 lines of manual copy-paste installation instructions with a pointer to the automated installer. Added manual installation fallback with 3-step guide.
+- **`README.md`** — Updated Claude Code section with one-line install command, dry-run preview, and update instructions.
+- **`scripts/install.sh`** — Added `--platform cursor|claude` flag with platform-specific paths, agent sources, manifest tracking, and git commit messages.
+- **`scripts/unlink.sh`** — Added `--platform cursor|claude` flag for converting symlinked installations to copies on either platform.
+- **`scripts/update.sh`** — Added `--platform cursor|claude` flag for updating installations on either platform with three-way overlay merges.
+
+### Fixed
+
+- **Drift log entry numbering** — Corrected duplicate DEV-007 to DEV-008 in Context Engine spec drift log.
+
 ## [0.10.0] - 2026-03-27
 
 ### Added
