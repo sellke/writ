@@ -7,24 +7,30 @@
 # Flags:
 #   --dry-run      Preview changes without applying
 #   --no-commit    Don't auto-commit after conversion
+#   --platform     Target platform: cursor (default) or claude
 
 set -euo pipefail
 
 WRIT_REPO="https://github.com/sellke/writ.git"
-MANIFEST_FILE=".cursor/.writ-manifest"
 
 DRY_RUN=false
 NO_COMMIT=false
+PLATFORM="cursor"
 
 for arg in "$@"; do
   case $arg in
     --dry-run)    DRY_RUN=true ;;
     --no-commit)  NO_COMMIT=true ;;
+    --platform)   ;; # value handled below
     --help|-h)
-      echo "Usage: bash unlink.sh [--dry-run] [--no-commit]"
+      echo "Usage: bash unlink.sh [--dry-run] [--no-commit] [--platform cursor|claude]"
       echo ""
       echo "Converts a symlinked Writ installation to independent file copies."
       echo "Run from your project root."
+      echo ""
+      echo "Platforms:"
+      echo "  cursor (default)  Convert .cursor/ installation"
+      echo "  claude            Convert .claude/ installation"
       echo ""
       echo "After conversion, use update.sh to stay current."
       echo ""
@@ -36,7 +42,35 @@ for arg in "$@"; do
   esac
 done
 
-echo "⚡ Writ Unlink"
+# Parse --platform value
+ARGS=("$@")
+for i in "${!ARGS[@]}"; do
+  if [ "${ARGS[$i]}" = "--platform" ]; then
+    PLATFORM="${ARGS[$((i+1))]:-}"
+    if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ]; then
+      echo "❌ Unknown platform: $PLATFORM"
+      echo "   Supported: cursor, claude"
+      exit 1
+    fi
+    break
+  fi
+done
+
+# ---------------------------------------------------------------------------
+# Platform-specific paths
+# ---------------------------------------------------------------------------
+
+if [ "$PLATFORM" = "cursor" ]; then
+  PLATFORM_DIR=".cursor"
+  MANIFEST_FILE=".cursor/.writ-manifest"
+  PLATFORM_LABEL="Cursor"
+elif [ "$PLATFORM" = "claude" ]; then
+  PLATFORM_DIR=".claude"
+  MANIFEST_FILE=".claude/.writ-manifest"
+  PLATFORM_LABEL="Claude Code"
+fi
+
+echo "⚡ Writ Unlink ($PLATFORM_LABEL)"
 echo "==============="
 echo ""
 
@@ -52,7 +86,7 @@ fi
 
 if [ ! -f "$MANIFEST_FILE" ]; then
   echo "❌ No Writ manifest found ($MANIFEST_FILE)."
-  echo "   Is Writ installed in this project? Run install.sh first."
+  echo "   Is Writ installed for $PLATFORM_LABEL in this project? Run install.sh --platform $PLATFORM first."
   exit 1
 fi
 
@@ -127,14 +161,19 @@ scan_file() {
   fi
 }
 
-for f in .cursor/commands/*.md; do [ -e "$f" ] && scan_file "$f"; done
-for f in .cursor/agents/*.md;   do [ -e "$f" ] && scan_file "$f"; done
-scan_file ".cursor/rules/writ.mdc"
-scan_file ".cursor/system-instructions.md"
+for f in "$PLATFORM_DIR"/commands/*.md; do [ -e "$f" ] && scan_file "$f"; done
+for f in "$PLATFORM_DIR"/agents/*.md;   do [ -e "$f" ] && scan_file "$f"; done
+
+if [ "$PLATFORM" = "cursor" ]; then
+  scan_file "$PLATFORM_DIR/rules/writ.mdc"
+  scan_file "$PLATFORM_DIR/system-instructions.md"
+elif [ "$PLATFORM" = "claude" ]; then
+  scan_file "CLAUDE.md"
+fi
 
 # Also check for directory-level symlinks (older link installs)
 DIR_SYMLINKS=()
-for d in .cursor/commands .cursor/agents; do
+for d in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
   if [ -L "$d" ]; then
     DIR_SYMLINKS+=("$d|$(readlink "$d" 2>/dev/null || true)")
   fi
@@ -144,25 +183,31 @@ if [ ${#SYMLINKS[@]} -eq 0 ] && [ ${#DIR_SYMLINKS[@]} -eq 0 ]; then
   echo "  No symlinks found — files are already independent copies."
   echo "  Updating manifest to copy mode..."
   if [ "$DRY_RUN" = false ]; then
-    # Rewrite manifest as copy mode
     cat > "$MANIFEST_FILE" << EOF
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
+# platform: $PLATFORM
 # version: ${VERSION:-unknown}
 # date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 # source: $WRIT_REPO
 EOF
-    for f in .cursor/commands/*.md .cursor/agents/*.md; do
+    for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
       [ -f "$f" ] || continue
-      rel="${f#.cursor/}"
+      rel="${f#"$PLATFORM_DIR"/}"
       echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
     done
-    for f in .cursor/rules/writ.mdc .cursor/system-instructions.md; do
-      [ -f "$f" ] || continue
-      rel="${f#.cursor/}"
-      echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
-    done
+    if [ "$PLATFORM" = "cursor" ]; then
+      for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
+        [ -f "$f" ] || continue
+        rel="${f#"$PLATFORM_DIR"/}"
+        echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
+      done
+    elif [ "$PLATFORM" = "claude" ]; then
+      if [ -f "CLAUDE.md" ]; then
+        echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$MANIFEST_FILE"
+      fi
+    fi
     echo "  ✅ Manifest updated to copy mode."
   else
     echo "  🏃 DRY RUN — Would update manifest to copy mode."
@@ -226,7 +271,6 @@ for entry in ${SYMLINKS[@]+"${SYMLINKS[@]}"}; do
   local_path="${entry%%|*}"
   target="${entry##*|}"
 
-  # cp -L follows symlinks; write to temp then atomic replace
   tmp="${local_path}.unlink-tmp"
   cp -L "$local_path" "$tmp"
   rm -f "$local_path"
@@ -244,21 +288,28 @@ cat > "$MANIFEST_FILE" << EOF
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
+# platform: $PLATFORM
 # version: ${VERSION:-unknown}
 # date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 # source: $WRIT_REPO
 EOF
 
-for f in .cursor/commands/*.md .cursor/agents/*.md; do
+for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
   [ -f "$f" ] || continue
-  rel="${f#.cursor/}"
+  rel="${f#"$PLATFORM_DIR"/}"
   echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
 done
-for f in .cursor/rules/writ.mdc .cursor/system-instructions.md; do
-  [ -f "$f" ] || continue
-  rel="${f#.cursor/}"
-  echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
-done
+if [ "$PLATFORM" = "cursor" ]; then
+  for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
+    [ -f "$f" ] || continue
+    rel="${f#"$PLATFORM_DIR"/}"
+    echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
+  done
+elif [ "$PLATFORM" = "claude" ]; then
+  if [ -f "CLAUDE.md" ]; then
+    echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$MANIFEST_FILE"
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # Summary
@@ -269,22 +320,25 @@ echo "✅ Converted $CONVERTED symlink(s) to independent copies."
 [ ${#REGULAR[@]} -gt 0 ] && echo "   ${#REGULAR[@]} file(s) were already regular files."
 echo ""
 echo "  Your installation is now self-contained and git-portable."
-echo "  Use update.sh to pull future Writ updates."
+echo "  Use update.sh --platform $PLATFORM to pull future Writ updates."
 
 # ---------------------------------------------------------------------------
 # Git commit
 # ---------------------------------------------------------------------------
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
-  git add \
-    .cursor/commands/ .cursor/agents/ .cursor/rules/writ.mdc \
-    .cursor/system-instructions.md "$MANIFEST_FILE" 2>/dev/null || true
+  git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" "$MANIFEST_FILE" 2>/dev/null || true
+  if [ "$PLATFORM" = "cursor" ]; then
+    git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
+  elif [ "$PLATFORM" = "claude" ]; then
+    git add "CLAUDE.md" 2>/dev/null || true
+  fi
 
-  git commit -m "$(cat <<'EOF'
-chore: convert Writ from linked to copied installation
+  git commit -m "$(cat <<EOF
+chore: convert Writ from linked to copied installation ($PLATFORM_LABEL)
 
 Replaced symlinks with independent file copies. Future updates
-will use update.sh with three-way overlay merge.
+will use update.sh --platform $PLATFORM with three-way overlay merge.
 
 See: https://github.com/sellke/writ
 EOF

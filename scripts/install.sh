@@ -10,29 +10,40 @@
 #   --dry-run      Preview changes without applying
 #   --no-commit    Don't auto-commit after install
 #   --force        Overwrite all files, ignoring local modifications
+#   --platform     Target platform: cursor (default) or claude
 
 set -euo pipefail
 
 WRIT_REPO="https://github.com/sellke/writ.git"
-MANIFEST_FILE=".cursor/.writ-manifest"
 
 DRY_RUN=false
 NO_COMMIT=false
 FORCE=false
+PLATFORM="cursor"
 
 while [ $# -gt 0 ]; do
   case $1 in
     --dry-run)    DRY_RUN=true ;;
     --no-commit)  NO_COMMIT=true ;;
     --force)      FORCE=true ;;
+    --platform)
+      shift
+      PLATFORM="${1:-}"
+      if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ]; then
+        echo "❌ Unknown platform: $PLATFORM"
+        echo "   Supported: cursor, claude"
+        exit 1
+      fi
+      ;;
     --help|-h)
-      echo "Usage: bash install.sh [--dry-run] [--no-commit] [--force]"
+      echo "Usage: bash install.sh [--dry-run] [--no-commit] [--force] [--platform cursor|claude]"
       echo ""
-      echo "Installs Writ commands, agents, and rules into .cursor/"
+      echo "Installs Writ commands, agents, and rules into your project."
       echo "Run from your project root."
       echo ""
-      echo "Copies files into .cursor/ — self-contained, git-portable,"
-      echo "supports per-project customization via the three-way overlay."
+      echo "Platforms:"
+      echo "  cursor (default)  Install into .cursor/ for Cursor IDE"
+      echo "  claude            Install into .claude/ for Claude Code CLI"
       echo ""
       echo "Flags:"
       echo "  --dry-run      Preview changes without applying"
@@ -48,7 +59,23 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-echo "⚡ Writ Installer"
+# ---------------------------------------------------------------------------
+# Platform-specific paths
+# ---------------------------------------------------------------------------
+
+if [ "$PLATFORM" = "cursor" ]; then
+  PLATFORM_DIR=".cursor"
+  MANIFEST_FILE=".cursor/.writ-manifest"
+  AGENTS_SRC="agents"
+  PLATFORM_LABEL="Cursor"
+elif [ "$PLATFORM" = "claude" ]; then
+  PLATFORM_DIR=".claude"
+  MANIFEST_FILE=".claude/.writ-manifest"
+  AGENTS_SRC="claude-code/agents"
+  PLATFORM_LABEL="Claude Code"
+fi
+
+echo "⚡ Writ Installer ($PLATFORM_LABEL)"
 echo "=================="
 echo ""
 
@@ -105,22 +132,30 @@ write_copy_manifest() {
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
+# platform: $PLATFORM
 # version: $version
 # date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 # source: $WRIT_REPO
 EOF
 
   local f rel
-  for f in .cursor/commands/*.md .cursor/agents/*.md; do
+  for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
     [ -f "$f" ] || continue
-    rel="${f#.cursor/}"
+    rel="${f#"$PLATFORM_DIR"/}"
     echo "$(hash_file "$f")  $rel" >> "$target"
   done
-  for f in .cursor/rules/writ.mdc .cursor/system-instructions.md; do
-    [ -f "$f" ] || continue
-    rel="${f#.cursor/}"
-    echo "$(hash_file "$f")  $rel" >> "$target"
-  done
+
+  if [ "$PLATFORM" = "cursor" ]; then
+    for f in "$PLATFORM_DIR"/rules/writ.mdc "$PLATFORM_DIR"/system-instructions.md; do
+      [ -f "$f" ] || continue
+      rel="${f#"$PLATFORM_DIR"/}"
+      echo "$(hash_file "$f")  $rel" >> "$target"
+    done
+  elif [ "$PLATFORM" = "claude" ]; then
+    if [ -f "CLAUDE.md" ]; then
+      echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$target"
+    fi
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -164,12 +199,17 @@ echo ""
 CMD_COUNT=0
 for f in "$WRIT_SRC/commands"/*.md; do [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1)); done
 AGENT_COUNT=0
-for f in "$WRIT_SRC/agents"/*.md; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
+for f in "$WRIT_SRC/$AGENTS_SRC"/*.md; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
 
 echo "  📋 Commands:  $CMD_COUNT"
 echo "  🤖 Agents:    $AGENT_COUNT"
-echo "  📜 Rules:     1 (writ.mdc)"
-echo "  📖 System:    1 (system-instructions.md)"
+if [ "$PLATFORM" = "cursor" ]; then
+  echo "  📜 Rules:     1 (writ.mdc)"
+  echo "  📖 System:    1 (system-instructions.md)"
+elif [ "$PLATFORM" = "claude" ]; then
+  echo "  📖 Root:      1 (CLAUDE.md)"
+fi
+echo "  🎯 Platform:  $PLATFORM_LABEL"
 echo "  📌 Version:   $VERSION_LONG"
 echo ""
 
@@ -211,18 +251,6 @@ init_writ_workspace() {
 
 # ---------------------------------------------------------------------------
 # Three-way overlay logic
-#
-# For each source file, determine action by comparing three states:
-#   upstream  — the new file from writ source
-#   baseline  — the hash recorded in the manifest at last install/update
-#   local     — the file currently on disk
-#
-# Decision matrix:
-#   No local file             → install (new)
-#   local == upstream         → skip (already current)
-#   local == baseline         → update (user hasn't touched it)
-#   local != baseline         → preserve (user modified) unless --force
-#   No baseline (old install) → preserve if differs (conservative)
 # ---------------------------------------------------------------------------
 
 _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
@@ -273,23 +301,26 @@ overlay_scan() {
   done
 }
 
-# --- Dry run (copy) ---
+# --- Dry run ---
 
 if [ "$DRY_RUN" = true ]; then
   echo "🏃 DRY RUN — No changes will be made"
   echo ""
   if [ "$EXISTING_MODE" = "link" ]; then
-    echo "  Would replace symlinks with copies ($CMD_COUNT commands, $AGENT_COUNT agents,"
-    echo "  rules, and system instructions)."
+    echo "  Would replace symlinks with copies ($CMD_COUNT commands, $AGENT_COUNT agents)."
   else
     echo "  Commands:"
-    overlay_scan "$WRIT_SRC/commands" ".cursor/commands" "commands" "preview"
+    overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
     echo ""
     echo "  Agents:"
-    overlay_scan "$WRIT_SRC/agents" ".cursor/agents" "agents" "preview"
+    overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview"
     echo ""
-    echo "  Rules:   writ.mdc → always updated"
-    echo "  System:  system-instructions.md → always updated"
+    if [ "$PLATFORM" = "cursor" ]; then
+      echo "  Rules:   writ.mdc → always updated"
+      echo "  System:  system-instructions.md → always updated"
+    elif [ "$PLATFORM" = "claude" ]; then
+      echo "  Root:    CLAUDE.md → always updated"
+    fi
   fi
   echo ""
   echo "💡 To reset a file to core: delete the local copy and re-run install."
@@ -297,46 +328,69 @@ if [ "$DRY_RUN" = true ]; then
   exit 0
 fi
 
-# --- Install (copy) ---
+# --- Install ---
 
 echo "Installing..."
 
 # Remove symlinks if converting from a linked installation
 if [ "$EXISTING_MODE" = "link" ]; then
   echo "  Removing symlinks..."
-  for f in .cursor/commands/*.md .cursor/agents/*.md; do
+  for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
     [ -L "$f" ] && rm -f "$f"
   done
-  for f in .cursor/commands .cursor/agents .cursor/rules/writ.mdc .cursor/system-instructions.md; do
+  for f in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
     [ -L "$f" ] && rm -f "$f"
   done
+  if [ "$PLATFORM" = "cursor" ]; then
+    for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
+      [ -L "$f" ] && rm -f "$f"
+    done
+  elif [ "$PLATFORM" = "claude" ]; then
+    [ -L "CLAUDE.md" ] && rm -f "CLAUDE.md"
+  fi
 fi
 
-mkdir -p .cursor/commands .cursor/agents .cursor/rules
+mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
+[ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
 
-echo "  [1/5] Commands..."
-overlay_scan "$WRIT_SRC/commands" ".cursor/commands" "commands" "apply"
+STEP_TOTAL=5
+STEP=0
+
+STEP=$((STEP + 1))
+echo "  [$STEP/$STEP_TOTAL] Commands..."
+overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
 CMD_NEW=$_NEW; CMD_UPDATED=$_UPDATED; CMD_PRESERVED=$_PRESERVED
 
-echo "  [2/5] Agents..."
-overlay_scan "$WRIT_SRC/agents" ".cursor/agents" "agents" "apply"
+STEP=$((STEP + 1))
+echo "  [$STEP/$STEP_TOTAL] Agents..."
+overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply"
 AGENT_NEW=$_NEW; AGENT_UPDATED=$_UPDATED; AGENT_PRESERVED=$_PRESERVED
 
-echo "  [3/5] Rules..."
-cp "$WRIT_SRC/cursor/writ.mdc" .cursor/rules/
+STEP=$((STEP + 1))
+if [ "$PLATFORM" = "cursor" ]; then
+  echo "  [$STEP/$STEP_TOTAL] Rules..."
+  cp "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/"
 
-echo "  [4/5] System instructions..."
-cp "$WRIT_SRC/system-instructions.md" .cursor/
+  STEP=$((STEP + 1))
+  echo "  [$STEP/$STEP_TOTAL] System instructions..."
+  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
+elif [ "$PLATFORM" = "claude" ]; then
+  echo "  [$STEP/$STEP_TOTAL] CLAUDE.md..."
+  cp "$WRIT_SRC/claude-code/CLAUDE.md" "CLAUDE.md"
+  STEP=$((STEP + 1))
+  echo "  [$STEP/$STEP_TOTAL] (skipped — no system-instructions for Claude Code)"
+fi
 
-echo "  [5/5] Writing manifest..."
+STEP=$((STEP + 1))
+echo "  [$STEP/$STEP_TOTAL] Writing manifest..."
 write_copy_manifest "$VERSION" "$MANIFEST_FILE"
 
 init_writ_workspace
 
-# --- Summary (copy) ---
+# --- Summary ---
 
 echo ""
-echo "✅ Writ installed! (version: $VERSION)"
+echo "✅ Writ installed for $PLATFORM_LABEL! (version: $VERSION)"
 
 TOTAL_NEW=$((CMD_NEW + AGENT_NEW))
 TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED))
@@ -355,17 +409,21 @@ if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" 
   fi
 fi
 
-# --- Scoped git commit (copy) ---
+# --- Scoped git commit ---
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
-  git add \
-    .cursor/commands/ .cursor/agents/ .cursor/rules/writ.mdc \
-    .cursor/system-instructions.md "$MANIFEST_FILE" 2>/dev/null || true
+  git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" 2>/dev/null || true
+  if [ "$PLATFORM" = "cursor" ]; then
+    git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
+  elif [ "$PLATFORM" = "claude" ]; then
+    git add "CLAUDE.md" 2>/dev/null || true
+  fi
+  git add "$MANIFEST_FILE" 2>/dev/null || true
   [ -d .writ ] && git add .writ/ 2>/dev/null || true
   [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
 
-  git commit -m "$(cat <<'EOF'
-chore: install Writ development workflow
+  git commit -m "$(cat <<EOF
+chore: install Writ development workflow ($PLATFORM_LABEL)
 
 See: https://github.com/sellke/writ
 EOF
@@ -374,6 +432,10 @@ fi
 
 echo ""
 echo "Usage:"
-echo "  In Cursor chat, try: /initialize, /create-spec, /implement-story"
+if [ "$PLATFORM" = "cursor" ]; then
+  echo "  In Cursor chat, try: /initialize, /create-spec, /implement-story"
+elif [ "$PLATFORM" = "claude" ]; then
+  echo "  In Claude Code, try: /create-spec, /implement-story, /status"
+fi
 echo ""
 echo "⚡ So it is written. So it shall be built."
