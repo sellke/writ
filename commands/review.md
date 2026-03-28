@@ -196,3 +196,17 @@ Generate a structured markdown report:
 Save the report to `.writ/state/review-[branch-name].md` (create `.writ/state/` if needed). When `/ship` runs on the same branch, it reads this file and includes the Failure Modes Registry in the PR body's Review Notes section, highlighting Critical and High findings.
 
 This integration is output-based: `/review` writes a file, `/ship` reads it. No tight coupling.
+
+## Completion
+
+This command succeeds when the review report is saved to `.writ/state/review-[branch-name].md` and contains all applicable sections (Error & Rescue Map, Shadow Paths, Interaction Edge Cases, Failure Modes Registry, Recommendation).
+
+**Outcome interpretation:**
+
+| Findings | Recommendation |
+|----------|----------------|
+| No critical or high findings | Code is ready to ship — state this explicitly |
+| High findings only | Ship with caution — address before merge if possible |
+| Any critical findings | Do not ship — critical gaps must be resolved first |
+
+A review with zero findings is a valid outcome, not an error. If the diff is trivial (e.g., docs-only, config change), a short report stating "no failure modes in scope" is sufficient.

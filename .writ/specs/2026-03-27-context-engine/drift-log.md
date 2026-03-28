@@ -59,7 +59,7 @@
 
 ## Story 5: UAT Plan Generation
 
-#### [DEV-007] Experience Design extraction added as fifth source category
+#### [DEV-008] Experience Design extraction added as fifth source category
 - **Severity:** Small
 - **Spec said:** Scenarios from four sources: acceptance criteria, error maps, shadow paths, edge cases
 - **Implementation did:** Added Step 2.5 (Experience Design) as fifth extraction source, generating UX validation scenarios from spec.md

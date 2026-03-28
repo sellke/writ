@@ -145,7 +145,7 @@ stateDiagram-v2
 
 ## Output Format
 
-### DOCS_UPDATED: [YES/NO]
+### DOCS_UPDATED: [YES/NO/BLOCKED]
 
 ### Documentation Changes
 
@@ -167,6 +167,24 @@ stateDiagram-v2
 
 ### Summary
 Brief summary of documentation changes.
+
+---
+
+**When no docs are needed** (internal refactor, no public API change):
+
+### DOCS_UPDATED: NO
+### Reason: [Why no documentation updates were necessary]
+
+---
+
+**When documentation cannot be generated** (missing source files, broken framework config, ambiguous public API):
+
+### DOCS_UPDATED: BLOCKED
+### Blocker: [What prevented documentation generation]
+### Partial Progress: [Files updated before the block, or "None"]
+### Suggested Resolution: [How to unblock — missing info, config fix, etc.]
+
+Do not create partial or placeholder documentation files. Complete docs or a clear blocker report — never half-finished artifacts.
 `
 })
 ```
