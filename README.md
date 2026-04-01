@@ -69,7 +69,7 @@ Lightweight path (/prototype) — no spec required:
 
 Autonomous path (/ralph — plan in Cursor, execute in CLI, review in Cursor):
    /ralph plan → ./ralph.sh (fresh context per iteration) → /ralph status
-                      ↑ one story per loop: orient → implement → validate → commit
+                      ↑ one story per loop: orient → implement → validate → review → commit
 
 Feedback loop (/retro + /refresh-command):
    Git metrics → Patterns → Trends    |    Transcript scan → Friction → Command diffs

@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.12.0] - 2026-04-01
+
+### Added
+
+- **Ralph review sub-agent (Phase 2.5)** — Read-only review sub-agent in the Ralph CLI pipeline between validate and commit. Verifies acceptance criteria (per-criterion VERIFIED/UNVERIFIED), code quality, security, and spec drift before marking a story complete. PASS/FAIL/PAUSE contract matching Cursor's Gate 3 review agent. Closes the primary quality parity gap between CLI autonomous execution and supervised `/implement-story`.
+
+- **Review back pressure** — Max 2 fix-and-re-review iterations per story (3 total reviews). Separate from the test/lint fix loop cap (3). Large drift triggers quarantine branching (`ralph/quarantine/{storyKey}`) and escalation to developer via `/ralph status`.
+
+- **Ralph state schema extensions** — `reviewResult` (unknown/passed/failed/paused), `acVerified` ("N/M" format), `quarantineBranch` fields. Iteration log enriched with review data. New escalation types: `drift`, `review`.
+
+### Changed
+
+- **`/ralph status` display** — Completed stories show AC verification count and drift level. Failed stories surface review-specific errors (`review-failed`, `large-drift`) with quarantine branch guidance.
+- **Ralph pipeline diagram** — Updated from 4 phases to 5 phases across `commands/ralph.md`, `PROMPT_build.md`, `ralph-cli-pipeline.md`, and `README.md`.
+- **Claude Code adapter** — Key differences section updated for review sub-agent, architecture check omission, and sub-agent spawning clarification.
+- **Changelog trimmed** — Entries for 0.7.0–0.11.0 archived in GitHub releases.
+
 ## [0.6.1] - 2026-03-20
 
 ### Fixed
