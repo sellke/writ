@@ -349,10 +349,11 @@ Flags are configurable via `.writ/config.md` Ralph keys (`Ralph CLI Agent`, `Ral
 
 ### Key Differences from Supervised Pipeline
 
-- **No separate subagents** — one CLI agent handles orient + implement + validate inline
+- **Review via sub-agent** — the CLI agent spawns a read-only review sub-agent (Phase 2.5) for AC verification, code quality, security, and drift analysis. Max 2 review iterations per story. Large drift escalates to developer.
+- **No architecture check** — single-story scope and dependency ordering manage risk
 - **No boundary map** — story isolation provides implicit boundaries
-- **No review agent** — tests + lint are the quality gate; human reviews afterward
 - **No visual QA** — headless environment, no browser
+- **No documentation agent** — `## What Was Built` records (enriched by review sub-agent data) serve as the primary record
 - **Fresh context each iteration** — no accumulated state; Ralph state file bridges iterations
 
 ### References
@@ -374,6 +375,6 @@ Flags are configurable via `.writ/config.md` Ralph keys (`Ralph CLI Agent`, `Ral
 
 4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
 
-5. **Subagents can't spawn subagents**: This is a Claude Code limitation. The orchestrator (main session) must handle all delegation. Agents can't delegate to each other — use agent teams if you need inter-agent communication.
+5. **Subagents can't spawn subagents**: The orchestrator (main session or top-level CLI invocation) must handle all delegation. Agents spawned as subagents can't delegate further — use agent teams if you need inter-agent communication. Note: Ralph's CLI agent IS the top-level session, so it can spawn sub-agents (e.g., review sub-agent in Phase 2.5).
 
 6. **Plan mode is truly read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer genuinely cannot modify files, even if prompted to.

@@ -12,22 +12,23 @@ Ralph bridges Cursor's interactive planning with CLI-based autonomous execution.
 ### Three Nested Loops
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│ RALPH LOOP (epic level)                                 │
-│ Fresh context per iteration. Picks next story across    │
-│ all specs. Manages cross-spec state. CLI-native.        │
-│                                                         │
-│   ┌─────────────────────────────────────────────────┐   │
-│   │ STORY PIPELINE (story level)                    │   │
-│   │ One story through code → test → lint → commit.  │   │
-│   │ CLI-adapted gates with back pressure.           │   │
-│   │                                                 │   │
-│   │   ┌─────────────────────────────────────────┐   │   │
-│   │   │ FIX LOOP (gate level)                   │   │   │
-│   │   │ Tests fail → fix → retest. Max 3 iters. │   │   │
-│   │   └─────────────────────────────────────────┘   │   │
-│   └─────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ RALPH LOOP (epic level)                                      │
+│ Fresh context per iteration. Picks next story across         │
+│ all specs. Manages cross-spec state. CLI-native.             │
+│                                                              │
+│   ┌──────────────────────────────────────────────────────┐   │
+│   │ STORY PIPELINE (story level)                         │   │
+│   │ One story through code → test → lint → review →      │   │
+│   │ commit. Review via read-only sub-agent.              │   │
+│   │                                                      │   │
+│   │   ┌──────────────────────────────────────────────┐   │   │
+│   │   │ FIX LOOPS (gate level)                       │   │   │
+│   │   │ Tests fail → fix → retest. Max 3 iters.     │   │   │
+│   │   │ Review fail → fix → re-review. Max 2 iters. │   │   │
+│   │   └──────────────────────────────────────────────┘   │   │
+│   └──────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Relationship to Other Commands
@@ -38,7 +39,7 @@ Ralph bridges Cursor's interactive planning with CLI-based autonomous execution.
 | `/create-spec` | Tactical: *what exactly* is this feature. Produces spec packages. |
 | `/ralph plan` | Operational: *what order* to execute existing specs. Produces execution plan + CLI artifacts. |
 | `/implement-story` | Supervised execution: runs one story with human **in** the loop (Cursor). |
-| `./ralph.sh` (CLI) | Autonomous execution: runs stories with human **on** the loop (terminal). |
+| `./ralph.sh` (CLI) | Autonomous execution: runs stories with human **on** the loop (terminal). Uses review sub-agent for quality gating. |
 | `/ralph status` | Review: reads CLI execution state, presents results in Cursor. |
 
 ---
@@ -408,18 +409,18 @@ Determine the current Ralph phase from state:
    Success rate: 78%
 
    ✅ COMPLETED (7)
-      • auth::story-1 — User authentication setup
-      • auth::story-2 — Session management
-      • auth::story-3 — Password reset flow
-      • dashboard::story-1 — Dashboard layout
-      • dashboard::story-2 — Widget system
-      • dashboard::story-3 — Data visualization
-      • api::story-1 — REST endpoints
+      • auth::story-1 — User authentication setup (AC: 4/4, drift: none)
+      • auth::story-2 — Session management (AC: 5/5, drift: none)
+      • auth::story-3 — Password reset flow (AC: 3/3, drift: small)
+      • dashboard::story-1 — Dashboard layout (AC: 4/4, drift: none)
+      • dashboard::story-2 — Widget system (AC: 6/6, drift: none)
+      • dashboard::story-3 — Data visualization (AC: 5/5, drift: medium ⚠️)
+      • api::story-1 — REST endpoints (AC: 4/4, drift: none)
 
    ❌ FAILED (1)
       • api::story-2 — WebSocket integration
-        Last error: "Test timeout — WebSocket mock not connecting"
-        Attempts: 2/3
+        Last error: "review-failed: AC 3/5 unverified — WebSocket reconnection not implemented"
+        Attempts: 2
         → May retry on next iteration
 
    🔒 BLOCKED (1)
@@ -485,7 +486,9 @@ Based on the phase and state, provide actionable next steps:
 
 Additional guidance based on state:
 - If stories have `attempted-failed` status: suggest reviewing the error, potentially splitting the story
-- If drift is detected in completed stories: suggest running `/verify-spec`
+- If stories failed with `lastError: "review-failed"`: surface the unresolved issues, suggest manual fix or story edit
+- If stories failed with `lastError: "large-drift"`: surface the drift escalation and quarantine branch name (`ralph/quarantine/{storyKey}`), suggest reviewing the preserved code with `git diff main...ralph/quarantine/{storyKey}`, then spec amendment via `/edit-spec` or manual resolution
+- If completed stories show `drift: "medium"`: suggest running `/verify-spec` to review accumulated drift
 - If coverage is low: note for manual review
 - If all specs are done: suggest `/ship` followed by `/release`
 

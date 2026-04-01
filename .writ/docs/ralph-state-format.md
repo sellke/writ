@@ -98,12 +98,15 @@ Example: `2026-03-27-ralph-loop-orchestration::story-1-ralph-plan-command`
     "lastAttemptAt": null,
     "lastCompletedAt": null,
     "fixLoopIterations": 0,
-    "reviewIterations": null,
+    "reviewIterations": 0,
+    "reviewResult": "unknown",
     "drift": "unknown",
+    "acVerified": null,
     "tests": "unknown",
     "lint": "unknown",
     "coverage": null,
     "lastError": null,
+    "quarantineBranch": null,
     "filesTouched": [],
     "commitSha": null,
     "dependsOn": ["2026-03-27-foo::story-1-baz"]
@@ -138,7 +141,21 @@ Example: `2026-03-27-ralph-loop-orchestration::story-1-ralph-plan-command`
 | `orient` | Reading story, spec, state |
 | `implement` | Writing code |
 | `validate` | Running tests/lint |
+| `review` | Review sub-agent verifying AC, quality, drift |
 | `commit` | State update and git commit |
+
+### Review Result Values
+
+| `reviewResult` | Meaning |
+|----------------|---------|
+| `unknown` | Not yet reviewed |
+| `passed` | Review sub-agent returned PASS |
+| `failed` | Review sub-agent returned FAIL after max iterations |
+| `paused` | Review sub-agent returned PAUSE (Large drift) |
+
+### AC Verified Format
+
+`acVerified` uses the format `"{verified}/{total}"` (e.g., `"5/5"`, `"3/5"`). Set from the review sub-agent's `AC Verification` output. `null` when not yet reviewed.
 
 ## Per-Iteration Log (`iterations[]`)
 
@@ -157,7 +174,11 @@ Append one object per Ralph outer-loop iteration (one story attempt):
   "testCommand": "npm test",
   "testResult": "passed",
   "lintResult": "passed",
+  "reviewResult": "passed",
+  "drift": "none",
+  "acVerified": "4/4",
   "fixLoopIterations": 1,
+  "reviewIterations": 1,
   "commitSha": "abc1234",
   "agentLogRef": "optional path or excerpt id"
 }
@@ -195,6 +216,8 @@ Append one object per Ralph outer-loop iteration (one story attempt):
 | `dependency` | Blocked by unfinished upstream work |
 | `environment` | Build/test infrastructure problem |
 | `merge` | Git conflict or hook failure |
+| `drift` | Large spec drift detected — implementation deviates fundamentally from spec intent |
+| `review` | Review agent found unresolvable issues after max iterations |
 | `policy` | Configuration or autonomy constraint |
 | `unknown` | Unclassified failure |
 
