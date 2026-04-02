@@ -27,7 +27,7 @@ Writ is a self-improving development methodology that turns rough ideas into shi
 /plan-product → /create-spec → /assess-spec → /implement-spec → /review → /ship → /release
 ```
 
-Each stage is a markdown command file that AI agents follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, OpenClaw, or any AI coding assistant that can read markdown. Commands lead with opinionated recommendations, challenge premises, and improve through use.
+Each stage is a markdown command file that AI agents follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, or any AI coding assistant that can read markdown. Commands lead with opinionated recommendations, challenge premises, and improve through use.
 
 ## Key Features
 
@@ -39,7 +39,7 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
-- **Platform adapters** — Native support for Cursor, Claude Code, and OpenClaw
+- **Platform adapters** — Native support for Cursor and Claude Code
 
 ## Pipeline
 
@@ -124,13 +124,16 @@ Feedback loop (/retro + /refresh-command):
 | `/retro` | **Git-based retrospective.** Commits, LOC, test ratio, session detection, streaks, Ship of the Week, trend comparison. Persistent JSON snapshots for long-term analysis. |
 | `/refresh-command` | **Learning loop.** Scans agent transcripts, identifies friction patterns, proposes concrete diffs to command files. Commands get better through use. |
 
-### Setup & Utilities
+### Setup & Lifecycle
 | Command | Purpose |
 |---------|---------|
 | `/initialize` | Project setup (greenfield/brownfield detection) |
 | `/explain-code` | Code explanation with diagrams |
 | `/new-command` | Create new Writ commands |
 | `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |
+| `/update-writ` | Interactive update — pull latest, per-file control over customized files |
+| `/reinstall-writ` | Clean slate — remove all Writ files and install fresh from upstream |
+| `/uninstall-writ` | Remove Writ platform files (preserves `.writ/` directory) |
 
 ## Agents
 
@@ -154,11 +157,10 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 |----------|-------------|-------------|
 | **Cursor** | [`adapters/cursor.md`](adapters/cursor.md) | Native — `Task()`, `AskQuestion()` |
 | **Claude Code** | [`adapters/claude-code.md`](adapters/claude-code.md) | `claude -p`, `CLAUDE.md`, `--allowedTools` |
-| **OpenClaw** | [`adapters/openclaw.md`](adapters/openclaw.md) | `sessions_spawn`, Telegram buttons, `exec` |
 
 ## Quick Start
 
-Writ ships 27 commands, but you only need five to go from idea to PR:
+Writ ships 29 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|
@@ -220,12 +222,6 @@ Then in Claude Code: `/create-spec "my feature"`
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update.sh) --platform claude
-```
-
-### OpenClaw
-
-```bash
-cp -r writ/ ~/.openclaw/workspace/skills/writ/
 ```
 
 ## Migrating from Code Captain
