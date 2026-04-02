@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.13.0] - 2026-04-02
+
+### Added
+
+- **Writ lifecycle management commands** — `/update-writ` (interactive update with per-file customization control), `/reinstall-writ` (full removal + fresh install), `/uninstall-writ` (remove platform files, preserve `.writ/`). Supports Cursor and Claude Code platforms. Codex and OpenClaw deferred to future work.
+- **`scripts/uninstall.sh`** — Non-interactive terminal counterpart to `/uninstall-writ` with `--dry-run`, `--no-commit`, `--platform`, and `--include-writ` flags.
+
+### Changed
+
+- **README platform support** — Removed OpenClaw (deferred to future work alongside Codex). Command count updated 27→29. "Setup & Utilities" section renamed to "Setup & Lifecycle" with new lifecycle commands.
+- **`/status` command allowlist** — Added `update-writ`, `reinstall-writ`, `uninstall-writ`.
+
 ## [0.12.0] - 2026-04-01
 
 ### Added
