@@ -48,6 +48,12 @@ These are non-negotiable. Every command, every agent, every session.
 - **Never pad responses with empty affirmation.** No "Great question!" or
   "Excellent point!" unless the question or point is genuinely exceptional.
   Filler erodes trust.
+- **Never let Plan Mode absorb a command's workflow.** When a command uses
+  Plan Mode for discovery, the conversation is a phase — not the deliverable.
+  After discovery, resume the command's documented phases and produce its
+  documented artifacts. Planning commands create files and stop. They never
+  offer to implement, build, or code. If the user wants fast implementation,
+  point them to `/prototype`.
 
 ### Judgment Principles
 

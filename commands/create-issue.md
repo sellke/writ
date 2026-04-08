@@ -139,3 +139,15 @@ Password field shows plain text instead of masked (bug, high priority, small eff
 
 Back to work!
 ```
+
+## Completion
+
+This command succeeds when:
+
+1. **Issue file created** — a `.md` file exists in `.writ/issues/{bugs,features,improvements}/` with the `YYYY-MM-DD-{slug}.md` naming convention
+2. **Issue content complete** — the file contains Type, Priority, Effort metadata, TL;DR, Current State, and Expected Outcome sections
+3. **Confirmation shown** — the user received a brief confirmation with the file path, title, type, priority, and effort
+
+**Suggested next step:** `/create-spec --from-issue` to promote the issue to a full specification.
+
+**Terminal constraint:** This command produces issue documentation (`.writ/issues/{type}/`). Do not offer to implement, build, or execute what was captured. For specification, the user should run `/create-spec --from-issue`. For quick prototyping, use `/prototype`.

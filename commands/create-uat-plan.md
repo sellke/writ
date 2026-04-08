@@ -384,3 +384,16 @@ Not an error — Phase 4 enhancement is best-effort. Scenarios are still valid.
 **Recommended flow:** `/implement-spec` (all stories) → `/create-uat-plan` → manual UAT execution → `/ship`
 
 **Standalone usage:** `/create-uat-plan` works independently of the pipeline. Run it anytime after at least one story is complete — partial plans are valid and useful for incremental validation.
+
+## Completion
+
+This command succeeds when:
+
+1. **UAT plan file created** — `uat-plan.md` exists in `.writ/specs/{spec-folder}/` with scenario count, coverage summary, and story groupings
+2. **Scenarios generated** — structured scenarios exist for all completed stories, sourced from acceptance criteria, error maps, shadow paths, edge cases, and experience design
+3. **Coverage reported** — the user received a completion report with scenario counts broken down by source type
+4. **"What Was Built" enhancement applied** — scenarios for stories with WWB records include concrete file paths and implementation references
+
+**Suggested next step:** Execute the UAT plan manually or with test tooling.
+
+**Terminal constraint:** This command produces a UAT plan (`.writ/specs/{spec-folder}/uat-plan.md`). Do not offer to implement, build, or execute what was planned. For manual or automated execution, the user should follow the plan's instructions. For quick prototyping, use `/prototype`.

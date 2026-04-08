@@ -318,3 +318,17 @@ Example of the right feel:
 
 Present the file tree (including all ADR files created under `.writ/decision-records/`), summarize what was captured from the discovery conversation, suggest review focus areas, and recommend next commands (`/create-spec`, `/implement-story`, `/research`).
 
+## Completion
+
+This command succeeds when:
+
+1. **Product vision documented** — `mission.md` exists in `.writ/product/` with pitch, target users, problem statement, differentiators, and phased features
+2. **Roadmap created** — `roadmap.md` exists in `.writ/product/` with phased development plan, effort estimates, and success criteria per phase
+3. **Mission-lite generated** — `mission-lite.md` exists in `.writ/product/` for AI context windows
+4. **Foundational ADRs recorded** — product-level ADR files exist in `.writ/decision-records/` (at minimum `ADR-000-product-posture.md` and `ADR-001-market-focus.md`)
+5. **Summary presented** — the user received a completion summary with file tree and suggested next steps
+
+**Suggested next step:** `/create-spec` to spec individual features from the roadmap.
+
+**Terminal constraint:** This command produces product strategy artifacts (`.writ/product/`, `.writ/decision-records/`). Do not offer to implement, build, or execute what was planned. For specification, the user should run `/create-spec`. For quick prototyping, use `/prototype`.
+
