@@ -670,6 +670,10 @@ This command succeeds when all of:
 
 If `--from-prototype`: Story 1 is marked `Completed ✅` with all tasks checked. If `--from-issue`: the source issue file's `spec_ref` line is updated with the spec path.
 
+**Suggested next step:** `/implement-spec` to execute the full implementation pipeline, or `/implement-story` for individual stories.
+
+**Terminal constraint:** This command produces specification artifacts (`.writ/specs/{date}-{name}/`). Do not offer to implement, build, or execute what was specified. For implementation, the user should run `/implement-spec` or `/implement-story`. For quick prototyping, use `/prototype`.
+
 ## Example Usage
 
 ### Example: Feature Provided with Full Flow

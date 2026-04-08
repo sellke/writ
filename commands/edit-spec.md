@@ -118,6 +118,10 @@ This command succeeds when all of:
 
 If the user selects rollback at Step 2.3, restoring from backup is a valid successful outcome — the command completed its job by preserving the user's intent.
 
+**Suggested next step:** `/implement-spec` or `/implement-story` to continue implementation with the updated spec.
+
+**Terminal constraint:** This command produces updated spec artifacts (`.writ/specs/{spec-folder}/`). Do not offer to implement, build, or execute what was modified. For implementation, the user should run `/implement-spec` or `/implement-story`. For quick prototyping, use `/prototype`.
+
 ---
 
 ## Integration with Writ

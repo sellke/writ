@@ -155,3 +155,16 @@ Non-obvious tips that meaningfully improve research quality:
 | `/design` | Research provides evidence base for design decisions |
 | `/edit-spec` | Research may reveal need for spec changes — use findings to justify edits |
 | `/implement-spec` | Reference research documents for implementation context |
+
+## Completion
+
+This command succeeds when:
+
+1. **Research document created** — a `.md` file exists in `.writ/research/` following the `YYYY-MM-DD-{topic}-research.md` naming convention
+2. **Research questions answered** — the document contains specific findings backed by evidence with source URLs
+3. **Recommendations formed** — the document includes a primary recommendation with rationale and alternatives analysis
+4. **Summary presented** — the user received a completion summary with key findings and suggested next steps
+
+**Suggested next step:** `/create-spec` to spec a feature informed by the research, or `/create-adr` to formalize an architectural decision from the findings.
+
+**Terminal constraint:** This command produces research documentation (`.writ/research/`). Do not offer to implement, build, or execute what was researched. For specification, the user should run `/create-spec` or `/create-adr`. For quick prototyping, use `/prototype`.

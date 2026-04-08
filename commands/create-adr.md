@@ -194,3 +194,17 @@ Transitions: Proposed → Accepted (after review). Accepted → Deprecated OR Su
 | `/create-spec` | ADRs inform spec decisions; reference relevant ADRs in technical specs |
 | `/create-issue` | Architectural concerns surfaced during triage may warrant an ADR |
 | `/design` | Design explorations may produce ADR-worthy decisions |
+
+## Completion
+
+This command succeeds when:
+
+1. **ADR file created** — a `.md` file exists in `.writ/decision-records/` following the `NNNN-decision-title.md` naming convention
+2. **Alternatives documented** — the ADR contains at least three considered options (including status quo) with honest pros, cons, and effort estimates
+3. **Decision recorded** — the chosen option has rationale tied to force-ranked decision drivers
+4. **Consequences documented** — both positive and negative consequences are listed with mitigation strategies
+5. **Summary presented** — the completed ADR was presented to the user
+
+**Suggested next step:** Reference the ADR from relevant specs or stories that depend on the decision.
+
+**Terminal constraint:** This command produces a decision record (`.writ/decision-records/`). Do not offer to implement, build, or execute what was decided. For specification, the user should reference the ADR from specs or stories. For quick prototyping, use `/prototype`.

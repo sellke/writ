@@ -182,3 +182,16 @@ Present a summary: file created, command name and usage, key integration points.
 | `/research` | Run before `/new-command` if the command design requires technical research |
 | `/create-adr` | Significant command design decisions (new execution styles, new categories) may warrant an ADR |
 | `/assess-spec` | After creating a command, assess whether its specification is complete |
+
+## Completion
+
+This command succeeds when:
+
+1. **Command file created** — a `.md` file exists in `commands/` with the new command's name, containing Overview, Invocation, Command Process, and Integration sections
+2. **No naming conflicts** — the command name doesn't collide with existing commands in `commands/`
+3. **Integration validated** — references to other commands are accurate and the command fits Writ's patterns
+4. **Summary presented** — the user received a completion summary with the file path and usage instructions
+
+**Suggested next step:** Test the new command by invoking it.
+
+**Terminal constraint:** This command produces a command definition (`commands/{name}.md`). Do not offer to implement, build, or execute what was defined. For testing, the user should invoke the new command directly. For quick prototyping, use `/prototype`.
