@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.13.1] - 2026-04-08
+
+### Added
+
+- **Plan Mode workflow integrity constraint** — Fourth Hard Constraint in Prime Directive: "Never let Plan Mode absorb a command's workflow." Prevents AI platforms from treating planning conversations as deliverables instead of producing documented artifacts. Applied to both `system-instructions.md` and `cursor/writ.mdc`.
+
+- **Per-command Completion sections** — All 9 planning commands (`/create-spec`, `/plan-product`, `/new-command`, `/create-issue`, `/create-adr`, `/create-uat-plan`, `/research`, `/design`, `/edit-spec`) now have `## Completion` sections with concrete artifact requirements, suggested next steps, and terminal constraints prohibiting implementation offers.
+
+- **Adapter Command Workflow Integrity** — Each adapter (Cursor, Claude Code, OpenClaw) has a `## Command Workflow Integrity` section naming its platform-specific tendency and countermeasure. `/prototype` signposted as escape valve for users who want fast implementation.
+
 ## [0.13.0] - 2026-04-02
 
 ### Added
