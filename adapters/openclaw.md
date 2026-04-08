@@ -339,6 +339,18 @@ This enables recovery if the orchestrator session is interrupted.
 
 ---
 
+## Command Workflow Integrity
+
+When a Writ command uses a discovery or planning phase, that phase serves the command — it does not replace the command's artifact creation steps.
+
+**Rule:** After discovery completes, the command resumes its documented phases and produces its documented artifacts. After artifact creation, the command terminates with a next-step suggestion. Do not continue the session into implementation or offer to execute what was planned.
+
+**Common failure:** After producing spec artifacts, the session naturally continues toward "what's next?" and slides into offering implementation. Planning commands produce files, present a summary, and stop — the user decides what to run next.
+
+**Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
+
+---
+
 ## Gotchas
 
 1. **Sub-agent output capture**: `sessions_spawn` auto-announces completion. The orchestrator receives the result as a system message. Parse the output from there.

@@ -365,6 +365,18 @@ Flags are configurable via `.writ/config.md` Ralph keys (`Ralph CLI Agent`, `Ral
 
 ---
 
+## Command Workflow Integrity
+
+When a Writ command uses a planning phase for discovery, the planning conversation serves the command — it does not become the command.
+
+**Rule:** After discovery completes, the command resumes its documented phases and produces its documented artifacts (spec files, stories, ADRs, etc.). After artifact creation, the command terminates with a next-step suggestion. Do not spawn implementation subagents or offer to begin building after a planning command completes.
+
+**Common failure:** After writing spec artifacts, the session offers to run `/implement-spec` or spawn coding subagents. Planning commands produce files and stop — implementation is a separate command the user invokes deliberately.
+
+**Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
+
+---
+
 ## Gotchas
 
 1. **Worktree merges can conflict**: If two parallel coders modify the same file, the merge will conflict. Design stories with minimal overlap. The dependency graph in `/implement-story` helps prevent this.

@@ -111,6 +111,16 @@ The review agent specifies `readonly: true`. Cursor enforces this at the tool le
 
 Cursor supports up to 4 concurrent `Task()` sub-agents in a single message. If you have more than 4 stories to generate, they'll be batched automatically (first 4, then next 4, etc.). This is handled in the `create-spec` command's Step 2.6.
 
+## Command Workflow Integrity
+
+When a Writ command uses Plan Mode for discovery (e.g., `/create-spec` Phase 1, `/plan-product` discovery), Plan Mode serves as a phase within the command — not a replacement for it.
+
+**Rule:** After Plan Mode discovery completes, the command must resume its documented phases in Agent Mode and produce its documented artifacts (spec files, stories, ADRs, etc.). The conversation is an intermediate step, not the deliverable.
+
+**Common failure:** The agent stays in Plan Mode and treats the planning conversation as the command's output, or switches to Agent Mode and offers to implement/build. Neither is correct — the command's next phase is artifact creation, not implementation.
+
+**Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
+
 ## Project Initialization
 
 For a new project, run these in order:
