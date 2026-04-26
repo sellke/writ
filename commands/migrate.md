@@ -368,3 +368,10 @@ A: Not recommended (creates confusion), but you could symlink: `ln -s .writ .cod
 
 **Q: What if I have custom commands I wrote with /new-command?**
 A: They'll be in `.cursor/commands/` or `.code-captain/commands/`. The migration copies Writ's commands but won't delete unrecognized custom commands if they're in `.cursor/commands/`. Check after migration and update any `.code-captain` references in your custom commands to `.writ`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

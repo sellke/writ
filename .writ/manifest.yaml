@@ -1,0 +1,207 @@
+version: 1
+metadata:
+  name: writ
+  version: 0.13.1
+  description: "AI-powered development workflow framework - contract-first specs, multi-agent SDLC, automated quality gates."
+
+categories:
+  - id: planning
+    label: "Planning & Specification"
+  - id: implementation
+    label: "Implementation & Quality"
+  - id: review
+    label: "Review & Validation"
+  - id: autonomy
+    label: "Autonomous Execution"
+  - id: release
+    label: "Release & Delivery"
+  - id: security
+    label: "Security"
+  - id: migration
+    label: "Migration"
+  - id: setup
+    label: "Setup & Maintenance"
+  - id: learning
+    label: "Learning & Insight"
+
+commands:
+  - name: assess-spec
+    file: commands/assess-spec.md
+    category: planning
+    purpose: "Analyze a specification for implementability risks before committing to build it."
+    tags: [planning, assessment, spec]
+  - name: create-adr
+    file: commands/create-adr.md
+    category: planning
+    purpose: "Create architecture decision records with research-backed context."
+    tags: [planning, adr, architecture]
+  - name: create-issue
+    file: commands/create-issue.md
+    category: planning
+    purpose: "Quickly capture bugs or feature ideas into `.writ/issues/`."
+    tags: [planning, issue, capture]
+  - name: create-spec
+    file: commands/create-spec.md
+    category: planning
+    purpose: "Create contract-first feature specifications with stories and verification plans."
+    tags: [planning, spec, contract-first]
+  - name: create-uat-plan
+    file: commands/create-uat-plan.md
+    category: implementation
+    purpose: "Generate human-readable UAT plans from completed story details."
+    tags: [implementation, uat, verification]
+  - name: design
+    file: commands/design.md
+    category: planning
+    purpose: "Create and compare visual references for Writ specifications."
+    tags: [planning, design, visual]
+  - name: edit-spec
+    file: commands/edit-spec.md
+    category: planning
+    purpose: "Safely modify existing specifications while preserving contract integrity."
+    tags: [planning, spec, editing]
+  - name: explain-code
+    file: commands/explain-code.md
+    category: setup
+    purpose: "Explain existing code, symbols, files, or line ranges without modifying them."
+    tags: [setup, explanation, documentation]
+  - name: implement-spec
+    file: commands/implement-spec.md
+    category: implementation
+    purpose: "Execute a specification through dependency-aware story batches."
+    tags: [implementation, spec, orchestration]
+  - name: implement-story
+    file: commands/implement-story.md
+    category: implementation
+    purpose: "Run the full story SDLC pipeline from architecture check through documentation."
+    tags: [implementation, story, sdlc]
+  - name: initialize
+    file: commands/initialize.md
+    category: setup
+    purpose: "Initialize Writ project structure and configuration."
+    tags: [setup, initialization, config]
+  - name: knowledge
+    file: commands/knowledge.md
+    category: planning
+    purpose: "Capture durable project knowledge as decisions, conventions, glossary terms, or lessons."
+    tags: [planning, knowledge, context]
+  - name: migrate
+    file: commands/migrate.md
+    category: migration
+    purpose: "Migrate Code Captain projects to Writ while preserving existing artifacts."
+    tags: [migration, code-captain, setup]
+  - name: new-command
+    file: commands/new-command.md
+    category: setup
+    purpose: "Create new Writ command files that follow repository conventions."
+    tags: [setup, commands, authoring]
+  - name: plan-product
+    file: commands/plan-product.md
+    category: planning
+    purpose: "Shape product strategy and roadmap artifacts through contract-first discovery."
+    tags: [planning, product, roadmap]
+  - name: prototype
+    file: commands/prototype.md
+    category: implementation
+    purpose: "Ship small code changes with lightweight scan, coding, and verification."
+    tags: [implementation, prototype, quick]
+  - name: ralph
+    file: commands/ralph.md
+    category: autonomy
+    purpose: "Plan and monitor autonomous multi-spec execution through the Ralph loop."
+    tags: [autonomy, orchestration, cli]
+  - name: refactor
+    file: commands/refactor.md
+    category: implementation
+    purpose: "Perform scoped, verified refactors across files or modules."
+    tags: [implementation, refactor, quality]
+  - name: refresh-command
+    file: commands/refresh-command.md
+    category: setup
+    purpose: "Turn command usage experience into concrete local command improvements."
+    tags: [setup, commands, improvement]
+  - name: reinstall-writ
+    file: commands/reinstall-writ.md
+    category: setup
+    purpose: "Remove and reinstall Writ platform files from a clean upstream baseline."
+    tags: [setup, install, recovery]
+  - name: release
+    file: commands/release.md
+    category: release
+    purpose: "Prepare changelog, version bump, git tag, and GitHub release artifacts."
+    tags: [release, changelog, version]
+  - name: research
+    file: commands/research.md
+    category: planning
+    purpose: "Run systematic research workflows and record recommendations."
+    tags: [planning, research, analysis]
+  - name: retro
+    file: commands/retro.md
+    category: learning
+    purpose: "Turn git history into actionable retrospective insight and trend snapshots."
+    tags: [learning, retrospective, git]
+  - name: review
+    file: commands/review.md
+    category: review
+    purpose: "Review diffs for production failure modes, shadow paths, and edge cases."
+    tags: [review, validation, risk]
+  - name: security-audit
+    file: commands/security-audit.md
+    category: security
+    purpose: "Audit dependencies, secrets, code patterns, and infrastructure for security risks."
+    tags: [security, audit, dependencies]
+  - name: ship
+    file: commands/ship.md
+    category: release
+    purpose: "Take a green branch through merge preparation, commit intelligence, and PR creation."
+    tags: [release, pr, shipping]
+  - name: status
+    file: commands/status.md
+    category: setup
+    purpose: "Report current project state, active specs, in-flight work, and next actions."
+    tags: [setup, status, orientation]
+  - name: uninstall-writ
+    file: commands/uninstall-writ.md
+    category: setup
+    purpose: "Remove Writ platform files while preserving `.writ/` project artifacts."
+    tags: [setup, uninstall, cleanup]
+  - name: update-writ
+    file: commands/update-writ.md
+    category: setup
+    purpose: "Update Writ from upstream with per-file control over local customizations."
+    tags: [setup, update, install]
+  - name: verify-spec
+    file: commands/verify-spec.md
+    category: planning
+    purpose: "Validate spec integrity, status sync, completion evidence, and contract drift."
+    tags: [planning, verification, spec]
+
+agents:
+  - name: architecture-check-agent
+    file: agents/architecture-check-agent.md
+    purpose: "Pre-implementation design review that catches architecture risks before coding."
+    model: fast
+  - name: coding-agent
+    file: agents/coding-agent.md
+    purpose: "TDD implementation agent that writes code, follows conventions, and self-verifies."
+    model: default
+  - name: documentation-agent
+    file: agents/documentation-agent.md
+    purpose: "Framework-adaptive documentation agent for feature, component, and architecture docs."
+    model: default
+  - name: review-agent
+    file: agents/review-agent.md
+    purpose: "Quality gate agent that verifies acceptance criteria, code quality, tests, and drift."
+    model: default
+  - name: testing-agent
+    file: agents/testing-agent.md
+    purpose: "Test and coverage agent that verifies pass rate, regressions, and coverage thresholds."
+    model: default
+  - name: user-story-generator
+    file: agents/user-story-generator.md
+    purpose: "Parallel story authoring agent for create-spec workflows."
+    model: fast
+  - name: visual-qa-agent
+    file: agents/visual-qa-agent.md
+    purpose: "Optional UI validation gate that compares implementation screenshots against visual references."
+    model: inherit

@@ -32,6 +32,7 @@ The orchestration agent must provide:
 | `full_story_content` | Complete story markdown content |
 | `spec_lite_content` | Agent-specific spec-lite section ("For Coding Agents" — implementation approach, error handling, files in scope). Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
 | `technical_spec_summary` | Relevant technical approach details |
+| `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries selected by `/implement-story` Step 2. Empty string when no relevant entries match. Treat populated entries as durable project context, especially conventions, glossary terms, decisions, and lessons. |
 | `codebase_patterns` | Patterns found during codebase analysis |
 | `related_files` | Files related to the implementation |
 | `story_implementation_tasks` | Task list from the story |
@@ -70,6 +71,12 @@ Implement the code changes for the following user story, following TDD principle
 
 **Technical approach:**
 {technical_spec_summary}
+
+## Loaded Knowledge Entries
+
+{knowledge_context}
+
+_When empty or absent: no matching `.writ/knowledge/` entries were found. Proceed without durable knowledge context._
 
 ## Codebase Context
 
@@ -263,3 +270,10 @@ If the agent encounters blocking issues:
 ### Partial Progress
 [What was completed before blocking]
 ```
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

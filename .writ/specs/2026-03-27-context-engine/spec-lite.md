@@ -3,6 +3,8 @@
 > Source: .writ/specs/2026-03-27-context-engine/spec.md
 > Purpose: Efficient AI context for implementation
 
+<!-- eval-exempt: length — pre-Story-5 lite spec exceeds the new 100-line budget; tracked in .writ/issues/improvements/2026-04-24-trim-context-engine-spec-lite.md -->
+
 ## For Coding Agents
 
 **Deliverable:** Intelligent spec context routing to pipeline agents — per-story hints, cross-story continuity, and agent-specific views

@@ -397,3 +397,10 @@ This command succeeds when:
 **Suggested next step:** Execute the UAT plan manually or with test tooling.
 
 **Terminal constraint:** This command produces a UAT plan (`.writ/specs/{spec-folder}/uat-plan.md`). Do not offer to implement, build, or execute what was planned. For manual or automated execution, the user should follow the plan's instructions. For quick prototyping, use `/prototype`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

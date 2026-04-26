@@ -4,6 +4,10 @@
 
 Generate comprehensive product planning documentation using a contract-first approach that establishes clear product vision, mission, and roadmap before creating any supporting files. This command eliminates assumptions by gathering complete product context through structured discovery, then creates a complete product planning package for AI-assisted development.
 
+## Invocation
+
+- `/plan-product` — shape product mission, strategy, and roadmap artifacts through discovery
+
 ## Command Process
 
 ### Phase 1: Product Discovery & Contract Establishment (No File Creation)
@@ -332,3 +336,9 @@ This command succeeds when:
 
 **Terminal constraint:** This command produces product strategy artifacts (`.writ/product/`, `.writ/decision-records/`). Do not offer to implement, build, or execute what was planned. For specification, the user should run `/create-spec`. For quick prototyping, use `/prototype`.
 
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -228,3 +228,10 @@ Options: fix manually · retry · discard
 | Refactoring a specific file | `/refactor` |
 | Exploring an approach before committing | `/prototype` (then escalate if it works out) |
 | Change within an existing spec | `/implement-story --quick` |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

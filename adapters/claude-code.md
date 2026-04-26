@@ -192,6 +192,7 @@ Reply with the number of your choice.
 
 ```
 1. Orchestrator gathers context (reads story, spec, codebase)
+   → Scans .writ/knowledge/ and builds optional knowledge_context
 2. Delegates to writ-architect (worktree, read-only)
    → Returns PROCEED/CAUTION/ABORT
 3. Delegates to writ-coder (worktree, full access)
@@ -206,6 +207,14 @@ Reply with the number of your choice.
    → Updates docs
 9. Orchestrator updates story status, commits
 ```
+
+### Knowledge Loading
+
+`/implement-story` performs the knowledge-loading hook before delegation. Claude Code does not need a separate hook or agent memory feature for this path: the top-level orchestrator greps `.writ/knowledge/`, assembles the optional `knowledge_context` block, and includes it in the prompts for `writ-architect`, `writ-coder`, and `writ-reviewer`.
+
+### Preamble Convention
+
+Manual and scripted installs copy `commands/_preamble.md` into `.claude/commands/` with the rest of the command files. Claude Code loads the invoked command markdown; the command's final `## References` section points the orchestrator at `_preamble.md` and `system-instructions.md`, so the convention stays markdown-driven rather than hook-driven.
 
 ### implement-story --all: Agent Teams (Experimental)
 

@@ -10,7 +10,7 @@ This command is **not a pipeline gate** — run it when you suspect spec drift, 
 
 | Invocation | Mode | Behavior |
 |---|---|---|
-| `/verify-spec` | Default | Select spec (if needed); run checks 1–7; **auto-fix** fixable issues; report the rest — no confirmation prompt |
+| `/verify-spec` | Default | Select spec (if needed); run checks 1–8; **auto-fix** fixable issues; report the rest — no confirmation prompt |
 | `/verify-spec --check` | Read-only | Same checks; report only; no file changes |
 | `/verify-spec --fix` | Fix spec-lite | Run Check 7; if divergence found, fully regenerate `spec-lite.md` from `spec.md` |
 | `/verify-spec --spec [path]` | Targeted | Verify the spec at path (folder under `.writ/specs/` or path to `spec.md`) |
@@ -92,7 +92,7 @@ Build complete data model:
 
 ### Phase 2: Verification Checks
 
-Run checks **1–7**. Collect every finding before reporting — do not stop at the first issue.
+Run checks **1–8**. Collect every finding before reporting — do not stop at the first issue.
 
 **Default mode:** After reporting, apply all auto-fixes (Phase 4) unless contradicted by `--check`.
 
@@ -282,7 +282,7 @@ For each mapped section pair:
     - spec-lite.md describes something not in spec.md (scope creep in the derivative)
     - Success criteria list differs materially (added, removed, or changed items)
     - Files in Scope lists differ by more than cosmetic renaming
-  
+
   Do NOT flag:
     - Shorter phrasing that preserves intent
     - Formatting differences (bold vs plain, bullets vs prose)
@@ -308,9 +308,46 @@ For each mapped section pair:
 
 ---
 
+#### Check 8: Spec Owner Field Presence
+
+**Purpose:** Confirm every spec created on or after 2026-04-24 declares an owner, while keeping legacy specs quiet.
+
+For each `spec.md` under `.writ/specs/`:
+
+```bash
+git log --diff-filter=A --format=%aI -- {spec.md} | tail -1
+```
+
+Use that first-add commit date as the authoritative creation date. If the command returns no date (for example, a new uncommitted spec), fall back to the date prefix in the spec folder name, then filesystem metadata if needed.
+
+**Classification:**
+```
+If created date >= 2026-04-24:
+  REQUIRE: frontmatter contains an owner field (`> **Owner:** ...` or `owner: ...`)
+  On miss: WARN only (do not fail) and offer to backfill from `git config user.name`
+
+If created date < 2026-04-24:
+  REPORT: "legacy — owner not required"
+  Missing owner is not a warning and is never auto-fixed
+```
+
+**Backfill offer:**
+If a new spec is missing owner, offer an explicit opt-in fix:
+
+```bash
+OWNER="@$(git config user.name 2>/dev/null | tr -d ' ' || echo 'unknown')"
+if [ "$OWNER" = "@" ]; then OWNER="@unknown"; fi
+```
+
+Then insert the owner line into the frontmatter/header. Never migrate legacy specs automatically.
+
+> Check **8** is **warning/report-only** by default. It does not fail verification and does not backfill without explicit user approval.
+
+---
+
 ### Phase 3: Verification Report
 
-Present all findings in a structured report (console). The table always has **seven** checks — no "Skipped" rows (except Check 7 when `spec-lite.md` is absent), no alternate layouts.
+Present all findings in a structured report (console). The table always has **eight** checks — no "Skipped" rows (except Check 7 when `spec-lite.md` is absent), no alternate layouts.
 
 ```
 🔍 Spec Verification Report: 2026-02-22-feature-name
@@ -325,6 +362,7 @@ Present all findings in a structured report (console). The table always has **se
  5. Deliverables checklist       ❌       3 items unsync'd
  6. Contract vs implementation   ✅       All scope items implemented
  7. Spec-lite integrity          ✅       spec-lite aligned with spec.md
+ 8. Spec owner field             ⚠️       1 new spec missing owner
 ═══════════════════════════════════════════════════
 
 Overall: ⚠️ 4 issues found (2 auto-fixable, 2 need attention)
@@ -346,6 +384,14 @@ If `spec-lite.md` does not exist, omit row 7 from the table and note: `(Check 7 
 [WARN-1] Unchecked Definition of Done
   Story 2: "Documentation updated" is unchecked
   → Confirm manually, then check it off if accurate.
+
+[WARN-2] Missing owner on new spec
+  .writ/specs/2026-04-24-feature/spec.md
+  → Add `owner: @YourName` or approve backfill from `git config user.name`.
+
+[INFO-1] Legacy spec without owner
+  .writ/specs/2026-03-01-old-feature/spec.md
+  → legacy — owner not required.
 ```
 
 **`--check` mode:** Stop after this phase (no auto-fix).
@@ -416,6 +462,7 @@ Write to `.writ/specs/[spec-folder]/verification-YYYY-MM-DD.md`:
 | Deliverables checklist | ✅ | N/N deliverables verified |
 | Contract alignment | ✅ | No scope drift flagged |
 | Spec-lite integrity | ✅ | spec-lite aligned with spec.md |
+| Spec owner field | ✅ | New specs declare owners; legacy specs reported without warnings |
 
 ## Stories
 | # | Title | Status | Tasks | Criteria | DoD |
@@ -438,7 +485,7 @@ Diagnostic only. Use `/release` when you are ready to publish; it runs build che
 ```
 ✅ Spec verification complete.
 
-Checks 1–7 evaluated; fixable metadata updated.
+Checks 1–8 evaluated; fixable metadata updated.
 See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 ```
 
@@ -455,10 +502,17 @@ See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 |---------|-------------|
 | `/implement-spec` | May leave spec metadata noisy after bulk story work — `/verify-spec` cleans it up |
 | `/ship` | Optionally runs a **subset** of these checks (1–3) inline when opening a PR |
-| `/release` | Runs the **full** checks 1–6 again as part of its **internal** release gate (self-sufficient) — same logic, different entry point |
+| `/release` | Runs the **full** checks 1–8 again as part of its **internal** release gate (self-sufficient) — same logic, different entry point |
 | `/security-audit` | Complementary — verify-spec checks spec structure; security-audit checks safety |
 | `/status` | Quick overview; verify-spec is the deep metadata pass |
 
 **Recommended posture:** `/verify-spec` is **optional**. Many sessions go straight `/ship` → `/release`. Run `/verify-spec` when you want a dedicated hygiene pass without releasing.
 
 **Boundary principle:** `/verify-spec` owns **spec metadata integrity** only. `/release` owns **tests, build verification, and changelog** for publishing.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

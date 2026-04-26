@@ -196,3 +196,10 @@ Load the most recent snapshot in `.writ/retros/` older than the current period's
 | `/assess-spec` | Retro surfaces velocity and test debt that assessment should consider |
 | `/implement-spec` | After retro, velocity insights inform implementation pacing |
 | `/review` | Use `/review` for pre-ship code quality; `/retro` for post-period reflection |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -151,3 +151,10 @@ This command succeeds when:
 **Suggested next step:** `/create-spec --from-issue` to promote the issue to a full specification.
 
 **Terminal constraint:** This command produces issue documentation (`.writ/issues/{type}/`). Do not offer to implement, build, or execute what was captured. For specification, the user should run `/create-spec --from-issue`. For quick prototyping, use `/prototype`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

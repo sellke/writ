@@ -259,3 +259,10 @@ NEXT_STEP: Surface to orchestrator for human decision
 - **Branch coverage matters** — An `if` with no `else` test is half-tested
 - **Error paths are critical** — These are where bugs hide
 - **Don't test framework code** — Focus on your logic, not React rendering boilerplate
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

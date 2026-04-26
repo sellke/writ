@@ -499,3 +499,10 @@ Task({
 | `/release` | Consider running `--quick` audit before releasing |
 | `/create-adr` | Security decisions should be documented as ADRs |
 | `/create-issue` | Findings can be captured as issues for tracking |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -518,3 +518,10 @@ Proceed? [Enter to continue, or specify a branch name]
 | `/verify-spec` | Standalone metadata diagnostic; `/ship` embeds checks **1–3** only when opening a PR |
 
 **Typical flow:** `/ship` → merge PR → `/release --dry-run` → `/release`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

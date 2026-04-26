@@ -210,3 +210,10 @@ This command succeeds when the review report is saved to `.writ/state/review-[br
 | Any critical findings | Do not ship — critical gaps must be resolved first |
 
 A review with zero findings is a valid outcome, not an error. If the diff is trivial (e.g., docs-only, config change), a short report stating "no failure modes in scope" is sufficient.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

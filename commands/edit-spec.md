@@ -132,3 +132,10 @@ If the user selects rollback at Step 2.3, restoring from backup is a valid succe
 | `/assess-spec` | Run after major edits to re-validate shape; assess can invoke edit for splits |
 | `/implement-spec` | After editing, re-run to update execution plan |
 | `/implement-story` | After editing, can target specific modified stories |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

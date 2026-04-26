@@ -208,3 +208,10 @@ This command succeeds when:
 **Suggested next step:** Reference the ADR from relevant specs or stories that depend on the decision.
 
 **Terminal constraint:** This command produces a decision record (`.writ/decision-records/`). Do not offer to implement, build, or execute what was decided. For specification, the user should reference the ADR from specs or stories. For quick prototyping, use `/prototype`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

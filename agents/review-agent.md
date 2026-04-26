@@ -33,6 +33,7 @@ readonly: true   # Review agent should only read and analyze
 | `lint_results` | Output from lint/typecheck gate (if available) |
 | `acceptance_criteria_with_checkboxes` | Formatted criteria for verification |
 | `spec_lite_content` | Agent-specific spec-lite section ("For Review Agents" — acceptance criteria, business rules, experience design). Used for drift analysis. Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
+| `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries selected by `/implement-story` Step 2, biased toward lessons and decisions for review. Empty string when no relevant entries match. |
 | `change_surface` | Classification from Gate 2.5: `style-only`, `single-component`, `cross-component`, or `full-stack`. Determines review depth allocation per category. |
 | `boundary_map` | **Optional.** Same Gate 0.5 markdown block passed to the coding agent. If empty/omitted, skip boundary compliance scrutiny (legacy behavior). |
 | `boundary_overlap_summary` | **Optional.** One-line summary of overlap / high-overlap areas from the map (for extra scrutiny). Empty if none. |
@@ -61,6 +62,11 @@ Review the implementation completed by the Coding Agent and determine if it meet
 
 ## Spec Contract (for Drift Analysis)
 {spec_lite_content}
+
+## Loaded Knowledge Entries
+{knowledge_context}
+
+_When empty or absent: no matching `.writ/knowledge/` entries were found. Proceed without durable knowledge context._
 
 ## Implementation Summary from Coding Agent
 {coding_agent_output}
@@ -358,3 +364,10 @@ Two critical issues: acceptance criterion not satisfied (duplicate email rejecti
 - **Security is never Minor** — any security issue is at least Major
 - **Drift is about spec fidelity** — classify against the spec contract, not personal preference
 - **When in doubt on severity → Medium** — over-flag rather than under-flag
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
