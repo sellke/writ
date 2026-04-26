@@ -196,3 +196,10 @@ Non-obvious principles that prevent common refactoring failures:
 | `/security-audit` | Refactoring can address security findings |
 | `/research` | Investigate modernization patterns or architectural approaches before refactoring |
 | `/status` | Shows recent refactoring commits |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -243,3 +243,10 @@ If a session is interrupted mid-execution:
 | `/verify-spec` | Optional metadata diagnostic anytime (especially after `/implement-spec`) — not a release prerequisite |
 | `/ship` / `/release` | `/ship` opens the PR; `/release` cuts the version with its own inline gate |
 | `/status` | Shows progress of in-flight executions |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

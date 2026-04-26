@@ -168,3 +168,10 @@ This command succeeds when:
 **Suggested next step:** `/create-spec` to spec a feature informed by the research, or `/create-adr` to formalize an architectural decision from the findings.
 
 **Terminal constraint:** This command produces research documentation (`.writ/research/`). Do not offer to implement, build, or execute what was researched. For specification, the user should run `/create-spec` or `/create-adr`. For quick prototyping, use `/prototype`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -225,3 +225,10 @@ If the mode cannot complete (e.g., no running dev server for capture, no mockups
 | `/create-spec` | Generates specs that `/design` adds visuals to |
 | `/implement-story` | Gate 1 loads mockups; Gate 4.5 runs visual QA |
 | `/assess-spec` | Visual complexity adds to story sizing signals |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

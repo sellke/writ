@@ -176,7 +176,7 @@ When the create-spec command reaches Step 2.6, spawn multiple instances:
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast", 
+  model: "fast",
   description: "Create user story 1",
   prompt: `[Use template above with story 1 details]`
 })
@@ -184,7 +184,7 @@ Task({
 Task({
   subagent_type: "generalPurpose",
   model: "fast",
-  description: "Create user story 2", 
+  description: "Create user story 2",
   prompt: `[Use template above with story 2 details]`
 })
 
@@ -236,3 +236,10 @@ If the agent cannot create the file:
 1. Report the error clearly
 2. Suggest what information is missing
 3. Do not create a partial or placeholder file
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

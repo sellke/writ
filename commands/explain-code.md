@@ -93,3 +93,10 @@ If the target cannot be located (file missing, symbol not found, ambiguous name 
 | `/create-spec` | Understanding existing code before specifying changes |
 | `/implement-story` | Reference during implementation to understand existing patterns |
 | `/create-adr` | When explanation uncovers architectural decisions worth documenting |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -234,3 +234,10 @@ Remove the temporary clone directory.
 | `/reinstall-writ` | Nuclear option — removes everything and installs fresh (no three-way merge) |
 | `/uninstall-writ` | Removes Writ entirely |
 | `/status` | Could surface "Writ update available" in future iterations |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

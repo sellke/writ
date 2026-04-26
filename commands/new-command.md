@@ -135,6 +135,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 | **Command Process** | The workflow — phases, steps, decision points. Contract-style commands get Phase 1 (discovery) and Phase 2 (execution). Direct commands get a linear step sequence. |
 | **Core rules or conventions** | Non-obvious constraints, quality bars, patterns to follow |
 | **Integration with Writ** | Table mapping relationships to other commands |
+| **References** | Final section linking to `commands/_preamble.md` and `system-instructions.md` |
 
 **Command categories** inform structure but don't dictate templates:
 
@@ -152,6 +153,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 - Principles over prescriptions — tell the AI *what matters*, not *how to format*
 - No hardcoded line numbers or brittle references to other files
 - Language and shell agnostic — use Writ's tools, not platform-specific commands
+- Include the standard final `## References` section with `commands/_preamble.md` and `system-instructions.md`
 - Match the voice and density of existing refined commands
 
 #### Step 2.2: Validate Integration
@@ -195,3 +197,10 @@ This command succeeds when:
 **Suggested next step:** Test the new command by invoking it.
 
 **Terminal constraint:** This command produces a command definition (`commands/{name}.md`). Do not offer to implement, build, or execute what was defined. For testing, the user should invoke the new command directly. For quick prototyping, use `/prototype`.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

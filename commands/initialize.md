@@ -176,3 +176,10 @@ Do not end the command without presenting this recommendation. It's the bridge b
 | `/create-spec` | Uses tech-stack.md and code-style.md to inform feature specifications |
 | `/research` | Investigates gaps identified during brownfield analysis |
 | `/create-adr` | Documents architectural decisions surfaced during initialization |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -28,6 +28,7 @@ readonly: true   # This agent MUST NOT modify any files
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
 | `spec_lite_content` | Agent-specific spec-lite section ("For Coding Agents" — implementation approach, error handling, files in scope). Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
+| `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries selected by `/implement-story` Step 2, biased toward decisions and conventions for architecture review. Empty string when no relevant entries match. |
 | `codebase_patterns` | Patterns found during codebase analysis |
 | `related_files` | Files related to the implementation |
 | `tech_stack_content` | Project tech stack documentation |
@@ -54,6 +55,11 @@ Task({
 
 ## Specification Context
 {spec_lite_content}
+
+## Loaded Knowledge Entries
+{knowledge_context}
+
+_When empty or absent: no matching `.writ/knowledge/` entries were found. Proceed without durable knowledge context._
 
 ## Current Codebase
 **Architecture patterns:** {codebase_patterns}
@@ -197,3 +203,10 @@ Split into: (A) Evaluate real-time approach (research + ADR), (B) Implement chos
 - Only ABORT for genuine blockers, not preferences
 - CAUTION should include actionable warnings, not vague concerns
 - Focus on things the coding agent wouldn't catch on its own
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

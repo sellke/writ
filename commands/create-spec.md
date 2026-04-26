@@ -4,6 +4,11 @@
 
 Generate comprehensive feature specifications using a contract-first approach that ensures complete alignment between developer and AI before creating any supporting files. This command uses **Plan Mode for open-ended discovery** and **AskQuestion for bounded decisions**, eliminating presumptuous file creation by establishing a clear "contract" through collaborative conversation.
 
+## Invocation
+
+- `/create-spec` — discover and create a full contract-first spec package
+- `/create-spec --from-prototype` — formalize recent prototype work into a spec with Story 1 already complete
+
 ## Command Process
 
 ### `--from-prototype` Mode
@@ -438,6 +443,18 @@ Get current date by running: `npx @devobsessed/writ date`
 
 This returns `YYYY-MM-DD` format for folder naming: `.writ/specs/[DATE]-[feature-name]/`
 
+Resolve the spec owner from git config before writing `spec.md`:
+
+```bash
+OWNER="@$(git config user.name 2>/dev/null | tr -d ' ' || echo 'unknown')"
+if [ "$OWNER" = "@" ]; then
+  OWNER="@unknown"
+  echo "⚠️ No git user.name configured; writing owner: @unknown. Set it with: git config user.name 'Your Name'"
+fi
+```
+
+The owner value is intentionally simple: prefix `@`, strip spaces, and do not consult any external user directory. If `git config user.name` is unset or empty, write `owner: @unknown` and show the warning above.
+
 #### Step 2.3: Create Directory Structure
 
 ```
@@ -457,6 +474,12 @@ This returns `YYYY-MM-DD` format for folder naming: `.writ/specs/[DATE]-[feature
 
 **spec.md** — Main specification built from the locked contract. Must contain:
 
+- **Frontmatter** — include status, created date, owner, and any relevant phase/source metadata:
+  ```markdown
+  > **Status:** Not Started
+  > **Created:** [DATE]
+  > **Owner:** [OWNER]
+  ```
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
 - **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
@@ -752,3 +775,10 @@ Developer: Looks good, let's lock it.
 ```
 
 **Key UX difference:** The discovery conversation felt natural — open-ended questions, real dialogue, collaborative pushback. The AskQuestion confirmation at the end is a clean gate before file creation. Plan Mode for discovery, AskQuestion for decisions.
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

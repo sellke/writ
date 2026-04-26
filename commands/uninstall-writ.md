@@ -139,3 +139,10 @@ Use `git add -u` to stage deletions without adding untracked files.
 | `/reinstall-writ` | Remove + reinstall in one step (use when you want Writ back immediately) |
 | `/update-writ` | Use instead if you want to keep Writ but refresh it |
 | `uninstall.sh` | Non-interactive terminal counterpart |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

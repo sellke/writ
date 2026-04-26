@@ -501,3 +501,10 @@ Options:
 I'll create a VERSION file to track releases.
 Proceed?
 ```
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

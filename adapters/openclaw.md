@@ -243,6 +243,7 @@ sessions_spawn({
 Read({ path: "user-stories/story-1-feature.md" })
 Read({ path: "spec-lite.md" })
 exec({ command: "rg -l 'relevant_pattern' src/" })
+// Also grep .writ/knowledge/ and assemble optional knowledge_context
 
 // Phase 2: Spawn coding agent
 sessions_spawn({
@@ -279,6 +280,14 @@ sessions_spawn({
 // Phase 6: Update story status
 Edit({ path: "user-stories/story-1-feature.md", ... })
 ```
+
+### Knowledge Loading
+
+The `.writ/knowledge/` scan stays in the orchestrator. Before spawning architecture, coding, or review sessions, OpenClaw implementations should extract story keywords, use `rg` against `.writ/knowledge/`, cap the assembled `knowledge_context` at about 2KB, and include it in each relevant sub-agent prompt. If no entries match, omit the block silently.
+
+### Preamble Convention
+
+OpenClaw implementations install `commands/_preamble.md` with the command set. When a session loads a command file, the final `## References` section points at `_preamble.md` and `system-instructions.md`; the session should read those links as standing instructions before translating generic tool names to OpenClaw calls.
 
 ### Review Feedback Loop
 

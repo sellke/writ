@@ -156,3 +156,10 @@ Failures route back to the coding agent (same as review failures). Counts toward
 - **Vision-dependent** — requires a model with vision capabilities
 - **Tolerant by default** — pixel-perfect matching is not the goal; structural and stylistic alignment is
 - **Skippable** — not every story touches UI; the gate auto-skips when no visual references exist
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

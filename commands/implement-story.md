@@ -43,11 +43,12 @@ If no argument provided, present story selection from current spec (not-started 
 2. **Read the story file** — tasks, acceptance criteria, dependencies
 3. **Read spec-lite.md** — overall spec context
 4. **Parse context hints and fetch referenced content** — see detailed process below
-5. **Extract agent-specific spec-lite sections** — parse spec-lite.md into per-role sections for targeted delivery
-6. **Scan codebase** — identify patterns, related files, tech stack
-7. **Check dependencies** — warn if upstream stories aren't complete
-8. **Load "What Was Built" from dependencies** — see detailed process below
-9. **Load visual references** — if the story has a `## Visual References` section:
+5. **Load knowledge context** — grep `.writ/knowledge/` for entries matching story keywords; assemble optional `knowledge_context` (≤2KB) for architecture-check, coding, and review agents
+6. **Extract agent-specific spec-lite sections** — parse spec-lite.md into per-role sections for targeted delivery
+7. **Scan codebase** — identify patterns, related files, tech stack
+8. **Check dependencies** — warn if upstream stories aren't complete
+9. **Load "What Was Built" from dependencies** — see detailed process below
+10. **Load visual references** — if the story has a `## Visual References` section:
    - Read linked mockup images via vision model
    - Read `mockups/component-inventory.md` for component specs
    - Read `.writ/docs/design-system.md` for design tokens
@@ -109,6 +110,60 @@ After reading the story file and spec-lite.md, the orchestrator parses context h
 - `fetched_context` — actual spec content retrieved for each reference
 - `context_warnings` — list of any warnings generated during parsing/fetching
 
+#### Loading Knowledge Context
+
+After parsing context hints, load relevant `.writ/knowledge/` entries so agents inherit durable project knowledge without the maintainer prompting for it.
+
+**Keyword extraction:**
+
+1. Extract candidate keywords from:
+   - Story title
+   - The story file's `## Context for Agents` block
+   - File paths in scope from implementation tasks, boundary candidates, and context hints
+2. Normalize candidates:
+   - Lowercase
+   - Split path segments and hyphenated/slashed terms
+   - Drop common stop words (`the`, `and`, `story`, `file`, `task`, `spec`, etc.)
+   - Keep meaningful tokens of 3+ characters plus exact path fragments like `commands/implement-story.md`
+
+**Search process:**
+
+1. If `.writ/knowledge/` does not exist, skip silently.
+2. Grep `.writ/knowledge/` for keyword matches against frontmatter tags, titles, TL;DR text, and body content.
+3. Score matches:
+   - +3 for tag match
+   - +2 for title or filename match
+   - +1 for body/content match
+   - +1 for related artifact path matching a file in scope
+4. Prefer categories by agent:
+   - Architecture Check: `decisions/`, `conventions/`, then other matches
+   - Coding Agent: all categories, with `conventions/` and `glossary/` boosted
+   - Review Agent: `lessons/`, `decisions/`, then other matches
+5. Assemble a shared `knowledge_context` markdown block capped at ~2KB:
+
+   ```markdown
+   ## Loaded Knowledge Entries
+
+   ### .writ/knowledge/conventions/2026-04-24-date-prefixed-slugs.md
+   - Category: conventions
+   - Tags: filenames, markdown, writ-artifacts
+   - TL;DR: Use `YYYY-MM-DD-short-slug.md` for dated Writ artifacts...
+   ```
+
+6. If the block exceeds 2KB, keep higher-scoring entries first and truncate lower-scoring details before dropping whole entries.
+
+**Graceful degradation:**
+
+| Scenario | Behavior |
+|----------|----------|
+| `.writ/knowledge/` missing | Silent no-op; set `knowledge_context` to empty string |
+| No keyword matches | Silent no-op; set `knowledge_context` to empty string |
+| Entry has malformed frontmatter | Skip that entry and log `⚠️ Knowledge entry skipped: malformed frontmatter in {path}` |
+| Context exceeds 2KB | Truncate by relevance score and log `ℹ️ knowledge_context truncated to 2KB` |
+
+**Output variable:**
+- `knowledge_context` — optional markdown block of loaded entries. Empty string when no relevant entries were found.
+
 #### Extracting Agent-Specific Spec-Lite Sections
 
 Parse spec-lite.md into role-specific sections for targeted delivery to each pipeline agent:
@@ -121,9 +176,9 @@ Parse spec-lite.md into role-specific sections for targeted delivery to each pip
 
 | Agent | Spec-Lite Section | Supplementary Context (from hints) |
 |-------|-------------------|-----------------------------------|
-| Architecture Check (Gate 0) | `spec_lite_for_coding` | `fetched_context` (all categories) |
-| Coding Agent (Gate 1) | `spec_lite_for_coding` | `fetched_context` (error maps, business rules) + dependency WWB records |
-| Review Agent (Gate 3) | `spec_lite_for_review` | `fetched_context` (business rules, experience) |
+| Architecture Check (Gate 0) | `spec_lite_for_coding` | `fetched_context` (all categories) + `knowledge_context` |
+| Coding Agent (Gate 1) | `spec_lite_for_coding` | `fetched_context` (error maps, business rules) + `knowledge_context` + dependency WWB records |
+| Review Agent (Gate 3) | `spec_lite_for_review` | `fetched_context` (business rules, experience) + `knowledge_context` |
 | Testing Agent (Gate 4) | `spec_lite_for_testing` | `fetched_context` (shadow paths, edge cases) |
 | Documentation Agent (Gate 5) | Full spec-lite content | `fetched_context` (all categories) |
 
@@ -314,7 +369,7 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 - **CAUTION** → continue, inject warnings into coding agent prompt
 - **ABORT** → present findings to user, ask whether to proceed/modify/skip
 
-**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` (implementation approach is most relevant for architecture review). If agent-specific sections not available, pass full spec-lite. Also pass `fetched_context` as supplementary spec content if context hints were parsed in Step 2.
+**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` (implementation approach is most relevant for architecture review). If agent-specific sections not available, pass full spec-lite. Also pass `fetched_context` as supplementary spec content if context hints were parsed in Step 2. Pass `knowledge_context` when populated so architecture review can apply durable project decisions and conventions.
 
 ---
 
@@ -416,9 +471,9 @@ If **no** such section exists in the active spec folder, Gate 0.5 proceeds witho
 > **Agent:** `agents/coding-agent.md`
 > **Skip in:** `--review-only` mode
 
-Spawns the coding agent with full story context, any arch-check warnings, and **`boundary_map`** from Gate 0.5.
+Spawns the coding agent with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5.
 
-**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules) as supplementary context. If dependency stories have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` to the coding agent — positioned after spec context, before implementation tasks.
+**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules) as supplementary context. Pass `knowledge_context` after spec context and before dependency records when populated. If dependency stories have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` to the coding agent — positioned after knowledge context, before implementation tasks.
 
 **When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking” (see `agents/coding-agent.md`).
 
@@ -491,7 +546,7 @@ After lint/typecheck passes, classify the change surface based on files the codi
 
 Spawns a **read-only** sub-agent for code review.
 
-**Input:** Pass all standard review inputs plus `spec_lite_for_review` as `spec_lite_content` (the review-specific section from spec-lite.md, extracted in Step 2) for drift analysis, and `change_surface` (from Gate 2.5) to guide review depth allocation. Also pass **`boundary_map`** (same markdown block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines that carry `overlap` or `high-overlap` — so the review agent can calibrate scrutiny. If agent-specific sections not available (legacy spec-lite), pass full spec-lite content.
+**Input:** Pass all standard review inputs plus `spec_lite_for_review` as `spec_lite_content` (the review-specific section from spec-lite.md, extracted in Step 2) for drift analysis, optional `knowledge_context`, and `change_surface` (from Gate 2.5) to guide review depth allocation. Also pass **`boundary_map`** (same markdown block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines that carry `overlap` or `high-overlap` — so the review agent can calibrate scrutiny. If agent-specific sections not available (legacy spec-lite), pass full spec-lite content.
 
 **Reviews:**
 - Acceptance criteria verification
@@ -842,3 +897,9 @@ Use for prototyping, spikes, internal tools. Run full pipeline later:
 /implement-story story-3 --review-only
 ```
 
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

@@ -182,3 +182,10 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome â€
 | `.writ/refresh-log.md` | Append-only improvement history |
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |
 | `/new-command` | Creates new commands; `/refresh-command` improves existing ones |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

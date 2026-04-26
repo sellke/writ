@@ -201,3 +201,10 @@ When the user chooses to apply recommendations, execute the splits directly — 
 | `/edit-spec` | Run after major edits to re-validate; `/assess-spec` can invoke `/edit-spec` for splits |
 | `/implement-spec` | Runs a **lightweight pre-flight assessment** (Checks 1-3 + context score) before execution |
 | `/verify-spec` | Complementary — assess checks shape *before* building; verify checks correctness *after* |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

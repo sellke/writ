@@ -538,6 +538,8 @@ Additional guidance based on state:
 
 ## References
 
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
 - **State file format:** `.writ/docs/ralph-state-format.md`
 - **CLI pipeline:** `.writ/docs/ralph-cli-pipeline.md`
 - **Config keys:** `.writ/docs/config-format.md` → Ralph section

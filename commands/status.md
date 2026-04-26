@@ -49,10 +49,21 @@ ls -t .writ/specs/*/spec.md
 ```
 
 For the most recently modified spec that is not `Status: Complete`:
-1. Read `spec.md` header — name, status, phase
+1. Read `spec.md` header — name, status, phase, owner
 2. Read `user-stories/README.md` — overall progress (X/Y tasks, Z%)
 3. Find the active story: `In Progress` status, or first `Not Started` if none in progress
 4. Read active story file — next unchecked task
+
+For the active-specs summary, include the owner from the spec header:
+
+```
+Active Specs:
+  | Status      | Spec                              | Owner    |
+  |-------------|-----------------------------------|----------|
+  | In Progress | 2026-04-24-phase4-production...   | @adam    |
+```
+
+If a spec has no owner because it predates the owner field, display `—`.
 
 ### Step 4: Check for In-Flight Batch Jobs
 
@@ -174,6 +185,7 @@ Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode
 
 📋 ACTIVE WORK
    Spec: 2026-03-15-auth-system (In Progress)
+   Owner: @alex
    Progress: Story 3 of 5 — "Session timeout handling" (In Progress)
    Tasks: 3/6 complete (50%)
    Next task: 3.4 Add rotation grace period for active sessions
@@ -236,6 +248,7 @@ Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode
 
 📋 ACTIVE WORK
    Spec: 2026-03-10-payment-integration (In Progress)
+   Owner: @morgan
    Progress: Story 1 — "User completes payment flow" (In Progress)
    Tasks: 3/5 complete (60%)
    Next task: 1.4 Validate payment with external API
@@ -350,3 +363,10 @@ If spec files exist but cannot be parsed (malformed README, missing story files)
 | `/create-spec --from-issue` | Promotes issues to specs — clears the Needs Triage flag by writing `spec_ref` |
 | `/verify-spec` | Deep metadata diagnostic — use when `/status` flags spec inconsistencies |
 | `/ship` | Next step when active spec is complete |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

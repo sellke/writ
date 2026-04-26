@@ -167,6 +167,14 @@ Create these files in `.writ/docs/` to give commands better context:
 
 Commands like `create-spec` and `implement-story` auto-load these during context scanning.
 
+### Knowledge Loading
+
+`/implement-story` also scans `.writ/knowledge/` during Step 2. Cursor does not need a special runtime hook: the orchestrator extracts story keywords, searches knowledge entries, and passes the optional `knowledge_context` block directly into the architecture-check, coding, and review agent prompts.
+
+### Preamble Convention
+
+Every installed command has a final `## References` section pointing to `commands/_preamble.md` and `system-instructions.md`. Cursor discovers the command markdown as the slash command; the agent reads the linked preamble alongside the command context, so no Cursor-specific runtime injection hook is required.
+
 ### Creating New Commands
 
 Use the meta-command:

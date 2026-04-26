@@ -194,12 +194,12 @@ Do not create partial or placeholder documentation files. Complete docs or a cle
 ```typescript
 /**
  * Brief description (one line).
- * 
+ *
  * @description Longer description if needed.
- * 
+ *
  * @param param - Parameter description
  * @returns Return value description
- * 
+ *
  * @example
  * ```ts
  * const result = func(arg)
@@ -207,3 +207,10 @@ Do not create partial or placeholder documentation files. Complete docs or a cle
  * ```
  */
 ```
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)

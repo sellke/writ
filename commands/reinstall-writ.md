@@ -175,3 +175,10 @@ To recover, run from your terminal:
 | `install.sh` | First-time installation and recovery path if `/reinstall-writ` fails mid-operation |
 | `/update-writ` | Selective update that preserves customizations — use this when you don't need a clean slate |
 | `/uninstall-writ` | Removal without reinstallation |
+
+---
+
+## References
+
+- Standing instructions: [`commands/_preamble.md`](_preamble.md)
+- Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
