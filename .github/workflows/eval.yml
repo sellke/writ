@@ -1,0 +1,26 @@
+name: Eval Tier 1
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify SKILL.md is up to date with manifest
+        run: bash scripts/gen-skill.sh --check
+
+      - name: Run Writ Eval Tier 1
+        run: bash scripts/eval.sh --report=eval-report.md
+
+      - name: Upload eval report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: eval-report.md
