@@ -10,7 +10,7 @@
 
 **Goal:** Eliminate the biggest friction points — ceremony overhead and spec drift — while introducing the learning loop that makes everything else compound.
 
-**Status:** 6/7 spec stories complete. All command files and agent modifications written. Structural validation passes. **Dogfooding is the remaining gate** — see `.writ/specs/2026-02-27-phase1-foundation/validation-report.md`.
+**Status:** 6/7 spec stories complete. All command files and agent modifications written. Structural validation passes. Phase 1 has been materially dogfooded in recent weeks; dogfooding remains an ongoing operating practice rather than a finite one-time gate. See `.writ/specs/2026-02-27-phase1-foundation/validation-report.md` for the original structural validation baseline.
 
 ### Success Criteria
 
@@ -204,7 +204,130 @@
 
 ---
 
-> **Beyond Phase 3:** Cross-project learning corpus, self-improving context routing, multi-repo orchestration, notification integrations (Slack/webhooks for escalation), and autonomous refactoring are longer-horizon opportunities.
+## Phase 4: Production-Grade Substrate (6-8 weeks)
+
+**Goal:** Build the foundations the destination ("non-degrading code and methodology across project, team, and platform churn") requires. Everything in this phase pays off for solo dev now AND sets up team-readiness later — see [ADR-006](../decision-records/adr-006-non-degrading-destination.md), [ADR-007](../decision-records/adr-007-team-audience-sequencing.md), [ADR-008](../decision-records/adr-008-spec-as-team-contract-moat.md).
+
+**Entry condition:** Phase 1 features materially dogfooded and stable enough to build on. Dogfooding continues indefinitely; it is not treated as a one-time completion event.
+
+### Success Criteria
+
+- Knowledge ledger has ≥10 entries across ≥2 categories within 30 days of shipping
+- `SKILL.md` generation eliminates command/agent doc drift (verified by `gen --dry-run` clean in CI)
+- Eval Tier 1 catches at least one regression before release within first 60 days
+- Spec `owner:` field present on every spec created post-ship
+- Phase 1 features validated in real use; drift reports demonstrate the pipeline catches genuine deviations
+
+### Features
+
+- [ ] **Knowledge ledger v1 (`.writ/knowledge/`)** `Effort: S-M` (~2-4 days)
+  - Plain-text markdown directory: decisions, conventions, glossary, lessons
+  - Frontmatter schema (category, tags, created, related artifacts)
+  - `/knowledge` (or equivalent) authoring command
+  - Agent context-loading hook: relevant subdirectories surfaced at task start
+  - Backfill 5-10 high-value entries from existing research/drift logs to validate schema
+  - Per [ADR-005](../decision-records/adr-005-knowledge-substrate-markdown-over-database.md)
+
+- [ ] **`SKILL.md` template generation** `Effort: S` (~1-2 days)
+  - Manifest file as single source of truth for command/agent listing
+  - Generator script: manifest → `SKILL.md`
+  - CI gate: `gen --dry-run + git diff --exit-code` catches stale docs before merge
+  - Eliminates the drift risk that already exists today between command files and SKILL.md
+
+- [ ] **Preamble enforcement for commands** `Effort: S` (~1 day)
+  - Single preamble file with standing instructions
+  - Injected at command-load time so agents don't miss conventions
+  - Pairs naturally with SKILL.md generation infrastructure
+
+- [ ] **Eval Tier 1 (static checks)** `Effort: S` (~1 day)
+  - Required-section validation for command/agent files
+  - Anti-sycophancy phrasing checks (Prime Directive enforcement)
+  - Broken-reference detection (cross-file links, agent names, command names)
+  - Length sanity (catch runaway preamble bloat)
+  - Cheap quality floor; sets up Tier 2/3 if ever justified (deferred indefinitely per current scale)
+
+- [ ] **Spec frontmatter `owner:` field** `Effort: XS` (~2 hours)
+  - Add to spec frontmatter schema; default to git committer
+  - Solo devs see their own name; the moment a teammate joins, the field is already there
+  - Zero migration cost when team-collab event arrives — the seed of the team-readiness pattern
+
+### Validation Targets
+
+- Use Writ to build Phase 4 features through the existing pipeline
+- Knowledge ledger ingests 5-10 backfilled entries and at least 5 organic entries within 30 days
+- One real Phase 5 feature spec validates the SKILL.md generator on real changes
+
+---
+
+## Phase 5: Operationalize the Destination (4-6 weeks)
+
+**Goal:** Make the production-grade claim falsifiable and tangible. Scorecards turn an abstract destination into measurable per-story and per-project signal. Lean into delight where it makes the destination *felt*.
+
+### Success Criteria
+
+- `/audit` produces a numeric scorecard a contributor can act on (top 3 gaps surfaced with concrete remediation)
+- Production-grade health score visible at every `/status` invocation
+- `/lessons` used to capture ≥5 organic entries within first 30 days
+- At least one drift-to-lesson auto-promotion observed in real use
+- Per-story scorecards visible at completion of every `/implement-story` run
+
+### Features
+
+- [ ] **`/audit` command** `Effort: S-M` (~2-3 days)
+  - Operationalizes the six production-grade criteria as a checkable diagnostic
+  - Numeric scorecard (e.g., "7.2/10") with top gaps surfaced
+  - Outputs to `.writ/state/audit-{date}.json` for trend comparison and `/status` consumption
+  - Makes "production-grade" measurable, not merely claimed
+
+- [ ] **Spec-as-team-contract substrate (non-team parts)** `Effort: M` (~1-2 days for first slice)
+  - `dependencies:` block in spec frontmatter (cross-spec dependency tracking)
+  - Status board across `.writ/specs/` (per-spec owner, status, last-touched)
+  - Useful to solo devs as project-management primitives in the meantime
+  - Foundations for the *deferred* team-specific affordances (cross-dev drift reconciliation, `/review-spec`)
+
+- [ ] **`/lessons` micro-command** `Effort: S` (~1 day)
+  - Modeled on `/create-issue`: 30-second mid-flow capture to the knowledge ledger
+  - Closes the gap between "noticed something" and "wrote it down"
+  - Pairs with knowledge ledger spec; one-line invocation
+
+- [ ] **`/status` shows production-grade health score** `Effort: XS` (~2 hours after /audit ships)
+  - One-line scorecard at session start: "Repo: 7.2/10. Top gap: 3 specs without drift logs."
+  - Tangible feedback at every entry point; the abstract destination becomes a habit
+
+- [ ] **Per-story production-grade scorecard** `Effort: S` (~1 day after /audit)
+  - Story completion shows "Story 3 shipped at 9.2/10, 2 minor drifts, full coverage"
+  - Quantifies the destination per shipped unit; gives drift-detection a positive counterpart
+
+- [ ] **Drift entries can self-promote to lessons** `Effort: XS` (~half day)
+  - `lesson: true` flag in a drift entry's frontmatter triggers knowledge ledger entry on next `/refresh-command`
+  - Closes the learning loop without ceremony; pipeline learns from its own deviations
+
+### Validation Targets
+
+- `/audit` scorecard identifies real gaps in the Writ repo itself before being shipped to others
+- Use of `/lessons` and drift-to-lesson promotion produces measurable knowledge ledger growth
+
+### Pacing Discipline
+
+Total Phase 4 + 5 effort: roughly 11-15 days of focused work spread over 10-14 calendar weeks at solo-maintainer pace. This respects the [research addendum's](../research/2026-04-24-writ-vs-gstack-rigor-comparison.md) Risk #1 ("solo-maintainer asymmetry — borrowing too much in one cycle stalls the maintainer"). Each phase ships independently; bundling Phase 4 with Phase 5 is the failure mode to avoid.
+
+---
+
+## Beyond Phase 5 (Parking Lot)
+
+The original "Beyond Phase 3" list, reclassified after the strategic refresh:
+
+**Kept (Phase 6+ candidates):**
+- **Cross-project learning corpus** — Phase 6+ extension of the knowledge ledger; same direction
+- **Self-improving context routing** — complements eval Tier 1; revisit once Tier 1 reveals patterns
+- **Autonomous refactoring** — long-horizon experimental
+
+**Deferred until concrete signal:**
+- **Multi-developer drift reconciliation, `/review-spec`, multi-repo orchestration** — team-specific. The substrate (Phase 4 owner field, Phase 5 spec-as-contract) is being built so these slot in cleanly when needed. Trigger: a second human starts using Writ on a shared project. See [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
+
+**Dropped:**
+- **Notification integrations (Slack/webhooks for escalation)** — GStack territory; building this surface dilutes the destination ("non-degrading methodology") in favor of velocity-first orchestration.
+- **Cross-AI parallel coordination** — adapter abstraction handles platform portability; multi-AI orchestration is out of scope per [mission.md](mission.md).
 
 ---
 
