@@ -29,13 +29,16 @@ Writ is a self-improving development methodology that turns rough ideas into shi
 
 Each stage is a markdown command file that AI agents follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, or any AI coding assistant that can read markdown. Commands lead with opinionated recommendations, challenge premises, and improve through use.
 
+The deeper goal: **code and methodology that doesn't degrade as projects, teams, and AI platforms churn around them.** Specs, decisions, and accumulated knowledge live as plain-text markdown in git — designed to survive any tooling shift.
+
 ## Key Features
 
 - **Contract-first specifications** — No code until requirements are agreed upon
 - **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
-- **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%)
+- **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%). **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
 - **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, enabling accurate dependency integration
+- **Knowledge accumulation** — `.writ/knowledge/` is a markdown ledger for cross-cutting decisions, conventions, glossary, and lessons. Capture with `/knowledge`; agents auto-load relevant entries at task start so context survives context-window resets and machine changes.
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
@@ -55,7 +58,7 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
                                                     Per story (/implement-story):
                               ┌─ Arch check (pre-impl)
                               ├─ Boundary map (Gate 0.5 — owned/readable scope)
-                              ├─ Coding agent (TDD) + loads "What Was Built" from deps
+                              ├─ Coding agent (TDD) + loads `.writ/knowledge/` and "What Was Built" from deps
                               ├─ Lint/typecheck gate
                               ├─ Review agent (+ security + drift)
                               ├─ Testing agent (+ coverage)
@@ -114,7 +117,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
-| `/verify-spec` | Metadata diagnostic (checks 1–7): story/README integrity, completion, dependencies, deliverables, contract drift — auto-fix by default; optional standalone pass |
+| `/verify-spec` | Metadata diagnostic (checks 1–8): story/README integrity, completion, dependencies, deliverables, contract drift, spec-lite integrity, owner field — auto-fix by default; optional standalone pass |
 | `/create-uat-plan` | **UAT plan generation.** Reads completed stories and generates human-readable test scenarios from acceptance criteria, error maps, shadow paths, and edge cases. Enriches with "What Was Built" details. |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release |
@@ -161,7 +164,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 29 commands, but you only need five to go from idea to PR:
+Writ ships 30 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|
@@ -285,6 +288,7 @@ When Writ runs, it creates a `.writ/` directory in your project:
 5. **Parallel by default** — Independent work runs simultaneously.
 6. **Self-improving** — Commands get better through use. `/refresh-command` + `/retro` close the feedback loop.
 7. **Platform-agnostic** — Markdown instructions work anywhere AI agents run.
+8. **Durable substrate** — Specs, decisions, and accumulated knowledge live as plain-text markdown in git. Survives projects, teams, and AI platform churn.
 
 ## Attribution
 
