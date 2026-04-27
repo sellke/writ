@@ -86,6 +86,7 @@ Feedback loop (/retro + /refresh-command):
 | `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
 | `/create-issue` | Quick issue capture (<2 minutes) |
+| `/knowledge` | Capture durable project knowledge (decisions, conventions, glossary, lessons) into `.writ/knowledge/` |
 | `/research` | Systematic 4-phase research workflow |
 
 ### Implementation & Quality
@@ -261,6 +262,12 @@ When Writ runs, it creates a `.writ/` directory in your project:
 ├── retros/                   # Retrospective JSON snapshots
 ├── security/                 # Security audit reports
 ├── issues/                   # Quick-captured issues
+├── knowledge/                # Cross-cutting accumulated knowledge
+│   ├── decisions/            # Small decisions that don't warrant a full ADR
+│   ├── conventions/          # Codebase patterns and conventions
+│   ├── glossary/             # Domain terminology
+│   └── lessons/              # Postmortem-style learnings
+├── eval/                     # Eval Tier 1 inputs (e.g., anti-sycophancy phrases)
 ├── docs/                     # Project documentation
 │   ├── tech-stack.md
 │   ├── code-style.md

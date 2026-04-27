@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.14.0] - 2026-04-26
+
+### Added
+
+- **Knowledge ledger** — `.writ/knowledge/` directory for cross-cutting institutional
+  knowledge (decisions, conventions, glossary, lessons), with the `/knowledge` command
+  for capture and agent context-loading hooks at task start. Substrate is plain-text
+  markdown over a database — see ADR-005. ([Story 1])
+
+- **Spec `owner:` field** — recognized in `spec.md` frontmatter; `/verify-spec` Check 8
+  flags missing owners (warning for legacy specs, required for new specs). Supports the
+  team-readiness trajectory in ADR-007. ([Story 2])
+
+- **SKILL.md auto-generation** — `.writ/manifest.yaml` is the single source of truth
+  for command and agent listings; `scripts/gen-skill.sh` regenerates `SKILL.md` from it
+  and CI fails if it drifts (`--check`). ([Story 3])
+
+- **Preamble standing instructions** — `commands/_preamble.md` houses Prime Directive
+  recap, knowledge-loading hook, and references convention; every command and agent
+  gained a `## References` footer pointing to it. ([Story 4])
+
+- **Eval Tier 1 static checks** — `scripts/eval.sh` runs required-section validation,
+  broken-reference detection, length sanity, and anti-sycophancy phrase scanning across
+  `.writ/` artifacts. GitHub Actions workflow (`.github/workflows/eval.yml`) enforces
+  the gate on every PR and push. ([Story 5])
+
+### Changed
+
+- **Mission reframed** — `mission.md`, `mission-lite.md`, and `roadmap.md` name "code
+  and methodology that doesn't degrade as projects, teams, and AI platforms churn
+  around them" as Writ's destination, with audience sequencing solo-now → team-forward.
+  See ADR-006, ADR-007, ADR-008.
+
+- **Adapter docs** — Cursor, Claude Code, and OpenClaw guides each gained sections
+  covering knowledge loading and the preamble convention.
+
+- **`/implement-story` and core agents** — `coding-agent`, `documentation-agent`, and
+  `user-story-generator` integrate the knowledge-loading hook directly; all other
+  agents and commands carry the `## References` footer.
+
+- **README** — `/knowledge` added to the Planning & Specification table;
+  `.writ/knowledge/` and `.writ/eval/` added to the directory tree.
+
+### Internal
+
+- **Decision records** — ADR-005 (knowledge substrate: markdown over database), ADR-006
+  (non-degrading destination), ADR-007 (team audience sequencing), ADR-008
+  (spec-as-team-contract moat).
+- **Spec format doc** — `.writ/docs/spec-format.md` formalizes spec frontmatter
+  including the new `owner:` field.
+- **Research** — `2026-04-24-writ-vs-gstack-rigor-comparison.md` informs the strategic
+  refresh.
+- **Phase 4 spec package** — full spec, sub-specs, 5 user stories with relocated
+  verification checklists, two verification reports, and a CHANGELOG capturing the
+  post-ship contract update.
+- **Organic-validation issues** — two issues track Story 1 (knowledge loading on next
+  Phase 5 feature) and Story 5 (remote CI gate). Story 5 confirmed in real-time on
+  PR #15 (both eval CI runs PASS, ~6-8s).
+
+[Story 1]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-1-knowledge-ledger.md
+[Story 2]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-2-spec-owner-field.md
+[Story 3]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-3-skill-md-generation.md
+[Story 4]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-4-preamble-enforcement.md
+[Story 5]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-5-eval-tier-1.md
+
 ## [0.13.1] - 2026-04-08
 
 ### Added
