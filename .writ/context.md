@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-04-29T00:08:44Z
+> Last Updated: 2026-04-29T01:23:51Z
 
 ## Product Mission
 
@@ -8,10 +8,10 @@ Writ is an elegant development workflow for AI-assisted software development bui
 
 ## Active Spec
 
-- **Spec:** 2026-04-28-writ-runtime-timestamp-service — Writ Runtime Timestamp Service
+- **Spec:** 2026-04-28-daily-writ-update-check — Daily Writ Update Check
 - **Status:** Completed ✅
-- **Story:** 3 of 3 — Release and Verification (Completed ✅)
-- **Progress:** 18/18 tasks complete (100%)
+- **Story:** 3 of 3 — Verification and Issue Linkage (Completed ✅)
+- **Progress:** 19/19 tasks complete (100%)
 
 ## Open Issues
 
