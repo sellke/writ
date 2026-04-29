@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-04-26
+> Last Updated: 2026-04-29T00:08:44Z
 
 ## Product Mission
 
@@ -8,10 +8,10 @@ Writ is an elegant development workflow for AI-assisted software development bui
 
 ## Active Spec
 
-- **Spec:** 2026-04-24-phase4-production-grade-substrate — Phase 4 Production-Grade Substrate
-- **Status:** Completed ✅ (5/5 stories, 37/37 tasks)
-- **Post-ship organic validations:** 2 tracked issues (Story 1 knowledge-loading confirmation; Story 5 remote CI gate confirmation) — confirm naturally on next Phase 5 feature and first PR through CI respectively
-- **Next:** Phase 5 — Operationalize the Destination
+- **Spec:** 2026-04-28-writ-runtime-timestamp-service — Writ Runtime Timestamp Service
+- **Status:** Completed ✅
+- **Story:** 3 of 3 — Release and Verification (Completed ✅)
+- **Progress:** 18/18 tasks complete (100%)
 
 ## Open Issues
 

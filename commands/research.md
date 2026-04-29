@@ -113,7 +113,7 @@ Over-researching a trivial decision wastes tokens and time. Under-researching a 
 
 ## Output
 
-**Date:** Run `npx @devobsessed/writ date` — returns `YYYY-MM-DD`.
+**Date:** Use `npx @sellke/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
 
 **File path:** `.writ/research/[DATE]-[topic-name]-research.md`
 

@@ -101,7 +101,7 @@ Ask at most 2 questions in one message. Keep it conversational.
 
 Create `.writ/knowledge/` and category subdirectories if they do not exist.
 
-**Date:** Use `npx @devobsessed/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
+**Date:** Use `npx @sellke/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
 
 **Slug rules:**
 

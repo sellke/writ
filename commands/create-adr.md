@@ -121,8 +121,9 @@ Present the evaluation and discuss trade-offs before committing to a recommendat
 
 1. Get the current date:
    ```bash
-   npx @devobsessed/writ date
+   npx @sellke/writ date
    ```
+   If the helper package is unavailable, use the local system date in `YYYY-MM-DD`.
 2. Determine next ADR number — check `.writ/decision-records/` for existing ADRs, use sequential `NNNN` format (0001, 0002, etc.)
 3. Create the file at `.writ/decision-records/NNNN-decision-title.md`
 
