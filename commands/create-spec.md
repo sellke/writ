@@ -439,9 +439,9 @@ Track creation progress with `todo_write`: folder structure, core documents, use
 
 #### Step 2.2: Determine Current Date
 
-Get current date by running: `npx @devobsessed/writ date`
+Use `npx @sellke/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
 
-This returns `YYYY-MM-DD` format for folder naming: `.writ/specs/[DATE]-[feature-name]/`
+This date is used for folder naming: `.writ/specs/[DATE]-[feature-name]/`
 
 Resolve the spec owner from git config before writing `spec.md`:
 

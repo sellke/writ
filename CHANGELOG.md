@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Writ runtime timestamp helper** — added the tiny `@sellke/writ` npm package surface for deterministic `date`, `timestamp`, and compact timestamp output, plus release guidance for public scoped publishing. This is a runtime helper for command metadata and filenames, not a general Writ CLI.
+
+### Changed
+
+- **Date helper references** — active Writ command docs now reference `npx @sellke/writ date` with local system date fallback where package availability should not block work.
+
 ## [0.14.0] - 2026-04-26
 
 ### Added

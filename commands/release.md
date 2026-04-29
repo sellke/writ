@@ -121,6 +121,22 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **On test failure:** Block release. Suggest fixing and re-running, or `--skip-gate` only if the user explicitly accepts skipping validation.
 
+**1.3d: Writ runtime package preflight**
+
+If root `package.json` has `"name": "@sellke/writ"`, run the package contract checks before changelog generation:
+
+```bash
+npm test
+node bin/writ.js date
+node bin/writ.js timestamp
+node bin/writ.js timestamp --compact
+npm pack --dry-run
+```
+
+Verify `npm pack --dry-run` includes only the expected public package surface: `LICENSE`, `README.md`, `bin/writ.js`, and `package.json`.
+
+Do not require npm credentials during the release gate. Publishing is handled after git/GitHub release steps so the package release uses the final version metadata.
+
 **`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
 
 #### Step 1.4: README Freshness Check
@@ -355,6 +371,46 @@ GitHub Release was skipped (gh CLI not available).
 Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERSION}
 ```
 
+#### Step 4.4: Publish Writ Runtime Package (Conditional)
+
+Run this step only when root `package.json` has `"name": "@sellke/writ"`. This package is the timestamp runtime helper for `date`, `timestamp`, and `timestamp --compact`; it is not a Writ command runner.
+
+Before publishing:
+
+```bash
+npm test
+node bin/writ.js date
+node bin/writ.js timestamp
+node bin/writ.js timestamp --compact
+npm pack --dry-run
+npm whoami
+```
+
+If `npm whoami` fails, stop and report:
+
+```
+⚠️ npm publish skipped — not authenticated.
+
+Authenticate with npm using an account that can publish to the @sellke scope, then rerun:
+  npm publish --access public
+```
+
+If authenticated and the package contents are correct, publish the scoped package publicly:
+
+```bash
+npm publish --access public
+```
+
+After publish, verify first-use `npx` resolution from the registry:
+
+```bash
+npx @sellke/writ date
+npx @sellke/writ timestamp
+npx @sellke/writ timestamp --compact
+```
+
+If publish fails because the `@sellke` scope is unavailable or the account lacks access, stop and report the exact npm error. Do not rename the package or add credentials to the repository.
+
 ### Phase 5: Release Summary
 
 ```
@@ -366,6 +422,7 @@ Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERS
 - **README:** ✅ Current / 🔧 Updated (N fixes)
 - **Tag:** v${VERSION} pushed to origin
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
+- **npm Package:** ✅ Published / ⏭️ Skipped (not authenticated or not `@sellke/writ`)
 
 ## Changes Released
 ${changelog_summary}
@@ -418,6 +475,14 @@ Commands that would run:
 - git push origin HEAD
 - git push origin v1.3.0
 - gh release create v1.3.0 ...
+
+If root `package.json` is `@sellke/writ`, package commands that would run:
+- npm test
+- npm pack --dry-run
+- npm publish --access public
+- npx @sellke/writ date
+- npx @sellke/writ timestamp
+- npx @sellke/writ timestamp --compact
 
 Run `/release minor` to execute for real.
 ```
