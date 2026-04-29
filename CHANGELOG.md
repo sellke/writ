@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.16.0] - 2026-04-28
+
+### Added
+
+- **Daily Writ update awareness** — startup instructions now define a quiet first-in-session update check that runs before auto-orientation or command workflows, uses a once-per-day `.writ/state/` cache, and points copied installations to `/update-writ` only when an upstream update appears available. ([Daily Story 1], [Daily Story 2], [Daily Story 3])
+
+### Internal
+
+- **Daily update check spec package** — added the completed spec, technical spec, verification checklist, source issue linkage, and What Was Built records for the startup update awareness work.
+
 ## [0.15.0] - 2026-04-28
 
 ### Added
@@ -73,6 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Organic-validation issues** — two issues track Story 1 (knowledge loading on next
   Phase 5 feature) and Story 5 (remote CI gate). Story 5 confirmed in real-time on
   PR #15 (both eval CI runs PASS, ~6-8s).
+
+[Daily Story 1]: .writ/specs/2026-04-28-daily-writ-update-check/user-stories/story-1-startup-protocol.md
+[Daily Story 2]: .writ/specs/2026-04-28-daily-writ-update-check/user-stories/story-2-cache-and-detection-contract.md
+[Daily Story 3]: .writ/specs/2026-04-28-daily-writ-update-check/user-stories/story-3-verification-and-issue-linkage.md
 
 [Story 1]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-1-knowledge-ledger.md
 [Story 2]: .writ/specs/2026-04-24-phase4-production-grade-substrate/user-stories/story-2-spec-owner-field.md
