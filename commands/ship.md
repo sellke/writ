@@ -203,14 +203,7 @@ Analyze the diff and organize changes into bisectable commits when beneficial. T
 
 **Each intermediate commit should leave the repo in a good state.** When `/ship --test` is used, avoid splits that would leave tests failing midway — merge layers if needed. When `--test` was not used, prioritize **buildability** (no syntax/type errors obvious from the split).
 
-**Commit message format — conventional commits with Writ references:**
-
-```
-feat(auth): add session timeout handling
-
-Implements session expiration with configurable TTL.
-Ref: .writ/specs/2026-03-15-auth-system/story-3-session-management.md
-```
+**Commit message authoring:** `Read skills/conventional-commits/SKILL.md` for the message grammar (type/scope/summary/body/footers) and the project-convention detection step. The skill owns *how to phrase* each commit; this command owns *which* data populates each component and adds the Writ-specific `Ref:` footer when the diff traces back to a spec story.
 
 | Component | Source |
 |---|---|
@@ -220,7 +213,12 @@ Ref: .writ/specs/2026-03-15-auth-system/story-3-session-management.md
 | Body | Brief elaboration if the summary isn't self-explanatory |
 | Ref | Link to `.writ/specs/` story file if available |
 
-I recommend **conventional commits** because they're machine-parseable (changelogs, release notes) and human-scannable. If the project already uses a different convention (detected from recent commit history), match that instead.
+```
+feat(auth): add session timeout handling
+
+Implements session expiration with configurable TTL.
+Ref: .writ/specs/2026-03-15-auth-system/story-3-session-management.md
+```
 
 **Splitting workflow:**
 

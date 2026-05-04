@@ -31,6 +31,20 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 
 The deeper goal: **code and methodology that doesn't degrade as projects, teams, and AI platforms churn around them.** Specs, decisions, and accumulated knowledge live as plain-text markdown in git — designed to survive any tooling shift.
 
+## Three Primitives — Verb / Noun / Tool
+
+Writ has three first-class building blocks. Each plays a distinct role and the boundary between them is enforced by tooling, not just discipline.
+
+| Primitive | Grammar | What it is | Example |
+|---|---|---|---|
+| **Command** | Verb | A user-invoked workflow with phases and durable artifacts | `/create-spec`, `/implement-spec`, `/release` |
+| **Agent** | Noun | A role with inherent behavior, spawned by a command for a phase | `coding-agent`, `review-agent`, `architecture-check-agent` |
+| **Skill** | Tool | A reusable capability — *how to do a specific thing well* | (proposed) `tdd-cycle`, `conventional-commits`, `adr-writing` |
+
+> Workflow → command. Role → agent. Capability → skill.
+
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; pilot extractions land in subsequent specs.
+
 ## Key Features
 
 - **Contract-first specifications** — No code until requirements are agreed upon

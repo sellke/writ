@@ -95,6 +95,11 @@ commands:
     category: setup
     purpose: "Create new Writ command files that follow repository conventions."
     tags: [setup, commands, authoring]
+  - name: new-skill
+    file: commands/new-skill.md
+    category: setup
+    purpose: "Scaffold new Writ skills with the role convention enforced via boundary lint."
+    tags: [setup, skills, authoring]
   - name: plan-product
     file: commands/plan-product.md
     category: planning
@@ -205,3 +210,18 @@ agents:
     file: agents/visual-qa-agent.md
     purpose: "Optional UI validation gate that compares implementation screenshots against visual references."
     model: inherit
+
+# Skills — capability files (SKILL.md format) loaded explicitly by commands and agents.
+# Schema (additive — backward compatible):
+#   - name: <kebab-case-name>          # required, unique across commands/agents/skills
+#     file: skills/<name>/SKILL.md     # required, must exist on disk
+#     description: "<verb-phrase>"     # required, non-empty (see ADR-009 boundary convention)
+#     tags: [<tag1>, <tag2>]           # optional
+#     aliases: [<alias1>]              # optional
+# Empty list (`skills: []`) is valid and produces no Skills section in the root SKILL.md.
+# See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
+skills:
+  - name: conventional-commits
+    file: skills/conventional-commits/SKILL.md
+    description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
+    tags: [git, commits, changelog]

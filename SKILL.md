@@ -98,6 +98,7 @@ When a user requests any Writ command, read the corresponding command file and f
 | `/explain-code` | `commands/explain-code.md` | Explain existing code, symbols, files, or line ranges without modifying them. |
 | `/initialize` | `commands/initialize.md` | Initialize Writ project structure and configuration. |
 | `/new-command` | `commands/new-command.md` | Create new Writ command files that follow repository conventions. |
+| `/new-skill` | `commands/new-skill.md` | Scaffold new Writ skills with the role convention enforced via boundary lint. |
 | `/refresh-command` | `commands/refresh-command.md` | Turn command usage experience into concrete local command improvements. |
 | `/reinstall-writ` | `commands/reinstall-writ.md` | Remove and reinstall Writ platform files from a clean upstream baseline. |
 | `/status` | `commands/status.md` | Report current project state, active specs, in-flight work, and next actions. |
@@ -121,6 +122,12 @@ When a user requests any Writ command, read the corresponding command file and f
 | testing-agent | `agents/testing-agent.md` | default | Test and coverage agent that verifies pass rate, regressions, and coverage thresholds. |
 | user-story-generator | `agents/user-story-generator.md` | fast | Parallel story authoring agent for create-spec workflows. |
 | visual-qa-agent | `agents/visual-qa-agent.md` | inherit | Optional UI validation gate that compares implementation screenshots against visual references. |
+
+## Available Skills
+
+| Skill | File | Description |
+|-------|------|-------------|
+| `conventional-commits` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
 
 ## Platform Adapters
 

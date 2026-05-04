@@ -163,6 +163,18 @@ EOF
     echo "$(hash_file "$f")  $rel" >> "$target"
   done
 
+  local skill_folder skill_name src_skill
+  if [ -d "$PLATFORM_DIR/skills" ]; then
+    for skill_folder in "$PLATFORM_DIR"/skills/*/; do
+      [ -d "$skill_folder" ] || continue
+      skill_name=$(basename "$skill_folder")
+      src_skill="${skill_folder}SKILL.md"
+      [ -f "$src_skill" ] || continue
+      rel="skills/$skill_name/SKILL.md"
+      echo "$(hash_file "$src_skill")  $rel" >> "$target"
+    done
+  fi
+
   if [ "$PLATFORM" = "cursor" ]; then
     for f in "$PLATFORM_DIR"/rules/writ.mdc "$PLATFORM_DIR"/system-instructions.md; do
       [ -f "$f" ] || continue
@@ -286,6 +298,70 @@ overlay_scan() {
   done
 }
 
+# Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
+overlay_scan_skills() {
+  local src_dir="$1" local_dir="$2" mode="$3"
+  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
+  _PRESERVED_FILES=""
+
+  local skill_folder skill_name src_skill local_skill rel_path upstream_hash local_hash baseline_hash
+  local sidecar sidecar_name
+  for skill_folder in "$src_dir"/*/; do
+    [ -d "$skill_folder" ] || continue
+    skill_name=$(basename "$skill_folder")
+    src_skill="${skill_folder}SKILL.md"
+    [ -f "$src_skill" ] || continue
+
+    local_skill="$local_dir/$skill_name/SKILL.md"
+    rel_path="skills/$skill_name/SKILL.md"
+    upstream_hash=$(hash_file "$src_skill")
+
+    if [ ! -f "$local_skill" ]; then
+      _NEW=$((_NEW + 1))
+      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
+      if [ "$mode" = "apply" ]; then
+        mkdir -p "$local_dir/$skill_name"
+        cp "$src_skill" "$local_skill"
+        for sidecar in "$skill_folder".[!.]* "$skill_folder"*; do
+          [ -e "$sidecar" ] || continue
+          sidecar_name=$(basename "$sidecar")
+          [ "$sidecar_name" = "SKILL.md" ] && continue
+          [ -d "$sidecar" ] && continue
+          cp "$sidecar" "$local_dir/$skill_name/$sidecar_name"
+        done
+      fi
+      continue
+    fi
+
+    local_hash=$(hash_file "$local_skill")
+
+    if [ "$local_hash" = "$upstream_hash" ]; then
+      _UNCHANGED=$((_UNCHANGED + 1))
+      continue
+    fi
+
+    baseline_hash=$(manifest_hash_for "$rel_path")
+
+    if [ "$FORCE" = true ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_skill" "$local_skill"; fi
+    elif [ -z "$baseline_hash" ]; then
+      _PRESERVED=$((_PRESERVED + 1))
+      _PRESERVED_FILES="${_PRESERVED_FILES}    ${rel_path}\n"
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
+    elif [ "$local_hash" = "$baseline_hash" ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_skill" "$local_skill"; fi
+    else
+      _PRESERVED=$((_PRESERVED + 1))
+      _PRESERVED_FILES="${_PRESERVED_FILES}    ${rel_path}\n"
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
+    fi
+  done
+}
+
 # ---------------------------------------------------------------------------
 # Stale file detection — files in manifest but removed upstream
 # ---------------------------------------------------------------------------
@@ -310,6 +386,11 @@ detect_stale_files() {
     case "$category" in
       commands) upstream_file="$WRIT_SRC/commands/$(basename "$manifest_path")" ;;
       agents)   upstream_file="$WRIT_SRC/$AGENTS_SRC/$(basename "$manifest_path")" ;;
+      skills)
+        # manifest_path looks like: skills/<name>/SKILL.md
+        skill_subpath="${manifest_path#skills/}"
+        upstream_file="$WRIT_SRC/skills/$skill_subpath"
+        ;;
       rules)    upstream_file="$WRIT_SRC/cursor/$(basename "$manifest_path")" ;;
       CLAUDE.md) upstream_file="$WRIT_SRC/claude-code/CLAUDE.md" ;;
       *)        continue ;;
@@ -347,6 +428,24 @@ TOTAL_UPDATED=$((TOTAL_UPDATED + _UPDATED))
 TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
 ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}${_PRESERVED_FILES}"
 AGENT_UNCHANGED=$_UNCHANGED
+
+SKILL_UNCHANGED=0
+if [ -d "$WRIT_SRC/skills" ]; then
+  has_skills=false
+  for d in "$WRIT_SRC/skills"/*/; do
+    [ -d "$d" ] && [ -f "${d}SKILL.md" ] && { has_skills=true; break; }
+  done
+  if [ "$has_skills" = true ]; then
+    mkdir -p "$PLATFORM_DIR/skills"
+    echo "  Skills:"
+    overlay_scan_skills "$WRIT_SRC/skills" "$PLATFORM_DIR/skills" "preview"
+    TOTAL_NEW=$((TOTAL_NEW + _NEW))
+    TOTAL_UPDATED=$((TOTAL_UPDATED + _UPDATED))
+    TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
+    ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}${_PRESERVED_FILES}"
+    SKILL_UNCHANGED=$_UNCHANGED
+  fi
+fi
 
 # Platform-specific special files with three-way logic
 if [ "$PLATFORM" = "cursor" ]; then
@@ -499,6 +598,17 @@ echo "Updating..."
 overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply"
 
+if [ -d "$WRIT_SRC/skills" ]; then
+  has_skills=false
+  for d in "$WRIT_SRC/skills"/*/; do
+    [ -d "$d" ] && [ -f "${d}SKILL.md" ] && { has_skills=true; break; }
+  done
+  if [ "$has_skills" = true ]; then
+    mkdir -p "$PLATFORM_DIR/skills"
+    overlay_scan_skills "$WRIT_SRC/skills" "$PLATFORM_DIR/skills" "apply"
+  fi
+fi
+
 UPDATES=0
 
 if [ "$PLATFORM" = "cursor" ]; then
@@ -555,6 +665,7 @@ fi
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" "$MANIFEST_FILE" 2>/dev/null || true
+  [ -d "$PLATFORM_DIR/skills" ] && git add "$PLATFORM_DIR/skills/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "claude" ]; then

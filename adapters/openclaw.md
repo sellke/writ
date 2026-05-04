@@ -234,6 +234,48 @@ sessions_spawn({
 
 ---
 
+## Skills
+
+Skills are the third Writ primitive (peer to commands and agents) — capability files that describe how to do a specific thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
+
+### Install Path
+
+```
+.openclaw/skills/<name>/SKILL.md
+```
+
+> **Status note:** OpenClaw is one of ADR-009's four target platforms but isn't currently a `--platform` flag in `install.sh`. The path above is the conceptual install location for ADR consistency; actual install fanout to OpenClaw is blocked on a future OpenClaw install adapter (separate spec). Until then, OpenClaw users wire skills manually following the same `<name>/SKILL.md` layout.
+
+### Loading Mechanism
+
+OpenClaw's session loader reads files from the project workspace on demand — there is no built-in `<agent_skills>` ambient discovery channel like Cursor. Skills are loaded via explicit `Read` calls when a command or agent needs them.
+
+**Writ-authored skills set `disable-model-invocation: true`** in frontmatter for cross-platform consistency, even though OpenClaw doesn't currently auto-invoke skills. The flag makes the explicit-invocation policy portable: the same SKILL.md works correctly on Cursor, Claude Code, and OpenClaw without per-platform frontmatter variants. Community skills installed by other means follow whatever invocation behavior their installer configured.
+
+### Invocation
+
+Commands and agents that need a skill load it explicitly. In OpenClaw, the `Read` tool maps directly:
+
+```
+Read({ path: "skills/<name>/SKILL.md" })
+```
+
+For sub-agents spawned via `sessions_spawn`, the orchestrator includes the skill content (or an explicit `Read` instruction) in the spawn prompt — sub-agents inherit context only through the prompt, not via shared session state.
+
+For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the orchestrator pre-loads each named skill via `Read` before spawning the consumer session. `required_skills:` is reserve-only in the foundation spec; pilot skills will adopt it as they ship.
+
+### Authoring & Reference
+
+| Need | Tool |
+|---|---|
+| Scaffold a new skill | `/new-skill <name>` (boundary lint enforced at authoring time) |
+| Lint an existing skill against the role convention | `/refresh-command` → boundary check |
+| Cross-platform format spec | [AgentSkills standard](https://agentskills.io) |
+| Boundary rationale | [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) |
+| User-facing explainer | [`.writ/docs/skills.md`](../.writ/docs/skills.md) |
+
+---
+
 ## Workflow Patterns
 
 ### implement-story Full Flow
