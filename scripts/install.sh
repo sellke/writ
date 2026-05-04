@@ -145,6 +145,18 @@ EOF
     echo "$(hash_file "$f")  $rel" >> "$target"
   done
 
+  local skill_folder skill_name src_skill
+  if [ -d "$PLATFORM_DIR/skills" ]; then
+    for skill_folder in "$PLATFORM_DIR"/skills/*/; do
+      [ -d "$skill_folder" ] || continue
+      skill_name=$(basename "$skill_folder")
+      src_skill="${skill_folder}SKILL.md"
+      [ -f "$src_skill" ] || continue
+      rel="skills/$skill_name/SKILL.md"
+      echo "$(hash_file "$src_skill")  $rel" >> "$target"
+    done
+  fi
+
   if [ "$PLATFORM" = "cursor" ]; then
     for f in "$PLATFORM_DIR"/rules/writ.mdc "$PLATFORM_DIR"/system-instructions.md; do
       [ -f "$f" ] || continue
@@ -200,9 +212,14 @@ CMD_COUNT=0
 for f in "$WRIT_SRC/commands"/*.md; do [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1)); done
 AGENT_COUNT=0
 for f in "$WRIT_SRC/$AGENTS_SRC"/*.md; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
+SKILL_COUNT=0
+if [ -d "$WRIT_SRC/skills" ]; then
+  for d in "$WRIT_SRC/skills"/*/; do [ -d "$d" ] && [ -f "${d}SKILL.md" ] && SKILL_COUNT=$((SKILL_COUNT + 1)); done
+fi
 
 echo "  📋 Commands:  $CMD_COUNT"
 echo "  🤖 Agents:    $AGENT_COUNT"
+[ "$SKILL_COUNT" -gt 0 ] && echo "  📜 Skills:    $SKILL_COUNT"
 if [ "$PLATFORM" = "cursor" ]; then
   echo "  📜 Rules:     1 (writ.mdc)"
   echo "  📖 System:    1 (system-instructions.md)"
@@ -301,13 +318,76 @@ overlay_scan() {
   done
 }
 
+# Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
+# Mirrors overlay_scan semantics for SKILL.md; never overwrites sidecar files after first install.
+overlay_scan_skills() {
+  local src_dir="$1" local_dir="$2" mode="$3"
+  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
+
+  local skill_folder skill_name src_skill local_skill rel_path upstream_hash local_hash baseline_hash
+  local sidecar sidecar_name local_sidecar
+  for skill_folder in "$src_dir"/*/; do
+    [ -d "$skill_folder" ] || continue
+    skill_name=$(basename "$skill_folder")
+    src_skill="${skill_folder}SKILL.md"
+    [ -f "$src_skill" ] || continue
+
+    local_skill="$local_dir/$skill_name/SKILL.md"
+    rel_path="skills/$skill_name/SKILL.md"
+    upstream_hash=$(hash_file "$src_skill")
+
+    if [ ! -f "$local_skill" ]; then
+      _NEW=$((_NEW + 1))
+      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
+      if [ "$mode" = "apply" ]; then
+        mkdir -p "$local_dir/$skill_name"
+        cp "$src_skill" "$local_skill"
+        # Sidecar files copied on first install only
+        for sidecar in "$skill_folder".[!.]* "$skill_folder"*; do
+          [ -e "$sidecar" ] || continue
+          sidecar_name=$(basename "$sidecar")
+          [ "$sidecar_name" = "SKILL.md" ] && continue
+          [ -d "$sidecar" ] && continue
+          cp "$sidecar" "$local_dir/$skill_name/$sidecar_name"
+        done
+      fi
+      continue
+    fi
+
+    local_hash=$(hash_file "$local_skill")
+
+    if [ "$local_hash" = "$upstream_hash" ]; then
+      _UNCHANGED=$((_UNCHANGED + 1))
+      continue
+    fi
+
+    baseline_hash=$(manifest_hash_for "$rel_path")
+
+    if [ "$FORCE" = true ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_skill" "$local_skill"; fi
+    elif [ -z "$baseline_hash" ]; then
+      _PRESERVED=$((_PRESERVED + 1))
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
+    elif [ "$local_hash" = "$baseline_hash" ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
+      if [ "$mode" = "apply" ];   then cp "$src_skill" "$local_skill"; fi
+    else
+      _PRESERVED=$((_PRESERVED + 1))
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
+    fi
+  done
+}
+
 # --- Dry run ---
 
 if [ "$DRY_RUN" = true ]; then
   echo "🏃 DRY RUN — No changes will be made"
   echo ""
   if [ "$EXISTING_MODE" = "link" ]; then
-    echo "  Would replace symlinks with copies ($CMD_COUNT commands, $AGENT_COUNT agents)."
+    echo "  Would replace symlinks with copies ($CMD_COUNT commands, $AGENT_COUNT agents$([ "$SKILL_COUNT" -gt 0 ] && echo ", $SKILL_COUNT skills"))."
   else
     echo "  Commands:"
     overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
@@ -315,6 +395,11 @@ if [ "$DRY_RUN" = true ]; then
     echo "  Agents:"
     overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview"
     echo ""
+    if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
+      echo "  Skills:"
+      overlay_scan_skills "$WRIT_SRC/skills" "$PLATFORM_DIR/skills" "preview"
+      echo ""
+    fi
     if [ "$PLATFORM" = "cursor" ]; then
       echo "  Rules:   writ.mdc → always updated"
       echo "  System:  system-instructions.md → always updated"
@@ -341,6 +426,13 @@ if [ "$EXISTING_MODE" = "link" ]; then
   for f in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
     [ -L "$f" ] && rm -f "$f"
   done
+  if [ -d "$PLATFORM_DIR/skills" ] || [ -L "$PLATFORM_DIR/skills" ]; then
+    for skill_folder in "$PLATFORM_DIR"/skills/*/; do
+      [ -L "${skill_folder%/}" ] && rm -f "${skill_folder%/}"
+      [ -L "${skill_folder}SKILL.md" ] && rm -f "${skill_folder}SKILL.md"
+    done
+    [ -L "$PLATFORM_DIR/skills" ] && rm -f "$PLATFORM_DIR/skills"
+  fi
   if [ "$PLATFORM" = "cursor" ]; then
     for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
       [ -L "$f" ] && rm -f "$f"
@@ -351,9 +443,14 @@ if [ "$EXISTING_MODE" = "link" ]; then
 fi
 
 mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
+[ -d "$WRIT_SRC/skills" ] && mkdir -p "$PLATFORM_DIR/skills"
 [ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
 
-STEP_TOTAL=5
+if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
+  STEP_TOTAL=6
+else
+  STEP_TOTAL=5
+fi
 STEP=0
 
 STEP=$((STEP + 1))
@@ -365,6 +462,14 @@ STEP=$((STEP + 1))
 echo "  [$STEP/$STEP_TOTAL] Agents..."
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply"
 AGENT_NEW=$_NEW; AGENT_UPDATED=$_UPDATED; AGENT_PRESERVED=$_PRESERVED
+
+SKILL_NEW=0; SKILL_UPDATED=0; SKILL_PRESERVED=0
+if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
+  STEP=$((STEP + 1))
+  echo "  [$STEP/$STEP_TOTAL] Skills..."
+  overlay_scan_skills "$WRIT_SRC/skills" "$PLATFORM_DIR/skills" "apply"
+  SKILL_NEW=$_NEW; SKILL_UPDATED=$_UPDATED; SKILL_PRESERVED=$_PRESERVED
+fi
 
 STEP=$((STEP + 1))
 if [ "$PLATFORM" = "cursor" ]; then
@@ -392,9 +497,9 @@ init_writ_workspace
 echo ""
 echo "✅ Writ installed for $PLATFORM_LABEL! (version: $VERSION)"
 
-TOTAL_NEW=$((CMD_NEW + AGENT_NEW))
-TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED))
-TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED))
+TOTAL_NEW=$((CMD_NEW + AGENT_NEW + SKILL_NEW))
+TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED + SKILL_UPDATED))
+TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED + SKILL_PRESERVED))
 
 if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" -gt 0 ]; then
   echo ""
@@ -402,6 +507,9 @@ if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" 
   [ "$TOTAL_NEW" -gt 0 ]       && echo "     $TOTAL_NEW new file(s) installed"
   [ "$TOTAL_UPDATED" -gt 0 ]   && echo "     $TOTAL_UPDATED file(s) updated"
   [ "$TOTAL_PRESERVED" -gt 0 ] && echo "     $TOTAL_PRESERVED file(s) preserved (local modifications kept)"
+  if [ "$SKILL_NEW" -gt 0 ] || [ "$SKILL_UPDATED" -gt 0 ] || [ "$SKILL_PRESERVED" -gt 0 ]; then
+    echo "     Skills: $SKILL_NEW new, $SKILL_UPDATED updated, $SKILL_PRESERVED preserved"
+  fi
   if [ "$TOTAL_PRESERVED" -gt 0 ]; then
     echo ""
     echo "  💡 To reset a file to core: delete it and re-run install."
@@ -413,6 +521,7 @@ fi
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" 2>/dev/null || true
+  [ -d "$PLATFORM_DIR/skills" ] && git add "$PLATFORM_DIR/skills/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "claude" ]; then

@@ -36,6 +36,12 @@ AGENT_FILES=()
 AGENT_PURPOSES=()
 AGENT_MODELS=()
 
+SKILL_NAMES=()
+SKILL_FILES=()
+SKILL_DESCRIPTIONS=()
+SKILL_TAGS=()
+SKILL_ALIASES=()
+
 usage() {
   echo "Usage: bash scripts/gen-skill.sh [--dry-run] [--check]"
   echo ""
@@ -140,6 +146,16 @@ parse_with_yq() {
     AGENT_PURPOSES+=("$purpose")
     AGENT_MODELS+=("$model")
   done < <(yq_read ".agents[] | [.name, .file, .purpose, .model] | @tsv")
+
+  if yq_read ".skills" >/dev/null 2>&1 && [ "$(yq_read '.skills | length // 0')" != "0" ]; then
+    while IFS=$'\t' read -r name file description tags aliases; do
+      SKILL_NAMES+=("$name")
+      SKILL_FILES+=("$file")
+      SKILL_DESCRIPTIONS+=("$description")
+      SKILL_TAGS+=("${tags:-}")
+      SKILL_ALIASES+=("${aliases:-}")
+    done < <(yq_read ".skills[] | [.name, .file, .description, ((.tags // []) | join(\",\")), ((.aliases // []) | join(\",\"))] | @tsv")
+  fi
 }
 
 reset_command_item() {
@@ -195,12 +211,33 @@ flush_category_item() {
   reset_category_item
 }
 
+reset_skill_item() {
+  _SKILL_STARTED="false"
+  _SKILL_NAME=""
+  _SKILL_FILE=""
+  _SKILL_DESCRIPTION=""
+  _SKILL_TAGS=""
+  _SKILL_ALIASES=""
+}
+
+flush_skill_item() {
+  if [ "${_SKILL_STARTED:-false}" = "true" ]; then
+    SKILL_NAMES+=("$_SKILL_NAME")
+    SKILL_FILES+=("$_SKILL_FILE")
+    SKILL_DESCRIPTIONS+=("$_SKILL_DESCRIPTION")
+    SKILL_TAGS+=("$_SKILL_TAGS")
+    SKILL_ALIASES+=("$_SKILL_ALIASES")
+  fi
+  reset_skill_item
+}
+
 parse_with_bash() {
   local section="" raw line key value
 
   reset_command_item
   reset_agent_item
   reset_category_item
+  reset_skill_item
 
   while IFS= read -r raw || [ -n "$raw" ]; do
     line="$(trim "$raw")"
@@ -216,6 +253,7 @@ parse_with_bash() {
         flush_command_item
         flush_agent_item
         flush_category_item
+        flush_skill_item
         section="metadata"
         continue
         ;;
@@ -223,6 +261,7 @@ parse_with_bash() {
         flush_command_item
         flush_agent_item
         flush_category_item
+        flush_skill_item
         section="categories"
         continue
         ;;
@@ -230,6 +269,7 @@ parse_with_bash() {
         flush_command_item
         flush_agent_item
         flush_category_item
+        flush_skill_item
         section="commands"
         continue
         ;;
@@ -237,7 +277,24 @@ parse_with_bash() {
         flush_command_item
         flush_agent_item
         flush_category_item
+        flush_skill_item
         section="agents"
+        continue
+        ;;
+      skills:)
+        flush_command_item
+        flush_agent_item
+        flush_category_item
+        flush_skill_item
+        section="skills"
+        continue
+        ;;
+      "skills: []")
+        flush_command_item
+        flush_agent_item
+        flush_category_item
+        flush_skill_item
+        section=""
         continue
         ;;
     esac
@@ -306,12 +363,36 @@ parse_with_bash() {
           _AGENT_MODEL="$(strip_value "${line#model:}")"
         fi
         ;;
+      skills)
+        if [[ "$line" == "- name:"* ]]; then
+          flush_skill_item
+          _SKILL_STARTED="true"
+          _SKILL_NAME="$(strip_value "${line#- name:}")"
+        elif [[ "$line" == "- file:"* ]]; then
+          flush_skill_item
+          _SKILL_STARTED="true"
+          _SKILL_FILE="$(strip_value "${line#- file:}")"
+        elif [[ "$line" == "file:"* ]]; then
+          _SKILL_STARTED="true"
+          _SKILL_FILE="$(strip_value "${line#file:}")"
+        elif [[ "$line" == "description:"* ]]; then
+          _SKILL_STARTED="true"
+          _SKILL_DESCRIPTION="$(strip_value "${line#description:}")"
+        elif [[ "$line" == "tags:"* ]]; then
+          _SKILL_STARTED="true"
+          _SKILL_TAGS="$(strip_value "${line#tags:}")"
+        elif [[ "$line" == "aliases:"* ]]; then
+          _SKILL_STARTED="true"
+          _SKILL_ALIASES="$(strip_value "${line#aliases:}")"
+        fi
+        ;;
     esac
   done < "$MANIFEST_FILE"
 
   flush_command_item
   flush_agent_item
   flush_category_item
+  flush_skill_item
 }
 
 category_exists() {
@@ -395,6 +476,46 @@ validate_manifest() {
       echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) references missing file '${AGENT_FILES[$i]}'" >&2
       exit 1
     fi
+  done
+
+  for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
+    if [ -z "${SKILL_NAMES[$i]}" ]; then
+      echo "YAML error: skills[$i] missing required field 'name'" >&2
+      exit 1
+    fi
+    if [ -z "${SKILL_FILES[$i]}" ]; then
+      echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) missing required field 'file'" >&2
+      exit 1
+    fi
+    if [ -z "${SKILL_DESCRIPTIONS[$i]}" ]; then
+      echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) missing required field 'description'" >&2
+      exit 1
+    fi
+    path="$PROJECT_ROOT/${SKILL_FILES[$i]}"
+    if [ ! -f "$path" ]; then
+      echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) references missing file '${SKILL_FILES[$i]}'" >&2
+      exit 1
+    fi
+
+    local j
+    for ((j = 0; j < ${#COMMAND_NAMES[@]}; j++)); do
+      if [ "${SKILL_NAMES[$i]}" = "${COMMAND_NAMES[$j]}" ]; then
+        echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) name conflicts with existing command" >&2
+        exit 1
+      fi
+    done
+    for ((j = 0; j < ${#AGENT_NAMES[@]}; j++)); do
+      if [ "${SKILL_NAMES[$i]}" = "${AGENT_NAMES[$j]}" ]; then
+        echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) name conflicts with existing agent" >&2
+        exit 1
+      fi
+    done
+    for ((j = 0; j < i; j++)); do
+      if [ "${SKILL_NAMES[$i]}" = "${SKILL_NAMES[$j]}" ]; then
+        echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) duplicate skill name" >&2
+        exit 1
+      fi
+    done
   done
 }
 
@@ -497,6 +618,19 @@ EOF
   for ((i = 0; i < ${#AGENT_NAMES[@]}; i++)); do
     echo "| ${AGENT_NAMES[$i]} | \`${AGENT_FILES[$i]}\` | ${AGENT_MODELS[$i]} | ${AGENT_PURPOSES[$i]} |"
   done
+
+  if [ ${#SKILL_NAMES[@]} -gt 0 ]; then
+    cat <<'EOF'
+
+## Available Skills
+
+| Skill | File | Description |
+|-------|------|-------------|
+EOF
+    for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
+      echo "| \`${SKILL_NAMES[$i]}\` | \`${SKILL_FILES[$i]}\` | ${SKILL_DESCRIPTIONS[$i]} |"
+    done
+  fi
 
   cat <<'EOF'
 
