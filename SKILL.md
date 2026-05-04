@@ -123,6 +123,12 @@ When a user requests any Writ command, read the corresponding command file and f
 | user-story-generator | `agents/user-story-generator.md` | fast | Parallel story authoring agent for create-spec workflows. |
 | visual-qa-agent | `agents/visual-qa-agent.md` | inherit | Optional UI validation gate that compares implementation screenshots against visual references. |
 
+## Available Skills
+
+| Skill | File | Description |
+|-------|------|-------------|
+| `conventional-commits` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
+
 ## Platform Adapters
 
 Writ commands use platform-agnostic tool references. Translate to your platform:

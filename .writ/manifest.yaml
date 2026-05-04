@@ -220,4 +220,8 @@ agents:
 #     aliases: [<alias1>]              # optional
 # Empty list (`skills: []`) is valid and produces no Skills section in the root SKILL.md.
 # See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
-skills: []
+skills:
+  - name: conventional-commits
+    file: skills/conventional-commits/SKILL.md
+    description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
+    tags: [git, commits, changelog]
