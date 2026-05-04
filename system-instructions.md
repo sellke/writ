@@ -160,3 +160,44 @@ When first invoked in a session without a specific command (e.g., user just open
 3. **Suggested next action** — based on what's in progress (e.g., "Story 3 of auth-refactor is next" or "No active specs — ready for a new task")
 
 Keep it to 3 lines max. This is NOT the full `/status` command — it's a quick context snapshot so the developer doesn't start cold.
+
+## Skills
+
+Writ has three first-class primitives — **commands** (verb), **agents** (noun), and **skills** (tool). Skills are capability files in `skills/<name>/SKILL.md` that describe how to do a specific thing well. They are *not* workflows and *not* roles. See `.writ/decision-records/adr-009-command-agent-skill-boundary.md` for the boundary rationale and `.writ/docs/skills.md` for the user-facing explainer.
+
+### `required_skills:` frontmatter convention
+
+Commands and agents may declare a `required_skills:` array in their frontmatter to have the harness pre-load named skills before the consumer's first phase begins:
+
+```yaml
+---
+name: example-agent
+required_skills:
+  - tdd-cycle
+  - conventional-commits
+---
+```
+
+**Schema:**
+
+- `required_skills` is an **optional** array of strings.
+- Values are skill names matching `name:` entries in `.writ/manifest.yaml`.
+- Order is **preserved** — downstream tooling may use it for load priority.
+- Duplicates are **silently deduplicated**.
+- Unknown skill names produce a **warning** at consumer load time, not a hard failure (graceful degradation: a pilot extraction may rename a skill mid-flight; consumers shouldn't break catastrophically).
+
+**Harness contract:**
+
+When a consumer with `required_skills: [foo]` is invoked, the harness loads `skills/foo/SKILL.md` (typically via `Read skills/foo/SKILL.md`) and makes it accessible to the agent before any phase work begins. Per-platform mechanism is documented in each adapter's Skills → Invocation subsection (`adapters/cursor.md`, `adapters/claude-code.md`, `adapters/openclaw.md`).
+
+Without the field, agents and commands continue to inline `Read skills/<name>/SKILL.md` instructions in their prompts at the point where the skill is needed.
+
+**Status: reserve-only.** As of the foundation spec (`2026-05-03-skills-foundation`), this convention is documented but *not adopted by any existing agent or command*. Adoption happens organically during pilot skill extraction (separate specs). Defining the schema now prevents pilot specs from inventing competing conventions.
+
+> **Review trigger: 2026-08-03** (90 days post-ship). If no agent or command has adopted `required_skills:` by this date, deprecate or revisit the convention. Date matches ADR-009's review discipline.
+
+### Skill authoring
+
+Use `/new-skill <name>` to scaffold a new skill with the role convention (verb-phrase description, `disable-model-invocation: true` frontmatter, boundary lint enforced at authoring time). `/refresh-command` includes a boundary check that lints existing skills.
+
+Writ-authored SKILL.md files set `disable-model-invocation: true` so platforms with skill auto-discovery don't ambient-load them. Every skill load is explicit and traceable.

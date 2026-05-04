@@ -121,6 +121,46 @@ When a Writ command uses Plan Mode for discovery (e.g., `/create-spec` Phase 1, 
 
 **Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
 
+## Skills
+
+Skills are the third Writ primitive (peer to commands and agents) — capability files that describe how to do a specific thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
+
+### Install Path
+
+```
+.cursor/skills/<name>/SKILL.md
+```
+
+`install.sh` and `update.sh` fan skills out alongside commands and agents using the same three-way overlay logic — local modifications to `.cursor/skills/<name>/SKILL.md` are preserved across updates. Sidecar files inside a skill folder (anything that isn't `SKILL.md`) are install-once: they're copied on first install and never overwritten on subsequent updates.
+
+### Loading Mechanism
+
+Cursor exposes installed skills via the `<agent_skills>` system context block. This means Cursor's auto-discovery will surface skill `description:` text to the model and make it eligible for ambient invocation by description match.
+
+**Writ-authored skills opt out of ambient invocation** by setting `disable-model-invocation: true` in their frontmatter. This keeps every skill load deterministic and traceable in transcripts — agents and commands name skills explicitly when they need them. Community skills installed by other means (e.g. `clawhub`, `agentskills.io` catalogs) are out of Writ's control and follow whatever invocation behavior their installer configured.
+
+### Invocation
+
+Commands and agents that need a skill load it explicitly:
+
+```
+Read skills/<name>/SKILL.md
+```
+
+The orchestrator (or command body) issues the `Read` call when the relevant phase begins. The skill's content is then in the agent's context for that phase.
+
+For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness pre-loads each named skill before the consumer's first phase begins. `required_skills:` is reserve-only in the foundation spec; pilot skills will adopt it as they ship.
+
+### Authoring & Reference
+
+| Need | Tool |
+|---|---|
+| Scaffold a new skill | `/new-skill <name>` (boundary lint enforced at authoring time) |
+| Lint an existing skill against the role convention | `/refresh-command` → boundary check |
+| Cross-platform format spec | [AgentSkills standard](https://agentskills.io) |
+| Boundary rationale | [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) |
+| User-facing explainer | [`.writ/docs/skills.md`](../.writ/docs/skills.md) |
+
 ## Project Initialization
 
 For a new project, run these in order:
