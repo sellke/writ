@@ -121,23 +121,9 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **On test failure:** Block release. Suggest fixing and re-running, or `--skip-gate` only if the user explicitly accepts skipping validation.
 
-**1.3d: Writ runtime package preflight**
-
-If root `package.json` has `"name": "@sellke/writ"`, run the package contract checks before changelog generation:
-
-```bash
-npm test
-node bin/writ.js date
-node bin/writ.js timestamp
-node bin/writ.js timestamp --compact
-npm pack --dry-run
-```
-
-Verify `npm pack --dry-run` includes only the expected public package surface: `LICENSE`, `README.md`, `bin/writ.js`, and `package.json`.
-
-Do not require npm credentials during the release gate. Publishing is handled after git/GitHub release steps so the package release uses the final version metadata.
-
 **`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
+
+> **Note on the `@sellke/writ` runtime helper.** This repo also ships a tiny npm package (`@sellke/writ`) for deterministic dates/timestamps. It is **decoupled from `/release`** — Writ methodology releases do not run npm preflight, do not bump `package.json#version`, and do not publish to npm. See [Runtime Helper Publish (manual)](#runtime-helper-publish-manual) at the end of this file.
 
 #### Step 1.4: README Freshness Check
 
@@ -306,12 +292,16 @@ AskQuestion({
 
 ```bash
 # Node/Bun — package.json (and package-lock.json / bun.lock if present)
-npm version ${VERSION} --no-git-tag-version 2>/dev/null || \
-  jq ".version = \"${VERSION}\"" package.json > tmp && mv tmp package.json
-
-# Also check for version in:
-# - package-lock.json
-# - bun.lock (may auto-update on next install)
+# SKIP this entire block when root package.json is the @sellke/writ runtime helper:
+# its npm version is decoupled from the Writ methodology version (see end of file).
+PKG_NAME=$(command -v jq >/dev/null 2>&1 && jq -r '.name // ""' package.json 2>/dev/null || echo "")
+if [ "$PKG_NAME" != "@sellke/writ" ]; then
+  npm version ${VERSION} --no-git-tag-version 2>/dev/null || \
+    jq ".version = \"${VERSION}\"" package.json > tmp && mv tmp package.json
+  # Also check for version in:
+  # - package-lock.json
+  # - bun.lock (may auto-update on next install)
+fi
 
 # Python — pyproject.toml
 sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
@@ -319,9 +309,11 @@ sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
 # Rust — Cargo.toml
 sed -i "s/^version = .*/version = \"${VERSION}\"/" Cargo.toml
 
-# VERSION file
+# VERSION file (always — methodology source of truth)
 echo "${VERSION}" > VERSION
 ```
+
+> When `package.json#name == "@sellke/writ"`, the Step 2.3 "Files to update" preview should omit `package.json` from its list — methodology releases do not touch the runtime-helper package version.
 
 #### Step 3.2: Commit Release
 
@@ -371,46 +363,6 @@ GitHub Release was skipped (gh CLI not available).
 Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERSION}
 ```
 
-#### Step 4.4: Publish Writ Runtime Package (Conditional)
-
-Run this step only when root `package.json` has `"name": "@sellke/writ"`. This package is the timestamp runtime helper for `date`, `timestamp`, and `timestamp --compact`; it is not a Writ command runner.
-
-Before publishing:
-
-```bash
-npm test
-node bin/writ.js date
-node bin/writ.js timestamp
-node bin/writ.js timestamp --compact
-npm pack --dry-run
-npm whoami
-```
-
-If `npm whoami` fails, stop and report:
-
-```
-⚠️ npm publish skipped — not authenticated.
-
-Authenticate with npm using an account that can publish to the @sellke scope, then rerun:
-  npm publish --access public
-```
-
-If authenticated and the package contents are correct, publish the scoped package publicly:
-
-```bash
-npm publish --access public
-```
-
-After publish, verify first-use `npx` resolution from the registry:
-
-```bash
-npx @sellke/writ date
-npx @sellke/writ timestamp
-npx @sellke/writ timestamp --compact
-```
-
-If publish fails because the `@sellke` scope is unavailable or the account lacks access, stop and report the exact npm error. Do not rename the package or add credentials to the repository.
-
 ### Phase 5: Release Summary
 
 ```
@@ -422,7 +374,6 @@ If publish fails because the `@sellke` scope is unavailable or the account lacks
 - **README:** ✅ Current / 🔧 Updated (N fixes)
 - **Tag:** v${VERSION} pushed to origin
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
-- **npm Package:** ✅ Published / ⏭️ Skipped (not authenticated or not `@sellke/writ`)
 
 ## Changes Released
 ${changelog_summary}
@@ -476,13 +427,7 @@ Commands that would run:
 - git push origin v1.3.0
 - gh release create v1.3.0 ...
 
-If root `package.json` is `@sellke/writ`, package commands that would run:
-- npm test
-- npm pack --dry-run
-- npm publish --access public
-- npx @sellke/writ date
-- npx @sellke/writ timestamp
-- npx @sellke/writ timestamp --compact
+When root `package.json#name` is `@sellke/writ`, the dry run also confirms that the runtime helper is decoupled: the file would NOT be modified and `npm publish` would NOT run. Helper publishing is manual — see [Runtime Helper Publish (manual)](#runtime-helper-publish-manual).
 
 Run `/release minor` to execute for real.
 ```
@@ -566,6 +511,30 @@ Options:
 I'll create a VERSION file to track releases.
 Proceed?
 ```
+
+---
+
+## Runtime Helper Publish (manual)
+
+> **Applies only to the Writ source repository.** Other Writ-using projects can ignore this section.
+
+The `@sellke/writ` npm package is a tiny runtime helper (`bin/writ.js`) that emits deterministic dates and timestamps for use inside Writ commands. **It is not the methodology in npm form.** It is essentially frozen — `bin/writ.js` is expected to change rarely, if ever — so it is intentionally **decoupled from `/release`**:
+
+- `/release` does not run `npm test`, `npm pack`, or `npm publish`.
+- `/release` does not bump `package.json#version`.
+- The methodology version (`VERSION`, `CHANGELOG.md`, git tags) advances independently of the npm package version.
+
+If you ever do change `bin/writ.js` (or other `package.json#files` content), publish manually after the methodology release lands on `main`:
+
+```bash
+node bin/writ.js date && node bin/writ.js timestamp   # smoke test locally
+npm version patch --no-git-tag-version                # or minor/major as warranted
+git add package.json && git commit -m "chore(runtime): bump @sellke/writ to vX.Y.Z"
+git push
+npm publish --access public
+```
+
+That's the entire workflow. No gate, no preflight, no orchestration. The Writ methodology version printed in your release notes and the `@sellke/writ` version on npm are unrelated by design.
 
 ---
 
