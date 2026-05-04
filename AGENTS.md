@@ -14,12 +14,12 @@ This repo uses Writ to build Writ. Three concerns live here:
 
 | Concern | Location | What it is |
 |---|---|---|
-| **Product source** | `commands/`, `agents/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md`, `SKILL.md` | The distributable methodology — what `install.sh` copies into other projects |
+| **Product source** | `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md`, `SKILL.md` | The distributable methodology — what `install.sh` copies into other projects |
 | **Development workspace** | `.writ/` | Specs, research, product docs, ADRs — artifacts from using Writ to build itself |
 | **Active installation (Cursor)** | `.cursor/` | **Symlinks** to product source, not copies. Do not replace with regular files or run `install.sh` on this repo. |
-| **Active installation (Claude Code)** | `.claude/` | Same pattern: `commands` and `agents` symlink to repo-root `commands/` and `agents/`. Keep `settings.local.json` and other Claude-only files as real files. |
+| **Active installation (Claude Code)** | `.claude/` | Same pattern: `commands`, `agents`, and `skills` symlink to repo-root `commands/`, `agents/`, `skills/`. Keep `settings.local.json` and other Claude-only files as real files. |
 
-Editing `commands/foo.md`, `.cursor/commands/foo.md`, or `.claude/commands/foo.md` changes the same file via symlink.
+Editing `commands/foo.md`, `.cursor/commands/foo.md`, or `.claude/commands/foo.md` changes the same file via symlink. Same applies to `skills/<name>/SKILL.md` once the first skill ships.
 
 ## Development Commands
 
@@ -60,13 +60,16 @@ Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
 
 ### Adapters (`adapters/`)
-Platform-specific integration guides. `Codex.md` maps Writ concepts to Codex's native subagent system (YAML frontmatter, worktrees, memory). `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system.
+Platform-specific integration guides. `Codex.md` maps Writ concepts to Codex's native subagent system (YAML frontmatter, worktrees, memory). `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system. Each adapter includes a Skills section documenting per-platform install paths and invocation behavior.
 
 ### Scripts (`scripts/`)
-Shell scripts for installation (`install.sh`), updates (`update.sh`), migration from Code Captain (`migrate.sh`), and symlink management (`unlink.sh`).
+Shell scripts for installation (`install.sh`), updates (`update.sh`), migration from Code Captain (`migrate.sh`), symlink management (`unlink.sh`), root-catalog generation (`gen-skill.sh`), and skills boundary linting (`lint-skill.sh`).
+
+### Skills (`skills/`)
+Folder-per-skill capability files (`skills/<name>/SKILL.md`) — the third Writ primitive (verb/noun/tool: command/agent/skill). Skills are reusable capabilities wielded by commands and agents, not workflows or roles. Authoring is via `/new-skill` with the boundary lint enforced at authoring time and again via `/refresh-command --lint-skills`. Empty by default — pilot extractions land in separate specs. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the boundary rationale.
 
 ### SKILL.md
-Skill manifest for platforms that support skill discovery. Describes all commands with metadata.
+Root catalog for platforms that support skill discovery. Auto-generated from `.writ/manifest.yaml` by `scripts/gen-skill.sh`. Describes all commands, agents, and (when present) skills with metadata.
 
 ## Key Design Decisions
 

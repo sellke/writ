@@ -8,7 +8,7 @@ This repository contains three distinct things:
 
 | Concern | Location | What it is |
 |---|---|---|
-| **Product Source** | `commands/`, `agents/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md` | The distributable methodology — what `install.sh` copies into other projects |
+| **Product Source** | `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md` | The distributable methodology — what `install.sh` copies into other projects |
 | **Development Workspace** | `.writ/` | Specs, research, product docs, decisions — artifacts from using Writ to build this project |
 | **Active Installation** | `.cursor/`, `.claude/` | Symlinks to product source — what Cursor and Claude Code read at runtime |
 
@@ -19,14 +19,18 @@ In a normal project, `scripts/install.sh` **copies** product files into `.cursor
 ```
 .cursor/commands/              → ../commands/
 .cursor/agents/                → ../agents/
+.cursor/skills/                → ../skills/
 .cursor/system-instructions.md → ../system-instructions.md
 .cursor/rules/writ.mdc         → ../../cursor/writ.mdc
 
 .claude/commands/              → ../commands/
 .claude/agents/                → ../agents/
+.claude/skills/                → ../skills/
 ```
 
 (`.claude/` may also contain Claude-only files such as `settings.local.json` or `worktrees/` — those stay as regular files.)
+
+The `.cursor/skills` and `.claude/skills` symlinks are created proactively even when `skills/` is empty — as soon as `/new-skill` creates the first `skills/<name>/SKILL.md`, both platforms see it immediately without any further symlink work.
 
 This means:
 
@@ -36,9 +40,9 @@ This means:
 
 ## Rules for Working in This Repo
 
-### Editing product source (commands, agents, adapters)
+### Editing product source (commands, agents, skills, adapters)
 
-Edit files in `commands/`, `agents/`, `adapters/`, `scripts/`, or `cursor/` directly. Changes are immediately live because `.cursor/` symlinks to them.
+Edit files in `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, or `cursor/` directly. Changes are immediately live because `.cursor/` symlinks to them.
 
 ### Using Writ as a development tool
 
@@ -49,10 +53,22 @@ Work in `.writ/` as usual — specs, research, decisions, docs. This is the work
 - **Don't replace symlinks with regular files.** If `.cursor/commands/` or `.claude/commands/` stops being a symlink, the source and installation will diverge silently.
 - **Don't run `install.sh` on this repo.** It would overwrite the symlinks with copies, breaking the single-source-of-truth setup.
 
+## Skills
+
+The third Writ primitive — skills — participates in the same dogfood pattern:
+
+- **`skills/` is product source.** Editing `skills/<name>/SKILL.md` ships to every Writ project on the next install or update, exactly like editing a command or agent.
+- **The symlink architecture extends.** `.cursor/skills` and `.claude/skills` are symlinks to `../skills` (parallel to the command/agent pattern). Editing a skill via the symlinked path or the source path changes the same file.
+- **`skills/` may be empty.** The foundation spec ships the schema, install fanout, and authoring tooling without extracting any production skills — pilot skills land in separate specs. An empty `skills/` directory is valid; the catalog generator silently skips the Skills section.
+- **Authoring on this repo uses the same `/new-skill` command** that ships to users. The boundary lint (`scripts/lint-skill.sh`) runs identically here and in installed projects.
+
+See [`.writ/docs/skills.md`](skills.md) for the user-facing skills explainer and [ADR-009](../decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool boundary.
+
 ## For AI Agents
 
 When working in this repo, be aware of the dual nature:
 
 - **Improving a command's behavior?** You're editing product source. The change will ship to all Writ users.
+- **Authoring or editing a skill?** Same — `skills/<name>/SKILL.md` is product source. The boundary lint applies.
 - **Writing a spec or researching a feature?** You're using the workspace. The output lives in `.writ/` and documents this project's development.
-- **Both are valid.** Just know which hat you're wearing.
+- **All three are valid.** Just know which hat you're wearing.

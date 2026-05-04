@@ -98,6 +98,7 @@ When a user requests any Writ command, read the corresponding command file and f
 | `/explain-code` | `commands/explain-code.md` | Explain existing code, symbols, files, or line ranges without modifying them. |
 | `/initialize` | `commands/initialize.md` | Initialize Writ project structure and configuration. |
 | `/new-command` | `commands/new-command.md` | Create new Writ command files that follow repository conventions. |
+| `/new-skill` | `commands/new-skill.md` | Scaffold new Writ skills with the role convention enforced via boundary lint. |
 | `/refresh-command` | `commands/refresh-command.md` | Turn command usage experience into concrete local command improvements. |
 | `/reinstall-writ` | `commands/reinstall-writ.md` | Remove and reinstall Writ platform files from a clean upstream baseline. |
 | `/status` | `commands/status.md` | Report current project state, active specs, in-flight work, and next actions. |
