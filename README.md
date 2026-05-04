@@ -39,11 +39,11 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 |---|---|---|---|
 | **Command** | Verb | A user-invoked workflow with phases and durable artifacts | `/create-spec`, `/implement-spec`, `/release` |
 | **Agent** | Noun | A role with inherent behavior, spawned by a command for a phase | `coding-agent`, `review-agent`, `architecture-check-agent` |
-| **Skill** | Tool | A reusable capability — *how to do a specific thing well* | (proposed) `tdd-cycle`, `conventional-commits`, `adr-writing` |
+| **Skill** | Tool | A reusable capability — *how to do a specific thing well* | `conventional-commits` (shipped); `tdd-cycle`, `adr-writing` (proposed) |
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; pilot extractions land in subsequent specs.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`, alongside `conventional-commits` as the first pilot extraction; remaining pilots (`tdd-cycle`, `adr-writing`) land in subsequent specs.
 
 ## Key Features
 
@@ -148,6 +148,7 @@ Feedback loop (/retro + /refresh-command):
 | `/initialize` | Project setup (greenfield/brownfield detection) |
 | `/explain-code` | Code explanation with diagrams |
 | `/new-command` | Create new Writ commands |
+| `/new-skill` | Scaffold new skills with the role convention enforced via boundary lint |
 | `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |
 | `/update-writ` | Interactive update — pull latest, per-file control over customized files |
 | `/reinstall-writ` | Clean slate — remove all Writ files and install fresh from upstream |
@@ -167,6 +168,16 @@ The `/implement-story` command orchestrates these specialized agents:
 | Visual QA | Optional UI validation — compares implementation screenshots against mockups |
 | User Story Generator | Parallel story file creation during `/create-spec` |
 
+## Skills
+
+Reusable capabilities — tools any command or agent can `Read` and apply at the right moment:
+
+| Skill | Capability |
+|-------|------------|
+| [`conventional-commits`](skills/conventional-commits/SKILL.md) | Author Conventional Commits messages from a diff (type, scope, summary, body, footers) — matches the project's existing convention when one exists |
+
+Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
+
 ## Platform Support
 
 Writ runs on any AI coding platform. Adapters translate tool calls:
@@ -178,7 +189,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 30 commands, but you only need five to go from idea to PR:
+Writ ships 31 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|

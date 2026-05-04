@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.17.0] - 2026-05-04
+
+### Added
+
+- **Skills — the third Writ primitive.** Reusable capability files (`skills/<name>/SKILL.md`) sit alongside commands and agents; commands and agents `Read` skills at the moment they need a tool. Foundation includes manifest schema, root catalog auto-render via `scripts/gen-skill.sh`, install/update fanout with three-way overlay, and boundary lint (`scripts/lint-skill.sh`) enforcing the verb/noun/tool roles per [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md). All Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them. (Stories 1–3, 7)
+
+- **`/new-skill` command** — three-phase scaffolder (capture → lint → write). Coaches verb-phrase descriptions before writing, runs the boundary lint pre-write, appends manifest entry alphabetically. (Story 6)
+
+- **`/refresh-command --lint-skills`** — lints all `skills/*/SKILL.md` against the ADR-009 boundary; never auto-rewrites skill bodies. New Phase 5 in the standard `/refresh-command` flow. (Story 6)
+
+- **`required_skills:` frontmatter convention** — schema documented across `system-instructions.md`, `cursor/writ.mdc`, and all three platform adapters (`cursor.md`, `claude-code.md`, `openclaw.md`). Reserve-only this release; no agent or command declares it yet. Review trigger: 2026-08-03. (Stories 4, 5)
+
+- **`conventional-commits` skill — first pilot extraction.** Authors Conventional Commits messages (type, scope, summary, body, footers) from a diff; matches the project's existing convention when one exists; covers common anti-patterns. Lint-clean per `scripts/lint-skill.sh`.
+
+- **Documentation surface for skills** — new `.writ/docs/skills.md` (canonical user-facing explainer), README "Three Primitives" + "Skills" sections, AGENTS.md updates, `.writ/docs/self-dogfooding.md` Skills section. (Story 7)
+
+### Changed
+
+- **`/ship`, `/release`, and the coding agent defer commit-format guidance to the `conventional-commits` skill** instead of inlining duplicate format spec. Single source of truth for message grammar; the commands retain orchestration concerns (splitting heuristic, source-mapping table, parsing-direction notes). Coding-agent commits now match `/ship`'s downstream format.
+
+- **Root catalog `SKILL.md`** auto-renders the new "Available Skills" section when the manifest's `skills:` list is non-empty.
+
+- **README refreshed for the new primitive** — "Three Primitives" section reflects the shipped pilot, "Skills" table added (parallel to the Agents table), `/new-skill` row added to "Setup & Lifecycle", command count corrected (30 → 31).
+
+### Internal
+
+- **Self-dogfooding parity for skills** — `.cursor/skills` and `.claude/skills` symlink to repo-root `skills/`, matching the existing pattern for `commands/` and `agents/`. Edits to any skill propagate to all three platforms via symlink.
+
+- **Spec workspace** — `.writ/specs/2026-05-03-skills-foundation/` ships as the audit trail (spec, spec-lite, technical spec, 7 user stories, verification report).
+
 ## [0.16.0] - 2026-04-28
 
 ### Added
