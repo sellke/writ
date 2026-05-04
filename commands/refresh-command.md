@@ -10,9 +10,10 @@ This is **local-first**: amendments are applied to the project's command copy. C
 
 | Invocation | Behavior |
 |---|---|
-| `/refresh-command` | Interactive — select command from list |
+| `/refresh-command` | Interactive — select command from list, or run skills boundary lint |
 | `/refresh-command create-spec` | Refresh a specific command |
 | `/refresh-command refresh-command` | Bootstrap — refresh-command improves itself |
+| `/refresh-command --lint-skills` | Run boundary lint against every `skills/*/SKILL.md` and exit |
 
 ---
 
@@ -24,9 +25,28 @@ This is **local-first**: amendments are applied to the project's command copy. C
 
 **If no argument provided:**
 1. Check conversation context — if a command was recently run, suggest it: *"You just ran /create-spec. Refresh that one?"*
-2. If no recent command or user declines, list all files in `commands/` and ask the user to pick
+2. If no recent command or user declines, present a top-level choice via `AskQuestion`:
 
-**Output:** The resolved command name and file path.
+   ```
+   AskQuestion({
+     title: "What do you want to refresh?",
+     questions: [{
+       id: "target",
+       prompt: "Pick a refresh target.",
+       options: [
+         { id: "command", label: "Refresh a command (pick from list)" },
+         { id: "lint-skills", label: "Run boundary lint across all skills" }
+       ]
+     }]
+   })
+   ```
+
+   - **command** → list all files in `commands/` and ask the user to pick.
+   - **lint-skills** → jump to **Phase 5: Skills Boundary Lint** and skip phases 2–4.
+
+**If `--lint-skills` is passed:** skip phases 2–4 and run **Phase 5** directly.
+
+**Output:** The resolved command name and file path (or "skills lint" mode).
 
 ---
 
@@ -161,6 +181,99 @@ Logged to .writ/refresh-log.md for reference.
 
 ---
 
+## Phase 5: Skills Boundary Lint
+
+> **Triggered when:** the user picks `lint-skills` from the Phase 1 menu, or invokes `/refresh-command --lint-skills`. This is a separate refresh path — it does *not* run when refreshing a specific command, and the command-refresh flow above does *not* invoke it.
+
+The boundary lint enforces the role convention from [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh` so there is **no divergence** between authoring-time and review-time checks.
+
+### Step 5.1: Discover Skills
+
+Glob for `skills/*/SKILL.md` from the repository root.
+
+If no skills exist, output:
+
+```
+No skills found. Run /new-skill to create one.
+```
+
+…and exit. Do not proceed to lint or write a refresh-log entry.
+
+### Step 5.2: Run the Lint
+
+```bash
+bash scripts/lint-skill.sh skills/*/SKILL.md
+```
+
+The script processes every file and exits `0` (all clean), `1` (one or more violations), or `2` (usage error). Capture stdout — the script prints a per-file `✅` or `❌ <category> — <remediation>` line plus a summary tally.
+
+### Step 5.3: Present Results
+
+**If exit `0`:**
+
+```
+✅ All skills clean ({N} files checked)
+
+  ✅ skills/<name-1>/SKILL.md
+  ✅ skills/<name-2>/SKILL.md
+  ...
+```
+
+**If exit `1`:** Surface the script's output verbatim — the user needs the exact line numbers, categories, and remediations. Then group by file and add a one-line summary:
+
+```
+❌ {V} violation(s) across {F} file(s)
+
+Recommended next step: open each flagged file and revise the description
+or body so it reads as a verb-phrase capability, not a role or workflow.
+For deep boundary questions, see ADR-009.
+```
+
+Do **not** auto-rewrite skill files. The lint surfaces problems; the human (and `/new-skill` for net-new skills) owns the fix. This preserves the contract that skills are deliberately authored, not auto-generated.
+
+**If exit `2`:** Surface the script's stderr and abort.
+
+### Step 5.4: Log the Lint Run
+
+Append an entry to `.writ/refresh-log.md` (create if missing):
+
+```markdown
+## [DATE] — skills boundary lint
+
+**Source:** /refresh-command --lint-skills
+**Files checked:** {N}
+**Result:** {clean | {V} violation(s) across {F} file(s)}
+
+{For each violating file, list the file path and violation categories.}
+
+**Action:** No automatic edits — violations require human revision.
+```
+
+The log captures the lint run even when no edits are made; this gives `/status` and future audits a record of when boundary checks ran.
+
+### Step 5.5: Final Output
+
+If clean:
+
+```
+✅ Skills boundary lint complete — all {N} skills clean
+
+Logged to .writ/refresh-log.md
+```
+
+If violations:
+
+```
+❌ Skills boundary lint complete — {V} violation(s) across {F} file(s)
+
+Open each flagged file and revise. The lint will re-run on the next
+/refresh-command --lint-skills invocation.
+
+Logged to .writ/refresh-log.md
+```
+
+---
+
 ## Error Handling
 
 **Command file not found:**
@@ -179,9 +292,12 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome �
 | Related | Relationship |
 |---|---|
 | All commands in `commands/` | Potential refresh targets |
-| `.writ/refresh-log.md` | Append-only improvement history |
+| `skills/*/SKILL.md` | Lint targets in `--lint-skills` mode |
+| `scripts/lint-skill.sh` | Boundary lint grammar — shared with `/new-skill` |
+| `.writ/refresh-log.md` | Append-only improvement history (commands and skill lint runs) |
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |
 | `/new-command` | Creates new commands; `/refresh-command` improves existing ones |
+| `/new-skill` | Creates new skills with the same lint enforced at authoring time |
 
 ---
 
