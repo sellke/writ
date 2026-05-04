@@ -67,8 +67,8 @@ SPECS=$(scan .writ/specs/ for specs completed after last release date)
    - Categorize: feature, fix, refactor, docs, chore
 
 2. **From git history:**
-   - Parse conventional commits if used (`feat:`, `fix:`, `docs:`, `BREAKING CHANGE:`)
-   - Fall back to commit message analysis
+   - `Read skills/conventional-commits/SKILL.md` for the type vocabulary (`feat`, `fix`, `docs`, `BREAKING CHANGE:`, etc.) — applied in reverse here to attribute each commit to a changelog section
+   - Fall back to commit message keyword analysis when a project uses freeform messages
    - Identify files changed per commit
 
 3. **Breaking change detection:**
