@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.18.0] - 2026-05-06
+
+### Added
+
+- **Codex CLI adapter support.** Writ now installs natively for Codex CLI with `adapters/codex.md`, Codex TOML agent translations, `AGENTS.md` Writ-block integration, `.codex/config.toml` seeding, and self-dogfooding `.codex/agents` support.
+
+- **Codex lifecycle script parity.** `install.sh`, `update.sh`, `unlink.sh`, and `uninstall.sh` now understand `--platform codex`, including AGENTS.md merge/removal safeguards, install-once config behavior, and Codex-specific agent parity tooling.
+
+### Changed
+
+- **Lifecycle commands and README now document Codex.** `/update-writ`, `/reinstall-writ`, `/uninstall-writ`, `/refresh-command`, and README platform guidance cover Codex paths, TOML agents, restart expectations, and `.agents/skills/` behavior.
+
+### Internal
+
+- **Codex adapter spec package completed.** Added the completed `.writ/specs/2026-05-06-codex-cli-adapter/` audit trail with smoke evidence, story completion records, and source issue writeback.
+
 ## [0.17.0] - 2026-05-04
 
 ### Added
