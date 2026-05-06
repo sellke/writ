@@ -1,0 +1,117 @@
+<!-- Writ-managed AGENTS.md fragment: merged between HTML comment markers writ:start and writ:end by install/update scripts. Source of truth: codex/AGENTS.md.template in the Writ repository (edit there, not by hand in downstream AGENTS.md). -->
+
+## Writ on Codex
+
+Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows, `.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format capabilities. Read bundled `system-instructions.md` for Writ identity; map tools via `adapters/codex.md`.
+
+
+
+## Available Commands
+
+### Planning & Specification
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/assess-spec` | `.codex/commands/assess-spec.md` | Analyze a specification for implementability risks before committing to … |
+| `/create-adr` | `.codex/commands/create-adr.md` | Create architecture decision records with research-backed context. |
+| `/create-issue` | `.codex/commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
+| `/create-spec` | `.codex/commands/create-spec.md` | Create contract-first feature specifications with stories and verificati… |
+| `/design` | `.codex/commands/design.md` | Create and compare visual references for Writ specifications. |
+| `/edit-spec` | `.codex/commands/edit-spec.md` | Safely modify existing specifications while preserving contract integrit… |
+| `/knowledge` | `.codex/commands/knowledge.md` | Capture durable project knowledge as decisions, conventions, glossary te… |
+| `/plan-product` | `.codex/commands/plan-product.md` | Shape product strategy and roadmap artifacts through contract-first disc… |
+| `/research` | `.codex/commands/research.md` | Run systematic research workflows and record recommendations. |
+| `/verify-spec` | `.codex/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract … |
+
+### Implementation & Quality
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/create-uat-plan` | `.codex/commands/create-uat-plan.md` | Generate human-readable UAT plans from completed story details. |
+| `/implement-spec` | `.codex/commands/implement-spec.md` | Execute a specification through dependency-aware story batches. |
+| `/implement-story` | `.codex/commands/implement-story.md` | Run the full story SDLC pipeline from architecture check through documen… |
+| `/prototype` | `.codex/commands/prototype.md` | Ship small code changes with lightweight scan, coding, and verification. |
+| `/refactor` | `.codex/commands/refactor.md` | Perform scoped, verified refactors across files or modules. |
+
+### Review & Validation
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/review` | `.codex/commands/review.md` | Review diffs for production failure modes, shadow paths, and edge cases. |
+
+### Autonomous Execution
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/ralph` | `.codex/commands/ralph.md` | Plan and monitor autonomous multi-spec execution through the Ralph loop. |
+
+### Release & Delivery
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/release` | `.codex/commands/release.md` | Prepare changelog, version bump, git tag, and GitHub release artifacts. |
+| `/ship` | `.codex/commands/ship.md` | Take a green branch through merge preparation, commit intelligence, and … |
+
+### Security
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/security-audit` | `.codex/commands/security-audit.md` | Audit dependencies, secrets, code patterns, and infrastructure for secur… |
+
+### Migration
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/migrate` | `.codex/commands/migrate.md` | Migrate Code Captain projects to Writ while preserving existing artifact… |
+
+### Setup & Maintenance
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/explain-code` | `.codex/commands/explain-code.md` | Explain existing code, symbols, files, or line ranges without modifying … |
+| `/initialize` | `.codex/commands/initialize.md` | Initialize Writ project structure and configuration. |
+| `/new-command` | `.codex/commands/new-command.md` | Create new Writ command files that follow repository conventions. |
+| `/new-skill` | `.codex/commands/new-skill.md` | Scaffold new Writ skills with the role convention enforced via boundary … |
+| `/refresh-command` | `.codex/commands/refresh-command.md` | Turn command usage experience into concrete local command improvements. |
+| `/reinstall-writ` | `.codex/commands/reinstall-writ.md` | Remove and reinstall Writ platform files from a clean upstream baseline. |
+| `/status` | `.codex/commands/status.md` | Report current project state, active specs, in-flight work, and next act… |
+| `/uninstall-writ` | `.codex/commands/uninstall-writ.md` | Remove Writ platform files while preserving `.writ/` project artifacts. |
+| `/update-writ` | `.codex/commands/update-writ.md` | Update Writ from upstream with per-file control over local customization… |
+
+### Learning & Insight
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/retro` | `.codex/commands/retro.md` | Turn git history into actionable retrospective insight and trend snapsho… |
+
+
+## Available Agents
+
+| Agent | TOML | Purpose |
+|-------|------|---------|
+| architecture-check-agent | `.codex/agents/architecture-check-agent.toml` | Pre-implementation design review that catches architecture risks bef… |
+| coding-agent | `.codex/agents/coding-agent.toml` | TDD implementation agent that writes code, follows conventions, and … |
+| documentation-agent | `.codex/agents/documentation-agent.toml` | Framework-adaptive documentation agent for feature, component, and a… |
+| review-agent | `.codex/agents/review-agent.toml` | Quality gate agent that verifies acceptance criteria, code quality, … |
+| testing-agent | `.codex/agents/testing-agent.toml` | Test and coverage agent that verifies pass rate, regressions, and co… |
+| user-story-generator | `.codex/agents/user-story-generator.toml` | Parallel story authoring agent for create-spec workflows. |
+| visual-qa-agent | `.codex/agents/visual-qa-agent.toml` | Optional UI validation gate that compares implementation screenshots… |
+
+
+## Available Skills
+
+| Skill | File | Description |
+|-------|------|-------------|
+| `conventional-commits` | `.agents/skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
+
+
+## Built-in Codex slash commands vs Writ
+
+Codex built-ins include `/plan`, `/review`, `/status`, `/init`, `/agent`, `/fork`, `/side`, and more ([official list](https://developers.openai.com/codex/cli/slash-commands)). Writ keeps its own `/plan`-style command files under `.codex/commands/` and does **not** rename them. Bare `/status` or `/review` in the Codex UI runs Codex's built-in. To execute **Writ's** `/status` or `/review` workflows, ask explicitly to load and follow the Markdown in `.codex/commands/status.md` or `.codex/commands/review.md`.
+
+
+
+
+## Catalog source
+
+Command and agent metadata also lives in `.writ/manifest.yaml` (upstream Writ repo). Regenerate root `SKILL.md` with `scripts/gen-skill.sh` when extending the manifest.
