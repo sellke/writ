@@ -16,20 +16,23 @@ Pull the latest Writ release from upstream and interactively decide what to do w
 
 ## Command Process
 
+**Daily update awareness is platform-agnostic.** The startup cache remains `.writ/state/writ-update-check.json` for Cursor, Claude Code, and Codex CLI; when an update is available, the user-facing recommendation stays: `Writ update available. Run /update-writ when you are ready.`
+
 ### Step 1: Detect Installation
 
 Read the manifest to determine what's installed and how.
 
 **Locate manifest:**
 ```bash
-# Check both platforms — use whichever exists
+# Check all platforms — use whichever exists
 cat .cursor/.writ-manifest 2>/dev/null
 cat .claude/.writ-manifest 2>/dev/null
+cat .codex/.writ-manifest 2>/dev/null
 ```
 
 **Extract from manifest header:**
 - `mode` — must be `copy` (linked installations must run `unlink.sh` first)
-- `platform` — `cursor` or `claude`
+- `platform` — `cursor`, `claude`, or `codex`
 - `version` — current installed version hash
 - `source` — upstream repo URL
 
@@ -49,6 +52,7 @@ cat .claude/.writ-manifest 2>/dev/null
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
 | `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` (project root) |
+| `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` baseline hash, `.agents/skills/` |
 
 ### Step 2: Fetch Latest Upstream
 
@@ -63,7 +67,7 @@ If the clone fails, abort with a network error message and clean up the temp dir
 
 ### Step 3: Three-Way Scan
 
-For every `.md` file in upstream `commands/` and the platform's agents source directory, classify it against the local installation:
+For every `.md` command file in upstream `commands/` and every platform agent file (`*.md` for Cursor/Claude Code, `*.toml` for Codex CLI), classify it against the local installation:
 
 **Hash each file** using SHA-256 (`shasum -a 256`).
 
@@ -93,6 +97,7 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
 - Claude Code: `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
+- Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
 **Detect stale files** — files present in the manifest but removed upstream. If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
 
@@ -173,13 +178,15 @@ Write a new manifest with updated baselines for all installed files:
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
 # mode: copy
-# platform: [cursor|claude]
+# platform: [cursor|claude|codex]
 # version: [new version hash]
 # date: [ISO 8601 UTC timestamp]
 # source: https://github.com/sellke/writ.git
 <sha256>  commands/create-spec.md
 <sha256>  commands/implement-story.md
 ...
+<sha256>  AGENTS.md.writ-block        # Codex only
+<sha256>  .codex/config.toml.baseline # Codex only, preserved from install
 ```
 
 Every currently installed file gets a fresh hash entry — including files the user chose to keep (their current hash becomes the new baseline).
@@ -190,7 +197,7 @@ If the project is a git repo:
 
 ```bash
 git add [platform_dir]/commands/ [platform_dir]/agents/ [manifest_file]
-# Plus platform-specific files (rules/writ.mdc, system-instructions.md, or CLAUDE.md)
+# Plus platform-specific files (rules/writ.mdc, system-instructions.md, CLAUDE.md, or AGENTS.md)
 git commit -m "chore: update Writ ([old_version] → [new_version])"
 ```
 
@@ -208,7 +215,12 @@ Remove the temporary clone directory.
 
   💡 Preserved files keep your local changes. To reset any file
      to upstream, delete it and run /update-writ again.
+
+  Codex CLI: Restart your Codex session to load AGENTS.md changes.
+  Codex details: adapters/codex.md
 ```
+
+Codex note: Restart your Codex session to load AGENTS.md changes after `/update-writ`. See [`adapters/codex.md`](../adapters/codex.md) for the AGENTS.md ownership convention.
 
 ---
 
