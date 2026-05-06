@@ -90,11 +90,6 @@
 - `.codex/config.toml` modified by user, then `--force` install → user prompted before overwrite
 - Codex CLI version with different TOML schema than spec assumes → out-of-scope; spec records May 2026 schema
 
-**Coverage Requirements:**
-- New script branches: ≥80%
-- AGENTS.md merger logic: 100% (critical for byte-stability guarantee)
-- Error paths: 100%
-
 **Test Strategy:**
 - Bash test fixtures for AGENTS.md merger: empty file, no-marker file, with-marker file, modified-marker file
 - Manifest hash comparison test for `.codex/.writ-manifest`
