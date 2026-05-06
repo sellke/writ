@@ -10,7 +10,7 @@
 #   --dry-run      Preview changes without applying
 #   --no-commit    Don't auto-commit after install
 #   --force        Overwrite all files, ignoring local modifications
-#   --platform     Target platform: cursor (default) or claude
+#   --platform     Target platform: cursor (default), claude, or codex
 
 set -euo pipefail
 
@@ -20,6 +20,7 @@ DRY_RUN=false
 NO_COMMIT=false
 FORCE=false
 PLATFORM="cursor"
+WRIT_CODEX_CONFIG_BASELINE_HASH=""
 
 while [ $# -gt 0 ]; do
   case $1 in
@@ -29,14 +30,14 @@ while [ $# -gt 0 ]; do
     --platform)
       shift
       PLATFORM="${1:-}"
-      if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ]; then
+      if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ] && [ "$PLATFORM" != "codex" ]; then
         echo "❌ Unknown platform: $PLATFORM"
-        echo "   Supported: cursor, claude"
+        echo "   Supported: cursor, claude, codex"
         exit 1
       fi
       ;;
     --help|-h)
-      echo "Usage: bash install.sh [--dry-run] [--no-commit] [--force] [--platform cursor|claude]"
+      echo "Usage: bash install.sh [--dry-run] [--no-commit] [--force] [--platform cursor|claude|codex]"
       echo ""
       echo "Installs Writ commands, agents, and rules into your project."
       echo "Run from your project root."
@@ -44,6 +45,7 @@ while [ $# -gt 0 ]; do
       echo "Platforms:"
       echo "  cursor (default)  Install into .cursor/ for Cursor IDE"
       echo "  claude            Install into .claude/ for Claude Code CLI"
+      echo "  codex             Install into .codex/ for Codex CLI (AGENTS.md + .agents/skills/)"
       echo ""
       echo "Flags:"
       echo "  --dry-run      Preview changes without applying"
@@ -68,11 +70,22 @@ if [ "$PLATFORM" = "cursor" ]; then
   MANIFEST_FILE=".cursor/.writ-manifest"
   AGENTS_SRC="agents"
   PLATFORM_LABEL="Cursor"
+  SKILLS_DIR=".cursor/skills"
+  AGENT_FILE_GLOB="*.md"
 elif [ "$PLATFORM" = "claude" ]; then
   PLATFORM_DIR=".claude"
   MANIFEST_FILE=".claude/.writ-manifest"
   AGENTS_SRC="claude-code/agents"
   PLATFORM_LABEL="Claude Code"
+  SKILLS_DIR=".claude/skills"
+  AGENT_FILE_GLOB="*.md"
+elif [ "$PLATFORM" = "codex" ]; then
+  PLATFORM_DIR=".codex"
+  MANIFEST_FILE=".codex/.writ-manifest"
+  AGENTS_SRC="codex/agents"
+  PLATFORM_LABEL="Codex CLI"
+  SKILLS_DIR=".agents/skills"
+  AGENT_FILE_GLOB="*.toml"
 fi
 
 echo "⚡ Writ Installer ($PLATFORM_LABEL)"
@@ -125,6 +138,309 @@ manifest_hash_for() {
   [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
 }
 
+# <<< writ-merge-bundled-begin (used by scripts/tests/test_merge_agents_md.sh — keep synced) >>>
+writ_block_marker_counts() {
+  local file="$1"
+  awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") starts++
+      if (line == "<!-- writ:end -->") ends++
+    }
+    END { print starts + 0, ends + 0 }' "$file"
+}
+
+writ_compute_writ_block_inner_hash() {
+  local file="$1"
+  local tmp ec inner_hash_val
+  tmp=$(mktemp)
+  awk 'BEGIN { starts=0; ends=0; capturing=0; seen_end=0 }
+    {
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") {
+        starts++
+        if (capturing==1 || seen_end==1) { exit 2 }
+        capturing=1
+        next
+      }
+      if (line == "<!-- writ:end -->") {
+        ends++
+        if (capturing!=1) { exit 2 }
+        capturing=0
+        seen_end=1
+        next
+      }
+      if (capturing==1) print
+    }
+    END {
+      if (starts!=1 || ends!=1 || capturing==1) exit 2
+    }' "$file" >"$tmp"
+  ec=$?
+  if [ "$ec" -ne 0 ]; then
+    rm -f "$tmp"
+    return "$ec"
+  fi
+  inner_hash_val="$(hash_file "$tmp")"
+  rm -f "$tmp"
+  printf '%s\n' "${inner_hash_val:-}"
+}
+
+writ_file_ends_with_newline() {
+  local file="$1"
+  local last_hex
+  [ -s "$file" ] || return 0
+  last_hex=$(tail -c 1 "$file" | od -An -t x1 | tr -d ' \n')
+  [ "$last_hex" = "0a" ]
+}
+
+writ_rewrite_agents_md_with_inner() {
+  local file="$1"
+  local new_inner="$2"
+  local staging
+  staging=$(mktemp)
+  local start_line end_line
+  read -r start_line end_line <<<"$(awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") { printf "%d ", NR; found_s=1 }
+      if (line == "<!-- writ:end -->") { print NR; exit }
+    }' "$file")"
+  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ]; then
+    rm -f "$staging"
+    return 1
+  fi
+  if [ "$start_line" -ge "$end_line" ]; then
+    rm -f "$staging"
+    return 2
+  fi
+  if [ "${start_line:-0}" -le 0 ]; then
+    rm -f "$staging"
+    return 2
+  fi
+  if [ "$start_line" -gt 1 ]; then
+    head -n $((start_line - 1)) "$file" >"$staging"
+  else
+    : >"$staging"
+  fi
+  printf '%s\n' '<!-- writ:start -->' >>"$staging"
+  printf '%s\n' "$new_inner" >>"$staging"
+  printf '%s\n' '<!-- writ:end -->' >>"$staging"
+  tail -n +$((end_line + 1)) "$file" >>"$staging"
+  mv "$staging" "$file"
+}
+
+# merge_agents_md — Codex ONLY. Integrates codex/AGENTS.md.template into AGENTS.md
+# Globals: WRIT_SRC, MANIFEST_FILE, FORCE, CODEX_MERGE_PREVIEW (optional)
+merge_agents_md() {
+  local op="${1:-apply}" # preview | apply
+  local template="$WRIT_SRC/codex/AGENTS.md.template"
+  if [ ! -f "$template" ]; then
+    echo "❌ Missing $template — cannot integrate AGENTS.md for Codex."
+    return 12
+  fi
+  AGENTS_MERGE_NOTE=""
+  local upstream_inner
+  upstream_inner=$(cat "$template")
+  local upstream_hash
+  upstream_hash=$(hash_file "$template")
+
+  local agents_md="AGENTS.md"
+  if [ "$op" = "preview" ]; then
+    if [ ! -f "$agents_md" ]; then
+      AGENTS_MERGE_NOTE="Would create AGENTS.md with Writ block (no prior file)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    local cnt
+    cnt=$(writ_block_marker_counts "$agents_md")
+    local start_cnt end_cnt
+    read -r start_cnt end_cnt <<<"$cnt"
+    if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
+      AGENTS_MERGE_NOTE="Would append Writ block to existing AGENTS.md (no markers found)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
+      AGENTS_MERGE_NOTE="Writ block error: malformed markers (expected exactly one start and end marker)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    local start_line end_line
+    read -r start_line end_line <<<"$(awk '{
+        line=$0
+        sub(/\r$/, "", line)
+        if (line == "<!-- writ:start -->") printf "%d ", NR
+        if (line == "<!-- writ:end -->") print NR
+      }' "$agents_md")"
+    if [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
+      AGENTS_MERGE_NOTE="Writ block error: malformed marker order."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    local inner_hash=""
+    inner_hash=""
+    if ! inner_hash="$(writ_compute_writ_block_inner_hash "$agents_md")"; then
+      AGENTS_MERGE_NOTE="Writ block error: malformed markers (inner parse)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    local baseline_hash
+    baseline_hash=$(manifest_hash_for "AGENTS.md.writ-block")
+    if [ "$FORCE" = true ]; then
+      AGENTS_MERGE_NOTE="Would replace marker-bounded Writ block (--force)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    if [ "$inner_hash" = "$upstream_hash" ]; then
+      AGENTS_MERGE_NOTE="Writ block already matches upstream template (unchanged)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
+      AGENTS_MERGE_NOTE="Would update Writ block (matches manifest baseline → safe overwrite)."
+      printf '%s\n' "$AGENTS_MERGE_NOTE"
+      return 0
+    fi
+    AGENTS_MERGE_NOTE="Would preserve Writ block (local modifications detected)."
+    printf '%s\n' "$AGENTS_MERGE_NOTE"
+    return 0
+  fi
+
+  local tmp_new
+  tmp_new=$(mktemp)
+
+  if [ ! -f "$agents_md" ]; then
+    printf '%s\n' '<!-- writ:start -->' > "$tmp_new"
+    printf '%s\n' "$upstream_inner" >> "$tmp_new"
+    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
+    mv "$tmp_new" "$agents_md"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block created"
+    return 0
+  fi
+
+  local cnt
+  cnt=$(writ_block_marker_counts "$agents_md")
+  local start_cnt end_cnt
+  read -r start_cnt end_cnt <<<"$cnt"
+  if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
+    cat "$agents_md" >> "$tmp_new"
+    if ! writ_file_ends_with_newline "$agents_md"; then
+      printf '\n' >> "$tmp_new"
+    fi
+    printf '%s\n' '<!-- writ:start -->' >> "$tmp_new"
+    printf '%s\n' "$upstream_inner" >> "$tmp_new"
+    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
+    mv "$tmp_new" "$agents_md"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block appended (existing content preserved)"
+    return 0
+  fi
+
+  if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
+    rm -f "$tmp_new"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block error: malformed markers"
+    printf '%s\n' "❌ $AGENTS_MERGE_NOTE (expected exactly one <!-- writ:start --> and one <!-- writ:end -->)."
+    return 13
+  fi
+
+  local start_line end_line
+  read -r start_line end_line <<<"$(awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") printf "%d ", NR
+      if (line == "<!-- writ:end -->") print NR
+    }' "$agents_md")"
+
+  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ] || [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
+    rm -f "$tmp_new"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block error: malformed markers"
+    printf '%s\n' "❌ $AGENTS_MERGE_NOTE (invalid marker order)."
+    return 13
+  fi
+
+  local inner_hash=""
+  if ! inner_hash="$(writ_compute_writ_block_inner_hash "$agents_md")"; then
+    rm -f "$tmp_new"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block error: malformed markers"
+    printf '%s\n' "❌ $AGENTS_MERGE_NOTE (inner block parse failed)."
+    return 13
+  fi
+
+  local baseline_hash
+  baseline_hash=$(manifest_hash_for "AGENTS.md.writ-block")
+
+  if [ "$FORCE" = true ]; then
+    writ_rewrite_agents_md_with_inner "$agents_md" "$upstream_inner"
+    rm -f "$tmp_new"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block updated (--force)"
+    return 0
+  fi
+
+  if [ "$inner_hash" = "$upstream_hash" ]; then
+    rm -f "$tmp_new"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block preserved (already current)"
+    return 0
+  fi
+
+  if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
+    writ_rewrite_agents_md_with_inner "$agents_md" "$upstream_inner"
+    rm -f "$tmp_new"
+    AGENTS_MERGE_NOTE="AGENTS.md: Writ block updated"
+    return 0
+  fi
+
+  rm -f "$tmp_new"
+  AGENTS_MERGE_NOTE="AGENTS.md: Writ block preserved (local modifications)"
+  printf '%s\n' "⚡ $AGENTS_MERGE_NOTE — re-run with --force to overwrite the Writ block."
+  return 0
+}
+# <<< writ-merge-bundled-end >>>
+
+# seed_codex_config — install-once copy of codex/config.toml.template.
+# Globals: WRIT_SRC, MANIFEST_FILE, PLATFORM_DIR
+seed_codex_config() {
+  local op="${1:-apply}" # preview | apply
+  local template="$WRIT_SRC/codex/config.toml.template"
+  local dest=".codex/config.toml"
+  SEED_CODEX_CONFIG_NOTE=""
+  if [ ! -f "$template" ]; then
+    echo "❌ Missing $template — cannot seed Codex config."
+    return 14
+  fi
+  if [ "$op" = "preview" ]; then
+    if [ -f "$dest" ]; then
+      SEED_CODEX_CONFIG_NOTE="Would skip .codex/config.toml (already exists; install-once)."
+    else
+      SEED_CODEX_CONFIG_NOTE="Would seed .codex/config.toml from template (first install)."
+    fi
+    printf '%s\n' "$SEED_CODEX_CONFIG_NOTE"
+    return 0
+  fi
+  if [ -f "$dest" ]; then
+    WRIT_CODEX_CONFIG_BASELINE_HASH="$(manifest_hash_for ".codex/config.toml.baseline")"
+    SEED_CODEX_CONFIG_NOTE="⚡ Preserved: .codex/config.toml (install-once)"
+    printf '%s\n' "$SEED_CODEX_CONFIG_NOTE"
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  cp "$template" "$dest"
+  WRIT_CODEX_CONFIG_BASELINE_HASH="$(hash_file "$template")"
+  SEED_CODEX_CONFIG_NOTE="✨ Seeded: .codex/config.toml"
+  printf '%s\n' "$SEED_CODEX_CONFIG_NOTE"
+  return 0
+}
+
+writ_warn_agents_md_size() {
+  local max_bytes=32768
+  [ -f "AGENTS.md" ] || return 0
+  local sz
+  sz=$(wc -c < "AGENTS.md" | tr -d ' ')
+  if [ "${sz:-0}" -gt "$max_bytes" ]; then
+    local kb=$(( (sz + 1023) / 1024 ))
+    printf '%s\n' "⚠️  AGENTS.md is ${kb} KiB, exceeds default Codex cap (32 KiB). Configure project_doc_max_bytes or split via AGENTS.override.md." >&2
+  fi
+}
+
 write_copy_manifest() {
   local version="$1" target="$2"
 
@@ -139,15 +455,29 @@ write_copy_manifest() {
 EOF
 
   local f rel
-  for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
+  for f in "$PLATFORM_DIR"/commands/*.md; do
     [ -f "$f" ] || continue
     rel="${f#"$PLATFORM_DIR"/}"
     echo "$(hash_file "$f")  $rel" >> "$target"
   done
 
+  if [ "$PLATFORM" = "codex" ]; then
+    for f in "$PLATFORM_DIR"/agents/*.toml; do
+      [ -f "$f" ] || continue
+      rel="${f#"$PLATFORM_DIR"/}"
+      echo "$(hash_file "$f")  $rel" >> "$target"
+    done
+  else
+    for f in "$PLATFORM_DIR"/agents/*.md; do
+      [ -f "$f" ] || continue
+      rel="${f#"$PLATFORM_DIR"/}"
+      echo "$(hash_file "$f")  $rel" >> "$target"
+    done
+  fi
+
   local skill_folder skill_name src_skill
-  if [ -d "$PLATFORM_DIR/skills" ]; then
-    for skill_folder in "$PLATFORM_DIR"/skills/*/; do
+  if [ -d "$SKILLS_DIR" ]; then
+    for skill_folder in "$SKILLS_DIR"/*/; do
       [ -d "$skill_folder" ] || continue
       skill_name=$(basename "$skill_folder")
       src_skill="${skill_folder}SKILL.md"
@@ -166,6 +496,16 @@ EOF
   elif [ "$PLATFORM" = "claude" ]; then
     if [ -f "CLAUDE.md" ]; then
       echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$target"
+    fi
+  fi
+
+  if [ "$PLATFORM" = "codex" ]; then
+    local iw=""
+    if [ -f "AGENTS.md" ] && iw="$(writ_compute_writ_block_inner_hash "AGENTS.md")"; then
+      echo "$iw  AGENTS.md.writ-block" >> "$target"
+    fi
+    if [ -n "${WRIT_CODEX_CONFIG_BASELINE_HASH:-}" ]; then
+      echo "$WRIT_CODEX_CONFIG_BASELINE_HASH  .codex/config.toml.baseline" >> "$target"
     fi
   fi
 }
@@ -211,10 +551,14 @@ echo ""
 CMD_COUNT=0
 for f in "$WRIT_SRC/commands"/*.md; do [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1)); done
 AGENT_COUNT=0
-for f in "$WRIT_SRC/$AGENTS_SRC"/*.md; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
+for f in "$WRIT_SRC/$AGENTS_SRC/"$AGENT_FILE_GLOB; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
 SKILL_COUNT=0
 if [ -d "$WRIT_SRC/skills" ]; then
   for d in "$WRIT_SRC/skills"/*/; do [ -d "$d" ] && [ -f "${d}SKILL.md" ] && SKILL_COUNT=$((SKILL_COUNT + 1)); done
+fi
+
+if [ "$PLATFORM" = "codex" ] && [ "$AGENT_COUNT" -eq 0 ]; then
+  printf '%s\n' "⚠️  codex/agents/ source missing — agent install skipped" >&2
 fi
 
 echo "  📋 Commands:  $CMD_COUNT"
@@ -225,6 +569,9 @@ if [ "$PLATFORM" = "cursor" ]; then
   echo "  📖 System:    1 (system-instructions.md)"
 elif [ "$PLATFORM" = "claude" ]; then
   echo "  📖 Root:      1 (CLAUDE.md)"
+elif [ "$PLATFORM" = "codex" ]; then
+  echo "  📄 AGENTS.md Writ block (.agents/skills/ for AgentSkills)"
+  echo "  🧩 Codex cfg: install-once .codex/config.toml when absent"
 fi
 echo "  🎯 Platform:  $PLATFORM_LABEL"
 echo "  📌 Version:   $VERSION_LONG"
@@ -273,11 +620,11 @@ init_writ_workspace() {
 _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
 
 overlay_scan() {
-  local src_dir="$1" local_dir="$2" label="$3" mode="$4"
+  local src_dir="$1" local_dir="$2" label="$3" mode="$4" pattern="${5:-*.md}"
   _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
 
   local src_file fname local_file rel_path upstream_hash local_hash baseline_hash
-  for src_file in "$src_dir"/*.md; do
+  for src_file in "$src_dir"/$pattern; do
     [ -f "$src_file" ] || continue
     fname=$(basename "$src_file")
     local_file="$local_dir/$fname"
@@ -393,11 +740,11 @@ if [ "$DRY_RUN" = true ]; then
     overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
     echo ""
     echo "  Agents:"
-    overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview"
+    overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview" "$AGENT_FILE_GLOB"
     echo ""
     if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
       echo "  Skills:"
-      overlay_scan_skills "$WRIT_SRC/skills" "$PLATFORM_DIR/skills" "preview"
+      overlay_scan_skills "$WRIT_SRC/skills" "$SKILLS_DIR" "preview"
       echo ""
     fi
     if [ "$PLATFORM" = "cursor" ]; then
@@ -405,11 +752,19 @@ if [ "$DRY_RUN" = true ]; then
       echo "  System:  system-instructions.md → always updated"
     elif [ "$PLATFORM" = "claude" ]; then
       echo "  Root:    CLAUDE.md → always updated"
+    elif [ "$PLATFORM" = "codex" ]; then
+      echo "  AGENTS.md integration plan:"
+      merge_agents_md preview
+      echo "  Codex config seed plan:"
+      seed_codex_config preview
     fi
   fi
   echo ""
   echo "💡 To reset a file to core: delete the local copy and re-run install."
   echo "💡 To force overwrite all: install.sh --force"
+  if [ "$PLATFORM" = "codex" ] && [ "$AGENT_COUNT" -eq 0 ]; then
+    exit 1
+  fi
   exit 0
 fi
 
@@ -420,18 +775,21 @@ echo "Installing..."
 # Remove symlinks if converting from a linked installation
 if [ "$EXISTING_MODE" = "link" ]; then
   echo "  Removing symlinks..."
-  for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
+  for f in "$PLATFORM_DIR"/commands/*.md; do
+    [ -L "$f" ] && rm -f "$f"
+  done
+  for f in "$PLATFORM_DIR"/agents/*.md "$PLATFORM_DIR"/agents/*.toml; do
     [ -L "$f" ] && rm -f "$f"
   done
   for f in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
     [ -L "$f" ] && rm -f "$f"
   done
-  if [ -d "$PLATFORM_DIR/skills" ] || [ -L "$PLATFORM_DIR/skills" ]; then
-    for skill_folder in "$PLATFORM_DIR"/skills/*/; do
+  if [ -d "$SKILLS_DIR" ] || [ -L "$SKILLS_DIR" ]; then
+    for skill_folder in "$SKILLS_DIR"/*/; do
       [ -L "${skill_folder%/}" ] && rm -f "${skill_folder%/}"
       [ -L "${skill_folder}SKILL.md" ] && rm -f "${skill_folder}SKILL.md"
     done
-    [ -L "$PLATFORM_DIR/skills" ] && rm -f "$PLATFORM_DIR/skills"
+    [ -L "$SKILLS_DIR" ] && rm -f "$SKILLS_DIR"
   fi
   if [ "$PLATFORM" = "cursor" ]; then
     for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
@@ -443,10 +801,16 @@ if [ "$EXISTING_MODE" = "link" ]; then
 fi
 
 mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
-[ -d "$WRIT_SRC/skills" ] && mkdir -p "$PLATFORM_DIR/skills"
+[ -d "$WRIT_SRC/skills" ] && mkdir -p "$SKILLS_DIR"
 [ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
 
-if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
+if [ "$PLATFORM" = "codex" ]; then
+  if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
+    STEP_TOTAL=6
+  else
+    STEP_TOTAL=5
+  fi
+elif [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
   STEP_TOTAL=6
 else
   STEP_TOTAL=5
@@ -460,14 +824,14 @@ CMD_NEW=$_NEW; CMD_UPDATED=$_UPDATED; CMD_PRESERVED=$_PRESERVED
 
 STEP=$((STEP + 1))
 echo "  [$STEP/$STEP_TOTAL] Agents..."
-overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply"
+overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply" "$AGENT_FILE_GLOB"
 AGENT_NEW=$_NEW; AGENT_UPDATED=$_UPDATED; AGENT_PRESERVED=$_PRESERVED
 
 SKILL_NEW=0; SKILL_UPDATED=0; SKILL_PRESERVED=0
 if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
   STEP=$((STEP + 1))
   echo "  [$STEP/$STEP_TOTAL] Skills..."
-  overlay_scan_skills "$WRIT_SRC/skills" "$PLATFORM_DIR/skills" "apply"
+  overlay_scan_skills "$WRIT_SRC/skills" "$SKILLS_DIR" "apply"
   SKILL_NEW=$_NEW; SKILL_UPDATED=$_UPDATED; SKILL_PRESERVED=$_PRESERVED
 fi
 
@@ -484,6 +848,13 @@ elif [ "$PLATFORM" = "claude" ]; then
   cp "$WRIT_SRC/claude-code/CLAUDE.md" "CLAUDE.md"
   STEP=$((STEP + 1))
   echo "  [$STEP/$STEP_TOTAL] (skipped — no system-instructions for Claude Code)"
+elif [ "$PLATFORM" = "codex" ]; then
+  echo "  [$STEP/$STEP_TOTAL] AGENTS.md integration..."
+  merge_agents_md apply
+  STEP=$((STEP + 1))
+  echo "  [$STEP/$STEP_TOTAL] Codex CLI config..."
+  seed_codex_config apply
+  writ_warn_agents_md_size
 fi
 
 STEP=$((STEP + 1))
@@ -495,6 +866,12 @@ init_writ_workspace
 # --- Summary ---
 
 echo ""
+
+if [ "$PLATFORM" = "codex" ] && [ "${AGENT_COUNT:-0}" -eq 0 ]; then
+  echo "❌ Codex agent sources were missing; install incomplete."
+  exit 1
+fi
+
 echo "✅ Writ installed for $PLATFORM_LABEL! (version: $VERSION)"
 
 TOTAL_NEW=$((CMD_NEW + AGENT_NEW + SKILL_NEW))
@@ -517,15 +894,23 @@ if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" 
   fi
 fi
 
+if [ "$PLATFORM" = "codex" ]; then
+  echo ""
+  [ -n "${AGENTS_MERGE_NOTE:-}" ] && echo "  $AGENTS_MERGE_NOTE"
+  [ -n "${SEED_CODEX_CONFIG_NOTE:-}" ] && echo "  $SEED_CODEX_CONFIG_NOTE"
+fi
+
 # --- Scoped git commit ---
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" 2>/dev/null || true
-  [ -d "$PLATFORM_DIR/skills" ] && git add "$PLATFORM_DIR/skills/" 2>/dev/null || true
+  [ -d "$SKILLS_DIR" ] && git add "$SKILLS_DIR/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "claude" ]; then
     git add "CLAUDE.md" 2>/dev/null || true
+  elif [ "$PLATFORM" = "codex" ]; then
+    git add "AGENTS.md" ".codex/config.toml" 2>/dev/null || true
   fi
   git add "$MANIFEST_FILE" 2>/dev/null || true
   [ -d .writ ] && git add .writ/ 2>/dev/null || true
@@ -545,6 +930,8 @@ if [ "$PLATFORM" = "cursor" ]; then
   echo "  In Cursor chat, try: /initialize, /create-spec, /implement-story"
 elif [ "$PLATFORM" = "claude" ]; then
   echo "  In Claude Code, try: /create-spec, /implement-story, /status"
+elif [ "$PLATFORM" = "codex" ]; then
+  echo "  In Codex CLI, restart sessions to reload AGENTS.md — try /create-spec, /implement-story"
 fi
 echo ""
 echo "⚡ So it is written. So it shall be built."

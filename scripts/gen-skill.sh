@@ -643,6 +643,7 @@ Writ commands use platform-agnostic tool references. Translate to your platform:
 | Cursor | `adapters/cursor.md` | Native - `Task()`, `AskQuestion()`, `codebase_search` |
 | OpenClaw | `adapters/openclaw.md` | `sessions_spawn`, `message` buttons, `exec` |
 | Claude Code | `adapters/claude-code.md` | `claude -p`, `Read`/`Write`/`Bash`, background processes |
+| Codex CLI | `adapters/codex.md` | `Read`/`Write`/`Bash`, `.codex/agents/*.toml`, `AGENTS.md` |
 
 When running a Writ command, read the appropriate adapter for your platform's tool mappings.
 
