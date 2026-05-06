@@ -24,6 +24,7 @@ Same detection logic as `/update-writ` Step 1 — read the manifest to determine
 ```bash
 cat .cursor/.writ-manifest 2>/dev/null
 cat .claude/.writ-manifest 2>/dev/null
+cat .codex/.writ-manifest 2>/dev/null
 ```
 
 **Guards:**
@@ -43,13 +44,20 @@ AskQuestion({
     prompt: "No Writ manifest found. Which platform should we install for?",
     options: [
       { id: "cursor", label: "Cursor (.cursor/)" },
-      { id: "claude", label: "Claude Code (.claude/)" }
+      { id: "claude", label: "Claude Code (.claude/)" },
+      { id: "codex", label: "Codex CLI (.codex/, AGENTS.md, .agents/skills/)" }
     ]
   }]
 })
 ```
 
-**Platform paths** — same table as `/update-writ` Step 1.
+**Platform paths** — same table as `/update-writ` Step 1, including Codex CLI:
+
+| Platform | Platform dir | Commands src | Agents src | Extra files |
+|---|---|---|---|---|
+| `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
+| `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` (project root) |
+| `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` install-once prompt, `.agents/skills/` |
 
 ### Step 2: Confirm Destructive Operation
 
@@ -89,10 +97,12 @@ Delete all Writ-managed files from the platform directory.
 
 **Files to remove:**
 - `[platform_dir]/commands/*.md` — all command files
-- `[platform_dir]/agents/*.md` — all agent files
+- `[platform_dir]/agents/*.md` — all Markdown agent files (Cursor/Claude Code)
+- `.codex/agents/*.toml` — Codex CLI agent files
 - Platform-specific extras:
   - Cursor: `[platform_dir]/rules/writ.mdc`, `[platform_dir]/system-instructions.md`
   - Claude Code: `CLAUDE.md` (project root)
+  - Codex CLI: `AGENTS.md` Writ block removed by `uninstall.sh --platform codex`; `.codex/config.toml` removal is prompted separately by `uninstall.sh` because the file is install-once and user-owned
 - `[platform_dir]/.writ-manifest`
 
 **Do NOT remove:**
@@ -114,10 +124,11 @@ git clone --depth 1 https://github.com/sellke/writ.git "$WRIT_SRC"
 
 1. `mkdir -p [platform_dir]/commands [platform_dir]/agents`
 2. Copy all commands: `cp $WRIT_SRC/commands/*.md [platform_dir]/commands/`
-3. Copy all agents: `cp $WRIT_SRC/[agents_src]/*.md [platform_dir]/agents/`
+3. Copy all agents: `cp $WRIT_SRC/[agents_src]/*.md [platform_dir]/agents/` (Cursor/Claude Code) or `cp $WRIT_SRC/codex/agents/*.toml .codex/agents/` (Codex CLI)
 4. Copy platform-specific files:
    - Cursor: `cp $WRIT_SRC/cursor/writ.mdc [platform_dir]/rules/` and `cp $WRIT_SRC/system-instructions.md [platform_dir]/`
    - Claude Code: `cp $WRIT_SRC/claude-code/CLAUDE.md ./CLAUDE.md`
+   - Codex CLI: merge the Writ block into `AGENTS.md`, seed `.codex/config.toml` only if absent, and install skills to `.agents/skills/`
 5. Write fresh manifest with baselines for every installed file
 
 ### Step 5: Git Commit
@@ -143,7 +154,12 @@ Remove the temporary clone.
 
   .writ/ directory was not touched — your specs,
   docs, and ADRs are intact.
+
+  Codex CLI: Restart your Codex session to load AGENTS.md changes.
+  Codex details: adapters/codex.md
 ```
+
+Codex note: Restart your Codex session to load AGENTS.md changes. See [`adapters/codex.md`](../adapters/codex.md) for the AGENTS.md block and `.codex/config.toml` install-once behavior.
 
 ---
 
@@ -164,6 +180,10 @@ Your Writ files have been removed but new ones could not be installed.
 To recover, run from your terminal:
 
   bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform [platform]
+
+For Codex CLI specifically:
+
+  bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
 ```
 
 ---

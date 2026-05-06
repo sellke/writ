@@ -10,7 +10,7 @@ Writ is an AI-powered development workflow framework — markdown command files 
 
 ## Repository Structure (Self-Dogfooding)
 
-This repo uses Writ to build Writ. Three concerns live here:
+This repo uses Writ to build Writ. Several concerns live here:
 
 | Concern | Location | What it is |
 |---|---|---|
@@ -18,6 +18,7 @@ This repo uses Writ to build Writ. Three concerns live here:
 | **Development workspace** | `.writ/` | Specs, research, product docs, ADRs — artifacts from using Writ to build itself |
 | **Active installation (Cursor)** | `.cursor/` | **Symlinks** to product source, not copies. Do not replace with regular files or run `install.sh` on this repo. |
 | **Active installation (Claude Code)** | `.claude/` | Same pattern: `commands`, `agents`, and `skills` symlink to repo-root `commands/`, `agents/`, `skills/`. Keep `settings.local.json` and other Claude-only files as real files. |
+| **Active installation (Codex CLI)** | `.codex/` | **`agents` → `codex/agents/`** (TOML). Same symlink idea as other platforms — do not replace with opaque copies while developing Writ itself. |
 
 Editing `commands/foo.md`, `.cursor/commands/foo.md`, or `.claude/commands/foo.md` changes the same file via symlink. Same applies to `skills/<name>/SKILL.md` once the first skill ships.
 
@@ -60,7 +61,7 @@ Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
 
 ### Adapters (`adapters/`)
-Platform-specific integration guides. `Codex.md` maps Writ concepts to Codex's native subagent system (YAML frontmatter, worktrees, memory). `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system. Each adapter includes a Skills section documenting per-platform install paths and invocation behavior.
+Platform-specific integration guides. `adapters/codex.md` maps Writ concepts to Codex CLI subagents, `AGENTS.md`, and `.codex/config.toml`. `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system. Each adapter includes a Skills section documenting per-platform install paths and invocation behavior.
 
 ### Scripts (`scripts/`)
 Shell scripts for installation (`install.sh`), updates (`update.sh`), migration from Code Captain (`migrate.sh`), symlink management (`unlink.sh`), root-catalog generation (`gen-skill.sh`), and skills boundary linting (`lint-skill.sh`).

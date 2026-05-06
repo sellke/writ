@@ -14,10 +14,13 @@ This is **local-first**: amendments are applied to the project's command copy. C
 | `/refresh-command create-spec` | Refresh a specific command |
 | `/refresh-command refresh-command` | Bootstrap — refresh-command improves itself |
 | `/refresh-command --lint-skills` | Run boundary lint against every `skills/*/SKILL.md` and exit |
+| `/refresh-command --check-parity` | Run agent parity lint (`agents/` ↔ `claude-code/agents/` ↔ `codex/agents/`) and exit |
 
 ---
 
 ## Phase 1: Select Command
+
+**If `--check-parity` is passed:** skip phases 2–5 and run **Phase 6: Agent parity check** only (then stop). Do not append `refresh-log.md` for parity runs unless you also ran a command refresh or `--lint-skills` in the same invocation.
 
 **If a command name was provided as an argument:**
 1. Resolve to `commands/{name}.md`
@@ -35,7 +38,8 @@ This is **local-first**: amendments are applied to the project's command copy. C
        prompt: "Pick a refresh target.",
        options: [
          { id: "command", label: "Refresh a command (pick from list)" },
-         { id: "lint-skills", label: "Run boundary lint across all skills" }
+         { id: "lint-skills", label: "Run boundary lint across all skills" },
+         { id: "parity", label: "Run agent parity check (agents ↔ Claude ↔ Codex TOMLs)" }
        ]
      }]
    })
@@ -43,10 +47,11 @@ This is **local-first**: amendments are applied to the project's command copy. C
 
    - **command** → list all files in `commands/` and ask the user to pick.
    - **lint-skills** → jump to **Phase 5: Skills Boundary Lint** and skip phases 2–4.
+   - **parity** → jump to **Phase 6: Agent parity check** and skip phases 2–4.
 
 **If `--lint-skills` is passed:** skip phases 2–4 and run **Phase 5** directly.
 
-**Output:** The resolved command name and file path (or "skills lint" mode).
+**Output:** The resolved command name and file path (or `skills lint` / `parity check` mode).
 
 ---
 
@@ -274,6 +279,61 @@ Logged to .writ/refresh-log.md
 
 ---
 
+## Phase 6: Agent parity check
+
+> **Triggered when:** the user picks `parity` from the Phase 1 menu, or invokes `/refresh-command --check-parity`.
+
+Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart — **warnings only; exit code is always 0** when the script completes.
+
+### Exclusions
+
+Contributors may omit a Claude Markdown variant when the role is intentionally Cursor/Codex-only:
+
+| Canonical agent (`agents/<name>.md`) | Exemption |
+|---|---|
+| `visual-qa-agent` | No `claude-code/agents/` file today — parity lint skips the Claude check for this agent only. Codex and Cursor still carry the role. |
+
+Add new rows here when a platform legitimately does not ship an agent (with rationale).
+
+### Step 6.1: Run the parity script
+
+From the repository root:
+
+```bash
+bash scripts/check-agent-parity.sh
+```
+
+Capture stdout verbatim.
+
+### Step 6.2: Present results
+
+**If output ends with the parity OK line and no `⚠️` lines appeared:**
+
+```
+✅ Agent parity check complete — parity OK
+
+agents/, claude-code/agents/, and codex/agents/ are aligned (subject to documented exclusions).
+```
+
+**If one or more `⚠️` lines appeared:**
+
+Print the script output verbatim, then summarize:
+
+```
+⚠️ Agent parity check complete — missing counterpart(s) reported above.
+
+These are warnings only (exit 0). Restore or author the missing platform file,
+or add a documented exclusion in Phase 6 if the omission is intentional.
+
+Regenerate Codex TOMLs after editing canonical agents:
+
+python3 scripts/gen-codex-agent-tomls.py
+```
+
+Do **not** auto-create agent files — surfacing drift is the goal.
+
+---
+
 ## Error Handling
 
 **Command file not found:**
@@ -293,7 +353,10 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome �
 |---|---|
 | All commands in `commands/` | Potential refresh targets |
 | `skills/*/SKILL.md` | Lint targets in `--lint-skills` mode |
+| `agents/*.md`, `claude-code/agents/*.md`, `codex/agents/*.toml` | Parity targets in `--check-parity` mode |
 | `scripts/lint-skill.sh` | Boundary lint grammar — shared with `/new-skill` |
+| `scripts/check-agent-parity.sh` | Agent parity warnings (always exit 0) |
+| `scripts/gen-codex-agent-tomls.py` | Regenerate `codex/agents/*.toml` from canonical `agents/*.md` |
 | `.writ/refresh-log.md` | Append-only improvement history (commands and skill lint runs) |
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |
 | `/new-command` | Creates new commands; `/refresh-command` improves existing ones |

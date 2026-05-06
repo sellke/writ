@@ -57,7 +57,7 @@ This trades some convenience (no ambient skill loading) for predictability (ever
 
 Writ skills use the same file format as Cursor, Claude Code, Codex CLI, and OpenClaw skills (per the AgentSkills standard, released December 2025). This buys two things for free:
 
-1. **Cross-platform compatibility.** A Writ skill installed in `.cursor/skills/`, `.claude/skills/`, `.codex/skills/`, or `.openclaw/skills/` works natively on each platform.
+1. **Cross-platform compatibility.** A Writ skill installed in `.cursor/skills/`, `.claude/skills/`, `.agents/skills/` (Codex CLI — AgentSkills standard layout), or `.openclaw/skills/` works natively on each platform.
 2. **Ecosystem distribution channels remain available** — Writ skills can be published to community catalogs if useful, and Writ users can pull in community skills without format translation.
 
 What Writ adds on top of the format is **a role convention enforced by review**: a Writ skill describes a capability, not a workflow or a role. Skill descriptions begin with a verb-phrase ("Write conventional commit messages...", "Run an OWASP-style code review..."). Skills that read like commands ("Run the full spec implementation pipeline...") or like agents ("Acts as a senior staff engineer reviewing...") are rejected as mis-classified and re-homed.
@@ -106,13 +106,23 @@ When in doubt, ask: *Is this work a workflow (command), a role (agent), or a cap
 **Prerequisites for any pilot skill work:**
 1. This ADR accepted
 2. `skills/` directory added at product source root
-3. `scripts/install.sh` updated to fan out `skills/` to platform-specific paths (`.cursor/skills/`, `.claude/skills/`, `.codex/skills/`, `.openclaw/skills/`)
+3. `scripts/install.sh` updated to fan out `skills/` to platform-specific paths (`.cursor/skills/`, `.claude/skills/`, `.agents/skills/` for Codex CLI per AgentSkills, `.openclaw/skills/`)
 4. Each adapter (`adapters/cursor.md`, `adapters/claude-code.md`, `adapters/openclaw.md`, plus a new `adapters/codex.md`) gains a "Skills" section documenting where skills install and how they load on that platform
 5. `.writ/manifest.yaml` schema extended with a `skills:` section; `scripts/gen-skill.sh` updated to render a Skills table in the root `SKILL.md`
 
 **Pilot scope (separate spec):** 2–3 skills extracted from capabilities currently inlined in agents — strongest candidates by duplication signal are `tdd-cycle`, `conventional-commits`, and `adr-writing`. Pilot proves the integration before any broader extraction.
 
 **Review date:** 90 days after first pilot skill ships — confirm the boundary held in practice or amend.
+
+## Amendments
+
+### 2026-05-06 — Codex CLI skills install path
+
+**Correction:** Writ skills on **Codex CLI** install to **`.agents/skills/<name>/SKILL.md`**, not under `.codex/skills/`.
+
+**Rationale:** Codex aligns with the cross-platform **AgentSkills** layout for the `.agents/` namespace (see [AgentSkills standard](https://agentskills.io)), which keeps skills readable from a shared path across tooling. Cursor and Claude Code continue to use **platform-namespaced** install paths (`.cursor/skills/` and `.claude/skills/` respectively); **no migration** of existing Cursor or Claude installations is required.
+
+**Originating work:** [Codex CLI Adapter spec](../specs/2026-05-06-codex-cli-adapter/spec.md).
 
 ## References
 

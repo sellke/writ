@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Large
 > **Created:** 2026-04-02
-> **spec_ref:**
+> **spec_ref:** .writ/specs/2026-05-06-codex-cli-adapter/spec.md
 
 ## TL;DR
 
@@ -39,3 +39,4 @@ Extend `/update-writ`, `/reinstall-writ`, `/uninstall-writ`, and the shell scrip
 - OpenClaw's session-based model may not map cleanly to file-based installation. It might need a fundamentally different install pattern (e.g., copying to a skills directory rather than a project-local `.openclaw/`).
 - Consider whether each platform needs its own agent variants (like Claude Code has `claude-code/agents/` with YAML frontmatter) or can share the base agent definitions.
 - The README's Platform Support table should be updated to include Codex and re-include OpenClaw once this work ships.
+- 2026-05-06: Promoted to spec [.writ/specs/2026-05-06-codex-cli-adapter/](.writ/specs/2026-05-06-codex-cli-adapter/spec.md). Codex half scoped here; OpenClaw lifecycle/install support deferred to a follow-up spec.

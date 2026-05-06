@@ -125,6 +125,8 @@ When a Writ command uses Plan Mode for discovery (e.g., `/create-spec` Phase 1, 
 
 Skills are the third Writ primitive (peer to commands and agents) — capability files that describe how to do a specific thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
 
+Cursor uses a **platform-namespaced** install path (below). Codex CLI installs Writ skills at `.agents/skills/` per the AgentSkills standard — see [ADR-009 § Amendments](../.writ/decision-records/adr-009-command-agent-skill-boundary.md#amendments).
+
 ### Install Path
 
 ```

@@ -56,7 +56,7 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
-- **Platform adapters** — Native support for Cursor and Claude Code
+- **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI
 
 ## Pipeline
 
@@ -186,6 +186,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 |----------|-------------|-------------|
 | **Cursor** | [`adapters/cursor.md`](adapters/cursor.md) | Native — `Task()`, `AskQuestion()` |
 | **Claude Code** | [`adapters/claude-code.md`](adapters/claude-code.md) | `claude -p`, `CLAUDE.md`, `--allowedTools` |
+| **Codex CLI** | [`adapters/codex.md`](adapters/codex.md) | `AGENTS.md`, `.codex/agents/*.toml`, native `/agent` |
 
 ## Quick Start
 
@@ -252,6 +253,22 @@ Then in Claude Code: `/create-spec "my feature"`
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update.sh) --platform claude
 ```
+
+### Codex CLI (one-line install)
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
+```
+
+This copies commands into `.codex/commands/`, installs Codex-native TOML agents into `.codex/agents/`, merges a Writ block into `AGENTS.md`, seeds `.codex/config.toml` only if absent, and installs skills into `.agents/skills/`. Preview first with `--dry-run`:
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex --dry-run
+```
+
+Restart Codex after install so it reloads `AGENTS.md`, then ask it to follow `.codex/commands/create-spec.md` for `/create-spec "my feature"`.
+
+Tested against Codex CLI as of May 2026; TOML schema may evolve — see [`adapters/codex.md`](adapters/codex.md).
 
 ## Migrating from Code Captain
 

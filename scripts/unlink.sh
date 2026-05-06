@@ -7,7 +7,7 @@
 # Flags:
 #   --dry-run      Preview changes without applying
 #   --no-commit    Don't auto-commit after conversion
-#   --platform     Target platform: cursor (default) or claude
+#   --platform     Target platform: cursor (default), claude, or codex
 
 set -euo pipefail
 
@@ -23,7 +23,7 @@ for arg in "$@"; do
     --no-commit)  NO_COMMIT=true ;;
     --platform)   ;; # value handled below
     --help|-h)
-      echo "Usage: bash unlink.sh [--dry-run] [--no-commit] [--platform cursor|claude]"
+      echo "Usage: bash unlink.sh [--dry-run] [--no-commit] [--platform cursor|claude|codex]"
       echo ""
       echo "Converts a symlinked Writ installation to independent file copies."
       echo "Run from your project root."
@@ -31,6 +31,7 @@ for arg in "$@"; do
       echo "Platforms:"
       echo "  cursor (default)  Convert .cursor/ installation"
       echo "  claude            Convert .claude/ installation"
+      echo "  codex             Convert .codex/ installation"
       echo ""
       echo "After conversion, use update.sh to stay current."
       echo ""
@@ -47,9 +48,9 @@ ARGS=("$@")
 for i in "${!ARGS[@]}"; do
   if [ "${ARGS[$i]}" = "--platform" ]; then
     PLATFORM="${ARGS[$((i+1))]:-}"
-    if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ]; then
+    if [ "$PLATFORM" != "cursor" ] && [ "$PLATFORM" != "claude" ] && [ "$PLATFORM" != "codex" ]; then
       echo "❌ Unknown platform: $PLATFORM"
-      echo "   Supported: cursor, claude"
+      echo "   Supported: cursor, claude, codex"
       exit 1
     fi
     break
@@ -64,10 +65,20 @@ if [ "$PLATFORM" = "cursor" ]; then
   PLATFORM_DIR=".cursor"
   MANIFEST_FILE=".cursor/.writ-manifest"
   PLATFORM_LABEL="Cursor"
+  SKILLS_DIR=".cursor/skills"
+  AGENT_FILE_GLOB="*.md"
 elif [ "$PLATFORM" = "claude" ]; then
   PLATFORM_DIR=".claude"
   MANIFEST_FILE=".claude/.writ-manifest"
   PLATFORM_LABEL="Claude Code"
+  SKILLS_DIR=".claude/skills"
+  AGENT_FILE_GLOB="*.md"
+elif [ "$PLATFORM" = "codex" ]; then
+  PLATFORM_DIR=".codex"
+  MANIFEST_FILE=".codex/.writ-manifest"
+  PLATFORM_LABEL="Codex CLI"
+  SKILLS_DIR=".agents/skills"
+  AGENT_FILE_GLOB="*.toml"
 fi
 
 echo "⚡ Writ Unlink ($PLATFORM_LABEL)"
@@ -113,7 +124,7 @@ manifest_version() {
 MODE=$(manifest_mode)
 
 if [ "$MODE" != "link" ]; then
-  echo "✅ This is already a copy-based installation. Nothing to do."
+  echo "  No symlinks found — files are already independent copies."
   exit 0
 fi
 
@@ -139,6 +150,18 @@ hash_file() {
   fi
 }
 
+manifest_hash_for() {
+  local path="$1"
+  [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
+}
+
+CODEX_AGENTS_BLOCK_HASH=""
+CODEX_CONFIG_BASELINE_HASH=""
+if [ "$PLATFORM" = "codex" ]; then
+  CODEX_AGENTS_BLOCK_HASH=$(manifest_hash_for "AGENTS.md.writ-block")
+  CODEX_CONFIG_BASELINE_HASH=$(manifest_hash_for ".codex/config.toml.baseline")
+fi
+
 # ---------------------------------------------------------------------------
 # Scan symlinks
 # ---------------------------------------------------------------------------
@@ -162,13 +185,16 @@ scan_file() {
 }
 
 for f in "$PLATFORM_DIR"/commands/*.md; do [ -e "$f" ] && scan_file "$f"; done
-for f in "$PLATFORM_DIR"/agents/*.md;   do [ -e "$f" ] && scan_file "$f"; done
+for f in "$PLATFORM_DIR"/agents/$AGENT_FILE_GLOB; do [ -e "$f" ] && scan_file "$f"; done
 
 if [ "$PLATFORM" = "cursor" ]; then
   scan_file "$PLATFORM_DIR/rules/writ.mdc"
   scan_file "$PLATFORM_DIR/system-instructions.md"
 elif [ "$PLATFORM" = "claude" ]; then
   scan_file "CLAUDE.md"
+elif [ "$PLATFORM" = "codex" ]; then
+  # AGENTS.md and .codex/config.toml are real user-owned files, not symlink-managed.
+  :
 fi
 
 # Also check for directory-level symlinks (older link installs)
@@ -192,11 +218,25 @@ if [ ${#SYMLINKS[@]} -eq 0 ] && [ ${#DIR_SYMLINKS[@]} -eq 0 ]; then
 # date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 # source: $WRIT_REPO
 EOF
-    for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
+    for f in "$PLATFORM_DIR"/commands/*.md; do
       [ -f "$f" ] || continue
       rel="${f#"$PLATFORM_DIR"/}"
       echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
     done
+    for f in "$PLATFORM_DIR"/agents/$AGENT_FILE_GLOB; do
+      [ -f "$f" ] || continue
+      rel="${f#"$PLATFORM_DIR"/}"
+      echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
+    done
+    if [ -d "$SKILLS_DIR" ]; then
+      for skill_folder in "$SKILLS_DIR"/*/; do
+        [ -d "$skill_folder" ] || continue
+        skill_name=$(basename "$skill_folder")
+        src_skill="${skill_folder}SKILL.md"
+        [ -f "$src_skill" ] || continue
+        echo "$(hash_file "$src_skill")  skills/$skill_name/SKILL.md" >> "$MANIFEST_FILE"
+      done
+    fi
     if [ "$PLATFORM" = "cursor" ]; then
       for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
         [ -f "$f" ] || continue
@@ -207,6 +247,10 @@ EOF
       if [ -f "CLAUDE.md" ]; then
         echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$MANIFEST_FILE"
       fi
+    fi
+    if [ "$PLATFORM" = "codex" ]; then
+      [ -n "$CODEX_AGENTS_BLOCK_HASH" ] && echo "$CODEX_AGENTS_BLOCK_HASH  AGENTS.md.writ-block" >> "$MANIFEST_FILE"
+      [ -n "$CODEX_CONFIG_BASELINE_HASH" ] && echo "$CODEX_CONFIG_BASELINE_HASH  .codex/config.toml.baseline" >> "$MANIFEST_FILE"
     fi
     echo "  ✅ Manifest updated to copy mode."
   else
@@ -258,7 +302,12 @@ for entry in ${DIR_SYMLINKS[@]+"${DIR_SYMLINKS[@]}"}; do
   rm -f "$local_path"
   mkdir -p "$local_path"
   if [ -d "$target" ]; then
-    for f in "$target"/*.md; do
+    if [ "$(basename "$local_path")" = "agents" ]; then
+      dir_glob="$AGENT_FILE_GLOB"
+    else
+      dir_glob="*.md"
+    fi
+    for f in "$target"/$dir_glob; do
       [ -f "$f" ] || continue
       cp "$f" "$local_path/$(basename "$f")"
       CONVERTED=$((CONVERTED + 1))
@@ -294,11 +343,25 @@ cat > "$MANIFEST_FILE" << EOF
 # source: $WRIT_REPO
 EOF
 
-for f in "$PLATFORM_DIR"/commands/*.md "$PLATFORM_DIR"/agents/*.md; do
+for f in "$PLATFORM_DIR"/commands/*.md; do
   [ -f "$f" ] || continue
   rel="${f#"$PLATFORM_DIR"/}"
   echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
 done
+for f in "$PLATFORM_DIR"/agents/$AGENT_FILE_GLOB; do
+  [ -f "$f" ] || continue
+  rel="${f#"$PLATFORM_DIR"/}"
+  echo "$(hash_file "$f")  $rel" >> "$MANIFEST_FILE"
+done
+if [ -d "$SKILLS_DIR" ]; then
+  for skill_folder in "$SKILLS_DIR"/*/; do
+    [ -d "$skill_folder" ] || continue
+    skill_name=$(basename "$skill_folder")
+    src_skill="${skill_folder}SKILL.md"
+    [ -f "$src_skill" ] || continue
+    echo "$(hash_file "$src_skill")  skills/$skill_name/SKILL.md" >> "$MANIFEST_FILE"
+  done
+fi
 if [ "$PLATFORM" = "cursor" ]; then
   for f in "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md"; do
     [ -f "$f" ] || continue
@@ -309,6 +372,10 @@ elif [ "$PLATFORM" = "claude" ]; then
   if [ -f "CLAUDE.md" ]; then
     echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$MANIFEST_FILE"
   fi
+fi
+if [ "$PLATFORM" = "codex" ]; then
+  [ -n "$CODEX_AGENTS_BLOCK_HASH" ] && echo "$CODEX_AGENTS_BLOCK_HASH  AGENTS.md.writ-block" >> "$MANIFEST_FILE"
+  [ -n "$CODEX_CONFIG_BASELINE_HASH" ] && echo "$CODEX_CONFIG_BASELINE_HASH  .codex/config.toml.baseline" >> "$MANIFEST_FILE"
 fi
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,20 @@
+# Writ Codex CLI baseline — install-once
+#
+# The installer copies this to `.codex/config.toml` only when that file does not
+# yet exist. Later Writ installs and updates never overwrite `.codex/config.toml`;
+# treat it as user-owned configuration (same pattern as Claude Code's settings.local.json).
+#
+# Docs: https://developers.openai.com/codex/config-advanced
+
+[agents]
+max_threads = 6
+max_depth = 1
+
+[features]
+codex_hooks = false
+
+# --- MCP (optional) ---
+# Uncomment and duplicate per server you enable; names must match what Codex expects.
+# [mcp_servers.example]
+# command = "npx"
+# args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed"]
