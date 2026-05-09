@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.18.1] - 2026-05-08
+
+### Fixed
+
+- **Startup update check false positives.** Writ now only recommends `/update-writ` after a copied installation proves upstream is strictly newer than the installed identity, preventing successful upstream reachability checks from triggering unnecessary update prompts.
+
+### Internal
+
+- **Issue backlog captured.** Added tracked issue records for the update-check false positive, spec branch preflight, and Writ business-process pipeline follow-ups.
+
 ## [0.18.0] - 2026-05-06
 
 ### Added
