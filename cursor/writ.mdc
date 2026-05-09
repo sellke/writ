@@ -123,29 +123,30 @@ Startup sequence:
 2. Read `.writ/state/writ-update-check.json` if it exists.
 3. If the cache records today's local date in `last_checked_date`, skip upstream network work and continue silently.
 4. If the cache is missing, stale, malformed, or missing `last_checked_date`, treat it as no valid same-day cache and continue through conservative eligibility checks.
-5. If no same-day cache exists, perform at most one lightweight, read-only upstream probe using existing manifest/source metadata when available.
+5. If no same-day cache exists, perform at most one lightweight, read-only upstream probe using existing manifest/source metadata when available. The probe must compare the installed Writ identity (version, revision, or release tag when available) against the upstream identity; a reachable upstream source or successful network response alone is not evidence of an update.
 6. Record today's result under `.writ/state/`; create `.writ/state/` only when recording a result.
-7. Notify only when a copied Writ installation appears to have an upstream update available.
+7. Notify only when a copied Writ installation has a strictly newer upstream identity and today's recorded `status` is `update_available`.
 8. Continue the user's original request, auto-orientation, or command workflow.
 
 Cache contract:
 
 - Preferred path: `.writ/state/writ-update-check.json`
 - Required daily-limit field: `last_checked_date` as a local `YYYY-MM-DD` date
-- Recommended metadata: `source`, `installed_version`, `latest_seen_version`, `status`, and `checked_by`
+- Recommended metadata: `source`, `installed_version`, `installed_revision`, `latest_seen_version`, `latest_seen_revision`, `status`, and `checked_by`
 - Allowed `status` values: `current`, `update_available`, `skipped_unsupported`, `skipped_source_repo`, `skipped_linked_install`, and `upstream_error`
 
 Detection rules:
 
-- Copied install with usable manifest/source metadata and newer upstream content: record `update_available` and show the `/update-writ` note.
-- Copied install with usable manifest/source metadata and no newer upstream content: record `current` and stay quiet.
-- Missing manifest/source metadata, uncertain comparisons, or unsupported installation shape: record or skip as `skipped_unsupported` and stay quiet.
+- Copied install with usable manifest/source metadata and a strictly newer upstream version, revision, or release tag: record `update_available` and show the `/update-writ` note.
+- Copied install with usable manifest/source metadata and matching or older upstream identity: record `current` and stay quiet.
+- Copied install where upstream is reachable but installed-vs-upstream comparison is unavailable, ambiguous, or unordered: record `skipped_unsupported` or `upstream_error` and stay quiet.
+- Missing manifest/source metadata, uncertain installation class, or unsupported installation shape: record or skip as `skipped_unsupported` and stay quiet.
 - Writ source repo: record or skip as `skipped_source_repo`; do not recommend `/update-writ`.
 - Linked installation: record or skip as `skipped_linked_install`; do not recommend `/update-writ`.
 - Network, timeout, auth, or upstream probe failure: record `upstream_error` for the day and stay quiet.
 - User explicitly invoked `/update-writ`: do not show a duplicate startup update prompt.
 
-Use this exact notification style for actionable copied-install updates: "Writ update available. Run `/update-writ` when you are ready."
+Use this exact notification style only after recording `status: "update_available"` for a copied install with a strictly newer upstream identity: "Writ update available. Run `/update-writ` when you are ready."
 
 Stay quiet and continue the original workflow when Writ is current, already checked today, offline, missing usable manifest/source metadata, unsupported, running from the Writ source repo, running from a linked installation, or already executing `/update-writ`.
 
