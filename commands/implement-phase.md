@@ -152,6 +152,10 @@ After a phase completes, advance to the next roadmap phase **only if** the compl
 
 Run each machine-checkable exit criterion from the roadmap (plus `/implement-spec`'s own integration verification, which already ran per spec). Record pass/fail per criterion — with evidence, not assertion.
 
+#### Step 4.1b: Evidence-Bound Knowledge Writeback
+
+At phase close, collect candidate lessons from the phase report and per-spec drift logs and run `scripts/phase-state.py knowledge-writeback`. It applies the **evidence-bound** D6 gates — generalizes beyond one spec, cites an artifact or repeated drift, is not substantively duplicated in `.writ/knowledge/`, and is below ADR blast radius — and writes only qualifying lessons to `.writ/knowledge/lessons/`, recording each in `knowledgeWritten` so resume never double-writes. **When there is no qualifying candidate this is a silent no-op** that changes no knowledge file; rejected candidates are noted in the phase report with a terse reason. This step never downgrades an architectural decision into an auto-written lesson — those belong in ADRs.
+
 #### Step 4.2: The Honest Completion Report
 
 ```

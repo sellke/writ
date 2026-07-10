@@ -33,6 +33,7 @@ CHECKS=(
   phase-lanes
   phase-challenges
   phase-quarantine
+  phase-knowledge
 )
 
 TOTAL_FINDINGS=0
@@ -1978,6 +1979,47 @@ check_phase_quarantine() {
     require_literal "$adapter" '### Quarantine and Resume' "Each adapter must map quarantine and resume mechanics."
     require_literal "$adapter" 'writ/quarantine/' "Each adapter must name the quarantine branch."
   done
+}
+
+check_phase_knowledge() {
+  local fake="$PROJECT_ROOT/scripts/eval-phase-knowledge.py"
+  local helper="$PROJECT_ROOT/scripts/phase-state.py"
+  local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local knowledge_cmd="$PROJECT_ROOT/commands/knowledge.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "phase-knowledge:$scenario_name" "$scenario_reason" "Fix the writeback evaluator or the fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def knowledge_writeback(' "The reducer must implement phase-close writeback."
+  require_literal "$helper" 'def _is_duplicate(' "The reducer must substantively deduplicate candidates."
+  require_literal "$helper" 'adr-scale' "The reducer must reject ADR-scale candidates."
+
+  require_literal "$state_doc" '## Knowledge Writeback' "The state-format doc must define phase-close knowledge."
+  require_literal "$state_doc" 'knowledgeWritten' "The state-format doc must make writeback resume-safe."
+  require_literal "$state_doc" 'no-op' "The state-format doc must define the no-candidate no-op."
+
+  require_literal "$implement_phase" 'evidence-bound' "Implement-phase must apply evidence-bound knowledge gates."
+  require_literal "$implement_phase" 'no qualifying candidate' "Implement-phase must treat no qualifying candidate as a no-op."
+
+  require_literal "$knowledge_cmd" 'Phase-Close Writeback' "Knowledge must document phase-close writeback."
+  require_literal "$knowledge_cmd" 'substantive' "Knowledge must deduplicate candidates substantively."
 }
 
 run_check() {

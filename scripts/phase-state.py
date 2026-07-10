@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -550,6 +551,109 @@ def cmd_reconcile(args: argparse.Namespace) -> dict[str, Any]:
     return {"status": "consistent", "attention": False}
 
 
+_WORD = re.compile(r"[a-z0-9]+")
+
+
+def _tokens(text: str) -> set[str]:
+    stop = {"the", "a", "an", "and", "or", "of", "to", "in", "is", "for",
+            "when", "then", "with", "that", "this", "it", "be", "on", "as"}
+    return {w for w in _WORD.findall(text.lower()) if len(w) > 2 and w not in stop}
+
+
+def _is_duplicate(statement: str, knowledge_dir: Path) -> bool:
+    """Substantive (meaning-oriented) dedup: compare token overlap against every
+    existing knowledge entry, not filenames or exact text. Conservative: a high
+    Jaccard overlap with any existing entry is treated as a duplicate to avoid
+    noisy repeated writeback."""
+    candidate = _tokens(statement)
+    if not candidate:
+        return False
+    for entry in knowledge_dir.rglob("*.md"):
+        if entry.name == "README.md":
+            continue
+        existing = _tokens(entry.read_text(encoding="utf-8"))
+        if not existing:
+            continue
+        overlap = len(candidate & existing) / len(candidate | existing)
+        if overlap >= 0.5:
+            return True
+    return False
+
+
+def _slug(title: str) -> str:
+    return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", title.lower())).strip("-")
+
+
+def knowledge_writeback(candidates: list[dict[str, Any]], knowledge_dir: Path,
+                        already: set[str]) -> dict[str, Any]:
+    """Apply the D6 evidence-bound qualification gates. A no-op (no qualifying
+    candidate) changes no file and returns empty written/rejected-only results."""
+    lessons_dir = knowledge_dir / "lessons"
+    written: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
+
+    for cand in candidates:
+        cid = cand.get("id")
+        if cid in already:
+            continue  # resume-safe: never write a completed lesson twice
+        statement = cand.get("statement", "")
+        if not cand.get("generalizes"):
+            rejected.append({"id": cid, "reason": "one-off (does not generalize beyond one spec)"})
+            continue
+        if not cand.get("evidence"):
+            rejected.append({"id": cid, "reason": "unsupported (no cited artifact or repeated drift)"})
+            continue
+        if cand.get("adr_scale"):
+            rejected.append({"id": cid, "reason": "adr-scale (architectural decision belongs in an ADR)"})
+            continue
+        if _is_duplicate(statement, knowledge_dir):
+            rejected.append({"id": cid, "reason": "duplicate (substantively covered in the ledger)"})
+            continue
+
+        lessons_dir.mkdir(parents=True, exist_ok=True)
+        title = cand.get("title") or statement[:60]
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        path = lessons_dir / f"{date}-{_slug(title)}.md"
+        tags = cand.get("tags", []) or ["phase-close"]
+        artifacts = "\n".join(f"  - {a}" for a in cand["evidence"])
+        path.write_text(
+            f"---\ncategory: lessons\ntags: [{', '.join(tags)}]\n"
+            f"created: {date}\nrelated_artifacts:\n{artifacts}\n---\n\n"
+            f"# {title}\n\n## TL;DR\n\n{statement}\n\n## Context\n\n"
+            f"Recorded at phase close from evidence-bound knowledge writeback.\n\n"
+            f"## Detail\n\n{statement}\n\n## Related\n\n",
+            encoding="utf-8",
+        )
+        written.append({"id": cid, "path": str(path.relative_to(knowledge_dir.parent.parent))
+                        if knowledge_dir.parent.parent in path.parents else str(path)})
+
+    return {"written": written, "rejected": rejected}
+
+
+def cmd_knowledge_writeback(args: argparse.Namespace) -> dict[str, Any]:
+    knowledge_dir = Path(args.knowledge_dir)
+    payload = json.loads(Path(args.candidates).read_text(encoding="utf-8"))
+    candidates = payload.get("candidates", [])
+
+    already: set[str] = set()
+    state = None
+    state_path = None
+    if args.state:
+        state_path = Path(args.state)
+        state = _load(state_path)
+        already = {w.get("id") for w in state.get("knowledgeWritten", [])}
+
+    result = knowledge_writeback(candidates, knowledge_dir, already)
+
+    if state is not None and result["written"]:
+        state.setdefault("knowledgeWritten", []).extend(result["written"])
+        state["updatedAt"] = _now()
+        _atomic_write(state_path, state)
+
+    result["noop"] = not result["written"]
+    return result
+
+
 def cmd_show(args: argparse.Namespace) -> dict[str, Any]:
     return _load(Path(args.state))
 
@@ -628,6 +732,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--state", required=True)
     p.add_argument("--repo", required=True)
     p.set_defaults(func=cmd_reconcile)
+
+    p = sub.add_parser("knowledge-writeback")
+    p.add_argument("--candidates", required=True)
+    p.add_argument("--knowledge-dir", required=True)
+    p.add_argument("--state", default="")
+    p.set_defaults(func=cmd_knowledge_writeback)
 
     p = sub.add_parser("show")
     p.add_argument("--state", required=True)

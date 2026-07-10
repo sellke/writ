@@ -193,6 +193,16 @@ Writ commands stay adapter-neutral (conventions, tags: adapters, commands)
 Back to work!
 ```
 
+## Phase-Close Writeback
+
+`/implement-phase` closes a phase by proposing candidate lessons drawn from the
+phase report and per-spec drift logs. Knowledge writeback then applies the
+evidence-bound gates (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md) → Knowledge Writeback) using the executable evaluator `scripts/phase-state.py knowledge-writeback`:
+
+- A candidate is written to `.writ/knowledge/lessons/` only if it generalizes beyond one spec, cites a supporting artifact or repeated drift, is below ADR blast radius, and is **not a substantive duplicate** of an existing entry.
+- **Substantive** deduplication compares *meaning* against every existing knowledge entry — not filenames or exact text — and is conservative: a high overlap with any existing entry is treated as a duplicate to avoid noisy repeated writeback.
+- Rejected and no-op outcomes are first-class successes: no qualifying candidate writes nothing and reports the rejected candidates with terse reasons.
+
 ## Completion
 
 This command succeeds when:

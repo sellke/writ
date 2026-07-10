@@ -200,6 +200,22 @@ names each discrepancy, and **does not guess or mutate git** — state is joint
 evidence with git, never permission to recreate, rename, delete, or merge branches
 to "repair" reality.
 
+## Knowledge Writeback (D6 — Story 5)
+
+At phase close, `scripts/phase-state.py knowledge-writeback` evaluates candidate
+lessons drawn from the phase report and per-spec drift logs. A candidate is written
+to `.writ/knowledge/lessons/` (existing schema) **only** when **all** hold:
+
+1. it **generalizes** beyond one story or spec;
+2. it **cites** a phase report, drift-log entry, failure record, or repeated observation;
+3. it is **not substantively duplicated** in the existing ledger (meaning-based dedup, not filename/exact text); and
+4. it is **below ADR blast radius** (architectural decisions belong in ADRs, not auto-written lessons).
+
+Each written entry's id is recorded in `knowledgeWritten` so a resumed phase close
+never writes the same lesson twice. Rejected candidates are reported (with a terse
+reason) but never written. **No qualifying candidate is a valid no-op**: no knowledge
+file changes and an empty candidate set produces no report section.
+
 ## Atomic Writes
 
 State is written with a sibling temporary file plus `os.replace` rename. An
