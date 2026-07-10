@@ -654,6 +654,106 @@ def cmd_knowledge_writeback(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
+    """Read-only phase progress summary for /status."""
+    state = _load(Path(args.state))
+    specs = state.get("specs", {})
+    counts = {"pending": 0, "implementing": 0, "integrated": 0,
+              "failed": 0, "quarantined": 0, "skipped_blocked": 0}
+    quarantine = []
+    current = None
+    for spec, rec in specs.items():
+        counts[rec.get("status", "pending")] = counts.get(rec.get("status", "pending"), 0) + 1
+        if rec.get("status") == "implementing" and current is None:
+            current = {"spec": spec, "laneBranch": rec.get("laneBranch")}
+        if rec.get("quarantineBranch"):
+            quarantine.append(rec["quarantineBranch"])
+    return {
+        "phase": state.get("phase"),
+        "phaseBranch": state.get("phaseBranch"),
+        "current": current,
+        "counts": counts,
+        "quarantineBranches": quarantine,
+    }
+
+
+def _artifact_status(path: str | None) -> str:
+    """Classify a summary artifact as pass / fail / missing.
+
+    An eval or verification report is 'pass' only when it records zero findings;
+    a missing file is 'missing' (a Warning input, never a failure)."""
+    if not path:
+        return "missing"
+    p = Path(path)
+    if not p.is_file():
+        return "missing"
+    text = p.read_text(encoding="utf-8")
+    m = re.search(r"Findings:\s*(\d+)", text)
+    if m:
+        return "pass" if int(m.group(1)) == 0 else "fail"
+    low = text.lower()
+    if "fail" in low and "0 fail" not in low:
+        return "fail"
+    return "pass"
+
+
+def cmd_health(args: argparse.Namespace) -> dict[str, Any]:
+    """Categorical health (D7). Missing/stale evidence is a Warning, never a
+    failure; Attention requires an affirmative current failure, unresolved
+    material drift, or a state/git mismatch. No score, no deep or external checks."""
+    eval_status = _artifact_status(args.eval or None)
+    verify_status = _artifact_status(args.verification or None)
+
+    drift_status = "none"
+    if args.drift:
+        dp = Path(args.drift)
+        if not dp.is_file():
+            drift_status = "missing"
+        else:
+            text = dp.read_text(encoding="utf-8").lower()
+            drift_status = "material" if ("unresolved" in text or "material" in text) else "none"
+    else:
+        drift_status = "missing"
+
+    state_status = "n/a"
+    if args.state and args.repo:
+        reconciled = cmd_reconcile(args)
+        state_status = "mismatch" if reconciled.get("attention") else "consistent"
+
+    unavailable = []
+    if eval_status == "missing":
+        unavailable.append("eval summary")
+    if verify_status == "missing":
+        unavailable.append("verification report")
+    if drift_status == "missing":
+        unavailable.append("drift log")
+
+    failures = []
+    if eval_status == "fail":
+        failures.append("eval findings present")
+    if verify_status == "fail":
+        failures.append("verification failing")
+    if drift_status == "material":
+        failures.append("unresolved material drift")
+    if state_status == "mismatch":
+        failures.append("phase-state/git mismatch")
+
+    if failures:
+        category = "Attention"
+    elif unavailable:
+        category = "Warning"
+    else:
+        category = "Healthy"
+
+    return {
+        "category": category,
+        "sources": {"eval": eval_status, "verification": verify_status,
+                    "drift": drift_status, "state": state_status},
+        "unavailable": unavailable,
+        "failures": failures,
+    }
+
+
 def cmd_show(args: argparse.Namespace) -> dict[str, Any]:
     return _load(Path(args.state))
 
@@ -738,6 +838,18 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--knowledge-dir", required=True)
     p.add_argument("--state", default="")
     p.set_defaults(func=cmd_knowledge_writeback)
+
+    p = sub.add_parser("progress")
+    p.add_argument("--state", required=True)
+    p.set_defaults(func=cmd_progress)
+
+    p = sub.add_parser("health")
+    p.add_argument("--state", default="")
+    p.add_argument("--repo", default="")
+    p.add_argument("--eval", default="")
+    p.add_argument("--verification", default="")
+    p.add_argument("--drift", default="")
+    p.set_defaults(func=cmd_health)
 
     p = sub.add_parser("show")
     p.add_argument("--state", required=True)

@@ -77,12 +77,24 @@ For each **spec** execution state file (`execution-*.json`), read and summarize:
 - Story statuses from the `"stories"` object: count pending, in_progress, completed, failed
 - Report as: *"Batch job in flight: [spec-name] — [N] of [M] stories complete"*
 
-For each **phase** execution state file (`phase-execution-*.json`, schema `phase-execution-v2`), read and summarize **read-only** (no git mutation):
-- Phase and current spec / active lane
-- Completed / failed / `skipped_blocked` counts from the `specs` object
-- Any **quarantine** branches (`specs.*.quarantineBranch`) so the maintainer can see preserved failed work and its recovery path
+For each **phase** execution state file (`phase-execution-*.json`, schema `phase-execution-v2`), summarize the **phase progress** and **production health** entirely **read-only** (no git mutation). Prefer the reducer over hand-parsing:
 
-This is a read-only recovery summary; `/status` never renames, merges, or deletes branches. (Story 6 extends this with categorical health.)
+```bash
+python3 scripts/phase-state.py progress --state <phase-execution-*.json>
+python3 scripts/phase-state.py health   --state <phase-execution-*.json> --repo . \
+  --eval <latest-eval-summary> --verification <latest-verification-report> --drift <drift-log>
+```
+
+- **Phase progress** — phase and current spec / active lane, per-status spec counts
+  (`pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`),
+  and any **quarantine** branches so the maintainer can see preserved failed work and its recovery path.
+- **Production health** — the reducer's **categorical** disposition (`Healthy` /
+  `Warning` / `Attention`) computed from locally available evidence. Missing or stale
+  evidence is reported as a Warning (never a silent pass); `Attention` means an
+  affirmative current failure. Surface the `unavailable` and `failures` lists verbatim
+  so the maintainer sees *why*.
+
+This is a read-only recovery summary; `/status` never renames, merges, or deletes branches, and health never runs deep, external, or mutating checks.
 
 If no execution state files exist, omit this section from the output.
 

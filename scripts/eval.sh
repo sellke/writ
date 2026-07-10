@@ -34,6 +34,7 @@ CHECKS=(
   phase-challenges
   phase-quarantine
   phase-knowledge
+  phase-health
 )
 
 TOTAL_FINDINGS=0
@@ -2020,6 +2021,45 @@ check_phase_knowledge() {
 
   require_literal "$knowledge_cmd" 'Phase-Close Writeback' "Knowledge must document phase-close writeback."
   require_literal "$knowledge_cmd" 'substantive' "Knowledge must deduplicate candidates substantively."
+}
+
+check_phase_health() {
+  local fake="$PROJECT_ROOT/scripts/eval-phase-health.py"
+  local helper="$PROJECT_ROOT/scripts/phase-state.py"
+  local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local status_cmd="$PROJECT_ROOT/commands/status.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "phase-health:$scenario_name" "$scenario_reason" "Fix the progress/health reducer or the fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def cmd_progress(' "The reducer must expose read-only phase progress."
+  require_literal "$helper" 'def cmd_health(' "The reducer must compute categorical health."
+  require_literal "$helper" 'Attention' "Health must be able to require attention."
+
+  require_literal "$state_doc" '## Progress and Health' "The state-format doc must define progress and health."
+  require_literal "$state_doc" 'categorical' "Health must be categorical, not a score."
+
+  require_literal "$implement_phase" 'production health' "Implement-phase must report phase progress and production health."
+
+  require_literal "$status_cmd" 'phase progress' "Status must surface phase progress."
+  require_literal "$status_cmd" 'read-only' "Status must remain read-only."
 }
 
 run_check() {

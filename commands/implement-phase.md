@@ -156,6 +156,18 @@ Run each machine-checkable exit criterion from the roadmap (plus `/implement-spe
 
 At phase close, collect candidate lessons from the phase report and per-spec drift logs and run `scripts/phase-state.py knowledge-writeback`. It applies the **evidence-bound** D6 gates — generalizes beyond one spec, cites an artifact or repeated drift, is not substantively duplicated in `.writ/knowledge/`, and is below ADR blast radius — and writes only qualifying lessons to `.writ/knowledge/lessons/`, recording each in `knowledgeWritten` so resume never double-writes. **When there is no qualifying candidate this is a silent no-op** that changes no knowledge file; rejected candidates are noted in the phase report with a terse reason. This step never downgrades an architectural decision into an auto-written lesson — those belong in ADRs.
 
+#### Step 4.1c: Phase Progress and Production Health
+
+Before writing the report, capture the phase's **progress** and **production health** from local evidence only — never a heavyweight probe of production or the network:
+
+```bash
+python3 scripts/phase-state.py progress --state .writ/state/phase-execution-{timestamp}.json
+python3 scripts/phase-state.py health   --state .writ/state/phase-execution-{timestamp}.json --repo . \
+  --eval <latest-eval-summary> --verification <latest-verification-report> --drift <drift-log>
+```
+
+`progress` reports the current spec/lane, per-status spec counts, and quarantine branches. `health` returns a **categorical** disposition (`Healthy` / `Warning` / `Attention`), never a score: missing or stale evidence degrades to `Warning` (never a silent pass), and `Attention` requires an affirmative current failure (eval findings, failing verification, unresolved material drift, or a `phase-state`/git mismatch). Carry both into the completion report so the maintainer sees phase progress and production health with the evidence behind each. The same reducers back `/status`, so an interrupted phase reports identically on resume.
+
 #### Step 4.2: The Honest Completion Report
 
 ```

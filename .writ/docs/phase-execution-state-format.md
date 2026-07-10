@@ -216,6 +216,33 @@ never writes the same lesson twice. Rejected candidates are reported (with a ter
 reason) but never written. **No qualifying candidate is a valid no-op**: no knowledge
 file changes and an empty candidate set produces no report section.
 
+## Progress and Health (D7 — Story 6)
+
+Two read-only reducers turn recorded state and locally available evidence into an
+honest snapshot — never a heavyweight probe of production or the network.
+
+`scripts/phase-state.py progress` reports, from state alone: the phase and its
+branch, the current implementing spec and its active lane, per-status spec counts
+(`pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`),
+and the list of quarantine branches. It computes nothing it cannot read from state.
+
+`scripts/phase-state.py health` returns a **categorical** disposition — never a
+numeric score — over three ordered categories:
+
+- **Healthy** — every *available* evidence source passes and recorded state agrees
+  with git.
+- **Warning** — one or more required evidence sources are **missing or stale**.
+  Absent evidence is a Warning input, never silently upgraded to Healthy and never
+  counted as a failure; mixed-age evidence cannot exceed Warning without an
+  affirmative current failure signal.
+- **Attention** — an **affirmative current failure** exists: eval findings present,
+  a failing verification report, unresolved material drift, or a `phase-state`/git
+  mismatch surfaced by read-only reconciliation.
+
+Health draws on the latest eval summary, verification report, drift log, and
+reconciliation result. It performs no deep, external, or mutating checks, and the
+absence of a source degrades the category rather than fabricating a pass.
+
 ## Atomic Writes
 
 State is written with a sibling temporary file plus `os.replace` rename. An
