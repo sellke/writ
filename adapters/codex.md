@@ -234,6 +234,25 @@ repeat the answered decision. Durable or cross-session recovery remains the
 neutral orchestrator's responsibility. Sandbox, approval, authentication, and
 unavailable-capability failures remain hard platform blockers.
 
+### Fresh Isolated Execution Lanes
+
+For `/implement-phase`, map the platform-neutral lane contract onto Codex CLI
+agent threads and git worktrees:
+
+- **Isolated worktree.** The orchestrator runs `scripts/phase-state.py create-lane`
+  to create the lane branch `writ/phase/{phase-id}/{spec-id}` and an
+  isolated worktree from the phase-branch head. The Codex agent thread runs with
+  that worktree as its working directory; the primary checkout is never mutated
+  during lane work.
+- **Fresh context.** Start a new Codex agent thread seeded only with artifact
+  paths (spec path, phase-state path, lane branch/worktree, mode) —
+  **no prior conversational transcript** is forwarded. Load context from
+  repository artifacts by path rather than replaying history.
+- **Run identifier.** Record the Codex thread/agent ID as `agentRunId`.
+- **Structured result.** The thread returns a single `phase-spec-result-v1`
+  object; the parent validates it with `scripts/phase-state.py validate-result`
+  and merges only a verified success into the phase branch.
+
 ### Recommended Delivery Context and Resume
 
 The Codex parent thread transports `delivery_context` through command/subagent

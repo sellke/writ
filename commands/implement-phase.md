@@ -107,15 +107,17 @@ Confirm with AskQuestion: execute / edit spec list / abort. **This is the last r
 
 #### Step 3.1: Initialize Phase State
 
-Write `.writ/state/phase-execution-{timestamp}.json` recording the phase, ordered spec list, and per-spec status (`pending` / `implementing` / `uat-generated` / `failed` / `skipped`). Update after every transition — this file is the `--resume` anchor.
+Initialize `.writ/state/phase-execution-{timestamp}.json` (schema `phase-execution-v2`) via `scripts/phase-state.py init`, recording the phase, phase branch, topologically ordered spec list, and per-spec record. This file is the **resume boundary** — the combination of state plus git reality is the only source of truth on `--resume`. It is updated after every transition using atomic writes (temp file + rename). The canonical contract is [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md).
 
-#### Step 3.2: Per-Spec Iteration
+#### Step 3.2: Per-Spec Iteration (Fresh Isolated Lanes)
 
-For each spec in order:
+The orchestrator owns lane creation, result validation, merge, and UAT handoff. Each spec runs in a **fresh subagent** inside its own isolated git lane — no accumulated conversational context reaches the spec. For each spec in order:
 
-1. **Run `/implement-spec {spec}`** with the confirmation gate suppressed — auto-accept its default execution plan. Pass through `--quick` if set. Pre-flight sizing flags are logged to the phase report, not asked about.
-2. **On success, run `/create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated *after* implementation so it reflects what was actually built.
-3. **Update phase state** and continue to the next spec.
+1. **Create the lane before any work** — `scripts/phase-state.py create-lane` verifies the phase branch is clean, then creates branch `writ/phase/{phase-id}/{spec-id}` and a dedicated worktree from the current phase-branch head. A dirty base or a branch collision **stops before launch** (`dirty_base` / `lane_collision`); isolation created only after a failure cannot prove the phase branch stayed clean.
+2. **Spawn a fresh subagent** seeded only with artifact paths (spec path, phase-state path, lane branch/worktree, mode, inherited answer sources) and the expected `phase-spec-result-v1` schema. **No prior conversational transcript is forwarded** — required context is loaded from repository artifacts by path. The subagent runs `/implement-spec {spec}` inside the lane worktree and returns the structured result. Pass through `--quick` if set.
+3. **Validate the result and merge only verified success** — `scripts/phase-state.py validate-result` gates the merge: **only a verified** `phase-spec-result-v1` with `status: succeeded`, a real commit, and non-empty verification evidence merges (`--no-ff`) into the phase branch (`integrate`), after which the worktree is removed and the merge commit recorded.
+4. **Preserve anything else** — a missing, malformed, non-successful, or unverifiable result never touches the phase branch; its lane is preserved for Step 3.3 / Story 4 to classify, quarantine, and recover.
+5. **On a merged success, run `/create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated *after* implementation so it reflects what was actually built. Update phase state and continue.
 
 **Inherited-answer rule:** any question `/implement-spec` or its sub-pipeline would ask that is answered by the spec contract, story files, technical spec, or roadmap is answered from those artifacts without surfacing to the user. Only questions with no artifact-derivable answer bubble up.
 

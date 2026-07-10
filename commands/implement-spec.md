@@ -611,6 +611,16 @@ Next steps:
 
 ---
 
+## Phase-Orchestrated Lane Mode
+
+When `/implement-phase` invokes this command inside an isolated per-spec lane, `/implement-spec` is a **nested worker, not an orchestrator**. In this mode:
+
+- It executes **only inside the supplied lane** worktree and branch that the orchestrator created (`writ/phase/{phase-id}/{spec-id}`). It **must not mutate the parent checkout**, create its own lanes, or make merge/quarantine decisions — those belong to `/implement-phase`.
+- It receives a fresh, artifact-seeded context (spec path, phase-state path, lane branch/worktree, mode) with **no prior conversational transcript**, and loads what it needs from repository artifacts by path.
+- On completion it returns a single structured `phase-spec-result-v1` result (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md)) reporting status, story counts, verification evidence, changed files, the lane commit, and any failure or challenge — and then exits. The orchestrator validates that result (`scripts/phase-state.py validate-result`) and decides whether to merge.
+
+Normal direct `/implement-spec` invocation (outside a phase) is unchanged and follows Phases 1–4 and Resume Support below.
+
 ## Resume Support
 
 If a session is interrupted mid-execution:

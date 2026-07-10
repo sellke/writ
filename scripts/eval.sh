@@ -30,6 +30,7 @@ CHECKS=(
   recommended-spec-implementation
   recommended-staging
   spec-dependencies
+  phase-lanes
 )
 
 TOTAL_FINDINGS=0
@@ -1814,6 +1815,65 @@ check_spec_dependencies() {
   require_literal "$implement_phase" 'roadmap order' "Implement-phase must use roadmap order as the independent-spec tie-break."
   require_literal "$implement_phase" 'inference remains advisory' "Implement-phase must keep shared-surface inference advisory only."
   require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
+}
+
+check_phase_lanes() {
+  local fake="$PROJECT_ROOT/scripts/eval-phase-lane.py"
+  local helper="$PROJECT_ROOT/scripts/phase-state.py"
+  local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local cursor_adapter="$PROJECT_ROOT/adapters/cursor.md"
+  local claude_adapter="$PROJECT_ROOT/adapters/claude-code.md"
+  local codex_adapter="$PROJECT_ROOT/adapters/codex.md"
+  local adapter scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "phase-lane:$scenario_name" "$scenario_reason" "Fix the phase-state reducer or the disposable-repo scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def cmd_create_lane(' "The reducer must create isolated lanes before work."
+  require_literal "$helper" 'def validate_result(' "The reducer must validate the structured result."
+  require_literal "$helper" 'def cmd_integrate(' "The reducer must merge only verified success."
+  require_literal "$helper" 'def _atomic_write(' "The reducer must write phase state atomically."
+  require_literal "$helper" 'preserved_lane' "The reducer must preserve non-successful lanes for Story 4."
+
+  require_literal "$state_doc" 'phase-execution-v2' "The state-format doc must define the canonical schema."
+  require_literal "$state_doc" 'phase-spec-result-v1' "The state-format doc must define the structured result."
+  require_literal "$state_doc" 'Isolation Begins Before Work' "The state-format doc must require pre-work isolation."
+  require_literal "$state_doc" 'never forwards' "The state-format doc must forbid forwarding conversational transcript."
+  require_literal "$state_doc" 'os.replace' "The state-format doc must define crash-safe atomic writes."
+
+  require_literal "$implement_phase" 'fresh subagent' "Implement-phase must launch a fresh subagent per spec."
+  require_literal "$implement_phase" 'writ/phase/{phase-id}/{spec-id}' "Implement-phase must own the lane branch naming."
+  require_literal "$implement_phase" 'phase-spec-result-v1' "Implement-phase must validate the structured result."
+  require_literal "$implement_phase" 'only a verified' "Implement-phase must merge only verified success."
+  require_literal "$implement_phase" 'scripts/phase-state.py' "Implement-phase must reference the executable reducer."
+
+  require_literal "$implement_spec" 'supplied lane' "Implement-spec must execute only inside the supplied lane."
+  require_literal "$implement_spec" 'phase-spec-result-v1' "Implement-spec must return the structured result."
+  require_literal "$implement_spec" 'must not mutate the parent checkout' "Implement-spec must not touch the parent checkout in lane mode."
+
+  for adapter in "$cursor_adapter" "$claude_adapter" "$codex_adapter"; do
+    require_literal "$adapter" '### Fresh Isolated Execution Lanes' "Each adapter must map fresh isolated execution."
+    require_literal "$adapter" 'phase-spec-result-v1' "Each adapter must return the structured result."
+    require_literal "$adapter" 'no prior conversational transcript' "Each adapter must seed fresh context without transcript."
+    require_literal "$adapter" 'isolated worktree' "Each adapter must map the isolated worktree."
+  done
 }
 
 run_check() {

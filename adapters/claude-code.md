@@ -207,6 +207,24 @@ belongs to the neutral orchestration contract, not this interaction adapter.
 Sandbox, authentication, permission, and unavailable-capability failures remain
 hard platform blockers.
 
+### Fresh Isolated Execution Lanes
+
+For `/implement-phase`, map the platform-neutral lane contract onto Claude Code's
+native subagents and git worktrees:
+
+- **Isolated worktree.** The orchestrator runs `scripts/phase-state.py create-lane`
+  to create the lane branch `writ/phase/{phase-id}/{spec-id}` and an
+  isolated worktree from the phase-branch head. The subagent works only inside
+  that worktree; the primary checkout is untouched during lane work.
+- **Fresh context.** Dispatch the spec to a native subagent seeded only with
+  artifact paths (spec path, phase-state path, lane branch/worktree, mode) —
+  **no prior conversational transcript** is forwarded. Claude Code subagents
+  already start with clean context; do not replay the parent transcript.
+- **Run identifier.** Record the subagent invocation ID as `agentRunId`.
+- **Structured result.** The subagent returns a single `phase-spec-result-v1`
+  object; the parent validates it with `scripts/phase-state.py validate-result`
+  and merges only a verified success into the phase branch.
+
 ### Recommended Delivery Context and Resume
 
 The parent Claude Code session carries `delivery_context` through command and

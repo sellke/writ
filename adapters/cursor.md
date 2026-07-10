@@ -117,6 +117,25 @@ in the next section.
 Cursor permission, authentication, and unavailable-tool failures remain hard
 platform blockers.
 
+### Fresh Isolated Execution Lanes
+
+For `/implement-phase`, map the platform-neutral lane contract onto Cursor's
+Task subagents and git worktrees:
+
+- **Isolated worktree.** Before launching a spec, the orchestrator runs
+  `scripts/phase-state.py create-lane`, which creates the lane branch
+  `writ/phase/{phase-id}/{spec-id}` and an isolated worktree from the phase-branch
+  head. The Task subagent operates inside that worktree; the primary Cursor
+  checkout is never mutated during lane work.
+- **Fresh context.** Launch the spec with the Task tool as a fresh subagent seeded
+  only with artifact paths (spec path, phase-state path, lane branch/worktree,
+  mode) — **no prior conversational transcript** is forwarded. The subagent loads
+  what it needs from repository artifacts by path.
+- **Run identifier.** Record the Task subagent's ID as `agentRunId` in phase state.
+- **Structured result.** The subagent returns a single `phase-spec-result-v1`
+  object; the parent validates it with `scripts/phase-state.py validate-result` and
+  merges only a verified success back into the phase branch.
+
 ### Recommended Delivery Context and Resume
 
 For Story 3, the top-level Cursor command transports the canonical
