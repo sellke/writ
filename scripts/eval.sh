@@ -1382,7 +1382,7 @@ try:
 
     for name, mutate, expected in (
         ("missing-top-key", lambda value: value.pop("repository"), "invalid_state"),
-        ("invalid-status-enum", lambda value: value.update(status="complete"), "invalid_state"),
+        ("invalid-status-enum", lambda value: value.update(status="done"), "invalid_state"),
         ("invalid-revision-type", lambda value: value.update(revision="1"), "invalid_revision"),
         ("unsupported-major", lambda value: value.update(schema="recommend-execution-v2", schemaVersion=2), "unsupported_schema"),
         ("invalid-manifest", lambda value: value["spec"]["packageManifest"]["artifacts"][0].update(immutableProjectionSha256="bad"), "invalid_state"),
