@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-WRIT_REPO="https://github.com/sellke/writ.git"
+WRIT_REPO="${WRIT_REPO:-https://github.com/sellke/writ.git}"
 
 DRY_RUN=false
 NO_COMMIT=false
@@ -175,6 +175,12 @@ write_copy_manifest() {
 EOF
 
   local f rel
+  if [ -f "scripts/recommend-state.py" ]; then
+    echo "$(hash_file "scripts/recommend-state.py")  scripts/recommend-state.py" >> "$target"
+  fi
+  if [ -f ".writ/docs/recommended-delivery-state-format.md" ]; then
+    echo "$(hash_file ".writ/docs/recommended-delivery-state-format.md")  .writ/docs/recommended-delivery-state-format.md" >> "$target"
+  fi
   for f in "$PLATFORM_DIR"/commands/*.md; do
     [ -f "$f" ] || continue
     rel="${f#"$PLATFORM_DIR"/}"
@@ -225,7 +231,9 @@ EOF
       echo "$iw  AGENTS.md.writ-block" >> "$target"
     fi
     config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
-    [ -n "$config_baseline" ] && echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
+    if [ -n "$config_baseline" ]; then
+      echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
+    fi
   fi
 }
 
@@ -512,6 +520,70 @@ overlay_scan() {
   done
 }
 
+scan_helper() {
+  local src="$WRIT_SRC/scripts/recommend-state.py"
+  local dest="scripts/recommend-state.py"
+  HELPER_ACTION="unchanged"
+  [ -f "$src" ] || { echo "    ❌ Missing upstream scripts/recommend-state.py"; return 15; }
+  if [ ! -f "$dest" ]; then
+    HELPER_ACTION="new"
+    echo "    ✨ New:       scripts/recommend-state.py"
+    return 0
+  fi
+  local upstream_hash local_hash baseline_hash
+  upstream_hash=$(hash_file "$src")
+  local_hash=$(hash_file "$dest")
+  [ "$upstream_hash" = "$local_hash" ] && return 0
+  baseline_hash=$(manifest_hash_for "scripts/recommend-state.py")
+  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
+    HELPER_ACTION="update"
+    echo "    🔄 Update:    scripts/recommend-state.py"
+  else
+    HELPER_ACTION="preserved"
+    echo "    ⚡ Preserved: scripts/recommend-state.py (local modifications)"
+  fi
+}
+
+apply_helper() {
+  if [ "$HELPER_ACTION" = "new" ] || [ "$HELPER_ACTION" = "update" ]; then
+    mkdir -p scripts
+    cp "$WRIT_SRC/scripts/recommend-state.py" "scripts/recommend-state.py"
+    chmod 755 "scripts/recommend-state.py"
+  fi
+}
+
+scan_state_doc() {
+  local src="$WRIT_SRC/.writ/docs/recommended-delivery-state-format.md"
+  local dest=".writ/docs/recommended-delivery-state-format.md"
+  STATE_DOC_ACTION="unchanged"
+  [ -f "$src" ] || { echo "    ❌ Missing upstream $dest"; return 15; }
+  if [ ! -f "$dest" ]; then
+    STATE_DOC_ACTION="new"
+    echo "    ✨ New:       $dest"
+    return 0
+  fi
+  local upstream_hash local_hash baseline_hash
+  upstream_hash=$(hash_file "$src")
+  local_hash=$(hash_file "$dest")
+  [ "$upstream_hash" = "$local_hash" ] && return 0
+  baseline_hash=$(manifest_hash_for "$dest")
+  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
+    STATE_DOC_ACTION="update"
+    echo "    🔄 Update:    $dest"
+  else
+    STATE_DOC_ACTION="preserved"
+    echo "    ⚡ Preserved: $dest (local modifications)"
+  fi
+}
+
+apply_state_doc() {
+  if [ "$STATE_DOC_ACTION" = "new" ] || [ "$STATE_DOC_ACTION" = "update" ]; then
+    mkdir -p ".writ/docs"
+    cp "$WRIT_SRC/.writ/docs/recommended-delivery-state-format.md" \
+      ".writ/docs/recommended-delivery-state-format.md"
+  fi
+}
+
 # Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
 overlay_scan_skills() {
   local src_dir="$1" local_dir="$2" mode="$3"
@@ -595,6 +667,8 @@ detect_stale_files() {
       local_file="$SKILLS_DIR/${manifest_path#skills/}"
     elif [ "$manifest_path" = "AGENTS.md.writ-block" ] || [ "$manifest_path" = ".codex/config.toml.baseline" ]; then
       continue
+    elif [ "${manifest_path%%/*}" = ".writ" ]; then
+      local_file="$manifest_path"
     else
       local_file="$PLATFORM_DIR/$manifest_path"
     fi
@@ -609,6 +683,8 @@ detect_stale_files() {
         skill_subpath="${manifest_path#skills/}"
         upstream_file="$WRIT_SRC/skills/$skill_subpath"
         ;;
+      scripts)  upstream_file="$WRIT_SRC/$manifest_path"; local_file="$manifest_path" ;;
+      .writ)    upstream_file="$WRIT_SRC/$manifest_path"; local_file="$manifest_path" ;;
       rules)    upstream_file="$WRIT_SRC/cursor/$(basename "$manifest_path")" ;;
       CLAUDE.md) upstream_file="$WRIT_SRC/claude-code/CLAUDE.md" ;;
       *)        continue ;;
@@ -638,6 +714,28 @@ overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
 TOTAL_NEW=$_NEW; TOTAL_UPDATED=$_UPDATED; TOTAL_PRESERVED=$_PRESERVED
 ALL_PRESERVED_FILES="$_PRESERVED_FILES"
 CMD_UNCHANGED=$_UNCHANGED
+
+echo "  Runtime helper:"
+scan_helper
+case "$HELPER_ACTION" in
+  new) TOTAL_NEW=$((TOTAL_NEW + 1)) ;;
+  update) TOTAL_UPDATED=$((TOTAL_UPDATED + 1)) ;;
+  preserved)
+    TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
+    ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    scripts/recommend-state.py\n"
+    ;;
+esac
+
+echo "  Runtime contract:"
+scan_state_doc
+case "$STATE_DOC_ACTION" in
+  new) TOTAL_NEW=$((TOTAL_NEW + 1)) ;;
+  update) TOTAL_UPDATED=$((TOTAL_UPDATED + 1)) ;;
+  preserved)
+    TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
+    ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    .writ/docs/recommended-delivery-state-format.md\n"
+    ;;
+esac
 
 echo "  Agents:"
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview" "$AGENT_FILE_GLOB"
@@ -825,6 +923,8 @@ fi
 echo "Updating..."
 
 overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
+apply_helper
+apply_state_doc
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply" "$AGENT_FILE_GLOB"
 
 if [ -d "$WRIT_SRC/skills" ]; then
@@ -898,6 +998,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
+  git add "scripts/recommend-state.py" 2>/dev/null || true
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" "$MANIFEST_FILE" 2>/dev/null || true
   [ -d "$SKILLS_DIR" ] && git add "$SKILLS_DIR/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then

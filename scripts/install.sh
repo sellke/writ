@@ -455,6 +455,12 @@ write_copy_manifest() {
 EOF
 
   local f rel
+  if [ -f "scripts/recommend-state.py" ]; then
+    echo "$(hash_file "scripts/recommend-state.py")  scripts/recommend-state.py" >> "$target"
+  fi
+  if [ -f ".writ/docs/recommended-delivery-state-format.md" ]; then
+    echo "$(hash_file ".writ/docs/recommended-delivery-state-format.md")  .writ/docs/recommended-delivery-state-format.md" >> "$target"
+  fi
   for f in "$PLATFORM_DIR"/commands/*.md; do
     [ -f "$f" ] || continue
     rel="${f#"$PLATFORM_DIR"/}"
@@ -596,11 +602,11 @@ init_writ_workspace() {
   if [ ! -d ".writ" ]; then
     echo ""
     echo "  📁 Creating .writ/ directory structure..."
-    mkdir -p .writ/{specs,product,research,decision-records,docs,issues,explanations,state}
+  fi
+  mkdir -p .writ/{specs,product,research,decision-records,docs,issues,explanations,state}
 
-    if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
-      printf '\n# Writ ephemeral state\n.writ/state/\n' >> .gitignore
-    fi
+  if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
+    printf '\n# Writ ephemeral state\n.writ/state/\n' >> .gitignore
   fi
 
   if [ -f ".cursor/rules/cc.mdc" ]; then
@@ -663,6 +669,59 @@ overlay_scan() {
       if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
     fi
   done
+}
+
+overlay_helper() {
+  local mode="$1"
+  local src="$WRIT_SRC/scripts/recommend-state.py"
+  local dest="scripts/recommend-state.py"
+  local upstream_hash local_hash baseline_hash
+  [ -f "$src" ] || { echo "❌ Missing $src"; return 15; }
+  upstream_hash=$(hash_file "$src")
+  if [ ! -f "$dest" ]; then
+    [ "$mode" = "preview" ] && echo "    ✨ New:       scripts/recommend-state.py"
+    if [ "$mode" = "apply" ]; then
+      mkdir -p scripts
+      cp "$src" "$dest"
+      chmod 755 "$dest"
+    fi
+    return 0
+  fi
+  local_hash=$(hash_file "$dest")
+  [ "$local_hash" = "$upstream_hash" ] && return 0
+  baseline_hash=$(manifest_hash_for "scripts/recommend-state.py")
+  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
+    [ "$mode" = "preview" ] && echo "    🔄 Update:    scripts/recommend-state.py"
+    if [ "$mode" = "apply" ]; then cp "$src" "$dest"; chmod 755 "$dest"; fi
+  else
+    echo "    ⚡ Preserved: scripts/recommend-state.py (local modifications)"
+  fi
+}
+
+overlay_state_doc() {
+  local mode="$1"
+  local src="$WRIT_SRC/.writ/docs/recommended-delivery-state-format.md"
+  local dest=".writ/docs/recommended-delivery-state-format.md"
+  local upstream_hash local_hash baseline_hash
+  [ -f "$src" ] || { echo "❌ Missing $src"; return 15; }
+  upstream_hash=$(hash_file "$src")
+  if [ ! -f "$dest" ]; then
+    [ "$mode" = "preview" ] && echo "    ✨ New:       $dest"
+    if [ "$mode" = "apply" ]; then
+      mkdir -p ".writ/docs"
+      cp "$src" "$dest"
+    fi
+    return 0
+  fi
+  local_hash=$(hash_file "$dest")
+  [ "$local_hash" = "$upstream_hash" ] && return 0
+  baseline_hash=$(manifest_hash_for "$dest")
+  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
+    [ "$mode" = "preview" ] && echo "    🔄 Update:    $dest"
+    [ "$mode" = "apply" ] && cp "$src" "$dest"
+  else
+    echo "    ⚡ Preserved: $dest (local modifications)"
+  fi
 }
 
 # Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
@@ -739,6 +798,11 @@ if [ "$DRY_RUN" = true ]; then
     echo "  Commands:"
     overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
     echo ""
+    echo "  Runtime helper:"
+    overlay_helper preview
+    echo "  Runtime contract:"
+    overlay_state_doc preview
+    echo ""
     echo "  Agents:"
     overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview" "$AGENT_FILE_GLOB"
     echo ""
@@ -781,6 +845,8 @@ if [ "$EXISTING_MODE" = "link" ]; then
   for f in "$PLATFORM_DIR"/agents/*.md "$PLATFORM_DIR"/agents/*.toml; do
     [ -L "$f" ] && rm -f "$f"
   done
+  [ -L "scripts/recommend-state.py" ] && rm -f "scripts/recommend-state.py"
+  [ -L ".writ/docs/recommended-delivery-state-format.md" ] && rm -f ".writ/docs/recommended-delivery-state-format.md"
   for f in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
     [ -L "$f" ] && rm -f "$f"
   done
@@ -804,23 +870,18 @@ mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
 [ -d "$WRIT_SRC/skills" ] && mkdir -p "$SKILLS_DIR"
 [ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
 
-if [ "$PLATFORM" = "codex" ]; then
-  if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
-    STEP_TOTAL=6
-  else
-    STEP_TOTAL=5
-  fi
-elif [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then
-  STEP_TOTAL=6
-else
-  STEP_TOTAL=5
-fi
+if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then STEP_TOTAL=7; else STEP_TOTAL=6; fi
 STEP=0
 
 STEP=$((STEP + 1))
 echo "  [$STEP/$STEP_TOTAL] Commands..."
 overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
 CMD_NEW=$_NEW; CMD_UPDATED=$_UPDATED; CMD_PRESERVED=$_PRESERVED
+
+STEP=$((STEP + 1))
+echo "  [$STEP/$STEP_TOTAL] Runtime helper..."
+overlay_helper apply
+overlay_state_doc apply
 
 STEP=$((STEP + 1))
 echo "  [$STEP/$STEP_TOTAL] Agents..."
@@ -903,6 +964,7 @@ fi
 # --- Scoped git commit ---
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
+  git add "scripts/recommend-state.py" 2>/dev/null || true
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" 2>/dev/null || true
   [ -d "$SKILLS_DIR" ] && git add "$SKILLS_DIR/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then

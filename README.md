@@ -24,7 +24,7 @@ Contract-first specs · Multi-agent SDLC · Automated quality gates · Opinionat
 Writ is a self-improving development methodology that turns rough ideas into shipped code through a disciplined pipeline:
 
 ```
-/plan-product → /create-spec → /assess-spec → /implement-spec → /review → /ship → /release
+/plan-product → /create-spec → /assess-spec → /implement-phase (or /implement-spec) → /review → /ship → /release
 ```
 
 Each stage is a markdown command file that AI agents follow precisely. The framework is **platform-agnostic** — it runs in Cursor, Claude Code, or any AI coding assistant that can read markdown. Commands lead with opinionated recommendations, challenge premises, and improve through use.
@@ -84,6 +84,10 @@ Lightweight path (/prototype) — no spec required:
    Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
                                               ↑ complexity? → escalate to /create-spec
 
+Phase path (/implement-phase — roadmap-driven, autonomous, Cursor-native):
+   /plan-product → /implement-phase N → /create-uat-plan (per spec, auto) → manual UAT → /ship
+                        ↑ loops /implement-spec per spec, sequences by cross-spec dependency
+
 Autonomous path (/ralph — plan in Cursor, execute in CLI, review in Cursor):
    /ralph plan → ./ralph.sh (fresh context per iteration) → /ralph status
                       ↑ one story per loop: orient → implement → validate → review → commit
@@ -110,6 +114,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
+| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, builds dependency graph, resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
 | `/implement-story` | **Per-story executor.** SDLC pipeline: arch-check → **boundary map (Gate 0.5)** → coding (TDD) → lint → review → drift → testing → visual QA (optional) → docs. `--quick` skips arch, boundary, review, drift, docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
@@ -190,7 +195,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 31 commands, but you only need five to go from idea to PR:
+Writ ships 32 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|

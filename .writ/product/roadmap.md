@@ -1,333 +1,128 @@
 # Writ — Product Roadmap
 
-> Based on Product Contract: 2026-02-27
-> Last Updated: 2026-03-27
+> Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
+> Last Updated: 2026-07-10
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
----
-
-## Phase 1: Foundation (4-6 weeks)
-
-**Goal:** Eliminate the biggest friction points — ceremony overhead and spec drift — while introducing the learning loop that makes everything else compound.
-
-**Status:** 6/7 spec stories complete. All command files and agent modifications written. Structural validation passes. Phase 1 has been materially dogfooded in recent weeks; dogfooding remains an ongoing operating practice rather than a finite one-time gate. See `.writ/specs/2026-02-27-phase1-foundation/validation-report.md` for the original structural validation baseline.
-
-### Success Criteria
-
-- `/prototype` used on 5+ real changes with noticeably less friction than full pipeline
-- Spec-healing catches and resolves at least 3 real drift incidents without manual intervention
-- `/refresh-command` produces at least 2 meaningful command improvements from actual use
-- Overall time-from-idea-to-shipped-feature decreases vs. current Writ v1
-
-### Features
-
-- [~] **`/prototype` command** — Lightweight execution for small-to-medium changes `Effort: M` — **Implemented, awaiting dogfood**
-  - Reduced gate set: arch-check (optional) → code → lint → quick-review
-  - Auto-detection heuristic: suggests `/prototype` vs. `/implement-story` based on change scope
-  - Escape hatch: can escalate to full pipeline mid-flight if complexity warrants
-  - Spec: Story 1 ✅ | Command file: `commands/prototype.md` (347 lines)
-  - Dogfood needed: run on a real small change, measure < 5 min wall-clock target
-
-- [~] **Tiered spec-healing agent** — Self-correcting pipeline `Effort: L` — **Implemented, awaiting dogfood**
-  - Deviation detection: compare implementation against spec contract at each gate
-  - Severity classification: small (naming, minor API shape) / medium (scope expansion, new dependency) / large (wrong approach, constraint violation)
-  - Small: auto-amend spec, log change, continue
-  - Medium: flag for post-implementation review, continue with warning
-  - Large: pause pipeline, surface conflict, wait for human decision
-  - Drift report: generated at end of every `/implement-story` run
-  - Spec: Story 2 ✅ | Agent modified: `agents/review-agent.md` (+171 lines)
-  - Dogfood needed: ≥3/5 real drift detections, zero false positives
-
-- [~] **`/refresh-command` command** — The learning loop `Effort: M` — **Implemented, awaiting dogfood**
-  - Scans a command-initiated thread (agent transcript or chat history)
-  - Identifies: what worked, what caused friction, what was wrong, what was missing
-  - Proposes specific amendments to the command file
-  - Local-first: changes land in project's copy (`.cursor/commands/` or equivalent)
-  - Promotion review: suggests which improvements are universal enough to upstream
-  - Generates a changelog entry for the refinement
-  - Spec: Stories 4+5 ✅ | Command file: `commands/refresh-command.md` (1047 lines)
-  - Dogfood needed: ≥1 actionable improvement per command analyzed, bootstrap self-refresh
-
-- [x] **`/plan-product` gstack enhancement** — Aspirational framing and opinionated posture `Effort: S` ✅ 2026-03-14
-  - Planning posture selection (EXPANSION / HOLD / REDUCTION) before discovery
-  - Mandatory premise challenge as opening move
-  - Dream State Mapping for long-horizon thinking
-  - Failure surface analysis and architecture diagrams in contracts
-  - Opinionated recommendation format throughout ("I recommend X because Y")
-  - Research: `.writ/research/2026-03-14-gstack-analysis-research.md`
-  - Decision: DEC-006
-
-### Technical Foundation
-
-- [~] Deviation detection logic for spec-healing (usable across commands) — **Implemented, awaiting dogfood**
-- [~] Thread scanning capability for `/refresh-command` — **Implemented, awaiting dogfood**
-- [~] Command overlay system: project-local commands override Writ core when present — **Implemented** (Story 6 ✅)
-
-### Validation Targets
-
-- Use Writ to build Writ: every Phase 1 feature goes through the pipeline
-- At least one external project (ioyoux or nsemble) uses `/prototype` and `/refresh-command`
-- Measure: time saved per feature, drift incidents caught, commands refined
+**Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
 
 ---
 
-## Phase 2: Reach (2-4 months)
+## Shipped Phases (condensed history)
 
-**Goal:** Close remaining automation gaps in the workflow. Every step from idea to shipped PR has a Writ command with clear boundaries.
+| Phase | Delivered | Version |
+|---|---|---|
+| **1 — Foundation** | `/prototype`, tiered spec-healing, `/refresh-command`, `/plan-product` posture enhancement | v0.5–0.8 |
+| **2 — Reach** | `/ship`, `/review`, `/retro`, enhanced error mapping in `/create-spec` | v0.8+ |
+| **3a — Context Engine** | Per-story context hints, "What Was Built" records, agent-specific spec views, `/create-uat-plan` | v0.9.0 |
+| **3b — Ralph Loop Orchestration** | `/ralph plan`, CLI loop, fresh-context iterations, quarantine branching — *deprecated in Phase 6; durable inventions migrate to `/implement-phase`* | v0.10.0 |
+| **4 — Production-Grade Substrate** | Knowledge ledger, SKILL.md generation, preamble enforcement, eval Tier 1 CI gate, spec `owner:` field | v0.14.0 |
+| **— Skills primitive** | Third primitive (command/agent/skill), `/new-skill`, boundary lint, `conventional-commits` pilot | v0.17.0 |
+| **— Codex adapter** | Third platform adapter with full lifecycle script parity | v0.18.0 |
 
-### Success Criteria
+---
 
-- `/ship` eliminates manual PR creation for 90%+ of pipeline completions
-- `/ship` + `/review` + `/retro` in regular use across projects
-- End-to-end workflow (plan → spec → implement → review → ship → retro → release) has zero manual gaps
+## Phase 5: Operationalize the Destination — ✅ Closed (spirit met, 2026-07-09)
 
-### Features
+**Original goal:** Make the production-grade claim falsifiable.
 
-- [~] **`/ship` command** — Unified shipping workflow (branch → PR) `Effort: M` — **Implemented, awaiting dogfood**
-  - Absorbs the PR agent concept — one command owns the full "branch to merged" path
-  - Merge origin/default-branch before tests (optional `--test` flag)
-  - Bisectable commit splitting with approval gate (infra → models → logic → tests → version)
-  - Structured PR body: summary, changes, spec reference, test results, spec health, drift report, review notes
-  - Auto-labeling, draft/ready detection, dry-run mode
-  - Convention detection with `.writ/config.md` persistence
-  - Command file: `commands/ship.md` (520 lines)
-  - Dogfood needed: run on a real feature branch, verify commit splitting and PR quality
+**Closure rationale:** The spirit of this phase was met by work that shipped through other channels: eval Tier 1 runs as a CI gate on every PR, `/verify-spec` is an 8-check diagnostic with auto-fix, drift logs quantify spec-vs-reality per story, and the knowledge ledger exists. Building a separate `/audit` command, `/lessons` micro-command, and per-story scorecards on top would add surface without adding falsifiability.
 
-- [~] **Standalone `/review` command** — Pre-landing code review `Effort: S` — **Implemented, awaiting dogfood**
-  - Error & rescue map: method → what fails → exception class → rescued? → user sees
-  - Shadow path tracing: happy, nil input, empty input, upstream error
-  - Interaction edge cases: double-click, navigate-away, stale state, back button
-  - Failure modes registry with critical gap detection (RESCUED=N, TEST=N, USER SEES=Silent)
-  - Mandatory ASCII diagrams for non-trivial flows
-  - Integration with `/ship`: saves report to `.writ/state/`, `/ship` reads it into PR body
-  - Command file: `commands/review.md` (199 lines)
-  - Dogfood needed: run on a real diff, verify failure mode detection quality
+**Disposition of original features:**
 
-- [~] **`/retro` command** — Git-based retrospective with gstack-inspired depth `Effort: M` — **Implemented, awaiting dogfood**
-  - Git-based metrics: commits, LOC, test ratio, session detection, streaks
-  - Team-aware analysis with specific, commit-anchored praise
-  - Persistent JSON snapshots in `.writ/retros/` with trend comparison
-  - Ship of the week + tweetable summary
-  - Integration with Writ specs: "Specs completed this period"
-  - Auto-detect timezone and default branch (not hardcoded)
-  - Command file: `commands/retro.md` (199 lines)
-  - Dogfood needed: run on a real 7-day period, verify session detection and pattern quality
+- [x] Falsifiability substrate — met by eval Tier 1 + `/verify-spec` + drift logs (shipped in Phase 4)
+- [→] `dependencies:` spec frontmatter — **relocated to Phase 6**, where `/implement-phase` sequencing actually consumes it
+- [→] `/status` health score — **relocated to Phase 6** as a one-line summary derived from existing checks (no new `/audit` command)
+- [✗] `/audit` command — cancelled (duplicates existing checks)
+- [✗] `/lessons` micro-command — cancelled (duplicates `/knowledge`)
+- [✗] Per-story scorecards, drift-to-lesson flag — cancelled (ceremony without evidence of need)
 
-- [~] **Enhanced error mapping in `/create-spec`** — Failure-aware specs `Effort: S` — **Implemented, awaiting dogfood**
-  - Error & rescue map as required section in technical sub-specs
-  - Shadow paths for critical data flows
-  - Interaction edge cases for user-facing features
-  - Shared format with `/review` enables plan-vs-actual comparison
-  - Implemented in: `commands/create-spec.md` (lines 504-530)
-  - Dogfood needed: create a spec with data flow features, verify error mapping tables are generated
+---
+
+## Phase 6: Autonomy Ceiling (1-2 weeks) — Next
+
+**Goal:** Harden normal multi-spec `/implement-phase` as a session-bound, single-confirmation orchestrator and retire Ralph. Single-spec recommended delivery is governed by [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md), which supersedes ADR-010's conflicting contract-level gate without extending `--recommend` to phase execution.
 
 ### Dependencies
 
-- Phase 1 `/refresh-command` operational and producing useful refinements
-- Phase 1 spec-healing generating drift reports
-
----
-
-## Phase 3a: Context Engine (2-3 weeks) ✅ Complete — v0.9.0
-
-**Goal:** Make spec context flow intelligently to every pipeline agent — the right context, to the right agent, at the right moment — so that the quality ceiling of AI-generated code is determined by spec quality, not context window luck.
-
-**Status:** Complete. All 5 stories implemented. Spec: `.writ/specs/2026-03-27-context-engine/`.
-
-### Features
-
-- [x] **Per-story context hints** — `## Context for Agents` section in story files `Effort: S` ✅
-  - Indexes into full spec: error map rows, shadow paths, business rules, experience design elements
-  - Generated by `user-story-generator` agent during `/create-spec`
-  - Format reference: `.writ/docs/context-hint-format.md`
-
-- [x] **"What Was Built" records** — Post-completion summary appended to story files `Effort: S` ✅
-  - Sourced from review agent output (third-party verification, not self-reports)
-  - Downstream coding agents receive these via `dependency_wwb_context` parameter
-  - Format reference: `.writ/docs/what-was-built-format.md`
-
-- [x] **Agent-specific spec views** — Restructure spec-lite.md with labeled sections `Effort: S` ✅
-  - Three sections: `## For Coding Agents`, `## For Review Agents`, `## For Testing Agents`
-  - Line budget: 35/35/30 — same <100 line total, better targeting per agent role
-
-- [x] **UAT plan generation** — `/create-uat-plan` command `Effort: M` ✅
-  - Generates test scenarios from acceptance criteria, error maps, shadow paths, edge cases
-  - Enriched with "What Was Built" implementation details
-  - Output: `.writ/specs/{spec}/uat-plan.md`
-
-- [x] **Context routing improvements** — Full routing table in `/implement-story` `Effort: M` ✅
-  - Each gate agent receives tailored spec-lite section + fetched context hints
-  - Graceful degradation for legacy specs without agent-specific sections
-
----
-
-## Phase 3b: Ralph Loop Orchestration (3-4 weeks) ✅ Complete — v0.10.0
-
-**Goal:** Enable "plan it, walk away, come back to PRs" through Ralph loop orchestration — Cursor-based planning, CLI-based execution, file-based state management across fresh-context iterations.
-
-**Status:** Complete. All 4 stories implemented. Spec: `.writ/specs/2026-03-27-ralph-loop-orchestration/`.
-
-**Architecture evolved** from the original roadmap concept (progressive autonomy thresholds within `/implement-story`) to the [Ralph Wiggum technique](https://ghuntley.com/ralph/) — a CLI bash loop with fresh context per iteration, which research found outperforms continuous agents. Key design shift: human moves from *in the loop* to *on the loop*.
-
-### Features
-
-- [x] **`/ralph plan` command** — Cross-spec execution planning (Cursor) `Effort: M` ✅
-  - Scans non-complete specs, resolves intra-spec and cross-spec dependencies
-  - Codebase assessment with structured findings
-  - Generates execution plan, CLI handoff artifacts, and initialized state file
-  - Plan is disposable — regenerate anytime from current codebase reality
-
-- [x] **CLI-adapted story pipeline** — `PROMPT_build.md` template `Effort: M` ✅
-  - Orient → implement → validate → commit, with 3-iteration fix loop
-  - Back pressure: tests + lint as quality gates (no separate review agent in CLI mode)
-  - State update protocol: when and how the CLI agent writes `ralph-*.json`
-  - Gate mapping docs: `.writ/docs/ralph-cli-pipeline.md`
-
-- [x] **Loop script + configuration** — `scripts/ralph.sh` `Effort: M` ✅
-  - Plan/build mode selection, max iterations, config-driven CLI agent invocation
-  - Git push after each successful iteration
-  - Stop conditions: max iterations, all complete, all blocked, stop-on-failure, environment error
-  - 5 new Ralph config keys in `.writ/docs/config-format.md`
-
-- [x] **`/ralph status` command** — Monitoring and Cursor re-entry `Effort: S` ✅
-  - Reads `.writ/state/ralph-*.json`, presents progress dashboard
-  - Surfaces blockers and escalation reports in plain language
-  - Phase detection (planned, executing, paused, escalated, complete)
-  - Next-step guidance for each phase
-
-### Key Design Decisions
-
-- **Fresh context per iteration** (not resumed context) — research finding: fresh-context agents outperform continuous agents
-- **CLI for execution** (not Cursor) — headless, automated, fresh context natively
-- **One story per iteration** (not one task) — stories are the natural unit of shippable value
-- **Dependency graph + assessment** (not pure "choose most important") — safety rails for existing codebases
-
----
-
-## Phase 4: Production-Grade Substrate (6-8 weeks)
-
-**Goal:** Build the foundations the destination ("non-degrading code and methodology across project, team, and platform churn") requires. Everything in this phase pays off for solo dev now AND sets up team-readiness later — see [ADR-006](../decision-records/adr-006-non-degrading-destination.md), [ADR-007](../decision-records/adr-007-team-audience-sequencing.md), [ADR-008](../decision-records/adr-008-spec-as-team-contract-moat.md).
-
-**Entry condition:** Phase 1 features materially dogfooded and stable enough to build on. Dogfooding continues indefinitely; it is not treated as a one-time completion event.
+- `2026-07-10-recommended-autonomous-delivery` — governance reconciliation and the bounded single-spec delivery policy must land before Phase 6.
+- Multi-spec `/implement-phase --recommend` remains excluded.
 
 ### Success Criteria
 
-- Knowledge ledger has ≥10 entries across ≥2 categories within 30 days of shipping
-- `SKILL.md` generation eliminates command/agent doc drift (verified by `gen --dry-run` clean in CI)
-- Eval Tier 1 catches at least one regression before release within first 60 days
-- Spec `owner:` field present on every spec created post-ship
-- Phase 1 features validated in real use; drift reports demonstrate the pipeline catches genuine deviations
+- A 3+ spec phase runs end-to-end through `/implement-phase` without orchestrator context degradation (fresh subagent per spec)
+- A deliberately failed spec lands on a quarantine branch without polluting the phase branch
+- At least one mid-run scope decision surfaces in User Challenge format during real use
+- Ralph fully deprecated: command, script, and docs archived; changelog and README updated; `/status` no longer reports ralph state
 
 ### Features
 
-- [ ] **Knowledge ledger v1 (`.writ/knowledge/`)** `Effort: S-M` (~2-4 days)
-  - Plain-text markdown directory: decisions, conventions, glossary, lessons
-  - Frontmatter schema (category, tags, created, related artifacts)
-  - `/knowledge` (or equivalent) authoring command
-  - Agent context-loading hook: relevant subdirectories surfaced at task start
-  - Backfill 5-10 high-value entries from existing research/drift logs to validate schema
-  - Per [ADR-005](../decision-records/adr-005-knowledge-substrate-markdown-over-database.md)
-
-- [ ] **`SKILL.md` template generation** `Effort: S` (~1-2 days)
-  - Manifest file as single source of truth for command/agent listing
-  - Generator script: manifest → `SKILL.md`
-  - CI gate: `gen --dry-run + git diff --exit-code` catches stale docs before merge
-  - Eliminates the drift risk that already exists today between command files and SKILL.md
-
-- [ ] **Preamble enforcement for commands** `Effort: S` (~1 day)
-  - Single preamble file with standing instructions
-  - Injected at command-load time so agents don't miss conventions
-  - Pairs naturally with SKILL.md generation infrastructure
-
-- [ ] **Eval Tier 1 (static checks)** `Effort: S` (~1 day)
-  - Required-section validation for command/agent files
-  - Anti-sycophancy phrasing checks (Prime Directive enforcement)
-  - Broken-reference detection (cross-file links, agent names, command names)
-  - Length sanity (catch runaway preamble bloat)
-  - Cheap quality floor; sets up Tier 2/3 if ever justified (deferred indefinitely per current scale)
-
-- [ ] **Spec frontmatter `owner:` field** `Effort: XS` (~2 hours)
-  - Add to spec frontmatter schema; default to git committer
-  - Solo devs see their own name; the moment a teammate joins, the field is already there
-  - Zero migration cost when team-collab event arrives — the seed of the team-readiness pattern
-
-### Validation Targets
-
-- Use Writ to build Phase 4 features through the existing pipeline
-- Knowledge ledger ingests 5-10 backfilled entries and at least 5 organic entries within 30 days
-- One real Phase 5 feature spec validates the SKILL.md generator on real changes
+- [ ] **Fresh context per spec** `Effort: M` — Each `/implement-spec` iteration runs in a fresh subagent; the orchestrator holds only state, sequencing, and escalation. Ralph's core research finding (fresh-context agents outperform continuous agents), ported into the supervised orchestrator.
+- [ ] **Quarantine branching on spec failure** `Effort: S` — Failed spec's partial work lands on `writ/quarantine/{spec}`; phase branch stays clean. Inherited from Ralph.
+- [ ] **User Challenge framing for mid-run decisions** `Effort: XS` — When a condition proposes degrading scope: what the roadmap said / what we recommend / what context we might be missing / cost if we're wrong. Apply ADR-013's evidence-based select-or-pause rule: low-risk reversible choices require observable support and an audit summary; critical ambiguity or material risk pauses. (Borrowed from GStack's autoplan; hardens the Prime Directive where autonomy is highest.)
+- [ ] **`dependencies:` spec frontmatter** `Effort: S` — Declared cross-spec dependencies replace prose-overlap inference in Step 2.1 sequencing; `/verify-spec` validates references. (Relocated from Phase 5.)
+- [ ] **Knowledge writeback at phase close** `Effort: S` — Phase report appends durable lessons and drift patterns to `.writ/knowledge/`; the loop feeds the memory.
+- [ ] **Ralph deprecation** `Effort: S` — Archive `commands/ralph.md`, `scripts/ralph.sh`, PROMPT templates, and docs; record [ADR-012](../decision-records/adr-012-ralph-deprecation.md); point users to `/implement-phase`.
+- [ ] **`/status` health line** `Effort: XS` — One-line production-grade summary derived from existing checks (eval Tier 1, `/verify-spec`, drift logs). (Relocated from Phase 5.)
 
 ---
 
-## Phase 5: Operationalize the Destination (4-6 weeks)
+## Phase 7: Compounding Layer (2-3 weeks)
 
-**Goal:** Make the production-grade claim falsifiable and tangible. Scorecards turn an abstract destination into measurable per-story and per-project signal. Lean into delight where it makes the destination *felt*.
+**Goal:** Make Writ's self-improvement falsifiable and its skills primitive actually adopted. The learning loop moves from anecdote to evidence.
 
 ### Success Criteria
 
-- `/audit` produces a numeric scorecard a contributor can act on (top 3 gaps surfaced with concrete remediation)
-- Production-grade health score visible at every `/status` invocation
-- `/lessons` used to capture ≥5 organic entries within first 30 days
-- At least one drift-to-lesson auto-promotion observed in real use
-- Per-story scorecards visible at completion of every `/implement-story` run
+- 3-5 skills extracted from the highest-traffic commands (`/create-spec`, `/implement-story`, `/ship`, `/refactor` are first candidates), each lint-clean and in real use
+- Every skill carries lifecycle state (candidate / proven / promoted) with recorded evidence
+- At least one `/refresh-command` refinement merged with cited transcript evidence and passing evals — and at least one *rejected* for lacking evidence
+- First knowledge consolidation pass merges or prunes real entries with a reviewable PR diff
 
 ### Features
 
-- [ ] **`/audit` command** `Effort: S-M` (~2-3 days)
-  - Operationalizes the six production-grade criteria as a checkable diagnostic
-  - Numeric scorecard (e.g., "7.2/10") with top gaps surfaced
-  - Outputs to `.writ/state/audit-{date}.json` for trend comparison and `/status` consumption
-  - Makes "production-grade" measurable, not merely claimed
+- [ ] **Skill lifecycle** `Effort: S-M` — `status:` field in skill frontmatter (candidate → proven → promoted) with evidence recorded per transition; `/new-skill` starts at candidate; `/refresh-command --lint-skills` checks lifecycle hygiene. (Pattern borrowed from GStack's domain-skill quarantine → active-after-3-successes.)
+- [ ] **Skill extraction from high-traffic commands** `Effort: M` — Pull reusable capability out of the heaviest commands into skills; commands shrink to orchestration. Targets the essential surface where refinement pays off most. Also resolves the weak content in `/explain-code` (retire the command; its ~10 durable lines become a skill).
+- [ ] **Evidence-bound `/refresh-command`** `Effort: M` — Proposed refinements must cite transcript evidence and pass eval Tier 1 (plus a lightweight Tier 2 check for high-traffic commands) before merging. The learning loop becomes falsifiable. (GBrain's `skillopt` sets the industry bar: skills as trainable parameters, keep only measurably better edits.)
+- [ ] **Knowledge consolidation** `Effort: S-M` — `/knowledge --consolidate` (or a `/retro` step): merge duplicates, surface contradictions, prune stale entries. Merge, never append — a log grows unbounded; a merged document stays searchable. Markdown in, markdown out, reviewable in PRs.
 
-- [ ] **Spec-as-team-contract substrate (non-team parts)** `Effort: M` (~1-2 days for first slice)
-  - `dependencies:` block in spec frontmatter (cross-spec dependency tracking)
-  - Status board across `.writ/specs/` (per-spec owner, status, last-touched)
-  - Useful to solo devs as project-management primitives in the meantime
-  - Foundations for the *deferred* team-specific affordances (cross-dev drift reconciliation, `/review-spec`)
+### Dependencies
 
-- [ ] **`/lessons` micro-command** `Effort: S` (~1 day)
-  - Modeled on `/create-issue`: 30-second mid-flow capture to the knowledge ledger
-  - Closes the gap between "noticed something" and "wrote it down"
-  - Pairs with knowledge ledger spec; one-line invocation
-
-- [ ] **`/status` shows production-grade health score** `Effort: XS` (~2 hours after /audit ships)
-  - One-line scorecard at session start: "Repo: 7.2/10. Top gap: 3 specs without drift logs."
-  - Tangible feedback at every entry point; the abstract destination becomes a habit
-
-- [ ] **Per-story production-grade scorecard** `Effort: S` (~1 day after /audit)
-  - Story completion shows "Story 3 shipped at 9.2/10, 2 minor drifts, full coverage"
-  - Quantifies the destination per shipped unit; gives drift-detection a positive counterpart
-
-- [ ] **Drift entries can self-promote to lessons** `Effort: XS` (~half day)
-  - `lesson: true` flag in a drift entry's frontmatter triggers knowledge ledger entry on next `/refresh-command`
-  - Closes the learning loop without ceremony; pipeline learns from its own deviations
-
-### Validation Targets
-
-- `/audit` scorecard identifies real gaps in the Writ repo itself before being shipped to others
-- Use of `/lessons` and drift-to-lesson promotion produces measurable knowledge ledger growth
-
-### Pacing Discipline
-
-Total Phase 4 + 5 effort: roughly 11-15 days of focused work spread over 10-14 calendar weeks at solo-maintainer pace. This respects the [research addendum's](../research/2026-04-24-writ-vs-gstack-rigor-comparison.md) Risk #1 ("solo-maintainer asymmetry — borrowing too much in one cycle stalls the maintainer"). Each phase ships independently; bundling Phase 4 with Phase 5 is the failure mode to avoid.
+- Phase 6 knowledge writeback (gives consolidation real input)
 
 ---
 
-## Beyond Phase 5 (Parking Lot)
+## Phase 8: Memory Interop (1-2 weeks)
 
-The original "Beyond Phase 3" list, reclassified after the strategic refresh:
+**Goal:** Writ's markdown stays the canonical system of record; external memory layers become documented, optional, disposable indexes over it. Interoperate, never re-implement. Per [ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md).
 
-**Kept (Phase 6+ candidates):**
-- **Cross-project learning corpus** — Phase 6+ extension of the knowledge ledger; same direction
-- **Self-improving context routing** — complements eval Tier 1; revisit once Tier 1 reveals patterns
-- **Autonomous refactoring** — long-horizon experimental
+### Success Criteria
+
+- A GBrain-equipped project can register `.writ/` as a source and answer retrieval queries against specs, ADRs, and knowledge entries
+- Removing GBrain (or any index) loses zero canonical data — verified by round-trip
+- Each adapter documents how Writ's ledger relates to that platform's native memory
+
+### Features
+
+- [ ] **GBrain compatibility recipe** `Effort: S-M` — Integration skill + docs: register `.writ/` via `gbrain sources add`, map knowledge/specs/ADRs to page types (evaluate a Writ schema pack), add brain-first retrieval guidance when a brain is detected, remove it gracefully when absent. Zero new Writ infrastructure; blast radius is one doc if GBrain's API moves.
+- [ ] **Native-memory guidance per adapter** `Effort: S` — Cursor memories, Claude Code memdir, Codex: what belongs in native memory (session preferences, trivia) vs. the ledger (negotiated decisions, conventions, lessons — the reviewable layer that feeds the rest).
+- [ ] **Mission language update** `Effort: XS` — "Not a persistent-database knowledge layer" softened to "markdown canonical; external indexes optional and disposable." (Done in the 2026-07-09 mission refresh; verify no stale references remain in README/docs.)
+
+---
+
+## Beyond Phase 8 (Parking Lot)
+
+**Kept as candidates:**
+- **Cross-project learning corpus** — extension of the knowledge ledger once consolidation is proven
+- **`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools via `/refresh-command`
+- **Eval Tier 2 expansion** — beyond the Phase 7 lightweight check, if it demonstrates value
 
 **Deferred until concrete signal:**
-- **Multi-developer drift reconciliation, `/review-spec`, multi-repo orchestration** — team-specific. The substrate (Phase 4 owner field, Phase 5 spec-as-contract) is being built so these slot in cleanly when needed. Trigger: a second human starts using Writ on a shared project. See [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
+- **Team affordances** (cross-dev drift reconciliation, `/review-spec`, multi-repo orchestration) — trigger: a second human on a shared Writ project. See [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
 
 **Dropped:**
-- **Notification integrations (Slack/webhooks for escalation)** — GStack territory; building this surface dilutes the destination ("non-degrading methodology") in favor of velocity-first orchestration.
-- **Cross-AI parallel coordination** — adapter abstraction handles platform portability; multi-AI orchestration is out of scope per [mission.md](mission.md).
+- **Opaque, unbounded autonomous loops (Ralph successor)** — deliberate non-goal per [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md); bounded single-spec recommended delivery instead uses observable state and one immutable production approval
+- **`/audit`, `/lessons`, per-story scorecards** — cancelled at Phase 5 closure
+- **Notification integrations, cross-AI parallel coordination, browser daemon** — carried over from prior refresh; still out of scope
 
 ---
 
@@ -335,11 +130,15 @@ The original "Beyond Phase 3" list, reclassified after the strategic refresh:
 
 | Size | Duration | Example |
 |------|----------|---------|
-| **XS** | 1-2 days | Bug fix, documentation update |
-| **S** | 3-5 days | `/review` command, `/plan-product` enhancement, error mapping in specs |
-| **M** | 1-2 weeks | `/prototype` command, `/retro`, `/ship`, PR agent, `/refresh-command` |
-| **L** | 3-4 weeks | Spec-healing agent |
-| **XL** | 1+ months | (reserved for future product extension) |
+| **XS** | 1-2 days | `/status` health line, User Challenge framing |
+| **S** | 3-5 days | Quarantine branching, `dependencies:` frontmatter, adapter memory guidance |
+| **M** | 1-2 weeks | Fresh context per spec, skill extraction, evidence-bound `/refresh-command` |
+| **L** | 3-4 weeks | (none currently planned) |
+| **XL** | 1+ months | (reserved) |
+
+### Pacing Discipline
+
+Phases 6-8 total roughly 4-7 weeks of focused work at solo-maintainer pace. Each phase ships independently; bundling them is the failure mode to avoid (research addendum Risk #1: solo-maintainer asymmetry).
 
 ---
 
@@ -348,6 +147,6 @@ The original "Beyond Phase 3" list, reclassified after the strategic refresh:
 1. **Adaptive ceremony** — Every feature must justify its weight. More process only when more process is warranted.
 2. **Local-first** — Improvements land in the project first. Upstream promotion is optional, never forced.
 3. **Dogfood everything** — Use Writ to build Writ. Every feature goes through the pipeline.
-4. **Commands are the unit** — Learning, improvement, distribution, customization all operate on commands.
+4. **Delegate mechanics, own contracts** — If the harness does it natively, adapt to it; never re-implement it. New surface must pass the test: *does this drive output the model wouldn't produce unprompted?*
 5. **Aplomb** — Agents should handle complexity with grace, not grind through checklists.
 6. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.

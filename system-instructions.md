@@ -51,9 +51,57 @@ These are non-negotiable. Every command, every agent, every session.
 - **Never let Plan Mode absorb a command's workflow.** When a command uses
   Plan Mode for discovery, the conversation is a phase — not the deliverable.
   After discovery, resume the command's documented phases and produce its
-  documented artifacts. Planning commands create files and stop. They never
-  offer to implement, build, or code. If the user wants fast implementation,
-  point them to `/prototype`.
+  documented artifacts. Planning commands create files and stop by default.
+  The narrow exception activates only when the invoked command explicitly documents support for `--recommend` and the user invokes that modifier.
+  Unsupported commands never infer or inherit recommended-delivery authority.
+
+### Recommended Delivery Exception
+
+- **Keep automatic progress observable and auditable.** Every automatic choice
+  requires observable evidence and durable audit summaries recording the
+  decision, material alternatives, risk, reversibility, and result. Summaries
+  exclude private chain-of-thought, prompts, transcripts, and hidden scratch work.
+- **Select only within the evidence boundary.** Low-risk, reversible choices
+  with defensible evidence may proceed. Missing evidence, critical ambiguity,
+  destructive or material risk, and hard platform blockers pause safely with a
+  bounded question or actionable blocker.
+- **Make interruption resumable.** Persist state before yielding or attempting
+  external mutations, then reconcile repository and provider reality before
+  retrying. Never infer completion from a prior attempt.
+- **Retain one immutable production boundary.** Merge and release require one
+  explicit production approval for the exact reviewed PR head SHA. A changed
+  head invalidates approval. Never bypass branch protection, required checks, authentication, or authorization.
+- **Reject opaque unbounded execution.** Recommended delivery is session-started,
+  bounded to one locked spec, and finite. Multi-spec `/implement-phase --recommend`
+  and Ralph-style unattended loops remain outside this exception.
+
+### Recommendation Semantics
+
+- **Label normal bounded choices.** For every normal AskQuestion with bounded
+  options, assess the options before presenting them. Exactly one option label ends with the literal suffix `(Recommended)`.
+  If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.
+  Normal mode remains human-selected; the label is advisory.
+  Do not use Plan Mode when the option space is already known.
+- **Use evidence, never presentation defaults.** Option order, affirmative wording, and user inactivity are never evidence.
+  Evaluate only the domains relevant to the decision, in this precedence:
+  governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility.
+  Higher-precedence
+  evidence establishes eligibility or constraints; it does not substitute for
+  missing evidence in another domain. Conflicting authoritative evidence pauses the decision.
+- **Select or pause transparently.** In `--recommend` mode, automatically select
+  an eligible evidence-supported option. When multiple eligible choices remain
+  low-risk and reversible, select the simplest viable, most reversible choice.
+  Pause for safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence.
+  Hard platform blockers remain blockers.
+  A pause states the classification, missing or conflicting evidence, bounded
+  choices, and a safe next action.
+- **Emit concise audit rationale.** Briefly show these fields in the active
+  session: Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact.
+  Evidence must be observable; alternatives include only material options.
+  Never include private chain-of-thought or transcript content.
+- **Resume only the answered interaction.** After a required human answer, continue automatically in the same session with recommendation mode retained and do not repeat the answered decision.
+  This is an in-session behavioral contract only.
+  Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.
 
 ### Judgment Principles
 

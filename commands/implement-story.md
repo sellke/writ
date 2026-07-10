@@ -14,6 +14,7 @@ This is the **per-story execution engine**. For full spec execution with depende
 | `/implement-story story-3` | Runs story 3 through the full pipeline |
 | `/implement-story story-3 --quick` | Skips arch-check, review, and docs (prototyping) |
 | `/implement-story story-3 --review-only` | Runs review + test + docs on existing code (no coding phase) |
+| Internal call with `delivery_context` | Recommended launch handshake, then the unchanged full pipeline |
 
 ## Agent Pipeline
 
@@ -343,6 +344,60 @@ This context enables Story 3's coding agent to build on **actual implementation*
 
 ---
 
+### Step 2.5: Recommended Worktree Launch Handshake
+
+This step runs only for an internal invocation carrying `delivery_context` with
+`mode: recommend`. Without that context, skip this section completely and
+preserve existing `/implement-story` behavior verbatim.
+
+Before Gate 0 or any Gate 1-capable delegated process edits files:
+
+1. Validate delivery-context execution ID, state/spec paths, mode, propagation
+   token, parent command, return schema, and package digest.
+2. Resolve observable execution identity from the current git context:
+   story ID, delegated execution ID, non-secret ownership token, absolute
+   worktree path, full branch/ref, full HEAD, starting SHA, and active gate
+   `launch`.
+3. Return this read-only launch result to the implement-spec parent:
+
+   ```yaml
+   schema: recommend-worktree-launch-v1
+   execution_id: string
+   story_id: string
+   delegated_execution_id: string
+   ownership_token: opaque-non-secret-token
+   path: absolute-path
+   branch_ref: refs/heads/name
+   head_sha: full-object-id
+   starting_sha: full-object-id
+   active_gate: launch
+   mode: linked_worktree | serial_in_place
+   ```
+
+4. Do not enter Gate 1, run an auto-fix, or mutate the worktree until the parent
+   validates git identity, persists the keyed worktree record through
+   `scripts/recommend-state.py reserve-worktree`, and returns:
+
+   ```yaml
+   schema: recommend-worktree-reservation-ack-v1
+   execution_id: string
+   worktree_key: story-id::delegated-execution-id::ownership-token
+   story_id: string
+   persisted_revision: integer
+   status: reserved
+   ```
+
+5. Compare every acknowledgment identity field. Missing, stale, or mismatched
+   acknowledgment returns a classified blocked result before edits.
+
+Parallel recommended stories require stable linked-worktree path/ref/HEAD
+identity. If the platform cannot expose it, return
+`worktree_identity_unavailable`; the parent may retry stories serially in place
+only when repository root/ref/HEAD can complete the same handshake. Never
+continue recommended execution with unobservable ownership.
+
+---
+
 ### Step 3: Run Pipeline
 
 > **Context refresh:** `.writ/context.md` is regenerated once at Story Completion (Step 4), not between gates. Each write replaces the entire file — do not append, merge, or patch.
@@ -470,6 +525,9 @@ If **no** such section exists in the active spec folder, Gate 0.5 proceeds witho
 
 > **Agent:** `agents/coding-agent.md`
 > **Skip in:** `--review-only` mode
+> **Recommended precondition:** When `delivery_context.mode` is `recommend`,
+> Gate 1 requires a matching persisted
+> `recommend-worktree-reservation-ack-v1`; without it, no edits are allowed.
 
 Spawns the coding agent with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5.
 
@@ -574,8 +632,15 @@ After the review agent returns, perform two operations:
 Inspect the `### Drift Analysis` section. Handle by severity:
 
 **Small drift** (naming, cosmetic — spec intent preserved):
-- Auto-amend `spec-lite.md` with the proposed changes
-- Log to `drift-log.md`
+- Capture the exact pre-edit SHA-256, auto-amend only `spec-lite.md`, and append
+  one unique `DEV-NNN` entry to `drift-log.md`
+- In recommended mode, return a canonical `recommend-spec-lite-review-v1`
+  result bound to execution ID, story ID, `outcome: passed`,
+  `drift_severity: small`, the DEV-ID list, and a non-empty summary
+- The parent must durably call
+  `scripts/recommend-state.py record-spec-lite-amendment` with the state,
+  repository, story ID, DEV ID, prior SHA-256, and review-result file before
+  continuing. A missing acknowledgment blocks.
 - Continue PASS
 - Always include spec-lite changes in pipeline summary
 
@@ -593,6 +658,10 @@ Inspect the `### Drift Analysis` section. Handle by severity:
 - Overall drift = highest severity present. Mixed runs pause for Large while still auto-amending Small deviations.
 - Only `spec-lite.md` is auto-modified. Full `spec.md` is never auto-modified — it remains the human-approved contract.
 - Log all drift to `.writ/specs/[spec-folder]/drift-log.md` — append-only, never modify existing entries. Continue DEV-ID numbering from the highest existing entry.
+- In recommended mode, never batch multiple spec-lite byte revisions into one
+  amendment record: each record must form a contiguous prior/resulting digest
+  link. Duplicate/missing DEV IDs, a broken chain, or another locked artifact
+  mutation blocks reconciliation.
 
 **Drift-log entry format:**
 

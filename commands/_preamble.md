@@ -10,6 +10,15 @@ deliverable. After discovery, resume the command's documented phases and produce
 its documented artifacts. Planning commands create files and stop. They never
 offer to implement, build, or code.
 
+### Narrow Recommended-Delivery Exception
+
+Only a command invocation that explicitly documents `--recommend` may continue
+from completed planning artifacts into implementation. The command must enter an
+explicit recommend-mode branch, validate its authoritative invocation matrix
+before mutation, persist the canonical delivery context and audit state, and
+retain every documented pause and production boundary. Without that explicit
+branch, planning commands create files and stop.
+
 ## File Organization
 
 All work is organized into `.writ/`:

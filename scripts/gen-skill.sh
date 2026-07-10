@@ -20,6 +20,7 @@ YQ_ARGS=()
 METADATA_NAME=""
 METADATA_VERSION=""
 METADATA_DESCRIPTION=""
+METADATA_RUNTIME_CONTRACT=""
 
 CATEGORY_IDS=()
 CATEGORY_LABELS=()
@@ -124,6 +125,7 @@ parse_with_yq() {
   METADATA_NAME="$(yq_read ".metadata.name // \"\"")"
   METADATA_VERSION="$(yq_read ".metadata.version // \"\"")"
   METADATA_DESCRIPTION="$(yq_read ".metadata.description // \"\"")"
+  METADATA_RUNTIME_CONTRACT="$(yq_read ".metadata.runtime_contract // \"\"")"
 
   while IFS=$'\t' read -r id label; do
     [ -n "$id" ] || continue
@@ -307,6 +309,7 @@ parse_with_bash() {
           name) METADATA_NAME="$value" ;;
           version) METADATA_VERSION="$value" ;;
           description) METADATA_DESCRIPTION="$value" ;;
+          runtime_contract) METADATA_RUNTIME_CONTRACT="$value" ;;
         esac
         ;;
       categories)
@@ -416,6 +419,10 @@ validate_manifest() {
   fi
   if [ -z "$METADATA_DESCRIPTION" ]; then
     echo "YAML error: metadata missing required field 'description'" >&2
+    exit 1
+  fi
+  if [ -z "$METADATA_RUNTIME_CONTRACT" ] || [ ! -f "$PROJECT_ROOT/$METADATA_RUNTIME_CONTRACT" ]; then
+    echo "YAML error: metadata runtime_contract is missing or references a missing file" >&2
     exit 1
   fi
 
@@ -584,6 +591,14 @@ See \`system-instructions.md\` for the overarching rules. Key points:
 
 When a user requests any Writ command, read the corresponding command file and follow its workflow precisely.
 
+## Runtime Contract
+
+Recommended-delivery commands use the authoritative state contract at
+\`$METADATA_RUNTIME_CONTRACT\`. Install, update, and unlink manage this file
+alongside the executable reducer. Story 4 activates the same v1 state through
+SHA-bound production approval; merge, release, and overall completion remain
+Story 5-owned.
+
 ## Available Commands
 EOF
 
@@ -652,9 +667,10 @@ When running a Writ command, read the appropriate adapter for your platform's to
 The intended workflow from idea to shipped code:
 
 ```text
-/plan-product -> /create-spec -> /implement-spec -> /verify-spec -> /release
-                                    |
-                              /ralph plan -> ./ralph.sh -> /ralph status
+/plan-product -> /create-spec -> /implement-phase -> /ship -> /release
+                                       |  loops /implement-spec per spec
+                                       |
+                                 /ralph plan -> ./ralph.sh -> /ralph status
 ```
 
 `/implement-story` is the quarterback. Per story it runs:

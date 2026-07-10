@@ -33,6 +33,14 @@ See `system-instructions.md` for the overarching rules. Key points:
 
 When a user requests any Writ command, read the corresponding command file and follow its workflow precisely.
 
+## Runtime Contract
+
+Recommended-delivery commands use the authoritative state contract at
+`.writ/docs/recommended-delivery-state-format.md`. Install, update, and unlink manage this file
+alongside the executable reducer. Story 4 activates the same v1 state through
+SHA-bound production approval; merge, release, and overall completion remain
+Story 5-owned.
+
 ## Available Commands
 
 ### Planning & Specification
@@ -42,7 +50,7 @@ When a user requests any Writ command, read the corresponding command file and f
 | `/assess-spec` | `commands/assess-spec.md` | Analyze a specification for implementability risks before committing to build it. |
 | `/create-adr` | `commands/create-adr.md` | Create architecture decision records with research-backed context. |
 | `/create-issue` | `commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
-| `/create-spec` | `commands/create-spec.md` | Create contract-first feature specifications with stories and verification plans. |
+| `/create-spec` | `commands/create-spec.md` | Create contract-first specifications; --recommend continues one validated package through staged production approval. |
 | `/design` | `commands/design.md` | Create and compare visual references for Writ specifications. |
 | `/edit-spec` | `commands/edit-spec.md` | Safely modify existing specifications while preserving contract integrity. |
 | `/knowledge` | `commands/knowledge.md` | Capture durable project knowledge as decisions, conventions, glossary terms, or lessons. |
@@ -54,8 +62,9 @@ When a user requests any Writ command, read the corresponding command file and f
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/create-uat-plan` | `commands/create-uat-plan.md` | Generate human-readable UAT plans from completed story details. |
-| `/implement-spec` | `commands/implement-spec.md` | Execute a specification through dependency-aware story batches. |
+| `/create-uat-plan` | `commands/create-uat-plan.md` | Generate deterministic implementation-derived UAT plans, with optional staged PR/CI/preview evidence. |
+| `/implement-phase` | `commands/implement-phase.md` | Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria. |
+| `/implement-spec` | `commands/implement-spec.md` | Execute dependency-aware story batches; --recommend continues one locked spec through SHA-bound production approval. |
 | `/implement-story` | `commands/implement-story.md` | Run the full story SDLC pipeline from architecture check through documentation. |
 | `/prototype` | `commands/prototype.md` | Ship small code changes with lightweight scan, coding, and verification. |
 | `/refactor` | `commands/refactor.md` | Perform scoped, verified refactors across files or modules. |
@@ -77,7 +86,7 @@ When a user requests any Writ command, read the corresponding command file and f
 | Command | File | Purpose |
 |---------|------|---------|
 | `/release` | `commands/release.md` | Prepare changelog, version bump, git tag, and GitHub release artifacts. |
-| `/ship` | `commands/ship.md` | Take a green branch through merge preparation, commit intelligence, and PR creation. |
+| `/ship` | `commands/ship.md` | Take a green branch through commit intelligence and PR creation; recommended delivery requires test evidence. |
 
 ### Security
 
@@ -147,9 +156,10 @@ When running a Writ command, read the appropriate adapter for your platform's to
 The intended workflow from idea to shipped code:
 
 ```text
-/plan-product -> /create-spec -> /implement-spec -> /verify-spec -> /release
-                                    |
-                              /ralph plan -> ./ralph.sh -> /ralph status
+/plan-product -> /create-spec -> /implement-phase -> /ship -> /release
+                                       |  loops /implement-spec per spec
+                                       |
+                                 /ralph plan -> ./ralph.sh -> /ralph status
 ```
 
 `/implement-story` is the quarterback. Per story it runs:

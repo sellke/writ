@@ -3,6 +3,7 @@ metadata:
   name: writ
   version: 0.13.1
   description: "AI-powered development workflow framework - contract-first specs, multi-agent SDLC, automated quality gates."
+  runtime_contract: ".writ/docs/recommended-delivery-state-format.md"
 
 categories:
   - id: planning
@@ -43,12 +44,12 @@ commands:
   - name: create-spec
     file: commands/create-spec.md
     category: planning
-    purpose: "Create contract-first feature specifications with stories and verification plans."
-    tags: [planning, spec, contract-first]
+    purpose: "Create contract-first specifications; --recommend continues one validated package through staged production approval."
+    tags: [planning, spec, contract-first, recommend]
   - name: create-uat-plan
     file: commands/create-uat-plan.md
     category: implementation
-    purpose: "Generate human-readable UAT plans from completed story details."
+    purpose: "Generate deterministic implementation-derived UAT plans, with optional staged PR/CI/preview evidence."
     tags: [implementation, uat, verification]
   - name: design
     file: commands/design.md
@@ -65,11 +66,16 @@ commands:
     category: setup
     purpose: "Explain existing code, symbols, files, or line ranges without modifying them."
     tags: [setup, explanation, documentation]
+  - name: implement-phase
+    file: commands/implement-phase.md
+    category: implementation
+    purpose: "Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria."
+    tags: [implementation, phase, orchestration, roadmap]
   - name: implement-spec
     file: commands/implement-spec.md
     category: implementation
-    purpose: "Execute a specification through dependency-aware story batches."
-    tags: [implementation, spec, orchestration]
+    purpose: "Execute dependency-aware story batches; --recommend continues one locked spec through SHA-bound production approval."
+    tags: [implementation, spec, orchestration, recommend]
   - name: implement-story
     file: commands/implement-story.md
     category: implementation
@@ -158,7 +164,7 @@ commands:
   - name: ship
     file: commands/ship.md
     category: release
-    purpose: "Take a green branch through merge preparation, commit intelligence, and PR creation."
+    purpose: "Take a green branch through commit intelligence and PR creation; recommended delivery requires test evidence."
     tags: [release, pr, shipping]
   - name: status
     file: commands/status.md

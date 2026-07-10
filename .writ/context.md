@@ -1,18 +1,18 @@
 # Writ Project Context
 
-> Last Updated: 2026-05-06
+> Last Updated: 2026-07-10T19:30:00Z
 
 ## Product Mission
 
-Writ is an elegant development workflow for AI-assisted software development so methodology and plain-text artifacts stay reviewable across platforms — contract-first specs, structured commands, agents, and skills without locking to a single vendor.
+Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns durable contracts in reviewable plain text and delegates mechanics to the platform underneath.
 
 ## Active Spec
 
-- **Spec:** 2026-05-06-codex-cli-adapter — Codex CLI Adapter (First-Class Platform Support)
-- **Status:** Complete
-- **Story:** 7 of 7 — README, End-to-End Smoke & Issue Writeback (Complete)
-- **Progress:** 50/50 tasks complete (100%)
+- **Spec:** 2026-07-10-recommended-autonomous-delivery — Recommended Autonomous Delivery
+- **Status:** Complete ✅
+- **Story:** 5 of 5 — Merge, Release, and Recovery (Completed ✅)
+- **Progress:** 35/35 tasks complete (100%)
 
 ## Open Issues
 
-11 tracked markdown files under `.writ/issues/` (recursive).
+14 tracked markdown files under `.writ/issues/` (recursive).

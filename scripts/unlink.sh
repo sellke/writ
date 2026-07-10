@@ -186,6 +186,8 @@ scan_file() {
 
 for f in "$PLATFORM_DIR"/commands/*.md; do [ -e "$f" ] && scan_file "$f"; done
 for f in "$PLATFORM_DIR"/agents/$AGENT_FILE_GLOB; do [ -e "$f" ] && scan_file "$f"; done
+[ -e "scripts/recommend-state.py" ] && scan_file "scripts/recommend-state.py"
+[ -e ".writ/docs/recommended-delivery-state-format.md" ] && scan_file ".writ/docs/recommended-delivery-state-format.md"
 
 if [ "$PLATFORM" = "cursor" ]; then
   scan_file "$PLATFORM_DIR/rules/writ.mdc"
@@ -218,6 +220,12 @@ if [ ${#SYMLINKS[@]} -eq 0 ] && [ ${#DIR_SYMLINKS[@]} -eq 0 ]; then
 # date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 # source: $WRIT_REPO
 EOF
+    if [ -f "scripts/recommend-state.py" ]; then
+      echo "$(hash_file "scripts/recommend-state.py")  scripts/recommend-state.py" >> "$MANIFEST_FILE"
+    fi
+    if [ -f ".writ/docs/recommended-delivery-state-format.md" ]; then
+      echo "$(hash_file ".writ/docs/recommended-delivery-state-format.md")  .writ/docs/recommended-delivery-state-format.md" >> "$MANIFEST_FILE"
+    fi
     for f in "$PLATFORM_DIR"/commands/*.md; do
       [ -f "$f" ] || continue
       rel="${f#"$PLATFORM_DIR"/}"
@@ -343,6 +351,14 @@ cat > "$MANIFEST_FILE" << EOF
 # source: $WRIT_REPO
 EOF
 
+if [ -f "scripts/recommend-state.py" ]; then
+  chmod 755 "scripts/recommend-state.py"
+  echo "$(hash_file "scripts/recommend-state.py")  scripts/recommend-state.py" >> "$MANIFEST_FILE"
+fi
+if [ -f ".writ/docs/recommended-delivery-state-format.md" ]; then
+  echo "$(hash_file ".writ/docs/recommended-delivery-state-format.md")  .writ/docs/recommended-delivery-state-format.md" >> "$MANIFEST_FILE"
+fi
+
 for f in "$PLATFORM_DIR"/commands/*.md; do
   [ -f "$f" ] || continue
   rel="${f#"$PLATFORM_DIR"/}"
@@ -394,6 +410,8 @@ echo "  Use update.sh --platform $PLATFORM to pull future Writ updates."
 # ---------------------------------------------------------------------------
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
+  git add "scripts/recommend-state.py" 2>/dev/null || true
+  git add ".writ/docs/recommended-delivery-state-format.md" 2>/dev/null || true
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" "$MANIFEST_FILE" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true

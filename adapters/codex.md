@@ -214,6 +214,103 @@ Before spawning architecture-check or coding agents, `/implement-story` loads op
 
 Cursor exposes `AskQuestion`; Codex does not. When a Writ command specifies `AskQuestion`, render the options as numbered Markdown choices and wait for the user’s reply in the composer. Maintain the contract: bounded decision space, explicit labels, no hidden defaults.
 
+Assign each bounded option a stable identity that does not change when its
+display number changes. Append `(Recommended)` only to the label selected by the
+shared policy; never infer selection from numbering, affirmative wording, or
+silence. If the policy finds explicit equivalence, label no option and disclose
+the equivalence.
+
+Preserve stable option identity across display, selection, rationale, and resume.
+Adapters map interaction mechanics only; they do not choose recommendation policy.
+Equivalent observable semantics are required: recommendation label or disclosed equivalence, classified pause, concise rationale, and same-session continuation after an answer.
+
+For `--recommend`, translate the policy's selected stable identity to the
+displayed number, or present its classified pause with missing evidence, bounded
+choices, and a safe next action. Show decision, evidence, material alternatives,
+risk, reversibility, selection source, and result/artifact without private
+chain-of-thought or transcript content. After a required composer reply,
+continue the active parent session with recommendation mode retained and do not
+repeat the answered decision. Durable or cross-session recovery remains the
+neutral orchestrator's responsibility. Sandbox, approval, authentication, and
+unavailable-capability failures remain hard platform blockers.
+
+### Recommended Delivery Context and Resume
+
+The Codex parent thread transports `delivery_context` through command/subagent
+boundaries and normalizes nested output as `recommend-command-result-v1`.
+Preserve execution ID, canonical state/spec paths, recommend mode, non-secret
+propagation token, parent command, return schema, and package manifest digest.
+Subagent threads neither create delivery executions nor claim overall delivery
+completion; implement-spec may wrap their existing report at its deterministic
+normalization boundary.
+
+Before waiting for a composer answer, preserve stable question and option IDs,
+recommend mode, and the same resume transition. Durable resume selects an
+explicit execution ID or one unambiguous spec/branch match and performs
+repository-only reconciliation before any workspace write or agent fan-out.
+
+Create state exclusively. On replacement, re-read revision and unknown fields,
+validate the complete next document, write and flush a validated sibling
+temporary file where supported, then atomically rename it. If the active Codex
+sandbox cannot perform equivalent crash-safe replacement, block rather than
+truncate the canonical state in place.
+
+Before recommended Gate 1, a Codex thread must report absolute worktree path,
+full ref/HEAD, story/delegated execution IDs, and ownership token as
+`recommend-worktree-launch-v1`. The parent verifies git worktree identity,
+persists it with `scripts/recommend-state.py reserve-worktree`, and returns
+`recommend-worktree-reservation-ack-v1`. Parallel threads are allowed only when
+each has a distinct observable linked worktree. Because Codex thread isolation
+varies by version/configuration, fall back to documented one-at-a-time serial
+in-place execution with the repository root/ref/HEAD handshake; if stable
+identity is still unavailable, block. Thread names and `/agent` listings alone
+are not ownership evidence.
+
+Story 3 repository-only reconciliation remains provider-free. Story 4 maps
+`findPullRequest`, `createPullRequest`, `getPullRequest`,
+`listRequiredChecks`, and `findPreview` to a configured integration or
+authenticated `gh`/`gh api`. PR lookup always uses provider repository/base/head
+identity. Derive that operation key, reconcile its bound Pending entry, persist
+`authorized`, then `attempted` before the sole create. Observe `created` or
+`reconciled` by lookup before canonical IDs are finalized; repeated absence
+after authorization blocks.
+Finalize the exact PR entry with canonical provider ID/number/URL, reconcile
+the log, and call `finalize-pr-audit` before checks. No later staging transition
+advances while a mutation-related recommendation entry remains Pending.
+
+Required-check discovery reads branch-protection/provider requirements and check
+runs, then separately classifies configured additive names. Normalize
+provider/repository/query time/head and stable provider IDs/names/set digest or
+explicit provider zero plus `authenticated: true` and concrete
+`listRequiredChecks` operation ID/start/completion; command success never
+implies authentication. Re-query the full set before advancing. Unknown,
+needs-auth, and authorization-denied remain distinct. Preview discovery reads
+existing deployment/status/check metadata; configured Vercel metadata is
+eligible only for a configured project/source with observable integration
+provenance and exact full-SHA binding. `Preview Project` maps to
+`previewProjectId`; detected IDs are execution-only and never auto-saved.
+URL-pattern-only evidence is invalid. Enforce
+`deployment-status → provider-deployment|provider-status`,
+`check-output → provider-check`, and
+`project-convention → project-convention`.
+Persist normalized evidence before yielding. Immediately before approval,
+repeat all reads and return one envelope binding capability snapshot digest,
+PR/head, complete check-set digest/IDs/statuses, preview provenance/status, UAT
+digest, and query time.
+One reconciliation attempt ID binds UTC RFC3339 observations after
+presentation/current evidence, within configured-or-five-minute freshness and
+30-second future skew.
+
+Codex renders one numbered approve/reject production decision with stable IDs
+and no default. Only an explicit composer reply receives a persisted event ID;
+silence remains `awaiting_approval`. If unattended waiting is unsupported,
+preserve `waiting_ci` or `discovering_preview` and provide the exact resume
+command.
+
+No browser automation, deployment provisioning, `deploy_to_vercel`, access-
+bypass URL, merge call, or release operation is allowed in Story 4. An
+authentication or authorization denial is reported once and stops.
+
 ### `/implement-spec` batches
 
 `/implement-spec` computes story dependency batches — parallel batches should map to concurrent Codex subagent threads when safe, sequential batches stay strictly ordered. The orchestrator session owns dependency bookkeeping; individual subagents should not mutate downstream story files outside their assigned scope.

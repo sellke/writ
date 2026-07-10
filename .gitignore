@@ -1,2 +1,4 @@
 .DS_Store
 .writ/state/
+__pycache__/
+*.pyc
