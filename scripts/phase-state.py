@@ -387,6 +387,169 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     return {"status": "integrated", "mergeCommit": merge_commit, "merged": True}
 
 
+def cmd_set_dependencies(args: argparse.Namespace) -> dict[str, Any]:
+    state_path = Path(args.state)
+    state = _load(state_path)
+    record = _spec_record(state, args.spec)
+    record["dependencies"] = [d.strip() for d in args.deps.split(",") if d.strip()]
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {"status": "ok", "spec": args.spec, "dependencies": record["dependencies"]}
+
+
+def cmd_classify(args: argparse.Namespace) -> dict[str, Any]:
+    """Decide retry vs quarantine for a non-successful result.
+
+    One retry is permitted only for a transient first-attempt failure. A
+    terminal failure, or a transient failure after the permitted retry, is a
+    terminal disposition (quarantine).
+    """
+    state = _load(Path(args.state))
+    record = _spec_record(state, args.spec)
+    payload = json.loads(Path(args.result).read_text(encoding="utf-8"))
+    failure = payload.get("failure") or {}
+    classification = failure.get("classification")
+    attempts = record.get("attempts", 0)
+    if classification == "transient" and attempts < 2:
+        return {"action": "retry", "attempts": attempts}
+    return {"action": "quarantine", "attempts": attempts,
+            "classification": classification or "terminal"}
+
+
+def cmd_retry(args: argparse.Namespace) -> dict[str, Any]:
+    """Record a bounded retry in the same lane without a new confirmation."""
+    state_path = Path(args.state)
+    state = _load(state_path)
+    record = _spec_record(state, args.spec)
+    if record.get("attempts", 0) >= 2:
+        raise ContractError("retry_exhausted",
+                            f"{args.spec} already used its permitted retry")
+    record["attempts"] = record.get("attempts", 0) + 1
+    record["status"] = "implementing"
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {"status": "retrying", "attempts": record["attempts"], "laneBranch": record.get("laneBranch")}
+
+
+def _quarantine_name(repo: Path, spec: str) -> str:
+    base = f"writ/quarantine/{spec}"
+    if _git(repo, "rev-parse", "--verify", base, check=False).returncode != 0:
+        return base
+    suffix = 2
+    while _git(repo, "rev-parse", "--verify", f"{base}-{suffix}", check=False).returncode == 0:
+        suffix += 1
+    return f"{base}-{suffix}"
+
+
+def _transitive_dependents(state: dict[str, Any], root: str) -> list[str]:
+    specs = state.get("specs", {})
+    blocked: list[str] = []
+    frontier = [root]
+    while frontier:
+        current = frontier.pop()
+        for spec, rec in specs.items():
+            if current in rec.get("dependencies", []) and spec not in blocked and spec != root:
+                blocked.append(spec)
+                frontier.append(spec)
+    return blocked
+
+
+def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
+    """Terminal disposition: preserve the failed lane as a quarantine branch,
+    guarantee the phase branch is clean of it, and block declared dependents."""
+    state_path = Path(args.state)
+    repo = Path(args.repo)
+    state = _load(state_path)
+    record = _spec_record(state, args.spec)
+    phase_head_before = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
+
+    lane_branch = record.get("laneBranch")
+    worktree_path = record.get("worktreePath")
+    if worktree_path and Path(worktree_path).exists():
+        _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
+
+    quarantine_branch = _quarantine_name(repo, args.spec)
+    if lane_branch and _git(repo, "rev-parse", "--verify", lane_branch, check=False).returncode == 0:
+        rename = _git(repo, "branch", "-m", lane_branch, quarantine_branch, check=False)
+        if rename.returncode != 0:
+            # Renaming failed: keep the lane, mark attention, leave phase clean.
+            record["status"] = "failed"
+            record["evidence"].append("quarantine_rename_failed")
+            state["updatedAt"] = _now()
+            _atomic_write(state_path, state)
+            return {"status": "attention_required", "reason": "quarantine_rename_failed",
+                    "laneBranch": lane_branch}
+
+    # The failed lane never merged, so the phase branch must be unchanged.
+    phase_head_after = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
+    phase_clean = phase_head_after == phase_head_before
+
+    record.update({
+        "status": "quarantined",
+        "quarantineBranch": quarantine_branch,
+        "worktreePath": None,
+        "failure": {"summary": args.summary or "terminal failure",
+                    "attempts": record.get("attempts", 0)},
+    })
+    record.setdefault("evidence", []).append(f"quarantine:{quarantine_branch}")
+
+    blocked = _transitive_dependents(state, args.spec)
+    for dep in blocked:
+        state["specs"][dep]["status"] = "skipped_blocked"
+        bl = state["specs"][dep].setdefault("blockedBy", [])
+        if args.spec not in bl:
+            bl.append(args.spec)
+
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {
+        "status": "quarantined",
+        "quarantineBranch": quarantine_branch,
+        "phaseBranchClean": phase_clean,
+        "blockedDependents": blocked,
+        "recovery": f"git checkout {quarantine_branch}  # inspect, fix, then re-run the phase",
+    }
+
+
+def cmd_reconcile(args: argparse.Namespace) -> dict[str, Any]:
+    """Read-only resume reconciliation: does recorded state agree with git?
+
+    Reports the first mismatch and a recovery command without mutating git or
+    guessing. Only when state and git agree may execution continue.
+    """
+    repo = Path(args.repo)
+    state = _load(Path(args.state))
+    mismatches: list[str] = []
+
+    def branch_exists(name: str) -> bool:
+        return _git(repo, "rev-parse", "--verify", name, check=False).returncode == 0
+
+    if not branch_exists(state["phaseBranch"]):
+        mismatches.append(f"phase branch {state['phaseBranch']} is missing")
+
+    for spec, rec in state.get("specs", {}).items():
+        status = rec.get("status")
+        if status == "implementing":
+            lane = rec.get("laneBranch")
+            if lane and not branch_exists(lane):
+                mismatches.append(f"{spec}: active lane {lane} recorded but missing in git")
+            wt = rec.get("worktreePath")
+            if wt and not Path(wt).exists():
+                mismatches.append(f"{spec}: worktree {wt} recorded but missing on disk")
+        if status == "quarantined":
+            qb = rec.get("quarantineBranch")
+            if qb and not branch_exists(qb):
+                mismatches.append(f"{spec}: quarantine branch {qb} recorded but missing in git")
+        if status == "integrated" and not rec.get("mergeCommit"):
+            mismatches.append(f"{spec}: integrated without a recorded merge commit")
+
+    if mismatches:
+        return {"status": "mismatch", "attention": True, "mismatches": mismatches,
+                "recovery": "Reconcile git and phase state manually before resuming; "
+                            "Writ will not rename, delete, or merge branches to 'repair' state."}
+    return {"status": "consistent", "attention": False}
+
+
 def cmd_show(args: argparse.Namespace) -> dict[str, Any]:
     return _load(Path(args.state))
 
@@ -436,6 +599,35 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--spec", required=True)
     p.add_argument("--result", required=True)
     p.set_defaults(func=cmd_integrate)
+
+    p = sub.add_parser("set-dependencies")
+    p.add_argument("--state", required=True)
+    p.add_argument("--spec", required=True)
+    p.add_argument("--deps", default="")
+    p.set_defaults(func=cmd_set_dependencies)
+
+    p = sub.add_parser("classify")
+    p.add_argument("--state", required=True)
+    p.add_argument("--spec", required=True)
+    p.add_argument("--result", required=True)
+    p.set_defaults(func=cmd_classify)
+
+    p = sub.add_parser("retry")
+    p.add_argument("--state", required=True)
+    p.add_argument("--spec", required=True)
+    p.set_defaults(func=cmd_retry)
+
+    p = sub.add_parser("quarantine")
+    p.add_argument("--state", required=True)
+    p.add_argument("--repo", required=True)
+    p.add_argument("--spec", required=True)
+    p.add_argument("--summary", default="")
+    p.set_defaults(func=cmd_quarantine)
+
+    p = sub.add_parser("reconcile")
+    p.add_argument("--state", required=True)
+    p.add_argument("--repo", required=True)
+    p.set_defaults(func=cmd_reconcile)
 
     p = sub.add_parser("show")
     p.add_argument("--state", required=True)

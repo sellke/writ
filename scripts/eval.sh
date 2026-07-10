@@ -32,6 +32,7 @@ CHECKS=(
   spec-dependencies
   phase-lanes
   phase-challenges
+  phase-quarantine
 )
 
 TOTAL_FINDINGS=0
@@ -1921,6 +1922,62 @@ check_phase_challenges() {
 
   require_literal "$implement_phase" 'User Challenge' "Implement-phase must present User Challenges."
   require_literal "$implement_phase" 'ordinary failures use their normal' "Implement-phase must not wrap ordinary failures as challenges."
+}
+
+check_phase_quarantine() {
+  local fake="$PROJECT_ROOT/scripts/eval-phase-quarantine.py"
+  local helper="$PROJECT_ROOT/scripts/phase-state.py"
+  local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local status_cmd="$PROJECT_ROOT/commands/status.md"
+  local cursor_adapter="$PROJECT_ROOT/adapters/cursor.md"
+  local claude_adapter="$PROJECT_ROOT/adapters/claude-code.md"
+  local codex_adapter="$PROJECT_ROOT/adapters/codex.md"
+  local adapter scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "phase-quarantine:$scenario_name" "$scenario_reason" "Fix the quarantine/reconcile reducer or the disposable-repo scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def cmd_quarantine(' "The reducer must implement terminal quarantine."
+  require_literal "$helper" 'def cmd_reconcile(' "The reducer must implement read-only resume reconciliation."
+  require_literal "$helper" 'writ/quarantine/' "The reducer must name the quarantine branch."
+  require_literal "$helper" 'skipped_blocked' "The reducer must block declared dependents."
+  require_literal "$helper" 'retry_exhausted' "The reducer must bound retries."
+
+  require_literal "$state_doc" '## Quarantine and Resume' "The state-format doc must define quarantine and resume."
+  require_literal "$state_doc" 'skipped_blocked' "The state-format doc must record blocked dependents."
+  require_literal "$state_doc" 'reconcile' "The state-format doc must define resume reconciliation."
+
+  require_literal "$implement_phase" 'writ/quarantine/{spec-id}' "Implement-phase must quarantine terminal failures."
+  require_literal "$implement_phase" 'one transient retry' "Implement-phase must permit exactly one transient retry."
+  require_literal "$implement_phase" 'skipped_blocked' "Implement-phase must block dependents and continue independents."
+  require_literal "$implement_phase" 'does not guess or mutate git' "Resume must never guess or mutate git on mismatch."
+
+  require_literal "$implement_spec" 'transient' "Implement-spec must classify transient failures."
+  require_literal "$implement_spec" 'terminal' "Implement-spec must classify terminal failures."
+
+  require_literal "$status_cmd" 'quarantine' "Status must surface quarantine branches read-only."
+
+  for adapter in "$cursor_adapter" "$claude_adapter" "$codex_adapter"; do
+    require_literal "$adapter" '### Quarantine and Resume' "Each adapter must map quarantine and resume mechanics."
+    require_literal "$adapter" 'writ/quarantine/' "Each adapter must name the quarantine branch."
+  done
 }
 
 run_check() {

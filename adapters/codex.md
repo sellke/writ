@@ -253,6 +253,21 @@ agent threads and git worktrees:
   object; the parent validates it with `scripts/phase-state.py validate-result`
   and merges only a verified success into the phase branch.
 
+### Quarantine and Resume
+
+Terminal failure disposition and `--resume` reconciliation are plain git plus the
+neutral reducer:
+
+- On terminal failure the orchestrator calls `scripts/phase-state.py quarantine`,
+  which removes the lane worktree and renames the lane branch to
+  `writ/quarantine/{spec-id}` (deterministic suffix on collision). The phase branch
+  stays clean; dependents become `skipped_blocked`.
+- Codex starts a fresh agent thread for the single permitted transient retry in the
+  same lane.
+- `--resume` runs `scripts/phase-state.py reconcile` (read-only) first; on a
+  state/git mismatch it reports the discrepancy and recovery command without
+  mutating git.
+
 ### Recommended Delivery Context and Resume
 
 The Codex parent thread transports `delivery_context` through command/subagent

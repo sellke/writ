@@ -133,13 +133,14 @@ The orchestrator owns lane creation, result validation, merge, and UAT handoff. 
 
 #### Step 3.3: Failure Handling
 
-When a spec fails (story failure that `/implement-spec` couldn't resolve):
+When a lane returns a non-successful `phase-spec-result-v1`, classify and dispose of it via `scripts/phase-state.py` — the phase branch is never touched by failed work:
 
-- **Specs independent of the failure:** continue executing them — don't hold finished work hostage to one failure
-- **Specs downstream of the failure:** block them, record as `skipped (blocked by {spec})`
-- **Ask only if ambiguous:** if the dependency relationship between the failed spec and a remaining spec is unclear (no explicit note, but shared surfaces), ask whether to proceed — this is condition (c) of the question policy
+1. **Bounded retry.** `classify` decides retry vs quarantine. Writ permits exactly **one transient retry**: a `transient` first-attempt failure is retried once in the *same* isolated lane with a fresh subagent (`retry`), with no new routine confirmation. A `terminal` failure, or a transient failure after the retry, is terminal.
+2. **Quarantine on terminal failure.** `quarantine` removes the lane worktree and preserves the lane as `writ/quarantine/{spec-id}` (deterministic suffix on collision, mapping recorded), guarantees the phase branch is clean of the failed lane, and records failure evidence, retry count, quarantine branch, and a recovery command.
+3. **Block dependents, continue independents.** Direct and transitive dependents become `skipped_blocked` with `blockedBy` evidence; **specs independent of the failure continue** — don't hold finished work hostage to one failure.
+4. **Ask only if ambiguous:** if the dependency relationship between the failed spec and a remaining spec is unclear (no explicit declaration, but shared surfaces), ask whether to proceed — condition (c) of the question policy.
 
-Never silently retry a failed spec more than once. One automatic retry is permitted if the failure looks transient (e.g., a test flake); a second failure stops that spec's lane.
+On `--resume`, run `reconcile` first: it checks phase, lane, worktree, and quarantine branches against recorded state and continues only if they agree. On any discrepancy it reports the named mismatch and a recovery command and **does not guess or mutate git**.
 
 #### Step 3.4: `--all` Mode
 

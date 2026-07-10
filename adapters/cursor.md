@@ -136,6 +136,21 @@ Task subagents and git worktrees:
   object; the parent validates it with `scripts/phase-state.py validate-result` and
   merges only a verified success back into the phase branch.
 
+### Quarantine and Resume
+
+Terminal failure disposition and `--resume` reconciliation are plain git plus the
+neutral reducer — no Cursor-specific runtime is required:
+
+- On terminal failure the orchestrator calls `scripts/phase-state.py quarantine`,
+  which removes the lane worktree and renames the lane branch to
+  `writ/quarantine/{spec-id}` (deterministic suffix on collision). The phase branch
+  is left clean; dependents become `skipped_blocked`.
+- A fresh Cursor Task subagent is used for the single permitted transient retry in
+  the same lane — never a reused context.
+- `--resume` runs `scripts/phase-state.py reconcile` (read-only) before any action;
+  on a state/git mismatch Cursor surfaces the discrepancy and recovery command and
+  does not mutate git.
+
 ### Recommended Delivery Context and Resume
 
 For Story 3, the top-level Cursor command transports the canonical

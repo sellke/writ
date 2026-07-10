@@ -68,14 +68,21 @@ If a spec has no owner because it predates the owner field, display `—`.
 ### Step 4: Check for In-Flight Batch Jobs
 
 ```bash
-ls .writ/state/execution-*.json 2>/dev/null
+ls .writ/state/execution-*.json .writ/state/phase-execution-*.json 2>/dev/null
 ```
 
-For each execution state file found, read and summarize:
+For each **spec** execution state file (`execution-*.json`), read and summarize:
 - Spec name (from `"spec"` field)
 - Started timestamp (from `"startedAt"` field)
 - Story statuses from the `"stories"` object: count pending, in_progress, completed, failed
 - Report as: *"Batch job in flight: [spec-name] — [N] of [M] stories complete"*
+
+For each **phase** execution state file (`phase-execution-*.json`, schema `phase-execution-v2`), read and summarize **read-only** (no git mutation):
+- Phase and current spec / active lane
+- Completed / failed / `skipped_blocked` counts from the `specs` object
+- Any **quarantine** branches (`specs.*.quarantineBranch`) so the maintainer can see preserved failed work and its recovery path
+
+This is a read-only recovery summary; `/status` never renames, merges, or deletes branches. (Story 6 extends this with categorical health.)
 
 If no execution state files exist, omit this section from the output.
 

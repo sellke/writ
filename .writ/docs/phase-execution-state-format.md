@@ -168,6 +168,38 @@ Rules:
 - On resume, an unresolved challenge remains persisted and re-presented; a resolved
   challenge is never re-asked.
 
+## Quarantine and Resume (R4 — Story 4)
+
+Failure disposition is bounded and evidence-preserving:
+
+- **Bounded retry.** A `phase-spec-result-v1` failure classified `transient` on the
+  first attempt is retried **once** in the same lane with a fresh subagent
+  (`classify` → `retry`), without a new routine confirmation. A `terminal` failure,
+  or a transient failure after the permitted retry, is a terminal disposition.
+- **Quarantine.** On terminal disposition, `quarantine` removes the lane worktree
+  and renames the lane branch to `writ/quarantine/{spec-id}` — using a deterministic
+  suffix (`-2`, `-3`, …) on collision, with the mapping recorded. Because the failed
+  lane never merged, the phase branch contains **none** of its commits; the reducer
+  verifies `phaseBranchClean`. State records failure summary, retry count
+  (`attempts`), `quarantineBranch`, and a `recovery` command.
+- **Dependent blocking.** Direct and transitive dependents (from each spec's
+  `dependencies`) become `skipped_blocked` with a `blockedBy` list; specs
+  independent of the failure remain eligible and continue.
+- **Attention, not corruption.** If the quarantine rename (or a nominal-success
+  lane verification) fails, the reducer preserves recoverable lane work, records an
+  attention-required state, and leaves the phase branch clean rather than forcing a
+  mutation.
+
+### Resume reconciliation
+
+`phase-state.py reconcile` is **read-only**. On `--resume` it checks that the phase
+branch, active lanes, worktrees, and quarantine branches recorded in state still
+match git reality. If they agree it returns `consistent` and execution may continue
+from the exact recorded step. If they disagree it returns `mismatch` (attention),
+names each discrepancy, and **does not guess or mutate git** — state is joint
+evidence with git, never permission to recreate, rename, delete, or merge branches
+to "repair" reality.
+
 ## Atomic Writes
 
 State is written with a sibling temporary file plus `os.replace` rename. An
