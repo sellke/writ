@@ -121,6 +121,16 @@ The orchestrator owns lane creation, result validation, merge, and UAT handoff. 
 
 **Inherited-answer rule:** any question `/implement-spec` or its sub-pipeline would ask that is answered by the spec contract, story files, technical spec, or roadmap is answered from those artifacts without surfacing to the user. Only questions with no artifact-derivable answer bubble up.
 
+#### Step 3.2b: User Challenge Handling
+
+`/implement-phase` is the **sole presenter** of User Challenges (see [`_preamble.md`](_preamble.md) → User Challenge). When a nested `phase-spec-result-v1` returns `status: challenge_required` — or an audited evidence-backed selection:
+
+1. **Validate** the challenge with `scripts/phase-state.py validate-challenge`. A malformed challenge (missing any of the four parts, bad trigger, or no options) is a **contract error** routed to normal failure handling — never rendered as a User Challenge.
+2. **Present** a valid unresolved challenge through one explicit `AskQuestion` showing all four parts — *What the roadmap/spec said*, *What Writ recommends*, *What context may be missing*, *Cost if the recommendation is wrong* — and pause before any scope-changing action. An audited low-risk reversible selection proceeds automatically.
+3. **Persist** the challenge, selected option, and decision timestamp via `record-challenge` / `resolve-challenge` so resume reconstructs the escalation exactly and never re-asks a decided question.
+
+**ordinary failures use their normal** failure path (Step 3.3), and decisions already answered by artifacts are resolved from those artifacts — neither uses User Challenge framing.
+
 #### Step 3.3: Failure Handling
 
 When a spec fails (story failure that `/implement-spec` couldn't resolve):

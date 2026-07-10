@@ -132,6 +132,42 @@ challenge: object | null         # required when challenge_required (Story 3)
 `succeeded` result without a commit or without verification evidence is rejected as
 `invalid_result` and treated as a preserved (non-merged) lane.
 
+## User Challenges (D5 — Story 3)
+
+The `challenges` array persists every scope-degradation escalation for resume and
+audit. Each entry:
+
+```json
+{
+  "id": "CHAL-1",
+  "spec": "spec-a",
+  "status": "unresolved",
+  "challenge": {
+    "trigger": "scope_degradation",
+    "roadmap_or_spec_said": "...",
+    "recommendation": "...",
+    "possibly_missing_context": "...",
+    "cost_if_wrong": "...",
+    "options": [{ "id": "auth-only", "label": "..." }],
+    "decision": { "option_id": "auth-only", "decided_at": "2026-07-10T21:00:00Z" }
+  }
+}
+```
+
+Rules:
+
+- A challenge qualifies **only** for `scope_degradation` or `exit_criteria_degradation`
+  and must carry all four required parts. `scripts/phase-state.py validate-challenge`
+  rejects a malformed challenge as `invalid_challenge` — a contract error, never a
+  User Challenge and never an ordinary failure.
+- An **unresolved** challenge blocks the challenged decision: the spec record moves to
+  `challenge_required` and execution does not pass the decision until it is answered.
+- An **audited** low-risk reversible selection is recorded already `resolved` with a
+  `decision`. A paused challenge is recorded `unresolved` and answered with one explicit
+  `AskQuestion`; `resolve-challenge` records the selected option and `decided_at`.
+- On resume, an unresolved challenge remains persisted and re-presented; a resolved
+  challenge is never re-asked.
+
 ## Atomic Writes
 
 State is written with a sibling temporary file plus `os.replace` rename. An

@@ -1,6 +1,6 @@
 # Story 3: Contract-Preserving User Challenges
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 2
 
@@ -12,21 +12,21 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a nested command encounters a choice that would weaken roadmap scope, the locked spec contract, or exit criteria, when it returns its structured result, then the result contains the trigger and all four required User Challenge parts; a defensible low-risk reversible choice may return an evidence-backed selection, while missing evidence, critical ambiguity, or material risk returns `status: challenge_required` with selectable options.
-- [ ] Given `/implement-phase` receives a valid selected or `challenge_required` result, when it handles that result, then it presents or persists **What the roadmap/spec said**, **What Writ recommends**, **What context may be missing**, and **Cost if the recommendation is wrong**; it proceeds automatically only for the audited evidence-backed selection and otherwise uses one explicit `AskQuestion` before scope-changing action.
-- [ ] Given the maintainer has not yet answered a valid User Challenge, when phase state is written or execution is resumed, then the unresolved challenge remains persisted and execution does not pass the challenged decision.
-- [ ] Given the maintainer selects a challenge option, when `/implement-phase` records and applies the choice, then phase state preserves the challenge, selected option, and decision timestamp for resume and audit.
-- [ ] Given an ordinary progress event, transient or terminal failure, malformed nested challenge, or decision already answered by repository artifacts, when the orchestrator classifies it, then it uses the existing progress, failure, or contract-error path and does not render User Challenge framing.
+- [x] Given a nested command encounters a choice that would weaken roadmap scope, the locked spec contract, or exit criteria, when it returns its structured result, then the result contains the trigger and all four required User Challenge parts; a defensible low-risk reversible choice may return an evidence-backed selection, while missing evidence, critical ambiguity, or material risk returns `status: challenge_required` with selectable options.
+- [x] Given `/implement-phase` receives a valid selected or `challenge_required` result, when it handles that result, then it presents or persists **What the roadmap/spec said**, **What Writ recommends**, **What context may be missing**, and **Cost if the recommendation is wrong**; it proceeds automatically only for the audited evidence-backed selection and otherwise uses one explicit `AskQuestion` before scope-changing action.
+- [x] Given the maintainer has not yet answered a valid User Challenge, when phase state is written or execution is resumed, then the unresolved challenge remains persisted and execution does not pass the challenged decision.
+- [x] Given the maintainer selects a challenge option, when `/implement-phase` records and applies the choice, then phase state preserves the challenge, selected option, and decision timestamp for resume and audit.
+- [x] Given an ordinary progress event, transient or terminal failure, malformed nested challenge, or decision already answered by repository artifacts, when the orchestrator classifies it, then it uses the existing progress, failure, or contract-error path and does not render User Challenge framing.
 
 ## Implementation Tasks
 
-- [ ] 3.1 Write focused contract fixtures for qualifying scope/exit-criteria challenges, ordinary failures, already-answered decisions, malformed challenge payloads, unresolved resume, and resolved-decision persistence.
-- [ ] 3.2 Define the four-part User Challenge trigger, payload, options, and decision contract in `commands/_preamble.md` and `.writ/docs/phase-execution-state-format.md`.
-- [ ] 3.3 Update `commands/implement-spec.md` so nested execution applies the evidence-based select-or-pause rule, returning audited low-risk reversible selections or `challenge_required` for missing evidence, critical ambiguity, and material risk.
-- [ ] 3.4 Update `commands/implement-phase.md` to validate returned challenges, present valid choices through `AskQuestion`, pause before scope-changing action, and route ordinary failures or malformed payloads to their normal handling.
-- [ ] 3.5 Implement atomic persistence of unresolved and resolved challenges, including selected option and decision timestamp, so resume reconstructs the exact escalation state without asking an already-recorded decision again.
-- [ ] 3.6 Verify all acceptance criteria with sandbox cases covering the qualifying path, non-qualifying failures, malformed payload rejection, interruption/resume, and audit state.
-- [ ] 3.7 Run the repository's contract/eval checks and confirm all tests pass without changing the one-confirmation routine execution contract.
+- [x] 3.1 Write focused contract fixtures for qualifying scope/exit-criteria challenges, ordinary failures, already-answered decisions, malformed challenge payloads, unresolved resume, and resolved-decision persistence.
+- [x] 3.2 Define the four-part User Challenge trigger, payload, options, and decision contract in `commands/_preamble.md` and `.writ/docs/phase-execution-state-format.md`.
+- [x] 3.3 Update `commands/implement-spec.md` so nested execution applies the evidence-based select-or-pause rule, returning audited low-risk reversible selections or `challenge_required` for missing evidence, critical ambiguity, and material risk.
+- [x] 3.4 Update `commands/implement-phase.md` to validate returned challenges, present valid choices through `AskQuestion`, pause before scope-changing action, and route ordinary failures or malformed payloads to their normal handling.
+- [x] 3.5 Implement atomic persistence of unresolved and resolved challenges, including selected option and decision timestamp, so resume reconstructs the exact escalation state without asking an already-recorded decision again.
+- [x] 3.6 Verify all acceptance criteria with sandbox cases covering the qualifying path, non-qualifying failures, malformed payload rejection, interruption/resume, and audit state.
+- [x] 3.7 Run the repository's contract/eval checks and confirm all tests pass without changing the one-confirmation routine execution contract.
 
 ## Notes
 
@@ -38,11 +38,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

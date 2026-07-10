@@ -2,7 +2,7 @@
 
 > **Spec:** [`../spec.md`](../spec.md)
 > **Status:** In Progress
-> **Progress:** 14/49 implementation tasks (29%)
+> **Progress:** 21/49 implementation tasks (43%)
 > **Cross-Spec Prerequisite:** `2026-07-10-recommended-autonomous-delivery`
 
 ## Story Summary
@@ -11,7 +11,7 @@
 |---|---|---|---|---|---:|
 | 1 | [Authoritative Cross-Spec Dependencies](story-1-authoritative-cross-spec-dependencies.md) | High | None | Completed ✅ | 7/7 |
 | 2 | [Fresh Isolated Execution Lanes](story-2-fresh-isolated-execution-lanes.md) | High | Story 1 | Completed ✅ | 7/7 |
-| 3 | [Contract-Preserving User Challenges](story-3-contract-preserving-user-challenges.md) | High | Story 2 | Not Started | 0/7 |
+| 3 | [Contract-Preserving User Challenges](story-3-contract-preserving-user-challenges.md) | High | Story 2 | Completed ✅ | 7/7 |
 | 4 | [Failure Quarantine and Resumable Recovery](story-4-failure-quarantine-and-recovery.md) | High | Stories 2, 3 | Not Started | 0/7 |
 | 5 | [Evidence-Bound Phase Knowledge](story-5-evidence-bound-phase-knowledge.md) | Medium | Story 4 | Not Started | 0/7 |
 | 6 | [Phase Progress and Production Health](story-6-phase-progress-and-production-health.md) | Medium | Stories 4, 5 | Not Started | 0/7 |

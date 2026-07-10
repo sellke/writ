@@ -43,6 +43,11 @@ from typing import Any
 SCHEMA_VERSION = 2
 RESULT_SCHEMA = "phase-spec-result-v1"
 RESULT_STATUSES = {"succeeded", "failed", "challenge_required"}
+CHALLENGE_TRIGGERS = {"scope_degradation", "exit_criteria_degradation"}
+CHALLENGE_PARTS = (
+    "roadmap_or_spec_said", "recommendation",
+    "possibly_missing_context", "cost_if_wrong",
+)
 SPEC_STATUSES = {
     "pending", "implementing", "integrated", "failed",
     "quarantined", "skipped_blocked",
@@ -237,7 +242,100 @@ def validate_result(payload: dict[str, Any]) -> dict[str, Any]:
 
 def cmd_validate_result(args: argparse.Namespace) -> dict[str, Any]:
     payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    if payload.get("status") == "challenge_required":
+        validate_challenge(payload.get("challenge"))
     return validate_result(payload)
+
+
+def validate_challenge(payload: Any) -> dict[str, Any]:
+    """Validate the four-part User Challenge contract (D5).
+
+    A malformed challenge (missing any required part, bad trigger, or empty
+    options) is a contract error — never silently treated as a User Challenge
+    or as an ordinary implementation failure.
+    """
+    if not isinstance(payload, dict):
+        raise ContractError("invalid_challenge", "challenge must be a JSON object")
+
+    trigger = payload.get("trigger")
+    if trigger not in CHALLENGE_TRIGGERS:
+        raise ContractError("invalid_challenge", f"unknown challenge trigger: {trigger!r}")
+
+    missing = [part for part in CHALLENGE_PARTS
+               if not isinstance(payload.get(part), str) or not payload.get(part).strip()]
+    if missing:
+        raise ContractError("invalid_challenge", f"challenge missing required parts: {missing}")
+
+    options = payload.get("options")
+    if not isinstance(options, list) or not options:
+        raise ContractError("invalid_challenge", "challenge must offer at least one option")
+    option_ids = set()
+    for opt in options:
+        if not isinstance(opt, dict) or not opt.get("id") or not opt.get("label"):
+            raise ContractError("invalid_challenge", "each option needs an id and a label")
+        option_ids.add(opt["id"])
+
+    decision = payload.get("decision")
+    if decision is not None:
+        if not isinstance(decision, dict) or decision.get("option_id") not in option_ids \
+                or not decision.get("decided_at"):
+            raise ContractError("invalid_challenge",
+                                "decision must name a known option_id and decided_at")
+
+    return {"schema": "phase-user-challenge-v1", "trigger": trigger,
+            "resolved": decision is not None}
+
+
+def cmd_validate_challenge(args: argparse.Namespace) -> dict[str, Any]:
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    return validate_challenge(payload)
+
+
+def _challenge_id(state: dict[str, Any]) -> str:
+    return f"CHAL-{len(state.get('challenges', [])) + 1}"
+
+
+def cmd_record_challenge(args: argparse.Namespace) -> dict[str, Any]:
+    state_path = Path(args.state)
+    state = _load(state_path)
+    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    validate_challenge(payload)
+
+    resolved = payload.get("decision") is not None
+    entry = {
+        "id": _challenge_id(state),
+        "spec": args.spec,
+        "status": "resolved" if resolved else "unresolved",
+        "challenge": payload,
+    }
+    state.setdefault("challenges", []).append(entry)
+    # An unresolved challenge blocks the challenged decision: mark the spec so
+    # the scheduler will not pass the decision until it is answered.
+    if not resolved and args.spec in state.get("specs", {}):
+        state["specs"][args.spec]["status"] = "challenge_required"
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {"status": entry["status"], "challengeId": entry["id"], "blocked": not resolved}
+
+
+def cmd_resolve_challenge(args: argparse.Namespace) -> dict[str, Any]:
+    state_path = Path(args.state)
+    state = _load(state_path)
+    for entry in state.get("challenges", []):
+        if entry["id"] == args.challenge_id:
+            options = {o["id"] for o in entry["challenge"].get("options", [])}
+            if args.option not in options:
+                raise ContractError("invalid_challenge",
+                                    f"option {args.option!r} is not offered by {args.challenge_id}")
+            entry["status"] = "resolved"
+            entry["challenge"]["decision"] = {
+                "option_id": args.option, "decided_at": _now(),
+            }
+            state["updatedAt"] = _now()
+            _atomic_write(state_path, state)
+            return {"status": "resolved", "challengeId": args.challenge_id,
+                    "selected": args.option}
+    raise ContractError("unknown_challenge", f"no challenge {args.challenge_id!r} in state")
 
 
 def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
@@ -315,6 +413,22 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("validate-result")
     p.add_argument("--input", required=True)
     p.set_defaults(func=cmd_validate_result)
+
+    p = sub.add_parser("validate-challenge")
+    p.add_argument("--input", required=True)
+    p.set_defaults(func=cmd_validate_challenge)
+
+    p = sub.add_parser("record-challenge")
+    p.add_argument("--state", required=True)
+    p.add_argument("--spec", required=True)
+    p.add_argument("--input", required=True)
+    p.set_defaults(func=cmd_record_challenge)
+
+    p = sub.add_parser("resolve-challenge")
+    p.add_argument("--state", required=True)
+    p.add_argument("--challenge-id", required=True)
+    p.add_argument("--option", required=True)
+    p.set_defaults(func=cmd_resolve_challenge)
 
     p = sub.add_parser("integrate")
     p.add_argument("--state", required=True)

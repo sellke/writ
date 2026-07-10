@@ -619,6 +619,8 @@ When `/implement-phase` invokes this command inside an isolated per-spec lane, `
 - It receives a fresh, artifact-seeded context (spec path, phase-state path, lane branch/worktree, mode) with **no prior conversational transcript**, and loads what it needs from repository artifacts by path.
 - On completion it returns a single structured `phase-spec-result-v1` result (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md)) reporting status, story counts, verification evidence, changed files, the lane commit, and any failure or challenge — and then exits. The orchestrator validates that result (`scripts/phase-state.py validate-result`) and decides whether to merge.
 
+**Scope-degradation escalation (User Challenge).** If, inside a lane, a choice would weaken roadmap scope, the locked spec contract, or exit criteria, apply the evidence-based **select-or-pause** boundary (see [`_preamble.md`](_preamble.md) → User Challenge). A defensible low-risk reversible choice may be selected locally **only** when returned with the structured four-part challenge and durable audit evidence; missing evidence, critical ambiguity, or material irreversible risk returns `status: challenge_required` with the four-part challenge and selectable options for the orchestrator to present. Ordinary progress, transient failures, and decisions already answered by artifacts are **not** challenges and use normal handling.
+
 Normal direct `/implement-spec` invocation (outside a phase) is unchanged and follows Phases 1–4 and Resume Support below.
 
 ## Resume Support

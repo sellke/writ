@@ -31,6 +31,7 @@ CHECKS=(
   recommended-staging
   spec-dependencies
   phase-lanes
+  phase-challenges
 )
 
 TOTAL_FINDINGS=0
@@ -1874,6 +1875,52 @@ check_phase_lanes() {
     require_literal "$adapter" 'no prior conversational transcript' "Each adapter must seed fresh context without transcript."
     require_literal "$adapter" 'isolated worktree' "Each adapter must map the isolated worktree."
   done
+}
+
+check_phase_challenges() {
+  local fake="$PROJECT_ROOT/scripts/eval-phase-challenge.py"
+  local helper="$PROJECT_ROOT/scripts/phase-state.py"
+  local preamble="$PROJECT_ROOT/commands/_preamble.md"
+  local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "phase-challenge:$scenario_name" "$scenario_reason" "Fix the challenge validator or the scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def validate_challenge(' "The reducer must validate the four-part challenge."
+  require_literal "$helper" 'CHALLENGE_TRIGGERS' "The reducer must constrain challenge triggers."
+  require_literal "$helper" 'invalid_challenge' "A malformed challenge must be a contract error."
+
+  require_literal "$preamble" '## User Challenge' "The preamble must define the User Challenge contract."
+  require_literal "$preamble" 'scope_degradation' "The preamble must constrain the challenge trigger."
+  require_literal "$preamble" 'select-or-pause' "The preamble must apply the evidence-based select-or-pause rule."
+  require_literal "$preamble" 'four required parts' "The preamble must require all four challenge parts."
+
+  require_literal "$state_doc" '## User Challenges' "The state-format doc must define persisted challenges."
+  require_literal "$state_doc" 'unresolved' "The state-format doc must persist unresolved challenges."
+
+  require_literal "$implement_spec" 'challenge_required' "Implement-spec must return challenge_required when it cannot self-decide."
+  require_literal "$implement_spec" 'select-or-pause' "Implement-spec must apply the select-or-pause boundary."
+
+  require_literal "$implement_phase" 'User Challenge' "Implement-phase must present User Challenges."
+  require_literal "$implement_phase" 'ordinary failures use their normal' "Implement-phase must not wrap ordinary failures as challenges."
 }
 
 run_check() {

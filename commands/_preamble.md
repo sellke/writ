@@ -19,6 +19,35 @@ before mutation, persist the canonical delivery context and audit state, and
 retain every documented pause and production boundary. Without that explicit
 branch, planning commands create files and stop.
 
+## User Challenge (Scope-Degradation Escalation)
+
+A **User Challenge** is a structured escalation used **only** when a proposed choice
+would weaken **roadmap scope, a locked spec contract, or exit criteria**. It is a
+narrow, semantic trigger — never a generic wrapper for uncertainty, progress,
+retries, or ordinary failures, and never used for decisions already answered by
+repository artifacts.
+
+Every qualifying challenge carries a `trigger` (`scope_degradation` or
+`exit_criteria_degradation`) and all **four required parts**:
+
+1. **What the roadmap/spec said** (`roadmap_or_spec_said`)
+2. **What Writ recommends** (`recommendation`)
+3. **What context may be missing** (`possibly_missing_context`)
+4. **Cost if the recommendation is wrong** (`cost_if_wrong`)
+
+Apply an **evidence-based select-or-pause** boundary (ADR-013): a defensible,
+low-risk, reversible choice may be selected automatically **with** a persisted
+audit trail (the challenge plus decision evidence); missing evidence, critical
+ambiguity, or material irreversible risk instead **pauses** and returns
+`challenge_required` with selectable options for one explicit `AskQuestion`.
+
+In phase orchestration, nested commands **return** an audited selection or
+`challenge_required`; only the parent `/implement-phase` presents the choice and
+persists the challenge, selected option, and decision timestamp for resume and
+audit. The executable validator is `scripts/phase-state.py validate-challenge`. A
+malformed challenge (any missing required part) is a **contract error**, not a
+User Challenge and not an ordinary failure.
+
 ## File Organization
 
 All work is organized into `.writ/`:

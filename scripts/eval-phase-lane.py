@@ -197,7 +197,6 @@ def scenario_result_schema(tmp: Path) -> None:
         ("bad-status", lambda v: v.update(status="done")),
         ("succeeded-without-commit", lambda v: v.update(commit=None)),
         ("succeeded-without-evidence", lambda v: v["verification"].update(evidence=[])),
-        ("challenge-without-payload", lambda v: v.update(status="challenge_required", challenge=None)),
     ):
         value = json.loads(json.dumps(good))
         mutate(value)
@@ -205,6 +204,15 @@ def scenario_result_schema(tmp: Path) -> None:
         code, out = helper("validate-result", "--input", str(path))
         emit(f"validate-rejects-{name}",
              code != 0 and out.get("blocker", {}).get("code") == "invalid_result", out)
+
+    # A challenge_required result with no valid challenge is rejected as an
+    # invalid_challenge (Story 3 refined this to the more precise code).
+    value = json.loads(json.dumps(good))
+    value.update(status="challenge_required", challenge=None)
+    path = write_json(tmp / "challenge-without-payload.json", value)
+    code, out = helper("validate-result", "--input", str(path))
+    emit("validate-rejects-challenge-without-payload",
+         code != 0 and out.get("blocker", {}).get("code") == "invalid_challenge", out)
     path = write_json(tmp / "good.json", good)
     code, out = helper("validate-result", "--input", str(path))
     emit("validate-accepts-verified-success",
