@@ -12,21 +12,21 @@
 
 ## Acceptance Criteria
 
-- [ ] Given an in-flight `phase-execution-*.json` file, when `/status` runs, then it reports the phase, current spec and active lane, completed/failed/blocked counts, and quarantine branches.
-- [ ] Given current passing eval and verification evidence, no unresolved material drift, and phase state consistent with named git branches, when `/status` computes health, then it reports `Healthy` and identifies the evidence used.
-- [ ] Given any required local eval, verification, drift, or state-consistency evidence is missing or stale, when `/status` computes health, then it reports `Warning`, names each missing or stale input and its age when known, and does not characterize missing evidence as a failure.
-- [ ] Given a current failed check, unresolved material drift, or phase-state/git mismatch, when `/status` computes health, then it reports `Attention` with the specific evidence requiring action.
-- [ ] Given status is requested in any supported phase state, when `/status` gathers progress and health, then it completes within 10 seconds without invoking `/verify-spec`, builds, tests, network calls, CI APIs, or mutating commands.
+- [x] Given an in-flight `phase-execution-*.json` file, when `/status` runs, then it reports the phase, current spec and active lane, completed/failed/blocked counts, and quarantine branches.
+- [x] Given current passing eval and verification evidence, no unresolved material drift, and phase state consistent with named git branches, when `/status` computes health, then it reports `Healthy` and identifies the evidence used.
+- [x] Given any required local eval, verification, drift, or state-consistency evidence is missing or stale, when `/status` computes health, then it reports `Warning`, names each missing or stale input and its age when known, and does not characterize missing evidence as a failure.
+- [x] Given a current failed check, unresolved material drift, or phase-state/git mismatch, when `/status` computes health, then it reports `Attention` with the specific evidence requiring action.
+- [x] Given status is requested in any supported phase state, when `/status` gathers progress and health, then it completes within 10 seconds without invoking `/verify-spec`, builds, tests, network calls, CI APIs, or mutating commands.
 
 ## Implementation Tasks
 
-- [ ] 6.1 Write focused fixtures and contract tests for `commands/status.md` covering active phase progress, quarantine and blocked counts, all three health categories, mixed-age evidence, missing evidence, and phase-state/git mismatch.
-- [ ] 6.2 Extend `commands/status.md` to discover and read the newest relevant `phase-execution-*.json` state and render current spec, active lane, progress counts, failures, blocks, and quarantine branches.
-- [ ] 6.3 Add categorical health aggregation to `commands/status.md` using the latest local eval summary, `verification-*.md` report, relevant drift entries, and phase-state consistency with named git branches, including source freshness and unavailable-input details.
-- [ ] 6.4 Update `scripts/eval.sh`, `commands/verify-spec.md`, and `commands/implement-phase.md` only as needed to persist lightweight local summaries that `/status` can consume without rerunning deep diagnostics.
-- [ ] 6.5 Document status-readable progress, evidence freshness, and compatible state-summary fields in `.writ/docs/phase-execution-state-format.md`, preserving unknown fields and the ephemeral `.writ/state/` boundary.
-- [ ] 6.6 Verify fixture output for phase progress, `Healthy`, `Warning`, and `Attention`, including the rule that mixed-age or absent evidence cannot exceed `Warning` unless separate current failure, material drift, or state inconsistency evidence exists.
-- [ ] 6.7 Verify `/status` remains under 10 seconds and does not run heavyweight, mutating, network, build, test, or `/verify-spec` operations; then run the repository's applicable contract/eval checks.
+- [x] 6.1 Write focused fixtures and contract tests for `commands/status.md` covering active phase progress, quarantine and blocked counts, all three health categories, mixed-age evidence, missing evidence, and phase-state/git mismatch.
+- [x] 6.2 Extend `commands/status.md` to discover and read the newest relevant `phase-execution-*.json` state and render current spec, active lane, progress counts, failures, blocks, and quarantine branches.
+- [x] 6.3 Add categorical health aggregation to `commands/status.md` using the latest local eval summary, `verification-*.md` report, relevant drift entries, and phase-state consistency with named git branches, including source freshness and unavailable-input details.
+- [x] 6.4 Update `scripts/eval.sh`, `commands/verify-spec.md`, and `commands/implement-phase.md` only as needed to persist lightweight local summaries that `/status` can consume without rerunning deep diagnostics.
+- [x] 6.5 Document status-readable progress, evidence freshness, and compatible state-summary fields in `.writ/docs/phase-execution-state-format.md`, preserving unknown fields and the ephemeral `.writ/state/` boundary.
+- [x] 6.6 Verify fixture output for phase progress, `Healthy`, `Warning`, and `Attention`, including the rule that mixed-age or absent evidence cannot exceed `Warning` unless separate current failure, material drift, or state inconsistency evidence exists.
+- [x] 6.7 Verify `/status` remains under 10 seconds and does not run heavyweight, mutating, network, build, test, or `/verify-spec` operations; then run the repository's applicable contract/eval checks.
 
 ## Notes
 
@@ -38,11 +38,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

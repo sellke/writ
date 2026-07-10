@@ -1,8 +1,8 @@
 # Phase 6: Autonomy Ceiling — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** In Progress
-> **Progress:** 35/49 implementation tasks (71%)
+> **Status:** Implemented — pending real-use User Challenge observation
+> **Progress:** 49/49 implementation tasks (100%)
 > **Cross-Spec Prerequisite:** `2026-07-10-recommended-autonomous-delivery`
 
 ## Story Summary
@@ -14,8 +14,8 @@
 | 3 | [Contract-Preserving User Challenges](story-3-contract-preserving-user-challenges.md) | High | Story 2 | Completed ✅ | 7/7 |
 | 4 | [Failure Quarantine and Resumable Recovery](story-4-failure-quarantine-and-recovery.md) | High | Stories 2, 3 | Completed ✅ | 7/7 |
 | 5 | [Evidence-Bound Phase Knowledge](story-5-evidence-bound-phase-knowledge.md) | Medium | Story 4 | Completed ✅ | 7/7 |
-| 6 | [Phase Progress and Production Health](story-6-phase-progress-and-production-health.md) | Medium | Stories 4, 5 | Not Started | 0/7 |
-| 7 | [Ralph Retirement and Autonomy Acceptance](story-7-ralph-retirement-and-autonomy-acceptance.md) | High | Stories 1–6 | Not Started | 0/7 |
+| 6 | [Phase Progress and Production Health](story-6-phase-progress-and-production-health.md) | Medium | Stories 4, 5 | Completed ✅ | 7/7 |
+| 7 | [Ralph Retirement and Autonomy Acceptance](story-7-ralph-retirement-and-autonomy-acceptance.md) | High | Stories 1–6 | Completed ✅ | 7/7 |
 
 ## Dependency Plan
 
