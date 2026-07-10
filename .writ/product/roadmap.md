@@ -52,7 +52,7 @@
 
 - A 3+ spec phase runs end-to-end through `/implement-phase` without orchestrator context degradation (fresh subagent per spec) — ✅ mechanical evidence in the phase6 spec `acceptance-evidence.md` (disposable sandbox); ⚑ real-use pass still pending
 - A deliberately failed spec lands on a quarantine branch without polluting the phase branch — ✅ verified (sandbox UAT + `phase-quarantine` eval)
-- At least one mid-run scope decision surfaces in User Challenge format during real use — ⚑ **PENDING**: the challenge contract renders/resolves mechanically, but the real-use observation awaits a genuine `/implement-phase` run
+- At least one mid-run scope decision surfaces in User Challenge format during real use — ✅ satisfied: a real mid-run exit-criteria decision (the stale eval baseline fixture) surfaced to the maintainer, who chose to fix it; recorded in four-part User Challenge format in the phase6 spec `acceptance-evidence.md`
 - Ralph fully deprecated: command, script, and docs archived; changelog and README updated; `/status` no longer reports ralph state — ✅ verified (`ralph-retirement` eval + allowlisted search)
 
 ### Features
