@@ -58,13 +58,17 @@ Specs that are fully complete with a current UAT plan are skipped and reported a
 
 ### Phase 2: Sequencing & The One Confirmation
 
-#### Step 2.1: Order the Specs
+#### Step 2.1: Validate and Order the Specs
 
-Sequence by, in priority order:
+Cross-spec order is determined from the **authoritative `> **Dependencies:** [...]` headers**, not prose. Build the graph first, then order it. Precedence:
 
-1. **Explicit cross-spec notes** — specs may contain `## Cross-Spec Overlap` sections or "implement X before Y" sequencing notes. These are binding.
-2. **Roadmap sequencing** — the phase's own dependency/sequence declarations
-3. **Shared-surface inference** — if two specs declare changes to the same files/functions in their technical specs, run them sequentially (order by roadmap listing) rather than risk conflicting edits
+1. **Valid explicit `Dependencies` graph** — parse each spec's `> **Dependencies:** [spec-folder-id, ...]` header (a legacy spec with no header is treated as `[]`), then **topological**ly order the resulting DAG. This explicit graph is binding.
+2. **Roadmap order** — among otherwise independent specs (no dependency relationship), release them in **roadmap order** as the deterministic tie-break, so the plan is reproducible run to run.
+3. **Shared-surface inference remains advisory** — if two specs with no declared relationship touch the same files/functions, *warn* in the phase plan and run them sequentially by roadmap order. Inference can never reorder or override a valid explicit graph.
+
+The executable reference for parsing and ordering is `scripts/spec-deps.py validate --specs-dir .writ/specs --roadmap-order <phase spec order>`.
+
+**Invalid explicit metadata is blocking.** If the graph has a malformed header, a missing reference, a self-reference, a duplicate entry, or a cycle, **stop before the confirmation gate** and present the affected spec plus the exact graph diagnostic (missing reference, self edge, duplicate, or cycle path). Do not guess an order around invalid metadata.
 
 Specs with no ordering relationship may be listed as independent, but execution is sequential by default — parallel spec execution multiplies conflict risk across a shared codebase for little gain at this scale.
 

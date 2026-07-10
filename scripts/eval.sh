@@ -29,6 +29,7 @@ CHECKS=(
   recommendation-semantics
   recommended-spec-implementation
   recommended-staging
+  spec-dependencies
 )
 
 TOTAL_FINDINGS=0
@@ -1769,6 +1770,50 @@ check_recommended_staging() {
   forbid_literal "$helper" 'import requests' "The local reducer must not call provider HTTP APIs."
   forbid_literal "$helper" 'urllib.request' "The local reducer must not call provider HTTP APIs."
   forbid_literal "$implement_spec" 'npm publish' "Recommended staging must not publish packages."
+}
+
+check_spec_dependencies() {
+  local fake="$PROJECT_ROOT/scripts/eval-spec-deps.py"
+  local helper="$PROJECT_ROOT/scripts/spec-deps.py"
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local verify_spec="$PROJECT_ROOT/commands/verify-spec.md"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "spec-deps:$scenario_name" "$scenario_reason" "Fix the executable parser or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def parse_header(' "The dependency helper must parse the spec-level header."
+  require_literal "$helper" 'def validate_graph(' "The dependency helper must validate the cross-spec graph."
+  require_literal "$helper" 'dependency_cycle' "The dependency helper must diagnose cross-spec cycles."
+
+  require_literal "$create_spec" '> **Dependencies:**' "Create-spec must emit the authoritative Dependencies header."
+  require_literal "$create_spec" 'exact spec-folder IDs' "Create-spec must document exact folder-ID dependency values."
+
+  require_literal "$verify_spec" 'Cross-spec dependency validation' "Verify-spec Check 4 must validate cross-spec dependencies."
+  require_literal "$verify_spec" 'self-reference' "Verify-spec must diagnose self-referential spec dependencies."
+  require_literal "$verify_spec" 'story dependency validation is unchanged' "Verify-spec must keep story and spec dependency graphs distinct."
+
+  require_literal "$implement_phase" 'Valid explicit `Dependencies` graph' "Implement-phase must treat the explicit graph as authoritative."
+  require_literal "$implement_phase" 'topological' "Implement-phase must topologically order the explicit DAG."
+  require_literal "$implement_phase" 'roadmap order' "Implement-phase must use roadmap order as the independent-spec tie-break."
+  require_literal "$implement_phase" 'inference remains advisory' "Implement-phase must keep shared-surface inference advisory only."
+  require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
 }
 
 run_check() {

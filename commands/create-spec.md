@@ -598,12 +598,16 @@ The owner value is intentionally simple: prefix `@`, strip spaces, and do not co
 
 **spec.md** — Main specification built from the locked contract. Must contain:
 
-- **Frontmatter** — include status, created date, owner, and any relevant phase/source metadata:
+- **Frontmatter** — include status, created date, owner, the authoritative cross-spec dependency list, and any relevant phase/source metadata:
   ```markdown
   > **Status:** Not Started
   > **Created:** [DATE]
   > **Owner:** [OWNER]
+  > **Dependencies:** [spec-folder-id, ...]
   ```
+  - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when the spec has no cross-spec dependency.
+  - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid dependency identifiers.
+  - This spec-level `Dependencies` header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
 - **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance

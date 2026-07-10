@@ -1,15 +1,15 @@
 # Phase 6: Autonomy Ceiling — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** Not Started
-> **Progress:** 0/49 implementation tasks (0%)
+> **Status:** In Progress
+> **Progress:** 7/49 implementation tasks (14%)
 > **Cross-Spec Prerequisite:** `2026-07-10-recommended-autonomous-delivery`
 
 ## Story Summary
 
 | # | Story | Priority | Dependencies | Status | Tasks |
 |---|---|---|---|---|---:|
-| 1 | [Authoritative Cross-Spec Dependencies](story-1-authoritative-cross-spec-dependencies.md) | High | None | Not Started | 0/7 |
+| 1 | [Authoritative Cross-Spec Dependencies](story-1-authoritative-cross-spec-dependencies.md) | High | None | Completed ✅ | 7/7 |
 | 2 | [Fresh Isolated Execution Lanes](story-2-fresh-isolated-execution-lanes.md) | High | Story 1 | Not Started | 0/7 |
 | 3 | [Contract-Preserving User Challenges](story-3-contract-preserving-user-challenges.md) | High | Story 2 | Not Started | 0/7 |
 | 4 | [Failure Quarantine and Resumable Recovery](story-4-failure-quarantine-and-recovery.md) | High | Stories 2, 3 | Not Started | 0/7 |
