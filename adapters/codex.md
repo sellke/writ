@@ -349,9 +349,15 @@ authentication or authorization denial is reported once and stops.
 
 `/implement-spec` computes story dependency batches — parallel batches should map to concurrent Codex subagent threads when safe, sequential batches stay strictly ordered. The orchestrator session owns dependency bookkeeping; individual subagents should not mutate downstream story files outside their assigned scope.
 
-### Ralph / autonomous loops
+### Autonomous multi-spec execution (retired CLI loop)
 
-`/ralph` orchestrates long-running autonomy on platforms that support detached processes cleanly. Codex CLI differs per release — before relying on Ralph inside Codex, confirm your CLI version supports unattended loops and background terminals (`/ps`, `/stop` per [slash docs](https://developers.openai.com/codex/cli/slash-commands)). If uncertain, run Ralph from a plain shell runner instead of inside Codex.
+The former unattended CLI loop for multi-spec execution is **retired and archived**
+(see `archive/`). Use `/implement-phase` for supervised multi-spec execution: it
+sequences specs by cross-spec dependency, isolates each spec in a fresh execution
+lane (branch + worktree), quarantines terminal failures while independent specs
+continue, and reconciles state read-only on resume. Bounded single-spec autonomy is
+a separate, explicitly supported path (`/implement-spec --recommend <one-spec>`);
+multi-spec `/implement-phase --recommend` remains excluded.
 
 ---
 

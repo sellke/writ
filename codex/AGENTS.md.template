@@ -39,12 +39,6 @@ Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows
 |---------|------|---------|
 | `/review` | `.codex/commands/review.md` | Review diffs for production failure modes, shadow paths, and edge cases. |
 
-### Autonomous Execution
-
-| Command | File | Purpose |
-|---------|------|---------|
-| `/ralph` | `.codex/commands/ralph.md` | Plan and monitor autonomous multi-spec execution through the Ralph loop. |
-
 ### Release & Delivery
 
 | Command | File | Purpose |

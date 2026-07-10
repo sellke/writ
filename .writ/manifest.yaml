@@ -116,11 +116,6 @@ commands:
     category: implementation
     purpose: "Ship small code changes with lightweight scan, coding, and verification."
     tags: [implementation, prototype, quick]
-  - name: ralph
-    file: commands/ralph.md
-    category: autonomy
-    purpose: "Plan and monitor autonomous multi-spec execution through the Ralph loop."
-    tags: [autonomy, orchestration, cli]
   - name: refactor
     file: commands/refactor.md
     category: implementation

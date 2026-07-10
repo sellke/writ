@@ -28,7 +28,6 @@ Run Writ commands by reading the command file and following its workflow:
 | `/explain-code` | `.claude/commands/explain-code.md` | Code explanation |
 | `/retro` | `.claude/commands/retro.md` | Git-based retrospective |
 | `/refresh-command` | `.claude/commands/refresh-command.md` | Self-improving command refinement |
-| `/ralph` | `.claude/commands/ralph.md` | Ralph loop orchestration |
 | `/assess-spec` | `.claude/commands/assess-spec.md` | Spec assessment |
 | `/edit-spec` | `.claude/commands/edit-spec.md` | Edit existing spec |
 | `/design` | `.claude/commands/design.md` | UI/UX design workflows |

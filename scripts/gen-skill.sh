@@ -668,9 +668,9 @@ The intended workflow from idea to shipped code:
 
 ```text
 /plan-product -> /create-spec -> /implement-phase -> /ship -> /release
-                                       |  loops /implement-spec per spec
-                                       |
-                                 /ralph plan -> ./ralph.sh -> /ralph status
+                                       |  loops /implement-spec per spec,
+                                       |  fresh isolated lane per spec,
+                                       |  quarantine on failure, resume-safe
 ```
 
 `/implement-story` is the quarterback. Per story it runs:

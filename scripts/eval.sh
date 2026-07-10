@@ -35,6 +35,7 @@ CHECKS=(
   phase-quarantine
   phase-knowledge
   phase-health
+  ralph-retirement
 )
 
 TOTAL_FINDINGS=0
@@ -552,6 +553,16 @@ forbid_literal() {
 
   if [ -f "$file" ] && grep -Fq -- "$literal" "$file"; then
     add_finding "$(relpath "$file")" "$message" "Replace the superseded active wording while leaving historical ADRs and specs unchanged."
+  fi
+}
+
+forbid_literal_ci() {
+  local file="$1"
+  local literal="$2"
+  local message="$3"
+
+  if [ -f "$file" ] && grep -Fiq -- "$literal" "$file"; then
+    add_finding "$(relpath "$file")" "$message" "Remove the retired reference from the active surface; historical ADRs, specs, and archive/ may keep it."
   fi
 }
 
@@ -2060,6 +2071,57 @@ check_phase_health() {
 
   require_literal "$status_cmd" 'phase progress' "Status must surface phase progress."
   require_literal "$status_cmd" 'read-only' "Status must remain read-only."
+}
+
+check_ralph_retirement() {
+  local changelog="$PROJECT_ROOT/CHANGELOG.md"
+  local skill="$PROJECT_ROOT/SKILL.md"
+  local archived active surface
+
+  # Preserved (archived, not deleted) with recognizable grouping.
+  for archived in ralph.md ralph.sh PROMPT_build.md ralph-cli-pipeline.md ralph-state-format.md README.md; do
+    if [ ! -f "$PROJECT_ROOT/archive/ralph/$archived" ]; then
+      add_finding "archive/ralph/$archived" "Ralph must be archived, not deleted." "git mv the Ralph artifact into archive/ralph/ (with a landing README.md)."
+    fi
+  done
+
+  # Removed from every active location.
+  for active in commands/ralph.md scripts/ralph.sh scripts/PROMPT_build.md \
+                .writ/docs/ralph-cli-pipeline.md .writ/docs/ralph-state-format.md; do
+    if [ -f "$PROJECT_ROOT/$active" ]; then
+      add_finding "$active" "Ralph artifact must not remain on an active surface." "Move it into archive/ralph/."
+    fi
+  done
+
+  # No Ralph reference on active command, catalog, config, adapter, README, or
+  # status surfaces. Historical specs, ADRs, roadmap/mission history, the
+  # changelog, and archive/ are deliberately excluded from this allowlisted search.
+  for surface in "$PROJECT_ROOT/.writ/manifest.yaml" \
+                 "$skill" \
+                 "$PROJECT_ROOT/.writ/docs/config-format.md" \
+                 "$PROJECT_ROOT/README.md" \
+                 "$PROJECT_ROOT/commands/status.md" \
+                 "$PROJECT_ROOT/commands/implement-phase.md" \
+                 "$PROJECT_ROOT/scripts/gen-skill.sh" \
+                 "$PROJECT_ROOT/codex/AGENTS.md.template" \
+                 "$PROJECT_ROOT/claude-code/CLAUDE.md" \
+                 "$PROJECT_ROOT/system-instructions.md" \
+                 "$PROJECT_ROOT/cursor/writ.mdc" \
+                 "$PROJECT_ROOT/adapters/cursor.md" \
+                 "$PROJECT_ROOT/adapters/claude-code.md" \
+                 "$PROJECT_ROOT/adapters/codex.md" \
+                 "$PROJECT_ROOT/adapters/openclaw.md"; do
+    forbid_literal_ci "$surface" "ralph" "Active surface must not reference the retired Ralph loop; redirect users to /implement-phase."
+  done
+
+  # Catalog presents the supported supervised replacement.
+  require_literal "$skill" 'implement-phase' "The generated catalog must present /implement-phase as the supervised path."
+
+  # Changelog records the retirement, the archive location, the supported
+  # replacement, and the finish-or-abandon-before-upgrade warning.
+  require_literal "$changelog" 'archive/ralph/' "The changelog must record where Ralph was archived."
+  require_literal "$changelog" '/implement-phase' "The changelog must direct multi-spec work to /implement-phase."
+  require_literal "$changelog" 'Finish or abandon any in-flight' "The changelog must warn users to finish or abandon in-flight Ralph runs before upgrading."
 }
 
 run_check() {

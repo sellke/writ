@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Removed
+
+- **Ralph, the autonomous CLI loop, is retired.** The `/ralph` command, `ralph.sh` loop, `PROMPT_build.md` prompt template, and CLI-pipeline/state-format docs are archived under `archive/ralph/` (preserved, not deleted) and removed from command discovery, the generated `SKILL.md` catalog, `.writ/manifest.yaml`, `.writ/docs/config-format.md`, all platform adapters, the README, and `/status` suggestions. See [ADR-012](.writ/decision-records/adr-012-ralph-deprecation.md).
+
+### Changed
+
+- **Supervised multi-spec execution replaces the loop.** Use `/implement-phase` for multi-spec work: it sequences specs by authoritative cross-spec `Dependencies`, runs each spec in a fresh isolated execution lane (branch + worktree), quarantines terminal failures while independent specs continue, reconciles state read-only on resume, and reports categorical production health. Bounded single-spec autonomy remains separately supported via `/implement-spec --recommend <one-spec>`; multi-spec `/implement-phase --recommend` stays excluded per [ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md).
+
+### Migration
+
+- **This release does not migrate Ralph state.** There is no compatibility reader for `ralph-*.json`. **Finish or abandon any in-flight `ralph-*.json` run before upgrading**, then drive remaining multi-spec work with `/implement-phase`. The deliberate trade-off is the loss of opaque unbounded execution in exchange for isolation, resumability, and honest evidence.
+
 ## [0.18.1] - 2026-05-08
 
 ### Fixed

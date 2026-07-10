@@ -73,7 +73,7 @@ These are non-negotiable. Every command, every agent, every session.
   head invalidates approval. Never bypass branch protection, required checks, authentication, or authorization.
 - **Reject opaque unbounded execution.** Recommended delivery is session-started,
   bounded to one locked spec, and finite. Multi-spec `/implement-phase --recommend`
-  and Ralph-style unattended loops remain outside this exception.
+  and unattended CLI loops remain outside this exception.
 
 ### Recommendation Semantics
 

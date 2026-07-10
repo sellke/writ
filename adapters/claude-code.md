@@ -509,50 +509,19 @@ claude -p "/verify-spec --check" --permission-mode acceptEdits
 
 ---
 
-## Ralph / CLI Story Pipeline
+## Autonomous Multi-Spec Execution (retired CLI loop)
 
-Ralph extends Writ with autonomous multi-spec execution via CLI. The developer plans in Cursor (`/ralph plan`), hands off to a CLI loop (`./ralph.sh`), and reviews in Cursor (`/ralph status`).
+The former unattended CLI loop for multi-spec execution is **retired and archived**
+(see `archive/`). Supervised multi-spec execution now runs through `/implement-phase`,
+which sequences specs by cross-spec dependency, gives each spec a fresh isolated
+execution lane (branch + worktree), quarantines terminal failures while independent
+specs continue, and reconciles state read-only on resume. Map it to Claude Code as
+the orchestrator session driving one `/implement-spec` worker per lane.
 
-### When to Use the CLI Pipeline
-
-| Use Case | Tool |
-|----------|------|
-| Interactive single-story implementation | `/implement-story` (Cursor) |
-| Supervised multi-story execution | `/implement-spec` (Cursor) |
-| Autonomous overnight/batch execution | `./ralph.sh` (CLI) |
-
-### How It Works
-
-1. **Plan** — `/ralph plan` in Cursor scans specs, resolves dependencies, generates `scripts/PROMPT_build.md` and `scripts/ralph.sh` tailored to the project
-2. **Execute** — `./ralph.sh` loops: each iteration pipes `PROMPT_build.md` to the CLI agent (fresh context), implements one story, validates with tests/lint, commits, pushes
-3. **Review** — `/ralph status` in Cursor reads `.writ/state/ralph-*.json` and presents progress
-
-### CLI Agent Invocation
-
-```bash
-claude -p "$(cat PROMPT_build.md)" \
-  --dangerously-skip-permissions \
-  --model opus \
-  --verbose
-```
-
-Flags are configurable via `.writ/config.md` Ralph keys (`Ralph CLI Agent`, `Ralph CLI Model`, `Ralph CLI Flags`).
-
-### Key Differences from Supervised Pipeline
-
-- **Review via sub-agent** — the CLI agent spawns a read-only review sub-agent (Phase 2.5) for AC verification, code quality, security, and drift analysis. Max 2 review iterations per story. Large drift escalates to developer.
-- **No architecture check** — single-story scope and dependency ordering manage risk
-- **No boundary map** — story isolation provides implicit boundaries
-- **No visual QA** — headless environment, no browser
-- **No documentation agent** — `## What Was Built` records (enriched by review sub-agent data) serve as the primary record
-- **Fresh context each iteration** — no accumulated state; Ralph state file bridges iterations
-
-### References
-
-- **PROMPT template:** `scripts/PROMPT_build.md` — single-iteration instruction set
-- **CLI pipeline docs:** `.writ/docs/ralph-cli-pipeline.md` — gate mapping, back pressure, state protocol
-- **State format:** `.writ/docs/ralph-state-format.md` — JSON schema for `ralph-*.json`
-- **Loop script:** `scripts/ralph.sh` — outer loop with stop conditions
+Bounded single-spec autonomy is a separate, explicitly supported path:
+`/implement-spec --recommend <one-spec>` (session-started, one locked spec, finite,
+one SHA-bound production approval). Multi-spec `/implement-phase --recommend` remains
+excluded.
 
 ---
 
@@ -578,6 +547,6 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 
 4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
 
-5. **Subagents can't spawn subagents**: The orchestrator (main session or top-level CLI invocation) must handle all delegation. Agents spawned as subagents can't delegate further — use agent teams if you need inter-agent communication. Note: Ralph's CLI agent IS the top-level session, so it can spawn sub-agents (e.g., review sub-agent in Phase 2.5).
+5. **Subagents can't spawn subagents**: The orchestrator (main session or top-level CLI invocation) must handle all delegation. Agents spawned as subagents can't delegate further — use agent teams if you need inter-agent communication. Note: a top-level CLI session IS the orchestrator, so it can spawn sub-agents (e.g., a review sub-agent).
 
 6. **Plan mode is truly read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer genuinely cannot modify files, even if prompted to.
