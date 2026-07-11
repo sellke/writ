@@ -15,6 +15,7 @@ Use ADRs for serious architectural choices, research for investigations, and spe
 | `/knowledge --list` | List all knowledge entries by category |
 | `/knowledge --list conventions` | List entries in one category |
 | `/knowledge --read <slug>` | Read the entry whose filename slug matches `<slug>` |
+| `/knowledge --consolidate` | Propose merges, surface contradictions, and flag stale entries across the ledger — dry-run first, write only on explicit approval |
 
 ## Command Process
 
@@ -50,6 +51,40 @@ If invoked with `--read <slug>`:
 2. If zero matches, report `No knowledge entry found for "<slug>".`
 3. If multiple matches, list them and ask for the exact slug.
 4. Print the selected entry and stop.
+
+If invoked with `--consolidate`:
+
+Consolidation is a **gated write** mode. Its default behavior is read-only (dry-run); only an explicit, approved apply mutates files. The single principle is **merge, never append** — a log grows unbounded, a merged document stays searchable. The deliverable is a reviewable working-tree diff, never a silent mutation.
+
+1. **Dry-run.** Run the reducer in its default non-destructive mode:
+
+   ```bash
+   python3 scripts/knowledge-consolidate.py --dry-run
+   ```
+
+   Use `--json` when you need the machine-readable proposal to drive presentation. The reducer scans all four categories, reusing the substrate's `_tokens` + Jaccard duplicate detection. Dry-run writes no file.
+
+2. **Present the proposal.** Show each finding with the evidence that triggered it:
+   - **Merges** — the canonical (surviving) entry, the entries it would replace, and the duplicate signal (token overlap). Preview the unified diff.
+   - **Contradictions** — both entries and their conflicting assertions, presented as a **decision for the human**. The reducer proposes no resolution; never auto-resolve.
+   - **Stale flags** — the entry and the observable signal (superseded, all `related_artifacts` missing, or dominated). Never cite age alone.
+   - **Skipped** — any malformed entry with its named reason. It is neither rewritten nor dropped.
+
+   If the proposal is empty, report "Nothing to consolidate." and stop. This is a valid no-op that changes no file.
+
+3. **Approval gate.** Use `AskQuestion` to gate every write. Approval may be per-proposal or per-category. If approval is declined, write nothing — the ledger is unchanged. There is no path from `--consolidate` to a write that skips this gate.
+
+4. **Apply approved merges.** On approval, run:
+
+   ```bash
+   python3 scripts/knowledge-consolidate.py --apply
+   ```
+
+   This writes the canonical entry with `replaces: [...]` and rewrites each merged-away entry into a tombstone carrying `superseded_by: <canonical-slug>` (glossary terms are always tombstoned, never deleted). Report the exact files changed and the lineage recorded. The command does not commit — it leaves a reviewable working-tree diff for the human to inspect and PR.
+
+5. Contradiction pairs and stale flags are advisory. Applying merges never resolves a contradiction or retires a stale entry; those remain for an explicit, separate human decision.
+
+Stop after reporting the applied diff (or the declined no-op). Consolidation produces knowledge docs and diffs only.
 
 ### Step 3: Context Capture
 
@@ -207,11 +242,11 @@ evidence-bound gates (see [`.writ/docs/phase-execution-state-format.md`](../.wri
 
 This command succeeds when:
 
-1. **Entry file created or read/list operation completed** — write mode creates a markdown file under `.writ/knowledge/{category}/`; read/list modes do not write.
-2. **Frontmatter valid** — category, tags, created, and related_artifacts are present and conformant.
-3. **Confirmation shown** — write mode returns a terse created-path confirmation.
+1. **Entry file created, read/list completed, or consolidation resolved** — write mode creates a markdown file under `.writ/knowledge/{category}/`; read/list modes do not write; `--consolidate` either reports a no-op, leaves a declined ledger unchanged, or applies approved merges as a reviewable working-tree diff.
+2. **Frontmatter valid** — category, tags, created, and related_artifacts are present and conformant; consolidation lineage (`replaces` / `superseded_by`) is written bidirectionally.
+3. **Confirmation shown** — write mode returns a terse created-path confirmation; `--consolidate` reports the files changed and the lineage recorded.
 
-**Terminal constraint:** This command produces knowledge documentation only. Do not offer to implement, build, or execute what was captured.
+**Terminal constraint:** This command produces knowledge documentation and diffs only. Do not offer to implement, build, or execute what was captured or consolidated.
 
 ---
 

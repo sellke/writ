@@ -98,7 +98,6 @@ Story 5-owned.
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/explain-code` | `commands/explain-code.md` | Explain existing code, symbols, files, or line ranges without modifying them. |
 | `/initialize` | `commands/initialize.md` | Initialize Writ project structure and configuration. |
 | `/new-command` | `commands/new-command.md` | Create new Writ command files that follow repository conventions. |
 | `/new-skill` | `commands/new-skill.md` | Scaffold new Writ skills with the role convention enforced via boundary lint. |
@@ -128,9 +127,13 @@ Story 5-owned.
 
 ## Available Skills
 
-| Skill | File | Description |
-|-------|------|-------------|
-| `conventional-commits` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
+| Skill | Status | File | Description |
+|-------|--------|------|-------------|
+| `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |
+| `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
+| `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
+| `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
+| `tdd-cycle` | `candidate` | `skills/tdd-cycle/SKILL.md` | Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time. |
 
 ## Platform Adapters
 

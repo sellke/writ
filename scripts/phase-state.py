@@ -584,6 +584,18 @@ def _slug(title: str) -> str:
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", title.lower())).strip("-")
 
 
+def _looks_like_path(token: str) -> bool:
+    """True when a string is a plausible repo-relative path (no spaces; has a
+    path separator or a dotted filename). Evidence entries are human-readable
+    provenance (transcript ids, commit notes, observations); only path-like
+    tokens belong in `related_artifacts`, or the consolidation reducer's stale
+    detector misreads the prose as dangling references."""
+    t = token.strip()
+    if not t or " " in t:
+        return False
+    return "/" in t or "." in t
+
+
 def knowledge_writeback(candidates: list[dict[str, Any]], knowledge_dir: Path,
                         already: set[str]) -> dict[str, Any]:
     """Apply the D6 evidence-bound qualification gates. A no-op (no qualifying
@@ -615,13 +627,25 @@ def knowledge_writeback(candidates: list[dict[str, Any]], knowledge_dir: Path,
         date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         path = lessons_dir / f"{date}-{_slug(title)}.md"
         tags = cand.get("tags", []) or ["phase-close"]
-        artifacts = "\n".join(f"  - {a}" for a in cand["evidence"])
+
+        # `related_artifacts` must hold resolvable repo paths only; the prose
+        # `evidence` becomes cited provenance in Context. Prefer an explicit
+        # `artifacts` list, else keep only path-like evidence tokens.
+        evidence = cand.get("evidence", [])
+        artifact_paths = cand.get("artifacts") or [e for e in evidence if _looks_like_path(e)]
+        if artifact_paths:
+            related_block = "related_artifacts:\n" + "\n".join(f"  - {a}" for a in artifact_paths)
+        else:
+            related_block = "related_artifacts: []"
+        context = "Recorded at phase close from evidence-bound knowledge writeback."
+        if evidence:
+            context += "\n\n**Cited evidence:**\n\n" + "\n".join(f"- {e}" for e in evidence)
+        related_links = "\n".join(f"- `{a}`" for a in artifact_paths)
         path.write_text(
             f"---\ncategory: lessons\ntags: [{', '.join(tags)}]\n"
-            f"created: {date}\nrelated_artifacts:\n{artifacts}\n---\n\n"
+            f"created: {date}\n{related_block}\n---\n\n"
             f"# {title}\n\n## TL;DR\n\n{statement}\n\n## Context\n\n"
-            f"Recorded at phase close from evidence-bound knowledge writeback.\n\n"
-            f"## Detail\n\n{statement}\n\n## Related\n\n",
+            f"{context}\n\n## Related\n\n{related_links}\n",
             encoding="utf-8",
         )
         written.append({"id": cid, "path": str(path.relative_to(knowledge_dir.parent.parent))

@@ -88,6 +88,9 @@ Run tests with coverage enabled using the detected tools.
 | Overall project | Report only | Informational, don't block |
 
 ### Step 5: Analyze Failures (if any)
+
+When a failure traces to genuinely missing behavior, or Step 6 requires new tests, `Read skills/tdd-cycle/SKILL.md` and add them test-first — write the failing test, confirm it fails for the right reason, then make it pass — rather than writing tests to fit code that already exists. This agent owns *what* to cover (acceptance criteria, coverage thresholds) and the pass-rate bar; the skill owns *how* to grow each test.
+
 For each failing test:
 1. Read the error message
 2. Examine the test code — is the test correct?

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Autonomous phase-level orchestrator. Reads a roadmap phase from `.writ/product/roadmap.md`, resolves its features to specs in `.writ/specs/`, then loops `/implement-spec` → `/create-uat-plan` per spec — sequenced by cross-spec dependencies — until every spec in the phase is implemented and has a UAT plan. Ends by mapping results against the phase's exit criteria and handing off manual UAT execution.
+Autonomous phase-level orchestrator. Reads a roadmap phase from `.writ/product/roadmap.md`, resolves its features to specs in `.writ/specs/` — proposing and creating any missing specs through a decomposition pre-pass — then loops `/implement-spec` → `/create-uat-plan` per spec — sequenced by cross-spec dependencies — until every spec in the phase is implemented and has a UAT plan. Ends by mapping results against the phase's exit criteria and handing off manual UAT execution.
 
 This is the layer above `/implement-spec`: roadmap → **`/implement-phase`** → `/implement-spec` → `/implement-story`. It owns cross-spec sequencing; `/implement-spec` owns story batching within a spec.
 
@@ -42,9 +42,48 @@ Classify each feature:
 
 ```
 AskQuestion: Phase N includes features without specs: [list].
+  - Decompose now — propose a spec breakdown and create the specs (Step 1.2b), then continue
   - Proceed with specced features only (phase will end "partially complete")
-  - Stop so I can run /create-spec first
+  - Stop so I can run /create-spec myself first
 ```
+
+**Decompose now** is the recommended default when two or more features are unspecced: turning a roadmap phase into the *right set* of specs is otherwise tacit judgment, made once and informally at the first `/create-spec`. For a single unspecced feature there is nothing to decompose — route it straight to one `/create-spec`.
+
+#### Step 1.2b: Decomposition Pre-Pass (unspecced features → the right set of specs)
+
+Runs only when the user chose **Decompose now**. This is the just-in-time seam between a roadmap phase and its specs — deliberately placed here, at implementation time, so boundaries are drawn against the *current* codebase rather than stale plan-time assumptions.
+
+**Produce a decomposition proposal — one artifact, one confirmation:**
+
+1. **Analyze** the unspecced features against the codebase: the files, commands, and scripts each feature touches, and where those surfaces overlap.
+2. **Propose specs** — group features into independently shippable, independently testable specs. Prefer one spec per coherent deliverable; split when a feature is large enough to stand alone, merge when two features are truly one deliverable. Avoid both grab-bag bundling and over-fragmentation.
+3. **Draw the dependency graph** — the `> **Dependencies:** [...]` edges each proposed spec will declare, so Step 2.1 can sequence them deterministically.
+4. **Assign file ownership** — name the single spec that owns each shared file (e.g., a command or script two features both touch). Single-writer-per-file is what keeps the concurrent lanes of Step 3.2 from colliding on merge; a shared surface with two owners is a planning defect to resolve here, not an implementation surprise to hit later.
+5. **Name the seams** — the contracts *between* specs (shared schema, script signature, command flag) that must hold for the pieces to integrate.
+
+**Present the proposal for one approval:**
+
+```
+## Decomposition Proposal: Phase N — [name]
+
+Proposed specs (from [M] unspecced features):
+  1. {slug-a}  — [deliverable]        deps: []          owns: [files]
+  2. {slug-b}  — [deliverable]        deps: [slug-a]    owns: [files]
+  3. {slug-c}  — [deliverable]        deps: []          owns: [files]
+
+Seams:
+  - {slug-a} ⇄ {slug-b}: [shared contract that must hold]
+
+Rationale: [why these boundaries — coherence, independent testability, ownership]
+```
+
+Confirm with AskQuestion: create these specs / edit the breakdown / stop. **The decomposition plan is an ask-worthy condition** (condition 4) — the roadmap does not answer how many specs, where the seams fall, or who owns a shared file, and no artifact can derive it. This is a *planning* confirmation, distinct from and earlier than the Step 2.3 execution gate.
+
+**On approval, create the specs — contract-first is not bypassed.** For each proposed spec in dependency order, run `/create-spec` seeded with its deliverable, files-in-scope, `dependencies:`, and ownership constraints from the proposal. Each spec is still contract-locked (per ADR-001, specs are never created without agreement); the seed makes each discovery short and focused rather than starting cold. Specs are *authored* collaboratively in this pre-pass; only *implementation* (Phase 3) runs autonomously.
+
+**After the specs exist, re-resolve** — return to Step 1.2 classification. The freshly created specs are now **Specced** and enter the normal inventory, sequencing, and execution flow.
+
+> **`--all` boundary:** the pre-pass is never auto-entered in `--all` mode — creating specs requires human agreement. Unspecced features encountered under `--all` fall back to the "partially complete" path unless the phase is run interactively.
 
 #### Step 1.3: Inventory Prior Progress
 
@@ -202,15 +241,16 @@ The command's value is autonomy. Questions are the exception, bounded to exactly
 1. **Missing exit criteria** — the phase (or fallback spec set) defines no completion criteria and none can be derived from spec contracts. Ask before executing; never invent-and-self-certify.
 2. **Unachievable exit criteria discovered mid-run** — a criterion cannot be met (unspecced feature, failed spec, unmeasurable metric) and both degrading scope and aborting are defensible. Ask which.
 3. **Ambiguous failure blast radius** — a spec failed and it's unclear whether a remaining spec is safe to run.
+4. **Decomposition approval** — unspecced features exist and the user chose to decompose; the breakdown into specs, the seams, and file ownership cannot be derived from any artifact. Ask once, upfront (Step 1.2b), before creating specs.
 
-Everything else is answered from artifacts (roadmap → spec contract → technical spec → story files, in that precedence order) or accepted as the downstream command's default. The single upfront execution-plan confirmation is the only routine interaction.
+Everything else is answered from artifacts (roadmap → spec contract → technical spec → story files, in that precedence order) or accepted as the downstream command's default. The single upfront execution-plan confirmation is the only routine interaction — preceded, when unspecced features are decomposed, by the one decomposition confirmation of condition 4.
 
 ## Integration with Writ
 
 | Command | Relationship |
 |---------|-------------|
 | `/plan-product` | Creates `roadmap.md`, the source of phases and exit criteria |
-| `/create-spec` | Creates the specs a phase resolves to; the remedy for unspecced features |
+| `/create-spec` | Creates the specs a phase resolves to; invoked per proposed spec by the Step 1.2b decomposition pre-pass (or run manually) to remedy unspecced features |
 | `/implement-spec` | Called once per spec with its confirmation gate auto-accepted; owns story batching |
 | `/create-uat-plan` | Called after each spec completes; produces the per-spec validation artifact and the resume signal |
 | `/assess-spec` | Pre-flight flags from `/implement-spec` are surfaced in the phase plan; run this first for flagged specs if concerned |

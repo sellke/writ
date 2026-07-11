@@ -1,4 +1,5 @@
 .DS_Store
 .writ/state/
+.writ-lanes-*/
 __pycache__/
 *.pyc

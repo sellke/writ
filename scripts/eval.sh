@@ -36,6 +36,9 @@ CHECKS=(
   phase-knowledge
   phase-health
   ralph-retirement
+  skill-lifecycle
+  refresh-evidence
+  knowledge-consolidate
 )
 
 TOTAL_FINDINGS=0
@@ -2122,6 +2125,155 @@ check_ralph_retirement() {
   require_literal "$changelog" 'archive/ralph/' "The changelog must record where Ralph was archived."
   require_literal "$changelog" '/implement-phase' "The changelog must direct multi-spec work to /implement-phase."
   require_literal "$changelog" 'Finish or abandon any in-flight' "The changelog must warn users to finish or abandon in-flight Ralph runs before upgrading."
+}
+
+check_skill_lifecycle() {
+  local fake="$PROJECT_ROOT/scripts/eval-skill-lifecycle.py"
+  local lint="$PROJECT_ROOT/scripts/lint-skill.sh"
+  local skills_doc="$PROJECT_ROOT/.writ/docs/skills.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  # SHARED-ADDITIVE with 2026-07-10-skill-extraction: this is the single
+  # skill-lifecycle function and CHECKS entry this spec appends. The extraction
+  # spec appends its own distinct check in its own region.
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "skill-lifecycle:$scenario_name" "$scenario_reason" "Fix the lifecycle lint in scripts/lint-skill.sh or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$lint" 'candidate|proven|promoted' "The lint must enforce the closed lifecycle vocabulary."
+  require_literal "$lint" 'State is EARNED from evidence' "The lint must document the earned-state contract."
+  require_literal "$lint" 'Lifecycle-unearned' "The lint must emit an unearned-state finding category."
+  require_literal "$lint" 'Lifecycle-evidence' "The lint must emit a malformed-evidence finding category."
+
+  require_literal "$skills_doc" 'Skill Lifecycle' "The skills doc must document the lifecycle."
+  require_literal "$skills_doc" 'earned from evidence' "The skills doc must explain earned-state semantics."
+  require_literal "$skills_doc" 'type: promotion' "The skills doc must document the promotion evidence type."
+}
+
+check_refresh_evidence() {
+  local fake="$PROJECT_ROOT/scripts/eval-refresh-evidence.py"
+  local command_file="$PROJECT_ROOT/commands/refresh-command.md"
+  local log_format="$PROJECT_ROOT/.writ/docs/refresh-log-format.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "refresh-evidence:$scenario_name" "$scenario_reason" "Fix the evidence validator in scripts/eval-refresh-evidence.py or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The validator must define the parser and the grandfathering boundary.
+  require_literal "$fake" 'def validate_entry(' "The fixture script must define the refresh-evidence validator."
+  require_literal "$fake" 'LEARNING_CONTRACT_SINCE' "The validator must grandfather pre-contract entries by date."
+
+  # Tier 2 (Story 3): the structural gate and allowlist, never an LLM judge.
+  require_literal "$fake" 'def gate_decision(' "The fixture script must model the pre-merge gate decision."
+  require_literal "$fake" 'def structural_tier2(' "The fixture script must model the structural Tier 2 check."
+  require_literal "$fake" 'HIGH_TRAFFIC' "The fixture script must scope Tier 2 to the high-traffic allowlist."
+
+  # The command must mandate the structured Evidence block and the rejection path.
+  require_literal "$command_file" '**Evidence:**' "refresh-command Phase 3 must mandate a structured Evidence block per amendment."
+  require_literal "$command_file" '**Rejected:**' "refresh-command Phase 4 must record rejected candidates."
+  require_literal "$command_file" 'no evidence' "refresh-command must reject unevidenced proposals with reason 'no evidence'."
+  require_literal "$command_file" 'eval failed' "refresh-command must reject eval-failing proposals with reason 'eval failed'."
+  require_literal "$command_file" 'verbatim private transcript bodies' "refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy)."
+
+  # Story 3: the command must wire the pre-merge gate, the Tier 2 allowlist, the
+  # structural-not-LLM boundary, and document the two-example acceptance.
+  require_literal "$command_file" 'bash scripts/eval.sh --check=refresh-evidence' "refresh-command Phase 4 must run the pre-merge eval gate."
+  require_literal "$command_file" 'high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor`' "refresh-command must scope Tier 2 to the high-traffic allowlist."
+  require_literal "$command_file" 'structural only — not an LLM-as-judge' "refresh-command must keep Tier 2 structural and defer the LLM-judge variant."
+  require_literal "$command_file" 'rejected for lacking evidence' "refresh-command must document the two-example acceptance (merged + rejected)."
+
+  # The log-format doc must describe the same enforced contract.
+  require_literal "$log_format" '**Evidence:**' "The refresh-log format must document the mandatory Evidence block."
+  require_literal "$log_format" 'LEARNING_CONTRACT_SINCE' "The refresh-log format must document grandfathering."
+  require_literal "$log_format" 'no evidence' "The refresh-log format must document the 'no evidence' rejection reason."
+  require_literal "$log_format" 'eval failed' "The refresh-log format must document the 'eval failed' rejection reason."
+}
+
+check_knowledge_consolidate() {
+  local fake="$PROJECT_ROOT/scripts/eval-knowledge-consolidate.py"
+  local reducer="$PROJECT_ROOT/scripts/knowledge-consolidate.py"
+  local knowledge_cmd="$PROJECT_ROOT/commands/knowledge.md"
+  local retro_cmd="$PROJECT_ROOT/commands/retro.md"
+  local readme="$PROJECT_ROOT/.writ/knowledge/README.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  # SHARED-ADDITIVE with 2026-07-10-evidence-bound-refresh: this spec appends
+  # exactly one check function plus one CHECKS entry. Neither reorders nor
+  # rewrites existing registry entries; sequential phase execution keeps the
+  # two appends collision-free.
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "knowledge-consolidate:$scenario_name" "$scenario_reason" "Fix the consolidation reducer in scripts/knowledge-consolidate.py or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The reducer must reuse the substrate similarity metric and preserve lineage.
+  require_literal "$reducer" 'def _tokens(' "The reducer must reuse the phase-state token set for duplicate detection."
+  require_literal "$reducer" 'def detect_duplicates(' "The reducer must detect duplicate merge candidates."
+  require_literal "$reducer" 'def detect_contradictions(' "The reducer must surface contradictions for human review."
+  require_literal "$reducer" 'def detect_stale(' "The reducer must flag stale entries on observable signals."
+  require_literal "$reducer" 'superseded_by' "The reducer must write superseded_by tombstone lineage."
+  require_literal "$reducer" 'replaces' "The reducer must write replaces lineage on the canonical entry."
+  require_literal "$reducer" 'unified_diff' "The reducer must emit a reviewable preview diff via difflib."
+  require_literal "$reducer" 'merge, never append' "The reducer must state the merge-never-append principle."
+
+  # The command must expose the gated, non-destructive consolidate mode.
+  require_literal "$knowledge_cmd" '--consolidate' "Knowledge must route the --consolidate mode."
+  require_literal "$knowledge_cmd" 'merge, never append' "Knowledge --consolidate must state the merge-never-append principle."
+  require_literal "$knowledge_cmd" 'AskQuestion' "Knowledge --consolidate must gate every write on explicit approval."
+  require_literal "$knowledge_cmd" 'does not commit' "Knowledge --consolidate must leave a reviewable diff without committing."
+
+  # The retro hook must be a read-only advisory nudge only.
+  require_literal "$retro_cmd" '/knowledge --consolidate' "Retro must nudge toward consolidation on a growth signal."
+  require_literal "$retro_cmd" 'read-only' "The retro consolidation hook must remain read-only."
+  require_literal "$retro_cmd" 'mutates no knowledge file' "The retro hook must never mutate the ledger."
+
+  # The README must document lineage and the consolidation workflow.
+  require_literal "$readme" 'Consolidation and Lineage' "The knowledge README must document the consolidation workflow."
+  require_literal "$readme" 'superseded_by' "The knowledge README must document the superseded_by lineage field."
+  require_literal "$readme" 'replaces' "The knowledge README must document the replaces lineage field."
+  require_literal "$readme" 'merge, never append' "The knowledge README must state the merge-never-append principle."
 }
 
 run_check() {

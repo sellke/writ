@@ -102,6 +102,7 @@ Write a temp file (e.g. `/tmp/new-skill-lint-$$.md`) with this content:
 name: <name>
 description: "<description>"
 disable-model-invocation: true
+status: candidate
 ---
 
 # <Title-Cased Name>
@@ -110,6 +111,10 @@ disable-model-invocation: true
 
 (scaffolded body — lint candidate)
 ```
+
+`status: candidate` is the born lifecycle state (ADR-014): a new skill has
+earned no evidence yet, and `candidate` requires none — so the scaffold passes
+the lifecycle lint unchanged.
 
 #### Step 2.2: Run the Lint
 
@@ -152,6 +157,7 @@ Create the directory `skills/<name>/` if needed, then write `skills/<name>/SKILL
 name: <name>
 description: "<description>"
 disable-model-invocation: true
+status: candidate
 ---
 
 # <Title-Cased Name>
@@ -186,8 +192,12 @@ Append a new entry under `skills:`, in **alphabetical order by `name`** to keep 
   - name: <name>
     file: skills/<name>/SKILL.md
     description: "<description>"
+    status: candidate
     tags: [<tag1>, <tag2>]   # omit if empty
 ```
+
+The manifest `status:` is the catalog render mirror (ADR-014); the SKILL.md
+frontmatter is authoritative. Both are born `candidate`.
 
 If the manifest currently has `skills: []`, replace the inline empty list with a block-style list before inserting. Use `awk` or `sed` for the in-place edit (the manifest is a hand-edited YAML file — avoid full-file rewrites).
 
@@ -222,6 +232,7 @@ Next steps:
 4. **`disable-model-invocation: true` is mandatory** for Writ-authored skills. Explicit invocation is the only invocation mode.
 5. **Names are unique across primitives.** A skill cannot share a name with a command or agent. The validation runs before the lint to fail fast.
 6. **Manifest in alphabetical order.** Within `skills:`, entries are sorted by `name:` to keep diffs reviewable.
+7. **Born `candidate`.** Every new skill scaffolds at `status: candidate` (ADR-014) — the provisional lifecycle state that requires no evidence. A skill earns `proven` (≥3 recorded evidence entries) and then `promoted` (a consumer's `required_skills:` declaration) later, by hand, as it sees real use. `/new-skill` never scaffolds a non-`candidate` state.
 
 ---
 
@@ -239,8 +250,8 @@ Next steps:
 
 This command succeeds when:
 
-1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
-2. **Lint passed** — `scripts/lint-skill.sh` returned exit `0` against the captured frontmatter
+1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
+2. **Lint passed** — `scripts/lint-skill.sh` returned exit `0` against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
 3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed
 4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (verified via `bash scripts/gen-skill.sh --check`)
 5. **No name collisions** — the skill name is unique across commands, agents, and existing skills
@@ -257,5 +268,6 @@ This command succeeds when:
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
 - Boundary rationale: [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md)
+- Lifecycle rationale: [ADR-014](../.writ/decision-records/adr-014-skill-lifecycle.md)
 - User-facing explainer: [`.writ/docs/skills.md`](../.writ/docs/skills.md)
 - Lint grammar source: [`scripts/lint-skill.sh`](../scripts/lint-skill.sh)

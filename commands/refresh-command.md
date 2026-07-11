@@ -86,18 +86,52 @@ Signals from your /[command] run:
 
 Ask: *"Does this capture it? Anything to add or correct?"*
 
+**Attribution requirement.** However signals are gathered — from the maintainer's
+description or by inferring from the most recent command run in this
+conversation — every actionable signal that becomes a proposal in Phase 3 must be
+attributable to a **transcript ID or path**. Cursor stores session transcripts as
+platform-local `.jsonl` files under
+`agent-transcripts/<session-uuid>/<session-uuid>.jsonl` (and subagent runs under
+`.../subagents/<sub-uuid>.jsonl`). When you infer from the current session,
+attribute the signal to that session's transcript ID/path. If no transcript
+ID/path is resolvable for a signal, it cannot carry evidence and its proposal is
+rejected in Phase 4 (`no evidence`).
+
+**Prime Directive privacy guard.** Evidence you carry forward references the
+transcript by ID/path plus a **short observable signal only** — a correction,
+retry, override, or error quoted briefly. Never copy chain-of-thought, prompts,
+or verbatim private transcript bodies into a proposal, the command file, or the
+refresh log. Transcript bodies stay outside the repository; only IDs and short
+observable signals are ever stored.
+
 ---
 
 ## Phase 3: Propose Amendments
 
 Analyze the command file against the gathered signals. For each actionable signal, generate a concrete amendment proposal.
 
-**For each proposal, provide:**
+**For each proposal, provide five required fields:**
 
 1. **Title** — short description of the change
 2. **Rationale** — why this improves the command, tied to the specific friction
 3. **Confidence** — High / Medium / Low
-4. **Diff** — the exact text change (old → new), with enough surrounding context to locate it
+4. **Evidence** — the mandatory structured citation (see below). A proposal with no Evidence block is rejected in Phase 4; it is never applied.
+5. **Diff** — the exact text change (old → new), with enough surrounding context to locate it
+
+**Evidence is mandatory and structured.** Every proposal carries an `**Evidence:**`
+block with exactly three parts: the transcript it came from, a short observable
+signal quoted from it, and the target command section the change anchors to.
+
+```markdown
+**Evidence:**
+- Transcript: agent-transcripts/<session-uuid>/<session-uuid>.jsonl   # or .../subagents/<sub-uuid>.jsonl
+- Observable signal: "user re-ran /create-spec after the scan skipped the monorepo root"
+- Affected section: commands/create-spec.md → "Phase 2: Codebase Scan"
+```
+
+The **Observable signal** is a short factual quote of an event — a correction,
+retry, override, or error. It is never reasoning, a prompt, or a verbatim private
+transcript body. Keep it to a single short line. Never store chain-of-thought.
 
 **Format:**
 
@@ -105,6 +139,11 @@ Analyze the command file against the gathered signals. For each actionable signa
 ### Amendment 1: [Title]
 **Rationale:** [Why — linked to specific friction signal]
 **Confidence:** [High/Medium/Low]
+
+**Evidence:**
+- Transcript: agent-transcripts/<session-uuid>/<session-uuid>.jsonl
+- Observable signal: "[short factual quote of a correction/retry/override/error]"
+- Affected section: commands/[command].md → "[real section heading]"
 
 **Diff:**
   Lines before for context...
@@ -118,6 +157,7 @@ Analyze the command file against the gathered signals. For each actionable signa
 - Each diff must be surgical — change only what's needed, preserve surrounding structure
 - Don't propose changes for things that worked well
 - If a signal points to a problem but the fix isn't clear, say so rather than proposing a low-confidence guess
+- If a proposal cannot cite a transcript ID/path plus a short observable signal, do not dress it up — mark it unevidenced; Phase 4 will reject it with reason `no evidence`.
 
 **Present proposals and ask:**
 
@@ -129,9 +169,64 @@ If the user picks, present each proposal individually for yes/no.
 
 ## Phase 4: Apply & Log
 
+### Step 4.0: Evidence Gate (reject the unevidenced before any write)
+
+Before applying **any** amendment, screen each approved proposal against the
+evidence contract. An amendment may be written **only** if it carries a complete
+`**Evidence:**` block: a transcript ID/path, a short observable signal, and a real
+affected section.
+
+- **No transcript citation → reject.** The amendment is not written to the command
+  file. Record it under `**Rejected:**` with reason `no evidence`.
+- Rejection is a **normal, first-class outcome**, not an error. A plausible edit
+  that cannot be justified is visibly rejected rather than silently applied — this
+  is what keeps the learning loop falsifiable and directly supplies the "rejected
+  for lacking evidence" audit record.
+
+> The full pre-merge eval gate (`bash scripts/eval.sh --check=refresh-evidence`)
+> and the structural Tier 2 check for high-traffic commands run here as well —
+> see **Step 4.1a** below. Only evidenced, eval-passing amendments proceed to
+> Step 4.1.
+
+If the maintainer insists on applying an unevidenced edit anyway, that is a
+**contract-degrading** choice: it requires an explicit human decision, is never a
+silent default, and is still recorded in the log as an override.
+
+### Step 4.1a: Pre-Merge Eval Gate
+
+Before writing **any** amendment, run the pre-merge eval gate:
+
+```bash
+bash scripts/eval.sh --check=refresh-evidence
+```
+
+- A non-zero result **rejects** the amendment. Record it under `**Rejected:**`
+  with reason `eval failed`; do not write the diff.
+- Only a clean gate allows Step 4.1 to apply the amendment.
+
+**Structural Tier 2 for high-traffic commands.** When the target is on the
+high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor` —
+the gate additionally runs a lightweight **structural** check on the
+would-be-refreshed command file, reusing existing Tier 1 structural primitives:
+required-sections presence, no new broken refs, length sanity, the
+`commands/_preamble.md` reference intact, and the diff anchored to a real
+section. A structural regression rejects the amendment with reason `eval failed`.
+A target not on the allowlist runs the base evidence check only.
+
+**Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant is
+deliberately **deferred** behind an explicit future decision: research
+(`.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md`) found its cost
+(~$0.15 / ~30s per run) grossly exceeds its value at current scale. Do not
+introduce an LLM judge here — keep Tier 2 a bounded structural reuse of Tier 1.
+
+CI (`.github/workflows/eval.yml`) is the backstop: it runs the same
+`refresh-evidence` check from the registry on every PR and push, so it needs no
+new wiring.
+
 ### Step 4.1: Apply Changes
 
-For each approved amendment, apply the diff to the command file. After applying all changes, show a summary:
+For each approved **and evidenced** amendment that passed the gate, apply the diff
+to the command file. After applying all changes, show a summary:
 
 ```
 Applied [N] of [M] proposed amendments to commands/[command].md
@@ -139,25 +234,35 @@ Applied [N] of [M] proposed amendments to commands/[command].md
 
 ### Step 4.2: Write Refresh Log
 
-Append an entry to `.writ/refresh-log.md` (create if it doesn't exist):
+Append an entry to `.writ/refresh-log.md` (create if it doesn't exist). Each applied
+amendment mirrors its `**Evidence:**` block; each rejected candidate records its
+reason token (`no evidence` or `eval failed`). Never copy transcript bodies or
+chain-of-thought into the log — IDs and short observable signals only.
 
 ```markdown
 ## [DATE] — /[command] refreshed
 
-**Source:** Conversation context
 **Signals found:** [N] total, [M] actionable
 **Amendments applied:** [X] of [Y] proposed
 
 **Changes:**
-- [Amendment title] (Confidence: [H/M/L], applied/skipped)
-- [Amendment title] (Confidence: [H/M/L], applied/skipped)
+- [Amendment title] (Confidence: [H/M/L])
+  **Evidence:**
+  - Transcript: agent-transcripts/<session-uuid>/<session-uuid>.jsonl
+  - Observable signal: "[short factual quote]"
+  - Affected section: commands/[command].md → "[section]"
 
-**Not applied:**
-- [Amendment title] — [reason: user declined / low confidence / unclear fix]
+**Rejected:**
+- [Amendment title] — reason: no evidence
+- [Amendment title] — reason: eval failed
 
 **Scope:** Local only
 **Target file:** commands/[command].md
 ```
+
+A run that applies **zero** amendments ("reviewed, no changes") is a valid outcome
+and is **exempt** from the evidence requirement — there is nothing to justify when
+nothing is applied. Log the review without an Evidence block.
 
 ### Step 4.3: Final Output
 
@@ -183,6 +288,18 @@ If no amendments were proposed (signals were non-actionable or the command is so
 Signals were either non-actionable or the command handled them correctly.
 Logged to .writ/refresh-log.md for reference.
 ```
+
+### Acceptance: two-example proof
+
+The learning loop is proven falsifiable by two real `.writ/refresh-log.md`
+records that must both exist:
+
+1. **One refinement merged with cited transcript evidence** and a clean eval gate.
+2. **One proposal rejected for lacking evidence** (reason `no evidence`).
+
+Together these demonstrate the "kept vs. discarded" decision is auditable — a
+justified edit is applied with its evidence, and an unjustifiable one is visibly
+rejected rather than silently applied.
 
 ---
 

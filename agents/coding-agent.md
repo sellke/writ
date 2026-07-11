@@ -106,7 +106,7 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 
 ## Implementation Requirements
 
-1. **Follow TDD**: Write tests FIRST, then implement to make them pass
+1. **Follow TDD**: `Read skills/tdd-cycle/SKILL.md` and run its red → green → refactor loop per unit of behavior — write the failing test first, implement the least code to pass, refactor under green. This agent owns *what* to build (the story's tasks and acceptance criteria) and *when* to hand off; the skill owns *how* the cycle runs.
 2. **Match patterns**: Follow existing codebase conventions
 3. **Small commits**: Make logical, incremental changes. When authoring each commit message, `Read skills/conventional-commits/SKILL.md` so coding-agent commits match the format `/ship` will use downstream.
 4. **Document as you go**: Add inline comments for complex logic

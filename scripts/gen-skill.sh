@@ -40,6 +40,7 @@ AGENT_MODELS=()
 SKILL_NAMES=()
 SKILL_FILES=()
 SKILL_DESCRIPTIONS=()
+SKILL_STATUSES=()
 SKILL_TAGS=()
 SKILL_ALIASES=()
 
@@ -150,13 +151,14 @@ parse_with_yq() {
   done < <(yq_read ".agents[] | [.name, .file, .purpose, .model] | @tsv")
 
   if yq_read ".skills" >/dev/null 2>&1 && [ "$(yq_read '.skills | length // 0')" != "0" ]; then
-    while IFS=$'\t' read -r name file description tags aliases; do
+    while IFS=$'\t' read -r name file description status tags aliases; do
       SKILL_NAMES+=("$name")
       SKILL_FILES+=("$file")
       SKILL_DESCRIPTIONS+=("$description")
+      SKILL_STATUSES+=("${status:-candidate}")
       SKILL_TAGS+=("${tags:-}")
       SKILL_ALIASES+=("${aliases:-}")
-    done < <(yq_read ".skills[] | [.name, .file, .description, ((.tags // []) | join(\",\")), ((.aliases // []) | join(\",\"))] | @tsv")
+    done < <(yq_read ".skills[] | [.name, .file, .description, (.status // \"candidate\"), ((.tags // []) | join(\",\")), ((.aliases // []) | join(\",\"))] | @tsv")
   fi
 }
 
@@ -218,6 +220,7 @@ reset_skill_item() {
   _SKILL_NAME=""
   _SKILL_FILE=""
   _SKILL_DESCRIPTION=""
+  _SKILL_STATUS=""
   _SKILL_TAGS=""
   _SKILL_ALIASES=""
 }
@@ -227,6 +230,7 @@ flush_skill_item() {
     SKILL_NAMES+=("$_SKILL_NAME")
     SKILL_FILES+=("$_SKILL_FILE")
     SKILL_DESCRIPTIONS+=("$_SKILL_DESCRIPTION")
+    SKILL_STATUSES+=("${_SKILL_STATUS:-candidate}")
     SKILL_TAGS+=("$_SKILL_TAGS")
     SKILL_ALIASES+=("$_SKILL_ALIASES")
   fi
@@ -381,6 +385,9 @@ parse_with_bash() {
         elif [[ "$line" == "description:"* ]]; then
           _SKILL_STARTED="true"
           _SKILL_DESCRIPTION="$(strip_value "${line#description:}")"
+        elif [[ "$line" == "status:"* ]]; then
+          _SKILL_STARTED="true"
+          _SKILL_STATUS="$(strip_value "${line#status:}")"
         elif [[ "$line" == "tags:"* ]]; then
           _SKILL_STARTED="true"
           _SKILL_TAGS="$(strip_value "${line#tags:}")"
@@ -639,11 +646,11 @@ EOF
 
 ## Available Skills
 
-| Skill | File | Description |
-|-------|------|-------------|
+| Skill | Status | File | Description |
+|-------|--------|------|-------------|
 EOF
     for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
-      echo "| \`${SKILL_NAMES[$i]}\` | \`${SKILL_FILES[$i]}\` | ${SKILL_DESCRIPTIONS[$i]} |"
+      echo "| \`${SKILL_NAMES[$i]}\` | \`${SKILL_STATUSES[$i]:-candidate}\` | \`${SKILL_FILES[$i]}\` | ${SKILL_DESCRIPTIONS[$i]} |"
     done
   fi
 
