@@ -2,7 +2,7 @@
 
 > **Spec:** [`../spec.md`](../spec.md)
 > **Status:** Not Started
-> **Progress:** 14/27 implementation tasks (52%)
+> **Progress:** 20/27 implementation tasks (74%)
 > **Cross-Spec Prerequisite:** `2026-07-10-skill-lifecycle`
 
 ## Story Summary
@@ -11,7 +11,7 @@
 |---|---|---|---|---|---:|
 | 1 | [Retire `/explain-code` into a Skill](story-1-retire-explain-code-into-a-skill.md) | High | None | Completed ✅ | 7/7 |
 | 2 | [Extract `tdd-cycle` from `/implement-story`](story-2-extract-tdd-cycle.md) | High | None | Completed ✅ | 7/7 |
-| 3 | [Extract `error-rescue-mapping` from `/create-spec`](story-3-extract-error-rescue-mapping.md) | Medium | None | Not Started | 0/6 |
+| 3 | [Extract `error-rescue-mapping` from `/create-spec`](story-3-extract-error-rescue-mapping.md) | Medium | None | Completed ✅ | 6/6 |
 | 4 | [Extract `safe-refactor-loop` and Finalize](story-4-extract-safe-refactor-loop-and-finalize.md) | High | Stories 1–3 | Not Started | 0/7 |
 
 ## Dependency Plan

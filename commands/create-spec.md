@@ -779,31 +779,9 @@ Can run in parallel with user story generation. Only create sub-specs the contra
 
 **Error Mapping (Required for Data Flow Features):**
 
-Include when the spec touches: API routes, auth flows, payments, file operations, or external integrations. Skip for pure UI/CSS, docs, config, or internal refactors. When in doubt, include it. These tables use identical structures to `/review`'s output, enabling plan-vs-actual comparison.
+Include when the spec touches: API routes, auth flows, payments, file operations, or external integrations. Skip for pure UI/CSS, docs, config, or internal refactors. When in doubt, include it.
 
-**Error & Rescue Map:**
-
-| Operation | What Can Fail | Planned Handling | Test Strategy |
-|---|---|---|---|
-| Create session | DB unavailable | Retry 3x, then error page | Integration test with DB down |
-
-The `[UNPLANNED]` marker is the highest-value output — it forces planning or an explicit `[OUT OF SCOPE — reason]` declaration. Every `[UNPLANNED]` must be resolved before implementation. Start with external service operations.
-
-**Shadow Paths** — each cell describes what the *user sees*, not what the system does:
-
-| Flow | Happy Path | Nil Input | Empty Input | Upstream Error |
-|---|---|---|---|---|
-| User registration | Account → welcome email | 422 + field errors | 422 + "required" msg | 503 + retry prompt |
-
-**Interaction Edge Cases** — standard four for any interactive feature, plus feature-specific:
-
-| Edge Case | Planned Handling |
-|---|---|
-| Double-click submit | Debounce — disable after first click |
-
-A payment form needs "card declined." A search needs "rapid keystrokes." Think about what's specific to *this* feature.
-
-**Shared Format Principle:** Discrepancies between spec error mapping and `/review`'s code analysis are drift signals. An `[UNPLANNED]` that remains unhandled in code is a critical gap.
+**Failure mapping:** `Read skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables, the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline, the "describe what the *user sees*" principle, and the drift-signal framing (its tables mirror a review pass's output by design, enabling plan-vs-actual comparison). This command owns *when* error mapping applies — the data-flow heuristic above — and which sub-specs carry the tables; the skill owns *how* to construct them.
 
 #### Step 2.9: Final Package Review
 
