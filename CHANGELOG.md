@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.20.0] - 2026-07-11
+
+**Phase 8 (Memory Interop)** completes the 2026 harness-audit roadmap — Writ's markdown stays canonical while external memory layers become documented, optional indexes. Ships alongside two self-governance features: **Leanness Guardian** (the framework audits its own weight) and **Product Reconciliation** (verify/revise the product layer, closing the gap that only specs previously had).
+
+### Added
+
+- **Memory Interop — GBrain compatibility.** A new `gbrain-interop` skill plus `.writ/docs/gbrain-recipe.md` let a GBrain-equipped project register `.writ/` as a source (markdown-canonical routing, artifact→page mapping, graceful absence when no brain is installed) — grounded in GBrain's real interface, zero new Writ infrastructure.
+- **Native-memory guidance per adapter.** All four adapters (Cursor, Claude Code, Codex, OpenClaw) document what belongs in native memory (session prefs, trivia) vs. the reviewable ledger (negotiated decisions, conventions, lessons), backed by a `memory-interop` eval check.
+- **Leanness Guardian.** A Tier A eval tripwire (aggregate-weight + registry-parity) and a Tier B audit ritual let Writ govern its own growth, per [ADR-015](.writ/decision-records/adr-015-leanness-self-governance.md).
+- **Product Reconciliation.** `/verify-spec --product` (a P1–P4 consistency lint over `.writ/product/`), `/plan-product --reconcile` (a targeted revision posture), and a read-only `/retro` product-drift nudge — the product-layer equivalent of spec verify/revise.
+
+### Changed
+
+- **Product docs reconciled with reality.** Mission, roadmap, and context realigned; Phase 8 marked implemented across all product docs (first dogfood output of `/plan-product --reconcile`).
+
+### Internal
+
+- **Two Tier 1 eval checks added** — `memory-interop` and `leanness` — both green on CI.
+
 ## [0.19.0] - 2026-07-11
 
 Two phases ship together: **Phase 6 (Autonomy Ceiling)** — supervised multi-spec execution replacing the Ralph loop — and **Phase 7 (Compounding Layer)** — making Writ's self-improvement falsifiable and its skills primitive adopted.
