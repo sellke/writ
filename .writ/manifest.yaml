@@ -245,6 +245,11 @@ skills:
     description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."
     status: candidate
     tags: [spec, error-handling, review]
+  - name: safe-refactor-loop
+    file: skills/safe-refactor-loop/SKILL.md
+    description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."
+    status: candidate
+    tags: [refactor, quality, verification]
   - name: tdd-cycle
     file: skills/tdd-cycle/SKILL.md
     description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."

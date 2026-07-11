@@ -1,7 +1,7 @@
 # Technical Specification: Skill Extraction from High-Traffic Commands
 
 > **Parent:** `../spec.md`
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Stories:** 1–4
 
 ## Architecture Summary

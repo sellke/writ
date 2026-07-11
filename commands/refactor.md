@@ -112,28 +112,9 @@ For `--dry-run` mode, the command ends here — present analysis and plan, then 
 
 ### Phase 3: Execution
 
-**Golden rule: Tests pass after every individual change.**
+**Behavior-preserving execution:** `Read skills/safe-refactor-loop/SKILL.md` for the per-change loop — green-baseline gate, surgical minimal change, verify (tests + typecheck + lint), commit-or-revert, one concern per isolated commit, and updating moved imports in the same commit as the structural change. This command owns *which* changes run and *in what order* (the risk-ranked plan approved in Phase 2) plus the before/after reporting (Phase 4); the skill owns *how* each change is executed safely.
 
-For each approved change, follow this cycle:
-
-1. **Checkpoint** — note the current git state for rollback
-2. **Apply** — edit files with surgical, minimal diffs. Touch only what's necessary for this specific step.
-3. **Verify** — run tests, typecheck, and lint. All three must pass.
-4. **Commit or revert:**
-   - **Green:** commit with a descriptive `refactor:` prefix message. Proceed to next change.
-   - **Red:** revert immediately, report what broke and why, ask whether to skip this change or abort the remaining plan.
-
-**Commit per change, not per batch.** Each refactoring step gets its own isolated commit. This makes every change independently revertable, bisectable, and code-reviewable. Example sequence:
-
-- `refactor: extract auth role constants`
-- `refactor: deduplicate validation logic into shared validator`
-- `refactor: split auth.ts into auth, session, token modules`
-
-**When moving or extracting code,** update all import paths across dependent files in the same commit as the structural change. Verify that no file still references the old location. Never leave broken imports for the user to clean up.
-
-**Execution order matters.** Process changes low → high risk as planned. If a low-risk change unexpectedly fails, reconsider whether higher-risk changes are still safe — the failure may reveal assumptions the plan didn't account for.
-
-**Mid-plan failure handling:** If a reverted change was a prerequisite for later changes, skip those automatically. Present the updated remaining plan and let the user decide whether to continue, adjust, or stop.
+Process the approved changes low → high risk as planned. **Mid-plan failure handling:** on a revert, if the reverted change was a prerequisite for later ones, skip those automatically, then present the updated remaining plan and let the user decide whether to continue, adjust, or stop.
 
 ---
 

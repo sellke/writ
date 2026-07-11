@@ -1,6 +1,6 @@
 # Skill Extraction from High-Traffic Commands
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Created:** 2026-07-10
 > **Owner:** @AdamSellke
 > **Phase:** 7 — Compounding Layer
@@ -298,14 +298,14 @@ All four stories share the binding cross-spec prerequisite `2026-07-10-skill-lif
 
 ## Deliverables
 
-- [ ] `skills/code-explanation/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `commands/research.md`
-- [ ] `skills/tdd-cycle/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `implement-story` + coding/testing agents
-- [ ] `skills/error-rescue-mapping/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `commands/create-spec.md`
-- [ ] `skills/safe-refactor-loop/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `commands/refactor.md`
-- [ ] `commands/explain-code.md` deleted and absent from every active surface
-- [ ] Source commands measurably shrunk toward orchestration
-- [ ] `.writ/manifest.yaml` carries four alphabetical `skills:` entries and no `explain-code` command
-- [ ] Root `SKILL.md` regenerated; `gen-skill.sh --check` passes
-- [ ] `lint-skill.sh skills/*/SKILL.md` clean; `install.sh`/`update.sh` dry-runs clean; `eval.sh` clean
-- [ ] `.writ/docs/skills.md` extraction-patterns section added; stale line 3 corrected
-- [ ] Four-skill decision, ship non-extraction, and per-skill reuse justifications documented
+- [x] `skills/code-explanation/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `commands/research.md`
+- [x] `skills/tdd-cycle/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `implement-story` + coding/testing agents
+- [x] `skills/error-rescue-mapping/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `commands/create-spec.md`
+- [x] `skills/safe-refactor-loop/SKILL.md` authored (`status: candidate`), lint-clean, consumed by `commands/refactor.md`
+- [x] `commands/explain-code.md` deleted and absent from every active surface
+- [~] Source commands measurably shrunk toward orchestration — `create-spec` 912 → 890, `refactor` 205 → 186, `/explain-code` deleted entirely; `implement-story` net-neutral (974 → 974, an orchestrator with no inline TDD block — see Story 2 note)
+- [x] `.writ/manifest.yaml` carries four alphabetical `skills:` entries and no `explain-code` command
+- [x] Root `SKILL.md` regenerated; `gen-skill.sh --check` passes
+- [x] `lint-skill.sh skills/*/SKILL.md` clean; `install.sh`/`update.sh` dry-runs behave as baseline (source-repo guard, no new failures); `eval.sh` clean (0 findings)
+- [x] `.writ/docs/skills.md` extraction-patterns section added; stale line 3 corrected
+- [x] Four-skill decision, ship non-extraction, and per-skill reuse justifications documented

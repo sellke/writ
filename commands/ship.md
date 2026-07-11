@@ -274,6 +274,8 @@ Analyze the diff and organize changes into bisectable commits when beneficial. T
 
 **Commit message authoring:** `Read skills/conventional-commits/SKILL.md` for the message grammar (type/scope/summary/body/footers) and the project-convention detection step. The skill owns *how to phrase* each commit; this command owns *which* data populates each component and adds the Writ-specific `Ref:` footer when the diff traces back to a spec story.
 
+> **Non-extraction note (Phase 7 skill extraction):** `/ship`'s high-traffic capability was already extracted as `conventional-commits`; the commit-splitting and PR-assembly logic above is command-specific orchestration, not a reusable capability. No further skill extraction from `/ship` was warranted — documented here so the four-skill decision (`code-explanation`, `tdd-cycle`, `error-rescue-mapping`, `safe-refactor-loop`) is not mistaken for an oversight.
+
 | Component | Source |
 |---|---|
 | Type (`feat`, `fix`, `chore`, `refactor`, `docs`) | Inferred from file types and change nature |
