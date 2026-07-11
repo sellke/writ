@@ -142,7 +142,6 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/initialize` | Project setup (greenfield/brownfield detection) |
-| `/explain-code` | Code explanation with diagrams |
 | `/new-command` | Create new Writ commands |
 | `/new-skill` | Scaffold new skills with the role convention enforced via boundary lint |
 | `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |

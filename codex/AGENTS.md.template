@@ -62,7 +62,6 @@ Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/explain-code` | `.codex/commands/explain-code.md` | Explain existing code, symbols, files, or line ranges without modifying … |
 | `/initialize` | `.codex/commands/initialize.md` | Initialize Writ project structure and configuration. |
 | `/new-command` | `.codex/commands/new-command.md` | Create new Writ command files that follow repository conventions. |
 | `/new-skill` | `.codex/commands/new-skill.md` | Scaffold new Writ skills with the role convention enforced via boundary … |

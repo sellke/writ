@@ -1,6 +1,6 @@
 # Skills — The Third Writ Primitive
 
-> **Status:** Foundation shipped (`2026-05-03-skills-foundation`). No production skills extracted yet — pilot extractions land in separate specs.
+> **Status:** Foundation shipped (`2026-05-03-skills-foundation`); lifecycle added (`2026-07-10-skill-lifecycle`). Four production skills have been extracted from high-traffic commands (`2026-07-10-skill-extraction`) — `code-explanation`, `error-rescue-mapping`, `safe-refactor-loop`, and `tdd-cycle` — each born `status: candidate` (promotion to `proven` accrues later with evidence), alongside the shipped `conventional-commits` pilot. See [Extraction Patterns](#extraction-patterns) below.
 > **Source of truth for the boundary:** [ADR-009](../decision-records/adr-009-command-agent-skill-boundary.md)
 > **Cross-platform format:** [AgentSkills standard](https://agentskills.io)
 
@@ -239,6 +239,68 @@ Use `/new-skill <name>` to scaffold a new skill. The command:
 6. Regenerates the root `SKILL.md` catalog via `scripts/gen-skill.sh`.
 
 The boundary lint is the contract — same script, same grammar, same exit codes whether the lint runs at authoring time (`/new-skill`) or at review time (`/refresh-command --lint-skills`). No divergence.
+
+---
+
+## Extraction Patterns
+
+Some skills are not authored fresh — they are **extracted** from a high-traffic
+command or agent that already contained a reusable capability tangled up with its
+orchestration. Extraction pays off when the same *how* is (or will be) wielded by
+more than one consumer, or when lifting it measurably shrinks a heavy command
+toward pure orchestration.
+
+### The transform
+
+```text
+identify the durable capability prose  (the reusable "how", not the "when/with what data")
+        │
+        ▼
+author skills/<name>/SKILL.md  (status: candidate, verb-phrase description)
+        │
+        ▼
+lint-skill.sh  ──► clean? ──no──► rewrite orchestration prose into capability prose
+        │ yes
+        ▼
+wire the consumer:  Read skills/<name>/SKILL.md   (the "when/with what data" stays here)
+        │
+        ▼
+shrink the source section to a one-paragraph orchestration note
+        │
+        ▼
+register in .writ/manifest.yaml (alphabetical) → regenerate the catalog
+```
+
+Two rules keep extraction honest. First, the **capability moves, the
+orchestration stays**: the skill owns *how to do the thing well*; the consumer
+retains *when to invoke it and with what data*. Orchestration language —
+"then run the reviewer", "`Read commands/…`", a line that starts with a slash
+command — must be rewritten into capability prose or the boundary lint blocks it.
+Second, **every extracted skill needs a live consumer**: because Writ skills are
+`disable-model-invocation: true`, a skill nothing `Read`s is dead weight.
+
+### Shrink note shape
+
+Each shrunk section becomes a short orchestration note naming the skill and the
+*how/when* split, mirroring `commands/ship.md`'s commit-authoring note:
+
+> **`<Capability>`:** `Read skills/<name>/SKILL.md` for *how to do X*. This command owns *when to invoke it and what data to pass*.
+
+### Shipped extractions (`2026-07-10-skill-extraction`)
+
+| Skill | Source | Wired consumer(s) | Reuse justification |
+|---|---|---|---|
+| `code-explanation` | retired `/explain-code` command | `commands/research.md` | A general, depth-scaled explanation capability any agent can wield; the weak command retired into it |
+| `tdd-cycle` | `/implement-story` coding phase | `implement-story` (Gate 1), `coding-agent`, `testing-agent` | Strongest reuse — three live consumers share the red → green → refactor discipline (ADR-009 names it) |
+| `error-rescue-mapping` | `/create-spec` Step 2.8 | `create-spec` now; a review pass later | Error & Rescue / Shadow Path / edge-case tables share their shape with a reviewer's output by design |
+| `safe-refactor-loop` | `/refactor` Phase 3 | `refactor` now; prototype work later | Thinnest current reuse — justified by the durable behavior-preserving-change discipline plus a real command shrink |
+
+The set is committed at **four**, not padded to the roadmap's "3–5" ceiling.
+`/ship` was named as a candidate but its high-traffic capability was already
+extracted as `conventional-commits`; its non-extraction is documented in
+`commands/ship.md`, not treated as a gap. All four extracted skills are born
+`status: candidate` — "in real use" is satisfied here by wiring live consumers;
+promotion to `proven` requires evidence and is owned by the lifecycle spec.
 
 ---
 

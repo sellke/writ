@@ -88,6 +88,8 @@ Investigate specific sub-topics surfaced in Phase 2 — implementation details, 
 
 Cross-reference key claims across sources. A finding supported by one blog post is an anecdote; supported by three independent sources, it's evidence.
 
+**Explaining code the deep dive turns up:** When the investigation hinges on understanding an internal function, class, file, or module rather than external sources, `Read skills/code-explanation/SKILL.md` for the structured, depth-scaled explanation technique (purpose first, then a mechanics walkthrough, then context, with diagrams and complexity notes only when they earn their place). This command owns *when* an explanation is warranted — a codebase artifact material to the research question — and *which* target to read; the skill owns *how* to explain it well.
+
 ### Phase 4: Synthesis and Recommendations
 
 Transform raw findings into an actionable research document. Synthesis means connecting findings to the original questions and forming a position — not restating what each source said.

@@ -25,7 +25,6 @@ Run Writ commands by reading the command file and following its workflow:
 | `/research` | `.claude/commands/research.md` | Systematic research |
 | `/status` | `.claude/commands/status.md` | Project status report |
 | `/initialize` | `.claude/commands/initialize.md` | Project setup |
-| `/explain-code` | `.claude/commands/explain-code.md` | Code explanation |
 | `/retro` | `.claude/commands/retro.md` | Git-based retrospective |
 | `/refresh-command` | `.claude/commands/refresh-command.md` | Self-improving command refinement |
 | `/assess-spec` | `.claude/commands/assess-spec.md` | Spec assessment |
