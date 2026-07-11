@@ -5,15 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.19.0] - 2026-07-11
 
-### Removed
+Two phases ship together: **Phase 6 (Autonomy Ceiling)** — supervised multi-spec execution replacing the Ralph loop — and **Phase 7 (Compounding Layer)** — making Writ's self-improvement falsifiable and its skills primitive adopted.
 
-- **Ralph, the autonomous CLI loop, is retired.** The `/ralph` command, `ralph.sh` loop, `PROMPT_build.md` prompt template, and CLI-pipeline/state-format docs are archived under `archive/ralph/` (preserved, not deleted) and removed from command discovery, the generated `SKILL.md` catalog, `.writ/manifest.yaml`, `.writ/docs/config-format.md`, all platform adapters, the README, and `/status` suggestions. See [ADR-012](.writ/decision-records/adr-012-ralph-deprecation.md).
+### Added
+
+- **Skill lifecycle.** Every skill carries a lifecycle state — `candidate` → `proven` → `promoted` — with supporting evidence in frontmatter. The boundary lint and `eval.sh` enforce that a skill's claimed maturity matches its recorded evidence, and the generated catalog renders lifecycle at a glance. See [ADR-014](.writ/decision-records/adr-014-skill-lifecycle.md).
+- **Four skills extracted from commands.** `tdd-cycle` (from `/implement-story`'s coding phase), `error-rescue-mapping` (from `/create-spec`), `safe-refactor-loop`, and `code-explanation` are now first-class reusable capabilities instead of logic locked inside a single command — all lint-clean per `scripts/lint-skill.sh`.
+- **`/knowledge --consolidate`.** A new mode that merges duplicate knowledge entries, surfaces contradictions for human resolution, and prunes stale ones — non-destructively, with a reviewable diff. Backed by a consolidation reducer, a registered eval check, and a `/retro` nudge to run it.
 
 ### Changed
 
 - **Supervised multi-spec execution replaces the loop.** Use `/implement-phase` for multi-spec work: it sequences specs by authoritative cross-spec `Dependencies`, runs each spec in a fresh isolated execution lane (branch + worktree), quarantines terminal failures while independent specs continue, reconciles state read-only on resume, and reports categorical production health. Bounded single-spec autonomy remains separately supported via `/implement-spec --recommend <one-spec>`; multi-spec `/implement-phase --recommend` stays excluded per [ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md).
+- **`/implement-phase` gains a decomposition pre-pass.** When a roadmap phase has unspecced features, the command can propose a spec breakdown — dependency graph, single-writer file ownership, and named seams — for one planning confirmation, then seed `/create-spec` per spec. The phase→specs boundary becomes an explicit, contract-first artifact bound to the current codebase instead of tacit judgment made once at the first `/create-spec`.
+- **`/refresh-command` is evidence-bound.** Command refinements now require a cited transcript signal (source transcript, observable signal, affected section). A fixture-driven `refresh-evidence` eval check and a pre-merge acceptance gate keep the refresh log honest; entries dated before `LEARNING_CONTRACT_SINCE = 2026-07-11` are grandfathered.
+
+### Removed
+
+- **Ralph, the autonomous CLI loop, is retired.** The `/ralph` command, `ralph.sh` loop, `PROMPT_build.md` prompt template, and CLI-pipeline/state-format docs are archived under `archive/ralph/` (preserved, not deleted) and removed from command discovery, the generated `SKILL.md` catalog, `.writ/manifest.yaml`, `.writ/docs/config-format.md`, all platform adapters, the README, and `/status` suggestions. See [ADR-012](.writ/decision-records/adr-012-ralph-deprecation.md).
+- **`/explain-code` is retired into the `code-explanation` skill.** The capability is preserved as a reusable skill; the standalone command is removed from discovery and the catalog.
 
 ### Migration
 
