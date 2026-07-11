@@ -38,6 +38,7 @@ CHECKS=(
   ralph-retirement
   skill-lifecycle
   refresh-evidence
+  knowledge-consolidate
 )
 
 TOTAL_FINDINGS=0
@@ -2215,6 +2216,64 @@ check_refresh_evidence() {
   require_literal "$log_format" 'LEARNING_CONTRACT_SINCE' "The refresh-log format must document grandfathering."
   require_literal "$log_format" 'no evidence' "The refresh-log format must document the 'no evidence' rejection reason."
   require_literal "$log_format" 'eval failed' "The refresh-log format must document the 'eval failed' rejection reason."
+}
+
+check_knowledge_consolidate() {
+  local fake="$PROJECT_ROOT/scripts/eval-knowledge-consolidate.py"
+  local reducer="$PROJECT_ROOT/scripts/knowledge-consolidate.py"
+  local knowledge_cmd="$PROJECT_ROOT/commands/knowledge.md"
+  local retro_cmd="$PROJECT_ROOT/commands/retro.md"
+  local readme="$PROJECT_ROOT/.writ/knowledge/README.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  # SHARED-ADDITIVE with 2026-07-10-evidence-bound-refresh: this spec appends
+  # exactly one check function plus one CHECKS entry. Neither reorders nor
+  # rewrites existing registry entries; sequential phase execution keeps the
+  # two appends collision-free.
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "knowledge-consolidate:$scenario_name" "$scenario_reason" "Fix the consolidation reducer in scripts/knowledge-consolidate.py or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The reducer must reuse the substrate similarity metric and preserve lineage.
+  require_literal "$reducer" 'def _tokens(' "The reducer must reuse the phase-state token set for duplicate detection."
+  require_literal "$reducer" 'def detect_duplicates(' "The reducer must detect duplicate merge candidates."
+  require_literal "$reducer" 'def detect_contradictions(' "The reducer must surface contradictions for human review."
+  require_literal "$reducer" 'def detect_stale(' "The reducer must flag stale entries on observable signals."
+  require_literal "$reducer" 'superseded_by' "The reducer must write superseded_by tombstone lineage."
+  require_literal "$reducer" 'replaces' "The reducer must write replaces lineage on the canonical entry."
+  require_literal "$reducer" 'unified_diff' "The reducer must emit a reviewable preview diff via difflib."
+  require_literal "$reducer" 'merge, never append' "The reducer must state the merge-never-append principle."
+
+  # The command must expose the gated, non-destructive consolidate mode.
+  require_literal "$knowledge_cmd" '--consolidate' "Knowledge must route the --consolidate mode."
+  require_literal "$knowledge_cmd" 'merge, never append' "Knowledge --consolidate must state the merge-never-append principle."
+  require_literal "$knowledge_cmd" 'AskQuestion' "Knowledge --consolidate must gate every write on explicit approval."
+  require_literal "$knowledge_cmd" 'does not commit' "Knowledge --consolidate must leave a reviewable diff without committing."
+
+  # The retro hook must be a read-only advisory nudge only.
+  require_literal "$retro_cmd" '/knowledge --consolidate' "Retro must nudge toward consolidation on a growth signal."
+  require_literal "$retro_cmd" 'read-only' "The retro consolidation hook must remain read-only."
+  require_literal "$retro_cmd" 'mutates no knowledge file' "The retro hook must never mutate the ledger."
+
+  # The README must document lineage and the consolidation workflow.
+  require_literal "$readme" 'Consolidation and Lineage' "The knowledge README must document the consolidation workflow."
+  require_literal "$readme" 'superseded_by' "The knowledge README must document the superseded_by lineage field."
+  require_literal "$readme" 'replaces' "The knowledge README must document the replaces lineage field."
+  require_literal "$readme" 'merge, never append' "The knowledge README must state the merge-never-append principle."
 }
 
 run_check() {

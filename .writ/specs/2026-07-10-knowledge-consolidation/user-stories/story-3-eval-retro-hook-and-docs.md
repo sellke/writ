@@ -1,6 +1,6 @@
 # Story 3: Eval, `/retro` Hook, and Docs
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** Medium
 > **Dependencies:** Stories 1, 2
 
@@ -12,20 +12,20 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `scripts/eval-knowledge-consolidate.py` runs, when it emits PASS/FAIL TSV, then it covers dup merge proposed, contradiction surfaced, stale flagged, non-destructive default (no file written in dry-run), lineage preserved, and clean-ledger no-op.
-- [ ] Given `scripts/eval.sh` is invoked, when checks run, then `check_knowledge_consolidate` executes the scenarios plus static assertions and is registered by exactly one line in the `CHECKS` array.
-- [ ] Given `/retro` runs and a ledger growth signal is present, when it reaches the consolidation step, then it prints a read-only nudge to run `/knowledge --consolidate` and mutates no knowledge file.
-- [ ] Given `/retro` runs with no growth signal or no `.writ/knowledge/`, when it reaches the consolidation step, then it skips gracefully with no nudge and no error.
-- [ ] Given the docs are finalized, when a contributor reads `.writ/knowledge/README.md`, then the lineage frontmatter and consolidation workflow are documented consistently with the shipped command behavior.
+- [x] Given `scripts/eval-knowledge-consolidate.py` runs, when it emits PASS/FAIL TSV, then it covers dup merge proposed, contradiction surfaced, stale flagged, non-destructive default (no file written in dry-run), lineage preserved, and clean-ledger no-op.
+- [x] Given `scripts/eval.sh` is invoked, when checks run, then `check_knowledge_consolidate` executes the scenarios plus static assertions and is registered by exactly one line in the `CHECKS` array.
+- [x] Given `/retro` runs and a ledger growth signal is present, when it reaches the consolidation step, then it prints a read-only nudge to run `/knowledge --consolidate` and mutates no knowledge file.
+- [x] Given `/retro` runs with no growth signal or no `.writ/knowledge/`, when it reaches the consolidation step, then it skips gracefully with no nudge and no error.
+- [x] Given the docs are finalized, when a contributor reads `.writ/knowledge/README.md`, then the lineage frontmatter and consolidation workflow are documented consistently with the shipped command behavior.
 
 ## Implementation Tasks
 
-- [ ] 3.1 Write `scripts/eval-knowledge-consolidate.py` modeled on `scripts/eval-phase-knowledge.py`, emitting PASS/FAIL TSV for: dup merge proposed, contradiction surfaced, stale flagged, non-destructive default, lineage preserved, and clean-ledger no-op.
-- [ ] 3.2 Add a `check_knowledge_consolidate` function to `scripts/eval.sh` that runs the scenario harness and `require_literal` static assertions on the reducer, `commands/knowledge.md`, and `.writ/knowledge/README.md`.
-- [ ] 3.3 Register the check by appending exactly one `knowledge-consolidate` line to the `CHECKS` array (shared-additive with the sibling evidence-bound-refresh spec).
-- [ ] 3.4 Add the optional read-only `/retro` consolidation hook in `commands/retro.md`: nudge toward `/knowledge --consolidate` on a growth signal, mutate nothing, skip gracefully when absent.
-- [ ] 3.5 Finalize `.writ/knowledge/README.md` and cross-doc consolidation-workflow guidance so lineage usage and the merge-never-append principle read consistently across surfaces.
-- [ ] 3.6 Run `bash scripts/eval.sh --check=knowledge-consolidate` and the full `bash scripts/eval.sh`, then perform a real-ledger dry-run to confirm a reviewable diff (roadmap real-entry criterion).
+- [x] 3.1 Write `scripts/eval-knowledge-consolidate.py` modeled on `scripts/eval-phase-knowledge.py`, emitting PASS/FAIL TSV for: dup merge proposed, contradiction surfaced, stale flagged, non-destructive default, lineage preserved, and clean-ledger no-op. (Landed in Story 1 as the TDD driver; 11 scenarios.)
+- [x] 3.2 Add a `check_knowledge_consolidate` function to `scripts/eval.sh` that runs the scenario harness and `require_literal` static assertions on the reducer, `commands/knowledge.md`, `commands/retro.md`, and `.writ/knowledge/README.md`.
+- [x] 3.3 Register the check by appending exactly one `knowledge-consolidate` line to the `CHECKS` array (shared-additive with the sibling evidence-bound-refresh spec).
+- [x] 3.4 Add the optional read-only `/retro` consolidation hook in `commands/retro.md`: nudge toward `/knowledge --consolidate` on a growth signal, mutate nothing, skip gracefully when absent.
+- [x] 3.5 Finalize `.writ/knowledge/README.md` and cross-doc consolidation-workflow guidance so lineage usage and the merge-never-append principle read consistently across surfaces.
+- [x] 3.6 Run `bash scripts/eval.sh --check=knowledge-consolidate` and the full `bash scripts/eval.sh`, then perform a real-ledger dry-run to confirm a reviewable diff (roadmap real-entry criterion — real ledger is an honest no-op; see note below).
 
 ## Notes
 
@@ -37,11 +37,17 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing (`scripts/eval.sh` green including the new check)
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing (`scripts/eval.sh` green including the new check — full suite 0 findings, 0 run errors)
+- [x] Code reviewed
+- [x] Documentation updated
+
+## Roadmap Real-Entry Criterion — Honest Status
+
+The consolidation **mechanism** is complete and proven: the reducer, the gated command mode, bidirectional lineage, the eval scenarios (11/11), and the `/retro` nudge all ship and pass. A real-ledger dry-run (`python3 scripts/knowledge-consolidate.py --dry-run`) runs cleanly and produces a reviewable proposal.
+
+Against the current 7 real ledger entries that proposal is an **honest no-op**: no two entries exceed the conservative duplicate threshold, no contradictions exist, and no entry meets a stale signal (every entry's `related_artifacts` still resolve). Per the technical spec's own edge case ("Real ledger has no duplicates yet → report an honest no-op; the roadmap real-entry criterion stays pending until real entries qualify"), no real entries were force-merged. An actual human-approved merge of real entries is a future demonstration/handoff once the ledger accumulates a genuine duplicate — forcing one now would violate the merge-never-append and non-destructive principles this spec exists to protect.
 
 ## Context for Agents
 

@@ -1,17 +1,17 @@
 # Phase 7: Knowledge Consolidation — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** Not Started
-> **Progress:** 0/20 implementation tasks (0%)
+> **Status:** Completed ✅
+> **Progress:** 20/20 implementation tasks (100%)
 > **Dependencies:** [] (independent — Phase 6 knowledge writeback provides the input)
 
 ## Story Summary
 
 | # | Story | Priority | Dependencies | Status | Tasks |
 |---|---|---|---|---|---:|
-| 1 | [Consolidation Reducer](story-1-consolidation-reducer.md) | High | None | Not Started | 0/7 |
-| 2 | [`/knowledge --consolidate` Command Mode](story-2-knowledge-consolidate-command.md) | High | Story 1 | Not Started | 0/7 |
-| 3 | [Eval, `/retro` Hook, and Docs](story-3-eval-retro-hook-and-docs.md) | Medium | Stories 1, 2 | Not Started | 0/6 |
+| 1 | [Consolidation Reducer](story-1-consolidation-reducer.md) | High | None | Completed ✅ | 7/7 |
+| 2 | [`/knowledge --consolidate` Command Mode](story-2-knowledge-consolidate-command.md) | High | Story 1 | Completed ✅ | 7/7 |
+| 3 | [Eval, `/retro` Hook, and Docs](story-3-eval-retro-hook-and-docs.md) | Medium | Stories 1, 2 | Completed ✅ | 6/6 |
 
 ## Dependency Plan
 
