@@ -337,6 +337,16 @@ For an existing project:
 
 Or commit everything — specs, ADRs, and research are all worth version-controlling.
 
+## Native Memory & the Writ Ledger
+
+> **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
+
+On Cursor, native memory is **Cursor Memories** (the preferences and facts Cursor remembers about you across chats) plus **semantic codebase indexing** (the embedding index Cursor builds over your files for retrieval). Let Cursor Memories hold your preferred tone, your name, editor trivia, and ephemeral session context, and let the semantic index accelerate search. Neither is the system of record: when you and the agent *negotiate* a decision or convention, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/`, where it is reviewable in a PR.
+
+**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+
 ## Customization
 
 ### Adding Project Context

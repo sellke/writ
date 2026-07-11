@@ -39,6 +39,8 @@ CHECKS=(
   skill-lifecycle
   refresh-evidence
   knowledge-consolidate
+  memory-interop
+  leanness
 )
 
 TOTAL_FINDINGS=0
@@ -46,6 +48,8 @@ RUN_ERRORS=0
 CURRENT_CHECK=""
 CURRENT_FINDINGS=0
 CHECK_TMP=""
+CURRENT_NOTES=0
+NOTE_TMP=""
 CURRENT_SCENARIOS=0
 CURRENT_SCENARIOS_PASSED=0
 CURRENT_STATIC_ASSERTIONS=0
@@ -128,6 +132,14 @@ add_finding() {
 
 add_detail() {
   printf "%s\n" "$1" >> "$CHECK_TMP"
+}
+
+# Non-blocking note/warning: shown in the report even when the check PASSes, and
+# never increments findings (so warn-only checks stay exit 0). Used by
+# check_leanness for aggregate-weight warnings and the metrics summary.
+add_note() {
+  CURRENT_NOTES=$((CURRENT_NOTES + 1))
+  printf -- '- %s\n' "$1" >> "$NOTE_TMP"
 }
 
 file_has_exemption() {
@@ -2127,6 +2139,47 @@ check_ralph_retirement() {
   require_literal "$changelog" 'Finish or abandon any in-flight' "The changelog must warn users to finish or abandon in-flight Ralph runs before upgrading."
 }
 
+check_memory_interop() {
+  local adapter
+  local canonical='the reviewable markdown layer that feeds'
+  local skill="$PROJECT_ROOT/skills/gbrain-interop/SKILL.md"
+  local manifest="$PROJECT_ROOT/.writ/manifest.yaml"
+  local catalog="$PROJECT_ROOT/SKILL.md"
+  local recipe="$PROJECT_ROOT/.writ/docs/gbrain-recipe.md"
+  local mission="$PROJECT_ROOT/.writ/product/mission.md"
+  local readme="$PROJECT_ROOT/README.md"
+
+  # (1) Every adapter carries the native-memory section and the identical
+  #     two-place rule (asserted by a stable key phrase from the canonical
+  #     sentence), so a drifting edit fails CI instead of silently diverging.
+  for adapter in cursor claude-code codex openclaw; do
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" 'Native Memory & the Writ Ledger' \
+      "adapters/$adapter.md must carry the 'Native Memory & the Writ Ledger' section."
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" "$canonical" \
+      "adapters/$adapter.md must state the canonical two-place rule ('$canonical')."
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" 'gbrain-interop' \
+      "adapters/$adapter.md must cross-link the gbrain-interop skill for the external-index layer."
+  done
+
+  # (2) The sibling gbrain-compatibility-recipe artifacts exist and are
+  #     registered. If any of these fail the run order is wrong — fix the
+  #     order, never weaken the assertion.
+  require_literal "$skill" 'name: gbrain-interop' "The gbrain-interop skill must exist at skills/gbrain-interop/SKILL.md."
+  require_literal "$manifest" 'gbrain-interop' "gbrain-interop must be registered in .writ/manifest.yaml."
+  require_literal "$catalog" 'gbrain-interop' "gbrain-interop must appear in the root SKILL.md catalog."
+
+  # (3) The recipe exists and states the round-trip / graceful-absence guarantee.
+  require_literal "$recipe" 'round-trip' ".writ/docs/gbrain-recipe.md must state the round-trip guarantee."
+  require_literal "$recipe" 'byte-for-byte' ".writ/docs/gbrain-recipe.md must guarantee the ledger stays byte-for-byte intact when the index is removed."
+
+  # (4) No stale mission framing survives on active surfaces (historical ADRs,
+  #     specs, and the roadmap that describe the change are left untouched).
+  for surface in "$mission" "$readme"; do
+    forbid_literal "$surface" "persistent-database knowledge layer" \
+      "Active surface must not carry the stale 'persistent-database knowledge layer' framing; the mission now reads 'not a memory database or retrieval engine'."
+  done
+}
+
 check_skill_lifecycle() {
   local fake="$PROJECT_ROOT/scripts/eval-skill-lifecycle.py"
   local lint="$PROJECT_ROOT/scripts/lint-skill.sh"
@@ -2276,17 +2329,75 @@ check_knowledge_consolidate() {
   require_literal "$readme" 'merge, never append' "The knowledge README must state the merge-never-append principle."
 }
 
+check_leanness() {
+  # Tier A leanness tripwire (dogfooding-only self-governance). Structural
+  # findings (registry parity, missing baseline) FAIL the run via add_finding;
+  # count/weight growth is surfaced via add_note as non-blocking warnings so the
+  # check stays exit 0. Manifest parity (check_manifest), per-file length
+  # (check_length), and skill boundary (skill-lifecycle) are intentionally NOT
+  # duplicated here.
+  local helper="$PROJECT_ROOT/scripts/eval-leanness.py"
+  local baseline="$PROJECT_ROOT/.writ/leanness-baseline.json"
+  local json tsv kind a b c
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-leanness.py" "leanness helper is missing." "Restore scripts/eval-leanness.py (leanness-guardian spec, Story 1)."
+    return
+  fi
+
+  json="$(mktemp)"
+  if ! python3 "$helper" --root "$PROJECT_ROOT" --baseline "$baseline" > "$json"; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-leanness.py" "leanness helper failed to run." "Run python3 scripts/eval-leanness.py for the traceback."
+    rm -f "$json"
+    return
+  fi
+
+  tsv="$(mktemp)"
+  python3 - "$json" > "$tsv" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+def clean(value): return str(value).replace("\t", " ").replace("\n", " ")
+for item in data.get("structural", []):
+    print("STRUCT\t%s\t%s\t%s" % (clean(item.get("subject", "")), clean(item.get("what", "")), clean(item.get("fix", ""))))
+for item in data.get("warnings", []):
+    print("WARN\t%s\t%s\t%s" % (clean(item.get("subject", "")), clean(item.get("what", "")), clean(item.get("fix", ""))))
+m = data.get("metrics", {})
+print("METRIC\tcommands=%s agents=%s skills=%s command_lines=%s command_chars=%s" % (
+    m.get("commands"), m.get("agents"), m.get("skills"), m.get("command_lines"), m.get("command_chars")))
+PY
+
+  while IFS=$'\t' read -r kind a b c; do
+    case "$kind" in
+      STRUCT)
+        add_finding "$a" "$b" "$c"
+        ;;
+      WARN)
+        add_note "WARNING [$a]: $b Remediation: $c"
+        ;;
+      METRIC)
+        add_note "Metrics: $a"
+        ;;
+    esac
+  done < "$tsv"
+
+  rm -f "$json" "$tsv"
+}
+
 run_check() {
   local check="$1"
   local func="check_${check//-/_}"
 
   CURRENT_CHECK="$check"
   CURRENT_FINDINGS=0
+  CURRENT_NOTES=0
   CURRENT_SCENARIOS=0
   CURRENT_SCENARIOS_PASSED=0
   CURRENT_STATIC_ASSERTIONS=0
   CURRENT_STATIC_ASSERTIONS_PASSED=0
   CHECK_TMP="$(mktemp)"
+  NOTE_TMP="$(mktemp)"
 
   if ! "$func"; then
     RUN_ERRORS=$((RUN_ERRORS + 1))
@@ -2311,9 +2422,14 @@ run_check() {
     if [ "$CURRENT_STATIC_ASSERTIONS" -gt 0 ]; then
       echo "Supplementary static assertions: $CURRENT_STATIC_ASSERTIONS_PASSED/$CURRENT_STATIC_ASSERTIONS passed"
     fi
+    if [ "$CURRENT_NOTES" -gt 0 ]; then
+      echo ""
+      echo "Notes (non-blocking):"
+      cat "$NOTE_TMP"
+    fi
   } >> "$REPORT_PATH"
 
-  rm -f "$CHECK_TMP"
+  rm -f "$CHECK_TMP" "$NOTE_TMP"
 }
 
 main() {
