@@ -2,6 +2,20 @@
 name: conventional-commits
 description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
 disable-model-invocation: true
+status: proven
+evidence:
+  - date: 2026-05-06
+    type: usage
+    ref: commands/ship.md
+    note: "Cited as the commit-message authority in /ship's commit-intelligence phase."
+  - date: 2026-05-12
+    type: usage
+    ref: commands/release.md
+    note: "Release changelog grouping consumes this skill's type vocabulary."
+  - date: 2026-06-01
+    type: usage
+    ref: agents/coding-agent.md
+    note: "coding-agent authors story commits through this skill's grammar."
 ---
 
 # Conventional Commits

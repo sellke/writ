@@ -1,6 +1,6 @@
 # Story 1: Skill Lifecycle Schema + ADR
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** None
 
@@ -12,20 +12,20 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a skill's frontmatter, when the lifecycle schema is defined, then it specifies a required `status:` field with the closed vocabulary `candidate | proven | promoted` and an `evidence:` block whose entries each carry `date`, `type` (`usage|transcript|eval|promotion`), `ref`, and `note`.
-- [ ] Given the earned-state rules, when they are documented, then `candidate` requires no evidence, `proven` requires ≥3 well-formed entries, and `promoted` requires the `proven` bar plus ≥1 `type: promotion` entry, with the ladder described as monotone (no skipping).
-- [ ] Given the lifecycle decision, when `adr-014-skill-lifecycle.md` is written, then it records the earned-state model, the three-success threshold and its GStack provenance, the manifest-mirror decision, and cites ADR-009 as the extended boundary.
-- [ ] Given `.writ/manifest.yaml`, when its skills schema comment is updated, then it documents the `status:` field and the earned-state rule as an additive, backward-compatible extension.
-- [ ] Given `skills/conventional-commits/SKILL.md` is in real use by `/ship`, `/release`, and `coding-agent`, when its frontmatter is updated, then it declares `status: proven` with three `type: usage` evidence entries citing those consumers, and the manifest entry mirrors `status: proven`.
+- [x] Given a skill's frontmatter, when the lifecycle schema is defined, then it specifies a required `status:` field with the closed vocabulary `candidate | proven | promoted` and an `evidence:` block whose entries each carry `date`, `type` (`usage|transcript|eval|promotion`), `ref`, and `note`.
+- [x] Given the earned-state rules, when they are documented, then `candidate` requires no evidence, `proven` requires ≥3 well-formed entries, and `promoted` requires the `proven` bar plus ≥1 `type: promotion` entry, with the ladder described as monotone (no skipping).
+- [x] Given the lifecycle decision, when `adr-014-skill-lifecycle.md` is written, then it records the earned-state model, the three-success threshold and its GStack provenance, the manifest-mirror decision, and cites ADR-009 as the extended boundary.
+- [x] Given `.writ/manifest.yaml`, when its skills schema comment is updated, then it documents the `status:` field and the earned-state rule as an additive, backward-compatible extension.
+- [x] Given `skills/conventional-commits/SKILL.md` is in real use by `/ship`, `/release`, and `coding-agent`, when its frontmatter is updated, then it declares `status: proven` with three `type: usage` evidence entries citing those consumers, and the manifest entry mirrors `status: proven`.
 
 ## Implementation Tasks
 
-- [ ] 1.1 Draft the schema definition in `sub-specs/technical-spec.md` terms (already specified in D1–D3) and encode a canonical example evidence block to serve as the authoring reference.
-- [ ] 1.2 Write `.writ/decision-records/adr-014-skill-lifecycle.md` (Status `Accepted`, Date `2026-07-10`) covering earned-state semantics, static transition legality, the three-success threshold (GStack provenance), the evidence schema, and the manifest-mirror decision; cite ADR-009 as extended, not superseded.
-- [ ] 1.3 Update the `.writ/manifest.yaml` skills schema comment (lines ~215–223) to document the additive `status:` field and the earned-state rule, keeping it backward compatible with `skills: []`.
-- [ ] 1.4 Set `skills/conventional-commits/SKILL.md` frontmatter to `status: proven` with three well-formed `type: usage` evidence entries citing `commands/ship.md`, `commands/release.md`, and `agents/coding-agent.md`.
-- [ ] 1.5 Mirror `status: proven` onto the `conventional-commits` entry in `.writ/manifest.yaml`.
-- [ ] 1.6 Verify each acceptance criterion against the ADR, the manifest comment, and both `conventional-commits` surfaces; confirm the evidence block is well-formed against the D2 schema by inspection (Story 2 adds the automated lint).
+- [x] 1.1 Draft the schema definition in `sub-specs/technical-spec.md` terms (already specified in D1–D3) and encode a canonical example evidence block to serve as the authoring reference.
+- [x] 1.2 Write `.writ/decision-records/adr-014-skill-lifecycle.md` (Status `Accepted`, Date `2026-07-10`) covering earned-state semantics, static transition legality, the three-success threshold (GStack provenance), the evidence schema, and the manifest-mirror decision; cite ADR-009 as extended, not superseded.
+- [x] 1.3 Update the `.writ/manifest.yaml` skills schema comment (lines ~215–223) to document the additive `status:` field and the earned-state rule, keeping it backward compatible with `skills: []`.
+- [x] 1.4 Set `skills/conventional-commits/SKILL.md` frontmatter to `status: proven` with three well-formed `type: usage` evidence entries citing `commands/ship.md`, `commands/release.md`, and `agents/coding-agent.md`.
+- [x] 1.5 Mirror `status: proven` onto the `conventional-commits` entry in `.writ/manifest.yaml`.
+- [x] 1.6 Verify each acceptance criterion against the ADR, the manifest comment, and both `conventional-commits` surfaces; confirm the evidence block is well-formed against the D2 schema by inspection (Story 2 adds the automated lint).
 
 ## Notes
 
@@ -36,11 +36,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] ADR-014 recorded and internally consistent with the spec
-- [ ] `conventional-commits` frontmatter and manifest mirror both read `proven`
-- [ ] Manifest schema comment documents the additive `status:` field
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] ADR-014 recorded and internally consistent with the spec
+- [x] `conventional-commits` frontmatter and manifest mirror both read `proven`
+- [x] Manifest schema comment documents the additive `status:` field
 
 ## Context for Agents
 

@@ -217,12 +217,26 @@ agents:
 #   - name: <kebab-case-name>          # required, unique across commands/agents/skills
 #     file: skills/<name>/SKILL.md     # required, must exist on disk
 #     description: "<verb-phrase>"     # required, non-empty (see ADR-009 boundary convention)
+#     status: <candidate|proven|promoted>  # optional render mirror; defaults to `candidate`
 #     tags: [<tag1>, <tag2>]           # optional
 #     aliases: [<alias1>]              # optional
 # Empty list (`skills: []`) is valid and produces no Skills section in the root SKILL.md.
+#
+# Lifecycle `status:` (ADR-014 — additive, backward compatible):
+#   The SKILL.md frontmatter `status:` is authoritative; this manifest value is a
+#   render mirror for the catalog's Status column (exactly like `description:` is
+#   mirrored). A missing manifest `status:` renders as `candidate`.
+#   State is EARNED from evidence, not asserted:
+#     candidate  — 0+ evidence entries (born state from /new-skill)
+#     proven     — >=3 well-formed evidence entries
+#     promoted   — proven bar PLUS >=1 evidence entry of type: promotion
+#   The ladder is monotone (each bar is a strict superset of the one below).
+#   The lint (scripts/lint-skill.sh) proves the frontmatter state from evidence.
 # See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
+#      ADR-014 (.writ/decision-records/adr-014-skill-lifecycle.md)
 skills:
   - name: conventional-commits
     file: skills/conventional-commits/SKILL.md
     description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
+    status: proven
     tags: [git, commits, changelog]

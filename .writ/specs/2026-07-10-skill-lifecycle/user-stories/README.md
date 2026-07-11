@@ -2,14 +2,14 @@
 
 > **Spec:** [`../spec.md`](../spec.md)
 > **Status:** Not Started
-> **Progress:** 0/20 implementation tasks (0%)
+> **Progress:** 6/20 implementation tasks (30%)
 > **Cross-Spec Dependencies:** None (this spec is the foundation for `2026-07-10-skill-extraction`)
 
 ## Story Summary
 
 | # | Story | Priority | Dependencies | Status | Tasks |
 |---|---|---|---|---|---:|
-| 1 | [Skill Lifecycle Schema + ADR](story-1-skill-lifecycle-schema-and-adr.md) | High | None | Not Started | 0/6 |
+| 1 | [Skill Lifecycle Schema + ADR](story-1-skill-lifecycle-schema-and-adr.md) | High | None | Completed ✅ | 6/6 |
 | 2 | [Lifecycle Hygiene Lint](story-2-lifecycle-hygiene-lint.md) | High | Story 1 | Not Started | 0/7 |
 | 3 | [Authoring + Catalog Wiring](story-3-authoring-and-catalog-wiring.md) | Medium | Stories 1, 2 | Not Started | 0/7 |
 
