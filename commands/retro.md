@@ -126,6 +126,38 @@ Knowledge ledger has pending consolidation candidates — consider running `/kno
 
 When no growth signal is present (small ledger, clean dry-run) or a signal check errors, skip silently — never block or slow the retro. This hook is opt-in guidance only.
 
+### Step 5.6: Product-Drift Nudge (read-only, opt-in)
+
+Modeled **exactly** on Step 5.5: `/retro` is a reporting command, so this step is
+**read-only** — it may print a one-line suggestion but **mutates no product file**
+and never runs verification or reconciliation automatically. Auto-editing product
+docs here would violate the non-destructive-by-default contract.
+
+**Skip gracefully** when `.writ/product/` is absent — print nothing and move on. No
+error. (Non-Writ and product-less projects still get a clean retro.)
+
+When `.writ/product/` is present, check for a **cheap, observable drift signal**
+(file dates + phase labels only — do not parse deeply or run anything mutating):
+
+- A `roadmap.md` phase marked complete/shipped (`✅`, "Complete", "Shipped",
+  "IMPLEMENTED") whose surrounding status date is **after** `mission.md`'s
+  `Last Updated`, **or**
+- A `mission.md` Key-Features phase label ("(next)" / planned / upcoming) that
+  **contradicts** that phase's status in `roadmap.md` (roadmap says shipped, mission
+  still frames it as upcoming).
+
+When a signal is present, print a one-line advisory pointing to the two remedies:
+
+```
+Product docs may be drifting — roadmap shows Phase N complete but mission still
+frames it as upcoming. Consider `/verify-spec --product` to see the drift, or
+`/plan-product --reconcile` to revise.
+```
+
+When no signal is present (mission and roadmap agree, dates consistent) or the
+signal check errors, skip silently — never block or slow the retro. Both remedy
+commands are on the `/status` allowlist. This hook is opt-in guidance only.
+
 ### Step 6: Scope to Spec (`--spec` flag)
 
 When `--spec [path]` is provided, override the default period with the spec's lifetime: extract the created date from `spec.md`, use completion date as end boundary (or today if in-progress). All git metrics, sessions, and streaks use this scoped period.

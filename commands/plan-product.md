@@ -6,7 +6,95 @@ Generate comprehensive product planning documentation using a contract-first app
 
 ## Invocation
 
-- `/plan-product` — shape product mission, strategy, and roadmap artifacts through discovery
+| Invocation | Posture | Behavior |
+|---|---|---|
+| `/plan-product` | Greenfield | Shape product mission, strategy, and roadmap artifacts through discovery (Phase 1 → Phase 2 below) |
+| `/plan-product --reconcile` | Revision | Scan existing product docs → diff against reality → propose **targeted** revisions in Plan Mode. **Not** a from-scratch regeneration (see [Reconcile Mode](#reconcile-mode---reconcile)) |
+
+> **`--reconcile` is a revision posture, not a second greenfield run.** Greenfield
+> discovers a product that doesn't exist yet; `--reconcile` keeps an *existing*
+> mission/roadmap honest against what actually shipped. It never regenerates the
+> whole product package — it proposes surgical edits to the files that drifted.
+
+## Reconcile Mode (`--reconcile`)
+
+An alternate entry point that **replaces greenfield Phase 1 discovery** with a
+scan → diff → propose flow, then reuses Phase 2's writing mechanics **only for the
+files that change**. The greenfield flow below is untouched; `--reconcile` is a
+different door into the same house.
+
+**Boundary (critical):** `--reconcile` **revises** the product plan — it runs
+*after* you've decided something needs to change. Its consistency counterpart is
+[`/verify-spec --product`](verify-spec.md#product-consistency-checks---product),
+which only **checks** whether the product layer is internally consistent and true
+to reality (the *before*). **Run `--product` first to see *what* drifted; then run
+`--reconcile` to decide *what to do* about it.** This mirrors the `/assess-spec`
+(before) ↔ `/verify-spec` (after) discipline — keep the two crisp, never blurred:
+`--product` proposes no direction changes; `--reconcile` makes no consistency
+claims it hasn't first re-derived.
+
+### Step R1: Scan Existing (no file creation)
+
+- Read `.writ/product/mission.md`, `roadmap.md`, `mission-lite.md`.
+- Read foundational ADRs under `.writ/decision-records/` (especially the 000-series
+  product ADRs — posture, market focus — plus any that record direction changes).
+- Build a picture of what the docs *currently claim*: current phase, live
+  differentiators, shipped vs. planned features, stated non-goals.
+- **Graceful fallback:** if `.writ/product/` is absent, there is nothing to
+  reconcile — tell the user and offer greenfield `/plan-product` instead.
+
+### Step R2: Diff vs. Reality (no file creation)
+
+Compare the docs against what actually happened:
+
+- **Shipped specs** — enumerate `.writ/specs/*/` with status **Complete**; map them
+  to roadmap phases/features. A roadmap item still marked "next"/planned whose spec
+  shipped is stale; a Complete spec with no roadmap home is unrecorded direction.
+- **Roadmap phase statuses** — compare each phase's declared status to the shipped
+  evidence and to `mission.md`'s Key Features labels (the same divergence
+  `/verify-spec --product` Check P1 surfaces).
+- **Recent git direction** — scan recent history (`git log --oneline -n 50`, tags,
+  merged phase branches) for direction the docs haven't caught up with.
+
+Produce a concise **drift ledger**: stale phase labels, "next" items that already
+shipped, roadmap items with no evidence, and any genuine *direction* change (a
+non-goal that became a goal, a differentiator that shifted).
+
+> If `/verify-spec --product` was run recently, fold its findings in rather than
+> re-deriving them — but `--reconcile` may go deeper (git, spec mapping) than the
+> cheap consistency lint.
+
+### Step R3: Propose Targeted Revisions (Plan Mode)
+
+Switch to **Plan Mode** and present the drift ledger with proposed edits:
+
+- **Targeted edits** to `mission.md` / `roadmap.md` — update phase labels, move
+  shipped items, correct differentiators. Show the specific lines, not a rewrite.
+- **Derivatives** (`mission-lite.md`, `.writ/context.md`) regenerate *after*
+  authoritative edits land — do not hand-edit them.
+- **New ADRs only for genuine direction changes** — a changed non-goal, a new
+  market focus, a reversed bet. Routine "we shipped what we planned" status updates
+  need **no** ADR. Follow the standard ADR format (Phase 2.4) and continue the
+  existing number sequence.
+- **Do not** regenerate the whole product package. Files that didn't drift are not
+  touched.
+
+Discuss and refine conversationally, exactly as greenfield does with its contract.
+
+### Step R4: Lock & Apply (Agent Mode)
+
+When the user returns to Agent Mode, confirm with the **same AskQuestion gate as
+greenfield** (Step 1.4b): lock and apply the revisions, edit the proposal, or keep
+discussing in Plan Mode.
+
+- **Lock →** Apply the targeted edits using Phase 2 writing mechanics **for the
+  changed files only**; then regenerate affected derivatives (`mission-lite.md`,
+  `.writ/context.md`). Record any new ADRs.
+- **Edit / More questions →** as in Step 1.4b.
+
+After applying, suggest `/verify-spec --product` to confirm the layer is now
+consistent, and note the revision in `roadmap.md` if it represents a direction
+change worth a roadmap entry.
 
 ## Command Process
 
