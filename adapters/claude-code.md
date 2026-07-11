@@ -143,6 +143,18 @@ Each agent uses the most cost-effective model for its role:
 
 ---
 
+## Native Memory & the Writ Ledger
+
+> **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
+
+On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session) plus **`.claude/agent-memory/`** (the per-agent `MEMORY.md` files where the architect, coder, and reviewer accumulate what they have learned). Let `CLAUDE.md` carry stable project preferences and let agent memory hold cross-session working notes. But when a decision, convention, or lesson is *negotiated* and needs to outlive one machine's memory store, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/` — the layer a teammate reviews in a PR.
+
+**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+
+---
+
 ## Tool Mapping (Cursor → Claude Code)
 
 ### Quick Reference

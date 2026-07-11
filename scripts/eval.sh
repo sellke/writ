@@ -39,6 +39,7 @@ CHECKS=(
   skill-lifecycle
   refresh-evidence
   knowledge-consolidate
+  memory-interop
 )
 
 TOTAL_FINDINGS=0
@@ -2125,6 +2126,47 @@ check_ralph_retirement() {
   require_literal "$changelog" 'archive/ralph/' "The changelog must record where Ralph was archived."
   require_literal "$changelog" '/implement-phase' "The changelog must direct multi-spec work to /implement-phase."
   require_literal "$changelog" 'Finish or abandon any in-flight' "The changelog must warn users to finish or abandon in-flight Ralph runs before upgrading."
+}
+
+check_memory_interop() {
+  local adapter
+  local canonical='the reviewable markdown layer that feeds'
+  local skill="$PROJECT_ROOT/skills/gbrain-interop/SKILL.md"
+  local manifest="$PROJECT_ROOT/.writ/manifest.yaml"
+  local catalog="$PROJECT_ROOT/SKILL.md"
+  local recipe="$PROJECT_ROOT/.writ/docs/gbrain-recipe.md"
+  local mission="$PROJECT_ROOT/.writ/product/mission.md"
+  local readme="$PROJECT_ROOT/README.md"
+
+  # (1) Every adapter carries the native-memory section and the identical
+  #     two-place rule (asserted by a stable key phrase from the canonical
+  #     sentence), so a drifting edit fails CI instead of silently diverging.
+  for adapter in cursor claude-code codex openclaw; do
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" 'Native Memory & the Writ Ledger' \
+      "adapters/$adapter.md must carry the 'Native Memory & the Writ Ledger' section."
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" "$canonical" \
+      "adapters/$adapter.md must state the canonical two-place rule ('$canonical')."
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" 'gbrain-interop' \
+      "adapters/$adapter.md must cross-link the gbrain-interop skill for the external-index layer."
+  done
+
+  # (2) The sibling gbrain-compatibility-recipe artifacts exist and are
+  #     registered. If any of these fail the run order is wrong — fix the
+  #     order, never weaken the assertion.
+  require_literal "$skill" 'name: gbrain-interop' "The gbrain-interop skill must exist at skills/gbrain-interop/SKILL.md."
+  require_literal "$manifest" 'gbrain-interop' "gbrain-interop must be registered in .writ/manifest.yaml."
+  require_literal "$catalog" 'gbrain-interop' "gbrain-interop must appear in the root SKILL.md catalog."
+
+  # (3) The recipe exists and states the round-trip / graceful-absence guarantee.
+  require_literal "$recipe" 'round-trip' ".writ/docs/gbrain-recipe.md must state the round-trip guarantee."
+  require_literal "$recipe" 'byte-for-byte' ".writ/docs/gbrain-recipe.md must guarantee the ledger stays byte-for-byte intact when the index is removed."
+
+  # (4) No stale mission framing survives on active surfaces (historical ADRs,
+  #     specs, and the roadmap that describe the change are left untouched).
+  for surface in "$mission" "$readme"; do
+    forbid_literal "$surface" "persistent-database knowledge layer" \
+      "Active surface must not carry the stale 'persistent-database knowledge layer' framing; the mission now reads 'not a memory database or retrieval engine'."
+  done
 }
 
 check_skill_lifecycle() {

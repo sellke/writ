@@ -1,6 +1,6 @@
 # Story 2: `memory-interop` Eval Check + Registration
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 1 + sibling `gbrain-compatibility-recipe` spec
 
@@ -12,17 +12,17 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `scripts/eval.sh`, when `check_memory_interop` runs, then it asserts each adapter file contains the native-memory section and the two-place distinction (key phrases), modeled on `check_ralph_retirement` (`require_literal`), with no Python fixture.
-- [ ] Given the same check, when it runs, then it asserts `skills/gbrain-interop/SKILL.md` exists, `gbrain-interop` is registered in `.writ/manifest.yaml` and root `SKILL.md`, and `.writ/docs/gbrain-recipe.md` exists with the round-trip guarantee and graceful-absence language.
-- [ ] Given the same check, when it runs, then it `forbid_literal`s stale "persistent-database knowledge layer" framing on active surfaces (mission, README).
-- [ ] Given `scripts/eval.sh`, when the check is registered, then exactly one `memory-interop` line is appended to the `CHECKS` array, no existing check is altered, and both `bash scripts/eval.sh --check=memory-interop` and the full `bash scripts/eval.sh` are green.
+- [x] Given `scripts/eval.sh`, when `check_memory_interop` runs, then it asserts each adapter file contains the native-memory section and the two-place distinction (key phrases), modeled on `check_ralph_retirement` (`require_literal`), with no Python fixture.
+- [x] Given the same check, when it runs, then it asserts `skills/gbrain-interop/SKILL.md` exists, `gbrain-interop` is registered in `.writ/manifest.yaml` and root `SKILL.md`, and `.writ/docs/gbrain-recipe.md` exists with the round-trip guarantee and graceful-absence language.
+- [x] Given the same check, when it runs, then it `forbid_literal`s stale "persistent-database knowledge layer" framing on active surfaces (mission, README).
+- [x] Given `scripts/eval.sh`, when the check is registered, then exactly one `memory-interop` line is appended to the `CHECKS` array, no existing check is altered, and both `bash scripts/eval.sh --check=memory-interop` and the full `bash scripts/eval.sh` are green.
 
 ## Implementation Tasks
 
-- [ ] 2.1 Add `check_memory_interop` to `scripts/eval.sh`, modeled on `check_ralph_retirement`: `require_literal` per adapter (native-memory section + two-place key phrases), `require_literal` on the sibling skill/recipe/registration, `forbid_literal` stale mission framing on active surfaces.
-- [ ] 2.2 Append exactly one `memory-interop` entry to the `CHECKS` array (additive; do not reorder or edit existing entries).
-- [ ] 2.3 Run `bash scripts/eval.sh --check=memory-interop` and fix findings until green.
-- [ ] 2.4 Run the full `bash scripts/eval.sh`; confirm 0 findings and 0 run errors on the phase branch.
+- [x] 2.1 Add `check_memory_interop` to `scripts/eval.sh`, modeled on `check_ralph_retirement`: `require_literal` per adapter (native-memory section + two-place key phrases), `require_literal` on the sibling skill/recipe/registration, `forbid_literal` stale mission framing on active surfaces.
+- [x] 2.2 Append exactly one `memory-interop` entry to the `CHECKS` array (additive; do not reorder or edit existing entries).
+- [x] 2.3 Run `bash scripts/eval.sh --check=memory-interop` and fix findings until green.
+- [x] 2.4 Run the full `bash scripts/eval.sh`; confirm 0 findings and 0 run errors on the phase branch.
 
 ## Notes
 
@@ -32,10 +32,10 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] `scripts/eval.sh --check=memory-interop` green; full suite green (0 findings, 0 run errors)
-- [ ] Code reviewed
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] `scripts/eval.sh --check=memory-interop` green; full suite green (0 findings, 0 run errors)
+- [x] Code reviewed
 
 ## Context for Agents
 

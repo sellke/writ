@@ -118,6 +118,18 @@ Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false
 
 ---
 
+## Native Memory & the Writ Ledger
+
+> **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
+
+On Codex, native memory is **`AGENTS.md`** — the primary instruction surface Codex merges from repo root toward the working directory. Writ owns only the HTML-comment-delimited block the installer injects; the surrounding region and **`AGENTS.override.md`** stay user-controlled for local, unshared preferences. Let `AGENTS.md` and `AGENTS.override.md` hold session-level and machine-local trivia; when a decision or convention is *negotiated*, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/` so it is reviewable in git rather than buried in an instruction file.
+
+**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+
+---
+
 ## Tool Mapping (Cursor → Codex CLI)
 
 ### Quick reference — orchestration primitives

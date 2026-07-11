@@ -1,6 +1,6 @@
 # Phase 8: Native-Memory Guidance Per Adapter
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Created:** 2026-07-11
 > **Owner:** @AdamSellke
 > **Phase:** 8 — Memory Interop
@@ -162,8 +162,8 @@ Script/static (no app test suite):
 
 ## Deliverables
 
-- [ ] "Native Memory & the Writ Ledger" section in all four adapters, one consistent two-place rule, per-platform mechanics accurate
-- [ ] Each adapter section cross-links the `gbrain-interop` skill / recipe for the external-index layer
-- [ ] Active surfaces verified free of stale "persistent-database knowledge layer" framing
-- [ ] `check_memory_interop` added to `scripts/eval.sh` + one `CHECKS` entry (additive)
-- [ ] `bash scripts/eval.sh --check=memory-interop` passes; full `bash scripts/eval.sh` green
+- [x] "Native Memory & the Writ Ledger" section in all four adapters, one consistent two-place rule, per-platform mechanics accurate
+- [x] Each adapter section cross-links the `gbrain-interop` skill / recipe for the external-index layer
+- [x] Active surfaces verified free of stale "persistent-database knowledge layer" framing
+- [x] `check_memory_interop` added to `scripts/eval.sh` + one `CHECKS` entry (additive)
+- [x] `bash scripts/eval.sh --check=memory-interop` passes; full `bash scripts/eval.sh` green
