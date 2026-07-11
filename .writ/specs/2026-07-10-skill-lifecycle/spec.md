@@ -1,6 +1,6 @@
 # Skill Lifecycle
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-07-10
 > **Owner:** @AdamSellke
 > **Phase:** 7 — Compounding Layer
@@ -262,15 +262,15 @@ This repository has no application test suite. Verification is contract-and-scri
 
 ## Deliverables
 
-- [ ] `status:` field contract defined with a closed three-state vocabulary
-- [ ] `evidence:` block schema finalized (date/type/ref/note) for downstream consumption
-- [ ] Earned-state thresholds documented (candidate/proven/promoted; three-success rule)
-- [ ] `adr-014-skill-lifecycle.md` recorded, extending ADR-009
-- [ ] `.writ/manifest.yaml` skills-schema comment updated; `conventional-commits` mirror set to `proven`
-- [ ] `scripts/lint-skill.sh` enforces status presence, vocabulary, thresholds, promotion record, and evidence shape
-- [ ] `scripts/eval.sh` `skill-lifecycle` check registered with failing-first fixtures
-- [ ] `/new-skill` scaffolds `status: candidate` in temp lint file, written file, and manifest entry
-- [ ] `scripts/gen-skill.sh` renders a `Status` column; catalog regenerated and `--check` clean
-- [ ] `.writ/docs/skills.md` lifecycle section added (stale extraction line left untouched)
-- [ ] `skills/conventional-commits/SKILL.md` set to `status: proven` with three usage evidence entries
-- [ ] Schema and lint contract stable enough for `2026-07-10-skill-extraction` to consume unchanged
+- [x] `status:` field contract defined with a closed three-state vocabulary
+- [x] `evidence:` block schema finalized (date/type/ref/note) for downstream consumption
+- [x] Earned-state thresholds documented (candidate/proven/promoted; three-success rule)
+- [x] `adr-014-skill-lifecycle.md` recorded, extending ADR-009
+- [x] `.writ/manifest.yaml` skills-schema comment updated; `conventional-commits` mirror set to `proven`
+- [x] `scripts/lint-skill.sh` enforces status presence, vocabulary, thresholds, promotion record, and evidence shape
+- [x] `scripts/eval.sh` `skill-lifecycle` check registered with failing-first fixtures
+- [x] `/new-skill` scaffolds `status: candidate` in temp lint file, written file, and manifest entry
+- [x] `scripts/gen-skill.sh` renders a `Status` column; catalog regenerated and `--check` clean
+- [x] `.writ/docs/skills.md` lifecycle section added (stale extraction line left untouched)
+- [x] `skills/conventional-commits/SKILL.md` set to `status: proven` with three usage evidence entries
+- [x] Schema and lint contract stable enough for `2026-07-10-skill-extraction` to consume unchanged

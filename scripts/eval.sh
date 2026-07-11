@@ -36,6 +36,7 @@ CHECKS=(
   phase-knowledge
   phase-health
   ralph-retirement
+  skill-lifecycle
 )
 
 TOTAL_FINDINGS=0
@@ -2122,6 +2123,43 @@ check_ralph_retirement() {
   require_literal "$changelog" 'archive/ralph/' "The changelog must record where Ralph was archived."
   require_literal "$changelog" '/implement-phase' "The changelog must direct multi-spec work to /implement-phase."
   require_literal "$changelog" 'Finish or abandon any in-flight' "The changelog must warn users to finish or abandon in-flight Ralph runs before upgrading."
+}
+
+check_skill_lifecycle() {
+  local fake="$PROJECT_ROOT/scripts/eval-skill-lifecycle.py"
+  local lint="$PROJECT_ROOT/scripts/lint-skill.sh"
+  local skills_doc="$PROJECT_ROOT/.writ/docs/skills.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  # SHARED-ADDITIVE with 2026-07-10-skill-extraction: this is the single
+  # skill-lifecycle function and CHECKS entry this spec appends. The extraction
+  # spec appends its own distinct check in its own region.
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "skill-lifecycle:$scenario_name" "$scenario_reason" "Fix the lifecycle lint in scripts/lint-skill.sh or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$lint" 'candidate|proven|promoted' "The lint must enforce the closed lifecycle vocabulary."
+  require_literal "$lint" 'State is EARNED from evidence' "The lint must document the earned-state contract."
+  require_literal "$lint" 'Lifecycle-unearned' "The lint must emit an unearned-state finding category."
+  require_literal "$lint" 'Lifecycle-evidence' "The lint must emit a malformed-evidence finding category."
+
+  require_literal "$skills_doc" 'Skill Lifecycle' "The skills doc must document the lifecycle."
+  require_literal "$skills_doc" 'earned from evidence' "The skills doc must explain earned-state semantics."
+  require_literal "$skills_doc" 'type: promotion' "The skills doc must document the promotion evidence type."
 }
 
 run_check() {

@@ -51,6 +51,15 @@ BODY_PATTERNS=(
 
 TOTAL_VIOLATIONS=0
 
+# ---------- Lifecycle vocabulary (ADR-014) ----------
+# status: is a closed three-state vocabulary. Evidence entry `type:` is a
+# closed four-value vocabulary. State is EARNED from evidence, proven statically
+# from the frontmatter alone (no git history, no network):
+#   candidate  — 0+ evidence entries (born state from /new-skill)
+#   proven     — >=3 well-formed evidence entries
+#   promoted   — proven bar PLUS >=1 evidence entry of type: promotion
+LIFECYCLE_VIOLATIONS=0
+
 # Parse the description: line from YAML frontmatter (strip quotes).
 extract_description() {
   awk '
@@ -62,6 +71,178 @@ extract_description() {
       exit
     }
   ' "$1"
+}
+
+# Print the frontmatter body (lines between the first two `---` fences).
+extract_frontmatter() {
+  awk '
+    BEGIN { fm = 0 }
+    /^---[[:space:]]*$/ { fm++; if (fm >= 2) exit; next }
+    fm == 1 { print }
+  ' "$1"
+}
+
+_lc_trim() {
+  local v="$1"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  printf '%s' "$v"
+}
+
+_lc_is_type() {
+  case "$1" in
+    usage|transcript|eval|promotion) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Emit a lifecycle finding in the shared finding format and count it.
+_lc_finding() {
+  local file="$1" category="$2" detail="$3" remediation="$4"
+  echo "❌ $file: $category — $detail"
+  echo "   Remediation: $remediation"
+  LIFECYCLE_VIOLATIONS=$((LIFECYCLE_VIOLATIONS + 1))
+}
+
+# Validate the current in-progress evidence entry (globals _LC_*), emitting an
+# L5 finding naming the first missing/invalid field. Key-based, so reordered
+# keys are fine. Counts promotion-typed entries.
+_lc_flush_entry() {
+  [ "${_LC_ACTIVE:-0}" = 1 ] || return 0
+  local bad=""
+  if ! [[ "$_LC_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    bad="date"
+  elif ! _lc_is_type "$_LC_TYPE"; then
+    bad="type"
+  elif [ -z "$_LC_REF" ]; then
+    bad="ref"
+  elif [ -z "$_LC_NOTE" ]; then
+    bad="note"
+  fi
+  if [ -n "$bad" ]; then
+    _lc_finding "$_LC_FILE" "Lifecycle-evidence" \
+      "evidence entry $_LC_ENTRY_COUNT has a missing or invalid '$bad' field" \
+      "Each evidence entry needs date (YYYY-MM-DD), type (usage|transcript|eval|promotion), ref, and note."
+  fi
+  [ "$_LC_TYPE" = "promotion" ] && _LC_PROMOTIONS=$((_LC_PROMOTIONS + 1))
+  _LC_ACTIVE=0
+}
+
+# Parse a `key: value` fragment into the current evidence entry.
+_lc_parse_kv() {
+  local kv="$1" k v
+  [[ "$kv" == *:* ]] || return 0
+  k="$(_lc_trim "${kv%%:*}")"
+  v="$(_lc_trim "${kv#*:}")"
+  # strip a single layer of surrounding quotes
+  if [[ "$v" == \"*\" && "$v" == *\" ]]; then v="${v#\"}"; v="${v%\"}"; fi
+  if [[ "$v" == \'*\' && "$v" == *\' ]]; then v="${v#\'}"; v="${v%\'}"; fi
+  case "$k" in
+    date) _LC_DATE="$v" ;;
+    type) _LC_TYPE="$v" ;;
+    ref)  _LC_REF="$v" ;;
+    note) _LC_NOTE="$v" ;;
+  esac
+}
+
+_lc_reset_entry() {
+  _LC_ACTIVE=0
+  _LC_DATE=""
+  _LC_TYPE=""
+  _LC_REF=""
+  _LC_NOTE=""
+}
+
+# Lifecycle hygiene checks (ADR-014). Sets LIFECYCLE_VIOLATIONS.
+lint_lifecycle() {
+  local file="$1"
+  LIFECYCLE_VIOLATIONS=0
+  _LC_FILE="$file"
+
+  local fm status status_present line rest_trimmed trimmed item
+  local in_evidence=0
+  _LC_ENTRY_COUNT=0
+  _LC_PROMOTIONS=0
+  _lc_reset_entry
+
+  fm="$(extract_frontmatter "$file")"
+
+  # L1 — status present?
+  if ! printf '%s\n' "$fm" | grep -q '^status:'; then
+    _lc_finding "$file" "Lifecycle-missing" \
+      "missing lifecycle status" \
+      "Add 'status: candidate' (or proven|promoted with evidence) to the frontmatter. See ADR-014."
+    return 0
+  fi
+
+  status="$(printf '%s\n' "$fm" | awk '/^status:/{sub(/^status:[[:space:]]*/,""); print; exit}')"
+  status="$(_lc_trim "$status")"
+  if [[ "$status" == \"*\" && "$status" == *\" ]]; then status="${status#\"}"; status="${status%\"}"; fi
+
+  # L2 — value in the closed vocabulary?
+  case "$status" in
+    candidate|proven|promoted) ;;
+    *)
+      _lc_finding "$file" "Lifecycle-invalid" \
+        "invalid status '$status'; expected candidate|proven|promoted" \
+        "Set status to one of the three earned states. See ADR-014."
+      return 0
+      ;;
+  esac
+
+  # candidate needs no evidence — nothing further to prove.
+  [ "$status" = "candidate" ] && return 0
+
+  # Parse the evidence block (proven/promoted only). Count list items as
+  # entries regardless of well-formedness; validate each entry (L5).
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^evidence: ]]; then
+      rest_trimmed="$(_lc_trim "${line#evidence:}")"
+      if [ "$rest_trimmed" = "[]" ]; then
+        in_evidence=0
+      else
+        in_evidence=1
+      fi
+      continue
+    fi
+
+    if [ "$in_evidence" = 1 ]; then
+      # A new top-level key (unindented, not a list item) ends the block.
+      if [[ "$line" =~ ^[^[:space:]] ]] && [[ ! "$line" =~ ^- ]]; then
+        _lc_flush_entry
+        in_evidence=0
+        continue
+      fi
+
+      trimmed="${line#"${line%%[![:space:]]*}"}"
+      if [ "$trimmed" = "-" ] || [[ "$trimmed" == "- "* ]]; then
+        _lc_flush_entry
+        _lc_reset_entry
+        _LC_ACTIVE=1
+        _LC_ENTRY_COUNT=$((_LC_ENTRY_COUNT + 1))
+        item="$(_lc_trim "${trimmed#-}")"
+        [ -n "$item" ] && _lc_parse_kv "$item"
+        continue
+      fi
+
+      [ -n "$trimmed" ] && _lc_parse_kv "$trimmed"
+    fi
+  done < <(printf '%s\n' "$fm")
+  _lc_flush_entry
+
+  # L3 — proven/promoted need >=3 well-formed entries.
+  if [ "$_LC_ENTRY_COUNT" -lt 3 ]; then
+    _lc_finding "$file" "Lifecycle-unearned" \
+      "unearned state: $status requires >=3 evidence entries (found $_LC_ENTRY_COUNT)" \
+      "Record at least three well-formed evidence entries before declaring $status, or set status: candidate."
+  fi
+
+  # L4 — promoted needs a promotion record.
+  if [ "$status" = "promoted" ] && [ "$_LC_PROMOTIONS" -lt 1 ]; then
+    _lc_finding "$file" "Lifecycle-unearned" \
+      "unearned state: promoted requires a type: promotion evidence entry" \
+      "Add an evidence entry of type: promotion citing the consumer whose required_skills declares this skill."
+  fi
 }
 
 # Lint a single SKILL.md.
@@ -145,6 +326,9 @@ lint_file() {
       fi
     done
   done < <(awk 'BEGIN{fm=0;skip=1} /^---/{fm++; if(fm==2){skip=0; next}; next} !skip{print}' "$file")
+
+  lint_lifecycle "$file"
+  violations=$((violations + LIFECYCLE_VIOLATIONS))
 
   if [ $violations -eq 0 ]; then
     echo "✅ $file: clean"

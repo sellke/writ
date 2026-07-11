@@ -1,7 +1,7 @@
 # Technical Specification: Skill Lifecycle
 
 > **Parent:** `../spec.md`
-> **Status:** Not Started
+> **Status:** Complete
 > **Stories:** 1–3
 
 ## Architecture Summary
