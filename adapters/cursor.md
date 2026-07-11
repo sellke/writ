@@ -45,7 +45,6 @@ your-project/
 │   │   ├── status.md              # /status
 │   │   ├── migrate.md             # /migrate
 │   │   ├── initialize.md          # /initialize
-│   │   ├── explain-code.md        # /explain-code
 │   │   ├── new-command.md         # /new-command
 │   └── agents/
 │       ├── architecture-check-agent.md  # Pre-implementation gate

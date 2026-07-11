@@ -143,7 +143,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 |---|---|---|
 | Planning/Specification | `create-spec`, `create-adr`, `plan-product` | Contract-first with Plan Mode discovery |
 | Implementation | `implement-story`, `refactor` | Direct execution with progress tracking |
-| Setup/Analysis | `initialize`, `research`, `explain-code` | Context scan → file generation |
+| Setup/Analysis | `initialize`, `research` | Context scan → file generation |
 | Quality | `review`, `assess-spec` | Analysis → findings → recommendations |
 | Meta | `new-command`, `status` | Ecosystem-aware scaffolding or reporting |
 

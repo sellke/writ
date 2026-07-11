@@ -98,7 +98,6 @@ Story 5-owned.
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/explain-code` | `commands/explain-code.md` | Explain existing code, symbols, files, or line ranges without modifying them. |
 | `/initialize` | `commands/initialize.md` | Initialize Writ project structure and configuration. |
 | `/new-command` | `commands/new-command.md` | Create new Writ command files that follow repository conventions. |
 | `/new-skill` | `commands/new-skill.md` | Scaffold new Writ skills with the role convention enforced via boundary lint. |
@@ -130,6 +129,7 @@ Story 5-owned.
 
 | Skill | Status | File | Description |
 |-------|--------|------|-------------|
+| `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |
 | `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
 
 ## Platform Adapters

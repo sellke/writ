@@ -61,11 +61,6 @@ commands:
     category: planning
     purpose: "Safely modify existing specifications while preserving contract integrity."
     tags: [planning, spec, editing]
-  - name: explain-code
-    file: commands/explain-code.md
-    category: setup
-    purpose: "Explain existing code, symbols, files, or line ranges without modifying them."
-    tags: [setup, explanation, documentation]
   - name: implement-phase
     file: commands/implement-phase.md
     category: implementation
@@ -235,6 +230,11 @@ agents:
 # See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
 #      ADR-014 (.writ/decision-records/adr-014-skill-lifecycle.md)
 skills:
+  - name: code-explanation
+    file: skills/code-explanation/SKILL.md
+    description: "Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target."
+    status: candidate
+    tags: [explanation, documentation, comprehension]
   - name: conventional-commits
     file: skills/conventional-commits/SKILL.md
     description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
