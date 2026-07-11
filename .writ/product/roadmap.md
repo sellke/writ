@@ -95,7 +95,7 @@
 
 ---
 
-## Phase 8: Memory Interop (1-2 weeks) — IMPLEMENTED, pending human validation (2026-07-11)
+## Phase 8: Memory Interop (1-2 weeks) — ✅ Implemented (2026-07-11)
 
 **Goal:** Writ's markdown stays the canonical system of record; external memory layers become documented, optional, disposable indexes over it. Interoperate, never re-implement. Per [ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md).
 
