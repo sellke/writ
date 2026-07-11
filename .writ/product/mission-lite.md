@@ -1,8 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
+> Regenerated from mission.md on 2026-07-11
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-07-10
+> Last Updated: 2026-07-11
 
 ## Core Value
 
@@ -31,11 +32,13 @@ Code and methodology that score well on six production-grade criteria — audita
 
 **Phases 1–4 + 3a/3b:** Shipped (prototype/spec-healing/refresh, ship/review/retro, context engine, Ralph, knowledge ledger/evals/SKILL.md generation). **Phase 5:** Closed — spirit met by eval Tier 1 CI gate, `/verify-spec`, and drift logs.
 
-**Phase 6 — Autonomy Ceiling (next):** `/implement-phase` hardening (fresh context per spec, quarantine branching, User Challenge framing, `dependencies:` frontmatter, knowledge writeback), Ralph deprecation, `/status` health line.
+**Phase 6 — Autonomy Ceiling (✅ shipped, v0.19.0):** `/implement-phase` hardening (fresh context per spec, quarantine branching, User Challenge framing, `dependencies:` frontmatter, knowledge writeback), Ralph deprecation, `/status` health line.
 
-**Phase 7 — Compounding Layer:** Skill lifecycle + extractions, evidence-bound `/refresh-command`, knowledge consolidation.
+**Phase 7 — Compounding Layer (✅ shipped, v0.19.0):** Skill lifecycle + extractions, evidence-bound `/refresh-command`, knowledge consolidation.
 
-**Phase 8 — Memory Interop:** GBrain compatibility recipe, native-memory guidance per adapter.
+**Phase 8 — Memory Interop (✅ implemented):** GBrain compatibility recipe, native-memory guidance per adapter.
+
+**Next horizon:** No committed phase in flight — the 2026 harness-audit strategy (Phases 6–8) is delivered. Next candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2), pulled forward on concrete signal.
 
 ## What Writ Is Not Building
 

@@ -1,7 +1,7 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-07-10
+> Last Updated: 2026-07-11
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
 
@@ -100,21 +100,25 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Issue capture (`/create-issue`), shipping (`/ship`), verification (`/verify-spec`), disciplined refactoring (`/refactor`):** The workflow from idea to merged PR with no manual gaps.
 - **System instructions + Prime Directive:** The behavioral contract that sets every session on the right foot — identity, anti-sycophancy hard constraints, auto-orientation.
 
-### Phase 6 — Autonomy Ceiling (next)
+### Phase 6 — Autonomy Ceiling (✅ shipped, v0.19.0)
 
 - **`/implement-phase` hardening:** Fresh context per spec, quarantine branching on failure, User Challenge framing for mid-run scope decisions, `dependencies:` spec frontmatter for deterministic sequencing, knowledge writeback at phase close.
 - **Ralph deprecation:** The bash loop retires; its durable inventions (state schema rigor, escalation semantics, quarantine branches) live on inside `/implement-phase`.
 - **`/status` health line:** One-line production-grade summary derived from existing checks (eval Tier 1, `/verify-spec`, drift logs).
 
-### Phase 7 — Compounding Layer
+### Phase 7 — Compounding Layer (✅ shipped, v0.19.0)
 
 - **Skill lifecycle:** candidate → proven → promoted, with evidence recorded; 3–5 extractions from the highest-traffic commands.
 - **Evidence-bound `/refresh-command`:** Refinements cite transcript evidence and pass evals before merging.
 - **Knowledge consolidation:** Merge duplicates, surface contradictions, prune stale entries — markdown in, markdown out, reviewable in PRs.
 
-### Phase 8 — Memory Interop
+### Phase 8 — Memory Interop (✅ implemented)
 
 - **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed.
 - **Native-memory guidance per adapter:** How Writ's ledger relates to Cursor memories, Claude Code memdir, and other native layers — the ledger is the reviewable layer that feeds them.
+
+### Next Horizon
+
+No committed phase is in flight — Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop). The next candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2 expansion), pulled forward only on concrete signal.
 
 > **Parking lot:** Cross-project learning corpus, autonomous refactoring, team affordances (cross-dev drift reconciliation, `/review-spec`) — deferred until concrete signal per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
