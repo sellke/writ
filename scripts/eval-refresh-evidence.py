@@ -132,7 +132,7 @@ def validate_entry(text: str) -> tuple[bool, str]:
     if "**Rejected:**" in text:
         rejected_block = text.split("**Rejected:**", 1)[1]
         # Stop at the next bold field header so we only read rejection bullets.
-        rejected_block = re.split(r"\n\*\*\w", rejected_block, 1)[0]
+        rejected_block = re.split(r"\n\*\*\w", rejected_block, maxsplit=1)[0]
         bullets = [ln for ln in rejected_block.splitlines() if ln.lstrip().startswith(("- ", "* "))]
         if not bullets:
             return False, "rejected: section present but lists no candidates"
