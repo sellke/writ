@@ -24,6 +24,38 @@
 
 ---
 
+## 2026-07-10 — /implement-phase refreshed
+
+**Source transcript:** This conversation (Phase 7 decomposition discussion — how to turn a roadmap phase into the right set of specs)
+**Signals found:** 4 total, 4 actionable
+**Amendments applied:** 5 of 5 proposed
+
+**Signals:**
+- `/implement-phase` dead-ends on unspecced features ("Stop so I can run /create-spec first") — the phase→specs decomposition is left as tacit human judgment with no artifact
+- Decomposition is the highest-leverage quality step (context scoping per fresh subagent, single-writer file ownership to avoid lane merge collisions, explicit seams, right-sized independently-testable specs)
+- Decomposition wants just-in-time binding against the current codebase — exactly when `/implement-phase` runs — not stale plan-time boundaries
+- Must stay adaptive: no value for a single unspecced feature; must not break the single-confirmation autonomy contract
+
+**Changes:**
+- Decomposition pre-pass added as new Step 1.2b — analyze → propose specs + dependency graph + file-ownership map + seams → one planning confirmation → seed `/create-spec` per proposed spec → re-resolve and continue (Confidence: High, Scope: Universal)
+- "Decompose now" option added to the Step 1.2 unspecced-feature ask, recommended default for 2+ unspecced features, N=1 routed straight to one `/create-spec` (Confidence: High, Scope: Universal)
+- Question Policy condition 4 (decomposition approval) added and closing "only routine interaction" line reconciled (Confidence: High, Scope: Universal)
+- Overview updated to advertise the pre-pass (Confidence: Medium, Scope: Universal)
+- Integration table `/create-spec` row updated to reflect per-spec invocation by the pre-pass (Confidence: Medium, Scope: Universal)
+
+**Design boundaries honored:**
+- Contract-first preserved — specs are still contract-locked per ADR-001; the pre-pass only seeds `/create-spec`, it does not auto-author specs
+- `--all` mode never auto-enters the pre-pass (creating specs requires human agreement)
+- Adaptive ceremony — no decomposition for a single unspecced feature
+
+**Not applied:**
+- No new invocation flags (`--decompose`/`--no-decompose`) — the in-conversation option covers control without adding surface
+
+**Scope:** Product source (Writ repo — `commands/` is the distributable source; this ships to all Writ users, not local-only)
+**Target file:** commands/implement-phase.md
+
+---
+
 ## 2026-07-11 — /refresh-command refreshed
 
 **Signals found:** 3 total, 2 actionable
