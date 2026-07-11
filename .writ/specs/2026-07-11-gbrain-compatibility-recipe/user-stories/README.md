@@ -1,16 +1,16 @@
 # Phase 8: GBrain Compatibility Recipe — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** Not Started
-> **Progress:** 0/2 stories
+> **Status:** Complete
+> **Progress:** 2/2 stories
 > **Dependencies:** [] (independent; the sibling `native-memory-guidance` spec depends on this one)
 
 ## Story Summary
 
 | # | Story | Priority | Dependencies | Status | Tasks |
 |---|---|---|---|---|---:|
-| 1 | [`gbrain-interop` skill + registration](story-1-gbrain-interop-skill.md) | High | None | Not Started | 0/5 |
-| 2 | [`gbrain-recipe.md` user-facing recipe](story-2-recipe-doc.md) | High | Story 1 | Not Started | 0/4 |
+| 1 | [`gbrain-interop` skill + registration](story-1-gbrain-interop-skill.md) | High | None | Completed ✅ | 5/5 |
+| 2 | [`gbrain-recipe.md` user-facing recipe](story-2-recipe-doc.md) | High | Story 1 | Completed ✅ | 4/4 |
 
 ## Dependency Plan
 

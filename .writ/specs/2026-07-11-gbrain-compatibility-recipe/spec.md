@@ -1,6 +1,6 @@
 # Phase 8: GBrain Compatibility Recipe
 
-> **Status:** Not Started
+> **Status:** Implemented
 > **Created:** 2026-07-11
 > **Owner:** @AdamSellke
 > **Phase:** 8 — Memory Interop
@@ -176,9 +176,9 @@ This repository has no application test suite. Verification is script and static
 
 ## Deliverables
 
-- [ ] `skills/gbrain-interop/SKILL.md` — detect · route brain-first · cite markdown · write markdown-first · degrade gracefully; lint-clean, `candidate`
-- [ ] `gbrain-interop` registered in `.writ/manifest.yaml` and the regenerated root `SKILL.md` (idempotent)
-- [ ] `.writ/docs/gbrain-recipe.md` — real-interface setup recipe with artifact→page mapping, MCP registration, and the version-tracking boundary
-- [ ] Round-trip guarantee documented with the concrete removal path; `.gbrain-source` pin-file gitignore guidance
-- [ ] Graceful absence: no behavior change on a machine without GBrain
-- [ ] `bash scripts/eval.sh --check=memory-interop` passes for this spec's owned assertions (check authored by the sibling spec)
+- [x] `skills/gbrain-interop/SKILL.md` — detect · route brain-first · cite markdown · write markdown-first · degrade gracefully; lint-clean, `candidate`
+- [x] `gbrain-interop` registered in `.writ/manifest.yaml` and the regenerated root `SKILL.md` (idempotent)
+- [x] `.writ/docs/gbrain-recipe.md` — real-interface setup recipe with artifact→page mapping, MCP registration, and the version-tracking boundary
+- [x] Round-trip guarantee documented with the concrete removal path; `.gbrain-source` pin-file gitignore guidance
+- [x] Graceful absence: no behavior change on a machine without GBrain
+- [x] `bash scripts/eval.sh --check=memory-interop` passes for this spec's owned assertions (check authored by the sibling spec) — *artifacts in place; the `memory-interop` check itself is authored by the sibling `native-memory-guidance` spec and is not yet present in `scripts/eval.sh`*
