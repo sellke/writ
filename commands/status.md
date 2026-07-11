@@ -123,24 +123,22 @@ If no issues qualify (all are recent or already have spec_ref), omit this sectio
 
 ### Step 6: Surface Refresh Opportunities
 
-Check `.writ/state/refresh-log.md` (the canonical refresh log maintained by `/refresh-command`).
+Check `.writ/refresh-log.md` (the canonical, committed refresh log maintained by `/refresh-command`). This is read-only surfacing — `/status` never runs a refresh itself.
 
-**How "last refresh" is determined:** For each command, find the most recent entry in `.writ/refresh-log.md` matching that command name (e.g., a line starting with `## [DATE] — /implement-story refreshed`). The date on that line is the last refresh timestamp. If no entry exists for a command, treat the command as never refreshed (threshold: 3+ any transcripts = suggest).
+**How "last refresh" is determined:** For each command, find the most recent entry in `.writ/refresh-log.md` matching that command name (e.g., a line starting with `## [DATE] — /implement-story refreshed`). The date on that line is the last refresh timestamp. If no entry exists for a command, treat the command as never refreshed.
 
-**How "new transcripts" are counted:** Count `.jsonl` files in the agent-transcripts directory whose modification time (or content timestamps) is after the last refresh date for that command, and whose content references that command (via the command identification logic in Phase 2.2 of `refresh-command.md`).
-
-**Trigger threshold:** If **3 or more** new transcripts exist since the last logged refresh for a command, surface it as a refresh opportunity and suggest `--batch` mode.
+**How staleness is judged:** `/refresh-command` is human-driven — the maintainer runs a command, notices friction, and refreshes it with cited transcript evidence. `/status` does not scan or ingest transcripts. Instead, surface commands the maintainer has used recently in this project but not refreshed in a while (by the log dates above), so they can decide whether a refresh is worth running.
 
 **Report format (one line per command):**
 ```
 🔄 Refresh opportunities:
-   • 4 new /implement-story sessions since last refresh — consider: /refresh-command implement-story --batch
-   • 3 new /ship sessions since last refresh — consider: /refresh-command ship --batch
+   • /implement-story last refreshed 2026-03-01 — consider: /refresh-command implement-story
+   • /ship last refreshed 2026-03-15 — consider: /refresh-command ship
 ```
 
-If no command has 3+ new transcripts, omit this section.
+If nothing looks stale, omit this section.
 
-If `.writ/state/refresh-log.md` does not exist yet, omit this section silently — no error.
+If `.writ/refresh-log.md` does not exist yet, omit this section silently — no error.
 
 ### Step 7: Project Health Signals
 
@@ -177,7 +175,7 @@ Based on the gathered state, produce 2–4 suggested next actions. Rules:
 | Active spec, all stories complete | `/ship` to open a PR |
 | No active spec, clean state | `/create-spec` to plan new work |
 | Stale untriaged issues (Step 5) | `/create-spec --from-issue [path]` to promote |
-| Refresh opportunities exist (3+ new transcripts) | `/refresh-command [command] --batch` |
+| Refresh opportunities exist (stale, recently used command) | `/refresh-command [command]` |
 | In-flight batch job exists | `/implement-spec --resume` if needed |
 
 **Command allowlist — only suggest commands that exist in the suite:**
@@ -210,8 +208,8 @@ Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode
    Next task: 3.4 Add rotation grace period for active sessions
 
 🔄 REFRESH OPPORTUNITIES
-   • 4 new /implement-story sessions since last refresh
-     → /refresh-command implement-story --batch
+   • /implement-story last refreshed 2026-03-01 — used often since
+     → /refresh-command implement-story
 
 ⚙️ IN-FLIGHT BATCH JOBS
    • 2026-03-18-dashboard-refactor: 3/5 stories complete (started 2 hours ago)
@@ -222,7 +220,7 @@ Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode
 
 ⚡ QUICK COMMANDS
    /implement-story     # Continue Story 3
-   /refresh-command implement-story --batch   # Update command from session patterns
+   /refresh-command implement-story   # Refresh the command with cited evidence
 ```
 
 ### Clean State Example
@@ -377,7 +375,7 @@ If spec files exist but cannot be parsed (malformed README, missing story files)
 |---------|-------------|
 | `/initialize` | Seeds `.writ/config.md` — `/status` reads it on every run |
 | `/implement-spec` | Writes `.writ/state/execution-*.json` — `/status` surfaces in-flight jobs |
-| `/refresh-command` | Maintains `.writ/refresh-log.md` — `/status` surfaces `--batch` refresh opportunities when 3+ new transcripts |
+| `/refresh-command` | Maintains `.writ/refresh-log.md` — `/status` surfaces stale refresh opportunities from the log dates (read-only) |
 | `/create-issue` | Creates issues in `.writ/issues/` — `/status` surfaces stale untriaged issues (Step 5) |
 | `/create-spec --from-issue` | Promotes issues to specs — clears the Needs Triage flag by writing `spec_ref` |
 | `/verify-spec` | Deep metadata diagnostic — use when `/status` flags spec inconsistencies |

@@ -55,7 +55,7 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Knowledge accumulation** — `.writ/knowledge/` is a markdown ledger for cross-cutting decisions, conventions, glossary, and lessons. Capture with `/knowledge`; agents auto-load relevant entries at task start so context survives context-window resets and machine changes.
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
-- **Self-improving** — `/refresh-command` scans transcripts and proposes concrete improvements. Commands get better through use.
+- **Self-improving** — `/refresh-command` turns session friction into cited command diffs — every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
 - **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI
 
 ## Pipeline
@@ -136,7 +136,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/retro` | **Git-based retrospective.** Commits, LOC, test ratio, session detection, streaks, Ship of the Week, trend comparison. Persistent JSON snapshots for long-term analysis. |
-| `/refresh-command` | **Learning loop.** Scans agent transcripts, identifies friction patterns, proposes concrete diffs to command files. Commands get better through use. |
+| `/refresh-command` | **Learning loop.** Turns session friction into cited command diffs — each refinement cites transcript evidence and passes an eval gate before it merges; unevidenced proposals are visibly rejected. Commands get better through use. |
 
 ### Setup & Lifecycle
 | Command | Purpose |

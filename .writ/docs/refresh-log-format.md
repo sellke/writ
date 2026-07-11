@@ -1,23 +1,56 @@
 # Refresh-Log Format Specification
 
 > Canonical reference for `.writ/refresh-log.md` entries.
-> Used by `/refresh-command` (Phase 5: Changelog + Phase 6: Promotion Review).
+> Used by `/refresh-command` (Phase 3: Propose Amendments + Phase 4: Apply & Log).
 
 ---
 
 ## File Location & Lifecycle
 
-**Path:** `.writ/refresh-log.md`
+**Path:** `.writ/refresh-log.md` — this is the single canonical path. There is no
+`.writ/state/refresh-log.md` variant; the log is a committed audit trail, not
+ephemeral state.
 
 **Creation:** `/refresh-command` creates the file on first run if it doesn't exist. The file opens with a single header:
 
 ```markdown
-# Refresh Log
+# Writ Refresh Log
 ```
 
-**Append-only:** New entries are appended below the header. Entries are never modified after writing, with one exception: the "Yes" promotion flow updates `**Scope:**` from "Local only" to "Promoted to core" and appends the PR URL.
+**Append-only:** New entries are appended below the header. Entries are never
+modified after writing. The log is the canonical, auditable record of every
+refresh run — applied amendments with their evidence, and rejected candidates with
+their reason.
 
 **Ordering:** Most recent entry at the bottom (natural append). Readers who want reverse-chronological order read from the end.
+
+---
+
+## The Evidence Contract
+
+Writ's learning loop is **evidence-bound**: every applied amendment must be
+justified, and every unjustifiable proposal must be visibly rejected. The log is
+where that "kept vs. discarded" decision becomes auditable.
+
+- **Every applied amendment cites evidence** — a transcript ID/path, a short
+  observable signal, and the affected command section.
+- **Unevidenced proposals are rejected**, not applied, and the rejection is
+  recorded with reason `no evidence`.
+- **Eval-failing proposals are rejected** with reason `eval failed`.
+- **Privacy (Prime Directive):** evidence references transcript IDs/paths and
+  short observable signals only — never chain-of-thought, prompts, or verbatim
+  private transcript bodies. Transcript bodies live outside the repository and are
+  never committed.
+
+### `LEARNING_CONTRACT_SINCE` grandfathering
+
+The evidence contract takes effect on **`LEARNING_CONTRACT_SINCE = 2026-07-11`**
+(the day after this feature's spec was created). Any log entry dated strictly
+**before** that date is **grandfathered**: it predates the contract and is not
+retroactively required to carry an Evidence block. Entries dated on or after
+`LEARNING_CONTRACT_SINCE` must conform to the schema below. The fixture-driven
+eval check (`scripts/eval-refresh-evidence.py`) honors this date so pre-contract
+history never fails CI.
 
 ---
 
@@ -28,20 +61,22 @@ Every `/refresh-command` completion writes exactly one entry, regardless of outc
 ```markdown
 ## YYYY-MM-DD — /[command] refreshed
 
-**Source transcript:** [transcript ID]
 **Signals found:** [N] total, [M] actionable
 **Amendments applied:** [K] of [M] proposed
 
 **Changes:**
-- [Amendment title] — [one-line summary] (Confidence: High/Medium/Low, Scope: Universal/Project-specific)
-- [Amendment title] — [one-line summary] (Confidence: High/Medium/Low, Scope: Universal/Project-specific)
+- [Amendment title] (Confidence: High/Medium/Low)
+  **Evidence:**
+  - Transcript: agent-transcripts/<session-uuid>/<session-uuid>.jsonl
+  - Observable signal: "[short factual quote of a correction/retry/override/error]"
+  - Affected section: commands/[command].md → "[real section heading]"
 
-**Not applied:**
-- [Amendment title] — [reason: user declined / not fixable / low confidence]
+**Rejected:**
+- [Amendment title] — reason: no evidence
+- [Amendment title] — reason: eval failed
 
-**Scope:** Local only | Promoted to core
-**Confidence:** High | Medium | Low
-**Target file:** .cursor/commands/[command].md
+**Scope:** Local only
+**Target file:** commands/[command].md
 ```
 
 ### Field Reference
@@ -50,33 +85,48 @@ Every `/refresh-command` completion writes exactly one entry, regardless of outc
 |---|---|---|
 | **Date** | `YYYY-MM-DD` | Date the refresh was performed |
 | **Command** | `/[command-name]` | The Writ command that was refreshed |
-| **Source transcript** | Transcript filename (e.g., `abc123.jsonl`) | The agent transcript that was analyzed |
-| **Signals found** | `N total, M actionable` | Signal counts from the scan phase |
-| **Amendments applied** | `K of M proposed` | How many proposals the user accepted |
-| **Changes** | Bulleted list | Each applied amendment with title, summary, confidence, and scope |
-| **Not applied** | Bulleted list | Each declined/skipped amendment with reason. Omit section if all were applied. |
-| **Scope** | `Local only` or `Promoted to core` | Whether the changes were promoted upstream |
-| **Confidence** | `High`, `Medium`, or `Low` | Overall confidence — the highest confidence among applied amendments |
-| **Target file** | Relative path | The local command file that was modified |
+| **Signals found** | `N total, M actionable` | Signal counts from Phase 2 |
+| **Amendments applied** | `K of M proposed` | How many proposals passed the evidence gate and were applied |
+| **Changes** | Bulleted list | Each applied amendment with title, confidence, and its **Evidence** block |
+| **Evidence** | Structured 3-part block | Transcript ID/path + short observable signal + affected section. **Mandatory** for every applied amendment. |
+| **Rejected** | Bulleted list | Each rejected candidate with a reason token (`no evidence` / `eval failed`). Omit the section if nothing was rejected. |
+| **Scope** | `Local only` | Amendments are applied to the project's local command copy. |
+| **Target file** | `commands/[command].md` | The command file that was modified. |
 
-### Optional Fields
+### The Evidence block (mandatory for applied amendments)
 
-These fields appear only when relevant:
+Each applied amendment carries an `**Evidence:**` block with exactly three parts:
 
-| Field | When Present | Format |
+| Part | Format | Rule |
 |---|---|---|
-| **Batch review:** | User chose "Later" on promotion prompt | `Queued` |
-| **Promoted via:** | User chose "Yes" and PR was created | PR URL (e.g., `https://github.com/user/writ/pull/42`) |
-| **Promotion fallback:** | PR creation failed, patch file saved instead | Path to `.writ/refresh-promotion-YYYY-MM-DD.patch` |
+| **Transcript** | `agent-transcripts/<uuid>/<uuid>.jsonl` (or `.../subagents/<sub-uuid>.jsonl`), or a transcript ID | Identifies the session the signal came from. The file may be absent on this machine — the ID citation still stands; a body is never required. |
+| **Observable signal** | A single short quoted line | A factual quote of a correction, retry, override, or error. **Never** reasoning, a prompt, or a private body. |
+| **Affected section** | `commands/[command].md → "[section]"` | Anchors the change to a real section of the target command file. |
+
+### Rejection reasons
+
+| Reason token | Meaning |
+|---|---|
+| `no evidence` | The proposal could not cite a transcript ID/path plus a short observable signal. Rejected before any file write. |
+| `eval failed` | The proposal was evidenced but failed the pre-merge eval gate (`bash scripts/eval.sh --check=refresh-evidence`, plus the structural Tier 2 check for high-traffic commands). |
+
+### The no-op exemption
+
+A run that reviews a command and applies **zero** amendments is a valid outcome and
+is **exempt** from the evidence requirement — there is nothing to justify. Record
+the review without an Evidence block:
+
+```markdown
+## YYYY-MM-DD — /[command] reviewed — no changes
+
+**Signals found:** 1 total, 0 actionable
+**Amendments applied:** 0 of 0 proposed
+
+**Scope:** Local only
+**Target file:** —
+```
 
 ---
-
-## Scope Values
-
-| Value | Meaning | When Set |
-|---|---|---|
-| **Local only** | Changes remain in the project's local command copy. No upstream PR. | Default for all entries. Set when: user chooses "No", user chooses "Later", promotion prompt was skipped (scope not universal or confidence not High). |
-| **Promoted to core** | A PR was created to merge changes into the Writ core repository. | Set when user chooses "Yes" and PR creation succeeds. Replaces the initial "Local only" value. |
 
 ## Confidence Values
 
@@ -86,136 +136,68 @@ These fields appear only when relevant:
 | **Medium** | Probable causal link. Signal is likely recurring. Fix addresses root cause but may have side effects. |
 | **Low** | Possible connection. Signal may be isolated. Fix is speculative — needs more data to confirm. |
 
-The entry-level confidence is the **highest** confidence among applied amendments. If three amendments were applied at High, Medium, and Low, the entry reads `Confidence: High`.
-
 ---
 
-## Batch Promotion Flag
+## Not implemented (do not use)
 
-When the user selects "Later" at the promotion prompt, the entry includes:
+Earlier drafts of this doc described mechanics the command does **not** implement.
+They are removed to keep the doc honest:
 
-```markdown
-**Batch review:** Queued
-```
+- **Promotion-to-core flow** (`**Scope:** Promoted to core`, `**Promoted via:**`,
+  `**Promotion fallback:**`) — `/refresh-command` is local-first; it does not open
+  upstream PRs. Scope is always `Local only`.
+- **Batch review** (`**Batch review:** Queued`, `--batch`) — there is no batch
+  promotion queue or `--batch` invocation.
 
-This flag marks the entry for future batch promotion review. Entries with this flag can be collected and reviewed in bulk — the user (or a future `/promote-batch` command) scans `.writ/refresh-log.md` for entries where `Batch review: Queued`, presents them together, and promotes or discards as a group.
+If any of these are ever implemented, restore them here **and** in
+`commands/refresh-command.md` together — no aspirational drift.
 
 ---
 
 ## Examples
 
-### Example 1: Applied locally, promotion skipped (scope not universal)
+### Example 1: Applied with cited evidence
 
 ```markdown
-## 2026-02-28 — /create-spec refreshed
+## 2026-07-11 — /create-spec refreshed
 
-**Source transcript:** abc123.jsonl
 **Signals found:** 4 total, 2 actionable
-**Amendments applied:** 2 of 2 proposed
+**Amendments applied:** 1 of 2 proposed
 
 **Changes:**
-- Reduce clarification rounds — Cap follow-up questions at 2 rounds max (Confidence: High, Scope: Project-specific)
-- Add monorepo context — Include workspace root detection in codebase scan (Confidence: Medium, Scope: Project-specific)
+- Detect monorepo workspace root during codebase scan (Confidence: High)
+  **Evidence:**
+  - Transcript: agent-transcripts/session-uuid/session-uuid.jsonl
+  - Observable signal: "user re-ran /create-spec after the scan skipped the monorepo root"
+  - Affected section: commands/create-spec.md → "Phase 2: Codebase Scan"
 
 **Scope:** Local only
-**Confidence:** High
-**Target file:** .cursor/commands/create-spec.md
+**Target file:** commands/create-spec.md
 ```
 
-### Example 2: Promoted to core ("Yes" flow)
+### Example 2: Rejected for lacking evidence
 
 ```markdown
-## 2026-03-01 — /implement-story refreshed
+## 2026-07-11 — /prototype refreshed
 
-**Source transcript:** def456.jsonl
-**Signals found:** 6 total, 3 actionable
-**Amendments applied:** 3 of 3 proposed
-
-**Changes:**
-- Deduplicate review feedback — Merge overlapping review comments before presenting to coder (Confidence: High, Scope: Universal)
-- Preserve TDD sequencing — Explicit instruction to write test before implementation in Gate 3 (Confidence: High, Scope: Universal)
-- Add retry budget display — Show "Attempt 2 of 3" in review cycle output (Confidence: Medium, Scope: Universal)
-
-**Scope:** Promoted to core
-**Confidence:** High
-**Target file:** .cursor/commands/implement-story.md
-**Promoted via:** https://github.com/user/writ/pull/42
-```
-
-### Example 3: User declined promotion ("No" flow)
-
-```markdown
-## 2026-03-02 — /prototype refreshed
-
-**Source transcript:** ghi789.jsonl
 **Signals found:** 3 total, 1 actionable
-**Amendments applied:** 1 of 1 proposed
+**Amendments applied:** 0 of 1 proposed
 
-**Changes:**
-- Expand escalation heuristic — Add "touches authentication" as a trigger for escalation to /create-spec (Confidence: High, Scope: Universal)
-
-**Scope:** Local only
-**Confidence:** High
-**Target file:** .cursor/commands/prototype.md
-```
-
-### Example 4: Deferred for batch review ("Later" flow)
-
-```markdown
-## 2026-03-03 — /refresh-command refreshed
-
-**Source transcript:** jkl012.jsonl
-**Signals found:** 5 total, 2 actionable
-**Amendments applied:** 2 of 2 proposed
-
-**Changes:**
-- Widen skip detection — Add "that's fine" and "ok whatever" as skip signal patterns (Confidence: High, Scope: Universal)
-- Improve transcript size warning — Show estimated scan time for large transcripts (Confidence: Medium, Scope: Universal)
+**Rejected:**
+- Add "touches authentication" escalation trigger — reason: no evidence
 
 **Scope:** Local only
-**Confidence:** High
-**Target file:** .cursor/commands/refresh-command.md
-**Batch review:** Queued
+**Target file:** commands/prototype.md
 ```
 
-### Example 5: No amendments applied (clean transcript)
+### Example 3: Reviewed, no amendments (exempt)
 
 ```markdown
-## 2026-03-04 — /create-spec refreshed
+## 2026-07-11 — /create-spec reviewed — no changes
 
-**Source transcript:** mno345.jsonl
 **Signals found:** 1 total, 0 actionable
 **Amendments applied:** 0 of 0 proposed
 
-**Changes:**
-- (none)
-
-**Not applied:**
-- Token limit during codebase scan — Agent limitation, not fixable via command
-
 **Scope:** Local only
-**Confidence:** —
 **Target file:** —
-```
-
-### Example 6: Partial apply (some amendments declined)
-
-```markdown
-## 2026-03-05 — /implement-story refreshed
-
-**Source transcript:** pqr678.jsonl
-**Signals found:** 7 total, 4 actionable
-**Amendments applied:** 2 of 4 proposed
-
-**Changes:**
-- Strengthen Gate 2 contract — Require architect to list touched files before coding begins (Confidence: High, Scope: Universal)
-- Add lint-fix auto-retry — Auto-run lint fix once before failing Gate 5 (Confidence: Medium, Scope: Universal)
-
-**Not applied:**
-- Skip visual QA when no mockups — User declined (wants visual QA to always run)
-- Reduce review iterations to 2 — Low confidence, user wants more data
-
-**Scope:** Local only
-**Confidence:** High
-**Target file:** .cursor/commands/implement-story.md
 ```
