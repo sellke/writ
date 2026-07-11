@@ -112,7 +112,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Evidence-bound `/refresh-command`:** Refinements cite transcript evidence and pass evals before merging.
 - **Knowledge consolidation:** Merge duplicates, surface contradictions, prune stale entries — markdown in, markdown out, reviewable in PRs.
 
-### Phase 8 — Memory Interop (implemented — pending validation)
+### Phase 8 — Memory Interop (✅ implemented)
 
 - **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed.
 - **Native-memory guidance per adapter:** How Writ's ledger relates to Cursor memories, Claude Code memdir, and other native layers — the ledger is the reviewable layer that feeds them.

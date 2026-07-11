@@ -36,7 +36,7 @@ Code and methodology that score well on six production-grade criteria — audita
 
 **Phase 7 — Compounding Layer (✅ shipped, v0.19.0):** Skill lifecycle + extractions, evidence-bound `/refresh-command`, knowledge consolidation.
 
-**Phase 8 — Memory Interop (implemented — pending validation):** GBrain compatibility recipe, native-memory guidance per adapter.
+**Phase 8 — Memory Interop (✅ implemented):** GBrain compatibility recipe, native-memory guidance per adapter.
 
 **Next horizon:** No committed phase in flight — the 2026 harness-audit strategy (Phases 6–8) is delivered. Next candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2), pulled forward on concrete signal.
 
