@@ -529,7 +529,7 @@ If **no** such section exists in the active spec folder, Gate 0.5 proceeds witho
 > Gate 1 requires a matching persisted
 > `recommend-worktree-reservation-ack-v1`; without it, no edits are allowed.
 
-Spawns the coding agent with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5.
+Spawns the coding agent to run the red → green → refactor loop via `Read skills/tdd-cycle/SKILL.md`, with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5. This gate owns *when* coding runs, the context it routes below, and `STATUS: BLOCKED` handling; the skill owns *how* the test-first cycle runs.
 
 **Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules) as supplementary context. Pass `knowledge_context` after spec context and before dependency records when populated. If dependency stories have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` to the coding agent — positioned after knowledge context, before implementation tasks.
 

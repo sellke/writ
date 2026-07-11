@@ -240,3 +240,8 @@ skills:
     description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
     status: proven
     tags: [git, commits, changelog]
+  - name: tdd-cycle
+    file: skills/tdd-cycle/SKILL.md
+    description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."
+    status: candidate
+    tags: [testing, tdd, implementation]
