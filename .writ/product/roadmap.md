@@ -111,6 +111,40 @@
 - [ ] **Native-memory guidance per adapter** `Effort: S` — Cursor memories, Claude Code memdir, Codex: what belongs in native memory (session preferences, trivia) vs. the ledger (negotiated decisions, conventions, lessons — the reviewable layer that feeds the rest).
 - [ ] **Mission language update** `Effort: XS` — "Not a persistent-database knowledge layer" softened to "markdown canonical; external indexes optional and disposable." (Done in the 2026-07-09 mission refresh; verify no stale references remain in README/docs.)
 
+## Product Reconciliation — ✅ Shipped (2026-07-11)
+
+**Ships to all Writ users.** Closes the gap where Writ can verify and revise a
+*spec* but had no equivalent for the *product* layer — even though mission/roadmap
+drift silently across the four files that describe strategy (the live example that
+prompted this: roadmap marked Phases 6–7 complete while mission still framed
+Phase 6 as "next"). Adds the missing before/after pair plus a nudge, as **mode
+additions to existing commands** — no new command files. Per
+[`2026-07-11-product-reconciliation`](../specs/2026-07-11-product-reconciliation/spec.md).
+
+- [x] **`/verify-spec --product`** `Effort: S` — a consistency lint (the *before*)
+  with its **own** ~4-check set (P1–P4: phase-status parity, ADR reference
+  resolution, derivative freshness, shipped-claim sanity) over
+  `.writ/product/` + `.writ/context.md`. Hybrid disposition: auto-fix regenerates
+  derivatives (`mission-lite.md`, `.writ/context.md`); authoritative divergence
+  (mission ↔ roadmap) is **report-only** — a human decides. Explicitly *not* spec
+  checks 1–8 pointed at product docs.
+- [x] **`/plan-product --reconcile`** `Effort: S` — a revision posture (the *after*):
+  scan existing docs → diff vs. reality (shipped specs, roadmap statuses, git) →
+  propose *targeted* edits in Plan Mode; new ADRs only for genuine direction
+  changes. Not a from-scratch regeneration; greenfield flow untouched.
+- [x] **`/retro` product-drift nudge** `Effort: XS` — read-only advisory (mirrors
+  the Step 5.5 knowledge-consolidation nudge) that points to the two remedies when
+  a cheap drift signal is present; silent with no signal or no `.writ/product/`.
+
+**Boundary discipline (the core risk):** `--product` checks consistency *before*;
+`--reconcile` revises *after*. Both command files state the boundary and
+cross-reference each other — the same discipline that keeps `/assess-spec` and
+`/verify-spec` distinct.
+
+**Deliberately out of scope:** any new command file, `scripts/`/eval changes,
+auto-editing authoritative mission/roadmap prose (only derivatives regenerate), and
+`/status` allowlist changes (all three commands already listed).
+
 ---
 
 ## Beyond Phase 8 (Parking Lot)
