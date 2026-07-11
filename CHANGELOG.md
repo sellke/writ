@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.20.1] - 2026-07-11
+
+Internal eval robustness patch. Hardens the `recommended-spec-implementation` check against a pathological subprocess-spawn cost that read as a hang under x86_64 Python via Rosetta, and clears a Python 3.13+ deprecation warning. No user-facing feature or command changes.
+
+### Fixed
+
+- **Eval Python 3.13+ compatibility.** `scripts/eval-refresh-evidence.py` passes `maxsplit` to `re.split` by keyword, clearing a `DeprecationWarning` surfaced under native arm64 Python 3.14.
+
+### Internal
+
+- **Eval fixture-template reuse.** The `recommended-spec-implementation` check builds its git fixture repo once and `copytree`s it per fixture across both Python phases (`scripts/eval.sh`, `scripts/eval-recommend-state-adversarial.py`), cutting fixture-setup subprocess spawns (`git init` 40→3, `git config` 80→6) with all 36/36 static assertions still passing. Root cause traced to aggregate cross-arch spawn cost, not git or the helper — see [the improvement issue](.writ/issues/improvements/2026-07-11-eval-recommended-spec-spawn-heaviness.md).
+- **Eval progress heartbeats.** The check emits stderr progress markers (fixture-template build, sandbox source build, per-platform install/update/unlink, adversarial suite) so a slow run is visibly progressing rather than looking hung.
+
 ## [0.20.0] - 2026-07-11
 
 **Phase 8 (Memory Interop)** completes the 2026 harness-audit roadmap — Writ's markdown stays canonical while external memory layers become documented, optional indexes. Ships alongside two self-governance features: **Leanness Guardian** (the framework audits its own weight) and **Product Reconciliation** (verify/revise the product layer, closing the gap that only specs previously had).
