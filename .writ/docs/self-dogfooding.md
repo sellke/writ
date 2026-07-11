@@ -64,6 +64,30 @@ The third Writ primitive — skills — participates in the same dogfood pattern
 
 See [`.writ/docs/skills.md`](skills.md) for the user-facing skills explainer and [ADR-009](../decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool boundary.
 
+## Leanness Cadence
+
+Writ's value proposition *is* leanness, so this repo polices its own bloat with a
+two-tier **leanness guardian** ([ADR-015](../decision-records/adr-015-leanness-self-governance.md)) —
+dogfooding-only, never shipped to users:
+
+- **Tier A (mechanical, every PR):** `bash scripts/eval.sh --check=leanness`
+  measures aggregate command weight and cross-registry parity (README `## Commands`
+  table ↔ `commands/*.md`, and the `/status` allowlist → files). Registry drift
+  hard-FAILs; count/weight growth warns non-blockingly against
+  [`.writ/leanness-baseline.json`](../leanness-baseline.json).
+- **Tier B (judgment, on a cadence):** the audit ritual in
+  [`leanness-audit-format.md`](leanness-audit-format.md) re-applies the "does the
+  harness do this natively now?" test (Design Principle #4) and surfaces prune
+  candidates. It **recommends, never deletes**.
+
+**Trigger for Tier B:** run at **each phase close** *or* **quarterly**, whichever
+comes first — **never per-release** (too frequent; an audit there is friction).
+The cadence is documented discipline and is deliberately **not** hooked into any
+shipping command (`/release`, `/ship`, `/implement-phase`), which would leak
+framework-internal governance to users. Each run produces a dated
+`.writ/docs/leanness-audit-YYYY-MM-DD.md`; the first is
+[`leanness-audit-2026-07-11.md`](leanness-audit-2026-07-11.md).
+
 ## For AI Agents
 
 When working in this repo, be aware of the dual nature:

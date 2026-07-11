@@ -95,23 +95,52 @@
 
 ---
 
-## Phase 8: Memory Interop (1-2 weeks) — Next
+## Phase 8: Memory Interop (1-2 weeks) — ✅ Implemented (2026-07-11)
 
 **Goal:** Writ's markdown stays the canonical system of record; external memory layers become documented, optional, disposable indexes over it. Interoperate, never re-implement. Per [ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md).
 
+**Closure status:** Decomposed into two contract-first specs, each implemented in an isolated per-spec lane and merged only after independent verification (`f88c6f8` gbrain-compatibility-recipe, `477359c` native-memory-guidance) on `phase/8-memory-interop`. Machine-checkable exit criteria verified by the new `memory-interop` eval Tier 1 check (0 findings) and the full suite green; 21 UAT scenarios across two `uat-plan.md` files. The GBrain recipe is grounded in GBrain's *real* interface (`garrytan/gbrain`: `gbrain sources add`/`sync`/`doctor --json`/`search`/`serve`), not an invented API. **Honest caveat:** the "GBrain-equipped project answers retrieval queries" criterion and the *live* round-trip cannot be machine-verified here (no GBrain install; Writ ships none) — they are handed off as UAT scenarios 10–12. Recipe accuracy is verified against current docs; live behavior awaits a GBrain-equipped machine. Not merged to main or released — pending review and `/release`.
+
 ### Success Criteria
 
-- A GBrain-equipped project can register `.writ/` as a source and answer retrieval queries against specs, ADRs, and knowledge entries
-- Removing GBrain (or any index) loses zero canonical data — verified by round-trip
-- Each adapter documents how Writ's ledger relates to that platform's native memory
+- A GBrain-equipped project can register `.writ/` as a source and answer retrieval queries against specs, ADRs, and knowledge entries — ⚑ handed off (requires a GBrain install; recipe grounded in the real interface, live query is UAT scenario 10)
+- Removing GBrain (or any index) loses zero canonical data — verified by round-trip — ◐ true by construction (canonical data never enters the index) and asserted by the eval check; live round-trip is UAT scenario 11
+- Each adapter documents how Writ's ledger relates to that platform's native memory — ✅ all four adapters carry the identical two-place rule (`memory-interop` eval check)
 
 ### Features
 
-- [ ] **GBrain compatibility recipe** `Effort: S-M` — Integration skill + docs: register `.writ/` via `gbrain sources add`, map knowledge/specs/ADRs to page types (evaluate a Writ schema pack), add brain-first retrieval guidance when a brain is detected, remove it gracefully when absent. Zero new Writ infrastructure; blast radius is one doc if GBrain's API moves.
-- [ ] **Native-memory guidance per adapter** `Effort: S` — Cursor memories, Claude Code memdir, Codex: what belongs in native memory (session preferences, trivia) vs. the ledger (negotiated decisions, conventions, lessons — the reviewable layer that feeds the rest).
-- [ ] **Mission language update** `Effort: XS` — "Not a persistent-database knowledge layer" softened to "markdown canonical; external indexes optional and disposable." (Done in the 2026-07-09 mission refresh; verify no stale references remain in README/docs.)
+- [x] **GBrain compatibility recipe** `Effort: S-M` — Shipped as the `gbrain-interop` skill (routing: detect → brain-first → cite markdown → write markdown-first → degrade) + `.writ/docs/gbrain-recipe.md` (register `.writ/` via `gbrain sources add`, artifact→page tag mapping, MCP registration, round-trip removal, version boundary). Zero new Writ infrastructure; grounded in the real GBrain interface.
+- [x] **Native-memory guidance per adapter** `Effort: S` — "Native Memory & the Writ Ledger" section in all four adapters (Cursor Memories + semantic index; Claude Code `CLAUDE.md` + `.claude/agent-memory/`; Codex `AGENTS.md`; OpenClaw sessions): session prefs/trivia → native memory; negotiated decisions/conventions/lessons → the reviewable ledger; external brain → disposable index.
+- [x] **Mission language update** `Effort: XS` — Verified: active mission reads "not a memory database or retrieval engine"; no stale "persistent-database knowledge layer" framing survives on any active surface (asserted by the `memory-interop` eval `forbid_literal`).
 
 ---
+
+## Self-Governance: Leanness Guardian — ✅ Shipped (2026-07-11)
+
+**Dogfooding-only — does not ship to users.** Writ's value proposition *is*
+leanness ("keep the harness light… delegate the mechanics"), so bloat is an
+existential threat, not cosmetic debt. Before this, that discipline was enforced
+only culturally (Design Principles #1/#4 and the maintainer's prune instinct that
+retired `/audit`, `/lessons`, Ralph, `/explain-code`). The guardian makes it
+systematic. Per [ADR-015](../decision-records/adr-015-leanness-self-governance.md).
+
+- [x] **Tier A — leanness tripwire** `Effort: S` — `scripts/eval.sh --check=leanness`
+  (backed by `scripts/eval-leanness.py`) measures aggregate command weight and
+  cross-registry parity that nothing else covered: README `## Commands` table ↔
+  `commands/*.md` (bidirectional) and the `/status` allowlist → files
+  (phantom-only — the allowlist is a curated suggestion subset, see DEV-001).
+  Registry drift hard-FAILs; count/weight growth warns non-blockingly against
+  `.writ/leanness-baseline.json` (seeded 31/7/6, 10,659 lines). Defers manifest
+  parity, per-file length, and skill boundary to their existing owners.
+- [x] **Tier B — audit ritual** `Effort: XS` — `.writ/docs/leanness-audit-format.md`
+  re-applies the "does the harness do this natively now?" test on a cadence
+  (per-phase-close or quarterly, never per-release) and routes prune candidates
+  to ADR/roadmap/issues. Recommends, never deletes. First dated audit:
+  `.writ/docs/leanness-audit-2026-07-11.md`.
+
+**Deliberately out of scope:** any user-facing command (the guardian is internal
+governance), auto-pruning, LLM-as-judge overlap detection, and generalizing the
+tripwire for users' own projects.
 
 ## Beyond Phase 8 (Parking Lot)
 
