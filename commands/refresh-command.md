@@ -192,6 +192,37 @@ If the maintainer insists on applying an unevidenced edit anyway, that is a
 **contract-degrading** choice: it requires an explicit human decision, is never a
 silent default, and is still recorded in the log as an override.
 
+### Step 4.1a: Pre-Merge Eval Gate
+
+Before writing **any** amendment, run the pre-merge eval gate:
+
+```bash
+bash scripts/eval.sh --check=refresh-evidence
+```
+
+- A non-zero result **rejects** the amendment. Record it under `**Rejected:**`
+  with reason `eval failed`; do not write the diff.
+- Only a clean gate allows Step 4.1 to apply the amendment.
+
+**Structural Tier 2 for high-traffic commands.** When the target is on the
+high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor` —
+the gate additionally runs a lightweight **structural** check on the
+would-be-refreshed command file, reusing existing Tier 1 structural primitives:
+required-sections presence, no new broken refs, length sanity, the
+`commands/_preamble.md` reference intact, and the diff anchored to a real
+section. A structural regression rejects the amendment with reason `eval failed`.
+A target not on the allowlist runs the base evidence check only.
+
+**Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant is
+deliberately **deferred** behind an explicit future decision: research
+(`.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md`) found its cost
+(~$0.15 / ~30s per run) grossly exceeds its value at current scale. Do not
+introduce an LLM judge here — keep Tier 2 a bounded structural reuse of Tier 1.
+
+CI (`.github/workflows/eval.yml`) is the backstop: it runs the same
+`refresh-evidence` check from the registry on every PR and push, so it needs no
+new wiring.
+
 ### Step 4.1: Apply Changes
 
 For each approved **and evidenced** amendment that passed the gate, apply the diff
@@ -257,6 +288,18 @@ If no amendments were proposed (signals were non-actionable or the command is so
 Signals were either non-actionable or the command handled them correctly.
 Logged to .writ/refresh-log.md for reference.
 ```
+
+### Acceptance: two-example proof
+
+The learning loop is proven falsifiable by two real `.writ/refresh-log.md`
+records that must both exist:
+
+1. **One refinement merged with cited transcript evidence** and a clean eval gate.
+2. **One proposal rejected for lacking evidence** (reason `no evidence`).
+
+Together these demonstrate the "kept vs. discarded" decision is auditable — a
+justified edit is applied with its evidence, and an unjustifiable one is visibly
+rejected rather than silently applied.
 
 ---
 

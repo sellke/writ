@@ -359,8 +359,120 @@ def run_base_scenarios() -> None:
     emit("transcript-absent-passes-on-id", ok, reason)
 
 
+# ---------------------------------------------------------------------------
+# Tier 2 structural check + pre-merge gate (Story 3)
+#
+# Tier 2 is deliberately conservative: a lightweight STRUCTURAL reuse of the
+# existing Tier 1 primitives (required-sections, preamble reference, length,
+# diff-anchor), scoped to the high-traffic allowlist. It is NOT an LLM-as-judge.
+# The LLM-judge variant is deferred behind an explicit future decision because
+# research (.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md) found
+# its cost (~$0.15 / ~30s per run) grossly exceeds its value at current scale.
+# ---------------------------------------------------------------------------
+
+_REQUIRED_HEADINGS = (
+    (re.compile(r"^##\s+Overview\s*$", re.MULTILINE), "missing ## Overview"),
+    (re.compile(r"^##\s+(Invocation|Modes)\s*$", re.MULTILINE), "missing ## Invocation/## Modes"),
+    (re.compile(r"^##\s+Command Process\s*$|^##\s+Phase\s+\d+|^##\s+`/", re.MULTILINE),
+     "missing Command Process / phase heading"),
+)
+
+
+def structural_tier2(command_text: str, affected_section: str | None = None,
+                     max_lines: int = 2000) -> tuple[bool, str]:
+    """Bounded structural validation reusing Tier 1 primitives. Not an LLM judge."""
+    for pat, msg in _REQUIRED_HEADINGS:
+        if not pat.search(command_text):
+            return False, f"tier2 structural: {msg}"
+    if "commands/_preamble.md" not in command_text:
+        return False, "tier2 structural: missing commands/_preamble.md reference"
+    if command_text.count("\n") + 1 > max_lines:
+        return False, "tier2 structural: exceeds length limit"
+    if affected_section:
+        anchor = affected_section.strip().strip('"')
+        if anchor and anchor not in command_text:
+            return False, "tier2 structural: diff anchor not found in target file"
+    return True, ""
+
+
+def gate_decision(target_command: str, *, evidenced: bool, eval_passed: bool,
+                  structural_checked: bool, structural_passed: bool = True) -> tuple[bool, str]:
+    """Model the pre-merge gate. Returns (allow, reason). Reject before any write."""
+    if not evidenced:
+        return False, "no evidence"
+    if not eval_passed:
+        return False, "eval failed"
+    if target_command in HIGH_TRAFFIC:
+        if not structural_checked:
+            return False, "eval failed: high-traffic target requires the Tier 2 structural check"
+        if not structural_passed:
+            return False, "eval failed: structural regression in refreshed file"
+    return True, ""
+
+
+def _valid_command_text(anchor: str = "Phase 2: Codebase Scan") -> str:
+    return (
+        "# Some Command\n\n"
+        "## Overview\n\nWhat it does.\n\n"
+        "## Invocation\n\nHow to call it.\n\n"
+        f"## {anchor}\n\nBody that references commands/_preamble.md.\n"
+    )
+
+
+def run_tier2_scenarios() -> None:
+    # The high-traffic allowlist is recognized and complete.
+    emit("high-traffic-allowlist-recognized",
+         set(HIGH_TRAFFIC) == {"create-spec", "implement-story", "ship", "refactor"},
+         HIGH_TRAFFIC)
+
+    # A high-traffic refresh that skips the structural check is rejected.
+    allow, reason = gate_decision("create-spec", evidenced=True, eval_passed=True,
+                                  structural_checked=False)
+    emit("high-traffic-skipping-structural-rejected", (not allow) and "structural" in reason, reason)
+
+    # A non-allowlisted refresh uses the base check only (no structural required).
+    allow, reason = gate_decision("prototype", evidenced=True, eval_passed=True,
+                                  structural_checked=False)
+    emit("non-allowlisted-uses-base-check-only", allow, reason)
+
+    # The gate rejects an unevidenced amendment before any write.
+    allow, reason = gate_decision("prototype", evidenced=False, eval_passed=True,
+                                  structural_checked=True)
+    emit("gate-rejects-unevidenced", (not allow) and reason == "no evidence", reason)
+
+    # The gate rejects an eval-failing amendment.
+    allow, reason = gate_decision("prototype", evidenced=True, eval_passed=False,
+                                  structural_checked=True)
+    emit("gate-rejects-eval-failing", (not allow) and reason == "eval failed", reason)
+
+    # A high-traffic refresh with a clean structural check is allowed.
+    allow, reason = gate_decision("implement-story", evidenced=True, eval_passed=True,
+                                  structural_checked=True, structural_passed=True)
+    emit("high-traffic-structural-pass-allows", allow, reason)
+
+    # A high-traffic refresh with a structural regression is rejected.
+    allow, reason = gate_decision("implement-story", evidenced=True, eval_passed=True,
+                                  structural_checked=True, structural_passed=False)
+    emit("high-traffic-structural-regression-rejected", (not allow) and "structural" in reason, reason)
+
+    # Structural check: an intact refreshed file passes; a bad anchor / missing
+    # required section / missing preamble reference fails.
+    ok, reason = structural_tier2(_valid_command_text(), "Phase 2: Codebase Scan")
+    emit("structural-intact-passes", ok, reason)
+
+    ok, reason = structural_tier2(_valid_command_text(), "Nonexistent Section")
+    emit("structural-bad-anchor-fails", (not ok) and "anchor" in reason, reason)
+
+    ok, reason = structural_tier2(_valid_command_text().replace("commands/_preamble.md", "nope"))
+    emit("structural-missing-preamble-fails", (not ok) and "preamble" in reason, reason)
+
+    ok, reason = structural_tier2(_valid_command_text().replace("## Overview", "## Intro"))
+    emit("structural-missing-required-section-fails", (not ok) and "Overview" in reason, reason)
+
+
 def main() -> int:
     run_base_scenarios()
+    run_tier2_scenarios()
     return 0 if failed == 0 else 1
 
 

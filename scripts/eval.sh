@@ -2191,12 +2191,24 @@ check_refresh_evidence() {
   require_literal "$fake" 'def validate_entry(' "The fixture script must define the refresh-evidence validator."
   require_literal "$fake" 'LEARNING_CONTRACT_SINCE' "The validator must grandfather pre-contract entries by date."
 
+  # Tier 2 (Story 3): the structural gate and allowlist, never an LLM judge.
+  require_literal "$fake" 'def gate_decision(' "The fixture script must model the pre-merge gate decision."
+  require_literal "$fake" 'def structural_tier2(' "The fixture script must model the structural Tier 2 check."
+  require_literal "$fake" 'HIGH_TRAFFIC' "The fixture script must scope Tier 2 to the high-traffic allowlist."
+
   # The command must mandate the structured Evidence block and the rejection path.
   require_literal "$command_file" '**Evidence:**' "refresh-command Phase 3 must mandate a structured Evidence block per amendment."
   require_literal "$command_file" '**Rejected:**' "refresh-command Phase 4 must record rejected candidates."
   require_literal "$command_file" 'no evidence' "refresh-command must reject unevidenced proposals with reason 'no evidence'."
   require_literal "$command_file" 'eval failed' "refresh-command must reject eval-failing proposals with reason 'eval failed'."
   require_literal "$command_file" 'verbatim private transcript bodies' "refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy)."
+
+  # Story 3: the command must wire the pre-merge gate, the Tier 2 allowlist, the
+  # structural-not-LLM boundary, and document the two-example acceptance.
+  require_literal "$command_file" 'bash scripts/eval.sh --check=refresh-evidence' "refresh-command Phase 4 must run the pre-merge eval gate."
+  require_literal "$command_file" 'high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor`' "refresh-command must scope Tier 2 to the high-traffic allowlist."
+  require_literal "$command_file" 'structural only — not an LLM-as-judge' "refresh-command must keep Tier 2 structural and defer the LLM-judge variant."
+  require_literal "$command_file" 'rejected for lacking evidence' "refresh-command must document the two-example acceptance (merged + rejected)."
 
   # The log-format doc must describe the same enforced contract.
   require_literal "$log_format" '**Evidence:**' "The refresh-log format must document the mandatory Evidence block."

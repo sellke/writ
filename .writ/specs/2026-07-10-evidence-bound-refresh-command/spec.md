@@ -1,6 +1,6 @@
 # Evidence-Bound /refresh-command
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-07-10
 > **Owner:** @AdamSellke
 > **Phase:** 7 — Compounding Layer
@@ -253,14 +253,14 @@ This repository has no application test suite. Verification is fixture- and scri
 
 ## Deliverables
 
-- [ ] `commands/refresh-command.md` Phase 3 mandates a structured Evidence citation per amendment
-- [ ] Unevidenced and eval-failing proposals are rejected and recorded with a reason
-- [ ] Evidence citations carry IDs + short observable signals only — never chain-of-thought or verbatim private bodies
-- [ ] `scripts/eval-refresh-evidence.py` validates evidenced/unevidenced/private-content/no-op/rejection/grandfathered cases
-- [ ] `refresh-evidence` registered in `scripts/eval.sh` (one appended check function + one registry line)
-- [ ] `.github/workflows/eval.yml` runs the new check with no change (verified and noted)
-- [ ] `.writ/docs/refresh-log-format.md`, `commands/status.md`, and `README.md` describe the actual behavior
-- [ ] Pre-merge eval gate wired into the command's Apply phase
-- [ ] Lightweight structural Tier 2 scoped to the high-traffic allowlist; LLM-judge explicitly deferred
-- [ ] Two real acceptance entries in `.writ/refresh-log.md` (one merged-with-evidence, one rejected-for-lacking-evidence)
-- [ ] `bash scripts/eval.sh` and `bash scripts/gen-skill.sh --check` remain clean
+- [x] `commands/refresh-command.md` Phase 3 mandates a structured Evidence citation per amendment
+- [x] Unevidenced and eval-failing proposals are rejected and recorded with a reason
+- [x] Evidence citations carry IDs + short observable signals only — never chain-of-thought or verbatim private bodies
+- [x] `scripts/eval-refresh-evidence.py` validates evidenced/unevidenced/private-content/no-op/rejection/grandfathered cases
+- [x] `refresh-evidence` registered in `scripts/eval.sh` (one appended check function + one registry line)
+- [x] `.github/workflows/eval.yml` runs the new check with no change (verified and noted)
+- [x] `.writ/docs/refresh-log-format.md`, `commands/status.md`, and `README.md` describe the actual behavior
+- [x] Pre-merge eval gate wired into the command's Apply phase
+- [x] Lightweight structural Tier 2 scoped to the high-traffic allowlist; LLM-judge explicitly deferred
+- [x] Two real acceptance entries in `.writ/refresh-log.md` (one merged-with-evidence, one rejected-for-lacking-evidence)
+- [x] `bash scripts/eval.sh` and `bash scripts/gen-skill.sh --check` remain clean
