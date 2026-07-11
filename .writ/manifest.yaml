@@ -245,6 +245,11 @@ skills:
     description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."
     status: candidate
     tags: [spec, error-handling, review]
+  - name: gbrain-interop
+    file: skills/gbrain-interop/SKILL.md
+    description: "Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy."
+    status: candidate
+    tags: [memory, retrieval, interop]
   - name: safe-refactor-loop
     file: skills/safe-refactor-loop/SKILL.md
     description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."
