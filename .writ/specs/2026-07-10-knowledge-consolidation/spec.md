@@ -1,6 +1,6 @@
 # Phase 7: Knowledge Consolidation
 
-> **Status:** Not Started
+> **Status:** Implemented — mechanism complete; roadmap real-entry criterion (Success Criterion 8) pending a genuine real-ledger duplicate. The real ledger currently yields an honest no-op, so no real entries were force-merged.
 > **Created:** 2026-07-10
 > **Owner:** @AdamSellke
 > **Phase:** 7 — Compounding Layer
@@ -261,12 +261,12 @@ This repository has no application test suite. Verification is script and fixtur
 
 ## Deliverables
 
-- [ ] `scripts/knowledge-consolidate.py` detects duplicates, contradictions, and stale entries across all four categories
-- [ ] Reducer defaults to dry-run and emits a reviewable preview diff; `--apply` writes approved changes
-- [ ] Merges write bidirectional `replaces` / `superseded_by` lineage with tombstones
-- [ ] `/knowledge --consolidate` Step-2 routing presents proposals and gates writes on human approval
-- [ ] Contradictions surfaced for review, never auto-resolved; stale flagged on observable signal only
-- [ ] `.writ/knowledge/README.md` documents lineage frontmatter and the consolidation workflow
-- [ ] `scripts/eval-knowledge-consolidate.py` scenarios pass and are registered in `scripts/eval.sh`
-- [ ] Optional `/retro` advisory hook nudges toward consolidation without mutating the ledger
-- [ ] A real-ledger consolidation pass produces a reviewable PR diff (roadmap criterion) before Complete
+- [x] `scripts/knowledge-consolidate.py` detects duplicates, contradictions, and stale entries across all four categories
+- [x] Reducer defaults to dry-run and emits a reviewable preview diff; `--apply` writes approved changes
+- [x] Merges write bidirectional `replaces` / `superseded_by` lineage with tombstones
+- [x] `/knowledge --consolidate` Step-2 routing presents proposals and gates writes on human approval
+- [x] Contradictions surfaced for review, never auto-resolved; stale flagged on observable signal only
+- [x] `.writ/knowledge/README.md` documents lineage frontmatter and the consolidation workflow
+- [x] `scripts/eval-knowledge-consolidate.py` scenarios pass and are registered in `scripts/eval.sh`
+- [x] Optional `/retro` advisory hook nudges toward consolidation without mutating the ledger
+- [ ] A real-ledger consolidation pass produces a reviewable PR diff (roadmap criterion) before Complete — **pending:** the mechanism produces a reviewable dry-run against the real ledger, but the current 7 entries yield an honest no-op (no genuine duplicate/contradiction/stale). Awaits a real qualifying duplicate; not force-merged.

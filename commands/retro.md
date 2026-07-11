@@ -101,6 +101,31 @@ If `.writ/` exists, collect additional context. **Gracefully skip any artifact t
 
 If no `.writ/` directory exists, note it and proceed — git metrics, sessions, and streaks still provide a complete retro.
 
+### Step 5.5: Knowledge Consolidation Nudge (read-only, opt-in)
+
+`/retro` is a reporting command, so this step is **read-only**: it may print a suggestion but **mutates no knowledge file** and never runs consolidation automatically. Auto-consolidation here would violate the non-destructive-by-default contract.
+
+**Skip gracefully** when `.writ/knowledge/` is absent or empty — print nothing and move on. No error.
+
+When the ledger is present, check for a cheap, observable **growth signal**:
+
+- Entry count across `.writ/knowledge/{decisions,conventions,glossary,lessons}/` crosses a maintenance threshold (roughly 20+ entries), **or**
+- A cheap dry-run reports pending consolidation candidates. The reducer is inexpensive and non-destructive:
+
+```bash
+python3 scripts/knowledge-consolidate.py --json
+```
+
+If that dry-run reports any `merges`, `contradictions`, or `stale` findings (a non-`noop` result), a growth signal is present. The dry-run writes nothing.
+
+When a growth signal is present, print a one-line advisory nudge, for example:
+
+```
+Knowledge ledger has pending consolidation candidates — consider running `/knowledge --consolidate` to review merges before the ledger drifts toward a junk drawer.
+```
+
+When no growth signal is present (small ledger, clean dry-run) or a signal check errors, skip silently — never block or slow the retro. This hook is opt-in guidance only.
+
 ### Step 6: Scope to Spec (`--spec` flag)
 
 When `--spec [path]` is provided, override the default period with the spec's lifetime: extract the created date from `spec.md`, use completion date as end boundary (or today if in-progress). All git metrics, sessions, and streaks use this scoped period.

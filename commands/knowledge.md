@@ -80,7 +80,7 @@ Consolidation is a **gated write** mode. Its default behavior is read-only (dry-
    python3 scripts/knowledge-consolidate.py --apply
    ```
 
-   This writes the canonical entry with `replaces: [...]` and rewrites each merged-away entry into a tombstone carrying `superseded_by: <canonical-slug>` (glossary terms are always tombstoned, never deleted). Report the exact files changed and the lineage recorded. The command does **not** commit; it leaves a reviewable working-tree diff for the human to inspect and PR.
+   This writes the canonical entry with `replaces: [...]` and rewrites each merged-away entry into a tombstone carrying `superseded_by: <canonical-slug>` (glossary terms are always tombstoned, never deleted). Report the exact files changed and the lineage recorded. The command does not commit — it leaves a reviewable working-tree diff for the human to inspect and PR.
 
 5. Contradiction pairs and stale flags are advisory. Applying merges never resolves a contradiction or retires a stale entry; those remain for an explicit, separate human decision.
 
