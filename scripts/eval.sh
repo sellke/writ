@@ -37,6 +37,7 @@ CHECKS=(
   phase-health
   ralph-retirement
   skill-lifecycle
+  refresh-evidence
 )
 
 TOTAL_FINDINGS=0
@@ -2160,6 +2161,48 @@ check_skill_lifecycle() {
   require_literal "$skills_doc" 'Skill Lifecycle' "The skills doc must document the lifecycle."
   require_literal "$skills_doc" 'earned from evidence' "The skills doc must explain earned-state semantics."
   require_literal "$skills_doc" 'type: promotion' "The skills doc must document the promotion evidence type."
+}
+
+check_refresh_evidence() {
+  local fake="$PROJECT_ROOT/scripts/eval-refresh-evidence.py"
+  local command_file="$PROJECT_ROOT/commands/refresh-command.md"
+  local log_format="$PROJECT_ROOT/.writ/docs/refresh-log-format.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "refresh-evidence:$scenario_name" "$scenario_reason" "Fix the evidence validator in scripts/eval-refresh-evidence.py or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The validator must define the parser and the grandfathering boundary.
+  require_literal "$fake" 'def validate_entry(' "The fixture script must define the refresh-evidence validator."
+  require_literal "$fake" 'LEARNING_CONTRACT_SINCE' "The validator must grandfather pre-contract entries by date."
+
+  # The command must mandate the structured Evidence block and the rejection path.
+  require_literal "$command_file" '**Evidence:**' "refresh-command Phase 3 must mandate a structured Evidence block per amendment."
+  require_literal "$command_file" '**Rejected:**' "refresh-command Phase 4 must record rejected candidates."
+  require_literal "$command_file" 'no evidence' "refresh-command must reject unevidenced proposals with reason 'no evidence'."
+  require_literal "$command_file" 'eval failed' "refresh-command must reject eval-failing proposals with reason 'eval failed'."
+  require_literal "$command_file" 'verbatim private transcript bodies' "refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy)."
+
+  # The log-format doc must describe the same enforced contract.
+  require_literal "$log_format" '**Evidence:**' "The refresh-log format must document the mandatory Evidence block."
+  require_literal "$log_format" 'LEARNING_CONTRACT_SINCE' "The refresh-log format must document grandfathering."
+  require_literal "$log_format" 'no evidence' "The refresh-log format must document the 'no evidence' rejection reason."
+  require_literal "$log_format" 'eval failed' "The refresh-log format must document the 'eval failed' rejection reason."
 }
 
 run_check() {
