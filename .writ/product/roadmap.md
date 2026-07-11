@@ -115,6 +115,33 @@
 
 ---
 
+## Self-Governance: Leanness Guardian — ✅ Shipped (2026-07-11)
+
+**Dogfooding-only — does not ship to users.** Writ's value proposition *is*
+leanness ("keep the harness light… delegate the mechanics"), so bloat is an
+existential threat, not cosmetic debt. Before this, that discipline was enforced
+only culturally (Design Principles #1/#4 and the maintainer's prune instinct that
+retired `/audit`, `/lessons`, Ralph, `/explain-code`). The guardian makes it
+systematic. Per [ADR-015](../decision-records/adr-015-leanness-self-governance.md).
+
+- [x] **Tier A — leanness tripwire** `Effort: S` — `scripts/eval.sh --check=leanness`
+  (backed by `scripts/eval-leanness.py`) measures aggregate command weight and
+  cross-registry parity that nothing else covered: README `## Commands` table ↔
+  `commands/*.md` (bidirectional) and the `/status` allowlist → files
+  (phantom-only — the allowlist is a curated suggestion subset, see DEV-001).
+  Registry drift hard-FAILs; count/weight growth warns non-blockingly against
+  `.writ/leanness-baseline.json` (seeded 31/7/6, 10,659 lines). Defers manifest
+  parity, per-file length, and skill boundary to their existing owners.
+- [x] **Tier B — audit ritual** `Effort: XS` — `.writ/docs/leanness-audit-format.md`
+  re-applies the "does the harness do this natively now?" test on a cadence
+  (per-phase-close or quarterly, never per-release) and routes prune candidates
+  to ADR/roadmap/issues. Recommends, never deletes. First dated audit:
+  `.writ/docs/leanness-audit-2026-07-11.md`.
+
+**Deliberately out of scope:** any user-facing command (the guardian is internal
+governance), auto-pruning, LLM-as-judge overlap detection, and generalizing the
+tripwire for users' own projects.
+
 ## Beyond Phase 8 (Parking Lot)
 
 **Kept as candidates:**
