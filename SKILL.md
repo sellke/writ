@@ -128,9 +128,9 @@ Story 5-owned.
 
 ## Available Skills
 
-| Skill | File | Description |
-|-------|------|-------------|
-| `conventional-commits` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
+| Skill | Status | File | Description |
+|-------|--------|------|-------------|
+| `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
 
 ## Platform Adapters
 

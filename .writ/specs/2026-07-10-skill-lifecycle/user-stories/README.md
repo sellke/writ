@@ -1,8 +1,8 @@
 # Skill Lifecycle — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** Not Started
-> **Progress:** 13/20 implementation tasks (65%)
+> **Status:** Complete
+> **Progress:** 20/20 implementation tasks (100%)
 > **Cross-Spec Dependencies:** None (this spec is the foundation for `2026-07-10-skill-extraction`)
 
 ## Story Summary
@@ -11,7 +11,7 @@
 |---|---|---|---|---|---:|
 | 1 | [Skill Lifecycle Schema + ADR](story-1-skill-lifecycle-schema-and-adr.md) | High | None | Completed ✅ | 6/6 |
 | 2 | [Lifecycle Hygiene Lint](story-2-lifecycle-hygiene-lint.md) | High | Story 1 | Completed ✅ | 7/7 |
-| 3 | [Authoring + Catalog Wiring](story-3-authoring-and-catalog-wiring.md) | Medium | Stories 1, 2 | Not Started | 0/7 |
+| 3 | [Authoring + Catalog Wiring](story-3-authoring-and-catalog-wiring.md) | Medium | Stories 1, 2 | Completed ✅ | 7/7 |
 
 ## Dependency Plan
 

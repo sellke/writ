@@ -139,6 +139,94 @@ The harness pre-loads each named skill before the consumer's first phase begins.
 
 ---
 
+## Skill Lifecycle
+
+Every Writ-authored skill carries a required `status:` frontmatter field that
+records how mature it is. Maturity is **earned from evidence**, not asserted:
+the lint (`scripts/lint-skill.sh`) proves the declared state from the evidence
+present in the same frontmatter — one file, no git history, no network. This is
+the orthogonal lifecycle axis added on top of ADR-009's classification; see
+[ADR-014](../decision-records/adr-014-skill-lifecycle.md) for the full rationale.
+
+### The three states
+
+| State | Evidence bar | Meaning |
+|---|---|---|
+| `candidate` | 0+ evidence entries (none required) | Provisional; the born state from `/new-skill` |
+| `proven` | ≥3 well-formed evidence entries | In real use across consumers |
+| `promoted` | `proven` bar **and** ≥1 entry with `type: promotion` | A consumer structurally depends on it (declared in `required_skills:`) |
+
+The ladder is **monotone** — each state's evidence bar is a strict superset of
+the one below — so a valid higher state statically implies the lower bars were
+met. `candidate → promoted` skipping is unrepresentable. The three-entry
+threshold ports GStack's "active after three successes" model. Demotion
+(`proven → candidate`) is a manual maintainer edit the lint does not police; the
+lint only ever proves the *current* declared state is earned.
+
+### Evidence schema
+
+Non-`candidate` states carry an `evidence:` block — a YAML list where each entry
+has all four fields:
+
+| Field | Format | Meaning |
+|---|---|---|
+| `date` | `YYYY-MM-DD` | When the evidence was recorded |
+| `type` | `usage \| transcript \| eval \| promotion` | Class of evidence |
+| `ref` | repo-relative path or transcript UUID | Pointer to the evidence |
+| `note` | one line | Human-readable justification |
+
+`type` semantics: `usage` = a consumer command or agent wields the skill;
+`transcript` = a recorded agent-transcript UUID shows a successful application;
+`eval` = a passing eval check exercises the skill; `type: promotion` = a
+consumer declares the skill in its `required_skills:` frontmatter. The lint
+validates *shape and thresholds only* — it never verifies that a cited path or
+UUID is genuine.
+
+### Worked example
+
+`conventional-commits` ships at `status: proven` — used by `/ship`, `/release`,
+and `coding-agent`:
+
+```yaml
+---
+name: conventional-commits
+description: "Write Conventional Commits messages ..."
+disable-model-invocation: true
+status: proven
+evidence:
+  - date: 2026-05-06
+    type: usage
+    ref: commands/ship.md
+    note: "Cited as the commit-message authority in /ship's commit phase."
+  - date: 2026-05-12
+    type: usage
+    ref: commands/release.md
+    note: "Release changelog grouping consumes the type vocabulary."
+  - date: 2026-06-01
+    type: usage
+    ref: agents/coding-agent.md
+    note: "coding-agent authors story commits through this skill."
+---
+```
+
+Were a consumer to add `conventional-commits` to its `required_skills:`, the
+author would record a fourth entry with `type: promotion` and edit
+`status: promoted`. The lint would confirm the promotion record exists.
+
+### Where status lives
+
+`status:` is duplicated in two places, exactly like `description:`:
+
+- **`skills/<name>/SKILL.md` frontmatter** — authoritative; the lint validates it.
+- **`.writ/manifest.yaml` skills entry** — a render mirror for the catalog's
+  `Status` column. A missing manifest `status:` renders as `candidate`.
+
+The lifecycle findings surface through the same `scripts/lint-skill.sh` that
+`/new-skill` runs at authoring time and `/refresh-command --lint-skills` runs at
+review time — one validator, identical rules everywhere.
+
+---
+
 ## Authoring a Skill
 
 Use `/new-skill <name>` to scaffold a new skill. The command:
@@ -146,7 +234,7 @@ Use `/new-skill <name>` to scaffold a new skill. The command:
 1. Validates the name (kebab-case, unique across all primitives).
 2. Coaches you toward verb-phrase descriptions (showing examples of role-shape and workflow-shape phrasings to avoid).
 3. Runs `scripts/lint-skill.sh` against the captured frontmatter — re-prompts on rejection, never writes a half-shaped skill.
-4. Generates `skills/<name>/SKILL.md` with `disable-model-invocation: true` and the standard sections.
+4. Generates `skills/<name>/SKILL.md` with `disable-model-invocation: true`, `status: candidate` (the born lifecycle state), and the standard sections.
 5. Appends a `skills:` entry to `.writ/manifest.yaml` (alphabetical).
 6. Regenerates the root `SKILL.md` catalog via `scripts/gen-skill.sh`.
 
