@@ -1,16 +1,16 @@
 # Phase 8: Native-Memory Guidance Per Adapter — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** Not Started
-> **Progress:** 0/2 stories
+> **Status:** Completed ✅
+> **Progress:** 2/2 stories
 > **Dependencies:** [2026-07-11-gbrain-compatibility-recipe] (references its skill/recipe; asserts them in the eval check)
 
 ## Story Summary
 
 | # | Story | Priority | Dependencies | Status | Tasks |
 |---|---|---|---|---|---:|
-| 1 | [Per-adapter native-memory guidance + mission sweep](story-1-adapter-guidance.md) | High | None (within spec) | Not Started | 0/6 |
-| 2 | [`memory-interop` eval check + registration](story-2-eval-check.md) | High | Story 1 + sibling spec | Not Started | 0/4 |
+| 1 | [Per-adapter native-memory guidance + mission sweep](story-1-adapter-guidance.md) | High | None (within spec) | Completed ✅ | 6/6 |
+| 2 | [`memory-interop` eval check + registration](story-2-eval-check.md) | High | Story 1 + sibling spec | Completed ✅ | 4/4 |
 
 ## Dependency Plan
 
