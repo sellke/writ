@@ -1,17 +1,17 @@
 # Evidence-Bound /refresh-command — User Stories
 
 > **Spec:** [`../spec.md`](../spec.md)
-> **Status:** Not Started
-> **Progress:** 0/21 implementation tasks (0%)
+> **Status:** Complete
+> **Progress:** 21/21 implementation tasks (100%)
 > **Dependencies:** [] (independent — eval Tier 1 already exists)
 
 ## Story Summary
 
 | # | Story | Priority | Dependencies | Status | Tasks |
 |---|---|---|---|---|---:|
-| 1 | [Evidence-Citation Contract and Drift Reconciliation](story-1-evidence-citation-contract-and-drift-reconciliation.md) | High | None | Not Started | 0/7 |
-| 2 | [Refresh-Evidence Eval Check](story-2-refresh-evidence-eval-check.md) | High | Story 1 | Not Started | 0/7 |
-| 3 | [Lightweight Tier 2 and Merge Gate](story-3-lightweight-tier2-and-merge-gate.md) | Medium | Stories 1, 2 | Not Started | 0/7 |
+| 1 | [Evidence-Citation Contract and Drift Reconciliation](story-1-evidence-citation-contract-and-drift-reconciliation.md) | High | None | Completed ✅ | 7/7 |
+| 2 | [Refresh-Evidence Eval Check](story-2-refresh-evidence-eval-check.md) | High | Story 1 | Completed ✅ | 7/7 |
+| 3 | [Lightweight Tier 2 and Merge Gate](story-3-lightweight-tier2-and-merge-gate.md) | Medium | Stories 1, 2 | Completed ✅ | 7/7 |
 
 ## Dependency Plan
 

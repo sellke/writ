@@ -37,6 +37,7 @@ CHECKS=(
   phase-health
   ralph-retirement
   skill-lifecycle
+  refresh-evidence
 )
 
 TOTAL_FINDINGS=0
@@ -2160,6 +2161,60 @@ check_skill_lifecycle() {
   require_literal "$skills_doc" 'Skill Lifecycle' "The skills doc must document the lifecycle."
   require_literal "$skills_doc" 'earned from evidence' "The skills doc must explain earned-state semantics."
   require_literal "$skills_doc" 'type: promotion' "The skills doc must document the promotion evidence type."
+}
+
+check_refresh_evidence() {
+  local fake="$PROJECT_ROOT/scripts/eval-refresh-evidence.py"
+  local command_file="$PROJECT_ROOT/commands/refresh-command.md"
+  local log_format="$PROJECT_ROOT/.writ/docs/refresh-log-format.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "refresh-evidence:$scenario_name" "$scenario_reason" "Fix the evidence validator in scripts/eval-refresh-evidence.py or the fixture expectation."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The validator must define the parser and the grandfathering boundary.
+  require_literal "$fake" 'def validate_entry(' "The fixture script must define the refresh-evidence validator."
+  require_literal "$fake" 'LEARNING_CONTRACT_SINCE' "The validator must grandfather pre-contract entries by date."
+
+  # Tier 2 (Story 3): the structural gate and allowlist, never an LLM judge.
+  require_literal "$fake" 'def gate_decision(' "The fixture script must model the pre-merge gate decision."
+  require_literal "$fake" 'def structural_tier2(' "The fixture script must model the structural Tier 2 check."
+  require_literal "$fake" 'HIGH_TRAFFIC' "The fixture script must scope Tier 2 to the high-traffic allowlist."
+
+  # The command must mandate the structured Evidence block and the rejection path.
+  require_literal "$command_file" '**Evidence:**' "refresh-command Phase 3 must mandate a structured Evidence block per amendment."
+  require_literal "$command_file" '**Rejected:**' "refresh-command Phase 4 must record rejected candidates."
+  require_literal "$command_file" 'no evidence' "refresh-command must reject unevidenced proposals with reason 'no evidence'."
+  require_literal "$command_file" 'eval failed' "refresh-command must reject eval-failing proposals with reason 'eval failed'."
+  require_literal "$command_file" 'verbatim private transcript bodies' "refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy)."
+
+  # Story 3: the command must wire the pre-merge gate, the Tier 2 allowlist, the
+  # structural-not-LLM boundary, and document the two-example acceptance.
+  require_literal "$command_file" 'bash scripts/eval.sh --check=refresh-evidence' "refresh-command Phase 4 must run the pre-merge eval gate."
+  require_literal "$command_file" 'high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor`' "refresh-command must scope Tier 2 to the high-traffic allowlist."
+  require_literal "$command_file" 'structural only — not an LLM-as-judge' "refresh-command must keep Tier 2 structural and defer the LLM-judge variant."
+  require_literal "$command_file" 'rejected for lacking evidence' "refresh-command must document the two-example acceptance (merged + rejected)."
+
+  # The log-format doc must describe the same enforced contract.
+  require_literal "$log_format" '**Evidence:**' "The refresh-log format must document the mandatory Evidence block."
+  require_literal "$log_format" 'LEARNING_CONTRACT_SINCE' "The refresh-log format must document grandfathering."
+  require_literal "$log_format" 'no evidence' "The refresh-log format must document the 'no evidence' rejection reason."
+  require_literal "$log_format" 'eval failed' "The refresh-log format must document the 'eval failed' rejection reason."
 }
 
 run_check() {
