@@ -930,6 +930,11 @@ def emit(name, ok, reason=""):
     safe_reason = "" if ok else str(reason).replace("\t", " ").replace("\r", " ").replace("\n", "\\n")
     print(("PASS" if ok else "FAIL") + "\t" + name + "\t" + safe_reason)
 
+def beat(msg):
+    # Progress heartbeat to stderr so a slow run is visibly progressing.
+    # stdout is reserved for scenario TSV, so this never pollutes parsing.
+    print(f"[recommended-spec-impl] {msg}", file=sys.stderr, flush=True)
+
 def command(args, cwd=None, check=True):
     result = subprocess.run(args, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if check and result.returncode:
@@ -950,8 +955,14 @@ def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
 
-def fixture(name):
-    repo = workspace / name / "repo"
+_fixture_template = None
+
+def _build_fixture_template():
+    # Build the git-backed fixture repo exactly once, then copytree it per
+    # fixture() call. Fixtures are byte-identical, so this trades ~5 git spawns
+    # per call for a single filesystem copy — the dominant repeated-spawn cost.
+    beat("building fixture template (one-time git repo)")
+    repo = workspace / "_fixture-template" / "repo"
     repo.mkdir(parents=True)
     command(["git", "init", "-b", "main"], cwd=repo)
     command(["git", "config", "user.name", "Writ Eval"], cwd=repo)
@@ -1006,6 +1017,16 @@ def fixture(name):
 """)
     command(["git", "add", "."], cwd=repo)
     command(["git", "commit", "-m", "fixture"], cwd=repo)
+    return repo
+
+
+def fixture(name):
+    global _fixture_template
+    if _fixture_template is None:
+        _fixture_template = _build_fixture_template()
+    repo = workspace / name / "repo"
+    repo.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(_fixture_template, repo)
     return repo, pathlib.Path(".writ/specs/2026-07-10-fixture")
 
 def start(repo, spec, suffix, entry="implement-spec", invocation=None):
@@ -1478,6 +1499,7 @@ try:
     emit("operational-exception-is-blocked-json", result.returncode != 0 and payload.get("status") == "blocked" and payload.get("blocker", {}).get("code"), str(payload))
 
     project = helper.parent.parent
+    beat("sandbox: building source repo (one-time)")
     source = workspace / "update-source"
     shutil.copytree(
         project,
@@ -1496,6 +1518,7 @@ try:
     command(["git", "commit", "-m", "sandbox source"], cwd=source)
 
     for platform in ("cursor", "claude", "codex"):
+        beat(f"sandbox: {platform} (install/update/unlink)")
         target = workspace / f"install-{platform}"
         target.mkdir()
         dry = command(

@@ -54,17 +54,34 @@ def canonical_digest(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+_BARE_TEMPLATE = None
+
+
+def _bare_repo_template() -> pathlib.Path:
+    # Init the git repo (init + 2x config) exactly once, then copytree it per
+    # fixture() call. Fixture file contents vary per scenario, but the git
+    # scaffolding is identical — so we pay 3 git spawns total instead of 3 per
+    # fixture, while each fixture still makes its own content commit.
+    global _BARE_TEMPLATE
+    if _BARE_TEMPLATE is None:
+        template = WORKSPACE / "_bare-template" / "repo"
+        template.mkdir(parents=True)
+        for args in (
+            ["git", "init", "-b", "main"],
+            ["git", "config", "user.name", "Writ Eval"],
+            ["git", "config", "user.email", "eval@example.invalid"],
+        ):
+            result = command(args, template)
+            if result.returncode:
+                raise RuntimeError(result.stderr)
+        _BARE_TEMPLATE = template
+    return _BARE_TEMPLATE
+
+
 def fixture(name: str, *, baseline_story_1: bool = False, totals: bool = True) -> tuple[pathlib.Path, pathlib.Path]:
     repo = WORKSPACE / name / "repo"
-    repo.mkdir(parents=True)
-    for args in (
-        ["git", "init", "-b", "main"],
-        ["git", "config", "user.name", "Writ Eval"],
-        ["git", "config", "user.email", "eval@example.invalid"],
-    ):
-        result = command(args, repo)
-        if result.returncode:
-            raise RuntimeError(result.stderr)
+    repo.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(_bare_repo_template(), repo)
     spec = pathlib.Path(".writ/specs/2026-07-10-fixture")
     root = repo / spec
     write(repo / ".gitignore", ".writ/state/\n")
@@ -377,6 +394,7 @@ def expect_block(
 
 
 try:
+    print("[recommended-spec-impl] adversarial suite (state-reducer scenarios)", file=sys.stderr, flush=True)
     repo, spec = fixture("fabricated-completion")
     state = start(repo, spec, "fabricated-completion")
     value = json.loads(state.read_text())
