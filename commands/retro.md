@@ -142,16 +142,21 @@ When `.writ/product/` is present, check for a **cheap, observable drift signal**
 - A `roadmap.md` phase marked complete/shipped (`✅`, "Complete", "Shipped",
   "IMPLEMENTED") whose surrounding status date is **after** `mission.md`'s
   `Last Updated`, **or**
-- A `mission.md` Key-Features phase label ("(next)" / planned / upcoming) that
-  **contradicts** that phase's status in `roadmap.md` (roadmap says shipped, mission
-  still frames it as upcoming).
+- A phase whose status label **disagrees between** `mission.md`'s Key Features and
+  `roadmap.md`, in **either direction** (same bidirectional test as `/verify-spec`
+  Check P1 — do not narrow it to one side):
+  - roadmap says shipped/complete but mission still frames the phase as
+    "(next)" / planned / upcoming, **or**
+  - mission says shipped/implemented (e.g. "✅ shipped", "implemented — pending
+    validation") but roadmap still frames the phase as "next" / planned.
 
-When a signal is present, print a one-line advisory pointing to the two remedies:
+When a signal is present, print a one-line advisory pointing to the two remedies
+(name whichever side is ahead so the direction is clear):
 
 ```
-Product docs may be drifting — roadmap shows Phase N complete but mission still
-frames it as upcoming. Consider `/verify-spec --product` to see the drift, or
-`/plan-product --reconcile` to revise.
+Product docs may be drifting — mission and roadmap disagree on Phase N's status
+(one marks it shipped, the other still frames it as upcoming). Consider
+`/verify-spec --product` to see the drift, or `/plan-product --reconcile` to revise.
 ```
 
 When no signal is present (mission and roadmap agree, dates consistent) or the
