@@ -40,6 +40,7 @@ CHECKS=(
   refresh-evidence
   knowledge-consolidate
   memory-interop
+  leanness
 )
 
 TOTAL_FINDINGS=0
@@ -47,6 +48,8 @@ RUN_ERRORS=0
 CURRENT_CHECK=""
 CURRENT_FINDINGS=0
 CHECK_TMP=""
+CURRENT_NOTES=0
+NOTE_TMP=""
 CURRENT_SCENARIOS=0
 CURRENT_SCENARIOS_PASSED=0
 CURRENT_STATIC_ASSERTIONS=0
@@ -129,6 +132,14 @@ add_finding() {
 
 add_detail() {
   printf "%s\n" "$1" >> "$CHECK_TMP"
+}
+
+# Non-blocking note/warning: shown in the report even when the check PASSes, and
+# never increments findings (so warn-only checks stay exit 0). Used by
+# check_leanness for aggregate-weight warnings and the metrics summary.
+add_note() {
+  CURRENT_NOTES=$((CURRENT_NOTES + 1))
+  printf -- '- %s\n' "$1" >> "$NOTE_TMP"
 }
 
 file_has_exemption() {
@@ -2318,17 +2329,75 @@ check_knowledge_consolidate() {
   require_literal "$readme" 'merge, never append' "The knowledge README must state the merge-never-append principle."
 }
 
+check_leanness() {
+  # Tier A leanness tripwire (dogfooding-only self-governance). Structural
+  # findings (registry parity, missing baseline) FAIL the run via add_finding;
+  # count/weight growth is surfaced via add_note as non-blocking warnings so the
+  # check stays exit 0. Manifest parity (check_manifest), per-file length
+  # (check_length), and skill boundary (skill-lifecycle) are intentionally NOT
+  # duplicated here.
+  local helper="$PROJECT_ROOT/scripts/eval-leanness.py"
+  local baseline="$PROJECT_ROOT/.writ/leanness-baseline.json"
+  local json tsv kind a b c
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-leanness.py" "leanness helper is missing." "Restore scripts/eval-leanness.py (leanness-guardian spec, Story 1)."
+    return
+  fi
+
+  json="$(mktemp)"
+  if ! python3 "$helper" --root "$PROJECT_ROOT" --baseline "$baseline" > "$json"; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-leanness.py" "leanness helper failed to run." "Run python3 scripts/eval-leanness.py for the traceback."
+    rm -f "$json"
+    return
+  fi
+
+  tsv="$(mktemp)"
+  python3 - "$json" > "$tsv" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1]))
+def clean(value): return str(value).replace("\t", " ").replace("\n", " ")
+for item in data.get("structural", []):
+    print("STRUCT\t%s\t%s\t%s" % (clean(item.get("subject", "")), clean(item.get("what", "")), clean(item.get("fix", ""))))
+for item in data.get("warnings", []):
+    print("WARN\t%s\t%s\t%s" % (clean(item.get("subject", "")), clean(item.get("what", "")), clean(item.get("fix", ""))))
+m = data.get("metrics", {})
+print("METRIC\tcommands=%s agents=%s skills=%s command_lines=%s command_chars=%s" % (
+    m.get("commands"), m.get("agents"), m.get("skills"), m.get("command_lines"), m.get("command_chars")))
+PY
+
+  while IFS=$'\t' read -r kind a b c; do
+    case "$kind" in
+      STRUCT)
+        add_finding "$a" "$b" "$c"
+        ;;
+      WARN)
+        add_note "WARNING [$a]: $b Remediation: $c"
+        ;;
+      METRIC)
+        add_note "Metrics: $a"
+        ;;
+    esac
+  done < "$tsv"
+
+  rm -f "$json" "$tsv"
+}
+
 run_check() {
   local check="$1"
   local func="check_${check//-/_}"
 
   CURRENT_CHECK="$check"
   CURRENT_FINDINGS=0
+  CURRENT_NOTES=0
   CURRENT_SCENARIOS=0
   CURRENT_SCENARIOS_PASSED=0
   CURRENT_STATIC_ASSERTIONS=0
   CURRENT_STATIC_ASSERTIONS_PASSED=0
   CHECK_TMP="$(mktemp)"
+  NOTE_TMP="$(mktemp)"
 
   if ! "$func"; then
     RUN_ERRORS=$((RUN_ERRORS + 1))
@@ -2353,9 +2422,14 @@ run_check() {
     if [ "$CURRENT_STATIC_ASSERTIONS" -gt 0 ]; then
       echo "Supplementary static assertions: $CURRENT_STATIC_ASSERTIONS_PASSED/$CURRENT_STATIC_ASSERTIONS passed"
     fi
+    if [ "$CURRENT_NOTES" -gt 0 ]; then
+      echo ""
+      echo "Notes (non-blocking):"
+      cat "$NOTE_TMP"
+    fi
   } >> "$REPORT_PATH"
 
-  rm -f "$CHECK_TMP"
+  rm -f "$CHECK_TMP" "$NOTE_TMP"
 }
 
 main() {
