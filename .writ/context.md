@@ -12,7 +12,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 - **Status:** Not Started — the only non-terminal spec in `.writ/specs/`
 - **Stories:** 0 of 4 started (Story 1 "Tier Contract + ADR-014" is first)
 - **Tasks:** 0/24 complete
-- **Branch:** main (at v0.21.0)
+- **Branch:** main (at v0.21.1 — housekeeping release: README/status reconciliation + ledger sweep, 2026-07-18)
 
 ## Recent Housekeeping (2026-07-18)
 
