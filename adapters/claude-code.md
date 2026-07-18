@@ -252,88 +252,6 @@ neutral reducer:
   state/git mismatch it reports the discrepancy and recovery command without
   mutating git.
 
-### Recommended Delivery Context and Resume
-
-The parent Claude Code session carries `delivery_context` through command and
-agent calls and normalizes each nested response to
-`recommend-command-result-v1`. Preserve execution ID, canonical state/spec
-paths, recommend mode, non-secret propagation token, parent command, return
-schema, and package manifest digest. Worktree subagents do not create a second
-delivery execution or independently terminate recommended delivery; the
-implement-spec parent may wrap their ordinary structured report.
-
-Before yielding for required input, preserve stable question and option IDs,
-recommend mode, and the exact resume transition. Durable resume selects an
-explicit execution ID or one unambiguous spec/branch execution, then performs
-repository-only reconciliation in the parent before edits or subagent launch.
-
-State creation is exclusive. Replacement re-reads revision and unknown fields,
-validates the whole next document, writes and flushes a validated sibling
-temporary file where supported, and atomically renames it. If the active Claude
-Code sandbox cannot perform an equivalent crash-safe replacement, stop with a
-classified blocker rather than falling back to truncate-in-place.
-
-Claude Code worktree-isolated subagents must return absolute worktree path, full
-ref/HEAD, story/delegated execution IDs, and ownership token in
-`recommend-worktree-launch-v1` before Gate 1. The parent verifies
-`git worktree list --porcelain`, persists the keyed record through
-`scripts/recommend-state.py reserve-worktree`, and returns
-`recommend-worktree-reservation-ack-v1`; only then may the subagent edit.
-Independent DAG stories may run concurrently when every reservation is unique.
-If isolation or stable identity is unavailable, use one-at-a-time serial
-in-place execution with the repository root/ref/HEAD handshake, or block before
-delegation. A subagent name is not ownership evidence.
-
-Story 3 repository-only reconciliation remains provider-free. Story 4 uses the
-configured provider integration or authenticated `gh`/`gh api`:
-
-- `findPullRequest`/`getPullRequest`: query exact repository, base, and head
-  branch and normalize one open PR with provider ID, number, URL, and full SHA.
-- `createPullRequest`: only after the persisted Pending operation and absent
-  lookup. Derive the key from repository/base/head, persist `authorized`, call
-  `mark-pr-create-attempt` to persist `attempted`, perform at most one `gh pr create`, then observe as
-  `created` or `reconciled`. Repeated absence cannot reauthorize.
-- `listRequiredChecks`: combine branch-protection required contexts/check suites
-  from `gh api` with separately classified configured additive names. Normalize
-  provider/repository/query-time/head, stable provider IDs/names/set digest or
-  explicit provider zero, `authenticated: true`, and the concrete
-  `listRequiredChecks` query-operation ID/start/completion. Never infer
-  authentication from command success; re-query the complete set before advancing.
-  Unavailable, needs-auth, and authorization-denied remain distinct.
-- `findPreview`: read existing deployment/status/check metadata or a configured
-  integration. Existing Vercel metadata is eligible only when `Preview Project`
-  identifies its existing project and the deployment binds to the full PR head
-  SHA. Normalize it as `previewProjectId`; detected IDs remain execution-only
-  and are never auto-saved. Return configured
-  provider/source/repository/project identity plus observable integration ID,
-  provenance kind/time, and full SHA; URL-pattern-only evidence is invalid.
-  Enforce `deployment-status → provider-deployment|provider-status`,
-  `check-output → provider-check`, and
-  `project-convention → project-convention`.
-
-Immediately before approval, return one fresh same-operation envelope binding
-the capability/config snapshot digest, current PR/head, complete reconciled
-check-set digest/IDs/statuses, preview provenance/status, UAT digest, and query
-time. One attempt ID binds UTC RFC3339 observations after presentation/current
-evidence, within configured-or-five-minute freshness and 30-second future skew.
-Persist the stable interaction ID and its bound recommendation entry.
-
-After PR observation, finalize the exact Pending entry with canonical provider
-ID/number/URL, reconcile it, and invoke `finalize-pr-audit` before checks. Never
-advance a later staging transition with any Pending mutation audit.
-
-Normalize evidence into local files and invoke only the explicit reducer
-operations. Persist before waiting; after waits and before approval re-read the
-PR head, full required set, and preview. Render one explicit approve/reject
-question, preserve or generate a stable local event ID only for an explicit
-reply, and persist approval before returning `production_approved`.
-
-No browser automation, preview provisioning, Vercel access bypass,
-`deploy_to_vercel`, merge call, or release operation is permitted in Story 4.
-Authentication/authorization denial is reported once and stops. A platform that
-cannot wait unattended preserves `waiting_ci` or `discovering_preview` and
-instructs explicit resume.
-
 ---
 
 ## Workflow Patterns
@@ -530,10 +448,13 @@ execution lane (branch + worktree), quarantines terminal failures while independ
 specs continue, and reconciles state read-only on resume. Map it to Claude Code as
 the orchestrator session driving one `/implement-spec` worker per lane.
 
-Bounded single-spec autonomy is a separate, explicitly supported path:
-`/implement-spec --recommend <one-spec>` (session-started, one locked spec, finite,
-one SHA-bound production approval). Multi-spec `/implement-phase --recommend` remains
-excluded.
+Recommended autonomy is a separate, explicitly supported path on two commands:
+`/create-spec --recommend` autonomously authors and locks one spec package from
+evidence, then stops (it never implements); `/implement-phase --recommend` runs
+the phase as an end-to-end loop — authoring any missing specs (via
+`/create-spec --recommend`) and implementing the phase's specs through the
+isolated lanes above, ending at the completion report with manual UAT handoff. It
+never merges, opens PRs, or releases.
 
 ---
 

@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-07-11
+> Last Updated: 2026-07-17
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
@@ -41,14 +41,14 @@
 
 ## Phase 6: Autonomy Ceiling — ✅ Complete (2026-07-10)
 
-**Goal:** Harden normal multi-spec `/implement-phase` as a session-bound, single-confirmation orchestrator and retire Ralph. Single-spec recommended delivery is governed by [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md), which supersedes ADR-010's conflicting contract-level gate without extending `--recommend` to phase execution.
+**Goal:** Harden normal multi-spec `/implement-phase` as a session-bound, single-confirmation orchestrator and retire Ralph. Recommended delivery is governed by [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md), which supersedes ADR-010's conflicting contract-level gate. As revised 2026-07-17, `--recommend` extends to `/implement-phase` as the end-to-end loop; autonomous production delivery stays deferred.
 
 **Closure status:** All seven features shipped and verified by eval Tier 1 (`spec-dependencies`, `phase-lanes`, `phase-challenges`, `phase-quarantine`, `phase-knowledge`, `phase-health`, `ralph-retirement`), a disposable multi-spec sandbox UAT, and one real-use User Challenge — see [`acceptance-evidence.md`](../specs/2026-07-09-phase6-autonomy-ceiling/acceptance-evidence.md). Ralph is archived under `archive/ralph/`. **One honest caveat:** the "3+ spec phase runs end-to-end in real use" criterion is proven *mechanically* (sandbox) only — an umbrella spec cannot self-prove it; the first genuine multi-spec `/implement-phase` run (Phase 7 onward) will exercise it live. Not yet released — pending `/release`.
 
 ### Dependencies
 
 - `2026-07-10-recommended-autonomous-delivery` — governance reconciliation and the bounded single-spec delivery policy must land before Phase 6.
-- Multi-spec `/implement-phase --recommend` remains excluded.
+- Multi-spec `/implement-phase --recommend` was excluded at Phase 6 closure; per [ADR-013 (revised 2026-07-17)](../decision-records/adr-013-recommended-autonomous-delivery.md) it is now the supported end-to-end loop, while autonomous **production delivery** stays deferred.
 
 ### Success Criteria
 
@@ -176,6 +176,35 @@ systematic. Per [ADR-015](../decision-records/adr-015-leanness-self-governance.m
 governance), auto-pruning, LLM-as-judge overlap detection, and generalizing the
 tripwire for users' own projects.
 
+## Recommend Redistribution — ✅ Complete (2026-07-17)
+
+**Ships to all Writ users.** Redistributes the `--recommend` capability after
+experience showed a single command carrying one spec all the way through a
+production-approval boundary was the wrong first cut. Per
+[ADR-013 (revised 2026-07-17)](../decision-records/adr-013-recommended-autonomous-delivery.md).
+Spec: `2026-07-17-recommend-redistribution` (all three stories complete; full
+eval suite green).
+
+- [x] **`--recommend` on exactly two commands** — `create-spec --recommend`
+  (autonomously author + lock a validated spec package from evidence, then stop)
+  and `implement-phase --recommend` (end-to-end phase loop that auto-authors
+  missing specs via `create-spec --recommend` and runs `implement-spec` per spec
+  through the isolated-lane flow). Removed from `implement-spec`, `ship`, and
+  `create-uat-plan`; `implement-spec` is now a plain execute command with no
+  confirmation gate and no flag.
+- [x] **Autonomous production delivery deferred** — the staging →
+  production-approval flow is not reached by any current command. Staging
+  machinery (`scripts/recommend-state.py`,
+  `.writ/docs/recommended-delivery-state-format.md`) kept **dormant** as the
+  preserved design for that future "bigger loops" work, not deleted, and still
+  guarded by the eval suite.
+- [x] **Eval falsifiability gate reconciled** — `autonomy-governance`,
+  `recommended-spec-implementation`, and `recommended-staging` assert the
+  two-command policy on active surfaces and guard the dormant machinery.
+
+**Boundary preserved:** both recommended flows end at their normal terminal scope
+— neither merges, opens PRs, nor releases. Production stays a human decision.
+
 ## Beyond Phase 8 (Parking Lot)
 
 **Kept as candidates:**
@@ -187,7 +216,7 @@ tripwire for users' own projects.
 - **Team affordances** (cross-dev drift reconciliation, `/review-spec`, multi-repo orchestration) — trigger: a second human on a shared Writ project. See [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
 
 **Dropped:**
-- **Opaque, unbounded autonomous loops (Ralph successor)** — deliberate non-goal per [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md); bounded single-spec recommended delivery instead uses observable state and one immutable production approval
+- **Opaque, unbounded autonomous loops (Ralph successor)** — deliberate non-goal per [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md); recommended autonomy is confined to evidence-backed spec authoring (`/create-spec --recommend`) and the bounded end-to-end phase loop (`/implement-phase --recommend`), which ends at the completion report and never merges, opens PRs, or releases
 - **`/audit`, `/lessons`, per-story scorecards** — cancelled at Phase 5 closure
 - **Notification integrations, cross-AI parallel coordination, browser daemon** — carried over from prior refresh; still out of scope
 

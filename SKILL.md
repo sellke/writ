@@ -35,11 +35,9 @@ When a user requests any Writ command, read the corresponding command file and f
 
 ## Runtime Contract
 
-Recommended-delivery commands use the authoritative state contract at
-`.writ/docs/recommended-delivery-state-format.md`. Install, update, and unlink manage this file
-alongside the executable reducer. Story 4 activates the same v1 state through
-SHA-bound production approval; merge, release, and overall completion remain
-Story 5-owned.
+The recommended-delivery state contract at `.writ/docs/recommended-delivery-state-format.md` defines
+the resumable state and audit format for `--recommend` execution. Install, update,
+and unlink manage this file alongside its reducer.
 
 ## Available Commands
 
@@ -50,7 +48,7 @@ Story 5-owned.
 | `/assess-spec` | `commands/assess-spec.md` | Analyze a specification for implementability risks before committing to build it. |
 | `/create-adr` | `commands/create-adr.md` | Create architecture decision records with research-backed context. |
 | `/create-issue` | `commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
-| `/create-spec` | `commands/create-spec.md` | Create contract-first specifications; --recommend continues one validated package through staged production approval. |
+| `/create-spec` | `commands/create-spec.md` | Create contract-first specifications; --recommend autonomously authors and locks one package from evidence, then stops (does not implement). |
 | `/design` | `commands/design.md` | Create and compare visual references for Writ specifications. |
 | `/edit-spec` | `commands/edit-spec.md` | Safely modify existing specifications while preserving contract integrity. |
 | `/knowledge` | `commands/knowledge.md` | Capture durable project knowledge as decisions, conventions, glossary terms, or lessons. |
@@ -62,9 +60,9 @@ Story 5-owned.
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/create-uat-plan` | `commands/create-uat-plan.md` | Generate deterministic implementation-derived UAT plans, with optional staged PR/CI/preview evidence. |
-| `/implement-phase` | `commands/implement-phase.md` | Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria. |
-| `/implement-spec` | `commands/implement-spec.md` | Execute dependency-aware story batches; --recommend continues one locked spec through SHA-bound production approval. |
+| `/create-uat-plan` | `commands/create-uat-plan.md` | Generate deterministic implementation-derived UAT plans. |
+| `/implement-phase` | `commands/implement-phase.md` | Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs. |
+| `/implement-spec` | `commands/implement-spec.md` | Execute dependency-aware story batches through the per-story pipeline; explicit execute command with no confirmation gate. |
 | `/implement-story` | `commands/implement-story.md` | Run the full story SDLC pipeline from architecture check through documentation. |
 | `/prototype` | `commands/prototype.md` | Ship small code changes with lightweight scan, coding, and verification. |
 | `/refactor` | `commands/refactor.md` | Perform scoped, verified refactors across files or modules. |
@@ -80,7 +78,7 @@ Story 5-owned.
 | Command | File | Purpose |
 |---------|------|---------|
 | `/release` | `commands/release.md` | Prepare changelog, version bump, git tag, and GitHub release artifacts. |
-| `/ship` | `commands/ship.md` | Take a green branch through commit intelligence and PR creation; recommended delivery requires test evidence. |
+| `/ship` | `commands/ship.md` | Take a green branch through commit intelligence and PR creation. |
 
 ### Security
 

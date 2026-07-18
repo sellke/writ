@@ -8,130 +8,77 @@ Generate comprehensive feature specifications using a contract-first approach th
 
 - `/create-spec` — discover and create a full contract-first spec package
 - `/create-spec --from-prototype` — formalize recent prototype work into a spec with Story 1 already complete
-- `/create-spec --recommend [idea]` — create, lock, validate, and hand one complete spec package to recommended implementation
+- `/create-spec --recommend [idea]` — autonomously author and lock a complete spec package from evidence, then stop (does not implement)
 
-## Entry Branching and Recommended Delivery
+## Recommended Mode (`--recommend`)
 
-Parse `--recommend` exactly once at command entry. Store the result as
-`recommend_mode`; nested commands receive `delivery_context` and never reparse
-the original argument string.
+Parse `--recommend` exactly once at command entry. Store `recommend_mode` and
+choose one branch before discovery or file creation.
 
-**Normal branch (authoritative): when `--recommend` is absent, follow every existing phase, prompt, terminal constraint, and next-step behavior below verbatim.**
-Normal mode does not inspect or resume `.writ/state/recommend-execution-*.json`.
+**Normal branch (authoritative): when `--recommend` is absent, follow every
+existing phase, prompt, terminal constraint, and next-step behavior below
+verbatim.**
+
+`--recommend` makes spec *authoring* autonomous: the command still runs
+contract-first discovery, but it auto-adopts the evidence-backed contract and
+its planning choices instead of stopping at each routine gate, and records the
+rationale. It is invokable standalone and is also the mode
+`/implement-phase --recommend` passes down when it authors missing specs.
+
+**Terminal scope:** `--recommend` produces a locked, validated spec package and
+**stops**. It never triggers `/implement-spec` or any implementation. Autonomous
+implementation across a phase belongs to `/implement-phase --recommend`, which
+calls `/implement-spec` per spec *after* the packages exist.
 
 ### Authoritative `--recommend` Invocation Matrix
 
-Validate the complete invocation before creating files, updating an issue,
-creating runtime state, or launching discovery:
+Validate the complete invocation before creating files, updating an issue, or
+launching discovery:
 
 | Invocation | Result |
 |---|---|
 | `/create-spec --recommend [one-idea]` | Supported; source mode `standard` |
 | `/create-spec --recommend --from-issue <one-path>` | Supported; source mode `from-issue` |
 | `/create-spec --recommend --from-prototype` | Supported; source mode `from-prototype` |
-| `/create-spec --recommend --quick` | Reject: full review, testing, and documentation gates are mandatory |
-| `/create-spec --recommend --force` | Reject: recommended execution never overwrites ownership or completion evidence |
+| `/create-spec --recommend` with no idea | Supported only when exactly one unambiguous feature candidate resolves from context; otherwise pause with a bounded selection before discovery |
+| `/create-spec --recommend --quick` | Reject: full spec package generation is mandatory |
+| `/create-spec --recommend --force` | Reject: recommended authoring never overwrites ownership or completion evidence |
 | `--recommend` with multiple source modes | Reject: select exactly one of standard, `--from-issue`, or `--from-prototype` |
-| `--recommend` with multiple issue paths or multiple free-form source arguments | Reject: recommended delivery owns exactly one spec |
-| `--recommend --resume` | Reject here; resume through `/implement-spec --recommend --resume <execution-id>` after a package exists |
-| `--recommend` with `--dry-run`, `--draft`, `--no-split`, `--skip-gate`, or `--no-tag` | Reject: these are unsupported later-stage modifiers |
+| `--recommend` with multiple issue paths or multiple free-form source arguments | Reject: one invocation authors exactly one spec |
 
-On rejection, print the supported forms above and stop before mutation. The
-multi-spec form `/implement-phase --recommend` is never a valid continuation.
+On rejection, print the supported forms above and stop before mutation.
 
-### Recommended Contract and Package Branch
+### Autonomous Authoring Boundary
 
-Recommended mode still runs contract-first discovery. It may automatically make
-only choices allowed by the shared recommendation policy; required answers
-retain `recommend_mode`, preserve stable decision/question/option identity, and
-resume the same transition. Contract lock is evidence-backed and recorded, not
-inferred from silence.
+`--recommend` overrides the routine human gates of Phase 1 — not the
+accountability floor (see [ADR-013](../.writ/decision-records/adr-013-recommended-autonomous-delivery.md)):
 
-After contract lock, run the ordinary Phase 2 generation steps, then perform the
-following boundary before implementation:
+- **Auto-adopt** — record each material decision in `{spec}/recommendation-log.md`
+  (decision, evidence, material alternatives, risk/reversibility, result; never
+  private chain-of-thought or transcript content):
+  - *Feature selection (Step 1.0):* use the provided `[idea]`; with no idea and
+    exactly one unambiguous candidate from context, adopt it, otherwise pause.
+  - *Contract lock (Step 1.4b):* auto-lock the evidence-backed contract. Do
+    **not** present the lock/edit/risks/blueprint/questions choice. The lock is
+    justified by discovery and codebase evidence and recorded — never inferred
+    from silence.
+  - *Story decomposition and sub-spec set:* choose from contract scope and
+    codebase evidence (technical-spec always; database/api/ui sub-specs when the
+    data-flow/UI heuristics apply).
+  - *Visual references (Step 1.5):* auto-resolve without prompting — default to
+    `none`, or `generate` when the spec is UI-bearing and no assets were supplied.
+  - *Source pre-population:* `--from-issue`/`--from-prototype` context is adopted
+    without re-litigating the shortened-discovery offers.
+- **Pause (bounded question or actionable blocker):** no idea and no single
+  unambiguous candidate; conflicting or technically infeasible requirements
+  (core-contract *ambiguity*, not the lock itself); a cross-spec overlap that is
+  a blocking conflict rather than an advisory note.
 
-1. Create `{spec}/recommendation-log.md` using the canonical format in
-   `.writ/docs/recommended-delivery-state-format.md`. Record concise decisions,
-   evidence, alternatives, risk/reversibility, selection source, and results;
-   never store private chain-of-thought or transcript content.
-2. **Before creating execution state or mutating any source issue**, validate
-   the intended invocation and writable target paths. Source-issue `spec_ref`
-   writeback remains the ordinary Phase 2 mutation and happens only after the
-   package path is known.
-3. Validate the complete locked package: `spec.md` contains
-   `Contract Locked: ✅`; `spec-lite.md`, `user-stories/README.md`,
-   `sub-specs/technical-spec.md`, every indexed story, and
-   `recommendation-log.md` exist; story metadata, acceptance criteria, tasks,
-   and dependencies parse; the DAG is acyclic; README IDs/status/task counts
-   agree; and no unresolved `[UNPLANNED]` marker remains. When README
-   `## Totals` exists, require exactly one Stories, Acceptance criteria,
-   Implementation tasks, Completed tasks, and Overall progress claim matching
-   indexed facts; use whole-percent round-half-up and reject malformed,
-   duplicate, or unknown claims. Absence remains valid for legacy packages.
-4. Build the deterministic immutable `package_manifest` from sorted
-   repo-relative locked planning artifacts and lowercase SHA-256 hashes of their
-   canonical immutable projections, plus lock-time byte hashes and validation
-   evidence. Story status/progress/checklist fields and WWB are normalized by
-   the canonical document so authorized implementation progress does not alter
-   planning identity. Exclude mutable `recommendation-log.md`; its legitimate
-   appends must not invalidate the locked package identity. Hash the canonical
-   UTF-8 manifest serialization as `package_manifest_sha256`.
-5. Independently initialize `spec.recommendationLog` with its canonical path,
-   revision, exact current digest, ordered stable entry IDs/per-entry digests,
-   and pending entry IDs. This state linkage detects unexpected rewrites while
-   permitting authorized append-only audit evolution.
-6. Snapshot repository root identity, current branch/full ref, canonical remote
-   name/URL identity, full HEAD SHA, and the owned-path/worktree status for
-   package and planned implementation paths. Detached HEAD or ambiguous remote
-   identity blocks. Initialize the spec-lite amendment baseline from exact
-   bytes plus the current append-only drift-log DEV-ID/digest prefix.
-7. Generate one opaque execution ID and non-secret propagation token. Invoke
-   `python3 scripts/recommend-state.py start` with entry command `create-spec`,
-   the exact parsed invocation JSON, repository/spec/state paths, execution ID,
-   and token. This executable boundary repeats invocation/package/log validation
-   and exclusively creates `.writ/state/recommend-execution-{id}.json`; a
-   collision or unavailable helper blocks before implementation.
-8. Consume the helper's `recommend-start-result-v1`, crash-safely advance state
-   to `implementing`, then invoke `/implement-spec` internally with its exact
-   `delivery_context`:
-
-```yaml
-delivery_context:
-  execution_id: string
-  state_path: .writ/state/recommend-execution-{id}.json
-  spec_path: .writ/specs/{spec-id}
-  mode: recommend
-  propagation_token: opaque-non-secret-token
-  parent_command: create-spec
-  return_contract: recommend-command-result-v1
-  package_manifest_sha256: lowercase-hex
-```
-
-The nested result must use `recommend-command-result-v1`. A missing or
-mismatched execution ID, spec path, mode, token, or result schema is normalized
-to a classified blocked state. `answer_required` returns and persists the
-stable decision ID, question ID, ordered option IDs, selected option ID when
-answered, exact resume transition, and interaction ID when available. The
-create-spec parent copies those identifiers unchanged into canonical state,
-retains recommend mode, and resumes the same transition. A `failed` nested
-outcome never implies completion; normalize it to `blocked` with a code,
-summary, safe resume target, and canonical empty `required_answer`. The shared
-result validator permits non-empty stable answer identity only for
-`answer_required`; malformed JSON, shape, identity, evidence, operation, or
-arguments emit one validated blocked JSON object with exit code 2.
-
-The nested implement-spec result is now a staged Story 4 result. A
-`verified_implementation` result is not terminal: keep the same execution,
-state path, token, package identity, and recommendation log while implement-spec
-continues through mandatory `/ship --test`, idempotent PR open/find, required
-CI, existing preview discovery, deterministic implementation-derived UAT, and
-one explicit production decision. Propagate blocked/answer-required outcomes
-unchanged. Return only after durable `production_approved`, rejection back to
-implementation, or a classified resumable blocker. Never merge, release, or
-claim overall recommended delivery complete; Story 5 owns those transitions.
-Story 4 resolves `Preview Project` through implement-spec and carries its
-normalized `previewProjectId` only in the immutable execution snapshot; detected
-project IDs are never silently written to config.
+After the contract is auto-locked, run the ordinary Phase 2 generation steps and,
+before finishing, write `{spec}/recommendation-log.md` capturing the autonomous
+decisions above. When invoked with `--from-issue`, the ordinary `spec_ref`
+writeback still applies. Then stop — the locked, validated package is the
+deliverable.
 
 ## Command Process
 

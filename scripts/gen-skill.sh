@@ -600,11 +600,9 @@ When a user requests any Writ command, read the corresponding command file and f
 
 ## Runtime Contract
 
-Recommended-delivery commands use the authoritative state contract at
-\`$METADATA_RUNTIME_CONTRACT\`. Install, update, and unlink manage this file
-alongside the executable reducer. Story 4 activates the same v1 state through
-SHA-bound production approval; merge, release, and overall completion remain
-Story 5-owned.
+The recommended-delivery state contract at \`$METADATA_RUNTIME_CONTRACT\` defines
+the resumable state and audit format for \`--recommend\` execution. Install, update,
+and unlink manage this file alongside its reducer.
 
 ## Available Commands
 EOF
