@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.22.0] - 2026-07-18
+
+**Model-Tier Delegation** — a portable `model_tier` convention where agents carry an enforceable tier (`orchestration` | `capability`), resolved per-platform via native relative primitives, while skills and commands carry advisory-only tier metadata. Corrects the originating issue's skill-carrier framing: the tier lives at the agent spawn boundary, the only place Writ passes a `model` parameter. Ships with zero behavioral regression — every agent resolves to the same concrete model it runs today.
+
+### Added
+
+- **`model_tier` convention** — two named tiers (`orchestration` → anchor/`inherit`, `capability` → floor/`fast`), documented in `system-instructions.md` and its byte-identical `cursor/writ.mdc` mirror: enforcement boundary (agents enforced; commands/skills advisory only), carrier-per-file-type, schema, graceful degradation, and a reserved ordinal-offset form for a future finer-grained resolver ([ADR-016](.writ/decision-records/adr-016-model-tier-delegation.md)).
+- **Agent adoption** — all 7 agents (`agents/*.md` + `.writ/manifest.yaml`) declare an explicit `model_tier`, mapped from today's `model:` settings with no change to the resolved concrete model.
+- **Adapter resolution tables** — `adapters/cursor.md`, `adapters/codex.md`, `adapters/openclaw.md`, and `adapters/claude-code.md` each document a tier → native-resolution table and a warn-and-fall-back graceful-degradation rule.
+- **Authoring + lint integration** — `/new-skill` scaffolds an advisory `model_tier:` frontmatter field; `/new-command` documents an advisory `model_tier` prose note (commands have no frontmatter mechanism); `scripts/lint-skill.sh` validates tier values in both shapes.
+- **`.writ/docs/model-tiers.md`** — canonical user-facing explainer, referenced from `README.md` and `AGENTS.md`.
+
 ## [0.21.1] - 2026-07-18
 
 **Housekeeping** — README and `/status` reconciled with shipped reality; the workspace ledger swept clean.
