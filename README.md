@@ -39,11 +39,11 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 |---|---|---|---|
 | **Command** | Verb | A user-invoked workflow with phases and durable artifacts | `/create-spec`, `/implement-spec`, `/release` |
 | **Agent** | Noun | A role with inherent behavior, spawned by a command for a phase | `coding-agent`, `review-agent`, `architecture-check-agent` |
-| **Skill** | Tool | A reusable capability — *how to do a specific thing well* | `conventional-commits` (shipped); `tdd-cycle`, `adr-writing` (proposed) |
+| **Skill** | Tool | A reusable capability — *how to do a specific thing well* | `conventional-commits`, `tdd-cycle`, `safe-refactor-loop` |
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`, alongside `conventional-commits` as the first pilot extraction; remaining pilots (`tdd-cycle`, `adr-writing`) land in subsequent specs.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; six skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -56,7 +56,9 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` turns session friction into cited command diffs — every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
-- **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI
+- **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
+- **Native-memory interop** — markdown stays canonical while adapters document how to ride each platform's native memory; external knowledge indexes (e.g., GBrain via MCP) are consumers, with brain-first retrieval via the `gbrain-interop` skill
+- **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI, plus an OpenClaw mapping guide
 
 ## Pipeline
 
@@ -99,7 +101,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/plan-product` | Product planning with contract-first approach |
-| `/create-spec` | Feature specification with structured clarification |
+| `/create-spec` | Feature specification with structured clarification. `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
 | `/edit-spec` | Safely modify existing specifications |
 | `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
@@ -111,11 +113,11 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
-| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. |
+| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. `--recommend` runs the phase end-to-end (auto-authoring missing specs via `/create-spec --recommend`), ending at the completion report with manual UAT handoff. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, builds dependency graph, resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
 | `/implement-story` | **Per-story executor.** SDLC pipeline: arch-check → **boundary map (Gate 0.5)** → coding (TDD) → lint → review → drift → testing → visual QA (optional) → docs. `--quick` skips arch, boundary, review, drift, docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
-| `/status` | Comprehensive project status report |
+| `/status` | Comprehensive project status report, including a one-line production-grade health score |
 
 ### Shipping & Review
 | Command | Purpose |
@@ -170,6 +172,11 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | Skill | Capability |
 |-------|------------|
 | [`conventional-commits`](skills/conventional-commits/SKILL.md) | Author Conventional Commits messages from a diff (type, scope, summary, body, footers) — matches the project's existing convention when one exists |
+| [`tdd-cycle`](skills/tdd-cycle/SKILL.md) | Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time |
+| [`safe-refactor-loop`](skills/safe-refactor-loop/SKILL.md) | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline |
+| [`error-rescue-mapping`](skills/error-rescue-mapping/SKILL.md) | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables |
+| [`code-explanation`](skills/code-explanation/SKILL.md) | Explain existing code — purpose, mechanics, context, complexity — at a depth proportional to the target |
+| [`gbrain-interop`](skills/gbrain-interop/SKILL.md) | Route knowledge retrieval brain-first when a healthy GBrain index is detected; markdown stays canonical, grep is the fallback |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 
@@ -182,10 +189,11 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 | **Cursor** | [`adapters/cursor.md`](adapters/cursor.md) | Native — `Task()`, `AskQuestion()` |
 | **Claude Code** | [`adapters/claude-code.md`](adapters/claude-code.md) | `claude -p`, `CLAUDE.md`, `--allowedTools` |
 | **Codex CLI** | [`adapters/codex.md`](adapters/codex.md) | `AGENTS.md`, `.codex/agents/*.toml`, native `/agent` |
+| **OpenClaw** | [`adapters/openclaw.md`](adapters/openclaw.md) | `sessions_spawn()`, Telegram inline buttons (mapping guide — no installer flag yet) |
 
 ## Quick Start
 
-Writ ships 32 commands, but you only need five to go from idea to PR:
+Writ ships 30 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|
@@ -295,6 +303,8 @@ When Writ runs, it creates a `.writ/` directory in your project:
 │       │   ├── README.md     # Progress tracking
 │       │   └── story-N-*.md  # 5-7 tasks each
 │       ├── drift-log.md      # Spec amendment record (auto-generated)
+│       ├── uat-plan.md       # Human UAT scenarios (from /create-uat-plan)
+│       ├── recommendation-log.md  # Decision audit for --recommend runs
 │       └── sub-specs/        # Technical deep-dives
 ├── product/                  # Product planning docs
 ├── decision-records/         # Architecture Decision Records
