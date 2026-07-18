@@ -23,6 +23,7 @@ description: Validates UI implementation against mockups and design specificatio
 tools: Read, Bash, Browser
 disallowedTools: Write, Edit
 model: inherit
+model_tier: orchestration
 readonly: true
 maxTurns: 20
 ```

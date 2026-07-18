@@ -259,6 +259,46 @@ Use `/new-skill <name>` to scaffold a new skill with the role convention (verb-p
 
 Writ-authored SKILL.md files set `disable-model-invocation: true` so platforms with skill auto-discovery don't ambient-load them. Every skill load is explicit and traceable.
 
+## Model Tiers
+
+Writ agents, commands, and skills express model-weight intent through a portable `model_tier` convention instead of hardcoding platform-specific model names. See [ADR-016](.writ/decision-records/adr-016-model-tier-delegation.md) for the full rationale (agent-as-carrier, relative-not-absolute tiers, staged 2-band resolver).
+
+**Two named tiers:**
+
+- `orchestration` — anchor weight; resolves to the platform's `inherit`/default primitive.
+- `capability` — floor weight; resolves to the platform's fastest/cheapest available model.
+
+**Enforcement boundary:** only an **agent's** `model_tier` is enforced at spawn — Writ actually selects a model when instantiating an agent. Command and skill `model_tier` is **advisory only**: a command runs at the user's session model (Writ has no mechanism to override it), and a skill loads into its caller's context (it has no model of its own). Advisory tier documents assumed execution weight for readers; it is never resolved to a concrete model.
+
+**Carrier per file type** ("frontmatter" is the umbrella term — the literal carrier differs by file type):
+
+- **Skills** (`skills/*/SKILL.md`) carry `model_tier` in real `---` YAML frontmatter, advisory only.
+- **Agents** (`agents/*.md`) carry `model_tier` in their existing fenced **Agent Configuration** block — not a new `---` header. 6 of 7 agents use `## Agent Configuration` with a plain fence; `visual-qa-agent.md` alone uses `## Agent Specification` with a `yaml` fence. Either way, `model_tier` is a new line in that existing block, enforced at spawn.
+- **Commands** (`commands/*.md`) have no frontmatter or config-block mechanism today (verified 0/31 files). Advisory tier ships as a prose note:
+
+  ```markdown
+  > **Model tier (advisory only):** orchestration — commands run at the user's session model.
+  ```
+
+**Schema:**
+
+- **Allowed values:** `orchestration`, `capability`, or a reserved negative ordinal offset (`-N`) — regex `^(orchestration|capability|-[0-9]+)$`.
+- **Unset:** inherits parent/default — identical to today's behavior. No warning.
+- **Precedence:** an explicit concrete `model:` always overrides `model_tier:` (concrete override wins). No warning.
+- **Unknown/unhonorable tier:** warns and falls back to inherit — never hard-fails. Mirrors the `required_skills:` graceful-degradation contract above.
+
+| Condition | Behavior |
+|---|---|
+| `model_tier` unset | Resolve to parent/default (inherit). No warning. |
+| `model_tier: capability` but platform exposes no fast/cheaper model | Warn: "capability tier unavailable on \<platform\>; running at parent model." Fall back to inherit. |
+| `model_tier` value unrecognized at resolution time | Warn: "unknown model_tier '\<value\>'; running at parent model." Fall back to inherit. |
+| Reserved ordinal offset beyond available bands | Clamp to floor (or inherit if platform has one band); no warning (documented clamp). |
+| Both `model:` and `model_tier:` set | Use `model:` (concrete override wins). No warning. |
+
+**Reserved ordinal offsets (`-1`, `-2`, ...) are reserve-only.** They are documented as a future N-step resolution mechanism but resolve today only as a 2-band clamp: any negative offset lands on the same floor as `capability` (or inherit, if the platform exposes just one band). No consumer may depend on finer-grained ordinal behavior yet.
+
+> **Review trigger: 2026-10-16** (90 days post-ship). If no adapter has built N-step (>2-band) resolution by this date, deprecate or revisit the ordinal-offset reservation. Mirrors the `required_skills:` review discipline above.
+
 ## Self-Dogfooding (Writ Repo Only)
 
 This repo uses Writ to build Writ. Know which hat you're wearing:

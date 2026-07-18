@@ -9,6 +9,7 @@ Specialized agent for creating and maintaining developer documentation. Detects 
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
+model_tier: orchestration
 readonly: false  # CRITICAL: Must be false - agent creates documentation files!
 ```
 

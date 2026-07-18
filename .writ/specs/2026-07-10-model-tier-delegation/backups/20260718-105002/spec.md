@@ -1,9 +1,9 @@
 # Model-Tier Delegation Across Agents
 
-> **Status:** Completed ✅ (4/4 stories complete)
+> **Status:** Not Started
 > **Created:** 2026-07-10
 > **Owner:** Adam Sellke
-> **ADR:** `.writ/decision-records/adr-016-model-tier-delegation.md` (created in Story 1)
+> **ADR:** `.writ/decision-records/adr-014-model-tier-delegation.md` (created in Story 1)
 
 ---
 
@@ -19,8 +19,8 @@
 
 ### Experience Design
 
-- **Entry point (contributor):** A Writ contributor authoring or editing an agent declares `model_tier:` in the agent's Agent Configuration block and `manifest.yaml` entry, choosing `orchestration` or `capability` based on the agent's job.
-- **Entry point (author of commands/skills):** A contributor may add an advisory `model_tier:` to a skill's frontmatter or as a prose note on a command (commands have no frontmatter mechanism) to document assumed execution weight — clearly labeled as advisory, since Writ can't enforce it there.
+- **Entry point (contributor):** A Writ contributor authoring or editing an agent declares `model_tier:` in the agent's frontmatter and `manifest.yaml` entry, choosing `orchestration` or `capability` based on the agent's job.
+- **Entry point (author of commands/skills):** A contributor may add an advisory `model_tier:` to a command or skill to document assumed execution weight — clearly labeled as advisory, since Writ can't enforce it there.
 - **Happy path (contributor):** Author sets `model_tier: capability` on a narrow agent (e.g. `user-story-generator`) → at spawn, the adapter resolves it to the platform's floor model (`fast` on Cursor) → the agent runs cheaper with no quality regression on its narrow task.
 - **Happy path (orchestration agent):** `coding-agent` declares `model_tier: orchestration` → resolves to `inherit` (runs at the user's anchor model) → heavy cross-file reasoning keeps its strong model.
 - **Moment of truth:** A phase run (`/implement-phase` → spec-runner → `/implement-story` → coding/review/etc.) spends top-tier tokens only where reasoning demands it, and floor-tier tokens on narrow work — visibly cheaper without a felt drop in output quality.
@@ -31,7 +31,7 @@
 
 ### Business Rules
 
-- **Agents carry the enforced tier.** `model_tier:` in the agent's Agent Configuration block and the agent's `manifest.yaml` entry is authoritative and applied at spawn time.
+- **Agents carry the enforced tier.** `model_tier:` in agent frontmatter and the agent's `manifest.yaml` entry is authoritative and applied at spawn time.
 - **Two named tiers ship:** `orchestration` (→ anchor / `inherit`) and `capability` (→ floor / `fast`).
 - **Commands and skills may declare `model_tier` as advisory documentation only.** A command runs at the user's session model (not Writ-selectable on Cursor); a skill runs in its caller's context (loading a skill is not a model invocation). Advisory declarations must be visibly labeled as such wherever they appear.
 - **Relative, not absolute, semantics.** A capability-tier unit runs at or below its invoking unit. The boundary holds regardless of which concrete models a platform exposes — no absolute model-class names are baked into the portable contract.
@@ -44,41 +44,41 @@
 ## Current State
 
 - **Model selection is per-agent and ad hoc.** In `.writ/manifest.yaml`: `architecture-check-agent` and `user-story-generator` are `model: fast`; `coding-agent`, `documentation-agent`, `review-agent`, `testing-agent` are `model: default`; `visual-qa-agent` is `model: inherit`.
-- **Agent config block and manifest disagree in vocabulary.** The adapter docs describe `model: "fast"` / default / inherit, but there is no single portable tier concept — just three loosely-used string values.
+- **Agent frontmatter and manifest disagree in vocabulary.** The adapter docs describe `model: "fast"` / default / inherit, but there is no single portable tier concept — just three loosely-used string values.
 - **No tier concept ties model choice to the verb/noun/tool boundary.** ADR-009 defines command/agent/skill roles but says nothing about which model tier each runs under.
-- **No frontmatter (or equivalent config-block) contract for tier.** `required_skills:` exists as a reserved convention; there is no `model_tier:` (or equivalent) documented for commands, agents, or skills. Note: skills have real `---` frontmatter; agents have a fenced Agent Configuration block; commands have no config-block mechanism today (verified: 0/31 command files carry a `---` block).
-- **Adapters map `model: "fast"` narrowly.** `adapters/cursor.md` (§ Sub-Agent Models) maps `"fast"` → Cursor fast model, default → inherit. `adapters/codex.md` maps agents to concrete model IDs (`gpt-5-mini`) in a TOML table. `adapters/openclaw.md` describes an optional `model` param on `sessions_spawn`. `adapters/claude-code.md` (§ Model Selection) already runs its own 3-way concrete mapping (`inherit`/`sonnet`/`haiku`). None frame this as a portable tier with graceful degradation.
+- **No frontmatter contract for tier.** `required_skills:` exists as a reserved convention; there is no `model_tier:` (or equivalent) documented for commands, agents, or skills.
+- **Adapters map `model: "fast"` narrowly.** `adapters/cursor.md` (§ Sub-Agent Models) maps `"fast"` → Cursor fast model, default → inherit. `adapters/codex.md` maps agents to concrete model IDs (`gpt-5-mini`) in a TOML table. `adapters/openclaw.md` describes an optional `model` param on `sessions_spawn`. None frame this as a portable tier with graceful degradation.
 - **Result:** everything tends to inherit the parent (often a top-tier model), even for narrow, well-scoped agent work a cheaper model could execute reliably.
 
 ## Expected Outcome
 
-- All 7 agents declare an explicit `model_tier` (`orchestration` | `capability`) in their Agent Configuration block and `manifest.yaml`, mapped from today's settings with **zero behavioral regression**.
-- Each adapter (`cursor`, `codex`, `openclaw`, `claude-code`) documents a tier → native-resolution table plus graceful-degradation behavior.
+- All 7 agents declare an explicit `model_tier` (`orchestration` | `capability`) in frontmatter and `manifest.yaml`, mapped from today's settings with **zero behavioral regression**.
+- Each adapter (`cursor`, `codex`, `openclaw`) documents a tier → native-resolution table plus graceful-degradation behavior.
 - `system-instructions.md` (and its `cursor/writ.mdc` mirror) documents the tiering convention alongside the verb/noun/tool boundary and `required_skills:`, including the reserved ordinal-offset vocabulary and the advisory-only status of command/skill tier.
-- `/new-skill` scaffolds an advisory `model_tier:` frontmatter field; `/new-command` documents advisory `model_tier:` as a prose note (commands have no frontmatter mechanism); the shared frontmatter/boundary lint validates tier values wherever they appear.
-- An ADR (`adr-016`) captures the relative / agent-carrier / staged-resolver design and the rejected alternatives.
+- `/new-command` and `/new-skill` scaffold an advisory `model_tier:` frontmatter field; the skill boundary/frontmatter lint validates tier values.
+- An ADR (`adr-014`) captures the relative / agent-carrier / staged-resolver design and the rejected alternatives.
 - A `.writ/docs/model-tiers.md` explainer gives the user-facing framing, and root docs (`README.md`, `AGENTS.md`) reference the convention where model behavior is described.
 
 ## Success Criteria
 
 1. `rg "model_tier:" agents/` returns an explicit tier for **all 7** agents; each value is `orchestration` or `capability`, and each matches the agent's `manifest.yaml` entry.
 2. The tier mapping preserves current behavior: `architecture-check-agent` and `user-story-generator` resolve to the floor model (as `fast` does today); the other five resolve to inherit/anchor (as `default`/`inherit` do today). Verified by an adapter resolution table review — no agent changes which concrete model it runs on.
-3. `adapters/cursor.md`, `adapters/codex.md`, `adapters/openclaw.md`, and `adapters/claude-code.md` each contain a tier → native-resolution table and a documented graceful-degradation rule (warn → fall back to parent).
+3. `adapters/cursor.md`, `adapters/codex.md`, and `adapters/openclaw.md` each contain a tier → native-resolution table and a documented graceful-degradation rule (warn → fall back to parent).
 4. `system-instructions.md` and `cursor/writ.mdc` document the `model_tier` convention (two named tiers, advisory-for-commands/skills, reserved ordinal offsets, graceful degradation) — byte-identical Skills/tiering content between the two files per Phase 4 parity discipline.
-5. `/new-skill` scaffolds an advisory `model_tier:` frontmatter field, and `/new-command` documents advisory `model_tier:` as a prose note (commands have no frontmatter mechanism), each with an inline/adjacent "advisory only" label; `scripts/lint-skill.sh` (or the shared frontmatter lint) rejects a `model_tier` value outside the allowed set with a clear remediation.
-6. `.writ/decision-records/adr-016-model-tier-delegation.md` exists, records agent-as-carrier + relative + staged-resolver, and lists the considered alternatives (skill-carrier, absolute tiers, full ranking).
+5. `/new-command` and `/new-skill` scaffold an advisory `model_tier:` field with an inline "advisory only" comment; `scripts/lint-skill.sh` (or the shared frontmatter lint) rejects a `model_tier` value outside the allowed set with a clear remediation.
+6. `.writ/decision-records/adr-014-model-tier-delegation.md` exists, records agent-as-carrier + relative + staged-resolver, and lists the considered alternatives (skill-carrier, absolute tiers, full ranking).
 7. `.writ/docs/model-tiers.md` exists with the user-facing explainer; `README.md` and `AGENTS.md` reference the convention.
 
 ## Scope Boundaries
 
 **Included:**
 
-- `model_tier` tier vocabulary (`orchestration` | `capability`) + frontmatter/config-block contract with reserved ordinal-offset form
-- Agent adoption across all 7 agents (Agent Configuration block + `manifest.yaml`), mapped from current settings with no regression
-- 2-band native adapter resolution + graceful-degradation docs in `cursor`, `codex`, `openclaw`, and `claude-code` adapters
+- `model_tier` tier vocabulary (`orchestration` | `capability`) + frontmatter contract with reserved ordinal-offset form
+- Agent adoption across all 7 agents (frontmatter + `manifest.yaml`), mapped from current settings with no regression
+- 2-band native adapter resolution + graceful-degradation docs in `cursor`, `codex`, `openclaw` adapters
 - `system-instructions.md` + `cursor/writ.mdc` convention documentation (parity-mirrored)
-- `/new-skill` advisory `model_tier:` frontmatter scaffolding; `/new-command` advisory `model_tier:` prose-note documentation; lint validation of tier values wherever they appear
-- `.writ/decision-records/adr-016-model-tier-delegation.md`
+- `/new-command` and `/new-skill` advisory `model_tier:` scaffolding + lint validation of tier values
+- `.writ/decision-records/adr-014-model-tier-delegation.md`
 - `.writ/docs/model-tiers.md` explainer + `README.md` / `AGENTS.md` references
 
 **Excluded (deferred, evidence-gated):**
@@ -88,29 +88,22 @@
 - A **quality-regression eval harness** measuring capability-tier output — this spec ships the convention on the `convention_only` posture (agents already run `fast` today with no measured regression)
 - **Auto-downgrading** existing agents beyond preserving today's settings — no agent's effective model changes in this spec
 - Enforcing tier on commands or skills (structurally not possible; advisory only)
-- **Introducing a real frontmatter mechanism for commands** — verified absent today (0/31 command files); advisory command tier ships as a prose note instead, not YAML frontmatter
-- `adapters/claude-code.md` model-tier section: Claude Code already runs a 3-way concrete model mapping (`inherit`/`sonnet`/`haiku`, verified in `adapters/claude-code.md` § Model Selection) rather than a clean binary fast/inherit primitive. Story 3 folds this in **using concrete model names, mirroring the Codex mini-ID pattern** — not a clean tier table, and not deferred.
+- `adapters/claude-code.md` model-tier section is **out of scope only if** Claude Code offers no native fast/inherit distinction to document; if it does, it's folded into Story 3 (see Technical Decisions)
 
 ## Implementation Approach
 
 ### Frontmatter contract (Story 1)
 
-Add `model_tier` to the documented frontmatter vocabulary. **Note on carriers:** "frontmatter" here is the convention's umbrella term (matching the `required_skills:` precedent), not a literal `---` YAML block on every file type. The actual carrier per file type is:
-- **Skills:** real `---` YAML frontmatter (already exists).
-- **Agents:** the existing fenced **Agent Configuration** block in each `agents/*.md` file (`subagent_type:`, `model:`, `readonly:`) — `model_tier:` is added as a new line in that same block, not a new `---` header.
-- **Commands:** commands have no frontmatter mechanism today (verified: 0/31 command files carry a `---` block). Advisory `model_tier:` for commands is documented as a **prose note** near the command's Overview/Invocation section, not YAML frontmatter. Introducing real command frontmatter is out of scope for this spec.
+Add `model_tier` to the documented frontmatter vocabulary:
 
 ```yaml
-# Agent Configuration block (ENFORCED at spawn) — agents/*.md
+# Agent frontmatter (ENFORCED at spawn)
 model_tier: orchestration   # → anchor / inherit
 # or
 model_tier: capability      # → floor / fast
 
-# Skill frontmatter (ADVISORY ONLY — documentation of assumed weight)
-model_tier: orchestration   # advisory: skills run in the caller's context
-
-# Command prose note (ADVISORY ONLY — no frontmatter mechanism exists for commands)
-# Model tier: orchestration — advisory only; commands run at the user's session model
+# Command / skill frontmatter (ADVISORY ONLY — documentation of assumed weight)
+model_tier: orchestration   # advisory: commands run at the user's session model
 ```
 
 - **Named tiers:** `orchestration` (anchor), `capability` (floor).
@@ -133,18 +126,16 @@ This mapping is a **rename-to-portable, not a behavior change** — the resolved
 
 ### Adapter resolution, 2-band native (Story 3)
 
-| Tier | Cursor | Codex | OpenClaw | Claude Code |
-|---|---|---|---|---|
-| `orchestration` | `inherit` (anchor) | omit `model` / inherit | omit `model` param | `inherit` |
-| `capability` | `"fast"` | concrete mini ID (e.g. `gpt-5-mini`) | `model` param → cheaper model | concrete name (e.g. `haiku`) |
-
-Claude Code has no clean binary fast/inherit primitive — its adapter already runs a 3-way concrete mapping (`inherit`/`sonnet`/`haiku`, verified in `adapters/claude-code.md` § Model Selection). Story 3 folds it in with concrete names, mirroring the Codex mini-ID pattern, rather than deferring it.
+| Tier | Cursor | Codex | OpenClaw |
+|---|---|---|---|
+| `orchestration` | `inherit` (anchor) | omit `model` / inherit | omit `model` param |
+| `capability` | `"fast"` | concrete mini ID (e.g. `gpt-5-mini`) | `model` param → cheaper model |
 
 Each adapter documents: (a) the table above, (b) graceful degradation — if the platform can't honor a tier (no fast model available, unknown value), warn and fall back to the parent/default model; (c) a note that this is the 2-band resolution and the ordinal-offset form is reserved.
 
 ### Authoring + lint (Story 4)
 
-- `/new-skill` scaffolds `model_tier:` frontmatter with an inline `# advisory only` comment. `/new-command` documents advisory `model_tier:` as a prose note near Overview/Invocation (commands have no frontmatter mechanism) with an adjacent "advisory only" label — neither form should be mistaken for enforcement.
+- `/new-command` and `/new-skill` scaffold `model_tier:` with an inline `# advisory only` comment (commands/skills) so authors don't mistake it for enforcement.
 - `scripts/lint-skill.sh` (and/or the shared frontmatter validation used by `/new-skill` and `/refresh-command`) validates that any `model_tier:` value is one of the allowed forms (`orchestration`, `capability`, or a reserved ordinal offset) and rejects others with a remediation message.
 - `.writ/docs/model-tiers.md` explains the convention with the verb/noun/tool framing; `README.md` and `AGENTS.md` link to it where model behavior is described.
 
@@ -152,9 +143,9 @@ Each adapter documents: (a) the table above, (b) graceful degradation — if the
 
 | # | Story | Dependencies |
 |---|---|---|
-| 1 | Tier contract + ADR-016 (vocabulary, `system-instructions.md`/`cursor/writ.mdc`, reserved ordinal offsets) | None |
+| 1 | Tier contract + ADR-014 (vocabulary, `system-instructions.md`/`cursor/writ.mdc`, reserved ordinal offsets) | None |
 | 2 | Agent adoption — `model_tier` on all 7 agents + `manifest.yaml`, mapped with no regression | Story 1 |
-| 3 | Adapter resolution — 2-band native tables + graceful degradation (cursor, codex, openclaw, claude-code) | Story 1 |
+| 3 | Adapter resolution — 2-band native tables + graceful degradation (cursor, codex, openclaw) | Story 1 |
 | 4 | Authoring & lint integration + `.writ/docs/model-tiers.md` + root doc references | Stories 1, 2, 3 |
 
 Stories 2 and 3 may run in parallel after Story 1. Story 4 is the synthesis story.
@@ -183,7 +174,7 @@ Stories 2 and 3 may run in parallel after Story 1. Story 4 is the synthesis stor
 - Issue — `.writ/issues/features/2026-07-10-model-tier-delegation.md` (this spec promotes it)
 - ADR-009 — `.writ/decision-records/adr-009-command-agent-skill-boundary.md` (verb/noun/tool boundary this tiering extends; skills-don't-spawn-agents rule that grounds the agent-carrier correction)
 - Spec 2026-05-03-skills-foundation — established `required_skills:` reserve-only convention this contract mirrors
-- `adapters/cursor.md` § Sub-Agent Models, `adapters/codex.md` § Writ agents ↔ Codex TOML, `adapters/openclaw.md` § Spawning Sub-Agents, `adapters/claude-code.md` § Model Selection — existing model-mapping surfaces
+- `adapters/cursor.md` § Sub-Agent Models, `adapters/codex.md` § Writ agents ↔ Codex TOML, `adapters/openclaw.md` § Spawning Sub-Agents — existing model-mapping surfaces
 - Roadmap Design Principle #4 — "Delegate mechanics, own contracts" (the no-ranking rationale)
 
 ## Out of Scope (Reserved for Follow-Up Specs)

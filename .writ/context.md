@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-07-18T15:05:00Z
+> Last Updated: 2026-07-18T11:35:00-05:00
 
 ## Product Mission
 
@@ -9,16 +9,13 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** Model-Tier Delegation Across Agents (`2026-07-10-model-tier-delegation`)
-- **Status:** Not Started — the only non-terminal spec in `.writ/specs/`
-- **Stories:** 0 of 4 started (Story 1 "Tier Contract + ADR-014" is first)
-- **Tasks:** 0/24 complete
-- **Branch:** main (at v0.21.1 — housekeeping release: README/status reconciliation + ledger sweep, 2026-07-18)
+- **Status:** In Progress
+- **Story:** 3 of 4 done (Story 1 Tier Contract + ADR-016 ✅, Story 2 Agent Adoption ✅, Story 3 Adapter Resolution ✅); Story 4 (Authoring & Lint Integration + Docs) next — synthesis story, gates on 1/2/3
+- **Progress:** 19/25 tasks complete (76%)
 
-## Recent Housekeeping (2026-07-18)
+## Recent Drift
 
-- Reconciled 9 stale spec headers to terminal states (Complete/Closed) with commit-level evidence; `2026-03-18-infrastructure-command-refinement` closed as Abandoned (targets moved to `contrib/`).
-- Triaged all 7 stale issues: 5 closed with evidence and deleted (delete-on-close; resolution notes preserved in git history), 1 parked (business-process pipeline → roadmap parking lot), 1 kept open (`implement-spec` branch preflight — still valid).
-- Purged `.writ/state/` of ~110 completed execution/eval/review artifacts; only the update-check cache remains.
+None this spec (Stories 1-3 all landed with zero drift).
 
 ## Open Issues
 

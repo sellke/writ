@@ -153,7 +153,7 @@ Feedback loop (/retro + /refresh-command):
 
 ## Agents
 
-The `/implement-story` command orchestrates these specialized agents:
+The `/implement-story` command orchestrates these specialized agents. Each declares a `model_tier` (`orchestration` or `capability`) in its Agent Configuration block, enforced at spawn — see [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention (commands and skills carry the same field, but only advisory: they run at the session/caller model, not Writ-selectable).
 
 | Agent | Role |
 |-------|------|

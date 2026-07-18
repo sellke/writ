@@ -8,15 +8,15 @@
 **Deliverable:** A portable `model_tier` convention. Agents carry an ENFORCED tier (`orchestration` → anchor/`inherit`, `capability` → floor/`fast`), resolved per-platform via native primitives. Skills and commands carry ADVISORY-ONLY tier. No maintained model ranking; relative semantics only; graceful degradation (warn → fall back to parent).
 
 **Implementation Approach:**
-- Story 1: define `model_tier` vocabulary (2 named tiers + reserved ordinal-offset form); document in `system-instructions.md` + `cursor/writ.mdc` (byte-identical); write ADR-016.
-- Story 2: add `model_tier` to all 7 agents (Agent Configuration block + `manifest.yaml`), mapped from today's `model:` with ZERO behavior change.
-- Story 3: adapter tier→native-resolution tables + graceful degradation (cursor/codex/openclaw/claude-code). Claude Code uses concrete model names (`haiku`/`sonnet`), mirroring Codex's mini-ID pattern — not deferred.
-- Story 4: `/new-skill` scaffolds advisory `model_tier:` frontmatter; `/new-command` documents advisory `model_tier:` as a prose note (commands have no frontmatter mechanism); lint validates values; `.writ/docs/model-tiers.md`; README/AGENTS refs.
+- Story 1: define `model_tier` vocabulary (2 named tiers + reserved ordinal-offset form); document in `system-instructions.md` + `cursor/writ.mdc` (byte-identical); write ADR-014.
+- Story 2: add `model_tier` to all 7 agents (frontmatter + `manifest.yaml`), mapped from today's `model:` with ZERO behavior change.
+- Story 3: adapter tier→native-resolution tables + graceful degradation (cursor/codex/openclaw).
+- Story 4: `/new-command` + `/new-skill` scaffold advisory `model_tier:`; lint validates values; `.writ/docs/model-tiers.md`; README/AGENTS refs.
 - Keep `model:` as concrete-override escape hatch; `model:` takes precedence over `model_tier:`.
 
 **Files in Scope:**
-- New: `.writ/decision-records/adr-016-model-tier-delegation.md`, `.writ/docs/model-tiers.md`
-- Modified: `.writ/manifest.yaml`, `agents/*.md` (all 7, Agent Configuration block), `adapters/cursor.md`, `adapters/codex.md`, `adapters/openclaw.md`, `adapters/claude-code.md`, `system-instructions.md`, `cursor/writ.mdc`, `commands/new-command.md` (prose note, no frontmatter), `commands/new-skill.md` (frontmatter), `scripts/lint-skill.sh`, `README.md`, `AGENTS.md`
+- New: `.writ/decision-records/adr-014-model-tier-delegation.md`, `.writ/docs/model-tiers.md`
+- Modified: `.writ/manifest.yaml`, `agents/*.md` (all 7), `adapters/cursor.md`, `adapters/codex.md`, `adapters/openclaw.md`, `system-instructions.md`, `cursor/writ.mdc`, `commands/new-command.md`, `commands/new-skill.md`, `scripts/lint-skill.sh`, `README.md`, `AGENTS.md`
 
 **Agent tier mapping (no regression):**
 - `capability` (→ fast/floor): `architecture-check-agent`, `user-story-generator` (both `fast` today)
@@ -40,10 +40,10 @@
 **Acceptance Criteria:**
 1. `rg "model_tier:" agents/` returns a valid tier for all 7 agents, each matching its `manifest.yaml` entry.
 2. Mapping preserves current behavior — each agent resolves to the same concrete model it runs today (verified via adapter resolution table review).
-3. cursor/codex/openclaw/claude-code adapters each have a tier→native-resolution table + documented graceful-degradation rule.
+3. cursor/codex/openclaw adapters each have a tier→native-resolution table + documented graceful-degradation rule.
 4. `system-instructions.md` + `cursor/writ.mdc` document the convention; tiering content byte-identical between them.
-5. `/new-skill` scaffolds advisory `model_tier:` frontmatter; `/new-command` documents it as a prose note; lint rejects invalid values wherever they appear.
-6. `adr-016` exists with agent-carrier + relative + staged-resolver decision and rejected alternatives.
+5. `/new-command` + `/new-skill` scaffold advisory `model_tier:`; lint rejects invalid values.
+6. `adr-014` exists with agent-carrier + relative + staged-resolver decision and rejected alternatives.
 7. `.writ/docs/model-tiers.md` exists; README + AGENTS reference it.
 
 **Business Rules:**
@@ -54,7 +54,7 @@
 - Graceful degradation: warn → fall back to parent. No behavioral regression from the mapping.
 
 **Experience Design:**
-- Entry: contributor sets `model_tier:` in the agent's Agent Configuration block + manifest
+- Entry: contributor sets `model_tier:` in agent frontmatter + manifest
 - Happy path: `capability` agent → floor model, cheaper, no quality drop; `orchestration` agent → anchor model
 - Moment of truth: a phase run spends top-tier tokens only where reasoning demands
 - Feedback: greppable, self-documenting; adapter table shows tier→model
@@ -70,7 +70,7 @@
 ## For Testing Agents
 
 **Success Criteria:**
-1. All 7 agents declare a valid `model_tier`; Agent Configuration block and manifest agree (`rg`/diff check).
+1. All 7 agents declare a valid `model_tier`; frontmatter and manifest agree (`rg`/diff check).
 2. Each agent's resolved concrete model is unchanged from today (adapter-table walkthrough per platform).
 3. Lint rejects an out-of-set `model_tier` value with remediation; accepts valid ones.
 4. Tiering content in `system-instructions.md` and `cursor/writ.mdc` is byte-identical (`diff`).
@@ -84,7 +84,7 @@
 **Edge Cases:**
 - Both `model:` and `model_tier:` present → `model:` wins (documented precedence).
 - Reserved ordinal offset (e.g. `-1`) declared → accepted by lint, resolved as 2-band (clamped) today.
-- `manifest.yaml` tier ≠ agent Agent Configuration block tier → flagged as inconsistency in review.
+- `manifest.yaml` tier ≠ agent frontmatter tier → flagged as inconsistency in review.
 
 **Coverage Requirements:**
 - Verification = `rg`/`diff`/manual adapter-table walkthrough (markdown+bash project — no test framework)

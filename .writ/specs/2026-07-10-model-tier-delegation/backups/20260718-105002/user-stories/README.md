@@ -1,8 +1,8 @@
 # Model-Tier Delegation — User Stories
 
 > **Spec:** `.writ/specs/2026-07-10-model-tier-delegation/spec.md`
-> **ADR:** `.writ/decision-records/adr-016-model-tier-delegation.md` (created in Story 1)
-> **Status:** Completed ✅
+> **ADR:** `.writ/decision-records/adr-014-model-tier-delegation.md` (created in Story 1)
+> **Status:** Not Started
 > **Total Stories:** 4
 
 ## Overview
@@ -13,12 +13,12 @@ A portable `model_tier` convention where **agents** carry an enforceable tier (`
 
 | # | Story | Status | Tasks | Priority | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Tier Contract + ADR-016](story-1-tier-contract-adr.md) | Completed ✅ | 7/7 | High | None |
-| 2 | [Agent Adoption](story-2-agent-adoption.md) | Completed ✅ | 6/6 | High | Story 1 |
-| 3 | [Adapter Resolution (2-Band Native)](story-3-adapter-resolution.md) | Completed ✅ | 6/6 | High | Story 1 |
-| 4 | [Authoring & Lint Integration + Docs](story-4-authoring-lint-docs.md) | Completed ✅ | 6/6 | Medium | Stories 1, 2, 3 |
+| 1 | [Tier Contract + ADR-014](story-1-tier-contract-adr.md) | Not Started | 0/6 | High | None |
+| 2 | [Agent Adoption](story-2-agent-adoption.md) | Not Started | 0/6 | High | Story 1 |
+| 3 | [Adapter Resolution (2-Band Native)](story-3-adapter-resolution.md) | Not Started | 0/6 | High | Story 1 |
+| 4 | [Authoring & Lint Integration + Docs](story-4-authoring-lint-docs.md) | Not Started | 0/6 | Medium | Stories 1, 2, 3 |
 
-**Progress:** 25/25 tasks complete.
+**Progress:** 0/24 tasks complete.
 
 ## Dependency Graph
 
@@ -38,17 +38,17 @@ Story 1 (contract + ADR) ──┬─→ Story 2 (agent adoption) ──┐
 
 ## Story Descriptions
 
-### Story 1 — Tier Contract + ADR-016
-Define the `model_tier` frontmatter convention (two named tiers + reserved ordinal-offset form), document it in `system-instructions.md` and its byte-identical `cursor/writ.mdc` mirror, and record ADR-016 (agent-as-carrier, relative-not-absolute, staged resolver + rejected alternatives). No behavior change; contract and docs only.
+### Story 1 — Tier Contract + ADR-014
+Define the `model_tier` frontmatter convention (two named tiers + reserved ordinal-offset form), document it in `system-instructions.md` and its byte-identical `cursor/writ.mdc` mirror, and record ADR-014 (agent-as-carrier, relative-not-absolute, staged resolver + rejected alternatives). No behavior change; contract and docs only.
 
 ### Story 2 — Agent Adoption
-Add `model_tier` to all 7 agents (Agent Configuration block + `manifest.yaml`), mapped from today's `model:` settings: `architecture-check-agent` + `user-story-generator` → `capability`; the other five → `orchestration`. A rename-to-portable with **zero behavioral regression** — every agent resolves to the same concrete model it uses today.
+Add `model_tier` to all 7 agents (frontmatter + `manifest.yaml`), mapped from today's `model:` settings: `architecture-check-agent` + `user-story-generator` → `capability`; the other five → `orchestration`. A rename-to-portable with **zero behavioral regression** — every agent resolves to the same concrete model it uses today.
 
 ### Story 3 — Adapter Resolution (2-Band Native)
-Document tier → native-resolution tables in `adapters/cursor.md` (`inherit`/`fast`), `adapters/codex.md` (mini ID / inherit), `adapters/openclaw.md` (`model` param / omit), and `adapters/claude-code.md` (`haiku`/`sonnet` / inherit — concrete names, mirrors Codex, not deferred), each with the warn-and-fall-back graceful-degradation rule. No maintained ranking; relative primitives only; reserved offsets clamp to floor.
+Document tier → native-resolution tables in `adapters/cursor.md` (`inherit`/`fast`), `adapters/codex.md` (mini ID / inherit), and `adapters/openclaw.md` (`model` param / omit), each with the warn-and-fall-back graceful-degradation rule. No maintained ranking; relative primitives only; reserved offsets clamp to floor.
 
 ### Story 4 — Authoring & Lint Integration + Docs
-`/new-skill` scaffolds an advisory `model_tier:` frontmatter field; `/new-command` scaffolds an advisory `model_tier` prose note (commands have no frontmatter mechanism). The shared lint validates tier values wherever declared. Create `.writ/docs/model-tiers.md` (canonical explainer) and reference the convention from `README.md` and `AGENTS.md`.
+`/new-command` and `/new-skill` scaffold an advisory `model_tier:` field; the shared frontmatter lint validates tier values. Create `.writ/docs/model-tiers.md` (canonical explainer) and reference the convention from `README.md` and `AGENTS.md`.
 
 ## What's Out of Scope
 

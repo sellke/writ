@@ -103,6 +103,7 @@ name: <name>
 description: "<description>"
 disable-model-invocation: true
 status: candidate
+model_tier: orchestration   # advisory only — skills run in the caller's context, not selectable
 ---
 
 # <Title-Cased Name>
@@ -158,6 +159,7 @@ name: <name>
 description: "<description>"
 disable-model-invocation: true
 status: candidate
+model_tier: orchestration   # advisory only — skills run in the caller's context, not selectable
 ---
 
 # <Title-Cased Name>
@@ -250,7 +252,7 @@ Next steps:
 
 This command succeeds when:
 
-1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
+1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`, `model_tier: orchestration` — advisory only, skills run in the caller's context) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
 2. **Lint passed** — `scripts/lint-skill.sh` returned exit `0` against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
 3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed
 4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (verified via `bash scripts/gen-skill.sh --check`)

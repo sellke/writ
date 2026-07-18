@@ -182,30 +182,37 @@ agents:
     file: agents/architecture-check-agent.md
     purpose: "Pre-implementation design review that catches architecture risks before coding."
     model: fast
+    model_tier: capability
   - name: coding-agent
     file: agents/coding-agent.md
     purpose: "TDD implementation agent that writes code, follows conventions, and self-verifies."
     model: default
+    model_tier: orchestration
   - name: documentation-agent
     file: agents/documentation-agent.md
     purpose: "Framework-adaptive documentation agent for feature, component, and architecture docs."
     model: default
+    model_tier: orchestration
   - name: review-agent
     file: agents/review-agent.md
     purpose: "Quality gate agent that verifies acceptance criteria, code quality, tests, and drift."
     model: default
+    model_tier: orchestration
   - name: testing-agent
     file: agents/testing-agent.md
     purpose: "Test and coverage agent that verifies pass rate, regressions, and coverage thresholds."
     model: default
+    model_tier: orchestration
   - name: user-story-generator
     file: agents/user-story-generator.md
     purpose: "Parallel story authoring agent for create-spec workflows."
     model: fast
+    model_tier: capability
   - name: visual-qa-agent
     file: agents/visual-qa-agent.md
     purpose: "Optional UI validation gate that compares implementation screenshots against visual references."
     model: inherit
+    model_tier: orchestration
 
 # Skills — capability files (SKILL.md format) loaded explicitly by commands and agents.
 # Schema (additive — backward compatible):
@@ -213,6 +220,7 @@ agents:
 #     file: skills/<name>/SKILL.md     # required, must exist on disk
 #     description: "<verb-phrase>"     # required, non-empty (see ADR-009 boundary convention)
 #     status: <candidate|proven|promoted>  # optional render mirror; defaults to `candidate`
+#     model_tier: <orchestration|capability|-N>  # optional, advisory only (see ADR-016)
 #     tags: [<tag1>, <tag2>]           # optional
 #     aliases: [<alias1>]              # optional
 # Empty list (`skills: []`) is valid and produces no Skills section in the root SKILL.md.

@@ -137,6 +137,14 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 | **Integration with Writ** | Table mapping relationships to other commands |
 | **References** | Final section linking to `commands/_preamble.md` and `system-instructions.md` |
 
+**Model tier note (every generated command):** every generated command documents the `model_tier` convention. Commands have no frontmatter mechanism, so weight intent ships as a prose note near the Overview or Invocation section, verbatim in the already-locked phrasing from `system-instructions.md` § Model Tiers:
+
+```markdown
+> **Model tier (advisory only):** <tier> — commands run at the user's session model, not Writ-selectable.
+```
+
+Pick `<tier>` contextually from the command's nature — `orchestration` for heavy, multi-phase commands that coordinate other work (e.g. `/implement-spec`), `capability` for narrow, single-purpose commands. Default to `orchestration` when the command's weight is unclear or genuinely mixed. This is advisory documentation only — Writ has no mechanism to select a model for a command, so the note never resolves to anything at runtime. See [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md) and [`.writ/docs/model-tiers.md`](../.writ/docs/model-tiers.md).
+
 **Command categories** inform structure but don't dictate templates:
 
 | Category | Examples | Typical pattern |
@@ -155,6 +163,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 - Language and shell agnostic — use Writ's tools, not platform-specific commands
 - Include the standard final `## References` section with `commands/_preamble.md` and `system-instructions.md`
 - Match the voice and density of existing refined commands
+- Include the advisory `> **Model tier (advisory only):** <tier> — ...` prose note (see Step 2.1's Model tier note above) near Overview or Invocation, with `<tier>` chosen per the command's weight — defaulting to `orchestration` if unclear
 
 #### Step 2.2: Validate Integration
 
