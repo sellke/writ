@@ -9,16 +9,8 @@
 
 Additive, optional, backward-compatible. Applies to agents (enforced), commands and skills (advisory).
 
-**Carrier per file type (verified against the repo — "frontmatter" is the umbrella term, not a literal `---` block everywhere):**
-
-| File type | Carrier | Verified state |
-|---|---|---|
-| Skills (`skills/*/SKILL.md`) | Real `---` YAML frontmatter | Confirmed present (`name`, `description`, `status`, etc.) |
-| Agents (`agents/*.md`) | Existing fenced **Agent Configuration** block (`subagent_type:`, `model:`, `readonly:`) | Confirmed — no `---` header exists; `model_tier:` is a new line in this block |
-| Commands (`commands/*.md`) | **No config-block mechanism exists.** Advisory tier ships as a prose note | Confirmed — 0/31 command files carry a `---` block |
-
 ```yaml
-# --- Agent Configuration block (ENFORCED at spawn) — agents/*.md ---
+# --- Agent frontmatter (ENFORCED at spawn) ---
 model_tier: orchestration     # resolves to anchor / inherit
 # or
 model_tier: capability        # resolves to floor / fast
@@ -26,13 +18,8 @@ model_tier: capability        # resolves to floor / fast
 # --- Reserved ordinal-offset form (documented, NOT resolved beyond 2-band) ---
 model_tier: -1                # anchor minus one band, clamped to floor (reserve-only)
 
-# --- Skill frontmatter (ADVISORY ONLY) ---
+# --- Command / skill frontmatter (ADVISORY ONLY) ---
 model_tier: orchestration     # advisory: documents assumed execution weight; not selectable
-```
-
-```markdown
-<!-- Command prose note (ADVISORY ONLY — no frontmatter mechanism exists for commands) -->
-> **Model tier (advisory only):** orchestration — commands run at the user's session model.
 ```
 
 **Rules:**
@@ -57,14 +44,14 @@ Story 2 documents whether `model:` is removed in favor of `model_tier:` or retai
 
 ## 2. Tier → Concrete Model Resolution (2-band, native)
 
-| Tier | Cursor (`Task({ model })`) | Codex (TOML `model`) | OpenClaw (`sessions_spawn`) | Claude Code (agent frontmatter `model`) |
-|---|---|---|---|---|
-| `orchestration` | `inherit` (runs at anchor) | omit / inherit | omit `model` param | `inherit` |
-| `capability` | `"fast"` (floor) | concrete mini ID (e.g. `gpt-5-mini`) | `model` param → cheaper model | concrete name (e.g. `haiku`, or `sonnet` where more nuance is needed) |
-| unset | `inherit` | omit | omit | `inherit` |
-| reserved ordinal `-N` | clamp: `inherit` if 0, else `"fast"` | clamp to mini | clamp to cheaper | clamp to `haiku` |
+| Tier | Cursor (`Task({ model })`) | Codex (TOML `model`) | OpenClaw (`sessions_spawn`) |
+|---|---|---|---|
+| `orchestration` | `inherit` (runs at anchor) | omit / inherit | omit `model` param |
+| `capability` | `"fast"` (floor) | concrete mini ID (e.g. `gpt-5-mini`) | `model` param → cheaper model |
+| unset | `inherit` | omit | omit |
+| reserved ordinal `-N` | clamp: `inherit` if 0, else `"fast"` | clamp to mini | clamp to cheaper |
 
-**Why native, not a ranking:** Cursor's `inherit`/`fast` are relative primitives the platform resolves itself — Writ ships zero model names for Cursor/OpenClaw. Codex and Claude Code both require concrete names today (mini ID; `haiku`/`sonnet`), so each lives in its own adapter's table (Claude Code's already exists in § Model Selection) and is the one place a name can rot; each is isolated to one table and flagged for verification (Codex already notes `/model` verification; Claude Code gets the same caveat).
+**Why native, not a ranking:** Cursor's `inherit`/`fast` are relative primitives the platform resolves itself — Writ ships zero model names for Cursor/OpenClaw. Codex requires concrete IDs today, so the mini ID lives in that adapter's table (already present) and is the one place a name can rot; it's isolated to one table and flagged for `/model` verification (as the adapter already notes).
 
 ## 3. Graceful Degradation
 
@@ -90,10 +77,10 @@ Mirrors `required_skills:` handling — warn, never hard-fail.
 
 Extend `scripts/lint-skill.sh` (and the shared frontmatter validation used by `/new-skill` / `/refresh-command` / `/new-command`):
 
-- **Value check:** `model_tier` must match `^(orchestration|capability|-[0-9]+)$` wherever it appears (skill frontmatter, agent Agent Configuration block, or a command's prose note). Otherwise reject with:
+- **Value check:** `model_tier` must match `^(orchestration|capability|-[0-9]+)$`. Otherwise reject with:
   `model_tier '<value>' is invalid. Use 'orchestration', 'capability', or a reserved negative offset (e.g. -1).`
-- **Advisory reminder (commands/skills only):** if a skill declares `model_tier` in frontmatter, or a command documents it as a prose note, the scaffold inserts an adjacent `# advisory only — commands/skills run at the session/caller model` comment/label. Lint does not fail on its absence (advisory), but `/new-*` always writes it.
-- **Manifest/config consistency (agents):** Story 2 DoD verifies each agent's Agent Configuration block `model_tier` matches its `manifest.yaml` entry (manual `rg`/diff; no test framework).
+- **Advisory reminder (commands/skills only):** if a command or skill declares `model_tier`, the scaffold inserts an inline `# advisory only — commands/skills run at the session/caller model` comment. Lint does not fail on its absence (advisory), but `/new-*` always writes it.
+- **Manifest/frontmatter consistency (agents):** Story 2 DoD verifies each agent's frontmatter `model_tier` matches its `manifest.yaml` entry (manual `rg`/diff; no test framework).
 
 ## 6. Documentation Surfaces
 
@@ -104,8 +91,7 @@ Extend `scripts/lint-skill.sh` (and the shared frontmatter validation used by `/
 | `adapters/cursor.md` | § Sub-Agent Models gains the tier→native table + degradation rule |
 | `adapters/codex.md` | Agents↔TOML table framed as tier resolution; degradation rule |
 | `adapters/openclaw.md` | Spawning section gains tier→`model` param mapping + degradation rule |
-| `adapters/claude-code.md` | § Model Selection reframed as tier resolution (`capability`→`haiku`/`sonnet`, `orchestration`→`inherit`); degradation rule |
-| `.writ/decision-records/adr-016-model-tier-delegation.md` | New ADR — decision + alternatives |
+| `.writ/decision-records/adr-014-model-tier-delegation.md` | New ADR — decision + alternatives |
 | `.writ/docs/model-tiers.md` | New user-facing explainer |
 | `README.md`, `AGENTS.md` | Reference the convention where model/agent behavior is described |
 
@@ -121,4 +107,4 @@ Extend `scripts/lint-skill.sh` (and the shared frontmatter validation used by `/
 - Refreshable per-platform model-family ranking; N-step (>2-band) resolution.
 - Runtime anchor-model detection beyond native `inherit`.
 - Quality-regression eval harness for capability-tier output.
-- Introducing a real frontmatter/config-block mechanism for commands (advisory tier ships as a prose note instead).
+- `adapters/claude-code.md` tier section — folded into Story 3 only if Claude Code exposes a native fast/inherit distinction worth documenting; otherwise deferred.

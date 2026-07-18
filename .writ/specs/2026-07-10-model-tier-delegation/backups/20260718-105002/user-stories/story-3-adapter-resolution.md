@@ -38,31 +38,26 @@
 - **When** I read each adapter
 - **Then** each states resolution is relative (anchor/floor), that no maintained ranking exists, and that ordinal offsets are reserved (clamp to floor today)
 
-### Scenario 6: Claude Code resolution table
-- **Given** `adapters/claude-code.md` § Model Selection already runs a concrete `inherit`/`sonnet`/`haiku` mapping (no clean binary fast/inherit primitive)
-- **When** I read `adapters/claude-code.md`
-- **Then** it documents `capability` → a named cheaper model (e.g. `haiku`), `orchestration` → `inherit`, with the same graceful-degradation rule and a verification flag on the concrete names (mirrors Codex's mini-ID caveat)
-
 ## Implementation Tasks
 
 - [ ] **Cursor adapter:** Update § Sub-Agent Models with the tier→native table (`inherit`/`fast`), degradation rule, and relative/reserved framing.
 - [ ] **Codex adapter:** Reframe the agents↔TOML model column as tier resolution; document mini-ID for `capability`, inherit for `orchestration`, keep `/model` verification note.
 - [ ] **OpenClaw adapter:** Update the spawning section with tier→`model`-param mapping and degradation rule.
 - [ ] **Degradation consistency:** Ensure all three adapters state the same warn-and-fall-back contract (matching `required_skills:` handling).
-- [ ] **Claude Code mapping:** `adapters/claude-code.md` § Model Selection already runs a 3-way concrete mapping (`inherit` / `sonnet` / `haiku`), not a clean binary fast/inherit primitive — verified, not deferred. Fold in a tier section mirroring the Codex mini-ID pattern: `capability` → a named cheaper model (`haiku`, or `sonnet` where the agent needs more nuance), `orchestration` → `inherit`. Flag the concrete names for `/model`-style verification, same caveat as Codex's mini ID.
+- [ ] **Claude Code decision:** If `adapters/claude-code.md` exposes a native fast/inherit distinction, add a matching tier section; otherwise note it as deferred (see spec Scope Boundaries).
 - [ ] **Cross-check with Story 2:** Confirm the resolution tables produce the exact concrete models Story 2's mapping asserts (no regression).
 
 ## Definition of Done
 
 - [ ] All five acceptance criteria pass
 - [ ] `adapters/cursor.md`, `adapters/codex.md`, `adapters/openclaw.md` each contain a tier→native-resolution table + graceful-degradation rule
-- [ ] Claude Code adapter updated with a tier section using concrete model names (mirrors Codex's mini-ID pattern; verified no clean binary fast/inherit primitive exists there)
+- [ ] Claude Code adapter either updated or explicitly deferred with rationale
 - [ ] Degradation contract is identical in spirit across adapters (warn → fall back to parent)
-- [ ] Self-review: no concrete model names ship for Cursor/OpenClaw (native primitives only); Codex's mini ID and Claude Code's `haiku`/`sonnet` names are each isolated to their own table and flagged for verification
+- [ ] Self-review: no concrete model names ship for Cursor/OpenClaw (native primitives only); Codex's single mini ID is isolated and flagged for `/model` verification
 
 ## Technical Notes
 
-- **No ranking, native primitives.** Cursor's `inherit`/`fast` are the resolution — Writ ships zero model names there. Codex and Claude Code both need concrete names (mini ID / `haiku`+`sonnet` respectively); each lives in its own table and is flagged for verification, same as Codex's existing convention.
+- **No ranking, native primitives.** Cursor's `inherit`/`fast` are the resolution — Writ ships zero model names there. Codex is the only platform needing a concrete ID; it lives in one table and is flagged as verify-with-`/model` (already the convention).
 - **Degradation mirrors `required_skills:`.** Same graceful, warn-don't-fail posture the project already uses for unknown skills.
 - **Reserved offsets clamp.** Deeper-than-2-band offsets resolve to floor (or inherit if one band); documented, not an error.
 

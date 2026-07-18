@@ -13,12 +13,10 @@
 
 ## Acceptance Criteria
 
-### Scenario 1: `/new-skill` scaffolds frontmatter; `/new-command` scaffolds a prose note
-- **Given** the `model_tier` convention exists, and commands have no frontmatter mechanism today (verified: 0/31 command files carry a `---` block)
-- **When** I scaffold a new skill
-- **Then** the generated frontmatter includes a `model_tier:` field with an inline `# advisory only` comment
-- **When** I scaffold a new command
-- **Then** the generated file includes a prose note (e.g. near Overview/Invocation) documenting an advisory `model_tier:` with an adjacent "advisory only" label — no new `---` frontmatter is introduced for commands
+### Scenario 1: `/new-command` and `/new-skill` scaffold `model_tier`
+- **Given** the `model_tier` convention exists
+- **When** I scaffold a new command or skill
+- **Then** the generated frontmatter includes a `model_tier:` field with an inline `# advisory only` comment (because commands/skills can't enforce a model)
 
 ### Scenario 2: Lint validates tier values
 - **Given** `scripts/lint-skill.sh` (and the shared frontmatter validation)
@@ -43,8 +41,8 @@
 ## Implementation Tasks
 
 - [ ] **`/new-skill` scaffold:** Add `model_tier:` (advisory) with inline comment to the generated skill frontmatter.
-- [ ] **`/new-command` scaffold:** Add an advisory `model_tier` **prose note** (not YAML frontmatter — none exists for commands, verified 0/31 files) near the generated command's Overview/Invocation section, with an adjacent "advisory only" label.
-- [ ] **Lint value check:** Extend `scripts/lint-skill.sh` (and shared frontmatter validation used by `/new-skill` / `/refresh-command` / `/new-command`) to validate `model_tier` against `^(orchestration|capability|-[0-9]+)$` with a clear remediation message, wherever it's declared (skill frontmatter, agent config block, or command prose note).
+- [ ] **`/new-command` scaffold:** Add `model_tier:` (advisory) with inline comment to the generated command frontmatter.
+- [ ] **Lint value check:** Extend `scripts/lint-skill.sh` (and shared frontmatter validation used by `/new-skill` / `/refresh-command` / `/new-command`) to validate `model_tier` against `^(orchestration|capability|-[0-9]+)$` with a clear remediation message.
 - [ ] **Write `.writ/docs/model-tiers.md`:** Canonical explainer with verb/noun/tool framing, resolution/degradation summary, and reserved-offset note.
 - [ ] **Root doc references:** Link the convention from `README.md` and `AGENTS.md` where agent/model behavior is described.
 - [ ] **Advisory wording sweep:** Ensure the advisory framing is consistent across scaffolds, docs, and lint output.
@@ -52,7 +50,7 @@
 ## Definition of Done
 
 - [ ] All five acceptance criteria pass
-- [ ] `/new-skill` scaffolds an advisory `model_tier:` frontmatter field; `/new-command` scaffolds an advisory `model_tier` prose note (no frontmatter introduced for commands)
+- [ ] `/new-command` and `/new-skill` scaffold an advisory `model_tier:` field
 - [ ] Lint rejects invalid `model_tier` values and accepts valid ones (verified with a bad + good input)
 - [ ] `.writ/docs/model-tiers.md` exists; `README.md` and `AGENTS.md` reference it
 - [ ] Advisory framing consistent everywhere command/skill tier appears
@@ -61,8 +59,7 @@
 ## Technical Notes
 
 - **Reuse, don't fork, the lint.** Add tier validation to the existing shared lint path so `/new-skill`, `/new-command`, and `/refresh-command` all get it. Mirror the skills-foundation approach (`scripts/lint-skill.sh` shared by `/new-skill` and `/refresh-command`).
-- **Advisory comment/label is written, not lint-enforced.** `/new-skill` always emits the `# advisory only` comment; `/new-command` always emits the prose-note label. Lint doesn't fail if a hand-authored file omits either (it's documentation, not a hard rule).
-- **Commands get prose, not frontmatter.** Verified against the repo: 0/31 command files carry a `---` block today. Introducing real command frontmatter is out of scope for this spec (see spec.md Scope Boundaries) — the advisory tier is a documented convention note, not a parseable field.
+- **Advisory comment is written, not lint-enforced.** `/new-*` always emits the `# advisory only` comment; lint doesn't fail if a hand-authored file omits it (it's documentation, not a hard rule).
 - **Explainer mirrors `.writ/docs/skills.md`.** Same shape and tone as the skills explainer for consistency.
 
 ## Context for Agents
