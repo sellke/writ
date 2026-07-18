@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.21.0] - 2026-07-17
+
+**Recommend Redistribution** — `--recommend` moves to the right seams. Experience showed a single command carrying one spec all the way through a production-approval boundary was the wrong first cut; per [ADR-013 (revised 2026-07-17)](.writ/decision-records/adr-013-recommended-autonomous-delivery.md), evidence-backed autonomy now lives on exactly two commands, and neither merges, opens PRs, nor releases — production stays a human decision.
+
+### Added
+
+- **`/implement-phase --recommend`** — the sole end-to-end autonomous loop: auto-authors missing specs (via `/create-spec --recommend`), auto-accepts its decomposition and execution-plan confirmations, and runs `/implement-spec` per spec through the existing isolated-lane flow. Terminal scope unchanged: honest completion report with manual UAT handoff.
+
+### Changed
+
+- **`/create-spec --recommend` authors and stops.** It autonomously runs contract-first discovery, auto-adopts the evidence-backed contract lock, story decomposition, sub-spec set, and visual-reference default — recording each material decision in `recommendation-log.md` — then delivers the locked, validated package without implementing.
+- **`/implement-spec` is a plain execute command** — no confirmation gate, no flag. Invoking it runs the plan.
+- **ADR-013 rewritten as a single coherent decision** — the current two-command policy stated directly, with the original single-spec shape recorded under Rejected Alternatives and Revision History. Policy (`system-instructions.md`, `cursor/writ.mdc`, `commands/_preamble.md`), product (mission, mission-lite, roadmap), and adapter surfaces reconciled to match.
+
+### Removed
+
+- **`--recommend` from `/implement-spec`, `/ship`, and `/create-uat-plan`.** The autonomous staging → production-approval flow is deferred ("bigger loops later"); its machinery (`scripts/recommend-state.py`, `.writ/docs/recommended-delivery-state-format.md`) is kept dormant as the preserved design — still eval-guarded, not deleted.
+
+### Internal
+
+- **Eval falsifiability gate reconciled in the same change:** `autonomy-governance` repointed to the revised policy literals with regression forbids; `recommended-spec-implementation` static assertions reconciled to the two-command model (162/162 scenarios, 16/16 static); `recommended-staging` redirected to guard only the dormant machinery plus an adapter merge-forbid (60/60 scenarios). Full suite green — 0 findings.
+- `commands/_preamble.md` trimmed to 79 lines (within the 80-line eval limit).
+
 ## [0.20.1] - 2026-07-11
 
 Internal eval robustness patch. Hardens the `recommended-spec-implementation` check against a pathological subprocess-spawn cost that read as a hang under x86_64 Python via Rosetta, and clears a Python 3.13+ deprecation warning. No user-facing feature or command changes.
