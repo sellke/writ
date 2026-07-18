@@ -22,6 +22,11 @@ usage() {
   echo "Lints SKILL.md files against the ADR-009 role convention:" >&2
   echo "  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)" >&2
   echo "  - Body must not invoke commands, skills, subagents, or slash commands" >&2
+  echo "  - Any declared model_tier value (skill frontmatter, agent config block," >&2
+  echo "    or command prose note) must be 'orchestration', 'capability', or a" >&2
+  echo "    reserved negative offset (e.g. -1) — see ADR-016" >&2
+  echo "    (skill/command values are advisory only — they run at the session/" >&2
+  echo "    caller model; only an agent's model_tier is enforced at spawn)" >&2
   exit 2
 }
 
@@ -245,6 +250,45 @@ lint_lifecycle() {
   fi
 }
 
+# ---------- model_tier value validation (ADR-016) ----------
+# Advisory (skills, command prose notes) and enforced (agent config blocks)
+# model_tier declarations share one allowed-value grammar. This check is
+# format-agnostic and scans the ENTIRE raw file (unlike extract_frontmatter,
+# which is fence-gated) — it recognizes two shapes:
+#   1. Key-value:   model_tier: <value>            (skill frontmatter, agent
+#                    Agent Configuration/Specification blocks)
+#   2. Locked prose: **Model tier (advisory only):** <value>
+#                    (the exact command prose-note format committed in
+#                    system-instructions.md)
+# A trailing `# comment` or descriptive prose after the value is not part of
+# the value itself — the capture stops at the first non-identifier character,
+# which naturally strips comments/whitespace/placeholder markup.
+MODEL_TIER_VIOLATIONS=0
+
+lint_model_tier() {
+  local file="$1"
+  local line line_num=0 value
+  MODEL_TIER_VIOLATIONS=0
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_num=$((line_num + 1))
+    value=""
+
+    if [[ "$line" =~ model_tier:[[:space:]]*([A-Za-z0-9-]+) ]]; then
+      value="${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ Model[[:space:]]tier[[:space:]]\(advisory[[:space:]]only\):\*{0,2}[[:space:]]*([A-Za-z0-9-]+) ]]; then
+      value="${BASH_REMATCH[1]}"
+    else
+      continue
+    fi
+
+    if ! [[ "$value" =~ ^(orchestration|capability|-[0-9]+)$ ]]; then
+      echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'orchestration', 'capability', or a reserved negative offset (e.g. -1)."
+      MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
+    fi
+  done < "$file"
+}
+
 # Lint a single SKILL.md.
 lint_file() {
   local file="$1"
@@ -326,6 +370,9 @@ lint_file() {
       fi
     done
   done < <(awk 'BEGIN{fm=0;skip=1} /^---/{fm++; if(fm==2){skip=0; next}; next} !skip{print}' "$file")
+
+  lint_model_tier "$file"
+  violations=$((violations + MODEL_TIER_VIOLATIONS))
 
   lint_lifecycle "$file"
   violations=$((violations + LIFECYCLE_VIOLATIONS))

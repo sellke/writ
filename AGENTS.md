@@ -60,6 +60,8 @@ Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 
 Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
 
+Each agent declares a `model_tier` (`orchestration` or `capability`) in its Agent Configuration block, enforced at spawn. See [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention — commands and skills carry the same field, but only as advisory documentation (they run at the session/caller model, not Writ-selectable).
+
 ### Adapters (`adapters/`)
 Platform-specific integration guides. `adapters/codex.md` maps Writ concepts to Codex CLI subagents, `AGENTS.md`, and `.codex/config.toml`. `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system. Each adapter includes a Skills section documenting per-platform install paths and invocation behavior.
 

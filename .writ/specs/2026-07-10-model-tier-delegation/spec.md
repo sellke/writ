@@ -1,6 +1,6 @@
 # Model-Tier Delegation Across Agents
 
-> **Status:** In Progress (Story 1/4 complete)
+> **Status:** Completed ✅ (4/4 stories complete)
 > **Created:** 2026-07-10
 > **Owner:** Adam Sellke
 > **ADR:** `.writ/decision-records/adr-016-model-tier-delegation.md` (created in Story 1)
