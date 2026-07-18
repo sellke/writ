@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.21.1] - 2026-07-18
+
+**Housekeeping** — README and `/status` reconciled with shipped reality; the workspace ledger swept clean.
+
+### Fixed
+
+- **`/status` command allowlist reconciled** — added `/new-skill`, `/create-uat-plan`, and `/knowledge` to both allowlist locations, so `/status` can suggest every command that actually exists in `commands/*.md`.
+
+### Changed
+
+- **README brought current with v0.21.0 state** — all six live skills cataloged with descriptions, the two-command `--recommend` policy summarized with per-command annotations ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)), native-memory interop noted, the OpenClaw adapter added to Platform Support, the command count corrected to 30, and `uat-plan.md` / `recommendation-log.md` shown in the spec-package tree.
+
+### Internal
+
+- Workspace ledger reconciled: 9 stale spec headers set to terminal states with commit-level evidence (`infrastructure-command-refinement` closed as Abandoned — its targets left the suite), all 7 stale issues triaged (5 closed with evidence and deleted, 1 parked to the roadmap parking lot, 1 kept open), completed execution state purged from `.writ/state/`, and `.writ/context.md` regenerated.
+
 ## [0.21.0] - 2026-07-17
 
 **Recommend Redistribution** — `--recommend` moves to the right seams. Experience showed a single command carrying one spec all the way through a production-approval boundary was the wrong first cut; per [ADR-013 (revised 2026-07-17)](.writ/decision-records/adr-013-recommended-autonomous-delivery.md), evidence-backed autonomy now lives on exactly two commands, and neither merges, opens PRs, nor releases — production stays a human decision.
