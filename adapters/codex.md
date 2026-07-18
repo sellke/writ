@@ -280,83 +280,6 @@ neutral reducer:
   state/git mismatch it reports the discrepancy and recovery command without
   mutating git.
 
-### Recommended Delivery Context and Resume
-
-The Codex parent thread transports `delivery_context` through command/subagent
-boundaries and normalizes nested output as `recommend-command-result-v1`.
-Preserve execution ID, canonical state/spec paths, recommend mode, non-secret
-propagation token, parent command, return schema, and package manifest digest.
-Subagent threads neither create delivery executions nor claim overall delivery
-completion; implement-spec may wrap their existing report at its deterministic
-normalization boundary.
-
-Before waiting for a composer answer, preserve stable question and option IDs,
-recommend mode, and the same resume transition. Durable resume selects an
-explicit execution ID or one unambiguous spec/branch match and performs
-repository-only reconciliation before any workspace write or agent fan-out.
-
-Create state exclusively. On replacement, re-read revision and unknown fields,
-validate the complete next document, write and flush a validated sibling
-temporary file where supported, then atomically rename it. If the active Codex
-sandbox cannot perform equivalent crash-safe replacement, block rather than
-truncate the canonical state in place.
-
-Before recommended Gate 1, a Codex thread must report absolute worktree path,
-full ref/HEAD, story/delegated execution IDs, and ownership token as
-`recommend-worktree-launch-v1`. The parent verifies git worktree identity,
-persists it with `scripts/recommend-state.py reserve-worktree`, and returns
-`recommend-worktree-reservation-ack-v1`. Parallel threads are allowed only when
-each has a distinct observable linked worktree. Because Codex thread isolation
-varies by version/configuration, fall back to documented one-at-a-time serial
-in-place execution with the repository root/ref/HEAD handshake; if stable
-identity is still unavailable, block. Thread names and `/agent` listings alone
-are not ownership evidence.
-
-Story 3 repository-only reconciliation remains provider-free. Story 4 maps
-`findPullRequest`, `createPullRequest`, `getPullRequest`,
-`listRequiredChecks`, and `findPreview` to a configured integration or
-authenticated `gh`/`gh api`. PR lookup always uses provider repository/base/head
-identity. Derive that operation key, reconcile its bound Pending entry, persist
-`authorized`, then `attempted` before the sole create. Observe `created` or
-`reconciled` by lookup before canonical IDs are finalized; repeated absence
-after authorization blocks.
-Finalize the exact PR entry with canonical provider ID/number/URL, reconcile
-the log, and call `finalize-pr-audit` before checks. No later staging transition
-advances while a mutation-related recommendation entry remains Pending.
-
-Required-check discovery reads branch-protection/provider requirements and check
-runs, then separately classifies configured additive names. Normalize
-provider/repository/query time/head and stable provider IDs/names/set digest or
-explicit provider zero plus `authenticated: true` and concrete
-`listRequiredChecks` operation ID/start/completion; command success never
-implies authentication. Re-query the full set before advancing. Unknown,
-needs-auth, and authorization-denied remain distinct. Preview discovery reads
-existing deployment/status/check metadata; configured Vercel metadata is
-eligible only for a configured project/source with observable integration
-provenance and exact full-SHA binding. `Preview Project` maps to
-`previewProjectId`; detected IDs are execution-only and never auto-saved.
-URL-pattern-only evidence is invalid. Enforce
-`deployment-status → provider-deployment|provider-status`,
-`check-output → provider-check`, and
-`project-convention → project-convention`.
-Persist normalized evidence before yielding. Immediately before approval,
-repeat all reads and return one envelope binding capability snapshot digest,
-PR/head, complete check-set digest/IDs/statuses, preview provenance/status, UAT
-digest, and query time.
-One reconciliation attempt ID binds UTC RFC3339 observations after
-presentation/current evidence, within configured-or-five-minute freshness and
-30-second future skew.
-
-Codex renders one numbered approve/reject production decision with stable IDs
-and no default. Only an explicit composer reply receives a persisted event ID;
-silence remains `awaiting_approval`. If unattended waiting is unsupported,
-preserve `waiting_ci` or `discovering_preview` and provide the exact resume
-command.
-
-No browser automation, deployment provisioning, `deploy_to_vercel`, access-
-bypass URL, merge call, or release operation is allowed in Story 4. An
-authentication or authorization denial is reported once and stops.
-
 ### `/implement-spec` batches
 
 `/implement-spec` computes story dependency batches — parallel batches should map to concurrent Codex subagent threads when safe, sequential batches stay strictly ordered. The orchestrator session owns dependency bookkeeping; individual subagents should not mutate downstream story files outside their assigned scope.
@@ -367,9 +290,13 @@ The former unattended CLI loop for multi-spec execution is **retired and archive
 (see `archive/`). Use `/implement-phase` for supervised multi-spec execution: it
 sequences specs by cross-spec dependency, isolates each spec in a fresh execution
 lane (branch + worktree), quarantines terminal failures while independent specs
-continue, and reconciles state read-only on resume. Bounded single-spec autonomy is
-a separate, explicitly supported path (`/implement-spec --recommend <one-spec>`);
-multi-spec `/implement-phase --recommend` remains excluded.
+continue, and reconciles state read-only on resume. Recommended autonomy is a
+separate, explicitly supported path on two commands: `/create-spec --recommend`
+autonomously authors and locks one spec package from evidence, then stops; and
+`/implement-phase --recommend` runs the phase as an end-to-end loop — authoring
+any missing specs and implementing the phase's specs through the isolated lanes
+above, ending at the completion report with manual UAT handoff. It never merges,
+opens PRs, or releases.
 
 ---
 

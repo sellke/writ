@@ -110,9 +110,7 @@ identity automatically or by rendering its bounded pause unchanged. Show the
 policy's decision, evidence, material alternatives, risk, reversibility,
 selection source, and result/artifact summary without exposing private
 chain-of-thought or transcript content. After a required answer, return control
-to the active command in the same session with recommendation mode retained;
-durable and cross-session resume mechanics follow the neutral contract mapped
-in the next section.
+to the active command in the same session with recommendation mode retained.
 Cursor permission, authentication, and unavailable-tool failures remain hard
 platform blockers.
 
@@ -149,90 +147,6 @@ neutral reducer — no Cursor-specific runtime is required:
 - `--resume` runs `scripts/phase-state.py reconcile` (read-only) before any action;
   on a state/git mismatch Cursor surfaces the discrepancy and recovery command and
   does not mutate git.
-
-### Recommended Delivery Context and Resume
-
-For Story 3, the top-level Cursor command transports the canonical
-`delivery_context` into nested work and normalizes each nested response as
-`recommend-command-result-v1`. Keep the execution ID, state/spec paths, mode,
-non-secret propagation token, parent command, return schema, and package
-manifest digest intact. The implement-spec parent may wrap an existing
-implement-story report at this deterministic boundary; subagents do not mint
-delivery executions or claim terminal delivery.
-
-When user input is required, preserve stable question and option IDs in state
-before yielding, retain recommend mode, and resume the same transition from the
-returned Cursor option identity. Durable resume reloads by explicit execution
-ID or one unambiguous spec/branch match and completes repository-only
-reconciliation before any write.
-
-Create state exclusively. For replacement, re-read revision and unknown fields,
-validate the complete next document, write and flush a validated sibling
-temporary file where supported, then atomically rename it. If Cursor's active
-filesystem surface cannot provide equivalent crash-safe replacement, block
-instead of weakening the contract.
-
-For recommended story launch, Cursor must expose absolute working path, full git
-ref/HEAD, story/delegated execution IDs, and ownership token in
-`recommend-worktree-launch-v1`. The parent persists that result with
-`scripts/recommend-state.py reserve-worktree` and returns
-`recommend-worktree-reservation-ack-v1` before Gate 1 edits. Cursor Task
-execution does not guarantee isolated linked-worktree identity, so the safe
-baseline is serial in-place execution: one story at a time, reserving the
-repository root/ref/HEAD through the same handshake. Use parallel Task stories
-only when each has a distinct observable git worktree. Missing stable identity
-blocks; never infer ownership from a Task label or transcript.
-
-Story 3 repository-only reconciliation remains provider-free. After verified
-implementation, Story 4 maps the neutral staging capabilities as follows:
-
-- `findPullRequest`, `createPullRequest`, and `getPullRequest`: use the
-  authenticated GitHub MCP pull-request tools when they can query exact
-  repository/base/head identity and return full head SHA. Otherwise use
-  authenticated `gh pr list/create/view --json` with structured arguments.
-- `listRequiredChecks`: use authenticated `gh api` against branch-protection
-  required status-check contexts/check-runs and PR head status. GitHub MCP PR
-  status alone is insufficient unless it exposes the complete provider-required
-  set. Return provider/repository/query-time/full-SHA identity, stable provider
-  IDs/names/set digest or explicit provider-zero declaration, and separately
-  classified config checks. Include explicit `authenticated: true` and a
-  bounded `listRequiredChecks` query-operation ID/start/completion; caller
-  success never implies authentication. Re-query the complete set before advancement.
-  Unknown, needs-auth, and authorization-denied are distinct, never zero.
-- `findPreview`: use authenticated `gh api` deployment/status/check metadata or
-  existing Vercel project/deployment metadata only when `Preview Provider:
-  vercel` and `Preview Project` identify an existing integration. Normalize
-  `Preview Project` as `previewProjectId`; detected IDs are execution-only and
-  never silently saved. Return only a safe
-  URL whose deployment metadata contains the exact full PR head SHA. Normalize
-  configured provider/evidence source/repository/project plus observable
-  integration ID, provenance kind, and observation time; a URL pattern alone is
-  not evidence.
-  Enforce source/kind pairs: `deployment-status` maps to
-  `provider-deployment`/`provider-status`, `check-output` to `provider-check`,
-  and `project-convention` to itself.
-
-Persist normalized evidence before waiting and pass it only to the explicit
-reducer operations. Before `createPullRequest`, derive the operation key from
-repository/base/head, persist and reconcile the bound Pending audit entry,
-lookup, persist `authorized`, then persist `attempted` before the sole mutation.
-Observe as `created`/`reconciled`, persist canonical IDs, and finalize. Repeated
-absence after authorization blocks. Finalize the exact PR audit entry with
-canonical provider ID/number/URL, reconcile the log, and call
-`finalize-pr-audit` before checks; no later staging transition advances with a
-Pending mutation audit. After any wait and immediately before
-approval, repeat all three reads and return one same-operation reconciliation
-envelope containing capability snapshot digest, PR/head, complete check-set
-digest/statuses, preview provenance/status, UAT digest, and query time. One
-attempt ID binds UTC RFC3339 observations after presentation and current
-evidence; enforce five-minute/configured freshness and 30-second future skew.
-
-Use `AskQuestion()` once for production approval with stable approve/reject IDs;
-persist the returned actor/event identity and SHA before returning
-`production_approved`. Silence is not a selection. No browser automation,
-`deploy_to_vercel`, Vercel access-bypass URLs, merge tools/calls, and release
-operations are forbidden in Story 4. Authentication or authorization denial is
-reported once and stops.
 
 ## Agent Configuration Notes
 

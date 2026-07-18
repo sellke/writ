@@ -1,7 +1,7 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-07-11
+> Last Updated: 2026-07-17
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
 
@@ -28,7 +28,7 @@ AI coding tools made generating code trivially easy and building durable softwar
   - Native harness memory captures preferences and trivia, not negotiated decisions and their rationale
   - Six months later, returning to a feature shipped last quarter, even the original developer struggles to reconstruct *why* a decision was made
   - Quality is inconsistent — sometimes brilliant, sometimes embarrassing
-  - Opaque, unbounded agent loops produce volume without accountability; autonomy needs observable evidence and an immutable production boundary
+  - Opaque, unbounded agent loops produce volume without accountability; autonomy needs observable evidence and a human-owned production boundary
 - **Goals:** Ship with confidence, not hope. Walk away from a running phase and come back to reviewable results. Spend time on hard problems, not rework.
 
 **The Framework Tinkerer** (secondary)
@@ -69,7 +69,7 @@ Unlike frameworks that ship daemons, browsers, or databases, Writ is markdown, g
 
 ### Observable Autonomy, Deliberately Bounded
 
-Normal `/implement-phase` runs an entire roadmap phase after one confirmation — fresh context per spec, quarantine branching on failure, User Challenge framing, and an honest completion report with UAT plans. Separately, commands that explicitly support `--recommend` may carry one locked spec through observable, resumable delivery to one explicit production approval bound to the reviewed PR head SHA. Opaque unbounded loops remain out of scope: accountability, not volume, is the product. ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md))
+Normal `/implement-phase` runs an entire roadmap phase after one confirmation — fresh context per spec, quarantine branching on failure, User Challenge framing, and an honest completion report with UAT plans. Separately, `--recommend` adds evidence-backed autonomy on two commands: `/create-spec --recommend` authors and locks a spec package from evidence and then stops, and `/implement-phase --recommend` runs the phase as an end-to-end loop that also authors any missing specs. Both end at their normal terminal scope — neither merges, opens PRs, nor releases. Opaque unbounded loops remain out of scope: accountability, not volume, is the product. ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md))
 
 ### Self-Improvement With Evidence
 
@@ -85,7 +85,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 ## What Writ Is Not Building
 
-- **Not an opaque, unbounded loop runner.** Ralph-style iteration is deprecated. Normal `/implement-phase` remains session-bound and single-confirmation; explicitly supported single-spec `--recommend` delivery uses observable state and one SHA-bound production approval. Multi-spec recommend mode remains excluded, per ADR-013.
+- **Not an opaque, unbounded loop runner.** Ralph-style iteration is deprecated. Normal `/implement-phase` remains session-bound and single-confirmation; `--recommend` adds evidence-backed autonomy on `/create-spec` (author and stop) and `/implement-phase` (end-to-end phase loop), both ending short of merge/PR/release. Autonomous production delivery remains excluded, per ADR-013.
 - **Not a memory database or retrieval engine.** Markdown in git is the canonical knowledge substrate ([ADR-005](../decision-records/adr-005-knowledge-substrate-markdown-over-database.md)). External indexes — native harness memory, GBrain, anything else — are welcome *consumers* of that substrate via documented integration, never the system of record.
 - **Not a velocity-first sprint flow.** Writ trades raw shipping speed for durability. Parallel-sprint frameworks (GStack) target a different problem.
 - **Not a browser daemon or tool-specific runtime.** Writ uses the platform's native browser and tools through adapters.

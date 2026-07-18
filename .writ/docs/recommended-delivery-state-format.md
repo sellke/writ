@@ -1,7 +1,21 @@
 # Recommended Delivery State Format
 
+> **⚠️ Dormant — deferred design (2026-07-17).** The autonomous
+> single-spec-through-production delivery flow this document specifies is **not
+> currently wired to any command.** Per [ADR-013 (revised 2026-07-17)](../decision-records/adr-013-recommended-autonomous-delivery.md),
+> `--recommend` now lives only on `create-spec` (autonomous authoring, stops at
+> the locked package) and `implement-phase` (authoring + phase implementation,
+> stops at the completion report). `implement-spec`, `ship`, and
+> `create-uat-plan` no longer carry `--recommend`. The staging reducers in
+> `scripts/recommend-state.py` and the contracts below are **kept dormant** as
+> the preserved design for the future "bigger loops" (autonomous ship → CI →
+> preview → UAT → production approval), not deleted. `create-spec --recommend`
+> now records its autonomous authoring decisions in a lightweight
+> `recommendation-log.md` and does **not** create `recommend-execution-*.json`
+> state.
+
 This document is authoritative for the single-spec runtime and audit contracts
-used by `/create-spec --recommend` and `/implement-spec --recommend`. Story 3
+used by the deferred autonomous-delivery flow. Story 3
 owns planning through verified implementation; Story 4 activates the same v1
 state through durable `production_approved`. Story 5 remains the only owner of
 merge, release, and overall completion.

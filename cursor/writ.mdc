@@ -68,12 +68,20 @@ These are non-negotiable. Every command, every agent, every session.
 - **Make interruption resumable.** Persist state before yielding or attempting
   external mutations, then reconcile repository and provider reality before
   retrying. Never infer completion from a prior attempt.
-- **Retain one immutable production boundary.** Merge and release require one
-  explicit production approval for the exact reviewed PR head SHA. A changed
-  head invalidates approval. Never bypass branch protection, required checks, authentication, or authorization.
-- **Reject opaque unbounded execution.** Recommended delivery is session-started,
-  bounded to one locked spec, and finite. Multi-spec `/implement-phase --recommend`
-  and unattended CLI loops remain outside this exception.
+- **Retain the human production boundary.** No `--recommend` command merges,
+  opens PRs, or releases — those remain explicit human actions. Never bypass
+  branch protection, required checks, authentication, or authorization.
+- **`--recommend` lives on exactly two commands.** `create-spec --recommend`
+  autonomously authors a locked spec package from evidence and **stops** (it
+  never implements). `implement-phase --recommend` is the end-to-end loop: it
+  authors missing specs (via `create-spec --recommend`) and runs
+  `/implement-spec` per spec, ending at the phase completion report with manual
+  UAT handoff. `implement-spec`, `ship`, and `create-uat-plan` carry no
+  `--recommend`.
+- **Reject opaque unbounded execution.** Recommended delivery is session-started
+  and finite — bounded to one authored spec or one roadmap phase. It never
+  becomes an unattended CLI loop, and it never crosses into autonomous
+  merge/release.
 
 ### Recommendation Semantics
 

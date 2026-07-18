@@ -44,12 +44,12 @@ commands:
   - name: create-spec
     file: commands/create-spec.md
     category: planning
-    purpose: "Create contract-first specifications; --recommend continues one validated package through staged production approval."
+    purpose: "Create contract-first specifications; --recommend autonomously authors and locks one package from evidence, then stops (does not implement)."
     tags: [planning, spec, contract-first, recommend]
   - name: create-uat-plan
     file: commands/create-uat-plan.md
     category: implementation
-    purpose: "Generate deterministic implementation-derived UAT plans, with optional staged PR/CI/preview evidence."
+    purpose: "Generate deterministic implementation-derived UAT plans."
     tags: [implementation, uat, verification]
   - name: design
     file: commands/design.md
@@ -64,13 +64,13 @@ commands:
   - name: implement-phase
     file: commands/implement-phase.md
     category: implementation
-    purpose: "Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria."
-    tags: [implementation, phase, orchestration, roadmap]
+    purpose: "Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs."
+    tags: [implementation, phase, orchestration, roadmap, recommend]
   - name: implement-spec
     file: commands/implement-spec.md
     category: implementation
-    purpose: "Execute dependency-aware story batches; --recommend continues one locked spec through SHA-bound production approval."
-    tags: [implementation, spec, orchestration, recommend]
+    purpose: "Execute dependency-aware story batches through the per-story pipeline; explicit execute command with no confirmation gate."
+    tags: [implementation, spec, orchestration]
   - name: implement-story
     file: commands/implement-story.md
     category: implementation
@@ -154,7 +154,7 @@ commands:
   - name: ship
     file: commands/ship.md
     category: release
-    purpose: "Take a green branch through commit intelligence and PR creation; recommended delivery requires test evidence."
+    purpose: "Take a green branch through commit intelligence and PR creation."
     tags: [release, pr, shipping]
   - name: status
     file: commands/status.md

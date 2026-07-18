@@ -16,43 +16,6 @@ The UAT plan bridges the gap between "AI says it works" and "human confirmed it 
 | `/create-uat-plan [spec-folder]` | Generate UAT plan for the specified spec |
 | `/create-uat-plan --check` | Preview scenario count and coverage without writing file |
 
-### Internal Recommended Branch
-
-`/create-uat-plan --recommend` accepts only a valid Story 4
-`delivery_context` plus normalized PR, required-check, preview, warning, and
-release-analysis evidence. It remains a deterministic artifact generator; it
-never discovers providers, waits, deploys, prompts for production approval,
-merges, or releases.
-
-Require every indexed implementation story to be completed and derive canonical
-scenario source records in this order: acceptance criteria, error/rescue rows,
-shadow paths, interaction edge cases, experience/state coverage, then What Was
-Built enrichment. Normalize whitespace, sort source records by story/source/
-stable source position, globally number after deterministic deduplication, and
-hash canonical UTF-8 source JSON as `implementation_source_digest_sha256`.
-Regenerating unchanged evidence must produce byte-identical `uat-plan.md`.
-
-In recommended mode, invoke the dependency-free local `derive-uat` reference
-operation. It reads the actual completed story files and technical spec, records
-every canonical repo-relative source path and exact byte digest, requires checked
-Given/When/Then criteria and nonempty What Was Built evidence, and includes
-available Context for Agents error/shadow hints plus technical Error & Rescue
-Map, Shadow Paths, and Interaction Edge Cases. Never accept caller-authored
-scenario claims as source evidence.
-
-Add a staging header containing the PR number/URL/full head SHA, every required
-check and successful status for that SHA, safe preview URL/deployment/evidence
-source, concrete validation instructions, material warnings/known limitations,
-recommended version, and merge/release consequences. These enrich rather than
-replace implementation-derived scenarios. Return path, file SHA-256, source
-digest, scenario counts, and bound head SHA to implement-spec for
-`record-uat`. That reducer independently re-derives the expected bytes and
-requires exact source paths/digests, source digest, generated file digest,
-required staging/check/preview/warning/release/scenario sections, and current
-SHA. Any source byte change must change the output and invalidate old evidence;
-an arbitrary file with a self-consistent invented digest blocks. Approval is
-exclusively implement-spec's single explicit prompt.
-
 ## Command Process
 
 ### Phase 1: Spec Discovery & Story Inventory

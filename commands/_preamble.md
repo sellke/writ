@@ -7,17 +7,18 @@
 
 When a command uses Plan Mode for discovery, the conversation is a phase, not the
 deliverable. After discovery, resume the command's documented phases and produce
-its documented artifacts. Planning commands create files and stop. They never
-offer to implement, build, or code.
+its artifacts. Planning commands create files and stop; they never offer to code.
 
 ### Narrow Recommended-Delivery Exception
 
-Only a command invocation that explicitly documents `--recommend` may continue
-from completed planning artifacts into implementation. The command must enter an
-explicit recommend-mode branch, validate its authoritative invocation matrix
-before mutation, persist the canonical delivery context and audit state, and
-retain every documented pause and production boundary. Without that explicit
-branch, planning commands create files and stop.
+Only a command that explicitly documents `--recommend` may act autonomously.
+`/create-spec --recommend` authors a locked spec package and **stops**; only
+`/implement-phase --recommend` continues into implementation, ending at the
+completion report with manual UAT handoff. Every `--recommend` command enters an
+explicit recommend-mode branch, validates its invocation matrix before mutation,
+records decisions in `recommendation-log.md`, and retains every pause. No
+`--recommend` command merges, opens PRs, or releases; without that explicit branch,
+planning commands create files and stop.
 
 ## User Challenge (Scope-Degradation Escalation)
 
@@ -69,9 +70,8 @@ All work is organized into `.writ/`:
 
 ## Knowledge Context
 
-Before starting work, the orchestrator may load relevant entries from
-`.writ/knowledge/`. Treat populated knowledge entries as first-class context,
-not optional reading.
+Before starting work, load relevant `.writ/knowledge/` entries and treat them as
+first-class context, not optional reading.
 
 ## Adapter Neutrality
 

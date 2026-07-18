@@ -599,7 +599,7 @@ check_autonomy_governance() {
   require_literal "$adr" "Supersedes: Conflicting portions of [ADR-010]" "ADR-013 must explicitly supersede ADR-010's conflicting portions."
   require_literal "$adr" "exact reviewed PR head SHA" "ADR-013 must bind the one production approval to the exact reviewed PR head SHA."
   require_literal "$adr" "private chain-of-thought" "ADR-013 must exclude private chain-of-thought from durable audit summaries."
-  require_literal "$adr" 'Multi-spec `/implement-phase --recommend` remains excluded.' "ADR-013 must preserve the multi-spec recommended-execution exclusion."
+  require_literal "$adr" '`--recommend` lives on exactly two commands' "ADR-013 must scope --recommend to exactly two commands (create-spec + implement-phase)."
   require_literal "$adr" "branch protection, required reviews, authentication, authorization" "ADR-013 must preserve platform protections and authentication."
 
   require_literal "$delivery_spec" '> **Blocks:** `2026-07-09-phase6-autonomy-ceiling`' "The recommended-delivery contract must remain an explicit prerequisite to Phase 6."
@@ -614,15 +614,16 @@ check_autonomy_governance() {
   require_literal "$phase_index" "2026-07-10-recommended-autonomous-delivery" "The Phase 6 story index must record the cross-spec prerequisite."
 
   require_literal "$roadmap" "2026-07-10-recommended-autonomous-delivery" "The roadmap must sequence recommended autonomous delivery before Phase 6."
-  require_literal "$roadmap" 'Multi-spec `/implement-phase --recommend` remains excluded.' "The roadmap must preserve the multi-spec recommended-execution exclusion."
+  require_literal "$roadmap" "never merges, opens PRs, or releases" "The roadmap must record that recommended flows end short of merge/PR/release (ADR-013 as revised 2026-07-17)."
 
-  require_literal "$mission" 'commands that explicitly support `--recommend`' "The product mission must describe the narrow command-supported exception."
-  require_literal "$mission_lite" 'single-spec `--recommend` delivery' "The lite mission must preserve the bounded single-spec policy."
+  require_literal "$mission" '`--recommend` adds evidence-backed autonomy on two commands' "The product mission must describe --recommend on exactly two commands (create-spec + implement-phase) per ADR-013 as revised."
+  require_literal "$mission_lite" "both ending short of merge/PR/release" "The lite mission must preserve the merge/PR/release boundary for both recommended commands."
   require_literal "$ralph_adr" "[ADR-013]" "ADR-012 must distinguish Ralph retirement from bounded recommended delivery."
 
   require_literal "$system" 'only when the invoked command explicitly documents support for `--recommend`' "The system policy must limit the exception to commands that explicitly support --recommend."
   require_literal "$system" "observable evidence and durable audit summaries" "The system policy must require observable evidence and durable audit summaries."
-  require_literal "$system" "exact reviewed PR head SHA" "The system policy must preserve one SHA-bound production approval."
+  require_literal "$system" "Retain the human production boundary" "The system policy must retain the human production boundary (no --recommend merge/PR/release) per ADR-013 as revised."
+  require_literal "$system" '`--recommend` lives on exactly two commands' "The system policy must scope --recommend to exactly two commands (create-spec + implement-phase)."
   require_literal "$system" "branch protection, required checks, authentication, or authorization" "The system policy must preserve platform protection and authentication boundaries."
   require_literal "$system" "exclude private chain-of-thought" "The system policy must keep audit summaries free of private reasoning."
   require_literal "$cursor_rule" 'only when the invoked command explicitly documents support for `--recommend`' "The Cursor rule mirror must preserve the narrow recommended-delivery exception."
@@ -633,6 +634,10 @@ check_autonomy_governance() {
   forbid_literal "$phase_story_3" "selectable options rather than a local decision" "Phase 6 Story 3 still prohibits evidence-based local selection categorically."
   forbid_literal "$roadmap" "in the loop at contract level" "The roadmap still contains the superseded contract-level human gate."
   forbid_literal "$roadmap" "Never auto-decided." "The roadmap still contains unconditional User Challenge decision language."
+
+  forbid_literal "$system" "exact reviewed PR head SHA" "system-instructions still binds recommended delivery to a SHA-bound production approval; ADR-013 (revised 2026-07-17) defers that flow (preserved only in the ADR and locked delivery spec)."
+  forbid_literal "$roadmap" 'Multi-spec `/implement-phase --recommend` remains excluded.' "The roadmap still states the superseded multi-spec exclusion; ADR-013 (revised 2026-07-17) makes /implement-phase --recommend the supported end-to-end loop."
+  forbid_literal "$mission_lite" 'single-spec `--recommend` delivery' "mission-lite still frames recommended delivery as single-spec, superseded by ADR-013 as revised 2026-07-17."
 }
 
 check_recommendation_semantics() {
@@ -673,26 +678,27 @@ check_recommendation_semantics() {
 check_recommended_spec_implementation() {
   local preamble="$PROJECT_ROOT/commands/_preamble.md"
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
-  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
-  local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   local state_doc="$PROJECT_ROOT/.writ/docs/recommended-delivery-state-format.md"
   local helper="$PROJECT_ROOT/scripts/recommend-state.py"
   local recommendation_log="$PROJECT_ROOT/.writ/specs/2026-07-10-recommended-autonomous-delivery/recommendation-log.md"
-  local cursor_adapter="$PROJECT_ROOT/adapters/cursor.md"
-  local claude_adapter="$PROJECT_ROOT/adapters/claude-code.md"
-  local codex_adapter="$PROJECT_ROOT/adapters/codex.md"
-  local adapter
   local scenario_output
 
+  # ADR-013 (revised 2026-07-17): `--recommend` was redistributed to
+  # `create-spec` (author + stop) and `implement-phase` (phase loop). The old
+  # single-spec authoring->implement-spec->staging->production propagation is
+  # deferred but preserved dormant. These static assertions therefore validate
+  # only (a) create-spec's live two-command contract and (b) the dormant
+  # state-format design doc. The retired implement-spec `--recommend`,
+  # delivery_context propagation, and worktree-adoption assertions moved out;
+  # the new phase-lane worktree model is covered by check_phase_lanes.
   scenario_output="$(mktemp)"
-  python3 - "$create_spec" "$implement_spec" "$state_doc" > "$scenario_output" <<'PY'
+  python3 - "$create_spec" "$state_doc" > "$scenario_output" <<'PY'
 import json
 import re
 import sys
 
-create_path, implement_path, state_path = sys.argv[1:]
+create_path, state_path = sys.argv[1:]
 create = open(create_path, encoding="utf-8").read()
-implement = open(implement_path, encoding="utf-8").read()
 state_doc = open(state_path, encoding="utf-8").read()
 
 def emit(name, ok, reason):
@@ -723,7 +729,6 @@ def fenced_after(text, anchor, language):
     return match.group(1)
 
 create_rows = table_after(create, "### Authoritative `--recommend` Invocation Matrix")
-implement_rows = table_after(implement, "### Authoritative `--recommend` Invocation Matrix")
 
 for invocation in (
     "`/create-spec --recommend [one-idea]`",
@@ -737,70 +742,25 @@ for invocation in (
     "`/create-spec --recommend --force`",
     "`--recommend` with multiple source modes",
     "`--recommend` with multiple issue paths or multiple free-form source arguments",
-    "`--recommend --resume`",
-    "`--recommend` with `--dry-run`, `--draft`, `--no-split`, `--skip-gate`, or `--no-tag`",
 ):
     outcome = create_rows.get(invocation, "")
     mutation_sentinel = not outcome.startswith("Reject")
     emit("create-reject-before-mutation-" + str(len(invocation)) + "-" + invocation.split()[0].strip("`/"), outcome.startswith("Reject") and not mutation_sentinel, f"{invocation} must reject before the mutation sentinel")
 
-for invocation in (
-    "`/implement-spec --recommend <one-spec>`",
-    "Internal recommended call with one valid `delivery_context`",
-    "`/implement-spec --recommend --resume <execution-id>`",
-):
-    emit("implement-valid-" + invocation[:24].replace(" ", "_"), implement_rows.get(invocation, "").startswith("Supported"), f"{invocation} is not a supported structured matrix row")
-
-for invocation in (
-    "`/implement-spec --recommend --quick`",
-    "`/implement-spec --recommend --force`",
-    "`/implement-spec --recommend --from <story>`",
-    "`/implement-spec --recommend --resume` without ID or spec",
-    "`--recommend` with multiple spec arguments",
-    "`/implement-phase --recommend`",
-    "`--recommend` with `--dry-run`, `--draft`, `--no-split`, `--skip-gate`, or `--no-tag`",
-):
-    outcome = implement_rows.get(invocation, "")
-    mutation_sentinel = not outcome.startswith("Reject")
-    emit("implement-reject-before-mutation-" + str(len(invocation)) + "-" + invocation.split()[0].strip("`/"), outcome.startswith("Reject") and not mutation_sentinel, f"{invocation} must reject before the mutation sentinel")
-
 emit(
     "create-fail-before-mutation",
-    0 <= create.find("Validate the complete invocation") < create.find("### Recommended Contract and Package Branch"),
+    0 <= create.find("Validate the complete invocation") < create.find("### Autonomous Authoring Boundary"),
     "create-spec invocation validation must precede the first recommended mutation phase",
 )
 emit(
-    "implement-fail-before-mutation",
-    0 <= implement.find("Validate the entire row") < implement.find("### Complete Locked Package Preflight"),
-    "implement-spec invocation validation must precede state/package mutation",
-)
-
-context_fields = {
-    "execution_id", "state_path", "spec_path", "mode", "propagation_token",
-    "parent_command", "return_contract", "package_manifest_sha256",
-}
-for name, text, anchor in (
-    ("create", create, "invoke `/implement-spec` internally"),
-    ("implement", implement, "accepts the parent's `delivery_context`"),
-):
-    try:
-        block = fenced_after(text, anchor, "yaml")
-        found = {line.strip().split(":", 1)[0] for line in block.splitlines() if line.startswith("  ") and ":" in line}
-        emit(f"{name}-delivery-context", context_fields <= found, f"{name} delivery_context is missing {sorted(context_fields - found)}")
-    except ValueError as exc:
-        emit(f"{name}-delivery-context", False, str(exc))
-
-emit(
-    "negative-context-mismatch",
-    "`delivery_context_mismatch`" in implement and "Never silently create a second execution" in implement,
-    "mismatched propagated context must block without creating replacement state",
+    "create-terminal-scope",
+    "never triggers `/implement-spec`" in create,
+    "recommended authoring must stop before implementation and never trigger /implement-spec",
 )
 emit(
     "normal-mode-isolation",
-    create.find("Normal branch (authoritative)") < create.find("### Authoritative `--recommend` Invocation Matrix")
-    and implement.find("Normal branch (authoritative)") < implement.find("### Authoritative `--recommend` Invocation Matrix")
-    and "Normal mode never discovers or resumes" in implement,
-    "normal behavior must branch before and remain isolated from recommended state",
+    0 <= create.find("Normal branch (authoritative)") < create.find("### Authoritative `--recommend` Invocation Matrix"),
+    "normal behavior must branch before recommended authoring",
 )
 
 try:
@@ -855,46 +815,6 @@ emit(
     "worktree-state-identity",
     isinstance(worktree, dict) and required_worktree_fields <= set(worktree),
     f"canonical keyed worktree record is missing {sorted(required_worktree_fields - set(worktree) if isinstance(worktree, dict) else required_worktree_fields)}",
-)
-emit(
-    "interrupted-worktree-adoption",
-    "exactly one matching linked worktree" in implement and "must not relaunch stranded active work" in implement,
-    "resume must adopt one matching active worktree instead of relaunching it",
-)
-emit(
-    "worktree-ambiguity-blocks",
-    "multiple matching worktrees" in implement and "worktree_identity_contradiction" in implement,
-    "ambiguous and contradictory worktree identity must block explicitly",
-)
-
-emit(
-    "failed-normalizes-blocked",
-    "`failed`, malformed, missing, or mismatched outcomes normalize to classified" in implement
-    and "`blocked`; dependents do not run." in implement,
-    "nested failed outcomes must deterministically normalize to blocked",
-)
-try:
-    result_block = fenced_after(implement, "After all stories reconcile as successful", "yaml")
-except ValueError:
-    result_block = ""
-required_answer_lines = (
-    "required_answer:",
-    "  decision_id:",
-    "  question_id:",
-    "  option_ids:",
-    "  selected_option_id:",
-    "  resume_transition:",
-    "  interaction_id:",
-)
-emit(
-    "required-answer-return-identity",
-    all(line in result_block for line in required_answer_lines),
-    "implement-spec normative return schema lacks complete required_answer identity",
-)
-emit(
-    "create-parent-answer-preservation",
-    all(token in create for token in ("decision ID", "question ID", "option IDs", "same transition")),
-    "create-spec parent boundary must preserve canonical answer identity",
 )
 PY
 
@@ -1674,42 +1594,20 @@ PY
   rm -f "$scenario_output"
 
   require_literal "$preamble" '### Narrow Recommended-Delivery Exception' "The preamble must define the narrow recommended-planning exception."
-  require_literal "$preamble" 'Only a command invocation that explicitly documents `--recommend` may continue' "The preamble must preserve the default planning stop boundary."
+  require_literal "$preamble" 'planning commands create files and stop' "The preamble must preserve the default planning stop boundary."
 
   require_literal "$create_spec" 'Parse `--recommend` exactly once at command entry.' "Create-spec must parse recommendation mode once at entry."
-  require_literal "$create_spec" 'Normal branch (authoritative): when `--recommend` is absent, follow every existing phase, prompt, terminal constraint, and next-step behavior below verbatim.' "Create-spec must preserve normal behavior behind an explicit branch."
+  require_literal "$create_spec" 'Normal branch (authoritative): when `--recommend` is absent, follow every' "Create-spec must preserve normal behavior behind an explicit branch."
   require_literal "$create_spec" '### Authoritative `--recommend` Invocation Matrix' "Create-spec must define its fail-before-mutation invocation matrix."
   require_literal "$create_spec" '`/create-spec --recommend --from-issue <one-path>`' "Create-spec must support one issue source in recommendation mode."
   require_literal "$create_spec" '`/create-spec --recommend --from-prototype`' "Create-spec must support prototype source in recommendation mode."
   require_literal "$create_spec" '`/create-spec --recommend --quick`' "Create-spec must reject recommend plus quick."
   require_literal "$create_spec" '`/create-spec --recommend --force`' "Create-spec must reject recommend plus force."
   require_literal "$create_spec" 'multiple source modes' "Create-spec must reject multiple source modes."
-  require_literal "$create_spec" 'Before creating execution state or mutating any source issue' "Create-spec must validate invocation and package before state/source mutation."
-  require_literal "$create_spec" 'recommendation-log.md' "Create-spec must create the tracked recommendation audit before implementation."
-  require_literal "$create_spec" 'package_manifest_sha256' "Create-spec must pass a deterministic package manifest digest."
-  require_literal "$create_spec" 'delivery_context' "Create-spec must propagate an explicit delivery context."
-  require_literal "$create_spec" 'recommend-command-result-v1' "Create-spec must require the structured nested result contract."
+  require_literal "$create_spec" 'Validate the complete invocation before' "Create-spec must validate invocation before file, issue, or state mutation."
+  require_literal "$create_spec" 'recommendation-log.md' "Create-spec must create the tracked recommendation audit."
+  require_literal "$create_spec" 'never triggers `/implement-spec`' "Create-spec recommended authoring must stop before implementation."
 
-  require_literal "$implement_spec" 'Parse `--recommend` exactly once at command entry.' "Implement-spec must parse recommendation mode once at entry."
-  require_literal "$implement_spec" 'Normal branch (authoritative): when `--recommend` is absent, follow Phases 1–4 and Resume Support below verbatim.' "Implement-spec must preserve its existing normal workflow."
-  require_literal "$implement_spec" '### Authoritative `--recommend` Invocation Matrix' "Implement-spec must define its fail-before-mutation invocation matrix."
-  require_literal "$implement_spec" '`/implement-spec --recommend <one-spec>`' "Implement-spec must support direct existing-spec recommendation mode."
-  require_literal "$implement_spec" '`/implement-spec --recommend --quick`' "Implement-spec must reject recommend plus quick."
-  require_literal "$implement_spec" '`/implement-spec --recommend --force`' "Implement-spec must reject recommend plus force."
-  require_literal "$implement_spec" '`/implement-spec --recommend --from <story>`' "Implement-spec must reject unsafe partial-DAG recommendation mode."
-  require_literal "$implement_spec" 'multiple spec arguments' "Implement-spec must reject multiple specs."
-  require_literal "$implement_spec" '`/implement-phase --recommend`' "Implement-spec must preserve the multi-spec exclusion."
-  require_literal "$implement_spec" 'Normal mode never discovers or resumes `recommend-execution-*.json` state' "Normal mode must not silently resume recommended state."
-  require_literal "$implement_spec" 'Complete Locked Package Preflight' "Implement-spec must validate the complete locked package before implementation."
-  require_literal "$implement_spec" 'No unresolved `[UNPLANNED]`' "Implement-spec must reject unresolved technical operations."
-  require_literal "$implement_spec" '### Read-Only Resume Reconciliation' "Recommended resume must reconcile repository reality before mutation."
-  require_literal "$implement_spec" 'WWB incompleteness is a warning only' "Missing WWB details must not contradict implement-story degradation semantics."
-  require_literal "$implement_spec" 'recommend-command-result-v1' "Implement-spec must normalize nested and final structured outcomes."
-  require_literal "$implement_spec" 'verified_implementation' "Implement-spec must return a verified-implementation outcome."
-  require_literal "$implement_spec" 'After verified implementation' "Story 4 must continue only after Story 3 verified implementation."
-  require_literal "$implement_spec" 'scripts/recommend-state.py reserve-worktree' "Implement-spec must durably reserve worktree ownership before Gate 1."
-  require_literal "$implement_story" '### Step 2.5: Recommended Worktree Launch Handshake' "Implement-story must expose the recommended launch handshake."
-  require_literal "$implement_story" '`recommend-worktree-reservation-ack-v1`' "Gate 1 must require persisted parent acknowledgment."
   require_literal "$helper" 'def validate_package(' "The executable helper must validate immutable packages."
   require_literal "$helper" 'def reconcile(' "The executable helper must reconcile canonical state."
   require_literal "$helper" 'def reserve_worktree(' "The executable helper must reserve keyed worktrees."
@@ -1738,28 +1636,13 @@ PY
   require_literal "$recommendation_log" '**Privacy:** Decisions and evidence only; no private chain-of-thought or transcript content' "The recommendation log must state its privacy boundary."
   require_literal "$recommendation_log" '**Selection:**' "The recommendation log must preserve selection source."
   require_literal "$recommendation_log" '**Result:**' "The recommendation log must preserve transition/artifact result."
-
-  for adapter in "$cursor_adapter" "$claude_adapter" "$codex_adapter"; do
-    require_literal "$adapter" '### Recommended Delivery Context and Resume' "Each adapter must map durable recommendation orchestration."
-    require_literal "$adapter" '`delivery_context`' "Each adapter must transport the canonical delivery context."
-    require_literal "$adapter" '`recommend-command-result-v1`' "Each adapter must return structured nested results."
-    require_literal "$adapter" 'preserve stable question and option IDs' "Each adapter must preserve required-answer identity."
-    require_literal "$adapter" 'validated sibling' "Each adapter must map crash-safe replacement."
-    require_literal "$adapter" 'repository-only' "Each adapter must keep Story 3 reconciliation provider-free."
-    require_literal "$adapter" '`recommend-worktree-launch-v1`' "Each adapter must map launch identity before Gate 1."
-    require_literal "$adapter" '`recommend-worktree-reservation-ack-v1`' "Each adapter must require durable reservation acknowledgment."
-    require_literal "$adapter" 'Story 3 repository-only reconciliation remains provider-free.' "Adapters must preserve Story 3's provider-free boundary."
-  done
 }
 
 check_recommended_staging() {
   local helper="$PROJECT_ROOT/scripts/recommend-state.py"
   local fake="$PROJECT_ROOT/scripts/eval-recommend-stage.py"
   local state_doc="$PROJECT_ROOT/.writ/docs/recommended-delivery-state-format.md"
-  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
-  local ship="$PROJECT_ROOT/commands/ship.md"
-  local uat="$PROJECT_ROOT/commands/create-uat-plan.md"
   local config="$PROJECT_ROOT/.writ/docs/config-format.md"
   local adapter scenario_output scenario_status scenario_name scenario_reason
 
@@ -1797,26 +1680,17 @@ check_recommended_staging() {
   require_literal "$state_doc" 'strict UTC RFC3339' "Approval evidence must enforce temporal freshness."
   require_literal "$state_doc" '`authenticated: true`' "Required-check discovery must prove authentication."
   require_literal "$state_doc" '`deployment-status → provider-deployment|provider-status`' "Preview source and provenance kind must agree."
-  require_literal "$create_spec" 'staged Story 4 result' "Create-spec must continue to staged Story 4 output."
-  require_literal "$implement_spec" '`findPullRequest`, `createPullRequest`, `getPullRequest`' "Implement-spec must use neutral PR operations."
-  require_literal "$implement_spec" 'Silence stays `awaiting_approval`' "Silence must never approve production."
-  require_literal "$ship" '`/ship --test --recommend`' "Recommended ship must require test semantics."
-  require_literal "$uat" 'implementation_source_digest_sha256' "Recommended UAT must expose a deterministic source digest."
   for key in "Delivery Provider" "Delivery Remote" "Preview Provider" "Preview Project" "Preview Evidence Source" "Preview URL Pattern" "Required Checks" "CI Wait Timeout" "Preview Wait Timeout"; do
     require_literal "$config" "\`$key\`" "Config documentation must define $key."
   done
 
+  # ADR-013 (revised 2026-07-17): the single-spec staging->PR->production flow
+  # is deferred but preserved dormant. Its contract stays falsifiable via the
+  # reducer scenarios above, the state-format doc, and the config-format doc —
+  # not via active command/adapter surfaces, which no longer carry it. The
+  # human production boundary still forbids merge automation on every adapter.
   for adapter in "$PROJECT_ROOT/adapters/cursor.md" "$PROJECT_ROOT/adapters/claude-code.md" "$PROJECT_ROOT/adapters/codex.md"; do
-    require_literal "$adapter" '`findPullRequest`' "Each adapter must map PR lookup."
-    require_literal "$adapter" '`listRequiredChecks`' "Each adapter must map required-check discovery."
-    require_literal "$adapter" '`findPreview`' "Each adapter must map preview discovery."
-    require_literal "$adapter" '`attempted`' "Each adapter must persist the PR mutation marker."
-    require_literal "$adapter" 'provenance' "Each adapter must return observable preview provenance."
-    require_literal "$adapter" 'snapshot digest' "Each adapter must return fresh approval reconciliation."
-    require_literal "$adapter" '`previewProjectId`' "Each adapter must normalize Preview Project."
-    require_literal "$adapter" '`authenticated: true`' "Each adapter must prove required-check authentication."
-    require_literal "$adapter" 'No browser automation' "Each adapter must prohibit browser automation."
-    forbid_literal "$adapter" 'mergePullRequest' "Story 4 adapters must not expose merge operations."
+    forbid_literal "$adapter" 'mergePullRequest' "Adapters must not expose merge operations (human production boundary)."
   done
 
   forbid_literal "$helper" 'deploy_to_vercel' "The local reducer must not deploy previews."

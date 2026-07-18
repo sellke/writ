@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-07-11
+> Regenerated from mission.md on 2026-07-17
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-07-11
+> Last Updated: 2026-07-17
 
 ## Core Value
 
@@ -19,7 +19,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 1. **Non-degrading by construction** — Plain-text + git + adapter abstraction; the knowledge ledger consolidates (merge, never append) so context stays sharp ([ADR-006](../decision-records/adr-006-non-degrading-destination.md), [ADR-008](../decision-records/adr-008-spec-as-team-contract-moat.md))
 2. **The contract layer, not another harness** — Rides on native memory/skills/subagents; interoperates with external brains (GBrain via MCP); markdown canonical, indexes disposable ([ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md))
-3. **Observable autonomy, deliberately bounded** — Normal `/implement-phase` uses one confirmation, fresh context per spec, quarantine on failure, and an honest report. Explicitly supported single-spec `--recommend` delivery is observable, resumable, and gated by one SHA-bound production approval; opaque unbounded loops and multi-spec recommend mode remain excluded ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md))
+3. **Observable autonomy, deliberately bounded** — Normal `/implement-phase` uses one confirmation, fresh context per spec, quarantine on failure, and an honest report. `--recommend` adds evidence-backed autonomy on two commands — `/create-spec` authors and locks a spec package then stops, and `/implement-phase` runs the phase as an end-to-end loop — both ending short of merge/PR/release; opaque unbounded loops and autonomous production delivery remain excluded ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md))
 4. **Self-improvement with evidence** — `/refresh-command` refinements cite transcripts and pass evals; skills carry a candidate → proven → promoted lifecycle
 5. **Adaptive ceremony** — Right-sized process: `/prototype` for spikes, gated pipeline for features, phase orchestration for roadmap chunks
 6. **Opinionated guidance** — Lead with the recommendation, challenge premises, push for the best version. Judgment, not menus.
@@ -42,7 +42,7 @@ Code and methodology that score well on six production-grade criteria — audita
 
 ## What Writ Is Not Building
 
-Opaque unbounded loop runners (Ralph deprecated), multi-spec recommended delivery, memory databases (markdown canonical, external indexes are consumers), velocity-first sprint flow, browser daemons, hosted SaaS. See `mission.md` for full reasoning.
+Opaque unbounded loop runners (Ralph deprecated), autonomous production delivery (recommended flows never merge, open PRs, or release), memory databases (markdown canonical, external indexes are consumers), velocity-first sprint flow, browser daemons, hosted SaaS. See `mission.md` for full reasoning.
 
 ## Design Principles
 

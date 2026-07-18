@@ -18,6 +18,18 @@ This is the layer above `/implement-spec`: roadmap → **`/implement-phase`** �
 | `/implement-phase --quick` | Passes `--quick` through to each `/implement-spec` call |
 | `/implement-phase --resume` | Resumes from last saved phase execution state |
 | `/implement-phase --specs a,b` | No-roadmap fallback: treat the named specs as the phase |
+| `/implement-phase --recommend` | End-to-end autonomous loop: auto-author missing specs (via `/create-spec --recommend`) and run `/implement-spec` per spec, without routine confirmations |
+
+## Recommended Mode (`--recommend`)
+
+`/implement-phase --recommend` runs the phase as a complete end-to-end loop with no routine confirmations. It is the **only** command that autonomously chains spec *authoring* into *implementation* (see [ADR-013](../.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
+
+- **Auto-author missing specs.** When unspecced features exist, the decomposition pre-pass (Step 1.2b) runs without its approval gate, and each proposed spec is created with `/create-spec --recommend` — autonomous, evidence-backed contract authoring — instead of the collaborative `/create-spec`. Record each authoring decision in that spec's `recommendation-log.md`.
+- **Auto-accept the execution plan.** The single Step 2.3 execution-plan confirmation is auto-accepted; the loop then runs exactly as in normal mode (isolated lanes → `/implement-spec` per spec → `/create-uat-plan`).
+- **Terminal scope is unchanged.** The loop still ends at the honest completion report (Phase 4) and hands off manual UAT — it never ships, opens PRs, or releases. Those "bigger loops" are deferred.
+- **Genuine pauses are retained** — the Question Policy conditions that are *not* routine confirmations still stop the loop: missing exit criteria that cannot be derived (never invent-and-self-certify, Step 2.2), an exit criterion that becomes unachievable mid-run (Step 4.3), and an ambiguous failure blast radius (Step 3.3).
+
+`--recommend` composes with `--all` and `--specs`. It is incompatible with `--quick` — full story, review, testing, and documentation gates are mandatory when authoring and implementation run autonomously.
 
 ## Command Process
 
@@ -77,13 +89,13 @@ Seams:
 Rationale: [why these boundaries — coherence, independent testability, ownership]
 ```
 
-Confirm with AskQuestion: create these specs / edit the breakdown / stop. **The decomposition plan is an ask-worthy condition** (condition 4) — the roadmap does not answer how many specs, where the seams fall, or who owns a shared file, and no artifact can derive it. This is a *planning* confirmation, distinct from and earlier than the Step 2.3 execution gate.
+Confirm with AskQuestion: create these specs / edit the breakdown / stop. **The decomposition plan is an ask-worthy condition** (condition 4) — the roadmap does not answer how many specs, where the seams fall, or who owns a shared file, and no artifact can derive it. This is a *planning* confirmation, distinct from and earlier than the Step 2.3 execution gate. **In `--recommend` mode this confirmation is auto-accepted** — the decomposition is treated as an evidence-backed autonomous decision and recorded.
 
-**On approval, create the specs — contract-first is not bypassed.** For each proposed spec in dependency order, run `/create-spec` seeded with its deliverable, files-in-scope, `dependencies:`, and ownership constraints from the proposal. Each spec is still contract-locked (per ADR-001, specs are never created without agreement); the seed makes each discovery short and focused rather than starting cold. Specs are *authored* collaboratively in this pre-pass; only *implementation* (Phase 3) runs autonomously.
+**On approval, create the specs — contract-first is not bypassed.** For each proposed spec in dependency order, run `/create-spec` seeded with its deliverable, files-in-scope, `dependencies:`, and ownership constraints from the proposal. Each spec is still contract-locked (per ADR-001, specs are never created without agreement); the seed makes each discovery short and focused rather than starting cold. Specs are *authored* collaboratively in this pre-pass; only *implementation* (Phase 3) runs autonomously. **In `--recommend` mode, run `/create-spec --recommend` instead** — each spec's contract is auto-locked from evidence and its decisions recorded in `recommendation-log.md`; the seed still applies.
 
 **After the specs exist, re-resolve** — return to Step 1.2 classification. The freshly created specs are now **Specced** and enter the normal inventory, sequencing, and execution flow.
 
-> **`--all` boundary:** the pre-pass is never auto-entered in `--all` mode — creating specs requires human agreement. Unspecced features encountered under `--all` fall back to the "partially complete" path unless the phase is run interactively.
+> **`--all` boundary:** the pre-pass is never auto-entered in `--all` mode — creating specs requires human agreement. Unspecced features encountered under `--all` fall back to the "partially complete" path unless the phase is run interactively. **`--recommend` is the explicit exception:** it authorizes autonomous spec creation, so `--recommend` (with or without `--all`) auto-enters the pre-pass and authors missing specs via `/create-spec --recommend`.
 
 #### Step 1.3: Inventory Prior Progress
 
@@ -131,7 +143,7 @@ Specs: 3 total (0 complete, 3 remaining)
   2. 2026-07-07-drag-and-drop-across-states       (1 story)  — after #1 (shared renderCard)
   3. 2026-07-07-contact-linkedin-website-fields   (1 story)  — after #1 (shared normalizeProspect)
 
-Per spec: /implement-spec (auto-confirmed) → /create-uat-plan
+Per spec: /implement-spec → /create-uat-plan
 
 Exit criteria (from roadmap):
   ✓ machine-checkable: old JSON files load cleanly; no external deps introduced
@@ -140,7 +152,7 @@ Exit criteria (from roadmap):
 Pre-flight flags: [any /implement-spec sizing concerns, surfaced but non-blocking]
 ```
 
-Confirm with AskQuestion: execute / edit spec list / abort. **This is the last routine question.** Everything after this runs autonomously except the failure and exit-criteria conditions below.
+Confirm with AskQuestion: execute / edit spec list / abort. **This is the last routine question.** Everything after this runs autonomously except the failure and exit-criteria conditions below. **In `--recommend` mode this confirmation is auto-accepted** — the loop proceeds directly to Phase 3.
 
 ### Phase 3: The Loop
 
@@ -251,7 +263,7 @@ Everything else is answered from artifacts (roadmap → spec contract → techni
 |---------|-------------|
 | `/plan-product` | Creates `roadmap.md`, the source of phases and exit criteria |
 | `/create-spec` | Creates the specs a phase resolves to; invoked per proposed spec by the Step 1.2b decomposition pre-pass (or run manually) to remedy unspecced features |
-| `/implement-spec` | Called once per spec with its confirmation gate auto-accepted; owns story batching |
+| `/implement-spec` | Called once per spec inside an isolated lane; owns story batching (it has no confirmation gate — invoking it executes) |
 | `/create-uat-plan` | Called after each spec completes; produces the per-spec validation artifact and the resume signal |
 | `/assess-spec` | Pre-flight flags from `/implement-spec` are surfaced in the phase plan; run this first for flagged specs if concerned |
 | `/ship` | Natural next step after the phase report — one PR per phase or per spec, per team convention |

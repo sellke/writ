@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-07-11T18:40:55Z
+> Last Updated: 2026-07-18T02:35:00Z
 
 ## Product Mission
 
@@ -8,11 +8,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** None in progress — Phases 6–8 (autonomy ceiling, compounding layer, memory interop) plus Leanness Guardian and Product Reconciliation are shipped/implemented.
-- **Most recent completed:** 2026-07-11-product-reconciliation — Complete ✅
-- **Branch:** feat/leanness-guardian
-- **Released:** v0.19.0 (Phases 6–7); Phase 8 implemented.
+- **Most recent (complete, uncommitted):** Recommend Redistribution (`2026-07-17-recommend-redistribution`) — `--recommend` moved to `create-spec` (author + stop) and `implement-phase` (end-to-end loop); removed from `implement-spec`/`ship`/`create-uat-plan`; autonomous production delivery deferred with dormant machinery preserved. ADR-013 revised in place (2026-07-17); eval falsifiability gate reconciled, full suite green.
+- **Branch:** main
+- **Released:** v0.20.1 (Phases 6–8, Leanness Guardian, Product Reconciliation all shipped/merged).
 
 ## Open Issues
 
-16 tracked markdown files under `.writ/issues/` (recursive).
+17 tracked markdown files under `.writ/issues/` (recursive).

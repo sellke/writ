@@ -14,7 +14,6 @@ This is the **per-story execution engine**. For full spec execution with depende
 | `/implement-story story-3` | Runs story 3 through the full pipeline |
 | `/implement-story story-3 --quick` | Skips arch-check, review, and docs (prototyping) |
 | `/implement-story story-3 --review-only` | Runs review + test + docs on existing code (no coding phase) |
-| Internal call with `delivery_context` | Recommended launch handshake, then the unchanged full pipeline |
 
 ## Agent Pipeline
 
@@ -344,60 +343,6 @@ This context enables Story 3's coding agent to build on **actual implementation*
 
 ---
 
-### Step 2.5: Recommended Worktree Launch Handshake
-
-This step runs only for an internal invocation carrying `delivery_context` with
-`mode: recommend`. Without that context, skip this section completely and
-preserve existing `/implement-story` behavior verbatim.
-
-Before Gate 0 or any Gate 1-capable delegated process edits files:
-
-1. Validate delivery-context execution ID, state/spec paths, mode, propagation
-   token, parent command, return schema, and package digest.
-2. Resolve observable execution identity from the current git context:
-   story ID, delegated execution ID, non-secret ownership token, absolute
-   worktree path, full branch/ref, full HEAD, starting SHA, and active gate
-   `launch`.
-3. Return this read-only launch result to the implement-spec parent:
-
-   ```yaml
-   schema: recommend-worktree-launch-v1
-   execution_id: string
-   story_id: string
-   delegated_execution_id: string
-   ownership_token: opaque-non-secret-token
-   path: absolute-path
-   branch_ref: refs/heads/name
-   head_sha: full-object-id
-   starting_sha: full-object-id
-   active_gate: launch
-   mode: linked_worktree | serial_in_place
-   ```
-
-4. Do not enter Gate 1, run an auto-fix, or mutate the worktree until the parent
-   validates git identity, persists the keyed worktree record through
-   `scripts/recommend-state.py reserve-worktree`, and returns:
-
-   ```yaml
-   schema: recommend-worktree-reservation-ack-v1
-   execution_id: string
-   worktree_key: story-id::delegated-execution-id::ownership-token
-   story_id: string
-   persisted_revision: integer
-   status: reserved
-   ```
-
-5. Compare every acknowledgment identity field. Missing, stale, or mismatched
-   acknowledgment returns a classified blocked result before edits.
-
-Parallel recommended stories require stable linked-worktree path/ref/HEAD
-identity. If the platform cannot expose it, return
-`worktree_identity_unavailable`; the parent may retry stories serially in place
-only when repository root/ref/HEAD can complete the same handshake. Never
-continue recommended execution with unobservable ownership.
-
----
-
 ### Step 3: Run Pipeline
 
 > **Context refresh:** `.writ/context.md` is regenerated once at Story Completion (Step 4), not between gates. Each write replaces the entire file — do not append, merge, or patch.
@@ -525,9 +470,6 @@ If **no** such section exists in the active spec folder, Gate 0.5 proceeds witho
 
 > **Agent:** `agents/coding-agent.md`
 > **Skip in:** `--review-only` mode
-> **Recommended precondition:** When `delivery_context.mode` is `recommend`,
-> Gate 1 requires a matching persisted
-> `recommend-worktree-reservation-ack-v1`; without it, no edits are allowed.
 
 Spawns the coding agent to run the red → green → refactor loop via `Read skills/tdd-cycle/SKILL.md`, with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5. This gate owns *when* coding runs, the context it routes below, and `STATUS: BLOCKED` handling; the skill owns *how* the test-first cycle runs.
 
