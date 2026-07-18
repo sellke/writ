@@ -2,7 +2,7 @@
 
 > Created: 2026-02-27
 > Last Updated: 2026-03-14
-> Status: In Progress — Dogfooding Pending
+> Status: Complete (deliverables `/prototype`, spec-healing, `/refresh-command`, and `/plan-product` enhancement all shipped; dogfooded continuously through v0.21.0 — header reconciled 2026-07-18)
 > Contract Locked: ✅
 
 ## Contract Summary

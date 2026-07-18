@@ -1,7 +1,7 @@
 # Secondary Command Refinement Specification
 
 > Created: 2026-03-18
-> Status: Planning
+> Status: Complete (executed in commit `e1b78d2`, shipped v0.4.0 via PR #7; validation report on file — header reconciled 2026-07-18)
 > Contract Locked: ✅
 
 ## Contract Summary

@@ -1,6 +1,6 @@
 # Phase 7: Knowledge Consolidation
 
-> **Status:** Implemented — mechanism complete; roadmap real-entry criterion (Success Criterion 8) pending a genuine real-ledger duplicate. The real ledger currently yields an honest no-op, so no real entries were force-merged.
+> **Status:** Complete — mechanism shipped (Phase 7 lane merge `32d1dca`); Success Criterion 8 (a real-ledger merge) remains organically pending a genuine duplicate. The real ledger currently yields an honest no-op, so no real entries were force-merged.
 > **Created:** 2026-07-10
 > **Owner:** @AdamSellke
 > **Phase:** 7 — Compounding Layer

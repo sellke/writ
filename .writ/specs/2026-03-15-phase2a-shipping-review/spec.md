@@ -2,7 +2,7 @@
 
 > Created: 2026-03-15
 > Last Updated: 2026-03-15
-> Status: In Progress — Dogfooding Pending
+> Status: Complete (deliverables `/ship`, `/review`, `/retro`, and error-mapping in `/create-spec` all shipped; dogfooded continuously v0.4.0 → v0.21.0 — header reconciled 2026-07-18)
 > Contract Locked: ✅
 > Planning Posture: HOLD — pressure-test workflow gaps, strengthen before expanding
 

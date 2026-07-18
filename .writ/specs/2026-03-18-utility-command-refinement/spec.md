@@ -1,7 +1,7 @@
 # Utility Command Refinement Specification
 
 > Created: 2026-03-18
-> Status: Planning
+> Status: Complete (executed in commit `1f3354f`, shipped v0.4.0 via PR #7; validation report on file — header reconciled 2026-07-18)
 > Contract Locked: ✅
 
 ## Contract Summary

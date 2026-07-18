@@ -4,6 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-05-06
+> **Status:** Triaged 2026-07-18 — still valid and still open. `/implement-spec`'s standalone mode has no branch preflight (lane mode gets branch hygiene from `/implement-phase`, direct invocation does not). Kept in backlog; promote via `/create-spec --from-issue` when picked up.
 > **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
 
 ## TL;DR

@@ -1,6 +1,6 @@
 # Recommended Autonomous Delivery
 
-> **Status:** Not Started
+> **Status:** Complete (all 5 stories completed 2026-07-10; `--recommend` surface later redistributed by `2026-07-17-recommend-redistribution`, released v0.21.0)
 > **Contract Locked:** ✅
 > **Created:** 2026-07-10
 > **Owner:** @AdamSellke

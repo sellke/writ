@@ -4,7 +4,8 @@
 > **Priority:** High
 > **Effort:** Large
 > **Created:** 2026-05-03
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **Status:** Parked 2026-07-18 — recorded in the roadmap parking lot ("Deferred until concrete signal"). The Kanban spec this issue is coupled to was never promoted, and the current mission scopes Writ as a thin dev-methodology layer. Revisit on a concrete first business process to anchor the design.
+> **spec_ref:** .writ/product/roadmap.md#beyond-phase-8-parking-lot
 
 ## TL;DR
 

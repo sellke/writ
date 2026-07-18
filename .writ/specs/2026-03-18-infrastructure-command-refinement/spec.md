@@ -1,6 +1,6 @@
 # Infrastructure Command Refinement
 
-> **Status:** Not Started
+> **Status:** Closed — Abandoned (2026-07-18). Never executed: 2 of 3 target commands (`prisma-migration`, `test-database`) were moved to `contrib/` in commit `4fecc0c`, and `migrate.md` was later reworked by Phase 4 (`d29d6f7`). The refinement scope no longer exists.
 > **Date:** 2026-03-18
 > **Files:** commands/migrate.md, commands/prisma-migration.md, commands/test-database.md
 

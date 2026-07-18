@@ -1,6 +1,6 @@
 # Phase 8: GBrain Compatibility Recipe
 
-> **Status:** Implemented
+> **Status:** Complete (integrated via Phase 8 lane merge `f88c6f8`)
 > **Created:** 2026-07-11
 > **Owner:** @AdamSellke
 > **Phase:** 8 — Memory Interop
