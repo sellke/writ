@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-07-18T11:20:00-05:00
+> Last Updated: 2026-07-18T11:35:00-05:00
 
 ## Product Mission
 
@@ -10,12 +10,12 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** Model-Tier Delegation Across Agents (`2026-07-10-model-tier-delegation`)
 - **Status:** In Progress
-- **Story:** 1 of 4 — Tier Contract + ADR-016 (Completed ✅); Story 2 (Agent Adoption) and Story 3 (Adapter Resolution) next, in parallel
-- **Progress:** 7/25 tasks complete (28%)
+- **Story:** 3 of 4 done (Story 1 Tier Contract + ADR-016 ✅, Story 2 Agent Adoption ✅, Story 3 Adapter Resolution ✅); Story 4 (Authoring & Lint Integration + Docs) next — synthesis story, gates on 1/2/3
+- **Progress:** 19/25 tasks complete (76%)
 
 ## Recent Drift
 
-None yet this spec (Story 1 landed with zero drift).
+None this spec (Stories 1-3 all landed with zero drift).
 
 ## Open Issues
 

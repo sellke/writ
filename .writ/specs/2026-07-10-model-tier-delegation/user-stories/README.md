@@ -14,11 +14,11 @@ A portable `model_tier` convention where **agents** carry an enforceable tier (`
 | # | Story | Status | Tasks | Priority | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Tier Contract + ADR-016](story-1-tier-contract-adr.md) | Completed ✅ | 7/7 | High | None |
-| 2 | [Agent Adoption](story-2-agent-adoption.md) | Not Started | 0/6 | High | Story 1 |
-| 3 | [Adapter Resolution (2-Band Native)](story-3-adapter-resolution.md) | Not Started | 0/6 | High | Story 1 |
+| 2 | [Agent Adoption](story-2-agent-adoption.md) | Completed ✅ | 6/6 | High | Story 1 |
+| 3 | [Adapter Resolution (2-Band Native)](story-3-adapter-resolution.md) | Completed ✅ | 6/6 | High | Story 1 |
 | 4 | [Authoring & Lint Integration + Docs](story-4-authoring-lint-docs.md) | Not Started | 0/6 | Medium | Stories 1, 2, 3 |
 
-**Progress:** 7/25 tasks complete.
+**Progress:** 19/25 tasks complete.
 
 ## Dependency Graph
 

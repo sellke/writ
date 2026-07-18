@@ -9,6 +9,7 @@ Specialized agent for generating individual user story files as part of the crea
 ```
 subagent_type: "generalPurpose"
 model: "fast"
+model_tier: capability
 ```
 
 ## Input Requirements
@@ -45,7 +46,7 @@ Use this template when spawning the agent:
 ```
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",
+  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
   description: "Create user story {story_number}",
   prompt: `You are a User Story Generator agent. Create a focused, actionable user story file.
 
@@ -176,28 +177,28 @@ When the create-spec command reaches Step 2.6, spawn multiple instances:
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",
+  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
   description: "Create user story 1",
   prompt: `[Use template above with story 1 details]`
 })
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",
+  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
   description: "Create user story 2",
   prompt: `[Use template above with story 2 details]`
 })
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",
+  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
   description: "Create user story 3",
   prompt: `[Use template above with story 3 details]`
 })
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",
+  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
   description: "Create user story 4",
   prompt: `[Use template above with story 4 details]`
 })

@@ -152,11 +152,20 @@ neutral reducer — no Cursor-specific runtime is required:
 
 ### Sub-Agent Models
 
-Agents specify `model: "fast"` or inherit the default. In Cursor:
-- `"fast"` → uses Cursor's fast model (typically Haiku-class)
-- Default → inherits from your Cursor settings
+Agents express weight intent via `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)), which Cursor resolves to its own native primitives:
 
-For better story generation quality, you can edit `user-story-generator.md` to remove `model: "fast"` and use the default model instead.
+| Tier | Cursor resolution |
+|---|---|
+| `orchestration` | `inherit` (anchor — runs at the user's session model) |
+| `capability` | `"fast"` (floor — Cursor's own fast-model primitive) |
+| unset | `inherit` (today's default behavior) |
+| reserved ordinal `-N` | reserve-only; clamps to `"fast"` (2-band today) — not resolved to deeper steps |
+
+This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for Cursor; `inherit`/`fast` are Cursor's own abstractions, not a Writ-maintained ranking.
+
+**Graceful degradation:** if Cursor cannot honor a requested tier (no fast model available, or an unrecognized `model_tier` value), warn and fall back to the parent/inherited model — never hard-fail.
+
+`user-story-generator.md` ships with `model_tier: capability`, which resolves to `"fast"` regardless of whether a concrete `model:` field is also present — a concrete `model:` always wins over `model_tier:` per precedence, but removing `model:` alone no longer changes behavior once `model_tier: capability` is set. To get default-model story generation quality, override the tier itself (edit `user-story-generator.md` to set `model_tier: orchestration`, or set `model: default`/`model: inherit` explicitly) rather than just deleting the `model:` line.
 
 ### Read-Only Agents
 

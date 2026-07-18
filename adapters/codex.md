@@ -146,17 +146,23 @@ On Codex, native memory is **`AGENTS.md`** — the primary instruction surface C
 
 ### Writ agents ↔ Codex TOML
 
-| Agent (`agents/*.md`) | `.codex/agents/*.toml` | `sandbox_mode` | Optional fast model (`model:` in manifest) |
-|-----------------------|-------------------------|----------------|---------------------------------------------|
-| architecture-check-agent | `architecture-check-agent.toml` | `read-only` | `gpt-5-mini` |
-| coding-agent | `coding-agent.toml` | `workspace-write` | — |
-| documentation-agent | `documentation-agent.toml` | `workspace-write` | — |
-| review-agent | `review-agent.toml` | `read-only` | — |
-| testing-agent | `testing-agent.toml` | `workspace-write` | — |
-| user-story-generator | `user-story-generator.toml` | `workspace-write` | `gpt-5-mini` |
-| visual-qa-agent | `visual-qa-agent.toml` | `read-only` | inherit / unspecified |
+Each agent's `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)) resolves to a concrete Codex model or an omitted field:
+
+| Agent (`agents/*.md`) | `.codex/agents/*.toml` | `sandbox_mode` | `model_tier` | Resolved model |
+|-----------------------|-------------------------|----------------|---------------|-----------------|
+| architecture-check-agent | `architecture-check-agent.toml` | `read-only` | `capability` | `gpt-5-mini` |
+| coding-agent | `coding-agent.toml` | `workspace-write` | `orchestration` | omit / inherit |
+| documentation-agent | `documentation-agent.toml` | `workspace-write` | `orchestration` | omit / inherit |
+| review-agent | `review-agent.toml` | `read-only` | `orchestration` | omit / inherit |
+| testing-agent | `testing-agent.toml` | `workspace-write` | `orchestration` | omit / inherit |
+| user-story-generator | `user-story-generator.toml` | `workspace-write` | `capability` | `gpt-5-mini` |
+| visual-qa-agent | `visual-qa-agent.toml` | `read-only` | `orchestration` | inherit / unspecified |
 
 Model IDs are concrete Codex model strings — verify against `/model` on your CLI if defaults drift.
+
+This is a **relative** resolution: Codex is one of the two platforms (with Claude Code) that needs a concrete model name to express `capability`'s floor weight, so the mini ID lives in this single isolated table rather than being duplicated across agent files. Reserved negative ordinal offsets (`-N`) are not resolved beyond the 2-band clamp today — any offset lands on the same `capability` floor (`gpt-5-mini`).
+
+**Graceful degradation:** if a `model_tier` value is unrecognized, or the platform has no mini-model configured, warn and fall back to the parent/inherited model (omit `model` from the TOML) — never hard-fail the subagent spawn.
 
 ### Triggering agents
 

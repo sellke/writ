@@ -9,6 +9,7 @@ Specialized agent for implementing user story code following TDD principles. Spa
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
+model_tier: orchestration
 readonly: false
 ```
 

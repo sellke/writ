@@ -9,6 +9,7 @@ Specialized agent for running tests, verifying 100% pass rate, enforcing coverag
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
+model_tier: orchestration
 readonly: false   # May need to fix tests or implementation
 ```
 

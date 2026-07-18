@@ -53,9 +53,22 @@ All run concurrently. Each auto-announces completion back to the requester chat.
 
 **Key differences:**
 - No `subagent_type` — all OpenClaw sub-agents are general purpose
-- No `model: "fast"` — use `model` param if you want a specific model override
+- No `model: "fast"` — use `model` param if you want a specific model override (see tier table below)
 - `label` is optional but recommended for identification
 - Completion is push-based — no polling needed
+
+**Tier resolution:** agents express weight intent via `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)), which OpenClaw resolves through the optional `model` param on `sessions_spawn`:
+
+| Tier | OpenClaw resolution |
+|---|---|
+| `orchestration` | omit the `model` param (inherits from config/anchor) |
+| `capability` | pass a cheaper/faster `model` param to `sessions_spawn` |
+| unset | omit the param (today's default) |
+| reserved ordinal `-N` | reserve-only; clamps to the cheaper-model param today — not resolved to deeper steps |
+
+This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for OpenClaw; omitting `model` vs. passing a cheaper one are OpenClaw's own primitives, not a Writ-maintained ranking.
+
+**Graceful degradation:** if OpenClaw cannot honor a requested tier (no cheaper model configured, or an unrecognized `model_tier` value), warn and fall back to the parent/inherited model (omit `model`) — never hard-fail the spawn.
 
 ### 2. Resuming / Steering Agents (`resume` → `subagents steer`)
 
@@ -426,4 +439,4 @@ When a Writ command uses a discovery or planning phase, that phase serves the co
 
 5. **File conflicts**: When multiple sub-agents write files in the same workspace, ensure they write to different paths. The user-story-generator pattern (each agent writes its own `story-N-*.md`) is safe.
 
-6. **Model for sub-agents**: Pass `model` param to `sessions_spawn` if you want a cheaper/faster model for boilerplate tasks (story generation). Omit for default (inherits from config).
+6. **Model for sub-agents**: see § 1 tier table for the `model_tier` → `model`-param mapping (cheaper model for `capability`, omit for `orchestration`).

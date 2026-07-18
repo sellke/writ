@@ -9,6 +9,7 @@ Specialized agent for reviewing code implementations and determining if they mee
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
+model_tier: orchestration
 readonly: true   # Review agent should only read and analyze
 ```
 
