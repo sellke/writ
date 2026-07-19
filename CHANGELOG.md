@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.23.0] - 2026-07-19
+
+**Git-Native Provenance & Recovery (Phase 9)** — makes git Writ's durable audit and recovery substrate, and hardens command robustness: a `refs/notes/writ` audit channel, logical-unit `/revert`, and an Artifact Integrity handshake without a new `.writ/index.md`.
+
+### Added
+
+- **Git-notes audit channel** — `/ship` attaches a spec/phase audit digest to the landed base-branch commit under `refs/notes/writ`; `/release` attaches a version rollup; install/update configure fetch/push refspecs; default-on with clean `writ.auditNotes=false` opt-out; `/status` surfaces the latest note ([ADR-017](.writ/decision-records/adr-017-git-notes-audit-channel.md), [format](.writ/docs/git-notes-audit-format.md)).
+- **`/revert`** — logical-unit revert (story|spec) via layered commit resolver (`scripts/revert-resolve.py`: recorded SHA → `/ship` `Ref:` footer → phase-state → confirmed ghost-commit match), safe `git revert` by default, and Writ artifact restoration (status, WWB, drift log, `context.md`).
+- **Artifact Integrity handshake** — standing rule in `commands/_preamble.md` (required → HALT + bounded repair; optional → warn+degrade); `## Artifact Map` in regenerated `.writ/context.md`; Required Artifacts blocks on seven high-traffic commands; eval index-guard against `.writ/index.md`.
+
+### Internal
+
+- Eval Tier 1: `git-notes-audit` (26/26), `revert` (23/23), `artifact-integrity` (19/19); full suite green at land.
+- Reserved [ADR-018](.writ/decision-records/adr-018-third-party-skill-trust-model.md) (third-party skill trust) — documented, not activated this release.
+
 ## [0.22.0] - 2026-07-18
 
 **Model-Tier Delegation** — a portable `model_tier` convention where agents carry an enforceable tier (`orchestration` | `capability`), resolved per-platform via native relative primitives, while skills and commands carry advisory-only tier metadata. Corrects the originating issue's skill-carrier framing: the tier lives at the agent spawn boundary, the only place Writ passes a `model` parameter. Ships with zero behavioral regression — every agent resolves to the same concrete model it runs today.
