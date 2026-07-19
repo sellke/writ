@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-07-17
+> Last Updated: 2026-07-19
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
@@ -205,7 +205,89 @@ eval suite green).
 **Boundary preserved:** both recommended flows end at their normal terminal scope
 — neither merges, opens PRs, nor releases. Production stays a human decision.
 
-## Beyond Phase 8 (Parking Lot)
+---
+
+## Phase 9: Git-Native Provenance & Recovery — 📋 Planned (scheduled 2026-07-19)
+
+**Goal:** Make git itself Writ's durable audit and recovery substrate, and harden
+command robustness — adopting the strongest ideas surfaced by the Conductor
+competitive analysis without cloning its structure. Three contract-first specs:
+an immutable audit trail bound to shipped commits, a logical-unit revert, and an
+artifact-integrity discipline. Per
+[`.writ/research/2026-07-18-writ-vs-conductor-analysis.md`](../research/2026-07-18-writ-vs-conductor-analysis.md)
+and [ADR-018](../decision-records/adr-018-third-party-skill-trust-model.md) (a
+reserved, out-of-phase decision from the same analysis).
+
+**Honest release caveat:** Phases 6–8, Product Reconciliation, and Memory Interop
+remain merged-pending/unreleased at scheduling time. Phase 9 is scheduled
+deliberately anyway; releasing the 6–8 backlog is tracked separately and should
+not block Phase 9 planning, but the "done vs released" gap is real and
+`/verify-spec --product` should keep flagging it until `/release` clears it.
+
+### Success Criteria
+
+- After `/ship` of a spec, `git log --notes=writ` on the base branch shows an
+  immutable audit digest on the **landed** commit (survives squash-merge); a
+  fresh clone with the configured fetch refspec sees it; opt-out leaves no
+  git-config residue.
+- `/revert <unit>` (story|spec) resolves a logical unit to its real commits —
+  recovering rewritten SHAs via a confirmed ghost-commit match — undoes them
+  (safe `git revert` default), and restores Writ artifacts (status, WWB, drift
+  log, `context.md`) consistently.
+- A high-traffic command run with a missing **required** artifact halts early
+  with a specific, actionable repair offer; a missing optional artifact degrades
+  gracefully; no new `.writ/index.md` file is introduced.
+- Eval Tier 1 gains passing checks for all three (audit refs/notes rule,
+  revert-resolver + guards, artifact-integrity + index-guard).
+
+### Features
+
+- [ ] **Git-notes audit channel** `Effort: M` — Spec
+  [`2026-07-18-git-notes-audit-channel`](../specs/2026-07-18-git-notes-audit-channel/spec.md).
+  `/ship` attaches a spec-level audit digest (composed from "What Was Built"
+  records) to the landed commit under a dedicated `refs/notes/writ` ref; `/release`
+  attaches a version rollup; sync via configured refspecs; default-on, clean
+  opt-out; `/status` read line. (Conductor's git-notes idea, adapted to Writ's
+  squash-merge `/ship` — attach post-land so notes aren't orphaned.)
+- [ ] **Logical-unit revert (`/revert`)** `Effort: M` — Spec
+  [`2026-07-18-logical-unit-revert`](../specs/2026-07-18-logical-unit-revert/spec.md).
+  Single `/revert <unit>` (story|spec) with a layered commit resolver
+  (`scripts/revert-resolve.py`: recorded SHA → `/ship` `Ref:` footer → phase-state
+  → confirmed ghost-commit fuzzy match), safe/hard strategies, dirty-tree guard,
+  and full artifact restoration. Prerequisite: `/implement-story` records each
+  story's commit SHA. (Conductor's `conductor-revert` model; ghost-commit
+  reconciliation is the borrowed robustness trick.)
+- [ ] **Artifact integrity + handshake (robustness rider)** `Effort: S` — Spec
+  [`2026-07-18-artifact-integrity-handshake`](../specs/2026-07-18-artifact-integrity-handshake/spec.md).
+  An "Artifact Integrity" standing rule in `_preamble.md` (verify Required
+  Artifacts before work; required-missing → HALT + bounded repair; optional →
+  warn+degrade) plus an "Artifact Map" section in the regenerated `context.md`.
+  **Deliberately no new `index.md`** — the map rides in `context.md`, respecting
+  ADR-015 leanness. (Conductor's integrity-halt discipline, minus its extra file.)
+
+### Dependencies
+
+- **Internal (soft):** `/revert` may attach a revert audit note if the git-notes
+  channel has shipped — kept optional so the two ship independently. No hard
+  ordering; the artifact-integrity rider is fully independent.
+- **Origin:** the Conductor analysis
+  ([`2026-07-18-writ-vs-conductor-analysis.md`](../research/2026-07-18-writ-vs-conductor-analysis.md))
+  and its leanness follow-up ([`leanness-audit-2026-07-18.md`](../docs/leanness-audit-2026-07-18.md)).
+
+### Out of Scope (deliberately)
+
+- Per-story branch-local notes (dropped by squash), a bespoke `writ notes` reader,
+  historical backfill (git-notes spec).
+- Phase-lane/worktree/quarantine reverts (deferred to `phase-state.py`), cross-base
+  reverts (revert spec).
+- A new `.writ/index.md` file; forcing Required-Artifacts blocks into all 30
+  commands (integrity spec).
+- Activating the third-party skill trust model — ADR-018 is reserve-only, **not** a
+  Phase 9 deliverable; it is referenced, not built.
+
+---
+
+## Beyond Phase 9 (Parking Lot)
 
 **Kept as candidates:**
 - **Cross-project learning corpus** — extension of the knowledge ledger once consolidation is proven
