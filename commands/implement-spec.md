@@ -6,6 +6,13 @@ End-to-end specification execution. Reads a spec, builds a dependency-aware exec
 
 This is the **top-level orchestrator**. It owns the plan. `/implement-story` owns the per-story pipeline.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** target spec folder (`spec.md`, `user-stories/`).
+- **Optional:** `.writ/context.md`, `.writ/knowledge/`, execution state (`--resume`).
+
 ## Invocation
 
 | Invocation | Behavior |
@@ -147,7 +154,7 @@ For each batch in order:
 After each `/implement-story` completes:
 - Update execution state file with result
 - Log: pass/fail, review iterations, test count, coverage
-- **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2, reflecting the updated story progress. Each write replaces the entire file.
+- **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2 (including the `## Artifact Map` + Integrity line), reflecting the updated story progress. Each write replaces the entire file.
 
 **On story failure:** Present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 

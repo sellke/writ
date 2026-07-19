@@ -6,6 +6,13 @@ Runs a single user story through the full SDLC pipeline: architecture check → 
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** active spec folder (`spec.md`, `user-stories/`).
+- **Optional:** `.writ/context.md`, `.writ/knowledge/`, `spec-lite.md`, `mockups/`.
+
 ## Invocation
 
 | Invocation | Behavior |
@@ -331,6 +338,14 @@ This context enables Story 3's coding agent to build on **actual implementation*
 - **Story:** {N} of {M} — {current story title} ({story status})
 - **Progress:** {X}/{Y} tasks complete ({Z}%)
 
+## Artifact Map
+
+- **Product:** {list present of roadmap.md, mission.md, mission-lite.md; mark missing}
+- **Active spec:** .writ/specs/{id}/ — spec.md {+ spec-lite.md, user-stories/, sub-specs/ if present}
+- **Knowledge:** .writ/knowledge/ ({N} entries, or "none")
+- **Docs:** .writ/docs/ ({count} files)
+- **Integrity:** {✅ all required present | ⚠️ missing required: <list>}
+
 ## Recent Drift
 
 {Last 3 entries from `.writ/specs/{spec}/drift-log.md` — omit section if absent or empty}
@@ -345,6 +360,15 @@ This context enables Story 3's coding agent to build on **actual implementation*
 - No active spec → omit "Active Spec" section
 - `drift-log.md` absent or empty → omit "Recent Drift" section
 - `.writ/issues/` absent → omit "Open Issues" section
+
+**Artifact Map rules (present-conditional, rewritten wholesale):**
+- Omit sub-items whose files are absent (e.g. no `spec-lite.md` → drop it); the
+  **Integrity** line **always renders**.
+- The Integrity line reflects the preamble's Required/Optional semantics: `✅ all
+  required present` when every required artifact exists, otherwise `⚠️ missing
+  required: <list>`.
+- Rewritten wholesale on every regeneration — never appended or patched, exactly
+  like the rest of `context.md`. No separate index/pointer file is ever created.
 
 ---
 

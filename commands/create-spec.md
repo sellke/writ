@@ -4,6 +4,13 @@
 
 Generate comprehensive feature specifications using a contract-first approach that ensures complete alignment between developer and AI before creating any supporting files. This command uses **Plan Mode for open-ended discovery** and **AskQuestion for bounded decisions**, eliminating presumptuous file creation by establishing a clear "contract" through collaborative conversation.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** none — `/create-spec` bootstraps a spec from scratch.
+- **Optional:** `.writ/product/` docs (inform discovery), `.writ/context.md`.
+
 ## Invocation
 
 - `/create-spec` — discover and create a full contract-first spec package

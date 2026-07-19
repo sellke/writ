@@ -4,6 +4,13 @@
 
 Session orientation command. Reads stable project state — config, active spec, in-flight batch work, and refresh opportunities — and produces a skimmable report that tells you exactly where you are and what to do next. Under 10 seconds. No convention-detection questions when `.writ/config.md` is present.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** none — `/status` runs in any git repository and degrades per-section.
+- **Optional:** everything (`.writ/config.md`, product docs, specs, issues) — each section omits gracefully when its source is absent.
+
 ## Invocation
 
 ```bash
@@ -174,6 +181,7 @@ After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using 
 
 - **Product Mission** — 1–3 sentences from `.writ/product/mission-lite.md` (omit section if absent)
 - **Active Spec** — spec id, title, status, active story N of M, tasks X/Y complete (from Steps 3–4)
+- **Artifact Map** — product/active-spec/knowledge/docs resolve list + Integrity line (present-conditional, wholesale; per the canonical `## Artifact Map` schema)
 - **Recent Drift** — last 3 entries from `.writ/specs/{spec}/drift-log.md` (omit if absent)
 - **Open Issues** — count from `.writ/issues/` (omit if absent)
 - **Last Updated** — current ISO 8601 timestamp

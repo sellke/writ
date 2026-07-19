@@ -12,6 +12,13 @@ Use `/ship` standalone on any branch, or as the natural next step after `/implem
 
 The roadmap listed a "PR agent" and a "`/ship` command" separately. Both create PRs. `/ship` folds the PR agent's structured-description, auto-labeling, and draft/ready detection into its PR creation step. One command owns the full "branch to merged" path: `/implement-story` → pipeline green → `/ship` → merged PR.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** a git repository with a current branch.
+- **Optional:** a matching spec folder (for the `Ref:` footer + audit note).
+
 ## Invocation
 
 | Invocation | Behavior |
