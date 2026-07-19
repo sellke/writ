@@ -363,6 +363,50 @@ GitHub Release was skipped (gh CLI not available).
 Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERSION}
 ```
 
+#### Step 4.4: Audit Rollup
+
+After tagging, attach a **version rollup** audit note to the tag's target commit
+under the dedicated `refs/notes/writ` ref, so each version carries an immutable,
+git-native summary of the specs it shipped and their verdicts. Full schema:
+[`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md) §4;
+rationale: [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
+
+> **Strictly non-blocking.** Rollup composition or attachment failure **never fails
+> the release**. On any error, log `⚠️ audit note not attached — {error}` and continue
+> to the summary.
+
+**Opt-out gate (first):**
+
+```bash
+AUDIT_NOTES=$(git config --bool writ.auditNotes 2>/dev/null || echo true)   # absent = true
+```
+
+If `AUDIT_NOTES` is `false`, **skip this step silently** — no rollup note, no output.
+
+**Compose the rollup** from the specs shipped since the previous release tag —
+**reuse** the changelog-from-completed-specs list already assembled in Phase 1/2 (do
+not re-scan). Per the format doc's §4 schema, include: version, released date, tag +
+tag-target SHA, previous version, and the list of shipped specs each with its
+aggregate verdict and highest drift. **Reference** the per-spec digests attached by
+`/ship` rather than duplicating their full contents. Content is **audit-only** — never
+transcripts, prompts, or chain-of-thought.
+
+**Attach to the tag's target commit** (overwrite if re-releasing the same commit):
+
+```bash
+TAG_TARGET_SHA=$(git rev-list -n 1 "v${VERSION}")
+git notes --ref=writ add -f -F "$ROLLUP_TMPFILE" "$TAG_TARGET_SHA"
+```
+
+Always pass `--ref=writ` explicitly. **Never** write to `refs/notes/commits`. View
+later with `git notes --ref=writ show <tag-target-sha>` or `git log --notes=writ`.
+
+Add a confirmation line to the release summary:
+
+```
+📝 Release audit rollup attached to <tag-target-sha> (refs/notes/writ)
+```
+
 ### Phase 5: Release Summary
 
 ```
@@ -374,6 +418,7 @@ Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERS
 - **README:** ✅ Current / 🔧 Updated (N fixes)
 - **Tag:** v${VERSION} pushed to origin
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
+- **Audit rollup:** 📝 Attached to <tag-target-sha> (refs/notes/writ) / ⏭️ Skipped (writ.auditNotes=false)
 
 ## Changes Released
 ${changelog_summary}
@@ -426,6 +471,7 @@ Commands that would run:
 - git push origin HEAD
 - git push origin v1.3.0
 - gh release create v1.3.0 ...
+- git notes --ref=writ add -f -F <rollup> <tag-target-sha>   # audit rollup, non-blocking; skipped if writ.auditNotes=false
 
 When root `package.json#name` is `@sellke/writ`, the dry run also confirms that the runtime helper is decoupled: the file would NOT be modified and `npm publish` would NOT run. Helper publishing is manual — see [Runtime Helper Publish (manual)](#runtime-helper-publish-manual).
 

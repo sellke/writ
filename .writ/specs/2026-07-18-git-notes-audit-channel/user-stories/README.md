@@ -6,12 +6,12 @@
 
 | Story | Title | Status | Tasks | Priority | Depends on |
 |-------|-------|--------|-------|----------|------------|
-| 1 | [Audit digest format + ADR-017](./story-1-audit-digest-format-adr.md) | Not Started | 0/5 | High | — |
-| 2 | [`/ship` integration — spec digest](./story-2-ship-integration.md) | Not Started | 0/8 | High | Story 1 |
-| 3 | [`/release` integration — version rollup](./story-3-release-integration.md) | Not Started | 0/7 | Medium | Story 1 |
-| 4 | [Sync config + opt-out + `/status` + eval](./story-4-sync-config-and-read-surface.md) | Not Started | 0/5 | Medium | Story 1 |
+| 1 | [Audit digest format + ADR-017](./story-1-audit-digest-format-adr.md) | Complete | 5/5 | High | — |
+| 2 | [`/ship` integration — spec digest](./story-2-ship-integration.md) | Complete | 8/8 | High | Story 1 |
+| 3 | [`/release` integration — version rollup](./story-3-release-integration.md) | Complete | 7/7 | Medium | Story 1 |
+| 4 | [Sync config + opt-out + `/status` + eval](./story-4-sync-config-and-read-surface.md) | Complete | 5/5 | Medium | Story 1 |
 
-**Overall:** 0/25 tasks · 0%
+**Overall:** 25/25 tasks · 100%
 
 ## Dependency Graph
 

@@ -9,6 +9,14 @@ The "What Was Built" record is a **system spec** — a permanent record of what 
 3. **Historical reference** — future maintainers see decisions and tradeoffs made during implementation
 4. **Audit trail** — third-party verification (review agent output) rather than self-reporting
 
+> **WWB ↔ git-notes audit boundary:** WWB is the *forward-looking*, editable,
+> per-story record living in the working tree. It is **not** the immutable,
+> commit-bound audit channel — that is the git-notes digest (`refs/notes/writ`)
+> composed *from* these WWB records at `/ship` and `/release`. See
+> [ADR-017](../decision-records/adr-017-git-notes-audit-channel.md) and
+> [git-notes-audit-format.md](git-notes-audit-format.md) for the boundary rationale
+> and digest schema.
+
 ## Source of Truth
 
 "What Was Built" records are **sourced from review agent output** (Gate 3), not from coding agent self-reports. This ensures third-party verification and captures:
@@ -272,6 +280,7 @@ See `.writ/specs/2026-03-27-context-engine/user-stories/story-2-agent-specific-s
 
 ## Related Documentation
 
+- **Git-Notes Audit Channel:** `.writ/docs/git-notes-audit-format.md` — the immutable, commit-bound audit digest composed from these WWB records ([ADR-017](../decision-records/adr-017-git-notes-audit-channel.md))
 - **Drift Analysis Format:** `.writ/docs/drift-report-format.md`
 - **Review Agent Output:** `agents/review-agent.md` — structured output sections
 - **Spec-Lite Format:** `.writ/docs/spec-lite-format-verification.md`
