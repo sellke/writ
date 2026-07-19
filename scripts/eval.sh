@@ -40,6 +40,7 @@ CHECKS=(
   refresh-evidence
   knowledge-consolidate
   memory-interop
+  git-notes-audit
   leanness
 )
 
@@ -2224,6 +2225,56 @@ check_knowledge_consolidate() {
   require_literal "$readme" 'superseded_by' "The knowledge README must document the superseded_by lineage field."
   require_literal "$readme" 'replaces' "The knowledge README must document the replaces lineage field."
   require_literal "$readme" 'merge, never append' "The knowledge README must state the merge-never-append principle."
+}
+
+check_git_notes_audit() {
+  # Git-notes audit channel (ADR-017). The deliverables are product-source
+  # markdown + install.sh (no runtime helper), so the static asserter checks the
+  # durable audit contract directly against the shipped files. Mirrors the
+  # spec-deps/phase-lane registration: run the eval-*.py scenario emitter, then
+  # add supplementary require_literal assertions for the load-bearing rules.
+  local fake="$PROJECT_ROOT/scripts/eval-git-notes-audit.py"
+  local ship="$PROJECT_ROOT/commands/ship.md"
+  local release="$PROJECT_ROOT/commands/release.md"
+  local install="$PROJECT_ROOT/scripts/install.sh"
+  local status="$PROJECT_ROOT/commands/status.md"
+  local fmt="$PROJECT_ROOT/.writ/docs/git-notes-audit-format.md"
+  local adr="$PROJECT_ROOT/.writ/decision-records/adr-017-git-notes-audit-channel.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  if [ ! -f "$fake" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-git-notes-audit.py" "git-notes audit asserter is missing." "Restore scripts/eval-git-notes-audit.py (git-notes-audit-channel spec, Story 4)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "git-notes-audit:$scenario_name" "$scenario_reason" "Fix the audit-channel product source or the asserter scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$ship" 'refs/notes/writ' "/ship must reference the dedicated refs/notes/writ ref."
+  require_literal "$ship" 'writ.auditNotes' "/ship must honor the writ.auditNotes opt-out."
+  require_literal "$release" 'refs/notes/writ' "/release must reference the dedicated refs/notes/writ ref."
+  require_literal "$release" 'writ.auditNotes' "/release must honor the writ.auditNotes opt-out."
+  require_literal "$install" '+refs/notes/writ:refs/notes/writ' "install.sh must configure the refs/notes/writ fetch refspec."
+  require_literal "$install" 'writ.auditNotes' "install.sh must gate the refspec config behind the writ.auditNotes opt-out marker."
+  require_literal "$status" 'Last audit note:' "/status must surface the last-audit-note pointer line."
+  require_literal "$fmt" 'Writ Audit Digest (spec)' "The format doc must define the spec-level digest schema."
+  require_literal "$adr" 'refs/notes/writ' "ADR-017 must record the dedicated-ref decision."
 }
 
 check_leanness() {

@@ -41,6 +41,24 @@ git stash list                      # Stashed changes
 
 Extract: branch name, commits ahead/behind default branch, last commit message and timestamp, uncommitted file count, stash count.
 
+**Last audit note (read-only):** resolve the most recent git-notes audit digest on the
+`refs/notes/writ` ref (see [`git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md)):
+
+```bash
+git log --notes=writ -1 --format="%h %cs" $(git notes --ref=writ list 2>/dev/null | awk '{print $2}') 2>/dev/null
+```
+
+If at least one Writ audit note exists, add one line to the CURRENT POSITION output —
+short SHA of the noted commit, the spec title from the note's `Spec:` line, and the
+note date:
+
+```
+📝 Last audit note: {short-sha} — {spec title} ({date})
+```
+
+If no `refs/notes/writ` notes exist (empty ref), **omit the line entirely**. This is
+read-only — `/status` never writes or syncs notes.
+
 ### Step 3: Detect Active Spec
 
 ```bash
@@ -199,6 +217,7 @@ Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode
    Branch: feature/auth-refresh (3 commits ahead of main)
    Last commit: "Add session token rotation" (4 hours ago)
    Uncommitted: 2 modified files in src/auth/
+   📝 Last audit note: a1b2c3d — Auth System (2026-03-15)
 
 📋 ACTIVE WORK
    Spec: 2026-03-15-auth-system (In Progress)

@@ -615,6 +615,72 @@ init_writ_workspace() {
   fi
 }
 
+# configure_audit_notes_sync — guarded, idempotent refs/notes/writ sync refspecs.
+# Configures the git-notes audit channel (ADR-017) to travel on clone/fetch/push.
+# Gated behind the writ.auditNotes opt-out marker (default true): when the marker
+# is false, adds nothing and removes any Writ-added refspecs (no residue). No-op
+# gracefully when not in a git repo or when no remote is configured.
+# Globals: DRY_RUN
+configure_audit_notes_sync() {
+  local mode="${1:-apply}" # preview | apply
+  local fetch_refspec="+refs/notes/writ:refs/notes/writ"
+  local push_refspec="refs/notes/writ"
+  # Anchored value regexes for --unset-all (only '+' is a regex metachar here).
+  local fetch_regex='^\+refs/notes/writ:refs/notes/writ$'
+  local push_regex='^refs/notes/writ$'
+
+  if ! command -v git &>/dev/null || ! git rev-parse --is-inside-work-tree &>/dev/null; then
+    echo "    ⏭️  Audit notes: not a git repository — skipping refs/notes/writ sync."
+    return 0
+  fi
+
+  # Opt-out marker (absent = enabled).
+  local audit_enabled
+  audit_enabled=$(git config --bool writ.auditNotes 2>/dev/null || echo true)
+
+  # Default push remote (origin preferred, else first remote).
+  local remote
+  remote=$(git remote 2>/dev/null | grep -Fx origin || true)
+  [ -z "$remote" ] && remote=$(git remote 2>/dev/null | head -1 || true)
+  if [ -z "$remote" ]; then
+    echo "    ⏭️  Audit notes: no git remote — skipping refs/notes/writ sync (notes still attach locally)."
+    return 0
+  fi
+
+  if [ "$audit_enabled" = "false" ]; then
+    if [ "$mode" = "preview" ]; then
+      echo "    ⏭️  Audit notes: writ.auditNotes=false — would remove any refs/notes/writ refspecs on '$remote'."
+      return 0
+    fi
+    # Opt-out: remove only Writ-added refspecs; leave no residue.
+    git config --unset-all "remote.$remote.fetch" "$fetch_regex" 2>/dev/null || true
+    git config --unset-all "remote.$remote.push" "$push_regex" 2>/dev/null || true
+    echo "    🧹 Audit notes disabled (writ.auditNotes=false) — refs/notes/writ refspecs removed from '$remote'."
+    return 0
+  fi
+
+  if [ "$mode" = "preview" ]; then
+    local have_fetch=no have_push=no
+    git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec" && have_fetch=yes
+    git config --get-all "remote.$remote.push" 2>/dev/null | grep -Fxq "$push_refspec" && have_push=yes
+    if [ "$have_fetch" = yes ] && [ "$have_push" = yes ]; then
+      echo "    ✓ Audit notes: refs/notes/writ sync already configured on '$remote' (idempotent — no change)."
+    else
+      echo "    📝 Audit notes: would add refs/notes/writ fetch/push refspecs to '$remote'."
+    fi
+    return 0
+  fi
+
+  # Enabled: idempotently add each refspec (grep existing first — never duplicate).
+  if ! git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec"; then
+    git config --add "remote.$remote.fetch" "$fetch_refspec"
+  fi
+  if ! git config --get-all "remote.$remote.push" 2>/dev/null | grep -Fxq "$push_refspec"; then
+    git config --add "remote.$remote.push" "$push_refspec"
+  fi
+  echo "    📝 Audit notes: refs/notes/writ sync configured on '$remote'."
+}
+
 # ===========================================================================
 # COPY MODE
 # ===========================================================================
@@ -822,6 +888,9 @@ if [ "$DRY_RUN" = true ]; then
       echo "  Codex config seed plan:"
       seed_codex_config preview
     fi
+    echo ""
+    echo "  Audit notes sync (refs/notes/writ):"
+    configure_audit_notes_sync preview
   fi
   echo ""
   echo "💡 To reset a file to core: delete the local copy and re-run install."
@@ -923,6 +992,10 @@ echo "  [$STEP/$STEP_TOTAL] Writing manifest..."
 write_copy_manifest "$VERSION" "$MANIFEST_FILE"
 
 init_writ_workspace
+
+# Configure the git-notes audit channel sync (ADR-017), guarded by writ.auditNotes.
+echo "  🔗 Audit notes sync (refs/notes/writ)..."
+configure_audit_notes_sync apply
 
 # --- Summary ---
 
