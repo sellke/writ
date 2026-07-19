@@ -207,7 +207,7 @@ eval suite green).
 
 ---
 
-## Phase 9: Git-Native Provenance & Recovery — 📋 Planned (scheduled 2026-07-19)
+## Phase 9: Git-Native Provenance & Recovery — ✅ Implemented (2026-07-19)
 
 **Goal:** Make git itself Writ's durable audit and recovery substrate, and harden
 command robustness — adopting the strongest ideas surfaced by the Conductor
@@ -217,6 +217,8 @@ artifact-integrity discipline. Per
 [`.writ/research/2026-07-18-writ-vs-conductor-analysis.md`](../research/2026-07-18-writ-vs-conductor-analysis.md)
 and [ADR-018](../decision-records/adr-018-third-party-skill-trust-model.md) (a
 reserved, out-of-phase decision from the same analysis).
+
+**Closure status:** All three features shipped as contract-first specs on `phase/9-git-native-provenance`, each implemented in an isolated per-spec lane and merged only after independent verification (`8cbc187` git-notes-audit-channel, `2f501d1` logical-unit-revert, `46ea900` artifact-integrity-handshake). Verified by full eval Tier 1 (`Findings: 0`) including `git-notes-audit` (26/26), `revert` (23/23), and `artifact-integrity` (19/19); 53 UAT scenarios across three `uat-plan.md` files await manual execution. **Honest caveats:** (1) live `git log --notes=writ` evidence requires a real `/ship` land (mechanism + eval gate shipped). (2) Live required-artifact HALT is a UAT scenario (static contract asserted by eval). Not merged to main or released — pending review, UAT, and `/ship`/`/release`.
 
 **Honest release caveat:** Phases 6–8, Product Reconciliation, and Memory Interop
 remain merged-pending/unreleased at scheduling time. Phase 9 is scheduled
@@ -242,14 +244,14 @@ not block Phase 9 planning, but the "done vs released" gap is real and
 
 ### Features
 
-- [ ] **Git-notes audit channel** `Effort: M` — Spec
+- [x] **Git-notes audit channel** `Effort: M` — Spec
   [`2026-07-18-git-notes-audit-channel`](../specs/2026-07-18-git-notes-audit-channel/spec.md).
   `/ship` attaches a spec-level audit digest (composed from "What Was Built"
   records) to the landed commit under a dedicated `refs/notes/writ` ref; `/release`
   attaches a version rollup; sync via configured refspecs; default-on, clean
   opt-out; `/status` read line. (Conductor's git-notes idea, adapted to Writ's
   squash-merge `/ship` — attach post-land so notes aren't orphaned.)
-- [ ] **Logical-unit revert (`/revert`)** `Effort: M` — Spec
+- [x] **Logical-unit revert (`/revert`)** `Effort: M` — Spec
   [`2026-07-18-logical-unit-revert`](../specs/2026-07-18-logical-unit-revert/spec.md).
   Single `/revert <unit>` (story|spec) with a layered commit resolver
   (`scripts/revert-resolve.py`: recorded SHA → `/ship` `Ref:` footer → phase-state
@@ -257,7 +259,7 @@ not block Phase 9 planning, but the "done vs released" gap is real and
   and full artifact restoration. Prerequisite: `/implement-story` records each
   story's commit SHA. (Conductor's `conductor-revert` model; ghost-commit
   reconciliation is the borrowed robustness trick.)
-- [ ] **Artifact integrity + handshake (robustness rider)** `Effort: S` — Spec
+- [x] **Artifact integrity + handshake (robustness rider)** `Effort: S` — Spec
   [`2026-07-18-artifact-integrity-handshake`](../specs/2026-07-18-artifact-integrity-handshake/spec.md).
   An "Artifact Integrity" standing rule in `_preamble.md` (verify Required
   Artifacts before work; required-missing → HALT + bounded repair; optional →
