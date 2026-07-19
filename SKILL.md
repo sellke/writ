@@ -66,6 +66,7 @@ and unlink manage this file alongside its reducer.
 | `/implement-story` | `commands/implement-story.md` | Run the full story SDLC pipeline from architecture check through documentation. |
 | `/prototype` | `commands/prototype.md` | Ship small code changes with lightweight scan, coding, and verification. |
 | `/refactor` | `commands/refactor.md` | Perform scoped, verified refactors across files or modules. |
+| `/revert` | `commands/revert.md` | Safely unwind a story or spec via a layered commit resolver with plan-before-mutate guards. |
 
 ### Review & Validation
 
