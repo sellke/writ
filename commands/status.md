@@ -4,6 +4,13 @@
 
 Session orientation command. Reads stable project state — config, active spec, in-flight batch work, and refresh opportunities — and produces a skimmable report that tells you exactly where you are and what to do next. Under 10 seconds. No convention-detection questions when `.writ/config.md` is present.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** none — `/status` runs in any git repository and degrades per-section.
+- **Optional:** everything (`.writ/config.md`, product docs, specs, issues) — each section omits gracefully when its source is absent.
+
 ## Invocation
 
 ```bash
@@ -40,6 +47,24 @@ git stash list                      # Stashed changes
 ```
 
 Extract: branch name, commits ahead/behind default branch, last commit message and timestamp, uncommitted file count, stash count.
+
+**Last audit note (read-only):** resolve the most recent git-notes audit digest on the
+`refs/notes/writ` ref (see [`git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md)):
+
+```bash
+git log --notes=writ -1 --format="%h %cs" $(git notes --ref=writ list 2>/dev/null | awk '{print $2}') 2>/dev/null
+```
+
+If at least one Writ audit note exists, add one line to the CURRENT POSITION output —
+short SHA of the noted commit, the spec title from the note's `Spec:` line, and the
+note date:
+
+```
+📝 Last audit note: {short-sha} — {spec title} ({date})
+```
+
+If no `refs/notes/writ` notes exist (empty ref), **omit the line entirely**. This is
+read-only — `/status` never writes or syncs notes.
 
 ### Step 3: Detect Active Spec
 
@@ -156,6 +181,7 @@ After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using 
 
 - **Product Mission** — 1–3 sentences from `.writ/product/mission-lite.md` (omit section if absent)
 - **Active Spec** — spec id, title, status, active story N of M, tasks X/Y complete (from Steps 3–4)
+- **Artifact Map** — product/active-spec/knowledge/docs resolve list + Integrity line (present-conditional, wholesale; per the canonical `## Artifact Map` schema)
 - **Recent Drift** — last 3 entries from `.writ/specs/{spec}/drift-log.md` (omit if absent)
 - **Open Issues** — count from `.writ/issues/` (omit if absent)
 - **Last Updated** — current ISO 8601 timestamp
@@ -199,6 +225,7 @@ Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode
    Branch: feature/auth-refresh (3 commits ahead of main)
    Last commit: "Add session token rotation" (4 hours ago)
    Uncommitted: 2 modified files in src/auth/
+   📝 Last audit note: a1b2c3d — Auth System (2026-03-15)
 
 📋 ACTIVE WORK
    Spec: 2026-03-15-auth-system (In Progress)

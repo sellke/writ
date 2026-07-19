@@ -12,6 +12,13 @@ Use `/ship` standalone on any branch, or as the natural next step after `/implem
 
 The roadmap listed a "PR agent" and a "`/ship` command" separately. Both create PRs. `/ship` folds the PR agent's structured-description, auto-labeling, and draft/ready detection into its PR creation step. One command owns the full "branch to merged" path: `/implement-story` → pipeline green → `/ship` → merged PR.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** a git repository with a current branch.
+- **Optional:** a matching spec folder (for the `Ref:` footer + audit note).
+
 ## Invocation
 
 | Invocation | Behavior |
@@ -373,6 +380,7 @@ Then re-run /ship.
    Commits: 3 (infra → logic → tests)
    PR: https://github.com/user/repo/pull/42 (Ready for review)
    Labels: feature, auth
+   📝 Audit note attached to a1b2c3d (refs/notes/writ)   # once the branch lands; omitted if writ.auditNotes=false
 
 ⚠️ The PR is now the source of truth. If you push more commits to this
    branch, make sure the PR is still open — commits pushed after merge
@@ -380,6 +388,74 @@ Then re-run /ship.
 ```
 
 This warning prevents the scenario where additional commits are pushed to the branch after the PR is merged on GitHub, resulting in lost work that requires manual cherry-pick recovery.
+
+### Step 6: Audit Note (post-land)
+
+After the branch **lands** on the base branch, attach a spec-level audit digest to
+the landed commit under the dedicated `refs/notes/writ` ref, so the review verdict,
+coverage, and drift for the spec are permanently recorded in git — on the surviving
+commit, never on a pre-merge story commit that a squash orphans. Full schema and
+rationale: [`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md)
+and [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
+
+> **This step is strictly non-blocking.** Audit-note composition or attachment
+> failure **never fails the ship**. On any error, log `⚠️ audit note not attached —
+> {error}` and continue to the completion report.
+
+**6.0 — Opt-out gate (first).** Read the per-repo marker:
+
+```bash
+AUDIT_NOTES=$(git config --bool writ.auditNotes 2>/dev/null || echo true)   # absent = true
+```
+
+If `AUDIT_NOTES` is `false`, **skip this entire step silently** — no note, no output,
+no git-config changes.
+
+**6.1 — Resolve the landed SHA** per land strategy (a note binds to a commit SHA, so
+this must be the commit that actually exists on the base branch):
+
+| Land strategy | Landed SHA |
+|---|---|
+| Squash-merge | the single squash commit — `git rev-parse origin/[default-branch]` after the merge lands |
+| Merge commit | the merge commit SHA on the base branch |
+| Rebase-and-merge (replays N commits) | the **tip** of the replayed commits on the base branch |
+
+If `/ship` opened a PR that has not merged yet, the land happens when the PR merges;
+attach the note once the landed commit exists on the base branch (re-running this
+step after merge is safe — see 6.4). Never attach to the pre-merge feature-branch tip.
+
+**6.2 — Resolve the spec + source range.** Use the spec context `/ship` already
+tracked (Step 5 Spec Reference). Capture the source commit range that was squashed/
+merged (`git log [base]..[pre-land-tip] --oneline` → count) for the digest header.
+
+**6.3 — Compose the digest** per the format doc's spec-level schema from the spec's
+per-story `## What Was Built` records: aggregate verdict (worst story result),
+highest drift severity, union of DEV-IDs, aggregate coverage, files created/modified
+counts, total review iterations. Write it to a tmpfile.
+
+- **Audit-only content:** include only the audit fields — **never** chain-of-thought,
+  prompts, or transcripts, and never copy "Implementation Decisions" narrative
+  verbatim.
+- **Fallback (no WWB records found):** attach the minimal digest (spec ref + landed
+  SHA + `git diff --stat` summary) and log a warning that WWB records were absent.
+
+**6.4 — Attach to the landed SHA** under `refs/notes/writ` (overwrite on re-ship so a
+re-ship supersedes the prior digest):
+
+```bash
+git notes --ref=writ add -f -F "$DIGEST_TMPFILE" "$LANDED_SHA"
+```
+
+Always pass `--ref=writ` explicitly. **Never** write to `refs/notes/commits` (the git
+default) — that would clobber the user's own notes.
+
+**6.5 — Confirm** in the completion report:
+
+```
+📝 Audit note attached to <sha> (refs/notes/writ)
+```
+
+View it later with `git log --notes=writ` or `git notes --ref=writ show <sha>`.
 
 **`--dry-run` output for Steps 4-5:**
 
@@ -431,6 +507,11 @@ Step 5 — PR Creation:
   Labels: feature
   Status: Ready for review
   Body: [preview of structured PR body]
+
+Step 6 — Audit Note:
+  Would attach spec digest to landed commit under refs/notes/writ
+  (git notes --ref=writ add -f -F <digest> <landed-sha>) — non-blocking
+  [Skipped when writ.auditNotes=false]
 
 No changes made.
 ```

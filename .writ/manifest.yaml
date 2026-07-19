@@ -141,6 +141,11 @@ commands:
     category: learning
     purpose: "Turn git history into actionable retrospective insight and trend snapshots."
     tags: [learning, retrospective, git]
+  - name: revert
+    file: commands/revert.md
+    category: implementation
+    purpose: "Safely unwind a story or spec via a layered commit resolver with plan-before-mutate guards."
+    tags: [implementation, git, revert, recovery]
   - name: review
     file: commands/review.md
     category: review

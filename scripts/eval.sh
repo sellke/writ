@@ -40,7 +40,10 @@ CHECKS=(
   refresh-evidence
   knowledge-consolidate
   memory-interop
+  git-notes-audit
+  revert
   leanness
+  artifact-integrity
 )
 
 TOTAL_FINDINGS=0
@@ -2224,6 +2227,173 @@ check_knowledge_consolidate() {
   require_literal "$readme" 'superseded_by' "The knowledge README must document the superseded_by lineage field."
   require_literal "$readme" 'replaces' "The knowledge README must document the replaces lineage field."
   require_literal "$readme" 'merge, never append' "The knowledge README must state the merge-never-append principle."
+}
+
+check_git_notes_audit() {
+  # Git-notes audit channel (ADR-017). The deliverables are product-source
+  # markdown + install.sh (no runtime helper), so the static asserter checks the
+  # durable audit contract directly against the shipped files. Mirrors the
+  # spec-deps/phase-lane registration: run the eval-*.py scenario emitter, then
+  # add supplementary require_literal assertions for the load-bearing rules.
+  local fake="$PROJECT_ROOT/scripts/eval-git-notes-audit.py"
+  local ship="$PROJECT_ROOT/commands/ship.md"
+  local release="$PROJECT_ROOT/commands/release.md"
+  local install="$PROJECT_ROOT/scripts/install.sh"
+  local status="$PROJECT_ROOT/commands/status.md"
+  local fmt="$PROJECT_ROOT/.writ/docs/git-notes-audit-format.md"
+  local adr="$PROJECT_ROOT/.writ/decision-records/adr-017-git-notes-audit-channel.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  if [ ! -f "$fake" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-git-notes-audit.py" "git-notes audit asserter is missing." "Restore scripts/eval-git-notes-audit.py (git-notes-audit-channel spec, Story 4)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "git-notes-audit:$scenario_name" "$scenario_reason" "Fix the audit-channel product source or the asserter scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$ship" 'refs/notes/writ' "/ship must reference the dedicated refs/notes/writ ref."
+  require_literal "$ship" 'writ.auditNotes' "/ship must honor the writ.auditNotes opt-out."
+  require_literal "$release" 'refs/notes/writ' "/release must reference the dedicated refs/notes/writ ref."
+  require_literal "$release" 'writ.auditNotes' "/release must honor the writ.auditNotes opt-out."
+  require_literal "$install" '+refs/notes/writ:refs/notes/writ' "install.sh must configure the refs/notes/writ fetch refspec."
+  require_literal "$install" 'writ.auditNotes' "install.sh must gate the refspec config behind the writ.auditNotes opt-out marker."
+  require_literal "$status" 'Last audit note:' "/status must surface the last-audit-note pointer line."
+  require_literal "$fmt" 'Writ Audit Digest (spec)' "The format doc must define the spec-level digest schema."
+  require_literal "$adr" 'refs/notes/writ' "ADR-017 must record the dedicated-ref decision."
+}
+
+check_artifact_integrity() {
+  # Artifact-integrity handshake (spec 2026-07-18-artifact-integrity-handshake).
+  # Deliverables are product-source markdown (no runtime helper), so the static
+  # asserter checks the durable contract directly against the shipped files.
+  # Mirrors the git-notes-audit registration: run the eval-*.py scenario emitter,
+  # then add supplementary require_literal assertions for the load-bearing rules,
+  # plus a guard against the rejected .writ/index.md pointer file.
+  local fake="$PROJECT_ROOT/scripts/eval-artifact-integrity.py"
+  local preamble="$PROJECT_ROOT/commands/_preamble.md"
+  local story="$PROJECT_ROOT/commands/implement-story.md"
+  local index="$PROJECT_ROOT/.writ/index.md"
+  local cmd cmd_path
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  if [ ! -f "$fake" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-artifact-integrity.py" "artifact-integrity asserter is missing." "Restore scripts/eval-artifact-integrity.py (artifact-integrity-handshake spec, Story 3)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "artifact-integrity:$scenario_name" "$scenario_reason" "Fix the artifact-integrity product source or the asserter scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Preamble Artifact Integrity section: convention + HALT + bounded repair.
+  require_literal "$preamble" '## Artifact Integrity' "_preamble.md must define the Artifact Integrity section."
+  require_literal "$preamble" 'Required Artifacts' "_preamble.md must define the Required Artifacts convention."
+  require_literal "$preamble" 'HALT' "_preamble.md must HALT on a missing required artifact."
+  require_literal "$preamble" 'bounded repair' "_preamble.md must offer a bounded repair naming the creating command."
+
+  # Canonical context.md Artifact Map schema.
+  require_literal "$story" '## Artifact Map' "implement-story.md must add the Artifact Map to the context.md schema."
+  require_literal "$story" '**Integrity:**' "implement-story.md Artifact Map must carry the Integrity line."
+
+  # Each of the 7 high-traffic commands declares its Required Artifacts.
+  for cmd in create-spec implement-story implement-spec implement-phase ship release status; do
+    cmd_path="$PROJECT_ROOT/commands/$cmd.md"
+    require_literal "$cmd_path" '## Required Artifacts' "commands/$cmd.md must declare a Required Artifacts block."
+  done
+
+  # Guard the rejected design: no .writ/index.md pointer file (ADR-015 leanness).
+  if [ -f "$index" ]; then
+    add_finding ".writ/index.md" "The rejected .writ/index.md pointer file was reintroduced." "Delete .writ/index.md; the Artifact Map rides inside the regenerated context.md."
+  fi
+}
+
+check_revert() {
+  # Logical-unit /revert (spec 2026-07-18-logical-unit-revert). Runs the real
+  # resolver unit suite via eval-revert-resolve.py, then statically asserts the
+  # resolver's four resolution layers and the /revert command's safety rules
+  # (dirty-tree guard, plan-before-mutate gate, hard-reset second confirmation),
+  # plus the story-SHA recording and the reverted-WWB non-authoritative rule.
+  local fake="$PROJECT_ROOT/scripts/eval-revert-resolve.py"
+  local resolver="$PROJECT_ROOT/scripts/revert-resolve.py"
+  local revert_cmd="$PROJECT_ROOT/commands/revert.md"
+  local implement_story="$PROJECT_ROOT/commands/implement-story.md"
+  local wwb_doc="$PROJECT_ROOT/.writ/docs/what-was-built-format.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "revert:$scenario_name" "$scenario_reason" "Fix scripts/revert-resolve.py or the resolver unit fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Resolver: four resolution layers + spec scaffold + read-only contract.
+  require_literal "$resolver" 'def resolve_story(' "The resolver must expose story-unit resolution."
+  require_literal "$resolver" 'def resolve_spec(' "The resolver must expose spec-unit union resolution."
+  require_literal "$resolver" '"recorded"' "The resolver must map the recorded story SHA layer."
+  require_literal "$resolver" 'ref-footer' "The resolver must map the /ship Ref: footer layer."
+  require_literal "$resolver" 'phase-state' "The resolver must map the phase-state JSON layer."
+  require_literal "$resolver" 'ghost' "The resolver must emit ghost candidates for rewritten SHAs."
+  require_literal "$resolver" '--diff-filter=A' "The resolver must find the spec-scaffolding commit."
+  require_literal "$resolver" 'read-only' "The resolver must document its read-only contract."
+
+  # /revert command safety rules (Story 3/4).
+  require_literal "$revert_cmd" 'git status --porcelain' "revert.md must reference the dirty-tree guard command."
+  require_literal "$revert_cmd" 'Dirty-tree guard' "revert.md must document the dirty-tree guard."
+  require_literal "$revert_cmd" 'Plan-before-mutate' "revert.md must document the plan-before-mutate gate."
+  require_literal "$revert_cmd" 'git revert --no-edit' "revert.md must default to safe history-preserving revert."
+  require_literal "$revert_cmd" 'second destructive confirmation' "revert.md must require a second confirmation for hard reset."
+  require_literal "$revert_cmd" 'git reset --hard' "revert.md must name the destructive hard-reset strategy."
+  require_literal "$revert_cmd" 'ghost' "revert.md must require confirmation of ghost substitutions."
+
+  # Story-SHA recording + reverted-WWB non-authoritative loader rule.
+  require_literal "$implement_story" '> **Commit:**' "implement-story must record the story commit SHA."
+  require_literal "$implement_story" 'Skip reverted records' "implement-story Step 2 must skip reverted WWB records."
+  require_literal "$wwb_doc" '> **Reverted:**' "The WWB doc must define the Reverted banner convention."
+  require_literal "$wwb_doc" 'not authoritative' "The WWB doc must mark reverted records non-authoritative."
 }
 
 check_leanness() {
