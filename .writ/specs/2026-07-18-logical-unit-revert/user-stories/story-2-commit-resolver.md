@@ -1,6 +1,6 @@
 # Story 2: Commit Resolver — `scripts/revert-resolve.py`
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 > **Story Points:** 5
@@ -19,13 +19,13 @@ As **the `/revert` command**, I want **a deterministic resolver that maps a logi
 
 ## Implementation Tasks
 
-- [ ] Write failing tests for the resolver (recorded / ref-footer / phase-state / ghost / spec-union / ordering / base) under `scripts/tests/`.
-- [ ] Implement `scripts/revert-resolve.py` per technical-spec §2 (CLI, JSON output, four-layer resolution).
-- [ ] Implement ghost-commit fuzzy match (subject token-set similarity) returning candidates, never auto-selecting.
-- [ ] Implement spec-unit union (story commits + spec-scaffold commit via `--diff-filter=A`).
-- [ ] Implement `base` computation and merge/duplicate warnings.
-- [ ] Make it read-only (never mutates git or files).
-- [ ] Verify tests pass with ≥80% coverage on the script.
+- [x] Write failing tests for the resolver (recorded / ref-footer / phase-state / ghost / spec-union / ordering / base) under `scripts/tests/`.
+- [x] Implement `scripts/revert-resolve.py` per technical-spec §2 (CLI, JSON output, four-layer resolution).
+- [x] Implement ghost-commit fuzzy match (subject token-set similarity) returning candidates, never auto-selecting.
+- [x] Implement spec-unit union (story commits + spec-scaffold commit via `--diff-filter=A`).
+- [x] Implement `base` computation and merge/duplicate warnings.
+- [x] Make it read-only (never mutates git or files).
+- [x] Verify tests pass with ≥80% coverage on the script.
 
 ## Technical Notes
 
@@ -36,9 +36,9 @@ As **the `/revert` command**, I want **a deterministic resolver that maps a logi
 
 ## Definition of Done
 
-- [ ] `revert-resolve.py` implements all four layers + spec union + base + warnings.
-- [ ] Tests pass, ≥80% coverage on the script.
-- [ ] Read-only verified (no mutations).
+- [x] `revert-resolve.py` implements all four layers + spec union + base + warnings.
+- [x] Tests pass, ≥80% coverage on the script.
+- [x] Read-only verified (no mutations).
 
 ## Context for Agents
 
@@ -47,3 +47,45 @@ As **the `/revert` command**, I want **a deterministic resolver that maps a logi
 - **Business rules:** read-only; ghost-commit never auto-selected; newest→oldest ordering.
 - **Shadow paths:** recorded (happy), footer/phase-state (nil recorded), ghost (rewritten), no commits (empty).
 - **Dependency:** Story 1 defines the `> **Commit:**` field this resolver reads first.
+
+---
+
+## What Was Built
+
+**Implementation Date:** 2026-07-19
+
+### Files Created
+
+1. **`scripts/revert-resolve.py`** (~430 lines)
+   - Deterministic, read-only logical-unit → commit resolver. CLI `revert-resolve.py <unit> <id> [--repo PATH] [--spec SPEC_ID] [--json]`, `unit ∈ {story, spec}`.
+   - Four-layer resolution: `recorded` (`> **Commit:**` verified via `git cat-file -e`), `ref-footer` (`git log --grep "Ref: .*<id>"`), `phase-state` (read `.writ/state/phase-execution-*.json` `commit`/`mergeCommit`), `ghost` (stdlib `difflib.SequenceMatcher` subject similarity, emitted under `ghost`, never auto-selected).
+   - Spec-unit union (all story commits + spec-scaffold via `git log --diff-filter=A -- <spec>/spec.md` + phase-state). Newest→oldest ordering by `git rev-list --count` depth, dedup, merge/cherry-pick-duplicate warnings, `base` = parent of earliest. Emits the technical-spec §2 JSON shape (with a `schema` field) or a human summary.
+   - `ContractError` handling mirroring `spec-deps.py`/`phase-state.py` (blocker JSON + non-zero exit).
+2. **`scripts/tests/test_revert_resolve.py`** (~300 lines, 23 tests)
+   - Builds disposable git repos per test; covers recorded/ref-footer/phase-state/ghost layers, spec union, ordering, base, dedup, merge warning, read-only guarantee, error paths, and CLI JSON/human/blocker output. Imports the hyphenated module via `importlib`.
+3. **`scripts/eval-revert-resolve.py`** (scenario emitter)
+   - Runs the real unit suite and emits PASS/FAIL TSV for `eval.sh check_revert` (single source of truth — no duplicated fixtures).
+
+### Implementation Decisions
+
+1. **Newness via `git rev-list --count`** — a deterministic topological-depth proxy for newest→oldest revert ordering that is stable on linear and DAG history (fixture commits can share timestamps).
+2. **Ghost never auto-selects** — a missing recorded SHA yields a `ghost` candidate + warning only; a similarity floor (0.30) suppresses meaningless matches. The command layer confirms each substitution.
+3. **`schema: revert-resolve-v1`** — added a schema tag (like `spec-deps`/`phase-state` helpers) for forward-compatible consumers.
+
+### Test Results
+
+**Verification:** Automated — `python3 -m unittest scripts.tests.test_revert_resolve` (23 tests, all pass).
+
+**Coverage:** **90%** line coverage on `scripts/revert-resolve.py` (244 stmts, 15 missed; 100% of branches instrumented, measured via `coverage run --branch`). Exceeds the ≥80% target.
+
+### Review Outcome
+
+**Result:** PASS
+
+- **Iteration count:** 1 iteration
+- **Drift:** None
+- **Security:** Clean (read-only; no shell string interpolation of untrusted input beyond `re.escape`-guarded grep patterns)
+
+### Deviations from Spec
+
+None. Added an optional `--spec` disambiguation flag (spec §2 lists `--repo`/`--json`) so a `story-N` present in multiple specs resolves deterministically; absent-flag single-spec behavior is unchanged.

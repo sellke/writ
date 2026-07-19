@@ -278,6 +278,28 @@ The orchestrator logs validation warnings but does NOT block story completion:
 
 See `.writ/specs/2026-03-27-context-engine/user-stories/story-2-agent-specific-spec-views.md` lines 73-168 for a complete example of a manually-created "What Was Built" record that follows this format.
 
+## Reverted Records (`/revert` annotation)
+
+When `/revert` unwinds a story or spec, it **annotates** the affected WWB records rather than deleting them — the record is history and stays readable. The convention:
+
+- A `> **Reverted:**` banner may prefix a `## What Was Built` section, placed on the first line inside the section:
+
+  ```markdown
+  ## What Was Built
+
+  > **Reverted:** 2026-07-18 — reverted via /revert (safe revert); commits a1b2c3d, e4f5a6b. Record preserved for history.
+
+  **Implementation Date:** 2026-07-15
+  ...
+  ```
+
+- The banner records the revert **date**, the **strategy** (`safe revert` | `hard reset`), and the **short SHAs** of the reverted commits.
+- The underlying record is **never deleted** — it remains a permanent, auditable account of what *had* been built before the revert.
+
+### Not authoritative for dependency context
+
+A WWB record carrying a `> **Reverted:**` banner is **not authoritative** for cross-story dependency context, because the work it describes was undone. Downstream WWB loaders — notably `/implement-story` Step 2 ("Loading What Was Built from Dependencies") — must **skip or flag** a reverted record instead of treating it as live implementation reality. Loading a reverted record as authoritative would feed a coding agent context for code that no longer exists. Detection is a literal check for the `> **Reverted:**` banner at the top of the section.
+
 ## Related Documentation
 
 - **Git-Notes Audit Channel:** `.writ/docs/git-notes-audit-format.md` — the immutable, commit-bound audit digest composed from these WWB records ([ADR-017](../decision-records/adr-017-git-notes-audit-channel.md))

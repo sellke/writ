@@ -217,6 +217,11 @@ For stories with dependencies (specified in the story file's `## User Story` or 
 4. **Extract WWB sections:**
    - For each **completed** dependency, locate `## What Was Built` section
    - Read the entire section (from `## What Was Built` to next `##` heading or EOF)
+   - **Skip reverted records:** if the section begins with a `> **Reverted:**` banner, the work it describes was undone by `/revert` and is **not authoritative**. Do NOT load it as live dependency context — skip it (or flag it as reverted) and log:
+     ```
+     ℹ️ Story N's "What Was Built" is marked Reverted — skipping as non-authoritative dependency context.
+     ```
+     See `.writ/docs/what-was-built-format.md → Reverted Records` for the convention.
    - If section not found, log warning:
      ```
      ⚠️ Story 1 is marked complete but has no "What Was Built" record.
@@ -772,7 +777,21 @@ After all gates pass:
 4. **Append `## What Was Built`** to the story file — see detailed assembly process below
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
-7. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
+7. **Record the story commit SHA** into the story file header — see "Recording the Story Commit SHA" below
+8. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
+
+#### Recording the Story Commit SHA
+
+> **Consumer:** `/revert` + `scripts/revert-resolve.py` map a story to its exact commit via this field (its highest-confidence resolution layer).
+
+Immediately after the completion commit (item 6), capture the real SHA and write it into the story file header so the story is cleanly revertible later:
+
+1. Capture the SHA: `git rev-parse HEAD` (this is the completion commit from item 6 — the commit that carries the status flip, checked tasks/AC, and `## What Was Built`).
+2. Write `> **Commit:** <full-sha>` into the story file's header block (the `> **Status:** …` metadata block near the top), so provenance sits beside status.
+3. **Idempotent write:** if a `> **Commit:**` line already exists (re-run / re-implementation), *update it in place* — never append a duplicate.
+4. **Land the field:** the SHA is unknown before the commit exists, so it cannot live inside the commit it names. Fold the one-line header write into the immediately-following bookkeeping commit (the same small follow-up that carries any post-commit housekeeping), e.g. `git commit -am "chore(story): record commit SHA"`. Do **not** `--amend` the completion commit — amending would rewrite the very SHA just recorded. The recorded SHA therefore points at the completion commit (the revert target), while the tiny record-SHA commit is inert.
+
+**Backward compatibility:** the field is optional. Stories completed before this convention (or `--quick` runs that skip bookkeeping) simply lack `> **Commit:**`; `scripts/revert-resolve.py` tolerates its absence and falls back to later resolution layers (`/ship` `Ref:` footer, phase-state JSON, ghost-commit match). Never fail a story for a missing SHA field.
 
 #### "What Was Built" Record Assembly
 
