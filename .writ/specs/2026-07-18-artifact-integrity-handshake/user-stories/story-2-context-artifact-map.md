@@ -1,6 +1,7 @@
 # Story 2: `context.md` Artifact Map Schema
 
 > **Status:** Complete
+> **Commit:** 35d0ef6a3dad47a098aef49059dcf2ba8590d098
 > **Priority:** High
 > **Dependencies:** Story 1
 > **Story Points:** 3

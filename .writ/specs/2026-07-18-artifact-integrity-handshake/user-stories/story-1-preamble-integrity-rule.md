@@ -1,6 +1,7 @@
 # Story 1: Artifact Integrity Convention in `_preamble.md`
 
 > **Status:** Complete
+> **Commit:** 35d0ef6a3dad47a098aef49059dcf2ba8590d098
 > **Priority:** High
 > **Dependencies:** None
 > **Story Points:** 2
