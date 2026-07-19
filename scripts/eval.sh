@@ -41,6 +41,7 @@ CHECKS=(
   knowledge-consolidate
   memory-interop
   git-notes-audit
+  revert
   leanness
 )
 
@@ -2275,6 +2276,63 @@ check_git_notes_audit() {
   require_literal "$status" 'Last audit note:' "/status must surface the last-audit-note pointer line."
   require_literal "$fmt" 'Writ Audit Digest (spec)' "The format doc must define the spec-level digest schema."
   require_literal "$adr" 'refs/notes/writ' "ADR-017 must record the dedicated-ref decision."
+}
+
+check_revert() {
+  # Logical-unit /revert (spec 2026-07-18-logical-unit-revert). Runs the real
+  # resolver unit suite via eval-revert-resolve.py, then statically asserts the
+  # resolver's four resolution layers and the /revert command's safety rules
+  # (dirty-tree guard, plan-before-mutate gate, hard-reset second confirmation),
+  # plus the story-SHA recording and the reverted-WWB non-authoritative rule.
+  local fake="$PROJECT_ROOT/scripts/eval-revert-resolve.py"
+  local resolver="$PROJECT_ROOT/scripts/revert-resolve.py"
+  local revert_cmd="$PROJECT_ROOT/commands/revert.md"
+  local implement_story="$PROJECT_ROOT/commands/implement-story.md"
+  local wwb_doc="$PROJECT_ROOT/.writ/docs/what-was-built-format.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "revert:$scenario_name" "$scenario_reason" "Fix scripts/revert-resolve.py or the resolver unit fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Resolver: four resolution layers + spec scaffold + read-only contract.
+  require_literal "$resolver" 'def resolve_story(' "The resolver must expose story-unit resolution."
+  require_literal "$resolver" 'def resolve_spec(' "The resolver must expose spec-unit union resolution."
+  require_literal "$resolver" '"recorded"' "The resolver must map the recorded story SHA layer."
+  require_literal "$resolver" 'ref-footer' "The resolver must map the /ship Ref: footer layer."
+  require_literal "$resolver" 'phase-state' "The resolver must map the phase-state JSON layer."
+  require_literal "$resolver" 'ghost' "The resolver must emit ghost candidates for rewritten SHAs."
+  require_literal "$resolver" '--diff-filter=A' "The resolver must find the spec-scaffolding commit."
+  require_literal "$resolver" 'read-only' "The resolver must document its read-only contract."
+
+  # /revert command safety rules (Story 3/4).
+  require_literal "$revert_cmd" 'git status --porcelain' "revert.md must reference the dirty-tree guard command."
+  require_literal "$revert_cmd" 'Dirty-tree guard' "revert.md must document the dirty-tree guard."
+  require_literal "$revert_cmd" 'Plan-before-mutate' "revert.md must document the plan-before-mutate gate."
+  require_literal "$revert_cmd" 'git revert --no-edit' "revert.md must default to safe history-preserving revert."
+  require_literal "$revert_cmd" 'second destructive confirmation' "revert.md must require a second confirmation for hard reset."
+  require_literal "$revert_cmd" 'git reset --hard' "revert.md must name the destructive hard-reset strategy."
+  require_literal "$revert_cmd" 'ghost' "revert.md must require confirmation of ghost substitutions."
+
+  # Story-SHA recording + reverted-WWB non-authoritative loader rule.
+  require_literal "$implement_story" '> **Commit:**' "implement-story must record the story commit SHA."
+  require_literal "$implement_story" 'Skip reverted records' "implement-story Step 2 must skip reverted WWB records."
+  require_literal "$wwb_doc" '> **Reverted:**' "The WWB doc must define the Reverted banner convention."
+  require_literal "$wwb_doc" 'not authoritative' "The WWB doc must mark reverted records non-authoritative."
 }
 
 check_leanness() {

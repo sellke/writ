@@ -117,6 +117,7 @@ Feedback loop (/retro + /refresh-command):
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, builds dependency graph, resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
 | `/implement-story` | **Per-story executor.** SDLC pipeline: arch-check → **boundary map (Gate 0.5)** → coding (TDD) → lint → review → drift → testing → visual QA (optional) → docs. `--quick` skips arch, boundary, review, drift, docs. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
+| `/revert` | **Logical-unit revert.** Unwinds a story or spec via a layered commit resolver (recorded SHA → `/ship` footer → phase-state → confirmed ghost match), safe `git revert` by default (hard reset behind a second confirmation), then restores story status, WWB, drift-log, and `context.md`. |
 | `/status` | Comprehensive project status report, including a one-line production-grade health score |
 
 ### Shipping & Review

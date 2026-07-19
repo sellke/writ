@@ -1,6 +1,6 @@
 # Spec: Logical-Unit Revert (`/revert`)
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Owner:** @Adam Sellke
 > **Created:** 2026-07-18
 > **Origin:** Recommendation #2 from [`2026-07-18-writ-vs-conductor-analysis.md`](../../research/2026-07-18-writ-vs-conductor-analysis.md)
