@@ -8,6 +8,13 @@ This is the layer above `/implement-spec`: roadmap → **`/implement-phase`** �
 
 **Question policy is the defining constraint:** the roadmap and specs already answered most questions. This command asks only when an answer genuinely doesn't exist in the artifacts.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** `.writ/product/roadmap.md` (the phase source). Missing → HALT + offer `/plan-product`.
+- **Optional:** existing specs under `.writ/specs/`, phase execution state (`--resume`).
+
 ## Invocation
 
 | Invocation | Behavior |

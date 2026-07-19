@@ -1,6 +1,7 @@
 # Story 2: `context.md` Artifact Map Schema
 
-> **Status:** Not Started
+> **Status:** Complete
+> **Commit:** 35d0ef6a3dad47a098aef49059dcf2ba8590d098
 > **Priority:** High
 > **Dependencies:** Story 1
 > **Story Points:** 3
@@ -18,10 +19,10 @@ As an **agent or developer resolving where things live**, I want **an Artifact M
 
 ## Implementation Tasks
 
-- [ ] Extend the canonical `context.md` schema in `commands/implement-story.md` Step 2 with the `## Artifact Map` section (technical-spec §2).
-- [ ] Update `commands/implement-spec.md` and `commands/status.md` regeneration references so they emit the Map (point to the canonical schema; avoid divergent copies).
-- [ ] Define present-conditional rendering + the Integrity line logic.
-- [ ] Ensure the Map is rewritten wholesale (never appended/patched), consistent with existing context.md regeneration discipline.
+- [x] Extend the canonical `context.md` schema in `commands/implement-story.md` Step 2 with the `## Artifact Map` section (technical-spec §2).
+- [x] Update `commands/implement-spec.md` and `commands/status.md` regeneration references so they emit the Map (point to the canonical schema; avoid divergent copies).
+- [x] Define present-conditional rendering + the Integrity line logic.
+- [x] Ensure the Map is rewritten wholesale (never appended/patched), consistent with existing context.md regeneration discipline.
 
 ## Technical Notes
 
@@ -31,9 +32,9 @@ As an **agent or developer resolving where things live**, I want **an Artifact M
 
 ## Definition of Done
 
-- [ ] Canonical schema updated with Artifact Map + Integrity line.
-- [ ] implement-spec + status regeneration emit the Map.
-- [ ] Graceful degradation verified (missing sources omitted, Integrity always renders).
+- [x] Canonical schema updated with Artifact Map + Integrity line.
+- [x] implement-spec + status regeneration emit the Map.
+- [x] Graceful degradation verified (missing sources omitted, Integrity always renders).
 
 ## Context for Agents
 
@@ -41,3 +42,43 @@ As an **agent or developer resolving where things live**, I want **an Artifact M
 - **Format reference:** `sub-specs/technical-spec.md → §2`.
 - **Business rules:** no new file; regenerated wholesale; present-conditional; Integrity line always renders.
 - **Dependency:** Story 1's convention defines required/optional semantics the Integrity line reflects.
+
+---
+
+## What Was Built
+
+**Implementation Date:** 2026-07-19
+
+### Files Created
+
+[None created]
+
+### Files Modified
+
+- **`commands/implement-story.md`** (Step 2 context.md schema)
+  - Added canonical `## Artifact Map` (Product / Active spec / Knowledge / Docs / Integrity) after Active Spec, plus present-conditional + wholesale-rewrite rules and an explicit rejection of a separate index/pointer file.
+- **`commands/implement-spec.md`** (completion regeneration)
+  - Regeneration step now points at the canonical schema including Artifact Map + Integrity line.
+- **`commands/status.md`** (Step 8 regeneration sources)
+  - Lists Artifact Map as a regenerated source, referencing the canonical schema (no divergent copy).
+
+### Implementation Decisions
+
+1. **One canonical schema, two references** — Map lives only in `implement-story` Step 2; `implement-spec` and `status` point at it so the three regenerators cannot drift.
+2. **Integrity line always renders** — even when optional sub-items are omitted, matching Conductor's handshake value without an `index.md`.
+
+### Test Results
+
+**Verification:** Static (methodology repo — no runtime)
+- ✅ `python3 scripts/eval-artifact-integrity.py` → context-schema + emit-map scenarios PASS
+- ✅ Spot-check: Artifact Map present in implement-story schema; implement-spec/status reference it
+
+**Coverage:** N/A (markdown command deliverable)
+
+### Review Outcome
+
+**Result:** PASS
+
+- **Iteration count:** 1 iteration
+- **Drift:** None
+- **Security:** Clean

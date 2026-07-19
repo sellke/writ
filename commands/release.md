@@ -6,6 +6,13 @@ Automate the release lifecycle: generate changelogs from completed stories, bump
 
 **Self-sufficient:** `/release` runs an **inline release gate** (spec metadata validation, build verification, conditional test suite) before changelog generation, unless `--skip-gate` is set.
 
+## Required Artifacts
+
+Verify per the preamble's **Artifact Integrity** rule before starting.
+
+- **Required:** `VERSION` file and a git repository. Missing `VERSION` → HALT + offer `/initialize`.
+- **Optional:** completed specs (for changelog generation), `.writ/config.md`.
+
 ## Modes
 
 | Invocation | Mode | Behavior |

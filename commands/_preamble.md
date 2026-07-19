@@ -30,24 +30,17 @@ repository artifacts.
 
 Every qualifying challenge carries a `trigger` (`scope_degradation` or
 `exit_criteria_degradation`) and all **four required parts**:
-
-1. **What the roadmap/spec said** (`roadmap_or_spec_said`)
-2. **What Writ recommends** (`recommendation`)
-3. **What context may be missing** (`possibly_missing_context`)
-4. **Cost if the recommendation is wrong** (`cost_if_wrong`)
+`roadmap_or_spec_said`, `recommendation`, `possibly_missing_context`,
+`cost_if_wrong`.
 
 Apply an **evidence-based select-or-pause** boundary (ADR-013): a defensible,
 low-risk, reversible choice may be selected automatically **with** a persisted
-audit trail (the challenge plus decision evidence); missing evidence, critical
-ambiguity, or material irreversible risk instead **pauses** and returns
-`challenge_required` with selectable options for one explicit `AskQuestion`.
-
-In phase orchestration, nested commands **return** an audited selection or
-`challenge_required`; only the parent `/implement-phase` presents the choice and
-persists the challenge, selected option, and decision timestamp for resume and
-audit. The executable validator is `scripts/phase-state.py validate-challenge`. A
-malformed challenge (any missing required part) is a **contract error**, not a
-User Challenge and not an ordinary failure.
+audit trail; missing evidence, critical ambiguity, or material irreversible risk
+instead **pauses** and returns `challenge_required` with options for one explicit
+`AskQuestion`. Nested commands **return** an audited selection or
+`challenge_required`; only `/implement-phase` presents and persists the choice
+(validator: `scripts/phase-state.py validate-challenge`). A malformed challenge
+is a **contract error**, not a User Challenge.
 
 ## File Organization
 
@@ -60,6 +53,14 @@ All work is organized into `.writ/`:
 - `knowledge/` - accumulating cross-cutting facts
 - `issues/` - fast-capture bugs and features
 - `state/` - ephemeral runtime state (gitignored)
+
+## Artifact Integrity
+
+Before doing work, verify declared **Required Artifacts** (*required* or *optional*) exist.
+- **Required missing** → HALT; offer a bounded repair via AskQuestion naming the creating command. Never auto-run a mutating repair without confirmation.
+- **Optional missing** → warn and continue in degraded mode.
+
+Creating commands: roadmap/`mission.md` → `/plan-product`; `.writ/docs/` → `/initialize`; a spec under `.writ/specs/` → `/create-spec`. This is adapter-neutral: pure existence checks, no platform hooks; never inspect `.writ/state/`.
 
 ## Tool Selection
 
