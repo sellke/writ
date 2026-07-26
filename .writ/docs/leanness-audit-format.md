@@ -7,7 +7,10 @@
 >
 > **Tier B of the leanness guardian.** Tier A (`scripts/eval.sh --check=leanness`)
 > catches mechanical drift on every PR; this ritual is the human judgment layer.
-> See [ADR-015](../decision-records/adr-015-leanness-self-governance.md).
+> See [ADR-015](../decision-records/adr-015-leanness-self-governance.md) and
+> [ADR-019](../decision-records/adr-019-full-surface-leanness-measurement.md)
+> (full-surface measurement, the coverage guard, and the reduction ratchet
+> that replaced `GROWTH_TOLERANCE`).
 
 ## When to Run
 
@@ -22,13 +25,25 @@
 
 Gather before starting; paste the raw numbers into the dated output.
 
-1. **Tier A metrics.** Run one of:
-   - `python3 scripts/eval-leanness.py` — raw `{structural, warnings, metrics}` JSON, or
+1. **Tier A metrics — full surface (ADR-019).** Run one of:
+   - `python3 scripts/eval-leanness.py` — raw `{structural, warnings, metrics}`
+     JSON. Paste the whole `metrics` block: `per_surface` (lines/chars per
+     gated surface), `total_product_lines` / `total_product_chars`, the
+     ungated `writ_workspace_lines`, and `story_context_bytes` **together
+     with its `story_context_bytes_note` proxy disclaimer** — never paste the
+     number alone. The legacy `commands` / `agents` / `skills` /
+     `command_lines` / `command_chars` keys remain present; paste them too
+     for continuity with pre-ADR-019 audits.
    - `bash scripts/eval.sh --check=leanness` — read the "Notes (non-blocking)"
-     block for the `Metrics:` summary line and any growth/ceiling warnings.
-2. **Baseline delta.** Compare current metrics against
-   [`.writ/leanness-baseline.json`](../leanness-baseline.json). Note the growth
-   since the recorded date (lines, chars, counts).
+     block for the `Metrics:` lines (now one line each for the legacy
+     aggregate, `per_surface`, the product rollup + `writ_workspace_lines`,
+     and `story_context_bytes`) and any ratchet/ceiling warnings.
+2. **Baseline delta.** Compare current per-surface metrics against
+   [`.writ/leanness-baseline.json`](../leanness-baseline.json)'s `surfaces`
+   map (schema 2). Note the growth since the recorded date, **per surface**
+   (lines, chars) — not as one aggregate figure. Full-surface baselines reset
+   on 2026-07-26 (ADR-019); do not compare a post-reset total against a
+   pre-ADR-019 command-only figure and call the difference a regression.
 3. **Registries.** `.writ/manifest.yaml` (commands, agents, skills) and the four
    adapters (`adapters/cursor.md`, `claude-code.md`, `codex.md`, `openclaw.md`).
 4. **Recent harness/platform changes** since the last audit (new native
@@ -65,7 +80,11 @@ for human decision — this ritual **recommends, never deletes**.
 Produce a dated file: **`.writ/docs/leanness-audit-YYYY-MM-DD.md`** (the date is
 the audit date). It MUST contain:
 
-1. **Metrics snapshot** — the pasted Tier A metrics + baseline delta.
+1. **Metrics snapshot** — the pasted Tier A metrics + baseline delta. Per
+   ADR-019, this means `per_surface`, `total_product_lines` /
+   `total_product_chars`, `writ_workspace_lines`, and `story_context_bytes`
+   **with its declared-load proxy label** — alongside the legacy
+   `command_lines` / `command_chars` keys, not `command_lines` alone.
 2. **Findings → Decisions table** — one row per candidate:
 
    | Surface | Finding | Decision | Follow-up |
