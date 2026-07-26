@@ -2431,8 +2431,25 @@ for item in data.get("structural", []):
 for item in data.get("warnings", []):
     print("WARN\t%s\t%s\t%s" % (clean(item.get("subject", "")), clean(item.get("what", "")), clean(item.get("fix", ""))))
 m = data.get("metrics", {})
+# Legacy TSV line — Tier B consumers that only read the first METRIC line
+# keep working unchanged (aggregate command-only figures, as before).
 print("METRIC\tcommands=%s agents=%s skills=%s command_lines=%s command_chars=%s" % (
     m.get("commands"), m.get("agents"), m.get("skills"), m.get("command_lines"), m.get("command_chars")))
+# Full-surface metrics (2026-07-26-leanness-instrumentation / ADR-019): per
+# gated surface, the product-wide rollup, the ungated .writ/ figure, and the
+# declared-load story_context_bytes proxy alongside its disclaimer — never
+# rendered without the proxy label.
+if "per_surface" in m:
+    per_surface = ", ".join(
+        "%s(lines=%s,chars=%s)" % (name, vals.get("lines"), vals.get("chars"))
+        for name, vals in m.get("per_surface", {}).items()
+    )
+    print("METRIC\tper_surface: %s" % per_surface)
+    print("METRIC\ttotal_product_lines=%s total_product_chars=%s writ_workspace_lines=%s" % (
+        m.get("total_product_lines"), m.get("total_product_chars"), m.get("writ_workspace_lines")))
+if "story_context_bytes" in m:
+    print("METRIC\tstory_context_bytes=%s (%s)" % (
+        m.get("story_context_bytes"), m.get("story_context_bytes_note", "proxy — declared load, not consumed tokens")))
 PY
 
   while IFS=$'\t' read -r kind a b c; do
