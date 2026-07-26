@@ -1,9 +1,43 @@
 {
-  "recorded": "2026-07-11",
-  "commands": 31,
+  "recorded": "2026-07-26",
+  "schema": 2,
+  "surfaces": {
+    "commands": {
+      "lines": 10726,
+      "chars": 492280,
+      "justification": ""
+    },
+    "agents": {
+      "lines": 1768,
+      "chars": 67012,
+      "justification": ""
+    },
+    "skills": {
+      "lines": 920,
+      "chars": 41379,
+      "justification": ""
+    },
+    "adapters": {
+      "lines": 1677,
+      "chars": 84865,
+      "justification": ""
+    },
+    "scripts": {
+      "lines": 19804,
+      "chars": 840133,
+      "justification": ""
+    },
+    "system_instructions": {
+      "lines": 300,
+      "chars": 20523,
+      "justification": ""
+    }
+  },
+  "commands": 32,
   "agents": 7,
   "skills": 6,
-  "command_lines": 10659,
-  "command_chars": 484616,
-  "note": "Bump deliberately when growth is legitimate; the delta is the signal."
+  "command_lines": 10726,
+  "command_chars": 492280,
+  "total_product_lines": 35195,
+  "note": "Down is free. Any increase to a gated surface requires a justification string in its baseline entry, or it warns."
 }
