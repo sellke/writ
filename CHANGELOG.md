@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.24.0] - 2026-07-26
+
+**Full-Surface Leanness Measurement & Coverage Guard** — closes the blind spot that let `scripts/`, the largest surface in the framework, go entirely unmeasured by the Tier A leanness tripwire (32% actual product coverage behind an appearance of full coverage). Rewrites the measurement registry to cover the entire product surface, adds a hard-FAIL coverage guard against future blind spots, introduces a static `story_context_bytes` proxy metric, and replaces percentage growth tolerance with a per-surface reduction ratchet.
+
+### Added
+
+- **Full-surface measurement** — registry-driven `compute_metrics()` now measures `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, and `system-instructions.md` (previously commands-only); new `per_surface`, `total_product_lines`/`total_product_chars`, and `writ_workspace_lines` metrics, with legacy keys retained for zero-break Tier B continuity ([Story 1](.writ/specs/2026-07-26-leanness-instrumentation/user-stories/story-1-full-surface-measurement.md)).
+- **Coverage guard** — `check_coverage()` hard-FAILs on any top-level repo entry that is neither in the registry nor explicitly declared out of scope, closing the exact blind spot that let `scripts/` go unmeasured across two prior audit cycles ([Story 2](.writ/specs/2026-07-26-leanness-instrumentation/user-stories/story-2-coverage-guard.md)).
+- **`story_context_bytes`** — a static, deterministic proxy metric for what `implement-story` declares it loads for a full-pipeline story, explicitly labeled as declared load, never consumed tokens ([Story 3](.writ/specs/2026-07-26-leanness-instrumentation/user-stories/story-3-story-context-bytes.md)).
+- **Reduction ratchet** — replaces the old percentage growth tolerance: per-surface baseline comparison where decreases are silent, justified increases are silent (via a `justification` field), and unjustified increases warn ([Story 4](.writ/specs/2026-07-26-leanness-instrumentation/user-stories/story-4-reduction-ratchet.md), [ADR-019](.writ/decision-records/adr-019-full-surface-leanness-measurement.md)).
+
+### Fixed
+
+- Coverage guard no longer flags `eval.sh`'s own `--report=` output file as an unmeasured surface — caught by CI on the PR's first real run and fixed before merge.
+
+### Internal
+
+- `scripts/tests/test_eval_leanness.sh`: 5 → 32 assertions.
+- `.writ/leanness-baseline.json` migrated to schema 2 (per-surface `lines`/`chars` + `justification`); trend line deliberately reset.
+- `.writ/docs/leanness-audit-format.md` updated for the new metric set ([Story 5](.writ/specs/2026-07-26-leanness-instrumentation/user-stories/story-5-adr-and-tier-b.md)).
+
+Zero user-facing surface: dogfooding-only, no `commands/*.md` changes.
+
 ## [0.23.0] - 2026-07-19
 
 **Git-Native Provenance & Recovery (Phase 9)** — makes git Writ's durable audit and recovery substrate, and hardens command robustness: a `refs/notes/writ` audit channel, logical-unit `/revert`, and an Artifact Integrity handshake without a new `.writ/index.md`.

@@ -10,7 +10,7 @@
 |---|---|---|---|---:|---:|---|
 | 1 | [Full-Surface Measurement & Baseline Schema](story-1-full-surface-measurement.md) | Completed ✅ | High | 7/7 | 5 | — |
 | 2 | [Coverage Guard — Hard-FAIL on Unmeasured Surface](story-2-coverage-guard.md) | Completed ✅ | High | 7/7 | 5 | Story 1 |
-| 3 | [Static `story_context_bytes` Metric](story-3-story-context-bytes.md) | Completed ✅ | Medium | 6/6 | 5 | — |
+| 3 | [Static `story_context_bytes` Metric](story-3-story-context-bytes.md) | Completed ✅ | Medium | 7/7 | 5 | — |
 | 4 | [Reduction Ratchet Replaces Growth Tolerance](story-4-reduction-ratchet.md) | Completed ✅ | High | 7/7 | 5 | Story 1 |
 | 5 | [ADR-019 & Tier B Audit Format Update](story-5-adr-and-tier-b.md) | Completed ✅ | Medium | 7/7 | 5 | 1, 2, 3, 4 |
 
