@@ -386,6 +386,22 @@ run_helper "$TMP_OOS" "$OUT_OOS"
 ok "coverage guard: out-of-scope list + dot-prefix rule stay silent (test/, archive/, .writ-lanes-3/, .cursor/, LICENSE, VERSION)"
 rm -rf "$TMP_OOS"
 
+# Scenario 2e: eval.sh's own `--report=eval-report.md` convention (the exact
+# CI invocation in .github/workflows/*.yml) must never trip the coverage
+# guard on itself. Regression for the eval-report.md self-flagging bug
+# caught in PR #28 CI: eval.sh writes the report to repo root incrementally
+# as checks run, so by the time the leanness check's coverage scan runs,
+# its own sibling-check output already exists on disk.
+TMP_SELFREPORT="$(mktemp -d)"
+build_repo "$TMP_SELFREPORT"
+printf '# Writ Eval Tier 1 Report\n\n## required-sections\n\nPASS\n' > "$TMP_SELFREPORT/eval-report.md"
+OUT_SELFREPORT="$(mktemp)"
+run_helper "$TMP_SELFREPORT" "$OUT_SELFREPORT"
+[ "$(count_field "$OUT_SELFREPORT" structural)" -eq 0 ] \
+  || { cat "$OUT_SELFREPORT"; fail "eval-report.md (eval.sh's own --report= convention) must never trip the coverage guard"; }
+ok "coverage guard: eval.sh's own eval-report.md convention stays silent (regression for PR #28 CI self-flagging)"
+rm -rf "$TMP_SELFREPORT"
+
 # ---------------------------------------------------------------------------
 # Scenario 2: orphan — command file with no README table row -> FAIL.
 # ---------------------------------------------------------------------------

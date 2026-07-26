@@ -294,6 +294,12 @@ OUT_OF_SCOPE = {
     "archive", "bin", "claude-code", "codex", "cursor", "node_modules", "test",
     "README.md", "CHANGELOG.md", "CLAUDE.md", "AGENTS.md", "SKILL.md",
     "LICENSE", "VERSION", "package.json",
+    # eval.sh's own `--report=eval-report.md` convention (see its usage
+    # comment and .github/workflows/*.yml): a transient CI artifact written
+    # to repo root DURING the very eval.sh run that invokes this coverage
+    # check, never committed. Without this entry the guardian would flag
+    # its own tool output as an unmeasured surface on every CI run.
+    "eval-report.md",
 }
 
 # Backticked slash-command token, e.g. `/create-spec`. Anchored on both

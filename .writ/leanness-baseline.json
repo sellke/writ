@@ -23,8 +23,8 @@
       "justification": ""
     },
     "scripts": {
-      "lines": 19804,
-      "chars": 840133,
+      "lines": 19826,
+      "chars": 841506,
       "justification": ""
     },
     "system_instructions": {
@@ -38,6 +38,6 @@
   "skills": 6,
   "command_lines": 10726,
   "command_chars": 492280,
-  "total_product_lines": 35195,
+  "total_product_lines": 35217,
   "note": "Down is free. Any increase to a gated surface requires a justification string in its baseline entry, or it warns."
 }
