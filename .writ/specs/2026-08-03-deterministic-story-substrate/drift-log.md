@@ -28,3 +28,28 @@
 - **Reason:** Majority/authoritative reading — 2 canonical documents plus AC1 vs. one inconsistent phrase in the story's own Notes section.
 - **Resolution:** Auto-amended
 - **Spec amendment:** Updated `user-stories/story-2-context-assembler.md`'s "Parser details worth encoding in tests" line to read "the `→` arrow only (`>>` is not a supported arrow form — see drift-log.md DEV-002)", removing the inaccurate `>>` claim. No change to `spec.md`/`spec-lite.md` (neither ever mentioned `>>`).
+
+---
+
+## Story 3: Empirically Derived Context Budget and Real Measurement — Drift Report
+
+> Run: 2026-08-03
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-003] Budget constant uses a 2× margin, not a bare round-up, over the observed maximum
+- **Severity:** Small
+- **Spec said:** Task 3.3 — "choose `FETCHED_CONTEXT_BUDGET_BYTES` above the observed high end (catches pathology, not normal work)." No specific multiplier or rounding rule is specified.
+- **Implementation did:** `scripts/story-context.py` sets `FETCHED_CONTEXT_BUDGET_BYTES = 21000`, derived as 2× the measured max (10,251 bytes across 170 real `story-*.md` files → 20,502) rounded up to the nearest 1,000. A bare 1× round-up (→ 11,000) would sit directly on top of the single real outlier.
+- **Reason:** The measurement sweep (`scripts/sweep-story-context-bytes.py`) discovered that 9 of the 170 swept stories have a `spec.md` heading (`## 🎯 Experience Design (...)`) that fails `extract_markdown_section()`'s exact-match requirement, silently zeroing affected categories and undercounting the true corpus high end. The 2× margin is documented in code as explicit compensation for this pre-existing, out-of-scope bug rather than an arbitrary safety factor — a bare round-up would risk the budget firing on ordinary future growth once the undercount bug is eventually fixed elsewhere.
+- **Resolution:** Auto-amended (logged for traceability only — the choice satisfies spec intent, not violates it)
+- **Spec amendment:** No change to `spec.md`/`spec-lite.md`/the story file — "above the observed high end" already permits this reading. The heuristic and its rationale are documented in `scripts/story-context.py`'s module comments and `scripts/sweep-story-context-bytes.py`'s docstring, and now here for durable cross-story visibility.
+
+#### [DEV-004] Truncation relevance order reuses `CATEGORY_ORDER` rather than a purpose-built ranking
+- **Severity:** Small
+- **Spec said:** AC2 — over-budget truncation "retains higher-relevance content first," without specifying the exact category order.
+- **Implementation did:** `enforce_budget()` walks the existing `CATEGORY_ORDER` constant (`error_map_rows` → `shadow_paths` → `business_rules` → `experience`) as truncation priority, documented in-code as "a deliberate implementation choice... not something the spec mandates."
+- **Reason:** No relevance ranking is defined elsewhere in the spec. Reusing the assembler's existing deterministic output order is the simplest, most conservative choice available — it avoids inventing a second, independent ordering concept for the same four categories.
+- **Resolution:** Auto-amended (logged for traceability only)
+- **Spec amendment:** No change to `spec.md`/`spec-lite.md`/the story file — AC2 leaves the exact order unspecified and the choice preserves intent.

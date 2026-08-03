@@ -1822,7 +1822,8 @@ check_story_context() {
   require_literal "$helper" 'def assemble(' "The context-hint helper must assemble the bounded payload."
   require_literal "$helper" 'def resolve_extended_ref(' "The context-hint helper must resolve extended file/heading references."
   require_literal "$helper" 'def resolve_table_category(' "The context-hint helper must resolve table-row references."
-  require_literal "$helper" '"truncated": False' "The context-hint helper must always report truncated: false in this story."
+  require_literal "$helper" 'FETCHED_CONTEXT_BUDGET_BYTES' "The context-hint helper must define the derived fetched_context budget constant (Story 3, Business Rule 4)."
+  require_literal "$helper" 'def enforce_budget(' "The context-hint helper must implement relevance-ordered budget enforcement (Story 3)."
 
   require_literal "$leanness" 'story-context.py' "eval-leanness.py must delegate to the shared story-context.py assembler."
   require_literal "$leanness" 'subprocess.run' "eval-leanness.py must invoke story-context.py via subprocess, not import (hyphenated filename)."

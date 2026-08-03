@@ -35,8 +35,14 @@ Contract:
                      "story_context_bytes", "story_context_bytes_note"}
     }
 
-  "story_context_bytes" is a declared-load PROXY, not consumed tokens — see
+  "story_context_bytes" is a mixed measurement, not consumed tokens — see
   STORY_CONTEXT_BYTES_NOTE and the sibling "story_context_bytes_note" key.
+  Its `context_hints` component (Story 3, 2026-08-03-deterministic-story-
+  substrate) is real delivered bytes from scripts/story-context.py's own
+  assembler output; the remaining components (`knowledge_context_cap`,
+  `gate_agents`, etc.) stay declared-load proxies. The aggregate sum is
+  still not consumed-token accounting either way (ADR-019 labeling
+  discipline).
   exit code: always 0 — the bash check decides FAIL from `structural`.
 """
 
@@ -77,10 +83,14 @@ WRIT_WORKSPACE = {"name": "writ_workspace", "path": ".writ", "globs": ["**/*.md"
 
 SURFACE_BY_NAME = {entry["name"]: entry for entry in SURFACE_REGISTRY}
 
-# --- story_context_bytes: a static, declared-load proxy --------------------
+# --- story_context_bytes: mixed real-measurement + declared-load proxy -----
 # Sums the byte size of every artifact commands/implement-story.md Step 2
-# declares it loads for a full-pipeline story. See the module docstring:
-# this is a PROXY for declared load, not consumed tokens.
+# declares it loads for a full-pipeline story. As of Story 3
+# (2026-08-03-deterministic-story-substrate), the context_hints component
+# below is no longer part of that declared-load family — it calls the real
+# assembler (scripts/story-context.py) and reports its actual bytes.total.
+# The other components here remain the PROXY described in the module
+# docstring: declared load, not consumed tokens.
 
 # implement-story.md Step 2 documents knowledge_context as capped at ~2KB.
 # Actual assembly is keyword-driven and non-reproducible across runs, so this
@@ -99,9 +109,12 @@ GATE_AGENT_FILES = [
 ]
 
 STORY_CONTEXT_BYTES_NOTE = (
-    "story_context_bytes is a declared-load PROXY (the byte sum of what "
-    "implement-story.md Step 2 says it loads for a full-pipeline story) — "
-    "it is NOT measured/consumed tokens and must never be reported as such."
+    "story_context_bytes is a MIXED measurement — its context_hints component "
+    "is real delivered bytes from scripts/story-context.py's assembler output "
+    "(Story 3), while the remaining components (context_md, story_file, "
+    "spec_lite, knowledge_context_cap, gate_agents) stay a declared-load "
+    "PROXY of what implement-story.md Step 2 says it loads. Neither half is "
+    "measured/consumed TOKENS, and the aggregate must never be reported as such."
 )
 
 # Hint-category resolution now delegates to scripts/story-context.py — the
@@ -172,7 +185,13 @@ def assembler_bytes_for_story(story_file: str) -> int:
 
 
 def story_context_components(root: str) -> dict[str, int]:
-    """Ordered component -> byte-size map for the declared-load proxy."""
+    """Ordered component -> byte-size map for story_context_bytes.
+
+    `context_hints` is real delivered bytes from the assembler
+    (`assembler_bytes_for_story()`); every other component remains the
+    declared-load proxy described in the module docstring and
+    `STORY_CONTEXT_BYTES_NOTE`.
+    """
     components: dict[str, int] = {}
 
     components["context_md"] = _file_size(os.path.join(root, ".writ", "context.md"))

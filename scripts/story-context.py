@@ -17,8 +17,12 @@ payload rather than halting the caller. This is the deliberate asymmetry
 documented in `sub-specs/technical-spec.md`: the sibling `story-deps.py`
 blocks on an invalid graph; this script never blocks on absent context.
 
-`--budget-bytes` is accepted and otherwise unused in this story — truncation
-enforcement is Story 3's domain. `truncated` is always `false` here.
+`--budget-bytes` is optional and, when supplied, enforced (Story 3):
+resolved content strictly exceeding it is truncated by relevance order
+(`FETCHED_CONTEXT_BUDGET_BYTES` below documents the derivation), `truncated`
+becomes `true`, and a warning names actual and budget bytes. Omitting the
+flag (`budget_bytes=None`) remains unbounded — Story 4, not this script,
+decides whether/when a caller passes the derived constant.
 
 ```json
 {
@@ -43,6 +47,15 @@ from typing import Any
 # the JSON payload key. Order is the canonical, deterministic output order —
 # independent of the order categories appear in the story file, so repeated
 # runs are byte-identical regardless of authoring order.
+#
+# Story 3 (Architecture Check Finding 4): this same sequence ALSO doubles as
+# truncation priority when a budget is enforced — earlier entries are
+# higher-relevance and retained first. Nothing in spec.md or technical-spec.md
+# states that the output order and the truncation order must match; reusing
+# CATEGORY_ORDER for both is a deliberate implementation choice (error map
+# rows and shadow paths, which name concrete failure/flow rows, outrank the
+# more general business-rules/experience prose when budget is tight), not
+# something the spec mandates. See `enforce_budget()`.
 CATEGORIES: dict[str, str] = {
     "Error map rows": "error_map_rows",
     "Shadow paths": "shadow_paths",
@@ -50,6 +63,36 @@ CATEGORIES: dict[str, str] = {
     "Experience": "experience",
 }
 CATEGORY_ORDER: list[str] = list(CATEGORIES)
+
+# --- Story 3: derived fetched_context budget --------------------------------
+# Measured, not invented (Business Rule 4). Derivation, reproducible via
+# `python3 scripts/sweep-story-context-bytes.py`:
+#
+#   Swept every user-stories/story-*.md under .writ/specs/ (170 stories,
+#   2026-08-03): bytes.total distribution was min=0, median=0 (most stories
+#   carry no hints at all), p95≈2205, p99≈3619, max=10251 (one real,
+#   unaffected outlier: 2026-07-10-recommended-autonomous-delivery story-3).
+#
+#   Heuristic: FETCHED_CONTEXT_BUDGET_BYTES = 2 x observed max, rounded up to
+#   the nearest 1000 bytes. 2x (not 1x, not p99) is a deliberate margin for
+#   the known Finding-2 undercount below — a straight round-up of the
+#   observed max would sit right on top of legitimate normal-work content
+#   (theater risk: the cap should catch pathology, not today's biggest real
+#   story), and the corpus's true high end is unmeasured, not merely
+#   underestimated at the margin.
+#
+#   Finding-2 caveat (do not silently ignore): `extract_markdown_section()`
+#   requires an exact heading match, so any spec.md whose
+#   "## \U0001F3AF Experience Design" heading carries trailing text (e.g. a
+#   parenthetical) undercounts error_map_rows/shadow_paths (via the
+#   technical-spec-absent fallback) and experience itself. 9 of the 170
+#   swept stories were flagged by this sweep's heading-mismatch heuristic —
+#   including this very spec's own story-1 through story-4 — and undercount
+#   is invisible in the measurement (a missing section reads as "0 bytes for
+#   that category", not as an error). The 2x margin exists specifically so
+#   fixing that bug later doesn't retroactively invalidate this constant;
+#   re-run scripts/sweep-story-context-bytes.py once it's fixed to confirm.
+FETCHED_CONTEXT_BUDGET_BYTES = 21000
 
 # Canonical arrow for extended references. `>>`/`>` leniency lived only in
 # the eval-leanness.py regex being replaced (an implementation accident, not
@@ -415,22 +458,81 @@ def resolve_category(
     return "\n\n".join(part.strip() for part in parts if part and part.strip())
 
 
-def _payload(fetched: dict[str, str], byte_counts: dict[str, int], warnings: list[str]) -> dict[str, Any]:
+def enforce_budget(
+    fetched: dict[str, str], byte_counts: dict[str, int], budget_bytes: int
+) -> tuple[dict[str, str], dict[str, int], bool]:
+    """Relevance-ordered truncation against `budget_bytes` (Story 3, AC2/AC3).
+
+    Walks `CATEGORY_ORDER` (highest relevance first — see the comment on
+    that constant for why truncation reuses the output-order sequence).
+    Each category is kept whole while it fits in the remaining budget; the
+    first category that doesn't fit is truncated to exactly the remaining
+    byte allowance (a UTF-8-safe prefix — a trailing partial multi-byte
+    character is dropped rather than emitting invalid UTF-8), and every
+    category after it is dropped entirely, never partially (it never gets a
+    turn at the budget). `byte_counts` in the returned dict reflect what was
+    actually kept, i.e. bytes the pipeline actually delivers, not the
+    pre-truncation size.
+
+    Comparison is strictly-greater-than: a total exactly equal to
+    `budget_bytes` returns the input unchanged with `truncated=False`
+    (Interaction Edge Case: "Budget exactly at threshold").
+    """
+    total = sum(byte_counts.values())
+    if total <= budget_bytes:
+        return fetched, byte_counts, False
+
+    kept_fetched: dict[str, str] = {}
+    kept_bytes: dict[str, int] = {}
+    remaining = budget_bytes
+    for label in CATEGORY_ORDER:
+        key = CATEGORIES[label]
+        if key not in fetched or remaining <= 0:
+            continue
+        encoded = fetched[key].encode("utf-8")
+        if len(encoded) <= remaining:
+            kept_fetched[key] = fetched[key]
+            kept_bytes[key] = len(encoded)
+            remaining -= len(encoded)
+        else:
+            truncated_text = encoded[:remaining].decode("utf-8", errors="ignore")
+            if truncated_text:
+                kept_fetched[key] = truncated_text
+                kept_bytes[key] = len(truncated_text.encode("utf-8"))
+            remaining = 0
+    return kept_fetched, kept_bytes, True
+
+
+def _payload(
+    fetched: dict[str, str],
+    byte_counts: dict[str, int],
+    warnings: list[str],
+    budget_bytes: int | None = None,
+) -> dict[str, Any]:
+    truncated = False
+    if budget_bytes is not None:
+        actual_total = sum(byte_counts.values())
+        fetched, byte_counts, truncated = enforce_budget(fetched, byte_counts, budget_bytes)
+        if truncated:
+            warnings.append(
+                f"\u26a0\ufe0f fetched_context truncated ({actual_total} of {budget_bytes} bytes)"
+            )
     bytes_out = dict(byte_counts)
     bytes_out["total"] = sum(byte_counts.values())
     return {
         "fetched_context": fetched,
         "warnings": warnings,
         "bytes": bytes_out,
-        "truncated": False,
+        "truncated": truncated,
     }
 
 
-def assemble(story_path: Path, budget_bytes: int | None = None) -> dict[str, Any]:  # noqa: ARG001
+def assemble(story_path: Path, budget_bytes: int | None = None) -> dict[str, Any]:
     """Assemble the bounded context payload for one story file.
 
-    `budget_bytes` is accepted for CLI-shape parity with Story 3's future
-    enforcement and otherwise unused here — `truncated` is always False.
+    `budget_bytes`, when given, is enforced by `_payload()` via
+    `enforce_budget()` (Story 3) — content strictly exceeding it is
+    truncated by relevance order. `None` (the default) remains unbounded.
     """
     warnings: list[str] = []
     fetched: dict[str, str] = {}
@@ -485,7 +587,7 @@ def assemble(story_path: Path, budget_bytes: int | None = None) -> dict[str, Any
             fetched[key] = content
             byte_counts[key] = len(content.encode("utf-8"))
 
-    return _payload(fetched, byte_counts, warnings)
+    return _payload(fetched, byte_counts, warnings, budget_bytes)
 
 
 def main(argv: list[str] | None = None) -> int:

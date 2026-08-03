@@ -30,8 +30,11 @@ Gather before starting; paste the raw numbers into the dated output.
      JSON. Paste the whole `metrics` block: `per_surface` (lines/chars per
      gated surface), `total_product_lines` / `total_product_chars`, the
      ungated `writ_workspace_lines`, and `story_context_bytes` **together
-     with its `story_context_bytes_note` proxy disclaimer** — never paste the
-     number alone. The legacy `commands` / `agents` / `skills` /
+     with its `story_context_bytes_note` disclaimer** (as of Story 3,
+     2026-08-03-deterministic-story-substrate, this is a MIXED
+     real-measurement/declared-load-proxy disclaimer, not a pure-proxy one —
+     paste the note itself rather than assuming its wording) — never paste
+     the number alone. The legacy `commands` / `agents` / `skills` /
      `command_lines` / `command_chars` keys remain present; paste them too
      for continuity with pre-ADR-019 audits.
    - `bash scripts/eval.sh --check=leanness` — read the "Notes (non-blocking)"
@@ -83,7 +86,9 @@ the audit date). It MUST contain:
 1. **Metrics snapshot** — the pasted Tier A metrics + baseline delta. Per
    ADR-019, this means `per_surface`, `total_product_lines` /
    `total_product_chars`, `writ_workspace_lines`, and `story_context_bytes`
-   **with its declared-load proxy label** — alongside the legacy
+   **with its `story_context_bytes_note` label** (mixed real-measurement/
+   declared-load-proxy as of Story 3, 2026-08-03-deterministic-story-substrate
+   — no longer a pure declared-load proxy) — alongside the legacy
    `command_lines` / `command_chars` keys, not `command_lines` alone.
 2. **Findings → Decisions table** — one row per candidate:
 

@@ -23,9 +23,9 @@
       "justification": ""
     },
     "scripts": {
-      "lines": 19826,
-      "chars": 841506,
-      "justification": ""
+      "lines": 22858,
+      "chars": 979695,
+      "justification": "Story 3 (2026-08-03-deterministic-story-substrate): budget derivation + enforcement + measurement sweep — moving hint-budget logic from unmeasured prose into measured, tested code (Business Rule 8)."
     },
     "system_instructions": {
       "lines": 300,

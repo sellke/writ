@@ -586,13 +586,215 @@ class AssembleTests(unittest.TestCase):
             second = json.dumps(sc.assemble(story))
             self.assertEqual(first, second)
 
-    def test_budget_bytes_accepted_and_never_truncates(self) -> None:
+    def test_budget_bytes_of_one_truncates_to_a_single_byte(self) -> None:
+        # Story 2's "budget-bytes is accepted and otherwise unused" contract
+        # is retired by Story 3: a budget tighter than the resolved content
+        # now truncates for real rather than being silently ignored.
         with TemporaryDirectory() as tmp:
             hints = "- **Business rules:** [One implementation per contract]\n"
             story = make_spec_tree(Path(tmp), technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
             payload = sc.assemble(story, budget_bytes=1)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["bytes"]["total"], 1)
+            self.assertEqual(len(payload["fetched_context"]["business_rules"].encode("utf-8")), 1)
+
+
+class DerivedBudgetConstantTests(unittest.TestCase):
+    def test_constant_is_a_positive_int_above_the_measured_max(self) -> None:
+        """Sanity check on FETCHED_CONTEXT_BUDGET_BYTES's derivation comment
+        (Business Rule 4): the committed constant must exceed the observed
+        corpus max (10251 bytes at derivation time, 2026-08-03) — a cap at or
+        below the biggest real story would fire on normal work, not just
+        pathology. Re-run scripts/sweep-story-context-bytes.py periodically
+        and update both the constant and this bound if the corpus shifts."""
+        self.assertIsInstance(sc.FETCHED_CONTEXT_BUDGET_BYTES, int)
+        self.assertGreater(sc.FETCHED_CONTEXT_BUDGET_BYTES, 10251)
+
+
+class BudgetEnforcementTests(unittest.TestCase):
+    """Story 3, AC2/AC3/AC5 + Architecture Check Findings 4 and 6.
+
+    Every scenario first assembles WITHOUT a budget to learn the real,
+    non-hardcoded byte sizes of the fixture's resolved categories, then
+    derives budgets relative to those measured sizes — avoiding brittle
+    hardcoded byte-count assertions that would silently drift if the
+    fixture text or the assembler's whitespace handling ever changes.
+    """
+
+    def _four_category_story(self, tmp: str) -> Path:
+        hints = (
+            "- **Error map rows:** [Create session, Validate input]\n"
+            "- **Shadow paths:** [User registration flow]\n"
+            "- **Business rules:** [One implementation per contract]\n"
+            "- **Experience:** [Entry Point]\n"
+        )
+        return make_spec_tree(Path(tmp), technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
+
+    def test_exactly_at_budget_is_not_truncated(self) -> None:
+        """Finding 6 — dedicated boundary test, isolated from the over-budget
+        case: total == budget must NOT truncate (strictly-greater triggers)."""
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            unbudgeted = sc.assemble(story)
+            exact_budget = unbudgeted["bytes"]["total"]
+
+            payload = sc.assemble(story, budget_bytes=exact_budget)
             self.assertFalse(payload["truncated"])
-            self.assertIn("business_rules", payload["fetched_context"])
+            self.assertEqual(payload["fetched_context"], unbudgeted["fetched_context"])
+            self.assertEqual(payload["bytes"], unbudgeted["bytes"])
+            self.assertFalse(any("truncated" in w for w in payload["warnings"]))
+
+    def test_one_byte_over_budget_truncates_with_warning(self) -> None:
+        """AC2 — strictly exceeding the budget truncates, sets truncated:
+        true, and warns naming actual and budget bytes."""
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            unbudgeted = sc.assemble(story)
+            actual_total = unbudgeted["bytes"]["total"]
+            budget = actual_total - 1
+
+            payload = sc.assemble(story, budget_bytes=budget)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["bytes"]["total"], budget)
+            truncation_warnings = [w for w in payload["warnings"] if "fetched_context truncated" in w]
+            self.assertEqual(len(truncation_warnings), 1)
+            self.assertIn(str(actual_total), truncation_warnings[0])
+            self.assertIn(str(budget), truncation_warnings[0])
+
+    def test_relevance_ordered_retention_keeps_higher_relevance_categories_whole(self) -> None:
+        """Finding 4 — CATEGORY_ORDER doubles as truncation priority: when the
+        budget covers the first three categories exactly but not the fourth,
+        error_map_rows/shadow_paths/business_rules survive whole and the
+        lowest-relevance category (experience) is dropped entirely, not
+        partially — because it never gets a turn at the remaining budget."""
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            unbudgeted = sc.assemble(story)
+            fetched = unbudgeted["fetched_context"]
+            budget = (
+                unbudgeted["bytes"]["error_map_rows"]
+                + unbudgeted["bytes"]["shadow_paths"]
+                + unbudgeted["bytes"]["business_rules"]
+            )
+
+            payload = sc.assemble(story, budget_bytes=budget)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["fetched_context"]["error_map_rows"], fetched["error_map_rows"])
+            self.assertEqual(payload["fetched_context"]["shadow_paths"], fetched["shadow_paths"])
+            self.assertEqual(payload["fetched_context"]["business_rules"], fetched["business_rules"])
+            self.assertNotIn("experience", payload["fetched_context"])
+            self.assertEqual(payload["bytes"]["total"], budget)
+
+    def test_partial_retention_truncates_within_the_surviving_category(self) -> None:
+        """AC2's "retains higher-relevance content first" applies within a
+        single category too: a single-category payload truncated mid-content
+        keeps exactly the leading bytes that fit, not a dropped category."""
+        with TemporaryDirectory() as tmp:
+            hints = "- **Error map rows:** [Create session, Validate input]\n"
+            story = make_spec_tree(Path(tmp), technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
+            unbudgeted = sc.assemble(story)
+            full_content = unbudgeted["fetched_context"]["error_map_rows"]
+            budget = unbudgeted["bytes"]["total"] - 10
+
+            payload = sc.assemble(story, budget_bytes=budget)
+            self.assertTrue(payload["truncated"])
+            kept = payload["fetched_context"]["error_map_rows"]
+            self.assertTrue(full_content.startswith(kept))
+            self.assertLessEqual(len(kept.encode("utf-8")), budget)
+            self.assertEqual(payload["bytes"]["error_map_rows"], len(kept.encode("utf-8")))
+
+    def test_truncation_boundary_splitting_a_multibyte_char_drops_category_entirely(self) -> None:
+        """`enforce_budget()`'s truncation branch decodes `encoded[:remaining]`
+        with `errors="ignore"` (module docstring: "a trailing partial
+        multi-byte character is dropped rather than emitting invalid UTF-8").
+        When the *entire* remaining allowance falls inside one multi-byte
+        character at the very start of a category's content, that decode
+        yields "" — a distinct outcome from the `remaining <= 0` skip just
+        above it in the loop: here `remaining` is genuinely positive (2) when
+        the category is considered, but the category still contributes
+        nothing to `kept_fetched`/`kept_bytes` because no whole character
+        survives the cut. Exercised directly against `enforce_budget()`
+        (like the other pure-function tests in this file) since crafting a
+        real story/spec fixture that lands a markdown-derived byte offset
+        exactly mid-emoji is needlessly fragile for what is a `enforce_budget`-
+        local concern.
+        """
+        # U+1F386 (🎆) is 4 bytes in UTF-8; a 2-byte prefix is an incomplete
+        # sequence with zero decodable characters.
+        content = "\U0001F386fireworks"
+        fetched = {"error_map_rows": content}
+        byte_counts = {"error_map_rows": len(content.encode("utf-8"))}
+
+        kept_fetched, kept_bytes, truncated = sc.enforce_budget(fetched, byte_counts, 2)
+
+        self.assertTrue(truncated)
+        self.assertNotIn("error_map_rows", kept_fetched)
+        self.assertNotIn("error_map_rows", kept_bytes)
+        self.assertEqual(kept_fetched, {})
+        self.assertEqual(kept_bytes, {})
+
+    def test_zero_budget_drops_all_categories(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            payload = sc.assemble(story, budget_bytes=0)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["fetched_context"], {})
+            self.assertEqual(payload["bytes"]["total"], 0)
+
+    def test_repeated_runs_with_budget_are_byte_identical(self) -> None:
+        """AC5 / Business Rule 5 — determinism holds under enforcement too."""
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            unbudgeted = sc.assemble(story)
+            budget = unbudgeted["bytes"]["total"] // 2
+
+            first = json.dumps(sc.assemble(story, budget_bytes=budget))
+            second = json.dumps(sc.assemble(story, budget_bytes=budget))
+            self.assertEqual(first, second)
+
+    def test_under_budget_is_never_truncated(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            unbudgeted = sc.assemble(story)
+            payload = sc.assemble(story, budget_bytes=unbudgeted["bytes"]["total"] + 1000)
+            self.assertFalse(payload["truncated"])
+            self.assertEqual(payload["fetched_context"], unbudgeted["fetched_context"])
+
+    def test_budget_bytes_argument_is_inert_on_every_early_return_path(self) -> None:
+        """`assemble()`'s four early-return branches (story unreadable,
+        no hints section, no category_data survives filtering, spec.md
+        absent) each call `_payload()` without forwarding `budget_bytes` —
+        `fetched`/`byte_counts` are always `{}` at those points, so
+        `enforce_budget()` would be a no-op even if it were invoked
+        (0 <= any non-negative budget). Pinned here so a future refactor
+        that starts forwarding `budget_bytes` into these branches can't
+        silently change behavior on an empty payload without a test
+        noticing."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            no_hints_story = make_spec_tree(root, spec_id="s-no-hints", hints=None)
+            payload = sc.assemble(no_hints_story, budget_bytes=5)
+            self.assertFalse(payload["truncated"])
+            self.assertEqual(payload["fetched_context"], {})
+            self.assertEqual(payload["bytes"], {"total": 0})
+
+            no_spec_story = make_spec_tree(
+                root, spec_id="s-no-spec", spec_md=None,
+                hints="- **Error map rows:** [Create session]\n",
+            )
+            payload = sc.assemble(no_spec_story, budget_bytes=5)
+            self.assertFalse(payload["truncated"])
+            self.assertEqual(payload["fetched_context"], {})
+            self.assertEqual(payload["bytes"], {"total": 0})
+
+    def test_no_budget_argument_never_truncates(self) -> None:
+        """Backward-compatible default: omitting --budget-bytes entirely
+        (budget_bytes=None) still means unbounded, matching Story 2 behavior
+        for any caller that doesn't yet pass the flag (Story 4's job)."""
+        with TemporaryDirectory() as tmp:
+            story = self._four_category_story(tmp)
+            payload = sc.assemble(story, budget_bytes=None)
+            self.assertFalse(payload["truncated"])
 
 
 class CliTests(unittest.TestCase):
@@ -628,6 +830,15 @@ class CliTests(unittest.TestCase):
             story = make_spec_tree(Path(tmp), hints=None)
             code, _payload = self._run("assemble", "--story", str(story), "--budget-bytes", "500")
             self.assertEqual(code, 0)
+
+    def test_budget_bytes_flag_enforces_truncation_end_to_end(self) -> None:
+        with TemporaryDirectory() as tmp:
+            hints = "- **Business rules:** [One implementation per contract]\n"
+            story = make_spec_tree(Path(tmp), technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
+            code, payload = self._run("assemble", "--story", str(story), "--budget-bytes", "1")
+            self.assertEqual(code, 0)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["bytes"]["total"], 1)
 
     def test_missing_required_story_flag_is_usage_error(self) -> None:
         code, _payload = self._run("assemble")

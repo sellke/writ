@@ -20,6 +20,13 @@ sub-specs/technical-spec.md:
   - path traversal reference (`../`) degrades to missing-content, never leaks
   - byte-identical repeat runs
   - never raises: exit code is always 0 across every scenario above
+
+Story 3 (2026-08-03-deterministic-story-substrate) adds budget-enforcement
+scenarios:
+  - over-budget truncation -> truncated: true, warning names actual + budget
+  - exactly-at-threshold -> NOT truncated (strictly-greater comparison)
+  - relevance-ordered retention -> higher-relevance categories survive whole
+  - byte-identical repeat runs with a budget applied
 """
 
 from __future__ import annotations
@@ -327,6 +334,95 @@ def scenario_undecodable_bytes_never_raises() -> None:
              payload)
 
 
+def _four_category_hints() -> str:
+    return (
+        "- **Error map rows:** [Create session, Validate input]\n"
+        "- **Shadow paths:** [User registration flow]\n"
+        "- **Business rules:** [One implementation per contract]\n"
+        "- **Experience:** [Entry Point]\n"
+    )
+
+
+def scenario_over_budget_truncates_with_warning() -> None:
+    """Story 3, AC2: strictly exceeding the budget truncates, sets
+    truncated: true, and warns naming actual and budget bytes."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        story = make_spec_tree(root, "s-overbudget", hints=_four_category_hints())
+        _, unbudgeted = run("assemble", "--story", str(story))
+        actual_total = unbudgeted.get("bytes", {}).get("total", 0)
+        budget = actual_total - 1
+
+        code, payload = run("assemble", "--story", str(story), "--budget-bytes", str(budget))
+        warnings = payload.get("warnings", [])
+        emit("over-budget-exits-zero", code == 0, payload)
+        emit("over-budget-truncated-flag-true", payload.get("truncated") is True, payload)
+        emit("over-budget-bytes-total-equals-budget", payload.get("bytes", {}).get("total") == budget, payload)
+        emit("over-budget-warning-names-actual-and-budget",
+             any(str(actual_total) in w and str(budget) in w and "fetched_context truncated" in w for w in warnings),
+             warnings)
+
+
+def scenario_exactly_at_threshold_not_truncated() -> None:
+    """Story 3, AC3 / Architecture Check Finding 6: total == budget must NOT
+    truncate — the comparison is strictly-greater-than, tested in isolation
+    from the over-budget case above."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        story = make_spec_tree(root, "s-exactbudget", hints=_four_category_hints())
+        _, unbudgeted = run("assemble", "--story", str(story))
+        exact_budget = unbudgeted.get("bytes", {}).get("total", 0)
+
+        code, payload = run("assemble", "--story", str(story), "--budget-bytes", str(exact_budget))
+        emit("exact-threshold-exits-zero", code == 0, payload)
+        emit("exact-threshold-not-truncated", payload.get("truncated") is False, payload)
+        emit("exact-threshold-fetched-context-unchanged",
+             payload.get("fetched_context") == unbudgeted.get("fetched_context"), payload)
+        emit("exact-threshold-no-truncation-warning",
+             not any("fetched_context truncated" in w for w in payload.get("warnings", [])), payload)
+
+
+def scenario_relevance_ordered_retention() -> None:
+    """Architecture Check Finding 4: CATEGORY_ORDER doubles as truncation
+    priority. A budget covering exactly the first three categories keeps
+    them whole and drops the lowest-relevance (experience) entirely."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        story = make_spec_tree(root, "s-relevance", hints=_four_category_hints())
+        _, unbudgeted = run("assemble", "--story", str(story))
+        fetched = unbudgeted.get("fetched_context", {})
+        by = unbudgeted.get("bytes", {})
+        budget = by.get("error_map_rows", 0) + by.get("shadow_paths", 0) + by.get("business_rules", 0)
+
+        code, payload = run("assemble", "--story", str(story), "--budget-bytes", str(budget))
+        result_fetched = payload.get("fetched_context", {})
+        emit("relevance-order-exits-zero", code == 0, payload)
+        emit("relevance-order-truncated-flag-true", payload.get("truncated") is True, payload)
+        emit("relevance-order-higher-relevance-kept-whole",
+             result_fetched.get("error_map_rows") == fetched.get("error_map_rows")
+             and result_fetched.get("shadow_paths") == fetched.get("shadow_paths")
+             and result_fetched.get("business_rules") == fetched.get("business_rules"),
+             result_fetched)
+        emit("relevance-order-lowest-relevance-dropped-entirely",
+             "experience" not in result_fetched, result_fetched)
+
+
+def scenario_byte_identical_repeat_runs_with_budget() -> None:
+    """Story 3, AC5 / Business Rule 5: determinism holds under enforcement."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        story = make_spec_tree(root, "s-repeatbudget", hints=_four_category_hints())
+        _, unbudgeted = run("assemble", "--story", str(story))
+        budget = unbudgeted.get("bytes", {}).get("total", 0) // 2
+
+        first_code, first_payload = run("assemble", "--story", str(story), "--budget-bytes", str(budget))
+        second_code, second_payload = run("assemble", "--story", str(story), "--budget-bytes", str(budget))
+        emit("repeated-runs-with-budget-byte-identical",
+             first_code == second_code
+             and json.dumps(first_payload, sort_keys=False) == json.dumps(second_payload, sort_keys=False),
+             (first_payload, second_payload))
+
+
 def main() -> int:
     scenario_happy_path_both_reference_forms()
     scenario_legacy_absent_hints()
@@ -341,6 +437,10 @@ def main() -> int:
     scenario_byte_identical_repeat_runs()
     scenario_never_raises()
     scenario_undecodable_bytes_never_raises()
+    scenario_over_budget_truncates_with_warning()
+    scenario_exactly_at_threshold_not_truncated()
+    scenario_relevance_ordered_retention()
+    scenario_byte_identical_repeat_runs_with_budget()
     return 0 if failed == 0 else 1
 
 
