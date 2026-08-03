@@ -1,3 +1,8 @@
+---
+name: implement-spec
+description: "Execute one full spec end-to-end - dependency-aware plan, parallel story batches, calling implement-story per story uninterrupted."
+---
+
 # Implement Spec Command (implement-spec)
 
 ## Overview
@@ -54,29 +59,33 @@ AskQuestion({
 
 ### Phase 2: Dependency Resolution & Planning
 
-#### Step 2.1: Build Dependency Graph
+#### Step 2.1: Validate the Story Graph (Blocking Gate)
 
-Parse each story's dependency declarations and construct a DAG:
+Story order is determined from the **authoritative `> **Dependencies:** ...` headers** on each story file, not agent-interpreted DAG inspection. The executable reference for parsing and ordering is `scripts/story-deps.py validate --spec-dir <spec-folder>` — mirroring how `implement-phase.md` Step 2.1 defers cross-spec ordering to `spec-deps.py` at the spec level.
 
-```
-Stories: 1(none), 2(→1), 3(none), 4(→3), 5(→2,4)
+Run it against the **full** story graph before any pruning — even when `--from story-N` will narrow the plan afterward, a cycle downstream of the entry point is still a cycle:
 
-Graph:
-  1 ──→ 2 ──→ 5
-  3 ──→ 4 ──↗
+```bash
+python3 scripts/story-deps.py validate --spec-dir .writ/specs/<spec-id>
 ```
 
-#### Step 2.2: Compute Parallel Batches
+Parse the JSON result:
 
-Topological sort into batches of independent stories:
+- **Success** — `{"schema": "story-graph/v1", "status": "ok", "batches": [[...]], "graph": {...}}`, exit 0. Carry the `batches` array unchanged into Step 2.2 — it is already topologically ordered with a numeric story-number tie-break.
+- **Blocker** — `{"blocker": {"code": ..., "summary": ...}}`, exit 1. The code names one of `malformed_dependencies`, `missing_reference`, `self_reference`, `duplicate_reference`, or `dependency_cycle` (the summary includes the full cycle path for cycles). **Invalid explicit metadata is blocking.** Stop before Step 2.2 and present the affected story plus the exact diagnostic. Do not guess an order around invalid metadata.
+- **Script missing or crashes** — a different failure than a blocker: the graph was never verified at all. Report "cannot verify story graph" (not a named diagnostic code) and stop before Step 2.2 — an unverifiable graph is not a verified graph.
+
+#### Step 2.2: Compute Parallel Batches (from script output)
+
+Batches are the script's `batches` array, consumed directly — not re-derived by agent-interpreted DAG inspection:
 
 ```
-Batch 1 (parallel): Story 1, Story 3    — no dependencies
-Batch 2 (parallel): Story 2, Story 4    — dependencies satisfied by batch 1
-Batch 3 (sequential): Story 5           — depends on batch 2
+Batch 1 (parallel):   batches[0] → Story 1, Story 3    — no dependencies
+Batch 2 (parallel):   batches[1] → Story 2, Story 4    — dependencies satisfied by batch 1
+Batch 3 (sequential): batches[2] → Story 5             — depends on batch 2
 ```
 
-If `--from story-3` is specified, prune the graph to story 3 and all downstream stories.
+If `--from story-N` is specified, prune the **already-validated** `batches` array to story N and everything at or after its batch. Validation in Step 2.1 already ran against the full graph, so pruning here never re-opens a graph question — it only narrows which validated batches execute.
 
 #### Step 2.3: Estimate Scope
 

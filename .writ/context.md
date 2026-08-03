@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-07-19T18:15:00Z
+> Last Updated: 2026-08-03T20:20:00Z
 
 ## Product Mission
 
@@ -8,23 +8,23 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-07-18-artifact-integrity-handshake — Artifact Integrity + Handshake
-- **Status:** Complete
-- **Story:** 3 of 3 — Command declarations + eval (Complete)
-- **Progress:** 13/13 tasks complete (100%)
+- **Spec:** 2026-08-03-deterministic-story-substrate — Deterministic Story Substrate
+- **Status:** In Progress
+- **Story:** 1 of 4 — Story Graph Validator with Blocking Pre-Execution Gate (Completed ✅)
+- **Progress:** 7/28 tasks complete (25%)
 
 ## Artifact Map
 
 - **Product:** .writ/product/roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-07-18-artifact-integrity-handshake/ — spec.md + spec-lite.md, user-stories/, sub-specs/
-- **Knowledge:** .writ/knowledge/ (9 entries)
+- **Active spec:** .writ/specs/2026-08-03-deterministic-story-substrate/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Knowledge:** .writ/knowledge/ (12 entries)
 - **Docs:** .writ/docs/ (18 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-None this spec (Stories 1–3 landed with zero drift).
+None this spec so far — Story 1 landed with zero blocking drift (two implementation-detail deviations reviewed and found non-contract-affecting: widened dependency-value grammar, lazy import in `recommend-state.py`).
 
 ## Open Issues
 
-Open backlog: 12 files under `.writ/issues/` (bugs/, features/, improvements/).
+Open backlog: 13 files under `.writ/issues/` (bugs/, features/, improvements/).
