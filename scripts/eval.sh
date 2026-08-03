@@ -1799,6 +1799,7 @@ check_story_context() {
   local fake="$PROJECT_ROOT/scripts/eval-story-context.py"
   local helper="$PROJECT_ROOT/scripts/story-context.py"
   local leanness="$PROJECT_ROOT/scripts/eval-leanness.py"
+  local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   local scenario_output scenario_status scenario_name scenario_reason
 
   scenario_output="$(mktemp)"
@@ -1829,6 +1830,17 @@ check_story_context() {
   require_literal "$leanness" 'subprocess.run' "eval-leanness.py must invoke story-context.py via subprocess, not import (hyphenated filename)."
   forbid_literal "$leanness" 'def resolve_context_hints(' "eval-leanness.py must not retain the retired resolve_context_hints() implementation."
   forbid_literal "$leanness" 'CONTEXT_HINT_CATEGORY_KEYWORDS' "eval-leanness.py must not retain the retired keyword-anchor category map."
+
+  # Story 4: implement-story.md must delegate to the executable assembler
+  # instead of re-hosting a prose parser/degradation-table copy of it.
+  require_literal "$implement_story" 'scripts/story-context.py assemble' "implement-story.md must invoke the executable context-hint assembler instead of parsing hints by prose."
+  forbid_literal "$implement_story" 'Store parsed hints in `context_hints` map' "implement-story.md must not retain the retired prose parsing-algorithm step."
+  forbid_literal "$implement_story" 'For bracketed references: search source file for matching rows/entries by name' "implement-story.md must not retain the retired prose fetch-and-aggregate step."
+  require_literal "$implement_story" '| Architecture Check (Gate 0) |' "implement-story.md must retain the per-gate routing table's Architecture Check row."
+  require_literal "$implement_story" '| Coding Agent (Gate 1) |' "implement-story.md must retain the per-gate routing table's Coding Agent row."
+  require_literal "$implement_story" '| Review Agent (Gate 3) |' "implement-story.md must retain the per-gate routing table's Review Agent row."
+  require_literal "$implement_story" '| Testing Agent (Gate 4) |' "implement-story.md must retain the per-gate routing table's Testing Agent row."
+  require_literal "$implement_story" '| Documentation Agent (Gate 5) |' "implement-story.md must retain the per-gate routing table's Documentation Agent row."
 }
 
 check_phase_lanes() {

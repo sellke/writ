@@ -53,3 +53,28 @@
 - **Reason:** No relevance ranking is defined elsewhere in the spec. Reusing the assembler's existing deterministic output order is the simplest, most conservative choice available — it avoids inventing a second, independent ordering concept for the same four categories.
 - **Resolution:** Auto-amended (logged for traceability only)
 - **Spec amendment:** No change to `spec.md`/`spec-lite.md`/the story file — AC2 leaves the exact order unspecified and the choice preserves intent.
+
+---
+
+## Story 4: Consolidate the Orchestrator Prose onto the Assembler — Drift Report
+
+> Run: 2026-08-03
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] Fixed stale output-variable names in `context-hint-format.md` beyond Task 4.4's literal scope
+- **Severity:** Minor
+- **Spec said:** Task 4.4 scoped the doc rewrite to retiring "Parsing Guide (for Orchestrators)" and the "Parsing Validation (Task 1.5)" subsection, and removing the stale line-340 "no automated test suite" premise. It did not explicitly cite fixing `context_hints_parsed`/`context_content_fetched`.
+- **Implementation did:** `context-hint-format.md`'s "Integration with Pipeline" section named orchestrator outputs `context_hints_parsed`/`context_content_fetched`, which never matched `commands/implement-story.md`'s actual variables (`fetched_context`, `context_warnings`) even before this story. Fixed opportunistically during the rewrite, with an inline callout and a Version History 2.0 entry documenting the change.
+- **Reason:** Pre-authorized in the coding brief as a legitimate fix-while-touching, not scope creep — strictly corrective, transparently disclosed, no unrelated content changed.
+- **Resolution:** Auto-amended (logged for traceability only)
+- **Spec amendment:** No change to `spec.md`/`spec-lite.md` — this is a documentation-internal consistency fix, not a contract change.
+
+#### [DEV-006] Legacy per-segment-backtick extended-reference dialect discovered, not migrated
+- **Severity:** Minor
+- **Spec said:** Business Rule "Legacy stories never break" and the edge-case table's "malformed category → skip + warn" row require graceful degradation for hint content the assembler can't resolve.
+- **Implementation did:** Task 4.1's dogfooding sweep found 2 pre-2026-08-03 specs (`2026-03-27-context-engine` story-1, `2026-04-24-phase4-production-grade-substrate` story-1) using an older per-segment-backtick extended-reference dialect that `story-context.py`'s current regex doesn't resolve. Independently reproduced: the assembler exits 0 against `context-engine`'s story-1 with `fetched_context: {}` and 6 "Malformed context hint category"/"Unrecognized context hint category" warnings — exactly the contract's designed degradation, never a crash.
+- **Reason:** Correctly out of Story 4's scope (no task authorizes migrating legacy specs to the current dialect); the graceful degradation is the contract working as designed, not a regression this story introduced.
+- **Resolution:** Accepted as non-blocking. Filed as `.writ/issues/improvements/2026-08-03-legacy-context-hint-dialect-gap.md` for future consideration — these 2 specs currently get zero hint value silently, which is safe but not ideal.
+- **Spec amendment:** None needed.

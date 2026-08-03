@@ -23,9 +23,9 @@
       "justification": ""
     },
     "scripts": {
-      "lines": 22858,
-      "chars": 979695,
-      "justification": "Story 3 (2026-08-03-deterministic-story-substrate): budget derivation + enforcement + measurement sweep — moving hint-budget logic from unmeasured prose into measured, tested code (Business Rule 8)."
+      "lines": 23002,
+      "chars": 988931,
+      "justification": "Story 3 (2026-08-03-deterministic-story-substrate): budget derivation + enforcement + measurement sweep — moving hint-budget logic from unmeasured prose into measured, tested code (Business Rule 8). Story 4: static assertions in eval.sh's check_story_context() that the prose consolidation actually landed (references story-context.py, drops the retired parsing tables, keeps the routing table), plus illustrative eval-story-context.py scenarios proving the documented assembler-failure degrade logic (missing script / non-zero exit / malformed stdout) is internally sound — moving verification of a prose consolidation into measured, tested code rather than trusting the edit by inspection alone."
     },
     "system_instructions": {
       "lines": 300,

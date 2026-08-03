@@ -69,53 +69,50 @@ Proceeding anyway — some integration points may be unavailable.
 
 #### Parsing Context Hints and Fetching Referenced Content
 
-> **Format reference:** `.writ/docs/context-hint-format.md`
+> **Authoring reference:** `.writ/docs/context-hint-format.md` (hint syntax for anyone writing or reviewing a `## Context for Agents` section)
+> **Executable contract:** `scripts/story-context.py` (the sole implementation that parses hints and fetches content — this step invokes it, it does not restate its algorithm)
 
-After reading the story file and spec-lite.md, the orchestrator parses context hints from the story's `## Context for Agents` section and fetches the referenced spec content. This delivers targeted context to agents — error map rows, shadow paths, business rules, and experience elements relevant to this specific story.
+After reading the story file and spec-lite.md, the orchestrator delegates context-hint parsing and content fetching to `scripts/story-context.py` rather than interpreting the story's `## Context for Agents` section itself. This delivers targeted context to agents — error map rows, shadow paths, business rules, and experience elements relevant to this specific story — from one deterministic, tested implementation instead of agent judgment.
 
-**Process:**
+**Invocation:**
 
-1. **Locate context hints section:**
-   - Search story file content for `## Context for Agents` header
-   - If not found → proceed without hints (legacy story file), log: `ℹ️ No "## Context for Agents" section — proceeding with spec-lite only`
-   - If found → extract all lines from header to next `##` heading or EOF
+```bash
+python3 scripts/story-context.py assemble --story <story-file-path> --budget-bytes 21000
+```
 
-2. **Parse hint categories:**
-   - For each line matching `- **{Category}:**`:
-     - **Bracketed format:** `[item 1, item 2, item 3]` → split on commas, trim whitespace
-     - **Extended reference format:** `file.md → ## Section → ### Subsection` → parse file path and section hierarchy
-   - Recognized categories: `Error map rows`, `Shadow paths`, `Business rules`, `Experience`
-   - Additional metadata lines (e.g., `Format reference`, `Files in scope`) are informational — note but don't fetch content for them
-   - Store parsed hints in `context_hints` map: `{ category: [references] }`
+`21000` is `FETCHED_CONTEXT_BUDGET_BYTES` — Story 3's corpus-derived cap. Read the constant's current value from `scripts/story-context.py` and use that instead of the number above if they ever diverge; the script, not this file, owns the derivation.
 
-3. **Fetch referenced content from spec files:**
+**Parsing the script's stdout:**
 
-   | Category | Primary Source | Fallback Source |
-   |----------|---------------|-----------------|
-   | Error map rows | `technical-spec.md` → error map table rows by name | `spec.md → ## 🎯 Experience Design → ### Error Experience` |
-   | Shadow paths | `technical-spec.md` → shadow path scenarios by name | `spec.md → ## 🎯 Experience Design → ### Happy Path Flow` |
-   | Business rules | `spec.md → ## 📋 Business Rules` → matching rule items | — |
-   | Experience | `spec.md → ## 🎯 Experience Design` → matching subsection | — |
+The script always exits 0 and prints one JSON object:
 
-   - For bracketed references: search source file for matching rows/entries by name
-   - For extended references (`file.md → ## Section → ### Subsection`): navigate directly to the specified section path in the referenced file
-   - Aggregate all fetched content into `fetched_context` (keyed by category)
+```json
+{
+  "fetched_context": { "error_map_rows": "...", "business_rules": "..." },
+  "warnings": ["..."],
+  "bytes": { "error_map_rows": 812, "business_rules": 431, "total": 1243 },
+  "truncated": false
+}
+```
 
-4. **Graceful degradation:**
+Map its fields to this step's output variables:
+- `fetched_context` (JSON key) → `fetched_context` — pass through unchanged, keyed by category
+- `warnings` (JSON key) → `context_warnings` — pass through verbatim; this already includes the informational "no hints section" log, every parse/fetch warning, and (when `truncated` is `true`) the truncation warning naming actual vs. budget bytes. No separate truncation-handling logic is needed here — the script embeds it in `warnings`.
+- `bytes` — informational byte report for the invocation; not consumed elsewhere in this pipeline beyond logging
 
-   | Scenario | Behavior |
-   |----------|----------|
-   | `## Context for Agents` section missing | Proceed with spec-lite only (legacy compatibility) |
-   | Hint category malformed or unrecognized | Skip that category, log: `⚠️ Unrecognized context hint category: "{category}"` |
-   | Referenced content not found in source file | Skip that reference, log: `⚠️ Context hint references missing content: "{reference}" in {file}` |
-   | Empty brackets `[]` | Skip that category (valid: no relevant content for this story) |
-   | Source file not found (`spec.md` or `technical-spec.md`) | Log error, proceed with spec-lite only |
-   | Category prefix typo (e.g., `Eror map rows`) | Skip that line, log warning |
+**Assembler-failure degradation** — the script's own internal handling covers unresolvable references and unreadable spec files (it always exits 0 and warns instead), but the orchestrator must separately guard the invocation itself:
+
+| Failure Mode | Detection | Behavior |
+|----------|---------------|-----------------|
+| Script missing | `scripts/story-context.py` does not exist, or the invocation cannot start | Warn: `⚠️ story-context.py not found — proceeding with spec-lite only`; set `fetched_context` to `{}` and continue |
+| Non-zero exit | Process exit code is not `0` | Warn: `⚠️ story-context.py exited non-zero — proceeding with spec-lite only`; set `fetched_context` to `{}` and continue |
+| Malformed stdout | stdout is not valid JSON, or lacks the `fetched_context`/`warnings` keys | Warn: `⚠️ story-context.py produced unparseable output — proceeding with spec-lite only`; set `fetched_context` to `{}` and continue |
+
+A broken assembler degrades context; it never halts the story — the orchestrator proceeds on `spec-lite.md` alone in every row above.
 
 **Output variables:**
-- `context_hints` — structured map of parsed references by category
-- `fetched_context` — actual spec content retrieved for each reference
-- `context_warnings` — list of any warnings generated during parsing/fetching
+- `fetched_context` — spec content retrieved per category, from the script's `fetched_context` JSON key
+- `context_warnings` — every warning generated during parsing, fetching, or invoking the assembler
 
 #### Loading Knowledge Context
 

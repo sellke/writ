@@ -27,6 +27,13 @@ scenarios:
   - exactly-at-threshold -> NOT truncated (strictly-greater comparison)
   - relevance-ordered retention -> higher-relevance categories survive whole
   - byte-identical repeat runs with a budget applied
+
+Story 4 adds illustrative-only scenarios proving the *documented degrade
+logic* in commands/implement-story.md's "Assembler-failure degradation"
+table is internally sound against fake wrapper scripts (missing script,
+non-zero exit, malformed stdout) — see the block above main() for why this
+tests the algorithm's soundness, not story-context.py itself (which always
+exits 0) and not runtime LLM compliance (not automatable).
 """
 
 from __future__ import annotations
@@ -423,6 +430,59 @@ def scenario_byte_identical_repeat_runs_with_budget() -> None:
              (first_payload, second_payload))
 
 
+# --- Story 4, Task 4.5: illustrative-only proof of the *documented degrade
+# logic*, not of story-context.py itself (which always exits 0 and can't be
+# made to fail these ways for real — see main()'s catch-all). This models
+# the exact three-row table in commands/implement-story.md's "Assembler-
+# failure degradation" against small fake wrapper scripts, one per failure
+# mode, to prove the algorithm is internally sound if an orchestrator
+# implements it literally. It does not and cannot prove an LLM orchestrator
+# will follow the prose at runtime — that isn't automatable.
+def _degrade_on_assembler_invocation(script_path: Path, *args: str) -> dict:
+    """Mirrors commands/implement-story.md's documented degrade table."""
+    if not script_path.exists():
+        return {"fetched_context": {}, "context_warnings": ["story-context.py not found — proceeding with spec-lite only"]}
+    proc = subprocess.run([sys.executable, str(script_path), *args], capture_output=True, text=True)
+    if proc.returncode != 0:
+        return {"fetched_context": {}, "context_warnings": ["story-context.py exited non-zero — proceeding with spec-lite only"]}
+    try:
+        payload = json.loads(proc.stdout)
+        if "fetched_context" not in payload or "warnings" not in payload:
+            raise ValueError("missing required keys")
+    except (json.JSONDecodeError, ValueError):
+        return {"fetched_context": {}, "context_warnings": ["story-context.py produced unparseable output — proceeding with spec-lite only"]}
+    return {"fetched_context": payload["fetched_context"], "context_warnings": payload["warnings"]}
+
+
+def scenario_documented_degrade_handles_missing_script() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp) / "does-not-exist.py"
+        result = _degrade_on_assembler_invocation(fake, "assemble", "--story", "irrelevant.md")
+        emit("degrade-missing-script-empty-fetched-context", result["fetched_context"] == {}, result)
+        emit("degrade-missing-script-names-failure-mode",
+             any("not found" in w for w in result["context_warnings"]), result)
+
+
+def scenario_documented_degrade_handles_non_zero_exit() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp) / "fake-nonzero.py"
+        fake.write_text("import sys\nsys.exit(1)\n", encoding="utf-8")
+        result = _degrade_on_assembler_invocation(fake)
+        emit("degrade-non-zero-exit-empty-fetched-context", result["fetched_context"] == {}, result)
+        emit("degrade-non-zero-exit-names-failure-mode",
+             any("exited non-zero" in w for w in result["context_warnings"]), result)
+
+
+def scenario_documented_degrade_handles_malformed_stdout() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp) / "fake-malformed.py"
+        fake.write_text("print('not json at all')\n", encoding="utf-8")
+        result = _degrade_on_assembler_invocation(fake)
+        emit("degrade-malformed-stdout-empty-fetched-context", result["fetched_context"] == {}, result)
+        emit("degrade-malformed-stdout-names-failure-mode",
+             any("unparseable" in w for w in result["context_warnings"]), result)
+
+
 def main() -> int:
     scenario_happy_path_both_reference_forms()
     scenario_legacy_absent_hints()
@@ -441,6 +501,9 @@ def main() -> int:
     scenario_exactly_at_threshold_not_truncated()
     scenario_relevance_ordered_retention()
     scenario_byte_identical_repeat_runs_with_budget()
+    scenario_documented_degrade_handles_missing_script()
+    scenario_documented_degrade_handles_non_zero_exit()
+    scenario_documented_degrade_handles_malformed_stdout()
     return 0 if failed == 0 else 1
 
 
