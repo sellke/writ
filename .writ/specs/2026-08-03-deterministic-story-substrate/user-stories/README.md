@@ -1,13 +1,13 @@
 # User Stories: Deterministic Story Substrate
 
 > Parent: [`spec.md`](../spec.md) · Technical: [`sub-specs/technical-spec.md`](../sub-specs/technical-spec.md)
-> Progress: 2/4 complete · 14/28 tasks
+> Progress: 3/4 complete · 21/28 tasks
 
 | Story | Title | Status | Tasks | AC | Priority | Depends on |
 |---|---|---|---|---|---|---|
 | 1 | [Story Graph Validator with Blocking Pre-Execution Gate](story-1-story-graph-validator.md) | Completed ✅ | 7/7 | 5 | High | None |
 | 2 | [Deterministic Context Assembler](story-2-context-assembler.md) | Completed ✅ | 7/7 | 5 | High | None |
-| 3 | [Empirically Derived Context Budget and Real Measurement](story-3-derived-context-budget.md) | Not Started | 0/7 | 5 | High | Story 2 |
+| 3 | [Empirically Derived Context Budget and Real Measurement](story-3-derived-context-budget.md) | Completed ✅ | 7/7 | 5 | High | Story 2 |
 | 4 | [Consolidate the Orchestrator Prose onto the Assembler](story-4-prose-consolidation.md) | Not Started | 0/7 | 5 | High | Story 3 |
 
 ## Dependency Graph
