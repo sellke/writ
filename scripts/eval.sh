@@ -31,6 +31,7 @@ CHECKS=(
   recommended-staging
   spec-dependencies
   story-deps
+  story-context
   phase-lanes
   phase-challenges
   phase-quarantine
@@ -1792,6 +1793,41 @@ check_story_deps() {
   require_literal "$implement_spec" 'Do not guess an order around invalid metadata' "Implement-spec must not guess an order around invalid story metadata."
   require_literal "$implement_spec" 'cannot verify story graph' "Implement-spec must distinguish a missing/crashed validator from a named blocker."
   require_literal "$implement_spec" 'stop before Step 2.2' "Implement-spec must stop before batch computation on an invalid story graph."
+}
+
+check_story_context() {
+  local fake="$PROJECT_ROOT/scripts/eval-story-context.py"
+  local helper="$PROJECT_ROOT/scripts/story-context.py"
+  local leanness="$PROJECT_ROOT/scripts/eval-leanness.py"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "story-context:$scenario_name" "$scenario_reason" "Fix the executable assembler or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def assemble(' "The context-hint helper must assemble the bounded payload."
+  require_literal "$helper" 'def resolve_extended_ref(' "The context-hint helper must resolve extended file/heading references."
+  require_literal "$helper" 'def resolve_table_category(' "The context-hint helper must resolve table-row references."
+  require_literal "$helper" '"truncated": False' "The context-hint helper must always report truncated: false in this story."
+
+  require_literal "$leanness" 'story-context.py' "eval-leanness.py must delegate to the shared story-context.py assembler."
+  require_literal "$leanness" 'subprocess.run' "eval-leanness.py must invoke story-context.py via subprocess, not import (hyphenated filename)."
+  forbid_literal "$leanness" 'def resolve_context_hints(' "eval-leanness.py must not retain the retired resolve_context_hints() implementation."
+  forbid_literal "$leanness" 'CONTEXT_HINT_CATEGORY_KEYWORDS' "eval-leanness.py must not retain the retired keyword-anchor category map."
 }
 
 check_phase_lanes() {
