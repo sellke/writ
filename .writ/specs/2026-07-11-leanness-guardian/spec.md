@@ -4,6 +4,7 @@
 > **Created:** 2026-07-11
 > **Owner:** @adam
 > **Type:** Dogfooding (Writ-the-framework self-governance — does not ship to users)
+> **Superseded by:** [2026-07-26-leanness-instrumentation](../2026-07-26-leanness-instrumentation/spec.md)
 
 ## Contract Summary
 
