@@ -135,6 +135,8 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 **`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
 
+> **Note on resolving a merged PR's spec (documentation only — no trigger here).** When a future step needs to determine which `.writ/specs/` folder the PR at `LAST_MERGED_SHA` belongs to, it calls the same `scripts/resolve-spec-reference.py resolve --branch <branch> --commits "<commit-log>" --specs-dir .writ/specs` script `/ship` Step 5 uses for its PR body's Spec Reference section — one shared implementation, not a second drifting heuristic. This paragraph names the script for future reference only; wiring an actual post-merge archival check into this gate is a separate story's job.
+
 > **Note on the `@sellke/writ` runtime helper.** This repo also ships a tiny npm package (`@sellke/writ`) for deterministic dates/timestamps. It is **decoupled from `/release`** — Writ methodology releases do not run npm preflight, do not bump `package.json#version`, and do not publish to npm. See [Runtime Helper Publish (manual)](#runtime-helper-publish-manual) at the end of this file.
 
 #### Step 1.4: README Freshness Check
