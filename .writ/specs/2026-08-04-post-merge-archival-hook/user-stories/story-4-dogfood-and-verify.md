@@ -83,3 +83,68 @@ As of this recording, **0 of 2** motivating specs (`2026-08-04-spec-lifecycle-ar
 - **Success criteria:** [Criterion 1 (single-spec archive on merge), Criterion 2 (no-op indistinguishable from hook-less run), Criterion 3 (idempotent re-run), Criterion 4 (PR-annotated vs. unannotated ledger lines), Criterion 5 (no gate regression)] — from spec.md → ## Success Criteria
 - **Origin / motivating gap:** [Real prior incident: `2026-08-04-spec-lifecycle-archival` shipped and released while `Complete`, never archived] — from spec.md → ## Origin and ## Why This Exists
 - **Implementation approach:** [Story 4 dependency on Story 3, dogfood scope description] — from spec.md → ## Implementation Approach (item 4)
+
+---
+
+## What Was Built
+
+**Implementation Date:** 2026-08-04
+
+### Files Created
+
+1. **`scripts/_archival_hook_model.py`** (159 lines) — Shared composition model extracted out of `scripts/tests/test_release_archival_hook.py`. Contains `run_archival_hook()` (models Step 1.3c's exact resolve → archive-call control flow) plus its fixture helpers (`init_repo`, `make_spec`, `commit_all`, `empty_knowledge_dir`, `fixed_output_script`, `fake_matched_resolver`, `_run_git`). Single source of truth for both the pytest suite and the new eval script below — no second copy exists anywhere (independently confirmed via a repo-wide grep for `run_archival_hook`).
+2. **`scripts/eval-post-merge-archival.py`** (110 lines) — 2 smoke-level PASS/FAIL scenarios (happy-path archive, no-match skip) importing the shared model, exercised under `eval.sh`'s scenario-TSV harness. Its own docstring is explicit that it deliberately does not re-derive Story 3's 11-case matrix — that duplication risk was the architecture check's primary finding.
+3. **`scripts/eval-post-merge-dogfood.py`** (95 lines) — Real-repo AC5 readiness probe. Greps committed history for the hook's exact commit-message pattern (`chore(archive): auto-archive <spec> via PR #<n>`) per motivating spec, never directory existence — so the pre-existing manual `/status --archive` move of `2026-08-04-spec-lifecycle-archival` sitting uncommitted in this repo's working tree is correctly never counted. Always exits 0 today ("0 of 2"); deliberately **not** registered in `eval.sh`'s `CHECKS=()` — its own docstring documents the exact flip-and-register steps for once real evidence exists.
+
+### Files Modified
+
+- **`scripts/tests/test_release_archival_hook.py`** (Owned) — Refactor-only: replaced its own local definitions of `run_archival_hook()` and all 7 fixture helpers with an `importlib` load from the new shared module. All 11 original tests and their assertions are byte-identical to the Story 3 commit (`a7a0bba`) except for the module-loading boilerplate itself — independently confirmed by both the review agent and the testing agent via diff, not just the coding agent's claim.
+- **`scripts/eval.sh`** (Owned — one entry + one function only) — Added `post-merge-archival` to the `CHECKS=()` array (immediately after `archive-dogfood`) and `check_post_merge_archival()` (immediately after `check_archive_dogfood()`), structurally identical to the file's other archive-family checks. The function's real payload is 7 `require_literal`/`forbid_literal` pins on `commands/release.md`'s actual Step 1.3c prose — every one independently verified present (or, for the one `forbid_literal`, absent) verbatim in the file today by both the review and testing agents.
+- **`.writ/specs/2026-08-04-post-merge-archival-hook/user-stories/story-4-dogfood-and-verify.md`** (this file) — Added the `### Live Confirmation Status` subsection (by the coding agent); status header, task checkboxes, and Definition of Done flipped to reflect the delivered scope (by the orchestrator, post-review, closing DEV-004).
+- **`.writ/specs/2026-08-04-post-merge-archival-hook/user-stories/README.md`**, **`spec.md`**, **`.writ/context.md`** (by the orchestrator) — rollup/status updates to 4/4 stories, spec marked Complete (all 5 numbered Success Criteria fixture-satisfied; AC5 tracked as an open, non-blocking follow-up here).
+
+### Implementation Decisions
+
+This story's architecture-check agent returned **CAUTION** with 6 findings, all folded into the coding agent's task list before implementation began — the story file's original 7-task list would have substantially duplicated Story 3's existing coverage:
+
+1. **Shared-model extraction (primary finding).** `test_release_archival_hook.py` was already a pure CLI-boundary test, not an internals test — a naive `eval-post-merge-archival.py` mirroring Story 2's dual-coverage pattern would have re-implemented the same 11 scenarios almost verbatim. Resolved by extracting the composition model into `scripts/_archival_hook_model.py`, making both consumers import rather than duplicate.
+2. **Prose-pinning as the eval script's real payload, not fixture replay.** The check's genuinely new, non-duplicative value is guarding `release.md` Step 1.3c's actual prose against silent regression — nothing else in the suite did this. Narrowed Task 4.1 to 2 smoke scenarios plus 7 `require_literal`/`forbid_literal` pins, rather than an 11-case re-derivation.
+3. **Task 4.4 reframed from re-verification to durable encoding.** Story 3's own Task 3.7 had already closed the "no regression to non-firing gate behavior" diff claim; re-running it from scratch would have been redundant motion. Reframed to confirm the existing claim still holds (`git show`) and fold it into automatically-enforced literal pins on the original three-row test-skip table.
+4. **AC5 anti-false-positive guard.** This repo's own working tree shows `2026-08-04-spec-lifecycle-archival` mid-move via a manual `/status --archive` invocation that pre-dates Story 3/4 entirely. Explicit guard added (both in the dogfood probe's commit-message-pattern grep and in the story file's own Live Confirmation Status prose) against ever crediting that move toward AC5.
+5. **Dogfood stub must never hard-fail by default.** Unlike `eval-archive-dogfood.py` (written *after* its real sweep had already happened), this story's live event hasn't occurred yet. `eval-post-merge-dogfood.py` was required to default to a non-failing "0 of 2" state and stay unregistered in `CHECKS=()` — a hard-fail-by-default stub would have broken every future contributor's `eval.sh` run indefinitely.
+6. **`eval.sh` insertion placement.** Low risk, but the new check/function were placed adjacent to the existing archive-family checks (`archive-sweep`, `archive-dogfood`) rather than appended at file-end, matching the file's existing grouping convention.
+
+**Boundary override applied:** `scripts/archive-sweep.py`, `scripts/resolve-spec-reference.py`, and `commands/release.md` remained explicit **Readable-only** (established by Story 3, carried forward here) — confirmed zero modifications to any of the three across the full pipeline via `git show bed04bb --stat`.
+
+### Test Results
+
+**Verification:** Full `scripts/tests/*.py` pytest suite — 199/199 passing, zero regressions from the Task 4.0 extraction. Independently re-run by the coding agent, the review agent, and the testing agent, each in their own fresh isolated venv.
+**Coverage:** `scripts/_archival_hook_model.py` — 100% line (53/53 statements) and 100% branch (6/6) coverage, confirmed via `coverage run --branch --include`. The two new `eval-*.py` scripts follow this repo's established convention of being exercised via `eval.sh`'s scenario harness and direct execution rather than line-coverage-enforced, matching `eval-archive-sweep.py`/`eval-archive-dogfood.py`'s precedent (confirmed, not assumed, by the testing agent).
+- ✅ AC1–4 each independently confirmed to have genuine test/assertion backing (not prose-only) by both the review and testing agents — see the story's own Acceptance Criteria checkboxes above for the specific tests backing each.
+- `bash scripts/eval.sh --check=post-merge-archival` exits 0 (2/2 scenarios, 0 findings). `python3 scripts/eval-post-merge-dogfood.py` exits 0, correctly reports "0 of 2," confirmed absent from `CHECKS=()`.
+
+### Review Outcome
+
+**Result:** PASS
+
+- **Iteration count:** 1 iteration (no review-fail cycles)
+- **Drift:** Small (2 items total — 1 from the review agent, DEV-004, closed by the orchestrator post-review; see Deviations below)
+- **Security:** Clean — no user-controlled subprocess arguments beyond what Story 3 already established; the dogfood probe's `git log --grep` uses a fixed local pattern, no injection surface; no secrets, no new network calls
+- **Boundary Compliance:** All changes confined to the documented Owned file set; `archive-sweep.py`, `resolve-spec-reference.py`, `release.md` confirmed untouched via commit-stat diff
+
+### Deviations from Spec
+
+- **[DEV-004] Story-4 tracking metadata (status header, task checkboxes, rollups) not updated to reflect completed work** — Severity: Small
+  - Spec said: Story 4's own Definition of Done, and the established convention from Stories 1–3, of flipping status headers and checking task boxes on story close.
+  - Reality: The coding agent delivered the substantively-narrowed Task 4.0–4.7 scope correctly (independently confirmed by review) but left the story's status header, all seven original (superseded) task checkboxes, and `README.md`/`spec.md`'s rollups stale.
+  - Resolution: Auto-amended by the orchestrator immediately following review PASS — see `drift-log.md` DEV-004 for the full record. Story status flipped to Completed ✅, task list replaced with the actual delivered 8-item list, `README.md` updated to 4/4 stories, `spec.md` marked Complete.
+  - Spec amendment: None needed to `spec.md`'s contract terms — this was tracking hygiene, not a contract deviation.
+
+### Lessons Learned
+
+1. **Architecture-check-driven task revision compounds across stories.** All four stories in this spec had their task lists materially revised by their own architecture checks before coding began — a pattern worth naming explicitly for future multi-story specs: budget for a scope-narrowing pass between story authoring and coding, not just a rubber-stamp PROCEED.
+2. **Test-file "duplication" risk is easy to underestimate at spec-authoring time.** Story 4's story file, written before Story 3 existed, couldn't have known Story 3's eventual test file would already be a pure CLI-boundary test. Specs that plan a "verify the prior story" story should expect its scope to shrink once the prior story's actual test shape is known — this isn't scope creep to resist, it's the process working as intended.
+
+### Next Story
+
+None — this is the spec's closing story. All 5 of `spec.md`'s numbered Success Criteria are now fixture-satisfied. Story 4's own AC5 (real-world archival of this spec and `2026-08-04-spec-lifecycle-archival`) remains an honestly-tracked, non-blocking follow-up in this section's Live Confirmation Status — to be closed by whoever runs the next real `/release` after either spec's PR merges, following `scripts/eval-post-merge-dogfood.py`'s own docstring instructions to flip its `main()` return and register it in `eval.sh`.
