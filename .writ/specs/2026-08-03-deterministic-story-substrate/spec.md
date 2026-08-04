@@ -3,7 +3,7 @@
 > **Status:** Completed ✅ (4/4 stories complete, 2026-08-03)
 > **Owner:** @Adam Sellke
 > **Created:** 2026-08-03
-> **Dependencies:** none
+> **Dependencies:** []
 > **Origin:** [`2026-08-03-writ-vs-openspec-analysis`](../../research/2026-08-03-writ-vs-openspec-analysis.md) — P2 adopted as specified; the context-assembly half is a finding the research's recommendation table did not surface
 > **Builds on:** [`2026-07-26-leanness-instrumentation`](../2026-07-26-leanness-instrumentation/spec.md) / [ADR-019](../../decision-records/adr-019-full-surface-leanness-measurement.md)
 

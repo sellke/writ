@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.25.0] - 2026-08-04
+
+**Deterministic Story Substrate** — moves Writ's two highest-consequence agent-interpreted pipeline steps to program: the story-dependency graph is now validated by a blocking pre-execution gate before `/implement-spec` computes parallel worktree batches, and context-hint resolution collapses from three drifting implementations (docs prose, orchestrator prose, a measurement-only function) into one deterministic, budget-enforced assembler.
+
+### Added
+
+- **Story graph validator** — `scripts/story-deps.py` blocks `/implement-spec` before batch computation on any of five invalid-graph classes (cycle, self-reference, missing/duplicate reference, malformed header), naming the affected story and exact diagnostic; `recommend-state.py`'s duplicate DFS implementation retired in favor of the shared module ([Story 1](.writ/specs/2026-08-03-deterministic-story-substrate/user-stories/story-1-story-graph-validator.md)).
+- **Deterministic context assembler** — `scripts/story-context.py` resolves `## Context for Agents` hints (bracketed and extended reference forms) into a structured JSON payload with per-category byte counts; every failure mode degrades toward `spec-lite.md` rather than raising ([Story 2](.writ/specs/2026-08-03-deterministic-story-substrate/user-stories/story-2-context-assembler.md)).
+- **Empirically derived `fetched_context` budget** — 21,000 bytes, set at 2x the measured max across all 170 stories in the corpus (compensating for a known heading-mismatch undercount); over-budget content truncates by relevance, warns, never blocks ([Story 3](.writ/specs/2026-08-03-deterministic-story-substrate/user-stories/story-3-derived-context-budget.md)).
+- **Command discoverability** — every command in `commands/` now carries `name`/`description` YAML frontmatter, matching the convention skills already use.
+
+### Changed
+
+- `/implement-story` Step 2's ~50-line prose context-hint parser is replaced by a single assembler invocation; `.writ/docs/context-hint-format.md` now points at the script as the executable contract instead of restating the algorithm ([Story 4](.writ/specs/2026-08-03-deterministic-story-substrate/user-stories/story-4-prose-consolidation.md)).
+- `tdd-cycle` skill promoted `candidate` → `proven` (3 cited consumers, crossing ADR-014's threshold); lifecycle evidence refreshed on 4 other candidate skills.
+- `CLAUDE.md` architecture section condensed; documents the `agents/` (docs) vs `claude-code/agents/` (loadable definitions) split.
+
+### Fixed
+
+- Path-traversal vulnerability in the context assembler's extended-reference file resolution — caught and fixed during Story 2's own review cycle before ever shipping.
+- `claude-code/agents/writ-tester.md` model pinned to `sonnet` (was drifting on `inherit`).
+- Two malformed `Dependencies:` headers (prose `none` instead of the required bracket `[]`) caught by this release's spec-validation gate — `2026-08-03-deterministic-story-substrate` and the previously-shipped `2026-07-26-leanness-instrumentation`.
+
+### Internal
+
+- `scripts/` surface grew ~3,176 lines, justified in `.writ/leanness-baseline.json` (Business Rule 8 — moving hint-budget logic from unmeasured prose into measured, tested code); `commands/`/`skills/` growth from the frontmatter/lifecycle batch justified and reseeded.
+- Two comparative research analyses added (`writ-vs-code-captain`, `writ-vs-openspec`); one improvement issue filed (structured ceremony-skip marker) and deliberately scoped out of this release.
+
 ## [0.24.0] - 2026-07-26
 
 **Full-Surface Leanness Measurement & Coverage Guard** — closes the blind spot that let `scripts/`, the largest surface in the framework, go entirely unmeasured by the Tier A leanness tripwire (32% actual product coverage behind an appearance of full coverage). Rewrites the measurement registry to cover the entire product surface, adds a hard-FAIL coverage guard against future blind spots, introduces a static `story_context_bytes` proxy metric, and replaces percentage growth tolerance with a per-surface reduction ratchet.

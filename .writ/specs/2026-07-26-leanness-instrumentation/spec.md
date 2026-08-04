@@ -3,7 +3,7 @@
 > **Status:** Completed ✅ (5/5 stories complete, 2026-07-26)
 > **Owner:** @Adam Sellke
 > **Created:** 2026-07-26
-> **Dependencies:** none
+> **Dependencies:** []
 > **Origin:** Opus 5 harness evaluation (2026-07-25) — recommendation #1 of eleven; the keystone that makes the remaining ten falsifiable
 > **Amends:** [`2026-07-11-leanness-guardian`](../2026-07-11-leanness-guardian/spec.md) / [ADR-015](../../decision-records/adr-015-leanness-self-governance.md)
 
