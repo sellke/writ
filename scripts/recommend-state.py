@@ -7,6 +7,7 @@ import argparse
 import copy
 import fnmatch
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -54,6 +55,26 @@ class ContractError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
+
+
+# scripts/story-deps.py is the single implementation of story-graph
+# validation; the module filename contains a hyphen, so it is imported by
+# path, mirroring the exact recipe scripts/tests/test_revert_resolve.py
+# uses to import scripts/revert-resolve.py. Deferred to first use (not a
+# module-level import) so that installs which ship only recommend-state.py
+# still run every operation that never touches validate_dag().
+_story_deps_module: Any = None
+
+
+def _story_deps() -> Any:
+    global _story_deps_module
+    if _story_deps_module is None:
+        path = Path(__file__).resolve().parent / "story-deps.py"
+        spec = importlib.util.spec_from_file_location("story_deps", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+        _story_deps_module = module
+    return _story_deps_module
 
 
 def now() -> str:
@@ -374,24 +395,17 @@ def count_story_contract(path: Path, text: str) -> tuple[str, list[str], dict[st
 
 
 def validate_dag(dependencies: dict[str, list[str]]) -> None:
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(story: str) -> None:
-        if story in visiting:
-            raise ContractError("invalid_dag", f"dependency cycle at {story}")
-        if story in visited:
-            return
-        visiting.add(story)
-        for dependency in dependencies.get(story, []):
-            if dependency not in dependencies:
-                raise ContractError("invalid_dag", f"{story}: missing dependency {dependency}")
-            visit(dependency)
-        visiting.remove(story)
-        visited.add(story)
-
-    for story in dependencies:
-        visit(story)
+    """Validate the parsed story dependency map via the shared story-deps.py
+    module. story-deps.py's ContractError is a different class than this
+    module's — even with the same name, `except ContractError` here would
+    not catch it — so it is translated into this module's ContractError
+    before propagating, preserving the existing {"blocker": {...}} contract
+    for every caller of this function."""
+    story_deps = _story_deps()
+    try:
+        story_deps.validate_graph(dependencies)
+    except story_deps.ContractError as exc:
+        raise ContractError(exc.code, exc.summary) from exc
 
 
 def parse_log(path: Path) -> dict[str, Any]:

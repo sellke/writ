@@ -176,49 +176,30 @@ If the spec doesn't have certain content, adjust references:
 - No error map → reference `spec.md` → `## 🎯 Experience Design` → `### Error Experience`
 - No shadow paths → reference `spec.md` → `## 🎯 Experience Design` → `### Happy Path Flow`
 
-## Parsing Guide (for Orchestrators)
+## Parsing Contract (Executable, Not Restated Here)
 
-When reading context hints to fetch content:
+> **This section changed in Story 4 of `2026-08-03-deterministic-story-substrate`.** Parsing and fetching used to be a prose algorithm restated here for orchestrators to interpret by judgment. That restatement is retired — `scripts/story-context.py` is now the single, tested implementation, and this document is no longer the place to look for parsing behavior.
 
-### Parsing Algorithm
+**Executable contract:** `scripts/story-context.py assemble --story <path> [--budget-bytes N]`
 
-1. **Locate section** — find `## Context for Agents` header
-2. **Extract categories** — identify which hint categories are present
-3. **Parse each category:**
-   - Split on category prefix (`**Error map rows:**`, `**Shadow paths:**`, etc.)
-   - Extract bracketed content `[item 1, item 2, item 3]`
-   - Split on commas to get individual references
-   - Trim whitespace from each reference
+Consumers (currently `/implement-story` Step 2 and `eval-leanness.py`'s `story_context_bytes` measurement) invoke this script rather than parsing `## Context for Agents` by hand. It always exits 0 and prints one JSON object:
 
-4. **Fetch referenced content:**
-   - Error map rows → read `technical-spec.md`, find matching table rows
-   - Shadow paths → read `technical-spec.md`, find matching path scenarios
-   - Business rules → read `spec.md`, find matching rule items
-   - Experience → read `spec.md`, find matching experience subsections
+```json
+{
+  "fetched_context": { "error_map_rows": "...", "business_rules": "..." },
+  "warnings": ["Context hint references missing content: \"...\" in ..."],
+  "bytes": { "error_map_rows": 812, "business_rules": 431, "total": 1243 },
+  "truncated": false
+}
+```
 
-5. **Handle missing references:**
-   - Log warning: `⚠️ Context hint references missing content: [reference]`
-   - Skip that hint
-   - Continue processing remaining hints
-   - Never block the pipeline on missing hints
+- `fetched_context` — resolved content per category, keyed by the JSON names in the table above (`error_map_rows`, `shadow_paths`, `business_rules`, `experience`)
+- `warnings` — every degradation the script hit: missing hints section, malformed category, unresolved reference, absent source file, or budget truncation — never an exception, always a warning
+- `bytes` / `truncated` — the byte report and whether the payload was truncated against `--budget-bytes` (relevance-ordered: earlier categories in the table above survive truncation first)
 
-### Error Handling
+**For the parsing algorithm, category-resolution rules, malformed-input handling, or budget-enforcement logic:** read `scripts/story-context.py` directly — its module docstring and function docstrings are the authoritative, current description, not a paraphrase that can drift out of sync with the code.
 
-| Scenario | Behavior |
-|----------|----------|
-| `## Context for Agents` section missing | Proceed without hints (legacy story files) |
-| Hint category malformed | Skip that category, log warning |
-| Referenced content not found | Skip that reference, log warning |
-| Empty brackets `[]` | Skip that category (valid: no relevant content) |
-| File read failure (`spec.md` or `technical-spec.md`) | Log error, fall back to spec-lite.md |
-
-### Validation Checklist
-
-Before consuming hints, verify:
-- [ ] Section header is exactly `## Context for Agents`
-- [ ] Each category uses standard prefix format
-- [ ] Bracketed content is parseable
-- [ ] At least one hint category present (or section intentionally empty)
+**For validating that behavior:** run `python3 -m pytest scripts/tests/test_story_context.py` (unit coverage) or `bash scripts/eval.sh --check=story-context` (scenario + static checks). Both are real, automated, and re-run on every change — this format doc's job is authoring guidance for humans and generators, not a second copy of the parser's behavior for someone to keep in sync by hand.
 
 ## Examples
 
@@ -302,17 +283,15 @@ The `user-story-generator` agent:
 
 The orchestrator:
 1. Reads the story file
-2. Parses `## Context for Agents` section
-3. Fetches referenced content from spec files
-4. Delivers targeted content to agents based on role:
-   - Coding agents: error map rows, implementation approach
-   - Review agents: business rules, experience design
-   - Testing agents: shadow paths, edge cases
+2. Invokes `scripts/story-context.py assemble --story <path> --budget-bytes <N>` (Story 4 — see "Parsing Contract" above; the orchestrator no longer parses `## Context for Agents` itself)
+3. Receives resolved content already fetched from spec files in the script's JSON output
+4. Delivers targeted content to agents based on role, per the routing table in `commands/implement-story.md` (Architecture Check, Coding, Review, Testing, and Documentation agents each receive a different category subset)
 
-**Orchestrator outputs:**
-- `context_hints_parsed` — structured data with categories and references
-- `context_content_fetched` — actual spec content referenced by hints
-- `context_warnings` — list of missing or malformed references
+**Orchestrator outputs** (mapped from the script's JSON keys — see `commands/implement-story.md` for the exact mapping):
+- `fetched_context` — resolved spec content per category, from the script's `fetched_context` key
+- `context_warnings` — missing references, malformed categories, absent sections, and budget truncation, from the script's `warnings` key
+
+> **Fixed in this rewrite:** earlier revisions of this section named `context_hints_parsed` and `context_content_fetched` as the orchestrator's outputs. Neither name ever matched `commands/implement-story.md`'s actual variables (`context_hints` pre-Story-4, `fetched_context`/`context_warnings` throughout) — a documentation drift predating this story, corrected here rather than carried forward.
 
 ### Graceful Degradation
 
@@ -337,7 +316,7 @@ Developers can manually add or edit context hints when:
 
 ## Validation Strategy
 
-Since Writ is a markdown-based workflow system with no automated test suite, validation follows a documentation + golden file approach:
+Generation (authoring hints for a new story) and parsing (resolving hints against spec content) sit on opposite sides of the Story 4 boundary now: generation quality is still verified by documentation and golden-file review below, because a generated hint's *relevance* is a judgment call no test suite can make. Parsing is a different claim — `scripts/story-context.py` is real, tested Python, and its correctness is verified by `python3 -m pytest scripts/tests/test_story_context.py` and `bash scripts/eval.sh --check=story-context`, not by golden-file review. See "Parsing Contract" above.
 
 ### Generation Validation (Task 1.4)
 
@@ -360,42 +339,7 @@ Since Writ is a markdown-based workflow system with no automated test suite, val
 
 **Dogfood validation:** Run on this spec itself (Context Engine spec) — stories should include context hints.
 
-### Parsing Validation (Task 1.5)
-
-**Goal:** Verify orchestrator can parse hints and handle edge cases
-
-**Method: Manual Verification + Edge Case Documentation**
-
-Since Story 1 establishes format only (Story 4 implements orchestrator), document parsing rules and edge cases here:
-
-**Parsing Rules (for Story 4 implementation):**
-1. Locate `## Context for Agents` section (search for exact header)
-2. Extract lines starting with `- **Error map rows:**`, `- **Shadow paths:**`, etc.
-3. Parse bracketed content using regex: `\[(.*?)\]`
-4. Split on commas, trim whitespace from each item
-5. Use item names to fetch content from spec files
-
-**Edge Cases to Handle:**
-
-| Scenario | Expected Behavior | Test Method |
-|----------|-------------------|-------------|
-| Section missing entirely | Proceed without hints (legacy story) | Run on story file without section |
-| Empty brackets `[]` | Skip category (valid: no content) | Include `- **Error map rows:** []` in test story |
-| Malformed brackets `[item 1, item 2` | Skip category, log warning | Create malformed test story, verify warning |
-| Referenced content not found | Skip reference, log warning | Reference nonexistent error map row, verify warning |
-| File read failure | Fall back to spec-lite.md | Rename spec.md temporarily, verify fallback |
-| Category prefix typo | Skip that line, log warning | Use `- **Eror map rows:**`, verify warning |
-
-**Validation Steps:**
-1. Create test story files with each edge case
-2. Document expected orchestrator behavior for each
-3. Story 4 implementer will verify these behaviors
-4. Golden file: keep edge case examples in `.writ/docs/context-hint-format.md` (this file)
-
-**Success Criteria:**
-- [ ] All edge cases documented with expected behavior
-- [ ] Parsing algorithm specified clearly for Story 4 implementer
-- [ ] Validation checklist complete (see "Validation Rules" section above)
+> **Retired: "Parsing Validation (Task 1.5)."** This subsection originally documented parsing rules and edge cases for a Story 4 implementer to build against by hand. Story 4 shipped `scripts/story-context.py` instead, with its own unit tests (`scripts/tests/test_story_context.py`, 65 tests) and scenario checks (`bash scripts/eval.sh --check=story-context`) covering every edge case this subsection used to describe in prose — section-missing, empty brackets, malformed brackets, unresolved references, source-file-read failure, and category-prefix typos all have real fixtures now. Read the script and its tests for current parsing behavior; this document no longer restates it.
 
 ### Dogfooding Validation (Task 1.6)
 
@@ -422,11 +366,14 @@ Since Story 1 establishes format only (Story 4 implements orchestrator), documen
 |---------|------|--------|
 | 1.0 | 2026-03-27 | Initial format specification |
 | 1.1 | 2026-03-27 | Added validation strategy section (Tasks 1.4-1.5) |
+| 2.0 | 2026-08-03 | Story 4 of `2026-08-03-deterministic-story-substrate`: retired the "Parsing Guide" algorithm restatement and "Parsing Validation (Task 1.5)" subsection now that `scripts/story-context.py` is the single tested implementation; fixed stale `context_hints_parsed`/`context_content_fetched` output names in "Integration with Pipeline" to match the command file's actual `fetched_context`/`context_warnings`; removed the stale "no automated test suite" premise from "Validation Strategy." Authoring guidance (Generation Guidelines, Format Structure, Examples, Validation Rules, Manual Usage) is unchanged — this doc's role narrows to authoring; the script now owns parsing. |
 
 ## See Also
 
+- `scripts/story-context.py` — the executable parsing/fetching contract (see "Parsing Contract" above)
+- `scripts/tests/test_story_context.py` — unit tests for the parsing contract
 - `.writ/docs/drift-report-format.md` — Similar structured markdown format
 - `.writ/docs/what-was-built-format.md` — Complementary context format for cross-story continuity
 - `agents/user-story-generator.md` — Agent that generates these hints
 - `commands/create-spec.md` — Command that orchestrates hint generation
-- `commands/implement-story.md` — Command that consumes these hints
+- `commands/implement-story.md` — Command that invokes the parsing contract and routes results to agents

@@ -35,8 +35,14 @@ Contract:
                      "story_context_bytes", "story_context_bytes_note"}
     }
 
-  "story_context_bytes" is a declared-load PROXY, not consumed tokens — see
+  "story_context_bytes" is a mixed measurement, not consumed tokens — see
   STORY_CONTEXT_BYTES_NOTE and the sibling "story_context_bytes_note" key.
+  Its `context_hints` component (Story 3, 2026-08-03-deterministic-story-
+  substrate) is real delivered bytes from scripts/story-context.py's own
+  assembler output; the remaining components (`knowledge_context_cap`,
+  `gate_agents`, etc.) stay declared-load proxies. The aggregate sum is
+  still not consumed-token accounting either way (ADR-019 labeling
+  discipline).
   exit code: always 0 — the bash check decides FAIL from `structural`.
 """
 
@@ -47,6 +53,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 import sys
 
 # Count ceilings — headroom over today's 31/7/6 so the tripwire stays silent
@@ -76,10 +83,14 @@ WRIT_WORKSPACE = {"name": "writ_workspace", "path": ".writ", "globs": ["**/*.md"
 
 SURFACE_BY_NAME = {entry["name"]: entry for entry in SURFACE_REGISTRY}
 
-# --- story_context_bytes: a static, declared-load proxy --------------------
+# --- story_context_bytes: mixed real-measurement + declared-load proxy -----
 # Sums the byte size of every artifact commands/implement-story.md Step 2
-# declares it loads for a full-pipeline story. See the module docstring:
-# this is a PROXY for declared load, not consumed tokens.
+# declares it loads for a full-pipeline story. As of Story 3
+# (2026-08-03-deterministic-story-substrate), the context_hints component
+# below is no longer part of that declared-load family — it calls the real
+# assembler (scripts/story-context.py) and reports its actual bytes.total.
+# The other components here remain the PROXY described in the module
+# docstring: declared load, not consumed tokens.
 
 # implement-story.md Step 2 documents knowledge_context as capped at ~2KB.
 # Actual assembly is keyword-driven and non-reproducible across runs, so this
@@ -98,20 +109,24 @@ GATE_AGENT_FILES = [
 ]
 
 STORY_CONTEXT_BYTES_NOTE = (
-    "story_context_bytes is a declared-load PROXY (the byte sum of what "
-    "implement-story.md Step 2 says it loads for a full-pipeline story) — "
-    "it is NOT measured/consumed tokens and must never be reported as such."
+    "story_context_bytes is a MIXED measurement — its context_hints component "
+    "is real delivered bytes from scripts/story-context.py's assembler output "
+    "(Story 3), while the remaining components (context_md, story_file, "
+    "spec_lite, knowledge_context_cap, gate_agents) stay a declared-load "
+    "PROXY of what implement-story.md Step 2 says it loads. Neither half is "
+    "measured/consumed TOKENS, and the aggregate must never be reported as such."
 )
 
-# Best-effort keyword anchors for resolving a bracketed context-hint category
-# (no explicit file -> heading path) to its documented primary source section.
-# Kept intentionally loose: an unresolvable hint contributes 0, never an error.
-CONTEXT_HINT_CATEGORY_KEYWORDS = {
-    "error map rows": [("technical-spec.md", "error"), ("spec.md", "error experience")],
-    "shadow paths": [("technical-spec.md", "shadow path"), ("spec.md", "happy path")],
-    "business rules": [("spec.md", "business rules")],
-    "experience": [("spec.md", "experience design")],
-}
+# Hint-category resolution now delegates to scripts/story-context.py — the
+# single implementation of the `## Context for Agents` contract (Business
+# Rule 2: "one implementation per contract"). Invoked via subprocess rather
+# than `import`: story-context.py is a hyphenated filename, not a valid
+# Python module identifier for a literal `import` statement, and the
+# established precedent for hyphenated-script-to-hyphenated-script
+# integration in this codebase is eval-spec-deps.py's subprocess call into
+# spec-deps.py, not importlib.util (that mechanism is for callers needing
+# custom exception translation, which this measurement does not).
+STORY_CONTEXT_HELPER = os.path.join(os.path.dirname(__file__), "story-context.py")
 
 
 def _file_size(path: str | None) -> int:
@@ -142,119 +157,41 @@ def select_story_file(root: str) -> str | None:
     return max(story_files, key=lambda p: os.path.getsize(p))
 
 
-def extract_markdown_section(text: str, heading_line: str) -> str | None:
-    """Return the section body (heading through the next heading of equal or
-    higher level, or EOF) for the FIRST line matching `heading_line` exactly
-    (after stripping). None if not found — callers treat that as a 0."""
-    target = heading_line.strip()
-    level = len(target) - len(target.lstrip("#"))
-    if level == 0:
-        return None
-    lines = text.splitlines(keepends=True)
-    start = next((i for i, line in enumerate(lines) if line.strip() == target), None)
-    if start is None:
-        return None
-    end = len(lines)
-    for j in range(start + 1, len(lines)):
-        stripped = lines[j].rstrip("\n")
-        if stripped.startswith("#") and (len(stripped) - len(stripped.lstrip("#"))) <= level:
-            end = j
-            break
-    return "".join(lines[start:end])
+def assembler_bytes_for_story(story_file: str) -> int:
+    """Invoke `story-context.py assemble` and return its `bytes.total`.
 
-
-def find_heading_containing(text: str, keyword: str) -> str | None:
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("#") and keyword in stripped.lower():
-            return stripped
-    return None
-
-
-def resolve_spec_file(spec_folder: str, filename: str) -> str | None:
-    for candidate in (os.path.join(spec_folder, filename),
-                      os.path.join(spec_folder, "sub-specs", filename)):
-        if os.path.isfile(candidate):
-            return candidate
-    return None
-
-
-def _read_text(path: str) -> str:
+    This is the sole surviving hint-resolution path — `resolve_context_hints()`
+    and its category-keyword helpers are deleted, not merely rewritten
+    (Business Rule 2: one implementation per contract; Architecture Check
+    Finding 4). Unresolvable references, a missing/crashed subprocess, or
+    unparseable stdout all contribute 0 — never an exception — preserving
+    the "unresolvable contributes 0" contract this replaces (Finding 5).
+    """
     try:
-        with open(path, encoding="utf-8", errors="ignore") as handle:
-            return handle.read()
-    except OSError:
-        return ""
-
-
-def resolve_extended_ref(spec_folder: str, ref: str) -> int:
-    """`file.md -> ## Section -> ### Subsection` -> byte size of the deepest
-    resolved section, or 0 if the file/heading chain doesn't resolve."""
-    parts = [p.strip() for p in re.split(r"[→>]{1,2}", ref) if p.strip()]
-    if len(parts) < 2:
+        proc = subprocess.run(
+            [sys.executable, STORY_CONTEXT_HELPER, "assemble", "--story", story_file],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
         return 0
-    path = resolve_spec_file(spec_folder, parts[0])
-    if not path:
+    if proc.returncode != 0:
         return 0
-    section_text = _read_text(path)
-    for heading in parts[1:]:
-        extracted = extract_markdown_section(section_text, heading)
-        if extracted is None:
-            return 0
-        section_text = extracted
-    return len(section_text.encode("utf-8"))
-
-
-def resolve_category_ref(spec_folder: str, category: str) -> int:
-    for filename, keyword in CONTEXT_HINT_CATEGORY_KEYWORDS.get(category, []):
-        path = resolve_spec_file(spec_folder, filename)
-        if not path:
-            continue
-        text = _read_text(path)
-        heading = find_heading_containing(text, keyword)
-        if heading is None:
-            continue
-        section = extract_markdown_section(text, heading)
-        if section is not None:
-            return len(section.encode("utf-8"))
-    return 0
-
-
-def context_for_agents_section(story_text: str) -> str:
-    match = re.search(r"^## Context for Agents\s*$", story_text, re.MULTILINE)
-    if not match:
-        return ""
-    start = match.end()
-    rest = story_text[start:]
-    next_heading = re.search(r"^##(?!#)", rest, re.MULTILINE)
-    end = start + next_heading.start() if next_heading else len(story_text)
-    return story_text[start:end]
-
-
-def resolve_context_hints(spec_folder: str, story_text: str) -> int:
-    """Sum declared context-hint sources for the story's `## Context for
-    Agents` block. Unresolvable references contribute 0, never an error —
-    this must never sum whole source files (that overstates declared load)."""
-    section = context_for_agents_section(story_text)
-    if not section:
+    try:
+        payload = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError:
         return 0
-    total = 0
-    for line in section.splitlines():
-        stripped = line.strip()
-        cat_match = re.match(r"-\s*\*\*([^:*]+):\*\*", stripped)
-        category = cat_match.group(1).strip().lower() if cat_match else None
-        refs = re.findall(r"`([^`]+)`", line)
-        extended_refs = [r for r in refs if re.search(r"\.md\s*[→>]{1,2}", r)]
-        if extended_refs:
-            for ref in extended_refs:
-                total += resolve_extended_ref(spec_folder, ref)
-        elif category and category in CONTEXT_HINT_CATEGORY_KEYWORDS and "[" in line:
-            total += resolve_category_ref(spec_folder, category)
-    return total
+    total = payload.get("bytes", {}).get("total")
+    return total if isinstance(total, int) else 0
 
 
 def story_context_components(root: str) -> dict[str, int]:
-    """Ordered component -> byte-size map for the declared-load proxy."""
+    """Ordered component -> byte-size map for story_context_bytes.
+
+    `context_hints` is real delivered bytes from the assembler
+    (`assembler_bytes_for_story()`); every other component remains the
+    declared-load proxy described in the module docstring and
+    `STORY_CONTEXT_BYTES_NOTE`.
+    """
     components: dict[str, int] = {}
 
     components["context_md"] = _file_size(os.path.join(root, ".writ", "context.md"))
@@ -267,7 +204,7 @@ def story_context_components(root: str) -> dict[str, int]:
     if story_file:
         spec_folder = os.path.dirname(os.path.dirname(story_file))
         spec_lite_bytes = _file_size(os.path.join(spec_folder, "spec-lite.md"))
-        hint_bytes = resolve_context_hints(spec_folder, _read_text(story_file))
+        hint_bytes = assembler_bytes_for_story(story_file)
     components["spec_lite"] = spec_lite_bytes
     components["context_hints"] = hint_bytes
 

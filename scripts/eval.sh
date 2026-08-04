@@ -30,6 +30,8 @@ CHECKS=(
   recommended-spec-implementation
   recommended-staging
   spec-dependencies
+  story-deps
+  story-context
   phase-lanes
   phase-challenges
   phase-quarantine
@@ -1139,7 +1141,10 @@ try:
     readme = repo / spec / "user-stories/README.md"
     write(readme, readme.read_text().replace("| One | Not Started | High | None |", "| One | Not Started | High | Story 2 |"))
     _, result, payload = start(repo, spec, "package-dag")
-    emit("package-rejects-dependency-cycle", result.returncode != 0 and payload.get("blocker", {}).get("code") == "invalid_dag", str(payload))
+    # validate_dag() now delegates to scripts/story-deps.py, whose code for a
+    # mutual two-story dependency is dependency_cycle, not the retired
+    # duplicate DFS implementation's invalid_dag.
+    emit("package-rejects-dependency-cycle", result.returncode != 0 and payload.get("blocker", {}).get("code") == "dependency_cycle", str(payload))
 
     repo, spec = fixture("package-referenced-positive")
     extra = repo / spec / "sub-specs/extra.md"
@@ -1745,6 +1750,97 @@ check_spec_dependencies() {
   require_literal "$implement_phase" 'roadmap order' "Implement-phase must use roadmap order as the independent-spec tie-break."
   require_literal "$implement_phase" 'inference remains advisory' "Implement-phase must keep shared-surface inference advisory only."
   require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
+}
+
+check_story_deps() {
+  local fake="$PROJECT_ROOT/scripts/eval-story-deps.py"
+  local helper="$PROJECT_ROOT/scripts/story-deps.py"
+  local recommend_state="$PROJECT_ROOT/scripts/recommend-state.py"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "story-deps:$scenario_name" "$scenario_reason" "Fix the executable validator or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def validate_graph(' "The story-dependency helper must validate the story graph."
+  require_literal "$helper" 'def build_graph(' "The story-dependency helper must build the graph from story files."
+  require_literal "$helper" 'dependency_cycle' "The story-dependency helper must diagnose story cycles."
+  require_literal "$helper" 'self_reference' "The story-dependency helper must diagnose story self-references."
+  require_literal "$helper" 'duplicate_reference' "The story-dependency helper must diagnose duplicate story references."
+
+  require_literal "$recommend_state" 'story-deps.py' "recommend-state.py must import the shared story-deps.py module."
+  require_literal "$recommend_state" 'story_deps.validate_graph' "recommend-state.py's validate_dag must delegate to the shared validator."
+  forbid_literal "$recommend_state" 'dependency cycle at' "recommend-state.py must not retain its own retired cycle-detection implementation."
+  forbid_literal "$recommend_state" 'invalid_dag' "recommend-state.py must not retain the retired invalid_dag error code."
+
+  require_literal "$implement_spec" 'scripts/story-deps.py validate --spec-dir' "Implement-spec must reference the executable story-graph validator."
+  require_literal "$implement_spec" 'Invalid explicit metadata is blocking' "Implement-spec must treat an invalid story graph as blocking."
+  require_literal "$implement_spec" 'Do not guess an order around invalid metadata' "Implement-spec must not guess an order around invalid story metadata."
+  require_literal "$implement_spec" 'cannot verify story graph' "Implement-spec must distinguish a missing/crashed validator from a named blocker."
+  require_literal "$implement_spec" 'stop before Step 2.2' "Implement-spec must stop before batch computation on an invalid story graph."
+}
+
+check_story_context() {
+  local fake="$PROJECT_ROOT/scripts/eval-story-context.py"
+  local helper="$PROJECT_ROOT/scripts/story-context.py"
+  local leanness="$PROJECT_ROOT/scripts/eval-leanness.py"
+  local implement_story="$PROJECT_ROOT/commands/implement-story.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "story-context:$scenario_name" "$scenario_reason" "Fix the executable assembler or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def assemble(' "The context-hint helper must assemble the bounded payload."
+  require_literal "$helper" 'def resolve_extended_ref(' "The context-hint helper must resolve extended file/heading references."
+  require_literal "$helper" 'def resolve_table_category(' "The context-hint helper must resolve table-row references."
+  require_literal "$helper" 'FETCHED_CONTEXT_BUDGET_BYTES' "The context-hint helper must define the derived fetched_context budget constant (Story 3, Business Rule 4)."
+  require_literal "$helper" 'def enforce_budget(' "The context-hint helper must implement relevance-ordered budget enforcement (Story 3)."
+
+  require_literal "$leanness" 'story-context.py' "eval-leanness.py must delegate to the shared story-context.py assembler."
+  require_literal "$leanness" 'subprocess.run' "eval-leanness.py must invoke story-context.py via subprocess, not import (hyphenated filename)."
+  forbid_literal "$leanness" 'def resolve_context_hints(' "eval-leanness.py must not retain the retired resolve_context_hints() implementation."
+  forbid_literal "$leanness" 'CONTEXT_HINT_CATEGORY_KEYWORDS' "eval-leanness.py must not retain the retired keyword-anchor category map."
+
+  # Story 4: implement-story.md must delegate to the executable assembler
+  # instead of re-hosting a prose parser/degradation-table copy of it.
+  require_literal "$implement_story" 'scripts/story-context.py assemble' "implement-story.md must invoke the executable context-hint assembler instead of parsing hints by prose."
+  forbid_literal "$implement_story" 'Store parsed hints in `context_hints` map' "implement-story.md must not retain the retired prose parsing-algorithm step."
+  forbid_literal "$implement_story" 'For bracketed references: search source file for matching rows/entries by name' "implement-story.md must not retain the retired prose fetch-and-aggregate step."
+  require_literal "$implement_story" '| Architecture Check (Gate 0) |' "implement-story.md must retain the per-gate routing table's Architecture Check row."
+  require_literal "$implement_story" '| Coding Agent (Gate 1) |' "implement-story.md must retain the per-gate routing table's Coding Agent row."
+  require_literal "$implement_story" '| Review Agent (Gate 3) |' "implement-story.md must retain the per-gate routing table's Review Agent row."
+  require_literal "$implement_story" '| Testing Agent (Gate 4) |' "implement-story.md must retain the per-gate routing table's Testing Agent row."
+  require_literal "$implement_story" '| Documentation Agent (Gate 5) |' "implement-story.md must retain the per-gate routing table's Documentation Agent row."
 }
 
 check_phase_lanes() {

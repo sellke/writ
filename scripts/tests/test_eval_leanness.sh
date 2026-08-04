@@ -62,6 +62,26 @@ print(data["metrics"]["per_surface"][sys.argv[2]][sys.argv[3]])
 PY
 }
 
+# usage: context_hints_component <repo-root> -> story_context_components()['context_hints']
+# Loads eval-leanness.py by path (hyphenated filename, not import-able) and
+# calls the function directly so the Story 3 regression test below isolates
+# context_hints from the rest of the story_context_bytes sum.
+context_hints_component() {
+  python3 - "$1" "$HELPER" <<'PY'
+import importlib.util, sys
+root, helper_path = sys.argv[1], sys.argv[2]
+spec = importlib.util.spec_from_file_location("eval_leanness", helper_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)  # type: ignore[union-attr]
+print(module.story_context_components(root)["context_hints"])
+PY
+}
+
+# usage: assembler_bytes_total <story-context.py path> <story path>
+assembler_bytes_total() {
+  python3 "$1" assemble --story "$2" | python3 -c "import json, sys; print(json.load(sys.stdin)['bytes']['total'])"
+}
+
 # ---------------------------------------------------------------------------
 # Build a clean, self-consistent temp repo skeleton.
 # ---------------------------------------------------------------------------
@@ -558,6 +578,48 @@ run_helper "$TMP6" "$OUT6"
 json_contains "$OUT6" structural "baseline" || fail "missing-baseline finding must name the baseline"
 ok "missing baseline -> clear structural error (not silent pass)"
 rm -rf "$TMP6"
+
+# ---------------------------------------------------------------------------
+# Story 3 (2026-08-03-deterministic-story-substrate): context_hints must be
+# driven by the real assembler (scripts/story-context.py), not a declared-load
+# proxy. This landed in Story 2's commit 7628bf7 (Architecture Check Finding
+# 1) — this is a regression guard confirming it stays that way, not new
+# behavior introduced by this story.
+# ---------------------------------------------------------------------------
+TMP10="$(mktemp -d)"
+build_repo "$TMP10"
+mkdir -p "$TMP10/.writ/specs/2026-01-01-sample-spec/user-stories"
+cat > "$TMP10/.writ/specs/2026-01-01-sample-spec/spec.md" <<'EOF'
+# Spec: Sample
+
+## 📋 Business Rules
+
+1. **Sample rule.** Sample body text for the regression fixture.
+EOF
+cat > "$TMP10/.writ/specs/2026-01-01-sample-spec/user-stories/story-1-sample.md" <<'EOF'
+# Story 1: Sample
+
+## User Story
+
+Body.
+
+## Context for Agents
+
+- **Business rules:** [Sample rule]
+EOF
+STORY_PATH="$TMP10/.writ/specs/2026-01-01-sample-spec/user-stories/story-1-sample.md"
+EXPECTED_TOTAL="$(assembler_bytes_total "$REPO/scripts/story-context.py" "$STORY_PATH")"
+[ "$EXPECTED_TOTAL" -gt 0 ] || fail "regression fixture must resolve non-zero fetched_context bytes"
+
+CONTEXT_HINTS_COMPONENT="$(context_hints_component "$TMP10")"
+[ "$CONTEXT_HINTS_COMPONENT" -eq "$EXPECTED_TOTAL" ] \
+  || fail "context_hints ($CONTEXT_HINTS_COMPONENT) must equal the assembler's own bytes.total ($EXPECTED_TOTAL) for the same story"
+ok "context_hints is driven by the real assembler's bytes.total, not a declared-load proxy (Finding 1 regression)"
+
+! grep -q "def resolve_context_hints(" "$HELPER" || fail "eval-leanness.py must not retain the retired resolve_context_hints() implementation"
+! grep -q "CONTEXT_HINT_CATEGORY_KEYWORDS" "$HELPER" || fail "eval-leanness.py must not retain the retired keyword-anchor category map"
+ok "resolve_context_hints() and its keyword-anchor map remain retired"
+rm -rf "$TMP10"
 
 # ---------------------------------------------------------------------------
 # Story 5 (documentation): static presence assertions — ADR-019 exists,
