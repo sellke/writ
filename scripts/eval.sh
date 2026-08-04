@@ -32,6 +32,7 @@ CHECKS=(
   spec-dependencies
   spec-status
   archive-sweep
+  spec-lifecycle-docs
   story-deps
   story-context
   phase-lanes
@@ -1831,6 +1832,40 @@ check_archive_sweep() {
   forbid_literal "$status_cmd" 'grep -v archive' "status.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
   forbid_literal "$create_spec" 'grep -v archive' "create-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
   forbid_literal "$implement_spec" 'grep -v archive' "implement-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
+}
+
+check_spec_lifecycle_docs() {
+  local fake="$PROJECT_ROOT/scripts/eval-spec-lifecycle-docs.py"
+  local doc="$PROJECT_ROOT/.writ/docs/spec-lifecycle.md"
+  local verify_spec="$PROJECT_ROOT/commands/verify-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "spec-lifecycle-docs:$scenario_name" "$scenario_reason" "Fix the documented glob shape or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$doc" '## Canonical Status Vocabulary' "spec-lifecycle.md must document the canonical status vocabulary."
+  require_literal "$doc" '## Archive Convention' "spec-lifecycle.md must document the archive path convention."
+  require_literal "$doc" '## Two-Signal Archive Eligibility' "spec-lifecycle.md must document the two-signal eligibility rule."
+  require_literal "$doc" 'Do not add a second, separate exclusion check for `archive/`' "spec-lifecycle.md must carry the prominent do-not-duplicate-exclusion author note."
+  require_literal "$doc" 'backups/' "spec-lifecycle.md must document the backups/ invariant with concrete evidence."
+
+  require_literal "$verify_spec" 'spec-lifecycle.md' "verify-spec.md --all prose must link to the archive-exclusion doc."
+  forbid_literal "$verify_spec" 'specs/**' "verify-spec.md must not widen its spec enumeration to a recursive glob — that would silently include archive/."
 }
 
 check_story_deps() {
