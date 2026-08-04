@@ -12,7 +12,9 @@ imported by path — same recipe as test_spec_status.py / test_story_deps.py).
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -463,6 +465,40 @@ def test_archive_one_cli_subcommand_happy_path(tmp_path: Path) -> None:
 
     assert proc.returncode == 0
     payload = json.loads(proc.stdout)
+    assert payload["status"] == "archived"
+    assert "via PR #32" in payload["ledger_line"]
+    assert not (specs_dir / "2026-01-01-eligible-spec").exists()
+
+
+def test_archive_one_cli_subcommand_via_main_in_process(tmp_path: Path) -> None:
+    """Same `archive-one` CLI subcommand as the subprocess test above, but
+    invoked in-process via `main()` directly (same recipe as
+    test_revert_resolve.py's `main([...])` calls) so the CLI subcommand's
+    argument wiring and dispatch branch in `main()` — not just `archive_one()`
+    itself — is exercised under coverage instrumentation. The subprocess
+    variant above stays as the real-CLI-boundary/exit-code check; this one
+    exists purely so the new `archive-one` parser/dispatch lines in `main()`
+    aren't invisible to line-coverage tooling."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        exit_code = archive_sweep.main(
+            [
+                "archive-one",
+                "--specs-dir", str(specs_dir),
+                "--knowledge-dir", str(knowledge_dir),
+                "--repo-root", str(repo),
+                "--spec-name", "2026-01-01-eligible-spec",
+                "--pr-number", "32",
+            ]
+        )
+
+    assert exit_code == 0
+    payload = json.loads(buf.getvalue())
     assert payload["status"] == "archived"
     assert "via PR #32" in payload["ledger_line"]
     assert not (specs_dir / "2026-01-01-eligible-spec").exists()
