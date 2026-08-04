@@ -1,6 +1,6 @@
 # Spec: Post-Merge Archival Hook
 
-> **Status:** In Progress (1/4 stories complete)
+> **Status:** In Progress (2/4 stories complete)
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-04
 > **Dependencies:** [2026-08-04-spec-lifecycle-archival]
