@@ -1,6 +1,7 @@
 # Story 4: Dogfood and Verify
 
 > **Status:** Completed ✅ (2026-08-04) — fixture-scope (AC1–4) confirmed; AC5 (live merge-then-release confirmation) explicitly open, tracked below, not a blocker per this story's own Notes.
+> **Commit:** d9a90af623a4b401d00e6c8455cc4c062c927548
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
