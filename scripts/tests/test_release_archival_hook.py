@@ -2,159 +2,50 @@
 of post-merge-archival-hook).
 
 `commands/release.md` is a prose workflow document, not compiled code, so
-there is no importable "hook" module to call directly. This test instead
-models Step 1.3c's exact control-flow composition as `run_archival_hook()`
-below -- resolve via `scripts/resolve-spec-reference.py resolve`, branch on
-its `result` field, and (only when `matched`) invoke
-`scripts/archive-sweep.py archive-one`, branching purely on its returned
-`status` field -- then drives that composition against real fixture
-directories via subprocess, exactly the way Step 1.3c's prose describes the
-two scripts being chained. This mirrors how `test_archive_sweep.py` and
-`test_resolve_spec_reference.py` drive their own CLIs via subprocess against
-fixture directories (hyphenated filenames, invoked as subprocess CLIs here
-rather than imported by path, since the point under test is the *composition*
-of the two CLI boundaries, not either script's internals -- those are already
-covered by their own test files and are Readable-only for this story).
+there is no importable "hook" module to call directly. `run_archival_hook()`
+models Step 1.3c's exact control-flow composition -- resolve via
+`scripts/resolve-spec-reference.py resolve`, branch on its `result` field,
+and (only when `matched`) invoke `scripts/archive-sweep.py archive-one`,
+branching purely on its returned `status` field -- then drives that
+composition against real fixture directories via subprocess, exactly the way
+Step 1.3c's prose describes the two scripts being chained. This mirrors how
+`test_archive_sweep.py` and `test_resolve_spec_reference.py` drive their own
+CLIs via subprocess against fixture directories (hyphenated filenames,
+invoked as subprocess CLIs here rather than imported by path, since the
+point under test is the *composition* of the two CLI boundaries, not either
+script's internals -- those are already covered by their own test files and
+are Readable-only for this story).
+
+`run_archival_hook()` and its fixture helpers live in the shared
+`scripts/_archival_hook_model.py` module (extracted by Story 4 Task 4.0) so
+this pytest suite and `scripts/eval-post-merge-archival.py`'s smoke scenarios
+share one implementation rather than two drifting copies.
 """
 
 from __future__ import annotations
 
+import importlib.util
 import json
-import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
-RESOLVER_PATH = Path(__file__).resolve().parents[1] / "resolve-spec-reference.py"
-ARCHIVE_SWEEP_PATH = Path(__file__).resolve().parents[1] / "archive-sweep.py"
+_MODEL_PATH = Path(__file__).resolve().parents[1] / "_archival_hook_model.py"
+_SPEC = importlib.util.spec_from_file_location("archival_hook_model", _MODEL_PATH)
+assert _SPEC is not None and _SPEC.loader is not None
+_archival_hook_model = importlib.util.module_from_spec(_SPEC)
+sys.modules["archival_hook_model"] = _archival_hook_model
+_SPEC.loader.exec_module(_archival_hook_model)
 
-
-def run_archival_hook(
-    *,
-    branch: str | None,
-    commits: str | None,
-    specs_dir: Path,
-    knowledge_dir: Path,
-    repo_root: Path,
-    pr_number: int | None,
-    resolver_path: Path = RESOLVER_PATH,
-    archive_sweep_path: Path = ARCHIVE_SWEEP_PATH,
-) -> dict[str, Any]:
-    """Model of `/release` Step 1.3c's post-merge archival hook.
-
-    Only fires the archive call on the resolver's `matched` result (`none`
-    and `ambiguous` are treated identically as "skip" -- Story 1's tri-state
-    contract). Branches purely on `archive-one`'s own returned `status`
-    field for the archived/not-archived outcome, never re-deriving
-    eligibility itself (Task 3.3 -- no duplicated complete-family or
-    already-archived check here). The entire chain is wrapped in one
-    best-effort guard: any exception -- malformed JSON, a missing script, a
-    non-zero exit that still can't be parsed -- degrades to a swallowed
-    no-op result rather than propagating (Task 3.4 / AC 5), matching the
-    "never blocks a release" guarantee Step 1.3c's prose describes.
-    """
-    try:
-        resolve_proc = subprocess.run(
-            [
-                sys.executable,
-                str(resolver_path),
-                "resolve",
-                "--branch",
-                branch or "",
-                "--commits",
-                commits or "",
-                "--specs-dir",
-                str(specs_dir),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        resolve_result = json.loads(resolve_proc.stdout)
-
-        if resolve_result.get("result") != "matched":
-            return {"archived": False, "reason": resolve_result.get("result"), "spec": None}
-
-        spec_name = resolve_result["spec"]
-
-        archive_args = [
-            sys.executable,
-            str(archive_sweep_path),
-            "archive-one",
-            "--specs-dir",
-            str(specs_dir),
-            "--knowledge-dir",
-            str(knowledge_dir),
-            "--repo-root",
-            str(repo_root),
-            "--spec-name",
-            spec_name,
-        ]
-        if pr_number is not None:
-            archive_args += ["--pr-number", str(pr_number)]
-
-        archive_proc = subprocess.run(archive_args, capture_output=True, text=True, check=False)
-        archive_result = json.loads(archive_proc.stdout)
-        status = archive_result.get("status")
-
-        if status in ("archived", "archived_unlogged"):
-            return {
-                "archived": True,
-                "spec": spec_name,
-                "status": status,
-                "ledger_line": archive_result.get("ledger_line"),
-            }
-
-        return {"archived": False, "reason": status, "spec": spec_name}
-    except Exception as exc:  # best-effort guard -- never propagate (Task 3.4)
-        return {"archived": False, "reason": "exception", "error": str(exc), "spec": None}
-
-
-def _run_git(repo: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
-
-
-def init_repo(root: Path) -> Path:
-    repo = root / "repo"
-    repo.mkdir()
-    _run_git(repo, "init", "-q")
-    _run_git(repo, "config", "user.email", "test@example.com")
-    _run_git(repo, "config", "user.name", "Test")
-    return repo
-
-
-def make_spec(repo: Path, spec_id: str, header: str) -> Path:
-    specs_dir = repo / ".writ" / "specs"
-    folder = specs_dir / spec_id
-    folder.mkdir(parents=True, exist_ok=True)
-    (folder / "spec.md").write_text(f"# Spec: {spec_id}\n\n{header}\n", encoding="utf-8")
-    return specs_dir
-
-
-def commit_all(repo: Path) -> None:
-    _run_git(repo, "add", "-A")
-    _run_git(repo, "commit", "-q", "-m", "fixture commit")
-
-
-def empty_knowledge_dir(repo: Path) -> Path:
-    return repo / ".writ" / "knowledge"
-
-
-def fixed_output_script(tmp_path: Path, name: str, stdout: str) -> Path:
-    """Writes a throwaway script that unconditionally prints `stdout` and
-    exits 0 -- used to stand in for one half of the resolve/archive chain so
-    the other half's fixture (real specs_dir state) can drive a specific
-    branch without depending on the two real scripts agreeing on a folder
-    that may no longer exist (e.g. an already-archived spec is, by
-    definition, no longer visible to the real resolver's folder scan)."""
-    script = tmp_path / name
-    script.write_text(f"import sys\nsys.stdout.write({stdout!r})\nsys.exit(0)\n", encoding="utf-8")
-    return script
-
-
-def fake_matched_resolver(tmp_path: Path, spec_name: str) -> Path:
-    payload = json.dumps({"result": "matched", "spec": spec_name, "candidates": []})
-    return fixed_output_script(tmp_path, "fake_matched_resolver.py", payload)
+RESOLVER_PATH = _archival_hook_model.RESOLVER_PATH
+ARCHIVE_SWEEP_PATH = _archival_hook_model.ARCHIVE_SWEEP_PATH
+run_archival_hook = _archival_hook_model.run_archival_hook
+_run_git = _archival_hook_model._run_git
+init_repo = _archival_hook_model.init_repo
+make_spec = _archival_hook_model.make_spec
+commit_all = _archival_hook_model.commit_all
+empty_knowledge_dir = _archival_hook_model.empty_knowledge_dir
+fixed_output_script = _archival_hook_model.fixed_output_script
+fake_matched_resolver = _archival_hook_model.fake_matched_resolver
 
 
 # --- (a) hook fires and archives (matched + eligible) ---
