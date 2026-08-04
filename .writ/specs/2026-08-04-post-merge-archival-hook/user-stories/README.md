@@ -1,12 +1,12 @@
 # User Stories: Post-Merge Archival Hook
 
-> **Status:** In Progress — 2/4 stories complete, 14/28 tasks.
+> **Status:** In Progress — 3/4 stories complete, 22/29 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Shared Spec Reference Resolution](./story-1-shared-spec-reference-resolution.md) | Completed ✅ | 7 | 7/7 | None |
 | 2 | [Single-Spec Archive Entry Point](./story-2-single-spec-archive-entry-point.md) | Completed ✅ | 7 | 7/7 | None |
-| 3 | [Wire the Hook into /release Step 1.3c](./story-3-release-merged-pr-hook.md) | Not Started | 7 | 0/7 | Story 1, Story 2 |
+| 3 | [Wire the Hook into /release Step 1.3c](./story-3-release-merged-pr-hook.md) | Completed ✅ | 8 | 8/8 | Story 1, Story 2 |
 | 4 | [Dogfood and Verify](./story-4-dogfood-and-verify.md) | Not Started | 7 | 0/7 | Story 3 |
 
 ## Dependency Graph

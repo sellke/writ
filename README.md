@@ -134,7 +134,7 @@ Feedback loop (/retro + /refresh-command):
 | `/verify-spec` | Metadata diagnostic (checks 1–8): story/README integrity, completion, dependencies, deliverables, contract drift, spec-lite integrity, owner field — auto-fix by default; optional standalone pass |
 | `/create-uat-plan` | **UAT plan generation.** Reads completed stories and generates human-readable test scenarios from acceptance criteria, error maps, shadow paths, and edge cases. Enriches with "What Was Built" details. |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
-| `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release |
+| `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release. Also silently auto-archives the spec behind a just-merged PR, once resolved unambiguously. |
 
 ### Feedback & Learning
 | Command | Purpose |
