@@ -127,6 +127,33 @@ relpath() {
   printf "%s" "${path#"$PROJECT_ROOT"/}"
 }
 
+# Resolve a spec-relative path (e.g. ".writ/specs/<name>/spec.md") to wherever
+# it actually lives. Archive eligibility is status-alone (2026-08-04 amendment)
+# — a complete spec can move to .writ/specs/archive/<name>/ at any time, so
+# checks that assert content inside a *specific* spec must not hardcode the
+# active path. Falls back to the active path (even if missing) so existing
+# "file not found" findings still read sensibly.
+resolve_spec_path() {
+  local rel="$1"
+  local active="$PROJECT_ROOT/$rel"
+
+  if [ -e "$active" ]; then
+    printf "%s" "$active"
+    return
+  fi
+
+  if [[ "$rel" == .writ/specs/*/* ]]; then
+    local archived="${rel/.writ\/specs\//.writ/specs/archive/}"
+    local archived_abs="$PROJECT_ROOT/$archived"
+    if [ -e "$archived_abs" ]; then
+      printf "%s" "$archived_abs"
+      return
+    fi
+  fi
+
+  printf "%s" "$active"
+}
+
 line_count() {
   awk 'END { print NR }' "$1"
 }
@@ -594,12 +621,13 @@ forbid_literal_ci() {
 
 check_autonomy_governance() {
   local adr="$PROJECT_ROOT/.writ/decision-records/adr-013-recommended-autonomous-delivery.md"
-  local delivery_spec="$PROJECT_ROOT/.writ/specs/2026-07-10-recommended-autonomous-delivery/spec.md"
-  local phase_spec="$PROJECT_ROOT/.writ/specs/2026-07-09-phase6-autonomy-ceiling/spec.md"
-  local phase_lite="$PROJECT_ROOT/.writ/specs/2026-07-09-phase6-autonomy-ceiling/spec-lite.md"
-  local phase_story_3="$PROJECT_ROOT/.writ/specs/2026-07-09-phase6-autonomy-ceiling/user-stories/story-3-contract-preserving-user-challenges.md"
-  local phase_story_7="$PROJECT_ROOT/.writ/specs/2026-07-09-phase6-autonomy-ceiling/user-stories/story-7-ralph-retirement-and-autonomy-acceptance.md"
-  local phase_index="$PROJECT_ROOT/.writ/specs/2026-07-09-phase6-autonomy-ceiling/user-stories/README.md"
+  local delivery_spec phase_spec phase_lite phase_story_3 phase_story_7 phase_index
+  delivery_spec="$(resolve_spec_path ".writ/specs/2026-07-10-recommended-autonomous-delivery/spec.md")"
+  phase_spec="$(resolve_spec_path ".writ/specs/2026-07-09-phase6-autonomy-ceiling/spec.md")"
+  phase_lite="$(resolve_spec_path ".writ/specs/2026-07-09-phase6-autonomy-ceiling/spec-lite.md")"
+  phase_story_3="$(resolve_spec_path ".writ/specs/2026-07-09-phase6-autonomy-ceiling/user-stories/story-3-contract-preserving-user-challenges.md")"
+  phase_story_7="$(resolve_spec_path ".writ/specs/2026-07-09-phase6-autonomy-ceiling/user-stories/story-7-ralph-retirement-and-autonomy-acceptance.md")"
+  phase_index="$(resolve_spec_path ".writ/specs/2026-07-09-phase6-autonomy-ceiling/user-stories/README.md")"
   local roadmap="$PROJECT_ROOT/.writ/product/roadmap.md"
   local mission="$PROJECT_ROOT/.writ/product/mission.md"
   local mission_lite="$PROJECT_ROOT/.writ/product/mission-lite.md"
@@ -691,7 +719,8 @@ check_recommended_spec_implementation() {
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local state_doc="$PROJECT_ROOT/.writ/docs/recommended-delivery-state-format.md"
   local helper="$PROJECT_ROOT/scripts/recommend-state.py"
-  local recommendation_log="$PROJECT_ROOT/.writ/specs/2026-07-10-recommended-autonomous-delivery/recommendation-log.md"
+  local recommendation_log
+  recommendation_log="$(resolve_spec_path ".writ/specs/2026-07-10-recommended-autonomous-delivery/recommendation-log.md")"
   local scenario_output
 
   # ADR-013 (revised 2026-07-17): `--recommend` was redistributed to
@@ -1912,7 +1941,8 @@ check_supersession_writeback() {
   local helper="$PROJECT_ROOT/scripts/supersession-writeback.py"
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local edit_spec="$PROJECT_ROOT/commands/edit-spec.md"
-  local guardian="$PROJECT_ROOT/.writ/specs/2026-07-11-leanness-guardian/spec.md"
+  local guardian
+  guardian="$(resolve_spec_path ".writ/specs/2026-07-11-leanness-guardian/spec.md")"
   local scenario_output scenario_status scenario_name scenario_reason
 
   scenario_output="$(mktemp)"
@@ -1942,7 +1972,7 @@ check_supersession_writeback() {
   require_literal "$edit_spec" 'supersession-writeback.py' "edit-spec.md must invoke the same supersession-writeback helper as create-spec.md."
 
   if [ ! -f "$guardian" ]; then
-    add_finding "supersession-writeback:guardian-spec-missing" "The leanness-guardian validation-pair spec is missing." "Confirm .writ/specs/2026-07-11-leanness-guardian/spec.md still exists at its expected path."
+    add_finding "supersession-writeback:guardian-spec-missing" "The leanness-guardian validation-pair spec is missing." "Confirm .writ/specs/2026-07-11-leanness-guardian/spec.md still exists, active or archived."
   elif ! grep -q '> \*\*Superseded by:\*\* \[2026-07-26-leanness-instrumentation\](\.\./2026-07-26-leanness-instrumentation/spec\.md)' "$guardian"; then
     add_finding "supersession-writeback:guardian-reverse-pointer-missing" "leanness-guardian/spec.md is missing the retroactive Superseded by: pointer." "Re-apply Story 5 task 5.5 — run supersession-writeback.py apply against the leanness-instrumentation spec."
   fi
