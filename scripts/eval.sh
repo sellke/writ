@@ -30,6 +30,7 @@ CHECKS=(
   recommended-spec-implementation
   recommended-staging
   spec-dependencies
+  spec-status
   story-deps
   story-context
   phase-lanes
@@ -1750,6 +1751,42 @@ check_spec_dependencies() {
   require_literal "$implement_phase" 'roadmap order' "Implement-phase must use roadmap order as the independent-spec tie-break."
   require_literal "$implement_phase" 'inference remains advisory' "Implement-phase must keep shared-surface inference advisory only."
   require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
+}
+
+check_spec_status() {
+  local fake="$PROJECT_ROOT/scripts/eval-spec-status.py"
+  local helper="$PROJECT_ROOT/scripts/spec-status.py"
+  local status_cmd="$PROJECT_ROOT/commands/status.md"
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "spec-status:$scenario_name" "$scenario_reason" "Fix the executable detector or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def classify(' "The spec-status helper must classify a spec header as complete-family."
+  require_literal "$helper" 'COMPLETE_FAMILY_PREFIXES' "The spec-status helper must declare its complete-family value set."
+  require_literal "$helper" 'def scan_dir(' "The spec-status helper must support scanning a specs directory via a single-level glob."
+
+  forbid_literal "$status_cmd" 'grep -q "Status: Complete"' "status.md must not retain the broken literal substring check — it never matches the bold header form."
+  forbid_literal "$create_spec" 'skip specs with `Status: Complete`' "create-spec.md Step 1.3b must not retain the broken literal substring instruction."
+  require_literal "$status_cmd" 'spec-status.py' "status.md must invoke the shared format-tolerant detector."
+  require_literal "$create_spec" 'spec-status.py' "create-spec.md Step 1.3b must reference the shared format-tolerant detector."
+  require_literal "$create_spec" 'Canonical complete-family spelling' "create-spec.md must document the canonical new-spec Complete spelling."
 }
 
 check_story_deps() {

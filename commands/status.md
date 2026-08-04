@@ -78,7 +78,11 @@ read-only — `/status` never writes or syncs notes.
 ls -t .writ/specs/*/spec.md
 ```
 
-For the most recently modified spec that is not `Status: Complete`:
+For the most recently modified spec that does not resolve to **complete-family**
+under the format-tolerant classification in `scripts/spec-status.py` (see
+[Spec Detection](#spec-detection) below — recognizes bold/unbold `Status:` labels
+and `Complete` / `Completed ✅` / `Closed — Abandoned` as complete-family; an absent
+status header conservatively resolves not-complete):
 1. Read `spec.md` header — name, status, phase, owner
 2. Read `user-stories/README.md` — overall progress (X/Y tasks, Z%)
 3. Find the active story: `In Progress` status, or first `Not Started` if none in progress
@@ -330,9 +334,14 @@ git branch -v                       # Branch info
 ### Spec Detection
 
 ```bash
-# Find most recently modified non-complete spec
+# Find most recently modified non-complete spec — format-tolerant classification
+# (bold or unbold "Status:" label; Complete / Completed ✅ / Closed — Abandoned all
+# resolve as complete-family; an absent header conservatively resolves not-complete).
+# scripts/spec-status.py is the executable contract — invoke it rather than a
+# literal substring grep, which does not match `> **Status:** Complete`.
 ls -t .writ/specs/*/spec.md | while read f; do
-  grep -q "Status: Complete" "$f" || { echo "$f"; break; }
+  complete=$(python3 scripts/spec-status.py is-complete --file "$f" | python3 -c "import json,sys; print(json.load(sys.stdin)['complete'])")
+  [ "$complete" = "True" ] || { echo "$f"; break; }
 done
 
 # Read overall progress

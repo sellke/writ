@@ -386,8 +386,8 @@ Start with *experience*, then fill in *rules*, then address *technical* constrai
 
 Before presenting the contract, scan for potential conflicts with other in-progress specifications:
 
-1. **List all spec folders** in `.writ/specs/`
-2. **Filter out completed specs** — read each `spec.md` header and skip specs with `Status: Complete`
+1. **List all spec folders** in `.writ/specs/` (single-level glob `.writ/specs/*/spec.md` — this naturally excludes `.writ/specs/archive/**`, one path segment deeper; see `.writ/docs/spec-lifecycle.md`)
+2. **Filter out completed specs** — classify each `spec.md` header with the format-tolerant complete-family check (`python3 scripts/spec-status.py is-complete --file <path>`, or equivalent logic): bold or unbold `Status:` label, matching `Complete`, `Completed ✅`, or `Closed — Abandoned` as complete-family values, trailing parenthetical/emoji text ignored. Skip specs that resolve to complete-family. **Do not** match only the literal substring `Status: Complete` — it never matches the bold form `> **Status:** Complete`. A spec with no status header at all conservatively resolves not-complete (never skipped).
 3. **Read each remaining `spec-lite.md`** — these are small, condensed files designed for quick scanning
 4. **Extract domain keywords** from the new contract: models/entities mentioned, routes/endpoints, shared utilities, domain-specific terms, files to be modified
 5. **Compare against existing specs** — check for keyword overlap in domain areas (same models, same routes, same shared utilities)
@@ -567,6 +567,7 @@ The owner value is intentionally simple: prefix `@`, strip spaces, and do not co
   - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when the spec has no cross-spec dependency.
   - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid dependency identifiers.
   - This spec-level `Dependencies` header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
+  - **Canonical complete-family spelling (forward-only):** when a spec is later marked done, its status line becomes `> **Status:** Complete` — bold, unadorned, no emoji suffix required. This is the only spelling `create-spec` itself ever writes for the complete state. Detection (`scripts/spec-status.py`) remains tolerant of legacy spellings already present in existing files (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`) — this note governs new specs only, per Business Rule 8. Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
 - **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
