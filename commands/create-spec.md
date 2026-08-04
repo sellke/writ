@@ -386,8 +386,8 @@ Start with *experience*, then fill in *rules*, then address *technical* constrai
 
 Before presenting the contract, scan for potential conflicts with other in-progress specifications:
 
-1. **List all spec folders** in `.writ/specs/`
-2. **Filter out completed specs** — read each `spec.md` header and skip specs with `Status: Complete`
+1. **List all spec folders** in `.writ/specs/` (single-level glob `.writ/specs/*/spec.md` — this naturally excludes `.writ/specs/archive/**`, one path segment deeper; see `.writ/docs/spec-lifecycle.md`)
+2. **Filter out completed specs** — classify each `spec.md` header with the format-tolerant complete-family check (`python3 scripts/spec-status.py is-complete --file <path>`, or equivalent logic): bold or unbold `Status:` label, matching `Complete`, `Completed ✅`, or `Closed — Abandoned` as complete-family values, trailing parenthetical/emoji text ignored. Skip specs that resolve to complete-family. **Do not** match only the literal substring `Status: Complete` — it never matches the bold form `> **Status:** Complete`. A spec with no status header at all conservatively resolves not-complete (never skipped).
 3. **Read each remaining `spec-lite.md`** — these are small, condensed files designed for quick scanning
 4. **Extract domain keywords** from the new contract: models/entities mentioned, routes/endpoints, shared utilities, domain-specific terms, files to be modified
 5. **Compare against existing specs** — check for keyword overlap in domain areas (same models, same routes, same shared utilities)
@@ -567,11 +567,27 @@ The owner value is intentionally simple: prefix `@`, strip spaces, and do not co
   - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when the spec has no cross-spec dependency.
   - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid dependency identifiers.
   - This spec-level `Dependencies` header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
+  - **Canonical complete-family spelling (forward-only):** when a spec is later marked done, its status line becomes `> **Status:** Complete` — bold, unadorned, no emoji suffix required. This is the only spelling `create-spec` itself ever writes for the complete state. Detection (`scripts/spec-status.py`) remains tolerant of legacy spellings already present in existing files (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`) — this note governs new specs only, per Business Rule 8. Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
+  - **Supersession banners:** if the locked contract declares that this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on without full replacement) as a markdown link to the prior spec — link text is the prior spec's folder name, link target its relative `spec.md` path (e.g. field `Amends:`, link text `2026-07-11-leanness-guardian`, target `../2026-07-11-leanness-guardian/spec.md`). See Step 2.4b below for the required reverse-pointer write-back, and [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners) for the full convention.
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
 - **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
 - **Detailed requirements** — expanded from clarification responses
 - **Implementation approach** — technical strategy based on codebase analysis
+
+#### Step 2.4b: Supersession Write-back (`Amends:`/`Extends:`)
+
+If the new spec's header (written in Step 2.4) contains an `> **Amends:**` or `> **Extends:**` line, write a matching reverse pointer onto each referenced spec — applies uniformly whether Phase 2 was reached via the standard flow, `--from-issue`, or `--from-prototype`.
+
+Invoke the reference implementation rather than hand-editing headers:
+
+```bash
+python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md
+```
+
+This performs, in one step: parsing every markdown link target on the `Amends:`/`Extends:` line (a line may reference more than one target — e.g. a spec **and** an ADR, as in `2026-07-26-leanness-instrumentation`'s `Amends:` line); resolving each against the new spec's own folder; writing a `Superseded by:` line — link text the new spec's folder name, target its relative `spec.md` path — into each resolvable target's header metadata block (inserted if absent, updated in place if already present — never duplicated); and leaving every other line — including the target's own `> **Status:**` line — untouched.
+
+Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` file (e.g. an ADR link) are reported under `skipped_other` — forward-only, no reverse pointer is attempted. A broken relative path or missing target spec is reported under `broken`, never raised as a hard failure: **this step never blocks or fails spec package creation** — proceed to Step 2.5 regardless of the write-back outcome, surfacing any `broken` entries to the user as an informational note.
 
 **spec-lite.md** — Condensed version for AI context windows with agent-specific sections. Total budget: <100 lines (hard limit). Format:
 

@@ -430,6 +430,34 @@ seed_codex_config() {
   return 0
 }
 
+# seed_cursorindexingignore — install-once .cursorindexingignore excluding
+# archived specs from Cursor's semantic search index. Seeded on every
+# platform (harmless where inert) so the archive convention (Story 2)
+# degrades gracefully by default, not only for Cursor installs.
+# Globals: none (writes SEED_CURSORINDEXINGIGNORE_NOTE for the summary line)
+seed_cursorindexingignore() {
+  local op="${1:-apply}" # preview | apply
+  local dest=".cursorindexingignore"
+  if [ -f "$dest" ]; then
+    if [ "$op" = "preview" ]; then
+      SEED_CURSORINDEXINGIGNORE_NOTE="Would skip .cursorindexingignore (already exists; install-once)."
+    else
+      SEED_CURSORINDEXINGIGNORE_NOTE="⚡ Preserved: .cursorindexingignore (install-once)"
+    fi
+    printf '%s\n' "$SEED_CURSORINDEXINGIGNORE_NOTE"
+    return 0
+  fi
+  if [ "$op" = "preview" ]; then
+    SEED_CURSORINDEXINGIGNORE_NOTE="Would seed .cursorindexingignore (first install)."
+    printf '%s\n' "$SEED_CURSORINDEXINGIGNORE_NOTE"
+    return 0
+  fi
+  printf '%s\n' ".writ/specs/archive/**" > "$dest"
+  SEED_CURSORINDEXINGIGNORE_NOTE="✨ Seeded: .cursorindexingignore"
+  printf '%s\n' "$SEED_CURSORINDEXINGIGNORE_NOTE"
+  return 0
+}
+
 writ_warn_agents_md_size() {
   local max_bytes=32768
   [ -f "AGENTS.md" ] || return 0
@@ -893,6 +921,9 @@ if [ "$DRY_RUN" = true ]; then
     configure_audit_notes_sync preview
   fi
   echo ""
+  echo "  Cursor indexing ignore (install-once):"
+  seed_cursorindexingignore preview
+  echo ""
   echo "💡 To reset a file to core: delete the local copy and re-run install."
   echo "💡 To force overwrite all: install.sh --force"
   if [ "$PLATFORM" = "codex" ] && [ "$AGENT_COUNT" -eq 0 ]; then
@@ -997,6 +1028,9 @@ init_writ_workspace
 echo "  🔗 Audit notes sync (refs/notes/writ)..."
 configure_audit_notes_sync apply
 
+echo "  🔎 Cursor indexing ignore (install-once)..."
+seed_cursorindexingignore apply
+
 # --- Summary ---
 
 echo ""
@@ -1034,6 +1068,8 @@ if [ "$PLATFORM" = "codex" ]; then
   [ -n "${SEED_CODEX_CONFIG_NOTE:-}" ] && echo "  $SEED_CODEX_CONFIG_NOTE"
 fi
 
+[ -n "${SEED_CURSORINDEXINGIGNORE_NOTE:-}" ] && { echo ""; echo "  $SEED_CURSORINDEXINGIGNORE_NOTE"; }
+
 # --- Scoped git commit ---
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
@@ -1050,6 +1086,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
   git add "$MANIFEST_FILE" 2>/dev/null || true
   [ -d .writ ] && git add .writ/ 2>/dev/null || true
   [ -f .gitignore ] && git add .gitignore 2>/dev/null || true
+  [ -f .cursorindexingignore ] && git add .cursorindexingignore 2>/dev/null || true
 
   git commit -m "$(cat <<EOF
 chore: install Writ development workflow ($PLATFORM_LABEL)

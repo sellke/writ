@@ -51,11 +51,12 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
 - **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%). **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
-- **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, enabling accurate dependency integration
+- **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, so integration code matches what was actually built, not just what was planned
 - **Knowledge accumulation** — `.writ/knowledge/` is a markdown ledger for cross-cutting decisions, conventions, glossary, and lessons. Capture with `/knowledge`; agents auto-load relevant entries at task start so context survives context-window resets and machine changes.
+- **Deterministic context assembly** — `/implement-story`'s context-hint resolution runs through one script (`scripts/story-context.py`) instead of three drifting prose/code implementations, with an empirically derived `fetched_context` budget (21,000 bytes) that truncates by relevance and warns rather than loading unbounded context
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
-- **Self-improving** — `/refresh-command` turns session friction into cited command diffs — every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
+- **Self-improving** — `/refresh-command` turns session friction into cited command diffs. Every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
 - **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
 - **Native-memory interop** — markdown stays canonical while adapters document how to ride each platform's native memory; external knowledge indexes (e.g., GBrain via MCP) are consumers, with brain-first retrieval via the `gbrain-interop` skill
 - **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI, plus an OpenClaw mapping guide
@@ -330,9 +331,9 @@ When Writ runs, it creates a `.writ/` directory in your project:
 ## Philosophy
 
 1. **Contract-first** — Establish agreement before creating files. Challenge bad ideas early.
-2. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.
+2. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives.
 3. **TDD always** — Tests first, then implementation. 100% pass rate mandatory.
-4. **Quality gates, not quality hopes** — Automated checks at every stage.
+4. **Quality gates** — Automated checks at every stage.
 5. **Parallel by default** — Independent work runs simultaneously.
 6. **Self-improving** — Commands get better through use. `/refresh-command` + `/retro` close the feedback loop.
 7. **Platform-agnostic** — Markdown instructions work anywhere AI agents run.

@@ -80,6 +80,7 @@ Root catalog for platforms that support skill discovery. Auto-generated from `.w
 - **Platform-agnostic tool references**: Commands use generic tool names. Adapters translate to platform-specific APIs.
 - **Symlinks for dogfooding**: `.cursor/` symlinks to product source so edits are immediately live and `/refresh-command` improves the product directly.
 - **`.writ/state/` is gitignored**: Ephemeral workflow state only.
+- **Spec lifecycle & archival**: completed specs move to `.writ/specs/archive/<name>/` via `/status --archive`, one path segment deeper than active specs so every existing single-level `.writ/specs/*/spec.md` glob excludes them automatically. See [`.writ/docs/spec-lifecycle.md`](.writ/docs/spec-lifecycle.md) before adding a new spec-enumeration call site or a redundant `archive/` exclusion check.
 
 ## When Editing Commands or Agents
 

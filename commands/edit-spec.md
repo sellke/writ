@@ -105,6 +105,14 @@ Use `todo_write` to track the modification steps.
 
 **README and sub-specs:** Update progress table, dependency graph, and quick links. Only update sub-specs that are actually affected.
 
+**Supersession write-back (`Amends:`/`Extends:`):** if the modification contract adds or changes an `> **Amends:**` or `> **Extends:**` line on this spec's header (declaring that it now supersedes or builds on another spec), invoke the same reference implementation `create-spec.md` Step 2.4b uses for new specs:
+
+```bash
+python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[edited-spec-folder]/spec.md
+```
+
+This writes/updates `> **Superseded by:**` onto each resolvable referenced spec's header without touching its `Status:` line or any other content, skips non-spec targets (e.g. ADR links) under `skipped_other`, and reports broken references under `broken` rather than failing — a bad supersession pointer never blocks or rolls back the rest of the edit.
+
 #### Step 2.3: Validate
 
 Present the updated package: file tree with change indicators (⭐ Updated, 🆕 New, 🗃️ Archived), summary of stories modified/added/archived, tasks reorganized, and completed work preserved.

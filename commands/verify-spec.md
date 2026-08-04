@@ -32,7 +32,7 @@ This command is **not a pipeline gate** — run it when you suspect spec drift, 
 
 **If `/verify-spec --spec [path]`:** Resolve to a spec folder (directory containing `spec.md`). Skip selection.
 
-**If `/verify-spec --all`:** Build the list of all `.writ/specs/*/` folders that contain `spec.md`. Process each sequentially (or report per spec); aggregate a summary at the end.
+**If `/verify-spec --all`:** Build the list of all `.writ/specs/*/` folders that contain `spec.md`. Process each sequentially (or report per spec); aggregate a summary at the end. This single-level glob already excludes `.writ/specs/archive/<name>/spec.md` by construction — one path segment deeper than this shape matches — so archived specs are never re-verified by default. See [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#verify-spec---all-and-archive-exclusion) for why this is sufficient and why no explicit `archive/` filter should be added here. A future `--include-archived` flag to opt back in is deferred, not built.
 
 **If not specified:**
 ```

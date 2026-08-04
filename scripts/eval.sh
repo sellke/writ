@@ -30,6 +30,12 @@ CHECKS=(
   recommended-spec-implementation
   recommended-staging
   spec-dependencies
+  spec-status
+  archive-sweep
+  spec-lifecycle-docs
+  cursorindexingignore
+  supersession-writeback
+  archive-dogfood
   story-deps
   story-context
   phase-lanes
@@ -1750,6 +1756,225 @@ check_spec_dependencies() {
   require_literal "$implement_phase" 'roadmap order' "Implement-phase must use roadmap order as the independent-spec tie-break."
   require_literal "$implement_phase" 'inference remains advisory' "Implement-phase must keep shared-surface inference advisory only."
   require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
+}
+
+check_spec_status() {
+  local fake="$PROJECT_ROOT/scripts/eval-spec-status.py"
+  local helper="$PROJECT_ROOT/scripts/spec-status.py"
+  local status_cmd="$PROJECT_ROOT/commands/status.md"
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "spec-status:$scenario_name" "$scenario_reason" "Fix the executable detector or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def classify(' "The spec-status helper must classify a spec header as complete-family."
+  require_literal "$helper" 'COMPLETE_FAMILY_PREFIXES' "The spec-status helper must declare its complete-family value set."
+  require_literal "$helper" 'def scan_dir(' "The spec-status helper must support scanning a specs directory via a single-level glob."
+
+  forbid_literal "$status_cmd" 'grep -q "Status: Complete"' "status.md must not retain the broken literal substring check — it never matches the bold header form."
+  forbid_literal "$create_spec" 'skip specs with `Status: Complete`' "create-spec.md Step 1.3b must not retain the broken literal substring instruction."
+  require_literal "$status_cmd" 'spec-status.py' "status.md must invoke the shared format-tolerant detector."
+  require_literal "$create_spec" 'spec-status.py' "create-spec.md Step 1.3b must reference the shared format-tolerant detector."
+  require_literal "$create_spec" 'Canonical complete-family spelling' "create-spec.md must document the canonical new-spec Complete spelling."
+}
+
+check_archive_sweep() {
+  local fake="$PROJECT_ROOT/scripts/eval-archive-sweep.py"
+  local helper="$PROJECT_ROOT/scripts/archive-sweep.py"
+  local status_cmd="$PROJECT_ROOT/commands/status.md"
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "archive-sweep:$scenario_name" "$scenario_reason" "Fix the executable sweep reducer or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def sweep(' "The archive-sweep helper must implement the sweep reducer."
+  require_literal "$helper" 'def find_knowledge_evidence(' "The archive-sweep helper must scan knowledge related_artifacts for eligibility evidence."
+  require_literal "$helper" 'spec-status.py' "The archive-sweep helper must delegate complete-family classification to the shared spec-status.py detector, not reimplement it."
+  require_literal "$helper" 'collisions.append' "The archive-sweep helper must record destination collisions without aborting the sweep."
+  require_literal "$helper" 'move_failures.append' "The archive-sweep helper must record git-mv failures without aborting the sweep."
+
+  require_literal "$status_cmd" '--archive' "status.md must document the --archive invocation flag."
+  require_literal "$status_cmd" 'archive-sweep.py' "status.md must invoke the shared archive-sweep reducer."
+  require_literal "$status_cmd" 'never as a side effect' "status.md must state that --archive never triggers as a side effect of routine /status."
+
+  # Nesting is the sole filtering mechanism (Business Rule 5) — no command in
+  # the suite should grow a parallel, explicit archive/ exclusion check.
+  forbid_literal "$status_cmd" 'grep -v archive' "status.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
+  forbid_literal "$create_spec" 'grep -v archive' "create-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
+  forbid_literal "$implement_spec" 'grep -v archive' "implement-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
+}
+
+check_spec_lifecycle_docs() {
+  local fake="$PROJECT_ROOT/scripts/eval-spec-lifecycle-docs.py"
+  local doc="$PROJECT_ROOT/.writ/docs/spec-lifecycle.md"
+  local verify_spec="$PROJECT_ROOT/commands/verify-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "spec-lifecycle-docs:$scenario_name" "$scenario_reason" "Fix the documented glob shape or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$doc" '## Canonical Status Vocabulary' "spec-lifecycle.md must document the canonical status vocabulary."
+  require_literal "$doc" '## Archive Convention' "spec-lifecycle.md must document the archive path convention."
+  require_literal "$doc" '## Two-Signal Archive Eligibility' "spec-lifecycle.md must document the two-signal eligibility rule."
+  require_literal "$doc" 'Do not add a second, separate exclusion check for `archive/`' "spec-lifecycle.md must carry the prominent do-not-duplicate-exclusion author note."
+  require_literal "$doc" 'backups/' "spec-lifecycle.md must document the backups/ invariant with concrete evidence."
+
+  require_literal "$verify_spec" 'spec-lifecycle.md' "verify-spec.md --all prose must link to the archive-exclusion doc."
+  forbid_literal "$verify_spec" 'specs/**' "verify-spec.md must not widen its spec enumeration to a recursive glob — that would silently include archive/."
+}
+
+check_cursorindexingignore() {
+  local fake="$PROJECT_ROOT/scripts/eval-cursorindexingignore.py"
+  local install="$PROJECT_ROOT/scripts/install.sh"
+  local root_file="$PROJECT_ROOT/.cursorindexingignore"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "cursorindexingignore:$scenario_name" "$scenario_reason" "Fix seed_cursorindexingignore in install.sh or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$install" 'seed_cursorindexingignore()' "install.sh must define the seed_cursorindexingignore install-once helper."
+  require_literal "$install" '.writ/specs/archive/**' "install.sh must seed the archive-exclusion pattern into .cursorindexingignore."
+  require_literal "$install" 'seed_cursorindexingignore preview' "install.sh's --dry-run preview pass must call seed_cursorindexingignore preview."
+  require_literal "$install" 'seed_cursorindexingignore apply' "install.sh's apply pass must call seed_cursorindexingignore apply."
+
+  if [ ! -f "$root_file" ]; then
+    add_finding "cursorindexingignore:repo-root-file-missing" "This repo's own .cursorindexingignore is missing." "Create .cursorindexingignore at the repo root with .writ/specs/archive/** (Story 4 task 4.5 — this repo does not run install.sh on itself)."
+  elif ! grep -q '^\.writ/specs/archive/\*\*$' "$root_file"; then
+    add_finding "cursorindexingignore:repo-root-pattern-missing" "This repo's .cursorindexingignore lacks the archive exclusion pattern on its own line." "Add .writ/specs/archive/** to $root_file."
+  fi
+}
+
+check_supersession_writeback() {
+  local fake="$PROJECT_ROOT/scripts/eval-supersession-writeback.py"
+  local helper="$PROJECT_ROOT/scripts/supersession-writeback.py"
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local edit_spec="$PROJECT_ROOT/commands/edit-spec.md"
+  local guardian="$PROJECT_ROOT/.writ/specs/2026-07-11-leanness-guardian/spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "supersession-writeback:$scenario_name" "$scenario_reason" "Fix the supersession-writeback helper or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def scan(' "supersession-writeback.py must implement the scan reducer."
+  require_literal "$helper" 'def apply(' "supersession-writeback.py must implement the apply reducer."
+  require_literal "$helper" 'Superseded by:' "supersession-writeback.py must write the Superseded by: reverse pointer."
+
+  require_literal "$create_spec" 'supersession-writeback.py' "create-spec.md Phase 2 must invoke the supersession-writeback helper."
+  require_literal "$create_spec" 'Amends' "create-spec.md must document the Amends: forward-pointer field."
+  require_literal "$edit_spec" 'supersession-writeback.py' "edit-spec.md must invoke the same supersession-writeback helper as create-spec.md."
+
+  if [ ! -f "$guardian" ]; then
+    add_finding "supersession-writeback:guardian-spec-missing" "The leanness-guardian validation-pair spec is missing." "Confirm .writ/specs/2026-07-11-leanness-guardian/spec.md still exists at its expected path."
+  elif ! grep -q '> \*\*Superseded by:\*\* \[2026-07-26-leanness-instrumentation\](\.\./2026-07-26-leanness-instrumentation/spec\.md)' "$guardian"; then
+    add_finding "supersession-writeback:guardian-reverse-pointer-missing" "leanness-guardian/spec.md is missing the retroactive Superseded by: pointer." "Re-apply Story 5 task 5.5 — run supersession-writeback.py apply against the leanness-instrumentation spec."
+  fi
+}
+
+check_archive_dogfood() {
+  local fake="$PROJECT_ROOT/scripts/eval-archive-dogfood.py"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "archive-dogfood:$scenario_name" "$scenario_reason" "Investigate the real .writ/specs/archive/ tree — this check runs against production data, not a fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Story 6's dogfood run surfaced a real prose gap: implement-spec.md's spec
+  # listing didn't originally qualify "contains spec.md," so a naive folder
+  # listing could have surfaced archive/ itself as a bogus selectable spec.
+  require_literal "$implement_spec" 'containing spec.md' "implement-spec.md's spec-selection listing must require spec.md presence, not just list bare .writ/specs/ subfolder names (this is what keeps archive/ excluded)."
 }
 
 check_story_deps() {

@@ -38,6 +38,8 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 
 If no spec argument provided:
 
+Build the option list from `.writ/specs/*/` folders that **contain `spec.md`** — the same single-level glob shape `commands/status.md` and `commands/verify-spec.md` use. This excludes `.writ/specs/archive/<name>/spec.md` by construction (one path segment deeper than the shape matches) — never list bare subfolder names without checking for `spec.md`, since that would surface `archive` itself as a bogus selectable "spec." See [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md) for why this is sufficient.
+
 ```
 AskQuestion({
   title: "Select Specification",
@@ -45,7 +47,7 @@ AskQuestion({
     {
       id: "spec",
       prompt: "Which specification do you want to implement?",
-      options: [list of specs found in .writ/specs/]
+      options: [list of specs found in .writ/specs/*/ containing spec.md]
     }
   ]
 })
