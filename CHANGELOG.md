@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.27.0] - 2026-08-04
+
+**Status-Alone Archive Eligibility** — amends the archive lifecycle shipped in 0.26.0: eligibility no longer requires a knowledge-evidence citation alongside a complete-family status. In practice the two-signal bar left 36 of 39 completed specs stranded in the active directory, defeating the point of the archival feature. Knowledge evidence is still recorded per-spec in the ledger, but as enrichment, not a gate.
+
+### Changed
+
+- **Archive eligibility is status-alone** — `scripts/archive-sweep.py` now archives any complete-family spec (`Complete`, `Completed ✅`, `Closed — Abandoned`, `Closed — Cancelled`) regardless of knowledge-evidence citations; the ledger records `"no knowledge evidence yet"` instead of skipping the spec ([Story 2 amendment](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-2-archive-sweep-mechanism.md)).
+
+### Fixed
+
+- Three eval checks (`autonomy-governance`, `recommended-spec-implementation`, `supersession-writeback`) hardcoded active paths for governance-critical specs and reported 14 false-positive findings once the wider re-sweep archived those specs. Added `resolve_spec_path()` to `scripts/eval.sh` so checks that assert content inside a specific spec look in both `.writ/specs/` and `.writ/specs/archive/`.
+
+### Internal
+
+- Re-ran the archive sweep under the amended rule: 36 additional complete-family specs moved to `.writ/specs/archive/<name>/` via `git mv`, `LEDGER.md` gained 36 entries ([Story 6 second run](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-6-dogfood-sweep.md)).
+- Documents `scripts/publish-writ-runtime.sh` in `commands/release.md` — swaps in a minimal `scripts/writ-runtime-readme.md` for `npm publish` only, since npm always bundles the root `README.md` regardless of the `files` array.
+- Removed 13 stale issue files under `.writ/issues/` resolved by prior work.
+
 ## [0.26.0] - 2026-08-04
 
 **Spec Lifecycle & Archival** — fixes a spec-status detection bug that silently misclassified 27 of 39 real specs (bold `**Status:**` headers never matched the old literal `grep -q "Status: Complete"`), then builds an evidence-gated archive lifecycle on top of the fix: specs that are both Complete and cited by `.writ/knowledge/` evidence move to `.writ/specs/archive/<name>/` via `git mv`, excluded from every existing command's scan by glob depth alone — no command-suite changes required. Dogfooded against this repo's own 40-spec corpus.
