@@ -133,7 +133,7 @@ and unlink manage this file alongside its reducer.
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `gbrain-interop` | `candidate` | `skills/gbrain-interop/SKILL.md` | Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
-| `tdd-cycle` | `candidate` | `skills/tdd-cycle/SKILL.md` | Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time. |
+| `tdd-cycle` | `proven` | `skills/tdd-cycle/SKILL.md` | Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time. |
 
 ## Platform Adapters
 
