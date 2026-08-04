@@ -1,3 +1,8 @@
+---
+name: refactor
+description: "Restructure code without changing behavior - one verified, independently revertable commit per concern, tests green before and after every change."
+---
+
 # Refactor Command (refactor)
 
 ## Overview

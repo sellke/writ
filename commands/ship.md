@@ -1,3 +1,8 @@
+---
+name: ship
+description: "Take a green branch to a merged PR - merge the default branch, organize commits, write the PR description, push, and open it. The last-mile command."
+---
+
 # Ship Command (ship)
 
 ## Overview

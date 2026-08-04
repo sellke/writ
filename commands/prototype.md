@@ -1,3 +1,8 @@
+---
+name: prototype
+description: "Ship a small-to-medium code change with TDD and lint, without spec files or multi-gate ceremony. Use when writing a spec costs more than the change is worth."
+---
+
 # Prototype Command (prototype)
 
 ## Overview

@@ -1,3 +1,8 @@
+---
+name: verify-spec
+description: "Metadata linter for a spec - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
+---
+
 # Verify Spec Command (verify-spec)
 
 ## Overview

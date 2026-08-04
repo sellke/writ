@@ -1,3 +1,8 @@
+---
+name: release
+description: "Run the release lifecycle: changelog from completed stories, version bump, git tag, and optional GitHub release, behind an inline release gate."
+---
+
 # Release Command (release)
 
 ## Overview

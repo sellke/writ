@@ -1,3 +1,8 @@
+---
+name: implement-phase
+description: "Autonomously execute a whole roadmap phase - resolve features to specs, create missing ones, then loop implement-spec per spec in dependency order until the phase exit criteria are met."
+---
+
 # Implement Phase Command (implement-phase)
 
 ## Overview

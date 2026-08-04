@@ -1,3 +1,8 @@
+---
+name: assess-spec
+description: "Analyze an unbuilt spec for implementability risks - oversized stories, deep dependency chains, file-overlap conflicts - and recommend decomposition. Run when a spec feels too heavy to build."
+---
+
 # Assess Spec Command (assess-spec)
 
 ## Overview

@@ -1,3 +1,8 @@
+---
+name: refresh-command
+description: "Turn your experience running a Writ command into concrete improvements to that command file. The learning loop."
+---
+
 # Refresh Command (refresh-command)
 
 ## Overview

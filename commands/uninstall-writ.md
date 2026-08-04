@@ -1,3 +1,8 @@
+---
+name: uninstall-writ
+description: "Remove Writ platform files from the project while preserving everything under .writ/ (specs, ADRs, research)."
+---
+
 # Uninstall Writ Command (uninstall-writ)
 
 ## Overview

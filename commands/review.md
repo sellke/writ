@@ -1,3 +1,8 @@
+---
+name: review
+description: "Pre-landing code review focused on failure modes, shadow paths, and interaction edge cases - the things that look fine in a PR and break in production."
+---
+
 # Review Command (review)
 
 ## Overview

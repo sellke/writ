@@ -1,3 +1,8 @@
+---
+name: create-spec
+description: "Generate a full feature specification contract-first - discovery conversation, then user stories, sub-specs, and acceptance criteria. The entry point for any feature large enough to need a spec."
+---
+
 # Enhanced Create Spec Command (create-spec)
 
 ## Overview

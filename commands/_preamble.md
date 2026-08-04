@@ -1,3 +1,9 @@
+---
+name: _preamble
+description: "Shared standing instructions referenced by every Writ command. Not directly invocable."
+disable-model-invocation: true
+---
+
 # Writ Command Preamble
 
 > Every command in `commands/` references this file. Standing instructions that

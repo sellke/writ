@@ -1,3 +1,8 @@
+---
+name: new-skill
+description: "Scaffold a reusable Writ skill (SKILL.md) that commands and agents can read to acquire a focused competence. Enforces the command/agent/skill boundary."
+---
+
 # New Skill Creator (new-skill)
 
 ## Overview

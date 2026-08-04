@@ -1,3 +1,8 @@
+---
+name: reinstall-writ
+description: "Nuclear reinstall - remove all Writ platform files and install fresh from upstream, discarding local modifications. Use update-writ for selective updates."
+---
+
 # Reinstall Writ Command (reinstall-writ)
 
 ## Overview
