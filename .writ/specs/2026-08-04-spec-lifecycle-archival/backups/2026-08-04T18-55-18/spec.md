@@ -1,9 +1,8 @@
 # Spec: Spec Lifecycle & Archival
 
-> **Status:** Complete — amended 2026-08-04 (Business Rule 1's knowledge-evidence gate removed; Stories 2 and 6 each gained one task, both completed, 44/44 tasks total)
+> **Status:** Complete
 > **Owner:** @Adam Sellke
 > **Created:** 2026-08-04
-> **Last Amended:** 2026-08-04 — Business Rule 1's knowledge-evidence gate removed from archive eligibility; see Technical Concerns → Amendment for full rationale.
 > **Dependencies:** []
 > **Origin:** Ask-mode discussion on whether the growing `.writ/` corpus risks confusing agents; escalated to `/create-spec` after discovery surfaced a live detection bug, not just a hypothetical growth concern.
 
@@ -62,13 +61,13 @@ Running the sweep against this repo's own 39 specs and watching genuinely-done w
 
 ### Feedback Model
 
-Terminal summary line plus the durable ledger entry. No confirmation prompt per spec — reversibility (a plain `git mv`, fully undoable, with a committed audit trail) stands in for a human "are you sure," per Business Rule 2 below.
+Terminal summary line plus the durable ledger entry. No confirmation prompt per spec — the two-signal eligibility bar (Complete + cited by knowledge) stands in for a human "are you sure," per Business Rule 2 below.
 
 ### Error / Edge Experience
 
 | Situation | Behavior |
 |---|---|
-| Spec is Complete but has no knowledge evidence | Archived anyway — knowledge citation is no longer required (Amendment 2026-08-04, see Business Rule 1); the ledger line simply records "no knowledge evidence yet" |
+| Spec is Complete but has no knowledge evidence | Skipped, named in the "skipped" count — never archived, this is not a failure |
 | Spec has knowledge evidence but is not Complete | Skipped — status gate is absolute |
 | `.writ/specs/archive/` doesn't exist yet | Created on first archive, not at install time |
 | A spec folder somehow already exists at the destination path | Hard stop, named collision, no overwrite |
@@ -76,7 +75,7 @@ Terminal summary line plus the durable ledger entry. No confirmation prompt per 
 
 ## 📋 Business Rules
 
-1. **Eligibility = complete-family status, alone.** *(Amended 2026-08-04 — see Technical Concerns for rationale and original text.)* A spec is archive-eligible whenever its status resolves to complete-family (`Complete`, `Completed ✅`, `Closed — Abandoned`/`Closed — Cancelled`) under the fixed, format-tolerant detection. Knowledge-ledger citation is no longer a gate — it is recorded on the ledger line as enrichment when it exists, but its absence never blocks a move. The original two-signal design used knowledge citation as a stand-in for a per-spec confirmation prompt; Business Rule 3's reversible-`git mv`-plus-committed-ledger already serves that safety purpose more directly, and requiring it as a gate left 36 of 39 real Complete specs in this repo permanently stranded in the active folder despite being genuinely done.
+1. **Eligibility = Complete status AND cited by knowledge evidence.** A spec is archive-eligible only if (a) its status resolves to Complete under the fixed, format-tolerant detection, and (b) at least one `.writ/knowledge/` entry's `related_artifacts` list references it. Time in Complete status, alone, is never sufficient — this mirrors the existing "signal-based, not age" principle already established for knowledge-ledger staleness.
 2. **Auto-move, not auto-invoke.** "No per-spec confirmation" means the sweep doesn't prompt once it's explicitly run — it does not mean specs get archived as a side effect of unrelated commands. The sweep only ever runs when `/status --archive` is invoked.
 3. **Every move is a plain, reversible `git mv`.** No content rewrite, no path-reference rewriting elsewhere. A committed audit ledger (not `.writ/state/`, which is gitignored/ephemeral) records every move with its justifying evidence — satisfying the standing project expectation that automatic actions carry an observable, durable audit trail.
 4. **Archived specs stay fully addressable.** Existing inbound references (an issue's `spec_ref`, an ADR's `Amends:` pointer) are not rewritten. Git tracks the rename; the reference still resolves via normal path lookup or `git log --follow`. Rewriting historical pointers project-wide is out of scope.
@@ -90,15 +89,15 @@ Terminal summary line plus the durable ledger entry. No confirmation prompt per 
 
 ### Detection fix
 
-Replace the literal `grep -q "Status: Complete"` in `commands/status.md` with a format-tolerant check that recognizes: bold or unbold `Status:` label, any value starting with `Complete` / `Completed ✅` / `Closed —` (covering both `Closed — Abandoned` and `Closed — Cancelled`, per Amendment 2026-08-04 — no new status prefix needed, "cancelled" work is spelled `Closed — Cancelled` for vocabulary consistency rather than introducing a fourth standalone prefix) as complete-family values, and treats a fully absent status header as "not complete" (conservative default — never silently archive something whose status was never declared). Apply the equivalent fix to `create-spec.md`'s Step 1.3b overlap-check prose.
+Replace the literal `grep -q "Status: Complete"` in `commands/status.md` with a format-tolerant check that recognizes: bold or unbold `Status:` label, any of `Complete` / `Completed ✅` / `Closed — Abandoned` as complete-family values, and treats a fully absent status header as "not complete" (conservative default — never silently archive something whose status was never declared). Apply the equivalent fix to `create-spec.md`'s Step 1.3b overlap-check prose.
 
-### Knowledge cross-reference check (enrichment, not eligibility — amended 2026-08-04)
+### Knowledge cross-reference check
 
-A spec's `related_artifacts` citation status — whether its folder name appears in the `related_artifacts` frontmatter list of at least one file under `.writ/knowledge/{decisions,conventions,glossary,lessons}/` — is still computed and still recorded on the ledger line when present, but it no longer gates eligibility (see Business Rule 1). This reuses existing, already-populated frontmatter; no new fields are introduced anywhere in the knowledge ledger.
+A spec is "cited by knowledge evidence" if its `spec.md` (or `spec-lite.md`) path — matched by the spec's folder name, since knowledge entries reference paths that may drift in exact form — appears in the `related_artifacts` frontmatter list of at least one file under `.writ/knowledge/{decisions,conventions,glossary,lessons}/`. This reuses existing, already-populated frontmatter; no new fields are introduced anywhere in the knowledge ledger.
 
 ### Archive sweep mechanism
 
-New `--archive` flag on `/status`. For each eligible spec (complete-family status, per Business Rule 1): `git mv .writ/specs/<name> .writ/specs/archive/<name>`, then append an entry to `.writ/specs/archive/LEDGER.md` (created on first use) recording the spec name, the knowledge entry filename(s) that supplied evidence (or "no knowledge evidence yet" if none), and an ISO timestamp. The ledger is committed to git, not treated as ephemeral state.
+New `--archive` flag on `/status`. For each eligible spec: `git mv .writ/specs/<name> .writ/specs/archive/<name>`, then append an entry to `.writ/specs/archive/LEDGER.md` (created on first use) recording the spec name, the knowledge entry filename(s) that supplied evidence, and an ISO timestamp. The ledger is committed to git, not treated as ephemeral state.
 
 ### Lifecycle documentation
 
@@ -124,7 +123,7 @@ Sequenced by dependency, not by story-file order:
 ## Success Criteria
 
 1. Format-tolerant detection correctly classifies all 39 current specs in this repo as Complete or not — verified against the audit table in "Why This Exists," not just asserted.
-2. Running `/status --archive` against this repo actually archives at least one real spec, proving the mechanism against production data. *(Amendment 2026-08-04: re-proven at the corrected, higher volume — see Story 6's second dated run.)*
+2. Running `/status --archive` against this repo actually archives at least one real spec, proving the mechanism against production data.
 3. No regression: `/status`, `create-spec`, `implement-spec`, and `verify-spec` (default, non-`--all`... and `--all` too) all behave correctly with `.writ/specs/archive/` present and populated.
 4. `install.sh --dry-run --platform cursor` shows the new `.cursorindexingignore` seeding step.
 5. At least one existing spec pair gets a real `Superseded by:` / `Amends:` bidirectional link where one didn't reliably exist before.
@@ -134,14 +133,6 @@ Sequenced by dependency, not by story-file order:
 - **Conservative default on missing headers.** The 3 specs with no status header at all are content-complete but will not be auto-archived by this mechanism (they fail the "resolves to Complete" gate by design, per Business Rule 1's conservative bias). They can be backfilled with a status header manually later; that backfill is not required by this spec.
 - **`related_artifacts` path matching is approximate.** Knowledge entries may reference a spec by full path, by `spec.md` or `spec-lite.md`, or with slight path drift. The check matches on the spec's folder-name component rather than requiring exact path equality, to avoid false negatives — documented as a known heuristic, not exact-match verification.
 - **This is dogfooding-only.** No new command-suite surface beyond one flag on `/status`; no change to `/implement-story`'s context-loading behavior (already verified correct); does not reopen `adr-015`'s or `adr-019`'s warn-only, `.writ`-is-ungated decisions.
-
-### Amendment (2026-08-04): knowledge-evidence gate removed from eligibility
-
-**What changed:** Business Rule 1 originally required BOTH complete-family status AND a citing `.writ/knowledge/` entry. Post-ship dogfooding evidence (Story 6's real run) showed this excluded 36 of 39 real Complete specs in this repo — a 92% exclusion rate on the exact corpus the rule was validated against. The two-signal design's stated purpose (Feedback Model: substituting for a per-spec "are you sure" prompt) was already redundant with Business Rule 3's reversible `git mv` + committed ledger, and it conflated two unrelated concerns: "is this spec finished" (lifecycle state, human-declared) versus "has knowledge been extracted from it" (a separate, optional authoring process per `.writ/knowledge/README.md`'s own decision tree). Coupling archival to the latter left finished-but-unremarkable specs stranded indefinitely and risked incentivizing throwaway knowledge entries written solely to unlock archiving.
-
-**What stays the same:** the status gate remains absolute (knowledge citation alone never archives a non-Complete spec), every move is still a plain reversible `git mv` with a committed ledger, and glob-depth nesting is still the sole filtering mechanism. Only the AND became unconditional on status alone; knowledge citation moved from gate to ledger enrichment.
-
-**Original Business Rule 1 text (superseded), for audit trail:** *"Eligibility = Complete status AND cited by knowledge evidence. A spec is archive-eligible only if (a) its status resolves to Complete under the fixed, format-tolerant detection, and (b) at least one `.writ/knowledge/` entry's `related_artifacts` list references it. Time in Complete status, alone, is never sufficient — this mirrors the existing 'signal-based, not age' principle already established for knowledge-ledger staleness."*
 
 ## Scope Boundaries
 

@@ -1863,7 +1863,7 @@ check_spec_lifecycle_docs() {
 
   require_literal "$doc" '## Canonical Status Vocabulary' "spec-lifecycle.md must document the canonical status vocabulary."
   require_literal "$doc" '## Archive Convention' "spec-lifecycle.md must document the archive path convention."
-  require_literal "$doc" '## Two-Signal Archive Eligibility' "spec-lifecycle.md must document the two-signal eligibility rule."
+  require_literal "$doc" '## Archive Eligibility' "spec-lifecycle.md must document the eligibility rule."
   require_literal "$doc" 'Do not add a second, separate exclusion check for `archive/`' "spec-lifecycle.md must carry the prominent do-not-duplicate-exclusion author note."
   require_literal "$doc" 'backups/' "spec-lifecycle.md must document the backups/ invariant with concrete evidence."
 

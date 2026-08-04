@@ -238,17 +238,17 @@ When `--archive` is present, run this as an additional phase **after** Step 9:
    ```
    For each spec under `.writ/specs/*/spec.md` (single-level glob — never recurse into `archive/`), the reducer:
    - Classifies complete-family status via `scripts/spec-status.py` (Story 1's format-tolerant detector).
-   - Checks eligibility: **Complete status AND** at least one `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name (Business Rule 1 — both signals required, time alone is never sufficient).
-   - Moves each eligible spec via `git mv .writ/specs/<name> .writ/specs/archive/<name>` and appends one line to `.writ/specs/archive/LEDGER.md` (created on first use, committed to git — never `.writ/state/`).
+   - Checks eligibility: **complete-family status, alone** (Amendment 2026-08-04 to Business Rule 1 — knowledge evidence is no longer a gate). It also looks up whether any `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name, purely to record it on the ledger line as enrichment.
+   - Moves each eligible spec via `git mv .writ/specs/<name> .writ/specs/archive/<name>` and appends one line to `.writ/specs/archive/LEDGER.md` (created on first use, committed to git — never `.writ/state/`) — the evidence field reads "no knowledge evidence yet" when none exists.
    - Skips (never fails) on a destination collision or a `git mv` failure for that one spec, naming it in output, and continues the sweep for the rest.
 2. **Report the terminal summary** from the reducer's JSON `summary` field, e.g.:
    ```
-   📦 Archive sweep: 2 specs archived, 5 Complete specs skipped (no knowledge evidence yet)
+   📦 Archive sweep: 2 specs archived, 0 skipped
       • Archived: 2026-04-24-phase4-production-grade-substrate (evidence: 6 knowledge entries)
-      • Archived: 2026-07-18-artifact-integrity-handshake (evidence: 1 knowledge entry)
+      • Archived: 2026-07-18-artifact-integrity-handshake (evidence: no knowledge evidence yet)
    ```
    If any collisions or `git mv` failures occurred, list them by name under a `⚠️` line — the sweep still completes for the rest.
-3. **No confirmation prompt per spec.** The two-signal eligibility bar (Complete + knowledge evidence) substitutes for a human "are you sure" (Business Rule 2) — this step never pauses to ask before moving an eligible spec.
+3. **No confirmation prompt per spec.** Reversibility — a plain `git mv` plus a committed, append-only ledger — substitutes for a human "are you sure" (Business Rule 2) — this step never pauses to ask before moving an eligible spec.
 4. **Idempotent by construction.** A spec already under `.writ/specs/archive/<name>/` no longer appears in the next sweep's `.writ/specs/*/spec.md` scan at all — running `/status --archive` twice in a row is a clean no-op the second time.
 
 ---

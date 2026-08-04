@@ -1,9 +1,9 @@
 # Story 2: Archive Sweep Mechanism
 
-> **Status:** Completed ✅ — amended 2026-08-04 (task 2.8: knowledge-evidence gate removed)
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 1
-> **Commit:** 453313ba50e96b082be1cbf408cc2d3139d62757 (original); amendment commit pending
+> **Commit:** 453313ba50e96b082be1cbf408cc2d3139d62757
 
 ## User Story
 
@@ -13,26 +13,21 @@
 
 ## Acceptance Criteria
 
-> ⚠️ **Amended 2026-08-04:** ACs 1–3 rewritten to remove the knowledge-evidence gate (see `spec.md` → Technical Concerns → Amendment). Original criteria preserved below each for audit trail.
-
-- [x] Given a spec whose status resolves to **complete-family** under Story 1's format-tolerant detector, when `/status --archive` runs, then the spec folder is moved via `git mv .writ/specs/<name> .writ/specs/archive/<name>`, one line is appended to `.writ/specs/archive/LEDGER.md` (spec name, citing knowledge filename(s) if any else "no knowledge evidence yet", ISO timestamp), and the terminal summary includes it in the archived count.
-  - *(Superseded original: "...status resolves to Complete under Story 1's format-tolerant detector **and** at least one `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry lists the spec's folder name in `related_artifacts`...")*
-- [x] Given a spec that resolves to **complete-family** but has **no** knowledge entry referencing its folder name in `related_artifacts`, when the sweep runs, then the spec **is still archived** — evidence is enrichment, not eligibility — and the ledger line records "no knowledge evidence yet" for that spec.
-  - *(Superseded original: "...the spec remains at `.writ/specs/<name>/`, is counted in the 'skipped (no knowledge evidence yet)' total, and is **not** treated as a failure.")*
-- [x] Given a spec whose folder name appears in a knowledge entry's `related_artifacts` but whose status does **not** resolve to complete-family, when the sweep runs, then the spec is not moved — the status gate remains absolute regardless of knowledge evidence. *(Unchanged by the amendment.)*
+- [x] Given a spec whose status resolves to **Complete** under Story 1's format-tolerant detector **and** at least one `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry lists the spec's folder name in `related_artifacts`, when `/status --archive` runs, then the spec folder is moved via `git mv .writ/specs/<name> .writ/specs/archive/<name>`, one line is appended to `.writ/specs/archive/LEDGER.md` (spec name, citing knowledge filename(s), ISO timestamp), and the terminal summary includes it in the archived count.
+- [x] Given a spec that resolves to **Complete** but has **no** knowledge entry referencing its folder name in `related_artifacts`, when the sweep runs, then the spec remains at `.writ/specs/<name>/`, is counted in the "skipped (no knowledge evidence yet)" total, and is **not** treated as a failure.
+- [x] Given a spec whose folder name appears in a knowledge entry's `related_artifacts` but whose status does **not** resolve to Complete, when the sweep runs, then the spec is not moved — the status gate is absolute regardless of knowledge evidence.
 - [x] Given `.writ/specs/archive/` or `LEDGER.md` do not yet exist, when the first eligible spec is archived, then the archive directory and ledger file are created on first use (ledger is committed to git, not written under `.writ/state/`), and subsequent moves append without overwriting prior ledger lines.
 - [x] Given a destination collision (`.writ/specs/archive/<name>/` already exists) or a per-spec `git mv` failure (e.g. dirty working tree), when the sweep encounters that spec, then that spec alone is skipped and named in output, the sweep **continues** for remaining specs (never aborts the whole run), and a second consecutive `/status --archive` run performs a clean no-op for already-moved specs (idempotent — no duplicate ledger entries, no re-move attempts).
 
 ## Implementation Tasks
 
 - [x] 2.1 Write failing unit tests in `scripts/tests/test_archive_sweep.py` covering: two-signal eligibility (both signals, Complete-only, evidence-only), happy-path `git mv` + ledger append format, destination collision (skip one, continue), `git mv` failure mid-sweep (skip one, continue), zero-eligible no-op summary (`0 archived, 0 skipped` or correct skip count), and idempotent second run — use temp git fixtures mirroring the `test_spec_status.py` / `eval-knowledge-consolidate.py` precedent.
-- [x] ⚠️ 2.2 Implement a shared knowledge-evidence checker — prefer extending `scripts/archive-sweep.py` (new) with functions to scan `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` frontmatter and match `related_artifacts` entries on the spec's **folder-name component** (not exact path equality); document the heuristic in module docstring per `spec.md` → `## Technical Concerns`. *(2026-08-04: retained as an enrichment lookup — no longer gates eligibility, see task 2.8.)*
-- [x] ⚠️ 2.3 Implement the sweep reducer in `scripts/archive-sweep.py`: enumerate `.writ/specs/*/spec.md` (single-level glob only — never scan `archive/`), invoke Story 1's complete-family detector per spec, gate on knowledge evidence, perform `git mv` to `.writ/specs/archive/<name>/`, append ledger lines, and emit structured JSON + human summary (`N specs archived, M Complete specs skipped (no knowledge evidence yet)`). *(2026-08-04: "gate on knowledge evidence" removed — see task 2.8.)*
+- [x] 2.2 Implement a shared knowledge-evidence checker — prefer extending `scripts/archive-sweep.py` (new) with functions to scan `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` frontmatter and match `related_artifacts` entries on the spec's **folder-name component** (not exact path equality); document the heuristic in module docstring per `spec.md` → `## Technical Concerns`.
+- [x] 2.3 Implement the sweep reducer in `scripts/archive-sweep.py`: enumerate `.writ/specs/*/spec.md` (single-level glob only — never scan `archive/`), invoke Story 1's complete-family detector per spec, gate on knowledge evidence, perform `git mv` to `.writ/specs/archive/<name>/`, append ledger lines, and emit structured JSON + human summary (`N specs archived, M Complete specs skipped (no knowledge evidence yet)`).
 - [x] 2.4 Add `--archive` invocation surface to `commands/status.md`: document the flag in `## Invocation`, add a dedicated sweep phase (after or instead of routine orientation when `--archive` is present) that calls the shared script or equivalent step-by-step bash, and ensure routine `/status` (no flag) never triggers archival — per Business Rule 2.
 - [x] 2.5 Define and implement `.writ/specs/archive/LEDGER.md` format (one append-only line per move: spec folder name, knowledge entry filename(s) that supplied evidence, ISO 8601 timestamp); create-on-first-use, never duplicate an entry for a spec already under `archive/`.
 - [x] 2.6 Add an `eval.sh` check (e.g. `archive-sweep`) with scenario fixtures asserting: `commands/status.md` documents `--archive`, no parallel archive-exclusion logic is added to other commands, collision and `git mv` failure paths continue the sweep, and the active-spec glob `.writ/specs/*/spec.md` is unchanged elsewhere.
 - [x] 2.7 Run `python3 -m pytest scripts/tests/test_archive_sweep.py`, the new eval scenarios, and a manual dry review against this repo's real specs (post–Story 1 detection fix): confirm eligible specs would archive, ineligible Complete specs appear in skip count, and `/status`, `create-spec`, `implement-spec` still exclude `archive/` via nesting alone before marking complete.
-- [x] 🆕 2.8 **(2026-08-04 amendment)** Remove the knowledge-evidence gate: change `eligible = complete and bool(evidence)` to `eligible = complete` in `scan()`; in `sweep()`, delete the `if not row["evidence"]: skipped_no_evidence.append(...); continue` branch entirely so complete-family specs always proceed to the `git mv` step regardless of evidence; update `_append_ledger` to write `no knowledge evidence yet` in place of an empty evidence list; update the terminal summary string (drop "M Complete specs skipped (no knowledge evidence yet)" since nothing is skipped for lacking evidence anymore — collisions and `git mv` failures remain the only skip reasons); update `scripts/tests/test_archive_sweep.py`'s three assertions that currently expect Complete-without-evidence to be skipped so they instead expect archival with the "no knowledge evidence yet" ledger marker; update `scripts/eval-archive-sweep.py` and any `scripts/eval.sh` assertions referencing the two-signal contract; update the module docstring's "Time-in-Complete-status alone is never sufficient" framing to reflect the amendment.
 
 ## Notes
 
@@ -65,8 +60,8 @@
 ## Context for Agents
 
 - **Error map rows:** [A spec folder somehow already exists at the destination path, git mv fails (dirty working tree conflict, etc.)]
-- **Shadow paths:** [Happy path, Spec Complete no evidence (now archives, not skipped — 2026-08-04), Spec has evidence not Complete, git mv fails mid-sweep]
-- **Business rules:** [Eligibility = complete-family status alone (amended 2026-08-04; knowledge evidence is ledger enrichment, not a gate), Auto-move not auto-invoke, Every move is a plain reversible git mv, Archived specs stay fully addressable, Nesting is the filtering mechanism]
+- **Shadow paths:** [Happy path, Spec Complete no evidence, Spec has evidence not Complete, git mv fails mid-sweep]
+- **Business rules:** [Eligibility = Complete status AND cited by knowledge evidence, Auto-move not auto-invoke, Every move is a plain reversible git mv, Archived specs stay fully addressable, Nesting is the filtering mechanism]
 - **Experience:** [Entry Point (/status --archive), Happy Path (scan → cross-reference → git mv → ledger → summary), Moment of Truth (real sweep, references still resolve), Feedback Model (terminal summary + durable ledger entry, no per-spec confirmation)]
 
 ---
@@ -115,20 +110,3 @@
 ### Deviations from Spec
 
 None
-
----
-
-## Amendment (2026-08-04): Knowledge-Evidence Gate Removed
-
-**Trigger:** Post-ship review (Ask-mode discussion) found the two-signal gate excluded 36 of 39 real Complete specs in this repo — a 92% exclusion rate — and that the gate's stated purpose (confirmation-prompt substitute) duplicated the safety already provided by reversible `git mv` + committed ledger. Full rationale: `spec.md` → Technical Concerns → Amendment.
-
-**What changed in `scripts/archive-sweep.py`:**
-- `scan()`: `"eligible": complete and bool(evidence)` → `"eligible": complete`.
-- `sweep()`: removed the `if not row["evidence"]: skipped_no_evidence.append(...); continue` branch — complete-family specs now proceed straight to the collision/`git mv` checks regardless of evidence.
-- `_append_ledger()`: writes `no knowledge evidence yet` in the evidence parenthetical when `evidence` is empty, instead of an empty string.
-- Terminal summary: dropped the "M Complete specs skipped (no knowledge evidence yet)" clause (nothing is skipped for lacking evidence anymore); collision and `git mv`-failure counts remain.
-- Module docstring updated to describe status-alone eligibility with knowledge evidence as ledger enrichment.
-
-**Tests:** `scripts/tests/test_archive_sweep.py`'s three assertions expecting Complete-without-evidence to be skipped (`skipped_no_evidence == [...]`) were flipped to expect archival with a "no knowledge evidence yet" ledger marker. `scripts/eval-archive-sweep.py` and the `archive-sweep` `eval.sh` check were re-verified against the new contract.
-
-**Re-run:** See Story 6's second dated "What Was Built" section for the real mass-sweep executed under the corrected rule.

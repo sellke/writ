@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Fixture scenarios for the evidence-gated archive sweep contract (Story 2).
+"""Fixture scenarios for the status-alone archive sweep contract (Story 2,
+amended 2026-08-04).
 
 Emits PASS/FAIL TSV lines consumed by scripts/eval.sh check_archive_sweep.
 Complements scripts/tests/test_archive_sweep.py's pytest coverage with the
@@ -117,6 +118,26 @@ def scenario_sweep_cli_happy_path() -> None:
              code2 == 0 and payload2.get("archived") == [], payload2)
 
 
+def scenario_complete_without_evidence_still_archives() -> None:
+    """Amendment 2026-08-04: knowledge evidence is enrichment, not a gate —
+    a Complete spec with zero citing knowledge entries must still archive."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        repo = init_repo(root)
+        specs_dir = make_spec(repo, "2026-01-01-lonely-complete", "> **Status:** Complete")
+        knowledge_dir = repo / ".writ" / "knowledge"
+        commit_all(repo)
+
+        code, payload = run_cli(
+            "sweep", "--specs-dir", str(specs_dir), "--knowledge-dir", str(knowledge_dir),
+            "--repo-root", str(repo),
+        )
+        emit("sweep-cli-complete-without-evidence-still-archives",
+             code == 0 and len(payload.get("archived", [])) == 1
+             and payload["archived"][0]["evidence"] == [],
+             payload)
+
+
 def scenario_collision_and_failure_skip_and_continue() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -144,6 +165,7 @@ def scenario_collision_and_failure_skip_and_continue() -> None:
 def main() -> int:
     scenario_scan_cli()
     scenario_sweep_cli_happy_path()
+    scenario_complete_without_evidence_still_archives()
     scenario_collision_and_failure_skip_and_continue()
     return 0 if failed == 0 else 1
 
