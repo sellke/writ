@@ -1,8 +1,4 @@
-"""Fixture tests for the status-alone archive sweep (Story 2, amended 2026-08-04).
-
-Knowledge evidence is enrichment on the ledger line, not an eligibility gate
-— see `archive-sweep.py`'s module docstring and `spec.md` Technical Concerns
-→ Amendment for the full rationale.
+"""Fixture tests for the evidence-gated archive sweep (Story 2).
 
 Every test builds a disposable git repo in a temp directory (git mv requires
 tracked files) mirroring `.writ/specs/` and `.writ/knowledge/` shape, then
@@ -64,9 +60,7 @@ def commit_all(repo: Path) -> None:
     _run_git(repo, "commit", "-q", "-m", "fixture commit")
 
 
-def test_status_alone_eligibility_matrix(tmp_path: Path) -> None:
-    """Amendment 2026-08-04: eligibility is complete-family status alone.
-    Evidence is still computed and reported, but never gates `eligible`."""
+def test_two_signal_eligibility_matrix(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     specs_dir = make_spec(repo, "2026-01-01-both-signals", "> **Status:** Complete")
     make_spec(repo, "2026-01-02-complete-only", "> **Status:** Complete")
@@ -82,9 +76,7 @@ def test_status_alone_eligibility_matrix(tmp_path: Path) -> None:
     by_id = {r["spec"]: r for r in result["results"]}
 
     assert by_id["2026-01-01-both-signals"]["eligible"] is True
-    assert by_id["2026-01-01-both-signals"]["evidence"] == ["lessons/cites-both.md"]
-    assert by_id["2026-01-02-complete-only"]["eligible"] is True  # complete alone is now sufficient
-    assert by_id["2026-01-02-complete-only"]["evidence"] == []
+    assert by_id["2026-01-02-complete-only"]["eligible"] is False
     assert by_id["2026-01-03-evidence-only"]["eligible"] is False  # not complete — status gate absolute
     assert by_id["2026-01-04-neither"]["eligible"] is False
 
@@ -114,10 +106,7 @@ def test_happy_path_git_mv_and_ledger_append(tmp_path: Path) -> None:
     assert "R  " in status.stdout
 
 
-def test_complete_no_evidence_is_archived_with_enrichment_marker(tmp_path: Path) -> None:
-    """Amendment 2026-08-04: a Complete spec with zero knowledge evidence is
-    archived anyway; the ledger records 'no knowledge evidence yet' instead
-    of blocking the move."""
+def test_complete_no_evidence_is_skipped_not_failed(tmp_path: Path) -> None:
     repo = init_repo(tmp_path)
     specs_dir = make_spec(repo, "2026-01-01-lonely-complete", "> **Status:** Complete")
     knowledge_dir = repo / ".writ" / "knowledge"
@@ -125,14 +114,9 @@ def test_complete_no_evidence_is_archived_with_enrichment_marker(tmp_path: Path)
 
     result = archive_sweep.sweep(repo, specs_dir, knowledge_dir)
 
-    assert len(result["archived"]) == 1
-    assert result["archived"][0]["spec"] == "2026-01-01-lonely-complete"
-    assert result["archived"][0]["evidence"] == []
-    assert not (specs_dir / "2026-01-01-lonely-complete").exists()
-    assert (specs_dir / "archive" / "2026-01-01-lonely-complete" / "spec.md").exists()
-
-    ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
-    assert "no knowledge evidence yet" in ledger
+    assert result["archived"] == []
+    assert result["skipped_no_evidence"] == ["2026-01-01-lonely-complete"]
+    assert (specs_dir / "2026-01-01-lonely-complete").exists()
 
 
 def test_evidence_without_complete_is_never_moved(tmp_path: Path) -> None:
@@ -213,8 +197,7 @@ def test_nil_input_no_specs_directory_no_ops_cleanly(tmp_path: Path) -> None:
     result = archive_sweep.sweep(repo, specs_dir, knowledge_dir)
 
     assert result["archived"] == []
-    assert result["collisions"] == []
-    assert result["move_failures"] == []
+    assert result["skipped_no_evidence"] == []
 
 
 def test_second_run_is_idempotent(tmp_path: Path) -> None:
@@ -230,6 +213,7 @@ def test_second_run_is_idempotent(tmp_path: Path) -> None:
 
     second = archive_sweep.sweep(repo, specs_dir, knowledge_dir)
     assert second["archived"] == []  # already moved — no longer in the single-level glob
+    assert second["skipped_no_evidence"] == []
     assert second["collisions"] == []
 
     ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")

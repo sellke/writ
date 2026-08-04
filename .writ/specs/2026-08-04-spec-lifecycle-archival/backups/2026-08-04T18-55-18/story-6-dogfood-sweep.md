@@ -1,6 +1,6 @@
 # Story 6: Dogfood the Sweep Against This Repo
 
-> **Status:** Completed ✅ — amended 2026-08-04 (task 6.8: re-swept 36 more specs under corrected eligibility)
+> **Status:** Completed ✅
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
@@ -27,7 +27,6 @@
 - [x] 6.5 **Write a post-sweep regression assertion script** (e.g. `scripts/tests/test_archive_dogfood.py` or an `eval.sh` scenario): assert `/status` active-spec detection excludes `archive/`, `create-spec` overlap scan excludes archived specs, `implement-spec` listing excludes them, and `verify-spec --all` does not visit `archive/` — all against this repo's real post-sweep tree; run and capture pass/fail output.
 - [x] 6.6 **Manual command smoke tests:** Run `/status` (no flag), skim `create-spec`'s overlap-check behavior against the current corpus, and confirm `implement-spec` and `verify-spec` spec enumeration still function — note any unexpected surfacing of archived specs as active candidates.
 - [x] 6.7 **Record acceptance evidence:** Populate this story's `## What Was Built` section with archived spec name(s), eligibility rationale (status header + knowledge entry cross-reference), ledger excerpt, spot-check outcomes (readability, `git log --follow`, pointer sanity, command-suite regression results), and any deviations or skipped specs — this section is the spec's own proof artifact for Success Criteria 2 and 3.
-- [x] 🆕 6.8 **(2026-08-04 amendment) Re-run the sweep under the corrected, status-alone eligibility rule.** After Story 2's task 2.8 lands, run `python3 scripts/archive-sweep.py scan ...` against the current real corpus to confirm all remaining complete-family specs (expected: the ~36 specs previously skipped for lacking knowledge evidence) are now eligible, then `python3 scripts/archive-sweep.py sweep ...` for real, `git mv`-ing each into `.writ/specs/archive/<name>/`. Spot-check a representative sample (not necessarily all) for `git log --follow` history preservation and inbound-reference sanity, per the same method Task 6.4 used for the original 3. Append a second dated section to this story's `## What Was Built` recording the new archived-spec list, ledger excerpt, spot-check sample results, and confirmation that `/status`, `create-spec`, `implement-spec`, and `verify-spec --all` still behave correctly against the now much-larger `archive/` folder.
 
 ## Notes
 
@@ -135,52 +134,6 @@ No specs were skipped that should have been archived — the pre-flight predicti
 - **Iteration count:** 1 iteration (the `implement-spec.md` gap was self-caught during Task 6.6's smoke test, not a separate review-cycle rejection)
 - **Drift:** None — scope stayed within "run the real sweep + verify + regression-guard," with the one implement-spec.md fix justified directly by a locked AC
 - **Security:** N/A — no new external input surface; the sweep only moves files already tracked in this repo's own git history
-
----
-
-## Second Run (Task 6.8, 2026-08-04): Re-Sweep Under Amended Eligibility
-
-**Trigger:** Business Rule 1's knowledge-evidence gate was removed (see `spec.md` → Technical Concerns → Amendment, and Story 2's own amendment addendum). This run re-proves Success Criterion 2 at the corrected, much higher volume.
-
-### Pre-Flight
-
-`python3 scripts/archive-sweep.py scan --specs-dir .writ/specs --knowledge-dir .writ/knowledge` against the real corpus (post first-run archival + amendment): **37 total specs, 36 eligible** — every complete-family spec except this very spec (`2026-08-04-spec-lifecycle-archival` itself, correctly excluded — its own status is `In Progress` while this amendment is in flight, so the sole eligibility condition correctly fails for it, avoiding a self-referential archive).
-
-### The Real Sweep
-
-`python3 scripts/archive-sweep.py sweep --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root .` against the live repo:
-
-```
-36 specs archived, 0 skipped
-```
-
-All 36 predicted specs archived. **Zero collisions, zero `git mv` failures.** Staged as 344 renamed files (`git status --short .writ/specs/ | grep -c '^R'` → 344), confirmed via `git diff --cached --stat -M` showing `{ => archive}` rename notation with zero content diff on every file. Not yet committed — left staged for the user to review and commit at their discretion, per this session's git-safety norm of never committing without an explicit request.
-
-### Ledger Verification
-
-`.writ/specs/archive/LEDGER.md` grew from 3 lines to 39. The 3 original lines are untouched (append-only, never reordered). All 36 new lines record `evidence: no knowledge evidence yet` — correctly reflecting that none of these 36 specs have a citing `.writ/knowledge/` entry yet, and confirming the amendment's core behavior change: this evidence gap no longer blocks the move.
-
-Re-running `sweep` immediately after reports `0 specs archived, 0 skipped` — idempotent, no duplicate ledger lines.
-
-### Spot-Check Sample (5 of 36 — not exhaustive, per Task 6.8's "representative sample" scope)
-
-Sampled `2026-02-27-phase1-foundation` (oldest), `2026-07-10-knowledge-consolidation`, `2026-07-26-leanness-instrumentation`, `2026-08-03-deterministic-story-substrate` (newest), `2026-04-28-daily-writ-update-check`:
-
-- **Readability:** all 5 fully readable at `.writ/specs/archive/<name>/spec.md`.
-- **History:** since the move is staged but not committed, `git log --follow` on the new path has no commits yet by construction; verified equivalently via (a) `git log --oneline` on the pre-move path at HEAD showing full multi-commit history intact, and (b) `git diff --cached --stat -M` confirming git's rename detector already recognizes each move as a 100%-similarity rename (`{ => archive}` notation, zero-line diffs) — the same guarantee `git log --follow` will report once committed.
-- **Inbound references:** grep across `.writ/issues/` and `.writ/decision-records/` found real citations to 3 of the 5 sampled specs (`adr-019-full-surface-leanness-measurement.md` → `2026-07-26-leanness-instrumentation`; two issues → `2026-08-03-deterministic-story-substrate`; one issue → `2026-04-28-daily-writ-update-check`). Read each in full: all remain unambiguous to a human reader — the prose names the spec by its dated slug and describes the relationship (owning spec, exclusion rationale) independent of literal path resolution. **No confusing dead ends found** (Business Rule 4 satisfied, consistent with the first run's finding).
-
-### Command-Suite Regression (with a 39-entry `archive/` folder — the largest real test yet)
-
-- `python3 scripts/spec-status.py scan --specs-dir .writ/specs` → 1 result (`2026-08-04-spec-lifecycle-archival`, correctly `not-complete` while In Progress); `archive/` absent from results.
-- Direct glob probe: `Path('.writ/specs').glob('*/')` → 2 top-level entries (`2026-08-04-spec-lifecycle-archival`, `archive`); `Path('.writ/specs').glob('*/spec.md')` → 1 match, correctly excluding `archive/` even with 39 subfolders inside it.
-- `bash scripts/eval.sh --check=spec-lifecycle-docs` → PASS, 3/3 scenarios, 0 findings — re-run specifically against the populated archive to confirm the documented exclusion guarantee holds at real scale, not just the fixture scale used when the doc was first written.
-- `bash scripts/eval.sh --check=archive-sweep` → PASS, 5/5 scenarios (including the new `scenario_complete_without_evidence_still_archives`), 0 findings.
-- `bash scripts/eval.sh --check=spec-status` and `--check=spec-dependencies` → both PASS, no regression.
-
-### Deviations from Spec
-
-None. The pre-flight prediction (36 eligible) matched the actual sweep result (36 archived) exactly — the only exclusion, this spec itself, was correctly anticipated and confirmed.
 
 ## Context for Agents
 

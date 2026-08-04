@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""Status-alone archive sweep for complete-family specs (Story 2 of spec-lifecycle-archival).
+"""Evidence-gated archive sweep for Complete specs (Story 2 of spec-lifecycle-archival).
 
-Moves specs that are complete-family per `scripts/spec-status.py`'s
-format-tolerant detector from `.writ/specs/<name>/` to
-`.writ/specs/archive/<name>/` via a plain `git mv`. Knowledge-ledger
-citation (at least one `.writ/knowledge/` entry's `related_artifacts`
-frontmatter referencing the spec's folder-name component) is still looked
-up and recorded on the ledger line as enrichment, but it no longer gates
-eligibility (Amendment 2026-08-04 to Business Rule 1 — see spec.md
-Technical Concerns for the full rationale: the original two-signal gate
-left 36 of 39 real Complete specs in this repo stranded, and reversible
-`git mv` + a committed ledger already substitutes for a per-spec
-confirmation prompt without requiring proof of knowledge extraction).
+Moves specs that are BOTH (a) complete-family per `scripts/spec-status.py`'s
+format-tolerant detector and (b) cited by at least one `.writ/knowledge/`
+entry's `related_artifacts` frontmatter (matched on the spec's folder-name
+component) from `.writ/specs/<name>/` to `.writ/specs/archive/<name>/` via a
+plain `git mv`. Time-in-Complete-status alone is never sufficient (Business
+Rule 1) — the two-signal bar substitutes for a per-spec confirmation prompt.
 
 Archived specs live one path segment deeper than active specs
 (`.writ/specs/archive/<name>/spec.md` vs. `.writ/specs/<name>/spec.md`), so
@@ -132,13 +127,7 @@ def find_knowledge_evidence(knowledge_dir: Path, spec_id: str) -> list[str]:
 
 
 def scan(specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
-    """Report eligibility for every spec under `specs_dir` — no mutation.
-
-    Eligibility is complete-family status alone (Amendment 2026-08-04).
-    `evidence` is still computed and reported for every complete-family spec
-    so the sweep can record it as ledger enrichment, but an empty list no
-    longer affects `eligible`.
-    """
+    """Report eligibility for every spec under `specs_dir` — no mutation."""
     results: list[dict[str, Any]] = []
     for row in _classify_specs(specs_dir):
         spec_id = row["spec"]
@@ -149,7 +138,7 @@ def scan(specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
                 "spec": spec_id,
                 "complete": complete,
                 "evidence": evidence,
-                "eligible": complete,
+                "eligible": complete and bool(evidence),
             }
         )
     return {
@@ -164,7 +153,7 @@ def scan(specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
 def _append_ledger(ledger_path: Path, spec_id: str, evidence: list[str], timestamp: str) -> None:
     is_new = not ledger_path.exists()
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
-    evidence_str = ", ".join(f"`{e}`" for e in evidence) if evidence else "no knowledge evidence yet"
+    evidence_str = ", ".join(f"`{e}`" for e in evidence)
     line = f"- {timestamp} — `{spec_id}` archived (evidence: {evidence_str})\n"
     with ledger_path.open("a", encoding="utf-8") as fh:
         if is_new:
@@ -179,23 +168,24 @@ def _append_ledger(ledger_path: Path, spec_id: str, evidence: list[str], timesta
 def sweep(repo_root: Path, specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
     """Perform the real git-mv + ledger-append sweep.
 
-    Eligibility is complete-family status alone (Amendment 2026-08-04) — a
-    spec is no longer skipped for lacking knowledge evidence; evidence, when
-    present, is only recorded on the ledger line. Never raises for a
-    per-spec failure: destination collisions and `git mv` failures are
-    recorded and skipped, and the sweep continues with the remaining
-    eligible specs (spec.md Error / Edge Experience table).
+    Never raises for a per-spec failure: destination collisions and `git mv`
+    failures are recorded and skipped, and the sweep continues with the
+    remaining eligible specs (spec.md Error / Edge Experience table).
     """
     archive_dir = specs_dir / "archive"
     ledger_path = archive_dir / "LEDGER.md"
     scanned = scan(specs_dir, knowledge_dir)
 
     archived: list[dict[str, Any]] = []
+    skipped_no_evidence: list[str] = []
     collisions: list[str] = []
     move_failures: list[dict[str, str]] = []
 
     for row in scanned["results"]:
         if not row["complete"]:
+            continue
+        if not row["evidence"]:
+            skipped_no_evidence.append(row["spec"])
             continue
 
         spec_id = row["spec"]
@@ -221,17 +211,19 @@ def sweep(repo_root: Path, specs_dir: Path, knowledge_dir: Path) -> dict[str, An
         _append_ledger(ledger_path, spec_id, row["evidence"], timestamp)
         archived.append({"spec": spec_id, "evidence": row["evidence"], "timestamp": timestamp})
 
-    summary = f"{len(archived)} specs archived"
+    summary = (
+        f"{len(archived)} specs archived, "
+        f"{len(skipped_no_evidence)} Complete specs skipped (no knowledge evidence yet)"
+    )
     if collisions:
         summary += f", {len(collisions)} destination collision(s) skipped"
     if move_failures:
         summary += f", {len(move_failures)} git mv failure(s) skipped"
-    if not collisions and not move_failures:
-        summary += ", 0 skipped"
 
     return {
         "schema": SCHEMA_SWEEP,
         "archived": archived,
+        "skipped_no_evidence": skipped_no_evidence,
         "collisions": collisions,
         "move_failures": move_failures,
         "summary": summary,

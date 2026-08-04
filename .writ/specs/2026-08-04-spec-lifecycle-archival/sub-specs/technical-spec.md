@@ -20,7 +20,7 @@ Both rely on the literal substring `Status: Complete`, which does not appear in 
 
 ### Fixed detection contract
 
-A spec's header resolves to **complete-family** if its status line — bold or unbold — matches one of: `Complete`, `Completed ✅`, `Closed — Abandoned` (or `Closed` more generally, since abandonment is a terminal state for scanning purposes even though it is not itself archive-eligible per Business Rule 1's requirement for knowledge evidence).
+A spec's header resolves to **complete-family** if its status line — bold or unbold — matches one of: `Complete`, `Completed ✅`, `Closed — Abandoned`/`Closed — Cancelled` (or `Closed` more generally). *(Amended 2026-08-04: this is now also sufficient for archive-eligibility on its own — see spec.md Technical Concerns → Amendment. Original text: "...even though it is not itself archive-eligible per Business Rule 1's requirement for knowledge evidence.")*
 
 Reference implementation shape (illustrative — commands are markdown-instruction files, so the actual deliverable is updated prose/bash in `status.md` and `create-spec.md`, not a shipped script):
 
@@ -43,10 +43,13 @@ Both `commands/status.md`'s active-spec detection and `commands/create-spec.md`'
 
 ### Eligibility check
 
-A spec at `.writ/specs/<name>/` is archive-eligible when **both**:
+> **Amended 2026-08-04.** Eligibility originally required both conditions below (AND). Condition 2 no longer gates — it is still computed and recorded as ledger enrichment. See spec.md → Technical Concerns → Amendment.
 
-1. `is_complete_family(.writ/specs/<name>/spec.md)` is true (Story 1's fixed detection).
-2. At least one file under `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` has a `related_artifacts` frontmatter entry containing the substring `<name>` (the spec's folder-name component — e.g. `2026-07-10-knowledge-consolidation`). This is a folder-name substring match, not exact path equality, to tolerate `related_artifacts` entries written as `.writ/specs/<name>/spec.md`, `.writ/specs/<name>/`, or similar variants.
+A spec at `.writ/specs/<name>/` is archive-eligible when:
+
+1. `is_complete_family(.writ/specs/<name>/spec.md)` is true (Story 1's fixed detection). This is the sole eligibility condition.
+
+Separately (enrichment, not eligibility): at least one file under `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` may have a `related_artifacts` frontmatter entry containing the substring `<name>` (the spec's folder-name component — e.g. `2026-07-10-knowledge-consolidation`). This is a folder-name substring match, not exact path equality, to tolerate `related_artifacts` entries written as `.writ/specs/<name>/spec.md`, `.writ/specs/<name>/`, or similar variants. When found, it's recorded on the ledger line; when absent, the ledger line reads `no knowledge evidence yet`.
 
 Reference shape for the cross-reference scan:
 

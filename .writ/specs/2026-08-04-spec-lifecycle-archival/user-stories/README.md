@@ -1,15 +1,15 @@
 # User Stories: Spec Lifecycle & Archival
 
-> **Status:** Completed ✅ — 6/6 stories complete, 42/42 tasks
+> **Status:** Completed ✅ — amended 2026-08-04 (Business Rule 1's knowledge-evidence gate removed; see `spec.md` → Technical Concerns → Amendment). 6/6 stories complete, 44/44 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Status Detection Fix](./story-1-status-detection-fix.md) | Completed ✅ | 7 | 7/7 | None |
-| 2 | [Archive Sweep Mechanism](./story-2-archive-sweep-mechanism.md) | Completed ✅ | 7 | 7/7 | Story 1 |
+| 2 | [Archive Sweep Mechanism](./story-2-archive-sweep-mechanism.md) | Completed ✅ | 8 | 8/8 | Story 1 |
 | 3 | [Lifecycle Documentation](./story-3-lifecycle-documentation.md) | Completed ✅ | 7 | 7/7 | None |
 | 4 | [.cursorindexingignore Scaffolding](./story-4-cursorindexingignore-scaffolding.md) | Completed ✅ | 7 | 7/7 | None |
 | 5 | [Supersession Banner Convention](./story-5-supersession-banner-convention.md) | Completed ✅ | 7 | 7/7 | None |
-| 6 | [Dogfood the Sweep Against This Repo](./story-6-dogfood-sweep.md) | Completed ✅ | 7 | 7/7 | Story 2 |
+| 6 | [Dogfood the Sweep Against This Repo](./story-6-dogfood-sweep.md) | Completed ✅ | 8 | 8/8 | Story 2 |
 
 ## Dependency Graph
 

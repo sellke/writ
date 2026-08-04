@@ -1,6 +1,6 @@
 # Spec Lifecycle & Archival
 
-> This document records the canonical status vocabulary, the archive path convention, the archive eligibility rule, and the glob-depth invariant that makes archival "free" for the rest of the command suite. See [`2026-08-04-spec-lifecycle-archival`](../specs/2026-08-04-spec-lifecycle-archival/spec.md) for the full contract this doc implements, and [Supersession Banners](#supersession-banners) below for the `Amends:` / `Extends:` / `Superseded by:` convention.
+> This document records the canonical status vocabulary, the archive path convention, the two-signal archive eligibility rule, and the glob-depth invariant that makes archival "free" for the rest of the command suite. See [`2026-08-04-spec-lifecycle-archival`](../specs/2026-08-04-spec-lifecycle-archival/spec.md) for the full contract this doc implements, and [Supersession Banners](#supersession-banners) below for the `Amends:` / `Extends:` / `Superseded by:` convention.
 
 ## Canonical Status Vocabulary
 
@@ -18,7 +18,7 @@ Every spec's header declares a status line — bold or unbold — inside its lea
 |---|---|
 | `Complete` | Canonical spelling for **new** specs going forward (Business Rule 8) |
 | `Completed ✅` | Legacy synonym, still recognized — matches the story-level convention used by `create-uat-plan.md` and `implement-story.md` |
-| `Closed — Abandoned` / `Closed — Cancelled` | Terminal-but-never-shipped states; complete-family for both *scanning* and *archiving* purposes (Amendment 2026-08-04 — see [Archive Eligibility](#archive-eligibility) below). No separate "Cancelled" prefix exists; spell cancelled work as `Closed — Cancelled` for vocabulary consistency rather than introducing a fourth standalone prefix. |
+| `Closed — Abandoned` | Terminal-but-never-shipped state; complete-family for *scanning* purposes (excluded from "active"), but archiving still requires knowledge evidence like any other complete-family spec (see [Two-Signal Eligibility](#two-signal-archive-eligibility) below) |
 
 **Detection is format-tolerant, not rewritten.** [`scripts/spec-status.py`](../../scripts/spec-status.py) is the single executable source of truth: it recognizes bold (`> **Status:** ...`) and unbold (`> Status: ...`) labels and matches any value starting with `Complete` or `Closed` (trailing parenthetical text, dates, or emoji are ignored). Existing spec files are **never mass-rewritten** to a single spelling — only the detector became tolerant. New specs created by `/create-spec` canonicalize to the bold, unadorned `> **Status:** Complete` form when later marked done, so spelling drift does not reaccumulate (Business Rule 8).
 
@@ -65,21 +65,18 @@ Every existing spec-enumeration call site in the command suite uses a **single-l
 
 A single-level glob `.writ/specs/*/spec-lite.md` stops at the spec folder name and does **not** descend into `backups/<timestamp>/spec-lite.md` — the same depth-based exclusion that keeps `archive/` invisible to routine scans keeps `backups/` invisible too. No code change was required for this; it was already true before this spec existed. `/edit-spec`'s backup behavior is unchanged by archival.
 
-## Archive Eligibility
+## Two-Signal Archive Eligibility
 
-> **Amended 2026-08-04.** Eligibility originally required BOTH complete-family status AND a citing knowledge entry (a "two-signal" bar). Real dogfooding showed that gate excluded 36 of 39 real Complete specs in this repo — a 92% exclusion rate — and its stated purpose (substituting for a per-spec confirmation prompt) duplicated the safety already provided by reversible `git mv` plus a committed ledger. The knowledge-evidence signal is now ledger **enrichment**, not an eligibility gate. Full rationale: `2026-08-04-spec-lifecycle-archival/spec.md` → Technical Concerns → Amendment.
+A spec is **archive-eligible** only when **both** signals hold:
 
-A spec is **archive-eligible** when:
+1. **Status resolves to complete-family** under the format-tolerant detector above.
+2. **At least one `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name** (substring match on the folder-name component, e.g. `2026-07-10-knowledge-consolidation` — tolerant of `related_artifacts` entries written as a full path, `spec.md`, `spec-lite.md`, or a bare folder reference; documented as a known heuristic, not exact-path verification).
 
-1. **Status resolves to complete-family** under the format-tolerant detector above. This is the sole eligibility condition.
-
-Separately, the sweep also checks whether **at least one `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name** (substring match on the folder-name component, e.g. `2026-07-10-knowledge-consolidation` — tolerant of `related_artifacts` entries written as a full path, `spec.md`, `spec-lite.md`, or a bare folder reference; documented as a known heuristic, not exact-path verification). When found, it's recorded on the ledger line as citation evidence; when absent, the ledger line reads `no knowledge evidence yet`. Either way, the move happens.
-
-**Time in Complete status, alone, is now sufficient** — this deliberately diverges from the "signal-based, not age-based" principle used for knowledge-ledger staleness (`2026-07-10-knowledge-consolidation`), because a spec's own `Status:` header is itself a strong, human-declared signal, not a mere age proxy. A spec sitting in `Complete` status is archived on the next `/status --archive` run regardless of whether anything in the knowledge ledger cites it yet.
+**Time in Complete status, alone, is never sufficient.** This mirrors the existing "signal-based, not age-based" principle already established for knowledge-ledger staleness (see `2026-07-10-knowledge-consolidation`). A spec can sit in `Complete` status indefinitely without being archived if nothing in the knowledge ledger cites it yet — that is correct behavior, not a bug, and is reported as a "skipped (no knowledge evidence yet)" count rather than a failure.
 
 **The status gate is absolute.** A spec cited by knowledge evidence but not yet Complete is never archived regardless of citation count.
 
-The mechanism (`scripts/archive-sweep.py`, invoked via `/status --archive`) is a plain, reversible `git mv` per eligible spec, with one line appended to the committed `.writ/specs/archive/LEDGER.md` per move (spec name, citing knowledge filename(s) or `no knowledge evidence yet`, ISO 8601 timestamp). See `commands/status.md` → `### Archive Sweep (--archive)` for the full invocation contract.
+The mechanism (`scripts/archive-sweep.py`, invoked via `/status --archive`) is a plain, reversible `git mv` per eligible spec, with one line appended to the committed `.writ/specs/archive/LEDGER.md` per move (spec name, citing knowledge filename(s), ISO 8601 timestamp). See `commands/status.md` → `### Archive Sweep (--archive)` for the full invocation contract.
 
 ## `verify-spec --all` and Archive Exclusion
 
@@ -131,5 +128,5 @@ onto the **referenced (older)** spec's header — inserted as a new line in the 
 
 - **Enumerating specs?** Use `.writ/specs/*/spec.md` (or `.writ/specs/*/`) — single segment, never `**`. You get archive exclusion for free.
 - **Classifying a spec's status?** Call `scripts/spec-status.py is-complete --file <path>` (or `scan --specs-dir <dir>`) — don't hand-roll a substring grep.
-- **Checking archive eligibility?** Call `scripts/archive-sweep.py scan --specs-dir <dir> --knowledge-dir <dir>` — don't reimplement the status check or the evidence-enrichment lookup.
+- **Checking archive eligibility?** Call `scripts/archive-sweep.py scan --specs-dir <dir> --knowledge-dir <dir>` — don't reimplement the two-signal check.
 - **Tempted to add `grep -v archive` or a `-prune` clause?** Stop and re-read [Why one extra path segment is sufficient](#why-one-extra-path-segment-is-sufficient) above. You almost certainly don't need it.

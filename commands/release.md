@@ -589,8 +589,11 @@ node bin/writ.js date && node bin/writ.js timestamp   # smoke test locally
 npm version patch --no-git-tag-version                # or minor/major as warranted
 git add package.json && git commit -m "chore(runtime): bump @sellke/writ to vX.Y.Z"
 git push
-npm publish --access public
+scripts/publish-writ-runtime.sh --dry-run             # inspect the tarball before it's real
+scripts/publish-writ-runtime.sh                       # publish
 ```
+
+Use `scripts/publish-writ-runtime.sh` instead of raw `npm publish` — npm always bundles whatever file is literally named `README.md` at the package root regardless of the `files` array (package.json, README, and LICENSE are always included), and since `package.json` lives at the repo root, that would otherwise be this repo's full product README, not a description of the two-command CLI. The script swaps in `scripts/writ-runtime-readme.md` for the publish only, then restores the repo's real `README.md` via a `git checkout` trap — safe even if publish fails or the script is interrupted.
 
 That's the entire workflow. No gate, no preflight, no orchestration. The Writ methodology version printed in your release notes and the `@sellke/writ` version on npm are unrelated by design.
 

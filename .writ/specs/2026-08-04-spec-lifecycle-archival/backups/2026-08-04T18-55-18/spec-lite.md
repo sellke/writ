@@ -10,7 +10,7 @@
 **Implementation Approach:**
 - Detection fix first (Story 1) — everything else depends on it.
 - Archive path: `.writ/specs/archive/<name>/` — one glob level deeper than `.writ/specs/*/spec.md`, so existing commands auto-exclude it. Do not add explicit archive-skip logic elsewhere.
-- Eligibility (amended 2026-08-04): complete-family status alone. Knowledge-ledger citation (`related_artifacts` referencing the spec's folder name) is recorded on the ledger line when present but is no longer required — see spec.md → Technical Concerns → Amendment.
+- Eligibility: Complete status AND spec's folder name found in some `.writ/knowledge/**/*.md` `related_artifacts` frontmatter.
 - Move = plain `git mv`, no content rewrite, no rewriting of historical cross-references.
 
 **Files in Scope:**
@@ -34,24 +34,24 @@
 ## For Review Agents
 
 **Acceptance Criteria:**
-1. Format-tolerant detection classifies all 39 real specs correctly (bold/unbold `Status:`, `Complete`/`Completed ✅`/`Closed — Abandoned`/`Closed — Cancelled`, absent header → not-Complete).
-2. `/status --archive` moves ≥1 real spec in this repo via `git mv`, writes a `LEDGER.md` entry (with knowledge evidence when it exists, "no knowledge evidence yet" when it doesn't).
+1. Format-tolerant detection classifies all 39 real specs correctly (bold/unbold `Status:`, `Complete`/`Completed ✅`/`Closed — Abandoned`, absent header → not-Complete).
+2. `/status --archive` moves ≥1 real spec in this repo via `git mv`, writes a `LEDGER.md` entry with justifying evidence.
 3. `/status`, `create-spec`, `implement-spec`, `verify-spec` (incl. `--all`) all behave correctly with `archive/` present.
 4. `install.sh --dry-run --platform cursor` shows `.cursorindexingignore` seeding.
 5. ≥1 real spec pair gets a working bidirectional `Superseded by:` / `Amends:` link.
 
 **Business Rules:**
-- Eligibility requires complete-family status alone — never gated on knowledge evidence (amended 2026-08-04; evidence is ledger enrichment, not a filter).
+- Eligibility requires BOTH signals (Complete + knowledge evidence) — never time alone.
 - Auto-move only within an explicit `/status --archive` invocation — never a side effect of other commands.
 - Archive nesting is the sole filtering mechanism — no parallel exclusion lists.
 - `.writ/` growth stays ungated (per `2026-07-26-leanness-instrumentation` Rule 2) — this spec is about findability/correctness, not bloat reduction.
 
 **Experience Design:**
 - Entry: `/status --archive`
-- Happy path: scan → classify status → git mv eligible specs → append ledger line (with knowledge evidence if any) → print summary
-- Moment of truth: real sweep against this repo's specs, all references still resolve after
+- Happy path: scan → cross-reference knowledge → git mv eligible specs → append ledger line → print summary
+- Moment of truth: real sweep against this repo's 39 specs, all references still resolve after
 - Feedback: terminal summary (`N archived, M skipped`) + committed ledger entry
-- No confirmation prompt: reversibility (git mv + committed ledger) substitutes for per-item confirmation
+- No confirmation prompt: two-signal eligibility bar substitutes for per-item confirmation
 
 ---
 
@@ -69,7 +69,7 @@
 - **Upstream error:** `git mv` fails mid-sweep → that spec skipped and reported, sweep continues for remaining specs.
 
 **Edge Cases:**
-- Spec Complete but zero knowledge references → archived anyway; ledger records "no knowledge evidence yet" (amended 2026-08-04; previously skipped — see spec.md Technical Concerns → Amendment).
+- Spec Complete but zero knowledge references → skipped (correct, not a bug).
 - Spec referenced by knowledge but not Complete → skipped (status gate absolute).
 - Destination path collision → hard stop for that spec only, named in output.
 
