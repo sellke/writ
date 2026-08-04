@@ -16,9 +16,9 @@ This repo uses Writ to build Writ. Three concerns live here:
 |---|---|---|
 | **Product source** | `commands/`, `agents/`, `adapters/`, `scripts/`, `cursor/`, `system-instructions.md`, `SKILL.md` | The distributable methodology — what `install.sh` copies into other projects |
 | **Development workspace** | `.writ/` | Specs, research, product docs, ADRs — artifacts from using Writ to build itself |
-| **Active installation (Cursor)** | `.cursor/` | **Symlinks** to product source, not copies. Do not replace with regular files or run `install.sh` on this repo. |
+| **Active installation** | `.cursor/`, `.claude/` | **Symlinks** to product source, not copies. Do not replace with regular files or run `install.sh` on this repo. |
 
-Editing `commands/foo.md` and `.cursor/commands/foo.md` changes the same file via symlink.
+Editing `commands/foo.md`, `.cursor/commands/foo.md`, and `.claude/commands/foo.md` all change the same file via symlink.
 
 ## Development Commands
 
@@ -43,29 +43,9 @@ bash scripts/update.sh --dry-run     # Preview update
 
 ## Architecture
 
-### Commands (`commands/`)
-Markdown workflow files with structured phases. Each command is self-contained — read it and follow the steps. Commands reference agents and other commands but don't import anything.
+Pipeline: `plan-product` → `create-spec` → `implement-phase` (loops `implement-spec` per spec) or `implement-spec` directly → `verify-spec` → `release`.
 
-Key commands in the pipeline: `plan-product` → `create-spec` → `implement-phase` (phase-level orchestrator; loops `implement-spec` per spec) or `implement-spec` directly (single spec) → `verify-spec` → `release`.
-
-### Agents (`agents/`)
-Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
-1. Architecture check (read-only, PROCEED/CAUTION/ABORT)
-2. Coding agent (TDD, worktree isolation)
-3. Review agent (read-only, PASS/FAIL, max 3 iterations)
-4. Testing agent (coverage enforcement, >=80%)
-5. Documentation agent (framework-adaptive)
-
-Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`).
-
-### Adapters (`adapters/`)
-Platform-specific integration guides. `claude-code.md` maps Writ concepts to Claude Code's native subagent system (YAML frontmatter, worktrees, memory). `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system.
-
-### Scripts (`scripts/`)
-Shell scripts for installation (`install.sh`), updates (`update.sh`), migration from Code Captain (`migrate.sh`), and symlink management (`unlink.sh`).
-
-### SKILL.md
-Skill manifest for platforms that support skill discovery. Describes all commands with metadata.
+Commands are self-contained — each is read and followed top to bottom; they reference agents and other commands but don't import anything. `agents/` holds the docs for the `/implement-story` SDLC gates; the *loadable* Claude Code agent definitions (with frontmatter) live in `claude-code/agents/`. `adapters/` exists because commands use platform-agnostic tool names — each adapter translates them to one platform's APIs.
 
 ## Key Design Decisions
 
