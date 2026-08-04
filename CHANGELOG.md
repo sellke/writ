@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.26.0] - 2026-08-04
+
+**Spec Lifecycle & Archival** — fixes a spec-status detection bug that silently misclassified 27 of 39 real specs (bold `**Status:**` headers never matched the old literal `grep -q "Status: Complete"`), then builds an evidence-gated archive lifecycle on top of the fix: specs that are both Complete and cited by `.writ/knowledge/` evidence move to `.writ/specs/archive/<name>/` via `git mv`, excluded from every existing command's scan by glob depth alone — no command-suite changes required. Dogfooded against this repo's own 40-spec corpus.
+
+### Added
+
+- **Format-tolerant spec-status detection** — `scripts/spec-status.py` recognizes bold and unbold `Status:` headers and all complete-family values (`Complete`, `Completed ✅`, `Closed — Abandoned`), with a conservative not-complete default for missing headers ([Story 1](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-1-status-detection-fix.md)).
+- **Evidence-gated archive sweep** — new `/status --archive` flag (`scripts/archive-sweep.py`) moves specs that are both Complete and cited by `.writ/knowledge/` `related_artifacts` to `.writ/specs/archive/<name>/`, with a committed `LEDGER.md` audit trail and idempotent re-runs ([Story 2](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-2-archive-sweep-mechanism.md)).
+- **Spec lifecycle documentation** — `.writ/docs/spec-lifecycle.md` records the status vocabulary, archive convention, and the single-level-glob-depth invariant that makes archival "free" for the rest of the command suite ([Story 3](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-3-lifecycle-documentation.md)).
+- **`.cursorindexingignore` scaffolding** — `install.sh` seeds `.writ/specs/archive/**` exclusion at the project root, install-once, across all platforms ([Story 4](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-4-cursorindexingignore-scaffolding.md)).
+- **Supersession banner convention** — `Amends:`/`Extends:` declarations now write back a `Superseded by:` reverse pointer via `scripts/supersession-writeback.py`, wired into `/create-spec` and `/edit-spec` ([Story 5](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-5-supersession-banner-convention.md)).
+
+### Fixed
+
+- `implement-spec.md`'s spec-selection listing didn't require `spec.md` presence, which could have surfaced the newly-real `archive/` folder as a bogus selectable spec — caught during the real dogfood run against this repo's own corpus ([Story 6](.writ/specs/2026-08-04-spec-lifecycle-archival/user-stories/story-6-dogfood-sweep.md)).
+- `spec.md`'s own status header was stuck at "Not Started" despite all 6 stories being complete — caught by a post-implementation `/verify-spec` pass.
+
+### Internal
+
+- Dogfooded the archive sweep against this repo's real 40-spec corpus: 3 specs archived (`2026-03-27-context-engine`, `2026-04-24-phase4-production-grade-substrate`, `2026-07-18-artifact-integrity-handshake`).
+- README documents the context assembler, cuts posturing taglines.
+
 ## [0.25.0] - 2026-08-04
 
 **Deterministic Story Substrate** — moves Writ's two highest-consequence agent-interpreted pipeline steps to program: the story-dependency graph is now validated by a blocking pre-execution gate before `/implement-spec` computes parallel worktree batches, and context-hint resolution collapses from three drifting implementations (docs prose, orchestrator prose, a measurement-only function) into one deterministic, budget-enforced assembler.
