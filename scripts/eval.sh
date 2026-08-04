@@ -35,6 +35,7 @@ CHECKS=(
   spec-lifecycle-docs
   cursorindexingignore
   supersession-writeback
+  archive-dogfood
   story-deps
   story-context
   phase-lanes
@@ -1945,6 +1946,35 @@ check_supersession_writeback() {
   elif ! grep -q '> \*\*Superseded by:\*\* \[2026-07-26-leanness-instrumentation\](\.\./2026-07-26-leanness-instrumentation/spec\.md)' "$guardian"; then
     add_finding "supersession-writeback:guardian-reverse-pointer-missing" "leanness-guardian/spec.md is missing the retroactive Superseded by: pointer." "Re-apply Story 5 task 5.5 — run supersession-writeback.py apply against the leanness-instrumentation spec."
   fi
+}
+
+check_archive_dogfood() {
+  local fake="$PROJECT_ROOT/scripts/eval-archive-dogfood.py"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "archive-dogfood:$scenario_name" "$scenario_reason" "Investigate the real .writ/specs/archive/ tree — this check runs against production data, not a fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Story 6's dogfood run surfaced a real prose gap: implement-spec.md's spec
+  # listing didn't originally qualify "contains spec.md," so a naive folder
+  # listing could have surfaced archive/ itself as a bogus selectable spec.
+  require_literal "$implement_spec" 'containing spec.md' "implement-spec.md's spec-selection listing must require spec.md presence, not just list bare .writ/specs/ subfolder names (this is what keeps archive/ excluded)."
 }
 
 check_story_deps() {

@@ -1,6 +1,6 @@
 # User Stories: Spec Lifecycle & Archival
 
-> **Status:** In Progress — 5/6 stories complete, 35/42 tasks
+> **Status:** Completed ✅ — 6/6 stories complete, 42/42 tasks
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
@@ -9,7 +9,7 @@
 | 3 | [Lifecycle Documentation](./story-3-lifecycle-documentation.md) | Completed ✅ | 7 | 7/7 | None |
 | 4 | [.cursorindexingignore Scaffolding](./story-4-cursorindexingignore-scaffolding.md) | Completed ✅ | 7 | 7/7 | None |
 | 5 | [Supersession Banner Convention](./story-5-supersession-banner-convention.md) | Completed ✅ | 7 | 7/7 | None |
-| 6 | [Dogfood the Sweep Against This Repo](./story-6-dogfood-sweep.md) | Not Started | 7 | 0/7 | Story 2 |
+| 6 | [Dogfood the Sweep Against This Repo](./story-6-dogfood-sweep.md) | Completed ✅ | 7 | 7/7 | Story 2 |
 
 ## Dependency Graph
 
