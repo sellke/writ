@@ -1,6 +1,6 @@
 # Story 4: Dogfood and Verify
 
-> **Status:** Not Started
+> **Status:** Completed ✅ (2026-08-04) — fixture-scope (AC1–4) confirmed; AC5 (live merge-then-release confirmation) explicitly open, tracked below, not a blocker per this story's own Notes.
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
@@ -12,21 +12,24 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a fixture repo with a merged-PR SHA match, a resolvable complete-family spec, and no other outstanding changes, when `/release` (or its direct `scripts/archive-sweep.py` single-spec entry point + `release.md` Step 1.3c logic) runs against it, then exactly that one spec is `git mv`'d to `.writ/specs/archive/<name>/` and `LEDGER.md` gains exactly one new line annotated with the triggering PR number — no other spec folder is touched.
-- [ ] Given a real `/release` run in this repo where Step 1.3c's `LAST_MERGED_SHA`/`HEAD_SHA` comparison matches a genuine merged PR, when that PR's Spec Reference resolves to a spec that is not yet complete-family (or resolves to nothing, or resolves ambiguously — the common case for most day-to-day PRs), then `/release`'s terminal output and side effects are byte-for-byte identical to a hook-less run: zero archival, zero new lines anywhere, zero new prose.
-- [ ] Given a spec was just archived by a hook-triggered `/release` run (fixture or real), when `/release` is run again immediately afterward with no new merge, then the run is a clean no-op with respect to this hook — no duplicate ledger line, no error, no re-attempted `git mv` — matching the idempotency guarantee `scripts/archive-sweep.py`'s batch sweep already provides.
-- [ ] Given this hook is wired into `/release` but does not fire (no spec resolves), when `/release`'s existing gate behavior is exercised (spec metadata validation, build verification, conditional test suite per Step 1.3c's own test-skip heuristic), then all pre-existing gate checks pass or fail exactly as they would without this hook present — no new false pass, false fail, or altered gate ordering.
-- [ ] Given `2026-08-04-spec-lifecycle-archival` and `2026-08-04-post-merge-archival-hook` each eventually reach `Complete` status and have their PRs merged, when the next `/release` run after each merge executes, then each spec is found archived at `.writ/specs/archive/<name>/` with a `LEDGER.md` line annotated with its triggering PR number — closing the exact motivating gap without a manual `/status --archive` sweep.
+- [x] Given a fixture repo with a merged-PR SHA match, a resolvable complete-family spec, and no other outstanding changes, when `/release` (or its direct `scripts/archive-sweep.py` single-spec entry point + `release.md` Step 1.3c logic) runs against it, then exactly that one spec is `git mv`'d to `.writ/specs/archive/<name>/` and `LEDGER.md` gains exactly one new line annotated with the triggering PR number — no other spec folder is touched. _(Confirmed: `test_hook_fires_and_archives_on_matched_and_eligible` + `shared-model-happy-path-archives-with-pr-annotation`.)_
+- [x] Given a real `/release` run in this repo where Step 1.3c's `LAST_MERGED_SHA`/`HEAD_SHA` comparison matches a genuine merged PR, when that PR's Spec Reference resolves to a spec that is not yet complete-family (or resolves to nothing, or resolves ambiguously — the common case for most day-to-day PRs), then `/release`'s terminal output and side effects are byte-for-byte identical to a hook-less run: zero archival, zero new lines anywhere, zero new prose. _(Confirmed: `test_resolver_none_makes_no_archive_call`, `test_resolver_ambiguous_makes_no_archive_call`, `test_resolver_matches_but_not_eligible_no_further_action` + `shared-model-skips-with-no-side-effect-on-no-match`.)_
+- [x] Given a spec was just archived by a hook-triggered `/release` run (fixture or real), when `/release` is run again immediately afterward with no new merge, then the run is a clean no-op with respect to this hook — no duplicate ledger line, no error, no re-attempted `git mv` — matching the idempotency guarantee `scripts/archive-sweep.py`'s batch sweep already provides. _(Confirmed: `test_resolver_matches_but_already_archived_no_further_action`.)_
+- [x] Given this hook is wired into `/release` but does not fire (no spec resolves), when `/release`'s existing gate behavior is exercised (spec metadata validation, build verification, conditional test suite per Step 1.3c's own test-skip heuristic), then all pre-existing gate checks pass or fail exactly as they would without this hook present — no new false pass, false fail, or altered gate ordering. _(Confirmed: `git show a7a0bba` diff confinement to Step 1.3c, now durably pinned via `check_post_merge_archival()`'s `require_literal` assertions on the original three-row test-skip table.)_
+- [ ] Given `2026-08-04-spec-lifecycle-archival` and `2026-08-04-post-merge-archival-hook` each eventually reach `Complete` status and have their PRs merged, when the next `/release` run after each merge executes, then each spec is found archived at `.writ/specs/archive/<name>/` with a `LEDGER.md` line annotated with its triggering PR number — closing the exact motivating gap without a manual `/status --archive` sweep. _(Genuinely open — see Live Confirmation Status below. Not a blocker to this story's closure per its own Notes.)_
 
 ## Implementation Tasks
 
-- [ ] 4.1 Write a fixture-based eval suite (e.g. `scripts/eval-post-merge-archival.py`, registered in `eval.sh` mirroring `scripts/eval-archive-sweep.py`'s pattern) covering: single-spec archive on merge match, no-op on unresolved/ambiguous spec, no-op on not-yet-complete-family spec, no-op on already-archived spec, idempotent re-run, and `git mv` failure (dirty tree/collision) not blocking `/release`
-- [ ] 4.2 Run the fixture suite against a disposable test repo/worktree simulating a merged PR (fake `LAST_MERGED_SHA`/`HEAD_SHA` match, a fixture spec folder at complete-family status, a fixture branch name the shared resolver can match) and confirm the single-spec move, PR-annotated ledger line, and idempotent re-run all behave per Story 2/3's contract
-- [ ] 4.3 Run a second fixture pass confirming the "common case" no-op: no resolvable spec, ambiguous resolution, and a resolved-but-not-complete-family spec each produce zero archival side effects and output identical to a hook-less baseline run (diff the full terminal output, not just exit code)
-- [ ] 4.4 Confirm no regression to `/release`'s existing gate behavior by running `/release`'s documented gate steps (spec metadata validation, build verification, Step 1.3c's conditional test-skip heuristic) against a case where the hook is present but does not fire, and diff against a pre-hook baseline run of the same gate steps
-- [ ] 4.5 Document the live-confirmation procedure for this repo's own two motivating specs: once `2026-08-04-spec-lifecycle-archival` and this spec (`2026-08-04-post-merge-archival-hook`) each reach `Complete` and their PRs merge, the next real `/release` run should archive each — capture that run's terminal output, the resulting `LEDGER.md` lines (with PR numbers), and confirm via `git log --follow` that each archived spec's history is preserved, exactly mirroring the parent spec's Story 6 verification method
-- [ ] 4.6 Verify acceptance criteria are met: fixture criteria (1–4) confirmed immediately via Tasks 4.1–4.4; the live criterion (5) confirmed once this repo's real merge-then-release cycle for both specs actually occurs — record whichever has occurred by story completion and flag the remainder as a follow-up verification, not a blocker to closing this story
-- [ ] 4.7 Verify all tests pass, including the new eval suite registered in `eval.sh`, and that existing `/release`-related eval scenarios (if any) still pass unmodified
+> **Note:** This story's architecture check (2026-08-04, CAUTION) found the original 4.1–4.7 list below would substantially duplicate Story 3's existing `scripts/tests/test_release_archival_hook.py` coverage. Tasks were revised pre-implementation to the list actually delivered:
+
+- [x] 4.0 (new) Extract `run_archival_hook()` and its fixture helpers out of `scripts/tests/test_release_archival_hook.py` into a shared, non-test-prefixed module (`scripts/_archival_hook_model.py`); refactor the test file to import from it (pure refactor — same 11 tests, same assertions, verified unchanged via diff against the Story 3 commit)
+- [x] 4.1 (narrowed) Write `scripts/eval-post-merge-archival.py`, registered in `eval.sh`, whose primary payload is `require_literal`/`forbid_literal` prose-pinning of `commands/release.md` Step 1.3c (resolve call, `archive-one` call, forbid-duplicate-eligibility-check guard, best-effort-guard language, immediate-commit note), plus 2 smoke scenarios (not an 11-case re-derivation) importing the shared model from Task 4.0
+- [x] 4.2 Register `post-merge-archival` in `eval.sh`'s `CHECKS=()` array and add `check_post_merge_archival()`, placed adjacent to `check_archive_dogfood()`
+- [x] 4.3 (narrowed) Confirm via a targeted read (not new fixture code) that the "common case" no-op paths — no-match, ambiguous, not-yet-complete-family — are adequately covered across `test_release_archival_hook.py` + the new smoke scenarios combined
+- [x] 4.4 (narrowed) Confirm Story 3's prior diff claim (Phases 2–5 / Steps 1.3a/1.3b of `release.md` untouched) still holds via `git show`, then fold the guarantee durably into `require_literal` pins on Step 1.3c's original three-row test-skip table, rather than re-running a full manual diff
+- [x] 4.5 (narrowed) Write `scripts/eval-post-merge-dogfood.py`, a real-repo AC5 readiness probe that defaults to a non-failing "0 of 2 archived so far" state and is deliberately **not** registered in `eval.sh`'s `CHECKS()` array until real hook-triggered evidence exists (its own docstring documents the exact registration steps for whoever picks this up once AC5 resolves)
+- [x] 4.6 (narrowed) Add a `### Live Confirmation Status` subsection directly to this story file recording AC1–4 confirmed and AC5 explicitly not-yet-confirmed, with an explicit guard against crediting the pre-existing manual `/status --archive` move of `2026-08-04-spec-lifecycle-archival` toward AC5
+- [x] 4.7 Full pytest suite (199/199, zero regressions, independently re-verified by both the coding agent and the review agent in isolated venvs) + manual confirmation both new scripts behave as designed (`bash scripts/eval.sh --check=post-merge-archival` exits 0; `python3 scripts/eval-post-merge-dogfood.py` exits 0 and is absent from `CHECKS()`)
 
 ## Notes
 
@@ -67,11 +70,11 @@ As of this recording, **0 of 2** motivating specs (`2026-08-04-spec-lifecycle-ar
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed (as revised by architecture check — see note above Implementation Tasks)
+- [ ] All acceptance criteria met _(AC1–4 met; AC5 genuinely pending a real merge-then-release cycle — see Live Confirmation Status)_
+- [x] Tests passing (199/199, zero regressions)
+- [x] Code reviewed ([review agent](dff9c538-08b7-459f-bf9c-95ebf9110d08) — PASS, one Small drift item logged as DEV-004)
+- [x] Documentation updated (this story file's Live Confirmation Status; Story 3 already updated `.writ/docs/spec-lifecycle.md` and `README.md` for the hook itself)
 
 ## Context for Agents
 

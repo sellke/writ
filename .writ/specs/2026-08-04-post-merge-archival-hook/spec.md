@@ -1,6 +1,6 @@
 # Spec: Post-Merge Archival Hook
 
-> **Status:** In Progress (3/4 stories complete)
+> **Status:** Complete (4/4 stories). All 5 numbered Success Criteria are fixture-satisfied; Story 4's own AC5 (the real-world merge-then-release archival of this spec and `2026-08-04-spec-lifecycle-archival`) remains tracked as an open, non-blocking follow-up — see `user-stories/story-4-dogfood-and-verify.md` → Live Confirmation Status.
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-04
 > **Dependencies:** [2026-08-04-spec-lifecycle-archival]
