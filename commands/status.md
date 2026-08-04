@@ -20,9 +20,15 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 
 ```bash
 /status
+/status --archive
 ```
 
-No parameters. Works in any git repository.
+| Invocation | Behavior |
+|---|---|
+| `/status` | Standard orientation report (Steps 1–9 below). Never archives anything. |
+| `/status --archive` | Runs the standard orientation report, then the **archive sweep** (see [Archive Sweep](#archive-sweep---archive) below) as an explicit, deliberate additional phase. |
+
+`--archive` is opt-in only — routine `/status` (no flag) never triggers archival as a side effect, per Business Rule 2.
 
 ---
 
@@ -217,6 +223,33 @@ Based on the gathered state, produce 2–4 suggested next actions. Rules:
 `/create-spec`, `/implement-story`, `/implement-spec`, `/implement-phase`, `/prototype`, `/review`, `/verify-spec`, `/refresh-command`, `/assess-spec`, `/ship`, `/release`, `/plan-product`, `/design`, `/research`, `/refactor`, `/status`, `/new-command`, `/new-skill`, `/initialize`, `/create-adr`, `/create-issue`, `/create-uat-plan`, `/edit-spec`, `/knowledge`, `/migrate`, `/retro`, `/security-audit`, `/update-writ`, `/reinstall-writ`, `/uninstall-writ`
 
 Never suggest a command not in this list. If you need to suggest something that doesn't match an existing command, describe the action in plain English instead (e.g., "Resolve merge conflicts manually").
+
+---
+
+### Archive Sweep (`--archive`)
+
+> Only runs when `/status --archive` is explicitly invoked — never as a side effect of routine `/status`, `create-spec`, or `implement-spec` (Business Rule 2). See `.writ/docs/spec-lifecycle.md` for the full convention this step implements.
+
+When `--archive` is present, run this as an additional phase **after** Step 9:
+
+1. **Scan and move.** Invoke the shared reducer:
+   ```bash
+   python3 scripts/archive-sweep.py sweep --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root .
+   ```
+   For each spec under `.writ/specs/*/spec.md` (single-level glob — never recurse into `archive/`), the reducer:
+   - Classifies complete-family status via `scripts/spec-status.py` (Story 1's format-tolerant detector).
+   - Checks eligibility: **Complete status AND** at least one `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name (Business Rule 1 — both signals required, time alone is never sufficient).
+   - Moves each eligible spec via `git mv .writ/specs/<name> .writ/specs/archive/<name>` and appends one line to `.writ/specs/archive/LEDGER.md` (created on first use, committed to git — never `.writ/state/`).
+   - Skips (never fails) on a destination collision or a `git mv` failure for that one spec, naming it in output, and continues the sweep for the rest.
+2. **Report the terminal summary** from the reducer's JSON `summary` field, e.g.:
+   ```
+   📦 Archive sweep: 2 specs archived, 5 Complete specs skipped (no knowledge evidence yet)
+      • Archived: 2026-04-24-phase4-production-grade-substrate (evidence: 6 knowledge entries)
+      • Archived: 2026-07-18-artifact-integrity-handshake (evidence: 1 knowledge entry)
+   ```
+   If any collisions or `git mv` failures occurred, list them by name under a `⚠️` line — the sweep still completes for the rest.
+3. **No confirmation prompt per spec.** The two-signal eligibility bar (Complete + knowledge evidence) substitutes for a human "are you sure" (Business Rule 2) — this step never pauses to ask before moving an eligible spec.
+4. **Idempotent by construction.** A spec already under `.writ/specs/archive/<name>/` no longer appears in the next sweep's `.writ/specs/*/spec.md` scan at all — running `/status --archive` twice in a row is a clean no-op the second time.
 
 ---
 
@@ -421,6 +454,7 @@ If spec files exist but cannot be parsed (malformed README, missing story files)
 | `/create-spec --from-issue` | Promotes issues to specs — clears the Needs Triage flag by writing `spec_ref` |
 | `/verify-spec` | Deep metadata diagnostic — use when `/status` flags spec inconsistencies |
 | `/ship` | Next step when active spec is complete |
+| `/status --archive` | Moves Complete + knowledge-evidenced specs to `.writ/specs/archive/` via `scripts/archive-sweep.py`; see `.writ/docs/spec-lifecycle.md` |
 
 ---
 

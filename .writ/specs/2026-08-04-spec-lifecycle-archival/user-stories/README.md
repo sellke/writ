@@ -1,11 +1,11 @@
 # User Stories: Spec Lifecycle & Archival
 
-> **Status:** In Progress — 1/6 stories complete, 7/42 tasks
+> **Status:** In Progress — 2/6 stories complete, 14/42 tasks
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Status Detection Fix](./story-1-status-detection-fix.md) | Completed ✅ | 7 | 7/7 | None |
-| 2 | [Archive Sweep Mechanism](./story-2-archive-sweep-mechanism.md) | Not Started | 7 | 0/7 | Story 1 |
+| 2 | [Archive Sweep Mechanism](./story-2-archive-sweep-mechanism.md) | Completed ✅ | 7 | 7/7 | Story 1 |
 | 3 | [Lifecycle Documentation](./story-3-lifecycle-documentation.md) | Not Started | 7 | 0/7 | None |
 | 4 | [.cursorindexingignore Scaffolding](./story-4-cursorindexingignore-scaffolding.md) | Not Started | 7 | 0/7 | None |
 | 5 | [Supersession Banner Convention](./story-5-supersession-banner-convention.md) | Not Started | 7 | 0/7 | None |

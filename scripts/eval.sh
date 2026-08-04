@@ -31,6 +31,7 @@ CHECKS=(
   recommended-staging
   spec-dependencies
   spec-status
+  archive-sweep
   story-deps
   story-context
   phase-lanes
@@ -1787,6 +1788,49 @@ check_spec_status() {
   require_literal "$status_cmd" 'spec-status.py' "status.md must invoke the shared format-tolerant detector."
   require_literal "$create_spec" 'spec-status.py' "create-spec.md Step 1.3b must reference the shared format-tolerant detector."
   require_literal "$create_spec" 'Canonical complete-family spelling' "create-spec.md must document the canonical new-spec Complete spelling."
+}
+
+check_archive_sweep() {
+  local fake="$PROJECT_ROOT/scripts/eval-archive-sweep.py"
+  local helper="$PROJECT_ROOT/scripts/archive-sweep.py"
+  local status_cmd="$PROJECT_ROOT/commands/status.md"
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "archive-sweep:$scenario_name" "$scenario_reason" "Fix the executable sweep reducer or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def sweep(' "The archive-sweep helper must implement the sweep reducer."
+  require_literal "$helper" 'def find_knowledge_evidence(' "The archive-sweep helper must scan knowledge related_artifacts for eligibility evidence."
+  require_literal "$helper" 'spec-status.py' "The archive-sweep helper must delegate complete-family classification to the shared spec-status.py detector, not reimplement it."
+  require_literal "$helper" 'collisions.append' "The archive-sweep helper must record destination collisions without aborting the sweep."
+  require_literal "$helper" 'move_failures.append' "The archive-sweep helper must record git-mv failures without aborting the sweep."
+
+  require_literal "$status_cmd" '--archive' "status.md must document the --archive invocation flag."
+  require_literal "$status_cmd" 'archive-sweep.py' "status.md must invoke the shared archive-sweep reducer."
+  require_literal "$status_cmd" 'never as a side effect' "status.md must state that --archive never triggers as a side effect of routine /status."
+
+  # Nesting is the sole filtering mechanism (Business Rule 5) — no command in
+  # the suite should grow a parallel, explicit archive/ exclusion check.
+  forbid_literal "$status_cmd" 'grep -v archive' "status.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
+  forbid_literal "$create_spec" 'grep -v archive' "create-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
+  forbid_literal "$implement_spec" 'grep -v archive' "implement-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
 }
 
 check_story_deps() {
