@@ -183,6 +183,26 @@ def test_signals_are_reported_for_caller_diagnostics(tmp_path: Path) -> None:
     assert result["signals"]["commit_matches"] == []
 
 
+def test_generic_readme_story_file_never_causes_a_false_positive(tmp_path: Path) -> None:
+    """Every spec's user-stories/ folder has a generic README.md index file
+    (Writ convention). A commit merely mentioning the word "README.md" --
+    extremely common, e.g. a docs commit about swapping README.md content --
+    must not false-positive-match every spec that happens to have one
+    (discovered via Task 1.6 dogfooding against this repo's real history)."""
+    specs_dir = tmp_path / "specs"
+    make_spec(specs_dir, "2026-01-01-unrelated-spec", stories=["README.md", "story-1-something.md"])
+    make_spec(specs_dir, "2026-01-02-another-spec", stories=["README.md", "story-1-else.md"])
+
+    result = resolve_spec_reference(
+        None,
+        ["docs(release): swap in a temporary README.md for npm publish, then restore README.md"],
+        specs_dir,
+    )
+
+    assert result["result"] == "none"
+    assert result["candidates"] == []
+
+
 def test_dogfood_real_branch_resolves_only_via_commit_message_signal(tmp_path: Path) -> None:
     """Real repo history: `chore/spec-lifecycle-status-alone-eligibility` does
     NOT substring-match `2026-08-04-spec-lifecycle-archival` by branch name

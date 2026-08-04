@@ -52,6 +52,14 @@ SCHEMA_RESOLVE = "resolve-spec-reference-v1"
 
 DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-")
 
+# Only files that look like an actual story file count as a commit-message
+# signal (technical-spec.md's own example: "story-3-session-management.md").
+# Every spec's `user-stories/` folder also has a generic `README.md` index
+# (Writ convention) -- if that filename counted too, any commit merely
+# mentioning the word "README.md" (extremely common; verified against this
+# repo's own history) would false-positive-match nearly every spec at once.
+STORY_FILE_PATTERN = re.compile(r"^story-\d+-.+\.md$")
+
 
 def _list_spec_folders(specs_dir: Path) -> list[str]:
     """Return spec folder names directly under `specs_dir`.
@@ -115,7 +123,11 @@ def _match_commit_messages(
             continue
         stories_dir = specs_dir / folder / "user-stories"
         try:
-            story_names = [p.name.lower() for p in stories_dir.glob("*.md")]
+            story_names = [
+                p.name.lower()
+                for p in stories_dir.glob("*.md")
+                if STORY_FILE_PATTERN.match(p.name.lower())
+            ]
         except OSError:
             story_names = []
         if any(name in blob for name in story_names):
