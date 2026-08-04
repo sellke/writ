@@ -3,6 +3,7 @@
 > **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 1
+> **Commit:** 453313ba50e96b082be1cbf408cc2d3139d62757
 
 ## User Story
 
