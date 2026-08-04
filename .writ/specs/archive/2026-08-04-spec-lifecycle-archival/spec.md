@@ -6,6 +6,7 @@
 > **Last Amended:** 2026-08-04 — Business Rule 1's knowledge-evidence gate removed from archive eligibility; see Technical Concerns → Amendment for full rationale.
 > **Dependencies:** []
 > **Origin:** Ask-mode discussion on whether the growing `.writ/` corpus risks confusing agents; escalated to `/create-spec` after discovery surfaced a live detection bug, not just a hypothetical growth concern.
+> **Superseded by:** [2026-08-04-post-merge-archival-hook](../2026-08-04-post-merge-archival-hook/spec.md)
 
 ## Contract (Locked)
 
