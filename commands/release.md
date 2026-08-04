@@ -131,6 +131,8 @@ LAST_MERGED_BRANCH=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].headRefName // em
 LAST_MERGED_COMMITS=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]?.messageHeadline // empty' 2>/dev/null)
 ```
 
+> **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), since extracting four independent fields from one payload needs a general-purpose filter, not a single scalar. This mirrors the same external-`jq`-with-graceful-fallback assumption Step 3.1's version-bump logic already makes elsewhere in this file. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it.
+
 | Condition | Behavior |
 |---|---|
 | `gh` unavailable, errors, or returns empty | Log `gh CLI unavailable or no merge data — running full test suite` → run **full** suite |
