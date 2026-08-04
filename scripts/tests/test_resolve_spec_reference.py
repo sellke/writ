@@ -12,6 +12,7 @@ test_archive_sweep.py / test_spec_status.py (hyphenated filename).
 from __future__ import annotations
 
 import importlib.util
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -228,6 +229,115 @@ def test_dogfood_real_branch_resolves_only_via_commit_message_signal(tmp_path: P
     )
     assert with_commits["result"] == "matched"
     assert with_commits["spec"] == "2026-08-04-spec-lifecycle-archival"
+
+
+def test_list_spec_folders_oserror_degrades_to_empty_list(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unreadable specs_dir (e.g. permission denied) must degrade to an
+    empty folder list rather than propagate -- same graceful-degradation
+    contract as a missing specs_dir (module docstring)."""
+    specs_dir = tmp_path / "specs"
+    specs_dir.mkdir()
+
+    def _boom(self: Path, pattern: str) -> list[Path]:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "glob", _boom)
+
+    result = resolve_spec_reference_mod._list_spec_folders(specs_dir)
+
+    assert result == []
+
+
+def test_match_commit_messages_oserror_on_story_glob_degrades_gracefully(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unreadable user-stories/ directory must degrade that spec's
+    story-file signal to no match rather than propagate -- signal 2's own
+    graceful-degradation branch, distinct from `_list_spec_folders`'."""
+    specs_dir = tmp_path / "specs"
+    specs_dir.mkdir()
+
+    def _boom(self: Path, pattern: str) -> list[Path]:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "glob", _boom)
+
+    matches = resolve_spec_reference_mod._match_commit_messages(
+        ["touches story-1-something.md"], ["2026-01-01-some-spec"], specs_dir
+    )
+
+    assert matches == []
+
+
+def test_main_direct_invocation_prints_matched_json_and_returns_zero(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Calling `main()` in-process (vs. via subprocess, like the CLI smoke
+    tests below) exercises the argparse wiring and print/return path in the
+    same interpreter the coverage tool is instrumenting."""
+    specs_dir = tmp_path / "specs"
+    make_spec(specs_dir, "2026-03-15-auth-system")
+
+    exit_code = resolve_spec_reference_mod.main(
+        ["resolve", "--branch", "feature/auth-system", "--specs-dir", str(specs_dir)]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert '"result": "matched"' in captured.out
+    assert '"spec": "2026-03-15-auth-system"' in captured.out
+
+
+def test_main_never_fails_closed_when_resolve_spec_reference_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Best-effort resolver contract (module docstring): even if
+    `resolve_spec_reference` itself raises, `main()` must catch it and print
+    a `none` fallback rather than propagate or exit non-zero."""
+
+    def _boom(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("unexpected failure")
+
+    monkeypatch.setattr(resolve_spec_reference_mod, "resolve_spec_reference", _boom)
+
+    exit_code = resolve_spec_reference_mod.main(
+        ["resolve", "--branch", "anything", "--specs-dir", str(tmp_path / "specs")]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert '"result": "none"' in captured.out
+
+
+def test_module_entrypoint_via_runpy_exits_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Exercises the `if __name__ == "__main__": sys.exit(main())` line
+    itself by running the file as the entrypoint in-process (via `runpy`)
+    rather than as a subprocess, so it's visible to the coverage tool."""
+    specs_dir = tmp_path / "specs"
+    make_spec(specs_dir, "2026-01-01-entrypoint-spec")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(MODULE_PATH),
+            "resolve",
+            "--branch",
+            "2026-01-01-entrypoint-spec",
+            "--specs-dir",
+            str(specs_dir),
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path(str(MODULE_PATH), run_name="__main__")
+
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert '"result": "matched"' in captured.out
 
 
 def test_cli_resolve_help_exits_zero() -> None:
