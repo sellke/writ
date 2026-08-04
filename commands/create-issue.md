@@ -1,3 +1,8 @@
+---
+name: create-issue
+description: "Fast-capture a bug, feature, or improvement mid-development in under 2 minutes. Speed over completeness."
+---
+
 # Create Issue Command (create-issue)
 
 ## Overview

@@ -1,3 +1,8 @@
+---
+name: retro
+description: "Turn git history into a retrospective: what shipped, how fast, what patterns emerged, and how it compares to the previous period."
+---
+
 # Retro Command (retro)
 
 ## Overview

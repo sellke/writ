@@ -3,7 +3,7 @@ name: code-explanation
 description: "Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target."
 disable-model-invocation: true
 status: candidate
-status_evidence: "Extracted 2026-07-10 from the retired explain-code command; candidate until consumer transcripts prove reuse."
+status_evidence: "Extracted 2026-07-10 from the retired explain-code command. 1 consumer (commands/research.md); proven needs >=3 — see ADR-014."
 ---
 
 # Code Explanation

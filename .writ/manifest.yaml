@@ -271,5 +271,5 @@ skills:
   - name: tdd-cycle
     file: skills/tdd-cycle/SKILL.md
     description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."
-    status: candidate
+    status: proven
     tags: [testing, tdd, implementation]

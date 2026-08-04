@@ -1,3 +1,8 @@
+---
+name: knowledge
+description: "Capture a small durable fact - a convention, glossary term, minor decision, or lesson - in under 2 minutes. Use create-adr for serious architectural choices."
+---
+
 # Knowledge Command (knowledge)
 
 ## Overview

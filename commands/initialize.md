@@ -1,3 +1,8 @@
+---
+name: initialize
+description: "Set up a project's technical foundation, auto-detecting greenfield vs brownfield. Infrastructure only - product strategy belongs to plan-product."
+---
+
 # Initialize Command (initialize)
 
 ## Overview

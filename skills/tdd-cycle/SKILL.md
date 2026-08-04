@@ -2,8 +2,20 @@
 name: tdd-cycle
 description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."
 disable-model-invocation: true
-status: candidate
-status_evidence: "Extracted 2026-07-10 from implement-story's coding phase; candidate until consumer transcripts prove reuse across coding and testing consumers."
+status: proven
+evidence:
+  - date: 2026-07-10
+    type: usage
+    ref: commands/implement-story.md
+    note: "Gate 2 spawns the coding agent to run this skill's red → green → refactor loop."
+  - date: 2026-07-18
+    type: usage
+    ref: agents/coding-agent.md
+    note: "coding-agent grows each unit of behavior through this skill's cycle."
+  - date: 2026-07-18
+    type: usage
+    ref: agents/testing-agent.md
+    note: "testing-agent adds missing-behavior tests test-first via this skill."
 ---
 
 # TDD Cycle

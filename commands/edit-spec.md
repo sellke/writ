@@ -1,3 +1,8 @@
+---
+name: edit-spec
+description: "Modify an existing spec contract-first - agree on a modification contract before any file changes, preventing scope surprises."
+---
+
 # Edit Spec Command (edit-spec)
 
 ## Overview

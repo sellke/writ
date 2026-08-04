@@ -1,3 +1,8 @@
+---
+name: research
+description: "Systematic four-phase investigation - scoping, discovery, deep dive, synthesis - producing an evidence-backed research document. Not for quick lookups."
+---
+
 # Research Command
 
 ## Overview

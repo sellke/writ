@@ -1,3 +1,8 @@
+---
+name: design
+description: "Produce wireframes and store screenshots or mockups as visual references the coding agent uses during implementation. Standalone or inside the spec pipeline."
+---
+
 # Design Command (design)
 
 ## Overview

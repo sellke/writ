@@ -1,3 +1,8 @@
+---
+name: new-command
+description: "Create a new Writ command contract-first, challenging whether it is needed and surfacing overlap with existing commands before writing files."
+---
+
 # New Command Creator (new-command)
 
 ## Overview

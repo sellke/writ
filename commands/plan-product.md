@@ -1,3 +1,8 @@
+---
+name: plan-product
+description: "Establish product mission, strategy, and roadmap through structured discovery. Use --reconcile to diff existing product docs against reality."
+---
+
 # Plan Product Command (plan-product)
 
 ## Overview

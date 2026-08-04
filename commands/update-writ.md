@@ -1,3 +1,8 @@
+---
+name: update-writ
+description: "Pull the latest Writ release and decide per customized file whether to overwrite, keep, or diff. Not for use in the Writ source repo."
+---
+
 # Update Writ Command (update-writ)
 
 ## Overview

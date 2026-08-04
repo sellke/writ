@@ -1,3 +1,8 @@
+---
+name: security-audit
+description: "Multi-phase security audit: dependency vulnerabilities, code-level patterns, secrets detection, infrastructure configuration, and compliance posture."
+---
+
 # Security Audit Command (security-audit)
 
 ## Overview

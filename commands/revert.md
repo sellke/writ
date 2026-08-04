@@ -1,3 +1,8 @@
+---
+name: revert
+description: "Safely unwind a story or an entire spec on the current branch - resolve its real commits, show the plan, then git revert and restore Writ artifacts."
+---
+
 # Revert Command (revert)
 
 ## Overview

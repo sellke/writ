@@ -1,3 +1,8 @@
+---
+name: migrate
+description: "Migrate an existing Code Captain project to Writ, renaming directories and updating references with zero data loss."
+---
+
 # Migrate Command (migrate)
 
 ## Overview

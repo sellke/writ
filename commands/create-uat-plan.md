@@ -1,3 +1,8 @@
+---
+name: create-uat-plan
+description: "Generate a human-readable User Acceptance Test plan from a completed spec, so a person can validate behavior without reading implementation code."
+---
+
 # Create UAT Plan Command (create-uat-plan)
 
 ## Overview

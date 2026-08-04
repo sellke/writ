@@ -1,3 +1,8 @@
+---
+name: implement-story
+description: "Run a single user story through the full SDLC pipeline: architecture check, boundary map, TDD coding, lint, review, testing, documentation."
+---
+
 # Implement Story Command (implement-story)
 
 ## Overview

@@ -1,3 +1,8 @@
+---
+name: status
+description: "Orient in under 10 seconds: config, active spec, in-flight batch work, and what to do next."
+---
+
 # Status Command (status)
 
 ## Overview

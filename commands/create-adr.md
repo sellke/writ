@@ -1,3 +1,8 @@
+---
+name: create-adr
+description: "Record an architecture decision with rigorous alternatives analysis and honest consequences. For high-switching-cost or convention-breaking choices, not routine technical picks."
+---
+
 # Create ADR Command (create-adr)
 
 ## Overview

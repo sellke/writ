@@ -3,7 +3,7 @@ name: error-rescue-mapping
 description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."
 disable-model-invocation: true
 status: candidate
-status_evidence: "Extracted 2026-07-10 from create-spec Step 2.8; candidate until consumer transcripts prove reuse (a review pass is the natural second consumer)."
+status_evidence: "Extracted 2026-07-10 from create-spec Step 2.8. 1 consumer (commands/create-spec.md); proven needs >=3 — see ADR-014."
 ---
 
 # Error & Rescue Mapping
