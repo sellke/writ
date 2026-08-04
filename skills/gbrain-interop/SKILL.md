@@ -3,7 +3,7 @@ name: gbrain-interop
 description: "Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy."
 disable-model-invocation: true
 status: candidate
-status_evidence: "Authored 2026-07-11 for the gbrain-compatibility-recipe spec; candidate until consumer transcripts prove brain-first routing across real retrieval tasks."
+status_evidence: "Authored 2026-07-11 for the gbrain-compatibility-recipe spec. 0 consumers cite it; proven needs >=3 — see ADR-014."
 ---
 
 # GBrain Interop

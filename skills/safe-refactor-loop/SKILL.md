@@ -3,7 +3,7 @@ name: safe-refactor-loop
 description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."
 disable-model-invocation: true
 status: candidate
-status_evidence: "Extracted 2026-07-10 from refactor Phase 3; candidate until consumer transcripts prove reuse (prototype work is the plausible second consumer)."
+status_evidence: "Extracted 2026-07-10 from refactor Phase 3. 1 consumer (commands/refactor.md); proven needs >=3 — see ADR-014."
 ---
 
 # Safe Refactor Loop
