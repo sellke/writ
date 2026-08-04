@@ -1,6 +1,6 @@
 # Spec: Spec Lifecycle & Archival
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Owner:** @Adam Sellke
 > **Created:** 2026-08-04
 > **Dependencies:** []
