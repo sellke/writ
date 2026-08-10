@@ -20,6 +20,21 @@ command suite excludes them automatically (Business Rule 5) — the move itself
 is also the idempotency mechanism: a spec already under `archive/` no longer
 appears in the next sweep's scan at all.
 
+`archive_one()` (Story 2 of post-merge-archival-hook) is a single-spec-scoped
+sibling of `sweep()` for exactly one named spec, used by `/release`'s
+merged-PR archival hook. It reuses the same `_classify_specs()` eligibility
+check and the same `_git_mv()` + `_append_ledger()` move mechanism `sweep()`
+already uses — not a parallel implementation. Its one added risk, deliberately
+accepted rather than engineered away: if `git mv` succeeds but the subsequent
+`LEDGER.md` append raises, the result is reported as `"archived_unlogged"`
+rather than silently folded into `"archived"` (which would imply a ledger
+line exists) or `"git_mv_failed"` (which would misreport that the move never
+happened). This is accepted, not rolled back, because a `git mv` is a
+working-tree rename already tracked by git — an uncommitted, unlogged move
+is visible and recoverable via `git status` — and a ledger write failing on a
+small tracked markdown file immediately after a successful rename is
+exceedingly rare and independent of the move itself.
+
 Subcommands:
   scan  --specs-dir DIR --knowledge-dir DIR
     Report eligibility for every spec under DIR without mutating anything.
@@ -28,8 +43,13 @@ Subcommands:
     collisions or `git mv` failures are skipped and reported; the sweep
     continues for the remaining specs rather than aborting (Business Rule 1's
     sibling operational rule — see spec.md Error / Edge Experience table).
+  archive-one --specs-dir DIR --knowledge-dir DIR [--repo-root DIR]
+              --spec-name NAME [--pr-number N]
+    Archive exactly one named spec if (and only if) it is complete-family and
+    not already archived. Idempotent and non-blocking, matching `sweep()`'s
+    philosophy for a single spec instead of a full scan.
 
-Both subcommands always print one JSON object and exit 0 — this is a
+Every subcommand always prints one JSON object and exits 0 — this is a
 best-effort sweep, not a fail-closed validator. Nothing is mutated by `scan`.
 """
 
@@ -46,6 +66,7 @@ from typing import Any
 
 SCHEMA_SCAN = "archive-sweep-scan-v1"
 SCHEMA_SWEEP = "archive-sweep-v1"
+SCHEMA_ARCHIVE_ONE = "archive-sweep-archive-one-v1"
 
 SPEC_STATUS_HELPER = Path(__file__).with_name("spec-status.py")
 
@@ -161,10 +182,42 @@ def scan(specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
     }
 
 
-def _append_ledger(ledger_path: Path, spec_id: str, evidence: list[str], timestamp: str) -> None:
+def _git_mv(repo_root: Path, src: Path, dest: Path) -> subprocess.CompletedProcess[str]:
+    """Shared `git mv` subprocess call for `sweep()` and `archive_one()` —
+    keeping this in one place is what makes "same move mechanism" a fact
+    rather than an aspiration between the batch and single-spec paths."""
+    return subprocess.run(
+        ["git", "mv", str(src), str(dest)],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _append_ledger(
+    ledger_path: Path,
+    spec_id: str,
+    evidence: list[str],
+    timestamp: str,
+    pr_number: int | None = None,
+) -> str:
+    """Append one archive-audit line to `LEDGER.md`, creating it with its
+    header on first write. Returns the exact line written (including its
+    trailing newline) so callers can report it without re-deriving the
+    format.
+
+    `pr_number` is trailing and optional — every existing call site (the
+    batch `sweep()` path) omits it, leaving that path's output byte-for-byte
+    unchanged. When supplied, it appends a `, via PR #N` clause inside the
+    existing evidence parenthetical rather than restructuring the line, so a
+    future reader only ever needs to treat it as one optional trailing
+    clause (spec.md Ledger annotation format).
+    """
     is_new = not ledger_path.exists()
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     evidence_str = ", ".join(f"`{e}`" for e in evidence) if evidence else "no knowledge evidence yet"
+    if pr_number is not None:
+        evidence_str += f", via PR #{pr_number}"
     line = f"- {timestamp} — `{spec_id}` archived (evidence: {evidence_str})\n"
     with ledger_path.open("a", encoding="utf-8") as fh:
         if is_new:
@@ -174,6 +227,7 @@ def _append_ledger(ledger_path: Path, spec_id: str, evidence: list[str], timesta
                 "One line per archived spec — never edit or reorder existing lines.\n\n"
             )
         fh.write(line)
+    return line
 
 
 def sweep(repo_root: Path, specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
@@ -207,12 +261,7 @@ def sweep(repo_root: Path, specs_dir: Path, knowledge_dir: Path) -> dict[str, An
             continue
 
         archive_dir.mkdir(parents=True, exist_ok=True)
-        proc = subprocess.run(
-            ["git", "mv", str(src), str(dest)],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-        )
+        proc = _git_mv(repo_root, src, dest)
         if proc.returncode != 0:
             move_failures.append({"spec": spec_id, "reason": proc.stderr.strip() or proc.stdout.strip()})
             continue
@@ -238,6 +287,113 @@ def sweep(repo_root: Path, specs_dir: Path, knowledge_dir: Path) -> dict[str, An
     }
 
 
+def archive_one(
+    repo_root: Path,
+    specs_dir: Path,
+    knowledge_dir: Path,
+    spec_name: str,
+    pr_number: int | None = None,
+) -> dict[str, Any]:
+    """Archive exactly one named spec if (and only if) it is eligible.
+
+    Single-spec-scoped sibling of `sweep()`, sharing its `_classify_specs()`
+    eligibility check and its `_git_mv()` + `_append_ledger()` move
+    mechanism rather than reimplementing either. Idempotent: an
+    already-archived spec is a clean no-op, never an error; a not-yet
+    complete-family spec is skipped even when named explicitly (Business
+    Rule 1 — trigger is whole-spec status, never story-level). Never raises
+    for a per-spec failure — `git mv` and ledger-append failures are
+    reported via `status`, not propagated (Business Rule 7).
+
+    Check ordering (arch-check CAUTION, cheapest first, no subprocess until
+    eligibility is confirmed):
+      1. Source/destination existence — distinguishes a clean prior archive
+         (source absent, destination present -> `already_archived`) from a
+         true collision (source present AND destination present ->
+         `collision`, hard stop, matching `sweep()`'s collision philosophy).
+      2. Only when the source exists and the destination does not: consult
+         `_classify_specs()` for complete-family status. A name absent from
+         both `specs_dir` and the archive (never existed, or a typo) falls
+         through this same branch to `not_eligible` rather than crashing.
+    """
+    archive_dir = specs_dir / "archive"
+    ledger_path = archive_dir / "LEDGER.md"
+    src = specs_dir / spec_name
+    dest = archive_dir / spec_name
+
+    src_exists = src.exists()
+    dest_exists = dest.exists()
+
+    if not src_exists and dest_exists:
+        return {
+            "schema": SCHEMA_ARCHIVE_ONE,
+            "status": "already_archived",
+            "spec": spec_name,
+            "ledger_line": None,
+        }
+
+    if src_exists and dest_exists:
+        return {
+            "schema": SCHEMA_ARCHIVE_ONE,
+            "status": "collision",
+            "spec": spec_name,
+            "ledger_line": None,
+        }
+
+    if not src_exists:
+        # Absent from both specs_dir and archive_dir — never existed (or a
+        # typo). Falls through naturally rather than raising.
+        return {
+            "schema": SCHEMA_ARCHIVE_ONE,
+            "status": "not_eligible",
+            "spec": spec_name,
+            "ledger_line": None,
+        }
+
+    rows = {row["spec"]: row for row in _classify_specs(specs_dir)}
+    row = rows.get(spec_name)
+    if row is None or not row["complete"]:
+        return {
+            "schema": SCHEMA_ARCHIVE_ONE,
+            "status": "not_eligible",
+            "spec": spec_name,
+            "ledger_line": None,
+        }
+
+    evidence = find_knowledge_evidence(knowledge_dir, spec_name)
+
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    proc = _git_mv(repo_root, src, dest)
+    if proc.returncode != 0:
+        return {
+            "schema": SCHEMA_ARCHIVE_ONE,
+            "status": "git_mv_failed",
+            "spec": spec_name,
+            "ledger_line": None,
+            "reason": proc.stderr.strip() or proc.stdout.strip(),
+        }
+
+    timestamp = _now_iso()
+    try:
+        ledger_line = _append_ledger(ledger_path, spec_name, evidence, timestamp, pr_number)
+    except Exception:
+        # Move already succeeded — accepted rare risk, see module docstring.
+        # Business Rule 7: never raise uncaught, never block a release.
+        return {
+            "schema": SCHEMA_ARCHIVE_ONE,
+            "status": "archived_unlogged",
+            "spec": spec_name,
+            "ledger_line": None,
+        }
+
+    return {
+        "schema": SCHEMA_ARCHIVE_ONE,
+        "status": "archived",
+        "spec": spec_name,
+        "ledger_line": ledger_line,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -251,12 +407,33 @@ def main(argv: list[str] | None = None) -> int:
     p_sweep.add_argument("--knowledge-dir", required=True, type=Path)
     p_sweep.add_argument("--repo-root", default=Path("."), type=Path)
 
+    p_archive_one = sub.add_parser(
+        "archive-one", help="archive exactly one named spec, if eligible"
+    )
+    p_archive_one.add_argument("--specs-dir", required=True, type=Path)
+    p_archive_one.add_argument("--knowledge-dir", required=True, type=Path)
+    p_archive_one.add_argument("--repo-root", default=Path("."), type=Path)
+    p_archive_one.add_argument("--spec-name", required=True)
+    p_archive_one.add_argument("--pr-number", default=None, type=int)
+
     args = parser.parse_args(argv)
 
     if args.command == "scan":
         print(json.dumps(scan(args.specs_dir, args.knowledge_dir)))
     elif args.command == "sweep":
         print(json.dumps(sweep(args.repo_root, args.specs_dir, args.knowledge_dir)))
+    elif args.command == "archive-one":
+        print(
+            json.dumps(
+                archive_one(
+                    args.repo_root,
+                    args.specs_dir,
+                    args.knowledge_dir,
+                    args.spec_name,
+                    args.pr_number,
+                )
+            )
+        )
     return 0
 
 

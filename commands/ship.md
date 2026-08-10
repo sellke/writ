@@ -316,7 +316,7 @@ Run /review before /ship for failure mode analysis."]
 |---|---|
 | Summary | Generated from commit messages + diff analysis |
 | Changes | Parsed from commits created in Step 4 (or full diff if --no-split) |
-| Spec Reference | Detected from `.writ/specs/` in the repo — match branch name or recent story file references in commits |
+| Spec Reference | Resolved via `scripts/resolve-spec-reference.py resolve --branch <branch> --commits "<recent-commit-log>" --specs-dir .writ/specs` — on `result: "matched"`, populate from that spec's folder/story files; on `"none"` or `"ambiguous"`, use "Standalone change (no spec)" (never guess between ambiguous candidates) |
 | Test Results | Step 3 if `--test`; otherwise explicit "not run" line (see template) |
 | Spec Health | Step 5 — incomplete metadata issues that could not be auto-fixed (checks 1–3 only); **omit entire subsection** when clean |
 | Drift Report | Read from `drift-log.md` in the active spec folder if it exists |

@@ -12,7 +12,10 @@ imported by path — same recipe as test_spec_status.py / test_story_deps.py).
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -250,3 +253,252 @@ def test_folder_name_substring_match_not_exact_path(tmp_path: Path) -> None:
 
     result = archive_sweep.scan(specs_dir, knowledge_dir)
     assert result["results"][0]["eligible"] is True
+
+
+# --- Story 2 (post-merge-archival-hook): single-spec archive entry point ---
+
+
+def test_archive_one_eligible_and_complete_archives(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = make_knowledge_entry(
+        repo, "decisions", "cites-it.md", ["2026-01-01-eligible-spec"]
+    )
+    commit_all(repo)
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-eligible-spec")
+
+    assert result["status"] == "archived"
+    assert result["ledger_line"] is not None
+    assert not (specs_dir / "2026-01-01-eligible-spec").exists()
+    assert (specs_dir / "archive" / "2026-01-01-eligible-spec" / "spec.md").exists()
+
+    ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    assert "2026-01-01-eligible-spec" in ledger
+    assert "decisions/cites-it.md" in ledger
+
+
+def test_archive_one_not_yet_complete_skips_even_when_named(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-in-progress", "> **Status:** In Progress")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-in-progress")
+
+    assert result["status"] == "not_eligible"
+    assert (specs_dir / "2026-01-01-in-progress").exists()
+
+
+def test_archive_one_already_archived_is_idempotent_no_op(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    first = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-eligible-spec")
+    assert first["status"] == "archived"
+
+    ledger_before = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+
+    second = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-eligible-spec")
+    assert second["status"] == "already_archived"
+    assert second["ledger_line"] is None
+
+    ledger_after = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    assert ledger_before == ledger_after  # no duplicate ledger line
+
+
+def test_archive_one_destination_collision_hard_stops(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-collides", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    collision_dest = specs_dir / "archive" / "2026-01-01-collides"
+    collision_dest.mkdir(parents=True)
+    (collision_dest / "spec.md").write_text("# already here\n", encoding="utf-8")
+    commit_all(repo)
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-collides")
+
+    assert result["status"] == "collision"
+    assert (specs_dir / "2026-01-01-collides").exists()  # untouched — collision, not moved
+    assert (specs_dir / "archive" / "2026-01-01-collides" / "spec.md").exists()
+
+
+def test_archive_one_nonexistent_spec_name_is_not_eligible_not_a_crash(tmp_path: Path) -> None:
+    """Absent from both specs_dir and archive_dir falls through naturally to
+    not_eligible — never raises (arch-check CAUTION item 3)."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-some-other-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-does-not-exist")
+
+    assert result["status"] == "not_eligible"
+
+
+def test_archive_one_pr_number_annotates_ledger_line(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    result = archive_sweep.archive_one(
+        repo, specs_dir, knowledge_dir, "2026-01-01-eligible-spec", pr_number=32
+    )
+
+    assert result["status"] == "archived"
+    assert "via PR #32" in result["ledger_line"]
+    ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    assert "via PR #32" in ledger
+
+
+def test_archive_one_without_pr_number_ledger_stays_unannotated(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-eligible-spec")
+
+    assert result["status"] == "archived"
+    assert "via PR" not in result["ledger_line"]
+    ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    assert "via PR" not in ledger
+
+
+def test_append_ledger_pr_number_none_output_byte_for_byte_unchanged(tmp_path: Path) -> None:
+    """`_append_ledger()`'s new trailing `pr_number` parameter must be a
+    no-op when omitted — every existing (sweep-originated) call site output
+    stays byte-for-byte identical (arch-check CAUTION item 5)."""
+    ledger_a = tmp_path / "a" / "LEDGER.md"
+    ledger_b = tmp_path / "b" / "LEDGER.md"
+
+    archive_sweep._append_ledger(ledger_a, "2026-01-01-spec", [], "2026-08-04T15:32:00Z")
+    archive_sweep._append_ledger(ledger_b, "2026-01-01-spec", [], "2026-08-04T15:32:00Z", None)
+
+    assert ledger_a.read_text(encoding="utf-8") == ledger_b.read_text(encoding="utf-8")
+
+
+def test_ledger_with_mixed_annotated_and_unannotated_lines_stays_readable(tmp_path: Path) -> None:
+    """An existing LEDGER.md containing only pre-existing sweep-originated
+    (unannotated) lines still parses/reads correctly once a PR-annotated
+    line is appended alongside — old lines untouched, not rewritten."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-swept", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    sweep_result = archive_sweep.sweep(repo, specs_dir, knowledge_dir)
+    assert len(sweep_result["archived"]) == 1
+    ledger_after_sweep = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+
+    make_spec(repo, "2026-01-02-hooked", "> **Status:** Complete")
+    commit_all(repo)
+    hook_result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-02-hooked", pr_number=32)
+    assert hook_result["status"] == "archived"
+
+    ledger_final = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    assert ledger_final.startswith(ledger_after_sweep)  # old lines untouched, only appended to
+    assert "2026-01-01-swept" in ledger_final and "via PR" not in ledger_final.split("2026-01-01-swept")[1].split("\n")[0]
+    assert "2026-01-02-hooked" in ledger_final
+    assert "via PR #32" in ledger_final
+
+
+def test_archive_one_git_mv_failure_reports_not_raises(tmp_path: Path) -> None:
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-untracked", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    # Never committed — `git mv` fails ("not under version control").
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-untracked")
+
+    assert result["status"] == "git_mv_failed"
+    assert (specs_dir / "2026-01-01-untracked").exists()  # move failed — left in place
+
+
+def test_archive_one_ledger_append_failure_returns_archived_unlogged(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When `git mv` succeeds but the ledger append raises, the move is not
+    rolled back (accepted rare risk per arch-check CAUTION item 2) — the
+    result must be distinguishable from both a clean `archived` and a
+    `git_mv_failed` that never moved anything."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    def _boom(*args: object, **kwargs: object) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(archive_sweep, "_append_ledger", _boom)
+
+    result = archive_sweep.archive_one(repo, specs_dir, knowledge_dir, "2026-01-01-eligible-spec")
+
+    assert result["status"] == "archived_unlogged"
+    assert not (specs_dir / "2026-01-01-eligible-spec").exists()  # move happened
+    assert (specs_dir / "archive" / "2026-01-01-eligible-spec" / "spec.md").exists()
+
+
+def test_archive_one_cli_subcommand_happy_path(tmp_path: Path) -> None:
+    """Task 2.7: exercise `archive_one()` via the `archive-one` CLI
+    subcommand, not just the direct function call."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    proc = subprocess.run(
+        [
+            sys.executable, str(MODULE_PATH), "archive-one",
+            "--specs-dir", str(specs_dir),
+            "--knowledge-dir", str(knowledge_dir),
+            "--repo-root", str(repo),
+            "--spec-name", "2026-01-01-eligible-spec",
+            "--pr-number", "32",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert proc.returncode == 0
+    payload = json.loads(proc.stdout)
+    assert payload["status"] == "archived"
+    assert "via PR #32" in payload["ledger_line"]
+    assert not (specs_dir / "2026-01-01-eligible-spec").exists()
+
+
+def test_archive_one_cli_subcommand_via_main_in_process(tmp_path: Path) -> None:
+    """Same `archive-one` CLI subcommand as the subprocess test above, but
+    invoked in-process via `main()` directly (same recipe as
+    test_revert_resolve.py's `main([...])` calls) so the CLI subcommand's
+    argument wiring and dispatch branch in `main()` — not just `archive_one()`
+    itself — is exercised under coverage instrumentation. The subprocess
+    variant above stays as the real-CLI-boundary/exit-code check; this one
+    exists purely so the new `archive-one` parser/dispatch lines in `main()`
+    aren't invisible to line-coverage tooling."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-eligible-spec", "> **Status:** Complete")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        exit_code = archive_sweep.main(
+            [
+                "archive-one",
+                "--specs-dir", str(specs_dir),
+                "--knowledge-dir", str(knowledge_dir),
+                "--repo-root", str(repo),
+                "--spec-name", "2026-01-01-eligible-spec",
+                "--pr-number", "32",
+            ]
+        )
+
+    assert exit_code == 0
+    payload = json.loads(buf.getvalue())
+    assert payload["status"] == "archived"
+    assert "via PR #32" in payload["ledger_line"]
+    assert not (specs_dir / "2026-01-01-eligible-spec").exists()

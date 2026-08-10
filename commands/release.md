@@ -119,9 +119,19 @@ If a tool is not configured, skip it — **do not** treat “no config” as fai
 **1.3c: Conditional test suite**
 
 ```bash
-LAST_MERGED_SHA=$(gh pr list --state merged --limit 1 --json mergeCommit --jq '.[0].mergeCommit.oid' 2>/dev/null)
+LAST_MERGED_PR_JSON=$(gh pr list --state merged --limit 1 --json mergeCommit,number,headRefName,commits 2>/dev/null)
+LAST_MERGED_SHA=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].mergeCommit.oid // empty' 2>/dev/null)
 HEAD_SHA=$(git rev-parse HEAD)
+
+# Additive only (Story 3) — same single `gh pr list` call above, no second `gh` call.
+# Unused unless the archival hook below fires; leaving them empty never changes
+# LAST_MERGED_SHA/HEAD_SHA or anything else in this step.
+LAST_MERGED_PR_NUMBER=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].number // empty' 2>/dev/null)
+LAST_MERGED_BRANCH=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].headRefName // empty' 2>/dev/null)
+LAST_MERGED_COMMITS=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]?.messageHeadline // empty' 2>/dev/null)
 ```
+
+> **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), since extracting four independent fields from one payload needs a general-purpose filter, not a single scalar. This mirrors the same external-`jq`-with-graceful-fallback assumption Step 3.1's version-bump logic already makes elsewhere in this file. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it.
 
 | Condition | Behavior |
 |---|---|
@@ -134,6 +144,17 @@ HEAD_SHA=$(git rev-parse HEAD)
 **On test failure:** Block release. Suggest fixing and re-running, or `--skip-gate` only if the user explicitly accepts skipping validation.
 
 **`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
+
+> **Post-merge archival hook (fires only inside the `LAST_MERGED_SHA` equals `HEAD_SHA` branch above — nowhere else).** Immediately after the test-skip log line, attempt to archive the spec that merged PR belongs to — silently, best-effort, never blocking. Because this lives entirely inside the same `LAST_MERGED_SHA == HEAD_SHA` branch, which itself only evaluates inside the `Unless --skip-gate is set` block gating all of Step 1.3, `--skip-gate` skips this hook automatically with no separate check required. Wrap the **entire** sequence below in one best-effort guard (e.g. run it as `{ ... } 2>/dev/null || true`, or check each step's exit code explicitly) so any failure anywhere in the chain — resolver error, missing script, a non-zero exit, malformed JSON — is caught and skipped without affecting the log line above, the rest of the gate, or any later phase.
+>
+> 1. **Resolve:** `scripts/resolve-spec-reference.py resolve --branch "${LAST_MERGED_BRANCH}" --commits "${LAST_MERGED_COMMITS}" --specs-dir .writ/specs` — the same shared implementation `/ship` Step 5 uses for its PR body's Spec Reference section, not a second drifting heuristic.
+> 2. On `"result": "none"` or `"result": "ambiguous"` — stop here. No archive call, no output, no side effect anywhere: behaviorally identical to `/release` before this hook existed.
+> 3. On `"result": "matched"` — call `scripts/archive-sweep.py archive-one --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root . --spec-name "<resolved spec>" --pr-number "${LAST_MERGED_PR_NUMBER}"` directly. It already performs its own complete-family check and its own already-archived/collision check internally — do not add a second eligibility check in this step.
+> 4. Branch **purely** on `archive-one`'s returned `status` field:
+>    - `"archived"` or `"archived_unlogged"` — the `git mv` succeeded either way (`"archived_unlogged"` means only the ledger write failed, not the move). Commit it **right here**, inside Step 1.3c, rather than deferring to Phase 3's version-bump commit: `git add -A && git commit -m "chore(archive): auto-archive <resolved spec> via PR #${LAST_MERGED_PR_NUMBER}"`, including the returned `ledger_line` in the commit body when present. Committing immediately avoids leaving a dangling uncommitted `git mv` if the user later cancels the release at Step 2.3's confirmation gate.
+>    - anything else (`"already_archived"`, `"not_eligible"`, `"collision"`, `"git_mv_failed"`) — no commit, no output, continue exactly as if this hook had not run.
+>
+> This hook never produces new terminal output, PR-body content, or a release-summary line, and never affects the gate's pass/fail verdict — the only observable side effect in any outcome is the standalone commit in step 4's first bullet (spec.md's silent Feedback Model). **Sequencing note for Phase 2:** the changelog data Step 2.1 consumes was already gathered earlier in Step 1.2, before this hook runs — Step 2.1 must keep using that already-gathered data rather than re-scanning `.writ/specs/<name>/` from disk, since this hook may have already moved that folder to `.writ/specs/archive/<name>/` by the time Step 2.1 runs.
 
 > **Note on the `@sellke/writ` runtime helper.** This repo also ships a tiny npm package (`@sellke/writ`) for deterministic dates/timestamps. It is **decoupled from `/release`** — Writ methodology releases do not run npm preflight, do not bump `package.json#version`, and do not publish to npm. See [Runtime Helper Publish (manual)](#runtime-helper-publish-manual) at the end of this file.
 

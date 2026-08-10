@@ -162,11 +162,65 @@ def scenario_collision_and_failure_skip_and_continue() -> None:
              payload)
 
 
+def scenario_archive_one_cli_happy_path_with_pr_annotation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        repo = init_repo(root)
+        specs_dir = make_spec(repo, "2026-01-01-eligible", "> **Status:** Complete")
+        knowledge_dir = repo / ".writ" / "knowledge"
+        commit_all(repo)
+
+        code, payload = run_cli(
+            "archive-one", "--specs-dir", str(specs_dir), "--knowledge-dir", str(knowledge_dir),
+            "--repo-root", str(repo), "--spec-name", "2026-01-01-eligible", "--pr-number", "32",
+        )
+        emit("archive-one-cli-archives-with-pr-annotation",
+             code == 0 and payload.get("status") == "archived"
+             and "via PR #32" in (payload.get("ledger_line") or ""), payload)
+
+        # Second run: idempotent no-op at the CLI boundary too.
+        code2, payload2 = run_cli(
+            "archive-one", "--specs-dir", str(specs_dir), "--knowledge-dir", str(knowledge_dir),
+            "--repo-root", str(repo), "--spec-name", "2026-01-01-eligible",
+        )
+        emit("archive-one-cli-second-run-is-idempotent",
+             code2 == 0 and payload2.get("status") == "already_archived", payload2)
+
+
+def scenario_archive_one_cli_not_eligible_and_collision() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        repo = init_repo(root)
+        specs_dir = make_spec(repo, "2026-01-01-in-progress", "> **Status:** In Progress")
+        knowledge_dir = repo / ".writ" / "knowledge"
+        collision_dest = specs_dir / "archive" / "2026-01-02-collides"
+        make_spec(repo, "2026-01-02-collides", "> **Status:** Complete")
+        collision_dest.mkdir(parents=True)
+        (collision_dest / "spec.md").write_text("# already here\n", encoding="utf-8")
+        commit_all(repo)
+
+        code, payload = run_cli(
+            "archive-one", "--specs-dir", str(specs_dir), "--knowledge-dir", str(knowledge_dir),
+            "--repo-root", str(repo), "--spec-name", "2026-01-01-in-progress",
+        )
+        emit("archive-one-cli-not-yet-complete-is-not-eligible",
+             code == 0 and payload.get("status") == "not_eligible", payload)
+
+        code2, payload2 = run_cli(
+            "archive-one", "--specs-dir", str(specs_dir), "--knowledge-dir", str(knowledge_dir),
+            "--repo-root", str(repo), "--spec-name", "2026-01-02-collides",
+        )
+        emit("archive-one-cli-collision-hard-stops",
+             code2 == 0 and payload2.get("status") == "collision", payload2)
+
+
 def main() -> int:
     scenario_scan_cli()
     scenario_sweep_cli_happy_path()
     scenario_complete_without_evidence_still_archives()
     scenario_collision_and_failure_skip_and_continue()
+    scenario_archive_one_cli_happy_path_with_pr_annotation()
+    scenario_archive_one_cli_not_eligible_and_collision()
     return 0 if failed == 0 else 1
 
 
