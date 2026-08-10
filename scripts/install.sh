@@ -483,12 +483,8 @@ write_copy_manifest() {
 EOF
 
   local f rel
-  if [ -f "scripts/recommend-state.py" ]; then
-    echo "$(hash_file "scripts/recommend-state.py")  scripts/recommend-state.py" >> "$target"
-  fi
-  if [ -f ".writ/docs/recommended-delivery-state-format.md" ]; then
-    echo "$(hash_file ".writ/docs/recommended-delivery-state-format.md")  .writ/docs/recommended-delivery-state-format.md" >> "$target"
-  fi
+  append_manifest_shippable_scripts "$target"
+  append_manifest_writ_docs "$target"
   for f in "$PLATFORM_DIR"/commands/*.md; do
     [ -f "$f" ] || continue
     rel="${f#"$PLATFORM_DIR"/}"
@@ -719,6 +715,103 @@ configure_audit_notes_sync() {
 
 _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
 
+# Runtime scripts shipped to installed projects (excludes lifecycle, eval, and internal tooling).
+is_shippable_script() {
+  local base="$1"
+  case "$base" in
+    install.sh|update.sh|uninstall.sh|unlink.sh|migrate.sh|publish-writ-runtime.sh|eval.sh)
+      return 1 ;;
+    writ-runtime-readme.md)
+      return 1 ;;
+    eval-*|_*|sweep-*)
+      return 1 ;;
+  esac
+  case "$base" in
+    *.py|*.sh)
+      return 0 ;;
+  esac
+  return 1
+}
+
+# Three-way overlay for flat project-root directories (scripts/, .writ/docs/, etc.).
+overlay_scan_flat_dir() {
+  local src_dir="$1" dest_dir="$2" rel_prefix="$3" mode="$4" filter="${5:-}"
+  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
+
+  local src_file fname local_file rel_path upstream_hash local_hash baseline_hash
+  for src_file in "$src_dir"/*; do
+    [ -f "$src_file" ] || continue
+    fname=$(basename "$src_file")
+    if [ "$filter" = "script" ] && ! is_shippable_script "$fname"; then
+      continue
+    fi
+
+    local_file="$dest_dir/$fname"
+    rel_path="$rel_prefix/$fname"
+    upstream_hash=$(hash_file "$src_file")
+
+    if [ ! -f "$local_file" ]; then
+      _NEW=$((_NEW + 1))
+      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
+      if [ "$mode" = "apply" ]; then
+        mkdir -p "$dest_dir"
+        cp "$src_file" "$local_file"
+        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
+      fi
+      continue
+    fi
+
+    local_hash=$(hash_file "$local_file")
+
+    if [ "$local_hash" = "$upstream_hash" ]; then
+      _UNCHANGED=$((_UNCHANGED + 1))
+      continue
+    fi
+
+    baseline_hash=$(manifest_hash_for "$rel_path")
+
+    if [ "$FORCE" = true ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
+      if [ "$mode" = "apply" ]; then
+        cp "$src_file" "$local_file"
+        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
+      fi
+    elif [ -z "$baseline_hash" ]; then
+      _PRESERVED=$((_PRESERVED + 1))
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
+    elif [ "$local_hash" = "$baseline_hash" ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
+      if [ "$mode" = "apply" ]; then
+        cp "$src_file" "$local_file"
+        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
+      fi
+    else
+      _PRESERVED=$((_PRESERVED + 1))
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
+    fi
+  done
+}
+
+append_manifest_shippable_scripts() {
+  local target="$1" f base
+  for f in scripts/*.py scripts/*.sh; do
+    [ -f "$f" ] || continue
+    base=$(basename "$f")
+    is_shippable_script "$base" || continue
+    echo "$(hash_file "$f")  $f" >> "$target"
+  done
+}
+
+append_manifest_writ_docs() {
+  local target="$1" f
+  for f in .writ/docs/*.md; do
+    [ -f "$f" ] || continue
+    echo "$(hash_file "$f")  $f" >> "$target"
+  done
+}
+
 overlay_scan() {
   local src_dir="$1" local_dir="$2" label="$3" mode="$4" pattern="${5:-*.md}"
   _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
@@ -763,59 +856,6 @@ overlay_scan() {
       if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
     fi
   done
-}
-
-overlay_helper() {
-  local mode="$1"
-  local src="$WRIT_SRC/scripts/recommend-state.py"
-  local dest="scripts/recommend-state.py"
-  local upstream_hash local_hash baseline_hash
-  [ -f "$src" ] || { echo "❌ Missing $src"; return 15; }
-  upstream_hash=$(hash_file "$src")
-  if [ ! -f "$dest" ]; then
-    [ "$mode" = "preview" ] && echo "    ✨ New:       scripts/recommend-state.py"
-    if [ "$mode" = "apply" ]; then
-      mkdir -p scripts
-      cp "$src" "$dest"
-      chmod 755 "$dest"
-    fi
-    return 0
-  fi
-  local_hash=$(hash_file "$dest")
-  [ "$local_hash" = "$upstream_hash" ] && return 0
-  baseline_hash=$(manifest_hash_for "scripts/recommend-state.py")
-  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
-    [ "$mode" = "preview" ] && echo "    🔄 Update:    scripts/recommend-state.py"
-    if [ "$mode" = "apply" ]; then cp "$src" "$dest"; chmod 755 "$dest"; fi
-  else
-    echo "    ⚡ Preserved: scripts/recommend-state.py (local modifications)"
-  fi
-}
-
-overlay_state_doc() {
-  local mode="$1"
-  local src="$WRIT_SRC/.writ/docs/recommended-delivery-state-format.md"
-  local dest=".writ/docs/recommended-delivery-state-format.md"
-  local upstream_hash local_hash baseline_hash
-  [ -f "$src" ] || { echo "❌ Missing $src"; return 15; }
-  upstream_hash=$(hash_file "$src")
-  if [ ! -f "$dest" ]; then
-    [ "$mode" = "preview" ] && echo "    ✨ New:       $dest"
-    if [ "$mode" = "apply" ]; then
-      mkdir -p ".writ/docs"
-      cp "$src" "$dest"
-    fi
-    return 0
-  fi
-  local_hash=$(hash_file "$dest")
-  [ "$local_hash" = "$upstream_hash" ] && return 0
-  baseline_hash=$(manifest_hash_for "$dest")
-  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
-    [ "$mode" = "preview" ] && echo "    🔄 Update:    $dest"
-    [ "$mode" = "apply" ] && cp "$src" "$dest"
-  else
-    echo "    ⚡ Preserved: $dest (local modifications)"
-  fi
 }
 
 # Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
@@ -892,10 +932,10 @@ if [ "$DRY_RUN" = true ]; then
     echo "  Commands:"
     overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "preview"
     echo ""
-    echo "  Runtime helper:"
-    overlay_helper preview
-    echo "  Runtime contract:"
-    overlay_state_doc preview
+    echo "  Runtime scripts:"
+    overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "preview" "script"
+    echo "  Writ docs:"
+    overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview"
     echo ""
     echo "  Agents:"
     overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview" "$AGENT_FILE_GLOB"
@@ -945,8 +985,12 @@ if [ "$EXISTING_MODE" = "link" ]; then
   for f in "$PLATFORM_DIR"/agents/*.md "$PLATFORM_DIR"/agents/*.toml; do
     [ -L "$f" ] && rm -f "$f"
   done
-  [ -L "scripts/recommend-state.py" ] && rm -f "scripts/recommend-state.py"
-  [ -L ".writ/docs/recommended-delivery-state-format.md" ] && rm -f ".writ/docs/recommended-delivery-state-format.md"
+  for f in scripts/*.py scripts/*.sh; do
+    [ -L "$f" ] && rm -f "$f"
+  done
+  for f in .writ/docs/*.md; do
+    [ -L "$f" ] && rm -f "$f"
+  done
   for f in "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"; do
     [ -L "$f" ] && rm -f "$f"
   done
@@ -979,9 +1023,11 @@ overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
 CMD_NEW=$_NEW; CMD_UPDATED=$_UPDATED; CMD_PRESERVED=$_PRESERVED
 
 STEP=$((STEP + 1))
-echo "  [$STEP/$STEP_TOTAL] Runtime helper..."
-overlay_helper apply
-overlay_state_doc apply
+echo "  [$STEP/$STEP_TOTAL] Scripts & Writ docs..."
+overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "apply" "script"
+SCRIPT_NEW=$_NEW; SCRIPT_UPDATED=$_UPDATED; SCRIPT_PRESERVED=$_PRESERVED
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply"
+DOC_NEW=$_NEW; DOC_UPDATED=$_UPDATED; DOC_PRESERVED=$_PRESERVED
 
 STEP=$((STEP + 1))
 echo "  [$STEP/$STEP_TOTAL] Agents..."
@@ -1042,9 +1088,9 @@ fi
 
 echo "✅ Writ installed for $PLATFORM_LABEL! (version: $VERSION)"
 
-TOTAL_NEW=$((CMD_NEW + AGENT_NEW + SKILL_NEW))
-TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED + SKILL_UPDATED))
-TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED + SKILL_PRESERVED))
+TOTAL_NEW=$((CMD_NEW + AGENT_NEW + SKILL_NEW + SCRIPT_NEW + DOC_NEW))
+TOTAL_UPDATED=$((CMD_UPDATED + AGENT_UPDATED + SKILL_UPDATED + SCRIPT_UPDATED + DOC_UPDATED))
+TOTAL_PRESERVED=$((CMD_PRESERVED + AGENT_PRESERVED + SKILL_PRESERVED + SCRIPT_PRESERVED + DOC_PRESERVED))
 
 if [ "$TOTAL_NEW" -gt 0 ] || [ "$TOTAL_UPDATED" -gt 0 ] || [ "$TOTAL_PRESERVED" -gt 0 ]; then
   echo ""
@@ -1073,7 +1119,13 @@ fi
 # --- Scoped git commit ---
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
-  git add "scripts/recommend-state.py" 2>/dev/null || true
+  f=""; base=""
+  for f in scripts/*.py scripts/*.sh; do
+    [ -f "$f" ] || continue
+    base=$(basename "$f")
+    is_shippable_script "$base" && git add "$f" 2>/dev/null || true
+  done
+  git add .writ/docs/*.md 2>/dev/null || true
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" 2>/dev/null || true
   [ -d "$SKILLS_DIR" ] && git add "$SKILLS_DIR/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then

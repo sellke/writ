@@ -42,3 +42,4 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-08-04T19:05:36Z — `2026-07-26-leanness-instrumentation` archived (evidence: no knowledge evidence yet)
 - 2026-08-04T19:05:36Z — `2026-08-03-deterministic-story-substrate` archived (evidence: no knowledge evidence yet)
 - 2026-08-04T20:51:59Z — `2026-08-04-spec-lifecycle-archival` archived (evidence: no knowledge evidence yet)
+- 2026-08-10T16:00:14Z — `2026-08-04-post-merge-archival-hook` archived (evidence: no knowledge evidence yet, via PR #33)
