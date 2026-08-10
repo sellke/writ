@@ -9,7 +9,7 @@ description: "Pull the latest Writ release and decide per customized file whethe
 
 Pull the latest Writ release from upstream and interactively decide what to do with files you've customized. Unlike `update.sh` (which silently preserves all local modifications), this command presents each customized file and lets you choose — overwrite, keep, or diff — so you stay in control of what changes.
 
-**When to use:** You want the latest commands, agents, and rules from upstream but have customized some files and want per-file control over what gets overwritten.
+**When to use:** You want the latest commands, agents, skills, runtime scripts, Writ reference docs, and rules from upstream but have customized some files and want per-file control over what gets overwritten.
 
 ## Invocation
 
@@ -72,7 +72,7 @@ If the clone fails, abort with a network error message and clean up the temp dir
 
 ### Step 3: Three-Way Scan
 
-For every `.md` command file in upstream `commands/` and every platform agent file (`*.md` for Cursor/Claude Code, `*.toml` for Codex CLI), classify it against the local installation:
+For every `.md` command file in upstream `commands/`, every platform agent file (`*.md` for Cursor/Claude Code, `*.toml` for Codex CLI), every upstream `skills/*/SKILL.md`, and the installed runtime files below, classify against the local installation:
 
 **Hash each file** using SHA-256 (`shasum -a 256`).
 
@@ -99,12 +99,22 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
   → CUSTOMIZED (local was modified by user)
 ```
 
+**Apply same logic to runtime scripts** (project-root `scripts/` — mirror `scripts/install.sh` / `scripts/update.sh`):
+
+Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
+
+**Apply same logic to Writ reference docs** (project-root `.writ/docs/*.md`):
+
+Ship every upstream markdown doc under `.writ/docs/`. User-authored docs that exist only locally (e.g. `tech-stack.md`, `code-style.md`, `design-system.md` from `/initialize`) are untouched — they have no upstream counterpart. Locally modified shipped docs follow the same three-way overlay as commands.
+
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
 - Claude Code: `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
 - Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
-**Detect stale files** — files present in the manifest but removed upstream. If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
+**Skills overlay** — folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).
+
+**Detect stale files** — files present in the manifest but removed upstream. Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
 
 ### Step 4: Present Summary
 
@@ -167,13 +177,15 @@ AskQuestion({
 
 ### Step 6: Apply Changes
 
-Apply in this order:
+Apply in this order (mirror `scripts/update.sh`):
 
-1. **New files** — copy from upstream
-2. **Updated files** — overwrite (local was unmodified)
-3. **Customized files** — apply per user decision from Step 5
-4. **Stale files** — remove unmodified stale files; skip modified stale files with a warning
-5. **Platform-specific files** — same three-way logic as commands/agents
+1. **Commands** — new/updated/customized per Step 5
+2. **Runtime scripts** — all shippable files under `scripts/`
+3. **Writ reference docs** — all files under `.writ/docs/`
+4. **Agents** — new/updated/customized per Step 5
+5. **Skills** — `SKILL.md` overlay; sidecars install-once only
+6. **Stale files** — remove unmodified stale files; skip modified stale files with a warning
+7. **Platform-specific files** — same three-way logic as commands/agents
 
 ### Step 7: Regenerate Manifest
 
@@ -187,8 +199,15 @@ Write a new manifest with updated baselines for all installed files:
 # version: [new version hash]
 # date: [ISO 8601 UTC timestamp]
 # source: https://github.com/sellke/writ.git
+<sha256>  scripts/story-context.py
+<sha256>  scripts/spec-deps.py
+...
+<sha256>  .writ/docs/phase-execution-state-format.md
+...
 <sha256>  commands/create-spec.md
 <sha256>  commands/implement-story.md
+...
+<sha256>  skills/<name>/SKILL.md
 ...
 <sha256>  AGENTS.md.writ-block        # Codex only
 <sha256>  .codex/config.toml.baseline # Codex only, preserved from install
@@ -201,7 +220,10 @@ Every currently installed file gets a fresh hash entry — including files the u
 If the project is a git repo:
 
 ```bash
+git add scripts/*.py scripts/*.sh .writ/docs/*.md
+# (only shippable scripts are staged — same exclusion filter as install/update)
 git add [platform_dir]/commands/ [platform_dir]/agents/ [manifest_file]
+# Plus skills dir when present ([platform_skills_dir]/)
 # Plus platform-specific files (rules/writ.mdc, system-instructions.md, CLAUDE.md, or AGENTS.md)
 git commit -m "chore: update Writ ([old_version] → [new_version])"
 ```

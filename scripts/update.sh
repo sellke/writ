@@ -29,7 +29,7 @@ for arg in "$@"; do
     --help|-h)
       echo "Usage: bash update.sh [--dry-run] [--no-commit] [--force] [--platform cursor|claude|codex]"
       echo ""
-      echo "Updates Writ commands, agents, and rules from latest GitHub release."
+      echo "Updates Writ commands, agents, runtime scripts, Writ docs, and rules from latest GitHub release."
       echo "Run from your project root."
       echo ""
       echo "Platforms:"
@@ -175,12 +175,8 @@ write_copy_manifest() {
 EOF
 
   local f rel
-  if [ -f "scripts/recommend-state.py" ]; then
-    echo "$(hash_file "scripts/recommend-state.py")  scripts/recommend-state.py" >> "$target"
-  fi
-  if [ -f ".writ/docs/recommended-delivery-state-format.md" ]; then
-    echo "$(hash_file ".writ/docs/recommended-delivery-state-format.md")  .writ/docs/recommended-delivery-state-format.md" >> "$target"
-  fi
+  append_manifest_shippable_scripts "$target"
+  append_manifest_writ_docs "$target"
   for f in "$PLATFORM_DIR"/commands/*.md; do
     [ -f "$f" ] || continue
     rel="${f#"$PLATFORM_DIR"/}"
@@ -471,6 +467,104 @@ fi
 _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
 _PRESERVED_FILES=""
 
+is_shippable_script() {
+  local base="$1"
+  case "$base" in
+    install.sh|update.sh|uninstall.sh|unlink.sh|migrate.sh|publish-writ-runtime.sh|eval.sh)
+      return 1 ;;
+    writ-runtime-readme.md)
+      return 1 ;;
+    eval-*|_*|sweep-*)
+      return 1 ;;
+  esac
+  case "$base" in
+    *.py|*.sh)
+      return 0 ;;
+  esac
+  return 1
+}
+
+overlay_scan_flat_dir() {
+  local src_dir="$1" dest_dir="$2" rel_prefix="$3" mode="$4" filter="${5:-}"
+  _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
+  _PRESERVED_FILES=""
+
+  local src_file fname local_file rel_path upstream_hash local_hash baseline_hash
+  for src_file in "$src_dir"/*; do
+    [ -f "$src_file" ] || continue
+    fname=$(basename "$src_file")
+    if [ "$filter" = "script" ] && ! is_shippable_script "$fname"; then
+      continue
+    fi
+
+    local_file="$dest_dir/$fname"
+    rel_path="$rel_prefix/$fname"
+    upstream_hash=$(hash_file "$src_file")
+
+    if [ ! -f "$local_file" ]; then
+      _NEW=$((_NEW + 1))
+      if [ "$mode" = "preview" ]; then echo "    ✨ New:       $rel_path"; fi
+      if [ "$mode" = "apply" ]; then
+        mkdir -p "$dest_dir"
+        cp "$src_file" "$local_file"
+        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
+      fi
+      continue
+    fi
+
+    local_hash=$(hash_file "$local_file")
+
+    if [ "$local_hash" = "$upstream_hash" ]; then
+      _UNCHANGED=$((_UNCHANGED + 1))
+      continue
+    fi
+
+    baseline_hash=$(manifest_hash_for "$rel_path")
+
+    if [ "$FORCE" = true ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path (forced)"; fi
+      if [ "$mode" = "apply" ]; then
+        cp "$src_file" "$local_file"
+        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
+      fi
+    elif [ -z "$baseline_hash" ]; then
+      _PRESERVED=$((_PRESERVED + 1))
+      _PRESERVED_FILES="${_PRESERVED_FILES}    ${rel_path}\n"
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (no baseline, assuming modified)"; fi
+    elif [ "$local_hash" = "$baseline_hash" ]; then
+      _UPDATED=$((_UPDATED + 1))
+      if [ "$mode" = "preview" ]; then echo "    🔄 Update:    $rel_path"; fi
+      if [ "$mode" = "apply" ]; then
+        cp "$src_file" "$local_file"
+        case "$fname" in *.py|*.sh) chmod 755 "$local_file" ;; esac
+      fi
+    else
+      _PRESERVED=$((_PRESERVED + 1))
+      _PRESERVED_FILES="${_PRESERVED_FILES}    ${rel_path}\n"
+      if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
+    fi
+  done
+}
+
+append_manifest_shippable_scripts() {
+  local target="$1" f base
+  for f in scripts/*.py scripts/*.sh; do
+    [ -f "$f" ] || continue
+    base=$(basename "$f")
+    is_shippable_script "$base" || continue
+    echo "$(hash_file "$f")  $f" >> "$target"
+  done
+}
+
+append_manifest_writ_docs() {
+  local target="$1" f
+  for f in .writ/docs/*.md; do
+    [ -f "$f" ] || continue
+    echo "$(hash_file "$f")  $f" >> "$target"
+  done
+}
+
 overlay_scan() {
   local src_dir="$1" local_dir="$2" label="$3" mode="$4" pattern="${5:-*.md}"
   _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
@@ -518,70 +612,6 @@ overlay_scan() {
       if [ "$mode" = "preview" ]; then echo "    ⚡ Preserved: $rel_path (local modifications)"; fi
     fi
   done
-}
-
-scan_helper() {
-  local src="$WRIT_SRC/scripts/recommend-state.py"
-  local dest="scripts/recommend-state.py"
-  HELPER_ACTION="unchanged"
-  [ -f "$src" ] || { echo "    ❌ Missing upstream scripts/recommend-state.py"; return 15; }
-  if [ ! -f "$dest" ]; then
-    HELPER_ACTION="new"
-    echo "    ✨ New:       scripts/recommend-state.py"
-    return 0
-  fi
-  local upstream_hash local_hash baseline_hash
-  upstream_hash=$(hash_file "$src")
-  local_hash=$(hash_file "$dest")
-  [ "$upstream_hash" = "$local_hash" ] && return 0
-  baseline_hash=$(manifest_hash_for "scripts/recommend-state.py")
-  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
-    HELPER_ACTION="update"
-    echo "    🔄 Update:    scripts/recommend-state.py"
-  else
-    HELPER_ACTION="preserved"
-    echo "    ⚡ Preserved: scripts/recommend-state.py (local modifications)"
-  fi
-}
-
-apply_helper() {
-  if [ "$HELPER_ACTION" = "new" ] || [ "$HELPER_ACTION" = "update" ]; then
-    mkdir -p scripts
-    cp "$WRIT_SRC/scripts/recommend-state.py" "scripts/recommend-state.py"
-    chmod 755 "scripts/recommend-state.py"
-  fi
-}
-
-scan_state_doc() {
-  local src="$WRIT_SRC/.writ/docs/recommended-delivery-state-format.md"
-  local dest=".writ/docs/recommended-delivery-state-format.md"
-  STATE_DOC_ACTION="unchanged"
-  [ -f "$src" ] || { echo "    ❌ Missing upstream $dest"; return 15; }
-  if [ ! -f "$dest" ]; then
-    STATE_DOC_ACTION="new"
-    echo "    ✨ New:       $dest"
-    return 0
-  fi
-  local upstream_hash local_hash baseline_hash
-  upstream_hash=$(hash_file "$src")
-  local_hash=$(hash_file "$dest")
-  [ "$upstream_hash" = "$local_hash" ] && return 0
-  baseline_hash=$(manifest_hash_for "$dest")
-  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$local_hash" = "$baseline_hash" ]; }; then
-    STATE_DOC_ACTION="update"
-    echo "    🔄 Update:    $dest"
-  else
-    STATE_DOC_ACTION="preserved"
-    echo "    ⚡ Preserved: $dest (local modifications)"
-  fi
-}
-
-apply_state_doc() {
-  if [ "$STATE_DOC_ACTION" = "new" ] || [ "$STATE_DOC_ACTION" = "update" ]; then
-    mkdir -p ".writ/docs"
-    cp "$WRIT_SRC/.writ/docs/recommended-delivery-state-format.md" \
-      ".writ/docs/recommended-delivery-state-format.md"
-  fi
 }
 
 # Skills overlay — folder-aware, SKILL.md hash-tracked, sidecar files install-once.
@@ -715,27 +745,19 @@ TOTAL_NEW=$_NEW; TOTAL_UPDATED=$_UPDATED; TOTAL_PRESERVED=$_PRESERVED
 ALL_PRESERVED_FILES="$_PRESERVED_FILES"
 CMD_UNCHANGED=$_UNCHANGED
 
-echo "  Runtime helper:"
-scan_helper
-case "$HELPER_ACTION" in
-  new) TOTAL_NEW=$((TOTAL_NEW + 1)) ;;
-  update) TOTAL_UPDATED=$((TOTAL_UPDATED + 1)) ;;
-  preserved)
-    TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
-    ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    scripts/recommend-state.py\n"
-    ;;
-esac
+echo "  Scripts:"
+overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "preview" "script"
+TOTAL_NEW=$((TOTAL_NEW + _NEW))
+TOTAL_UPDATED=$((TOTAL_UPDATED + _UPDATED))
+TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
+ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}${_PRESERVED_FILES}"
 
-echo "  Runtime contract:"
-scan_state_doc
-case "$STATE_DOC_ACTION" in
-  new) TOTAL_NEW=$((TOTAL_NEW + 1)) ;;
-  update) TOTAL_UPDATED=$((TOTAL_UPDATED + 1)) ;;
-  preserved)
-    TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
-    ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    .writ/docs/recommended-delivery-state-format.md\n"
-    ;;
-esac
+echo "  Writ docs:"
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview"
+TOTAL_NEW=$((TOTAL_NEW + _NEW))
+TOTAL_UPDATED=$((TOTAL_UPDATED + _UPDATED))
+TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
+ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}${_PRESERVED_FILES}"
 
 echo "  Agents:"
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "preview" "$AGENT_FILE_GLOB"
@@ -923,8 +945,8 @@ fi
 echo "Updating..."
 
 overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
-apply_helper
-apply_state_doc
+overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "apply" "script"
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply"
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply" "$AGENT_FILE_GLOB"
 
 if [ -d "$WRIT_SRC/skills" ]; then
@@ -968,6 +990,8 @@ if [ "$STALE_COUNT" -gt 0 ]; then
     [ -z "$sf" ] && continue
     if [ "$sf" = "CLAUDE.md" ]; then
       rm -f "CLAUDE.md"
+    elif [ "${sf%%/*}" = "scripts" ] || [ "${sf%%/*}" = ".writ" ]; then
+      rm -f "$sf"
     else
       rm -f "$PLATFORM_DIR/$sf"
     fi
@@ -998,7 +1022,13 @@ fi
 # ---------------------------------------------------------------------------
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
-  git add "scripts/recommend-state.py" 2>/dev/null || true
+  f=""; base=""
+  for f in scripts/*.py scripts/*.sh; do
+    [ -f "$f" ] || continue
+    base=$(basename "$f")
+    is_shippable_script "$base" && git add "$f" 2>/dev/null || true
+  done
+  git add .writ/docs/*.md 2>/dev/null || true
   git add "$PLATFORM_DIR/commands/" "$PLATFORM_DIR/agents/" "$MANIFEST_FILE" 2>/dev/null || true
   [ -d "$SKILLS_DIR" ] && git add "$SKILLS_DIR/" 2>/dev/null || true
   if [ "$PLATFORM" = "cursor" ]; then
