@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.28.0] - 2026-08-10
+
+**Full Install Fanout & Post-Merge Archival** — installed projects now receive the complete Writ runtime surface (all command-invoked scripts and upstream reference docs) on install and update, not just `recommend-state.py`. `/release` can also auto-archive a spec immediately after its PR merges, when the resolver finds an unambiguous match.
+
+### Added
+
+- **Full runtime fanout on install/update** — `install.sh`, `update.sh`, `unlink.sh`, and `/update-writ` three-way overlay all shippable runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, and 10 others) plus upstream `.writ/docs/*.md` reference docs; lifecycle installers, eval tooling, and internal modules are excluded ([PR #34](https://github.com/sellke/writ/pull/34))
+- **Post-merge archival hook** — `/release` Step 1.3c resolves the merged PR's spec via `scripts/resolve-spec-reference.py` and calls `scripts/archive-sweep.py archive-one` when unambiguous; silent no-op on miss or ambiguity ([spec: 2026-08-04-post-merge-archival-hook](.writ/specs/archive/2026-08-04-post-merge-archival-hook/spec.md))
+- **`scripts/resolve-spec-reference.py`** — shared branch+commit resolver for `/ship` Spec Reference and `/release` archival hook ([Story 1](.writ/specs/archive/2026-08-04-post-merge-archival-hook/user-stories/story-1-shared-spec-reference-resolution.md))
+- **`archive-sweep.py archive-one`** — single-spec archive entry point with complete-family, collision, and ledger checks ([Story 2](.writ/specs/archive/2026-08-04-post-merge-archival-hook/user-stories/story-2-single-spec-archive-entry-point.md))
+
+### Changed
+
+- Lifecycle scripts use shared `overlay_scan_flat_dir` with `is_shippable_script` exclusion filter instead of hardcoded `recommend-state.py` + one doc paths
+
+### Internal
+
+- Archived completed specs: `2026-08-04-post-merge-archival-hook`, `2026-08-04-spec-lifecycle-archival`
+- Eval coverage for post-merge archival hook, spec-reference resolver, and archive-one CLI boundary
+
 ## [0.27.0] - 2026-08-04
 
 **Status-Alone Archive Eligibility** — amends the archive lifecycle shipped in 0.26.0: eligibility no longer requires a knowledge-evidence citation alongside a complete-family status. In practice the two-signal bar left 36 of 39 completed specs stranded in the active directory, defeating the point of the archival feature. Knowledge evidence is still recorded per-spec in the ledger, but as enrichment, not a gate.
