@@ -85,17 +85,52 @@ assembler_bytes_total() {
 # ---------------------------------------------------------------------------
 # Build a clean, self-consistent temp repo skeleton.
 # ---------------------------------------------------------------------------
+# Write a command file that satisfies the ADR-020 component contract
+# (problem:/outcome:/exit_criteria: frontmatter + a `## Completion` section)
+# so the contract checks stay silent on a clean fixture and the ratchet
+# scenarios below can still assert "zero warnings" meaningfully.
+# usage: write_command <path> <name> [extra body lines]
+write_command() {
+  local path="$1" name="$2" extra="${3:-}"
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "$name"
+    printf 'description: "the %s command"\n' "$name"
+    printf 'problem: "a stated problem for %s"\n' "$name"
+    printf 'outcome: "a stated outcome for %s"\n' "$name"
+    printf 'exit_criteria:\n  - "a falsifiable condition for %s"\n' "$name"
+    printf -- '---\n\n# %s\n\nsome body line\n' "$name"
+    # Omitted entirely when absent, so "same command, fewer body lines" is a
+    # real shrink — an always-emitted blank line would keep the count flat.
+    [ -n "$extra" ] && printf '%b\n' "$extra"
+    printf '\n## Completion\n\nDone when the exit criterion holds.\n'
+  } > "$path"
+}
+
 build_repo() {
   local root="$1"
   mkdir -p "$root/commands" "$root/agents" "$root/skills/sample-skill" \
            "$root/adapters" "$root/scripts/tests" "$root/.writ/decision-records"
 
-  # Non-infra commands: alpha, beta. Infra: _preamble (excluded from parity).
-  printf '# Alpha\n\nsome body line\n' > "$root/commands/alpha.md"
-  printf '# Beta\n\nsome body line\n'  > "$root/commands/beta.md"
+  # Non-infra commands: alpha, beta. Infra: _preamble (excluded from parity
+  # AND from the contract checks, via is_infra() — no hardcoded filename).
+  write_command "$root/commands/alpha.md" alpha "an extra alpha line"
+  write_command "$root/commands/beta.md" beta "an extra beta line"
   printf '# Preamble\n\ninfra only\n'  > "$root/commands/_preamble.md"
 
-  printf '# Agent\n' > "$root/agents/sample-agent.md"
+  cat > "$root/agents/sample-agent.md" <<'EOF'
+# Sample Agent
+
+## Agent Configuration
+
+```
+name: sample-agent
+problem: "a stated problem for the sample agent"
+outcome: "a stated outcome for the sample agent"
+exit_criteria:
+  - "a falsifiable condition for the sample agent"
+```
+EOF
   printf 'name: sample-skill\n' > "$root/skills/sample-skill/SKILL.md"
 
   # Full-surface stubs (Story 1): adapters/, scripts/ (incl. a nested test
@@ -124,7 +159,20 @@ EOF
   # /status allowlist is a CURATED SUBSET — names only alpha, deliberately omits
   # beta. Directional parity means beta is NOT an orphan for being absent here.
   cat > "$root/commands/status.md" <<'EOF'
+---
+name: status
+description: "the status command"
+problem: "a stated problem for status"
+outcome: "a stated outcome for status"
+exit_criteria:
+  - "a falsifiable condition for status"
+---
+
 # Status
+
+## Completion
+
+Done when the exit criterion holds.
 
 ## Maintainer Note: Command Allowlist
 
@@ -491,9 +539,10 @@ TMP5="$(mktemp -d)"
 build_repo "$TMP5"
 BASE5="$TMP5/.writ/leanness-baseline.json"
 BASE5_COMMANDS_LINES_BEFORE="$(python3 -c "import json; print(json.load(open('$BASE5'))['surfaces']['commands']['lines'])")"
-# Shrink commands/ so current < baseline.
-: > "$TMP5/commands/beta.md"
-printf '# Beta\n' > "$TMP5/commands/beta.md"
+# Shrink commands/ so current < baseline. The rewrite stays contract-compliant
+# — this scenario asserts ZERO warnings, so a fixture that shed its frontmatter
+# would fail on contract findings rather than on the ratchet.
+write_command "$TMP5/commands/beta.md" beta
 OUT5A="$(mktemp)"
 run_helper "$TMP5" "$OUT5A"
 [ "$(count_field "$OUT5A" warnings)" -eq 0 ] || { cat "$OUT5A"; fail "a decreased surface must not warn"; }
@@ -511,7 +560,7 @@ rm -rf "$TMP5"
 TMP6="$(mktemp -d)"
 build_repo "$TMP6"
 BASE6="$TMP6/.writ/leanness-baseline.json"
-printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP6/commands/alpha.md"
+write_command "$TMP6/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth"
 OUT6="$(mktemp)"
 run_helper "$TMP6" "$OUT6"
 [ "$(count_field "$OUT6" structural)" -eq 0 ] || { cat "$OUT6"; fail "unjustified growth must not be structural"; }
@@ -533,7 +582,7 @@ rm -rf "$TMP6"
 TMP7="$(mktemp -d)"
 build_repo "$TMP7"
 BASE7="$TMP7/.writ/leanness-baseline.json"
-printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP7/commands/alpha.md"
+write_command "$TMP7/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth"
 justify_to_current() {
   # usage: justify_to_current <baseline.json> <surface> <helper> <root>
   # Record a bound justification at the surface's CURRENT measurement.
@@ -565,7 +614,7 @@ ok "ratchet: increase up to a bound justification's recorded ceiling -> silent"
 # Scenario 4c-bis: one line PAST the recorded ceiling -> the ratchet speaks
 # again, naming the ceiling it passed. This is the property the old unbounded
 # string did not have, and the reason the assertion above changed.
-printf '# Alpha\n\nsome body line\nanother new line of growth\none more line\n' > "$TMP7/commands/alpha.md"
+write_command "$TMP7/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth\none more line"
 OUT7B="$(mktemp)"
 run_helper "$TMP7" "$OUT7B"
 json_contains "$OUT7B" warnings "commands.lines" \
@@ -581,7 +630,7 @@ rm -rf "$TMP7"
 TMP7C="$(mktemp -d)"
 build_repo "$TMP7C"
 BASE7C="$TMP7C/.writ/leanness-baseline.json"
-printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP7C/commands/alpha.md"
+write_command "$TMP7C/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth"
 set_surface_field "$BASE7C" commands justification '"Deliberate: added an alpha usage example."'
 OUT7C="$(mktemp)"
 run_helper "$TMP7C" "$OUT7C"

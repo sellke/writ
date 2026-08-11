@@ -32,8 +32,15 @@ Contract:
                      "command_lines","command_chars",
                      "per_surface", "total_product_lines",
                      "total_product_chars", "writ_workspace_lines",
-                     "story_context_bytes", "story_context_bytes_note"}
+                     "story_context_bytes", "story_context_bytes_note",
+                     "contract_compliance", "required_skills_declarations"}
     }
+
+  Component-contract findings (see CONTRACT_CHECK_SEVERITY) land in
+  "warnings" today and become "structural" when the governor-enforcement
+  spec flips that one constant. "contract_compliance" is the trend channel
+  beside them: counts of files checked and files compliant, so the migration
+  specs have one number to move instead of a diff of findings.
 
   "story_context_bytes" is a mixed measurement, not consumed tokens — see
   STORY_CONTEXT_BYTES_NOTE and the sibling "story_context_bytes_note" key.
@@ -244,6 +251,264 @@ OUT_OF_SCOPE = {
 COMMAND_TOKEN = re.compile(r"`/([a-z][a-z0-9-]*)`")
 # A bare backticked command name, e.g. `create-spec` (the /status allowlist form).
 BARE_TOKEN = re.compile(r"`([a-z][a-z0-9-]*)`")
+
+# --- Component-contract instrumentation (spec: 2026-08-11-governor-
+# instrumentation; decision: ADR-020) ---------------------------------------
+#
+# Phase 10 sequencing, ADR-020 "Enforcement sequencing (load-bearing)" and the
+# roadmap's Phase 10 -> Dependencies, in the same words: component-contract
+# findings land NON-BLOCKING while 2026-08-11-component-contract and
+# 2026-08-11-loop-bounds migrate the surface. Landing them blocking on day one
+# turns every eval run red, and a permanently red gate becomes invisible —
+# exactly how the growth warnings came to be ignored.
+#
+# THE GOVERNOR-ENFORCEMENT SPEC FLIPS THIS ONE STRING to "structural".
+# Nothing else changes: every check below is a pure function returning
+# list[dict] and routes through emit_contract_findings().
+#
+# Precondition for the flip: the two migration specs have brought commands and
+# agents into compliance, so a flipped run is green on a clean tree. Flipping
+# early is the failure this constant exists to prevent, which is why the
+# shipped value is asserted by the test suite.
+#
+# The one-line diff it becomes:
+#     -CONTRACT_CHECK_SEVERITY = "warnings"
+#     +CONTRACT_CHECK_SEVERITY = "structural"
+CONTRACT_CHECK_SEVERITY = "warnings"   # -> "structural"
+
+# The three fields ADR-020 makes the component contract. Presence and
+# non-emptiness only: the lint can verify the field exists and says something;
+# it cannot verify the assertion is true.
+CONTRACT_FIELDS = ("problem", "outcome", "exit_criteria")
+
+# Agent config blocks live under one of two headings, both legitimate today —
+# `system-instructions.md` documents the split for `model_tier`, and ADR-020
+# item 2 reuses the same carrier. 6 agents use `## Agent Configuration` with a
+# plain fence; visual-qa-agent.md uses `## Agent Specification` with a ```yaml
+# fence. Recognising only one produces three false findings against a
+# compliant file, and a false finding is the fastest way to teach a maintainer
+# to ignore the whole channel.
+AGENT_CARRIER_HEADINGS = ("## Agent Configuration", "## Agent Specification")
+
+# A frontmatter/config key at column 0 (or at the block's own left margin),
+# e.g. `problem:`, `loop:`, or the flattened `loop.max_iterations:`.
+FIELD_KEY = re.compile(r"^([A-Za-z_][A-Za-z0-9_.-]*):(.*)$")
+
+# Values that are syntactically present but assert nothing. `exit_criteria: []`
+# declares no falsifiable condition, which is the entire point of the field.
+EMPTY_VALUES = frozenset({"", "[]", "{}", "~", "null", "none"})
+
+
+def emit_contract_findings(findings: list[dict], structural: list[dict],
+                           warnings: list[dict], severity: str | None = None) -> None:
+    """Route a check's findings to the blocking or non-blocking bucket.
+
+    `severity=None` means "follow CONTRACT_CHECK_SEVERITY" — the normal case.
+    An explicit "warnings" pins a check non-blocking regardless of the flip
+    (`required_skills:`, per system-instructions.md graceful degradation).
+    Any unrecognised value falls back to `warnings`: a typo in the flip must
+    never silently disable a check, and must never accidentally block a run.
+    """
+    chosen = severity or CONTRACT_CHECK_SEVERITY
+    target = structural if chosen == "structural" else warnings
+    target.extend(findings)
+
+
+def all_agent_files(root: str) -> list[str]:
+    return sorted(glob.glob(os.path.join(root, "agents", "*.md")))
+
+
+def _has_content(raw: str) -> bool:
+    """True when a declared field actually asserts something."""
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1].strip()
+    return value.lower() not in EMPTY_VALUES
+
+
+def _parse_fields(lines: list[str]) -> dict[str, str]:
+    """Key -> value map for a frontmatter or config block.
+
+    A key with a block/list value (e.g. `exit_criteria:` followed by indented
+    `- "..."` lines) maps to the joined continuation lines, so presence-and-
+    non-emptiness is decidable without a YAML parse. No YAML library is
+    imported: this helper runs inside eval.sh on every CI run and the module
+    has zero third-party dependencies.
+    """
+    fields: dict[str, str] = {}
+    current: str | None = None
+    for line in lines:
+        match = FIELD_KEY.match(line)
+        if match:
+            current = match.group(1)
+            fields[current] = match.group(2).strip()
+            continue
+        if current is not None and line.strip():
+            joined = (fields[current] + " " + line.strip()).strip()
+            fields[current] = joined
+    return fields
+
+
+def frontmatter_lines(path: str) -> list[str] | None:
+    """The raw lines of a leading `---` block, or None.
+
+    Only a fence starting on line 1 counts — a `---` horizontal rule mid-
+    document is not frontmatter, and several command files use one. An
+    unterminated fence, an unreadable file, and a file with no fence all
+    return None rather than raising: a read-only check must never crash the
+    eval run.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+    if not lines or lines[0].strip() != "---":
+        return None
+    for index in range(1, len(lines)):
+        if lines[index].rstrip() == "---":
+            return lines[1:index]
+    return None
+
+
+def read_frontmatter(path: str) -> dict[str, str] | None:
+    """Leading `---` block only. {key: raw_value_string}, or None."""
+    lines = frontmatter_lines(path)
+    if lines is None:
+        return None
+    return _parse_fields(lines)
+
+
+def agent_config_lines(path: str) -> list[str] | None:
+    """The raw lines of an agent's config block, either carrier, or None.
+
+    Accepts `## Agent Configuration` or `## Agent Specification`, and any
+    fence info-string (plain or ```yaml). A file with neither heading, or a
+    heading with no fenced block after it, returns None — the carrier is the
+    contract's only home, so its absence is one finding, not three.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() in AGENT_CARRIER_HEADINGS:
+            start = index + 1
+            break
+    if start is None:
+        return None
+
+    for index in range(start, len(lines)):
+        stripped = lines[index].strip()
+        if stripped.startswith("## "):
+            return None  # next section reached before any fence
+        if stripped.startswith("```"):
+            body: list[str] = []
+            for inner in range(index + 1, len(lines)):
+                if lines[inner].strip().startswith("```"):
+                    return body
+                body.append(lines[inner])
+            return body
+    return None
+
+
+def read_agent_config(path: str) -> dict[str, str] | None:
+    """Dual-carrier agent config block. Same shape as read_frontmatter()."""
+    lines = agent_config_lines(path)
+    if lines is None:
+        return None
+    return _parse_fields(lines)
+
+
+def check_component_contract(root: str) -> list[dict]:
+    """Every command and agent must declare problem, outcome, exit_criteria.
+
+    One finding per missing field per file — never an aggregate. A file with
+    no carrier at all yields one file-level finding instead, because
+    field-level findings against a missing carrier are noise.
+    """
+    findings: list[dict] = []
+
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue  # Business Rule 7 — the existing rule, not a skip list
+        rel = f"commands/{stem}.md"
+        fields = read_frontmatter(path)
+        if fields is None:
+            findings.append({
+                "subject": rel,
+                "what": "no frontmatter block; the component contract "
+                        "(problem:/outcome:/exit_criteria:) has nowhere to live.",
+                "fix": f"Add a leading `---` YAML frontmatter block to {rel} declaring "
+                       "problem:, outcome:, and exit_criteria: (ADR-020).",
+            })
+            continue
+        for field in CONTRACT_FIELDS:
+            if not _has_content(fields.get(field, "")):
+                findings.append({
+                    "subject": f"{rel} → {field}:",
+                    "what": f"frontmatter does not declare a non-empty `{field}:` "
+                            "(ADR-020 component contract).",
+                    "fix": f"Declare `{field}:` in {rel}'s frontmatter with content. "
+                           "An empty value or an empty list asserts nothing and does "
+                           "not satisfy the contract.",
+                })
+
+    for path in all_agent_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        rel = f"agents/{stem}.md"
+        fields = read_agent_config(path)
+        if fields is None:
+            findings.append({
+                "subject": f"{rel} → no Agent Configuration/Specification block",
+                "what": "no fenced config block under `## Agent Configuration` or "
+                        "`## Agent Specification`; the component contract has no carrier.",
+                "fix": f"Add a `## Agent Configuration` section to {rel} with a fenced "
+                       "block declaring problem:, outcome:, and exit_criteria: "
+                       "(`## Agent Specification` with a ```yaml fence is equally valid).",
+            })
+            continue
+        for field in CONTRACT_FIELDS:
+            if not _has_content(fields.get(field, "")):
+                findings.append({
+                    "subject": f"{rel} → {field}:",
+                    "what": f"the agent config block does not declare a non-empty "
+                            f"`{field}:` (ADR-020 component contract).",
+                    "fix": f"Declare `{field}:` in {rel}'s config block with content. "
+                           "An empty value or an empty list asserts nothing and does "
+                           "not satisfy the contract.",
+                })
+
+    return findings
+
+
+def _offender_files(findings: list[dict]) -> set[str]:
+    """The file half of each finding's subject — `a/b.md → field:` -> `a/b.md`."""
+    return {finding["subject"].split(" →")[0] for finding in findings}
+
+
+def contract_compliance(root: str, contract_findings: list[dict]) -> dict:
+    """Counts, not finding text: the trend channel beside the work queue.
+
+    Derived from the findings themselves rather than re-parsed, so the metric
+    can never disagree with the list a maintainer is working through.
+    """
+    commands = [os.path.splitext(os.path.basename(p))[0] for p in all_command_files(root)]
+    checkable = [stem for stem in commands if not is_infra(stem)]
+    agents = [os.path.splitext(os.path.basename(p))[0] for p in all_agent_files(root)]
+    offenders = _offender_files(contract_findings)
+    return {
+        "commands_checked": len(checkable),
+        "commands_with_contract": sum(
+            1 for stem in checkable if f"commands/{stem}.md" not in offenders),
+        "agents_checked": len(agents),
+        "agents_with_contract": sum(
+            1 for stem in agents if f"agents/{stem}.md" not in offenders),
+    }
 
 
 def repo_root(explicit: str | None) -> str:
@@ -705,6 +970,13 @@ def main(argv: list[str] | None = None) -> int:
     structural += base_structural
 
     warnings = scan_warnings + base_warnings + check_ceilings(metrics)
+
+    # Component-contract instrumentation. Every check below is a pure function
+    # returning list[dict]; emit_contract_findings() is the only thing that
+    # decides which bucket they land in (CONTRACT_CHECK_SEVERITY).
+    contract_findings = check_component_contract(root)
+    emit_contract_findings(contract_findings, structural, warnings)
+    metrics["contract_compliance"] = contract_compliance(root, contract_findings)
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)

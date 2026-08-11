@@ -2,12 +2,19 @@
 """Tests for eval-leanness.py's contract instrumentation (spec:
 2026-08-11-governor-instrumentation).
 
-**The bound justification (Story 1).** The 16-row matrix from
+Two families live here:
+
+  1. **The bound justification (Story 1).** The 16-row matrix from
 `sub-specs/technical-spec.md` -> "Test matrix for the bound justification".
 Rows 4, 5 and 7 are the acceptance bar (grow -> justify -> quiet; grow
 further -> warns again; down is free); row 8 proves the per-metric
 independence the old per-surface read lacked; row 10 is the direct
 regression test against the permanent mute.
+
+  2. **The contract checks and the emission seam (Stories 3-7).** Fixture
+     trees under a temp root, plus the flip test that sets
+     `CONTRACT_CHECK_SEVERITY` in-process and asserts the identical finding
+     dicts move from `warnings` to `structural`.
 
 `eval-leanness.py` has a hyphen in its filename, so it is loaded by path via
 `importlib.util.spec_from_file_location` — the established recipe in
@@ -254,6 +261,192 @@ class RealRepoBaselineTests(unittest.TestCase):
         for warning in warnings:
             self.assertIn(".", warning["subject"],
                           "growth subjects must be <surface>.<metric>")
+
+
+# ---------------------------------------------------------------------------
+# Stories 3-7 — fixture tree helpers
+# ---------------------------------------------------------------------------
+
+COMPLIANT_FRONTMATTER = """\
+---
+name: {name}
+description: "a description"
+problem: "the problem this command exists to solve"
+outcome: "what the run leaves behind"
+exit_criteria:
+  - "the first falsifiable condition"
+  - "the second falsifiable condition"
+---
+
+# {name}
+
+## Completion
+
+Done when the exit criteria hold.
+"""
+
+
+def write_command(root: Path, name: str, body: str) -> Path:
+    path = root / "commands" / f"{name}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def write_agent(root: Path, name: str, body: str) -> Path:
+    path = root / "agents" / f"{name}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+    return path
+
+
+def compliant_agent(heading: str = "## Agent Configuration", info: str = "") -> str:
+    return (
+        "# Agent\n\n"
+        f"{heading}\n\n"
+        f"```{info}\n"
+        "name: sample\n"
+        'problem: "the gap this agent closes"\n'
+        'outcome: "what the agent hands back"\n'
+        "exit_criteria:\n"
+        '  - "the first condition"\n'
+        "```\n"
+    )
+
+
+def subjects(findings: list[dict]) -> list[str]:
+    return [f["subject"] for f in findings]
+
+
+# ---------------------------------------------------------------------------
+# Story 3 — component contract presence
+# ---------------------------------------------------------------------------
+
+class FrontmatterReaderTests(unittest.TestCase):
+
+    def test_leading_fence_is_parsed_into_key_value_pairs(self):
+        with TemporaryDirectory() as tmp:
+            path = write_command(Path(tmp), "alpha",
+                                 COMPLIANT_FRONTMATTER.format(name="alpha"))
+            fm = lean.read_frontmatter(str(path))
+            self.assertIsNotNone(fm)
+            self.assertEqual(fm["name"], "alpha")
+            self.assertIn("the first falsifiable condition", fm["exit_criteria"])
+
+    def test_no_leading_fence_returns_none(self):
+        with TemporaryDirectory() as tmp:
+            path = write_command(Path(tmp), "alpha", "# Alpha\n\nbody\n")
+            self.assertIsNone(lean.read_frontmatter(str(path)))
+
+    def test_mid_document_horizontal_rule_is_not_frontmatter(self):
+        with TemporaryDirectory() as tmp:
+            path = write_command(Path(tmp), "alpha",
+                                 "# Alpha\n\n---\n\nproblem: not really\n---\n")
+            self.assertIsNone(lean.read_frontmatter(str(path)))
+
+    def test_unterminated_fence_returns_none(self):
+        with TemporaryDirectory() as tmp:
+            path = write_command(Path(tmp), "alpha", "---\nproblem: x\n\n# Alpha\n")
+            self.assertIsNone(lean.read_frontmatter(str(path)))
+
+    def test_block_value_maps_to_its_joined_continuation_lines(self):
+        with TemporaryDirectory() as tmp:
+            path = write_command(
+                Path(tmp), "alpha",
+                '---\nname: alpha\nexit_criteria:\n  - "one"\n  - "two"\n---\n')
+            fm = lean.read_frontmatter(str(path))
+            self.assertIn("one", fm["exit_criteria"])
+            self.assertIn("two", fm["exit_criteria"])
+
+    def test_empty_block_value_maps_to_the_empty_string(self):
+        with TemporaryDirectory() as tmp:
+            path = write_command(Path(tmp), "alpha",
+                                 "---\nname: alpha\nexit_criteria:\n---\n")
+            fm = lean.read_frontmatter(str(path))
+            self.assertEqual(fm["exit_criteria"], "")
+
+
+class ComponentContractCheckTests(unittest.TestCase):
+
+    def test_compliant_command_emits_nothing(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", COMPLIANT_FRONTMATTER.format(name="alpha"))
+            self.assertEqual(lean.check_component_contract(tmp), [])
+
+    def test_one_missing_field_emits_exactly_one_named_finding(self):
+        with TemporaryDirectory() as tmp:
+            body = COMPLIANT_FRONTMATTER.format(name="alpha").replace(
+                'outcome: "what the run leaves behind"\n', "")
+            write_command(Path(tmp), "alpha", body)
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(subjects(findings), ["commands/alpha.md → outcome:"])
+
+    def test_empty_exit_criteria_is_a_finding(self):
+        with TemporaryDirectory() as tmp:
+            body = COMPLIANT_FRONTMATTER.format(name="alpha").replace(
+                '  - "the first falsifiable condition"\n'
+                '  - "the second falsifiable condition"\n', "")
+            write_command(Path(tmp), "alpha", body)
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(subjects(findings), ["commands/alpha.md → exit_criteria:"])
+
+    def test_empty_list_literal_is_a_finding(self):
+        with TemporaryDirectory() as tmp:
+            body = COMPLIANT_FRONTMATTER.format(name="alpha").replace(
+                'exit_criteria:\n  - "the first falsifiable condition"\n'
+                '  - "the second falsifiable condition"\n', "exit_criteria: []\n")
+            write_command(Path(tmp), "alpha", body)
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(subjects(findings), ["commands/alpha.md → exit_criteria:"])
+
+    def test_missing_frontmatter_emits_one_file_level_finding(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", "# Alpha\n\nno fence here\n")
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(len(findings), 1)
+            self.assertIn("no frontmatter block", findings[0]["what"])
+
+    def test_infra_commands_are_never_checked(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "_preamble", "# Preamble\n\nno frontmatter\n")
+            self.assertEqual(lean.check_component_contract(tmp), [])
+
+    def test_both_agent_carriers_are_recognised(self):
+        with TemporaryDirectory() as tmp:
+            write_agent(Path(tmp), "plain", compliant_agent())
+            write_agent(Path(tmp), "yamlish",
+                        compliant_agent("## Agent Specification", "yaml"))
+            self.assertEqual(lean.check_component_contract(tmp), [])
+
+    def test_agent_with_no_carrier_emits_one_carrier_level_finding(self):
+        with TemporaryDirectory() as tmp:
+            write_agent(Path(tmp), "bare", "# Agent\n\nno config block at all\n")
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(len(findings), 1)
+            self.assertIn("Agent Configuration", findings[0]["subject"])
+
+    def test_agent_heading_with_no_fence_emits_one_carrier_level_finding(self):
+        with TemporaryDirectory() as tmp:
+            write_agent(Path(tmp), "bare",
+                        "# Agent\n\n## Agent Configuration\n\nprose, no fence\n")
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(len(findings), 1)
+
+    def test_agent_missing_one_field_emits_one_field_finding(self):
+        with TemporaryDirectory() as tmp:
+            body = compliant_agent().replace('problem: "the gap this agent closes"\n', "")
+            write_agent(Path(tmp), "plain", body)
+            findings = lean.check_component_contract(tmp)
+            self.assertEqual(subjects(findings), ["agents/plain.md → problem:"])
+
+    def test_absent_directories_yield_no_findings(self):
+        with TemporaryDirectory() as tmp:
+            self.assertEqual(lean.check_component_contract(tmp), [])
+
+    def test_real_repo_agents_produce_no_carrier_false_finding(self):
+        findings = lean.check_component_contract(str(REPO_ROOT))
+        offenders = [f for f in findings if "visual-qa-agent" in f["subject"]]
+        self.assertEqual(offenders, [], "visual-qa-agent.md's ```yaml carrier must be read")
 
 
 if __name__ == "__main__":

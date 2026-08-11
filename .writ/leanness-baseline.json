@@ -47,12 +47,12 @@
       "chars": 1155797,
       "justifications": {
         "lines": {
-          "value": 28705,
+          "value": 29219,
           "date": "2026-08-11",
-          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py, the loop-bound correctness checker), and 0b29a61 (this spec's Story 1, the bound-justification reader). All reviewed, shipped work."
+          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py, the loop-bound correctness checker), and 2026-08-11-governor-instrumentation Stories 1 and 3 — the bound-justification reader, the emission seam, and the component-contract presence check with its fixture tests. All reviewed, shipped work."
         },
         "chars": {
-          "value": 1222662,
+          "value": 1244961,
           "date": "2026-08-11",
           "text": "Same commits as scripts.lines."
         }

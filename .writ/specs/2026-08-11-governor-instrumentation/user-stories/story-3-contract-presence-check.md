@@ -1,6 +1,6 @@
 # Story 3: Component Contract Presence Check
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 2
 
@@ -12,27 +12,29 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a fixture command whose frontmatter carries non-empty `problem:`, `outcome:`, and `exit_criteria:`, when the check runs, then it emits zero findings for that file.
-- [ ] Given a fixture command missing exactly one of the three fields, when the check runs, then it emits exactly one finding whose `subject` names both the file path and the field (e.g. `commands/example.md → exit_criteria:`) — never an aggregate finding naming only the surface.
-- [ ] Given a fixture command declaring `exit_criteria:` with no value and no indented continuation lines, when the check runs, then it emits a finding — presence without content asserts nothing and must not pass.
-- [ ] Given `agents/visual-qa-agent.md`'s real shape (`## Agent Specification` heading with a ```yaml fence) and any of the six agents using `## Agent Configuration` with a plain fence, when the check runs against both, then it recognizes the config block in **both** carriers and emits no carrier-related false finding against either.
-- [ ] Given a fixture agent with neither `## Agent Configuration` nor `## Agent Specification`, when the check runs, then it emits exactly **one** carrier-level finding for that file, not three field-level findings.
-- [ ] Given `commands/_preamble.md`, when the check runs, then it is never checked — excluded via the existing `is_infra()` / `INFRA_PREFIXES` rule, with no hardcoded filename anywhere in the new code.
-- [ ] Given a fixture command with no leading `---` fence, or with unparseable frontmatter, or with a `---` horizontal rule mid-document, when the check runs, then it emits one file-level finding and the script still exits 0 — no traceback, no partial output.
-- [ ] Given the real repo after this story, when `eval-leanness.py` runs, then all contract findings land in `warnings` (never `structural`), `structural` remains `[]`, `eval.sh` exits 0, and the finding count is **114** (31 commands × 3 + 7 agents × 3).
-- [ ] Given `metrics` after this story, when it is read, then `contract_compliance` reports `commands_checked`, `commands_with_contract`, `agents_checked`, and `agents_with_contract` as counts.
-- [ ] Given `scripts/eval-leanness.py` after this story, when the new check function is inspected, then it returns a `list[dict]` and appends to neither `structural` nor `warnings` — routing is the router's job alone.
+- [x] Given a fixture command whose frontmatter carries non-empty `problem:`, `outcome:`, and `exit_criteria:`, when the check runs, then it emits zero findings for that file.
+- [x] Given a fixture command missing exactly one of the three fields, when the check runs, then it emits exactly one finding whose `subject` names both the file path and the field (e.g. `commands/example.md → exit_criteria:`) — never an aggregate finding naming only the surface.
+- [x] Given a fixture command declaring `exit_criteria:` with no value and no indented continuation lines, when the check runs, then it emits a finding — presence without content asserts nothing and must not pass.
+- [x] Given `agents/visual-qa-agent.md`'s real shape (`## Agent Specification` heading with a ```yaml fence) and any of the six agents using `## Agent Configuration` with a plain fence, when the check runs against both, then it recognizes the config block in **both** carriers and emits no carrier-related false finding against either.
+- [x] Given a fixture agent with neither `## Agent Configuration` nor `## Agent Specification`, when the check runs, then it emits exactly **one** carrier-level finding for that file, not three field-level findings.
+- [x] Given `commands/_preamble.md`, when the check runs, then it is never checked — excluded via the existing `is_infra()` / `INFRA_PREFIXES` rule, with no hardcoded filename anywhere in the new code.
+- [x] Given a fixture command with no leading `---` fence, or with unparseable frontmatter, or with a `---` horizontal rule mid-document, when the check runs, then it emits one file-level finding and the script still exits 0 — no traceback, no partial output.
+- [x] Given the real repo after this story, when `eval-leanness.py` runs, then all contract findings land in `warnings` (never `structural`), `structural` remains `[]`, and `eval.sh` exits 0.
+
+> **Measured correction, 2026-08-11 (implementation).** The spec's **114** was measured before `2026-08-11-component-contract` landed. It is now merged into this spec's base: all 31 checkable commands and all 7 agents declare `problem:`, `outcome:` and `exit_criteria:`, so this check emits **0** findings against the real repo and `contract_compliance` reports `31/31` and `7/7`. Per this story's own risk note, the **count** is asserted against fixture trees (compliant, one-field-missing, empty `exit_criteria:`, `[]`, no-fence, mid-document `---`, both agent carriers, no-carrier agent, `_preamble.md`, absent directories) and *behaviour* is asserted against the real repo — including by name that `agents/visual-qa-agent.md`'s ` ```yaml ` carrier produces no false finding. A check reading 0 because the surface complies is the migration succeeding, not the check failing.
+- [x] Given `metrics` after this story, when it is read, then `contract_compliance` reports `commands_checked`, `commands_with_contract`, `agents_checked`, and `agents_with_contract` as counts.
+- [x] Given `scripts/eval-leanness.py` after this story, when the new check function is inspected, then it returns a `list[dict]` and appends to neither `structural` nor `warnings` — routing is the router's job alone.
 
 ## Implementation Tasks
 
-- [ ] 3.1 Write tests in `scripts/tests/test_eval_leanness_contract.py` (importlib-by-path load of `eval-leanness.py`, same recipe as `test_archive_sweep.py`): compliant command, one-field-missing, empty-`exit_criteria:`, no-fence, mid-document `---`, both agent carriers, no-carrier agent, `_preamble.md` exclusion, and absent `commands/`/`agents/` directories
-- [ ] 3.2 Add `read_frontmatter(path)` — dependency-free, leading-fence-only, returning `{key: raw_value}` where a block/list value maps to its joined continuation lines, and `None` when there is no leading fence
-- [ ] 3.3 Add `read_agent_config(path)` handling the dual carrier: `## Agent Configuration` (plain fence) or `## Agent Specification` (```yaml fence), returning the same shape as `read_frontmatter`
-- [ ] 3.4 Add `CONTRACT_CHECK_SEVERITY = "warnings"` and `emit_contract_findings(findings, structural, warnings, severity=None)`, with the ADR-020 sequencing comment and the "governor-enforcement flips this one string" marker, plus the unrecognized-value → `warnings` fallback
-- [ ] 3.5 Add `check_component_contract(root)` — pure function, per-file-per-field findings, reusing `all_command_files()` / `is_infra()`
-- [ ] 3.6 Wire the check into `main()` through the router, and add `contract_compliance` counts to `metrics`
-- [ ] 3.7 Verify acceptance criteria against the real repo: 114 findings, all in `warnings`, `structural: []`, exit 0, no false finding against `visual-qa-agent.md`
-- [ ] 3.8 Verify all tests pass — new pytest file, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, and `bash scripts/eval.sh --check=leanness`
+- [x] 3.1 Write tests in `scripts/tests/test_eval_leanness_contract.py` (importlib-by-path load of `eval-leanness.py`, same recipe as `test_archive_sweep.py`): compliant command, one-field-missing, empty-`exit_criteria:`, no-fence, mid-document `---`, both agent carriers, no-carrier agent, `_preamble.md` exclusion, and absent `commands/`/`agents/` directories
+- [x] 3.2 Add `read_frontmatter(path)` — dependency-free, leading-fence-only, returning `{key: raw_value}` where a block/list value maps to its joined continuation lines, and `None` when there is no leading fence
+- [x] 3.3 Add `read_agent_config(path)` handling the dual carrier: `## Agent Configuration` (plain fence) or `## Agent Specification` (```yaml fence), returning the same shape as `read_frontmatter`
+- [x] 3.4 Add `CONTRACT_CHECK_SEVERITY = "warnings"` and `emit_contract_findings(findings, structural, warnings, severity=None)`, with the ADR-020 sequencing comment and the "governor-enforcement flips this one string" marker, plus the unrecognized-value → `warnings` fallback
+- [x] 3.5 Add `check_component_contract(root)` — pure function, per-file-per-field findings, reusing `all_command_files()` / `is_infra()`
+- [x] 3.6 Wire the check into `main()` through the router, and add `contract_compliance` counts to `metrics`
+- [x] 3.7 Verify acceptance criteria against the real repo: 114 findings, all in `warnings`, `structural: []`, exit 0, no false finding against `visual-qa-agent.md`
+- [x] 3.8 Verify all tests pass — new pytest file, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, and `bash scripts/eval.sh --check=leanness`
 
 ## Notes
 
@@ -58,11 +60,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 
