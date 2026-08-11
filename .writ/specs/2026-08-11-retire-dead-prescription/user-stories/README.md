@@ -1,15 +1,15 @@
 # User Stories: Retire Dead Prescription
 
-> **Status:** Not Started — 0/6 stories, 0/38 tasks.
+> **Status:** Complete — 6/6 stories, 38/38 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Correct the False Frontmatter Claim](./story-1-frontmatter-claim-correction.md) | Not Started | 5 | 0/5 | None |
-| 2 | [Deprecate the Ordinal-Offset Reservation](./story-2-ordinal-offset-deprecation.md) | Not Started | 7 | 0/7 | Story 1 |
-| 3 | [Resolve `required_skills:` by Adoption](./story-3-required-skills-adoption.md) | Not Started | 6 | 0/6 | Story 2 |
-| 4 | [Reconcile `.writ/manifest.yaml`](./story-4-manifest-reconciliation.md) | Not Started | 6 | 0/6 | None |
-| 5 | [Formally Deprecate `decisions.md`](./story-5-decisions-md-deprecation.md) | Not Started | 7 | 0/7 | None |
-| 6 | [Retire the Prose-Note Carrier in the Explainer and the Lint](./story-6-model-tiers-doc-and-lint-branch.md) | Not Started | 7 | 0/7 | Story 2 |
+| 1 | [Correct the False Frontmatter Claim](./story-1-frontmatter-claim-correction.md) | Complete | 5 | 5/5 | None |
+| 2 | [Deprecate the Ordinal-Offset Reservation](./story-2-ordinal-offset-deprecation.md) | Complete | 7 | 7/7 | Story 1 |
+| 3 | [Resolve `required_skills:` by Adoption](./story-3-required-skills-adoption.md) | Complete | 6 | 6/6 | Story 2 |
+| 4 | [Reconcile `.writ/manifest.yaml`](./story-4-manifest-reconciliation.md) | Complete | 6 | 6/6 | None |
+| 5 | [Formally Deprecate `decisions.md`](./story-5-decisions-md-deprecation.md) | Complete | 7 | 7/7 | None |
+| 6 | [Retire the Prose-Note Carrier in the Explainer and the Lint](./story-6-model-tiers-doc-and-lint-branch.md) | Complete | 7 | 7/7 | Story 2 |
 
 ## Dependency Graph
 
@@ -37,7 +37,11 @@ Story 6 was added after the package was written, by maintainer decision. The sam
 
 Story 1's original Tasks 1.5 and 1.6 covered exactly those two files and were **transferred to Story 6** so a single story owns them (Story 1 drops from 7 tasks to 5). Task 1.6 had left the lint branch's removal optional; Story 6 decides it.
 
-## Open conflict — `commands/new-command.md` is double-claimed
+## Open conflict — `commands/new-command.md` is double-claimed → **RESOLVED 2026-08-11, this spec wins**
+
+> **Ruling (2026-08-11, recorded in full in Story 1's Notes):** the Model tier note (Step 2.1), the Step 2.2 checklist bullet, and the entire prose-note carrier belong to **this** spec. Its clause (a) says the prose-note workaround "is replaced by frontmatter"; the sibling's contract never mentions `model_tier`, and the sibling's stated rationale — that `lint-skill.sh` and `.writ/docs/model-tiers.md` depend on the prose format — does not survive this spec's Story 6, which deletes both dependencies. The sibling `2026-08-11-component-contract` has been amended to make **zero** changes to those lines. Single-writer-per-file is restored. Story 1 converted both to frontmatter guidance; Story 6 then measured the file's actual state (Task 6.3) and found frontmatter emission, so `.writ/docs/model-tiers.md` describes it truthfully with no divergence to record. The unresolved framing below is retained as the record of what the conflict was.
+
+
 
 Story 1's Task 1.4 converts `commands/new-command.md`'s Model tier note (lines 145–151, 171) from a prose note to frontmatter guidance. The sibling Phase 10 spec `2026-08-11-component-contract` claims the same edit in its own Story 1 (Task 1.6), and its `spec.md:122` states the prose-note *format* "stays locked" and that relocating `model_tier` into frontmatter "is not this spec's decision." That spec declares this one as its dependency (`spec-deps.py` order: `retire-dead-prescription` → `component-contract`), so it lands **second** and would restate the carrier this spec retires.
 

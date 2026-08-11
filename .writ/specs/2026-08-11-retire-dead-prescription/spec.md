@@ -1,6 +1,6 @@
 # Spec: Retire Dead Prescription
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-11
 > **Dependencies:** []
