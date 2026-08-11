@@ -1,6 +1,6 @@
 # Story 2: Clear the Four Live Growth Warnings
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 
@@ -12,23 +12,25 @@
 
 ## Acceptance Criteria
 
-- [ ] Given the current repo, when `python3 scripts/eval-leanness.py --root . --baseline .writ/leanness-baseline.json` is run, then `warnings` contains **no** growth entry for `commands.lines`, `commands.chars`, `scripts.lines`, or `scripts.chars`, and `structural` is `[]`.
-- [ ] Given `.writ/leanness-baseline.json` after this story, when its `surfaces` map is read, then every surface's `lines` and `chars` are **unchanged** from the 2026-08-04 reseed (`commands` 10974/514594, `scripts` 27210/1155797, and the other four untouched) — the floor is not moved, so the ratchet keeps measuring cumulative drift from the last true reseed rather than resetting its own memory.
-- [ ] Given `.writ/leanness-baseline.json` after this story, when `surfaces.commands.justifications` and `surfaces.scripts.justifications` are read, then each carries a `lines` and a `chars` entry whose `value` equals the measurement taken **after Story 1 landed**, whose `date` is the day this story runs, and whose `text` names the cause: `a5c5a66` — *"feat(install): fan out runtime scripts and Writ docs on install/update"*, PR #34, released in v0.28.0.
-- [ ] Given the recorded ceilings, when any of the four measurements grows by even one unit past its `value`, then the warning returns and names the ceiling it passed — verified by decrementing one recorded `value` by 1, observing the warning, and restoring it. The channel is quiet because the growth is accounted for, not because it is muted.
-- [ ] Given `.writ/leanness-baseline.json` after this story, when the file is searched for the legacy key, then **no** surface carries `"justification"` — all six legacy empty strings are removed, and `schema` is `3`.
-- [ ] Given `.writ/leanness-baseline.json` after this story, when its top-level keys are read, then there is **no** `absorbed` array — the audit record lives in `justifications`, which the checker reads and enforces, rather than in an inert key that the next `--update-baseline` would silently delete.
-- [ ] Given no command, agent, adapter, skill, or script under the product surface is edited by this story, when the leanness metrics are recomputed after it, then `per_surface` is byte-identical to the pre-story measurement.
+- [x] Given the current repo, when `python3 scripts/eval-leanness.py --root . --baseline .writ/leanness-baseline.json` is run, then `warnings` contains **no** growth entry for `commands.lines`, `commands.chars`, `agents.lines`, `agents.chars`, `scripts.lines`, or `scripts.chars`, and `structural` is `[]`.
+
+> **Measured correction, 2026-08-11 (implementation).** Six pairs were live on this story's base, not four — `agents` grew too, by `79dcc60` (component contract across all 7 agents). All six carry a bound justification; the run reports `warnings: []` and `structural: []`.
+- [x] Given `.writ/leanness-baseline.json` after this story, when its `surfaces` map is read, then every surface's `lines` and `chars` are **unchanged** from the 2026-08-04 reseed (`commands` 10974/514594, `scripts` 27210/1155797, and the other four untouched) — the floor is not moved, so the ratchet keeps measuring cumulative drift from the last true reseed rather than resetting its own memory.
+- [x] Given `.writ/leanness-baseline.json` after this story, when `surfaces.commands.justifications` and `surfaces.scripts.justifications` are read, then each carries a `lines` and a `chars` entry whose `value` equals the measurement taken **after Story 1 landed** (`surfaces.agents.justifications` likewise), whose `date` is the day this story runs, and whose `text` names the cause: `a5c5a66` — *"feat(install): fan out runtime scripts and Writ docs on install/update"*, PR #34, released in v0.28.0.
+- [x] Given the recorded ceilings, when any of the four measurements grows by even one unit past its `value`, then the warning returns and names the ceiling it passed — verified by decrementing one recorded `value` by 1, observing the warning, and restoring it. The channel is quiet because the growth is accounted for, not because it is muted.
+- [x] Given `.writ/leanness-baseline.json` after this story, when the file is searched for the legacy key, then **no** surface carries `"justification"` — all six legacy empty strings are removed, and `schema` is `3`.
+- [x] Given `.writ/leanness-baseline.json` after this story, when its top-level keys are read, then there is **no** `absorbed` array — the audit record lives in `justifications`, which the checker reads and enforces, rather than in an inert key that the next `--update-baseline` would silently delete.
+- [x] Given no command, agent, adapter, skill, or script under the product surface is edited by this story, when the leanness metrics are recomputed after it, then `per_surface` is byte-identical to the pre-story measurement.
 
 ## Implementation Tasks
 
-- [ ] 2.1 Reproduce and record the current output: capture the four warnings verbatim and confirm the delta arithmetic against `git log <baseline-commit>..HEAD -- commands scripts` (expect exactly one commit, `a5c5a66`; `commands/update-writ.md` +31/−9 = +22 lines; `install.sh`+`update.sh`+`unlink.sh` +306/−184 = +122 lines)
-- [ ] 2.2 Take the ceiling measurements **after** Story 1 has landed — Story 1 grows `scripts`, so `scripts.lines` and `scripts.chars` will exceed the +122/+2596 quoted in `spec.md`. Record what the run reports, never the numbers quoted in this spec; the quoted figures are the pre-Story-1 evidence for the *cause*, not the ceiling
-- [ ] 2.3 Hand-edit `.writ/leanness-baseline.json`: set `schema` to `3`, delete all six legacy `"justification": ""` keys, and add a `justifications` map to `commands` and `scripts` with a `lines` and a `chars` entry each (`value`, `date`, `text`). Leave every `lines`/`chars` baseline number untouched
-- [ ] 2.4 Verify the run is quiet: no growth warning for the four `(surface, metric)` pairs, `structural: []`, `bash scripts/eval.sh --check=leanness` exits 0
-- [ ] 2.5 Verify the ratchet is still armed at the new ceilings: decrement one recorded `value` by 1, confirm the warning returns naming the exceeded ceiling, restore the value, confirm it is quiet again
-- [ ] 2.6 Verify `per_surface` is byte-identical to the pre-story measurement — this story writes no product-surface file
-- [ ] 2.7 Verify all tests pass — `bash scripts/tests/test_eval_leanness.sh`, the full `scripts/tests/*.py` pytest suite, and `bash scripts/eval.sh`
+- [x] 2.1 Reproduce and record the current output: capture the four warnings verbatim and confirm the delta arithmetic against `git log <baseline-commit>..HEAD -- commands scripts` (expect exactly one commit, `a5c5a66`; `commands/update-writ.md` +31/−9 = +22 lines; `install.sh`+`update.sh`+`unlink.sh` +306/−184 = +122 lines)
+- [x] 2.2 Take the ceiling measurements **after** Story 1 has landed — Story 1 grows `scripts`, so `scripts.lines` and `scripts.chars` will exceed the +122/+2596 quoted in `spec.md`. Record what the run reports, never the numbers quoted in this spec; the quoted figures are the pre-Story-1 evidence for the *cause*, not the ceiling
+- [x] 2.3 Hand-edit `.writ/leanness-baseline.json`: set `schema` to `3`, delete all six legacy `"justification": ""` keys, and add a `justifications` map to `commands` and `scripts` with a `lines` and a `chars` entry each (`value`, `date`, `text`). Leave every `lines`/`chars` baseline number untouched
+- [x] 2.4 Verify the run is quiet: no growth warning for the four `(surface, metric)` pairs, `structural: []`, `bash scripts/eval.sh --check=leanness` exits 0
+- [x] 2.5 Verify the ratchet is still armed at the new ceilings: decrement one recorded `value` by 1, confirm the warning returns naming the exceeded ceiling, restore the value, confirm it is quiet again
+- [x] 2.6 Verify `per_surface` is byte-identical to the pre-story measurement — this story writes no product-surface file
+- [x] 2.7 Verify all tests pass — `bash scripts/tests/test_eval_leanness.sh`, the full `scripts/tests/*.py` pytest suite, and `bash scripts/eval.sh`
 
 ## Notes
 
@@ -53,11 +55,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 
