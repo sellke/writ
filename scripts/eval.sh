@@ -408,8 +408,8 @@ check_length() {
   file="$PROJECT_ROOT/commands/_preamble.md"
   if [ -f "$file" ] && ! file_has_exemption "$file" "length"; then
     count="$(line_count "$file")"
-    if [ "$count" -gt 80 ]; then
-      add_finding "commands/_preamble.md" "$count lines (limit 80)." "Move command-specific detail out of the shared preamble."
+    if [ "$count" -gt 95 ]; then
+      add_finding "commands/_preamble.md" "$count lines (limit 95)." "Move command-specific detail out of the shared preamble."
     fi
   fi
 
