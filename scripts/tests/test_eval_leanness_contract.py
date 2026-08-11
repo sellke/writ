@@ -501,5 +501,95 @@ class CompletionSectionCheckTests(unittest.TestCase):
             self.assertEqual(lean.check_completion_sections(tmp), [])
 
 
+
+# ---------------------------------------------------------------------------
+# Story 5 — loop-bound presence
+# ---------------------------------------------------------------------------
+
+LOOP_BLOCK = (
+    "loop:\n"
+    '  unit: "story"\n'
+    "  max_iterations: 12\n"
+    "  on_exhaustion: halt_reported\n"
+    '  calibrated_against: "evidence"\n'
+)
+
+
+def loop_command_body(loop_block: str = LOOP_BLOCK) -> str:
+    return ('---\nname: x\nproblem: "p"\noutcome: "o"\n'
+            'exit_criteria:\n  - "c"\n' + loop_block + "---\n\n# X\n\n## Completion\n\nx\n")
+
+
+class LoopBoundsCheckTests(unittest.TestCase):
+
+    def _tree(self, tmp: str, bodies: dict[str, str]) -> None:
+        for name in lean.LOOP_BEARING_COMMANDS:
+            if name in bodies:
+                write_command(Path(tmp), name, bodies[name])
+            else:
+                write_command(Path(tmp), name, loop_command_body())
+
+    def test_all_five_declared_emits_nothing(self):
+        with TemporaryDirectory() as tmp:
+            self._tree(tmp, {})
+            self.assertEqual(lean.check_loop_bounds(tmp), [])
+
+    def test_one_missing_field_emits_exactly_one_named_finding(self):
+        with TemporaryDirectory() as tmp:
+            partial = LOOP_BLOCK.replace("  on_exhaustion: halt_reported\n", "")
+            self._tree(tmp, {"refactor": loop_command_body(partial)})
+            findings = lean.check_loop_bounds(tmp)
+            self.assertEqual(subjects(findings),
+                             ["commands/refactor.md → loop.on_exhaustion"])
+
+    def test_childless_loop_key_emits_two_findings_not_one(self):
+        with TemporaryDirectory() as tmp:
+            self._tree(tmp, {"refactor": loop_command_body("loop:\n")})
+            findings = lean.check_loop_bounds(tmp)
+            self.assertEqual(sorted(subjects(findings)), [
+                "commands/refactor.md → loop.max_iterations",
+                "commands/refactor.md → loop.on_exhaustion",
+            ])
+
+    def test_flattened_keys_are_accepted(self):
+        with TemporaryDirectory() as tmp:
+            flat = "loop.max_iterations: 4\nloop.on_exhaustion: escalate\n"
+            self._tree(tmp, {"refactor": loop_command_body(flat)})
+            self.assertEqual(lean.check_loop_bounds(tmp), [])
+
+    def test_unlisted_command_is_never_checked(self):
+        with TemporaryDirectory() as tmp:
+            self._tree(tmp, {})
+            write_command(Path(tmp), "status", "# Status\n\nno loop, no frontmatter\n")
+            self.assertEqual(lean.check_loop_bounds(tmp), [])
+
+    def test_a_listed_command_missing_from_disk_is_a_finding(self):
+        with TemporaryDirectory() as tmp:
+            self._tree(tmp, {})
+            (Path(tmp) / "commands" / "refactor.md").unlink()
+            findings = lean.check_loop_bounds(tmp)
+            self.assertEqual(subjects(findings), ["commands/refactor.md → missing"])
+
+    def test_unparseable_frontmatter_emits_one_file_level_finding(self):
+        with TemporaryDirectory() as tmp:
+            self._tree(tmp, {})
+            write_command(Path(tmp), "refactor", "# Refactor\n\nno fence\n")
+            findings = lean.check_loop_bounds(tmp)
+            self.assertEqual(len(findings), 1)
+            self.assertIn("no frontmatter block", findings[0]["what"])
+
+    def test_real_repo_five_commands_are_all_bounded(self):
+        self.assertEqual(lean.check_loop_bounds(str(REPO_ROOT)), [])
+
+    def test_the_constant_matches_the_correctness_checker_that_shares_it(self):
+        """Check 3 (presence) and eval-loop-bounds.py (correctness) split one
+        population. Two different lists would report the same file twice or
+        skip it entirely — cross-read it, never restate it."""
+        source = (REPO_ROOT / "scripts" / "eval-loop-bounds.py").read_text(
+            encoding="utf-8")
+        for name in lean.LOOP_BEARING_COMMANDS:
+            self.assertIn(f'"{name}"', source)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -86,12 +86,13 @@ assembler_bytes_total() {
 # Build a clean, self-consistent temp repo skeleton.
 # ---------------------------------------------------------------------------
 # Write a command file that satisfies the ADR-020 component contract
-# (problem:/outcome:/exit_criteria: frontmatter + a `## Completion` section)
-# so the contract checks stay silent on a clean fixture and the ratchet
-# scenarios below can still assert "zero warnings" meaningfully.
-# usage: write_command <path> <name> [extra body lines]
+# (problem:/outcome:/exit_criteria: frontmatter + a `## Completion` section),
+# optionally with an iteration bound, so the contract checks stay silent on a
+# clean fixture and the ratchet scenarios below can still assert "zero
+# warnings" meaningfully.
+# usage: write_command <path> <name> [extra body lines] [with-loop]
 write_command() {
-  local path="$1" name="$2" extra="${3:-}"
+  local path="$1" name="$2" extra="${3:-}" loop="${4:-}"
   {
     printf -- '---\n'
     printf 'name: %s\n' "$name"
@@ -99,6 +100,10 @@ write_command() {
     printf 'problem: "a stated problem for %s"\n' "$name"
     printf 'outcome: "a stated outcome for %s"\n' "$name"
     printf 'exit_criteria:\n  - "a falsifiable condition for %s"\n' "$name"
+    if [ "$loop" = "with-loop" ]; then
+      printf 'loop:\n  unit: "iteration"\n  max_iterations: 3\n  on_exhaustion: escalate\n'
+      printf '  calibrated_against: "fixture"\n'
+    fi
     printf -- '---\n\n# %s\n\nsome body line\n' "$name"
     # Omitted entirely when absent, so "same command, fewer body lines" is a
     # real shrink — an always-emitted blank line would keep the count flat.
@@ -117,6 +122,16 @@ build_repo() {
   write_command "$root/commands/alpha.md" alpha "an extra alpha line"
   write_command "$root/commands/beta.md" beta "an extra beta line"
   printf '# Preamble\n\ninfra only\n'  > "$root/commands/_preamble.md"
+
+  # The five loop-bearing commands the presence check measures. They are a
+  # PRODUCT population (cross-read from scripts/eval-loop-bounds.py, which owns
+  # the list), so a fixture standing in for the product surface must carry them
+  # — otherwise every scenario below inherits five "missing" findings and the
+  # zero-warning assertions stop meaning anything.
+  local loop_name
+  for loop_name in implement-phase implement-spec implement-story refactor verify-spec; do
+    write_command "$root/commands/$loop_name.md" "$loop_name" "" with-loop
+  done
 
   cat > "$root/agents/sample-agent.md" <<'EOF'
 # Sample Agent
@@ -154,6 +169,11 @@ EOF
 | `/alpha` | first command |
 | `/beta` | second command |
 | `/status` | status command |
+| `/implement-phase` | loop-bearing command |
+| `/implement-spec` | loop-bearing command |
+| `/implement-story` | loop-bearing command |
+| `/refactor` | loop-bearing command |
+| `/verify-spec` | loop-bearing command |
 EOF
 
   # /status allowlist is a CURATED SUBSET — names only alpha, deliberately omits
@@ -213,7 +233,7 @@ fi
 ok "directional: command absent from curated allowlist is not an orphan"
 
 # Metrics count ALL command files including _preamble (matches baseline convention).
-[ "$(metric "$OUT1" commands)" -eq 4 ] || fail "commands metric should count all 4 files (alpha, beta, status, _preamble)"
+[ "$(metric "$OUT1" commands)" -eq 9 ] || fail "commands metric should count all 9 files (alpha, beta, status, _preamble, and the five loop-bearing commands)"
 ok "metrics: commands counts all files (incl. _preamble)"
 
 # ---------------------------------------------------------------------------

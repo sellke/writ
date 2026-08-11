@@ -1,6 +1,6 @@
 # Story 5: Loop Bounds Declaration Check
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 2, Story 3
 
@@ -12,22 +12,28 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a fixture `implement-story.md` declaring both `loop.max_iterations` and `loop.on_exhaustion`, when the check runs, then it emits zero findings for that file.
-- [ ] Given a fixture loop-bearing command declaring `loop.max_iterations` but not `loop.on_exhaustion`, when the check runs, then it emits exactly one finding naming the file and the missing field — a bound with no exhaustion behavior is half a contract, and the finding says which half.
-- [ ] Given a fixture loop-bearing command declaring a `loop:` key with no children, when the check runs, then it emits two findings (one per missing field), not one aggregate `loop:` finding.
-- [ ] Given a command that is **not** in the five-command list (e.g. `commands/status.md`), when the check runs, then it is never checked and never produces a finding — the population is the named constant, not an inference from file contents.
-- [ ] Given the constant names a command whose file does not exist on disk, when the check runs, then it emits a finding for that name (`commands/<name>.md → missing`), so the constant cannot silently rot the way an unsynced list would.
-- [ ] Given the real repo after this story, when `eval-leanness.py` runs, then this check contributes exactly **10** findings (5 commands × 2 fields, 0 compliant today), all in `warnings`, `structural` remains `[]`, and `eval.sh` exits 0.
-- [ ] Given `metrics.contract_compliance` after this story, when it is read, then it reports `loop_commands_checked` and `loop_commands_bounded` as counts.
+- [x] Given a fixture `implement-story.md` declaring both `loop.max_iterations` and `loop.on_exhaustion`, when the check runs, then it emits zero findings for that file.
+- [x] Given a fixture loop-bearing command declaring `loop.max_iterations` but not `loop.on_exhaustion`, when the check runs, then it emits exactly one finding naming the file and the missing field — a bound with no exhaustion behavior is half a contract, and the finding says which half.
+- [x] Given a fixture loop-bearing command declaring a `loop:` key with no children, when the check runs, then it emits two findings (one per missing field), not one aggregate `loop:` finding.
+- [x] Given a command that is **not** in the five-command list (e.g. `commands/status.md`), when the check runs, then it is never checked and never produces a finding — the population is the named constant, not an inference from file contents.
+- [x] Given the constant names a command whose file does not exist on disk, when the check runs, then it emits a finding for that name (`commands/<name>.md → missing`), so the constant cannot silently rot the way an unsynced list would.
+- [x] Given the real repo after this story, when `eval-leanness.py` runs, then this check's findings all land in `warnings`, `structural` remains `[]`, and `eval.sh` exits 0.
+
+> **Measured correction, 2026-08-11 (implementation).** The spec's **10** was measured before `2026-08-11-loop-bounds` landed. All five loop-bearing commands now declare `loop:` with `unit` / `max_iterations` / `on_exhaustion` / `calibrated_against`, so this check contributes **0** findings and `contract_compliance` reports `loop_commands_bounded: 5` of `loop_commands_checked: 5`. The count is asserted against fixture trees; behaviour is asserted against the real repo.
+>
+> **Task 5.1 outcome (field shape, re-read as required).** `2026-08-11-loop-bounds` shipped exactly the names this check expected — `max_iterations` and `on_exhaustion` at the top level of `loop:`, with an optional `nested:` sub-map. No divergence to record.
+>
+> **Task 5.3 amendment.** The five-command population is **cross-read** from `scripts/eval-loop-bounds.py`'s own `LOOP_BEARING_COMMANDS` (parsed with `ast`, never imported), not restated. That checker landed first and its docstring declares itself *"the enforcement point when a sixth command acquires a loop"*. Two hand-maintained copies of one population would drift, and a drifted presence/correctness split reports a file twice or not at all — the duplicate-signal noise Business Rule 2 exists to prevent. A module-level literal remains as the fallback for a tree where the sibling is absent or unparseable, and a test asserts the two agree.
+- [x] Given `metrics.contract_compliance` after this story, when it is read, then it reports `loop_commands_checked` and `loop_commands_bounded` as counts.
 
 ## Implementation Tasks
 
-- [ ] 5.1 Re-read `2026-08-11-loop-bounds`'s field shape before writing anything. As authored it names `loop.max_iterations` / `loop.on_exhaustion`, required at the top level of `loop:`, with an optional `nested:` sub-map used only by `implement-story` — this matches Check 3's expectation. If it has since changed, adopt that spec's names and record the divergence in this spec's drift log; never invent a competing convention
-- [ ] 5.2 Write tests in `scripts/tests/test_eval_leanness_contract.py`: both fields present, one field missing, `loop:` with no children, a non-listed command ignored, a listed command missing from disk, and a nested-vs-flattened field shape
-- [ ] 5.3 Add `LOOP_BEARING_COMMANDS` as a module-level constant with the comment explaining why the list is fixed rather than inferred (inferring "does this command loop?" from prose needs a keyword grammar per variant — the fragility ADR-020 rejects) and citing the roadmap measurement that produced it
-- [ ] 5.4 Add `check_loop_bounds(root)` — pure function, per-file-per-field findings, accepting either a nested `loop:` block or flattened keys, reusing Story 3's `read_frontmatter()`
-- [ ] 5.5 Wire the check into `main()` through Story 3's router; add `loop_commands_checked` / `loop_commands_bounded` to `metrics.contract_compliance`
-- [ ] 5.6 Verify acceptance criteria against the real repo (10 findings, all in `warnings`, exit 0) and verify all tests pass — new pytest cases, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, `bash scripts/eval.sh --check=leanness`
+- [x] 5.1 Re-read `2026-08-11-loop-bounds`'s field shape before writing anything. As authored it names `loop.max_iterations` / `loop.on_exhaustion`, required at the top level of `loop:`, with an optional `nested:` sub-map used only by `implement-story` — this matches Check 3's expectation. If it has since changed, adopt that spec's names and record the divergence in this spec's drift log; never invent a competing convention
+- [x] 5.2 Write tests in `scripts/tests/test_eval_leanness_contract.py`: both fields present, one field missing, `loop:` with no children, a non-listed command ignored, a listed command missing from disk, and a nested-vs-flattened field shape
+- [x] 5.3 Add `LOOP_BEARING_COMMANDS` as a module-level constant with the comment explaining why the list is fixed rather than inferred (inferring "does this command loop?" from prose needs a keyword grammar per variant — the fragility ADR-020 rejects) and citing the roadmap measurement that produced it
+- [x] 5.4 Add `check_loop_bounds(root)` — pure function, per-file-per-field findings, accepting either a nested `loop:` block or flattened keys, reusing Story 3's `read_frontmatter()`
+- [x] 5.5 Wire the check into `main()` through Story 3's router; add `loop_commands_checked` / `loop_commands_bounded` to `metrics.contract_compliance`
+- [x] 5.6 Verify acceptance criteria against the real repo (10 findings, all in `warnings`, exit 0) and verify all tests pass — new pytest cases, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, `bash scripts/eval.sh --check=leanness`
 
 ## Notes
 
@@ -52,11 +58,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

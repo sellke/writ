@@ -56,6 +56,7 @@ Contract:
 from __future__ import annotations
 
 import argparse
+import ast
 import glob
 import json
 import os
@@ -542,13 +543,131 @@ def check_completion_sections(root: str) -> list[dict]:
     return findings
 
 
+# The two fields 2026-08-11-loop-bounds requires at the top level of `loop:`.
+# That spec owns the shape; this check asserts PRESENCE only and defers every
+# question of correctness — enum closure, integer type, citation quality, unit
+# uniqueness, historical-run regression — to scripts/eval-loop-bounds.py.
+# Presence and correctness are checked once each, by one owner each: a
+# maintainer who sees the same missing field reported twice learns to skim.
+LOOP_BOUND_FIELDS = ("max_iterations", "on_exhaustion")
+
+# The five loop-bearing commands, measured in Phase 10 discovery (roadmap
+# Phase 10 -> Problem table: "Loop-bearing commands declaring an iteration
+# bound: 0 of 5"). Deliberately a fixed list, never inferred from file
+# contents: inferring "does this command loop?" from prose needs a
+# heading/keyword grammar per variant, the exact fragility ADR-020 rejects.
+#
+# The list is CROSS-READ from scripts/eval-loop-bounds.py, which declares
+# itself the enforcement point when a sixth command acquires a loop. Presence
+# and correctness split one population; two hand-maintained copies of it would
+# drift, and a drifted split reports a file twice or not at all. The literal
+# below is the fallback for a tree where the sibling is absent or unparseable
+# — never a second source of truth.
+LOOP_BEARING_COMMANDS_FALLBACK = (
+    "implement-phase", "implement-spec", "implement-story", "refactor", "verify-spec",
+)
+
+
+def _loop_bearing_from_sibling() -> list[str] | None:
+    """Read LOOP_BEARING_COMMANDS out of scripts/eval-loop-bounds.py.
+
+    Parsed with `ast`, not imported: the sibling has a hyphenated filename and
+    executing it for a constant would be a heavier contract than reading one.
+    Any failure returns None so the fallback applies — a cross-read that
+    cannot happen must never empty the population.
+    """
+    sibling = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "eval-loop-bounds.py")
+    try:
+        with open(sibling, encoding="utf-8") as handle:
+            tree = ast.parse(handle.read())
+    except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
+        return None
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name)
+                   and target.id == "LOOP_BEARING_COMMANDS" for target in node.targets):
+            continue
+        try:
+            value = ast.literal_eval(node.value)
+        except (ValueError, TypeError, SyntaxError):
+            return None
+        if isinstance(value, (list, tuple)) and value and all(
+                isinstance(item, str) for item in value):
+            return list(value)
+    return None
+
+
+LOOP_BEARING_COMMANDS = tuple(_loop_bearing_from_sibling()
+                              or LOOP_BEARING_COMMANDS_FALLBACK)
+
+
+def _declares_loop_field(fields: dict[str, str], field: str) -> bool:
+    """True when `loop.<field>` is declared, nested under `loop:` or flattened.
+
+    Both shapes are accepted because 2026-08-11-loop-bounds owns the final
+    form — slack in the reader, never ambiguity in the contract.
+    """
+    if _has_content(fields.get(f"loop.{field}", "")):
+        return True
+    block = fields.get("loop", "")
+    return bool(re.search(r"(?:^|\s)" + re.escape(field) + r":\s*\S", block))
+
+
+def check_loop_bounds(root: str) -> list[dict]:
+    """Each loop-bearing command declares how many times it may go round.
+
+    A named command that does not exist on disk is itself a finding, so the
+    population cannot silently rot the way GATE_AGENT_FILES can — its own
+    comment admits it is "kept in sync by hand" and understates a metric when
+    a gate is added and not mirrored.
+    """
+    findings: list[dict] = []
+    for name in LOOP_BEARING_COMMANDS:
+        rel = f"commands/{name}.md"
+        path = os.path.join(root, "commands", f"{name}.md")
+        if not os.path.isfile(path):
+            findings.append({
+                "subject": f"{rel} → missing",
+                "what": f"`{name}` is named as loop-bearing but no such command file "
+                        "exists; the population this check measures has rotted.",
+                "fix": f"Restore {rel}, or remove `{name}` from LOOP_BEARING_COMMANDS "
+                       "in scripts/eval-loop-bounds.py (the list this check cross-reads).",
+            })
+            continue
+        fields = read_frontmatter(path)
+        if fields is None:
+            findings.append({
+                "subject": rel,
+                "what": "no frontmatter block; the iteration bound has nowhere to live.",
+                "fix": f"Add a leading `---` YAML frontmatter block to {rel} declaring "
+                       "`loop:` with max_iterations and on_exhaustion.",
+            })
+            continue
+        for field in LOOP_BOUND_FIELDS:
+            if _declares_loop_field(fields, field):
+                continue
+            findings.append({
+                "subject": f"{rel} → loop.{field}",
+                "what": f"loop-bearing command declares no `{field}`; a bound with no "
+                        "exhaustion behaviour (or an exhaustion behaviour with no "
+                        "bound) is half a contract.",
+                "fix": f"Declare `{field}:` under `loop:` in {rel}'s frontmatter. "
+                       "scripts/eval-loop-bounds.py then asserts the value is legal "
+                       "and honestly calibrated.",
+            })
+    return findings
+
+
 def _offender_files(findings: list[dict]) -> set[str]:
     """The file half of each finding's subject — `a/b.md → field:` -> `a/b.md`."""
     return {finding["subject"].split(" →")[0] for finding in findings}
 
 
 def contract_compliance(root: str, contract_findings: list[dict],
-                        completion_findings: list[dict]) -> dict:
+                        completion_findings: list[dict],
+                        loop_findings: list[dict]) -> dict:
     """Counts, not finding text: the trend channel beside the work queue.
 
     Derived from the findings themselves rather than re-parsed, so the metric
@@ -559,12 +678,17 @@ def contract_compliance(root: str, contract_findings: list[dict],
     agents = [os.path.splitext(os.path.basename(p))[0] for p in all_agent_files(root)]
     offenders = _offender_files(contract_findings)
     without_completion = _offender_files(completion_findings)
+    unbounded = _offender_files(loop_findings)
     return {
         "commands_checked": len(checkable),
         "commands_with_contract": sum(
             1 for stem in checkable if f"commands/{stem}.md" not in offenders),
         "commands_with_completion": sum(
             1 for stem in checkable if f"commands/{stem}.md" not in without_completion),
+        "loop_commands_checked": len(LOOP_BEARING_COMMANDS),
+        "loop_commands_bounded": sum(
+            1 for name in LOOP_BEARING_COMMANDS
+            if f"commands/{name}.md" not in unbounded),
         "agents_checked": len(agents),
         "agents_with_contract": sum(
             1 for stem in agents if f"agents/{stem}.md" not in offenders),
@@ -1036,10 +1160,12 @@ def main(argv: list[str] | None = None) -> int:
     # decides which bucket they land in (CONTRACT_CHECK_SEVERITY).
     contract_findings = check_component_contract(root)
     completion_findings = check_completion_sections(root)
+    loop_findings = check_loop_bounds(root)
     emit_contract_findings(contract_findings, structural, warnings)
     emit_contract_findings(completion_findings, structural, warnings)
+    emit_contract_findings(loop_findings, structural, warnings)
     metrics["contract_compliance"] = contract_compliance(
-        root, contract_findings, completion_findings)
+        root, contract_findings, completion_findings, loop_findings)
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)
