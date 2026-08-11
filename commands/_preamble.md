@@ -46,6 +46,20 @@ trail; missing evidence, critical ambiguity, or material irreversible risk inste
 (validator: `scripts/phase-state.py validate-challenge`). A malformed challenge is a
 **contract error**, not a User Challenge.
 
+## Autonomy Gate Classes
+
+Extends ADR-013's select-or-pause boundary above; it does not replace it.
+
+| Class | Behavior |
+|---|---|
+| Product & spec direction | **Human gate** — contract lock is an explicit human action |
+| Production boundary (merge/PR/release/tag/publish) | **Human gate** — Prime Directive hard constraint |
+| Design & UX judgment | **Human gate** — taste is not evidence-decidable |
+| Destructive / irreversible | **Autonomous** only when the precondition below holds |
+| Everything else | **Autonomous** within ADR-013's boundary, with audit rationale |
+
+**Reversibility precondition.** A destructive-class operation runs unattended **only when both hold**: (1) its effect is provably git-revertable — confined to tracked files with a resolvable revert target; (2) the restore path is recorded **before** the mutation. If either fails, it **pauses** with a bounded `AskQuestion`.
+
 ## File Organization
 
 All work is organized into `.writ/`: `specs/` (contracts, stories), `product/`

@@ -1,6 +1,6 @@
 # Story 2: Record the Gate-Class Table and Reversibility Precondition
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 
@@ -12,25 +12,25 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `commands/_preamble.md` after this story, when it is read, then it contains an `## Autonomy Gate Classes` section with all five of ADR-022's classes — product & spec direction, production boundary, design & UX judgment, destructive/irreversible, everything else — each carrying that ADR's behavior.
-- [ ] Given the destructive/irreversible row, when it is read, then it says the class is autonomous **subject to the reversibility precondition** — not a human gate, and not unconditionally autonomous.
-- [ ] Given the reversibility precondition text, when it is read, then both conditions are numbered and separately checkable — (1) provably git-revertable, confined to tracked files with a resolvable revert target; (2) restore path recorded **before** the mutation — and the consequence of either failing is stated as behavior ("pauses with a bounded `AskQuestion`"), not as a suggestion.
-- [ ] Given the section's wording, when it is checked for hedges, then it contains no "should", "consider", "where practical", or equivalent softening applied to the precondition or to the three human gates.
-- [ ] Given the section, when its relationship to ADR-013 is read, then it states that it extends ADR-013's evidence-based select-or-pause boundary rather than replacing it.
-- [ ] Given `wc -l commands/_preamble.md` after this story, then the count is **≤ 95**, and the section added is **≤ 14 lines** including its leading blank separator.
-- [ ] Given `bash scripts/eval.sh --check=length`, when it runs against the real repository, then it exits 0; and given a full `bash scripts/eval.sh` run, then it produces no new findings relative to the pre-spec baseline.
-- [ ] Given the section, when it is compared against ADR-022, then it carries none of the ADR's reasoning, recorded dissent, or review trigger — the preamble states the rule; the ADR keeps the argument.
+- [x] Given `commands/_preamble.md` after this story, when it is read, then it contains an `## Autonomy Gate Classes` section with all five of ADR-022's classes — product & spec direction, production boundary, design & UX judgment, destructive/irreversible, everything else — each carrying that ADR's behavior.
+- [x] Given the destructive/irreversible row, when it is read, then it says the class is autonomous **subject to the reversibility precondition** — not a human gate, and not unconditionally autonomous.
+- [x] Given the reversibility precondition text, when it is read, then both conditions are numbered and separately checkable — (1) provably git-revertable, confined to tracked files with a resolvable revert target; (2) restore path recorded **before** the mutation — and the consequence of either failing is stated as behavior ("pauses with a bounded `AskQuestion`"), not as a suggestion.
+- [x] Given the section's wording, when it is checked for hedges, then it contains no "should", "consider", "where practical", or equivalent softening applied to the precondition or to the three human gates.
+- [x] Given the section, when its relationship to ADR-013 is read, then it states that it extends ADR-013's evidence-based select-or-pause boundary rather than replacing it.
+- [x] Given `wc -l commands/_preamble.md` after this story, then the count is **≤ 95**, and the section added is **≤ 14 lines** including its leading blank separator.
+- [x] Given `bash scripts/eval.sh --check=length`, when it runs against the real repository, then it exits 0; and given a full `bash scripts/eval.sh` run, then it produces no new findings relative to the pre-spec baseline.
+- [x] Given the section, when it is compared against ADR-022, then it carries none of the ADR's reasoning, recorded dissent, or review trigger — the preamble states the rule; the ADR keeps the argument.
 
 ## Implementation Tasks
 
-- [ ] 2.1 Read [ADR-022](../../../decision-records/adr-022-autonomy-gate-classes.md) in full — the Decision table, the reversibility precondition, and the "why the three retained gates are retained" reasoning. The table must be faithful in meaning; compression is a wording exercise, not an editorial one.
-- [ ] 2.2 Confirm Story 1 has landed: `grep -n 'gt 95' scripts/eval.sh` returns the `_preamble` branch. Authoring before the cap moves puts the branch through a failing CI gate.
-- [ ] 2.3 Draft the section against the 14-line budget, using `sub-specs/technical-spec.md` → "Candidate content" as a line-verified starting point. Count lines before pasting, not after.
-- [ ] 2.4 Insert it after the `User Challenge (Scope-Degradation Escalation)` section and before `## File Organization` — adjacent to where ADR-013's select-or-pause boundary is already stated.
-- [ ] 2.5 Verify the length budget: `wc -l commands/_preamble.md` ≤ 95 and the diff adds ≤ 14 lines. If over, cut prose — compress the precondition to a single line, tighten the table's behavior cells — and do **not** revisit the cap (Business Rule 1).
-- [ ] 2.6 Wording pass against the normative requirements: "only when both hold", "pauses", numbered conditions, emphasis on "before". Remove any hedge that crept in during compression.
-- [ ] 2.7 Run `bash scripts/eval.sh --check=length` (exit 0) and the full `bash scripts/eval.sh`, comparing findings against the pre-spec baseline — no new findings, including `check_preamble` and `check_autonomy_governance`, both of which read this file.
-- [ ] 2.8 Confirm no `eval-exempt:` marker was added to `commands/_preamble.md` at any point.
+- [x] 2.1 Read [ADR-022](../../../decision-records/adr-022-autonomy-gate-classes.md) in full — the Decision table, the reversibility precondition, and the "why the three retained gates are retained" reasoning. The table must be faithful in meaning; compression is a wording exercise, not an editorial one.
+- [x] 2.2 Confirm Story 1 has landed: `grep -n 'gt 95' scripts/eval.sh` returns the `_preamble` branch. Authoring before the cap moves puts the branch through a failing CI gate.
+- [x] 2.3 Draft the section against the 14-line budget, using `sub-specs/technical-spec.md` → "Candidate content" as a line-verified starting point. Count lines before pasting, not after.
+- [x] 2.4 Insert it after the `User Challenge (Scope-Degradation Escalation)` section and before `## File Organization` — adjacent to where ADR-013's select-or-pause boundary is already stated.
+- [x] 2.5 Verify the length budget: `wc -l commands/_preamble.md` ≤ 95 and the diff adds ≤ 14 lines. If over, cut prose — compress the precondition to a single line, tighten the table's behavior cells — and do **not** revisit the cap (Business Rule 1).
+- [x] 2.6 Wording pass against the normative requirements: "only when both hold", "pauses", numbered conditions, emphasis on "before". Remove any hedge that crept in during compression.
+- [x] 2.7 Run `bash scripts/eval.sh --check=length` (exit 0) and the full `bash scripts/eval.sh`, comparing findings against the pre-spec baseline — no new findings, including `check_preamble` and `check_autonomy_governance`, both of which read this file.
+- [x] 2.8 Confirm no `eval-exempt:` marker was added to `commands/_preamble.md` at any point.
 
 ## Notes
 
@@ -57,11 +57,35 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
+
+## What Was Built
+
+A 14-line `## Autonomy Gate Classes` section in `commands/_preamble.md`, placed immediately after `User Challenge (Scope-Degradation Escalation)` and before `## File Organization` — adjacent to where ADR-013's select-or-pause boundary already lives, because the table is the classification that boundary applies to, not a freestanding policy.
+
+**Budget:** exactly 14 lines added (`git diff --numstat` → `14 0 commands/_preamble.md`), final file **93 lines** against the 95-line cap. Both reserve lines are unspent. The technical spec's line-verified candidate content was used almost as drafted; the one deviation is the production-boundary row, which names `merge/PR/release/tag/publish` in the class cell so ADR-013's standing constraints stay visible in the preamble rather than being compressed into "Prime Directive" alone (Business Rule 6).
+
+**Fidelity to ADR-022:** five rows, the same five class names, the same behavior for each. No sixth class. The destructive row reads "**Autonomous** only when the precondition below holds" — not a human gate, not unconditional autonomy.
+
+**Normative wording:** "only when both hold", "**pauses**", both conditions numbered and separately checkable, and emphasis on "**before** the mutation" because the ordering *is* the rule. A grep of the section for `should|consider|prefer|where practical|generally|typically|ideally|try to` returns nothing.
+
+**What was deliberately left out:** ADR-022's reasoning, the recorded objection to the destructive-class decision, and the 2026-11-11 review trigger. The preamble is loaded on all 31 command invocations and carries only the operative rule; the argument stays in the ADR, which is where Business Rule 7 puts it. Keeping the objection out of `_preamble.md` is not the same as presenting the decision as uncontested — the ADR is the artifact of record and it is cited from this story, the spec, and both issues filed by Story 3.
+
+**Verification:**
+
+| Check | Result |
+|---|---|
+| `wc -l commands/_preamble.md` | 93 (≤ 95) |
+| `git diff --numstat commands/_preamble.md` | `14 0` (≤ 14-line budget) |
+| `bash scripts/eval.sh --check=length` | exit 0 |
+| `bash scripts/eval.sh` (full, 37 checks) | `Findings: 0`, `Run errors: 0` |
+| Full-suite diff vs. pre-spec baseline | identical check-by-check, including `preamble` and `autonomy-governance`, both of which read this file |
+| `grep -c 'eval-exempt:' commands/_preamble.md` | 0 |
+| `bash scripts/tests/test_eval_length_caps.sh` | 7/7, including the 96-line fixture still failing |
 
 ## Context for Agents
 
