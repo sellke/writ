@@ -660,6 +660,70 @@ def check_loop_bounds(root: str) -> list[dict]:
     return findings
 
 
+def parse_skill_names(raw: str) -> list[str]:
+    """Skill names from a `required_skills:` value, in declaration order.
+
+    Accepts the inline flow form (`[tdd-cycle, gbrain-interop]`) and the block
+    list form, which _parse_fields() joins into `- tdd-cycle - gbrain-interop`.
+    Duplicates are silently deduplicated, per system-instructions.md's schema.
+    """
+    value = raw.strip()
+    if not value or value in ("[]", "{}", "~", "null"):
+        return []
+    value = value.strip("[]")
+    names: list[str] = []
+    for token in re.split(r"[,\s]+", value):
+        token = token.strip("-\"' ")
+        if token and token not in names:
+            names.append(token)
+    return names
+
+
+def check_required_skills(root: str) -> tuple[list[dict], int]:
+    """Every declared skill name resolves to a real skills/<name>/SKILL.md.
+
+    Returns (findings, declaration_count). The count is the point of the
+    second return value: this check has nothing to resolve today — zero
+    declarations exist across the whole product surface — and "0 findings"
+    must not read the same as "0 things checked" (Business Rule 8).
+    check_baseline() is the established precedent for a check that returns
+    more than a bare list.
+
+    Resolution is a filesystem check, never a lookup in .writ/manifest.yaml:
+    the manifest is separately known-stale, and resolving against it would
+    produce findings about the manifest rather than about the declaration.
+    """
+    findings: list[dict] = []
+    declarations = 0
+
+    sources: list[tuple[str, dict[str, str] | None]] = []
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        sources.append((f"commands/{stem}.md", read_frontmatter(path)))
+    for path in all_agent_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        sources.append((f"agents/{stem}.md", read_agent_config(path)))
+
+    for rel, fields in sources:
+        if not fields:
+            continue  # carrier absence is check_component_contract's finding
+        for name in parse_skill_names(fields.get("required_skills", "")):
+            declarations += 1
+            if os.path.isfile(os.path.join(root, "skills", name, "SKILL.md")):
+                continue
+            findings.append({
+                "subject": f"{rel} → required_skills: {name}",
+                "what": f"declared skill `{name}` resolves to no "
+                        f"skills/{name}/SKILL.md.",
+                "fix": f"Create skills/{name}/SKILL.md, correct the name in {rel}, "
+                       f"or drop it from required_skills:.",
+            })
+
+    return findings, declarations
+
+
 def _offender_files(findings: list[dict]) -> set[str]:
     """The file half of each finding's subject — `a/b.md → field:` -> `a/b.md`."""
     return {finding["subject"].split(" →")[0] for finding in findings}
@@ -1164,8 +1228,19 @@ def main(argv: list[str] | None = None) -> int:
     emit_contract_findings(contract_findings, structural, warnings)
     emit_contract_findings(completion_findings, structural, warnings)
     emit_contract_findings(loop_findings, structural, warnings)
+
+    # PINNED NON-BLOCKING, even after the flip. system-instructions.md:
+    # "Unknown skill names produce a warning at consumer load time, not a hard
+    # failure (graceful degradation: a pilot extraction may rename a skill
+    # mid-flight; consumers shouldn't break catastrophically)." Hard-failing
+    # eval.sh on an unresolved name would contradict the root behavioral
+    # contract during exactly the phase that renames skills most.
+    skill_findings, skill_declarations = check_required_skills(root)
+    emit_contract_findings(skill_findings, structural, warnings, severity="warnings")
+
     metrics["contract_compliance"] = contract_compliance(
         root, contract_findings, completion_findings, loop_findings)
+    metrics["required_skills_declarations"] = skill_declarations
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)

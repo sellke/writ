@@ -1,6 +1,6 @@
 # Story 6: `required_skills:` Resolution Check
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** Medium
 > **Dependencies:** Story 2, Story 3
 
@@ -12,22 +12,24 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a fixture command declaring `required_skills: [tdd-cycle]` and a real `skills/tdd-cycle/SKILL.md`, when the check runs, then it emits zero findings.
-- [ ] Given a fixture command declaring `required_skills: [no-such-skill]`, when the check runs, then it emits exactly one finding whose `subject` names both the declaring file and the unresolved name (e.g. `commands/example.md → required_skills: no-such-skill`), and whose `fix` names the expected path `skills/no-such-skill/SKILL.md`.
-- [ ] Given a fixture command declaring the same unknown skill twice, when the check runs, then it emits exactly one finding for that `(file, name)` pair — duplicates are silently deduplicated per `system-instructions.md`'s schema.
-- [ ] Given a fixture agent declaring `required_skills:` in its config block (either carrier), when the check runs, then it is checked identically to a command — the convention covers commands *and* agents.
-- [ ] Given `CONTRACT_CHECK_SEVERITY` is set to `"structural"`, when the check runs against a fixture with an unresolved name, then the finding is **still** in `warnings` and `structural` does not contain it — the pinned non-blocking override survives the flip.
-- [ ] Given the real repo after this story, when `eval-leanness.py` runs, then this check contributes **zero** findings and `metrics.required_skills_declarations` reports `0`, so a vacuous pass is distinguishable from a verified pass.
-- [ ] Given `skills/` is absent entirely from a fixture root, when the check runs against a fixture declaring one skill, then it emits a warning for the unresolved name and exits 0 — never an exception.
+- [x] Given a fixture command declaring `required_skills: [tdd-cycle]` and a real `skills/tdd-cycle/SKILL.md`, when the check runs, then it emits zero findings.
+- [x] Given a fixture command declaring `required_skills: [no-such-skill]`, when the check runs, then it emits exactly one finding whose `subject` names both the declaring file and the unresolved name (e.g. `commands/example.md → required_skills: no-such-skill`), and whose `fix` names the expected path `skills/no-such-skill/SKILL.md`.
+- [x] Given a fixture command declaring the same unknown skill twice, when the check runs, then it emits exactly one finding for that `(file, name)` pair — duplicates are silently deduplicated per `system-instructions.md`'s schema.
+- [x] Given a fixture agent declaring `required_skills:` in its config block (either carrier), when the check runs, then it is checked identically to a command — the convention covers commands *and* agents.
+- [x] Given `CONTRACT_CHECK_SEVERITY` is set to `"structural"`, when the check runs against a fixture with an unresolved name, then the finding is **still** in `warnings` and `structural` does not contain it — the pinned non-blocking override survives the flip.
+- [x] Given the real repo after this story, when `eval-leanness.py` runs, then this check contributes **zero** findings and `metrics.required_skills_declarations` reports `0`, so a vacuous pass is distinguishable from a verified pass.
+
+> **Verified 2026-08-11 (implementation).** Still 0 declarations across the whole product surface — `required_skills:` appears only as prose in `commands/new-skill.md` (3 mentions), the adapters and `system-instructions.md`. `metrics.required_skills_declarations: 0`. Every test of this check is therefore fixture-only, and the real-repo assertion is genuinely weak evidence: it proves the check does not crash and counts nothing, not that resolution works. The first real exercise arrives with the progressive-disclosure specs.
+- [x] Given `skills/` is absent entirely from a fixture root, when the check runs against a fixture declaring one skill, then it emits a warning for the unresolved name and exits 0 — never an exception.
 
 ## Implementation Tasks
 
-- [ ] 6.1 Write tests in `scripts/tests/test_eval_leanness_contract.py`: resolving name, unknown name, duplicate entries, agent-carrier declaration, `required_skills: []`, absent `skills/` directory, and the post-flip pinned-warning assertion
-- [ ] 6.2 Add `check_required_skills(root)` — scans `commands/*.md` frontmatter and `agents/*.md` config blocks via Story 3's readers, dedupes per file, resolves each name against `skills/<name>/SKILL.md`
-- [ ] 6.3 Wire it into `main()` through `emit_contract_findings(..., severity="warnings")`, with an inline comment citing `system-instructions.md`'s graceful-degradation clause as the reason for the pin
-- [ ] 6.4 Add `metrics["required_skills_declarations"]` — the count of declared `(file, skill)` pairs — so the currently-vacuous pass reads as vacuous (Business Rule 8)
-- [ ] 6.5 Verify acceptance criteria against the real repo: zero findings, `required_skills_declarations: 0`, exit 0; and against a fixture with the constant flipped, that findings stay in `warnings`
-- [ ] 6.6 Verify all tests pass — new pytest cases, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, `bash scripts/eval.sh --check=leanness`
+- [x] 6.1 Write tests in `scripts/tests/test_eval_leanness_contract.py`: resolving name, unknown name, duplicate entries, agent-carrier declaration, `required_skills: []`, absent `skills/` directory, and the post-flip pinned-warning assertion
+- [x] 6.2 Add `check_required_skills(root)` — scans `commands/*.md` frontmatter and `agents/*.md` config blocks via Story 3's readers, dedupes per file, resolves each name against `skills/<name>/SKILL.md`
+- [x] 6.3 Wire it into `main()` through `emit_contract_findings(..., severity="warnings")`, with an inline comment citing `system-instructions.md`'s graceful-degradation clause as the reason for the pin
+- [x] 6.4 Add `metrics["required_skills_declarations"]` — the count of declared `(file, skill)` pairs — so the currently-vacuous pass reads as vacuous (Business Rule 8)
+- [x] 6.5 Verify acceptance criteria against the real repo: zero findings, `required_skills_declarations: 0`, exit 0; and against a fixture with the constant flipped, that findings stay in `warnings`
+- [x] 6.6 Verify all tests pass — new pytest cases, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, `bash scripts/eval.sh --check=leanness`
 
 ## Notes
 
@@ -52,11 +54,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

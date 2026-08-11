@@ -591,5 +591,89 @@ class LoopBoundsCheckTests(unittest.TestCase):
             self.assertIn(f'"{name}"', source)
 
 
+
+# ---------------------------------------------------------------------------
+# Story 6 — required_skills: resolution
+# ---------------------------------------------------------------------------
+
+def skill_command(names: str) -> str:
+    return ('---\nname: x\nproblem: "p"\noutcome: "o"\n'
+            f'exit_criteria:\n  - "c"\nrequired_skills: {names}\n---\n\n'
+            "# X\n\n## Completion\n\nx\n")
+
+
+class RequiredSkillsCheckTests(unittest.TestCase):
+
+    def _skill(self, tmp: str, name: str) -> None:
+        path = Path(tmp) / "skills" / name / "SKILL.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"name: {name}\n", encoding="utf-8")
+
+    def test_resolving_name_emits_nothing(self):
+        with TemporaryDirectory() as tmp:
+            self._skill(tmp, "tdd-cycle")
+            write_command(Path(tmp), "alpha", skill_command("[tdd-cycle]"))
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual(findings, [])
+            self.assertEqual(count, 1)
+
+    def test_unknown_name_emits_one_finding_naming_file_and_name(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", skill_command("[no-such-skill]"))
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual(subjects(findings),
+                             ["commands/alpha.md → required_skills: no-such-skill"])
+            self.assertIn("skills/no-such-skill/SKILL.md", findings[0]["fix"])
+            self.assertEqual(count, 1)
+
+    def test_duplicates_are_deduplicated(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha",
+                          skill_command("[no-such-skill, no-such-skill]"))
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(count, 1)
+
+    def test_block_list_form_is_read(self):
+        with TemporaryDirectory() as tmp:
+            body = ('---\nname: x\nproblem: "p"\noutcome: "o"\n'
+                    'exit_criteria:\n  - "c"\n'
+                    "required_skills:\n  - tdd-cycle\n  - ghost-skill\n---\n\n# X\n")
+            self._skill(tmp, "tdd-cycle")
+            write_command(Path(tmp), "alpha", body)
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual(subjects(findings),
+                             ["commands/alpha.md → required_skills: ghost-skill"])
+            self.assertEqual(count, 2)
+
+    def test_agent_carrier_declarations_are_checked_identically(self):
+        with TemporaryDirectory() as tmp:
+            body = compliant_agent("## Agent Specification", "yaml").replace(
+                "name: sample\n", "name: sample\nrequired_skills: [ghost-skill]\n")
+            write_agent(Path(tmp), "plain", body)
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual(subjects(findings),
+                             ["agents/plain.md → required_skills: ghost-skill"])
+            self.assertEqual(count, 1)
+
+    def test_empty_list_is_zero_pairs_and_zero_findings(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", skill_command("[]"))
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual((findings, count), ([], 0))
+
+    def test_absent_skills_directory_warns_rather_than_raising(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", skill_command("[tdd-cycle]"))
+            findings, count = lean.check_required_skills(tmp)
+            self.assertEqual(len(findings), 1)
+            self.assertEqual(count, 1)
+
+    def test_real_repo_is_vacuous_and_says_so(self):
+        findings, count = lean.check_required_skills(str(REPO_ROOT))
+        self.assertEqual(findings, [])
+        self.assertEqual(count, 0, "a vacuous pass must be visible as a declaration count")
+
+
 if __name__ == "__main__":
     unittest.main()
