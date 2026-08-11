@@ -268,9 +268,9 @@ BARE_TOKEN = re.compile(r"`([a-z][a-z0-9-]*)`")
 # list[dict] and routes through emit_contract_findings().
 #
 # Precondition for the flip: the two migration specs have brought commands and
-# agents into compliance, so a flipped run is green on a clean tree. Flipping
-# early is the failure this constant exists to prevent, which is why the
-# shipped value is asserted by the test suite.
+# agents into compliance, so a flipped run of the `governor-enforcement` spec
+# is green on a clean tree. Flipping early is the failure this constant exists
+# to prevent, which is why the shipped value is asserted by the test suite.
 #
 # The one-line diff it becomes:
 #     -CONTRACT_CHECK_SEVERITY = "warnings"

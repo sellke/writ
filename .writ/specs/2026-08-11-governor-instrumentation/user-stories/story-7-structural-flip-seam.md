@@ -1,6 +1,6 @@
 # Story 7: Warnings→Structural Flip Seam
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 3, Story 4, Story 5, Story 6
 
@@ -12,24 +12,28 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `CONTRACT_CHECK_SEVERITY` is `"warnings"` (the shipped default), when the checker runs against a non-compliant fixture, then every contract finding is in `warnings`, `structural` is `[]`, and the process exits 0.
-- [ ] Given the same fixture and the same run, when `CONTRACT_CHECK_SEVERITY` is set to `"structural"` in-process, then the **identical finding dicts** — same `subject`, `what`, and `fix` values, same count — appear in `structural` and none remain in `warnings`.
-- [ ] Given the flip, when `check_required_skills`'s findings are inspected, then they are **still** in `warnings` — the `severity="warnings"` pin survives the flip, per `system-instructions.md`'s graceful-degradation contract (Business Rule 6).
-- [ ] Given `CONTRACT_CHECK_SEVERITY` is set to an unrecognized value (e.g. `"blocking"`, a plausible typo in the later spec's diff), when the checker runs, then findings fall back to `warnings` and the process exits 0 — a typo must never silently disable a check nor accidentally block CI.
-- [ ] Given the flip is applied and `eval.sh`'s leanness check runs, when the contract findings land in `structural`, then `eval.sh` reports FAIL for that check — proving the seam reaches all the way to the gate, not just to the JSON.
-- [ ] Given `scripts/eval-leanness.py` after this story, when the four contract check functions are inspected programmatically, then none of them references `structural` or `warnings` — every one returns a `list[dict]` and routing happens only in `emit_contract_findings()`. This is asserted by a test, not by review.
-- [ ] Given a maintainer reading `scripts/eval-leanness.py` cold, when they reach `CONTRACT_CHECK_SEVERITY`, then the comment names the flipping spec (`governor-enforcement`), the precondition (the migration specs reaching compliance), and the governing decision (ADR-020 "Enforcement sequencing (load-bearing)") — the whole handoff is at the constant, not scattered across a spec folder.
-- [ ] Given the flip test exists, when `CONTRACT_CHECK_SEVERITY` is left flipped by accident in a working tree, then the test suite fails loudly — the default value is itself asserted, so the shipped state cannot drift to blocking unnoticed.
+- [x] Given `CONTRACT_CHECK_SEVERITY` is `"warnings"` (the shipped default), when the checker runs against a non-compliant fixture, then every contract finding is in `warnings`, `structural` is `[]`, and the process exits 0.
+- [x] Given the same fixture and the same run, when `CONTRACT_CHECK_SEVERITY` is set to `"structural"` in-process, then the **identical finding dicts** — same `subject`, `what`, and `fix` values, same count — appear in `structural` and none remain in `warnings`.
+- [x] Given the flip, when `check_required_skills`'s findings are inspected, then they are **still** in `warnings` — the `severity="warnings"` pin survives the flip, per `system-instructions.md`'s graceful-degradation contract (Business Rule 6).
+- [x] Given `CONTRACT_CHECK_SEVERITY` is set to an unrecognized value (e.g. `"blocking"`, a plausible typo in the later spec's diff), when the checker runs, then findings fall back to `warnings` and the process exits 0 — a typo must never silently disable a check nor accidentally block CI.
+- [x] Given the flip is applied and `eval.sh`'s leanness check runs, when the contract findings land in `structural`, then `eval.sh` reports FAIL for that check — proving the seam reaches all the way to the gate, not just to the JSON.
+
+> **Task 7.5 outcome, 2026-08-11.** The end-to-end proof was achievable and no coverage reduction needs recording. `EvalShBoundaryTests` builds a temp project root, copies `eval.sh` and a **copy** of `eval-leanness.py` with the constant flipped into its `scripts/`, and runs `bash eval.sh --check=leanness` for real: exit 1 and `FAIL` in the report when flipped, exit 0 and `PASS` when shipped, on the identical tree. The committed script is never mutated. The same flipped run also proves the pin reaches the gate — `required_skills:` is still rendered as a non-blocking `WARNING` note in a FAILing report.
+>
+> **A trap the run caught.** A naive `replace('CONTRACT_CHECK_SEVERITY = "warnings"', ...)` rewrites the *diff preview inside the handoff comment* rather than the statement, and the flipped copy behaves exactly like the shipped one. The test anchors on the leading newline. Worth knowing before the `governor-enforcement` spec automates its own one-line change.
+- [x] Given `scripts/eval-leanness.py` after this story, when the four contract check functions are inspected programmatically, then none of them references `structural` or `warnings` — every one returns a `list[dict]` and routing happens only in `emit_contract_findings()`. This is asserted by a test, not by review.
+- [x] Given a maintainer reading `scripts/eval-leanness.py` cold, when they reach `CONTRACT_CHECK_SEVERITY`, then the comment names the flipping spec (`governor-enforcement`), the precondition (the migration specs reaching compliance), and the governing decision (ADR-020 "Enforcement sequencing (load-bearing)") — the whole handoff is at the constant, not scattered across a spec folder.
+- [x] Given the flip test exists, when `CONTRACT_CHECK_SEVERITY` is left flipped by accident in a working tree, then the test suite fails loudly — the default value is itself asserted, so the shipped state cannot drift to blocking unnoticed.
 
 ## Implementation Tasks
 
-- [ ] 7.1 Write the flip test in `scripts/tests/test_eval_leanness_contract.py`: load `eval-leanness.py` by path, build one non-compliant fixture tree exercising all four checks, capture findings at `"warnings"`, set `module.CONTRACT_CHECK_SEVERITY = "structural"`, re-run, and assert dict-for-dict equality of the moved findings
-- [ ] 7.2 Add the pinned-check assertion: after the flip, `required_skills:` findings remain in `warnings` while the other three checks' findings do not
-- [ ] 7.3 Add the unrecognized-value fallback test (`"blocking"` → `warnings`, exit 0) and the shipped-default test (`CONTRACT_CHECK_SEVERITY == "warnings"` as committed)
-- [ ] 7.4 Add the source-level assertion that no contract check function touches `structural` / `warnings` directly — inspect the functions' source via `inspect.getsource()` rather than grepping the file, so a rename cannot bypass it
-- [ ] 7.5 Add the `eval.sh`-boundary scenario proving a `structural` finding actually FAILs the leanness check — a temp-copy or fixture-root run, never a mutation of the committed script
-- [ ] 7.6 Write the handoff comment at `CONTRACT_CHECK_SEVERITY`: which spec flips it, what must be true first, which ADR governs, and the one-line diff it becomes
-- [ ] 7.7 Verify acceptance criteria and that the full suite passes — new pytest file, `test_eval_leanness.sh`, all `scripts/tests/*.py`, and `bash scripts/eval.sh` end-to-end with the constant at its shipped `"warnings"` default
+- [x] 7.1 Write the flip test in `scripts/tests/test_eval_leanness_contract.py`: load `eval-leanness.py` by path, build one non-compliant fixture tree exercising all four checks, capture findings at `"warnings"`, set `module.CONTRACT_CHECK_SEVERITY = "structural"`, re-run, and assert dict-for-dict equality of the moved findings
+- [x] 7.2 Add the pinned-check assertion: after the flip, `required_skills:` findings remain in `warnings` while the other three checks' findings do not
+- [x] 7.3 Add the unrecognized-value fallback test (`"blocking"` → `warnings`, exit 0) and the shipped-default test (`CONTRACT_CHECK_SEVERITY == "warnings"` as committed)
+- [x] 7.4 Add the source-level assertion that no contract check function touches `structural` / `warnings` directly — inspect the functions' source via `inspect.getsource()` rather than grepping the file, so a rename cannot bypass it
+- [x] 7.5 Add the `eval.sh`-boundary scenario proving a `structural` finding actually FAILs the leanness check — a temp-copy or fixture-root run, never a mutation of the committed script
+- [x] 7.6 Write the handoff comment at `CONTRACT_CHECK_SEVERITY`: which spec flips it, what must be true first, which ADR governs, and the one-line diff it becomes
+- [x] 7.7 Verify acceptance criteria and that the full suite passes — new pytest file, `test_eval_leanness.sh`, all `scripts/tests/*.py`, and `bash scripts/eval.sh` end-to-end with the constant at its shipped `"warnings"` default
 
 ## Notes
 
@@ -54,11 +58,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 
