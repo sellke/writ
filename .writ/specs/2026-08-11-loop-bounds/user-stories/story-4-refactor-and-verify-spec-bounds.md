@@ -1,6 +1,6 @@
 # Story 4: Bounds on refactor and verify-spec
 
-> **Status:** Not Started
+> **Status:** Completed
 > **Priority:** Medium
 > **Dependencies:** Story 1
 
@@ -12,21 +12,21 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `commands/refactor.md`, when its frontmatter is read, then `loop.unit` is `change`, `loop.max_iterations` is `10`, `loop.on_exhaustion` is `halt_reported`, and `loop.calibrated_against` contains the literal phrase `no recorded run`, cites `commands/refactor.md:100`'s "7+ changes" splitting advisory as the sole anchor, and states the evidence quality as weak with an instruction to recalibrate after the first recorded run.
-- [ ] Given `commands/verify-spec.md`, when its frontmatter is read, then `loop.unit` is `autofix_pass`, `loop.max_iterations` is `1`, `loop.on_exhaustion` is `halt_reported`, and `loop.calibrated_against` states that the command is single-pass by construction — Phase 3 checks → Phase 4 fixes → Phase 5 report, with no re-check step — so declaring 1 codifies existing behavior and can break no recorded run.
-- [ ] Given `/refactor` reaches its bound mid-plan, when the loop terminates, then it reports the commits already landed, the remaining unexecuted changes, and a resume instruction — reusing the existing mid-plan-failure re-presentation at `refactor.md:124` rather than adding a second reporting path, and leaving the tree green.
-- [ ] Given `/refactor`'s frontmatter, when it is inspected for a retry bound, then none exists — `skills/safe-refactor-loop/SKILL.md` reverts a red change immediately and never retries it, so a retry budget would contradict the skill.
-- [ ] Given `/verify-spec` exhausts its single auto-fix pass, when the loop terminates, then the unresolved finding is reported in the existing Phase 5 verification report file and `/verify-spec` is named as the resume command — no new report artifact is introduced.
-- [ ] Given `commands/verify-spec.md` is examined, when a re-check or re-verify step is searched for, then none exists — and this absence is asserted by a guard, so that adding one later forces the bound to be revisited rather than silently invalidated.
+- [x] Given `commands/refactor.md`, when its frontmatter is read, then `loop.unit` is `change`, `loop.max_iterations` is `10`, `loop.on_exhaustion` is `halt_reported`, and `loop.calibrated_against` contains the literal phrase `no recorded run`, cites `commands/refactor.md:100`'s "7+ changes" splitting advisory as the sole anchor, and states the evidence quality as weak with an instruction to recalibrate after the first recorded run.
+- [x] Given `commands/verify-spec.md`, when its frontmatter is read, then `loop.unit` is `autofix_pass`, `loop.max_iterations` is `1`, `loop.on_exhaustion` is `halt_reported`, and `loop.calibrated_against` states that the command is single-pass by construction — Phase 3 checks → Phase 4 fixes → Phase 5 report, with no re-check step — so declaring 1 codifies existing behavior and can break no recorded run.
+- [x] Given `/refactor` reaches its bound mid-plan, when the loop terminates, then it reports the commits already landed, the remaining unexecuted changes, and a resume instruction — reusing the existing mid-plan-failure re-presentation at `refactor.md:124` rather than adding a second reporting path, and leaving the tree green.
+- [x] Given `/refactor`'s frontmatter, when it is inspected for a retry bound, then none exists — `skills/safe-refactor-loop/SKILL.md` reverts a red change immediately and never retries it, so a retry budget would contradict the skill.
+- [x] Given `/verify-spec` exhausts its single auto-fix pass, when the loop terminates, then the unresolved finding is reported in the existing Phase 5 verification report file and `/verify-spec` is named as the resume command — no new report artifact is introduced.
+- [x] Given `commands/verify-spec.md` is examined, when a re-check or re-verify step is searched for, then none exists — and this absence is asserted by a guard, so that adding one later forces the bound to be revisited rather than silently invalidated.
 
 ## Implementation Tasks
 
-- [ ] 4.1 Confirm the zero-evidence claim for `/refactor` before writing its bound: search `.writ/state/` for any recorded `/refactor` execution and confirm there is none, and confirm `commands/refactor.md:100`'s "7+ changes" advisory is still the only quantitative anchor in the file
-- [ ] 4.2 Confirm `/verify-spec`'s single-pass structure before writing its bound: verify that `commands/verify-spec.md` Phase 3 → Phase 4 → Phase 5 contains no re-check, re-run, or re-verify step (the only `again` is at line 698, describing `/release` invoking checks 1–8 through its own entry point, not a loop)
-- [ ] 4.3 Append the `loop:` block to `commands/refactor.md`'s frontmatter, with `calibrated_against` carrying the literal `no recorded run` and the recalibration instruction
-- [ ] 4.4 Append the `loop:` block to `commands/verify-spec.md`'s frontmatter, with `calibrated_against` stating "strong by construction" and explicitly noting that no `/verify-spec` runaway has ever been observed
-- [ ] 4.5 Specify both `halt_reported` records against artifacts that already exist — `/refactor`'s Phase 4 completion report (commits landed, remaining plan) and `/verify-spec`'s Phase 5 verification report file — introducing no new artifact for either
-- [ ] 4.6 Verify acceptance criteria are met, including the grep guard asserting `commands/verify-spec.md` still has no re-check step and the assertion that `refactor`'s `calibrated_against` contains `no recorded run`
+- [x] 4.1 Confirm the zero-evidence claim for `/refactor` before writing its bound: search `.writ/state/` for any recorded `/refactor` execution and confirm there is none, and confirm `commands/refactor.md:100`'s "7+ changes" advisory is still the only quantitative anchor in the file
+- [x] 4.2 Confirm `/verify-spec`'s single-pass structure before writing its bound: verify that `commands/verify-spec.md` Phase 3 → Phase 4 → Phase 5 contains no re-check, re-run, or re-verify step (the only `again` is at line 698, describing `/release` invoking checks 1–8 through its own entry point, not a loop)
+- [x] 4.3 Append the `loop:` block to `commands/refactor.md`'s frontmatter, with `calibrated_against` carrying the literal `no recorded run` and the recalibration instruction
+- [x] 4.4 Append the `loop:` block to `commands/verify-spec.md`'s frontmatter, with `calibrated_against` stating "strong by construction" and explicitly noting that no `/verify-spec` runaway has ever been observed
+- [x] 4.5 Specify both `halt_reported` records against artifacts that already exist — `/refactor`'s Phase 4 completion report (commits landed, remaining plan) and `/verify-spec`'s Phase 5 verification report file — introducing no new artifact for either
+- [x] 4.6 Verify acceptance criteria are met, including the grep guard asserting `commands/verify-spec.md` still has no re-check step and the assertion that `refactor`'s `calibrated_against` contains `no recorded run`
 
 ## Notes
 
@@ -50,13 +50,23 @@
 - Reads `skills/safe-refactor-loop/SKILL.md` to confirm the no-retry property; modifies nothing there.
 - Story 5 asserts the `no recorded run` literal and runs the `verify-spec` re-check guard.
 
+**Implementation record (2026-08-11):**
+
+- **Task 4.1: the zero-evidence claim re-confirmed.** No `/refactor` execution record exists anywhere in `.writ/state/` — not a state file, not a result file, not a log. The "7+ changes" splitting advisory (now line 106, shifted +6 by the component contract) is still the only quantitative anchor in the file. `calibrated_against` opens with the literal `no recorded run` and says the number is calibrated against nothing that happened.
+- **Task 4.2: `/verify-spec`'s single-pass structure re-confirmed, with a correction.** The file's actual sequence is **Phase 2** (checks 1-8) -> Phase 4 (auto-fixes 4.1-4.4) -> Phase 5 (report file); `sub-specs/technical-spec.md` says "Phase 3 runs checks 1-8", which is off by one against the shipped file. The citation records the real phase numbers. The only `again` is at line 704 and describes `/release` invoking checks 1-8 through its own entry point — a separate entry point, not a loop. No re-check, re-run, or re-verify step exists.
+- **`/verify-spec`'s frontmatter says plainly that it is a declaration, not a mitigation**, and that no runaway has ever been observed — the honest-weak-point note the spec insisted on keeping rather than smoothing over.
+- **No retry bound was added to `/refactor`**, and the Phase 3 prose states why: `skills/safe-refactor-loop/SKILL.md` reverts a red change immediately and never re-attempts it, so a retry budget would contradict the skill. Adding one would have looked like thoroughness.
+- **Both `halt_reported` records reuse artifacts that already exist** — `/refactor`'s existing mid-plan re-presentation (commits landed, remaining plan, green tree) and `/verify-spec`'s Phase 5 report file under **Outstanding Warnings**. Neither introduces a new artifact.
+- **Task 4.6's two guards live in `scripts/eval-loop-bounds.py`** (Story 5): `refactor-no-recorded-run-literal` asserts the literal `no recorded run` is still in the citation, and `verify-spec-no-recheck-step` greps the file for a re-check step and fails if one appears — so adding one later forces the bound to be revisited instead of silently invalidating it.
+- **Measured cost:** `commands/refactor.md` 205 -> 212 lines and `commands/verify-spec.md` 725 -> 732, each 5 frontmatter lines plus 2 prose. `grep -c '^---$'` unchanged at 9 and 17.
+
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

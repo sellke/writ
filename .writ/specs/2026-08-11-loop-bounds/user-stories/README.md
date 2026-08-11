@@ -1,13 +1,13 @@
 # User Stories: Loop Bounds
 
-> **Status:** In Progress — 1/5 stories, 6/32 tasks.
+> **Status:** In Progress — 4/5 stories, 24/32 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Loop Schema and Exhaustion Vocabulary](./story-1-loop-schema-and-exhaustion-vocabulary.md) | Completed | 6 | 6/6 | None |
-| 2 | [Bounds on the Two Orchestrators](./story-2-orchestrator-bounds.md) | Not Started | 6 | 0/6 | Story 1 |
-| 3 | [Bounds on implement-story's Gate-Retry Cycles](./story-3-implement-story-gate-cycles.md) | Not Started | 6 | 0/6 | Story 1 |
-| 4 | [Bounds on refactor and verify-spec](./story-4-refactor-and-verify-spec-bounds.md) | Not Started | 6 | 0/6 | Story 1 |
+| 2 | [Bounds on the Two Orchestrators](./story-2-orchestrator-bounds.md) | Completed | 6 | 6/6 | Story 1 |
+| 3 | [Bounds on implement-story's Gate-Retry Cycles](./story-3-implement-story-gate-cycles.md) | Completed | 6 | 6/6 | Story 1 |
+| 4 | [Bounds on refactor and verify-spec](./story-4-refactor-and-verify-spec-bounds.md) | Completed | 6 | 6/6 | Story 1 |
 | 5 | [The loop-bounds Eval Check](./story-5-loop-bounds-eval-check.md) | Not Started | 8 | 0/8 | Stories 2, 3, 4 |
 
 ## Dependency Graph

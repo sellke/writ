@@ -7,6 +7,11 @@ exit_criteria:
   - "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran"
   - "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason"
   - "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts"
+loop:
+  unit: "story"
+  max_iterations: 12
+  on_exhaustion: halt_reported
+  calibrated_against: "Counts stories dispatched to /implement-story, not the human-selected retry offered on story failure, which stays unbounded because a user's choices are not this bound's business. Largest story count across the 41 archived specs under .writ/specs/archive/ = 9 (2026-03-19-command-suite-evolution). Recorded runs: .writ/state/execution-20260718-1101.json = 4 stories, execution-20260803T193200Z.json = 4, execution-20260804205617.json = 4; stories_total in .writ/state/phase9-result-*.json and phase-spec-result-*.json = 4, 4, 3. Bound = all-time authored maximum plus 3. Evidence: strongest of the five bounds - 41 authored specs plus 6 recorded runs."
 ---
 
 # Implement Spec Command (implement-spec)
@@ -176,6 +181,8 @@ After each `/implement-story` completes:
 **On story failure:** Present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 
 **On dependency blocked:** Present the dependency chain and offer: skip, attempt anyway (dependencies incomplete), retry failed dependency, or abort.
+
+**Iteration bound:** dispatch is bounded at `loop.max_iterations` (12) **stories**. The retry above is human-selected and deliberately outside the bound — `max_iterations` counts stories dispatched, not choices a user makes. On exhaustion, `loop.on_exhaustion: halt_reported` applies: stop dispatching and report the unit (`story`), the bound, the count reached, the last completed story, the `.writ/state/execution-*.json` path whose `stories.{id}.status` / `phase` fields already hold the resume position, and the literal resume command `/implement-spec --resume`. Remaining stories stay `pending`; nothing is skipped, marked complete, or self-certified to get past the bound.
 
 ### Phase 4: Completion
 

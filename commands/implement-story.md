@@ -7,6 +7,20 @@ exit_criteria:
   - "the story file header reads Status: Completed and carries a > **Commit:** line holding the full SHA of the completion commit, written once rather than duplicated on re-runs"
   - "the story file ends with a ## What Was Built section naming files created, files modified, and test results, and user-stories/README.md progress counts match it"
   - "Gate 4 recorded a 100 percent test pass rate with at least 80 percent line coverage on new files, and no gate was skipped without the story being marked DEGRADED instead of Completed"
+loop:
+  unit: "review_cycle"
+  max_iterations: 3
+  on_exhaustion: escalate
+  calibrated_against: "One shared counter across four increment sites - Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, Gate 4.5 FAIL - not four separate budgets. Transcribes the existing prose cap in this file: 'Review loop: Max 3 iterations across review and visual QA gates'. 42 'Iteration count' records across archived story What Was Built sections in .writ/specs/archive/: 39 at 1 iteration, 3 at 2, maximum ever observed = 2. A bound of 2 would sit at the observed maximum with zero headroom; 3 keeps one iteration and is the number already honored today. Evidence: strong - 42 real records."
+  nested:
+    - unit: "testing_cycle"
+      max_iterations: 2
+      on_exhaustion: escalate
+      calibrated_against: "Transcribes the existing Gate 4 prose cap in this file: '2 fix iterations max (separate from the review loop's 3-iteration cap)'. No recorded run in .writ/specs/archive/ reports a testing-fix iteration above 1. Evidence: adequate - a faithful transcription, but the original derivation of the 2 is recorded nowhere, so do not read it as measured."
+    - unit: "agent_self_fix"
+      max_iterations: 3
+      on_exhaustion: escalate
+      calibrated_against: "Transcribes MAX_SELF_FIX_ITERATIONS = 3, declared in agents/coding-agent.md and agents/testing-agent.md and consumed by this file's STATUS: BLOCKED handlers at Gate 1 and Gate 4. Evidence: strong - two agent definitions already enforce it; this declaration must not drift from them."
 ---
 
 # Implement Story Command (implement-story)
@@ -598,7 +612,7 @@ Spawns a **read-only** sub-agent for code review.
 - **FAIL** → send feedback to coding agent for fixes
 - **PAUSE** → Large drift detected; surface conflict to user before continuing
 
-**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user.
+**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share **one** counter — they are not four independent budgets. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations *are* the implementation, and no cap may be silently continued past.
 
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
