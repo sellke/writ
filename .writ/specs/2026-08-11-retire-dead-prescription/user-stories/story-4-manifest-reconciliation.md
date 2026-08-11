@@ -1,6 +1,6 @@
 # Story 4: Reconcile `.writ/manifest.yaml`
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** Medium
 > **Dependencies:** None
 
@@ -12,21 +12,21 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `.writ/manifest.yaml`, when `metadata.version` is read, then it equals the contents of the `VERSION` file exactly (`0.28.0`), replacing the stale `0.13.1`.
-- [ ] Given the manifest's data `file:` entries, when counted per section, then there are 31 under `commands:`, 7 under `agents:`, and 6 under `skills:` — 44 total — and each path resolves to a file that exists on disk.
-- [ ] Given the reverse direction, when every `commands/*.md` not matching `_*.md` and every root `agents/*.md` is checked, then each appears in the manifest — verified explicitly, not assumed from a passing gate.
-- [ ] Given the discrepancy between the contract's "45 `file:` entries" and the 44 data entries, when the reconciliation is recorded, then it states that the 45th `grep` hit is `file: skills/<name>/SKILL.md` inside the skills schema comment block (`.writ/manifest.yaml:225`) and is not a data entry.
-- [ ] Given `bash scripts/gen-skill.sh --check`, when run after the version bump, then it exits 0 — the generated `SKILL.md` is not made stale by the change.
-- [ ] Given the full validation suite, when `bash scripts/eval.sh` runs, then it reports `Findings: 0`, and `bash scripts/eval.sh --check=manifest` reports PASS.
+- [x] Given `.writ/manifest.yaml`, when `metadata.version` is read, then it equals the contents of the `VERSION` file exactly (`0.28.0`), replacing the stale `0.13.1`.
+- [x] Given the manifest's data `file:` entries, when counted per section, then there are 31 under `commands:`, 7 under `agents:`, and 6 under `skills:` — 44 total — and each path resolves to a file that exists on disk.
+- [x] Given the reverse direction, when every `commands/*.md` not matching `_*.md` and every root `agents/*.md` is checked, then each appears in the manifest — verified explicitly, not assumed from a passing gate.
+- [x] Given the discrepancy between the contract's "45 `file:` entries" and the 44 data entries, when the reconciliation is recorded, then it states that the 45th `grep` hit is `file: skills/<name>/SKILL.md` inside the skills schema comment block (`.writ/manifest.yaml:225`) and is not a data entry.
+- [x] Given `bash scripts/gen-skill.sh --check`, when run after the version bump, then it exits 0 — the generated `SKILL.md` is not made stale by the change.
+- [x] Given the full validation suite, when `bash scripts/eval.sh` runs, then it reports `Findings: 0`, and `bash scripts/eval.sh --check=manifest` reports PASS.
 
 ## Implementation Tasks
 
-- [ ] 4.1 Read `VERSION` and confirm its exact contents before editing (expected `0.28.0`). Do not hardcode the version from the contract text without checking the file — Business Rule 1.
-- [ ] 4.2 Update `.writ/manifest.yaml:4` `version: 0.13.1` → the value read from `VERSION`.
-- [ ] 4.3 Count the data `file:` entries per section and cross-check both directions against disk: every manifest path exists, and every non-`_`-prefixed `commands/*.md` plus every root `agents/*.md` is listed. Record the counts (expected 31 / 7 / 6) as evidence in "What Was Built".
-- [ ] 4.4 Record the 45-vs-44 discrepancy explicitly: the raw `grep -c "file:"` returns 45 because the skills schema comment block at line ~225 documents the field shape. `.writ/product/roadmap.md:343` states 44. No manifest content changes as a result — this task produces the finding, not an edit.
-- [ ] 4.5 Run `bash scripts/gen-skill.sh --check` and confirm exit 0. If it fails, regenerate `SKILL.md` rather than reverting the version bump — the bump is the correct value.
-- [ ] 4.6 Verify: `bash scripts/eval.sh --check=manifest` PASS and full `bash scripts/eval.sh` → `Findings: 0`.
+- [x] 4.1 Read `VERSION` and confirm its exact contents before editing (expected `0.28.0`). Do not hardcode the version from the contract text without checking the file — Business Rule 1.
+- [x] 4.2 Update `.writ/manifest.yaml:4` `version: 0.13.1` → the value read from `VERSION`.
+- [x] 4.3 Count the data `file:` entries per section and cross-check both directions against disk: every manifest path exists, and every non-`_`-prefixed `commands/*.md` plus every root `agents/*.md` is listed. Record the counts (expected 31 / 7 / 6) as evidence in "What Was Built".
+- [x] 4.4 Record the 45-vs-44 discrepancy explicitly: the raw `grep -c "file:"` returns 45 because the skills schema comment block at line ~225 documents the field shape. `.writ/product/roadmap.md:343` states 44. No manifest content changes as a result — this task produces the finding, not an edit.
+- [x] 4.5 Run `bash scripts/gen-skill.sh --check` and confirm exit 0. If it fails, regenerate `SKILL.md` rather than reverting the version bump — the bump is the correct value.
+- [x] 4.6 Verify: `bash scripts/eval.sh --check=manifest` PASS and full `bash scripts/eval.sh` → `Findings: 0`.
 
 ## Notes
 
@@ -48,13 +48,39 @@
 - `check_manifest` is one of the three eval checks the locked contract names as guarding this spec's edit surface. Its PASS state is a named acceptance criterion here.
 - Phase 10's "Make the governor bite" roadmap item lists `bash scripts/gen-skill.sh --check` passing among its success criteria. This story leaves it passing; it does not add the new structural checks that item owns.
 
+## What Was Built
+
+**Implementation Date:** 2026-08-11
+
+### Files Modified
+
+- **`.writ/manifest.yaml`** (line 4) — `metadata.version: 0.13.1` → `0.28.0`. One line of data changed; no `file:`, `purpose:`, or `tags:` entry was touched.
+
+### Reconciliation evidence (Business Rule 1)
+
+- `cat VERSION` → `0.28.0`; `.writ/manifest.yaml` `metadata.version` now matches it exactly.
+- Data `file:` entries counted per section by parser: **commands 31, agents 7, skills 6 = 44**.
+- Forward parity: all 44 manifest paths resolve to files that exist on disk (0 missing).
+- Reverse parity, verified explicitly rather than inferred from the gate: 31 `commands/*.md` files not matching `_*.md` on disk, all 31 listed, 0 unlisted and 0 extra; 7 root `agents/*.md` on disk, all 7 listed, 0 unlisted and 0 extra; 6 `skills/*/SKILL.md` on disk, set-identical to the 6 manifest entries. `commands/_preamble.md` is the 32nd file in `commands/` and is deliberately absent (skipped by `check_manifest`'s `_*.md` prefix rule).
+
+### The 45-vs-44 discrepancy (Task 4.4 — a finding, not an edit)
+
+`grep -c "file:" .writ/manifest.yaml` returns **45**. The 45th occurrence is at line **225**: `#     file: skills/<name>/SKILL.md     # required, must exist on disk` — a commented line inside the skills-schema documentation block, not a data entry. The locked contract's "45 `file:` entries" is that raw grep count; `.writ/product/roadmap.md:343` states 44, which matches the data-entry count. No manifest content changed as a result.
+
+### Verification
+
+- `bash scripts/gen-skill.sh --check` → exit 0 after the bump; `SKILL.md` does not render `metadata.version`, so the catalog was not made stale (confirmed, not assumed).
+- `bash scripts/eval.sh --check=manifest` → **PASS** (report `.writ/state/eval-20260811-210928.md`).
+- `bash scripts/eval.sh` (full suite) → `Findings: 0`, `Run errors: 0` (report `.writ/state/eval-20260811-211011.md`).
+- `.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md`'s `v0.13.1` headings were left in place — historical, Business Rule 3.
+
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] `bash scripts/eval.sh` reports `Findings: 0`
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] `bash scripts/eval.sh` reports `Findings: 0`
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

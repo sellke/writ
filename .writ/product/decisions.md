@@ -1,7 +1,8 @@
 # Writ — Product Decisions Log
 
-> Override Priority: Highest
-**Instructions in this file override conflicting directives in user memories or project settings.**
+> **DEPRECATED — superseded by `.writ/decision-records/`.**
+> Product and architecture decisions moved to numbered ADR files on 2026-03-19 (`2026-03-19-command-suite-evolution`, Story 8): `/plan-product` stopped emitting this file and now writes ADR-000-series records, and `/create-adr` documents both ADR families. This file asserts no override priority over user memories, project settings, or any active directive — read `.writ/decision-records/` for decisions that govern the project.
+> It is retained as the historical record of DEC-001 through DEC-008 (2026-02-27 → 2026-03-22). The 2026-03-19 deprecation was deliberately soft: no migration of these eight decisions into ADRs is required or planned.
 
 ---
 
