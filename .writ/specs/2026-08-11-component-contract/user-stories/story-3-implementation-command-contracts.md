@@ -1,6 +1,6 @@
 # Story 3: Implementation and Recovery Command Contracts
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 
@@ -18,23 +18,23 @@ Only `implement-phase` carries a `## Completion` section today. The other five b
 
 ## Acceptance Criteria
 
-- [ ] Given all six files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
-- [ ] Given `implement-phase`, `implement-spec`, and `implement-story` are nested scopes of the same pipeline, when their fields are read side by side, then each names the **unit it terminates on** — a phase's exit criteria, a spec's story set, a single story's gate results — and no field from one is plausible in either of the other two.
-- [ ] Given Business Rule 3, when any `exit_criteria` entry is read, then it names a file path, field value, count or comparison, process outcome, or command-observable state, as a present-tense assertion about post-run state.
-- [ ] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
-- [ ] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
-- [ ] Given loop bounds are a separate Phase 10 feature, when the frontmatter is read, then no `loop:`, `max_iterations:`, or `on_exhaustion:` key appears — even though four of these six are loop-bearing commands and the temptation is direct.
-- [ ] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these six files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten.
+- [x] Given all six files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
+- [x] Given `implement-phase`, `implement-spec`, and `implement-story` are nested scopes of the same pipeline, when their fields are read side by side, then each names the **unit it terminates on** — a phase's exit criteria, a spec's story set, a single story's gate results — and no field from one is plausible in either of the other two.
+- [x] Given Business Rule 3, when any `exit_criteria` entry is read, then it names a file path, field value, count or comparison, process outcome, or command-observable state, as a present-tense assertion about post-run state.
+- [x] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
+- [x] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
+- [x] Given loop bounds are a separate Phase 10 feature, when the frontmatter is read, then no `loop:`, `max_iterations:`, or `on_exhaustion:` key appears — even though four of these six are loop-bearing commands and the temptation is direct.
+- [x] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these six files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten.
 
 ## Implementation Tasks
 
-- [ ] 3.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s own frontmatter as the worked exemplar
-- [ ] 3.2 For each of the six, identify the concrete terminal artifact and state change — for the three nested commands, write the three termination units down explicitly before authoring anything, since that distinction is the entire value of this batch
-- [ ] 3.3 Author `problem:` and `outcome:` for all six as single sentences; swap-test the `implement-*` trio against each other first, then against `prototype`
-- [ ] 3.4 Author 2–4 `exit_criteria` per command against real observables — story status values, phase-state entries under `.writ/state/`, git state for `revert`, test/lint results for `prototype` and `refactor`
-- [ ] 3.5 Run the restatement test on every entry against its own `description:`
-- [ ] 3.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct, and no loop-bound keys present
-- [ ] 3.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced in the Notes without acting on it
+- [x] 3.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s own frontmatter as the worked exemplar
+- [x] 3.2 For each of the six, identify the concrete terminal artifact and state change — for the three nested commands, write the three termination units down explicitly before authoring anything, since that distinction is the entire value of this batch
+- [x] 3.3 Author `problem:` and `outcome:` for all six as single sentences; swap-test the `implement-*` trio against each other first, then against `prototype`
+- [x] 3.4 Author 2–4 `exit_criteria` per command against real observables — story status values, phase-state entries under `.writ/state/`, git state for `revert`, test/lint results for `prototype` and `refactor`
+- [x] 3.5 Run the restatement test on every entry against its own `description:`
+- [x] 3.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct, and no loop-bound keys present
+- [x] 3.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced in the Notes without acting on it
 
 ## Notes
 
@@ -60,11 +60,11 @@ Only `implement-phase` carries a `## Completion` section today. The other five b
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] The three nested `implement-*` commands verified as mutually non-interchangeable
-- [ ] `bash scripts/eval.sh` shows no new findings
-- [ ] No loop-bound keys introduced
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] The three nested `implement-*` commands verified as mutually non-interchangeable
+- [x] `bash scripts/eval.sh` shows no new findings
+- [x] No loop-bound keys introduced
 
 ## Context for Agents
 
