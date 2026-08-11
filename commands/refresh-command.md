@@ -1,6 +1,12 @@
 ---
 name: refresh-command
 description: "Turn your experience running a Writ command into concrete improvements to that command file. The learning loop."
+problem: "Friction noticed while running a command is forgotten by the next invocation, and edits made from memory land in the command file with nothing recording why they were kept."
+outcome: "commands/<name>.md carries only the amendments that survived the evidence gate, and .writ/refresh-log.md records what was applied alongside what was rejected and for which reason."
+exit_criteria:
+  - "every amendment written to commands/<name>.md cites a transcript ID or path plus a short observable signal, and no transcript body or chain-of-thought was copied anywhere"
+  - "bash scripts/eval.sh --check=refresh-evidence exited 0 before any diff was applied"
+  - ".writ/refresh-log.md gained one entry for the run, listing each rejected candidate with reason no evidence or eval failed, and gains that entry even when zero amendments were applied"
 ---
 
 # Refresh Command (refresh-command)
@@ -483,6 +489,14 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome â€
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |
 | `/new-command` | Creates new commands; `/refresh-command` improves existing ones |
 | `/new-skill` | Creates new skills with the same lint enforced at authoring time |
+
+## Completion
+
+This command succeeds when every amendment written to `commands/<name>.md` cites a transcript ID and an observable signal, and `.writ/refresh-log.md` carries an entry for the run.
+
+Zero applied amendments is a valid outcome. The log entry is written regardless, listing each rejected candidate with its reason â€” no evidence, or eval failed.
+
+**Terminal constraint:** This command improves one command file from evidence. Do not run the refreshed command to test it, and do not refresh a second command in the same pass.
 
 ---
 

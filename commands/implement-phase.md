@@ -1,6 +1,13 @@
 ---
 name: implement-phase
 description: "Autonomously execute a whole roadmap phase - resolve features to specs, create missing ones, then loop implement-spec per spec in dependency order until the phase exit criteria are met."
+problem: "A roadmap phase is delivered one spec at a time by hand, so cross-spec order is guessed, unspecced features are forgotten, and the exit criteria the phase declares go unchecked."
+outcome: "Every spec the phase resolves to has been merged into the phase branch or quarantined off it, and the phase carries a terminal status backed by per-criterion evidence."
+exit_criteria:
+  - "every spec resolved from the phase reached merged, quarantined, or skipped_blocked in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
+  - "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
+  - "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified"
+  - "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE"
 ---
 
 # Implement Phase Command (implement-phase)

@@ -1,6 +1,12 @@
 ---
 name: create-spec
 description: "Generate a full feature specification contract-first - discovery conversation, then user stories, sub-specs, and acceptance criteria. The entry point for any feature large enough to need a spec."
+problem: "Implementation starts from a feature idea nobody wrote down, so scope, story boundaries, and acceptance criteria get invented mid-build and argued about afterwards."
+outcome: "A new .writ/specs/<date>-<name>/ package exists — spec, spec-lite, per-story files, and sub-specs — matching a contract the user locked before any file was written."
+exit_criteria:
+  - "spec.md carries a Status line and a Dependencies line listing exact spec-folder IDs, or [] when there are none"
+  - "every user-stories/story-*.md file has 3-5 Given/When/Then acceptance criteria and no more than 7 implementation tasks"
+  - "spec-lite.md is under 100 lines"
 ---
 
 # Enhanced Create Spec Command (create-spec)

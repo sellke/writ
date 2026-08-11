@@ -1,6 +1,12 @@
 ---
 name: verify-spec
 description: "Metadata linter for a spec - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
+problem: "Spec bookkeeping drifts from the story files that are its source of truth — README statuses, task counts, deliverable checkboxes and spec-lite all rot silently."
+outcome: "The spec's derived metadata is realigned where realignment is safe, and every finding that needs human judgement is recorded against the check that raised it."
+exit_criteria:
+  - "in default mode .writ/specs/<spec>/verification-YYYY-MM-DD.md exists with an eight-row check table plus Issues Found & Resolved and Outstanding Warnings sections"
+  - "every finding appears under exactly one of those two sections — auto-fixed, or left open and named with its check number"
+  - "any regenerated spec-lite.md is a whole-file replacement carrying its regeneration date marker, and spec.md is byte-identical to its pre-run state"
 ---
 
 # Verify Spec Command (verify-spec)
@@ -702,6 +708,14 @@ See report: .writ/product/verification-YYYY-MM-DD.md
 **Recommended posture:** `/verify-spec` is **optional**. Many sessions go straight `/ship` → `/release`. Run `/verify-spec` when you want a dedicated hygiene pass without releasing.
 
 **Boundary principle:** `/verify-spec` owns **spec metadata integrity** only. `/release` owns **tests, build verification, and changelog** for publishing.
+
+## Completion
+
+This command succeeds when `.writ/specs/<spec>/verification-<YYYY-MM-DD>.md` carries the eight-row check table and every finding sits under exactly one of Issues Found & Resolved or Outstanding Warnings.
+
+A finding that cannot be auto-fixed is recorded rather than fixed by guesswork. An outstanding warning is a valid result, not an incomplete run.
+
+**Terminal constraint:** This command reconciles a spec's derived metadata. `spec.md` is never modified — do not implement stories, change scope, or edit the contract.
 
 ---
 

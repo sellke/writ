@@ -1,6 +1,12 @@
 ---
 name: implement-story
 description: "Run a single user story through the full SDLC pipeline: architecture check, boundary map, TDD coding, lint, review, testing, documentation."
+problem: "A story gets coded straight off its task list, so architecture fit, review, and coverage are skipped once the code looks right, and nothing records what was built for the stories downstream."
+outcome: "One story file is closed out - status flipped, tasks and acceptance criteria checked, a What Was Built record appended, and the implementing commit SHA written into its header."
+exit_criteria:
+  - "the story file header reads Status: Completed and carries a > **Commit:** line holding the full SHA of the completion commit, written once rather than duplicated on re-runs"
+  - "the story file ends with a ## What Was Built section naming files created, files modified, and test results, and user-stories/README.md progress counts match it"
+  - "Gate 4 recorded a 100 percent test pass rate with at least 80 percent line coverage on new files, and no gate was skipped without the story being marked DEGRADED instead of Completed"
 ---
 
 # Implement Story Command (implement-story)
@@ -952,6 +958,14 @@ Use for prototyping, spikes, internal tools. Run full pipeline later:
 ```
 /implement-story story-3 --review-only
 ```
+
+## Completion
+
+This command succeeds when the story file reads `Status: Completed`, carries the completion commit SHA in its header, and ends with a `## What Was Built` section whose file and test counts match `user-stories/README.md`.
+
+A story that cannot clear every gate is marked DEGRADED rather than Completed. That is a valid terminal state and must not be relabelled to make a batch look clean.
+
+**Terminal constraint:** This command closes out one story. Do not start the next story, merge the branch, or update the roadmap.
 
 ---
 

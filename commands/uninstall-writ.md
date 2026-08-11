@@ -1,6 +1,12 @@
 ---
 name: uninstall-writ
 description: "Remove Writ platform files from the project while preserving everything under .writ/ (specs, ADRs, research)."
+problem: "Pulling Writ out by hand means deciding file by file what belongs to the tool, and the specs, ADRs, and research under .writ/ are the easiest thing to delete by mistake."
+outcome: "The platform directory holds no Writ commands, agents, rules, or manifest, while .writ/ and every non-Writ file around it remain exactly as they were."
+exit_criteria:
+  - ".writ/ is unchanged — every spec, story, ADR, research doc, and docs file present before the run is still present after it"
+  - "[platform_dir]/.writ-manifest is gone and no Writ command or agent file remains in [platform_dir]/commands/ or [platform_dir]/agents/"
+  - "the platform directory itself, its non-Markdown files, .gitignore entries, and any AGENTS.md content outside the writ:start and writ:end markers survive"
 ---
 
 # Uninstall Writ Command (uninstall-writ)
@@ -153,6 +159,14 @@ Codex note: `uninstall.sh --platform codex` removes only the Writ block from `AG
 | `/reinstall-writ` | Remove + reinstall in one step (use when you want Writ back immediately) |
 | `/update-writ` | Use instead if you want to keep Writ but refresh it |
 | `uninstall.sh` | Non-interactive terminal counterpart |
+
+## Completion
+
+This command succeeds when the platform directory holds no Writ command, agent, rule, or manifest file, and `.writ/` is byte-for-byte what it was before the run.
+
+Preserving `.writ/` is the defining property, not a courtesy: every spec, story, decision record, and research document survives. A run that removed them has failed even if the platform files are gone.
+
+**Terminal constraint:** This command removes the tooling. Do not delete `.writ/`, and do not offer to reinstall.
 
 ---
 

@@ -1,6 +1,12 @@
 ---
 name: knowledge
 description: "Capture a small durable fact - a convention, glossary term, minor decision, or lesson - in under 2 minutes. Use create-adr for serious architectural choices."
+problem: "Small durable facts — a naming convention, what a term actually means, a lesson already paid for — live in chat history, so every agent rediscovers them."
+outcome: "One entry file under .writ/knowledge/<category>/ carries the fact with conformant frontmatter, or a consolidation leaves the ledger merged rather than longer."
+exit_criteria:
+  - "the entry is under .writ/knowledge/<decisions|conventions|glossary|lessons>/ with category, tags, created, and related_artifacts in its frontmatter"
+  - "--list and --read change no file on disk"
+  - "an approved --consolidate writes replaces and superseded_by bidirectionally and leaves the result as a reviewable working-tree diff"
 ---
 
 # Knowledge Command (knowledge)

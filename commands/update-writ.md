@@ -1,6 +1,12 @@
 ---
 name: update-writ
 description: "Pull the latest Writ release and decide per customized file whether to overwrite, keep, or diff. Not for use in the Writ source repo."
+problem: "Upstream ships new commands, scripts, and docs while some local files were edited on purpose, and a blanket copy would overwrite exactly those edits without asking."
+outcome: "Unmodified files match the new upstream release, each locally modified file was settled by an explicit per-file keep or overwrite choice, and the manifest re-baselines both kinds."
+exit_criteria:
+  - "every file classified CUSTOMIZED was presented and resolved by an explicit keep or overwrite decision before anything was written"
+  - "files the user chose to keep, and stale files whose local hash no longer matches the baseline, are byte-identical before and after the run"
+  - "[platform_dir]/.writ-manifest names the new upstream version hash and carries a fresh baseline for every installed file, including the ones kept"
 ---
 
 # Update Writ Command (update-writ)
@@ -273,6 +279,14 @@ Codex note: Restart your Codex session to load AGENTS.md changes after `/update-
 | `/reinstall-writ` | Nuclear option — removes everything and installs fresh (no three-way merge) |
 | `/uninstall-writ` | Removes Writ entirely |
 | `/status` | Could surface "Writ update available" in future iterations |
+
+## Completion
+
+This command succeeds when every file classified CUSTOMIZED was resolved by an explicit keep-or-overwrite decision, files kept are byte-identical before and after, and `.writ-manifest` re-baselines every installed file.
+
+Choosing to keep every customized file is a valid outcome. The manifest still re-baselines, so the next update compares against what is actually on disk.
+
+**Terminal constraint:** This command updates the installation. Do not run the newly updated commands to test them, and do not reconcile customizations it was told to keep.
 
 ---
 

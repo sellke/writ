@@ -1,6 +1,12 @@
 ---
 name: ship
 description: "Take a green branch to a merged PR - merge the default branch, organize commits, write the PR description, push, and open it. The last-mile command."
+problem: "The last mile from green branch to open PR is a manual chain — merge default, split commits, write the body, push, open — and a skipped link yields a stale or unreviewable PR."
+outcome: "The branch has the default branch merged into it and its commits grouped by concern, and an open pull request states the change's spec, test and drift position."
+exit_criteria:
+  - "the current branch has an origin upstream and its local tip equals the pushed tip"
+  - "an open pull request exists whose head is the current branch and whose body carries Summary, Changes, Spec Reference and Test Results sections"
+  - "the default branch tip is an ancestor of the branch tip, and the PR is marked draft whenever tests failed or drift is unresolved"
 ---
 
 # Ship Command (ship)
@@ -604,6 +610,14 @@ Proceed? [Enter to continue, or specify a branch name]
 | `/verify-spec` | Standalone metadata diagnostic; `/ship` embeds checks **1–3** only when opening a PR |
 
 **Typical flow:** `/ship` → merge PR → `/release --dry-run` → `/release`.
+
+## Completion
+
+This command succeeds when the branch has an origin upstream whose tip matches local, the default branch is an ancestor of it, and an open pull request exists whose body carries Summary, Changes, Spec Reference, and Test Results.
+
+Failing tests or unresolved drift do not stop the run — they make the pull request a draft. That is the honest outcome, not a degraded one.
+
+**Terminal constraint:** This command stops at an opened pull request. Do not merge it, request reviewers, or begin the next piece of work.
 
 ---
 
