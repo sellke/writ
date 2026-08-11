@@ -12,6 +12,18 @@
 | `phase-state.py` subcommands | `init, create-lane, validate-result, validate-challenge, record-challenge, resolve-challenge, integrate, set-dependencies, classify, retry, quarantine, reconcile, knowledge-writeback, progress, health, show` |
 | `eval.sh check_length` limits | `spec-lite.md` 100, `commands/_preamble.md` 80, command files 2000 |
 
+## Re-verification at implementation (2026-08-11)
+
+Tasks 2.1, 3.2, and 4.1 require re-deriving the calibration evidence before any number is written. Doing so moved three of the authored figures. **No declared bound changed** — every correction moved the evidence, not the number, and each corrected value is still comfortably under its bound.
+
+| Authored claim | Re-measured | Effect on the bound |
+|---|---|---|
+| Largest phase observed = 4 specs (Phase 7, roadmap-attested, no state file) | `.writ/state/phase-execution-20260811-2030.json` (Phase 10, in flight) has `specOrder` length **5** — the largest phase with a surviving state file | None. 12 > 5. The `implement-phase` citation names this run instead of claiming "largest observed = 4" |
+| 42 `Iteration count` records: 38 at 1, 4 at 2 | 42 records: **39 at 1, 3 at 2**. A 43rd `iteration counts` match is an acceptance-criteria sentence in an archived `/ralph` story, not a record | None. Max observed is still **2**, so 3 keeps one iteration of headroom |
+| Source line numbers (`implement-story.md:595`/`:732`, `agents/*-agent.md:232`/`:225`, `refactor.md:100`, `verify-spec.md:698`) | All shifted by +6 when `2026-08-11-component-contract` added `problem:`/`outcome:`/`exit_criteria:` — now `:601`/`:738`, `:238`/`:231`, `:106`, `:704` | None. Citations quote the **anchor text** rather than depending on a line offset, and the eval check greps content, never line numbers |
+
+Confirmed unchanged: largest story count across the 41 archived specs is **9** (`2026-03-19-command-suite-evolution`); the three `.writ/state/execution-*.json` runs are 4 stories each; `stories_total` across the recorded result files is 4 / 4 / 3; `/refactor` still has **zero** recorded runs anywhere in `.writ/state/`; `commands/verify-spec.md` still contains no re-check step.
+
 ## The existing retry rule this spec must compose with
 
 `scripts/phase-state.py` already owns the only *enforced* loop bound in Writ:
@@ -78,6 +90,58 @@ loop:                           # owned by THIS spec
 ### Why a mapping with optional `nested`, not a list of loops
 
 A bare list (`loop: [ {...}, {...} ]`) would make `loop.max_iterations` unaddressable, breaking both the locked contract's literal wording and the roadmap success criterion *"All 5 loop-bearing commands declare `loop.max_iterations` + `on_exhaustion`"*. A mapping keeps the primary loop at the documented path and pushes multiplicity into an optional key that four of the five commands never use.
+
+### `unit` vs. the roadmap's `loop.bound` — one design, two names
+
+The roadmap feature line names three fields: `loop.bound` / `max_iterations` / `on_exhaustion`. This schema names them `unit` / `max_iterations` / `on_exhaustion`. `unit` **is** what that line called `bound` — the thing being counted, not the number counting it. The rename is deliberate: "bound" reads as the limit, and the limit is `max_iterations`. There is no fourth field and no second design; a reader holding the roadmap and this schema side by side is looking at the same three keys.
+
+### `on_exhaustion`: the closed vocabulary and its output contract
+
+Exactly three values are legal. The set is closed — a fourth value is a schema violation, not an extension point.
+
+| Value | Behavior | Legal where | Required output |
+|---|---|---|---|
+| `quarantine` | Invokes `scripts/phase-state.py quarantine` for the unit — removes the lane worktree, preserves the lane as `writ/quarantine/{spec-id}`, proves the phase branch clean of it, records failure evidence + attempt count + recovery command, marks transitive dependents `skipped_blocked` with `blockedBy`. Adds no new disposition path, no new state field, no new branch-naming rule. | Only on a unit that has a `phase-execution-*.json` record. In this spec that is `implement-phase`'s nested `spec_attempt` and nothing else. | Whatever `phase-state.py quarantine` already writes. Business Rule 3 is satisfied here by reuse, not by new code. |
+| `escalate` | Pauses and presents one bounded `AskQuestion` — the shape `/implement-story` already uses at Gate 1, Gate 4, and the review-loop cap for `STATUS: BLOCKED`. | Anywhere. **Mandatory** wherever continuing past the bound would change scope (Business Rule 5). | `unit`, declared bound, count reached, last completed unit, partial state, and the resume command, all named in the prompt. |
+| `halt_reported` | Stops without asking and writes a named terminal record into a durable artifact that already exists. | Anywhere a durable state file or report section exists to write into. | `unit`, declared bound, count reached, last completed unit, and a **literal** resume command. |
+
+**Why `retry` is excluded.** Retry is the *pre-exhaustion* state, and it is already governed — in code, not prose — by `scripts/phase-state.py`'s `attempts < 2` guard. Admitting `retry` as an `on_exhaustion` value would create a second, weaker retry authority in markdown that contradicts an enforced one in Python. `on_exhaustion` fires only once the retry budget is spent.
+
+**Why no "continue anyway" value.** A value meaning "note the bound and keep going" makes every bound advisory and deletes the reason the key exists. If a loop genuinely needs to run past its bound, the bound is wrong: raise the number and cite the run that justified it (Business Rule 1). That is the ratchet working, not failing.
+
+**No exhaustion path may terminate silently.** All three values produce a named, resumable state. A loop that stops without writing that record has failed this spec even if it stopped at the correct iteration.
+
+### Append-only within the ADR-020 block
+
+`loop:` is a sibling key to `problem:` / `outcome:` / `exit_criteria:` inside the same `---` block, appended after them. This spec does not define, reorder, rename, or validate those three keys, introduces no second frontmatter block, and adds no sidecar file. Validation of `loop:` is identical whether the ADR-020 keys are present or absent, so the two specs may land in either order.
+
+### Fixture set (Story 1 → consumed one-for-one by Story 5)
+
+Each fixture is a `loop:` block plus the verdict the checker must return. Story 5 implements exactly these and invents none.
+
+| Fixture | Block | Expected verdict |
+|---|---|---|
+| `valid-minimal` | `unit`, `max_iterations`, `on_exhaustion`, `calibrated_against`, no `nested` | accepted |
+| `valid-nested` | above plus one `nested` entry with all four keys | accepted |
+| `no-loop-block` | frontmatter with no `loop:` key at all | **skipped** as `deferred_to_check3` — never a finding |
+| `missing-unit` | `unit` omitted | rejected, naming `unit` |
+| `missing-max-iterations` | `max_iterations` omitted | rejected, naming `max_iterations` |
+| `missing-on-exhaustion` | `on_exhaustion` omitted | rejected, naming `on_exhaustion` |
+| `missing-calibrated-against` | `calibrated_against` omitted | rejected, naming `calibrated_against` |
+| `on-exhaustion-retry` | `on_exhaustion: retry` | rejected, **naming `retry` and the reason**: retry is pre-exhaustion, governed by `phase-state.py`'s `attempts < 2` |
+| `on-exhaustion-out-of-set` | `on_exhaustion: continue_anyway` | rejected, naming the value and the legal set |
+| `max-iterations-string` | `max_iterations: "twelve"` | rejected — not a positive integer literal |
+| `max-iterations-range` | `max_iterations: 3-5` | rejected — not a positive integer literal |
+| `max-iterations-zero` | `max_iterations: 0` | rejected — not *positive* |
+| `duplicate-unit` | primary `unit: story` and a nested `unit: story` | rejected, naming the duplicated unit |
+| `nested-in-nested` | a `nested` entry that itself carries `nested` | rejected — one level only |
+| `loop-not-a-mapping` | `loop: 12` | rejected — `loop:` must be a mapping |
+| `nested-missing-key` | a `nested` entry omitting `calibrated_against` | rejected — nested entries carry the same four required keys |
+| `citation-no-path` | `calibrated_against: "seemed about right"` | rejected — needs a path token or the literal `no recorded run` |
+| `quarantine-without-phase-state` | `on_exhaustion: quarantine` on `implement-story` / `refactor` / `verify-spec` | rejected — no `phase-execution-*.json` record exists for that unit |
+| `bound-below-history` | `implement-spec` declaring `max_iterations: 2` against a fixture state file recording 4 stories | rejected, naming the state file and the recorded value |
+| `empty-state-dir` | a state directory containing no run files | **skipped** with a stated reason — never a silent pass |
+| `no-adr020-keys` | `loop:` present, `problem:`/`outcome:`/`exit_criteria:` absent | accepted — validation is independent of the sibling spec |
 
 ## Per-command application
 

@@ -7,6 +7,11 @@ exit_criteria:
   - "in default mode .writ/specs/<spec>/verification-YYYY-MM-DD.md exists with an eight-row check table plus Issues Found & Resolved and Outstanding Warnings sections"
   - "every finding appears under exactly one of those two sections — auto-fixed, or left open and named with its check number"
   - "any regenerated spec-lite.md is a whole-file replacement carrying its regeneration date marker, and spec.md is byte-identical to its pre-run state"
+loop:
+  unit: "autofix_pass"
+  max_iterations: 1
+  on_exhaustion: halt_reported
+  calibrated_against: "Single-pass by construction: commands/verify-spec.md runs Phase 2 (checks 1-8) then Phase 4 (auto-fixes 4.1-4.4) then Phase 5 (report file), and contains no re-check, re-run, or re-verify step - the only 'again' in the file describes /release invoking checks 1-8 through its own entry point, which is a separate entry point and not a loop. Declaring 1 codifies what the file already does and can break no recorded run. Evidence: strong by construction. Read this as a declaration, not a mitigation - this command has no runaway loop and none has ever been observed. If a re-check pass is ever added, this bound is wrong and must be re-derived."
 ---
 
 # Verify Spec Command (verify-spec)
@@ -474,6 +479,8 @@ If Check 7 flagged divergence **and** mode is default (not `--check`), or if `--
 4. Write the full file — always a complete replacement, never a partial patch
 
 `spec.md` is never modified by this step — it is always the source, never the target.
+
+**Iteration bound:** auto-fix is bounded at `loop.max_iterations` (1) **pass**. This is a declaration of existing behavior, not a mitigation — Phase 4 runs once and there is no re-check step for it to loop back into. On exhaustion, `loop.on_exhaustion: halt_reported` applies: if a fix applied here would itself require re-running Phase 2 to confirm (today an unreachable branch), do not run a second pass. Record the finding as unresolved under **Outstanding Warnings** in the Phase 5 report file, naming the unit (`autofix_pass`), the bound, the pass reached, the last fix applied, and `/verify-spec` as the resume command. No new report artifact is introduced. `--product` mode's Check P3 regeneration is the same single pass and needs no separate bound.
 
 ---
 

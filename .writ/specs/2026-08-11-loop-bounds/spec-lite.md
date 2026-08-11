@@ -28,13 +28,13 @@ loop:
 
 | Command | unit | max | on_exhaustion | Evidence quality |
 |---|---|---|---|---|
-| `implement-phase` | `spec` | 12 | `halt_reported` | Thin — Phase 9 = 3 specs (state file), Phase 7 = 4 (roadmap only). Max observed 4 |
+| `implement-phase` | `spec` | 12 | `halt_reported` | Thin — Phase 9 = 3 specs, Phase 10 = 5 (both state files), Phase 7 = 4 (roadmap only). Max observed 5 |
 | ↳ nested | `spec_attempt` | 2 | `quarantine` | Strong — transcribes `phase-state.py` `attempts < 2` |
 | `implement-spec` | `story` | 12 | `halt_reported` | Strongest — max of 41 archived specs = 9; 6 recorded runs ≤ 4 |
-| `implement-story` | `review_cycle` | 3 | `escalate` | Strong — 42 records: 38×1, 4×2; max observed 2 |
-| ↳ nested | `testing_cycle` | 2 | `escalate` | Adequate — transcribes `implement-story.md:732` |
+| `implement-story` | `review_cycle` | 3 | `escalate` | Strong — 42 records: 39×1, 3×2; max observed 2 |
+| ↳ nested | `testing_cycle` | 2 | `escalate` | Adequate — transcribes the '2 fix iterations max' prose cap |
 | ↳ nested | `agent_self_fix` | 3 | `escalate` | Strong — transcribes `MAX_SELF_FIX_ITERATIONS = 3` |
-| `refactor` | `change` | 10 | `halt_reported` | **Weak — zero recorded runs.** Anchor: `refactor.md:100` "7+ changes" advisory |
+| `refactor` | `change` | 10 | `halt_reported` | **Weak — zero recorded runs.** Anchor: `refactor.md`'s "7+ changes" advisory |
 | `verify-spec` | `autofix_pass` | 1 | `halt_reported` | Strong by construction — single-pass today, no re-check step exists |
 
 **Files in Scope:** `commands/implement-phase.md`, `commands/implement-spec.md`, `commands/implement-story.md`, `commands/refactor.md`, `commands/verify-spec.md` (frontmatter + one prose sentence each); new `scripts/eval-loop-bounds.py`; `scripts/eval.sh` (`--check=loop-bounds` wiring).

@@ -1,6 +1,6 @@
 # Story 3: Bounds on implement-story's Gate-Retry Cycles
 
-> **Status:** Not Started
+> **Status:** Completed
 > **Priority:** High
 > **Dependencies:** Story 1
 
@@ -12,21 +12,21 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `commands/implement-story.md`, when its frontmatter is read, then `loop.unit` is `review_cycle`, `loop.max_iterations` is `3`, `loop.on_exhaustion` is `escalate`, and `loop.calibrated_against` cites both `commands/implement-story.md:595` (the existing prose cap) and the 42 recorded `Iteration count` values (38 at 1, 4 at 2; max observed 2).
-- [ ] Given the same frontmatter, when `nested` is read, then it declares exactly two entries: `testing_cycle` at `max_iterations: 2` citing `implement-story.md:732`, and `agent_self_fix` at `max_iterations: 3` citing `MAX_SELF_FIX_ITERATIONS = 3` in `agents/coding-agent.md:232` and `agents/testing-agent.md:225` — both with `on_exhaustion: escalate`.
-- [ ] Given all three declared numbers, when they are compared against their sources, then each equals its source exactly — no number in this story is newly derived, and the declared values would not have tripped any of the 42 recorded story runs.
-- [ ] Given the `review_cycle` counter, when its semantics are documented, then it is stated as **one shared counter across four increment sites** — Gate 3 FAIL, Gate 3.5 "Reject", Gate 3.5 "Modify spec", and Gate 4.5 FAIL — and not as four independent budgets.
-- [ ] Given any of the three caps is reached, when the loop exhausts, then `escalate` presents one bounded `AskQuestion` naming the loop, the bound, the count reached, and the partial state — preserving the existing behavior at `implement-story.md:940–942` and Gates 1 and 4 rather than replacing it, and never silently continuing past a cap.
-- [ ] Given progressive-disclosure work later restructures this 961-line file, when the frontmatter is validated, then it still passes — validation reads frontmatter only and depends on no body line number.
+- [x] Given `commands/implement-story.md`, when its frontmatter is read, then `loop.unit` is `review_cycle`, `loop.max_iterations` is `3`, `loop.on_exhaustion` is `escalate`, and `loop.calibrated_against` cites both `commands/implement-story.md:595` (the existing prose cap) and the 42 recorded `Iteration count` values (38 at 1, 4 at 2; max observed 2).
+- [x] Given the same frontmatter, when `nested` is read, then it declares exactly two entries: `testing_cycle` at `max_iterations: 2` citing `implement-story.md:732`, and `agent_self_fix` at `max_iterations: 3` citing `MAX_SELF_FIX_ITERATIONS = 3` in `agents/coding-agent.md:232` and `agents/testing-agent.md:225` — both with `on_exhaustion: escalate`.
+- [x] Given all three declared numbers, when they are compared against their sources, then each equals its source exactly — no number in this story is newly derived, and the declared values would not have tripped any of the 42 recorded story runs.
+- [x] Given the `review_cycle` counter, when its semantics are documented, then it is stated as **one shared counter across four increment sites** — Gate 3 FAIL, Gate 3.5 "Reject", Gate 3.5 "Modify spec", and Gate 4.5 FAIL — and not as four independent budgets.
+- [x] Given any of the three caps is reached, when the loop exhausts, then `escalate` presents one bounded `AskQuestion` naming the loop, the bound, the count reached, and the partial state — preserving the existing behavior at `implement-story.md:940–942` and Gates 1 and 4 rather than replacing it, and never silently continuing past a cap.
+- [x] Given progressive-disclosure work later restructures this 961-line file, when the frontmatter is validated, then it still passes — validation reads frontmatter only and depends on no body line number.
 
 ## Implementation Tasks
 
-- [ ] 3.1 Re-verify all three source values before writing them: `commands/implement-story.md:595` and `:732`, and `MAX_SELF_FIX_ITERATIONS = 3` in `agents/coding-agent.md:232` + `agents/testing-agent.md:225`, confirming both agent files still agree
-- [ ] 3.2 Re-verify the calibration evidence by re-collecting the `Iteration count` records across `.writ/specs/archive/*/user-stories/*.md` and confirming the maximum is still 2, so 3 retains one iteration of headroom
-- [ ] 3.3 Append the `loop:` block with its two `nested` entries to `commands/implement-story.md`'s existing `---` frontmatter, touching no other key
-- [ ] 3.4 Document the shared-counter semantics of `review_cycle` — four increment sites, one budget — in the frontmatter's `unit` description or the adjacent prose, so a reader cannot infer four separate caps
-- [ ] 3.5 Confirm every `escalate` path already exists and preserve it: the Gate 1 and Gate 4 `STATUS: BLOCKED` `AskQuestion` blocks and the review-loop escalation at `:940–942` are the implementation of `on_exhaustion: escalate`, and this story declares them rather than rewriting them
-- [ ] 3.6 Verify acceptance criteria are met, including a cross-read assertion binding each declared number to its source file so a future edit to either side is caught as drift
+- [x] 3.1 Re-verify all three source values before writing them: `commands/implement-story.md:595` and `:732`, and `MAX_SELF_FIX_ITERATIONS = 3` in `agents/coding-agent.md:232` + `agents/testing-agent.md:225`, confirming both agent files still agree
+- [x] 3.2 Re-verify the calibration evidence by re-collecting the `Iteration count` records across `.writ/specs/archive/*/user-stories/*.md` and confirming the maximum is still 2, so 3 retains one iteration of headroom
+- [x] 3.3 Append the `loop:` block with its two `nested` entries to `commands/implement-story.md`'s existing `---` frontmatter, touching no other key
+- [x] 3.4 Document the shared-counter semantics of `review_cycle` — four increment sites, one budget — in the frontmatter's `unit` description or the adjacent prose, so a reader cannot infer four separate caps
+- [x] 3.5 Confirm every `escalate` path already exists and preserve it: the Gate 1 and Gate 4 `STATUS: BLOCKED` `AskQuestion` blocks and the review-loop escalation at `:940–942` are the implementation of `on_exhaustion: escalate`, and this story declares them rather than rewriting them
+- [x] 3.6 Verify acceptance criteria are met, including a cross-read assertion binding each declared number to its source file so a future edit to either side is caught as drift
 
 ## Notes
 
@@ -49,13 +49,23 @@
 - Story 5's cross-read assertions verify all three numbers against their sources.
 - Must survive the ADR-021 restructuring of this file; coordinate only to the extent of keeping the frontmatter block intact.
 
+**Implementation record (2026-08-11):**
+
+- **Task 3.1: all three source values re-verified and unchanged.** The review-loop cap ("Max 3 iterations across review and visual QA gates") and the Gate 4 cap ("2 fix iterations max") are both still in the file; `MAX_SELF_FIX_ITERATIONS = 3` is still declared in **both** `agents/coding-agent.md` and `agents/testing-agent.md` and they still agree. Every cited line number had shifted +6 when `2026-08-11-component-contract` added `problem:`/`outcome:`/`exit_criteria:` (`:595` -> `:601`, `:732` -> `:738`, `:774` -> `:780`, `:940-942` -> `:946-948`, coding-agent `:232` -> `:238`, testing-agent `:225` -> `:231`).
+- **Because of that shift, `calibrated_against` cites anchor text, not line numbers.** Every citation quotes the literal sentence it transcribes. A line offset would have been stale within one merge and would break again under the ADR-021 restructuring this file is first in line for; the quoted text survives both, and Story 5's cross-read greps content.
+- **Task 3.2 re-collection corrected the distribution, not the maximum.** Re-running the collection over `.writ/specs/archive/*/user-stories/*.md` gives **42 records: 39 at 1 iteration, 3 at 2** — not the authored 38/4. (A 43rd `iteration counts` match is an acceptance-criteria sentence in an archived `/ralph` story, not a record.) The load-bearing fact is unchanged: **maximum ever observed = 2**, so 3 retains exactly one iteration of headroom and would not have tripped any of the 42 runs.
+- **Shared-counter semantics are stated in both carriers.** The frontmatter `calibrated_against` names the four increment sites and says "not four separate budgets"; the Gate 3 prose gained the same sentence, because a reader mid-run is looking at the prose, not the frontmatter.
+- **Nothing was rewritten into existence.** All three `on_exhaustion` values are `escalate` because the escalations already exist — the Gate 1 and Gate 4 `STATUS: BLOCKED` `AskQuestion` blocks and the review-loop escalation. `quarantine` is illegal here (no `phase-execution-*.json` record exists for a story) and `halt_reported` would have been a behavioral regression.
+- **The `testing_cycle` citation says its evidence is only adequate** and states that the original derivation of the 2 is recorded nowhere. Fabricating a justification for it was the specific temptation this story named.
+- **Measured cost:** `commands/implement-story.md` 975 -> 989 lines — 14 frontmatter lines, zero net prose lines (the Gate 3 sentence was extended in place). `grep -c '^---$'` unchanged at 18.
+
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

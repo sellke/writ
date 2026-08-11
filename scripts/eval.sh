@@ -53,6 +53,7 @@ CHECKS=(
   revert
   leanness
   artifact-integrity
+  loop-bounds
 )
 
 TOTAL_FINDINGS=0
@@ -2860,6 +2861,55 @@ PY
   done < "$tsv"
 
   rm -f "$json" "$tsv"
+}
+
+check_loop_bounds() {
+  # Loop-bound CORRECTNESS (spec 2026-08-11-loop-bounds, Story 5). Presence —
+  # "is a loop: block there at all" — belongs to 2026-08-11-governor-instrumentation
+  # Check 3, and this check deliberately does not duplicate it: a file with no
+  # loop: block is SKIPped as deferred_to_check3. What this asserts is that a
+  # declared bound is legally valued, honestly cited, calibrated against every
+  # recorded run in .writ/state/, and still equal to the source it transcribes.
+  #
+  # SKIP lines become non-blocking notes rather than being dropped. The two that
+  # skip routinely — the historical-run comparison when .writ/state/ is empty
+  # (it is gitignored, so CI never has it) and the governor boundary before that
+  # spec lands — are exactly the cases where a silent pass would reproduce the
+  # failure ADR-020 diagnosed, so they must stay visible in the report.
+  local fake="$PROJECT_ROOT/scripts/eval-loop-bounds.py"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  if [ ! -f "$fake" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-loop-bounds.py" "loop-bounds asserter is missing." "Restore scripts/eval-loop-bounds.py (loop-bounds spec, Story 5)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "loop-bounds:$scenario_name" "$scenario_reason" "Correct the declared bound or its citation — never exempt it."
+        ;;
+      SKIP)
+        add_note "SKIPPED [$scenario_name]: $scenario_reason"
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Deliberately NO presence assertion here. "Is a loop: block there?" is
+  # Check 3's finding in 2026-08-11-governor-instrumentation. Adding a
+  # require_literal for 'loop:' would report the same missing block twice,
+  # which is how a check registry becomes noise a maintainer learns to skim.
 }
 
 run_check() {
