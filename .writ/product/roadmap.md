@@ -1,10 +1,22 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-07-19
+> Last Updated: 2026-08-11
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
+**Current status (2026-08-11):** Phases 1–9 shipped or implemented. **Phase 10 — Component Contract & Progressive Disclosure is the committed phase in flight** — planned, not yet started (see the Phase 10 section below).
+
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
+
+**Posture addendum (2026-08-11, Phase 10):** *Self-improving, token-efficient, and maximally autonomous — except where taste and agency require humans.* Phase 10 turns "keep the harness light" from a stated intent into a measured, enforced property. The trigger was a maintainer concern raised as **explicitly unverified** ("too prescriptive in some ways, not deterministic enough in others"); per the Prime Directive it was measured before planning, and **both halves verified** — the command surface is 516,589 chars (~129k tokens) while **0 of 5** loop-bearing commands declare any iteration bound. See [ADR-020](../decision-records/adr-020-component-contract.md), [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md), [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md).
+
+### Revision Log
+
+| Date | Change |
+|---|---|
+| 2026-08-11 | **Phase 10 added** (Component Contract & Progressive Disclosure) via `/plan-product`. Parking lot renamed *Beyond Phase 9* → *Beyond Phase 10*; effort-sizing `L` row filled (was "none currently planned"); pacing discipline extended. Three new ADRs: 020, 021, 022. |
+| 2026-07-19 | Phase 9 (Git-Native Provenance & Recovery) recorded as implemented. |
+| 2026-07-10 | Strategic refresh from the 2026 harness audit (ADR-010 → ADR-013). |
 
 ---
 
@@ -289,7 +301,84 @@ not block Phase 9 planning, but the "done vs released" gap is real and
 
 ---
 
-## Beyond Phase 9 (Parking Lot)
+## Phase 10: Component Contract & Progressive Disclosure (3-5 weeks) — 📋 Planned (2026-08-11)
+
+**Posture:** Self-improving framework that is token-efficient and maximally autonomous — except where taste and agency require humans.
+
+**Problem (measured, not assumed).** The framework is simultaneously *over-specified in prose* and *under-specified in contract*. The driving concern was raised as explicitly unverified; per the Prime Directive it was measured before planning:
+
+| Measure | Value |
+|---|---|
+| `commands/` surface | 516,589 chars / 10,996 lines / 32 files (≈129k tokens at chars/4) |
+| Top 6 command files | 205,104 chars = **40% of all command bytes** |
+| Worst offender | `commands/implement-story.md` — 49,360 chars / 961 lines (≈12.3k tokens loaded before any work begins) |
+| Commands declaring a goal/problem heading | **2 of 32** (`new-skill`, `status`) |
+| Commands with `## Completion` | **13 of 32** — despite `new-command.md` already mandating it (19 violate Writ's own template) |
+| Loop-bearing commands declaring an iteration bound | **0 of 5** (`implement-phase`, `implement-spec`, `implement-story`, `refactor`, `verify-spec`) |
+
+**Why the existing governor did not catch this.** `eval-leanness.py` measures the full surface and `eval.sh check_length` bounds per-file length — but the command limit is **2000 lines against a worst offender of 961**, so it can never bind (`_preamble.md` gets 80; `spec-lite.md` gets 100). Surface growth lands in `warnings` (non-blocking, exit 0) and is a *delta ratchet against a baseline*, not an absolute budget — four unjustified-growth warnings are live and have been ignored. Nothing anywhere asserts that a command declares a goal, exit criteria, or a loop bound.
+
+**Mission alignment.** `mission.md` positions Writ as *"the **thin**, portable methodology layer."* 516KB of command prose falsifies "thin" by measurement. Phase 10 is not a new direction — it is the phase that makes the existing mission true.
+
+### Success Criteria
+
+Machine-checkable unless marked otherwise:
+
+- `eval.sh` exits 0 with **0 findings and 0 unjustified growth warnings**
+- No command file exceeds **400 lines** without a tracked exemption (`file_has_exemption` convention)
+- **All 31 commands** declare `problem` / `outcome` / `exit_criteria` in frontmatter
+- **All 31 commands** carry a `## Completion` section (closes the 19-file template violation)
+- **All 5** loop-bearing commands declare `loop.max_iterations` + `on_exhaustion`
+- Every `required_skills:` entry resolves to a real `skills/<name>/SKILL.md`
+- `bash scripts/gen-skill.sh --check` passes (manifest/SKILL.md consistency restored)
+- `per_surface.commands.chars` drops materially from 516,589 — **measured per-invocation load, not just file size** (see caveat 2)
+- *(manual)* One real `/implement-story` run completes with progressive disclosure active and every gate firing
+
+### Features
+
+- [ ] **Component contract** `Effort: M` — `problem:` / `outcome:` / `exit_criteria:` in the frontmatter that already exists in 32/32 commands; same fields in agents' existing fenced Agent Configuration block (the `model_tier` carrier — no new mechanism). Skills already comply in shape; lint asserts `## Purpose` + `## When to Use`. See [ADR-020](../decision-records/adr-020-component-contract.md).
+- [ ] **Loop bounds** `Effort: S` — `loop.bound` / `max_iterations` / `on_exhaustion` on the five verified-unbounded commands, wired to `phase-state.py`'s existing `retry` / `quarantine` paths rather than new failure handling. Highest-severity gap; independent of the token work.
+- [ ] **Progressive disclosure** `Effort: L` — thin command contract (frontmatter, Overview, Invocation, phase list with gate names, Completion, References); per-phase procedural detail extracts to `skills/<name>/SKILL.md` via `/new-skill`, loaded on demand through `required_skills:`. Top 6 files in descending size order, `implement-story` first. See [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md).
+- [ ] **Make the governor bite** `Effort: S-M` — `check_length` command limit 2000 → 400 (single highest-leverage line change in the phase); new blocking `structural` checks for contract presence, Completion presence, loop bounds, and `required_skills:` resolution; absolute `per_surface.commands.chars` cap so growth fails rather than warns; extend `status:`/`evidence:` (ADR-014 vocabulary) to commands and agents so `/refresh-command`'s existing Evidence Gate accrues per-component evidence.
+- [ ] **Retire dead prescription** `Effort: XS-S` — correct the false *"no frontmatter … (verified 0/31 files)"* claim in `system-instructions.md` (32/32 now have it); resolve the **8-days-overdue** `required_skills:` review trigger (2026-08-03) by **adoption rather than deprecation**; re-decide `model_tier` ordinal-offset reservation ahead of its 2026-10-16 trigger; fix `.writ/manifest.yaml` (`version: 0.13.1` → `0.28.0`, 44 entries → 31 commands); formally deprecate `.writ/product/decisions.md`.
+- [ ] **Autonomy boundary** `Effort: XS` — gate-class table in `_preamble.md` extending ADR-013's evidence-based select-or-pause boundary rather than replacing it. See [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md).
+
+### Autonomy Gate Classes
+
+| Class | Behavior |
+|---|---|
+| Product & spec direction | **Human gate** — contract lock stays an explicit human action |
+| Production boundary (merge / PR / release / tag) | **Human gate** — already Prime Directive |
+| Design & UX judgment | **Human gate** — taste is not evidence-decidable |
+| Destructive / irreversible | **Autonomous with reversibility precondition** — provably git-revertable and restore path recorded before acting |
+| Everything else | **Autonomous** within ADR-013's evidence boundary, with audit rationale |
+
+> The destructive class is deliberately *not* a human gate — a maintainer decision recorded in [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md). The reversibility precondition is what keeps it inside ADR-013's "low-risk, reversible, defensible evidence" boundary instead of punching a hole in it.
+
+### Dependencies
+
+- **Retire dead prescription** and **component contract** land first — correcting the stale root contract and defining the contract are prerequisites for everything else.
+- **Loop bounds** next; independent of the token work.
+- **Governor checks land as `warnings` first**, flipping to `structural` only once the contract/disclosure work brings the surface into compliance. Landing them blocking on day one turns every eval run red, and a permanently-red gate becomes invisible — which is precisely how the current four growth warnings were ignored.
+- **Progressive disclosure** is the long pole: one spec per file, 6 files. First planned `L` in this roadmap.
+
+### Out of Scope (deliberately)
+
+- Rewriting commands' *substance*. This phase relocates and contracts procedure; it does not redesign workflows.
+- Activating the third-party skill trust model (ADR-018 remains reserve-only).
+- Cutting commands from the surface. The goal-orientation audit may *reveal* redundancy, but consolidation is a separate decision, not a Phase 10 deliverable.
+- Building any new validation harness — `eval.sh`, `eval-leanness.py`, `lint-skill.sh`, `check-agent-parity.sh`, and `phase-state.py` already exist and are extended, not replaced.
+
+### Honest Caveats (recorded at plan time)
+
+1. **chars/4 is an estimate, not a tokenizer count.** If exact accounting matters for the budget number, tokenize before fixing 400 lines as the cap.
+2. **Progressive disclosure can raise total tokens.** It trades one large upfront load for several conditional loads; a command that ends up needing every skill costs *more*. The success criterion must be measured per-invocation load, and `implement-story` is the likeliest case to bite.
+3. **400 lines is derived from current distribution** (median ~250, max 961), not from a measured quality threshold. Expect to tune it after 2-3 real extractions.
+4. **Extracted skills are born `status: candidate`.** Promotion to `proven` accrues from real use afterward, so this phase does not close the lifecycle loop by itself.
+
+---
+
+## Beyond Phase 10 (Parking Lot)
 
 **Kept as candidates:**
 - **Cross-project learning corpus** — extension of the knowledge ledger once consolidation is proven
@@ -313,13 +402,15 @@ not block Phase 9 planning, but the "done vs released" gap is real and
 |------|----------|---------|
 | **XS** | 1-2 days | `/status` health line, User Challenge framing |
 | **S** | 3-5 days | Quarantine branching, `dependencies:` frontmatter, adapter memory guidance |
-| **M** | 1-2 weeks | Fresh context per spec, skill extraction, evidence-bound `/refresh-command` |
-| **L** | 3-4 weeks | (none currently planned) |
+| **M** | 1-2 weeks | Fresh context per spec, skill extraction, evidence-bound `/refresh-command`, component contract |
+| **L** | 3-4 weeks | Progressive disclosure of the top 6 command files (Phase 10) |
 | **XL** | 1+ months | (reserved) |
 
 ### Pacing Discipline
 
 Phases 6-8 total roughly 4-7 weeks of focused work at solo-maintainer pace. Each phase ships independently; bundling them is the failure mode to avoid (research addendum Risk #1: solo-maintainer asymmetry).
+
+Phase 10 is 3-5 weeks, and its long pole (progressive disclosure) decomposes into **one spec per command file** for exactly this reason — six independently shippable units rather than one bundled rewrite. The phase's own sequencing note (governor checks land as warnings before blocking) is the same discipline applied to enforcement.
 
 ---
 

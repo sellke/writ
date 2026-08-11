@@ -1,13 +1,16 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-07-17
+> Last Updated: 2026-08-11
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
+> Last Revision: 2026-08-11 — Phase 10 planning reconciled the "thin layer" claim against measurement (see ADR-020, ADR-021, ADR-022)
 
 ## Pitch
 
 Writ is the thin, portable methodology layer on top of increasingly capable AI harnesses. It owns the durable contracts of software development — specs, drift logs, decisions, knowledge, phase state — and delegates the mechanics (context management, subagent plumbing, browsing, retrieval) to whatever platform is underneath. The result is code, methodology, and accumulated knowledge that don't degrade as the project, team, or AI platform changes around them.
+
+> **"Thin" is an aspiration this document must keep earning.** Measured 2026-08-11: the command surface is 516,589 chars / 10,996 lines across 32 files — roughly 129k tokens, with `implement-story.md` alone at ~12.3k tokens loaded before any work begins. That is not thin. **Phase 10 (Component Contract & Progressive Disclosure) exists to close the gap between this claim and the measurement**, by moving procedural detail into on-demand skills and giving the leanness governor an absolute budget that actually binds. Until Phase 10 ships, treat "thin" as the target, not the state. See [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md).
 
 AI coding tools made generating code trivially easy and building durable software harder. In 2026 the harnesses themselves are strong: native memory, native skills, native subagents, native planning modes. What no harness provides is the **negotiated contract layer** — the structured agreement about what gets built, how deviations reconcile, and how knowledge compounds. Writ is that layer, in plain markdown, on git, portable across every platform.
 
@@ -117,8 +120,21 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed.
 - **Native-memory guidance per adapter:** How Writ's ledger relates to Cursor memories, Claude Code memdir, and other native layers — the ledger is the reviewable layer that feeds them.
 
+### Phase 9 — Git-Native Provenance & Recovery (✅ implemented)
+
+- **Git-notes audit channel:** Audit trail written to `git notes`, not a parallel ledger — provenance lives where the code lives.
+- **Logical-unit revert:** `/revert` unwinds a story or a whole spec as a coherent unit, restoring Writ artifacts alongside the code.
+- **Artifact-integrity handshake:** Commands verify declared Required Artifacts before doing work — HALT on required-missing, degraded mode on optional-missing.
+
+### Phase 10 — Component Contract & Progressive Disclosure (📋 planned)
+
+- **Component contract:** Every command, agent, and skill declares the problem it addresses, the outcome it produces, and its exit criteria — machine-checked, in the frontmatter that already exists.
+- **Loop bounds:** Every loop declares `max_iterations` and `on_exhaustion`. Measured 2026-08-11: **0 of 5** loop-bearing commands had any bound. This is the sharpest determinism gap in the framework.
+- **Progressive disclosure:** Command files shrink to a thin contract; procedural detail moves into on-demand skills via `required_skills:` — finally giving that reserved convention a real consumer instead of deprecating it.
+- **A governor that bites:** The leanness limit was 2000 lines against a 961-line worst offender, and growth warnings were non-blocking. Phase 10 replaces a delta ratchet with an absolute budget.
+
 ### Next Horizon
 
-No committed phase is in flight — Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop). The next candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2 expansion), pulled forward only on concrete signal.
+Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native. **Phase 10 is the committed phase in flight** — it turns this document's "thin, portable" claim from aspiration into measured fact. Candidates beyond it live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2 expansion), pulled forward only on concrete signal.
 
 > **Parking lot:** Cross-project learning corpus, autonomous refactoring, team affordances (cross-dev drift reconciliation, `/review-spec`) — deferred until concrete signal per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
