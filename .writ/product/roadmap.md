@@ -14,7 +14,7 @@
 
 | Date | Change |
 |---|---|
-| 2026-08-11 | **Phase 10 added** (Component Contract & Progressive Disclosure) via `/plan-product`. Parking lot renamed *Beyond Phase 9* → *Beyond Phase 10*; effort-sizing `L` row filled (was "none currently planned"); pacing discipline extended. Three new ADRs: 020, 021, 022. |
+| 2026-08-11 | **Phase 10 added** (Component Contract & Progressive Disclosure) via `/plan-product`. Parking lot renamed *Beyond Phase 9* → *Beyond Phase 10*; effort-sizing `L` row filled (was "none currently planned"); pacing discipline extended. Three new ADRs: 020, 021, 022. Phase 10's `## Completion` mandate framing corrected the same day — `new-command.md` never mandated it; see [ADR-020 Amendments](../decision-records/adr-020-component-contract.md#amendments). |
 | 2026-07-19 | Phase 9 (Git-Native Provenance & Recovery) recorded as implemented. |
 | 2026-07-10 | Strategic refresh from the 2026 harness audit (ADR-010 → ADR-013). |
 
@@ -313,7 +313,7 @@ not block Phase 9 planning, but the "done vs released" gap is real and
 | Top 6 command files | 205,104 chars = **40% of all command bytes** |
 | Worst offender | `commands/implement-story.md` — 49,360 chars / 961 lines (≈12.3k tokens loaded before any work begins) |
 | Commands declaring a goal/problem heading | **2 of 32** (`new-skill`, `status`) |
-| Commands with `## Completion` | **13 of 32** — despite `new-command.md` already mandating it (19 violate Writ's own template) |
+| Commands with `## Completion` | **13 of 32** — an emergent convention: `new-command.md` does not mandate it and nothing checks it |
 | Loop-bearing commands declaring an iteration bound | **0 of 5** (`implement-phase`, `implement-spec`, `implement-story`, `refactor`, `verify-spec`) |
 
 **Why the existing governor did not catch this.** `eval-leanness.py` measures the full surface and `eval.sh check_length` bounds per-file length — but the command limit is **2000 lines against a worst offender of 961**, so it can never bind (`_preamble.md` gets 80; `spec-lite.md` gets 100). Surface growth lands in `warnings` (non-blocking, exit 0) and is a *delta ratchet against a baseline*, not an absolute budget — four unjustified-growth warnings are live and have been ignored. Nothing anywhere asserts that a command declares a goal, exit criteria, or a loop bound.
@@ -327,7 +327,7 @@ Machine-checkable unless marked otherwise:
 - `eval.sh` exits 0 with **0 findings and 0 unjustified growth warnings**
 - No command file exceeds **400 lines** without a tracked exemption (`file_has_exemption` convention)
 - **All 31 commands** declare `problem` / `outcome` / `exit_criteria` in frontmatter
-- **All 31 commands** carry a `## Completion` section (closes the 19-file template violation)
+- **All 31 commands** carry a `## Completion` section, and `new-command.md` mandates it for generated commands (18 sections written; the mandate is created, not enforced)
 - **All 5** loop-bearing commands declare `loop.max_iterations` + `on_exhaustion`
 - Every `required_skills:` entry resolves to a real `skills/<name>/SKILL.md`
 - `bash scripts/gen-skill.sh --check` passes (manifest/SKILL.md consistency restored)
@@ -340,7 +340,7 @@ Machine-checkable unless marked otherwise:
 - [ ] **Loop bounds** `Effort: S` — `loop.bound` / `max_iterations` / `on_exhaustion` on the five verified-unbounded commands, wired to `phase-state.py`'s existing `retry` / `quarantine` paths rather than new failure handling. Highest-severity gap; independent of the token work.
 - [ ] **Progressive disclosure** `Effort: L` — thin command contract (frontmatter, Overview, Invocation, phase list with gate names, Completion, References); per-phase procedural detail extracts to `skills/<name>/SKILL.md` via `/new-skill`, loaded on demand through `required_skills:`. Top 6 files in descending size order, `implement-story` first. See [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md).
 - [ ] **Make the governor bite** `Effort: S-M` — `check_length` command limit 2000 → 400 (single highest-leverage line change in the phase); new blocking `structural` checks for contract presence, Completion presence, loop bounds, and `required_skills:` resolution; absolute `per_surface.commands.chars` cap so growth fails rather than warns; extend `status:`/`evidence:` (ADR-014 vocabulary) to commands and agents so `/refresh-command`'s existing Evidence Gate accrues per-component evidence.
-- [ ] **Retire dead prescription** `Effort: XS-S` — correct the false *"no frontmatter … (verified 0/31 files)"* claim in `system-instructions.md` (32/32 now have it); resolve the **8-days-overdue** `required_skills:` review trigger (2026-08-03) by **adoption rather than deprecation**; re-decide `model_tier` ordinal-offset reservation ahead of its 2026-10-16 trigger; fix `.writ/manifest.yaml` (`version: 0.13.1` → `0.28.0`, 44 entries → 31 commands); formally deprecate `.writ/product/decisions.md`.
+- [ ] **Retire dead prescription** `Effort: XS-S` — correct the stale no-frontmatter claim in `system-instructions.md` (32/32 commands carry it); resolve the **8-days-overdue** `required_skills:` review trigger (2026-08-03) by **adoption rather than deprecation**; re-decide `model_tier` ordinal-offset reservation ahead of its 2026-10-16 trigger; fix `.writ/manifest.yaml` (`version: 0.13.1` → `0.28.0`, 44 entries → 31 commands); formally deprecate `.writ/product/decisions.md`.
 - [ ] **Autonomy boundary** `Effort: XS` — gate-class table in `_preamble.md` extending ADR-013's evidence-based select-or-pause boundary rather than replacing it. See [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md).
 
 ### Autonomy Gate Classes

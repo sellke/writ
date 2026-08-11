@@ -1,6 +1,12 @@
 ---
 name: new-command
 description: "Create a new Writ command contract-first, challenging whether it is needed and surfacing overlap with existing commands before writing files."
+problem: "New commands get written ad hoc — duplicating a command that already exists, or shipping without the structure the rest of commands/ carries."
+outcome: "One agreed commands/<name>.md exists, structurally consistent with its neighbours and cross-referenced from the commands it relates to."
+exit_criteria:
+  - "commands/<name>.md exists and carries Overview, Invocation, Command Process, Integration with Writ, Completion, and References headings"
+  - "no other file in commands/ declares the same name: value"
+  - "the generated frontmatter carries problem, outcome, and exit_criteria, and the file's ## Completion section precedes its final ## References"
 ---
 
 # New Command Creator (new-command)
@@ -140,6 +146,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 | **Command Process** | The workflow — phases, steps, decision points. Contract-style commands get Phase 1 (discovery) and Phase 2 (execution). Direct commands get a linear step sequence. |
 | **Core rules or conventions** | Non-obvious constraints, quality bars, patterns to follow |
 | **Integration with Writ** | Table mapping relationships to other commands |
+| **Completion** | The command's terminal condition — what is true when it has succeeded, whether a zero result is valid, and, where the command produces something an agent would otherwise volunteer to act on, a **Terminal constraint** line naming what it does *not* do next |
 | **References** | Final section linking to `commands/_preamble.md` and `system-instructions.md` |
 
 **Model tier note (every generated command):** every generated command documents the `model_tier` convention. Command files carry `---` YAML frontmatter, so weight intent ships as a `model_tier:` field alongside the existing `name:` and `description:` keys, per `system-instructions.md` § Model Tiers:
@@ -153,6 +160,23 @@ model_tier: <tier>
 ```
 
 Pick `<tier>` contextually from the command's nature — `orchestration` for heavy, multi-phase commands that coordinate other work (e.g. `/implement-spec`), `capability` for narrow, single-purpose commands. Default to `orchestration` when the command's weight is unclear or genuinely mixed. This is advisory documentation only — Writ has no mechanism to select a model for a command, so the field never resolves to anything at runtime. See [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md) and [`.writ/docs/model-tiers.md`](../.writ/docs/model-tiers.md).
+
+**Component contract (every generated command):** the frontmatter also declares `problem:`, `outcome:`, and `exit_criteria:` — appended after the last existing key, in that fixed order, within a 7-line ceiling (2–4 criteria entries; three is the expected shape). `problem:` and `outcome:` are one sentence each, no block scalars. Full schema, both carriers, and the budget derivation: [`.writ/docs/component-contract.md`](../.writ/docs/component-contract.md).
+
+```yaml
+problem: "what goes wrong without this command"
+outcome: "the artifact or state that exists once it has run"
+exit_criteria:
+  - "a present-tense assertion about post-run state"
+```
+
+**Authoring `exit_criteria` is where this either works or becomes filler.** Each entry must name something a script could check — a path, a field value, a count, a process outcome, a git-observable state — and must survive two tests:
+
+- **Swap test** — paste the entry into a different command's frontmatter. Still plausible there? It's boilerplate. Rewrite it.
+- **Restatement test** — could you re-derive the entry from `description:` alone? Then it carries no information. `description:` says what the command is *for*; `exit_criteria` says what is observably *true afterward*.
+
+✗ `"the release completes successfully"` — true of nothing in particular, asserts nothing.
+✓ `"a git tag matching v<VERSION> exists"` — false and nonsensical in any other command, and checkable.
 
 **Command categories** inform structure but don't dictate templates:
 
@@ -171,6 +195,7 @@ Pick `<tier>` contextually from the command's nature — `orchestration` for hea
 - No hardcoded line numbers or brittle references to other files
 - Language and shell agnostic — use Writ's tools, not platform-specific commands
 - Include the standard final `## References` section with `commands/_preamble.md` and `system-instructions.md`
+- Declare `problem:`, `outcome:`, and `exit_criteria:` in the `---` frontmatter, appended after the last existing key in that order, within 7 lines — and carry a `## Completion` section immediately before `## References` that does not contradict them
 - Match the voice and density of existing refined commands
 - Declare the advisory `model_tier: <tier>` field in the generated command's `---` frontmatter (see Step 2.1's Model tier note above), with `<tier>` chosen per the command's weight — defaulting to `orchestration` if unclear
 

@@ -1,6 +1,6 @@
 # ADR-020: The Component Contract — Every Component Declares Problem, Outcome, and Exit Criteria
 
-> **Date:** 2026-08-11
+> **Date:** 2026-08-11 (amended 2026-08-11 — see Amendments)
 > **Status:** Accepted
 > **Category:** Framework Architecture
 > **Extends:** [ADR-014](adr-014-skill-lifecycle.md) (reuses the `status:`/`evidence:` vocabulary), [ADR-019](adr-019-full-surface-leanness-measurement.md) (adds structural checks to Tier A)
@@ -28,7 +28,7 @@ Every Writ component declares, in machine-readable form, **the problem it addres
 
 3. **Skills** need no new fields. They already carry `## Purpose` and `## When to Use`; lint asserts both are present rather than inventing a parallel vocabulary.
 
-The `## Completion` section that [`commands/new-command.md`](../../commands/new-command.md) **already mandates** becomes actually enforced rather than aspirational.
+The `## Completion` section becomes a mandate in [`commands/new-command.md`](../../commands/new-command.md) and a check in `eval.sh`. It was neither when this ADR was written — see [Amendments](#amendments), 2026-08-11.
 
 Enforcement is a **blocking `structural` finding** in `eval-leanness.py`, not a warning — but only after the surface is brought into compliance (see Consequences).
 
@@ -44,11 +44,11 @@ The determinism half measured worse than the token half:
 | Commands with a `## Completion` section | **13 of 32** |
 | Loop-bearing commands declaring an iteration bound | **0 of 5** |
 
-### The finding that reframed the decision
+### The finding: nothing checks the components themselves
 
-`new-command.md` — Writ's own authoring template — **already mandates `## Completion`** in its generated command structure. Nineteen of thirty-two commands violate it.
+Writ has extensive deterministic tooling (~30 `eval-*.py` scripts, a 155KB `eval.sh` harness, `lint-skill.sh`, `check-agent-parity.sh`, `phase-state.py`) covering specs, stories, phases, and skills — but **nothing that checks the commands and agents themselves**. The guardian measures its own byte count and never asks whether a command knows what it is for.
 
-This changes what the problem *is*. The contract is not missing; it is **unenforced**. Writ has extensive deterministic tooling (~30 `eval-*.py` scripts, a 155KB `eval.sh` harness, `lint-skill.sh`, `check-agent-parity.sh`, `phase-state.py`) covering specs, stories, phases, and skills — but **nothing that checks the commands and agents themselves**. The guardian measures its own byte count and never asks whether a command knows what it is for.
+`## Completion` is the sharpest case. Thirteen of thirty-two files carry it; nothing ever required it and nothing ever checked it. **The contract is missing, not merely unenforced.** This subsection originally claimed the opposite, on a premise that was never measured — see [Amendments](#amendments), 2026-08-11.
 
 ### Why frontmatter and not prose
 
@@ -84,7 +84,7 @@ This is the strongest alternative and deserves a real answer. Modern models genu
 **Positive**
 
 - 31 commands and 7 agents become machine-auditable for goal orientation; a missing contract fails `eval.sh` instead of passing silently.
-- `## Completion` compliance goes from 13/32 to 31/31, closing a template violation that has been accumulating unnoticed.
+- `## Completion` coverage goes from 13/32 files to 31/31 commands, and `commands/new-command.md` acquires the mandate that keeps future commands compliant by construction.
 - `exit_criteria` gives `/verify-spec` and `/refresh-command` a declared target to check against rather than inferring intent from prose.
 - Reuses ADR-014's `status:`/`evidence:` vocabulary when extended to commands and agents, so `/refresh-command`'s existing Evidence Gate accrues per-component evidence with no parallel lifecycle.
 
@@ -100,6 +100,18 @@ This is the strongest alternative and deserves a real answer. Modern models genu
 New structural checks land as **`warnings` first** and flip to blocking `structural` only once the migration brings the surface into compliance. Landing them blocking on day one turns every eval run red, and a permanently-red gate becomes invisible — which is exactly how the four currently-live unjustified-growth warnings came to be ignored.
 
 **Review trigger: 2026-11-11** (90 days post-ship, matching the discipline in ADR-014 and the `required_skills:` convention). If `exit_criteria` fields have not been consumed by any check, command, or agent beyond presence-linting by that date, reduce the contract to `problem` + `outcome` and cut `exit_criteria` rather than carrying an unused mandated field.
+
+## Amendments
+
+### 2026-08-11 — The `## Completion` mandate did not exist
+
+**Correction:** This ADR originally asserted that `commands/new-command.md` "already mandates `## Completion`" and that "nineteen of thirty-two commands violate it," concluding that "the contract is not missing; it is **unenforced**." The premise is false. Measured against the working tree *before* the migration: the string `Completion` occurred **exactly once** in `commands/new-command.md` — the heading of that command's own `## Completion` section — and the generated-command structure table listed six rows: Overview, Invocation, Command Process, Core rules or conventions, Integration with Writ, References. There was no Completion row. No mandate existed, so nothing violated it. `## Completion` was an emergent convention carried by 13 of 32 files.
+
+**Rationale:** The Decision is unaffected and is not reopened — three carriers, one contract, frontmatter over prose all stand, as does the 2026-11-11 review trigger. The migration is the same size: eighteen commands still need a `## Completion` section written. What changes is that the migration **creates** the mandate in `commands/new-command.md` rather than enforcing one that was already there. The phrases "unenforced," "template violation," and "19 files violate Writ's own template" are retired from downstream use.
+
+**Measured:** 2026-08-11, during authoring of the `2026-08-11-component-contract` spec; independently re-verified by @AdamSellke the same day, and re-verified once more at implementation time. Line numbers are deliberately omitted here: the sole `Completion` occurrence sat at line 202 when first measured and at line 206 by implementation time, after `2026-08-11-retire-dead-prescription` landed four lines above it. The count, not the offset, is the finding.
+
+**Originating work:** Story 1 of [`2026-08-11-component-contract`](../specs/2026-08-11-component-contract/spec.md). `.writ/product/roadmap.md` Phase 10 carried the same premise and is corrected by the same story.
 
 ## References
 
