@@ -64,7 +64,6 @@ All run concurrently. Each auto-announces completion back to the requester chat.
 | `orchestration` | omit the `model` param (inherits from config/anchor) |
 | `capability` | pass a cheaper/faster `model` param to `sessions_spawn` |
 | unset | omit the param (today's default) |
-| reserved ordinal `-N` | reserve-only; clamps to the cheaper-model param today — not resolved to deeper steps |
 
 This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for OpenClaw; omitting `model` vs. passing a cheaper one are OpenClaw's own primitives, not a Writ-maintained ranking.
 
@@ -275,7 +274,7 @@ Read({ path: "skills/<name>/SKILL.md" })
 
 For sub-agents spawned via `sessions_spawn`, the orchestrator includes the skill content (or an explicit `Read` instruction) in the spawn prompt — sub-agents inherit context only through the prompt, not via shared session state.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the orchestrator pre-loads each named skill via `Read` before spawning the consumer session. `required_skills:` is reserve-only in the foundation spec; pilot skills will adopt it as they ship.
+For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the orchestrator pre-loads each named skill via `Read` before spawning the consumer session. `required_skills:` was adopted on 2026-08-11 when its 2026-08-03 review trigger was resolved revisit-to-adopt; Phase 10 progressive disclosure (ADR-021) is its first consumer, and no consumer declares the field yet.
 
 ### Authoring & Reference
 

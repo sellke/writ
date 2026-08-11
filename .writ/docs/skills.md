@@ -133,9 +133,7 @@ The harness pre-loads each named skill before the consumer's first phase begins.
 - Duplicates are silently deduplicated.
 - Unknown skill names produce a **warning**, not a hard failure.
 
-**Status: reserve-only.** Defined in this foundation spec, but no agent or command currently uses it. Pilot skill specs will adopt it organically. Defining the schema now prevents pilots from inventing competing conventions.
-
-> **Review trigger: 2026-08-03** (90 days post-ship). If no consumer has adopted `required_skills:` by then, deprecate or revisit.
+**Status: adopted.** The 2026-08-03 review trigger (90 days post-ship) fired, and its "deprecate or revisit" terms were resolved as **revisit → adopt**. The first consumer is Phase 10 progressive disclosure ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)), which needs exactly the declarative, harness-resolved, per-invocation load contract this convention specifies — graceful degradation included. The schema above is adopted unchanged. The first real declarations land with progressive disclosure's extraction work; no consumer declares the field yet.
 
 ---
 
