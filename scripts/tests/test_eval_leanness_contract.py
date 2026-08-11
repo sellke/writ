@@ -449,5 +449,57 @@ class ComponentContractCheckTests(unittest.TestCase):
         self.assertEqual(offenders, [], "visual-qa-agent.md's ```yaml carrier must be read")
 
 
+
+# ---------------------------------------------------------------------------
+# Story 4 — `## Completion` presence
+# ---------------------------------------------------------------------------
+
+class CompletionSectionCheckTests(unittest.TestCase):
+
+    def test_compliant_command_emits_nothing(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", COMPLIANT_FRONTMATTER.format(name="alpha"))
+            self.assertEqual(lean.check_completion_sections(tmp), [])
+
+    def test_missing_heading_emits_one_named_finding(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", "# Alpha\n\nbody\n")
+            findings = lean.check_completion_sections(tmp)
+            self.assertEqual(subjects(findings), ["commands/alpha.md → ## Completion"])
+
+    def test_completion_criteria_near_miss_is_a_finding_with_the_exact_spelling(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", "# Alpha\n\n## Completion Criteria\n\nx\n")
+            findings = lean.check_completion_sections(tmp)
+            self.assertEqual(len(findings), 1)
+            self.assertIn("exact H2 spelling", findings[0]["fix"])
+            self.assertIn("## Completion Criteria", findings[0]["fix"])
+
+    def test_h3_near_miss_is_a_finding(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", "# Alpha\n\n### Completion\n\nx\n")
+            self.assertEqual(len(lean.check_completion_sections(tmp)), 1)
+
+    def test_heading_with_empty_body_passes(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha", "# Alpha\n\n## Completion\n")
+            self.assertEqual(lean.check_completion_sections(tmp), [])
+
+    def test_heading_only_inside_a_fence_does_not_satisfy_the_check(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "alpha",
+                          "# Alpha\n\n```markdown\n## Completion\n```\n")
+            self.assertEqual(len(lean.check_completion_sections(tmp)), 1)
+
+    def test_infra_commands_are_never_checked(self):
+        with TemporaryDirectory() as tmp:
+            write_command(Path(tmp), "_preamble", "# Preamble\n")
+            self.assertEqual(lean.check_completion_sections(tmp), [])
+
+    def test_absent_commands_directory_yields_no_findings(self):
+        with TemporaryDirectory() as tmp:
+            self.assertEqual(lean.check_completion_sections(tmp), [])
+
+
 if __name__ == "__main__":
     unittest.main()

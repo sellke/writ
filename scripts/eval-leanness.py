@@ -486,12 +486,69 @@ def check_component_contract(root: str) -> list[dict]:
     return findings
 
 
+def has_completion_section(path: str) -> bool | None:
+    """True/False for an exact `## Completion` H2; None when unreadable.
+
+    Exact match is deliberate. A tolerant `startswith("## Completion")` would
+    accept `## Completion Criteria`, which defeats the point of one canonical
+    section name that /verify-spec and /refresh-command can later key off.
+    Fenced regions are skipped — a command file quoting `## Completion` as
+    example markdown has not declared one — using the same fence tracking
+    readme_command_names() already does in this module.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+    in_fence = False
+    for line in lines:
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if line.rstrip() == "## Completion":
+            return True
+    return False
+
+
+def check_completion_sections(root: str) -> list[dict]:
+    """Every non-invokable command declares where it stops.
+
+    Presence, not content: a `## Completion` heading with nothing under it
+    passes. Asserting the section is *useful* means judging prose, which is
+    exactly what ADR-020 rejects.
+    """
+    findings: list[dict] = []
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        present = has_completion_section(path)
+        if present is not False:
+            continue  # True, or None (unreadable — measure_files already said so)
+        rel = f"commands/{stem}.md"
+        findings.append({
+            "subject": f"{rel} → ## Completion",
+            "what": f"no `## Completion` section; {rel} never states the condition "
+                    "under which a run of it is finished.",
+            "fix": "Add a `## Completion` section (exact H2 spelling — "
+                   "`## Completion Criteria` and `### Completion` do not satisfy "
+                   "this check, and a heading inside a fenced block does not "
+                   "count). See commands/new-command.md's generated-command "
+                   "structure for the authoring template.",
+        })
+    return findings
+
+
 def _offender_files(findings: list[dict]) -> set[str]:
     """The file half of each finding's subject — `a/b.md → field:` -> `a/b.md`."""
     return {finding["subject"].split(" →")[0] for finding in findings}
 
 
-def contract_compliance(root: str, contract_findings: list[dict]) -> dict:
+def contract_compliance(root: str, contract_findings: list[dict],
+                        completion_findings: list[dict]) -> dict:
     """Counts, not finding text: the trend channel beside the work queue.
 
     Derived from the findings themselves rather than re-parsed, so the metric
@@ -501,10 +558,13 @@ def contract_compliance(root: str, contract_findings: list[dict]) -> dict:
     checkable = [stem for stem in commands if not is_infra(stem)]
     agents = [os.path.splitext(os.path.basename(p))[0] for p in all_agent_files(root)]
     offenders = _offender_files(contract_findings)
+    without_completion = _offender_files(completion_findings)
     return {
         "commands_checked": len(checkable),
         "commands_with_contract": sum(
             1 for stem in checkable if f"commands/{stem}.md" not in offenders),
+        "commands_with_completion": sum(
+            1 for stem in checkable if f"commands/{stem}.md" not in without_completion),
         "agents_checked": len(agents),
         "agents_with_contract": sum(
             1 for stem in agents if f"agents/{stem}.md" not in offenders),
@@ -975,8 +1035,11 @@ def main(argv: list[str] | None = None) -> int:
     # returning list[dict]; emit_contract_findings() is the only thing that
     # decides which bucket they land in (CONTRACT_CHECK_SEVERITY).
     contract_findings = check_component_contract(root)
+    completion_findings = check_completion_sections(root)
     emit_contract_findings(contract_findings, structural, warnings)
-    metrics["contract_compliance"] = contract_compliance(root, contract_findings)
+    emit_contract_findings(completion_findings, structural, warnings)
+    metrics["contract_compliance"] = contract_compliance(
+        root, contract_findings, completion_findings)
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)
