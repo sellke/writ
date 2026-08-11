@@ -1,6 +1,12 @@
 ---
 name: assess-spec
 description: "Analyze an unbuilt spec for implementability risks - oversized stories, deep dependency chains, file-overlap conflicts - and recommend decomposition. Run when a spec feels too heavy to build."
+problem: "An oversized or deeply chained spec reads fine on paper and only fails once /implement-spec is halfway through it, with orchestrator context already spent."
+outcome: "The unbuilt spec has a stated implementability rating backed by all six checks, with every flag paired with a concrete before/after decomposition."
+exit_criteria:
+  - "all six checks have a recorded result, including the ones that passed"
+  - "the spec has exactly one overall rating of Ready to implement, Implementable with adjustments, or Needs restructuring"
+  - "every Warn and Flag has a named split with its current and proposed shape, unless --brief was used"
 ---
 
 # Assess Spec Command (assess-spec)
@@ -206,6 +212,14 @@ When the user chooses to apply recommendations, execute the splits directly — 
 | `/edit-spec` | Run after major edits to re-validate; `/assess-spec` can invoke `/edit-spec` for splits |
 | `/implement-spec` | Runs a **lightweight pre-flight assessment** (Checks 1-3 + context score) before execution |
 | `/verify-spec` | Complementary — assess checks shape *before* building; verify checks correctness *after* |
+
+## Completion
+
+This command succeeds when every one of the six checks has a recorded result and the spec carries exactly one overall rating — Ready to implement, Implementable with adjustments, or Needs restructuring.
+
+A spec that passes all six is a valid outcome, not a wasted run: "Ready to implement" is the finding, and it is recorded like any other.
+
+**Terminal constraint:** This command assesses a spec and proposes decompositions. Applying a split is a separate, confirmed step — do not begin implementing the spec that was just assessed.
 
 ---
 

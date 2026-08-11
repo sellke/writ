@@ -1,6 +1,6 @@
 # Story 2: Planning and Specification Command Contracts
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 
@@ -18,23 +18,23 @@ Nine of the ten already carry a `## Completion` section — `create-adr`, `creat
 
 ## Acceptance Criteria
 
-- [ ] Given all ten files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
-- [ ] Given Business Rule 3, when any `exit_criteria` entry is read, then it names at least one of: a file or directory path, a field value, a count or comparison, a process outcome, or a command-observable state — written as a present-tense assertion about post-run state.
-- [ ] Given Business Rule 1, when any entry from any of the ten is pasted into a different one of the ten, then it reads as false or nonsensical there. `/create-spec` and `/edit-spec` are the hardest neighbours in this batch and must be checked explicitly against each other.
-- [ ] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
-- [ ] Given Business Rule 7, when a file already has a `## Completion` section, then its `exit_criteria` are consistent with that section and do not contradict it; any contradiction found is resolved in favour of the file's actual behavior and recorded in the notes.
-- [ ] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
-- [ ] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these ten files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten.
+- [x] Given all ten files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
+- [x] Given Business Rule 3, when any `exit_criteria` entry is read, then it names at least one of: a file or directory path, a field value, a count or comparison, a process outcome, or a command-observable state — written as a present-tense assertion about post-run state.
+- [x] Given Business Rule 1, when any entry from any of the ten is pasted into a different one of the ten, then it reads as false or nonsensical there. `/create-spec` and `/edit-spec` are the hardest neighbours in this batch and must be checked explicitly against each other.
+- [x] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
+- [x] Given Business Rule 7, when a file already has a `## Completion` section, then its `exit_criteria` are consistent with that section and do not contradict it; any contradiction found is resolved in favour of the file's actual behavior and recorded in the notes.
+- [x] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
+- [x] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these ten files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten.
 
 ## Implementation Tasks
 
-- [ ] 2.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s own frontmatter as the worked exemplar
-- [ ] 2.2 For each of the ten, read the command's Overview, Command Process, and existing `## Completion` section (nine have one) and write down, in scratch, the concrete artifacts and state changes it produces — paths, status values, counts
-- [ ] 2.3 Author `problem:` and `outcome:` for all ten as single sentences, then run the swap test across the batch, paying particular attention to the `create-spec` / `edit-spec` / `assess-spec` cluster and the `create-adr` / `knowledge` / `create-issue` cluster, which are the two places boilerplate is most likely to survive undetected
-- [ ] 2.4 Author 2–4 `exit_criteria` per command, each naming an observable from Task 2.2's scratch list; reject any entry that would survive being pasted into a sibling
-- [ ] 2.5 Run the restatement test on every entry against its own `description:`; rewrite any that merely rephrase it
-- [ ] 2.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct, `exit_criteria` is a block sequence of quoted strings
-- [ ] 2.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced during authoring in the Notes below without acting on it
+- [x] 2.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s own frontmatter as the worked exemplar
+- [x] 2.2 For each of the ten, read the command's Overview, Command Process, and existing `## Completion` section (nine have one) and write down, in scratch, the concrete artifacts and state changes it produces — paths, status values, counts
+- [x] 2.3 Author `problem:` and `outcome:` for all ten as single sentences, then run the swap test across the batch, paying particular attention to the `create-spec` / `edit-spec` / `assess-spec` cluster and the `create-adr` / `knowledge` / `create-issue` cluster, which are the two places boilerplate is most likely to survive undetected
+- [x] 2.4 Author 2–4 `exit_criteria` per command, each naming an observable from Task 2.2's scratch list; reject any entry that would survive being pasted into a sibling
+- [x] 2.5 Run the restatement test on every entry against its own `description:`; rewrite any that merely rephrase it
+- [x] 2.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct, `exit_criteria` is a block sequence of quoted strings
+- [x] 2.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced during authoring in the Notes below without acting on it
 
 ## Notes
 
@@ -59,11 +59,11 @@ Nine of the ten already carry a `## Completion` section — `create-adr`, `creat
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Swap test run across the full batch after the last file, not only per file
-- [ ] `bash scripts/eval.sh` shows no new findings
-- [ ] Any scoping defect surfaced is recorded, not acted on (BR10)
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Swap test run across the full batch after the last file, not only per file
+- [x] `bash scripts/eval.sh` shows no new findings
+- [x] Any scoping defect surfaced is recorded, not acted on (BR10)
 
 ## Context for Agents
 

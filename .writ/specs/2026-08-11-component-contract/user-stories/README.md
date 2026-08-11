@@ -1,16 +1,16 @@
 # User Stories: Component Contract
 
-> **Status:** Not Started — 0/7 stories, 0/51 tasks.
+> **Status:** Complete — 7/7 stories, 51/51 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Contract Schema and Authoring Template](./story-1-contract-schema-and-authoring-template.md) | Not Started | 10 | 0/10 | None |
-| 2 | [Planning and Specification Command Contracts](./story-2-planning-command-contracts.md) | Not Started | 7 | 0/7 | Story 1 |
-| 3 | [Implementation and Recovery Command Contracts](./story-3-implementation-command-contracts.md) | Not Started | 7 | 0/7 | Story 1 |
-| 4 | [Quality and Release Command Contracts](./story-4-quality-release-command-contracts.md) | Not Started | 7 | 0/7 | Story 1 |
-| 5 | [Meta and Installation Command Contracts](./story-5-meta-install-command-contracts.md) | Not Started | 7 | 0/7 | Story 1 |
-| 6 | [The Eighteen Missing Completion Sections](./story-6-missing-completion-sections.md) | Not Started | 7 | 0/7 | Stories 2, 3, 4, 5 |
-| 7 | [Agent Config Contracts Across Both Carriers](./story-7-agent-config-contracts.md) | Not Started | 6 | 0/6 | Story 1 |
+| 1 | [Contract Schema and Authoring Template](./story-1-contract-schema-and-authoring-template.md) | Complete | 10 | 10/10 | None |
+| 2 | [Planning and Specification Command Contracts](./story-2-planning-command-contracts.md) | Complete | 7 | 7/7 | Story 1 |
+| 3 | [Implementation and Recovery Command Contracts](./story-3-implementation-command-contracts.md) | Complete | 7 | 7/7 | Story 1 |
+| 4 | [Quality and Release Command Contracts](./story-4-quality-release-command-contracts.md) | Complete | 7 | 7/7 | Story 1 |
+| 5 | [Meta and Installation Command Contracts](./story-5-meta-install-command-contracts.md) | Complete | 7 | 7/7 | Story 1 |
+| 6 | [The Eighteen Missing Completion Sections](./story-6-missing-completion-sections.md) | Complete | 7 | 7/7 | Stories 2, 3, 4, 5 |
+| 7 | [Agent Config Contracts Across Both Carriers](./story-7-agent-config-contracts.md) | Complete | 6 | 6/6 | Story 1 |
 
 ## Dependency Graph
 

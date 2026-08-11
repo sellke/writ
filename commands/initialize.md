@@ -1,6 +1,12 @@
 ---
 name: initialize
 description: "Set up a project's technical foundation, auto-detecting greenfield vs brownfield. Infrastructure only - product strategy belongs to plan-product."
+problem: "A project carries no written record of the stack it runs on or the conventions it follows, so every later command re-derives them from the code and guesses differently."
+outcome: "The technical foundation is written down — stack, style, and the machine-readable conventions later commands read — for a codebase whether it was scaffolded yesterday or predates Writ."
+exit_criteria:
+  - ".writ/docs/tech-stack.md and .writ/docs/code-style.md exist and record this project's observed versions and conventions rather than generic defaults"
+  - ".writ/config.md follows .writ/docs/config-format.md and names Default Branch, Test Runner, Merge Strategy, and Version File, and a pre-existing one was not overwritten without confirmation"
+  - "no file was created under .writ/product/ — mission and roadmap remain /plan-product output"
 ---
 
 # Initialize Command (initialize)
@@ -181,6 +187,14 @@ Do not end the command without presenting this recommendation. It's the bridge b
 | `/create-spec` | Uses tech-stack.md and code-style.md to inform feature specifications |
 | `/research` | Investigates gaps identified during brownfield analysis |
 | `/create-adr` | Documents architectural decisions surfaced during initialization |
+
+## Completion
+
+This command succeeds when `.writ/docs/tech-stack.md`, `.writ/docs/code-style.md`, and `.writ/config.md` record this project's observed stack and conventions rather than generic defaults.
+
+Finding an existing `.writ/config.md` and leaving it in place is a valid outcome — confirmation is required before any overwrite.
+
+**Terminal constraint:** This command establishes technical foundation only. Product mission and roadmap are `/plan-product`'s output — nothing is written under `.writ/product/`.
 
 ---
 

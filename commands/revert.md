@@ -1,6 +1,12 @@
 ---
 name: revert
 description: "Safely unwind a story or an entire spec on the current branch - resolve its real commits, show the plan, then git revert and restore Writ artifacts."
+problem: "Undoing work by hand unwinds the git side and leaves the Writ side claiming it, so story files still read as done, and a rewritten SHA gets guessed at rather than confirmed."
+outcome: "The unit is gone from the working tree of the current branch and every Writ artifact that described it now describes the code as it stands again."
+exit_criteria:
+  - "each commit in the confirmed plan has a matching revert commit, or the branch head is the plan base SHA, and every ghost substitution used was individually confirmed"
+  - "each affected story reads Status: Not Started with all task and acceptance-criteria boxes cleared, and its ## What Was Built record is retained under a Reverted banner rather than deleted"
+  - "a new DEV-NNN entry naming the unit, strategy, and commits exists in .writ/specs/<spec>/drift-log.md, and .writ/context.md was rewritten in full to the post-revert state"
 ---
 
 # Revert Command (revert)
@@ -153,6 +159,14 @@ Six invariants hold for every `/revert` operation:
 | `/implement-phase` | Phase-state JSON is the resolver's third layer; lane/quarantine reverts remain owned by `phase-state.py` |
 | `/refactor` | Use its per-change revert loop for a single behavioral rollback rather than a logical-unit revert |
 | `/status` | Reflects the restored story/spec state after a revert |
+
+## Completion
+
+This command succeeds when each commit in the confirmed plan has a matching revert commit, every affected story reads `Status: Not Started` with its checkboxes cleared, and a new `DEV-NNN` entry records the unit, strategy, and commits.
+
+The `## What Was Built` record is retained under a Reverted banner rather than deleted — keeping the history of what was tried is the point.
+
+**Terminal constraint:** This command unwinds work on the current branch. Do not re-implement what was reverted, and do not force-push or rewrite published history.
 
 ---
 

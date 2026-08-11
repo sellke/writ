@@ -1,6 +1,12 @@
 ---
 name: release
 description: "Run the release lifecycle: changelog from completed stories, version bump, git tag, and optional GitHub release, behind an inline release gate."
+problem: "Cut by hand, the version files, the changelog entry and the tag drift apart, leaving a published version nobody can trace back to the work it contains."
+outcome: "One version number is cut consistently across every detected version file, the changelog and an annotated tag, with the specs it shipped attributed in the entry."
+exit_criteria:
+  - "VERSION holds the new version and differs from its pre-run value, and every other detected version file agrees with it"
+  - "CHANGELOG.md contains a heading for <VERSION> whose entries derive from specs completed since the previous release tag"
+  - "an annotated git tag v<VERSION> exists on the release commit, unless --no-tag or the bump-only choice was taken"
 ---
 
 # Release Command (release)
@@ -617,6 +623,14 @@ scripts/publish-writ-runtime.sh                       # publish
 Use `scripts/publish-writ-runtime.sh` instead of raw `npm publish` — npm always bundles whatever file is literally named `README.md` at the package root regardless of the `files` array (package.json, README, and LICENSE are always included), and since `package.json` lives at the repo root, that would otherwise be this repo's full product README, not a description of the two-command CLI. The script swaps in `scripts/writ-runtime-readme.md` for the publish only, then restores the repo's real `README.md` via a `git checkout` trap — safe even if publish fails or the script is interrupted.
 
 That's the entire workflow. No gate, no preflight, no orchestration. The Writ methodology version printed in your release notes and the `@sellke/writ` version on npm are unrelated by design.
+
+## Completion
+
+This command succeeds when `VERSION` and every other detected version file agree on the new number, `CHANGELOG.md` carries a heading for it, and an annotated `v<VERSION>` tag exists on the release commit.
+
+Choosing bump-only or `--no-tag` is a valid outcome — the tag assertion is waived, the changelog and version assertions are not.
+
+**Terminal constraint:** This command cuts a release. Do not publish to a package registry or announce the release beyond the steps the run explicitly included.
 
 ---
 

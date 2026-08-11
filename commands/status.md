@@ -1,6 +1,12 @@
 ---
 name: status
 description: "Orient in under 10 seconds: config, active spec, in-flight batch work, and what to do next."
+problem: "Picking work back up means re-deriving position from scattered sources — config, the newest spec folder, execution state files, the issue backlog — before anything can start."
+outcome: "One skimmable orientation over the active spec, any in-flight batch execution and the stale-issue backlog, with .writ/context.md rewritten to agree with it."
+exit_criteria:
+  - ".writ/context.md has been replaced wholesale and carries an Active Spec section, an Artifact Map and a current Last Updated timestamp"
+  - "the report names the active spec and its story progress or states that none is active, and ends with 2 to 4 suggested next actions"
+  - "every execution state file under .writ/state/ was read without being written, and no build, test or git-mutating command ran"
 ---
 
 # Status Command (status)
@@ -455,6 +461,14 @@ If spec files exist but cannot be parsed (malformed README, missing story files)
 | `/verify-spec` | Deep metadata diagnostic — use when `/status` flags spec inconsistencies |
 | `/ship` | Next step when active spec is complete |
 | `/status --archive` | Moves Complete + knowledge-evidenced specs to `.writ/specs/archive/` via `scripts/archive-sweep.py`; see `.writ/docs/spec-lifecycle.md` |
+
+## Completion
+
+This command succeeds when `.writ/context.md` has been rewritten with an Active Spec section, an Artifact Map, and a current timestamp, and the report ends with two to four suggested next actions.
+
+No active spec is a valid outcome. The report says so plainly rather than searching harder for one.
+
+**Terminal constraint:** This command orients and nothing else — it reads state files without writing them and runs no build, test, or git-mutating command. Do not begin the next action it suggests.
 
 ---
 

@@ -1,6 +1,12 @@
 ---
 name: reinstall-writ
 description: "Nuclear reinstall - remove all Writ platform files and install fresh from upstream, discarding local modifications. Use update-writ for selective updates."
+problem: "An installation has diverged from upstream far enough that repairing it file by file costs more than discarding every local edit and starting over."
+outcome: "Every platform file is byte-identical to a freshly cloned upstream release with no customization carried forward, on a manifest rebuilt from scratch, while .writ/ is left alone."
+exit_criteria:
+  - "every file under [platform_dir]/commands/ and [platform_dir]/agents/ hashes equal to its upstream counterpart, with no file retained on the grounds that it was customized"
+  - "[platform_dir]/.writ-manifest names the newly cloned version and carries a baseline for every installed file"
+  - ".writ/, the platform directory itself, and its non-Writ files are unchanged from their pre-run state"
 ---
 
 # Reinstall Writ Command (reinstall-writ)
@@ -200,6 +206,14 @@ For Codex CLI specifically:
 | `install.sh` | First-time installation and recovery path if `/reinstall-writ` fails mid-operation |
 | `/update-writ` | Selective update that preserves customizations — use this when you don't need a clean slate |
 | `/uninstall-writ` | Removal without reinstallation |
+
+## Completion
+
+This command succeeds when every file under the platform's `commands/` and `agents/` matches upstream byte for byte, `.writ-manifest` names the newly cloned version, and `.writ/` is unchanged.
+
+No file is retained on the grounds that it was customized — discarding local modifications is this command's purpose, not a side effect of it.
+
+**Terminal constraint:** This command replaces the installation. Do not re-apply the customizations it just discarded.
 
 ---
 

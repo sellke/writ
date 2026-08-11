@@ -1,6 +1,12 @@
 ---
 name: migrate
 description: "Migrate an existing Code Captain project to Writ, renaming directories and updating references with zero data loss."
+problem: "A Code Captain project cannot run Writ commands, and renaming its directories by hand silently drops story statuses or leaves dead .code-captain paths behind."
+outcome: "Everything that lived under .code-captain/ lives under .writ/ with identical content, the platform directory carries Writ commands and agents, and the whole move is one commit."
+exit_criteria:
+  - "no .code-captain/ or code-captain/ directory remains and .writ/ holds the specs, decision-records, research, docs, and issues that were under it"
+  - "the story-*.md count under .writ/specs/ equals the pre-migration count and every Status line is unchanged from its Code Captain original"
+  - "a recursive grep for .code-captain across .writ/ and README.md, CLAUDE.md, CONTRIBUTING.md returns zero hits"
 ---
 
 # Migrate Command (migrate)
@@ -373,6 +379,14 @@ A: Not recommended (creates confusion), but you could symlink: `ln -s .writ .cod
 
 **Q: What if I have custom commands I wrote with /new-command?**
 A: They'll be in `.cursor/commands/` or `.code-captain/commands/`. The migration copies Writ's commands but won't delete unrecognized custom commands if they're in `.cursor/commands/`. Check after migration and update any `.code-captain` references in your custom commands to `.writ`.
+
+## Completion
+
+This command succeeds when no `.code-captain/` directory remains, `.writ/` holds every spec, decision record, research document, and issue that was under it, and a recursive grep for `.code-captain` returns zero hits.
+
+The story count and every `Status:` line must match their pre-migration values exactly. A migration that renames directories but loses a status has failed, however clean the tree looks.
+
+**Terminal constraint:** This command moves an existing project onto Writ. Do not begin planning or implementing work in the migrated project.
 
 ---
 

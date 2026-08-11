@@ -1,6 +1,12 @@
 ---
 name: implement-spec
 description: "Execute one full spec end-to-end - dependency-aware plan, parallel story batches, calling implement-story per story uninterrupted."
+problem: "Stories inside one spec get run in whatever order someone notices them, so a dependency cycle surfaces mid-run and cross-story breakage is found long after several stories landed."
+outcome: "One spec has no unexecuted story left in its batch plan, and the stories are proven to work together by a single check run after the last of them landed."
+exit_criteria:
+  - "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran"
+  - "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason"
+  - "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts"
 ---
 
 # Implement Spec Command (implement-spec)
@@ -255,6 +261,14 @@ If a session is interrupted mid-execution:
 | `/verify-spec` | Optional metadata diagnostic anytime (especially after `/implement-spec`) — not a release prerequisite |
 | `/ship` / `/release` | `/ship` opens the PR; `/release` cuts the version with its own inline gate |
 | `/status` | Shows progress of in-flight executions |
+
+## Completion
+
+This command succeeds when no story in the batch plan remains pending in `.writ/state/execution-<timestamp>.json` — each is complete, skipped with its blocking chain recorded, or failed with a reason — and the post-batch typecheck and full test suite have run.
+
+A run ending with stories skipped or failed is a completed run, not a broken one, provided each carries its reason and `.writ/context.md` reflects the real counts.
+
+**Terminal constraint:** This command implements one spec's stories. Do not advance to the next spec in the phase, open a PR, or cut a release.
 
 ---
 

@@ -1,6 +1,6 @@
 # Story 5: Meta and Installation Command Contracts
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** Medium
 > **Dependencies:** Story 1
 
@@ -20,23 +20,23 @@ Only `new-skill` carries a `## Completion` section today. The other six belong t
 
 ## Acceptance Criteria
 
-- [ ] Given all seven files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
-- [ ] Given `reinstall-writ`, `uninstall-writ`, `update-writ`, and `migrate` are destructive or state-mutating, when their `exit_criteria` are read, then each asserts a **preservation** invariant as well as a change — most importantly that `.writ/` content survives `uninstall-writ`, which is that command's stated defining property.
-- [ ] Given `reinstall-writ` and `update-writ` differ precisely on whether local modifications survive, when their fields are read side by side, then that difference is stated in their `problem:` or `outcome:` lines and is not inferable only from prose.
-- [ ] Given Business Rule 1, when any entry is pasted into another command in this batch, then it reads as false or nonsensical there. The `reinstall-writ` / `update-writ` / `migrate` cluster is the batch's boilerplate risk and must be checked explicitly.
-- [ ] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
-- [ ] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
-- [ ] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these seven files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten, and `commands/_preamble.md` untouched.
+- [x] Given all seven files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
+- [x] Given `reinstall-writ`, `uninstall-writ`, `update-writ`, and `migrate` are destructive or state-mutating, when their `exit_criteria` are read, then each asserts a **preservation** invariant as well as a change — most importantly that `.writ/` content survives `uninstall-writ`, which is that command's stated defining property.
+- [x] Given `reinstall-writ` and `update-writ` differ precisely on whether local modifications survive, when their fields are read side by side, then that difference is stated in their `problem:` or `outcome:` lines and is not inferable only from prose.
+- [x] Given Business Rule 1, when any entry is pasted into another command in this batch, then it reads as false or nonsensical there. The `reinstall-writ` / `update-writ` / `migrate` cluster is the batch's boilerplate risk and must be checked explicitly.
+- [x] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
+- [x] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
+- [x] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these seven files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten, and `commands/_preamble.md` untouched.
 
 ## Implementation Tasks
 
-- [ ] 5.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s frontmatter, which is this batch's own role-group exemplar
-- [ ] 5.2 For each of the seven, identify the terminal artifact and the preservation invariant — which directories exist afterward, which survive untouched, which manifest or version file is updated
-- [ ] 5.3 Author `problem:` and `outcome:` for all seven as single sentences; swap-test `reinstall-writ` / `update-writ` / `migrate` against each other first, then `initialize` against `migrate`
-- [ ] 5.4 Author 2–4 `exit_criteria` per command, pairing each mutation assertion with a preservation assertion for the four state-mutating commands
-- [ ] 5.5 Run the restatement test on every entry against its own `description:`
-- [ ] 5.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct; confirm `commands/_preamble.md` is unmodified (BR8)
-- [ ] 5.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced in the Notes without acting on it
+- [x] 5.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s frontmatter, which is this batch's own role-group exemplar
+- [x] 5.2 For each of the seven, identify the terminal artifact and the preservation invariant — which directories exist afterward, which survive untouched, which manifest or version file is updated
+- [x] 5.3 Author `problem:` and `outcome:` for all seven as single sentences; swap-test `reinstall-writ` / `update-writ` / `migrate` against each other first, then `initialize` against `migrate`
+- [x] 5.4 Author 2–4 `exit_criteria` per command, pairing each mutation assertion with a preservation assertion for the four state-mutating commands
+- [x] 5.5 Run the restatement test on every entry against its own `description:`
+- [x] 5.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct; confirm `commands/_preamble.md` is unmodified (BR8)
+- [x] 5.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced in the Notes without acting on it
 
 ## Notes
 
@@ -62,12 +62,12 @@ Only `new-skill` carries a `## Completion` section today. The other six belong t
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Every state-mutating command asserts a preservation invariant
-- [ ] `reinstall-writ` and `update-writ` verified as non-interchangeable
-- [ ] `commands/_preamble.md` confirmed unmodified
-- [ ] `bash scripts/eval.sh` shows no new findings
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Every state-mutating command asserts a preservation invariant
+- [x] `reinstall-writ` and `update-writ` verified as non-interchangeable
+- [x] `commands/_preamble.md` confirmed unmodified
+- [x] `bash scripts/eval.sh` shows no new findings
 
 ## Context for Agents
 

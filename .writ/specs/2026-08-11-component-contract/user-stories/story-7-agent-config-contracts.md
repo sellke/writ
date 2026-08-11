@@ -1,6 +1,6 @@
 # Story 7: Agent Config Contracts Across Both Carriers
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** Medium
 > **Dependencies:** Story 1
 
@@ -23,23 +23,23 @@ Both are written to **as they are**. Converting B to A, or A to B, is out of sco
 
 ## Acceptance Criteria
 
-- [ ] Given all seven agents carry a fenced config block with `model_tier` and no `problem:`, when this story lands, then each block carries `problem:`, `outcome:`, and `exit_criteria:` appended after the last existing key, inside the existing fence.
-- [ ] Given `agents/visual-qa-agent.md` uses a different heading, a different heading position, and a labelled fence, when this story lands, then it carries the three fields **and** still has `## Agent Specification`, still uses ` ```yaml `, and still uses `## Role` rather than `## Purpose` — nothing normalized.
-- [ ] Given the six carrier-A agents, when this story lands, then each still has `## Agent Configuration` with an unlabeled fence, and no key of theirs was reformatted — including `model: default (inherits from parent)`, which is not valid YAML and is deliberately left alone.
-- [ ] Given four of the seven return a PASS/FAIL verdict (`architecture-check`, `review`, `testing`, `visual-qa`), when their `exit_criteria` are read, then each names **what the verdict is about** — acceptance criteria coverage, coverage thresholds, mockup conformance — not merely that a verdict was returned.
-- [ ] Given Business Rules 1 and 2, when any entry is pasted into another agent's block, then it reads as false or nonsensical there; `review-agent` and `architecture-check-agent` are the adjacent pair and must be checked explicitly against each other.
-- [ ] Given Business Rule 4, when each file is diffed, then its config block grew by at most 7 lines.
-- [ ] Given the mirrors are out of scope, when `git diff --name-only` is read, then it lists only files under `agents/` — no `claude-code/agents/`, no `codex/agents/`, no `scripts/`.
-- [ ] Given `check-agent-parity.sh` checks file existence rather than field parity, when it is run after this story, then it still reports "parity OK".
+- [x] Given all seven agents carry a fenced config block with `model_tier` and no `problem:`, when this story lands, then each block carries `problem:`, `outcome:`, and `exit_criteria:` appended after the last existing key, inside the existing fence.
+- [x] Given `agents/visual-qa-agent.md` uses a different heading, a different heading position, and a labelled fence, when this story lands, then it carries the three fields **and** still has `## Agent Specification`, still uses ` ```yaml `, and still uses `## Role` rather than `## Purpose` — nothing normalized.
+- [x] Given the six carrier-A agents, when this story lands, then each still has `## Agent Configuration` with an unlabeled fence, and no key of theirs was reformatted — including `model: default (inherits from parent)`, which is not valid YAML and is deliberately left alone.
+- [x] Given four of the seven return a PASS/FAIL verdict (`architecture-check`, `review`, `testing`, `visual-qa`), when their `exit_criteria` are read, then each names **what the verdict is about** — acceptance criteria coverage, coverage thresholds, mockup conformance — not merely that a verdict was returned.
+- [x] Given Business Rules 1 and 2, when any entry is pasted into another agent's block, then it reads as false or nonsensical there; `review-agent` and `architecture-check-agent` are the adjacent pair and must be checked explicitly against each other.
+- [x] Given Business Rule 4, when each file is diffed, then its config block grew by at most 7 lines.
+- [x] Given the mirrors are out of scope, when `git diff --name-only` is read, then it lists only files under `agents/` — no `claude-code/agents/`, no `codex/agents/`, no `scripts/`.
+- [x] Given `check-agent-parity.sh` checks file existence rather than field parity, when it is run after this story, then it still reports "parity OK".
 
 ## Implementation Tasks
 
-- [ ] 7.1 Read `.writ/docs/component-contract.md` (Story 1) for the agent-carrier schema, then read all seven agent files
-- [ ] 7.2 Locate the config block in each file by matching `^## Agent (Configuration|Specification)$` — **not** `## Agent Configuration` alone, which silently skips `visual-qa-agent.md` and reports 6/7 as success
-- [ ] 7.3 For each agent, derive its terminal condition from its Responsibilities and its output contract: what the orchestrating command receives back, and what must be true for that return value to be honest
-- [ ] 7.4 Author `problem:`, `outcome:`, and 2–4 `exit_criteria` per agent, appended after the last existing key inside the existing fence; run the swap test across all seven, starting with `review-agent` / `architecture-check-agent`
-- [ ] 7.5 Verify per file: ≤7 added lines, three fields present inside the fence, heading text unchanged, fence label unchanged, existing keys byte-for-byte unchanged
-- [ ] 7.6 Run `bash scripts/check-agent-parity.sh` (expect "parity OK") and `bash scripts/eval.sh` (expect no new findings); confirm `git diff --name-only` lists only `agents/` files
+- [x] 7.1 Read `.writ/docs/component-contract.md` (Story 1) for the agent-carrier schema, then read all seven agent files
+- [x] 7.2 Locate the config block in each file by matching `^## Agent (Configuration|Specification)$` — **not** `## Agent Configuration` alone, which silently skips `visual-qa-agent.md` and reports 6/7 as success
+- [x] 7.3 For each agent, derive its terminal condition from its Responsibilities and its output contract: what the orchestrating command receives back, and what must be true for that return value to be honest
+- [x] 7.4 Author `problem:`, `outcome:`, and 2–4 `exit_criteria` per agent, appended after the last existing key inside the existing fence; run the swap test across all seven, starting with `review-agent` / `architecture-check-agent`
+- [x] 7.5 Verify per file: ≤7 added lines, three fields present inside the fence, heading text unchanged, fence label unchanged, existing keys byte-for-byte unchanged
+- [x] 7.6 Run `bash scripts/check-agent-parity.sh` (expect "parity OK") and `bash scripts/eval.sh` (expect no new findings); confirm `git diff --name-only` lists only `agents/` files
 
 ## Notes
 
@@ -65,12 +65,12 @@ Both are written to **as they are**. Converting B to A, or A to B, is out of sco
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] 7/7 agent files changed — verified by count, not assumed
-- [ ] Both carrier styles intact and unconverted
-- [ ] `bash scripts/check-agent-parity.sh` reports parity OK
-- [ ] `bash scripts/eval.sh` shows no new findings
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] 7/7 agent files changed — verified by count, not assumed
+- [x] Both carrier styles intact and unconverted
+- [x] `bash scripts/check-agent-parity.sh` reports parity OK
+- [x] `bash scripts/eval.sh` shows no new findings
 
 ## Context for Agents
 

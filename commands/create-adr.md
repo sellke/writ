@@ -1,6 +1,12 @@
 ---
 name: create-adr
 description: "Record an architecture decision with rigorous alternatives analysis and honest consequences. For high-switching-cost or convention-breaking choices, not routine technical picks."
+problem: "A choice with a high switching cost gets made in a conversation and its reasoning evaporates, so the next contributor reopens it or silently contradicts it."
+outcome: "A numbered record in .writ/decision-records/ states the chosen option, the alternatives it beat, and the consequences the project accepted."
+exit_criteria:
+  - "a new .writ/decision-records/<NNNN>-<title>.md continues the existing number sequence without reusing a number"
+  - "the record compares at least three options, including keeping the status quo, each with pros, cons, and an effort estimate"
+  - "negative consequences are listed with mitigations, and the rationale ties back to the force-ranked decision drivers"
 ---
 
 # Create ADR Command (create-adr)

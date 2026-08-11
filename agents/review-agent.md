@@ -11,6 +11,12 @@ subagent_type: "generalPurpose"
 model: default (inherits from parent)
 model_tier: orchestration
 readonly: true   # Review agent should only read and analyze
+problem: "Code that satisfies its task list can still leave an acceptance criterion unmet or quietly redefine the spec, and nothing else in the pipeline reads those two documents against each other."
+outcome: "A REVIEW_RESULT backed by a per-criterion verdict, a named security risk level, and an Overall Drift classification of the implementation against the spec contract."
+exit_criteria:
+  - "the number of criteria adjudicated in Checklist Results equals the number supplied in acceptance_criteria_with_checkboxes, none left unaddressed"
+  - "Overall Drift reads None, Small, Medium, or Large, and a Large deviation produces PAUSE rather than FAIL"
+  - "every issue reported under FAIL carries a Location, a Severity, and a Suggested Fix, and no issue in the Security category is rated Minor"
 ```
 
 ## Responsibilities

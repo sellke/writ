@@ -1,6 +1,6 @@
 # Story 4: Quality and Release Command Contracts
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 1
 
@@ -18,23 +18,23 @@ Only `review` carries a `## Completion` section today. The other six belong to S
 
 ## Acceptance Criteria
 
-- [ ] Given all seven files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
-- [ ] Given four of the seven (`review`, `security-audit`, `retro`, `status`) produce a report as their primary artifact, when their `exit_criteria` are read, then no entry stops at "a report exists" — each names the report's path **and** a structural property of its contents (a required section, a classification, a count).
-- [ ] Given `ship` and `release` cross the production boundary, when their `exit_criteria` are read, then each names a git- or `gh`-observable fact (an open PR whose head is the current branch, a tag matching `v<VERSION>`, a changelog heading for `<VERSION>`), not an intention.
-- [ ] Given Business Rule 1, when any entry is pasted into another command in this batch, then it reads as false or nonsensical there. `review` / `security-audit` and `verify-spec` / `status` are the two adjacent pairs and must be checked explicitly against each other.
-- [ ] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
-- [ ] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
-- [ ] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these seven files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten.
+- [x] Given all seven files carry `---` frontmatter with `name` and `description` and no `problem:`, when this story lands, then each carries `problem:`, `outcome:`, and `exit_criteria:` in the fixed key order, with 2–4 `exit_criteria` entries.
+- [x] Given four of the seven (`review`, `security-audit`, `retro`, `status`) produce a report as their primary artifact, when their `exit_criteria` are read, then no entry stops at "a report exists" — each names the report's path **and** a structural property of its contents (a required section, a classification, a count).
+- [x] Given `ship` and `release` cross the production boundary, when their `exit_criteria` are read, then each names a git- or `gh`-observable fact (an open PR whose head is the current branch, a tag matching `v<VERSION>`, a changelog heading for `<VERSION>`), not an intention.
+- [x] Given Business Rule 1, when any entry is pasted into another command in this batch, then it reads as false or nonsensical there. `review` / `security-audit` and `verify-spec` / `status` are the two adjacent pairs and must be checked explicitly against each other.
+- [x] Given Business Rule 2, when any entry is compared against its own file's `description:`, then it asserts something the description does not already say.
+- [x] Given Business Rule 4, when each file is diffed, then frontmatter grew by at most 7 lines, and `grep -c '^---$'` still returns exactly 2.
+- [x] Given Business Rules 9 and 10, when `git diff --name-only` is read, then it lists only these seven files — no `scripts/` changes, no `## Completion` sections added, no command body prose rewritten.
 
 ## Implementation Tasks
 
-- [ ] 4.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s own frontmatter as the worked exemplar
-- [ ] 4.2 For each of the seven, identify the terminal artifact and its structural properties — report paths under `.writ/state/` or `.writ/retros/`, `VERSION`, `CHANGELOG.md`, git tags, PR state
-- [ ] 4.3 Author `problem:` and `outcome:` for all seven as single sentences; swap-test the `review` / `security-audit` pair and the `verify-spec` / `status` pair against each other first
-- [ ] 4.4 Author 2–4 `exit_criteria` per command; for the four report-producing commands, pair every path with a content assertion — a bare path is not an assertion (technical-spec.md → Anti-pattern to reject in review)
-- [ ] 4.5 Run the restatement test on every entry against its own `description:`
-- [ ] 4.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct
-- [ ] 4.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced in the Notes without acting on it
+- [x] 4.1 Read `.writ/docs/component-contract.md` (Story 1) and `commands/new-command.md`'s own frontmatter as the worked exemplar
+- [x] 4.2 For each of the seven, identify the terminal artifact and its structural properties — report paths under `.writ/state/` or `.writ/retros/`, `VERSION`, `CHANGELOG.md`, git tags, PR state
+- [x] 4.3 Author `problem:` and `outcome:` for all seven as single sentences; swap-test the `review` / `security-audit` pair and the `verify-spec` / `status` pair against each other first
+- [x] 4.4 Author 2–4 `exit_criteria` per command; for the four report-producing commands, pair every path with a content assertion — a bare path is not an assertion (technical-spec.md → Anti-pattern to reject in review)
+- [x] 4.5 Run the restatement test on every entry against its own `description:`
+- [x] 4.6 Verify per file: ≤7 added frontmatter lines, `grep -c '^---$'` = 2, key order correct
+- [x] 4.7 Run `bash scripts/eval.sh`; confirm no new findings and no `scripts/` changes; record any scoping defect surfaced in the Notes without acting on it
 
 ## Notes
 
@@ -59,11 +59,11 @@ Only `review` carries a `## Completion` section today. The other six belong to S
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Every report-producing command's criteria pair a path with a content assertion
-- [ ] `bash scripts/eval.sh` shows no new findings
-- [ ] No criterion reads as authorization to bypass a human gate
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Every report-producing command's criteria pair a path with a content assertion
+- [x] `bash scripts/eval.sh` shows no new findings
+- [x] No criterion reads as authorization to bypass a human gate
 
 ## Context for Agents
 

@@ -1,6 +1,12 @@
 ---
 name: design
 description: "Produce wireframes and store screenshots or mockups as visual references the coding agent uses during implementation. Standalone or inside the spec pipeline."
+problem: "The coding agent builds UI from prose, inventing layout, states, and spacing that were already decided but never put anywhere the agent reads."
+outcome: "The target spec's mockups/ directory holds the selected mode's artifacts — wireframes, catalogued images, or screenshots — that /implement-story Gate 1 loads."
+exit_criteria:
+  - "the selected mode's artifacts are under .writ/specs/<spec-name>/mockups/, with capture output in mockups/current/"
+  - "interactive components have one wireframe per state, named <component>-<state>.excalidraw"
+  - "a mode that cannot run leaves mockups/ unchanged rather than writing partial output"
 ---
 
 # Design Command (design)
