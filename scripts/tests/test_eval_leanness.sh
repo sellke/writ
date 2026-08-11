@@ -246,17 +246,23 @@ python3 - "$TMP_BASELINE" <<'PY'
 import json, os, sys
 root = sys.argv[1]
 b = json.load(open(os.path.join(root, ".writ", "leanness-baseline.json")))
-assert b.get("schema") == 2, "baseline schema must be 2 after --update-baseline"
+# Schema 3 (2026-08-11-governor-instrumentation Story 1): the per-surface entry
+# shape changed — `justification` (one unbounded string per surface) is replaced
+# by `justifications` (one bound record per metric). The reader accepts 2 and 3;
+# the writer emits 3 only.
+assert b.get("schema") == 3, "baseline schema must be 3 after --update-baseline"
 surfaces = b.get("surfaces")
 assert isinstance(surfaces, dict), "baseline must have a 'surfaces' map"
 for name in ("commands", "agents", "skills", "adapters", "scripts", "system_instructions"):
     entry = surfaces.get(name)
     assert isinstance(entry, dict), f"surfaces.{name} missing"
     assert "lines" in entry and "chars" in entry, f"surfaces.{name} missing lines/chars"
+    assert entry.get("justifications") == {}, f"surfaces.{name} must reseed justifications to {{}}"
+    assert "justification" not in entry, f"surfaces.{name} must not carry the legacy justification key"
 for key in ("recorded", "commands", "agents", "skills", "command_lines", "command_chars", "note"):
     assert key in b, f"legacy top-level key missing after reseed: {key}"
 PY
-ok "--update-baseline writes per-surface schema (schema=2, surfaces map) + legacy keys"
+ok "--update-baseline writes per-surface schema (schema=3, bound justifications) + legacy keys"
 rm -rf "$TMP_BASELINE"
 
 # ---------------------------------------------------------------------------
@@ -514,20 +520,77 @@ json_contains "$OUT6" warnings "commands" || fail "growth warning must name the 
 ok "ratchet: unjustified increase -> warning naming surface + delta, zero structural findings"
 rm -rf "$TMP6"
 
-# Scenario 4c: justified increase -> silent (zero warnings for that surface).
+# Scenario 4c: justified increase -> silent, but ONLY up to the recorded
+# ceiling.
+#
+# CHANGED by 2026-08-11-governor-instrumentation Story 1, deliberately and with
+# the reason recorded here. This scenario used to assert that ANY non-empty
+# `justification` string silenced a surface. That was the defect, not the
+# contract: the string was read once per surface, outside the per-metric loop,
+# so one sentence muted both `lines` and `chars` at any magnitude forever. The
+# assertion now pins the replacement — a bound record silences the increment it
+# names and nothing past it.
 TMP7="$(mktemp -d)"
 build_repo "$TMP7"
 BASE7="$TMP7/.writ/leanness-baseline.json"
 printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP7/commands/alpha.md"
-set_surface_field "$BASE7" commands justification '"Deliberate: added an alpha usage example."'
+justify_to_current() {
+  # usage: justify_to_current <baseline.json> <surface> <helper> <root>
+  # Record a bound justification at the surface's CURRENT measurement.
+  python3 - "$1" "$2" "$3" "$4" <<'PY'
+import importlib.util, json, sys
+baseline_path, surface, helper_path, root = sys.argv[1:5]
+spec = importlib.util.spec_from_file_location("eval_leanness", helper_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)  # type: ignore[union-attr]
+metrics, _ = module.compute_metrics(root)
+current = metrics["per_surface"][surface]
+b = json.load(open(baseline_path))
+b["surfaces"][surface]["justifications"] = {
+    key: {"value": current[key], "date": "2026-08-11", "text": "fixture: deliberate growth"}
+    for key in ("lines", "chars")
+}
+json.dump(b, open(baseline_path, "w"))
+PY
+}
+justify_to_current "$BASE7" commands "$HELPER" "$TMP7"
 OUT7="$(mktemp)"
 run_helper "$TMP7" "$OUT7"
 [ "$(count_field "$OUT7" structural)" -eq 0 ] || fail "justified growth must not be structural"
-if json_contains "$OUT7" warnings "commands"; then
-  fail "justified growth must be silent — a non-empty justification suppresses the warning"
+if json_contains "$OUT7" warnings "commands.lines"; then
+  fail "growth up to the recorded ceiling must be silent"
 fi
-ok "ratchet: justified increase (non-empty justification) -> silent"
+ok "ratchet: increase up to a bound justification's recorded ceiling -> silent"
+
+# Scenario 4c-bis: one line PAST the recorded ceiling -> the ratchet speaks
+# again, naming the ceiling it passed. This is the property the old unbounded
+# string did not have, and the reason the assertion above changed.
+printf '# Alpha\n\nsome body line\nanother new line of growth\none more line\n' > "$TMP7/commands/alpha.md"
+OUT7B="$(mktemp)"
+run_helper "$TMP7" "$OUT7B"
+json_contains "$OUT7B" warnings "commands.lines" \
+  || { cat "$OUT7B"; fail "growth past the recorded ceiling must warn again"; }
+json_contains "$OUT7B" warnings "past the justified ceiling" \
+  || fail "the warning must name the ceiling it passed"
+ok "ratchet: one unit past the recorded ceiling -> warns again, naming the ceiling"
 rm -rf "$TMP7"
+
+# Scenario 4c-ter: a LEGACY unbounded justification string silences nothing.
+# The direct regression test for the mute this story removed — old data must
+# fail loud, in the safe direction, with a migration hint.
+TMP7C="$(mktemp -d)"
+build_repo "$TMP7C"
+BASE7C="$TMP7C/.writ/leanness-baseline.json"
+printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP7C/commands/alpha.md"
+set_surface_field "$BASE7C" commands justification '"Deliberate: added an alpha usage example."'
+OUT7C="$(mktemp)"
+run_helper "$TMP7C" "$OUT7C"
+json_contains "$OUT7C" warnings "legacy unbounded" \
+  || { cat "$OUT7C"; fail "a legacy unbounded justification must warn, not silence"; }
+json_contains "$OUT7C" warnings "justifications.lines" \
+  || fail "the legacy warning must name the bound replacement field"
+ok "ratchet: legacy unbounded justification string -> warns with a migration hint"
+rm -rf "$TMP7C"
 
 # Scenario 4d: legacy (schema 1 / no 'surfaces' key) baseline -> structural
 # finding directing the maintainer to migrate via --update-baseline.

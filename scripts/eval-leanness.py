@@ -482,14 +482,57 @@ def check_coverage(root: str) -> list[dict]:
     return findings
 
 
+def justified_ceiling(base_entry: dict, metric_key: str) -> tuple[float | None, str, str]:
+    """Ceiling, text, and date for ONE (surface, metric) justification.
+
+    Schema 3:  surfaces.<name>.justifications.<metric> =
+                   {"value": <number>, "date": "YYYY-MM-DD", "text": "<why>"}
+    A justification silences growth only up to `value`. Past it, the ratchet
+    speaks again and names the ceiling that was passed. This is per METRIC by
+    construction: `lines` and `chars` measure different kinds of growth, and a
+    reason for one is not a reason for the other.
+
+    Returns (None, "", "") when there is no usable justification: key absent,
+    `justifications` not a dict, entry not a dict, `value` non-numeric, or
+    `text` blank. The legacy schema-2 string form (`justification: "<why>"`)
+    carries no bound, so it returns (None, <its text>, "") — the caller warns
+    with a migration hint. An unbounded mute must not survive in old data.
+    """
+    justifications = base_entry.get("justifications")
+    if isinstance(justifications, dict):
+        record = justifications.get(metric_key)
+        if isinstance(record, dict):
+            value = record.get("value")
+            text = str(record.get("text") or "").strip()
+            date = str(record.get("date") or "").strip()
+            # `bool` is an `int` subclass; `{"value": true}` is not a ceiling.
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and text:
+                return value, text, date
+
+    legacy = str(base_entry.get("justification") or "").strip()
+    if legacy:
+        return None, legacy, ""
+    return None, "", ""
+
+
 def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
                    metrics: dict) -> tuple[list[dict], list[dict]]:
     """The reduction ratchet (replaces GROWTH_TOLERANCE): every gated surface
-    is compared to its own recorded baseline, independently.
+    is compared to its own recorded baseline, per metric, independently.
 
-      current <= baseline                       -> silent (down is free)
-      current >  baseline, justification present -> silent (up costs a sentence)
-      current >  baseline, no justification      -> warning naming the delta
+      current <= baseline                            -> silent (down is free)
+      current >  baseline, bound justification covers -> silent up to its `value`
+      current >  baseline, past/absent/legacy bound   -> warning naming the delta
+
+    "Down is free" is evaluated FIRST and UNCONDITIONALLY, so no justification
+    state — valid, stale, malformed, or legacy — can make a shrinking surface
+    warn.
+
+    A justification is bound to a recorded ceiling, per metric, or it silences
+    nothing (spec 2026-08-11-governor-instrumentation, Business Rule 9). The
+    pre-schema-3 form read one string per SURFACE and skipped both metrics at
+    any magnitude forever: one sentence bought unlimited unmonitored growth.
+    See justified_ceiling() for the replacement.
 
     A missing/malformed baseline, or a legacy (pre-schema-2) baseline with no
     `surfaces` map, is a structural finding — the ratchet cannot run blind.
@@ -507,7 +550,12 @@ def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
         return structural, warnings
 
     surfaces = baseline.get("surfaces")
-    if baseline.get("schema") != 2 or not isinstance(surfaces, dict):
+    # Schema 2 and 3 are both readable: 3 only adds the per-metric
+    # `justifications` map and drops the unbounded `justification` string, so a
+    # committed schema-2 file still measures correctly. The reader accepting
+    # both is what lets the writer bump to 3 without the introducing commit
+    # failing its own eval run. Schema 1 (no `surfaces` map) stays structural.
+    if baseline.get("schema") not in (2, 3) or not isinstance(surfaces, dict):
         structural.append({
             "subject": relpath(baseline_path),
             "what": "leanness baseline uses the legacy pre-full-surface schema "
@@ -524,22 +572,41 @@ def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
         if not isinstance(base_entry, dict):
             continue  # newly-added surface with no prior baseline: no history to ratchet yet
         current = per_surface.get(name, {})
-        justification = str(base_entry.get("justification") or "").strip()
         for metric_key in ("lines", "chars"):
             base_value = base_entry.get(metric_key)
             current_value = current.get(metric_key)
             if not isinstance(base_value, (int, float)) or not isinstance(current_value, (int, float)):
                 continue
-            if current_value <= base_value or justification:
-                continue
+            if current_value <= base_value:
+                continue  # down is free — first, and unconditional
+            # Read per METRIC, never per surface: a reason for `lines` is not a
+            # reason for `chars`.
+            ceiling, text, date = justified_ceiling(base_entry, metric_key)
+            if ceiling is not None and current_value <= ceiling:
+                continue  # covers the increment it names, and nothing more
             delta = current_value - base_value
+            if ceiling is not None:
+                what = (f"{name} {metric_key} grew from {base_value} to {current_value} "
+                        f"(+{delta}), past the justified ceiling of {ceiling} recorded "
+                        f"{date or 'undated'} (\"{text}\"). That justification covered "
+                        f"growth to {ceiling}.")
+            elif text:
+                what = (f"surfaces.{name} carries a legacy unbounded `justification` "
+                        f"(schema 2); it silences nothing. {name} {metric_key} grew from "
+                        f"{base_value} to {current_value} (+{delta}).")
+            else:
+                what = (f"{name} {metric_key} grew from {base_value} to {current_value} "
+                        f"(+{delta}) with no justification recorded for this metric.")
             warnings.append({
-                "subject": name,
-                "what": f"{name} {metric_key} grew from {base_value} to {current_value} "
-                        f"(+{delta}) with no justification.",
-                "fix": f"If deliberate, add a one-line justification to surfaces.{name} in "
-                       f"{relpath(baseline_path)} and rerun --update-baseline. "
-                       "Otherwise prune the surface back down — the delta is the signal.",
+                "subject": f"{name}.{metric_key}",
+                "what": what,
+                "fix": "Prune the surface back down — the delta is the signal — or record "
+                       f"the increment: set surfaces.{name}.justifications.{metric_key} to "
+                       f'{{"value": {current_value}, "date": "YYYY-MM-DD", "text": "<why>"}} '
+                       f"in {relpath(baseline_path)}. That silences growth to "
+                       f"{current_value} and nothing beyond it. --update-baseline is the "
+                       "other option: it moves EVERY surface's floor to its current "
+                       "measurement and records no reason.",
             })
     return structural, warnings
 
@@ -589,18 +656,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.update_baseline:
         # Reseeding is a clean-slate ratchet: every gated surface's baseline
         # becomes exactly the current measurement (down is free; a shrink
-        # ratchets down automatically) and `justification` resets to "" —
+        # ratchets down automatically) and `justifications` resets to {} —
         # a justification describes a specific past delta, and that delta no
-        # longer exists once absorbed into the new baseline. A future
-        # increase past this fresh baseline requires a fresh justification.
+        # longer exists once absorbed into the new baseline. Under a BOUND
+        # justification the reset is more clearly right than it was under the
+        # old string: a recorded ceiling at or below the new floor is dead
+        # data, silencing nothing it did not already silence. A future
+        # increase past this fresh baseline requires a fresh bound entry.
+        #
+        # The legacy `justification` string key is not written at all —
+        # schema 3 replaced it, and carrying an empty one forward would keep
+        # the shape of a mute that no longer exists.
         payload = {
             "recorded": _today(),
-            "schema": 2,
+            "schema": 3,
             "surfaces": {
                 name: {
                     "lines": per_surface["lines"],
                     "chars": per_surface["chars"],
-                    "justification": "",
+                    "justifications": {},
                 }
                 for name, per_surface in metrics["per_surface"].items()
             },
@@ -610,8 +684,12 @@ def main(argv: list[str] | None = None) -> int:
             "command_lines": metrics["command_lines"],
             "command_chars": metrics["command_chars"],
             "total_product_lines": metrics["total_product_lines"],
-            "note": "Down is free. Any increase to a gated surface requires a "
-                    "justification string in its baseline entry, or it warns.",
+            "note": "Down is free. An increase to a gated surface is silent only up "
+                    "to a recorded ceiling: set surfaces.<name>.justifications.<lines"
+                    "|chars> to {\"value\": <measurement>, \"date\": \"YYYY-MM-DD\", "
+                    "\"text\": \"<why>\"}. It silences growth to that value and nothing "
+                    "beyond it. Rerunning --update-baseline instead moves EVERY "
+                    "surface's floor to its current measurement and records no reason.",
         }
         os.makedirs(os.path.dirname(baseline_path), exist_ok=True)
         with open(baseline_path, "w", encoding="utf-8") as handle:

@@ -1,6 +1,6 @@
 # Story 1: Delta-Bound Justification
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** None
 
@@ -12,28 +12,30 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a baseline surface at `lines: 100` with no justification and a current measurement of `120`, when the check runs, then it emits exactly one growth warning whose `subject` is `<surface>.lines` — naming the metric, not just the surface.
-- [ ] Given that same surface with `justifications.lines = {"value": 120, "date": …, "text": "<why>"}`, when the current measurement is `120`, then **no** warning is emitted — the justification covers the increment it names.
-- [ ] Given that same justification (`value: 120`), when the current measurement is `121`, then a warning **is** emitted, and its `what` names the ceiling that was passed (`justified to 120, now 121`) — one sentence buys one increment, not unlimited silence.
-- [ ] Given a surface whose `justifications` names **only** `lines`, when both `lines` and `chars` have grown, then exactly one warning is emitted — for `chars`. A justification for one metric must never silence the other. This is the direct regression test for the current placement of the justification read outside the per-metric loop (`scripts/eval-leanness.py:527`).
-- [ ] Given any surface, when the current measurement is less than or equal to its baseline, then no warning is emitted regardless of whether a justification exists, is malformed, or names a lower ceiling — "down is free" is evaluated first and this story does not weaken it.
-- [ ] Given a legacy schema-2 entry carrying the unbounded string form (`"justification": "<why>"`) and a current measurement above the baseline by any margin, when the check runs, then a warning **is** emitted, and its `fix` names the bound replacement (`justifications.<metric>`) — the unbounded mute does not survive the migration in old data either.
-- [ ] Given the six committed schema-2 entries, which all carry `"justification": ""`, when the check runs, then behavior is byte-identical to today for them — an empty legacy string never silenced anything and still does not.
-- [ ] Given a malformed justification — `value` non-numeric, `value` at or below the baseline, `text` blank or absent, or `justifications` not a dict — when the current measurement exceeds the baseline, then a warning is emitted and no exception is raised. A justification that cannot be evaluated never silences.
-- [ ] Given `check_baseline()`'s growth-warning `fix` string after this story, when a maintainer follows it literally, then the instruction is self-consistent: it never tells them to write a value that the next prescribed command erases, and it states what `--update-baseline` does differently (moves every surface's floor, records no reason).
-- [ ] Given the committed `.writ/leanness-baseline.json` (schema 2) after this story's code lands but before Story 2 rewrites it, when the check runs, then `structural` is `[]` — the reader accepts schema 2 and schema 3, so no intermediate state turns `eval.sh` red.
-- [ ] Given `python3 scripts/eval-leanness.py --root . --baseline .writ/leanness-baseline.json` after this story, when its `warnings` are read, then exactly the same four `(surface, metric)` pairs warn as before it — `commands.lines`, `commands.chars`, `scripts.lines`, `scripts.chars` — no more, no fewer. This story changes what a justification *means*; it clears nothing. Clearing is Story 2.
+- [x] Given a baseline surface at `lines: 100` with no justification and a current measurement of `120`, when the check runs, then it emits exactly one growth warning whose `subject` is `<surface>.lines` — naming the metric, not just the surface.
+- [x] Given that same surface with `justifications.lines = {"value": 120, "date": …, "text": "<why>"}`, when the current measurement is `120`, then **no** warning is emitted — the justification covers the increment it names.
+- [x] Given that same justification (`value: 120`), when the current measurement is `121`, then a warning **is** emitted, and its `what` names the ceiling that was passed (`justified to 120, now 121`) — one sentence buys one increment, not unlimited silence.
+- [x] Given a surface whose `justifications` names **only** `lines`, when both `lines` and `chars` have grown, then exactly one warning is emitted — for `chars`. A justification for one metric must never silence the other. This is the direct regression test for the current placement of the justification read outside the per-metric loop (`scripts/eval-leanness.py:527`).
+- [x] Given any surface, when the current measurement is less than or equal to its baseline, then no warning is emitted regardless of whether a justification exists, is malformed, or names a lower ceiling — "down is free" is evaluated first and this story does not weaken it.
+- [x] Given a legacy schema-2 entry carrying the unbounded string form (`"justification": "<why>"`) and a current measurement above the baseline by any margin, when the check runs, then a warning **is** emitted, and its `fix` names the bound replacement (`justifications.<metric>`) — the unbounded mute does not survive the migration in old data either.
+- [x] Given the six committed schema-2 entries, which all carry `"justification": ""`, when the check runs, then behavior is byte-identical to today for them — an empty legacy string never silenced anything and still does not.
+- [x] Given a malformed justification — `value` non-numeric, `value` at or below the baseline, `text` blank or absent, or `justifications` not a dict — when the current measurement exceeds the baseline, then a warning is emitted and no exception is raised. A justification that cannot be evaluated never silences.
+- [x] Given `check_baseline()`'s growth-warning `fix` string after this story, when a maintainer follows it literally, then the instruction is self-consistent: it never tells them to write a value that the next prescribed command erases, and it states what `--update-baseline` does differently (moves every surface's floor, records no reason).
+- [x] Given the committed `.writ/leanness-baseline.json` (schema 2) after this story's code lands but before Story 2 rewrites it, when the check runs, then `structural` is `[]` — the reader accepts schema 2 and schema 3, so no intermediate state turns `eval.sh` red.
+- [x] Given `python3 scripts/eval-leanness.py --root . --baseline .writ/leanness-baseline.json` after this story, when its `warnings` are read, then exactly the same `(surface, metric)` pairs warn as before it — no more, no fewer. This story changes what a justification *means*; it clears nothing. Clearing is Story 2.
+
+> **Measured correction, 2026-08-11 (implementation).** The spec was authored when four growth warnings were live. Three Phase 10 specs landed before this one (`e23fbdc` retire-dead-prescription, `b8b96d5` component-contract, `dfc0807` loop-bounds), and they grew a third gated surface. The live count on this story's base is **six**, not four: `commands.lines`, `commands.chars`, **`agents.lines`, `agents.chars`**, `scripts.lines`, `scripts.chars`. Verified before and after this story's code landed — the same six pairs warn, with new `subject` values and new text. Everywhere the spec and these stories say "the four", read "the six", and treat `agents` as a fourth justified grower alongside `commands` and `scripts`.
 
 ## Implementation Tasks
 
-- [ ] 1.1 Write the tests first in `scripts/tests/test_eval_leanness_contract.py` (importlib-by-path load of `eval-leanness.py`, the established recipe in `test_archive_sweep.py`): the full matrix in `sub-specs/technical-spec.md` → "Test matrix for the bound justification" — 16 rows covering equal/down/up, justified-exactly, justified-then-exceeded, per-metric independence, legacy empty string, legacy non-empty string, four malformed shapes, both schema versions, and the reseed output shape
-- [ ] 1.2 Add `justified_ceiling(base_entry, metric_key)` — returns the `(ceiling, text, date)` for one `(surface, metric)` pair from `justifications.<metric>`, or a `None` ceiling when the entry is absent, malformed, or is the legacy unbounded string
-- [ ] 1.3 Rewrite `check_baseline()`'s per-surface loop: move the justification read **inside** the `for metric_key in ("lines", "chars")` loop, evaluate `current_value <= base_value` first and unconditionally (down is free), then apply the bound
-- [ ] 1.4 Change the growth warning's `subject` from `<surface>` to `<surface>.<metric>` so the two metrics of one surface are separately addressable — the same Business Rule 2 granularity the four new checks are held to
-- [ ] 1.5 Write the three `what` variants (no justification recorded / justified ceiling exceeded / legacy unbounded string present), replace the `fix` string that currently prescribes the write-then-erase sequence (`scripts/eval-leanness.py:540`), and correct `check_baseline()`'s own docstring, whose three-line summary still advertises *"current > baseline, justification present -> silent (up costs a sentence)"* (`scripts/eval-leanness.py:490-492`)
-- [ ] 1.6 Accept `schema` 2 **or** 3 in the structural gate at `scripts/eval-leanness.py:510`, and change the `--update-baseline` reseed to write `"schema": 3` with `"justifications": {}` per surface, dropping the legacy `"justification"` key and rewriting the payload's `note` string (`scripts/eval-leanness.py:613-614`), which repeats the same "requires a justification string, or it warns" claim. Extend the existing reseed comment (`scripts/eval-leanness.py:590-595`) — the reset stays, and under a bound justification it is more clearly right: a ceiling at or below the new floor is dead data
-- [ ] 1.7 Verify against the real repo: the same four `(surface, metric)` pairs warn, `structural` is `[]`, `bash scripts/eval.sh --check=leanness` exits 0, and the committed schema-2 baseline produces no structural finding
-- [ ] 1.8 Verify all tests pass — the new pytest file, `bash scripts/tests/test_eval_leanness.sh`, the full `scripts/tests/*.py` suite, and `bash scripts/eval.sh`
+- [x] 1.1 Write the tests first in `scripts/tests/test_eval_leanness_contract.py` (importlib-by-path load of `eval-leanness.py`, the established recipe in `test_archive_sweep.py`): the full matrix in `sub-specs/technical-spec.md` → "Test matrix for the bound justification" — 16 rows covering equal/down/up, justified-exactly, justified-then-exceeded, per-metric independence, legacy empty string, legacy non-empty string, four malformed shapes, both schema versions, and the reseed output shape
+- [x] 1.2 Add `justified_ceiling(base_entry, metric_key)` — returns the `(ceiling, text, date)` for one `(surface, metric)` pair from `justifications.<metric>`, or a `None` ceiling when the entry is absent, malformed, or is the legacy unbounded string
+- [x] 1.3 Rewrite `check_baseline()`'s per-surface loop: move the justification read **inside** the `for metric_key in ("lines", "chars")` loop, evaluate `current_value <= base_value` first and unconditionally (down is free), then apply the bound
+- [x] 1.4 Change the growth warning's `subject` from `<surface>` to `<surface>.<metric>` so the two metrics of one surface are separately addressable — the same Business Rule 2 granularity the four new checks are held to
+- [x] 1.5 Write the three `what` variants (no justification recorded / justified ceiling exceeded / legacy unbounded string present), replace the `fix` string that currently prescribes the write-then-erase sequence (`scripts/eval-leanness.py:540`), and correct `check_baseline()`'s own docstring, whose three-line summary still advertises *"current > baseline, justification present -> silent (up costs a sentence)"* (`scripts/eval-leanness.py:490-492`)
+- [x] 1.6 Accept `schema` 2 **or** 3 in the structural gate at `scripts/eval-leanness.py:510`, and change the `--update-baseline` reseed to write `"schema": 3` with `"justifications": {}` per surface, dropping the legacy `"justification"` key and rewriting the payload's `note` string (`scripts/eval-leanness.py:613-614`), which repeats the same "requires a justification string, or it warns" claim. Extend the existing reseed comment (`scripts/eval-leanness.py:590-595`) — the reset stays, and under a bound justification it is more clearly right: a ceiling at or below the new floor is dead data
+- [x] 1.7 Verify against the real repo: the same four `(surface, metric)` pairs warn, `structural` is `[]`, `bash scripts/eval.sh --check=leanness` exits 0, and the committed schema-2 baseline produces no structural finding
+- [x] 1.8 Verify all tests pass — the new pytest file, `bash scripts/tests/test_eval_leanness.sh`, the full `scripts/tests/*.py` suite, and `bash scripts/eval.sh`
 
 ## Notes
 
@@ -61,11 +63,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 
