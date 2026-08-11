@@ -249,9 +249,7 @@ When a consumer with `required_skills: [foo]` is invoked, the harness loads `ski
 
 Without the field, agents and commands continue to inline `Read skills/<name>/SKILL.md` instructions in their prompts at the point where the skill is needed.
 
-**Status: reserve-only.** As of the foundation spec (`2026-05-03-skills-foundation`), this convention is documented but *not adopted by any existing agent or command*. Adoption happens organically during pilot skill extraction (separate specs). Defining the schema now prevents pilot specs from inventing competing conventions.
-
-> **Review trigger: 2026-08-03** (90 days post-ship). If no agent or command has adopted `required_skills:` by this date, deprecate or revisit the convention. Date matches ADR-009's review discipline.
+**Status: adopted.** The convention's review trigger fired on **2026-08-03** (90 days post-ship, per the foundation spec `2026-05-03-skills-foundation`). Its terms offered two outcomes — deprecate or revisit — and the recorded outcome is **revisit → adopt**. The first consumer is Phase 10 progressive disclosure ([ADR-021](.writ/decision-records/adr-021-progressive-disclosure-token-budget.md)), which needs a declarative, harness-resolved, per-invocation load mechanism — the exact contract this convention already specifies, graceful degradation included. Deprecating it would have meant designing the same mechanism again under a new name inside the same phase. The schema above is adopted **unchanged**: optional array, order preserved, duplicates deduplicated, unknown names warn rather than hard-fail. Progressive disclosure's extraction work lands the first real declarations; no agent or command declares the field yet.
 
 ### Skill authoring
 

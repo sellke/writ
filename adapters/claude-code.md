@@ -393,7 +393,7 @@ Read skills/<name>/SKILL.md
 
 In Claude Code's tool model, this maps directly to the native `Read` tool. The orchestrator (or command body) issues the `Read` call when the relevant phase begins; the skill's content lands in the agent's context for that phase.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness issues `Read skills/<name>/SKILL.md` calls before the consumer's first phase begins. `required_skills:` is reserve-only in the foundation spec; pilot skills will adopt it as they ship.
+For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness issues `Read skills/<name>/SKILL.md` calls before the consumer's first phase begins. `required_skills:` was adopted on 2026-08-11 when its 2026-08-03 review trigger was resolved revisit-to-adopt; Phase 10 progressive disclosure (ADR-021) is its first consumer, and no consumer declares the field yet.
 
 ### Authoring & Reference
 
