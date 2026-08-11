@@ -1,10 +1,10 @@
 # User Stories: Autonomy Gate Classes
 
-> **Status:** Not Started — 0/3 stories, 0/23 tasks.
+> **Status:** In Progress — 1/3 stories, 7/23 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Raise the `_preamble` Cap and Prove It Still Binds](./story-1-raise-preamble-cap-with-binding-test.md) | Not Started | 7 | 0/7 | None |
+| 1 | [Raise the `_preamble` Cap and Prove It Still Binds](./story-1-raise-preamble-cap-with-binding-test.md) | Complete | 7 | 7/7 | None |
 | 2 | [Record the Gate-Class Table and Reversibility Precondition](./story-2-gate-class-table-and-precondition.md) | Not Started | 8 | 0/8 | Story 1 |
 | 3 | [Verify the Precondition Is Applicable to Destructive-Class Commands](./story-3-destructive-command-applicability.md) | Not Started | 8 | 0/8 | Story 2 |
 
