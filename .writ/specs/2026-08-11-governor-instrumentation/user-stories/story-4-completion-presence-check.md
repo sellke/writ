@@ -1,6 +1,6 @@
 # Story 4: `## Completion` Presence Check
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** Story 2, Story 3
 
@@ -12,23 +12,25 @@
 
 ## Acceptance Criteria
 
-- [ ] Given a fixture command containing a line matching `^## Completion$`, when the check runs, then it emits zero findings for that file.
-- [ ] Given a fixture command with no `## Completion` heading, when the check runs, then it emits exactly one finding whose `subject` names the file and the section (e.g. `commands/create-spec.md → ## Completion`).
-- [ ] Given a fixture command whose heading is `## Completion Criteria` or `### Completion`, when the check runs, then it emits a finding, and the finding's `fix` text states the exact required spelling so the near-miss is diagnosable rather than mysterious.
-- [ ] Given a fixture command with a `## Completion` heading and no body under it, when the check runs, then it emits zero findings — this check asserts presence, not content, and must not silently expand its own scope.
-- [ ] Given `commands/_preamble.md`, when the check runs, then it is never checked (existing `is_infra()` rule, no hardcoded filename).
-- [ ] Given the real repo after this story, when `eval-leanness.py` runs, then this check contributes exactly **18** findings (31 checkable commands, 13 compliant), all in `warnings`, `structural` remains `[]`, and `eval.sh` exits 0.
-- [ ] Given `metrics.contract_compliance` after this story, when it is read, then it reports `commands_with_completion` as a count.
-- [ ] Given `scripts/eval-leanness.py` after this story, when the new check is inspected, then it returns a `list[dict]`, routes through `emit_contract_findings()`, and introduces no parsing or routing mechanism of its own.
+- [x] Given a fixture command containing a line matching `^## Completion$`, when the check runs, then it emits zero findings for that file.
+- [x] Given a fixture command with no `## Completion` heading, when the check runs, then it emits exactly one finding whose `subject` names the file and the section (e.g. `commands/create-spec.md → ## Completion`).
+- [x] Given a fixture command whose heading is `## Completion Criteria` or `### Completion`, when the check runs, then it emits a finding, and the finding's `fix` text states the exact required spelling so the near-miss is diagnosable rather than mysterious.
+- [x] Given a fixture command with a `## Completion` heading and no body under it, when the check runs, then it emits zero findings — this check asserts presence, not content, and must not silently expand its own scope.
+- [x] Given `commands/_preamble.md`, when the check runs, then it is never checked (existing `is_infra()` rule, no hardcoded filename).
+- [x] Given the real repo after this story, when `eval-leanness.py` runs, then this check's findings all land in `warnings`, `structural` remains `[]`, and `eval.sh` exits 0.
+
+> **Measured correction, 2026-08-11 (implementation).** The spec's **18** was measured before `2026-08-11-component-contract` landed; that spec added `## Completion` to every command it was missing from. All 31 checkable commands now carry it, so this check contributes **0** findings and `contract_compliance.commands_with_completion` reads `31`. This is precisely the moving-surface hazard this story's own risk note names: the **count** is asserted against fixture trees (compliant, missing, `## Completion Criteria`, `### Completion`, heading-with-empty-body, heading-only-inside-a-fence, `_preamble.md`, absent directory) and *behaviour* against the real repo.
+- [x] Given `metrics.contract_compliance` after this story, when it is read, then it reports `commands_with_completion` as a count.
+- [x] Given `scripts/eval-leanness.py` after this story, when the new check is inspected, then it returns a `list[dict]`, routes through `emit_contract_findings()`, and introduces no parsing or routing mechanism of its own.
 
 ## Implementation Tasks
 
-- [ ] 4.1 Write tests in `scripts/tests/test_eval_leanness_contract.py`: compliant command, missing heading, `## Completion Criteria` near-miss, `### Completion` near-miss, heading-with-empty-body, `_preamble.md` exclusion, absent `commands/` directory
-- [ ] 4.2 Add `check_completion_sections(root)` — exact `^## Completion\s*$` match per non-infra command, reusing `all_command_files()` / `is_infra()`
-- [ ] 4.3 Write the finding text so `fix` names the exact required H2 spelling and cites `commands/new-command.md` as the mandate's source
-- [ ] 4.4 Wire the check into `main()` through Story 3's router; add `commands_with_completion` to `metrics.contract_compliance`
-- [ ] 4.5 Verify acceptance criteria against the real repo: exactly 18 findings, all in `warnings`, exit 0, and the 13 compliant files produce none
-- [ ] 4.6 Verify all tests pass — new pytest cases, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, and `bash scripts/eval.sh --check=leanness`
+- [x] 4.1 Write tests in `scripts/tests/test_eval_leanness_contract.py`: compliant command, missing heading, `## Completion Criteria` near-miss, `### Completion` near-miss, heading-with-empty-body, `_preamble.md` exclusion, absent `commands/` directory
+- [x] 4.2 Add `check_completion_sections(root)` — exact `^## Completion\s*$` match per non-infra command, reusing `all_command_files()` / `is_infra()`
+- [x] 4.3 Write the finding text so `fix` names the exact required H2 spelling and cites `commands/new-command.md` as the mandate's source
+- [x] 4.4 Wire the check into `main()` through Story 3's router; add `commands_with_completion` to `metrics.contract_compliance`
+- [x] 4.5 Verify acceptance criteria against the real repo: exactly 18 findings, all in `warnings`, exit 0, and the 13 compliant files produce none
+- [x] 4.6 Verify all tests pass — new pytest cases, `test_eval_leanness.sh`, full `scripts/tests/*.py` suite, and `bash scripts/eval.sh --check=leanness`
 
 ## Notes
 
@@ -52,11 +54,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

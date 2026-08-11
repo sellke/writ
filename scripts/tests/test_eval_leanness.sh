@@ -85,17 +85,67 @@ assembler_bytes_total() {
 # ---------------------------------------------------------------------------
 # Build a clean, self-consistent temp repo skeleton.
 # ---------------------------------------------------------------------------
+# Write a command file that satisfies the ADR-020 component contract
+# (problem:/outcome:/exit_criteria: frontmatter + a `## Completion` section),
+# optionally with an iteration bound, so the contract checks stay silent on a
+# clean fixture and the ratchet scenarios below can still assert "zero
+# warnings" meaningfully.
+# usage: write_command <path> <name> [extra body lines] [with-loop]
+write_command() {
+  local path="$1" name="$2" extra="${3:-}" loop="${4:-}"
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "$name"
+    printf 'description: "the %s command"\n' "$name"
+    printf 'problem: "a stated problem for %s"\n' "$name"
+    printf 'outcome: "a stated outcome for %s"\n' "$name"
+    printf 'exit_criteria:\n  - "a falsifiable condition for %s"\n' "$name"
+    if [ "$loop" = "with-loop" ]; then
+      printf 'loop:\n  unit: "iteration"\n  max_iterations: 3\n  on_exhaustion: escalate\n'
+      printf '  calibrated_against: "fixture"\n'
+    fi
+    printf -- '---\n\n# %s\n\nsome body line\n' "$name"
+    # Omitted entirely when absent, so "same command, fewer body lines" is a
+    # real shrink — an always-emitted blank line would keep the count flat.
+    [ -n "$extra" ] && printf '%b\n' "$extra"
+    printf '\n## Completion\n\nDone when the exit criterion holds.\n'
+  } > "$path"
+}
+
 build_repo() {
   local root="$1"
   mkdir -p "$root/commands" "$root/agents" "$root/skills/sample-skill" \
            "$root/adapters" "$root/scripts/tests" "$root/.writ/decision-records"
 
-  # Non-infra commands: alpha, beta. Infra: _preamble (excluded from parity).
-  printf '# Alpha\n\nsome body line\n' > "$root/commands/alpha.md"
-  printf '# Beta\n\nsome body line\n'  > "$root/commands/beta.md"
+  # Non-infra commands: alpha, beta. Infra: _preamble (excluded from parity
+  # AND from the contract checks, via is_infra() — no hardcoded filename).
+  write_command "$root/commands/alpha.md" alpha "an extra alpha line"
+  write_command "$root/commands/beta.md" beta "an extra beta line"
   printf '# Preamble\n\ninfra only\n'  > "$root/commands/_preamble.md"
 
-  printf '# Agent\n' > "$root/agents/sample-agent.md"
+  # The five loop-bearing commands the presence check measures. They are a
+  # PRODUCT population (cross-read from scripts/eval-loop-bounds.py, which owns
+  # the list), so a fixture standing in for the product surface must carry them
+  # — otherwise every scenario below inherits five "missing" findings and the
+  # zero-warning assertions stop meaning anything.
+  local loop_name
+  for loop_name in implement-phase implement-spec implement-story refactor verify-spec; do
+    write_command "$root/commands/$loop_name.md" "$loop_name" "" with-loop
+  done
+
+  cat > "$root/agents/sample-agent.md" <<'EOF'
+# Sample Agent
+
+## Agent Configuration
+
+```
+name: sample-agent
+problem: "a stated problem for the sample agent"
+outcome: "a stated outcome for the sample agent"
+exit_criteria:
+  - "a falsifiable condition for the sample agent"
+```
+EOF
   printf 'name: sample-skill\n' > "$root/skills/sample-skill/SKILL.md"
 
   # Full-surface stubs (Story 1): adapters/, scripts/ (incl. a nested test
@@ -119,12 +169,30 @@ build_repo() {
 | `/alpha` | first command |
 | `/beta` | second command |
 | `/status` | status command |
+| `/implement-phase` | loop-bearing command |
+| `/implement-spec` | loop-bearing command |
+| `/implement-story` | loop-bearing command |
+| `/refactor` | loop-bearing command |
+| `/verify-spec` | loop-bearing command |
 EOF
 
   # /status allowlist is a CURATED SUBSET — names only alpha, deliberately omits
   # beta. Directional parity means beta is NOT an orphan for being absent here.
   cat > "$root/commands/status.md" <<'EOF'
+---
+name: status
+description: "the status command"
+problem: "a stated problem for status"
+outcome: "a stated outcome for status"
+exit_criteria:
+  - "a falsifiable condition for status"
+---
+
 # Status
+
+## Completion
+
+Done when the exit criterion holds.
 
 ## Maintainer Note: Command Allowlist
 
@@ -165,7 +233,7 @@ fi
 ok "directional: command absent from curated allowlist is not an orphan"
 
 # Metrics count ALL command files including _preamble (matches baseline convention).
-[ "$(metric "$OUT1" commands)" -eq 4 ] || fail "commands metric should count all 4 files (alpha, beta, status, _preamble)"
+[ "$(metric "$OUT1" commands)" -eq 9 ] || fail "commands metric should count all 9 files (alpha, beta, status, _preamble, and the five loop-bearing commands)"
 ok "metrics: commands counts all files (incl. _preamble)"
 
 # ---------------------------------------------------------------------------
@@ -246,17 +314,23 @@ python3 - "$TMP_BASELINE" <<'PY'
 import json, os, sys
 root = sys.argv[1]
 b = json.load(open(os.path.join(root, ".writ", "leanness-baseline.json")))
-assert b.get("schema") == 2, "baseline schema must be 2 after --update-baseline"
+# Schema 3 (2026-08-11-governor-instrumentation Story 1): the per-surface entry
+# shape changed — `justification` (one unbounded string per surface) is replaced
+# by `justifications` (one bound record per metric). The reader accepts 2 and 3;
+# the writer emits 3 only.
+assert b.get("schema") == 3, "baseline schema must be 3 after --update-baseline"
 surfaces = b.get("surfaces")
 assert isinstance(surfaces, dict), "baseline must have a 'surfaces' map"
 for name in ("commands", "agents", "skills", "adapters", "scripts", "system_instructions"):
     entry = surfaces.get(name)
     assert isinstance(entry, dict), f"surfaces.{name} missing"
     assert "lines" in entry and "chars" in entry, f"surfaces.{name} missing lines/chars"
+    assert entry.get("justifications") == {}, f"surfaces.{name} must reseed justifications to {{}}"
+    assert "justification" not in entry, f"surfaces.{name} must not carry the legacy justification key"
 for key in ("recorded", "commands", "agents", "skills", "command_lines", "command_chars", "note"):
     assert key in b, f"legacy top-level key missing after reseed: {key}"
 PY
-ok "--update-baseline writes per-surface schema (schema=2, surfaces map) + legacy keys"
+ok "--update-baseline writes per-surface schema (schema=3, bound justifications) + legacy keys"
 rm -rf "$TMP_BASELINE"
 
 # ---------------------------------------------------------------------------
@@ -485,9 +559,10 @@ TMP5="$(mktemp -d)"
 build_repo "$TMP5"
 BASE5="$TMP5/.writ/leanness-baseline.json"
 BASE5_COMMANDS_LINES_BEFORE="$(python3 -c "import json; print(json.load(open('$BASE5'))['surfaces']['commands']['lines'])")"
-# Shrink commands/ so current < baseline.
-: > "$TMP5/commands/beta.md"
-printf '# Beta\n' > "$TMP5/commands/beta.md"
+# Shrink commands/ so current < baseline. The rewrite stays contract-compliant
+# — this scenario asserts ZERO warnings, so a fixture that shed its frontmatter
+# would fail on contract findings rather than on the ratchet.
+write_command "$TMP5/commands/beta.md" beta
 OUT5A="$(mktemp)"
 run_helper "$TMP5" "$OUT5A"
 [ "$(count_field "$OUT5A" warnings)" -eq 0 ] || { cat "$OUT5A"; fail "a decreased surface must not warn"; }
@@ -505,7 +580,7 @@ rm -rf "$TMP5"
 TMP6="$(mktemp -d)"
 build_repo "$TMP6"
 BASE6="$TMP6/.writ/leanness-baseline.json"
-printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP6/commands/alpha.md"
+write_command "$TMP6/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth"
 OUT6="$(mktemp)"
 run_helper "$TMP6" "$OUT6"
 [ "$(count_field "$OUT6" structural)" -eq 0 ] || { cat "$OUT6"; fail "unjustified growth must not be structural"; }
@@ -514,20 +589,77 @@ json_contains "$OUT6" warnings "commands" || fail "growth warning must name the 
 ok "ratchet: unjustified increase -> warning naming surface + delta, zero structural findings"
 rm -rf "$TMP6"
 
-# Scenario 4c: justified increase -> silent (zero warnings for that surface).
+# Scenario 4c: justified increase -> silent, but ONLY up to the recorded
+# ceiling.
+#
+# CHANGED by 2026-08-11-governor-instrumentation Story 1, deliberately and with
+# the reason recorded here. This scenario used to assert that ANY non-empty
+# `justification` string silenced a surface. That was the defect, not the
+# contract: the string was read once per surface, outside the per-metric loop,
+# so one sentence muted both `lines` and `chars` at any magnitude forever. The
+# assertion now pins the replacement — a bound record silences the increment it
+# names and nothing past it.
 TMP7="$(mktemp -d)"
 build_repo "$TMP7"
 BASE7="$TMP7/.writ/leanness-baseline.json"
-printf '# Alpha\n\nsome body line\nanother new line of growth\n' > "$TMP7/commands/alpha.md"
-set_surface_field "$BASE7" commands justification '"Deliberate: added an alpha usage example."'
+write_command "$TMP7/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth"
+justify_to_current() {
+  # usage: justify_to_current <baseline.json> <surface> <helper> <root>
+  # Record a bound justification at the surface's CURRENT measurement.
+  python3 - "$1" "$2" "$3" "$4" <<'PY'
+import importlib.util, json, sys
+baseline_path, surface, helper_path, root = sys.argv[1:5]
+spec = importlib.util.spec_from_file_location("eval_leanness", helper_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)  # type: ignore[union-attr]
+metrics, _ = module.compute_metrics(root)
+current = metrics["per_surface"][surface]
+b = json.load(open(baseline_path))
+b["surfaces"][surface]["justifications"] = {
+    key: {"value": current[key], "date": "2026-08-11", "text": "fixture: deliberate growth"}
+    for key in ("lines", "chars")
+}
+json.dump(b, open(baseline_path, "w"))
+PY
+}
+justify_to_current "$BASE7" commands "$HELPER" "$TMP7"
 OUT7="$(mktemp)"
 run_helper "$TMP7" "$OUT7"
 [ "$(count_field "$OUT7" structural)" -eq 0 ] || fail "justified growth must not be structural"
-if json_contains "$OUT7" warnings "commands"; then
-  fail "justified growth must be silent — a non-empty justification suppresses the warning"
+if json_contains "$OUT7" warnings "commands.lines"; then
+  fail "growth up to the recorded ceiling must be silent"
 fi
-ok "ratchet: justified increase (non-empty justification) -> silent"
+ok "ratchet: increase up to a bound justification's recorded ceiling -> silent"
+
+# Scenario 4c-bis: one line PAST the recorded ceiling -> the ratchet speaks
+# again, naming the ceiling it passed. This is the property the old unbounded
+# string did not have, and the reason the assertion above changed.
+write_command "$TMP7/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth\none more line"
+OUT7B="$(mktemp)"
+run_helper "$TMP7" "$OUT7B"
+json_contains "$OUT7B" warnings "commands.lines" \
+  || { cat "$OUT7B"; fail "growth past the recorded ceiling must warn again"; }
+json_contains "$OUT7B" warnings "past the justified ceiling" \
+  || fail "the warning must name the ceiling it passed"
+ok "ratchet: one unit past the recorded ceiling -> warns again, naming the ceiling"
 rm -rf "$TMP7"
+
+# Scenario 4c-ter: a LEGACY unbounded justification string silences nothing.
+# The direct regression test for the mute this story removed — old data must
+# fail loud, in the safe direction, with a migration hint.
+TMP7C="$(mktemp -d)"
+build_repo "$TMP7C"
+BASE7C="$TMP7C/.writ/leanness-baseline.json"
+write_command "$TMP7C/commands/alpha.md" alpha "an extra alpha line\nanother new line of growth"
+set_surface_field "$BASE7C" commands justification '"Deliberate: added an alpha usage example."'
+OUT7C="$(mktemp)"
+run_helper "$TMP7C" "$OUT7C"
+json_contains "$OUT7C" warnings "legacy unbounded" \
+  || { cat "$OUT7C"; fail "a legacy unbounded justification must warn, not silence"; }
+json_contains "$OUT7C" warnings "justifications.lines" \
+  || fail "the legacy warning must name the bound replacement field"
+ok "ratchet: legacy unbounded justification string -> warns with a migration hint"
+rm -rf "$TMP7C"
 
 # Scenario 4d: legacy (schema 1 / no 'surfaces' key) baseline -> structural
 # finding directing the maintainer to migrate via --update-baseline.

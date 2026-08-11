@@ -1,6 +1,6 @@
 # Spec: Governor Instrumentation
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-11
 > **Dependencies:** [2026-08-11-component-contract, 2026-08-11-loop-bounds]

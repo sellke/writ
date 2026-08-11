@@ -1,16 +1,16 @@
 # User Stories: Governor Instrumentation
 
-> **Status:** Not Started — 0/7 stories, 0/48 tasks.
+> **Status:** Complete — 7/7 stories, 48/48 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Delta-Bound Justification](./story-1-delta-bound-justification.md) | Not Started | 8 | 0/8 | None |
-| 2 | [Clear the Four Live Growth Warnings](./story-2-clear-live-growth-warnings.md) | Not Started | 7 | 0/7 | Story 1 |
-| 3 | [Component Contract Presence Check](./story-3-contract-presence-check.md) | Not Started | 8 | 0/8 | Story 2 |
-| 4 | [`## Completion` Presence Check](./story-4-completion-presence-check.md) | Not Started | 6 | 0/6 | Story 2, Story 3 |
-| 5 | [Loop Bounds Declaration Check](./story-5-loop-bounds-check.md) | Not Started | 6 | 0/6 | Story 2, Story 3 |
-| 6 | [`required_skills:` Resolution Check](./story-6-required-skills-resolution-check.md) | Not Started | 6 | 0/6 | Story 2, Story 3 |
-| 7 | [Warnings→Structural Flip Seam](./story-7-structural-flip-seam.md) | Not Started | 7 | 0/7 | Story 3, Story 4, Story 5, Story 6 |
+| 1 | [Delta-Bound Justification](./story-1-delta-bound-justification.md) | Complete | 8 | 8/8 | None |
+| 2 | [Clear the Four Live Growth Warnings](./story-2-clear-live-growth-warnings.md) | Complete | 7 | 7/7 | Story 1 |
+| 3 | [Component Contract Presence Check](./story-3-contract-presence-check.md) | Complete | 8 | 8/8 | Story 2 |
+| 4 | [`## Completion` Presence Check](./story-4-completion-presence-check.md) | Complete | 6 | 6/6 | Story 2, Story 3 |
+| 5 | [Loop Bounds Declaration Check](./story-5-loop-bounds-check.md) | Complete | 6 | 6/6 | Story 2, Story 3 |
+| 6 | [`required_skills:` Resolution Check](./story-6-required-skills-resolution-check.md) | Complete | 6 | 6/6 | Story 2, Story 3 |
+| 7 | [Warnings→Structural Flip Seam](./story-7-structural-flip-seam.md) | Complete | 7 | 7/7 | Story 3, Story 4, Story 5, Story 6 |
 
 ## Dependency Graph
 
@@ -68,9 +68,11 @@ That ordering is the sequencing this spec assumes: the migration specs bring the
 
 If either spec's shape moves, Story 5 task 5.1 and Story 3's field list are the only places that follow it.
 
-## Expected Day-One Output (not a defect)
+## Expected Day-One Output — superseded by the migration, 2026-08-11
 
-Once Stories 3–6 land, a run against the current surface emits approximately **142 findings** into `warnings`, exit 0:
+> **Measured on completion.** The table below was authored before this spec's two dependencies merged. Both landed first, so the surface the checks measure is already compliant: **0 findings**, not ~142. `contract_compliance` reads `commands_checked: 31 / commands_with_contract: 31 / commands_with_completion: 31 / loop_commands_checked: 5 / loop_commands_bounded: 5 / agents_checked: 7 / agents_with_contract: 7`, and `required_skills_declarations: 0`. Every finding **count** in Stories 3–6 is therefore asserted against fixture trees, and *behaviour* against the real repo — the disposition those stories' own risk notes prescribe for a moving surface. The instrument is the deliverable; a reading of zero is the migration having worked, not the check having failed. The counts below stand as the pre-migration measurement.
+
+Had Stories 3–6 landed before their dependencies, a run against that surface would have emitted approximately **142 findings** into `warnings`, exit 0:
 
 | Check | Findings | Basis |
 |---|---|---|
