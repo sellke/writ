@@ -274,11 +274,7 @@ Writ agents, commands, and skills express model-weight intent through a portable
 
 - **Skills** (`skills/*/SKILL.md`) carry `model_tier` in real `---` YAML frontmatter, advisory only.
 - **Agents** (`agents/*.md`) carry `model_tier` in their existing fenced **Agent Configuration** block — not a new `---` header. 6 of 7 agents use `## Agent Configuration` with a plain fence; `visual-qa-agent.md` alone uses `## Agent Specification` with a `yaml` fence. Either way, `model_tier` is a new line in that existing block, enforced at spawn.
-- **Commands** (`commands/*.md`) have no frontmatter or config-block mechanism today (verified 0/31 files). Advisory tier ships as a prose note:
-
-  ```markdown
-  > **Model tier (advisory only):** orchestration — commands run at the user's session model.
-  ```
+- **Commands** (`commands/*.md`) carry `model_tier` in the same `---` YAML frontmatter that already holds `name:` and `description:` — that frontmatter is present in 32/32 files under `commands/` (31 commands plus `_preamble.md`). Advisory only.
 
 **Schema:**
 
