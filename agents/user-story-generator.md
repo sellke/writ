@@ -10,6 +10,12 @@ Specialized agent for generating individual user story files as part of the crea
 subagent_type: "generalPurpose"
 model: "fast"
 model_tier: capability
+problem: "Writing story files one at a time inside the create-spec conversation stalls the spec and lets each story drift into a different shape than its siblings."
+outcome: "One story file at this instance's assigned path, carrying its own criteria, tasks, and context hints that index into the spec rather than copying it."
+exit_criteria:
+  - "<spec_folder>/<story_filename> exists and is the only path this instance wrote — sibling instances own their own files"
+  - "that file holds 3 to 5 Given/When/Then acceptance criteria and 5 to 7 implementation tasks, the first writing tests and the last verifying them"
+  - "its Context for Agents section names spec sections, error map rows, or shadow paths instead of reproducing their text, and Status reads Not Started"
 ```
 
 ## Input Requirements
