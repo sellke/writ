@@ -278,7 +278,7 @@ Writ agents, commands, and skills express model-weight intent through a portable
 
 **Schema:**
 
-- **Allowed values:** `orchestration`, `capability`, or a reserved negative ordinal offset (`-N`) — regex `^(orchestration|capability|-[0-9]+)$`.
+- **Allowed values:** `orchestration` or `capability` — regex `^(orchestration|capability)$`.
 - **Unset:** inherits parent/default — identical to today's behavior. No warning.
 - **Precedence:** an explicit concrete `model:` always overrides `model_tier:` (concrete override wins). No warning.
 - **Unknown/unhonorable tier:** warns and falls back to inherit — never hard-fails. Mirrors the `required_skills:` graceful-degradation contract above.
@@ -288,12 +288,7 @@ Writ agents, commands, and skills express model-weight intent through a portable
 | `model_tier` unset | Resolve to parent/default (inherit). No warning. |
 | `model_tier: capability` but platform exposes no fast/cheaper model | Warn: "capability tier unavailable on \<platform\>; running at parent model." Fall back to inherit. |
 | `model_tier` value unrecognized at resolution time | Warn: "unknown model_tier '\<value\>'; running at parent model." Fall back to inherit. |
-| Reserved ordinal offset beyond available bands | Clamp to floor (or inherit if platform has one band); no warning (documented clamp). |
 | Both `model:` and `model_tier:` set | Use `model:` (concrete override wins). No warning. |
-
-**Reserved ordinal offsets (`-1`, `-2`, ...) are reserve-only.** They are documented as a future N-step resolution mechanism but resolve today only as a 2-band clamp: any negative offset lands on the same floor as `capability` (or inherit, if the platform exposes just one band). No consumer may depend on finer-grained ordinal behavior yet.
-
-> **Review trigger: 2026-10-16** (90 days post-ship). If no adapter has built N-step (>2-band) resolution by this date, deprecate or revisit the ordinal-offset reservation. Mirrors the `required_skills:` review discipline above.
 
 ## Self-Dogfooding (Writ Repo Only)
 

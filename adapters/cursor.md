@@ -159,7 +159,6 @@ Agents express weight intent via `model_tier` (see [ADR-016](../.writ/decision-r
 | `orchestration` | `inherit` (anchor — runs at the user's session model) |
 | `capability` | `"fast"` (floor — Cursor's own fast-model primitive) |
 | unset | `inherit` (today's default behavior) |
-| reserved ordinal `-N` | reserve-only; clamps to `"fast"` (2-band today) — not resolved to deeper steps |
 
 This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for Cursor; `inherit`/`fast` are Cursor's own abstractions, not a Writ-maintained ranking.
 

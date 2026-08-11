@@ -160,7 +160,7 @@ Each agent's `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model
 
 Model IDs are concrete Codex model strings — verify against `/model` on your CLI if defaults drift.
 
-This is a **relative** resolution: Codex is one of the two platforms (with Claude Code) that needs a concrete model name to express `capability`'s floor weight, so the mini ID lives in this single isolated table rather than being duplicated across agent files. Reserved negative ordinal offsets (`-N`) are not resolved beyond the 2-band clamp today — any offset lands on the same `capability` floor (`gpt-5-mini`).
+This is a **relative** resolution: Codex is one of the two platforms (with Claude Code) that needs a concrete model name to express `capability`'s floor weight, so the mini ID lives in this single isolated table rather than being duplicated across agent files.
 
 **Graceful degradation:** if a `model_tier` value is unrecognized, or the platform has no mini-model configured, warn and fall back to the parent/inherited model (omit `model` from the TOML) — never hard-fail the subagent spawn.
 

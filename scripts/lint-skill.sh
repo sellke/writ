@@ -23,8 +23,8 @@ usage() {
   echo "  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)" >&2
   echo "  - Body must not invoke commands, skills, subagents, or slash commands" >&2
   echo "  - Any declared model_tier value (skill frontmatter, agent config block," >&2
-  echo "    or command prose note) must be 'orchestration', 'capability', or a" >&2
-  echo "    reserved negative offset (e.g. -1) — see ADR-016" >&2
+  echo "    or command prose note) must be 'orchestration' or 'capability'" >&2
+  echo "    — see ADR-016" >&2
   echo "    (skill/command values are advisory only — they run at the session/" >&2
   echo "    caller model; only an agent's model_tier is enforced at spawn)" >&2
   exit 2
@@ -282,8 +282,8 @@ lint_model_tier() {
       continue
     fi
 
-    if ! [[ "$value" =~ ^(orchestration|capability|-[0-9]+)$ ]]; then
-      echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'orchestration', 'capability', or a reserved negative offset (e.g. -1)."
+    if ! [[ "$value" =~ ^(orchestration|capability)$ ]]; then
+      echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'orchestration' or 'capability'."
       MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
     fi
   done < "$file"

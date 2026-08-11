@@ -134,7 +134,7 @@ The `model_tier` column (see [ADR-016](../.writ/decision-records/adr-016-model-t
 
 `capability` means "at or below the invoking unit's model," not always the single cheapest option on the platform — `writ-documenter`'s `sonnet` choice is intentionally a capability-tier, higher-cost variant, and it stays that way here even though other platforms' `capability` resolution lands on the cheapest tier. Do not "fix" this by changing `writ-documenter`'s actual model in `claude-code/agents/writ-documenter.md` to match a binary scheme — the concrete file is out of this adapter doc's scope, and the divergence is the intended example.
 
-This is a **relative** resolution: Claude Code is one of the two platforms (with Codex) that needs a concrete model name to express `capability`'s weight, so `sonnet`/`haiku` live in this single isolated table rather than being duplicated across agent files. Reserved negative ordinal offsets (`-N`) are not resolved beyond the 2-band clamp today — any offset lands on the same `capability` floor used above.
+This is a **relative** resolution: Claude Code is one of the two platforms (with Codex) that needs a concrete model name to express `capability`'s weight, so `sonnet`/`haiku` live in this single isolated table rather than being duplicated across agent files.
 
 **Graceful degradation:** if a `model_tier` value is unrecognized, or a named model is unavailable on your Claude Code install, warn and fall back to the parent/inherited model — never hard-fail the subagent spawn.
 

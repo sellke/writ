@@ -64,7 +64,6 @@ All run concurrently. Each auto-announces completion back to the requester chat.
 | `orchestration` | omit the `model` param (inherits from config/anchor) |
 | `capability` | pass a cheaper/faster `model` param to `sessions_spawn` |
 | unset | omit the param (today's default) |
-| reserved ordinal `-N` | reserve-only; clamps to the cheaper-model param today — not resolved to deeper steps |
 
 This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for OpenClaw; omitting `model` vs. passing a cheaper one are OpenClaw's own primitives, not a Writ-maintained ranking.
 
