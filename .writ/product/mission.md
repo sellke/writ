@@ -1,16 +1,16 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-08-11
+> Last Updated: 2026-08-12
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Revision: 2026-08-11 — Phase 10 planning reconciled the "thin layer" claim against measurement (see ADR-020, ADR-021, ADR-022)
+> Last Revision: 2026-08-12 — `/plan-product --reconcile` after Phase 10 closed partially complete: determinism half shipped and enforced; byte program withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) supersedes ADR-021)
 
 ## Pitch
 
 Writ is the thin, portable methodology layer on top of increasingly capable AI harnesses. It owns the durable contracts of software development — specs, drift logs, decisions, knowledge, phase state — and delegates the mechanics (context management, subagent plumbing, browsing, retrieval) to whatever platform is underneath. The result is code, methodology, and accumulated knowledge that don't degrade as the project, team, or AI platform changes around them.
 
-> **"Thin" is an aspiration this document must keep earning.** Measured 2026-08-11: the command surface is 516,589 chars / 10,996 lines across 32 files — roughly 129k tokens, with `implement-story.md` alone at ~12.3k tokens loaded before any work begins. That is not thin. **Phase 10 (Component Contract & Progressive Disclosure) exists to close the gap between this claim and the measurement**, by moving procedural detail into on-demand skills and giving the leanness governor an absolute budget that actually binds. Until Phase 10 ships, treat "thin" as the target, not the state. See [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md).
+> **"Thin" is an aspiration this document must keep earning — and Phase 10 changed how it is measured.** The 2026-08-11 alarm (516KB of command prose ≈ 129k tokens) was largely a measurement artifact: no invocation loads the directory. The worst real invocation is 77,669 bytes (~19.4k tokens), 7.2× smaller, now measured by `scripts/measure-invocation.py`. The deeper finding is that bytes measure the wrong quantity — the aim is economy of *steps and decisions to reach exit criteria*, and where the two diverge, bytes point the wrong way. Per [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md), "thin" is governed by stakes-proportional diligence per decision, assessed per-invocation, with **no mechanically enforced efficiency constraint** — a deliberate cost: an unenforceable true rule beat an enforceable wrong one. Bytes remain measured as drift signal only.
 
 AI coding tools made generating code trivially easy and building durable software harder. In 2026 the harnesses themselves are strong: native memory, native skills, native subagents, native planning modes. What no harness provides is the **negotiated contract layer** — the structured agreement about what gets built, how deviations reconcile, and how knowledge compounds. Writ is that layer, in plain markdown, on git, portable across every platform.
 
@@ -115,26 +115,27 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Evidence-bound `/refresh-command`:** Refinements cite transcript evidence and pass evals before merging.
 - **Knowledge consolidation:** Merge duplicates, surface contradictions, prune stale entries — markdown in, markdown out, reviewable in PRs.
 
-### Phase 8 — Memory Interop (✅ implemented)
+### Phase 8 — Memory Interop (✅ shipped, v0.20.0)
 
 - **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed.
 - **Native-memory guidance per adapter:** How Writ's ledger relates to Cursor memories, Claude Code memdir, and other native layers — the ledger is the reviewable layer that feeds them.
 
-### Phase 9 — Git-Native Provenance & Recovery (✅ implemented)
+### Phase 9 — Git-Native Provenance & Recovery (✅ shipped, v0.23.0)
 
 - **Git-notes audit channel:** Audit trail written to `git notes`, not a parallel ledger — provenance lives where the code lives.
 - **Logical-unit revert:** `/revert` unwinds a story or a whole spec as a coherent unit, restoring Writ artifacts alongside the code.
 - **Artifact-integrity handshake:** Commands verify declared Required Artifacts before doing work — HALT on required-missing, degraded mode on optional-missing.
 
-### Phase 10 — Component Contract & Progressive Disclosure (📋 planned)
+### Phase 10 — Component Contract & Progressive Disclosure (◐ partially complete, v0.29–0.30)
 
-- **Component contract:** Every command, agent, and skill declares the problem it addresses, the outcome it produces, and its exit criteria — machine-checked, in the frontmatter that already exists.
-- **Loop bounds:** Every loop declares `max_iterations` and `on_exhaustion`. Measured 2026-08-11: **0 of 5** loop-bearing commands had any bound. This is the sharpest determinism gap in the framework.
-- **Progressive disclosure:** Command files shrink to a thin contract; procedural detail moves into on-demand skills via `required_skills:` — finally giving that reserved convention a real consumer instead of deprecating it.
-- **A governor that bites:** The leanness limit was 2000 lines against a 961-line worst offender, and growth warnings were non-blocking. Phase 10 replaces a delta ratchet with an absolute budget.
+- **Component contract (✅ shipped):** 31/31 commands and 7/7 agents declare `problem` / `outcome` / `exit_criteria`; all 31 commands carry `## Completion`. Machine-checked as blocking `structural` eval checks, proven to bite by mutation.
+- **Loop bounds (✅ shipped):** All 5 loop-bearing commands declare `max_iterations` + `on_exhaustion` (was 0 of 5), each citing calibration evidence.
+- **Autonomy gate classes (✅ shipped):** The gate-class table in `_preamble.md` — human gates only for product/spec direction, the production boundary, and design/UX taste ([ADR-022](../decision-records/adr-022-autonomy-gate-classes.md)).
+- **Progressive disclosure (✗ stopped on evidence):** One command converted (`implement-story`, floor −35.9%); the pilot measured ~1,017 B irreducible overhead per skill and a +9.7% worst-path regression, and `required_skills:` turned out to pre-load eagerly rather than on demand. Five sibling specs closed unimplemented, contracts kept as design records.
+- **The byte budget (✗ withdrawn, not deferred):** The absolute budget shipped non-blocking, then [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) voided it — bytes measure file size, not the stated aim of step economy. No number replaces it.
 
 ### Next Horizon
 
-Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native. **Phase 10 is the committed phase in flight** — it turns this document's "thin, portable" claim from aspiration into measured fact. Candidates beyond it live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2 expansion), pulled forward only on concrete signal.
+Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native. **Phase 10 closed partially complete (2026-08-12):** the determinism half shipped in full and is enforced; the byte half was measured, falsified, and withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). **No phase is currently committed.** Next work is pulled from the roadmap parking lot only on concrete signal.
 
-> **Parking lot:** Cross-project learning corpus, autonomous refactoring, team affordances (cross-dev drift reconciliation, `/review-spec`) — deferred until concrete signal per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
+> **Parking lot (kept as candidates):** Cross-project learning corpus, `/design` Mode A modernization, eval Tier 2 expansion. **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 10* section for the authoritative list.
