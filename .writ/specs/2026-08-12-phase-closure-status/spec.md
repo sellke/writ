@@ -1,6 +1,6 @@
 # Spec: Terminal Status For A Spec Closed By Decision
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-08-12
 > **Owner:** @AdamSellke
 > **Dependencies:** []

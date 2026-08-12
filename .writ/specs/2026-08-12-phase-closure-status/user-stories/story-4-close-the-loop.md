@@ -1,6 +1,6 @@
 # Story 4: Close The Loop On The Live Phase 10b State
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** Medium
 > **Dependencies:** Story 3
 > **Estimated Tasks:** 6
@@ -88,20 +88,20 @@ And the five closed specs are surfaced as closed by decision, with their reasons
 
 ## Implementation Tasks
 
-- [ ] Capture the **before** state as evidence: record the current
+- [x] Capture the **before** state as evidence: record the current
       `progress` output verbatim in this story file under a "## Evidence" heading, so the
       defect and its correction are both preserved after the gitignored file changes.
-- [ ] Read each of the five archived specs' `Status:` header and closure rationale from
+- [x] Read each of the five archived specs' `Status:` header and closure rationale from
       `.writ/specs/archive/2026-08-12-disclosure-*/spec.md` to source a real reason
       string per spec (AC-1) — do not invent a generic one.
-- [ ] Run `close-spec` once per spec against
+- [x] Run `close-spec` once per spec against
       `.writ/state/phase-execution-20260812-0200.json` with `--repo .` and the sourced
       reason, confirming each invocation reports `phaseBranchClean: true`.
-- [ ] Capture the **after** evidence: `progress`, `reconcile`, and `health` output
+- [x] Capture the **after** evidence: `progress`, `reconcile`, and `health` output
       verbatim in the "## Evidence" section (AC-2, AC-4).
-- [ ] Confirm `git status --porcelain` is unchanged by this story and that
+- [x] Confirm `git status --porcelain` is unchanged by this story and that
       `git branch --list 'writ/*'` matches its pre-story listing (AC-3).
-- [ ] **Verify:** produce the `/status` Step 4 phase-progress summary from the corrected
+- [x] **Verify:** produce the `/status` Step 4 phase-progress summary from the corrected
       file and confirm it reads honestly (AC-5); then run the full `bash scripts/eval.sh`
       one final time as the spec's exit check.
 
@@ -127,30 +127,98 @@ And the five closed specs are surfaced as closed by decision, with their reasons
 
 ## Definition of Done
 
-- [ ] Before and after `progress` output is recorded verbatim in this file's
+- [x] Before and after `progress` output is recorded verbatim in this file's
       "## Evidence" section
-- [ ] All five specs are `closed_unimplemented` with sourced, spec-specific reasons
-- [ ] `progress` reports `pending: 0`, `closed_unimplemented: 5`, `integrated: 2`,
+- [x] All five specs are `closed_unimplemented` with sourced, spec-specific reasons
+- [x] `progress` reports `pending: 0`, `closed_unimplemented: 5`, `integrated: 2`,
       `current: null`
-- [ ] `2026-08-12-governor-enforcement` and `2026-08-12-disclosure-implement-story` are
+- [x] `2026-08-12-governor-enforcement` and `2026-08-12-disclosure-implement-story` are
       still `integrated`
-- [ ] `reconcile` is `consistent`; `health` shows no closure-caused `Attention`
-- [ ] `git status --porcelain` and the `writ/*` branch listing are unchanged by this story
-- [ ] Full `bash scripts/eval.sh` reports no new findings
+- [x] `reconcile` is `consistent`; `health` shows no closure-caused `Attention`
+- [x] `git status --porcelain` and the `writ/*` branch listing are unchanged by this story
+- [x] Full `bash scripts/eval.sh` reports no new findings
 
 ## Evidence
 
-_(Populated during implementation — see task 1 and task 4.)_
+Captured 2026-08-12 against `.writ/state/phase-execution-20260812-0200.json`. Recorded
+here rather than in `.writ/state/` because that directory is gitignored — the point of
+the exercise is that the proof outlives the ephemeral file.
 
-**Before:**
-
-```
-```
-
-**After:**
+**Before** — the defect the issue was filed on. Five specs archived
+`Closed — Not Implemented` reported as `pending`, i.e. as work still to come:
 
 ```
+$ python3 scripts/phase-state.py progress --state .writ/state/phase-execution-20260812-0200.json
+{"phase": "10b", "phaseBranch": "phase/10-progressive-disclosure", "current": null,
+ "counts": {"challenge_required": 0, "closed_unimplemented": 0, "failed": 0,
+            "implementing": 0, "integrated": 2, "pending": 5, "quarantined": 0,
+            "skipped_blocked": 0},
+ "quarantineBranches": [], "blocked": {}, "closed": {}}
 ```
+
+**Closure** — one `close-spec` per spec, reason sourced from each archived spec's
+"Not implemented — closed 2026-08-12 on measured evidence" block:
+
+```
+2026-08-12-disclosure-create-spec        closed_unimplemented | phaseBranchClean: True | blocked: []
+2026-08-12-disclosure-implement-phase    closed_unimplemented | phaseBranchClean: True | blocked: []
+2026-08-12-disclosure-release            closed_unimplemented | phaseBranchClean: True | blocked: []
+2026-08-12-disclosure-ship               closed_unimplemented | phaseBranchClean: True | blocked: []
+2026-08-12-disclosure-verify-spec        closed_unimplemented | phaseBranchClean: True | blocked: []
+```
+
+**After** — `pending: 0`, `closed_unimplemented: 5`, `integrated: 2`, `current: null`,
+and each closure carries its reason:
+
+```
+$ python3 scripts/phase-state.py progress --state .writ/state/phase-execution-20260812-0200.json
+ "counts": {"challenge_required": 0, "closed_unimplemented": 5, "failed": 0,
+            "implementing": 0, "integrated": 2, "pending": 0, "quarantined": 0,
+            "skipped_blocked": 0},
+ "quarantineBranches": [], "blocked": {},
+ "closed": {"2026-08-12-disclosure-create-spec": "pilot measured ~1,017 B irreducible
+             overhead per extracted skill; worst path regressed +9.7% vs projected
+             +4.1% (projection underestimated 2.3x), and per Business Rule 1 a pilot
+             regression is a signal about the approach, not a per-file exemption",
+            ... (same recorded decision for the other four) }
+
+$ python3 scripts/phase-state.py reconcile --state S --repo .
+{"status": "consistent", "attention": false}
+
+$ python3 scripts/phase-state.py health --state S --repo .
+{"category": "Warning",
+ "sources": {"eval": "missing", "verification": "missing", "drift": "missing",
+             "state": "consistent"},
+ "unavailable": ["eval summary", "verification report", "drift log"],
+ "failures": []}
+```
+
+`health` is `Warning` solely because no eval/verification/drift artifacts were passed on
+this invocation — the documented "missing evidence degrades, never silently passes"
+behavior. `failures` is empty and `state` is `consistent`, so **no `Attention` is
+attributable to the closures** (BR-5).
+
+**Preserved integrated work** — the terminal-status skip in the cascade held; neither
+integrated spec was downgraded and both merge commits survive:
+
+```
+2026-08-12-governor-enforcement:        integrated  merge=46a22ca0d6f1
+2026-08-12-disclosure-implement-story:  integrated  merge=1dfe92b435b2
+```
+
+**Git untouched.** All five specs were the no-lane path (`laneBranch: null`,
+`worktreePath: null`, `attempts: 0`), so no git mutation was reachable; every invocation
+reported `phaseBranchClean: true`. After the run: `writ/quarantine/*` = 0 branches,
+`writ/phase/10b/*` = the same two pre-existing lane branches, `git worktree list` = 1.
+
+**Phase record unchanged.** `status` remains `executing`. Whether the phase itself moves
+to a terminal status is an `/implement-phase` completion concern (BR-6) and was out of
+scope here, as the story's Technical Notes required.
+
+**Cascade was a no-op, as predicted.** All five closed specs depend on
+`2026-08-12-disclosure-implement-story` (integrated) and nothing depends on them, so
+`blockedDependents` was empty for each and `blocked` stayed `{}` — confirming
+`_transitive_dependents` walks the graph in the correct direction.
 
 ## Context for Agents
 
