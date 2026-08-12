@@ -11,9 +11,9 @@ status: candidate
 
 Turn a story's task list, its spec's file map, the repository's import graph and
 any recorded cross-story overlap into an explicit **file ownership map** — which
-paths this unit of work may create or modify, which it may only read, and which
-are out of scope. It is a data transformation, not a judgment call: the same
-inputs must yield the same map.
+paths this work may create or modify, which it may only read, and which are out
+of scope. A data transformation, not a judgment call: the same inputs yield the
+same map.
 
 Boundaries are **advisory**. Whoever edits outside them flags the edit; whoever
 reviews the work verifies compliance. **There is no hard file locking.**

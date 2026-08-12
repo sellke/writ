@@ -12,11 +12,9 @@ status: candidate
 Write the SHA of the commit that completed a story into that story's own header,
 so the story can later be mapped to its exact commit without guessing. Tooling
 that unwinds work treats this field as its **highest-confidence resolution
-layer** — everything else it can fall back to is inference.
-
-The awkward part is ordering: the SHA does not exist until the commit exists, so
-it cannot live inside the commit it names. The procedure below is how that is
-resolved without rewriting history.
+layer** — everything else it falls back to is inference. The ordering is
+awkward: the SHA does not exist until the commit does, so it cannot live inside
+the commit it names.
 
 ## When to Use
 

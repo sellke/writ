@@ -10,14 +10,11 @@ status: candidate
 ## Purpose
 
 Give work on a story visibility into what its **upstream dependencies actually
-built**, rather than what their plans said they would build. The capability
-locates completed dependency stories, reads their "What Was Built" (WWB)
-records, discards the ones that are no longer authoritative, truncates the
-oversized ones by a fixed priority, and aggregates the survivors into one
-`dependency_wwb_context` block.
-
-It owns *how* records are found, filtered, truncated and aggregated. Deciding
-who receives the block, and when, belongs to the consumer.
+built**, rather than what their plans said they would. It locates completed
+dependency stories, reads their "What Was Built" (WWB) records, discards the
+ones no longer authoritative, truncates oversized ones by a fixed priority, and
+aggregates the survivors into one `dependency_wwb_context` block. Deciding who
+receives the block, and when, belongs to the consumer.
 
 > **Format reference:** `.writ/docs/what-was-built-format.md` — the authority on
 > the record's shape and on the `> **Reverted:**` banner convention. This
@@ -100,12 +97,10 @@ using this priority order — the order *is* the rule:
 Log the truncation:
 `⚠️ Truncated Story {N} "What Was Built" record ({original} → 1000 lines)`
 
-**Preserve markdown structure** in the truncated version — a record that no
-longer parses as sections is worse than a shorter one.
+**Preserve markdown structure** in the truncated version.
 
 **Only load direct dependencies — never transitive.** Story 3 loads Story 2's
-record, but not Story 1's, even if Story 2 depended on Story 1. Transitive
-loading is how one story's context quietly becomes the whole spec's.
+record, but not Story 1's, even if Story 2 depended on Story 1.
 
 ### 6. Aggregate
 
@@ -125,8 +120,7 @@ dependencies and format them as one block:
 ### 7. Position the block
 
 The aggregated `dependency_wwb_context` goes **after** the story content and
-spec context and **before** the implementation tasks. Position is deliberate:
-the reader should know what already exists before reading what to build.
+spec context and **before** the implementation tasks.
 
 ### Graceful degradation
 
@@ -137,5 +131,5 @@ the reader should know what already exists before reading what to build.
 | Multiple dependencies, some with WWB and some without | Include the available records; log a warning per missing one |
 | No dependencies | Skip the whole capability — nothing to load, nothing to warn |
 
-None of these is a failure. Missing upstream context degrades the payload; it
+None of these is a failure: missing upstream context degrades the payload, it
 never blocks the work.

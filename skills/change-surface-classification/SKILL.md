@@ -49,8 +49,7 @@ one value: `change_surface`.
 
 Step 6 is the rule that cannot be re-derived from the table, and it decides the
 awkward cases: a change readable as single-component *or* cross-component is
-**cross-component**. Over-classifying costs some review attention;
-under-classifying costs a shared-code regression nobody looked for.
+**cross-component**.
 
 Step 2's **ALL** is equally load-bearing — a change set touching a stylesheet
 *and* a migration does not satisfy it, and falls through to **full-stack**.

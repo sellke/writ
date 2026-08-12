@@ -11,9 +11,9 @@ status: candidate
 
 Capture **implementation reality** — what was actually created, changed,
 decided, tested and deviated from — as a durable record appended to the work
-item, so downstream work builds on facts rather than on the plan. Two halves:
-extracting the data defensively from whatever output is available, and
-formatting it into the record's fixed shape.
+item, so downstream work builds on facts rather than the plan. Two halves:
+extracting the data defensively from whatever output exists, and formatting it
+into the record's fixed shape.
 
 > **Format reference:** `.writ/docs/what-was-built-format.md` — the authority on
 > the record's conventions, including the `> **Reverted:**` banner.
@@ -64,7 +64,7 @@ results available; extract coverage percentages and the verification approach.
 `### Drift Analysis` with all their fields, **preserving DEV-ID numbering**.
 *Fallback:* if overall drift is "None", use `"None"`.
 
-Hold the extracted fields until the record is written — extraction and writing
+Hold the extracted fields until the record is written: extraction and writing
 are separate moments, and later results (test results in particular) update the
 held data before it is formatted.
 

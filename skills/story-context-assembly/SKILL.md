@@ -10,13 +10,12 @@ status: candidate
 ## Purpose
 
 Turn a story file and its spec-lite into the **targeted** context each agent
-actually needs, instead of handing every agent the whole spec. Three payloads
-come out of it: `fetched_context` (spec content resolved from the story's
-context hints), `knowledge_context` (durable project knowledge matched by
-keyword), and per-role `spec_lite_for_*` sections. Every one degrades to
-something usable rather than halting when its source is missing — assembly is
-best-effort by design. It owns *how* each payload is built and what it falls
-back to; who receives it, and when, belongs to the consumer.
+actually needs, instead of handing every agent the whole spec. Three payloads:
+`fetched_context` (spec content resolved from the story's context hints),
+`knowledge_context` (durable project knowledge matched by keyword), and per-role
+`spec_lite_for_*` sections. Every one degrades to something usable rather than
+halting when its source is missing. Who receives them, and when, belongs to the
+consumer.
 
 ## When to Use
 
@@ -30,6 +29,9 @@ back to; who receives it, and when, belongs to the consumer.
 ## How to Apply
 
 ### 1. Fetched context — delegate, never re-derive
+
+> **Authoring reference:** `.writ/docs/context-hint-format.md` — the hint syntax,
+> for anyone writing or reviewing a `## Context for Agents` section.
 
 `scripts/story-context.py` is the **sole** implementation that parses a story's
 `## Context for Agents` hints and fetches the referenced content. Invoke it;

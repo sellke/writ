@@ -10,13 +10,10 @@ status: candidate
 ## Purpose
 
 Produce `.writ/context.md` — a single running snapshot of where a project
-currently stands: its mission, the active spec and story, which artifacts exist,
-recent drift, and open issues. It is the first thing loaded when work resumes,
-so it must be cheap to read and impossible to be stale in part.
-
-That last property comes from one rule: the file is **always fully
-regenerated**, never patched or appended. A snapshot that is partly rewritten
-is a snapshot nobody can trust a line of.
+stands: mission, active spec and story, which artifacts exist, recent drift,
+open issues. It is the first thing loaded when work resumes, so it must be cheap
+to read and impossible to be stale in part. That comes from one rule: the file
+is **always fully regenerated**, never patched or appended.
 
 ## When to Use
 
@@ -72,8 +69,8 @@ The file lives at `.writ/context.md` — project root, never inside a spec folde
 - `drift-log.md` absent or empty → omit the "Recent Drift" section.
 - `.writ/issues/` absent → omit the "Open Issues" section.
 
-A missing source removes its section. It never produces an empty heading, and it
-never blocks regeneration.
+A missing source removes its section — never an empty heading, never a blocked
+regeneration.
 
 ### Artifact Map rules (present-conditional, rewritten wholesale)
 
@@ -86,6 +83,5 @@ never blocks regeneration.
   like the rest of the file. **No separate index or pointer file is ever
   created.**
 
-The always-renders rule and the omit-absent rule are in tension by design: every
-other line disappears when its source does, and the Integrity line is the one
-that must still be there to say so.
+The always-renders and omit-absent rules are in tension by design: every other
+line disappears when its source does; Integrity stays to say so.
