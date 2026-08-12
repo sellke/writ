@@ -4,7 +4,7 @@ description: "Autonomously execute a whole roadmap phase - resolve features to s
 problem: "A roadmap phase is delivered one spec at a time by hand, so cross-spec order is guessed, unspecced features are forgotten, and the exit criteria the phase declares go unchecked."
 outcome: "Every spec the phase resolves to has been merged into the phase branch or quarantined off it, and the phase carries a terminal status backed by per-criterion evidence."
 exit_criteria:
-  - "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_unimplemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
+  - "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_not_implemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
   - "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
   - "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified"
   - "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE"
@@ -284,7 +284,7 @@ Phase status: IMPLEMENTED — pending human validation
 
 **The command never declares a phase "complete" when human-judgment criteria remain.** The terminal status is `IMPLEMENTED — pending human validation`, with the UAT plans as the handoff. If every exit criterion is machine-checkable and passing, the status may be `COMPLETE`.
 
-**A `Closed by decision` section is mandatory whenever any spec is `closed_unimplemented`** — one line per spec with the reason recorded in its `closure`, read from `progress`'s `closed` map. A phase whose specs are all `integrated` or `closed_unimplemented` may report `COMPLETE`, because closure is terminal — but only because this section names what was dropped and why. Omitting it for brevity turns the `COMPLETE` verdict into a false claim of delivered scope.
+**A `Closed by decision` section is mandatory whenever any spec is `closed_not_implemented`** — one line per spec with the reason recorded in its `closure`, read from `progress`'s `closed` map. A phase whose specs are all `integrated` or `closed_not_implemented` may report `COMPLETE`, because closure is terminal — but only because this section names what was dropped and why. Omitting it for brevity turns the `COMPLETE` verdict into a false claim of delivered scope.
 
 #### Step 4.3: Partial Completion Honesty
 

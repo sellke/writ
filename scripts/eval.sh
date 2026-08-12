@@ -31,6 +31,7 @@ CHECKS=(
   recommended-staging
   spec-dependencies
   spec-status
+  spec-vocabulary
   archive-sweep
   spec-lifecycle-docs
   cursorindexingignore
@@ -1813,6 +1814,37 @@ check_spec_dependencies() {
   require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
 }
 
+check_spec_vocabulary() {
+  local fake="$PROJECT_ROOT/scripts/eval-spec-vocabulary.py"
+  local helper="$PROJECT_ROOT/scripts/spec-status.py"
+  local doc="$PROJECT_ROOT/.writ/docs/spec-lifecycle.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "spec-vocabulary:$scenario_name" "$scenario_reason" "Reconcile the status vocabulary between spec-status.py and spec-lifecycle.md."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The vocabulary must live in code, not only in prose — prose is what drifted.
+  require_literal "$helper" 'CANONICAL_STATUS_HEADS' "The status vocabulary must be declared in code."
+  require_literal "$helper" 'def canonical_head(' "A status value's canonical head must be resolvable."
+  require_literal "$helper" 'Closed — Not Implemented' "The vocabulary must admit the value five specs already use."
+  require_literal "$doc" '## Vocabulary Enforcement' "The lifecycle doc must record how the vocabulary is enforced."
+}
+
 check_spec_status() {
   local fake="$PROJECT_ROOT/scripts/eval-spec-status.py"
   local helper="$PROJECT_ROOT/scripts/spec-status.py"
@@ -2437,21 +2469,21 @@ check_phase_closure() {
   # uncounted. Assert the guard exists and that progress derives from the set.
   require_literal "$helper" 'def _set_status(' "Spec-status writes must route through one guard."
   require_literal "$helper" 'TERMINAL_SPEC_STATUSES' "Terminal statuses must be declared, not inferred."
-  require_literal "$helper" 'closed_unimplemented' "The vocabulary must express closure by decision."
+  require_literal "$helper" 'closed_not_implemented' "The vocabulary must express closure by decision."
   require_literal "$helper" 'def cmd_close_spec(' "The reducer must expose close-spec."
 
   # The schema doc is the canonical contract; closure must be defined there, not
   # only implemented. The widened blockedBy is the load-bearing part: without it
   # a reader sees skipped_blocked and hunts for a nonexistent quarantine branch.
   require_literal "$state_doc" '## Closure by Decision' "The state-format doc must define closure by decision."
-  require_literal "$state_doc" 'closed_unimplemented' "The doc's status contract must list closed_unimplemented."
+  require_literal "$state_doc" 'closed_not_implemented' "The doc's status contract must list closed_not_implemented."
   require_literal "$state_doc" 'without delivering' "The doc must record the widened blockedBy meaning."
 
-  require_literal "$implement_phase" 'closed_unimplemented' "Implement-phase must treat closure as terminal."
+  require_literal "$implement_phase" 'closed_not_implemented' "Implement-phase must treat closure as terminal."
   require_literal "$implement_phase" 'Closed by decision' "The phase report must name every closed spec."
   require_literal "$implement_phase" 'close-spec' "Implement-phase must cite the closure mechanism."
 
-  require_literal "$status_cmd" 'closed_unimplemented' "Status must surface the closure count."
+  require_literal "$status_cmd" 'closed_not_implemented' "Status must surface the closure count."
 }
 
 check_ralph_retirement() {

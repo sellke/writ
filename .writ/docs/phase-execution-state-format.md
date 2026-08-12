@@ -60,7 +60,7 @@ Later Phase 6 stories extend this schema:
 | `schemaVersion` | Always `2` for this format. A reader that sees an unsupported major reports before mutating. |
 | `phase` / `phaseBranch` | The roadmap phase ID and the git branch that accumulates only verified work. |
 | `specOrder` | The topologically ordered spec list (see `scripts/spec-deps.py`). |
-| `specs.{id}.status` | One of `pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`, `challenge_required`, `closed_unimplemented`. Enforced on **write** by `_set_status`; readers stay tolerant so a status written by a newer reducer is reported, never rejected. |
+| `specs.{id}.status` | One of `pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`, `challenge_required`, `closed_not_implemented`. Enforced on **write** by `_set_status`; readers stay tolerant so a status written by a newer reducer is reported, never rejected. |
 | `specs.{id}.blockedBy` | The upstream specs that stopped this one. Reads as "upstream reached a terminal status **without delivering**" — a quarantine *or* a closure. `progress` reports which. |
 | `specs.{id}.closure` | `{reason, closedAt}` on a spec closed by decision. The reason is mandatory; the phase report prints it. |
 | `specs.{id}.attempts` | Incremented on each lane launch; Story 4 bounds retries against it. |
@@ -207,7 +207,7 @@ to "repair" reality.
 Not every spec that stops was stopped by a problem. A maintainer may decide, at
 decomposition time or mid-run, that a resolved spec will never be built — because
 measured evidence retired its premise, because another spec subsumed it, or because the
-phase's scope changed. `closed_unimplemented` is that state.
+phase's scope changed. `closed_not_implemented` is that state.
 
 None of the other statuses can express it, and each is wrong in a specific way:
 
@@ -275,7 +275,7 @@ honest snapshot — never a heavyweight probe of production or the network.
 branch, the current implementing spec and its active lane, per-status spec counts, the
 list of quarantine branches, `closed` (each closed spec with its recorded reason), and
 `blocked` (each blocked spec with its upstream specs and the `cause` — `quarantined` or
-`closed_unimplemented`). It computes nothing it cannot read from state.
+`closed_not_implemented`). It computes nothing it cannot read from state.
 
 The counts are **seeded from `SPEC_STATUSES`**, so every declared status always appears —
 reporting `0` rather than being absent — and the two can never drift. That drift is not

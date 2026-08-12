@@ -18,13 +18,56 @@ Every spec's header declares a status line — bold or unbold — inside its lea
 |---|---|
 | `Complete` | Canonical spelling for **new** specs going forward (Business Rule 8) |
 | `Completed ✅` | Legacy synonym, still recognized — matches the story-level convention used by `create-uat-plan.md` and `implement-story.md` |
-| `Closed — Abandoned` / `Closed — Cancelled` | Terminal-but-never-shipped states; complete-family for both *scanning* and *archiving* purposes (Amendment 2026-08-04 — see [Archive Eligibility](#archive-eligibility) below). No separate "Cancelled" prefix exists; spell cancelled work as `Closed — Cancelled` for vocabulary consistency rather than introducing a fourth standalone prefix. |
+| `Closed — Abandoned` | Terminal-but-never-shipped. Work started or was planned, then was dropped — the scope stopped existing. Complete-family for both *scanning* and *archiving* (Amendment 2026-08-04 — see [Archive Eligibility](#archive-eligibility) below). |
+| `Closed — Cancelled` | Terminal-but-never-shipped. Called off before it became work. |
+| `Closed — Not Implemented` | Terminal-but-never-shipped. The spec was sound and the decision was **against building it, on evidence gathered after it was written** — a measured pilot, a changed premise, a subsuming spec. Distinct from `Abandoned`, which implies the work lapsed rather than was judged. Added 2026-08-12; see [Vocabulary Enforcement](#vocabulary-enforcement). |
+
+**The `Closed —` subtypes are checked, not just the `Closed` prefix.** `spec-status.py` declares the canonical heads and `spec-status.py validate` reports any value whose head is not one of them. Trailing detail after the head stays free-form and is preserved (`Closed — Not Implemented (measured evidence, 2026-08-12)`).
 
 **Detection is format-tolerant, not rewritten.** [`scripts/spec-status.py`](../../scripts/spec-status.py) is the single executable source of truth: it recognizes bold (`> **Status:** ...`) and unbold (`> Status: ...`) labels and matches any value starting with `Complete` or `Closed` (trailing parenthetical text, dates, or emoji are ignored). Existing spec files are **never mass-rewritten** to a single spelling — only the detector became tolerant. New specs created by `/create-spec` canonicalize to the bold, unadorned `> **Status:** Complete` form when later marked done, so spelling drift does not reaccumulate (Business Rule 8).
 
 **A missing status header conservatively resolves not-complete.** If a spec's leading metadata block has no status line at all, it is *never* silently treated as done — undeclared status must never be inferred from body content. This is intentional and by design (spec.md → Technical Concerns): a headerless spec is content-complete but stays out of the complete-family class until a human adds a status header.
 
 **Why this mattered:** the literal substring check `grep -q "Status: Complete"` never matches `> **Status:** Complete` — bold markdown inserts `**` between the colon and the space. This silently misclassified 27 of 39 real specs in this repo before the fix (`2026-08-04-spec-lifecycle-archival` Story 1). Consult that spec's audit table if you need historical detail; this doc only records the corrected target state.
+
+## Vocabulary Enforcement
+
+The vocabulary above is **declared in code and checked**, not merely written down.
+
+- `scripts/spec-status.py` declares `CANONICAL_STATUS_HEADS`.
+- `scripts/spec-status.py validate --specs-dir .writ/specs` reports any spec whose
+  status head is not canonical. It scans `archive/` as well — an archived spec's status
+  is the permanent record of *how* it ended, and archived specs are most of the corpus.
+- `bash scripts/eval.sh --check=spec-vocabulary` runs that validation, asserts the doc
+  and the script agree, and includes a **mutation proof** (an off-vocabulary value is
+  injected into a fixture and must be reported). A validator nothing has seen fail is
+  decorative, which is the failure mode this section exists to prevent.
+
+**Why this was added.** The detector matched `Closed` as a *bare* prefix, so any subtype
+passed silently. `Closed — Not Implemented` accumulated across five specs while this
+document still instructed authors not to introduce a fourth prefix. Nothing compared the
+two, because nothing could — the vocabulary lived only in prose. This is the same defect
+`phase-execution-v2`'s `SPEC_STATUSES` had (declared, referenced nowhere), found one
+layer up and fixed the same way.
+
+**Detection stays tolerant; validation is what reports.** An off-vocabulary
+`Closed — …` value is still classified complete-family, so enforcement never silently
+reclassifies an existing spec or strands it out of the archive. Drift becomes visible,
+not fatal.
+
+### Spec layer ↔ phase layer
+
+Two layers record the same terminal state at different granularities. They use the
+**same words**, differing only in the casing each format requires:
+
+| Layer | Value | Written by |
+|---|---|---|
+| Spec (`spec.md` header) | `Closed — Not Implemented` | a human, or `/implement-phase` closing a spec |
+| Phase (`phase-execution-v2` state) | `closed_not_implemented` | `phase-state.py close-spec` |
+
+A spec closed at the phase layer should carry the matching header at the spec layer, and
+vice versa. See [`phase-execution-state-format.md`](phase-execution-state-format.md) §
+Closure by Decision for the phase-layer contract.
 
 ## Archive Convention
 
