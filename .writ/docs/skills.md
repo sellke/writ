@@ -133,7 +133,11 @@ The harness pre-loads each named skill before the consumer's first phase begins.
 - Duplicates are silently deduplicated.
 - Unknown skill names produce a **warning**, not a hard failure.
 
-**Status: adopted.** The 2026-08-03 review trigger (90 days post-ship) fired, and its "deprecate or revisit" terms were resolved as **revisit → adopt**. The first consumer is Phase 10 progressive disclosure ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)), which needs exactly the declarative, harness-resolved, per-invocation load contract this convention specifies — graceful degradation included. The schema above is adopted unchanged. The first real declarations land with progressive disclosure's extraction work; no consumer declares the field yet.
+**Status: documented, and the convention still has no consumer.** The 2026-08-03 review trigger fired and was resolved **revisit → adopt** on the strength of one named consumer: Phase 10 progressive disclosure ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)). **That consumer evaluated the mechanism and did not adopt it.**
+
+`required_skills:` is resolved by the harness *before the consumer's first phase begins*, so a static array cannot express per-run conditionality — every invocation pays for every declared skill. Progressive disclosure needed the opposite, and uses an inline `Read skills/<name>/SKILL.md` placed at the step that needs it, which loads only if execution reaches that step. `required_skills_declarations` is therefore `0`, and the eval report counts `inline_skill_reads` beside it.
+
+The schema above is **unchanged and still available** — nothing here deprecates it, and its graceful-degradation rule stands. It simply has no consumer, and a **2026-11-11 review trigger** is restored to revisit that. Corrected 2026-08-12: this file was the fourth carrier of the superseded "first consumer" claim, alongside `system-instructions.md` and the three adapters, and was missed when those were fixed.
 
 ---
 
@@ -276,6 +280,52 @@ retains *when to invoke it and with what data*. Orchestration language —
 command — must be rewritten into capability prose or the boundary lint blocks it.
 Second, **every extracted skill needs a live consumer**: because Writ skills are
 `disable-model-invocation: true`, a skill nothing `Read`s is dead weight.
+
+### Naming the extracted skill
+
+`skills/` is one flat namespace shared by every command and agent that will ever
+extract into it. A name chosen for one extraction site is inherited by everybody.
+Six rules:
+
+| # | Rule | Why |
+|---|---|---|
+| 1 | **Kebab-case noun phrase, 2–3 words, ≤ 30 characters**, unique across `commands:`, `agents:` and `skills:` in `.writ/manifest.yaml` | One namespace, one lookup. All six incumbents match. |
+| 2 | **Shape is `<object>-<operation>` or `<operation>-<object>`** — `safe-refactor-loop`, `code-explanation`, `error-rescue-mapping` | The name says which capability is wielded, so a reader can tell what loading it buys. |
+| 3 | **Never named after its extraction site** — no command name, no gate number, no step number | A skill named after where it came from cannot be read by a second consumer without reading as a foreign import, and it re-encodes the workflow shape the boundary lint exists to reject. |
+| 4 | **`description:` is a bare-imperative verb phrase** — "Write…", "Compute…", "Classify…", "Triage…" | The only shape `lint-skill.sh`'s `DESC_PATTERNS` grammar leaves standing, and the difference between a tool and a role. |
+| 5 | **A shared skill carries no consumer's vocabulary** | If two or more consumers read it, its `## When to Use` states trigger conditions, not gate or step numbers, and its body never names the command it was extracted from. |
+| 6 | **Collision protocol** (below) | First writer owns the name. |
+
+**Collision protocol.** *Before* running `/new-skill`, grep the `skills:` block of
+`.writ/manifest.yaml` for the intended name **and for its head noun**. If an
+earlier extraction already claimed the noun, do **not** author a near-duplicate:
+read the existing skill at your own point of need and record an
+[ADR-014](../decision-records/adr-014-skill-lifecycle.md) `evidence:` entry of
+`type: promotion` against it. First writer owns the name; later consumers adopt
+rather than fork.
+
+### Where the load goes
+
+Extraction only pays off if the load is genuinely conditional, and that is
+decided by **where** the consumer reads the skill, not by the fact that it was
+extracted:
+
+- The read sits at the **narrowest** step, gate or phase that needs the skill —
+  inside the branch, not one level up "for readability". A run that never
+  reaches that line never pays for the skill.
+- **Never hoisted into a preamble.** A `Read skills/<name>/SKILL.md` placed in
+  frontmatter, an overview, an invocation table, a phase list, or any prose
+  every run passes through is an *eager* load wearing conditional syntax — it
+  costs the same as declaring the skill and hides that fact in the body. A phase
+  list may **name** the skill against its step; it must not read it.
+  `scripts/measure-invocation.py` reports such reads under `hoisted_skills`.
+- **Never both mechanisms for one skill.** `required_skills:` is an
+  unconditional pre-load resolved once per *command*, so declaring a skill *and*
+  inline-reading it buys no conditionality — the declaration wins and the read is
+  dead weight. Pick one; for extracted per-phase procedure, pick the inline read.
+- **Never read from inside another skill** (`scripts/lint-skill.sh:52`). Skills
+  do not chain, so every read lives in the consuming command or agent — which is
+  also what keeps load order and load cost auditable in one file.
 
 ### Shrink note shape
 

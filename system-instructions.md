@@ -249,7 +249,13 @@ When a consumer with `required_skills: [foo]` is invoked, the harness loads `ski
 
 Without the field, agents and commands continue to inline `Read skills/<name>/SKILL.md` instructions in their prompts at the point where the skill is needed.
 
-**Status: adopted.** The convention's review trigger fired on **2026-08-03** (90 days post-ship, per the foundation spec `2026-05-03-skills-foundation`). Its terms offered two outcomes — deprecate or revisit — and the recorded outcome is **revisit → adopt**. The first consumer is Phase 10 progressive disclosure ([ADR-021](.writ/decision-records/adr-021-progressive-disclosure-token-budget.md)), which needs a declarative, harness-resolved, per-invocation load mechanism — the exact contract this convention already specifies, graceful degradation included. Deprecating it would have meant designing the same mechanism again under a new name inside the same phase. The schema above is adopted **unchanged**: optional array, order preserved, duplicates deduplicated, unknown names warn rather than hard-fail. Progressive disclosure's extraction work lands the first real declarations; no agent or command declares the field yet.
+**Status: documented, no consumer.** The 2026-08-03 review resolved **revisit → adopt** on a justification that was almost entirely one named future consumer: Phase 10 progressive disclosure. **That consumer evaluated the mechanism and did not adopt it.**
+
+The reason is measured. `required_skills:` is an **eager pre-load** — the harness loads every declared skill *before any phase work begins* (see **Harness contract** above), and selection is per **command**, never per **run**. A static array cannot express "only what this invocation needs", so extraction under this field moves the extracted bytes into the floor that every invocation pays, and a disclosed command costs *more* than the monolith it replaced. Phase 10 uses an inline `Read skills/<name>/SKILL.md` at the point of need instead, which is genuinely conditional. [ADR-021](.writ/decision-records/adr-021-progressive-disclosure-token-budget.md)'s 2026-08-12 amendments carry the full record.
+
+The schema stays documented — `/new-skill`, all three adapters, and `check_required_skills()` reference it. Deprecating it is an ADR-scale decision, not one for the spec that found the mechanism wrong for a single phase.
+
+**Review trigger: 2026-11-11**, aligned to ADR-021's own review, which already reads the per-invocation data that would justify a consumer. Restored rather than left settled: a resolution whose premise proved false should not survive as a settled adoption. **Terms:** if no command or agent declares `required_skills:` by then, deprecate; if one does, record it and reset.
 
 ### Skill authoring
 

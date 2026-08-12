@@ -414,14 +414,37 @@ check_length() {
     fi
   fi
 
+  # The command length tripwire — SECONDARY and NON-BINDING.
+  #
+  # ADR-021's 2026-08-12 amendment ("The binding instrument is bytes, not
+  # lines"): Decision point 5's line limit is superseded as the *binding*
+  # instrument by an absolute byte budget of 24,960 — the measured shared base
+  # a command runs inside — "with the 400-line cap retained as a secondary,
+  # non-binding tripwire." Only the unit changed; the Decision is not reopened.
+  #
+  # THE LIMIT THAT ACTUALLY BINDS IS `COMMAND_BYTE_BUDGET` in
+  # scripts/eval-leanness.py. If you tripped this note, read that number first:
+  # bytes per command line vary 2.63x across this surface (34.5 for `migrate`
+  # to 90.8 for `implement-phase`), so a line count is not a unit of load.
+  # `implement-phase.md` is 321 lines — inside any plausible line cap — and
+  # 4,176 bytes over budget. A line is not what an invocation pays for.
+  #
+  # The retired 2000 could never bind: the largest command in the tree is 989
+  # lines, 2.02x out of reach. ADR-021 reason 1, re-measured — a runaway-content
+  # backstop wearing a budget's clothes.
+  #
+  # add_note, not add_finding: 400 fires on nine byte-compliant commands today
+  # (2026-08-12-governor-enforcement Story 3 records the measurement and its
+  # Tier B escalation). A tripwire that fires on a compliant surface is a
+  # standing channel, and standing channels are what ADR-021 reason 2 is about.
   while IFS= read -r file; do
     rel="$(relpath "$file")"
     if file_has_exemption "$file" "length"; then
       continue
     fi
     count="$(line_count "$file")"
-    if [ "$count" -gt 2000 ]; then
-      add_finding "$rel" "$count lines (limit 2000)." "Split runaway command content or add an exemption with a tracking issue."
+    if [ "$count" -gt 400 ]; then
+      add_note "NOTE [$rel]: $count lines (secondary tripwire 400, non-binding). The binding limit is COMMAND_BYTE_BUDGET (24960 bytes) in scripts/eval-leanness.py — check the byte figure there before acting on this. ADR-021, amended 2026-08-12."
     fi
   done < <(command_files)
 }
@@ -2742,6 +2765,7 @@ check_revert() {
   local fake="$PROJECT_ROOT/scripts/eval-revert-resolve.py"
   local resolver="$PROJECT_ROOT/scripts/revert-resolve.py"
   local revert_cmd="$PROJECT_ROOT/commands/revert.md"
+  local refactor_cmd="$PROJECT_ROOT/commands/refactor.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   local wwb_doc="$PROJECT_ROOT/.writ/docs/what-was-built-format.md"
   local scenario_output scenario_status scenario_name scenario_reason
@@ -2782,6 +2806,29 @@ check_revert() {
   require_literal "$revert_cmd" 'second destructive confirmation' "revert.md must require a second confirmation for hard reset."
   require_literal "$revert_cmd" 'git reset --hard' "revert.md must name the destructive hard-reset strategy."
   require_literal "$revert_cmd" 'ghost' "revert.md must require confirmation of ghost substitutions."
+
+  # /refactor dirty-tree guard (spec 2026-08-12-refactor-dirty-tree-guard, Story 1).
+  # Same discipline as the /revert guard above: a porcelain check before the
+  # first mutation, so Phase 3's revert-on-red step can never discard
+  # uncommitted work it did not create.
+  # The guard is pinned as a numbered step, not as prose: it has to sit between
+  # every scope-resolution branch and Step 1.2, so no "proceed to Step 1.2" jump
+  # can route a reader past it.
+  require_literal "$refactor_cmd" '#### Step 1.1b: Dirty-Tree Guard' "refactor.md must carry the dirty-tree guard as its own step ahead of Step 1.2."
+  require_literal "$refactor_cmd" 'git status --porcelain' "refactor.md must reference the dirty-tree guard command."
+  # Presence-only pins would stay green if the halt were inverted to a warning,
+  # so pin the halt and the remedy themselves (AC1).
+  require_literal "$refactor_cmd" 'HALT immediately' "refactor.md must halt, not warn, on a dirty tree."
+  require_literal "$refactor_cmd" 'commit or stash before refactoring' "refactor.md must HALT on a dirty tree and name the remedy."
+  require_literal "$refactor_cmd" 'exempt from this guard' "refactor.md must exempt the non-mutating --dry-run mode from the dirty-tree guard."
+  require_literal "$refactor_cmd" 'not a git repository' "refactor.md must degrade with a warning outside a git repository rather than halt."
+  require_literal "$refactor_cmd" 'git ls-files --error-unmatch' "refactor.md must test each --dead-code file target for git tracking."
+  require_literal "$refactor_cmd" 'report it as skipped' "refactor.md must skip rather than delete an untracked --dead-code target."
+  # Presence pins prove the guard EXISTS; none proved it was REACHABLE. Both the
+  # review and testing gates flagged that reverting refactor.md:48 to "proceed to
+  # Step 1.2" would leave every other pin green while re-opening the exact defect
+  # iteration 1 shipped: /refactor <path> jumping clean over the guard.
+  require_literal "$refactor_cmd" 'proceed to Step 1.1b' "refactor.md's direct-target path must route through the dirty-tree guard."
 
   # Story-SHA recording + reverted-WWB non-authoritative loader rule.
   require_literal "$implement_story" '> **Commit:**' "implement-story must record the story commit SHA."
@@ -2844,6 +2891,41 @@ if "per_surface" in m:
 if "story_context_bytes" in m:
     print("METRIC\tstory_context_bytes=%s (%s)" % (
         m.get("story_context_bytes"), m.get("story_context_bytes_note", "proxy — declared load, not consumed tokens")))
+# Component-contract counts (2026-08-12-governor-enforcement Story 1). These
+# reached eval-leanness.py's JSON and never this report, so the only channel a
+# maintainer reads carried neither the gate's coverage nor its vacuous-pass
+# guard. Both branches are guarded on key PRESENCE, never on truthiness: a
+# mismatched or older helper must print nothing rather than
+# `contract_compliance: None`, and `required_skills_declarations=0` is exactly
+# the value that must still be rendered (governor-instrumentation Business
+# Rule 8 — "0 findings" and "0 things checked" must not read the same).
+# Rendering is `key=int` pairs only, so no value can carry a tab and shift the
+# `while IFS=$'\t' read -r kind a b c` reader's fields.
+if "contract_compliance" in m:
+    print("METRIC\tcontract_compliance: %s" % " ".join(
+        "%s=%s" % (key, value) for key, value in m.get("contract_compliance", {}).items()))
+if "required_skills_declarations" in m:
+    print("METRIC\trequired_skills_declarations=%s (frontmatter declarations; the phase's mechanism is the inline read counted beside it)" % (
+        m.get("required_skills_declarations"),))
+if "inline_skill_reads" in m:
+    print("METRIC\tinline_skill_reads=%s (resolved `Read skills/<name>/SKILL.md` occurrences across commands and agents)" % (
+        m.get("inline_skill_reads"),))
+# The absolute per-invocation byte budget (Story 2), reported NON-BLOCKING per
+# the 2026-08-12 (d) rescope: every over-budget command is named here with its
+# overage so the number is visible without being a wall.
+if "command_budget" in m:
+    cb = m.get("command_budget", {})
+    over = cb.get("over_budget", [])
+    named = "; ".join("%s +%s" % (entry.get("subject"), entry.get("over_by")) for entry in over)
+    print("METRIC\tcommand_budget: budget=%s checked=%s over_budget=%s total_overage=%s%s" % (
+        cb.get("budget"), cb.get("checked"), len(over), cb.get("total_overage"),
+        (" — " + named) if named else ""))
+if "per_command_invocation" in m:
+    pci = m.get("per_command_invocation", {})
+    heaviest = max(pci.items(), key=lambda kv: kv[1].get("ceiling_bytes", 0), default=None)
+    print("METRIC\tper_command_invocation: %s commands measured (command_bytes/floor_bytes/ceiling_bytes per command in the JSON metrics)%s" % (
+        len(pci),
+        ("; heaviest ceiling: %s at %s bytes" % (heaviest[0], heaviest[1].get("ceiling_bytes"))) if heaviest else ""))
 PY
 
   while IFS=$'\t' read -r kind a b c; do

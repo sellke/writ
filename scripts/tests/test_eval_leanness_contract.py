@@ -32,6 +32,7 @@ import importlib.util
 import inspect
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -616,14 +617,14 @@ class RequiredSkillsCheckTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             self._skill(tmp, "tdd-cycle")
             write_command(Path(tmp), "alpha", skill_command("[tdd-cycle]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(findings, [])
             self.assertEqual(count, 1)
 
     def test_unknown_name_emits_one_finding_naming_file_and_name(self):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha", skill_command("[no-such-skill]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(subjects(findings),
                              ["commands/alpha.md → required_skills: no-such-skill"])
             self.assertIn("skills/no-such-skill/SKILL.md", findings[0]["fix"])
@@ -633,7 +634,7 @@ class RequiredSkillsCheckTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha",
                           skill_command("[no-such-skill, no-such-skill]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(len(findings), 1)
             self.assertEqual(count, 1)
 
@@ -644,7 +645,7 @@ class RequiredSkillsCheckTests(unittest.TestCase):
                     "required_skills:\n  - tdd-cycle\n  - ghost-skill\n---\n\n# X\n")
             self._skill(tmp, "tdd-cycle")
             write_command(Path(tmp), "alpha", body)
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(subjects(findings),
                              ["commands/alpha.md → required_skills: ghost-skill"])
             self.assertEqual(count, 2)
@@ -654,7 +655,7 @@ class RequiredSkillsCheckTests(unittest.TestCase):
             body = compliant_agent("## Agent Specification", "yaml").replace(
                 "name: sample\n", "name: sample\nrequired_skills: [ghost-skill]\n")
             write_agent(Path(tmp), "plain", body)
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(subjects(findings),
                              ["agents/plain.md → required_skills: ghost-skill"])
             self.assertEqual(count, 1)
@@ -662,20 +663,26 @@ class RequiredSkillsCheckTests(unittest.TestCase):
     def test_empty_list_is_zero_pairs_and_zero_findings(self):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha", skill_command("[]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual((findings, count), ([], 0))
 
     def test_absent_skills_directory_warns_rather_than_raising(self):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha", skill_command("[tdd-cycle]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(len(findings), 1)
             self.assertEqual(count, 1)
 
-    def test_real_repo_is_vacuous_and_says_so(self):
-        findings, count = lean.check_required_skills(str(REPO_ROOT))
+    def test_real_repo_declares_nothing_and_says_so(self):
+        """The declarative half is vacuous, permanently — the 2026-08-12
+        mechanism ruling retired `required_skills:` for Phase 10 because it is
+        an eager pre-load. The count is what makes that legible: "0 findings"
+        and "0 things checked" must not read the same. The inline half beside
+        it is where the surface actually lives."""
+        findings, count, inline = lean.check_required_skills(str(REPO_ROOT))
         self.assertEqual(findings, [])
         self.assertEqual(count, 0, "a vacuous pass must be visible as a declaration count")
+        self.assertGreater(inline, 0, "the mechanism the phase DOES use must be counted")
 
 
 
@@ -717,6 +724,24 @@ def build_noncompliant_root(tmp: str) -> None:
         + rows + "\n", encoding="utf-8")
 
 
+# The assignment STATEMENT, anchored to start-of-line, never the literal.
+#
+# Both re-anchored tests below used to partition the source on the bare literal
+# `CONTRACT_CHECK_SEVERITY = "warnings"`. That literal survives the flip inside
+# the handoff comment's diff preview, so post-flip each one matched the
+# DOCUMENTATION instead of the statement and silently stopped asserting
+# anything. 2026-08-11-governor-instrumentation Story 7 documented the trap and
+# defended against it in one direction only; 2026-08-12-governor-enforcement
+# Story 5 closes the other. A red test announces itself — a test that quietly
+# stops testing does not.
+#
+# `^` under re.M cannot match the comment's `#     -CONTRACT_CHECK_SEVERITY`
+# preview lines, and the (?P<value>) group means a test can assert what the
+# statement SAYS rather than merely that some line mentions it.
+SEVERITY_STATEMENT = re.compile(
+    r'^CONTRACT_CHECK_SEVERITY = "(?P<value>[^"\n]*)"[^\n]*$', re.M)
+
+
 class FlipSeamTests(unittest.TestCase):
 
     def setUp(self):
@@ -731,40 +756,62 @@ class FlipSeamTests(unittest.TestCase):
         lean.emit_contract_findings(lean.check_completion_sections(tmp),
                                     structural, warnings)
         lean.emit_contract_findings(lean.check_loop_bounds(tmp), structural, warnings)
-        skill_findings, _ = lean.check_required_skills(tmp)
+        skill_findings, _, _ = lean.check_required_skills(tmp)
         lean.emit_contract_findings(skill_findings, structural, warnings,
                                     severity="warnings")
         return structural, warnings
 
-    def test_shipped_default_is_warnings(self):
-        self.assertEqual(self._shipped, "warnings",
-                         "the committed constant must ship non-blocking")
+    def test_shipped_default_is_structural(self):
+        """Inverted 2026-08-12, not deleted — the guard changed direction.
 
-    def test_default_routes_everything_non_blocking(self):
+        Before the flip this stopped a local experiment from turning the gate
+        red unnoticed. After it, it stops a local experiment from turning the
+        gate OFF unnoticed, which is now the failure that matters more: an
+        un-flip does not weaken one check, it silently disarms all four across
+        every command and agent while the surface stays green.
+        """
+        self.assertEqual(self._shipped, "structural",
+                         "the committed constant must ship BLOCKING; an "
+                         "un-flip is a deliberate, dated act recorded at the "
+                         "constant, never a drift")
+
+    def test_default_routes_everything_blocking(self):
+        """Inverted 2026-08-12. The shipped default now blocks; only the
+        `required_skills` pin stays in the non-blocking bucket."""
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
+            pinned, _, _ = lean.check_required_skills(tmp)
             structural, warnings = self._collect(tmp)
-            self.assertEqual(structural, [])
-            self.assertGreater(len(warnings), 0)
-
-    def test_flip_moves_the_identical_dicts_to_structural(self):
-        with TemporaryDirectory() as tmp:
-            build_noncompliant_root(tmp)
-            _, before = self._collect(tmp)
-            pinned, _ = lean.check_required_skills(tmp)
-            self.assertGreater(len(pinned), 0, "the fixture must exercise the pin")
-            expected_moved = copy.deepcopy([f for f in before if f not in pinned])
-
-            lean.CONTRACT_CHECK_SEVERITY = "structural"
-            structural, warnings = self._collect(tmp)
-
-            self.assertEqual(structural, expected_moved)
+            self.assertGreater(len(structural), 0)
             self.assertEqual(warnings, pinned)
+
+    def test_an_un_flip_moves_the_identical_dicts_back_to_warnings(self):
+        """Inverted 2026-08-12: the direction reversed, the claim did not.
+
+        The seam's whole assertion is that severity is a ROUTING decision and
+        the findings themselves are unchanged by it. Pre-flip that was proven
+        by pinning "structural" and watching the dicts move up; post-flip it is
+        proven by pinning "warnings" and watching the identical dicts move
+        back. Same equality, opposite direction.
+        """
+        with TemporaryDirectory() as tmp:
+            build_noncompliant_root(tmp)
+            before, _ = self._collect(tmp)
+            pinned, _, _ = lean.check_required_skills(tmp)
+            self.assertGreater(len(pinned), 0, "the fixture must exercise the pin")
+            self.assertGreater(len(before), 0, "the fixture must produce findings")
+            expected_moved = copy.deepcopy(before)
+
+            lean.CONTRACT_CHECK_SEVERITY = "warnings"
+            structural, warnings = self._collect(tmp)
+
+            self.assertEqual(structural, [])
+            self.assertEqual(warnings, expected_moved + pinned)
 
     def test_pinned_required_skills_findings_survive_the_flip(self):
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
-            pinned, _ = lean.check_required_skills(tmp)
+            pinned, _, _ = lean.check_required_skills(tmp)
             lean.CONTRACT_CHECK_SEVERITY = "structural"
             structural, warnings = self._collect(tmp)
             for finding in pinned:
@@ -787,14 +834,51 @@ class FlipSeamTests(unittest.TestCase):
                              f"{name} must not append to `warnings`")
 
     def test_the_constant_carries_its_handoff_comment(self):
+        """Re-anchored 2026-08-12 on the STATEMENT, never the literal.
+
+        The old form partitioned the source on `CONTRACT_CHECK_SEVERITY =
+        "warnings"`, which survives the flip inside the handoff comment's own
+        diff preview — so post-flip it inspected the comment and asserted
+        nothing about the statement. Anchoring on the assignment and asserting
+        its VALUE means changing the constant's literal to anything fails this
+        test, which is the property it claims to check.
+        """
         source = MODULE_PATH.read_text(encoding="utf-8")
-        head, _, _ = source.partition('CONTRACT_CHECK_SEVERITY = "warnings"')
-        preamble = head[-1400:]
-        for token in ("governor-enforcement", "ADR-020", "Enforcement sequencing"):
+        matches = list(SEVERITY_STATEMENT.finditer(source))
+        self.assertEqual(len(matches), 1,
+                         "exactly one assignment statement, or the anchor is "
+                         "matching something other than the constant")
+        self.assertEqual(matches[0].group("value"), "structural")
+        preamble = source[:matches[0].start()][-4200:]
+        for token in ("governor-enforcement", "ADR-020", "Enforcement sequencing",
+                      "2026-08-12", "un-flip"):
             self.assertIn(token, preamble,
                           f"the flip handoff comment must name {token}")
 
-    def test_main_exits_zero_and_stays_non_blocking_on_a_noncompliant_root(self):
+    def test_the_handoff_anchor_fails_when_the_statement_is_broken(self):
+        """The re-anchor, proven rather than asserted.
+
+        A string-matching fix to a string-matching test is exactly where a
+        repair can look right and check nothing, so the anchor is exercised
+        against a source that has the property broken.
+        """
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        un_flipped = SEVERITY_STATEMENT.sub(
+            'CONTRACT_CHECK_SEVERITY = "warnings"', source, count=1)
+        self.assertNotEqual(un_flipped, source)
+        match = SEVERITY_STATEMENT.search(un_flipped)
+        self.assertIsNotNone(match)
+        self.assertEqual(match.group("value"), "warnings",
+                         "the anchor must read the statement's own value, so "
+                         "an un-flip fails the test above instead of passing "
+                         "on the comment's diff preview")
+        deleted = SEVERITY_STATEMENT.sub("", source, count=1)
+        self.assertIsNone(SEVERITY_STATEMENT.search(deleted),
+                          "with the statement gone the anchor must find "
+                          "nothing — the comment's preview lines must never "
+                          "satisfy it")
+
+    def test_main_exits_zero_and_reports_structural_on_a_noncompliant_root(self):
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
             baseline_path = Path(tmp) / ".writ" / "leanness-baseline.json"
@@ -805,10 +889,14 @@ class FlipSeamTests(unittest.TestCase):
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 rc = lean.main(["--root", tmp, "--baseline", str(baseline_path)])
+            # Inverted 2026-08-12: a non-compliant root is now BLOCKING, and
+            # the script still exits 0 — eval.sh decides FAIL from the
+            # `structural` list. That split is the contract, not an oversight.
             self.assertEqual(rc, 0)
             payload = json.loads(out.getvalue())
-            self.assertEqual(payload["structural"], [])
-            self.assertGreater(len(payload["warnings"]), 0)
+            self.assertGreater(len(payload["structural"]), 0)
+            self.assertGreater(len(payload["warnings"]), 0,
+                               "the required_skills pin still routes here")
             compliance = payload["metrics"]["contract_compliance"]
             for key in ("commands_checked", "commands_with_contract",
                         "commands_with_completion", "loop_commands_checked",
@@ -817,10 +905,14 @@ class FlipSeamTests(unittest.TestCase):
                 self.assertIsInstance(compliance[key], int, key)
             self.assertEqual(payload["metrics"]["required_skills_declarations"], 1)
 
-    def test_flipped_main_makes_the_same_findings_blocking(self):
-        """The eval.sh boundary: check_leanness() maps `structural` -> FAIL, so
-        proving the flip reaches a non-empty `structural` from main() is the
-        same proof, without mutating the committed script."""
+    def test_an_un_flipped_main_makes_the_same_findings_non_blocking(self):
+        """The eval.sh boundary from the other side.
+
+        check_leanness() maps `structural` -> FAIL, so an in-process un-flip
+        emptying `structural` on a root that is still non-compliant is the
+        proof that this constant — and nothing else — decides the gate. Run
+        without mutating the committed script.
+        """
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
             baseline_path = Path(tmp) / ".writ" / "leanness-baseline.json"
@@ -828,12 +920,15 @@ class FlipSeamTests(unittest.TestCase):
             with contextlib.redirect_stderr(err):
                 lean.main(["--root", tmp, "--baseline", str(baseline_path),
                            "--update-baseline"])
-            lean.CONTRACT_CHECK_SEVERITY = "structural"
+            lean.CONTRACT_CHECK_SEVERITY = "warnings"
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 lean.main(["--root", tmp, "--baseline", str(baseline_path)])
             payload = json.loads(out.getvalue())
-            self.assertGreater(len(payload["structural"]), 0)
+            contract = [f for f in payload["structural"]
+                        if f["subject"].startswith(("commands/", "agents/"))]
+            self.assertEqual(contract, [])
+            self.assertGreater(len(payload["warnings"]), 0)
 
 
 class EvalShBoundaryTests(unittest.TestCase):
@@ -865,14 +960,31 @@ class EvalShBoundaryTests(unittest.TestCase):
         scripts.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO_ROOT / "scripts" / "eval.sh", scripts / "eval.sh")
         helper_source = MODULE_PATH.read_text(encoding="utf-8")
-        # Anchored on the newline so the `-CONTRACT_CHECK_SEVERITY = "warnings"`
-        # line inside the handoff comment's diff preview is never the one
-        # rewritten — the flip must land on the statement, not its
-        # documentation.
-        flipped = helper_source.replace(
-            '\nCONTRACT_CHECK_SEVERITY = "warnings"',
-            f'\nCONTRACT_CHECK_SEVERITY = "{severity}"', 1)
-        self.assertIn(f'\nCONTRACT_CHECK_SEVERITY = "{severity}"', flipped)
+        # Re-anchored 2026-08-12 on the assignment STATEMENT.
+        #
+        # The old form did `.replace('\nCONTRACT_CHECK_SEVERITY = "warnings"',
+        # ...)` and then `assertIn`. Post-flip the replace found nothing and
+        # the assertIn passed trivially, because the committed file already
+        # held the requested value — so `test_flipped_severity_fails_the_gate`
+        # "passed" without ever having flipped anything. Substituting on the
+        # statement and asserting the substitution COUNT, plus asserting the
+        # written copy actually differs from the committed source whenever the
+        # requested severity differs from the shipped one, makes a no-op
+        # impossible to mistake for a pass.
+        shipped = SEVERITY_STATEMENT.search(helper_source)
+        self.assertIsNotNone(shipped, "the severity statement anchor no longer "
+                                      "matches scripts/eval-leanness.py")
+        flipped, count = SEVERITY_STATEMENT.subn(
+            f'CONTRACT_CHECK_SEVERITY = "{severity}"', helper_source, count=1)
+        self.assertEqual(count, 1, "the severity substitution must land exactly "
+                                   "once, on the statement")
+        self.assertEqual(SEVERITY_STATEMENT.search(flipped).group("value"), severity)
+        if severity != shipped.group("value"):
+            self.assertNotEqual(
+                flipped, helper_source,
+                "a requested severity that differs from the shipped one must "
+                "produce a genuinely different file — this is the assertion "
+                "whose absence made the old anchor silently inert")
         (scripts / "eval-leanness.py").write_text(flipped, encoding="utf-8")
 
         subprocess.run([sys.executable, str(scripts / "eval-leanness.py"),
@@ -887,21 +999,32 @@ class EvalShBoundaryTests(unittest.TestCase):
             capture_output=True, text=True)
         return result, report.read_text(encoding="utf-8")
 
-    def test_shipped_severity_passes_the_gate_on_the_same_tree(self):
-        result, report = self._run_leanness_check("warnings")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("PASS", report)
-        self.assertIn("WARNING [commands/alpha.md]", report)
+    def test_shipped_severity_fails_the_gate_on_a_noncompliant_tree(self):
+        """Swapped 2026-08-12: the SHIPPED value is now the FAIL case.
 
-    def test_flipped_severity_fails_the_gate(self):
+        This is the assertion the whole spec is for — a command that drops its
+        contract fails the eval instead of adding a line to a report — and it
+        runs the real eval.sh against a real copy, not a JSON payload.
+        """
         result, report = self._run_leanness_check("structural")
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("FAIL", report)
         self.assertIn("commands/alpha.md", report)
         # The pin holds all the way to the gate: required_skills: is still a
-        # non-blocking note in the same flipped run.
+        # non-blocking note in the same blocking run.
         self.assertIn("WARNING [commands/skilled.md → required_skills: ghost-skill]",
                       report)
+
+    def test_an_un_flipped_severity_passes_the_gate_on_the_same_tree(self):
+        """Swapped 2026-08-12: the un-flipped value is now the PASS case.
+
+        Same tree, same findings, opposite verdict — which is the seam's claim
+        stated at the gate rather than at the function boundary.
+        """
+        result, report = self._run_leanness_check("warnings")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS", report)
+        self.assertIn("WARNING [commands/alpha.md]", report)
 
 
 if __name__ == "__main__":
