@@ -62,6 +62,35 @@ four are false. Story 7 extends to the three adapters, correcting the claim
 without touching the schema — the convention remains documented and available,
 it simply has no consumer and carries a restored 2026-11-11 review trigger.
 
+### 2026-08-12 (d) — Scope corrected: enforce what complies, warn on what does not
+
+The five sibling disclosure specs were **closed unimplemented** after the pilot
+measured ~1,017 bytes of overhead per extracted skill and a **+9.7%** worst-path
+regression. Five of the six target commands are therefore unconverted and remain
+above 24,960 bytes. That splits this spec's deliverable in two, and the split is
+the whole point of a governor that is worth reading:
+
+**Flips to blocking `structural` — the surface complies, measured:**
+`contract_compliance` reads **31/31** commands with `problem`/`outcome`/
+`exit_criteria`, **31/31** with `## Completion`, **5/5** loop-bearing commands
+bounded, **7/7** agents. These are Phase 10's determinism half, they shipped in
+the foundation, and nothing has regressed them. `CONTRACT_CHECK_SEVERITY` flips.
+
+**Stays non-blocking `warnings` — the surface does NOT comply:**
+the absolute per-invocation byte cap. Landing it blocking today makes `eval.sh`
+red on five commands nobody is converting, and a permanently-red gate becomes
+invisible — the exact failure ADR-021 reason 2 diagnosed and this spec exists to
+avoid. It ships **measured and reported**, with the budget recorded and the
+per-command overage named, so the number is visible without being a wall.
+
+**This is not a softened deliverable, it is the deliverable applied honestly.**
+Business Rule "no exemption to make the flip possible" is upheld precisely by
+*not* flipping the half the surface fails. Story 4's compliance gate therefore
+gates each half against its own evidence rather than blocking both on the weaker.
+
+The byte cap becomes blocking when a future decision converts the remaining
+commands or lowers the base. Recorded against ADR-021's 2026-11-11 review.
+
 ## The Binding Budget (maintainer decision, 2026-08-12)
 
 **A command file may not cost more to load than the shared contract it runs inside.**

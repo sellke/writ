@@ -1,10 +1,29 @@
 # Spec: Progressive Disclosure — `implement-phase`
 
-> **Status:** Not Started
+> **Status:** Closed — Not Implemented (measured evidence, 2026-08-12)
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-12
 > **Dependencies:** [2026-08-12-disclosure-implement-story]
 > **Origin:** ADR-021's progressive-disclosure programme, sixth and last of the six one-file-per-spec extractions. Sequenced last deliberately: this spec is executed **by the command it rewrites**. The file was re-measured on 2026-08-12 with `scripts/measure-invocation.py` — 29,136 bytes / 321 lines, **90.77 bytes per line, the densest command in the repo** and 2.63× the lightest (`migrate.md`, 34.48 B/line). It ranks **4th of 31 by floor load** (54,096 bytes) while sitting **79 lines under ADR-021's proposed 400-line cap**, which is the concrete evidence behind the 2026-08-12 maintainer decision to make the byte budget binding and demote the line cap to a secondary tripwire. Governed by [ADR-021](../../decision-records/adr-021-progressive-disclosure-token-budget.md) and [ADR-020](../../decision-records/adr-020-component-contract.md).
+
+> **Not implemented — closed 2026-08-12 on measured evidence.** The pilot
+> (`2026-08-12-disclosure-implement-story`) shipped and measured progressive
+> disclosure's real cost: **~1,017 bytes of irreducible overhead per extracted
+> skill** (27,872 B removed from the command, 36,005 B added as 8 skills). Its
+> worst path regressed **+9.7%** against a projected +4.1% — the projection
+> underestimated overhead by 2.3x, and every spec in this set was projected the
+> same way. Per this spec set's own Business Rule 1, a pilot regression is *"a
+> signal about the approach rather than a per-file exemption."*
+>
+> The saving tracks how genuinely branchy a command is, not how large its file
+> is. Selecting by file size was the error. This spec's own measured common-path
+> payoff did not justify ~5 more skills of overhead on a command that is either a
+> sequential pipeline or already near break-even.
+>
+> The contract, extraction plan, pinned-literal inventory and measurement method
+> here are **kept intact and unexecuted** — they are the design record if the
+> economics change (a materially smaller skill preamble, or a harness that loads
+> lazily by default). Nothing here was wrong; the premise underneath it was.
 
 ## Contract (Locked)
 
