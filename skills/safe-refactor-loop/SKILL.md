@@ -59,16 +59,33 @@ them.
 For each approved change, in the planned order (safest first, so confidence
 builds before riskier transformations):
 
-1. **Checkpoint** — note the current clean git state so a revert is one step.
+1. **Checkpoint** — record the restore point before touching anything. Capture
+   the current commit as this change's **revert target**:
+
+   ```
+   git rev-parse HEAD
+   git status --porcelain
+   ```
+
+   The tree must be clean at the **top of every iteration**, not merely the
+   first: step 4 leaves it clean on both branches, so anything uncommitted here
+   is either a partial commit, an incomplete revert, or an edit made outside the
+   loop. If the second command prints anything,
+   **stop and report what is uncommitted** — a revert cannot tell your work from
+   the edit it is about to undo. Outside a git repository there is nothing to protect and no way to
+   revert: say so, note that per-change revert is unavailable, and continue.
 2. **Apply** — make a surgical, minimal edit. Touch only what this one change
    requires; resist folding in an unrelated cleanup you notice along the way.
 3. **Verify** — run tests, typecheck, and lint. All three must pass.
 4. **Commit or revert:**
    - **Green** → commit with a descriptive message scoped to this one change,
      then move to the next.
-   - **Red** → revert immediately, report what broke and why, and decide whether
-     to skip this change or stop the remaining plan. Never leave the tree red to
-     "fix it in the next step."
+   - **Red** → revert to the checkpoint's **revert target**. Restoration must
+     cover everything the change touched, **including files the change created** —
+     a plain restore leaves new untracked files behind, and the
+     next iteration's checkpoint would then stop on this loop's own leftovers.
+     Report what broke and why, and decide whether to skip this change or stop
+     the remaining plan. Never leave the tree red to "fix it in the next step."
 
 ### 2. One concern per commit
 
@@ -113,6 +130,8 @@ checkpoint → deduplicate validation into a shared validator  → green
           → commit "refactor: deduplicate validation into shared validator"
 checkpoint → split auth.ts into auth/session/token modules,
              updating all importers in the SAME commit          → green
+             (had this gone red, the revert must also delete the
+              new module files, or the next checkpoint stops)
           → commit "refactor: split auth.ts into auth, session, token modules"
 ```
 
@@ -120,7 +139,7 @@ checkpoint → split auth.ts into auth/session/token modules,
 
 ```text
 checkpoint → convert callback error handling to async/await → 2 tests fail (red)
-          → revert immediately; tree is green again
+          → revert to the checkpoint SHA; tree is clean again, not merely green
           → report: "async conversion broke ordering in retry path; skip or stop?"
 ```
 

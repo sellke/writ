@@ -30,3 +30,17 @@
 - **Spec amendment:** N/A — flagged for post-implementation review. The spec/baseline owner should set `surfaces.scripts.justifications.lines` to 32557 and `.chars` to 1409164 with a dated reason naming this story.
 
 ---
+
+#### [DEV-003] Story 2 amended at Gate 0 — 3 tasks to 5, ACs rewritten
+- **Severity:** Small
+- **Spec said:** Three tasks; ACs were "step 1 instructs capture+assert", "lint-skill.sh clean", "eval.sh Findings 0".
+- **Implementation did:** Gate 0 ran the latter two against the *unmodified* file and both were already green — `lint-skill.sh` passes today and `grep -rn safe-refactor-loop scripts/` returned zero matches, so `eval.sh` never examined the file. The story had no mechanically verifiable criterion for its own deliverable. Amended to 5 tasks and 7 ACs, adding `require_literal` pins and tightening step 4's red branch so the captured SHA has a reader.
+- **Resolution:** Auto-amended (story + spec-lite)
+- **Spec-lite updated:** Yes
+
+#### [DEV-004] Two pins were weaker than they looked; hardened after Gate 3
+- **Severity:** Small
+- **Spec said:** AC4 — pins assert the assertion and revert target, not merely the topic.
+- **Implementation did:** Gate 3 proved `revert target` is positionally blind (it occurs twice, so `grep -Fq` cannot tell step 1's declaration from step 4's consumption) and that the assertion's *consequence* was unpinned — both mutations passed with `Findings: 0`. Two further pins added on the consuming sentence and on "stop and report what is uncommitted"; all six now bite under mutation.
+- **Resolution:** Auto-amended
+- **Spec-lite updated:** No — pin detail is implementation, not contract
