@@ -47,14 +47,14 @@
       "chars": 1155797,
       "justifications": {
         "lines": {
-          "value": 29958,
+          "value": 30554,
           "date": "2026-08-11",
-          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py), and 2026-08-11-governor-instrumentation Stories 1 and 3-7 \u2014 the bound-justification reader, the emission seam, the component-contract, `## Completion`, loop-bound and required_skills: checks, and the flip-seam proof, with scripts/tests/test_eval_leanness_contract.py (81 cases) carrying most of the delta."
+          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py), and 2026-08-11-governor-instrumentation Stories 1 and 3-7 \u2014 the bound-justification reader, the emission seam, the component-contract, `## Completion`, loop-bound and required_skills: checks, and the flip-seam proof, with scripts/tests/test_eval_leanness_contract.py (81 cases) carrying most of the delta. Raised 2026-08-12: scripts/measure-invocation.py + its 20-case test suite (per-invocation load measurement, the prerequisite for progressive disclosure's success criterion, which the roadmap requires be 'measured per-invocation load, not just file size' and which nothing measured)."
         },
         "chars": {
-          "value": 1279401,
+          "value": 1304568,
           "date": "2026-08-11",
-          "text": "Same commits as scripts.lines."
+          "text": "Same commits as scripts.lines. Raised 2026-08-12: scripts/measure-invocation.py + its 20-case test suite (per-invocation load measurement, the prerequisite for progressive disclosure's success criterion, which the roadmap requires be 'measured per-invocation load, not just file size' and which nothing measured)."
         }
       }
     },
