@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.30.0] - 2026-08-12
+
+**Closure by Decision** — Writ could record that work was *completed*, but not that it was deliberately *never built*. Both layers that needed the distinction got it: the spec archive ledger now carries terminal status, and `phase-execution-v2` gains a `closed_unimplemented` state written by a new `close-spec` reducer subcommand. The gap was found by `/refresh-command`, which rejected it as out of its own scope and filed it instead — the loop closing on itself. `/status` no longer reports a finished phase as five specs of work in flight.
+
+### Added
+
+- **`closed_unimplemented` and `close-spec`** — a terminal status for a spec a maintainer decided against, distinct from `failed`/`quarantined` (nothing failed) and `skipped_blocked` (nothing blocked it). `close-spec --reason` is mandatory because the phase report is obliged to print it; the reason is validated before the state file is read and before any git call, so a refused closure leaves the file byte-identical. Mid-run closure frees the lane worktree but **retains** the lane branch under `writ/phase/…` — `writ/quarantine/…` asserts a failure that did not happen.
+- **`phase-closure` eval check** — `scripts/eval-phase-closure.py`, 39 disposable-repository scenarios plus 10 static contract assertions. Its bypass detector walks the AST rather than grepping: a line-based check found 5 of 8 status-mutation sites and missed every `record.update({"status": …})` form.
+- **Terminal status on the archive ledger line** — a closed spec's ledger entry records *how* it ended, not just that it did. All 13 Phase 10 specs swept, roadmap glyphs normalized.
+- **`safe-refactor-loop`'s checkpoint is now executable.** It previously said "note the current clean git state so a revert is one step" — an assumption, not an instruction. It now captures the commit as the revert target and asserts a clean tree at the top of *every* iteration. Step 4's red branch reverts to that target including files the change created; without it a reverted module split leaves untracked files behind and the next checkpoint stops on the loop's own leftovers.
+
+### Changed
+
+- **`SPEC_STATUSES` is load-bearing rather than documentary.** It was declared and referenced nowhere — no validation, no membership test — so adding a value to it would have changed zero behaviour. Every spec-status write now routes through one `_set_status` guard, and `cmd_progress` seeds its counts from the same set so the two cannot drift again. Validation is on **write** only: a status written by a newer reducer must still report, never crash, or the schema's forward-compatibility promise breaks.
+- **`blockedBy` now means "upstream reached a terminal status without delivering"** — a quarantine *or* a closure — because closure cascades through `skipped_blocked`. Left implicit this would mislead, so `progress` reports the cause per blocked spec and both the schema doc and `/status` require naming it. The cascade skips dependents already in a terminal status; quarantine cascades unconditionally, but closure must not, or closing a spec would flip an `integrated` dependent and discard its merge commit.
+- **`/implement-phase` exit criterion 1 admits `closed_unimplemented`,** and its completion report carries a **mandatory** "Closed by decision" section. A phase may report `COMPLETE` with closed specs only because that section names what was dropped and why; omitting it would make the verdict a false claim of delivered scope.
+- **`/implement-phase` refreshed with three amendments evidenced by two live runs** — phase branches must not be named `writ/phase/{id}` (every `create-lane` fails on a git ref D/F conflict against the lane namespace); a lane brief seeds context and never new scope (one run's out-of-scope brief edit silently invalidated a UAT plan already generated for an earlier spec); and a truncated subagent report is indistinguishable from a completed one unless checked — four of five reports were dropped in a single run.
+
+### Fixed
+
+- **`challenge_required` was written by the reducer but absent from both the status vocabulary and the progress counts.** It had been uncounted since the status was introduced; enforcement would have started rejecting a write the reducer already performed.
+- **The live Phase 10b state reported five closed specs as `pending`.** `progress` now reports `pending: 0, closed_unimplemented: 5, integrated: 2`, each closure carrying the measured evidence that closed it, with `reconcile` consistent and no `Attention` attributable to the closures.
+
 ## [0.29.0] - 2026-08-12
 
 **Component Contract, Bounded Loops & a Governor That Bites** — every command and agent now declares the problem it addresses, the outcome it produces, and machine-checkable exit criteria; every loop declares a bound calibrated against a recorded run; and the contract checks are enforced as blocking findings rather than advisory warnings. Phase 10's token half was measured, found to be largely an artefact of the wrong metric, and stopped after one conversion — the evidence is recorded rather than the goal restated.
