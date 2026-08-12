@@ -1,8 +1,9 @@
 # ADR-021: Progressive Disclosure — Thin Command Contracts, On-Demand Skills, and a Budget That Binds
 
 > **Date:** 2026-08-11 (amended 2026-08-12 — see Amendments)
-> **Status:** Accepted
+> **Status:** Superseded by [ADR-023](adr-023-stakes-proportional-diligence.md) (2026-08-12)
 > **Category:** Framework Architecture
+> **Superseded:** The **Decision** below is void. Byte count is no longer a design constraint at any threshold, and progressive disclosure is closed as a program — not because the target was missed, but because it measured the wrong quantity. Extraction cut `implement-story`'s floor 35.9% while adding eight decision points, five of which fire unconditionally and buy nothing; no byte instrument can see that trade. **What remains valid and is deliberately preserved:** every measurement in this ADR and its two amendments, the extraction technique itself, the correction that `required_skills:` is an eager pre-load, and the five archived specs' contracts as design records. This ADR is the reason ADR-023 could be written — its own honest amendments are what falsified it.
 > **Extends:** [ADR-015](adr-015-leanness-self-governance.md), [ADR-019](adr-019-full-surface-leanness-measurement.md) (adds an absolute budget alongside the reduction ratchet); adopts the `required_skills:` convention reserved in [`system-instructions.md`](../../system-instructions.md)
 > **Paired with:** [ADR-020](adr-020-component-contract.md) — neither ships alone
 > **Origin:** `/plan-product` Phase 10 discovery (2026-08-11)

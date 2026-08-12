@@ -326,13 +326,13 @@ not block Phase 9 planning, but the "done vs released" gap is real and
 Machine-checkable unless marked otherwise:
 
 - `eval.sh` exits 0 with **0 findings and 0 unjustified growth warnings**
-- No command file exceeds **400 lines** without a tracked exemption (`file_has_exemption` convention)
+- ~~No command file exceeds **400 lines** without a tracked exemption~~ — **void, [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) (2026-08-12).** Retained as a non-binding tripwire; no file is restructured to satisfy it.
 - **All 31 commands** declare `problem` / `outcome` / `exit_criteria` in frontmatter
 - **All 31 commands** carry a `## Completion` section, and `new-command.md` mandates it for generated commands (18 sections written; the mandate is created, not enforced)
 - **All 5** loop-bearing commands declare `loop.max_iterations` + `on_exhaustion`
 - Every `required_skills:` entry resolves to a real `skills/<name>/SKILL.md`
 - `bash scripts/gen-skill.sh --check` passes (manifest/SKILL.md consistency restored)
-- `per_surface.commands.chars` drops materially from 516,589 — **measured per-invocation load, not just file size** (see caveat 2)
+- ~~`per_surface.commands.chars` drops materially from 516,589~~ — **void, [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) (2026-08-12).** This was the phase's central byte goal. It is withdrawn, not merely unmet: byte count measures file size, while the stated aim is economy of *steps and ruminations to reach exit criteria*. Where the two diverge the byte metric points the wrong way — extraction cut `implement-story`'s floor 35.9% while adding eight decision points, five of which fire unconditionally and buy nothing. Bytes remain measured as drift signal; they no longer drive architecture, and no replacement number is adopted.
 - *(manual)* One real `/implement-story` run completes with progressive disclosure active and every gate firing
 
 ### Features
@@ -417,6 +417,32 @@ five of six target commands are unconverted (39,829 bytes total overage, named
 in every eval report). The manual criterion — one real `/implement-story` run
 with disclosure active — is **not yet run**; it is Scenario 20 of that spec's
 UAT plan and no one has yet observed whether the inline reads fire lazily.
+
+### Postscript, 2026-08-12 — the byte goal is withdrawn, not deferred
+
+[ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) closes the
+byte program outright. The two byte/line success criteria above are **void**, and
+no number replaces them.
+
+The reason is not that the target was missed. It is that **the target measured the
+wrong quantity.** The stated aim is economy of *steps and ruminations to reach exit
+criteria*; bytes measure file size. Where they diverge, bytes point the wrong way —
+extraction cut `implement-story`'s floor by 35.9% while adding **eight decision
+points**, of which **five fire unconditionally on every run and buy nothing**. No
+byte instrument can see that trade: it counts what is loaded, never what must be
+decided.
+
+The attempt to replace bytes with a step or decision-count threshold was also
+abandoned, and this is the durable lesson: **no universal exchange rate exists
+between a decision and its cost**, because that cost is a function of the stakes
+being weighed. Diligence is now triaged per decision against two questions — does
+the answer change what happens, and how bad if it's wrong — recorded in
+`commands/_preamble.md` beside ADR-022's gate classes.
+
+Writ therefore has **no mechanically enforced efficiency constraint** as of this
+date. That is a deliberate cost, not an oversight: an unenforceable true rule was
+judged better than an enforceable wrong one. Reviewed 2026-11-11 alongside ADR-021
+and the `required_skills:` trigger.
 
 ## Beyond Phase 10 (Parking Lot)
 
