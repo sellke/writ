@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.30.2] - 2026-08-12
+
+**Stakes-Proportional Diligence** — Writ stops optimizing bytes, and adopts no number in their place. [ADR-023](.writ/decision-records/adr-023-stakes-proportional-diligence.md) supersedes ADR-021: diligence is decided per decision, by stakes, because no universal exchange rate between a decision and its cost exists.
+
+### Added
+
+- **A stakes triage in `commands/_preamble.md`**, beside ADR-022's gate-class table — the only change that reaches installed projects. Before spending diligence on any decision: *does the answer change what happens?* (if no, it is not a decision — drop it) and *how bad if it's wrong?* (reversible → decide, act, record; irreversible or wide → full rigor). The triage must cost less than the decision it governs; if answering it needs investigation, that *is* the answer. **Safety gates are never capped by count** — rarity is not irrelevance.
+
+### Changed
+
+- **The byte budget is demoted from design constraint to reported drift signal.** ADR-021's per-command cap (24,960) and 400-line tripwire still compute and still name every violator with its overage; only their authority is removed. `eval-leanness.py`'s cap had shipped non-blocking for a *circumstantial* reason — "blocking once a future decision converts the remaining commands." That decision came and went the other way, so the demotion is now recorded as permanent, with a guard: never flipped to blocking without a recorded derivation linking the threshold to measured harm.
+- **ADR-021 is `Superseded`**, with reciprocal cross-references and an explicit note on what survives — every measurement, the extraction technique, the `required_skills:` eager-pre-load correction, and the five archived spec contracts as design records.
+- **The roadmap's two Phase 10 byte/line success criteria are struck as void**, not deleted, with a postscript stating the goal is *withdrawn, not merely unmet*.
+
+### Why
+
+The goal is economy of *steps and ruminations to reach exit criteria*, especially as autonomy grows. Bytes measure file size. Where the two diverge, bytes point the wrong way: extraction cut `implement-story`'s floor 35.9% **while adding eight decision points, five of which fire unconditionally and buy nothing**. No byte instrument can see that trade — it counts what is loaded, never what must be decided.
+
+Replacing bytes with a step or decision-count threshold was attempted and abandoned. Inlining the five dead reads would raise the floor 17,376 B on every run to save 4,750 on the worst run — about 3,475 bytes of permanent floor per decision removed. Pricing that needs an exchange rate that is not merely unmeasured but **not a stable quantity**: a decision's cost is a function of its stakes. There is no denominator making a load-a-skill decision commensurable with a merge-to-main decision.
+
+Writ therefore has **no mechanically enforced efficiency constraint** as of this release. That is a deliberate cost, not an oversight — an unenforceable true rule was judged better than an enforceable wrong one. Reviewed 2026-11-11 alongside ADR-021 and the `required_skills:` trigger.
+
 ## [0.30.1] - 2026-08-12
 
 **The same bug, one layer up.** v0.30.0 shipped a fix for a vocabulary that was declared and referenced nowhere. Two questions about that release — *why wasn't the completed spec archived?* and *why are never-executed specs in the archive?* — found the identical defect in `spec-status.py`, the file v0.30.0's spec had explicitly scoped out as "already correct."
