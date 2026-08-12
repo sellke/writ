@@ -51,7 +51,13 @@ CHALLENGE_PARTS = (
 )
 SPEC_STATUSES = {
     "pending", "implementing", "integrated", "failed",
-    "quarantined", "skipped_blocked",
+    "quarantined", "skipped_blocked", "challenge_required",
+    "closed_unimplemented",
+}
+# Statuses from which no further execution follows. A spec here is never
+# retried, relaunched, or downgraded by another spec's disposition.
+TERMINAL_SPEC_STATUSES = {
+    "integrated", "quarantined", "skipped_blocked", "closed_unimplemented",
 }
 
 
@@ -60,6 +66,21 @@ class ContractError(Exception):
         super().__init__(summary)
         self.code = code
         self.summary = summary
+
+
+def _set_status(record: dict[str, Any], value: str) -> None:
+    """The single spec-status mutation point.
+
+    Validate on **write**, tolerate on **read**. The schema's compatibility
+    promise is that unknown fields survive a round-trip so later stories can
+    extend it; rejecting an unrecognized status while *reading* would turn a
+    state file written by a newer reducer into a hard failure. So this guard
+    covers mutation only, and the read paths (`progress`, `show`, `reconcile`)
+    stay permissive.
+    """
+    if value not in SPEC_STATUSES:
+        raise ContractError("invalid_status", f"unknown spec status: {value!r}")
+    record["status"] = value
 
 
 def _fail(err: ContractError) -> None:
@@ -128,7 +149,6 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
     specs = {
         spec: {
             "dependencies": [],
-            "status": "pending",
             "attempts": 0,
             "laneBranch": None,
             "worktreePath": None,
@@ -141,6 +161,8 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
         }
         for spec in order
     }
+    for record in specs.values():
+        _set_status(record, "pending")
     state = {
         "schemaVersion": SCHEMA_VERSION,
         "phase": args.phase,
@@ -195,8 +217,8 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
 
     _git(repo, "worktree", "add", "-b", lane_branch, str(worktree_path), phase_branch)
 
+    _set_status(record, "implementing")
     record.update({
-        "status": "implementing",
         "attempts": record.get("attempts", 0) + 1,
         "laneBranch": lane_branch,
         "worktreePath": str(worktree_path),
@@ -313,7 +335,7 @@ def cmd_record_challenge(args: argparse.Namespace) -> dict[str, Any]:
     # An unresolved challenge blocks the challenged decision: mark the spec so
     # the scheduler will not pass the decision until it is answered.
     if not resolved and args.spec in state.get("specs", {}):
-        state["specs"][args.spec]["status"] = "challenge_required"
+        _set_status(state["specs"][args.spec], "challenge_required")
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": entry["status"], "challengeId": entry["id"], "blocked": not resolved}
@@ -366,7 +388,7 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     if merge.returncode != 0:
         # Abort safely; retain the lane and mark attention (Story 4 territory).
         _git(repo, "merge", "--abort", check=False)
-        record["status"] = "failed"
+        _set_status(record, "failed")
         record["evidence"].append("merge_conflict")
         state["updatedAt"] = _now()
         _atomic_write(state_path, state)
@@ -377,8 +399,8 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     if worktree_path:
         _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
 
+    _set_status(record, "integrated")
     record.update({
-        "status": "integrated",
         "mergeCommit": merge_commit,
         "worktreePath": None,
     })
@@ -426,7 +448,7 @@ def cmd_retry(args: argparse.Namespace) -> dict[str, Any]:
         raise ContractError("retry_exhausted",
                             f"{args.spec} already used its permitted retry")
     record["attempts"] = record.get("attempts", 0) + 1
-    record["status"] = "implementing"
+    _set_status(record, "implementing")
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": "retrying", "attempts": record["attempts"], "laneBranch": record.get("laneBranch")}
@@ -474,7 +496,7 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
         rename = _git(repo, "branch", "-m", lane_branch, quarantine_branch, check=False)
         if rename.returncode != 0:
             # Renaming failed: keep the lane, mark attention, leave phase clean.
-            record["status"] = "failed"
+            _set_status(record, "failed")
             record["evidence"].append("quarantine_rename_failed")
             state["updatedAt"] = _now()
             _atomic_write(state_path, state)
@@ -485,8 +507,8 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
     phase_head_after = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
     phase_clean = phase_head_after == phase_head_before
 
+    _set_status(record, "quarantined")
     record.update({
-        "status": "quarantined",
         "quarantineBranch": quarantine_branch,
         "worktreePath": None,
         "failure": {"summary": args.summary or "terminal failure",
@@ -496,7 +518,7 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
 
     blocked = _transitive_dependents(state, args.spec)
     for dep in blocked:
-        state["specs"][dep]["status"] = "skipped_blocked"
+        _set_status(state["specs"][dep], "skipped_blocked")
         bl = state["specs"][dep].setdefault("blockedBy", [])
         if args.spec not in bl:
             bl.append(args.spec)
@@ -682,8 +704,11 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
     """Read-only phase progress summary for /status."""
     state = _load(Path(args.state))
     specs = state.get("specs", {})
-    counts = {"pending": 0, "implementing": 0, "integrated": 0,
-              "failed": 0, "quarantined": 0, "skipped_blocked": 0}
+    # Seeded from the vocabulary so the counts and SPEC_STATUSES cannot drift —
+    # the drift that let `challenge_required` go uncounted for three stories.
+    # Accumulation below still uses .get(), so a status written by a newer
+    # reducer is reported under its own key rather than crashing or vanishing.
+    counts = {status: 0 for status in sorted(SPEC_STATUSES)}
     quarantine = []
     current = None
     for spec, rec in specs.items():

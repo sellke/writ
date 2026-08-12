@@ -44,6 +44,7 @@ CHECKS=(
   phase-quarantine
   phase-knowledge
   phase-health
+  phase-closure
   ralph-retirement
   skill-lifecycle
   refresh-evidence
@@ -2403,6 +2404,37 @@ check_phase_health() {
 
   require_literal "$status_cmd" 'phase progress' "Status must surface phase progress."
   require_literal "$status_cmd" 'read-only' "Status must remain read-only."
+}
+
+check_phase_closure() {
+  local fake="$PROJECT_ROOT/scripts/eval-phase-closure.py"
+  local helper="$PROJECT_ROOT/scripts/phase-state.py"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "phase-closure:$scenario_name" "$scenario_reason" "Fix the closure reducer or the fixture."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # The vocabulary must be load-bearing, not documentary: it was declared and
+  # referenced nowhere for four stories, which is how challenge_required went
+  # uncounted. Assert the guard exists and that progress derives from the set.
+  require_literal "$helper" 'def _set_status(' "Spec-status writes must route through one guard."
+  require_literal "$helper" 'TERMINAL_SPEC_STATUSES' "Terminal statuses must be declared, not inferred."
+  require_literal "$helper" 'closed_unimplemented' "The vocabulary must express closure by decision."
 }
 
 check_ralph_retirement() {
