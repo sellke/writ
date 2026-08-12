@@ -45,7 +45,7 @@ All modes follow the same four-phase workflow. The mode determines *what to scan
 
 #### Step 1.1: Determine Scope
 
-If a target is provided in the invocation, use it directly and proceed to Step 1.2.
+If a target is provided in the invocation, use it directly and proceed to Step 1.1b.
 
 If no target, present scope selection via AskQuestion with these options:
 
@@ -58,6 +58,16 @@ If no target, present scope selection via AskQuestion with these options:
 - Analyze the project and suggest refactoring targets
 
 The last option triggers a **hotspot analysis**: scan the project for files with the highest complexity, most frequent git churn, largest size, and weakest test coverage. Present the top candidates ranked by refactoring value — complexity × churn is a strong signal for high-value targets. Let the user choose which to proceed with.
+
+#### Step 1.1b: Dirty-Tree Guard
+
+```
+git status --porcelain
+```
+
+If the output is **non-empty**, HALT immediately: "Working tree has uncommitted changes — commit or stash before refactoring. Nothing has been changed." Do not continue to baseline verification. Phase 3 reverts a red change with git, and a revert cannot tell your uncommitted work from the edit it just made.
+
+If the command **exits non-zero**, HALT the same way — a repo whose state cannot be read (corrupt index, stale `.git/index.lock`, permissions) is not a clean tree. Sole exception: **not a git repository**, where there is no uncommitted work to protect — warn that per-change revert is unavailable and continue. `--dry-run` is **exempt from this guard** entirely; it stops at Phase 2 and never runs the revert-on-red loop.
 
 #### Step 1.2: Baseline Verification
 
@@ -79,6 +89,8 @@ Analyze the target scope and produce a structured analysis report. What to detec
 | **Modernize** | `var` → const/let, `require`/`module.exports` → ESM, `.then()` → async/await, callbacks → try/catch, class components → functions, `React.FC` → direct signatures |
 | **Types** | `any` annotations, `as any` casts, `@ts-ignore`/`@ts-expect-error`, missing return types, untyped parameters. Propose specific replacements where inferable from usage |
 | **Extract** | All occurrences of the named pattern, variation points between them, proposed shared abstraction (utility, component, hook, or base class) with parameterized variations |
+
+**`--dead-code` file targets must be tracked.** Before a whole-file deletion enters the plan, run `git ls-files --error-unmatch -- <path>` on it (the `--` keeps a target whose name starts with `-` from parsing as a flag). A non-zero exit means the file is untracked — report it as skipped and never delete it, because no git object exists to restore it from. The dirty-tree guard already refuses untracked files, so the target that reaches here is a **gitignored** one. Unused exports and symbols *inside* tracked files are unaffected — their file is already under version control.
 
 **Report format:** For each issue, state the problem, recommended change, risk level (Low / Medium / High), and impact (Low / Medium / High). Risk reflects breakage likelihood and dependent count. Impact reflects improvement value.
 
@@ -153,15 +165,16 @@ If any changes were skipped or reverted during execution, list them with the fai
 
 ## Safety Guarantees
 
-These seven invariants hold for every refactoring operation:
+These eight invariants hold for every refactoring operation:
 
-1. **Green baseline required** — won't start if tests, types, or lint are already failing
-2. **Verify after every change** — tests + typecheck + lint after each individual refactoring step
-3. **Automatic rollback** — if any change breaks verification, it's reverted immediately
-4. **Commit per change** — each refactoring is an isolated, independently revertable commit
-5. **Import updates included** — when moving code, all dependent files are updated in the same commit
-6. **No behavior changes** — refactoring changes structure, not observable behavior
-7. **ADR for major changes** — module splits and architectural restructuring get decision records
+1. **Clean tree required** — won't start on a dirty tree, so a rollback can only ever discard this command's own edit
+2. **Green baseline required** — won't start if tests, types, or lint are already failing
+3. **Verify after every change** — tests + typecheck + lint after each individual refactoring step
+4. **Automatic rollback** — if any change breaks verification, it's reverted immediately
+5. **Commit per change** — each refactoring is an isolated, independently revertable commit
+6. **Import updates included** — when moving code, all dependent files are updated in the same commit
+7. **No behavior changes** — refactoring changes structure, not observable behavior
+8. **ADR for major changes** — module splits and architectural restructuring get decision records
 
 ---
 

@@ -9,7 +9,7 @@
 
 **Implementation Approach:**
 - Mirror `commands/revert.md:60-67` — the established HALT wording for this exact check.
-- Guard sits ahead of Step 1.2 Baseline Verification in `commands/refactor.md`.
+- Guard is its own step (`Step 1.1b`) between Step 1.1 and Step 1.2 Baseline Verification in `commands/refactor.md`; every upstream jump instruction is retargeted at it. _(amended by DEV-001)_
 - `skills/safe-refactor-loop/SKILL.md` step 1: capture HEAD SHA, assert clean tree.
 - `--dead-code`: intersect deletion targets with `git ls-files`; surface untracked ones.
 

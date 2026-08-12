@@ -2765,6 +2765,7 @@ check_revert() {
   local fake="$PROJECT_ROOT/scripts/eval-revert-resolve.py"
   local resolver="$PROJECT_ROOT/scripts/revert-resolve.py"
   local revert_cmd="$PROJECT_ROOT/commands/revert.md"
+  local refactor_cmd="$PROJECT_ROOT/commands/refactor.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   local wwb_doc="$PROJECT_ROOT/.writ/docs/what-was-built-format.md"
   local scenario_output scenario_status scenario_name scenario_reason
@@ -2805,6 +2806,24 @@ check_revert() {
   require_literal "$revert_cmd" 'second destructive confirmation' "revert.md must require a second confirmation for hard reset."
   require_literal "$revert_cmd" 'git reset --hard' "revert.md must name the destructive hard-reset strategy."
   require_literal "$revert_cmd" 'ghost' "revert.md must require confirmation of ghost substitutions."
+
+  # /refactor dirty-tree guard (spec 2026-08-12-refactor-dirty-tree-guard, Story 1).
+  # Same discipline as the /revert guard above: a porcelain check before the
+  # first mutation, so Phase 3's revert-on-red step can never discard
+  # uncommitted work it did not create.
+  # The guard is pinned as a numbered step, not as prose: it has to sit between
+  # every scope-resolution branch and Step 1.2, so no "proceed to Step 1.2" jump
+  # can route a reader past it.
+  require_literal "$refactor_cmd" '#### Step 1.1b: Dirty-Tree Guard' "refactor.md must carry the dirty-tree guard as its own step ahead of Step 1.2."
+  require_literal "$refactor_cmd" 'git status --porcelain' "refactor.md must reference the dirty-tree guard command."
+  # Presence-only pins would stay green if the halt were inverted to a warning,
+  # so pin the halt and the remedy themselves (AC1).
+  require_literal "$refactor_cmd" 'HALT immediately' "refactor.md must halt, not warn, on a dirty tree."
+  require_literal "$refactor_cmd" 'commit or stash before refactoring' "refactor.md must HALT on a dirty tree and name the remedy."
+  require_literal "$refactor_cmd" 'exempt from this guard' "refactor.md must exempt the non-mutating --dry-run mode from the dirty-tree guard."
+  require_literal "$refactor_cmd" 'not a git repository' "refactor.md must degrade with a warning outside a git repository rather than halt."
+  require_literal "$refactor_cmd" 'git ls-files --error-unmatch' "refactor.md must test each --dead-code file target for git tracking."
+  require_literal "$refactor_cmd" 'report it as skipped' "refactor.md must skip rather than delete an untracked --dead-code target."
 
   # Story-SHA recording + reverted-WWB non-authoritative loader rule.
   require_literal "$implement_story" '> **Commit:**' "implement-story must record the story commit SHA."
