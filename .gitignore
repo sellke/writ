@@ -4,3 +4,4 @@
 __pycache__/
 *.pyc
 eval-report.md
+.claude/agent-memory/
