@@ -134,7 +134,13 @@ HEAD_SHA=$(git rev-parse HEAD)
 # LAST_MERGED_SHA/HEAD_SHA or anything else in this step.
 LAST_MERGED_PR_NUMBER=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].number // empty' 2>/dev/null)
 LAST_MERGED_BRANCH=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].headRefName // empty' 2>/dev/null)
-LAST_MERGED_COMMITS=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]?.messageHeadline // empty' 2>/dev/null)
+# Headline AND body. Writ's own commit convention puts the spec path in the
+# BODY ("Story N of .writ/specs/<id>"), never the subject, so a headline-only
+# feed makes the resolver structurally blind to the convention Writ itself
+# writes — it can then only match when the branch name happens to carry the
+# spec id. Measured 2026-08-12: the archival hook had fired exactly once in the
+# repo's history (PR #33) against 40+ archived specs, for precisely this reason.
+LAST_MERGED_COMMITS=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]? | "\(.messageHeadline)\n\(.messageBody // "")"' 2>/dev/null)
 ```
 
 > **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), since extracting four independent fields from one payload needs a general-purpose filter, not a single scalar. This mirrors the same external-`jq`-with-graceful-fallback assumption Step 3.1's version-bump logic already makes elsewhere in this file. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it.

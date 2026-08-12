@@ -133,11 +133,11 @@ python3 scripts/phase-state.py health   --state <phase-execution-*.json> --repo 
 
 - **Phase progress** — phase and current spec / active lane, per-status spec counts
   (`pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`,
-  `challenge_required`, `closed_unimplemented`), and any **quarantine** branches so the
+  `challenge_required`, `closed_not_implemented`), and any **quarantine** branches so the
   maintainer can see preserved failed work and its recovery path. Report a
-  `closed_unimplemented` spec as **closed by decision** with its recorded reason — never
+  `closed_not_implemented` spec as **closed by decision** with its recorded reason — never
   as work in flight. When a spec is `skipped_blocked`, say which cause blocked it
-  (`quarantined` or `closed_unimplemented`, from the reducer's `blocked` map): `blockedBy`
+  (`quarantined` or `closed_not_implemented`, from the reducer's `blocked` map): `blockedBy`
   means "upstream reached a terminal status without delivering", so a reader told only
   "blocked" may go hunting for a quarantine branch that was never created.
 - **Production health** — the reducer's **categorical** disposition (`Healthy` /

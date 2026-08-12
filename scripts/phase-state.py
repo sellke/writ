@@ -52,12 +52,12 @@ CHALLENGE_PARTS = (
 SPEC_STATUSES = {
     "pending", "implementing", "integrated", "failed",
     "quarantined", "skipped_blocked", "challenge_required",
-    "closed_unimplemented",
+    "closed_not_implemented",
 }
 # Statuses from which no further execution follows. A spec here is never
 # retried, relaunched, or downgraded by another spec's disposition.
 TERMINAL_SPEC_STATUSES = {
-    "integrated", "quarantined", "skipped_blocked", "closed_unimplemented",
+    "integrated", "quarantined", "skipped_blocked", "closed_not_implemented",
 }
 
 
@@ -555,7 +555,7 @@ def cmd_close_spec(args: argparse.Namespace) -> dict[str, Any]:
     state = _load(state_path)
     record = _spec_record(state, args.spec)
 
-    if record.get("status") == "closed_unimplemented":
+    if record.get("status") == "closed_not_implemented":
         # Never silently overwrite the first decision's reason and timestamp.
         raise ContractError(
             "already_closed",
@@ -572,7 +572,7 @@ def cmd_close_spec(args: argparse.Namespace) -> dict[str, Any]:
         _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
     record["worktreePath"] = None
 
-    _set_status(record, "closed_unimplemented")
+    _set_status(record, "closed_not_implemented")
     record["closure"] = {"reason": reason, "closedAt": _now()}
     record.setdefault("evidence", []).append(f"closed:{reason}")
 
@@ -594,7 +594,7 @@ def cmd_close_spec(args: argparse.Namespace) -> dict[str, Any]:
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {
-        "status": "closed_unimplemented",
+        "status": "closed_not_implemented",
         "spec": args.spec,
         "reason": reason,
         "laneBranch": record.get("laneBranch"),
@@ -632,7 +632,7 @@ def cmd_reconcile(args: argparse.Namespace) -> dict[str, Any]:
             qb = rec.get("quarantineBranch")
             if qb and not branch_exists(qb):
                 mismatches.append(f"{spec}: quarantine branch {qb} recorded but missing in git")
-        if status == "closed_unimplemented":
+        if status == "closed_not_implemented":
             # A closed spec keeps its lane branch as preserved evidence, so a
             # recorded lane that has vanished is reported — symmetric with a
             # missing quarantine branch. Its worktree must already be released.
@@ -798,7 +798,7 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
             current = {"spec": spec, "laneBranch": rec.get("laneBranch")}
         if rec.get("quarantineBranch"):
             quarantine.append(rec["quarantineBranch"])
-        if rec.get("status") == "closed_unimplemented":
+        if rec.get("status") == "closed_not_implemented":
             closed[spec] = (rec.get("closure") or {}).get("reason")
 
     # `blockedBy` means "upstream reached a terminal status without delivering"

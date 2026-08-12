@@ -5,7 +5,7 @@ Emits PASS/FAIL TSV lines consumed by scripts/eval.sh check_phase_closure.
 Exercises scripts/phase-state.py to prove the closed-by-decision contract:
 
   Story 1 — the status vocabulary is enforced, not documentary
-  - SPEC_STATUSES admits closed_unimplemented and challenge_required
+  - SPEC_STATUSES admits closed_not_implemented and challenge_required
   - every spec-status write goes through one guard that rejects unknown values
   - an unknown status read from disk is tolerated, never rejected
   - progress counts are seeded from the vocabulary so the two cannot drift
@@ -122,12 +122,12 @@ def do_lane_with_partial(repo: Path, state: Path, spec: str) -> dict:
 def story1_vocabulary(mod) -> None:
     statuses = getattr(mod, "SPEC_STATUSES", set())
     emit("vocabulary-admits-closed-unimplemented",
-         "closed_unimplemented" in statuses, sorted(statuses))
+         "closed_not_implemented" in statuses, sorted(statuses))
     emit("vocabulary-admits-challenge-required",
          "challenge_required" in statuses, sorted(statuses))
 
     terminal = getattr(mod, "TERMINAL_SPEC_STATUSES", None)
-    expected = {"integrated", "quarantined", "skipped_blocked", "closed_unimplemented"}
+    expected = {"integrated", "quarantined", "skipped_blocked", "closed_not_implemented"}
     emit("terminal-statuses-declared", terminal == expected, terminal)
 
 
@@ -255,7 +255,7 @@ def story1_progress_seeding(mod, tmp: Path) -> None:
     emit("progress-counts-seeded-from-vocabulary",
          code == 0 and not missing, f"missing={missing} counts={counts}")
     emit("progress-reports-zero-for-absent-statuses",
-         counts.get("closed_unimplemented") == 0 and counts.get("pending") == 2, counts)
+         counts.get("closed_not_implemented") == 0 and counts.get("pending") == 2, counts)
 
 
 def story1_read_tolerance(tmp: Path) -> None:
@@ -364,7 +364,7 @@ def story2_close_pending(tmp: Path) -> None:
                        "--spec", "a", "--reason", reason)
     record = json.loads(state.read_text())["specs"]["a"]
     emit("close-pending-sets-closed-unimplemented",
-         code == 0 and record["status"] == "closed_unimplemented",
+         code == 0 and record["status"] == "closed_not_implemented",
          f"code={code} out={out} status={record.get('status')}")
     closure = record.get("closure") or {}
     emit("close-records-reason-and-timestamp",
@@ -381,7 +381,7 @@ def story2_close_pending(tmp: Path) -> None:
     code, out = helper("progress", "--state", str(state))
     counts = out.get("counts", {})
     emit("progress-counts-closed-separately",
-         counts.get("closed_unimplemented") == 1 and counts.get("pending") == 1, counts)
+         counts.get("closed_not_implemented") == 1 and counts.get("pending") == 1, counts)
 
 
 def story2_close_midrun(tmp: Path) -> None:
@@ -424,7 +424,7 @@ def story2_missing_worktree(tmp: Path) -> None:
                        "--spec", "a", "--reason", "descoped after worktree cleanup")
     record = json.loads(state.read_text())["specs"]["a"]
     emit("close-survives-already-removed-worktree",
-         code == 0 and record["status"] == "closed_unimplemented"
+         code == 0 and record["status"] == "closed_not_implemented"
          and record.get("worktreePath") is None, f"code={code} out={out}")
 
 
@@ -471,7 +471,7 @@ def story2_cascade(tmp: Path) -> None:
     blocked = out.get("blocked")
     emit("progress-attributes-blocking-to-closure",
          isinstance(blocked, dict) and sorted(blocked) == ["b", "c"]
-         and all(info.get("cause") == "closed_unimplemented"
+         and all(info.get("cause") == "closed_not_implemented"
                  for info in blocked.values()),
          f"blocked={blocked}")
 
