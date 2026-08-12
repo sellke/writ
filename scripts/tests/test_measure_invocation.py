@@ -96,24 +96,70 @@ class ByteAccounting(unittest.TestCase):
             self.assertEqual(alpha["command_bytes"], len(body))
             self.assertEqual(alpha["floor_bytes"], 150 + len(body))
 
-    def test_no_required_skills_means_ceiling_equals_floor(self):
+    def test_no_skills_at_all_means_ceiling_equals_floor(self):
         with tempfile.TemporaryDirectory() as tmp:
             build_root(tmp, commands={"alpha": fm()})
             alpha = mi.measure(tmp)["commands"]["alpha"]
             self.assertEqual(alpha["conditional_bytes"], 0)
+            self.assertEqual(alpha["eager_bytes"], 0)
             self.assertEqual(alpha["ceiling_bytes"], alpha["floor_bytes"])
 
-    def test_declared_skill_counts_as_conditional_not_floor(self):
-        """The whole point of disclosure: skills load on demand, not upfront."""
+    def test_required_skills_is_EAGER_and_lands_in_the_floor(self):
+        """`required_skills:` pre-loads before phase 1 — it is not conditional.
+
+        system-instructions.md: "the harness loads skills/foo/SKILL.md ... and
+        makes it accessible to the agent before any phase work begins."
+        adapters/claude-code.md:396 says the same. A declared skill is paid on
+        every invocation, so it belongs in the floor. An earlier version of
+        this module put it in `conditional_bytes`, which understated the floor
+        and would have let progressive disclosure self-certify on a number
+        nobody pays.
+        """
         with tempfile.TemporaryDirectory() as tmp:
             build_root(tmp,
                        commands={"alpha": fm(required_skills="[tdd-cycle]")},
                        skills={"tdd-cycle": "K" * 300})
             alpha = mi.measure(tmp)["commands"]["alpha"]
+            self.assertEqual(alpha["eager_bytes"], 300)
+            self.assertIn(300, [alpha["floor_bytes"] - alpha["base_bytes"]
+                                - alpha["command_bytes"]])
+            self.assertEqual(alpha["conditional_bytes"], 0)
+
+    def test_inline_read_is_CONDITIONAL_and_lands_above_the_floor(self):
+        """`Read skills/<n>/SKILL.md` in the body loads only if reached."""
+        with tempfile.TemporaryDirectory() as tmp:
+            body = fm() + "\nGate 3 runs via `Read skills/tdd-cycle/SKILL.md` here.\n"
+            build_root(tmp, commands={"alpha": body},
+                       skills={"tdd-cycle": "K" * 300})
+            alpha = mi.measure(tmp)["commands"]["alpha"]
             self.assertEqual(alpha["conditional_bytes"], 300)
-            self.assertEqual(alpha["ceiling_bytes"],
-                             alpha["floor_bytes"] + 300)
-            self.assertNotIn(300, [alpha["floor_bytes"]])
+            self.assertEqual(alpha["eager_bytes"], 0)
+            self.assertEqual(alpha["ceiling_bytes"], alpha["floor_bytes"] + 300)
+            self.assertEqual(alpha["conditional_skills"], ["tdd-cycle"])
+
+    def test_both_mechanisms_are_reported_separately(self):
+        """A misclassified skill must be visible, never silently absorbed."""
+        with tempfile.TemporaryDirectory() as tmp:
+            body = fm(required_skills="[eagerly]") + "\n`Read skills/lazily/SKILL.md`\n"
+            build_root(tmp, commands={"alpha": body},
+                       skills={"eagerly": "E" * 200, "lazily": "L" * 500})
+            alpha = mi.measure(tmp)["commands"]["alpha"]
+            self.assertEqual(alpha["eager_bytes"], 200)
+            self.assertEqual(alpha["conditional_bytes"], 500)
+            self.assertEqual(alpha["eager_skills"], ["eagerly"])
+            self.assertEqual(alpha["conditional_skills"], ["lazily"])
+
+    def test_skill_both_declared_and_inline_read_warns(self):
+        """Declaring what you also inline-read pays for it unconditionally."""
+        with tempfile.TemporaryDirectory() as tmp:
+            body = fm(required_skills="[dup]") + "\n`Read skills/dup/SKILL.md`\n"
+            build_root(tmp, commands={"alpha": body}, skills={"dup": "D" * 400})
+            report = mi.measure(tmp)
+            alpha = report["commands"]["alpha"]
+            self.assertEqual(alpha["eager_bytes"], 400)
+            self.assertEqual(alpha["conditional_bytes"], 0)  # not double-counted
+            self.assertTrue(any("dup" in w and "both" in w.lower()
+                                for w in report["warnings"]))
 
     def test_ghost_skill_is_unresolved_not_silently_zero(self):
         """A declared skill with no file must be visible, not absorbed."""
@@ -123,7 +169,7 @@ class ByteAccounting(unittest.TestCase):
                        skills={"real": "R" * 120})
             alpha = mi.measure(tmp)["commands"]["alpha"]
             self.assertEqual(alpha["unresolved_skills"], ["ghost"])
-            self.assertEqual(alpha["conditional_bytes"], 120)
+            self.assertEqual(alpha["eager_bytes"], 120)
             self.assertEqual(alpha["resolved_skills"], ["real"])
 
     def test_preamble_is_base_never_a_command(self):

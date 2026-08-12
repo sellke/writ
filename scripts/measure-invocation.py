@@ -9,26 +9,39 @@ the wrong one for the question progressive disclosure actually asks.
 
 An invocation does not load `commands/`. It loads:
 
-    system-instructions.md      the root behavioral contract
-  + commands/_preamble.md       standing instructions
+    system-instructions.md      the root behavioral contract   ┐ shared base,
+  + commands/_preamble.md       standing instructions          ┘ every run
   + commands/<name>.md          the one command being run
-  + skills/<n>/SKILL.md ...     only those in its `required_skills:`
+  + skills/<n>/SKILL.md ...     by one of TWO mechanisms, which cost
+                                differently and must not be conflated
 
-The first two are a **shared base** paid by every invocation, and progressive
-disclosure cannot reduce them — it only moves bytes out of the third into the
-fourth. Reporting that split is the point of this script, because it bounds
-what the exercise can achieve before six specs are written against it.
+The base is paid by every invocation and progressive disclosure cannot reduce
+it, which bounds what the exercise can achieve.
 
-Two numbers per command, and the distinction is the whole design:
+### The two skill mechanisms (this distinction is the whole design)
 
-  floor    = base + command file            always paid
-  ceiling  = floor + every declared skill   paid when a run needs them all
+**`required_skills:` frontmatter is EAGER.** `system-instructions.md`: the
+harness loads the skill *"before any phase work begins"*;
+`adapters/claude-code.md:396` says the same. It is a static array, so *"only
+what that invocation needs"* is fixed per **command**, not per **run** — every
+invocation pays for every declared skill. **Declared skills belong in the
+floor.**
 
+**An inline `Read skills/<n>/SKILL.md` in the body is CONDITIONAL.** The agent
+issues that call only if execution reaches that step, so a skipped gate is
+genuinely free. Seven commands already use this (`implement-story.md:525` ->
+`tdd-cycle`). **Inline skills belong above the floor.**
+
+  floor    = base + command + eagerly declared skills   always paid
+  ceiling  = floor + inline-read skills                 worst-case path
+
+An earlier version of this module counted `required_skills:` as conditional.
+That was wrong, and it mattered: it understated the floor and would have let
+progressive disclosure self-certify against a number nobody pays.
 [ADR-021](../.writ/decision-records/adr-021-progressive-disclosure-token-budget.md)
-caveat 2 warns that disclosure can *raise* total load: a command that ends up
-pulling every skill costs more than the monolith did. `floor` is the number
-that should fall; `ceiling` is the number that can rise. A report showing only
-one of them cannot tell you whether disclosure worked.
+caveat 2 warns disclosure can *raise* total load — under the eager mechanism it
+essentially always does, because bytes moved out of a command reappear in the
+floor plus per-skill overhead. Only the conditional mechanism can lower it.
 
 ### On tokens (roadmap caveat 1)
 
@@ -61,6 +74,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import statistics
 import sys
 
@@ -118,6 +132,38 @@ def _read_lines(path: str) -> int:
             return handle.read().count("\n")
     except (OSError, UnicodeDecodeError):
         return 0
+
+
+INLINE_READ = re.compile(r"Read\s+skills/([A-Za-z0-9._-]+)/SKILL\.md")
+
+
+def _inline_read_skills(path: str) -> list[str]:
+    """Skill names an `Read skills/<n>/SKILL.md` in the body would load.
+
+    This is the genuinely conditional mechanism — `system-instructions.md`
+    documents it as the standing alternative to `required_skills:`, and the
+    agent only issues the call if execution reaches that step. Seven commands
+    already use it (e.g. `implement-story.md:525` -> `tdd-cycle`), so a tool
+    that only reads frontmatter understates their real cost.
+
+    Frontmatter is excluded so a `required_skills:` block is never mistaken
+    for an inline read. Order-preserving, deduplicated.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+    except (OSError, UnicodeDecodeError):
+        return []
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            text = text[end + 4:]
+    names: list[str] = []
+    for match in INLINE_READ.finditer(text):
+        name = match.group(1)
+        if name not in names:
+            names.append(name)
+    return names
 
 
 def _tokenizer():
@@ -193,34 +239,66 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
         command_lines = _read_lines(path)
 
         fields = _L.read_frontmatter(path) or {}
-        resolved: list[str] = []
+        declared = _L.parse_skill_names(fields.get("required_skills", ""))
+        inlined = _inline_read_skills(path)
+
+        eager_skills: list[str] = []
+        conditional_skills: list[str] = []
         unresolved: list[str] = []
+        eager_bytes = 0
         conditional_bytes = 0
-        for name in _L.parse_skill_names(fields.get("required_skills", "")):
+
+        # Declared wins over inlined: `required_skills:` already paid for it
+        # before phase 1, so an inline Read of the same skill costs nothing
+        # extra. Counting both would double-charge.
+        for name in declared:
             skill_path = os.path.join(root, "skills", name, "SKILL.md")
             if os.path.isfile(skill_path):
-                resolved.append(name)
+                eager_skills.append(name)
+                eager_bytes += _read_bytes(skill_path)
+            else:
+                unresolved.append(name)
+        for name in inlined:
+            if name in declared:
+                warnings.append(
+                    f"commands/{stem}.md loads `{name}` **both** ways — declared in "
+                    f"required_skills: and inline-read in the body. The declaration "
+                    f"wins: it is paid on every invocation, so the inline Read buys "
+                    f"no conditionality. Drop one.")
+                continue
+            skill_path = os.path.join(root, "skills", name, "SKILL.md")
+            if os.path.isfile(skill_path):
+                conditional_skills.append(name)
                 conditional_bytes += _read_bytes(skill_path)
             else:
                 unresolved.append(name)
 
         if unresolved:
             warnings.append(
-                f"commands/{stem}.md declares required_skills that resolve to no "
-                f"file: {', '.join(unresolved)}. Their load is unmeasurable, so "
-                f"the ceiling below is a lower bound.")
+                f"commands/{stem}.md references skills that resolve to no file: "
+                f"{', '.join(sorted(set(unresolved)))}. Their load is unmeasurable, "
+                f"so the figures below are a lower bound.")
 
-        floor_bytes = base_bytes + command_bytes
+        # `required_skills:` is EAGER — system-instructions.md: the harness loads
+        # it "before any phase work begins", and adapters/claude-code.md:396 says
+        # the same. A declared skill is therefore paid on every invocation and
+        # belongs in the floor, not above it. Only an inline
+        # `Read skills/<n>/SKILL.md` at the point of need is genuinely
+        # conditional: the agent issues that call only if execution reaches it.
+        floor_bytes = base_bytes + command_bytes + eager_bytes
         ceiling_bytes = floor_bytes + conditional_bytes
 
         commands[stem] = {
             "command_bytes": command_bytes,
             "command_lines": command_lines,
             "base_bytes": base_bytes,
+            "eager_bytes": eager_bytes,
             "floor_bytes": floor_bytes,
             "conditional_bytes": conditional_bytes,
             "ceiling_bytes": ceiling_bytes,
-            "resolved_skills": resolved,
+            "eager_skills": eager_skills,
+            "conditional_skills": conditional_skills,
+            "resolved_skills": eager_skills + conditional_skills,
             "unresolved_skills": unresolved,
             "floor_tokens_estimated": to_tokens(floor_bytes),
             "ceiling_tokens_estimated": to_tokens(ceiling_bytes),
