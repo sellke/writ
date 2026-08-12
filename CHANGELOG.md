@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.29.0] - 2026-08-12
+
+**Component Contract, Bounded Loops & a Governor That Bites** — every command and agent now declares the problem it addresses, the outcome it produces, and machine-checkable exit criteria; every loop declares a bound calibrated against a recorded run; and the contract checks are enforced as blocking findings rather than advisory warnings. Phase 10's token half was measured, found to be largely an artefact of the wrong metric, and stopped after one conversion — the evidence is recorded rather than the goal restated.
+
+### Added
+
+- **Component contract (ADR-020)** — `problem:` / `outcome:` / `exit_criteria:` in all 31 commands' frontmatter and all 7 agents' config blocks; `## Completion` in all 31 commands (was 13). 94 criteria, authored against a swap test and a restatement test rather than templated. `.writ/docs/component-contract.md` documents the schema; `/new-command` now mandates it.
+- **Loop bounds** — `loop.max_iterations` + `on_exhaustion` on the five loop-bearing commands (was 0 of 5), each citing the run it was calibrated against *with its evidence quality stated in-file*. `scripts/eval-loop-bounds.py` enforces correctness across 38 scenarios and cross-reads `phase-state.py`'s `attempts < 2` guard, so a declaration cannot drift from the code it transcribes.
+- **Autonomy gate classes (ADR-022)** — five-row gate-class table plus a two-condition reversibility precondition in `commands/_preamble.md`.
+- **`scripts/measure-invocation.py`** — per-invocation load measurement. Reports floor (base + command + eagerly declared skills) and ceiling (plus inline-read skills) separately, flags hoisted reads, and labels tokens an estimate rather than a measurement. Writ ships no tokenizer, so the ratio is recorded and overridable rather than asserted.
+- **Governor enforcement** — four contract checks flipped to blocking `structural`, proven by mutation. An absolute per-invocation byte budget ships measured and non-blocking, naming every over-budget command. `MAX_SKILLS` re-derived 12 → 45. `contract_compliance`, `required_skills_declarations` and `inline_skill_reads` now reach the eval report.
+- **Eight extracted skills** from `commands/implement-story.md`, loaded by inline `Read` at the point of need.
+- **`/refactor` dirty-tree guard** — `Step 1.1b` HALTs before any mutation, mirroring `/revert`'s discipline, with a `--dry-run` exemption and a `git ls-files --error-unmatch` rule so an untracked `--dead-code` target is reported rather than deleted.
+
+### Changed
+
+- **`commands/implement-story.md` 52,709 → 24,837 bytes** (989 → 340 lines) with zero behavioural drift, verified across a 281-row inventory with 75 literals machine-checked.
+- **`check_length`'s command limit 2000 → 400, and non-binding.** Bytes-per-line varies 2.6x across commands, so a line cap selects the wrong files — it misses `implement-phase`, the densest file in the repo.
+- **The command byte budget is pinned by decision, not derived.** As a live derivation it had a perverse incentive: growing `system-instructions.md` — the most expensive surface, paid on every invocation — would have *raised* every command's allowance. `BASE_BYTE_CAP` now governs the base directly and tighter.
+
+### Fixed
+
+- **The leanness `justification` field silenced a whole surface at any magnitude, forever.** Read once per surface outside the metric loop, it skipped both `lines` and `chars` on every future run, while the warning's own remediation told you to write one and then run the command that erases it. Justifications are now per-metric and bound to a recorded ceiling.
+- **ADR-020's premise was false.** `new-command.md` never mandated `## Completion`; it was an emergent convention in 13 files. Amended — the contract was *missing*, not unenforced.
+- **`required_skills:` adoption reversed.** Its 2026-08-03 review resolved *revisit → adopt* on one named future consumer, which then evaluated the mechanism and did not adopt it: the field is an eager pre-load, so extraction under it moves bytes into the floor every invocation pays. Corrected in `system-instructions.md`, all three adapters and `.writ/docs/skills.md`; review trigger restored to 2026-11-11.
+- Stale root-contract claims retired — the false *"commands have no frontmatter (verified 0/31 files)"* (32/32 carry it), `model_tier` negative ordinal offsets deprecated, `.writ/manifest.yaml` reconciled to 0.28.0, `.writ/product/decisions.md` deprecated with its "Override Priority: Highest" precedence claim removed.
+
+### Measured, and not what was assumed
+
+- **The token alarm was largely a measurement artefact.** `commands/` measured 560,772 chars — a directory no invocation loads. The worst *real* invocation is 77,669 bytes (~19.4k tokens), 7.2x smaller, and 24,960 of it is a shared base no restructuring reduces.
+- **Progressive disclosure costs ~1,017 bytes of overhead per extracted skill.** The pilot removed 27,872 bytes from a command and added 36,005 as 8 skills. Floor fell 35.9%; the worst path rose 9.7%. **Five sibling specs were closed unimplemented on this evidence**, contracts kept intact as the design record.
+- **Loading is genuinely lazy** — verified by a live `/implement-story` run. Eight applicable skills read at their own step; the inapplicable one never opened. The caveat stands: laziness is a convention the command states, not a mechanism that enforces it.
+- **`per_surface.commands.chars` did not drop.** Phase 10's headline token criterion is unmet, and Phase 10 closes `PARTIALLY COMPLETE`.
+
 ## [0.28.0] - 2026-08-10
 
 **Full Install Fanout & Post-Merge Archival** — installed projects now receive the complete Writ runtime surface (all command-invoked scripts and upstream reference docs) on install and update, not just `recommend-state.py`. `/release` can also auto-archive a spec immediately after its PR merges, when the resolver finds an unambiguous match.

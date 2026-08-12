@@ -1,6 +1,6 @@
 # Spec: `/refactor` Dirty-Tree Guard
 
-> **Status:** Not Started
+> **Status:** In Progress — 1/2 stories. Story 1 (porcelain guard) shipped 2026-08-12 via the Scenario 20 harness probe; Story 2 (executable checkpoint in `safe-refactor-loop`) is not started.
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-12
 > **Dependencies:** []
