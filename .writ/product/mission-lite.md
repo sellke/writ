@@ -1,15 +1,15 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-08-11
+> Regenerated from mission.md on 2026-08-12
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-08-11
+> Last Updated: 2026-08-12
 
 ## Core Value
 
 Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns the durable contracts — specs, drift logs, decisions, knowledge, phase state — in plain markdown on git, and delegates mechanics (context management, subagents, browsing, retrieval) to the platform underneath. As harnesses absorb mechanics natively, Writ sheds them and concentrates on what compounds: the negotiated contract layer no harness provides.
 
-> **"Thin" is currently a target, not a state.** Measured 2026-08-11: `commands/` is 516,589 chars (~129k tokens); `implement-story.md` alone is ~12.3k. Phase 10 closes the gap ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)).
+> **"Thin" is measured per-invocation, not per-directory.** Phase 10 found the 516KB alarm was largely a measurement artifact — the worst real invocation is ~19.4k tokens, 7.2× smaller (`scripts/measure-invocation.py`). Per [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md), efficiency means economy of *steps and decisions*, governed by stakes-proportional diligence; there is deliberately **no mechanically enforced efficiency constraint**, and bytes are drift signal only.
 
 ## Target Users
 
@@ -32,19 +32,11 @@ Code and methodology that score well on six production-grade criteria — audita
 
 ## Current Phase
 
-**Phases 1–4 + 3a/3b:** Shipped (prototype/spec-healing/refresh, ship/review/retro, context engine, Ralph, knowledge ledger/evals/SKILL.md generation). **Phase 5:** Closed — spirit met by eval Tier 1 CI gate, `/verify-spec`, and drift logs.
+**Phases 1–9:** Shipped and released (through v0.23.0), plus inter-phase infrastructure through v0.30.x (full-surface leanness measurement, deterministic story substrate, spec lifecycle & archival, phase-closure status vocabulary).
 
-**Phase 6 — Autonomy Ceiling (✅ shipped, v0.19.0):** `/implement-phase` hardening (fresh context per spec, quarantine branching, User Challenge framing, `dependencies:` frontmatter, knowledge writeback), Ralph deprecation, `/status` health line.
+**Phase 10 — Component Contract & Progressive Disclosure (◐ partially complete, closed 2026-08-12):** The determinism half shipped and is enforced — component contract on 31/31 commands + 7/7 agents, loop bounds on all 5 loop-bearing commands, autonomy gate classes, blocking `structural` governor checks proven by mutation. Progressive disclosure stopped on measured evidence after one conversion; the byte budget was withdrawn outright ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) supersedes ADR-021).
 
-**Phase 7 — Compounding Layer (✅ shipped, v0.19.0):** Skill lifecycle + extractions, evidence-bound `/refresh-command`, knowledge consolidation.
-
-**Phase 8 — Memory Interop (✅ implemented):** GBrain compatibility recipe, native-memory guidance per adapter.
-
-**Phase 9 — Git-Native Provenance & Recovery (✅ implemented):** Git-notes audit channel, logical-unit `/revert`, artifact-integrity handshake.
-
-**Phase 10 — Component Contract & Progressive Disclosure (📋 planned, in flight):** Every command/agent/skill declares `problem`/`outcome`/`exit_criteria`; every loop declares `max_iterations` + `on_exhaustion` (measured: **0 of 5** loop commands had bounds); command files shrink to thin contracts with detail in on-demand skills via `required_skills:`; the leanness limit goes 2000 → 400 lines so the governor actually binds. Autonomy expands everywhere except product/spec direction, the production boundary, and design/UX taste ([ADR-020](../decision-records/adr-020-component-contract.md), [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md), [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md)).
-
-**Next horizon:** Beyond Phase 10, candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2), pulled forward on concrete signal.
+**No phase is currently committed.** Next candidates live in the roadmap parking lot (cross-project learning corpus, `/design` Mode A modernization, eval Tier 2 expansion), pulled forward only on concrete signal.
 
 ## What Writ Is Not Building
 

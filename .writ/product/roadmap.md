@@ -1,19 +1,20 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-08-11
+> Last Updated: 2026-08-12
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-08-11):** Phases 1–9 shipped or implemented. **Phase 10 — Component Contract & Progressive Disclosure is the committed phase in flight** — planned, not yet started (see the Phase 10 section below).
+**Current status (2026-08-12):** Phases 1–10 closed. **Phase 10 closed PARTIALLY COMPLETE (2026-08-12)** — the determinism half (component contract, loop bounds, gate classes, blocking governor checks) shipped and is enforced; progressive disclosure stopped on measured evidence; the byte goal withdrawn outright by [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md). **No phase is currently committed** — next candidates live in [Beyond Phase 10 (Parking Lot)](#beyond-phase-10-parking-lot), pulled forward on concrete signal.
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
 
-**Posture addendum (2026-08-11, Phase 10):** *Self-improving, token-efficient, and maximally autonomous — except where taste and agency require humans.* Phase 10 turns "keep the harness light" from a stated intent into a measured, enforced property. The trigger was a maintainer concern raised as **explicitly unverified** ("too prescriptive in some ways, not deterministic enough in others"); per the Prime Directive it was measured before planning, and **both halves verified** — the command surface is 516,589 chars (~129k tokens) while **0 of 5** loop-bearing commands declare any iteration bound. See [ADR-020](../decision-records/adr-020-component-contract.md), [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md), [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md).
+**Posture addendum (2026-08-11, Phase 10):** *Self-improving, token-efficient, and maximally autonomous — except where taste and agency require humans.* Phase 10 turns "keep the harness light" from a stated intent into a measured, enforced property. The trigger was a maintainer concern raised as **explicitly unverified** ("too prescriptive in some ways, not deterministic enough in others"); per the Prime Directive it was measured before planning, and **both halves verified** — the command surface is 516,589 chars (~129k tokens) while **0 of 5** loop-bearing commands declare any iteration bound. See [ADR-020](../decision-records/adr-020-component-contract.md), [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md), [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md). *(ADR-021 since superseded by [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md); the 516KB figure was later shown to be a measurement artifact — see the Phase 10 Closure.)*
 
 ### Revision Log
 
 | Date | Change |
 |---|---|
+| 2026-08-12 | **Reconcile pass** (`/plan-product --reconcile`) after Phase 10 closure: header status, Phase 10 heading, and mission Phase 10 / Next Horizon blocks aligned to the closure record; four stale "pending `/release`" closure claims corrected (Phases 6–9 released in v0.19.0/v0.20.0/v0.23.0); Leanness Guardian annotated with its v0.24.0 full-surface successor (ADR-019); inter-phase infrastructure recorded in the condensed history. Derivatives regenerated. |
 | 2026-08-12 | **Phase 10 closed PARTIALLY COMPLETE.** Determinism half shipped and enforced; progressive disclosure stopped after the pilot measured ~1,017 B overhead per skill and a +9.7% worst-path regression. Five specs closed unimplemented. |
 | 2026-08-11 | **Phase 10 added** (Component Contract & Progressive Disclosure) via `/plan-product`. Parking lot renamed *Beyond Phase 9* → *Beyond Phase 10*; effort-sizing `L` row filled (was "none currently planned"); pacing discipline extended. Three new ADRs: 020, 021, 022. Phase 10's `## Completion` mandate framing corrected the same day — `new-command.md` never mandated it; see [ADR-020 Amendments](../decision-records/adr-020-component-contract.md#amendments). |
 | 2026-07-19 | Phase 9 (Git-Native Provenance & Recovery) recorded as implemented. |
@@ -32,6 +33,13 @@
 | **4 — Production-Grade Substrate** | Knowledge ledger, SKILL.md generation, preamble enforcement, eval Tier 1 CI gate, spec `owner:` field | v0.14.0 |
 | **— Skills primitive** | Third primitive (command/agent/skill), `/new-skill`, boundary lint, `conventional-commits` pilot | v0.17.0 |
 | **— Codex adapter** | Third platform adapter with full lifecycle script parity | v0.18.0 |
+| **— Leanness instrumentation** | Full-surface measurement, reduction ratchet, per-invocation `story_context_bytes` — supersedes the Leanness Guardian's Tier A tripwire ([ADR-019](../decision-records/adr-019-full-surface-leanness-measurement.md)) | v0.24.0 |
+| **— Deterministic story substrate** | Story-graph validator gates `/implement-spec` before parallel batches; context-hint resolution collapsed to one budget-enforced assembler | v0.25.0 |
+| **— Spec lifecycle & archival** | Format-tolerant status detection (27/39 specs were misclassified), archive sweep to `specs/archive/` + `LEDGER.md`, status-alone eligibility, post-merge archival hook | v0.26–0.28 |
+| **— Phase-closure status vocabulary** | Terminal `Closed — Not Implemented` status, `phase-state.py close-spec`, load-bearing vocabulary enforcement — the machinery Phase 10's own closure used | v0.30.0–0.30.1 |
+| **— `/refactor` dirty-tree guard** | Porcelain guard HALTs before mutation; executable `safe-refactor-loop` checkpoint — promoted from a bug Phase 10's UAT filed | v0.29–0.30 |
+
+> Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 
 ---
 
@@ -56,7 +64,7 @@
 
 **Goal:** Harden normal multi-spec `/implement-phase` as a session-bound, single-confirmation orchestrator and retire Ralph. Recommended delivery is governed by [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md), which supersedes ADR-010's conflicting contract-level gate. As revised 2026-07-17, `--recommend` extends to `/implement-phase` as the end-to-end loop; autonomous production delivery stays deferred.
 
-**Closure status:** All seven features shipped and verified by eval Tier 1 (`spec-dependencies`, `phase-lanes`, `phase-challenges`, `phase-quarantine`, `phase-knowledge`, `phase-health`, `ralph-retirement`), a disposable multi-spec sandbox UAT, and one real-use User Challenge — see [`acceptance-evidence.md`](../specs/2026-07-09-phase6-autonomy-ceiling/acceptance-evidence.md). Ralph is archived under `archive/ralph/`. **One honest caveat:** the "3+ spec phase runs end-to-end in real use" criterion is proven *mechanically* (sandbox) only — an umbrella spec cannot self-prove it; the first genuine multi-spec `/implement-phase` run (Phase 7 onward) will exercise it live. Not yet released — pending `/release`.
+**Closure status:** All seven features shipped and verified by eval Tier 1 (`spec-dependencies`, `phase-lanes`, `phase-challenges`, `phase-quarantine`, `phase-knowledge`, `phase-health`, `ralph-retirement`), a disposable multi-spec sandbox UAT, and one real-use User Challenge — see [`acceptance-evidence.md`](../specs/2026-07-09-phase6-autonomy-ceiling/acceptance-evidence.md). Ralph is archived under `archive/ralph/`. **One honest caveat:** the "3+ spec phase runs end-to-end in real use" criterion is proven *mechanically* (sandbox) only — an umbrella spec cannot self-prove it; the first genuine multi-spec `/implement-phase` run (Phase 7 onward) will exercise it live. Released in **v0.19.0** (2026-07-11, jointly with Phase 7).
 
 ### Dependencies
 
@@ -86,7 +94,7 @@
 
 **Goal:** Make Writ's self-improvement falsifiable and its skills primitive actually adopted. The learning loop moves from anecdote to evidence.
 
-**Closure status:** All four features shipped as contract-first specs, each implemented in an isolated per-spec lane and merged only after independent verification (`b3dd3e4` skill-lifecycle, `3ee2b98` skill-extraction, `56207ac` evidence-bound-refresh, `32d1dca` knowledge-consolidation). Verified by the full eval Tier 1 suite on the merged phase branch (exit 0, 0 findings — including the three new checks `skill-lifecycle`, `refresh-evidence`, `knowledge-consolidate`), 79 UAT scenarios across four `uat-plan.md` files, and one evidence-bound knowledge lesson written at phase close. As the first genuine multi-spec `/implement-phase` run (the live exercise Phase 6 could only prove mechanically), it also surfaced and fixed a real orchestration defect — ephemeral lane worktrees weren't gitignored (`f06f405`) — and filed a tracked bug for `create-lane` worktree pathing. **Honest caveats:** (1) extracted skills are born `status: candidate` and wired to live consumers now; promotion to `proven` accrues via evidence later. (2) Knowledge consolidation is **mechanism-complete**: the loop is proven end-to-end on the real ledger with a reviewable diff (it surfaced and cleaned a malformed phase-close entry), but a literal merge/prune of duplicates awaits a genuine duplicate — the current ledger is honestly clean. Work lives on `phase/7-compounding-layer`; not yet merged to main or released — pending review and `/release`.
+**Closure status:** All four features shipped as contract-first specs, each implemented in an isolated per-spec lane and merged only after independent verification (`b3dd3e4` skill-lifecycle, `3ee2b98` skill-extraction, `56207ac` evidence-bound-refresh, `32d1dca` knowledge-consolidation). Verified by the full eval Tier 1 suite on the merged phase branch (exit 0, 0 findings — including the three new checks `skill-lifecycle`, `refresh-evidence`, `knowledge-consolidate`), 79 UAT scenarios across four `uat-plan.md` files, and one evidence-bound knowledge lesson written at phase close. As the first genuine multi-spec `/implement-phase` run (the live exercise Phase 6 could only prove mechanically), it also surfaced and fixed a real orchestration defect — ephemeral lane worktrees weren't gitignored (`f06f405`) — and filed a tracked bug for `create-lane` worktree pathing. **Honest caveats:** (1) extracted skills are born `status: candidate` and wired to live consumers now; promotion to `proven` accrues via evidence later. (2) Knowledge consolidation is **mechanism-complete**: the loop is proven end-to-end on the real ledger with a reviewable diff (it surfaced and cleaned a malformed phase-close entry), but a literal merge/prune of duplicates awaits a genuine duplicate — the current ledger is honestly clean. Merged and released in **v0.19.0** (2026-07-11, jointly with Phase 6).
 
 ### Success Criteria
 
@@ -112,7 +120,7 @@
 
 **Goal:** Writ's markdown stays the canonical system of record; external memory layers become documented, optional, disposable indexes over it. Interoperate, never re-implement. Per [ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md).
 
-**Closure status:** Decomposed into two contract-first specs, each implemented in an isolated per-spec lane and merged only after independent verification (`f88c6f8` gbrain-compatibility-recipe, `477359c` native-memory-guidance) on `phase/8-memory-interop`. Machine-checkable exit criteria verified by the new `memory-interop` eval Tier 1 check (0 findings) and the full suite green; 21 UAT scenarios across two `uat-plan.md` files. The GBrain recipe is grounded in GBrain's *real* interface (`garrytan/gbrain`: `gbrain sources add`/`sync`/`doctor --json`/`search`/`serve`), not an invented API. **Honest caveat:** the "GBrain-equipped project answers retrieval queries" criterion and the *live* round-trip cannot be machine-verified here (no GBrain install; Writ ships none) — they are handed off as UAT scenarios 10–12. Recipe accuracy is verified against current docs; live behavior awaits a GBrain-equipped machine. Not merged to main or released — pending review and `/release`.
+**Closure status:** Decomposed into two contract-first specs, each implemented in an isolated per-spec lane and merged only after independent verification (`f88c6f8` gbrain-compatibility-recipe, `477359c` native-memory-guidance) on `phase/8-memory-interop`. Machine-checkable exit criteria verified by the new `memory-interop` eval Tier 1 check (0 findings) and the full suite green; 21 UAT scenarios across two `uat-plan.md` files. The GBrain recipe is grounded in GBrain's *real* interface (`garrytan/gbrain`: `gbrain sources add`/`sync`/`doctor --json`/`search`/`serve`), not an invented API. **Honest caveat:** the "GBrain-equipped project answers retrieval queries" criterion and the *live* round-trip cannot be machine-verified here (no GBrain install; Writ ships none) — they are handed off as UAT scenarios 10–12. Recipe accuracy is verified against current docs; live behavior awaits a GBrain-equipped machine. Merged and released in **v0.20.0** (2026-07-11, alongside Leanness Guardian and Product Reconciliation).
 
 ### Success Criteria
 
@@ -170,6 +178,8 @@ existential threat, not cosmetic debt. Before this, that discipline was enforced
 only culturally (Design Principles #1/#4 and the maintainer's prune instinct that
 retired `/audit`, `/lessons`, Ralph, `/explain-code`). The guardian makes it
 systematic. Per [ADR-015](../decision-records/adr-015-leanness-self-governance.md).
+
+> **Since superseded in part:** the Tier A tripwire below was rewritten 2026-07-26 to measure the **full product surface** with a downward reduction ratchet and per-invocation story context cost ([ADR-019](../decision-records/adr-019-full-surface-leanness-measurement.md), spec `2026-07-26-leanness-instrumentation`, v0.24.0 — see the condensed-history table). [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) later demoted all byte measurement from architecture-driving to drift-detecting.
 
 - [x] **Tier A — leanness tripwire** `Effort: S` — `scripts/eval.sh --check=leanness`
   (backed by `scripts/eval-leanness.py`) measures aggregate command weight and
@@ -231,13 +241,15 @@ artifact-integrity discipline. Per
 and [ADR-018](../decision-records/adr-018-third-party-skill-trust-model.md) (a
 reserved, out-of-phase decision from the same analysis).
 
-**Closure status:** All three features shipped as contract-first specs on `phase/9-git-native-provenance`, each implemented in an isolated per-spec lane and merged only after independent verification (`8cbc187` git-notes-audit-channel, `2f501d1` logical-unit-revert, `46ea900` artifact-integrity-handshake). Verified by full eval Tier 1 (`Findings: 0`) including `git-notes-audit` (26/26), `revert` (23/23), and `artifact-integrity` (19/19); 53 UAT scenarios across three `uat-plan.md` files await manual execution. **Honest caveats:** (1) live `git log --notes=writ` evidence requires a real `/ship` land (mechanism + eval gate shipped). (2) Live required-artifact HALT is a UAT scenario (static contract asserted by eval). Not merged to main or released — pending review, UAT, and `/ship`/`/release`.
+**Closure status:** All three features shipped as contract-first specs on `phase/9-git-native-provenance`, each implemented in an isolated per-spec lane and merged only after independent verification (`8cbc187` git-notes-audit-channel, `2f501d1` logical-unit-revert, `46ea900` artifact-integrity-handshake). Verified by full eval Tier 1 (`Findings: 0`) including `git-notes-audit` (26/26), `revert` (23/23), and `artifact-integrity` (19/19); 53 UAT scenarios across three `uat-plan.md` files await manual execution. **Honest caveats:** (1) live `git log --notes=writ` evidence requires a real `/ship` land (mechanism + eval gate shipped). (2) Live required-artifact HALT is a UAT scenario (static contract asserted by eval). Merged and released in **v0.23.0** (2026-07-19).
 
-**Honest release caveat:** Phases 6–8, Product Reconciliation, and Memory Interop
-remain merged-pending/unreleased at scheduling time. Phase 9 is scheduled
-deliberately anyway; releasing the 6–8 backlog is tracked separately and should
-not block Phase 9 planning, but the "done vs released" gap is real and
-`/verify-spec --product` should keep flagging it until `/release` clears it.
+**Honest release caveat (resolved):** at scheduling time, Phases 6–8, Product
+Reconciliation, and Memory Interop were merged-pending/unreleased, and Phase 9 was
+scheduled deliberately anyway. The gap has since been cleared: v0.19.0 released
+Phases 6–7, v0.20.0 released Phase 8 with Leanness Guardian and Product
+Reconciliation, and v0.23.0 released Phase 9 itself. *(Corrected 2026-08-12
+reconcile pass — this block and four closure-status sentences above had claimed
+"pending `/release`" through eleven subsequent tagged releases.)*
 
 ### Success Criteria
 
@@ -302,7 +314,9 @@ not block Phase 9 planning, but the "done vs released" gap is real and
 
 ---
 
-## Phase 10: Component Contract & Progressive Disclosure (3-5 weeks) — 📋 Planned (2026-08-11)
+## Phase 10: Component Contract & Progressive Disclosure — ◐ Partially Complete (closed 2026-08-12)
+
+> Planned 2026-08-11 (3-5 weeks est.); closed the next day at a fraction of the estimate because the determinism half shipped whole and the disclosure half was stopped on its own pilot's evidence — see [Phase 10 Closure](#phase-10-closure-2026-08-12) and the [Postscript](#postscript-2026-08-12--the-byte-goal-is-withdrawn-not-deferred). The section below is preserved as the plan-time record.
 
 **Posture:** Self-improving framework that is token-efficient and maximally autonomous — except where taste and agency require humans.
 
