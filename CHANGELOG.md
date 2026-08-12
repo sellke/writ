@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.30.3] - 2026-08-12
+
+**Product Docs Reconciled to the Phase 10 Closure** — `/plan-product --reconcile` caught the framing layers of `mission.md`/`roadmap.md` still describing Phase 10 as "planned, in flight" after it closed, plus two stale-truth defects the pass surfaced. One `/release` fix ships to installed projects; the rest is this repo's product layer catching up to its own closure record.
+
+### Fixed
+
+- **`/release` Step 3.1 now maintains `.writ/manifest.yaml` `metadata.version`** alongside the other version files, guarded to the indented key (the top-level `version:` is the manifest schema version and never moves). The value had drifted 15 minor versions before Phase 10's one-time fix, then drifted again to `0.29.0` against `v0.30.2` within a day — because the fix was a value, not a maintainer. Hand-corrected to current in the same commit that gives it an owner; this release is the step's first live run.
+- **The roadmap closure's "Scenario 20 not yet run" claim was false by a few commits.** The manual criterion — one real `/implement-story` run with progressive disclosure active — ran and passed later the same day (`uat/disclosure-harness-probe`, story-1 of the dirty-tree-guard spec): all eight applicable skill reads fired lazily at their own steps, so the −35.9% floor reduction is real, not paper. The closure and the success criterion now cite the pass and name what stays open — the `--quick` path and the missing-skill degradation probe (Scenario 20 steps 5 and 7).
+
+### Changed
+
+- **`mission.md`** — the falsified "thin is a target, Phase 10 closes the gap" blockquote rewritten to the closure's findings (the 516KB alarm was a measurement artifact; worst real invocation ~19.4k tokens, 7.2× smaller; efficiency governed by ADR-023's stakes-proportional diligence with deliberately no mechanical constraint); the Key Features Phase 10 block moved from plan to outcome; Next Horizon states plainly that **no phase is currently committed**; the parking-lot blockquote aligned with the roadmap's authoritative list; Phases 8–9 labeled with their release versions.
+- **`roadmap.md`** — header status and Phase 10 heading aligned to the closure section in the same file; four closure-status sentences claiming "pending `/release`" corrected (Phases 6–9 shipped in v0.19.0/v0.20.0/v0.23.0 — stale through eleven tagged releases); the Phase 9 release caveat marked resolved; Leanness Guardian annotated with its v0.24.0 full-surface successor (ADR-019); five inter-phase infrastructure specs recorded in the condensed history so no Complete spec lacks a roadmap home; two revision-log rows record the pass.
+- **Derivatives regenerated** — `mission-lite.md` and `.writ/context.md` now reflect the revised authoritative docs (no active spec; all 55 specs archived).
+
+### Why
+
+The reconcile posture exists for exactly this: the closure record and ADR-023 were honest the day they were written, but nothing re-read the summaries that frame them. `/verify-spec --product` confirms the layer is now consistent (P1 parity clean, P2 all ADR references resolve, P3 derivatives fresh); `eval.sh` reports 0 findings with a warning set identical to the pre-change baseline.
+
 ## [0.30.2] - 2026-08-12
 
 **Stakes-Proportional Diligence** — Writ stops optimizing bytes, and adopts no number in their place. [ADR-023](.writ/decision-records/adr-023-stakes-proportional-diligence.md) supersedes ADR-021: diligence is decided per decision, by stakes, because no universal exchange rate between a decision and its cost exists.
