@@ -1,6 +1,7 @@
 # Story 2: Executable Checkpoint in `safe-refactor-loop`
 
 > **Status:** Completed ✅ — 2026-08-12
+> **Commit:** c7a963bbf2f18f9bd4a11819b31e89c73294e17b
 > **Priority:** Medium
 > **Dependencies:** None
 
