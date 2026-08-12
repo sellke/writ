@@ -319,3 +319,51 @@ class CommandLineInterface(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlacementEnforcement(unittest.TestCase):
+    """The conditional mechanism's benefit IS placement, so placement must be
+    checkable. A `Read` hoisted above the first step runs on every invocation
+    — eager behaviour in conditional syntax — and without this check it
+    reports an identical ceiling and passes every gate.
+    """
+
+    def _cmd(self, read_before_steps: bool):
+        head = "---\nname: x\ndescription: \"d\"\n---\n\n## Overview\n\nText.\n"
+        hoisted = "\n`Read skills/tdd-cycle/SKILL.md`\n" if read_before_steps else ""
+        steps = "\n## Command Process\n\n### Step 1: Go\n"
+        tail = "" if read_before_steps else "\n`Read skills/tdd-cycle/SKILL.md`\n"
+        return head + hoisted + steps + tail
+
+    def test_hoisted_read_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            build_root(tmp, commands={"alpha": self._cmd(True)},
+                       skills={"tdd-cycle": "K" * 100})
+            report = mi.measure(tmp)
+            alpha = report["commands"]["alpha"]
+            self.assertEqual(alpha["hoisted_skills"], ["tdd-cycle"])
+            self.assertTrue(any("hoisted" in w.lower() for w in report["warnings"]))
+
+    def test_read_at_point_of_need_is_not_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            build_root(tmp, commands={"alpha": self._cmd(False)},
+                       skills={"tdd-cycle": "K" * 100})
+            report = mi.measure(tmp)
+            self.assertEqual(report["commands"]["alpha"]["hoisted_skills"], [])
+            self.assertFalse(any("hoisted" in w.lower() for w in report["warnings"]))
+
+    def test_no_step_heading_means_no_verdict(self):
+        """Undetectable structure must not produce a false accusation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            body = "---\nname: x\n---\n\n`Read skills/tdd-cycle/SKILL.md`\n"
+            build_root(tmp, commands={"alpha": body},
+                       skills={"tdd-cycle": "K" * 100})
+            self.assertEqual(mi.measure(tmp)["commands"]["alpha"]["hoisted_skills"], [])
+
+
+class CeilingIsAnEnvelope(unittest.TestCase):
+    def test_ceiling_is_labelled_an_envelope_not_a_path(self):
+        """Mutually exclusive branches are summed; no invocation may reach all."""
+        with tempfile.TemporaryDirectory() as tmp:
+            build_root(tmp, commands={"alpha": fm()})
+            self.assertIn("envelope", mi.measure(tmp)["ceiling_note"].lower())

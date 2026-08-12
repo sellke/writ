@@ -136,6 +136,19 @@ def _read_lines(path: str) -> int:
 
 INLINE_READ = re.compile(r"Read\s+skills/([A-Za-z0-9._-]+)/SKILL\.md")
 
+# Where procedural work starts. A `Read` above this is executed on the way in,
+# regardless of which branch the run takes.
+FIRST_STEP = re.compile(
+    r"^#{2,4}\s+(Command Process|Phase\s+\d|Step\s+\d|Gate\s+\d)", re.M)
+
+CEILING_NOTE = (
+    "ceiling_bytes is an ENVELOPE, not a path: it sums every inline read in the "
+    "file, including reads on mutually exclusive branches that no single "
+    "invocation can both reach. The maximal *reachable* path is therefore at or "
+    "below this figure and must be derived by hand. Treat the envelope as an "
+    "upper bound, never as what a run costs."
+)
+
 
 def _inline_read_skills(path: str) -> list[str]:
     """Skill names an `Read skills/<n>/SKILL.md` in the body would load.
@@ -158,12 +171,20 @@ def _inline_read_skills(path: str) -> list[str]:
         end = text.find("\n---", 3)
         if end != -1:
             text = text[end + 4:]
+    step = FIRST_STEP.search(text)
+    boundary = step.start() if step else None
+
     names: list[str] = []
+    hoisted: list[str] = []
     for match in INLINE_READ.finditer(text):
         name = match.group(1)
         if name not in names:
             names.append(name)
-    return names
+        # No step heading -> structure undetectable -> no verdict. A false
+        # accusation is worse than a missed one for an advisory check.
+        if boundary is not None and match.start() < boundary and name not in hoisted:
+            hoisted.append(name)
+    return names, hoisted
 
 
 def _tokenizer():
@@ -240,7 +261,7 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
 
         fields = _L.read_frontmatter(path) or {}
         declared = _L.parse_skill_names(fields.get("required_skills", ""))
-        inlined = _inline_read_skills(path)
+        inlined, hoisted = _inline_read_skills(path)
 
         eager_skills: list[str] = []
         conditional_skills: list[str] = []
@@ -273,6 +294,14 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
             else:
                 unresolved.append(name)
 
+        if hoisted:
+            warnings.append(
+                f"commands/{stem}.md has hoisted {', '.join(hoisted)} — the inline Read "
+                f"sits above the first step, so it is issued on every invocation. "
+                f"That is eager loading in conditional syntax: the ceiling reads "
+                f"the same, every gate passes, and the saving is gone. Move the "
+                f"Read down to the narrowest step that needs it.")
+
         if unresolved:
             warnings.append(
                 f"commands/{stem}.md references skills that resolve to no file: "
@@ -298,6 +327,7 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
             "ceiling_bytes": ceiling_bytes,
             "eager_skills": eager_skills,
             "conditional_skills": conditional_skills,
+            "hoisted_skills": hoisted,
             "resolved_skills": eager_skills + conditional_skills,
             "unresolved_skills": unresolved,
             "floor_tokens_estimated": to_tokens(floor_bytes),
@@ -330,6 +360,7 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
         "token_method_validated": validated,
         "chars_per_token": chars_per_token,
         "token_note": token_note,
+        "ceiling_note": CEILING_NOTE,
         "base": {"bytes": base_bytes, "components": base_components},
         "commands": commands,
         "corpus": corpus,
