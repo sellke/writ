@@ -132,10 +132,10 @@
 | `command_lines` | 989 | **340** | −649 / −65.6% |
 | `eager_bytes` / `eager_skills` | 0 / `[]` | **0 / `[]`** | unchanged — the mechanism was ruled out |
 | `floor_bytes` | 77,669 | **49,797** | −27,872 / **−35.9%** |
-| `conditional_bytes` | 6,101 (`tdd-cycle` only) | **42,107** (9 skills) | +36,006 |
-| `ceiling_bytes` (envelope) | 83,770 | **91,904** | **+8,134 / +9.7%** |
+| `conditional_bytes` | 6,101 (`tdd-cycle` only) | **42,106** (9 skills) | +36,005 |
+| `ceiling_bytes` (envelope) | 83,770 | **91,903** | **+8,133 / +9.7%** |
 
-Per-skill measured sizes: `story-context-assembly` 7,454 · `boundary-map-computation` 6,518 · `tdd-cycle` 6,101 *(pre-existing)* · `what-was-built-authoring` 5,859 · `dependency-context-loading` 4,858 · `drift-triage` 3,162 · `project-context-snapshot` 3,150 · `change-surface-classification` 2,761 · `story-commit-provenance` 2,244. **Eight new skills: 36,006 bytes.**
+Per-skill measured sizes: `story-context-assembly` 7,453 · `boundary-map-computation` 6,518 · `tdd-cycle` 6,101 *(pre-existing)* · `what-was-built-authoring` 5,859 · `dependency-context-loading` 4,858 · `drift-triage` 3,162 · `project-context-snapshot` 3,150 · `change-surface-classification` 2,761 · `story-commit-provenance` 2,244. **Eight new skills: 36,005 bytes.**
 
 ### The three path figures, with arithmetic
 
@@ -143,34 +143,34 @@ Per-skill measured sizes: `story-context-assembly` 7,454 · `boundary-map-comput
 
 ```
 floor            = base 24,960 + command 24,837                     =  49,797   (every run pays this)
-full path        = floor + all 9 conditional reads (42,107)         =  91,904
---quick          = 91,904 − boundary-map-computation 6,518
-                          − drift-triage            3,162           =  82,224
---quick, no deps = 82,224 − dependency-context-loading 4,858        =  77,366
---review-only    = 91,904 − boundary-map-computation 6,518
-                          − tdd-cycle               6,101           =  79,285
+full path        = floor + all 9 conditional reads (42,106)         =  91,903
+--quick          = 91,903 − boundary-map-computation 6,518
+                          − drift-triage            3,162           =  82,223
+--quick, no deps = 82,223 − dependency-context-loading 4,858        =  77,365
+--review-only    = 91,903 − boundary-map-computation 6,518
+                          − tdd-cycle               6,101           =  79,284
 ```
 
 | Path | After | Same path today | Delta |
 |---|---|---|---|
 | **Floor** (every run) | **49,797** | 77,669 | **−27,872 / −35.9%** ✓ |
-| **Full path** (every gate fires) | **91,904** | 83,770 | **+8,134 / +9.7%** ✗ |
-| **`--quick`** | **82,224** | 83,770 | **−1,546 / −1.8%** ✓ |
-| **`--quick`, no dependencies** | **77,366** | 83,770 | **−6,404 / −7.6%** ✓ |
-| **`--review-only`** | **79,285** | 83,770 | **−4,485 / −5.4%** ✓ |
+| **Full path** (every gate fires) | **91,903** | 83,770 | **+8,133 / +9.7%** ✗ |
+| **`--quick`** | **82,223** | 83,770 | **−1,547 / −1.8%** ✓ |
+| **`--quick`, no dependencies** | **77,365** | 83,770 | **−6,405 / −7.6%** ✓ |
+| **`--review-only`** | **79,284** | 83,770 | **−4,486 / −5.4%** ✓ |
 
 The baseline is **83,770** throughout — the corrected, post-`e8f2a09` figure. 77,669 is never used as a ceiling baseline.
 
 ### Written justification for the full-path ceiling regression (Business Rule 1)
 
-**Measured overage: +8,134 bytes (+9.7%) against the 83,770 allowance.** The plan-time projection was +3,461 (+4.1%); the measured overage exceeds it by **4,673 bytes**. This is recorded, not softened, and the `--quick` saving below is reported adjacent to it and **is not offset against it** — they are different runs.
+**Measured overage: +8,133 bytes (+9.7%) against the 83,770 allowance.** The plan-time projection was +3,461 (+4.1%); the measured overage exceeds it by **4,672 bytes**. This is recorded, not softened, and the `--quick` saving below is reported adjacent to it and **is not offset against it** — they are different runs.
 
-**Where the extra 4,673 came from, measured:**
+**Where the extra 4,672 came from, measured:**
 
 | Component | Projected | Measured | Delta |
 |---|---|---|---|
 | `command_bytes` | ~20,970 | 24,837 | **+3,867** |
-| eight extracted skills | ~34,200 + ~1,000 connective | 36,006 | **+806** |
+| eight extracted skills | ~34,200 + ~1,000 connective | 36,005 | **+805** |
 | `tdd-cycle` | 6,101 | 6,101 | 0 |
 
 **Compression attempted, with measured yield:**
@@ -187,7 +187,7 @@ The baseline is **83,770** throughout — the corrected, post-`e8f2a09` figure. 
 | Additional unbudgeted prose compression in the command | — | **−2,271** | five passes, this story |
 | Additional unbudgeted commentary compression in the skills | — | **−1,703** | Stories 2, 3 and this story |
 
-**Every Compression Ledger target landed and five of six beat their projected yield.** A further ~3,974 bytes were compressed beyond the ledger. The remainder is irreducible without redesign, for one measurable reason: **per-skill scaffolding**. Eight files × (frontmatter + `# Title` + `## Purpose` + `## When to Use` + `## How to Apply`) is roughly 900–1,000 bytes each, ≈ **7,600 bytes that did not exist in the monolith** — very close to the entire +8,134 overage. `change-surface-classification` is the clearest instance: 1,896 source bytes became 2,761, of which ~34% is scaffolding.
+**Every Compression Ledger target landed and five of six beat their projected yield.** A further ~3,974 bytes were compressed beyond the ledger. The remainder is irreducible without redesign, for one measurable reason: **per-skill scaffolding**. Eight files × (frontmatter + `# Title` + `## Purpose` + `## When to Use` + `## How to Apply`) is roughly 900–1,000 bytes each, ≈ **7,600 bytes that did not exist in the monolith** — very close to the entire +8,133 overage. `change-surface-classification` is the clearest instance: 1,896 source bytes became 2,761, of which ~34% is scaffolding.
 
 **What was *not* done to close the gap:** no rule was deleted, no degradation row dropped, no threshold removed, no fallback discarded. The one remaining large lever — pointing Gate 0/3/4/4.5/5's dimension and process lists at the `agents/*.md` files that also carry them, worth roughly 1,500 bytes — was rejected because it would have moved inventory rows to a carrier Story 6's walk cannot count.
 
@@ -212,6 +212,6 @@ Fixed by extending Step 4 item 3 to carry both states verbatim (`✅ all require
 
 - **[DEV-001] Full-path ceiling exceeds the 83,770 allowance** — Severity: Medium
   - Spec said: `ceiling_bytes ≤ 83,770`, or a written justification with measured overage, compression attempted and its yield, and explicit acceptance.
-  - Reality: 91,904 (+8,134 / +9.7%). Every Compression Ledger target landed, five of six beat projection, and ~3,974 further bytes were compressed beyond the ledger.
+  - Reality: 91,903 (+8,133 / +9.7%). Every Compression Ledger target landed, five of six beat projection, and ~3,974 further bytes were compressed beyond the ledger.
   - Resolution: written justification recorded above; carried into ADR-021 amendment entry 2 by Story 6 and flagged for the 2026-11-11 review trigger. No rule was deleted to close the gap.
   - Spec amendment: none — `spec.md` is not auto-modified.

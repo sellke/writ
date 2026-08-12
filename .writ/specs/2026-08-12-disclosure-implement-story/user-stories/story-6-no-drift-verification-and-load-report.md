@@ -131,14 +131,14 @@
 | Path | Before | After | Delta |
 |---|---|---|---|
 | **Floor** — every run | 77,669 | **49,797** | **−27,872 / −35.9%** ✓ |
-| **Full path** — every gate fires | 83,770 | **91,904** | **+8,134 / +9.7%** ✗ |
-| **`--quick`** | 83,770 | **82,224** | **−1,546 / −1.8%** ✓ |
-| **`--quick`, no dependencies** | 83,770 | **77,366** | **−6,404 / −7.6%** ✓ |
-| **`--review-only`** | 83,770 | **79,285** | **−4,485 / −5.4%** ✓ |
+| **Full path** — every gate fires | 83,770 | **91,903** | **+8,133 / +9.7%** ✗ |
+| **`--quick`** | 83,770 | **82,223** | **−1,547 / −1.8%** ✓ |
+| **`--quick`, no dependencies** | 83,770 | **77,365** | **−6,405 / −7.6%** ✓ |
+| **`--review-only`** | 83,770 | **79,284** | **−4,486 / −5.4%** ✓ |
 
 `command_bytes` 52,709 → **24,837** (≤ 24,960 ✓) · `command_lines` 989 → **340** · `eager_bytes` **0** · `conditional_skills` **9** · `unresolved_skills` **[]** · `hoisted_skills` **[]**.
 
-**The full-path ceiling regressed by +8,134 bytes (+9.7%)** against a projection of +3,461 (+4.1%). Every Compression Ledger target landed and five of six beat projection (~4,230 B), plus ~3,974 B of further prose compression; no rule was deleted to close the gap. The residual is **per-skill scaffolding** — ~900–1,000 B per file × 8 ≈ 7,600 B, nearly the whole overage. Recorded as a tracked exemption in ADR-021 amendment entry 2 and as a finding for its 2026-11-11 review trigger.
+**The full-path ceiling regressed by +8,133 bytes (+9.7%)** against a projection of +3,461 (+4.1%). Every Compression Ledger target landed and five of six beat projection (~4,230 B), plus ~3,974 B of further prose compression; no rule was deleted to close the gap. The residual is **per-skill scaffolding** — ~900–1,000 B per file × 8 ≈ 7,600 B, nearly the whole overage. Recorded as a tracked exemption in ADR-021 amendment entry 2 and as a finding for its 2026-11-11 review trigger.
 
 **`--quick` skips five gates but only two carry a skill** — Gate 0.5 → `boundary-map-computation` (6,518 B) and Gate 3.5 § A → `drift-triage` (3,162 B). Gates 0, 3 and 5 are agent spawns whose procedure lives in `agents/*.md`, outside this instrument and outside this spec. The largest single conditional win is mode-independent: `dependency-context-loading` (4,858 B), never loaded by a dependency-free story.
 
@@ -159,7 +159,7 @@
 
 - **[DEV-001] Full-path ceiling exceeds the 83,770 allowance** — Severity: Medium
   - Spec said: `ceiling_bytes ≤ 83,770`, or a written justification with the measured overage, the compression attempted with its yield, and explicit acceptance recorded in the story and in the ADR-021 amendment.
-  - Reality: 91,904 (+8,134 / +9.7%), against a projection of +3,461 (+4.1%).
+  - Reality: 91,903 (+8,133 / +9.7%), against a projection of +3,461 (+4.1%).
   - Resolution: justification written in Story 5, carried into ADR-021 amendment entry 2 as a tracked exemption, and escalated to that ADR's 2026-11-11 review trigger — which is where ADR-021 said a pilot failure belongs, rather than to a per-file exemption applied five more times.
 - **[DEV-002] The technical spec's Pinned Literals table was incomplete** — Severity: Small
   - Spec said: eleven `require_literal` strings from `scripts/eval.sh` plus two `eval-loop-bounds.py` regexes.

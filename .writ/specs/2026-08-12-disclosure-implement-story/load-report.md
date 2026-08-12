@@ -6,7 +6,7 @@
 
 ## The verdict, in two sentences
 
-**The full-path ceiling regressed: 91,904 against an 83,770 allowance — +8,134 bytes, +9.7%.** The floor, which every single invocation pays, fell from 77,669 to **49,797 — −27,872 bytes, −35.9%** — and a `--quick` run, which the eager mechanism could not have moved by a single byte, now costs **82,224 instead of 83,770 (−1.8%)**, or **77,366 (−7.6%)** when the story has no dependencies.
+**The full-path ceiling regressed: 91,903 against an 83,770 allowance — +8,133 bytes, +9.7%.** The floor, which every single invocation pays, fell from 77,669 to **49,797 — −27,872 bytes, −35.9%** — and a `--quick` run, which the eager mechanism could not have moved by a single byte, now costs **82,223 instead of 83,770 (−1.8%)**, or **77,365 (−7.6%)** when the story has no dependencies.
 
 These are different runs. Neither number offsets the other, and the `--quick` saving is **not** offered as compensation for the full-path regression.
 
@@ -19,11 +19,11 @@ These are different runs. Neither number offsets the other, and the `--quick` sa
 | `eager_bytes` | 0 | **0** | unchanged |
 | `eager_skills` | `[]` | **`[]`** | unchanged |
 | `floor_bytes` | 77,669 | **49,797** | −27,872 / **−35.9%** |
-| `conditional_bytes` | 6,101 | **42,107** | +36,006 |
+| `conditional_bytes` | 6,101 | **42,106** | +36,005 |
 | `conditional_skills` | 1 (`tdd-cycle`) | **9** | +8 |
 | `hoisted_skills` | `[]` | **`[]`** | — |
 | `unresolved_skills` | `[]` | **`[]`** | — |
-| `ceiling_bytes` (envelope) | 83,770 | **91,904** | **+8,134 / +9.7%** |
+| `ceiling_bytes` (envelope) | 83,770 | **91,903** | **+8,133 / +9.7%** |
 | `base_share_of_floor` | 32.1% | **50.1%** | the shared base is now half the floor |
 
 Budget checks: `command_bytes` **24,837 ≤ 24,960** ✓ · `floor_bytes` **49,797 ≤ 49,920** ✓ · `eager_bytes` **0** ✓ · no both-mechanisms warning ✓.
@@ -34,21 +34,21 @@ Budget checks: `command_bytes` **24,837 ≤ 24,960** ✓ · `floor_bytes` **49,7
 
 ```
 floor            = base 24,960 + command 24,837                      =  49,797
-full path        = floor 49,797 + all 9 conditional reads 42,107     =  91,904
---quick          = 91,904 − boundary-map-computation 6,518 (Gate 0.5)
-                          − drift-triage             3,162 (Gate 3.5)=  82,224
---quick, no deps = 82,224 − dependency-context-loading 4,858         =  77,366
---review-only    = 91,904 − boundary-map-computation 6,518
-                          − tdd-cycle                6,101 (Gate 1)  =  79,285
+full path        = floor 49,797 + all 9 conditional reads 42,106     =  91,903
+--quick          = 91,903 − boundary-map-computation 6,518 (Gate 0.5)
+                          − drift-triage             3,162 (Gate 3.5)=  82,223
+--quick, no deps = 82,223 − dependency-context-loading 4,858         =  77,365
+--review-only    = 91,903 − boundary-map-computation 6,518
+                          − tdd-cycle                6,101 (Gate 1)  =  79,284
 ```
 
 | Path | After | Same path today | Delta |
 |---|---|---|---|
 | **Floor** — every run, every path | **49,797** | 77,669 | **−27,872 / −35.9%** ✓ |
-| **Full path** — every gate fires | **91,904** | 83,770 | **+8,134 / +9.7%** ✗ |
-| **`--quick`** | **82,224** | 83,770 | **−1,546 / −1.8%** ✓ |
-| **`--quick`, dependency-free story** | **77,366** | 83,770 | **−6,404 / −7.6%** ✓ |
-| **`--review-only`** | **79,285** | 83,770 | **−4,485 / −5.4%** ✓ |
+| **Full path** — every gate fires | **91,903** | 83,770 | **+8,133 / +9.7%** ✗ |
+| **`--quick`** | **82,223** | 83,770 | **−1,547 / −1.8%** ✓ |
+| **`--quick`, dependency-free story** | **77,365** | 83,770 | **−6,405 / −7.6%** ✓ |
+| **`--review-only`** | **79,284** | 83,770 | **−4,486 / −5.4%** ✓ |
 
 ### Report the `--quick` saving honestly
 
@@ -70,7 +70,7 @@ The largest single conditional win is mode-independent: **`dependency-context-lo
 
 | Skill | Source block | Projected | **Measured** | Read placed at | On `--quick`? |
 |---|---|---|---|---|---|
-| `story-context-assembly` | L95–220 | ~6,750 | **7,454** | Step 2 | yes |
+| `story-context-assembly` | L95–220 | ~6,750 | **7,453** | Step 2 | yes |
 | `boundary-map-computation` | L436–519 | ~5,950 | **6,518** | **Gate 0.5** | **no** |
 | `tdd-cycle` *(pre-existing)* | — | 6,101 | **6,101** | Gate 1 (`:157`) | yes |
 | `what-was-built-authoring` | L670–733, L842–956 | ~6,850 | **5,859** | Step 4 item 4 | yes |
@@ -79,9 +79,9 @@ The largest single conditional win is mode-independent: **`dependency-context-lo
 | `project-context-snapshot` | L341–396 | ~2,500 | **3,150** | Step 4 item 3 | yes |
 | `change-surface-classification` | L571–593 | ~2,300 | **2,761** | Gate 2.5 | yes |
 | `story-commit-provenance` | L829–841 | ~2,030 | **2,244** | Step 4 item 7 | yes |
-| **Eight new, total** | | ~34,200 | **36,006** | | |
+| **Eight new, total** | | ~34,200 | **36,005** | | |
 
-**Per-skill scaffolding — the number the remaining five specs need.** Frontmatter + `# Title` + `## Purpose` + `## When to Use` + `## How to Apply` costs roughly **900–1,000 bytes per file regardless of content**, so eight files carry ≈ **7,600 bytes that did not exist in the monolith** — very nearly the entire +8,134 overage. The clearest instance is `change-surface-classification`: a 1,896-byte source block became a 2,761-byte file, roughly **34% scaffolding**.
+**Per-skill scaffolding — the number the remaining five specs need.** Frontmatter + `# Title` + `## Purpose` + `## When to Use` + `## How to Apply` costs roughly **900–1,000 bytes per file regardless of content**, so eight files carry ≈ **7,600 bytes that did not exist in the monolith** — very nearly the entire +8,133 overage. The clearest instance is `change-surface-classification`: a 1,896-byte source block became a 2,761-byte file, roughly **34% scaffolding**.
 
 **The operational conclusion: fewer, larger skills.** The overhead is charged per *file*, not per byte, so a spec that splits one capability into three small skills pays it three times for the same content. A command whose gates nearly always all fire is also the weakest extraction candidate — it realizes the ceiling and never the floor.
 
@@ -89,9 +89,9 @@ The largest single conditional win is mode-independent: **`dependency-context-lo
 
 | | Projected | Measured | Miss |
 |---|---|---|---|
-| Full-path ceiling | 87,231 (+4.1%) | **91,904 (+9.7%)** | **+4,673 bytes** |
+| Full-path ceiling | 87,231 (+4.1%) | **91,903 (+9.7%)** | **+4,672 bytes** |
 | `command_bytes` | ~20,970 | 24,837 | +3,867 |
-| Eight skills | ~34,200 (+~1,000 connective) | 36,006 | +806 |
+| Eight skills | ~34,200 (+~1,000 connective) | 36,005 | +805 |
 
 **Compression attempted, with measured yield:**
 
@@ -117,7 +117,7 @@ The largest single conditional win is mode-independent: **`dependency-context-lo
 
 - **Exit code: 0** — never a hard failure.
 - `unresolved_skills`: `["deliberately-missing-skill"]`
-- `conditional_skills`: still 9 resolvable names; `ceiling_bytes` 91,965 with the unresolved name contributing nothing.
+- `conditional_skills`: still 9 resolvable names; `ceiling_bytes` 91,964 with the unresolved name contributing nothing.
 - Warning emitted, verbatim: *"commands/implement-story.md references skills that resolve to no file: deliberately-missing-skill. Their load is unmeasurable, so the figures below are a lower bound."* — printed to stderr in `--format table` and present in the JSON `warnings` array.
 
 The probe was reverted; `git diff commands/implement-story.md` returned empty and a re-measurement reported `command_bytes` 24,837 with `unresolved_skills` `[]`.
