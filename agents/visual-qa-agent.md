@@ -26,6 +26,12 @@ model: inherit
 model_tier: orchestration
 readonly: true
 maxTurns: 20
+problem: "A UI story can clear tests and review while looking nothing like its mockups, and the only gate that would notice is optional — it runs solely when visual references were attached."
+outcome: "On an activated run, a Visual QA Report scoring the running UI against each mockup aspect by aspect, ending in a PASS, SOFT PASS, or FAIL gate decision."
+exit_criteria:
+  - "activation was warranted: the story carries a Visual References section or the spec carries a non-empty mockups/ directory — a skipped gate satisfies nothing here"
+  - "Mockups compared equals the number of mockup files the story references, and every compared screen has Expected versus Actual rows at the captured viewports"
+  - "the decision matches the match percentage: PASS at 85 or above with no high-priority mismatch, SOFT PASS at 70 or above, FAIL below 70 or on any high-priority mismatch"
 ```
 
 ## Process

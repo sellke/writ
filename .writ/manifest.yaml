@@ -1,7 +1,7 @@
 version: 1
 metadata:
   name: writ
-  version: 0.13.1
+  version: 0.28.0
   description: "AI-powered development workflow framework - contract-first specs, multi-agent SDLC, automated quality gates."
   runtime_contract: ".writ/docs/recommended-delivery-state-format.md"
 
@@ -225,7 +225,7 @@ agents:
 #     file: skills/<name>/SKILL.md     # required, must exist on disk
 #     description: "<verb-phrase>"     # required, non-empty (see ADR-009 boundary convention)
 #     status: <candidate|proven|promoted>  # optional render mirror; defaults to `candidate`
-#     model_tier: <orchestration|capability|-N>  # optional, advisory only (see ADR-016)
+#     model_tier: <orchestration|capability>  # optional, advisory only (see ADR-016)
 #     tags: [<tag1>, <tag2>]           # optional
 #     aliases: [<alias1>]              # optional
 # Empty list (`skills: []`) is valid and produces no Skills section in the root SKILL.md.

@@ -11,6 +11,12 @@ subagent_type: "generalPurpose"
 model: default (inherits from parent)
 model_tier: orchestration
 readonly: false
+problem: "Story tasks turn into code with no test written first and no suite run before handoff, so the review gate inherits work whose failures nobody has seen yet."
+outcome: "The story's tasks implemented test-first, with a summary naming every file touched, every test written, and the result of running them."
+exit_criteria:
+  - "every path under Files Created traces to a task in the story; no verification guide, validation report, or criteria checklist was added beside them"
+  - "Self-Check Results names the detected test runner and reports 0 failing, or lists each unfixed failure under Known issues"
+  - "the story file's Status field is untouched — declaring the story done belongs to a later gate, not this one"
 ```
 
 ## Responsibilities

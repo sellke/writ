@@ -1,0 +1,219 @@
+---
+category: lessons
+tags: [phase-close]
+created: 2026-08-11
+related_artifacts:
+  - .
+  - /
+  - /
+  - .
+  - .
+---
+
+# Technical specs written from unre-run grep counts ship wrong measurements
+
+## TL;DR
+
+
+
+## Context
+
+Recorded at phase close from evidence-bound knowledge writeback.
+
+**Cited evidence:**
+
+- .
+- w
+- r
+- i
+- t
+- /
+- s
+- p
+- e
+- c
+- s
+- /
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- -
+- r
+- e
+- t
+- i
+- r
+- e
+- -
+- d
+- e
+- a
+- d
+- -
+- p
+- r
+- e
+- s
+- c
+- r
+- i
+- p
+- t
+- i
+- o
+- n
+-  
+- (
+- a
+- d
+- a
+- p
+- t
+- e
+- r
+- s
+- ,
+-  
+- a
+- l
+- w
+- a
+- y
+- s
+- A
+- p
+- p
+- l
+- y
+- )
+- ,
+-  
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- -
+- c
+- o
+- m
+- p
+- o
+- n
+- e
+- n
+- t
+- -
+- c
+- o
+- n
+- t
+- r
+- a
+- c
+- t
+-  
+- (
+- -
+- -
+- -
+-  
+- c
+- o
+- u
+- n
+- t
+- )
+- ,
+-  
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- -
+- l
+- o
+- o
+- p
+- -
+- b
+- o
+- u
+- n
+- d
+- s
+-  
+- (
+- 5
+- -
+- s
+- p
+- e
+- c
+-  
+- r
+- u
+- n
+- )
+- .
+-  
+- P
+- h
+- a
+- s
+- e
+-  
+- 1
+- 0
+-  
+- l
+- a
+- n
+- e
+-  
+- r
+- e
+- s
+- u
+- l
+- t
+- s
+- ,
+-  
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- .
+
+## Related
+
+- `.`
+- `/`
+- `/`
+- `.`
+- `.`

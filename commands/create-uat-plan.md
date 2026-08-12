@@ -1,6 +1,12 @@
 ---
 name: create-uat-plan
 description: "Generate a human-readable User Acceptance Test plan from a completed spec, so a person can validate behavior without reading implementation code."
+problem: "Stories are marked complete on the agent's word, leaving no way for a person to confirm the behavior without reading the implementation."
+outcome: "uat-plan.md sits in the spec folder with manually executable scenarios covering the completed stories, written from what was built rather than what was specced."
+exit_criteria:
+  - "uat-plan.md exists in .writ/specs/<spec-folder>/ and every story it covers is marked Completed"
+  - "each scenario traces to an acceptance criterion, error map row, shadow path, or edge case"
+  - "with zero completed stories, uat-plan.md is a stub declaring that state rather than a missing file"
 ---
 
 # Create UAT Plan Command (create-uat-plan)

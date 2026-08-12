@@ -159,7 +159,6 @@ Agents express weight intent via `model_tier` (see [ADR-016](../.writ/decision-r
 | `orchestration` | `inherit` (anchor — runs at the user's session model) |
 | `capability` | `"fast"` (floor — Cursor's own fast-model primitive) |
 | unset | `inherit` (today's default behavior) |
-| reserved ordinal `-N` | reserve-only; clamps to `"fast"` (2-band today) — not resolved to deeper steps |
 
 This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for Cursor; `inherit`/`fast` are Cursor's own abstractions, not a Writ-maintained ranking.
 
@@ -215,7 +214,7 @@ Read skills/<name>/SKILL.md
 
 The orchestrator (or command body) issues the `Read` call when the relevant phase begins. The skill's content is then in the agent's context for that phase.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness pre-loads each named skill before the consumer's first phase begins. `required_skills:` is reserve-only in the foundation spec; pilot skills will adopt it as they ship.
+For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness pre-loads each named skill before the consumer's first phase begins. `required_skills:` was adopted on 2026-08-11 when its 2026-08-03 review trigger was resolved revisit-to-adopt; Phase 10 progressive disclosure (ADR-021) is its first consumer, and no consumer declares the field yet.
 
 ### Authoring & Reference
 

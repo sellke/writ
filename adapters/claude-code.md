@@ -134,7 +134,7 @@ The `model_tier` column (see [ADR-016](../.writ/decision-records/adr-016-model-t
 
 `capability` means "at or below the invoking unit's model," not always the single cheapest option on the platform — `writ-documenter`'s `sonnet` choice is intentionally a capability-tier, higher-cost variant, and it stays that way here even though other platforms' `capability` resolution lands on the cheapest tier. Do not "fix" this by changing `writ-documenter`'s actual model in `claude-code/agents/writ-documenter.md` to match a binary scheme — the concrete file is out of this adapter doc's scope, and the divergence is the intended example.
 
-This is a **relative** resolution: Claude Code is one of the two platforms (with Codex) that needs a concrete model name to express `capability`'s weight, so `sonnet`/`haiku` live in this single isolated table rather than being duplicated across agent files. Reserved negative ordinal offsets (`-N`) are not resolved beyond the 2-band clamp today — any offset lands on the same `capability` floor used above.
+This is a **relative** resolution: Claude Code is one of the two platforms (with Codex) that needs a concrete model name to express `capability`'s weight, so `sonnet`/`haiku` live in this single isolated table rather than being duplicated across agent files.
 
 **Graceful degradation:** if a `model_tier` value is unrecognized, or a named model is unavailable on your Claude Code install, warn and fall back to the parent/inherited model — never hard-fail the subagent spawn.
 
@@ -393,7 +393,7 @@ Read skills/<name>/SKILL.md
 
 In Claude Code's tool model, this maps directly to the native `Read` tool. The orchestrator (or command body) issues the `Read` call when the relevant phase begins; the skill's content lands in the agent's context for that phase.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness issues `Read skills/<name>/SKILL.md` calls before the consumer's first phase begins. `required_skills:` is reserve-only in the foundation spec; pilot skills will adopt it as they ship.
+For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness issues `Read skills/<name>/SKILL.md` calls before the consumer's first phase begins. `required_skills:` was adopted on 2026-08-11 when its 2026-08-03 review trigger was resolved revisit-to-adopt; Phase 10 progressive disclosure (ADR-021) is its first consumer, and no consumer declares the field yet.
 
 ### Authoring & Reference
 

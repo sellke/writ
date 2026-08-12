@@ -1,0 +1,236 @@
+---
+category: lessons
+tags: [phase-close]
+created: 2026-08-11
+related_artifacts:
+  - /
+  - .
+---
+
+# Cite anchor text, not line numbers, in specs that a sibling spec will edit
+
+## TL;DR
+
+
+
+## Context
+
+Recorded at phase close from evidence-bound knowledge writeback.
+
+**Cited evidence:**
+
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- -
+- l
+- o
+- o
+- p
+- -
+- b
+- o
+- u
+- n
+- d
+- s
+-  
+- r
+- e
+- -
+- v
+- e
+- r
+- i
+- f
+- i
+- c
+- a
+- t
+- i
+- o
+- n
+-  
+- (
+- a
+- l
+- l
+-  
+- c
+- i
+- t
+- a
+- t
+- i
+- o
+- n
+- s
+-  
+- s
+- h
+- i
+- f
+- t
+- e
+- d
+-  
+- +
+- 6
+- )
+- ;
+-  
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- -
+- c
+- o
+- m
+- p
+- o
+- n
+- e
+- n
+- t
+- -
+- c
+- o
+- n
+- t
+- r
+- a
+- c
+- t
+-  
+- S
+- t
+- o
+- r
+- y
+-  
+- 1
+-  
+- A
+- C
+-  
+- r
+- e
+- q
+- u
+- i
+- r
+- i
+- n
+- g
+-  
+- w
+- c
+-  
+- -
+- l
+-  
+- =
+- =
+-  
+- 4
+- 2
+- 4
+-  
+- a
+- n
+- d
+-  
+- e
+- q
+- u
+- a
+- l
+-  
+- a
+- d
+- d
+- e
+- d
+- /
+- d
+- e
+- l
+- e
+- t
+- e
+- d
+-  
+- n
+- u
+- m
+- s
+- t
+- a
+- t
+-  
+- s
+- o
+- l
+- e
+- l
+- y
+-  
+- t
+- o
+-  
+- p
+- r
+- e
+- s
+- e
+- r
+- v
+- e
+-  
+- a
+-  
+- s
+- i
+- b
+- l
+- i
+- n
+- g
+- '
+- s
+-  
+- l
+- i
+- n
+- e
+-  
+- r
+- e
+- f
+- e
+- r
+- e
+- n
+- c
+- e
+- s
+- .
+
+## Related
+
+- `/`
+- `.`

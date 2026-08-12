@@ -1,6 +1,12 @@
 ---
 name: security-audit
 description: "Multi-phase security audit: dependency vulnerabilities, code-level patterns, secrets detection, infrastructure configuration, and compliance posture."
+problem: "Exposure accumulates across dimensions nobody inspects together — a CVE in a lockfile, a committed key, an injection sink, an unpinned workflow — so no single check ever sees the whole posture."
+outcome: "A dated audit file that grades the codebase to one overall risk level, with every finding classified by category and severity and carrying its own remediation."
+exit_criteria:
+  - ".writ/security/audit-YYYY-MM-DD.md exists with an Executive Summary declaring one overall risk level and a category-by-severity findings table"
+  - "each finding carries an ID, a severity, a file-and-line location, and a remediation step"
+  - "every category covered by the run's declared Scope appears in the table with a count, zero counts included"
 ---
 
 # Security Audit Command (security-audit)
@@ -504,6 +510,14 @@ Task({
 | `/release` | Consider running `--quick` audit before releasing |
 | `/create-adr` | Security decisions should be documented as ADRs |
 | `/create-issue` | Findings can be captured as issues for tracking |
+
+## Completion
+
+This command succeeds when `.writ/security/audit-<YYYY-MM-DD>.md` exists with an Executive Summary naming one overall risk level and a category-by-severity table covering every category in the run's declared scope.
+
+An audit that finds nothing is a valid outcome — zero counts are reported per category rather than omitted, so a reader can tell "clean" from "not checked."
+
+**Terminal constraint:** This command reports exposure. Do not apply remediations, upgrade dependencies, or rotate credentials it identifies.
 
 ---
 

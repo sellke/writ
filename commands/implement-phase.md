@@ -1,6 +1,23 @@
 ---
 name: implement-phase
 description: "Autonomously execute a whole roadmap phase - resolve features to specs, create missing ones, then loop implement-spec per spec in dependency order until the phase exit criteria are met."
+problem: "A roadmap phase is delivered one spec at a time by hand, so cross-spec order is guessed, unspecced features are forgotten, and the exit criteria the phase declares go unchecked."
+outcome: "Every spec the phase resolves to has been merged into the phase branch or quarantined off it, and the phase carries a terminal status backed by per-criterion evidence."
+exit_criteria:
+  - "every spec resolved from the phase reached merged, quarantined, or skipped_blocked in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
+  - "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
+  - "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified"
+  - "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE"
+loop:
+  unit: "spec"
+  max_iterations: 12
+  on_exhaustion: halt_reported
+  calibrated_against: "Counts distinct specs within one phase - the counter resets at each phase boundary under --all, and a transient retry does not increment it. Observed runs: .writ/state/phase-execution-20260719-121255.json (Phase 9, specOrder length 3, every spec attempts=1, zero retries, zero quarantines); .writ/state/phase-execution-20260811-2030.json (Phase 10, specOrder length 5 - the largest phase with a surviving state file); roadmap Phase 7, 4 specs, roadmap-attested with no surviving state file. Largest observed = 5, bound is 2.4x. Evidence: thin - three runs, one of them without a state file, and .writ/state/ is gitignored so the sample can only shrink."
+  nested:
+    - unit: "spec_attempt"
+      max_iterations: 2
+      on_exhaustion: quarantine
+      calibrated_against: "scripts/phase-state.py cmd_classify (retries only while attempts < 2) and cmd_retry (raises retry_exhausted at >= 2). Evidence: strong - a transcription of code that already enforces this, changing nothing."
 ---
 
 # Implement Phase Command (implement-phase)
@@ -181,6 +198,8 @@ The orchestrator owns lane creation, result validation, merge, and UAT handoff. 
 3. **Validate the result and merge only verified success** — `scripts/phase-state.py validate-result` gates the merge: **only a verified** `phase-spec-result-v1` with `status: succeeded`, a real commit, and non-empty verification evidence merges (`--no-ff`) into the phase branch (`integrate`), after which the worktree is removed and the merge commit recorded.
 4. **Preserve anything else** — a missing, malformed, non-successful, or unverifiable result never touches the phase branch; its lane is preserved for Step 3.3 / Story 4 to classify, quarantine, and recover.
 5. **On a merged success, run `/create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated *after* implementation so it reflects what was actually built. Update phase state and continue.
+
+**Iteration bound:** this loop is bounded at `loop.max_iterations` (12) **distinct specs per phase** — the counter resets at each phase boundary in `--all` mode, and a spec retried under Step 3.3 is the same iteration, not a second one (retries are bounded separately by the nested `spec_attempt` cap). On exhaustion, `loop.on_exhaustion: halt_reported` applies: **do not quarantine anything.** Nothing has failed at this point — the phase merely ran longer than declared, so fabricating a failure record would also mark dependents `skipped_blocked` and degrade scope. Unstarted specs stay `pending` and the phase stays `status: executing`; report the unit (`spec`), the bound, the count reached, the last integrated spec, the `phase-execution-*.json` path, and the literal resume command `/implement-phase --resume`.
 
 **Inherited-answer rule:** any question `/implement-spec` or its sub-pipeline would ask that is answered by the spec contract, story files, technical spec, or roadmap is answered from those artifacts without surfacing to the user. Only questions with no artifact-derivable answer bubble up.
 

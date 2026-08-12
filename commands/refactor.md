@@ -1,6 +1,17 @@
 ---
 name: refactor
 description: "Restructure code without changing behavior - one verified, independently revertable commit per concern, tests green before and after every change."
+problem: "Cleanups land as one large commit on a baseline nobody verified was green, so a behavior change hides among them and backing out the one bad idea means backing out all of them."
+outcome: "The target code has a different structure and the same observable behavior, with each concern isolated in its own commit that can be dropped without disturbing the others."
+exit_criteria:
+  - "the project test suite, typechecker, and linter passed before the first change and pass again after the last, with the delta reported against the Step 1.2 baseline"
+  - "git log shows one commit per approved concern and no commit mixing two, with imports of moved code updated inside the same commit that moved it"
+  - "no public export name, function signature, or return type changed unless the approved plan called for it, and every reverted or skipped change is listed with its failure reason"
+loop:
+  unit: "change"
+  max_iterations: 10
+  on_exhaustion: halt_reported
+  calibrated_against: "no recorded run - zero /refactor executions exist anywhere in .writ/state/, so this number is calibrated against nothing that happened. Sole anchor: this file's Phase 2 advisory recommending that plans of 7+ changes be split into sessions; 10 sits above it so the bound can never fire before the advice that already exists and the file cannot give two answers about the same plan size. This is a runaway guard, not a plan-size policy. Evidence: weak. Recalibrate against the first recorded run rather than re-guessing."
 ---
 
 # Refactor Command (refactor)
@@ -121,6 +132,8 @@ For `--dry-run` mode, the command ends here — present analysis and plan, then 
 
 Process the approved changes low → high risk as planned. **Mid-plan failure handling:** on a revert, if the reverted change was a prerequisite for later ones, skip those automatically, then present the updated remaining plan and let the user decide whether to continue, adjust, or stop.
 
+**Iteration bound:** this loop is bounded at `loop.max_iterations` (10) **changes**. There is no retry bound and must not be one — the skill reverts a red change immediately and never re-attempts it, so a retry budget would contradict it. On exhaustion, `loop.on_exhaustion: halt_reported` applies: reuse the mid-plan re-presentation above rather than adding a second reporting path, and name the unit (`change`), the bound, the count reached, the commits landed so far, the remaining unexecuted changes, and the resume instruction (re-run `/refactor` over the remaining plan). Because every iteration ends in a green, single-concern, independently revertable commit, the partial state at exhaustion is already a clean commit series on a green tree — nothing is half-applied.
+
 ---
 
 ### Phase 4: Verification & Report
@@ -182,6 +195,14 @@ Non-obvious principles that prevent common refactoring failures:
 | `/security-audit` | Refactoring can address security findings |
 | `/research` | Investigate modernization patterns or architectural approaches before refactoring |
 | `/status` | Shows recent refactoring commits |
+
+## Completion
+
+This command succeeds when the test suite, typechecker, and linter pass both before the first change and after the last, and `git log` shows one commit per approved concern with none mixing two.
+
+A concern reverted because it could not be made green is a valid outcome. It is listed with its failure reason rather than quietly dropped.
+
+**Terminal constraint:** This command restructures code without changing behavior. Do not add features, fix unrelated bugs, or open a PR.
 
 ---
 

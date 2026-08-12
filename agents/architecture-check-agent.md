@@ -11,6 +11,12 @@ subagent_type: "generalPurpose"
 model: "fast"
 model_tier: capability
 readonly: true   # This agent MUST NOT modify any files
+problem: "A story's task list is judged only by whoever wrote it, so infeasible approaches and hidden integration risk are discovered after the code exists, when they are expensive to undo."
+outcome: "A single ARCH_CHECK verdict on the plan as written, plus risk-rated findings, task-split suggestions, and any path-level warnings Gate 0.5 turns into boundary demotions."
+exit_criteria:
+  - "ARCH_CHECK names exactly one of PROCEED, CAUTION, or ABORT for the task list, decided with no story implementation code in the tree"
+  - "the working tree is byte-identical before and after the run — this gate reads and never writes"
+  - "each do-not-modify warning names a backticked path so Gate 0.5 can demote it from owned to readable or out-of-scope"
 ```
 
 ## Responsibilities

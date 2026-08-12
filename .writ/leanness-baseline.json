@@ -1,36 +1,66 @@
 {
   "recorded": "2026-08-04",
-  "schema": 2,
+  "schema": 3,
   "surfaces": {
     "commands": {
       "lines": 10974,
       "chars": 514594,
-      "justification": ""
+      "justifications": {
+        "lines": {
+          "value": 11411,
+          "date": "2026-08-11",
+          "text": "a5c5a66 feat(install): fan out runtime scripts and Writ docs on install/update (PR #34, v0.28.0) plus Phase 10's merged migration specs e691de6 (problem/outcome/exit_criteria across all 31 commands), 3ac178a (component contract in new-command) and f7d579f (loop bounds on the five loop-bearing commands). All reviewed, shipped work; the declarations are the deliverable ADR-020 asked for."
+        },
+        "chars": {
+          "value": 560772,
+          "date": "2026-08-11",
+          "text": "Same causes as commands.lines \u2014 the contract fields are prose-heavy by design (a falsifiable exit criterion costs a sentence, not a token), so chars grew far harder than lines. Raised 2026-08-11 during Phase 10 UAT execution: commands/research.md's first exit_criteria entry was the only one of 94 ending in a bare 'exists', which .writ/docs/component-contract.md:84 explicitly bans; it gained a predicate naming the scoped questions and synthesis (+88 chars)."
+        }
+      }
     },
     "agents": {
       "lines": 1768,
       "chars": 67012,
-      "justification": ""
+      "justifications": {
+        "lines": {
+          "value": 1810,
+          "date": "2026-08-11",
+          "text": "79dcc60 feat(agents): declare the component contract across both agent carriers \u2014 problem/outcome/exit_criteria added to all 7 agents by 2026-08-11-component-contract. Reviewed, merged migration work."
+        },
+        "chars": {
+          "value": 72473,
+          "date": "2026-08-11",
+          "text": "Same commit as agents.lines; the three contract fields are sentences, so the chars delta is the honest cost of the declarations."
+        }
+      }
     },
     "skills": {
       "lines": 932,
-      "chars": 41620,
-      "justification": ""
+      "chars": 41620
     },
     "adapters": {
       "lines": 1677,
-      "chars": 84865,
-      "justification": ""
+      "chars": 84865
     },
     "scripts": {
       "lines": 27210,
       "chars": 1155797,
-      "justification": ""
+      "justifications": {
+        "lines": {
+          "value": 29958,
+          "date": "2026-08-11",
+          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py), and 2026-08-11-governor-instrumentation Stories 1 and 3-7 \u2014 the bound-justification reader, the emission seam, the component-contract, `## Completion`, loop-bound and required_skills: checks, and the flip-seam proof, with scripts/tests/test_eval_leanness_contract.py (81 cases) carrying most of the delta."
+        },
+        "chars": {
+          "value": 1279401,
+          "date": "2026-08-11",
+          "text": "Same commits as scripts.lines."
+        }
+      }
     },
     "system_instructions": {
       "lines": 300,
-      "chars": 20523,
-      "justification": ""
+      "chars": 20523
     }
   },
   "commands": 32,
@@ -39,5 +69,5 @@
   "command_lines": 10974,
   "command_chars": 514594,
   "total_product_lines": 42861,
-  "note": "Down is free. Any increase to a gated surface requires a justification string in its baseline entry, or it warns."
+  "note": "Down is free. An increase to a gated surface is silent only up to a recorded ceiling: set surfaces.<name>.justifications.<lines|chars> to {\"value\": <measurement>, \"date\": \"YYYY-MM-DD\", \"text\": \"<why>\"}. It silences growth to that value and nothing beyond it. Rerunning --update-baseline instead moves EVERY surface's floor to its current measurement and records no reason."
 }

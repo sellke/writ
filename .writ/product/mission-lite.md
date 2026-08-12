@@ -1,13 +1,15 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-07-17
+> Regenerated from mission.md on 2026-08-11
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-07-17
+> Last Updated: 2026-08-11
 
 ## Core Value
 
 Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns the durable contracts — specs, drift logs, decisions, knowledge, phase state — in plain markdown on git, and delegates mechanics (context management, subagents, browsing, retrieval) to the platform underneath. As harnesses absorb mechanics natively, Writ sheds them and concentrates on what compounds: the negotiated contract layer no harness provides.
+
+> **"Thin" is currently a target, not a state.** Measured 2026-08-11: `commands/` is 516,589 chars (~129k tokens); `implement-story.md` alone is ~12.3k. Phase 10 closes the gap ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)).
 
 ## Target Users
 
@@ -38,7 +40,11 @@ Code and methodology that score well on six production-grade criteria — audita
 
 **Phase 8 — Memory Interop (✅ implemented):** GBrain compatibility recipe, native-memory guidance per adapter.
 
-**Next horizon:** No committed phase in flight — the 2026 harness-audit strategy (Phases 6–8) is delivered. Next candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2), pulled forward on concrete signal.
+**Phase 9 — Git-Native Provenance & Recovery (✅ implemented):** Git-notes audit channel, logical-unit `/revert`, artifact-integrity handshake.
+
+**Phase 10 — Component Contract & Progressive Disclosure (📋 planned, in flight):** Every command/agent/skill declares `problem`/`outcome`/`exit_criteria`; every loop declares `max_iterations` + `on_exhaustion` (measured: **0 of 5** loop commands had bounds); command files shrink to thin contracts with detail in on-demand skills via `required_skills:`; the leanness limit goes 2000 → 400 lines so the governor actually binds. Autonomy expands everywhere except product/spec direction, the production boundary, and design/UX taste ([ADR-020](../decision-records/adr-020-component-contract.md), [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md), [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md)).
+
+**Next horizon:** Beyond Phase 10, candidates live in the roadmap parking lot (cross-project learning corpus, `/design` modernization, eval Tier 2), pulled forward on concrete signal.
 
 ## What Writ Is Not Building
 

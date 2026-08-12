@@ -11,6 +11,12 @@ subagent_type: "generalPurpose"
 model: default (inherits from parent)
 model_tier: orchestration
 readonly: false   # May need to fix tests or implementation
+problem: "A story reaches the documentation gate while new files sit under the coverage bar, an untested error branch survives, or a neighbouring module was never re-run for regressions."
+outcome: "A TEST_RESULT verdict backed by a per-file coverage table with before-and-after numbers and a counted pass, fail, and skip tally across story and regression tests."
+exit_criteria:
+  - "every file marked new in the coverage table shows at least 80 percent line coverage"
+  - "no modified file's line coverage is below the baseline recorded for it before this run"
+  - "TEST_RESULT is PASS only where the Failed count is 0 and Coverage threshold met reads YES; a lowered threshold or skipped assertion never produces that state"
 ```
 
 ## Responsibilities

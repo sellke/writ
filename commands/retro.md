@@ -1,6 +1,12 @@
 ---
 name: retro
 description: "Turn git history into a retrospective: what shipped, how fast, what patterns emerged, and how it compares to the previous period."
+problem: "How a stretch of work actually went gets answered from memory, while the git history that could measure it is never reduced to anything a person will read."
+outcome: "A retrospective over a bounded period backed by measured git metrics, plus a persisted snapshot that gives the next period something to be compared against."
+exit_criteria:
+  - ".writ/retros/YYYY-MM-DD.json exists carrying the period start and end dates, commit and net-line counts, session and streak figures, and the Ship of the Week commit hash"
+  - "the report header names the period, branch and timezone, and each metric shows a delta against the prior snapshot or is marked as having no baseline"
+  - ".writ/retros/trends.json lists this snapshot and its rolling averages recomputed over the trailing window"
 ---
 
 # Retro Command (retro)
@@ -263,6 +269,14 @@ Load the most recent snapshot in `.writ/retros/` older than the current period's
 | `/assess-spec` | Retro surfaces velocity and test debt that assessment should consider |
 | `/implement-spec` | After retro, velocity insights inform implementation pacing |
 | `/review` | Use `/review` for pre-ship code quality; `/retro` for post-period reflection |
+
+## Completion
+
+This command succeeds when `.writ/retros/<YYYY-MM-DD>.json` holds the period's commit, line, session, and streak figures, `trends.json` lists the snapshot, and the report names the period, branch, and timezone.
+
+A first run has no prior snapshot to compare against. Metrics marked as having no baseline are correct output, not missing data.
+
+**Terminal constraint:** This command reports on a period of work. Do not act on what it surfaces — filing issues, refactoring, or re-planning — without being asked.
 
 ---
 

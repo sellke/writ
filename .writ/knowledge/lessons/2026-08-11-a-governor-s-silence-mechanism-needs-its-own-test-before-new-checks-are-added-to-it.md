@@ -1,0 +1,285 @@
+---
+category: lessons
+tags: [phase-close]
+created: 2026-08-11
+related_artifacts:
+  - /
+  - .
+  - .
+---
+
+# A governor's silence mechanism needs its own test before new checks are added to it
+
+## TL;DR
+
+
+
+## Context
+
+Recorded at phase close from evidence-bound knowledge writeback.
+
+**Cited evidence:**
+
+- s
+- c
+- r
+- i
+- p
+- t
+- s
+- /
+- e
+- v
+- a
+- l
+- -
+- l
+- e
+- a
+- n
+- n
+- e
+- s
+- s
+- .
+- p
+- y
+- :
+- 5
+- 2
+- 7
+- ,
+- 5
+- 3
+- 3
+- ,
+- 5
+- 4
+- 0
+- ,
+- 6
+- 0
+- 3
+-  
+- p
+- r
+- e
+- -
+- f
+- i
+- x
+- ;
+-  
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- -
+- g
+- o
+- v
+- e
+- r
+- n
+- o
+- r
+- -
+- i
+- n
+- s
+- t
+- r
+- u
+- m
+- e
+- n
+- t
+- a
+- t
+- i
+- o
+- n
+-  
+- S
+- t
+- o
+- r
+- y
+-  
+- 1
+- ;
+-  
+- v
+- e
+- r
+- i
+- f
+- i
+- e
+- d
+-  
+- p
+- o
+- s
+- t
+- -
+- f
+- i
+- x
+-  
+- b
+- y
+-  
+- l
+- o
+- w
+- e
+- r
+- i
+- n
+- g
+-  
+- a
+-  
+- c
+- e
+- i
+- l
+- i
+- n
+- g
+-  
+- b
+- y
+-  
+- 1
+-  
+- (
+- w
+- a
+- r
+- n
+- i
+- n
+- g
+-  
+- r
+- e
+- t
+- u
+- r
+- n
+- s
+-  
+- n
+- a
+- m
+- i
+- n
+- g
+-  
+- t
+- h
+- e
+-  
+- c
+- e
+- i
+- l
+- i
+- n
+- g
+- )
+-  
+- a
+- n
+- d
+-  
+- b
+- y
+-  
+- i
+- n
+- j
+- e
+- c
+- t
+- i
+- n
+- g
+-  
+- a
+-  
+- l
+- e
+- g
+- a
+- c
+- y
+-  
+- u
+- n
+- b
+- o
+- u
+- n
+- d
+- e
+- d
+-  
+- s
+- t
+- r
+- i
+- n
+- g
+-  
+- (
+- w
+- a
+- r
+- n
+- s
+-  
+- p
+- e
+- r
+- -
+- m
+- e
+- t
+- r
+- i
+- c
+- ,
+-  
+- s
+- i
+- l
+- e
+- n
+- c
+- e
+- s
+-  
+- n
+- o
+- t
+- h
+- i
+- n
+- g
+- )
+- .
+
+## Related
+
+- `/`
+- `.`
+- `.`

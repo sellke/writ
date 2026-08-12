@@ -1,6 +1,17 @@
 ---
 name: implement-spec
 description: "Execute one full spec end-to-end - dependency-aware plan, parallel story batches, calling implement-story per story uninterrupted."
+problem: "Stories inside one spec get run in whatever order someone notices them, so a dependency cycle surfaces mid-run and cross-story breakage is found long after several stories landed."
+outcome: "One spec has no unexecuted story left in its batch plan, and the stories are proven to work together by a single check run after the last of them landed."
+exit_criteria:
+  - "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran"
+  - "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason"
+  - "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts"
+loop:
+  unit: "story"
+  max_iterations: 12
+  on_exhaustion: halt_reported
+  calibrated_against: "Counts stories dispatched to /implement-story, not the human-selected retry offered on story failure, which stays unbounded because a user's choices are not this bound's business. Largest story count across the 41 archived specs under .writ/specs/archive/ = 9 (2026-03-19-command-suite-evolution). Recorded runs: .writ/state/execution-20260718-1101.json = 4 stories, execution-20260803T193200Z.json = 4, execution-20260804205617.json = 4; stories_total in .writ/state/phase9-result-*.json and phase-spec-result-*.json = 4, 4, 3. Bound = all-time authored maximum plus 3. Evidence: strongest of the five bounds - 41 authored specs plus 6 recorded runs."
 ---
 
 # Implement Spec Command (implement-spec)
@@ -171,6 +182,8 @@ After each `/implement-story` completes:
 
 **On dependency blocked:** Present the dependency chain and offer: skip, attempt anyway (dependencies incomplete), retry failed dependency, or abort.
 
+**Iteration bound:** dispatch is bounded at `loop.max_iterations` (12) **stories**. The retry above is human-selected and deliberately outside the bound — `max_iterations` counts stories dispatched, not choices a user makes. On exhaustion, `loop.on_exhaustion: halt_reported` applies: stop dispatching and report the unit (`story`), the bound, the count reached, the last completed story, the `.writ/state/execution-*.json` path whose `stories.{id}.status` / `phase` fields already hold the resume position, and the literal resume command `/implement-spec --resume`. Remaining stories stay `pending`; nothing is skipped, marked complete, or self-certified to get past the bound.
+
 ### Phase 4: Completion
 
 #### Step 4.1: Integration Verification
@@ -255,6 +268,14 @@ If a session is interrupted mid-execution:
 | `/verify-spec` | Optional metadata diagnostic anytime (especially after `/implement-spec`) — not a release prerequisite |
 | `/ship` / `/release` | `/ship` opens the PR; `/release` cuts the version with its own inline gate |
 | `/status` | Shows progress of in-flight executions |
+
+## Completion
+
+This command succeeds when no story in the batch plan remains pending in `.writ/state/execution-<timestamp>.json` — each is complete, skipped with its blocking chain recorded, or failed with a reason — and the post-batch typecheck and full test suite have run.
+
+A run ending with stories skipped or failed is a completed run, not a broken one, provided each carries its reason and `.writ/context.md` reflects the real counts.
+
+**Terminal constraint:** This command implements one spec's stories. Do not advance to the next spec in the phase, open a PR, or cut a release.
 
 ---
 

@@ -42,7 +42,7 @@ Neither tier names a specific model (no `gpt-5-mini`, no `haiku`). Cursor and Op
 |---|---|---|
 | Skill (`skills/*/SKILL.md`) | Real `---` YAML frontmatter | `model_tier: orchestration   # advisory only` |
 | Agent (`agents/*.md`) | Existing fenced **Agent Configuration** (or `visual-qa-agent.md`'s **Agent Specification**) block — not a new header | `model_tier: capability` alongside `subagent_type:` / `model:` / `readonly:` |
-| Command (`commands/*.md`) | Prose note near Overview/Invocation — commands carry no frontmatter mechanism (verified 0/31 files) | `> **Model tier (advisory only):** orchestration — commands run at the user's session model, not Writ-selectable.` |
+| Command (`commands/*.md`) | The existing `---` YAML frontmatter that already holds `name:` and `description:` — carried by 32/32 files under `commands/` (31 commands + `_preamble.md`) | `model_tier: orchestration   # advisory only` |
 
 "Frontmatter" is the umbrella term used loosely across Writ's docs; the literal carrier differs by file type as shown above.
 
@@ -72,18 +72,7 @@ An unset, unresolvable, or unknown tier never hard-fails — it warns and falls 
 | `model_tier` unset | Resolve to parent/default (inherit). No warning. |
 | `model_tier: capability` but the platform exposes no fast/cheaper model | Warn: "capability tier unavailable on \<platform\>; running at parent model." Fall back to inherit. |
 | `model_tier` value unrecognized at resolution time | Warn: "unknown model_tier '\<value\>'; running at parent model." Fall back to inherit. |
-| Reserved ordinal offset beyond available bands | Clamp to floor (or inherit, if the platform has one band). No warning — documented clamp. |
 | Both `model:` and `model_tier:` set | Use `model:` — a concrete override always wins. No warning. |
-
----
-
-## Reserved Ordinal Offsets
-
-The schema also allows a negative ordinal form (`-1`, `-2`, ...), intended for a future finer-grained resolver ("one band below anchor," "two bands below anchor"). **No adapter resolves ordinals beyond the 2-band clamp today** — any negative offset lands on the same floor as `capability` (or `inherit`, if a platform exposes only one band).
-
-This is a **reserve-only** convention, the same pattern `required_skills:` used before adoption: declare the grammar now, keep it inert, and let a real N-step resolver earn the behavior later rather than having competing negative-offset conventions invented piecemeal.
-
-> **Review trigger: 2026-10-16** (90 days post-ship). If no adapter has built N-step (>2-band) resolution by this date, deprecate or revisit the reservation.
 
 ---
 
@@ -92,15 +81,15 @@ This is a **reserve-only** convention, the same pattern `required_skills:` used 
 `/new-skill` and `/new-command` both scaffold the advisory field automatically:
 
 - **`/new-skill`** emits `model_tier: orchestration   # advisory only — skills run in the caller's context, not selectable` in the generated `SKILL.md` frontmatter (safe default — a skill assuming a strong caller is a more conservative default than assuming a cheap one).
-- **`/new-command`** emits the locked prose note `> **Model tier (advisory only):** <tier> — commands run at the user's session model, not Writ-selectable.` near the generated command's Overview/Invocation section, with `<tier>` chosen contextually (`orchestration` for heavy multi-phase commands, `capability` for narrow ones; default `orchestration` if unclear).
+- **`/new-command`** emits `model_tier: <tier>` into the generated command's `---` frontmatter, alongside `name:` and `description:`, with `<tier>` chosen contextually (`orchestration` for heavy multi-phase commands, `capability` for narrow ones; default `orchestration` if unclear).
 
-`scripts/lint-skill.sh` validates any declared `model_tier` value — in skill frontmatter, an agent's Agent Configuration block, or a command's prose note — against the shared allow-list (`^(orchestration|capability|-[0-9]+)$`), whenever it's pointed at a file. It does not add a new automated sweep over `agents/*.md` or `commands/*.md` by default; that remains a deliberate, explicit choice per invocation.
+`scripts/lint-skill.sh` validates any declared `model_tier` value — in skill frontmatter, in command frontmatter, or in an agent's Agent Configuration block — against the shared allow-list (`^(orchestration|capability)$`), whenever it's pointed at a file. It does not add a new automated sweep over `agents/*.md` or `commands/*.md` by default; that remains a deliberate, explicit choice per invocation.
 
 ---
 
 ## Allowed Values
 
-- **Schema:** `^(orchestration|capability|-[0-9]+)$` — `orchestration`, `capability`, or a reserved negative ordinal offset.
+- **Schema:** `^(orchestration|capability)$` — `orchestration` or `capability`.
 - **Unset:** inherits parent/default — identical to today's behavior. No warning.
 - **Precedence:** an explicit concrete `model:` always overrides `model_tier:`.
 

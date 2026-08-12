@@ -1,0 +1,228 @@
+---
+category: lessons
+tags: [phase-close]
+created: 2026-08-11
+related_artifacts:
+  - /
+  - /
+  - /
+  - /
+  - /
+  - .
+  - .
+  - .
+  - /
+  - /
+  - /
+  - /
+  - .
+  - /
+  - .
+---
+
+# Phase branch must not be named writ/phase/{id} - it collides with its own lane namespace
+
+## TL;DR
+
+
+
+## Context
+
+Recorded at phase close from evidence-bound knowledge writeback.
+
+**Cited evidence:**
+
+- P
+- h
+- a
+- s
+- e
+-  
+- 1
+- 0
+-  
+- f
+- i
+- r
+- s
+- t
+-  
+- c
+- r
+- e
+- a
+- t
+- e
+- -
+- l
+- a
+- n
+- e
+-  
+- a
+- t
+- t
+- e
+- m
+- p
+- t
+- ,
+-  
+- 2
+- 0
+- 2
+- 6
+- -
+- 0
+- 8
+- -
+- 1
+- 1
+- :
+-  
+- '
+- c
+- a
+- n
+- n
+- o
+- t
+-  
+- l
+- o
+- c
+- k
+-  
+- r
+- e
+- f
+-  
+- r
+- e
+- f
+- s
+- /
+- h
+- e
+- a
+- d
+- s
+- /
+- w
+- r
+- i
+- t
+- /
+- p
+- h
+- a
+- s
+- e
+- /
+- 1
+- 0
+- /
+- .
+- .
+- .
+-  
+- :
+-  
+- r
+- e
+- f
+- s
+- /
+- h
+- e
+- a
+- d
+- s
+- /
+- w
+- r
+- i
+- t
+- /
+- p
+- h
+- a
+- s
+- e
+- /
+- 1
+- 0
+-  
+- e
+- x
+- i
+- s
+- t
+- s
+- '
+- .
+-  
+- H
+- i
+- s
+- t
+- o
+- r
+- i
+- c
+- a
+- l
+-  
+- c
+- o
+- n
+- v
+- e
+- n
+- t
+- i
+- o
+- n
+- :
+-  
+- p
+- h
+- a
+- s
+- e
+- /
+- 8
+- -
+- m
+- e
+- m
+- o
+- r
+- y
+- -
+- i
+- n
+- t
+- e
+- r
+- o
+- p
+- .
+
+## Related
+
+- `/`
+- `/`
+- `/`
+- `/`
+- `/`
+- `.`
+- `.`
+- `.`
+- `/`
+- `/`
+- `/`
+- `/`
+- `.`
+- `/`
+- `.`

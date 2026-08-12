@@ -32,8 +32,15 @@ Contract:
                      "command_lines","command_chars",
                      "per_surface", "total_product_lines",
                      "total_product_chars", "writ_workspace_lines",
-                     "story_context_bytes", "story_context_bytes_note"}
+                     "story_context_bytes", "story_context_bytes_note",
+                     "contract_compliance", "required_skills_declarations"}
     }
+
+  Component-contract findings (see CONTRACT_CHECK_SEVERITY) land in
+  "warnings" today and become "structural" when the governor-enforcement
+  spec flips that one constant. "contract_compliance" is the trend channel
+  beside them: counts of files checked and files compliant, so the migration
+  specs have one number to move instead of a diff of findings.
 
   "story_context_bytes" is a mixed measurement, not consumed tokens — see
   STORY_CONTEXT_BYTES_NOTE and the sibling "story_context_bytes_note" key.
@@ -49,6 +56,7 @@ Contract:
 from __future__ import annotations
 
 import argparse
+import ast
 import glob
 import json
 import os
@@ -244,6 +252,511 @@ OUT_OF_SCOPE = {
 COMMAND_TOKEN = re.compile(r"`/([a-z][a-z0-9-]*)`")
 # A bare backticked command name, e.g. `create-spec` (the /status allowlist form).
 BARE_TOKEN = re.compile(r"`([a-z][a-z0-9-]*)`")
+
+# --- Component-contract instrumentation (spec: 2026-08-11-governor-
+# instrumentation; decision: ADR-020) ---------------------------------------
+#
+# Phase 10 sequencing, ADR-020 "Enforcement sequencing (load-bearing)" and the
+# roadmap's Phase 10 -> Dependencies, in the same words: component-contract
+# findings land NON-BLOCKING while 2026-08-11-component-contract and
+# 2026-08-11-loop-bounds migrate the surface. Landing them blocking on day one
+# turns every eval run red, and a permanently red gate becomes invisible —
+# exactly how the growth warnings came to be ignored.
+#
+# THE GOVERNOR-ENFORCEMENT SPEC FLIPS THIS ONE STRING to "structural".
+# Nothing else changes: every check below is a pure function returning
+# list[dict] and routes through emit_contract_findings().
+#
+# Precondition for the flip: the two migration specs have brought commands and
+# agents into compliance, so a flipped run of the `governor-enforcement` spec
+# is green on a clean tree. Flipping early is the failure this constant exists
+# to prevent, which is why the shipped value is asserted by the test suite.
+#
+# The one-line diff it becomes:
+#     -CONTRACT_CHECK_SEVERITY = "warnings"
+#     +CONTRACT_CHECK_SEVERITY = "structural"
+CONTRACT_CHECK_SEVERITY = "warnings"   # -> "structural"
+
+# The three fields ADR-020 makes the component contract. Presence and
+# non-emptiness only: the lint can verify the field exists and says something;
+# it cannot verify the assertion is true.
+CONTRACT_FIELDS = ("problem", "outcome", "exit_criteria")
+
+# Agent config blocks live under one of two headings, both legitimate today —
+# `system-instructions.md` documents the split for `model_tier`, and ADR-020
+# item 2 reuses the same carrier. 6 agents use `## Agent Configuration` with a
+# plain fence; visual-qa-agent.md uses `## Agent Specification` with a ```yaml
+# fence. Recognising only one produces three false findings against a
+# compliant file, and a false finding is the fastest way to teach a maintainer
+# to ignore the whole channel.
+AGENT_CARRIER_HEADINGS = ("## Agent Configuration", "## Agent Specification")
+
+# A frontmatter/config key at column 0 (or at the block's own left margin),
+# e.g. `problem:`, `loop:`, or the flattened `loop.max_iterations:`.
+FIELD_KEY = re.compile(r"^([A-Za-z_][A-Za-z0-9_.-]*):(.*)$")
+
+# Values that are syntactically present but assert nothing. `exit_criteria: []`
+# declares no falsifiable condition, which is the entire point of the field.
+EMPTY_VALUES = frozenset({"", "[]", "{}", "~", "null", "none"})
+
+
+def emit_contract_findings(findings: list[dict], structural: list[dict],
+                           warnings: list[dict], severity: str | None = None) -> None:
+    """Route a check's findings to the blocking or non-blocking bucket.
+
+    `severity=None` means "follow CONTRACT_CHECK_SEVERITY" — the normal case.
+    An explicit "warnings" pins a check non-blocking regardless of the flip
+    (`required_skills:`, per system-instructions.md graceful degradation).
+    Any unrecognised value falls back to `warnings`: a typo in the flip must
+    never silently disable a check, and must never accidentally block a run.
+    """
+    chosen = severity or CONTRACT_CHECK_SEVERITY
+    target = structural if chosen == "structural" else warnings
+    target.extend(findings)
+
+
+def all_agent_files(root: str) -> list[str]:
+    return sorted(glob.glob(os.path.join(root, "agents", "*.md")))
+
+
+def _has_content(raw: str) -> bool:
+    """True when a declared field actually asserts something."""
+    value = raw.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        value = value[1:-1].strip()
+    return value.lower() not in EMPTY_VALUES
+
+
+def _parse_fields(lines: list[str]) -> dict[str, str]:
+    """Key -> value map for a frontmatter or config block.
+
+    A key with a block/list value (e.g. `exit_criteria:` followed by indented
+    `- "..."` lines) maps to the joined continuation lines, so presence-and-
+    non-emptiness is decidable without a YAML parse. No YAML library is
+    imported: this helper runs inside eval.sh on every CI run and the module
+    has zero third-party dependencies.
+    """
+    fields: dict[str, str] = {}
+    current: str | None = None
+    for line in lines:
+        match = FIELD_KEY.match(line)
+        if match:
+            current = match.group(1)
+            fields[current] = match.group(2).strip()
+            continue
+        if current is not None and line.strip():
+            joined = (fields[current] + " " + line.strip()).strip()
+            fields[current] = joined
+    return fields
+
+
+def frontmatter_lines(path: str) -> list[str] | None:
+    """The raw lines of a leading `---` block, or None.
+
+    Only a fence starting on line 1 counts — a `---` horizontal rule mid-
+    document is not frontmatter, and several command files use one. An
+    unterminated fence, an unreadable file, and a file with no fence all
+    return None rather than raising: a read-only check must never crash the
+    eval run.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+    if not lines or lines[0].strip() != "---":
+        return None
+    for index in range(1, len(lines)):
+        if lines[index].rstrip() == "---":
+            return lines[1:index]
+    return None
+
+
+def read_frontmatter(path: str) -> dict[str, str] | None:
+    """Leading `---` block only. {key: raw_value_string}, or None."""
+    lines = frontmatter_lines(path)
+    if lines is None:
+        return None
+    return _parse_fields(lines)
+
+
+def agent_config_lines(path: str) -> list[str] | None:
+    """The raw lines of an agent's config block, either carrier, or None.
+
+    Accepts `## Agent Configuration` or `## Agent Specification`, and any
+    fence info-string (plain or ```yaml). A file with neither heading, or a
+    heading with no fenced block after it, returns None — the carrier is the
+    contract's only home, so its absence is one finding, not three.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+    start = None
+    for index, line in enumerate(lines):
+        if line.strip() in AGENT_CARRIER_HEADINGS:
+            start = index + 1
+            break
+    if start is None:
+        return None
+
+    for index in range(start, len(lines)):
+        stripped = lines[index].strip()
+        if stripped.startswith("## "):
+            return None  # next section reached before any fence
+        if stripped.startswith("```"):
+            body: list[str] = []
+            for inner in range(index + 1, len(lines)):
+                if lines[inner].strip().startswith("```"):
+                    return body
+                body.append(lines[inner])
+            return body
+    return None
+
+
+def read_agent_config(path: str) -> dict[str, str] | None:
+    """Dual-carrier agent config block. Same shape as read_frontmatter()."""
+    lines = agent_config_lines(path)
+    if lines is None:
+        return None
+    return _parse_fields(lines)
+
+
+def check_component_contract(root: str) -> list[dict]:
+    """Every command and agent must declare problem, outcome, exit_criteria.
+
+    One finding per missing field per file — never an aggregate. A file with
+    no carrier at all yields one file-level finding instead, because
+    field-level findings against a missing carrier are noise.
+    """
+    findings: list[dict] = []
+
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue  # Business Rule 7 — the existing rule, not a skip list
+        rel = f"commands/{stem}.md"
+        fields = read_frontmatter(path)
+        if fields is None:
+            findings.append({
+                "subject": rel,
+                "what": "no frontmatter block; the component contract "
+                        "(problem:/outcome:/exit_criteria:) has nowhere to live.",
+                "fix": f"Add a leading `---` YAML frontmatter block to {rel} declaring "
+                       "problem:, outcome:, and exit_criteria: (ADR-020).",
+            })
+            continue
+        for field in CONTRACT_FIELDS:
+            if not _has_content(fields.get(field, "")):
+                findings.append({
+                    "subject": f"{rel} → {field}:",
+                    "what": f"frontmatter does not declare a non-empty `{field}:` "
+                            "(ADR-020 component contract).",
+                    "fix": f"Declare `{field}:` in {rel}'s frontmatter with content. "
+                           "An empty value or an empty list asserts nothing and does "
+                           "not satisfy the contract.",
+                })
+
+    for path in all_agent_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        rel = f"agents/{stem}.md"
+        fields = read_agent_config(path)
+        if fields is None:
+            findings.append({
+                "subject": f"{rel} → no Agent Configuration/Specification block",
+                "what": "no fenced config block under `## Agent Configuration` or "
+                        "`## Agent Specification`; the component contract has no carrier.",
+                "fix": f"Add a `## Agent Configuration` section to {rel} with a fenced "
+                       "block declaring problem:, outcome:, and exit_criteria: "
+                       "(`## Agent Specification` with a ```yaml fence is equally valid).",
+            })
+            continue
+        for field in CONTRACT_FIELDS:
+            if not _has_content(fields.get(field, "")):
+                findings.append({
+                    "subject": f"{rel} → {field}:",
+                    "what": f"the agent config block does not declare a non-empty "
+                            f"`{field}:` (ADR-020 component contract).",
+                    "fix": f"Declare `{field}:` in {rel}'s config block with content. "
+                           "An empty value or an empty list asserts nothing and does "
+                           "not satisfy the contract.",
+                })
+
+    return findings
+
+
+def has_completion_section(path: str) -> bool | None:
+    """True/False for an exact `## Completion` H2; None when unreadable.
+
+    Exact match is deliberate. A tolerant `startswith("## Completion")` would
+    accept `## Completion Criteria`, which defeats the point of one canonical
+    section name that /verify-spec and /refresh-command can later key off.
+    Fenced regions are skipped — a command file quoting `## Completion` as
+    example markdown has not declared one — using the same fence tracking
+    readme_command_names() already does in this module.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            lines = handle.read().split("\n")
+    except (OSError, UnicodeDecodeError):
+        return None
+    in_fence = False
+    for line in lines:
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        if line.rstrip() == "## Completion":
+            return True
+    return False
+
+
+def check_completion_sections(root: str) -> list[dict]:
+    """Every non-invokable command declares where it stops.
+
+    Presence, not content: a `## Completion` heading with nothing under it
+    passes. Asserting the section is *useful* means judging prose, which is
+    exactly what ADR-020 rejects.
+    """
+    findings: list[dict] = []
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        present = has_completion_section(path)
+        if present is not False:
+            continue  # True, or None (unreadable — measure_files already said so)
+        rel = f"commands/{stem}.md"
+        findings.append({
+            "subject": f"{rel} → ## Completion",
+            "what": f"no `## Completion` section; {rel} never states the condition "
+                    "under which a run of it is finished.",
+            "fix": "Add a `## Completion` section (exact H2 spelling — "
+                   "`## Completion Criteria` and `### Completion` do not satisfy "
+                   "this check, and a heading inside a fenced block does not "
+                   "count). See commands/new-command.md's generated-command "
+                   "structure for the authoring template.",
+        })
+    return findings
+
+
+# The two fields 2026-08-11-loop-bounds requires at the top level of `loop:`.
+# That spec owns the shape; this check asserts PRESENCE only and defers every
+# question of correctness — enum closure, integer type, citation quality, unit
+# uniqueness, historical-run regression — to scripts/eval-loop-bounds.py.
+# Presence and correctness are checked once each, by one owner each: a
+# maintainer who sees the same missing field reported twice learns to skim.
+LOOP_BOUND_FIELDS = ("max_iterations", "on_exhaustion")
+
+# The five loop-bearing commands, measured in Phase 10 discovery (roadmap
+# Phase 10 -> Problem table: "Loop-bearing commands declaring an iteration
+# bound: 0 of 5"). Deliberately a fixed list, never inferred from file
+# contents: inferring "does this command loop?" from prose needs a
+# heading/keyword grammar per variant, the exact fragility ADR-020 rejects.
+#
+# The list is CROSS-READ from scripts/eval-loop-bounds.py, which declares
+# itself the enforcement point when a sixth command acquires a loop. Presence
+# and correctness split one population; two hand-maintained copies of it would
+# drift, and a drifted split reports a file twice or not at all. The literal
+# below is the fallback for a tree where the sibling is absent or unparseable
+# — never a second source of truth.
+LOOP_BEARING_COMMANDS_FALLBACK = (
+    "implement-phase", "implement-spec", "implement-story", "refactor", "verify-spec",
+)
+
+
+def _loop_bearing_from_sibling() -> list[str] | None:
+    """Read LOOP_BEARING_COMMANDS out of scripts/eval-loop-bounds.py.
+
+    Parsed with `ast`, not imported: the sibling has a hyphenated filename and
+    executing it for a constant would be a heavier contract than reading one.
+    Any failure returns None so the fallback applies — a cross-read that
+    cannot happen must never empty the population.
+    """
+    sibling = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "eval-loop-bounds.py")
+    try:
+        with open(sibling, encoding="utf-8") as handle:
+            tree = ast.parse(handle.read())
+    except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
+        return None
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(isinstance(target, ast.Name)
+                   and target.id == "LOOP_BEARING_COMMANDS" for target in node.targets):
+            continue
+        try:
+            value = ast.literal_eval(node.value)
+        except (ValueError, TypeError, SyntaxError):
+            return None
+        if isinstance(value, (list, tuple)) and value and all(
+                isinstance(item, str) for item in value):
+            return list(value)
+    return None
+
+
+LOOP_BEARING_COMMANDS = tuple(_loop_bearing_from_sibling()
+                              or LOOP_BEARING_COMMANDS_FALLBACK)
+
+
+def _declares_loop_field(fields: dict[str, str], field: str) -> bool:
+    """True when `loop.<field>` is declared, nested under `loop:` or flattened.
+
+    Both shapes are accepted because 2026-08-11-loop-bounds owns the final
+    form — slack in the reader, never ambiguity in the contract.
+    """
+    if _has_content(fields.get(f"loop.{field}", "")):
+        return True
+    block = fields.get("loop", "")
+    return bool(re.search(r"(?:^|\s)" + re.escape(field) + r":\s*\S", block))
+
+
+def check_loop_bounds(root: str) -> list[dict]:
+    """Each loop-bearing command declares how many times it may go round.
+
+    A named command that does not exist on disk is itself a finding, so the
+    population cannot silently rot the way GATE_AGENT_FILES can — its own
+    comment admits it is "kept in sync by hand" and understates a metric when
+    a gate is added and not mirrored.
+    """
+    findings: list[dict] = []
+    for name in LOOP_BEARING_COMMANDS:
+        rel = f"commands/{name}.md"
+        path = os.path.join(root, "commands", f"{name}.md")
+        if not os.path.isfile(path):
+            findings.append({
+                "subject": f"{rel} → missing",
+                "what": f"`{name}` is named as loop-bearing but no such command file "
+                        "exists; the population this check measures has rotted.",
+                "fix": f"Restore {rel}, or remove `{name}` from LOOP_BEARING_COMMANDS "
+                       "in scripts/eval-loop-bounds.py (the list this check cross-reads).",
+            })
+            continue
+        fields = read_frontmatter(path)
+        if fields is None:
+            findings.append({
+                "subject": rel,
+                "what": "no frontmatter block; the iteration bound has nowhere to live.",
+                "fix": f"Add a leading `---` YAML frontmatter block to {rel} declaring "
+                       "`loop:` with max_iterations and on_exhaustion.",
+            })
+            continue
+        for field in LOOP_BOUND_FIELDS:
+            if _declares_loop_field(fields, field):
+                continue
+            findings.append({
+                "subject": f"{rel} → loop.{field}",
+                "what": f"loop-bearing command declares no `{field}`; a bound with no "
+                        "exhaustion behaviour (or an exhaustion behaviour with no "
+                        "bound) is half a contract.",
+                "fix": f"Declare `{field}:` under `loop:` in {rel}'s frontmatter. "
+                       "scripts/eval-loop-bounds.py then asserts the value is legal "
+                       "and honestly calibrated.",
+            })
+    return findings
+
+
+def parse_skill_names(raw: str) -> list[str]:
+    """Skill names from a `required_skills:` value, in declaration order.
+
+    Accepts the inline flow form (`[tdd-cycle, gbrain-interop]`) and the block
+    list form, which _parse_fields() joins into `- tdd-cycle - gbrain-interop`.
+    Duplicates are silently deduplicated, per system-instructions.md's schema.
+    """
+    value = raw.strip()
+    if not value or value in ("[]", "{}", "~", "null"):
+        return []
+    value = value.strip("[]")
+    names: list[str] = []
+    for token in re.split(r"[,\s]+", value):
+        token = token.strip("-\"' ")
+        if token and token not in names:
+            names.append(token)
+    return names
+
+
+def check_required_skills(root: str) -> tuple[list[dict], int]:
+    """Every declared skill name resolves to a real skills/<name>/SKILL.md.
+
+    Returns (findings, declaration_count). The count is the point of the
+    second return value: this check has nothing to resolve today — zero
+    declarations exist across the whole product surface — and "0 findings"
+    must not read the same as "0 things checked" (Business Rule 8).
+    check_baseline() is the established precedent for a check that returns
+    more than a bare list.
+
+    Resolution is a filesystem check, never a lookup in .writ/manifest.yaml:
+    the manifest is separately known-stale, and resolving against it would
+    produce findings about the manifest rather than about the declaration.
+    """
+    findings: list[dict] = []
+    declarations = 0
+
+    sources: list[tuple[str, dict[str, str] | None]] = []
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        sources.append((f"commands/{stem}.md", read_frontmatter(path)))
+    for path in all_agent_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        sources.append((f"agents/{stem}.md", read_agent_config(path)))
+
+    for rel, fields in sources:
+        if not fields:
+            continue  # carrier absence is check_component_contract's finding
+        for name in parse_skill_names(fields.get("required_skills", "")):
+            declarations += 1
+            if os.path.isfile(os.path.join(root, "skills", name, "SKILL.md")):
+                continue
+            findings.append({
+                "subject": f"{rel} → required_skills: {name}",
+                "what": f"declared skill `{name}` resolves to no "
+                        f"skills/{name}/SKILL.md.",
+                "fix": f"Create skills/{name}/SKILL.md, correct the name in {rel}, "
+                       f"or drop it from required_skills:.",
+            })
+
+    return findings, declarations
+
+
+def _offender_files(findings: list[dict]) -> set[str]:
+    """The file half of each finding's subject — `a/b.md → field:` -> `a/b.md`."""
+    return {finding["subject"].split(" →")[0] for finding in findings}
+
+
+def contract_compliance(root: str, contract_findings: list[dict],
+                        completion_findings: list[dict],
+                        loop_findings: list[dict]) -> dict:
+    """Counts, not finding text: the trend channel beside the work queue.
+
+    Derived from the findings themselves rather than re-parsed, so the metric
+    can never disagree with the list a maintainer is working through.
+    """
+    commands = [os.path.splitext(os.path.basename(p))[0] for p in all_command_files(root)]
+    checkable = [stem for stem in commands if not is_infra(stem)]
+    agents = [os.path.splitext(os.path.basename(p))[0] for p in all_agent_files(root)]
+    offenders = _offender_files(contract_findings)
+    without_completion = _offender_files(completion_findings)
+    unbounded = _offender_files(loop_findings)
+    return {
+        "commands_checked": len(checkable),
+        "commands_with_contract": sum(
+            1 for stem in checkable if f"commands/{stem}.md" not in offenders),
+        "commands_with_completion": sum(
+            1 for stem in checkable if f"commands/{stem}.md" not in without_completion),
+        "loop_commands_checked": len(LOOP_BEARING_COMMANDS),
+        "loop_commands_bounded": sum(
+            1 for name in LOOP_BEARING_COMMANDS
+            if f"commands/{name}.md" not in unbounded),
+        "agents_checked": len(agents),
+        "agents_with_contract": sum(
+            1 for stem in agents if f"agents/{stem}.md" not in offenders),
+    }
 
 
 def repo_root(explicit: str | None) -> str:
@@ -482,14 +995,57 @@ def check_coverage(root: str) -> list[dict]:
     return findings
 
 
+def justified_ceiling(base_entry: dict, metric_key: str) -> tuple[float | None, str, str]:
+    """Ceiling, text, and date for ONE (surface, metric) justification.
+
+    Schema 3:  surfaces.<name>.justifications.<metric> =
+                   {"value": <number>, "date": "YYYY-MM-DD", "text": "<why>"}
+    A justification silences growth only up to `value`. Past it, the ratchet
+    speaks again and names the ceiling that was passed. This is per METRIC by
+    construction: `lines` and `chars` measure different kinds of growth, and a
+    reason for one is not a reason for the other.
+
+    Returns (None, "", "") when there is no usable justification: key absent,
+    `justifications` not a dict, entry not a dict, `value` non-numeric, or
+    `text` blank. The legacy schema-2 string form (`justification: "<why>"`)
+    carries no bound, so it returns (None, <its text>, "") — the caller warns
+    with a migration hint. An unbounded mute must not survive in old data.
+    """
+    justifications = base_entry.get("justifications")
+    if isinstance(justifications, dict):
+        record = justifications.get(metric_key)
+        if isinstance(record, dict):
+            value = record.get("value")
+            text = str(record.get("text") or "").strip()
+            date = str(record.get("date") or "").strip()
+            # `bool` is an `int` subclass; `{"value": true}` is not a ceiling.
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and text:
+                return value, text, date
+
+    legacy = str(base_entry.get("justification") or "").strip()
+    if legacy:
+        return None, legacy, ""
+    return None, "", ""
+
+
 def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
                    metrics: dict) -> tuple[list[dict], list[dict]]:
     """The reduction ratchet (replaces GROWTH_TOLERANCE): every gated surface
-    is compared to its own recorded baseline, independently.
+    is compared to its own recorded baseline, per metric, independently.
 
-      current <= baseline                       -> silent (down is free)
-      current >  baseline, justification present -> silent (up costs a sentence)
-      current >  baseline, no justification      -> warning naming the delta
+      current <= baseline                            -> silent (down is free)
+      current >  baseline, bound justification covers -> silent up to its `value`
+      current >  baseline, past/absent/legacy bound   -> warning naming the delta
+
+    "Down is free" is evaluated FIRST and UNCONDITIONALLY, so no justification
+    state — valid, stale, malformed, or legacy — can make a shrinking surface
+    warn.
+
+    A justification is bound to a recorded ceiling, per metric, or it silences
+    nothing (spec 2026-08-11-governor-instrumentation, Business Rule 9). The
+    pre-schema-3 form read one string per SURFACE and skipped both metrics at
+    any magnitude forever: one sentence bought unlimited unmonitored growth.
+    See justified_ceiling() for the replacement.
 
     A missing/malformed baseline, or a legacy (pre-schema-2) baseline with no
     `surfaces` map, is a structural finding — the ratchet cannot run blind.
@@ -507,7 +1063,12 @@ def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
         return structural, warnings
 
     surfaces = baseline.get("surfaces")
-    if baseline.get("schema") != 2 or not isinstance(surfaces, dict):
+    # Schema 2 and 3 are both readable: 3 only adds the per-metric
+    # `justifications` map and drops the unbounded `justification` string, so a
+    # committed schema-2 file still measures correctly. The reader accepting
+    # both is what lets the writer bump to 3 without the introducing commit
+    # failing its own eval run. Schema 1 (no `surfaces` map) stays structural.
+    if baseline.get("schema") not in (2, 3) or not isinstance(surfaces, dict):
         structural.append({
             "subject": relpath(baseline_path),
             "what": "leanness baseline uses the legacy pre-full-surface schema "
@@ -524,22 +1085,41 @@ def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
         if not isinstance(base_entry, dict):
             continue  # newly-added surface with no prior baseline: no history to ratchet yet
         current = per_surface.get(name, {})
-        justification = str(base_entry.get("justification") or "").strip()
         for metric_key in ("lines", "chars"):
             base_value = base_entry.get(metric_key)
             current_value = current.get(metric_key)
             if not isinstance(base_value, (int, float)) or not isinstance(current_value, (int, float)):
                 continue
-            if current_value <= base_value or justification:
-                continue
+            if current_value <= base_value:
+                continue  # down is free — first, and unconditional
+            # Read per METRIC, never per surface: a reason for `lines` is not a
+            # reason for `chars`.
+            ceiling, text, date = justified_ceiling(base_entry, metric_key)
+            if ceiling is not None and current_value <= ceiling:
+                continue  # covers the increment it names, and nothing more
             delta = current_value - base_value
+            if ceiling is not None:
+                what = (f"{name} {metric_key} grew from {base_value} to {current_value} "
+                        f"(+{delta}), past the justified ceiling of {ceiling} recorded "
+                        f"{date or 'undated'} (\"{text}\"). That justification covered "
+                        f"growth to {ceiling}.")
+            elif text:
+                what = (f"surfaces.{name} carries a legacy unbounded `justification` "
+                        f"(schema 2); it silences nothing. {name} {metric_key} grew from "
+                        f"{base_value} to {current_value} (+{delta}).")
+            else:
+                what = (f"{name} {metric_key} grew from {base_value} to {current_value} "
+                        f"(+{delta}) with no justification recorded for this metric.")
             warnings.append({
-                "subject": name,
-                "what": f"{name} {metric_key} grew from {base_value} to {current_value} "
-                        f"(+{delta}) with no justification.",
-                "fix": f"If deliberate, add a one-line justification to surfaces.{name} in "
-                       f"{relpath(baseline_path)} and rerun --update-baseline. "
-                       "Otherwise prune the surface back down — the delta is the signal.",
+                "subject": f"{name}.{metric_key}",
+                "what": what,
+                "fix": "Prune the surface back down — the delta is the signal — or record "
+                       f"the increment: set surfaces.{name}.justifications.{metric_key} to "
+                       f'{{"value": {current_value}, "date": "YYYY-MM-DD", "text": "<why>"}} '
+                       f"in {relpath(baseline_path)}. That silences growth to "
+                       f"{current_value} and nothing beyond it. --update-baseline is the "
+                       "other option: it moves EVERY surface's floor to its current "
+                       "measurement and records no reason.",
             })
     return structural, warnings
 
@@ -589,18 +1169,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.update_baseline:
         # Reseeding is a clean-slate ratchet: every gated surface's baseline
         # becomes exactly the current measurement (down is free; a shrink
-        # ratchets down automatically) and `justification` resets to "" —
+        # ratchets down automatically) and `justifications` resets to {} —
         # a justification describes a specific past delta, and that delta no
-        # longer exists once absorbed into the new baseline. A future
-        # increase past this fresh baseline requires a fresh justification.
+        # longer exists once absorbed into the new baseline. Under a BOUND
+        # justification the reset is more clearly right than it was under the
+        # old string: a recorded ceiling at or below the new floor is dead
+        # data, silencing nothing it did not already silence. A future
+        # increase past this fresh baseline requires a fresh bound entry.
+        #
+        # The legacy `justification` string key is not written at all —
+        # schema 3 replaced it, and carrying an empty one forward would keep
+        # the shape of a mute that no longer exists.
         payload = {
             "recorded": _today(),
-            "schema": 2,
+            "schema": 3,
             "surfaces": {
                 name: {
                     "lines": per_surface["lines"],
                     "chars": per_surface["chars"],
-                    "justification": "",
+                    "justifications": {},
                 }
                 for name, per_surface in metrics["per_surface"].items()
             },
@@ -610,8 +1197,12 @@ def main(argv: list[str] | None = None) -> int:
             "command_lines": metrics["command_lines"],
             "command_chars": metrics["command_chars"],
             "total_product_lines": metrics["total_product_lines"],
-            "note": "Down is free. Any increase to a gated surface requires a "
-                    "justification string in its baseline entry, or it warns.",
+            "note": "Down is free. An increase to a gated surface is silent only up "
+                    "to a recorded ceiling: set surfaces.<name>.justifications.<lines"
+                    "|chars> to {\"value\": <measurement>, \"date\": \"YYYY-MM-DD\", "
+                    "\"text\": \"<why>\"}. It silences growth to that value and nothing "
+                    "beyond it. Rerunning --update-baseline instead moves EVERY "
+                    "surface's floor to its current measurement and records no reason.",
         }
         os.makedirs(os.path.dirname(baseline_path), exist_ok=True)
         with open(baseline_path, "w", encoding="utf-8") as handle:
@@ -627,6 +1218,29 @@ def main(argv: list[str] | None = None) -> int:
     structural += base_structural
 
     warnings = scan_warnings + base_warnings + check_ceilings(metrics)
+
+    # Component-contract instrumentation. Every check below is a pure function
+    # returning list[dict]; emit_contract_findings() is the only thing that
+    # decides which bucket they land in (CONTRACT_CHECK_SEVERITY).
+    contract_findings = check_component_contract(root)
+    completion_findings = check_completion_sections(root)
+    loop_findings = check_loop_bounds(root)
+    emit_contract_findings(contract_findings, structural, warnings)
+    emit_contract_findings(completion_findings, structural, warnings)
+    emit_contract_findings(loop_findings, structural, warnings)
+
+    # PINNED NON-BLOCKING, even after the flip. system-instructions.md:
+    # "Unknown skill names produce a warning at consumer load time, not a hard
+    # failure (graceful degradation: a pilot extraction may rename a skill
+    # mid-flight; consumers shouldn't break catastrophically)." Hard-failing
+    # eval.sh on an unresolved name would contradict the root behavioral
+    # contract during exactly the phase that renames skills most.
+    skill_findings, skill_declarations = check_required_skills(root)
+    emit_contract_findings(skill_findings, structural, warnings, severity="warnings")
+
+    metrics["contract_compliance"] = contract_compliance(
+        root, contract_findings, completion_findings, loop_findings)
+    metrics["required_skills_declarations"] = skill_declarations
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)

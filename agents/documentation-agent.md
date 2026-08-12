@@ -11,6 +11,12 @@ subagent_type: "generalPurpose"
 model: default (inherits from parent)
 model_tier: orchestration
 readonly: false  # CRITICAL: Must be false - agent creates documentation files!
+problem: "Docs get written for a site generator the project does not have, or dumped into loose markdown next to the spec, so shipped behavior ends up described where no reader looks."
+outcome: "A DOCS_UPDATED verdict that names the framework actually detected, with pages filed in that framework's own location and inline JSDoc or docstrings on the changed public surface."
+exit_criteria:
+  - "the report names one framework from the Step 0 detection table, or none, before any documentation file is written"
+  - "each new page is registered in the detected framework's sidebar or nav config; under the default path, the edits land in README, CHANGELOG, or ARCHITECTURE instead"
+  - "a NO verdict carries a Reason line and a BLOCKED verdict carries Blocker, Partial Progress, and Suggested Resolution lines"
 ```
 
 **IMPORTANT:** Do NOT set `readonly: true` when launching this agent.

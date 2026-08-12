@@ -1,6 +1,12 @@
 ---
 name: research
 description: "Systematic four-phase investigation - scoping, discovery, deep dive, synthesis - producing an evidence-backed research document. Not for quick lookups."
+problem: "Technology and approach choices get made from memory and the first search result, and the evidence behind them is never written down for the decision that follows."
+outcome: "A dated document in .writ/research/ answers the scoped questions with cited sources and lands on one primary recommendation weighed against named alternatives."
+exit_criteria:
+  - "a file matching .writ/research/<YYYY-MM-DD>-<topic>-research.md exists and carries the scoped questions from Phase 1 alongside the synthesis that answers them"
+  - "every finding carries a source URL rather than an unattributed assertion"
+  - "the document names exactly one primary recommendation and the alternatives it was chosen over"
 ---
 
 # Research Command
