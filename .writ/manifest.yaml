@@ -283,11 +283,21 @@ skills:
     description: "Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy."
     status: candidate
     tags: [memory, retrieval, interop]
+  - name: project-context-snapshot
+    file: skills/project-context-snapshot/SKILL.md
+    description: "Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources."
+    status: candidate
+    tags: [context, snapshot, reporting]
   - name: safe-refactor-loop
     file: skills/safe-refactor-loop/SKILL.md
     description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."
     status: candidate
     tags: [refactor, quality, verification]
+  - name: story-commit-provenance
+    file: skills/story-commit-provenance/SKILL.md
+    description: "Record a completion commit SHA into a story file header idempotently and without amending it."
+    status: candidate
+    tags: [git, provenance, revert]
   - name: story-context-assembly
     file: skills/story-context-assembly/SKILL.md
     description: "Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections."
@@ -298,3 +308,8 @@ skills:
     description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."
     status: proven
     tags: [testing, tdd, implementation]
+  - name: what-was-built-authoring
+    file: skills/what-was-built-authoring/SKILL.md
+    description: "Extract implementation facts from agent output and format them into a What Was Built record."
+    status: candidate
+    tags: [records, continuity, documentation]
