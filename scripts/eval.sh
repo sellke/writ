@@ -414,14 +414,37 @@ check_length() {
     fi
   fi
 
+  # The command length tripwire — SECONDARY and NON-BINDING.
+  #
+  # ADR-021's 2026-08-12 amendment ("The binding instrument is bytes, not
+  # lines"): Decision point 5's line limit is superseded as the *binding*
+  # instrument by an absolute byte budget of 24,960 — the measured shared base
+  # a command runs inside — "with the 400-line cap retained as a secondary,
+  # non-binding tripwire." Only the unit changed; the Decision is not reopened.
+  #
+  # THE LIMIT THAT ACTUALLY BINDS IS `COMMAND_BYTE_BUDGET` in
+  # scripts/eval-leanness.py. If you tripped this note, read that number first:
+  # bytes per command line vary 2.63x across this surface (34.5 for `migrate`
+  # to 90.8 for `implement-phase`), so a line count is not a unit of load.
+  # `implement-phase.md` is 321 lines — inside any plausible line cap — and
+  # 4,176 bytes over budget. A line is not what an invocation pays for.
+  #
+  # The retired 2000 could never bind: the largest command in the tree is 989
+  # lines, 2.02x out of reach. ADR-021 reason 1, re-measured — a runaway-content
+  # backstop wearing a budget's clothes.
+  #
+  # add_note, not add_finding: 400 fires on nine byte-compliant commands today
+  # (2026-08-12-governor-enforcement Story 3 records the measurement and its
+  # Tier B escalation). A tripwire that fires on a compliant surface is a
+  # standing channel, and standing channels are what ADR-021 reason 2 is about.
   while IFS= read -r file; do
     rel="$(relpath "$file")"
     if file_has_exemption "$file" "length"; then
       continue
     fi
     count="$(line_count "$file")"
-    if [ "$count" -gt 2000 ]; then
-      add_finding "$rel" "$count lines (limit 2000)." "Split runaway command content or add an exemption with a tracking issue."
+    if [ "$count" -gt 400 ]; then
+      add_note "NOTE [$rel]: $count lines (secondary tripwire 400, non-binding). The binding limit is COMMAND_BYTE_BUDGET (24960 bytes) in scripts/eval-leanness.py — check the byte figure there before acting on this. ADR-021, amended 2026-08-12."
     fi
   done < <(command_files)
 }
