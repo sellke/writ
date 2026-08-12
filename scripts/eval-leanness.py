@@ -147,7 +147,29 @@ MAX_SKILLS = 45
 # reason 3 rebuilt in a new place. check_budget_derivation() reports base drift
 # as a non-blocking finding so re-deriving stays a deliberate, dated act.
 COMMAND_BYTE_BUDGET = 24960
-COMMAND_BYTE_BUDGET_DERIVED = "2026-08-12: system-instructions.md + commands/_preamble.md"
+COMMAND_BYTE_BUDGET_DERIVED = (
+    "2026-08-12: pinned by decision. Originally derived as "
+    "system-instructions.md + commands/_preamble.md, and NO LONGER derived from them."
+)
+
+# Why the budget is pinned rather than tracking its base (decided 2026-08-12).
+#
+# The original rule read: a command may not cost more to load than the shared
+# contract it runs inside. As a *live derivation* that rule has a perverse
+# incentive, and it fired within a day of shipping — correcting the
+# required_skills: record grew system-instructions.md by 1,298 bytes, which
+# would have RAISED every command's allowance by the same amount.
+#
+# system-instructions.md and _preamble.md are paid on EVERY invocation, so a
+# byte there is the most expensive byte in the repository. A rule where growing
+# the most expensive surface relaxes the constraint on every other one serves
+# its own letter and defeats its purpose. The number is therefore a decision
+# with a date; check_budget_derivation() reports base drift for a human to act
+# on, and never adjusts anything.
+#
+# The base gets its own tighter cap below — the constraint the original rule was
+# reaching for, pointed at the surface that actually deserves it.
+BASE_BYTE_CAP = 25600
 
 # The two files the budget was derived from, in the order the derivation
 # records them. Read live by check_budget_derivation() and by nothing else.
@@ -1443,6 +1465,34 @@ def check_command_budget(root: str) -> list[dict]:
     return findings
 
 
+def check_base_budget(root: str) -> list[dict]:
+    """The shared base is paid on every invocation, so it is capped tightest.
+
+    Non-blocking, matching the command budget's disposition: a number a human
+    decides about. It exists because the original base-parity rule left the most
+    expensive surface in the repository entirely ungoverned, while using it to
+    set everyone else's allowance.
+    """
+    live = 0
+    for component in BUDGET_BASE_COMPONENTS:
+        try:
+            with open(os.path.join(root, component), "rb") as handle:
+                live += len(handle.read())
+        except OSError:
+            return []
+    if live <= BASE_BYTE_CAP:
+        return []
+    return [{
+        "subject": "BASE_BYTE_CAP",
+        "what": f"the shared base measures {live} bytes, over its {BASE_BYTE_CAP}-byte "
+                f"cap by {live - BASE_BYTE_CAP}. Every invocation pays this, so it is "
+                f"the most expensive surface in the repository.",
+        "fix": "Trim system-instructions.md or commands/_preamble.md on merit, or raise "
+               "BASE_BYTE_CAP deliberately with a dated reason. Do not raise it to fit "
+               "whatever was just added.",
+    }]
+
+
 def check_budget_derivation(root: str) -> list[dict]:
     """COMMAND_BYTE_BUDGET is pinned; the base it was derived from is live.
 
@@ -1626,6 +1676,7 @@ def main(argv: list[str] | None = None) -> int:
     # Base drift: pinned budget vs. live base. Non-blocking by design — it
     # demands a deliberate re-derivation, it never performs one.
     warnings += check_budget_derivation(root)
+    warnings += check_base_budget(root)
 
     metrics["command_budget"] = {
         "budget": COMMAND_BYTE_BUDGET,
