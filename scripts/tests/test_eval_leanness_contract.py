@@ -617,14 +617,14 @@ class RequiredSkillsCheckTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             self._skill(tmp, "tdd-cycle")
             write_command(Path(tmp), "alpha", skill_command("[tdd-cycle]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(findings, [])
             self.assertEqual(count, 1)
 
     def test_unknown_name_emits_one_finding_naming_file_and_name(self):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha", skill_command("[no-such-skill]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(subjects(findings),
                              ["commands/alpha.md → required_skills: no-such-skill"])
             self.assertIn("skills/no-such-skill/SKILL.md", findings[0]["fix"])
@@ -634,7 +634,7 @@ class RequiredSkillsCheckTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha",
                           skill_command("[no-such-skill, no-such-skill]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(len(findings), 1)
             self.assertEqual(count, 1)
 
@@ -645,7 +645,7 @@ class RequiredSkillsCheckTests(unittest.TestCase):
                     "required_skills:\n  - tdd-cycle\n  - ghost-skill\n---\n\n# X\n")
             self._skill(tmp, "tdd-cycle")
             write_command(Path(tmp), "alpha", body)
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(subjects(findings),
                              ["commands/alpha.md → required_skills: ghost-skill"])
             self.assertEqual(count, 2)
@@ -655,7 +655,7 @@ class RequiredSkillsCheckTests(unittest.TestCase):
             body = compliant_agent("## Agent Specification", "yaml").replace(
                 "name: sample\n", "name: sample\nrequired_skills: [ghost-skill]\n")
             write_agent(Path(tmp), "plain", body)
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(subjects(findings),
                              ["agents/plain.md → required_skills: ghost-skill"])
             self.assertEqual(count, 1)
@@ -663,20 +663,26 @@ class RequiredSkillsCheckTests(unittest.TestCase):
     def test_empty_list_is_zero_pairs_and_zero_findings(self):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha", skill_command("[]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual((findings, count), ([], 0))
 
     def test_absent_skills_directory_warns_rather_than_raising(self):
         with TemporaryDirectory() as tmp:
             write_command(Path(tmp), "alpha", skill_command("[tdd-cycle]"))
-            findings, count = lean.check_required_skills(tmp)
+            findings, count, _ = lean.check_required_skills(tmp)
             self.assertEqual(len(findings), 1)
             self.assertEqual(count, 1)
 
-    def test_real_repo_is_vacuous_and_says_so(self):
-        findings, count = lean.check_required_skills(str(REPO_ROOT))
+    def test_real_repo_declares_nothing_and_says_so(self):
+        """The declarative half is vacuous, permanently — the 2026-08-12
+        mechanism ruling retired `required_skills:` for Phase 10 because it is
+        an eager pre-load. The count is what makes that legible: "0 findings"
+        and "0 things checked" must not read the same. The inline half beside
+        it is where the surface actually lives."""
+        findings, count, inline = lean.check_required_skills(str(REPO_ROOT))
         self.assertEqual(findings, [])
         self.assertEqual(count, 0, "a vacuous pass must be visible as a declaration count")
+        self.assertGreater(inline, 0, "the mechanism the phase DOES use must be counted")
 
 
 
@@ -750,7 +756,7 @@ class FlipSeamTests(unittest.TestCase):
         lean.emit_contract_findings(lean.check_completion_sections(tmp),
                                     structural, warnings)
         lean.emit_contract_findings(lean.check_loop_bounds(tmp), structural, warnings)
-        skill_findings, _ = lean.check_required_skills(tmp)
+        skill_findings, _, _ = lean.check_required_skills(tmp)
         lean.emit_contract_findings(skill_findings, structural, warnings,
                                     severity="warnings")
         return structural, warnings
@@ -774,7 +780,7 @@ class FlipSeamTests(unittest.TestCase):
         `required_skills` pin stays in the non-blocking bucket."""
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
-            pinned, _ = lean.check_required_skills(tmp)
+            pinned, _, _ = lean.check_required_skills(tmp)
             structural, warnings = self._collect(tmp)
             self.assertGreater(len(structural), 0)
             self.assertEqual(warnings, pinned)
@@ -791,7 +797,7 @@ class FlipSeamTests(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
             before, _ = self._collect(tmp)
-            pinned, _ = lean.check_required_skills(tmp)
+            pinned, _, _ = lean.check_required_skills(tmp)
             self.assertGreater(len(pinned), 0, "the fixture must exercise the pin")
             self.assertGreater(len(before), 0, "the fixture must produce findings")
             expected_moved = copy.deepcopy(before)
@@ -805,7 +811,7 @@ class FlipSeamTests(unittest.TestCase):
     def test_pinned_required_skills_findings_survive_the_flip(self):
         with TemporaryDirectory() as tmp:
             build_noncompliant_root(tmp)
-            pinned, _ = lean.check_required_skills(tmp)
+            pinned, _, _ = lean.check_required_skills(tmp)
             lean.CONTRACT_CHECK_SEVERITY = "structural"
             structural, warnings = self._collect(tmp)
             for finding in pinned:

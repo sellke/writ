@@ -1,16 +1,16 @@
 # User Stories: Governor Enforcement
 
-> **Status:** Not Started — 0/7 stories, 0/75 tasks.
+> **Status:** Complete (2026-08-12) — 7/7 stories, 75/75 tasks.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Compliance Counts Reach the Eval Report](./story-1-metric-bridge.md) | Not Started | 7 | 0/7 | None |
-| 2 | [Absolute Per-Invocation Byte Cap, Blocking](./story-2-absolute-byte-cap.md) | Not Started | 11 | 0/11 | Story 1 |
-| 3 | [Retire the `check_length` Command Limit](./story-3-retire-check-length-command-limit.md) | Not Started | 9 | 0/9 | Story 2 |
-| 4 | [The Compliance Pre-Check Gate](./story-4-compliance-gate.md) | Not Started | 8 | 0/8 | Story 2, Story 3 |
-| 5 | [Throw the Severity Flip](./story-5-throw-the-severity-flip.md) | Not Started | 10 | 0/10 | Story 4 |
-| 6 | [Prove the Gate Bites — Mutation, Then Revert](./story-6-mutation-proof.md) | Not Started | 15 | 0/15 | Story 5 |
-| 7 | [Re-derive `MAX_SKILLS` and Correct the `required_skills:` Record](./story-7-max-skills-and-mechanism-record.md) | Not Started | 14 | 0/14 | Story 6 |
+| 1 | [Compliance Counts Reach the Eval Report](./story-1-metric-bridge.md) | Complete | 7 | 7/7 | None |
+| 2 | [Absolute Per-Invocation Byte Cap, Blocking](./story-2-absolute-byte-cap.md) | Complete | 11 | 11/11 | Story 1 |
+| 3 | [Retire the `check_length` Command Limit](./story-3-retire-check-length-command-limit.md) | Complete | 9 | 9/9 | Story 2 |
+| 4 | [The Compliance Pre-Check Gate](./story-4-compliance-gate.md) | Complete | 8 | 8/8 | Story 2, Story 3 |
+| 5 | [Throw the Severity Flip](./story-5-throw-the-severity-flip.md) | Complete | 10 | 10/10 | Story 4 |
+| 6 | [Prove the Gate Bites — Mutation, Then Revert](./story-6-mutation-proof.md) | Complete | 15 | 15/15 | Story 5 |
+| 7 | [Re-derive `MAX_SKILLS` and Correct the `required_skills:` Record](./story-7-max-skills-and-mechanism-record.md) | Complete | 14 | 14/14 | Story 6 |
 
 ## Dependency Graph
 

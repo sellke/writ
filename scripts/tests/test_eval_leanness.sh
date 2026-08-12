@@ -31,6 +31,24 @@ print(len(data[sys.argv[2]]))
 PY
 }
 
+# usage: count_ratchet_warnings <json-file> -> warnings from the per-surface
+# ratchet only.
+#
+# Every fixture root here has a synthetic (tiny) system-instructions.md and
+# commands/_preamble.md, so 2026-08-12-governor-enforcement's
+# check_budget_derivation() correctly reports that the live base no longer
+# equals the pinned COMMAND_BYTE_BUDGET. That is a true statement about a
+# fixture, not a ratchet event, and the ratchet scenarios below must not be
+# blinded by it. Suppressing the derivation check on a small base would be the
+# wrong fix: it is exactly the check that must speak when the base moves.
+count_ratchet_warnings() {
+  python3 - "$1" <<'RATCHET'
+import json, sys
+data = json.load(open(sys.argv[1]))
+print(sum(1 for w in data["warnings"] if w["subject"] != "COMMAND_BYTE_BUDGET"))
+RATCHET
+}
+
 # usage: json_contains <json-file> <structural|warnings> <substring> -> exit 0 if any element's text contains substring
 json_contains() {
   python3 - "$1" "$2" "$3" <<'PY'
@@ -565,7 +583,7 @@ BASE5_COMMANDS_LINES_BEFORE="$(python3 -c "import json; print(json.load(open('$B
 write_command "$TMP5/commands/beta.md" beta
 OUT5A="$(mktemp)"
 run_helper "$TMP5" "$OUT5A"
-[ "$(count_field "$OUT5A" warnings)" -eq 0 ] || { cat "$OUT5A"; fail "a decreased surface must not warn"; }
+[ "$(count_ratchet_warnings "$OUT5A")" -eq 0 ] || { cat "$OUT5A"; fail "a decreased surface must not warn"; }
 ok "ratchet: current <= baseline -> silent (zero warnings)"
 
 python3 "$HELPER" --root "$TMP5" --update-baseline >/dev/null 2>&1
@@ -683,10 +701,18 @@ ok "ratchet: legacy (pre-schema-2) baseline -> structural finding, migrate via -
 rm -rf "$TMP8"
 
 # Scenario 4e: count-ceiling warnings remain warn-only alongside the ratchet.
+#
+# The extra commands are CONTRACT-COMPLIANT on purpose. Before
+# 2026-08-12-governor-enforcement Story 5 they could be bare `# Extra n` stubs,
+# because component-contract findings were non-blocking and the scenario got
+# its `structural: []` for free. Post-flip a bare stub is a blocking finding,
+# and this scenario would have asserted "count ceilings are warn-only" while
+# actually measuring the contract checks. Compliant fixtures make it measure
+# the thing it names.
 TMP9="$(mktemp -d)"
 build_repo "$TMP9"
 for i in $(seq 1 40); do
-  printf '# Extra %d\n' "$i" > "$TMP9/commands/extra-$i.md"
+  write_command "$TMP9/commands/extra-$i.md" "extra-$i"
   printf '| `/extra-%d` | extra command |\n' "$i" >> "$TMP9/README.md"
 done
 python3 "$HELPER" --root "$TMP9" --update-baseline >/dev/null 2>&1

@@ -581,7 +581,7 @@ class MaxSkillsDerivationTests(unittest.TestCase):
         source = MODULE_PATH.read_text(encoding="utf-8")
         head, marker, _ = source.partition("\nMAX_SKILLS = ")
         self.assertTrue(marker)
-        preamble = head[-2200:]
+        preamble = head[-3600:]
         for token in ("MAX_COMMANDS + MAX_AGENTS", "2026-08-12", "warn-only",
                       "governor-enforcement"):
             self.assertIn(token, preamble,

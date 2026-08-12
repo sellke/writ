@@ -40,6 +40,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 _TMP: tempfile.TemporaryDirectory | None = None
 SCRATCH: Path
+_PRODUCT_STATUS_BEFORE = ""
 
 
 def setUpModule() -> None:
@@ -67,6 +68,16 @@ def setUpModule() -> None:
                     "--root", str(SCRATCH), "--baseline",
                     str(SCRATCH / ".writ" / "leanness-baseline.json"),
                     "--update-baseline"], capture_output=True, check=True)
+    global _PRODUCT_STATUS_BEFORE
+    _PRODUCT_STATUS_BEFORE = product_git_status()
+
+
+def product_git_status() -> str:
+    """`git status --porcelain` over the surfaces a mutation could touch."""
+    return subprocess.run(
+        ["git", "status", "--porcelain", "--", "commands", "agents", "skills",
+         "adapters", "system-instructions.md"],
+        capture_output=True, text=True, cwd=REPO_ROOT).stdout.strip()
 
 
 def tearDownModule() -> None:
@@ -269,6 +280,36 @@ class GracefulDegradationMutationTests(MutationCase):
         self.assertIn("- Metrics: required_skills_declarations=1", report)
 
 
+class InlineReadMutationTests(MutationCase):
+    """Mutation I — the phase's ACTUAL loading mechanism, added by Story 7.
+
+    Until Story 7 this mutation produced nothing at all: `check_required_skills()`
+    resolved `required_skills:` frontmatter only, so a mistyped inline read was a
+    silent no-op — the gate passed, the skill never loaded, and the command
+    quietly ran without the capability. The phase moved its entire skill-loading
+    surface from a mechanism with a resolution check to one without.
+    """
+
+    def test_i_a_mistyped_inline_read_is_reported_naming_file_and_skill(self):
+        self.mutate("commands/implement-story.md",
+                    lambda text: text.replace("Read skills/tdd-cycle/SKILL.md",
+                                              "Read skills/tdd-cyle/SKILL.md", 1))
+        rc, report = self.run_gate()
+        # Non-blocking, and deliberately so: system-instructions.md's
+        # graceful-degradation contract covers unresolvable skill names in
+        # either mechanism. The pin outlives the flip.
+        self.assertNonBlocking(
+            rc, report,
+            "WARNING [commands/implement-story.md → Read skills/tdd-cyle/SKILL.md]",
+            "silent no-op")
+
+    def test_i2_the_clean_tree_resolves_every_inline_read(self):
+        rc, report = self.run_gate()
+        self.assertEqual(rc, 0, report)
+        self.assertNotIn("→ Read skills/", report)
+        self.assertIn("- Metrics: inline_skill_reads=", report)
+
+
 class BoundaryTests(MutationCase):
     """Assertions about things this spec did NOT change — asserted, because
     "we did not touch it" is not evidence."""
@@ -287,15 +328,17 @@ class BoundaryTests(MutationCase):
         self.assertEqual(len(matching), 1, result.stdout)
         self.assertEqual(matching[0][0], "PASS", matching[0])
 
-    def test_zz_the_committed_tree_is_clean(self):
+    def test_zz_no_mutation_escaped_onto_the_committed_tree(self):
         """The story's exit condition. Now that the gate blocks, an
         un-reverted mutation does not merely leave a stale warning — it fails
-        every subsequent run until somebody finds it."""
-        result = subprocess.run(
-            ["git", "status", "--porcelain", "--", "commands", "agents",
-             "skills", "adapters", "system-instructions.md"],
-            capture_output=True, text=True, cwd=REPO_ROOT)
-        self.assertEqual(result.stdout.strip(), "",
+        every subsequent run until somebody finds it.
+
+        Asserted as "unchanged since setUpModule" rather than "clean", because
+        the property is that this suite leaves the tree as it found it. A
+        developer with legitimate uncommitted work in commands/ must not see a
+        false accusation, and a real escape shows up as a diff either way.
+        """
+        self.assertEqual(product_git_status(), _PRODUCT_STATUS_BEFORE,
                          "a mutation escaped onto the committed tree")
 
 

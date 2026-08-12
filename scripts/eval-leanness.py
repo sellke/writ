@@ -33,7 +33,9 @@ Contract:
                      "per_surface", "total_product_lines",
                      "total_product_chars", "writ_workspace_lines",
                      "story_context_bytes", "story_context_bytes_note",
-                     "contract_compliance", "required_skills_declarations"}
+                     "contract_compliance", "required_skills_declarations",
+                     "inline_skill_reads", "command_budget",
+                     "per_command_invocation"}
     }
 
   Component-contract findings (see CONTRACT_CHECK_SEVERITY) are BLOCKING as
@@ -71,7 +73,58 @@ import sys
 # until genuine growth, then speaks once (warn-only, never blocking).
 MAX_COMMANDS = 35
 MAX_AGENTS = 10
-MAX_SKILLS = 12
+
+# MAX_SKILLS: 12 -> 45, re-derived 2026-08-12 by 2026-08-12-governor-enforcement
+# Story 7. Five sibling specs flagged the old 12 and none could take it, because
+# every progressive-disclosure spec bars itself from scripts/.
+#
+#     MAX_SKILLS = MAX_COMMANDS + MAX_AGENTS = 35 + 10 = 45
+#
+# WHY THAT, AND NOT A NUMBER THAT CLEARS THE ROSTER. Under ADR-021 a skill is
+# not an independent artifact: it exists only because a CONSUMER — a command or
+# an agent — extracted a capability out of itself, and §4 requires shared
+# capability rather than per-consumer copies. So the skill population is
+# structurally bounded by the consumer population, and that population already
+# carries two deliberate ceilings, in this block, set for their own reasons.
+# One skill per potential consumer is the line where extraction has stopped
+# producing shared capability and become a 1:1 shadow of the consumer surface —
+# ADR-021 §4's "two copies instead of one shared skill" expressed as a count,
+# which is the only thing a count can meaningfully express here.
+#
+# 2026-08-11-autonomy-gate-classes Business Rule 1: "a cap chosen after the fact
+# to accommodate whatever was written is not a cap." The three tests it implies:
+#   - computed from constants that exist for other reasons — MAX_COMMANDS and
+#     MAX_AGENTS are untouched here, and the derivation never reads the roster;
+#   - IT CAN STILL FIRE — it fires at 46, and ADR-021 §4 explicitly anticipates
+#     a second disclosure programme (implement-spec among its targets);
+#   - it moves only when its inputs move, each by a deliberate edit.
+# The counterfactual is the whole argument: had the phase's roster landed at 50,
+# this derivation would still yield 45, the cap would fire, and the correct
+# output would be a Tier B escalation rather than a bigger constant.
+#
+# MEASURED 2026-08-12: the corpus is 14 skills — 31 of headroom. The phase's
+# authored rosters projected 35 (29 new across six specs + 6 existing), but five
+# of the six disclosure specs were closed UNIMPLEMENTED after the pilot measured
+# ~1,017 bytes of per-skill overhead and a +9.7% worst-path ceiling regression.
+# Only the pilot's 8 landed. The projection is recorded because the derivation
+# must be answerable to it and clears it either way, not because 14 was the
+# input — a cap derived from what shipped could not have said anything about
+# what did not.
+#
+# WARN-ONLY, and stated because everything around it became blocking. A count is
+# not a unit of load: that is ADR-021's central finding, and Story 3 of the same
+# spec retires a 2000-line command limit for exactly that reason
+# (commands/implement-phase.md is 321 lines and 4,176 bytes over budget). Three
+# further reasons, each independently sufficient: a blocking count cap would
+# BLOCK THE FIX, since under conditional loading a skill on an untaken path
+# costs that run nothing and extraction is the action that lowers per-invocation
+# load; skill bloat is already governed in BYTES by ADR-019's per-surface
+# ratchet with schema-3 bound justifications, which is the right unit and is
+# blocking; and the ceiling_bytes budget that would supersede this count is
+# deferred pending post-disclosure data. Revisit condition, recorded now: if a
+# ceiling_bytes budget is ever adopted, this count cap becomes REDUNDANT, not
+# stricter.
+MAX_SKILLS = 45
 
 # --- The absolute per-invocation byte budget (spec: 2026-08-12-governor-
 # enforcement Story 2; decision: ADR-021 reason 3 + its 2026-08-12 amendment)
@@ -811,15 +864,35 @@ def inline_skill_reads(path: str) -> list[str]:
     return names
 
 
-def check_required_skills(root: str) -> tuple[list[dict], int]:
-    """Every declared skill name resolves to a real skills/<name>/SKILL.md.
+def check_required_skills(root: str) -> tuple[list[dict], int, int]:
+    """Every skill name a consumer names resolves to a real SKILL.md.
 
-    Returns (findings, declaration_count). The count is the point of the
-    second return value: this check has nothing to resolve today — zero
-    declarations exist across the whole product surface — and "0 findings"
-    must not read the same as "0 things checked" (Business Rule 8).
-    check_baseline() is the established precedent for a check that returns
-    more than a bare list.
+    BOTH mechanisms, since 2026-08-12-governor-enforcement Story 7. Returns
+    (findings, declaration_count, inline_read_count).
+
+    Two counts because there are two loading mechanisms and they mean opposite
+    things. `required_skills:` is EAGER — the harness loads every declared skill
+    "before any phase work begins" (system-instructions.md -> Harness contract;
+    adapters/claude-code.md), so a declaration moves those bytes into the floor
+    where every invocation pays them. An inline `Read skills/<n>/SKILL.md` is
+    CONDITIONAL — it costs a run only if execution reaches it. Phase 10 measured
+    that difference and retired the declarative form, so declaration_count is 0
+    by design and indefinitely, while inline_read_count is where the whole
+    surface actually lives.
+
+    Reporting both is Business Rule 8 of 2026-08-11-governor-instrumentation
+    doing its job: "0 findings" must not read the same as "0 things checked",
+    and a permanent 0 on one mechanism is only legible next to a non-zero count
+    on the other. check_baseline() is the established precedent for a check that
+    returns more than a bare list.
+
+    WHY THE INLINE HALF EXISTS. Until this story, a mistyped
+    `Read skills/tdd-cyle/SKILL.md` was a silent no-op: the gate passed, the
+    skill never loaded, and the command quietly lost a capability with nothing
+    failing anywhere. The phase moved its entire skill-loading surface from a
+    mechanism WITH a resolution check to one WITHOUT.
+    scripts/measure-invocation.py does report it under `unresolved_skills`, but
+    it always exits 0 by design and therefore cannot gate.
 
     Resolution is a filesystem check, never a lookup in .writ/manifest.yaml:
     the manifest is separately known-stale, and resolving against it would
@@ -827,23 +900,28 @@ def check_required_skills(root: str) -> tuple[list[dict], int]:
     """
     findings: list[dict] = []
     declarations = 0
+    inline_reads = 0
 
-    sources: list[tuple[str, dict[str, str] | None]] = []
+    sources: list[tuple[str, str, dict[str, str] | None]] = []
     for path in all_command_files(root):
         stem = os.path.splitext(os.path.basename(path))[0]
         if is_infra(stem):
             continue
-        sources.append((f"commands/{stem}.md", read_frontmatter(path)))
+        sources.append((f"commands/{stem}.md", path, read_frontmatter(path)))
     for path in all_agent_files(root):
         stem = os.path.splitext(os.path.basename(path))[0]
-        sources.append((f"agents/{stem}.md", read_agent_config(path)))
+        sources.append((f"agents/{stem}.md", path, read_agent_config(path)))
 
-    for rel, fields in sources:
-        if not fields:
-            continue  # carrier absence is check_component_contract's finding
-        for name in parse_skill_names(fields.get("required_skills", "")):
+    def resolves(name: str) -> bool:
+        return os.path.isfile(os.path.join(root, "skills", name, "SKILL.md"))
+
+    for rel, path, fields in sources:
+        # A missing carrier is check_component_contract's finding, not this
+        # one — but the body is still readable, and an inline read in a file
+        # with no frontmatter is exactly as broken as one in a file with it.
+        for name in parse_skill_names((fields or {}).get("required_skills", "")):
             declarations += 1
-            if os.path.isfile(os.path.join(root, "skills", name, "SKILL.md")):
+            if resolves(name):
                 continue
             findings.append({
                 "subject": f"{rel} → required_skills: {name}",
@@ -853,7 +931,23 @@ def check_required_skills(root: str) -> tuple[list[dict], int]:
                        f"or drop it from required_skills:.",
             })
 
-    return findings, declarations
+        for name in inline_skill_reads(path):
+            inline_reads += 1
+            if resolves(name):
+                continue
+            findings.append({
+                "subject": f"{rel} → Read skills/{name}/SKILL.md",
+                "what": f"inline read of `{name}` resolves to no "
+                        f"skills/{name}/SKILL.md. This is a silent no-op at "
+                        "run time: the agent issues the read, nothing loads, "
+                        "and the command quietly runs without the capability.",
+                "fix": f"Create skills/{name}/SKILL.md, correct the path in {rel}, "
+                       "or remove the read. Inline reads are the phase's loading "
+                       "mechanism (ADR-021, amended 2026-08-12), so a typo here "
+                       "costs a capability rather than a byte.",
+            })
+
+    return findings, declarations, inline_reads
 
 
 def _offender_files(findings: list[dict]) -> set[str]:
@@ -1565,12 +1659,15 @@ def main(argv: list[str] | None = None) -> int:
     # mid-flight; consumers shouldn't break catastrophically)." Hard-failing
     # eval.sh on an unresolved name would contradict the root behavioral
     # contract during exactly the phase that renames skills most.
-    skill_findings, skill_declarations = check_required_skills(root)
+    skill_findings, skill_declarations, skill_inline_reads = check_required_skills(root)
     emit_contract_findings(skill_findings, structural, warnings, severity="warnings")
 
     metrics["contract_compliance"] = contract_compliance(
         root, contract_findings, completion_findings, loop_findings)
     metrics["required_skills_declarations"] = skill_declarations
+    # Beside the permanently-zero declaration count, the count of the mechanism
+    # the phase actually uses. Read them as a pair or neither means anything.
+    metrics["inline_skill_reads"] = skill_inline_reads
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)
