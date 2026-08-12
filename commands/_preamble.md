@@ -60,6 +60,8 @@ Extends ADR-013's select-or-pause boundary above; it does not replace it.
 
 **Reversibility precondition.** A destructive-class operation runs unattended **only when both hold**: (1) its effect is provably git-revertable — confined to tracked files with a resolvable revert target; (2) the restore path is recorded **before** the mutation. If either fails, it **pauses** with a bounded `AskQuestion`.
 
+**Stakes triage (ADR-023).** Before spending diligence on any decision — a read, a gate, a question, a verification step — answer two questions from what you already know. **Does the answer change what happens?** If no, it is not a decision: drop it. **How bad if it's wrong?** Reversible and contained → decide, act, record, no verification step. Irreversible or wide blast radius → full rigor, and the gate class above applies. The triage must cost less than the decision it governs; if answering it needs investigation, that *is* the answer — escalate. No universal exchange rate exists between a decision and its cost, so don't seek one. **Safety gates are never capped by count** — rarity is not irrelevance; a gate names the failure it catches and the cost of missing it, and one that can name neither is the candidate for removal.
+
 ## File Organization
 
 All work is organized into `.writ/`: `specs/` (contracts, stories), `product/`
