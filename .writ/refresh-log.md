@@ -86,3 +86,39 @@
 
 **Scope:** Local only
 **Target file:** commands/status.md
+
+## 2026-08-12 — /implement-phase refreshed
+
+**Signals found:** 6 total, 4 actionable (2 positive, preserved unchanged)
+**Amendments applied:** 3 of 4 proposed
+
+**Changes:**
+
+- Phase branch must not sit under `writ/phase/{phase-id}` (Confidence: High)
+  **Evidence:**
+  - Transcript: session `b94d98ad-caa3-49db-a1ae-d8ea5b3c3f93` (orchestrator, Phase 10 run 1)
+  - Observable signal: "create-lane failed: cannot lock ref 'refs/heads/writ/phase/10/2026-08-11-autonomy-gate-classes': 'refs/heads/writ/phase/10' exists"
+  - Affected section: commands/implement-phase.md → "Step 3.1: Initialize Phase State"
+
+- Lane briefs carry context, never new scope (Confidence: High)
+  **Evidence:**
+  - Transcript: `tasks/a95dc9c6be95ba732.output` (UAT plan author, component-contract)
+  - Observable signal: "an unauthorized fourth roadmap edit ... it invalidates retire-dead-prescription/uat-plan.md Scenario 3 step 4"
+  - Affected section: commands/implement-phase.md → "Step 3.2: Per-Spec Iteration" → Inherited-answer rule
+
+- A truncated or dropped subagent result must be re-requested, not classified (Confidence: High)
+  **Evidence:**
+  - Transcript: `tasks/a02d90be6309626bb.output` (Scenario 20 harness probe)
+  - Observable signal: "4 of 5 subagents had their final reports dropped by the harness and needed a SendMessage follow-up to restate them"
+  - Affected section: commands/implement-phase.md → "Step 3.2: Per-Spec Iteration" → item 2
+
+**Rejected:**
+- Add a `closed_unimplemented` spec status to phase-execution-v2 — reason: no evidence
+  The friction is real and observed (5 specs closed on measured evidence still report `pending`, so `/status` shows them as work-in-flight). But the fix is a schema change to `phase-execution-v2` and its reducer in `scripts/phase-state.py`, not a command-file amendment. `/refresh-command` amends commands; this needs a spec. Recorded here so the signal is not lost.
+
+**Preserved (worked well, deliberately unchanged):**
+- Lane isolation: 12 specs across two runs, 0 quarantined, phase branch never touched by unverified work.
+- The Step 1.2b decomposition pre-pass caught two planning defects before any code moved — `commands/new-command.md` double-claimed by two specs with opposite intent, and ADR-021's `_preamble.md` escape valve being full at 93/95 lines.
+
+**Scope:** Local only
+**Target file:** commands/implement-phase.md
