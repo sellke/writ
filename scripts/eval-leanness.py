@@ -36,11 +36,14 @@ Contract:
                      "contract_compliance", "required_skills_declarations"}
     }
 
-  Component-contract findings (see CONTRACT_CHECK_SEVERITY) land in
-  "warnings" today and become "structural" when the governor-enforcement
-  spec flips that one constant. "contract_compliance" is the trend channel
-  beside them: counts of files checked and files compliant, so the migration
-  specs have one number to move instead of a diff of findings.
+  Component-contract findings (see CONTRACT_CHECK_SEVERITY) are BLOCKING as
+  of 2026-08-12: 2026-08-12-governor-enforcement threw that one constant to
+  "structural" once the surface measured compliant. "contract_compliance" is
+  the coverage channel beside them — counts of files checked and files
+  compliant, so a red or green run says how much surface it covers. The
+  absolute per-invocation byte budget (COMMAND_BYTE_BUDGET) is a separate
+  decision under COMMAND_BUDGET_SEVERITY and is reported non-blocking; the
+  reasoning is at its constant.
 
   "story_context_bytes" is a mixed measurement, not consumed tokens — see
   STORY_CONTEXT_BYTES_NOTE and the sibling "story_context_bytes_note" key.
@@ -315,19 +318,57 @@ BARE_TOKEN = re.compile(r"`([a-z][a-z0-9-]*)`")
 # turns every eval run red, and a permanently red gate becomes invisible —
 # exactly how the growth warnings came to be ignored.
 #
-# THE GOVERNOR-ENFORCEMENT SPEC FLIPS THIS ONE STRING to "structural".
-# Nothing else changes: every check below is a pure function returning
-# list[dict] and routes through emit_contract_findings().
+# THE FLIP WAS THROWN ON 2026-08-12 by 2026-08-12-governor-enforcement Story 5.
+# The whole handoff lives here, at the constant, rather than in a spec folder —
+# which is what the seam was built for. Everything below this line is history a
+# reader arriving cold needs, not decoration.
 #
-# Precondition for the flip: the two migration specs have brought commands and
-# agents into compliance, so a flipped run of the `governor-enforcement` spec
-# is green on a clean tree. Flipping early is the failure this constant exists
-# to prevent, which is why the shipped value is asserted by the test suite.
-#
-# The one-line diff it becomes:
 #     -CONTRACT_CHECK_SEVERITY = "warnings"
 #     +CONTRACT_CHECK_SEVERITY = "structural"
-CONTRACT_CHECK_SEVERITY = "warnings"   # -> "structural"
+#
+# One string. Nothing else changed: every check below is still a pure function
+# returning list[dict] and still routes through emit_contract_findings(). That
+# was 2026-08-11-governor-instrumentation Story 7's promise and it held.
+#
+# THE PRECONDITION, MEASURED BEFORE IT WAS THROWN (Story 4, and it is a
+# committed test — ComplianceGateTests in scripts/tests/test_governor_
+# enforcement.py — not a note someone wrote after checking once):
+#
+#     contract_compliance   commands_with_contract   31/31
+#                           commands_with_completion 31/31
+#                           loop_commands_bounded      5/5
+#                           agents_with_contract       7/7
+#     required_skills_declarations                       0
+#     structural under an in-process "structural" pin   []
+#
+# The last line is the one that mattered: `structural: []` under the shipped
+# "warnings" value proves nothing, because the findings would sit in `warnings`
+# either way. Pinning "structural" in-process and finding the list STILL empty
+# is what proved the flip was safe. That test stays in the suite as the
+# permanent regression guard for the state this constant now depends on.
+#
+# GOVERNING DECISIONS. ADR-020 "Enforcement sequencing (load-bearing)": checks
+# land as `warnings` and flip to blocking ONLY once the migration brings the
+# surface into compliance. ADR-021 reason 2 ("growth warns, it does not fail")
+# is what this answers — the reason the old governor never caught 516KB of
+# command prose. Both are satisfied in that order and not before.
+#
+# WHAT AN UN-FLIP WOULD MEAN. Setting this back to "warnings" does not weaken
+# one check; it silently disarms all four across every command and agent, and
+# the surface would stay green while drifting. If a future migration genuinely
+# needs the channel quiet, un-flip DELIBERATELY, record the date and the reason
+# here, and expect FlipSeamTests.test_shipped_default_is_structural to go red —
+# that test exists to make an accidental un-flip impossible to land unnoticed.
+#
+# WHAT THIS CONSTANT DOES NOT GOVERN. The absolute per-invocation byte budget
+# (COMMAND_BYTE_BUDGET / COMMAND_BUDGET_SEVERITY) is its own decision and never
+# routes through here — one string must not control two independent gates, or
+# an un-flip would take the budget out as collateral. `check_required_skills`
+# stays pinned to "warnings" regardless of this value, per system-instructions.md's
+# graceful-degradation contract. An unrecognised value here still falls back to
+# "warnings": a typo must never silently disable a check and must never
+# accidentally block a run.
+CONTRACT_CHECK_SEVERITY = "structural"
 
 # The three fields ADR-020 makes the component contract. Presence and
 # non-emptiness only: the lint can verify the field exists and says something;
