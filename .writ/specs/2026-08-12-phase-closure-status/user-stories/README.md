@@ -1,7 +1,7 @@
 # User Stories — Terminal Status For A Spec Closed By Decision
 
 > Spec: [spec.md](../spec.md)
-> Total stories: 4 · Total tasks: 27 · Complete: 14/27 (52%)
+> Total stories: 4 · Total tasks: 27 · Complete: 21/27 (78%)
 
 ## Stories
 
@@ -9,7 +9,7 @@
 |---|---|---|---|---|---|
 | 1 | [Enforced Status Vocabulary](story-1-enforced-status-vocabulary.md) | Completed ✅ | High | 7/7 | 100% |
 | 2 | [The `close-spec` Subcommand](story-2-close-spec-subcommand.md) | Completed ✅ | High | 7/7 | 100% |
-| 3 | [Contract Surfaces — Schema Doc and Commands](story-3-contract-surfaces.md) | Not Started | High | 0/7 | 0% |
+| 3 | [Contract Surfaces — Schema Doc and Commands](story-3-contract-surfaces.md) | Completed ✅ | High | 7/7 | 100% |
 | 4 | [Close The Loop On The Live Phase 10b State](story-4-close-the-loop.md) | Not Started | Medium | 0/6 | 0% |
 
 ## Dependencies

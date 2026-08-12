@@ -1,6 +1,6 @@
 # Story 3: Contract Surfaces — Schema Doc and Commands
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 2
 > **Estimated Tasks:** 7
@@ -92,26 +92,26 @@ And the check reports zero findings
 
 ## Implementation Tasks
 
-- [ ] **Write the static assertions first.** Add the AC-6 `require_literal` calls to
+- [x] **Write the static assertions first.** Add the AC-6 `require_literal` calls to
       `check_phase_closure()` in `scripts/eval.sh`, modeled on the assertion block at
       the tail of `check_phase_health()` (`scripts/eval.sh:2398-2407`). They fail
       against the current docs and commands.
-- [ ] Update `.writ/docs/phase-execution-state-format.md`: the `specs.{id}.status` row
+- [x] Update `.writ/docs/phase-execution-state-format.md`: the `specs.{id}.status` row
       in the field-contract table, a new "Closure by Decision" section placed after
       "Quarantine and Resume", the widened `blockedBy` definition, and the status
       enumeration under "Progress and Health" (AC-1).
-- [ ] Update `commands/implement-phase.md` frontmatter `exit_criteria[0]` to admit
+- [x] Update `commands/implement-phase.md` frontmatter `exit_criteria[0]` to admit
       `closed_unimplemented` (AC-2).
-- [ ] Wire Step 1.2b: record the decomposition-time closure path — a feature that
+- [x] Wire Step 1.2b: record the decomposition-time closure path — a feature that
       resolves to a spec the pre-pass decides not to build is closed with a reason
       rather than authored (AC-3).
-- [ ] Wire Step 3.3: record the mid-run closure path and state plainly how it differs
+- [x] Wire Step 3.3: record the mid-run closure path and state plainly how it differs
       from the failure path above it — no `classify`, no retry, no `quarantine`, no
       recovery command (AC-3).
-- [ ] Add the mandatory "Closed by decision" section to the completion report in
+- [x] Add the mandatory "Closed by decision" section to the completion report in
       `commands/implement-phase.md`, and update `commands/status.md` Step 4's count list
       (AC-4, AC-5).
-- [ ] **Verify:** run `bash scripts/eval.sh --check=phase-closure`, then the full
+- [x] **Verify:** run `bash scripts/eval.sh --check=phase-closure`, then the full
       `bash scripts/eval.sh` to confirm the doc and command edits break no other check —
       `length`, `broken-refs`, `required-sections`, `loop-bounds`, and
       `autonomy-governance` all read these files.
@@ -140,15 +140,15 @@ And the check reports zero findings
 
 ## Definition of Done
 
-- [ ] The schema doc carries the closure section, the updated status row, and the
+- [x] The schema doc carries the closure section, the updated status row, and the
       widened `blockedBy` definition
-- [ ] `exit_criteria[0]` admits `closed_unimplemented`
-- [ ] Step 1.2b and Step 3.3 both describe their closure path and cite `close-spec`
-- [ ] The completion report's "Closed by decision" section is documented as mandatory
-- [ ] `commands/status.md` Step 4 lists both new statuses and stays read-only
-- [ ] `check_phase_closure()` carries static assertions for every surface above
-- [ ] `bash scripts/eval.sh --check=phase-closure` reports zero findings
-- [ ] Full `bash scripts/eval.sh` shows no new findings in any other check
+- [x] `exit_criteria[0]` admits `closed_unimplemented`
+- [x] Step 1.2b and Step 3.3 both describe their closure path and cite `close-spec`
+- [x] The completion report's "Closed by decision" section is documented as mandatory
+- [x] `commands/status.md` Step 4 lists both new statuses and stays read-only
+- [x] `check_phase_closure()` carries static assertions for every surface above
+- [x] `bash scripts/eval.sh --check=phase-closure` reports zero findings
+- [x] Full `bash scripts/eval.sh` shows no new findings in any other check
 
 ## Context for Agents
 

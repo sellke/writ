@@ -60,7 +60,9 @@ Later Phase 6 stories extend this schema:
 | `schemaVersion` | Always `2` for this format. A reader that sees an unsupported major reports before mutating. |
 | `phase` / `phaseBranch` | The roadmap phase ID and the git branch that accumulates only verified work. |
 | `specOrder` | The topologically ordered spec list (see `scripts/spec-deps.py`). |
-| `specs.{id}.status` | One of `pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`. |
+| `specs.{id}.status` | One of `pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`, `challenge_required`, `closed_unimplemented`. Enforced on **write** by `_set_status`; readers stay tolerant so a status written by a newer reducer is reported, never rejected. |
+| `specs.{id}.blockedBy` | The upstream specs that stopped this one. Reads as "upstream reached a terminal status **without delivering**" — a quarantine *or* a closure. `progress` reports which. |
+| `specs.{id}.closure` | `{reason, closedAt}` on a spec closed by decision. The reason is mandatory; the phase report prints it. |
 | `specs.{id}.attempts` | Incremented on each lane launch; Story 4 bounds retries against it. |
 | `specs.{id}.laneBranch` | The active lane branch `writ/phase/{phase}/{spec}`. |
 | `specs.{id}.worktreePath` | The isolated worktree path while active; nulled after a successful merge removes it. |
@@ -200,6 +202,54 @@ names each discrepancy, and **does not guess or mutate git** — state is joint
 evidence with git, never permission to recreate, rename, delete, or merge branches
 to "repair" reality.
 
+## Closure by Decision
+
+Not every spec that stops was stopped by a problem. A maintainer may decide, at
+decomposition time or mid-run, that a resolved spec will never be built — because
+measured evidence retired its premise, because another spec subsumed it, or because the
+phase's scope changed. `closed_unimplemented` is that state.
+
+None of the other statuses can express it, and each is wrong in a specific way:
+
+| Status | Why it does not fit |
+|---|---|
+| `failed` | Implies something went wrong. Nothing did. |
+| `quarantined` | Preserves a recovery lane for broken work. There is nothing to recover. |
+| `skipped_blocked` | Requires an upstream blocker. A closed spec was not blocked; it was decided against. |
+| `pending` | Means "not started yet". A closed spec will never start. |
+
+This mirrors the spec layer, where `scripts/spec-status.py` already treats a
+`Status: Closed — …` header as part of the complete family. Before this status existed,
+a phase whose specs were all closed reported them as `pending` and `/status` showed a
+finished phase as work in flight.
+
+`scripts/phase-state.py close-spec --state S --repo R --spec ID --reason "…"`:
+
+1. **The reason is mandatory.** A blank or missing `--reason` is `invalid_closure`,
+   raised before the state file is read and before any git call — a refused closure
+   leaves the file byte-identical. The reason is required because the phase report is
+   obliged to print it; an unexplained closure would be a blank line in an audit trail.
+2. **The worktree is freed; the lane branch is kept.** Any partial work stays reachable
+   under its original `writ/phase/{phase}/{spec}` name. There is deliberately **no**
+   rename into `writ/quarantine/…`: that namespace means failure, and no closure implies
+   one. Consequently a closed spec's lane is *not* "failed work outside quarantine".
+3. **No recovery command is offered.** Quarantine returns one because its work is meant
+   to be resumed. Closure is terminal.
+4. **Dependents cascade to `skipped_blocked`**, with the closed spec appended to
+   `blockedBy` — **except** any dependent already in a terminal status. Downgrading an
+   `integrated` dependent would discard its recorded `mergeCommit`.
+5. **Re-closing is refused** as `already_closed`, preserving the first decision's reason
+   and timestamp rather than silently overwriting them.
+
+### The widened `blockedBy`
+
+Routing closures through `skipped_blocked` changes what `blockedBy` means. It no longer
+implies an upstream *failure*; it means the upstream reached a terminal status **without
+delivering** — a quarantine or a closure. Left implicit, that would mislead: a reader
+seeing `skipped_blocked` would go looking for a `writ/quarantine/…` branch that was
+never created. So `progress` reports the cause per blocked spec (see below), and any
+consumer that explains a blocked spec must say which cause applies.
+
 ## Knowledge Writeback (D6 — Story 5)
 
 At phase close, `scripts/phase-state.py knowledge-writeback` evaluates candidate
@@ -222,9 +272,16 @@ Two read-only reducers turn recorded state and locally available evidence into a
 honest snapshot — never a heavyweight probe of production or the network.
 
 `scripts/phase-state.py progress` reports, from state alone: the phase and its
-branch, the current implementing spec and its active lane, per-status spec counts
-(`pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`),
-and the list of quarantine branches. It computes nothing it cannot read from state.
+branch, the current implementing spec and its active lane, per-status spec counts, the
+list of quarantine branches, `closed` (each closed spec with its recorded reason), and
+`blocked` (each blocked spec with its upstream specs and the `cause` — `quarantined` or
+`closed_unimplemented`). It computes nothing it cannot read from state.
+
+The counts are **seeded from `SPEC_STATUSES`**, so every declared status always appears —
+reporting `0` rather than being absent — and the two can never drift. That drift is not
+hypothetical: `challenge_required` was written by the reducer while missing from both the
+status set and the counts. Accumulation still uses a defaulted lookup, so a status from a
+newer reducer is counted under its own key instead of crashing the read.
 
 `scripts/phase-state.py health` returns a **categorical** disposition — never a
 numeric score — over three ordered categories:
