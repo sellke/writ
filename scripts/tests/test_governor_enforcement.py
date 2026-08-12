@@ -60,6 +60,20 @@ def load_measure():
     return module
 
 
+def function_code(name: str) -> str:
+    """A function's executable source, with its docstring and comments stripped.
+
+    These assertions are about what the CODE consults, not about what the prose
+    around it is allowed to mention. A check whose docstring explains why it
+    ignores justifications must not fail a test looking for the word.
+    """
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    _, _, tail = source.partition(f"def {name}(")
+    body = tail.split("\ndef ", 1)[0]
+    body = re.sub(r'"""(?:.|\n)*?"""', "", body)
+    return "\n".join(line.split("#", 1)[0] for line in body.split("\n"))
+
+
 def write_command(root: Path, name: str, body: str) -> Path:
     path = root / "commands" / f"{name}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -240,11 +254,7 @@ class CommandBudgetTests(unittest.TestCase):
             write_command(Path(tmp), "_preamble",
                           sized_command(lean.COMMAND_BYTE_BUDGET + 5000))
             self.assertEqual(lean.check_command_budget(tmp), [])
-        source = "".join(
-            line for line in open(MODULE_PATH, encoding="utf-8")
-        )
-        _, _, tail = source.partition("def check_command_budget(")
-        body = tail.split("\ndef ", 1)[0]
+        body = function_code("check_command_budget")
         self.assertNotIn("_preamble", body,
                          "infra exclusion must reuse is_infra(), never a filename")
         self.assertIn("is_infra", body)
@@ -281,7 +291,10 @@ class CommandBudgetTests(unittest.TestCase):
             self.assertIn("24960", finding["what"])
             self.assertIn("5040", finding["what"])
             self.assertIn("ADR-021", finding["fix"])
-            self.assertNotIn("exempt", finding["fix"].lower())
+            for prescription in ("add an exemption", "eval-exempt",
+                                 "raise the budget"):
+                self.assertNotIn(prescription, finding["fix"].lower(),
+                                 "the remedy is extraction, never a silencer")
 
     def test_the_cap_never_reads_the_severity_constant_or_a_baseline(self):
         """Severity-independence, asserted across all three values of the seam
@@ -296,9 +309,7 @@ class CommandBudgetTests(unittest.TestCase):
                 baseline.append(lean.check_command_budget(tmp))
             for produced in baseline[1:]:
                 self.assertEqual(produced, baseline[0])
-        source = MODULE_PATH.read_text(encoding="utf-8")
-        _, _, tail = source.partition("def check_command_budget(")
-        body = tail.split("\ndef ", 1)[0]
+        body = function_code("check_command_budget")
         for forbidden in ("CONTRACT_CHECK_SEVERITY", "emit_contract_findings",
                           "justification", "baseline", ".writ"):
             self.assertNotIn(forbidden, body,
@@ -337,11 +348,10 @@ class CommandBudgetTests(unittest.TestCase):
     def test_command_bytes_agrees_with_measure_invocation_on_the_real_repo(self):
         """One accounting, two readers. Two implementations of "how big is this
         command" that can disagree is a defect waiting for its first file."""
-        measure = load_measure()
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            measure.main(["--root", str(REPO_ROOT), "--format", "json"])
-        reported = json.loads(out.getvalue())["commands"]
+        result = subprocess.run(
+            [sys.executable, str(MEASURE_PATH), "--root", str(REPO_ROOT),
+             "--format", "json"], capture_output=True, text=True, check=True)
+        reported = json.loads(result.stdout)["commands"]
         mine = lean.command_byte_sizes(str(REPO_ROOT))
         self.assertGreater(len(mine), 0)
         for name, entry in reported.items():
@@ -552,9 +562,7 @@ class MaxSkillsDerivationTests(unittest.TestCase):
         self.assertEqual(lean.check_ceilings(metrics), [])
 
     def test_max_skills_stays_warn_only(self):
-        source = MODULE_PATH.read_text(encoding="utf-8")
-        _, _, tail = source.partition("def check_ceilings(")
-        body = tail.split("\ndef ", 1)[0]
+        body = function_code("check_ceilings")
         self.assertIn("warnings", body)
         self.assertNotIn("structural", body)
 
