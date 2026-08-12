@@ -2831,6 +2831,32 @@ check_revert() {
   require_literal "$refactor_cmd" 'proceed to Step 1.1b' "refactor.md's direct-target path must route through the dirty-tree guard."
 
   # Story-SHA recording + reverted-WWB non-authoritative loader rule.
+
+  # Story 2 — the safe-refactor-loop checkpoint. Gate 0 found both of this
+  # story's original criteria already green on the unmodified file, so the
+  # story had no verification of its own deliverable. These pin the ASSERTION
+  # and the REVERT TARGET, not the topic — a checkpoint that captures a SHA no
+  # step consumes is a number nothing reads.
+  local refactor_skill="$PROJECT_ROOT/skills/safe-refactor-loop/SKILL.md"
+  require_literal "$refactor_skill" 'git status --porcelain' \
+    "safe-refactor-loop must assert a clean tree at the checkpoint, not assume one."
+  require_literal "$refactor_skill" 'top of every iteration' \
+    "the clean-tree assertion must hold on every iteration, not just the first."
+  require_literal "$refactor_skill" 'revert target' \
+    "the captured HEAD SHA must be named as what step 4 reverts to."
+  require_literal "$refactor_skill" 'including files the change created' \
+    "a red revert must restore created files, or the next checkpoint stops on its own leftovers."
+  # Gate 3 proved the two pins above are weaker than they look. `revert target`
+  # occurs twice — the declaration at step 1 and the consumption at step 4 — and
+  # grep -Fq cannot tell them apart, so a surgical revert of step 4's clause left
+  # every pin green and re-opened the dead-SHA defect. And the assertion's
+  # CONSEQUENCE was unpinned: 'stop and report' softened to 'note and continue'
+  # also passed. Presence is not enforcement — same defect class as the /refactor
+  # jump sentence one level up.
+  require_literal "$refactor_skill" "revert to the checkpoint's **revert target**" \
+    "step 4's red branch must consume the captured SHA, not merely mention the term."
+  require_literal "$refactor_skill" 'stop and report what is uncommitted' \
+    "the clean-tree assertion must stop the loop, not merely note the condition."
   require_literal "$implement_story" '> **Commit:**' "implement-story must record the story commit SHA."
   require_literal "$implement_story" 'Skip reverted records' "implement-story Step 2 must skip reverted WWB records."
   require_literal "$wwb_doc" '> **Reverted:**' "The WWB doc must define the Reverted banner convention."
