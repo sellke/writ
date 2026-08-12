@@ -4,7 +4,7 @@
 > **Source:** `git show 9e76d1e:commands/implement-story.md` (52,709 bytes / 989 lines).
 > `<base>` = `9e76d1ecf50a6e2ecfe86b673175e5fb12ecce1f` — resolved once, used identically by Stories 5 and 6.
 > **Purpose:** Business Rule 2's verification method. Story 6 walks this file row by row and fills `Where it lives now`. **Zero unaccounted rows** is the pass condition. A row whose wording changed is fine; a row whose rule is gone is a defect.
-> **Built from the file, not from the technical spec's section ledger** — that ledger is a byte accounting of 36 sections; this is a rule accounting of 264 rules.
+> **Built from the file, not from the technical spec's section ledger** — that ledger is a byte accounting of 36 sections; this is a rule accounting of **281 rules**.
 
 **Categories:** `gate` · `agent-binding` · `skip-rule` · `threshold` · `vocabulary` · `degradation` · `log-string` · `output-var` · `rule` (everything else that is a decision rule, format, or always/never clause).
 
@@ -512,3 +512,68 @@ These restate rows already above, grouped so a reviewer can check a whole catego
 | 4 Testing | keep | keep | — | 276 |
 | 4.5 Visual QA | skip | keep | also skipped when no visual references exist | 225 |
 | 5 Docs | skip | keep | — | 233, 275 |
+
+---
+
+## AA. Walk record (Story 6, 2026-08-12)
+
+**Result: 281 rows, 281 accounted for, zero unaccounted removals.**
+
+### Method
+
+Worked from this inventory, not from the diff — a diff shows what moved and is blind to what was dropped, which is the failure mode Business Rule 2 exists to catch. Every row's `Where it lives now` names `commands/implement-story.md`, exactly one of the eight `SKILL.md` files, both (where a contract stub stayed behind and the procedure left), or a **contracted** disposition citing what still carries the information.
+
+Then the walk was **machine-checked**: 75 exact strings — every literal log line, every numeric threshold, every result-vocabulary token, every named fallback value and every schema marker — were grepped across `commands/implement-story.md` plus all 14 `skills/*/SKILL.md`. **All 75 present.** Four initially reported missing and all four were line-wrap artifacts rather than drops; re-checked whitespace-normalized, all four resolved. One of them — the `⚠️ Spec-lite.md missing "## For {Role} Agents" section — using full content` log line — was **unwrapped onto a single line in the skill anyway**, because a user-visible log string broken across source lines is a string a future author can silently reflow.
+
+### Disposition summary
+
+| Disposition | Rows |
+|---|---|
+| `commands/implement-story.md` only | 119 |
+| Exactly one `SKILL.md` only | 142 |
+| Both (contract stub in the command, procedure in a skill) | 17 |
+| **Contracted** — deleted duplicate, information carried elsewhere with a citation | 3 (rows 99, 198, 213) |
+| **Unaccounted** | **0** |
+
+### The three contracted rows, each with its citation
+
+| Row | What was deleted | What carries it now |
+|---|---|---|
+| 99 | C1 — the 41-line "Example Coding Agent Context (with WWB)" worked example (L299–339) | The aggregation format it illustrated, specified once in `dependency-context-loading` → *6. Aggregate*. The example was a second copy of a format stated 20 lines above it. |
+| 198 | C5 — the ten-line `#### [DEV-003]` drift-log entry example (L659–668) | `.writ/docs/drift-report-format.md`, which the source already cited two lines earlier as the format authority and which `drift-triage` and the command both point at. |
+| 213 | C2 — the `what_was_built_data` JavaScript object literal (L712–728) | `what-was-built-authoring`'s five extraction sources plus its Formatting Template, which enumerate every field once. One field list, one syntax, instead of the same list in two. |
+
+None of the three deleted a rule. Each deleted a *second copy* of something specified elsewhere in the same text, which is the contraction Business Rule 2 explicitly permits.
+
+### Rewording ledger
+
+Rows whose wording changed materially. Every other row transferred verbatim or with only whitespace, heading-level or list-marker changes — and the 75-string grep above is the check on that claim.
+
+| Row(s) | What changed | Note confirming the rule is the same |
+|---|---|---|
+| 7 | The Overview's arrow sequence became "architecture check through documentation; the Pipeline table below is the stage list" | The full ordered stage list is the Pipeline table, one row per stage in pipeline order — the same ten gates plus Steps 2 and 4. |
+| 16, 17 | The ASCII diagram became the Pipeline table | Same ten gates, same names, same modality (read-only / inline / TDD / auto / + coverage / adaptive) now in a `Runs as` column rather than a box. |
+| 18 | Arrow annotations became one **Control flow** sentence | Same five transitions and the same parenthetical "max 3 iterations total across review + visual QA". Deliberately phrased *"iterations total across review"* so it does not match `eval-loop-bounds.py:485`'s `Max (\d+) iterations across review` regex ahead of the Gate 3 sentence that check is meant to read. |
+| 29 | Four sub-bullets became one inline list | Same four actions in the same order. |
+| 32, 33 | Delegation prose condensed | Both clauses survive: the script is the **sole** implementation, and the caller **does not restate its algorithm**. |
+| 52 | "Prefer categories by agent" now names consuming roles ("Architecture review", "Coding", "Code review") instead of gate-bound agent names | Same three preference orders. The rename is Business Rule 3 rule 5 — a shared skill carries no consumer's vocabulary. |
+| 119, 176, 217, 227, 236 | Gate 0, Gate 3, Gate 4, Gate 4.5 and Gate 5 bullet lists became inline semicolon lists | Same items, same order, no item dropped. Kept in the **command**, not moved to `agents/*.md`, precisely so this walk can count them. |
+| 130 | The `boundary_map` schema fence transferred whole to the skill | Byte-identical fenced block; fenced content is lint-exempt so nothing needed rewriting. |
+| 132, 133 | The separate **Flags (annotations)** list became one paragraph beneath the schema (C4) | Both flag semantics survive in full — the still-Owned-if-tasks-name-it rule and the warn → higher-scrutiny rule. |
+| 138 | "Gate 0 overrides" became "Architecture-review overrides" | Same `### Warnings for Coding Agent` parse, same demotion, same `_(arch-check: do not modify — boundary override)_` annotation. The gate number left because a skill may not name its extraction site. |
+| 143–145 | "Check 5 persistence (for Gate 0.5 step 5)" became "Persistence of the overlap data step 5 reads" | Both locations, the exact `## Check 5 — File overlap` heading, the table, the warn → high-overlap mapping and the degradation all survive. |
+| 153, 222 | The two `STATUS: BLOCKED` `AskQuestion` blocks became one parameterized `### BLOCKED Agent Escalation` template (C6) | Same three options with the same ids and labels, same `FAILURE` / `PARTIAL_STATE` fields, same title pattern. The two gate-specific skip-with-warning notes stay at Gate 1 and Gate 4, which is the only thing that ever differed. |
+| 156–160 | Gate 2's linter list and four-step failure ladder became inline | Same three toolchains, same four steps in order. |
+| 162 | Gate 2.5's framing condensed | Classification still drives review attention, is still passed as `change_surface`, and the `boundary_map` cross-check is still optional with the same full-stack-on-a-Readable-file example. |
+| 175 | Gate 3's Input paragraph condensed | Every parameter survives by name, including `boundary_overlap_summary` and its "distilled from Readable lines carrying overlap or high-overlap" derivation. |
+| 183–197 | Drift severities split — a three-clause stub in the command, full procedures in `drift-triage` | The command keeps the vocabulary, the PAUSE-and-ask-the-user orchestration and "spec.md is never auto-modified"; the skill keeps the Small-drift sequence, the blocking acknowledgment, the mixed-severity rule and the append-only DEV-ID rules. |
+| 199, 214 | Gate 3.5 § B reduced to the extraction contract plus the three-hop data flow | The five sources and their fallbacks live in `what-was-built-authoring`, read at Step 4 item 4. **Recorded consequence:** the spec's own placement ruling (one read per skill, at Step 4 because `--quick` still writes the minimal record) means the extraction rules are not loaded at the gate that extracts. The command names where they live; the rule itself is unchanged. |
+| 209 | "number of Gate 3 review loops" became "the number of review loops", tracked by the caller | Same counter, same owner. The gate number left the skill for the same reason as row 138. |
+| 246–251 | Provenance prose tightened | All five rules survive verbatim in meaning: `git rev-parse HEAD`, placement beside `> **Status:**`, update-in-place-never-duplicate, the bookkeeping-commit fold with the **do not `--amend`** prohibition *and its reason*, and the optional-field fallback chain. |
+| 252–270 | The record's template and append procedure moved whole to `what-was-built-authoring` | The three deliberately different empty states (`[None created]` / `[None modified]`, omit-Implementation-Decisions-entirely, print `None` for Deviations) are called out explicitly in the skill so a later author does not harmonize them. |
+| 267 | The `--quick` minimal record is labelled "a second template, not a degraded copy of the first" | Same banner, same four sections. |
+| 112 | The Integrity line's two states now appear in **both** the command and `project-context-snapshot` | Required by `scripts/eval-artifact-integrity.py:96`, which asserts the command contains both `**Integrity:**` and `missing required` — a twelfth pinned constraint the technical spec's Pinned Literals table did not list. |
+
+### Rows deliberately kept in the command against byte pressure
+
+Rows 119, 176, 217, 227 and 236 — Gate 0's and Gate 3's review dimensions, Gate 4's process, Gate 4.5's capture steps and Gate 5's updates — also appear in the corresponding `agents/*.md`. Pointing at those files would have saved roughly 1,500 bytes and closed part of the ceiling regression. It was rejected: an agent definition is neither `commands/implement-story.md` nor one of the eight `SKILL.md` files, so each of those rows would have become **unaccounted** in this walk. The byte cost is recorded in the load report instead.

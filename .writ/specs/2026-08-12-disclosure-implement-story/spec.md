@@ -1,6 +1,6 @@
 # Spec: Progressive Disclosure — `implement-story`
 
-> **Status:** Not Started
+> **Status:** Completed ✅ (2026-08-12)
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-12
 > **Dependencies:** []

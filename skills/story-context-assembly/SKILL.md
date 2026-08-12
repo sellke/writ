@@ -155,8 +155,8 @@ it, is the consumer's routing decision.
   `## For {Role} Agents` headers) → use **full** spec-lite content for **all**
   roles.
 - A specific section is missing → fall back to full spec-lite content for that
-  role and log: `⚠️ Spec-lite.md missing "## For {Role} Agents" section — using
-  full content`.
+  role and log:
+  `⚠️ Spec-lite.md missing "## For {Role} Agents" section — using full content`
 - `fetched_context` is empty (no hints parsed, or all references missing) →
   the role receives its spec-lite section only. That is still an improvement
   over the full file for non-legacy specs.
