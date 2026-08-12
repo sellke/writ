@@ -1,6 +1,6 @@
 # Story 2: The `close-spec` Subcommand
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** Story 1
 > **Estimated Tasks:** 7
@@ -82,31 +82,31 @@ Then reconcile reports that named mismatch, symmetric with quarantine handling
 
 ## Implementation Tasks
 
-- [ ] **Write the scenarios first.** Append AC-1..AC-5 scenarios to
+- [x] **Write the scenarios first.** Append AC-1..AC-5 scenarios to
       `scripts/eval-phase-closure.py`, using its `new_repo()` helper for the git-backed
       cases (AC-3, AC-5). They fail — `close-spec` does not exist.
-- [ ] Implement `cmd_close_spec` in `scripts/phase-state.py`: validate the reason
+- [x] Implement `cmd_close_spec` in `scripts/phase-state.py`: validate the reason
       first (raise `ContractError("invalid_closure", ...)` on missing/blank **before**
       loading or touching git), resolve the record via `_spec_record`, capture the
       phase-branch head.
-- [ ] Handle the lane: remove the worktree via
+- [x] Handle the lane: remove the worktree via
       `_git(repo, "worktree", "remove", "--force", ...)` when `worktreePath` exists,
       null `worktreePath`, and **retain** `laneBranch` unchanged. Perform no branch
       rename and no branch deletion.
-- [ ] Write the closure record: `_set_status(record, "closed_unimplemented")`,
+- [x] Write the closure record: `_set_status(record, "closed_unimplemented")`,
       `record["closure"] = {"reason": reason, "closedAt": _now()}`, and append
       `f"closed:{reason}"` to `evidence`. Re-read the phase head and report
       `phaseBranchClean`.
-- [ ] Cascade dependents: reuse `_transitive_dependents(state, spec)`; for each, set
+- [x] Cascade dependents: reuse `_transitive_dependents(state, spec)`; for each, set
       `skipped_blocked` via `_set_status` and append the closed spec to `blockedBy` —
       **skipping any dependent already in `TERMINAL_SPEC_STATUSES`** so finished work is
       never downgraded (AC-4).
-- [ ] Wire the CLI: register the `close-spec` subparser in `main()` with `--state`,
+- [x] Wire the CLI: register the `close-spec` subparser in `main()` with `--state`,
       `--repo`, `--spec`, `--reason` (all required), alongside the existing
       `quarantine` parser. Extend `cmd_reconcile` with the `closed_unimplemented`
       branch from AC-5, and extend `cmd_progress` with the per-blocked-spec cause
       breakdown.
-- [ ] **Verify:** run `bash scripts/eval.sh --check=phase-closure`, then
+- [x] **Verify:** run `bash scripts/eval.sh --check=phase-closure`, then
       `--check=phase-lanes`, `--check=phase-challenges`, `--check=phase-quarantine`,
       `--check=phase-health` to prove the shared reducer still satisfies its siblings.
 
@@ -135,15 +135,15 @@ Then reconcile reports that named mismatch, symmetric with quarantine handling
 
 ## Definition of Done
 
-- [ ] `cmd_close_spec` exists with a registered `close-spec` subparser
-- [ ] A blank or missing reason raises `invalid_closure` with the state file untouched
-- [ ] Mid-run closure removes the worktree, retains the lane branch, and proves
+- [x] `cmd_close_spec` exists with a registered `close-spec` subparser
+- [x] A blank or missing reason raises `invalid_closure` with the state file untouched
+- [x] Mid-run closure removes the worktree, retains the lane branch, and proves
       `phaseBranchClean`
-- [ ] Transitive dependents cascade to `skipped_blocked`; terminal dependents are skipped
-- [ ] `progress` distinguishes closure-caused from quarantine-caused blocking
-- [ ] `reconcile` returns `consistent` for closed specs and flags a missing retained lane
-- [ ] Repeat-closure behavior is decided, implemented, and covered by a scenario
-- [ ] `bash scripts/eval.sh --check=phase-closure` and the four sibling phase checks
+- [x] Transitive dependents cascade to `skipped_blocked`; terminal dependents are skipped
+- [x] `progress` distinguishes closure-caused from quarantine-caused blocking
+- [x] `reconcile` returns `consistent` for closed specs and flags a missing retained lane
+- [x] Repeat-closure behavior is decided, implemented, and covered by a scenario
+- [x] `bash scripts/eval.sh --check=phase-closure` and the four sibling phase checks
       report zero findings
 
 ## Context for Agents

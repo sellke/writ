@@ -534,6 +534,75 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def cmd_close_spec(args: argparse.Namespace) -> dict[str, Any]:
+    """Terminal disposition by *decision*: this spec will never be built.
+
+    Distinct from quarantine in three ways that all follow from "nothing
+    failed": the lane branch keeps its `writ/phase/...` name rather than being
+    renamed into `writ/quarantine/...`, no recovery command is offered, and the
+    reason is mandatory — the phase report is obliged to print it, so an
+    unexplained closure is an invalid write rather than a blank line in a report.
+    """
+    reason = (args.reason or "").strip()
+    if not reason:
+        # Validated before _load and before any git call: a refused closure must
+        # leave the state file byte-identical.
+        raise ContractError("invalid_closure",
+                            "a closure must record why the spec will not be built")
+
+    state_path = Path(args.state)
+    repo = Path(args.repo)
+    state = _load(state_path)
+    record = _spec_record(state, args.spec)
+
+    if record.get("status") == "closed_unimplemented":
+        # Never silently overwrite the first decision's reason and timestamp.
+        raise ContractError(
+            "already_closed",
+            f"{args.spec} was already closed: "
+            f"{(record.get('closure') or {}).get('reason', 'no reason recorded')}",
+        )
+
+    phase_head_before = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
+
+    # Free the worktree, but keep the lane branch: partial work is preserved
+    # without a quarantine rename that would imply something went wrong.
+    worktree_path = record.get("worktreePath")
+    if worktree_path and Path(worktree_path).exists():
+        _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
+    record["worktreePath"] = None
+
+    _set_status(record, "closed_unimplemented")
+    record["closure"] = {"reason": reason, "closedAt": _now()}
+    record.setdefault("evidence", []).append(f"closed:{reason}")
+
+    blocked: list[str] = []
+    for dep in _transitive_dependents(state, args.spec):
+        dep_record = state["specs"][dep]
+        if dep_record.get("status") in TERMINAL_SPEC_STATUSES:
+            # A dependent that already reached a terminal status keeps it —
+            # downgrading an integrated spec would discard its merge commit.
+            continue
+        _set_status(dep_record, "skipped_blocked")
+        bl = dep_record.setdefault("blockedBy", [])
+        if args.spec not in bl:
+            bl.append(args.spec)
+        blocked.append(dep)
+
+    phase_head_after = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
+
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {
+        "status": "closed_unimplemented",
+        "spec": args.spec,
+        "reason": reason,
+        "laneBranch": record.get("laneBranch"),
+        "phaseBranchClean": phase_head_after == phase_head_before,
+        "blockedDependents": blocked,
+    }
+
+
 def cmd_reconcile(args: argparse.Namespace) -> dict[str, Any]:
     """Read-only resume reconciliation: does recorded state agree with git?
 
@@ -563,6 +632,17 @@ def cmd_reconcile(args: argparse.Namespace) -> dict[str, Any]:
             qb = rec.get("quarantineBranch")
             if qb and not branch_exists(qb):
                 mismatches.append(f"{spec}: quarantine branch {qb} recorded but missing in git")
+        if status == "closed_unimplemented":
+            # A closed spec keeps its lane branch as preserved evidence, so a
+            # recorded lane that has vanished is reported — symmetric with a
+            # missing quarantine branch. Its worktree must already be released.
+            lane = rec.get("laneBranch")
+            if lane and not branch_exists(lane):
+                mismatches.append(
+                    f"{spec}: retained lane {lane} recorded for a closed spec but missing in git")
+            if rec.get("worktreePath"):
+                mismatches.append(
+                    f"{spec}: closed spec still records worktree {rec['worktreePath']}")
         if status == "integrated" and not rec.get("mergeCommit"):
             mismatches.append(f"{spec}: integrated without a recorded merge commit")
 
@@ -710,6 +790,7 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
     # reducer is reported under its own key rather than crashing or vanishing.
     counts = {status: 0 for status in sorted(SPEC_STATUSES)}
     quarantine = []
+    closed = {}
     current = None
     for spec, rec in specs.items():
         counts[rec.get("status", "pending")] = counts.get(rec.get("status", "pending"), 0) + 1
@@ -717,12 +798,32 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
             current = {"spec": spec, "laneBranch": rec.get("laneBranch")}
         if rec.get("quarantineBranch"):
             quarantine.append(rec["quarantineBranch"])
+        if rec.get("status") == "closed_unimplemented":
+            closed[spec] = (rec.get("closure") or {}).get("reason")
+
+    # `blockedBy` means "upstream reached a terminal status without delivering"
+    # — which is either a quarantine or a closure. Report which, or a reader who
+    # sees skipped_blocked goes hunting for a quarantine branch that was never
+    # created.
+    blocked = {}
+    for spec, rec in specs.items():
+        if rec.get("status") != "skipped_blocked":
+            continue
+        upstream = [u for u in rec.get("blockedBy", []) if u in specs]
+        causes = {specs[u].get("status") for u in upstream}
+        blocked[spec] = {
+            "by": upstream,
+            "cause": causes.pop() if len(causes) == 1 else ("mixed" if causes else None),
+        }
+
     return {
         "phase": state.get("phase"),
         "phaseBranch": state.get("phaseBranch"),
         "current": current,
         "counts": counts,
         "quarantineBranches": quarantine,
+        "blocked": blocked,
+        "closed": closed,
     }
 
 
@@ -876,6 +977,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--spec", required=True)
     p.add_argument("--summary", default="")
     p.set_defaults(func=cmd_quarantine)
+
+    p = sub.add_parser("close-spec")
+    p.add_argument("--state", required=True)
+    p.add_argument("--repo", required=True)
+    p.add_argument("--spec", required=True)
+    p.add_argument("--reason", required=True)
+    p.set_defaults(func=cmd_close_spec)
 
     p = sub.add_parser("reconcile")
     p.add_argument("--state", required=True)

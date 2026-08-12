@@ -10,6 +10,14 @@ Exercises scripts/phase-state.py to prove the closed-by-decision contract:
   - an unknown status read from disk is tolerated, never rejected
   - progress counts are seeded from the vocabulary so the two cannot drift
 
+  Story 2 — close-spec records the decision
+  - a closure without a reason is refused before any mutation
+  - a mid-run closure frees the worktree, retains the lane branch, and leaves
+    the phase branch byte-identical
+  - transitive dependents cascade to skipped_blocked without downgrading a
+    dependent that already reached a terminal status
+  - a phase containing closed specs reconciles as consistent
+  - a repeat closure is refused rather than overwriting the first decision
 """
 
 from __future__ import annotations
@@ -310,6 +318,231 @@ def story1_existing_transitions_intact(tmp: Path) -> None:
          f"out={out} status={status}")
 
 
+# --------------------------------------------------------------------------
+# Story 2 — close-spec
+# --------------------------------------------------------------------------
+
+def story2_reason_gate(tmp: Path) -> None:
+    repo = new_repo(tmp)
+    state = tmp / "s2-reason.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a")
+    before = state.read_bytes()
+
+    for label, extra in (("empty", [""]), ("whitespace", ["   "])):
+        code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                           "--spec", "a", "--reason", *extra)
+        emit(f"close-refuses-{label}-reason",
+             code != 0 and out.get("blocker", {}).get("code") == "invalid_closure"
+             and state.read_bytes() == before,
+             f"code={code} out={out}")
+
+    # A missing --reason is an argparse error: still refused, still no mutation.
+    proc = subprocess.run([sys.executable, str(HELPER), "close-spec", "--state", str(state),
+                           "--repo", str(repo), "--spec", "a"],
+                          capture_output=True, text=True)
+    emit("close-refuses-missing-reason",
+         proc.returncode != 0 and state.read_bytes() == before,
+         f"rc={proc.returncode} err={proc.stderr[-120:]}")
+
+    code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                       "--spec", "nope", "--reason", "valid reason")
+    emit("close-rejects-unknown-spec",
+         code != 0 and out.get("blocker", {}).get("code") == "unknown_spec", out)
+
+
+def story2_close_pending(tmp: Path) -> None:
+    repo = new_repo(tmp)
+    state = tmp / "s2-pending.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a,b")
+    head_before = git(repo, "rev-parse", "phase/6")
+    refs_before = git(repo, "for-each-ref", "--format=%(refname)")
+
+    reason = "superseded by measured evidence"
+    code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                       "--spec", "a", "--reason", reason)
+    record = json.loads(state.read_text())["specs"]["a"]
+    emit("close-pending-sets-closed-unimplemented",
+         code == 0 and record["status"] == "closed_unimplemented",
+         f"code={code} out={out} status={record.get('status')}")
+    closure = record.get("closure") or {}
+    emit("close-records-reason-and-timestamp",
+         closure.get("reason") == reason
+         and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z",
+                               closure.get("closedAt") or "")),
+         closure)
+    emit("close-reports-phase-branch-clean", out.get("phaseBranchClean") is True, out)
+    emit("close-pending-touches-no-git",
+         git(repo, "rev-parse", "phase/6") == head_before
+         and git(repo, "for-each-ref", "--format=%(refname)") == refs_before,
+         "refs or head changed")
+
+    code, out = helper("progress", "--state", str(state))
+    counts = out.get("counts", {})
+    emit("progress-counts-closed-separately",
+         counts.get("closed_unimplemented") == 1 and counts.get("pending") == 1, counts)
+
+
+def story2_close_midrun(tmp: Path) -> None:
+    repo = new_repo(tmp)
+    state = tmp / "s2-midrun.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a")
+    lane = do_lane_with_partial(repo, state, "a")
+    lane_branch = lane["laneBranch"]
+    worktree = Path(lane["worktreePath"])
+    head_before = git(repo, "rev-parse", "phase/6")
+
+    code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                       "--spec", "a", "--reason", "descoped mid-run")
+    record = json.loads(state.read_text())["specs"]["a"]
+    emit("close-midrun-removes-worktree",
+         code == 0 and not worktree.exists() and record.get("worktreePath") is None,
+         f"code={code} exists={worktree.exists()} recorded={record.get('worktreePath')}")
+    emit("close-midrun-retains-lane-branch",
+         record.get("laneBranch") == lane_branch and branch_exists(repo, lane_branch),
+         f"recorded={record.get('laneBranch')} exists={branch_exists(repo, lane_branch)}")
+    emit("close-midrun-creates-no-quarantine-branch",
+         not branch_exists(repo, "writ/quarantine/a")
+         and record.get("quarantineBranch") is None, record.get("quarantineBranch"))
+    emit("close-midrun-leaves-phase-head-identical",
+         git(repo, "rev-parse", "phase/6") == head_before
+         and out.get("phaseBranchClean") is True, out)
+
+
+def story2_missing_worktree(tmp: Path) -> None:
+    """A recorded worktree already gone from disk must not fail the closure."""
+    repo = new_repo(tmp)
+    state = tmp / "s2-gonewt.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a")
+    lane = do_lane_with_partial(repo, state, "a")
+    git(repo, "worktree", "remove", "--force", lane["worktreePath"])
+
+    code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                       "--spec", "a", "--reason", "descoped after worktree cleanup")
+    record = json.loads(state.read_text())["specs"]["a"]
+    emit("close-survives-already-removed-worktree",
+         code == 0 and record["status"] == "closed_unimplemented"
+         and record.get("worktreePath") is None, f"code={code} out={out}")
+
+
+def story2_cascade(tmp: Path) -> None:
+    repo = new_repo(tmp)
+    state = tmp / "s2-cascade.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a,b,c,d,e")
+    # b -> a, c -> b (transitive), d -> a but already integrated, e independent.
+    helper("set-dependencies", "--state", str(state), "--spec", "b", "--deps", "a")
+    helper("set-dependencies", "--state", str(state), "--spec", "c", "--deps", "b")
+    helper("set-dependencies", "--state", str(state), "--spec", "d", "--deps", "a")
+
+    do_lane_with_partial(repo, state, "d")
+    result = wj(tmp / "d-ok.json", {
+        "spec_id": "d", "status": "succeeded", "stories_completed": 1, "stories_total": 1,
+        "verification": {"summary": "green", "evidence": ["tests pass"]},
+        "files_changed": ["d.txt"], "commit": "cafebabe",
+        "failure": None, "challenge": None,
+    })
+    helper("integrate", "--state", str(state), "--repo", str(repo),
+           "--spec", "d", "--result", str(result))
+    merge_commit = json.loads(state.read_text())["specs"]["d"]["mergeCommit"]
+
+    code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                       "--spec", "a", "--reason", "closed on measured evidence")
+    specs = json.loads(state.read_text())["specs"]
+
+    emit("cascade-blocks-direct-dependent",
+         specs["b"]["status"] == "skipped_blocked" and "a" in specs["b"]["blockedBy"],
+         specs["b"])
+    emit("cascade-blocks-transitive-dependent",
+         specs["c"]["status"] == "skipped_blocked" and bool(specs["c"]["blockedBy"]),
+         specs["c"])
+    emit("cascade-skips-terminal-dependent",
+         specs["d"]["status"] == "integrated" and specs["d"]["mergeCommit"] == merge_commit,
+         specs["d"])
+    emit("cascade-leaves-independent-spec-pending",
+         specs["e"]["status"] == "pending", specs["e"])
+    emit("cascade-reports-blocked-dependents",
+         sorted(out.get("blockedDependents", [])) == ["b", "c"], out)
+
+    code, out = helper("progress", "--state", str(state))
+    blocked = out.get("blocked")
+    emit("progress-attributes-blocking-to-closure",
+         isinstance(blocked, dict) and sorted(blocked) == ["b", "c"]
+         and all(info.get("cause") == "closed_unimplemented"
+                 for info in blocked.values()),
+         f"blocked={blocked}")
+
+
+def story2_progress_distinguishes_quarantine(tmp: Path) -> None:
+    """The cascade widened blockedBy to mean 'upstream terminal without
+    delivering'. Progress must still say WHICH, or a reader chases a quarantine
+    branch that was never created."""
+    repo = new_repo(tmp)
+    state = tmp / "s2-qcause.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a,b")
+    helper("set-dependencies", "--state", str(state), "--spec", "b", "--deps", "a")
+    do_lane_with_partial(repo, state, "a")
+    helper("quarantine", "--state", str(state), "--repo", str(repo), "--spec", "a",
+           "--summary", "terminal failure")
+
+    code, out = helper("progress", "--state", str(state))
+    blocked = out.get("blocked") or {}
+    emit("progress-attributes-blocking-to-quarantine",
+         isinstance(blocked, dict) and blocked.get("b", {}).get("cause") == "quarantined",
+         f"blocked={blocked}")
+
+
+def story2_reconcile(tmp: Path) -> None:
+    repo = new_repo(tmp)
+    state = tmp / "s2-recon.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a")
+    lane = do_lane_with_partial(repo, state, "a")
+    helper("close-spec", "--state", str(state), "--repo", str(repo),
+           "--spec", "a", "--reason", "descoped mid-run")
+
+    code, out = helper("reconcile", "--state", str(state), "--repo", str(repo))
+    emit("reconcile-consistent-with-closed-spec",
+         code == 0 and out.get("status") == "consistent" and out.get("attention") is False,
+         out)
+
+    code, out = helper("health", "--state", str(state), "--repo", str(repo))
+    emit("health-no-attention-from-closure",
+         out.get("category") != "Attention"
+         and "phase-state/git mismatch" not in out.get("failures", []), out)
+
+    # Deleting the retained lane behind state's back is a reportable mismatch,
+    # symmetric with how a missing quarantine branch is treated.
+    git(repo, "branch", "-D", lane["laneBranch"])
+    code, out = helper("reconcile", "--state", str(state), "--repo", str(repo))
+    emit("reconcile-reports-missing-retained-lane",
+         out.get("status") == "mismatch" and out.get("attention") is True
+         and any(m.startswith("a:") for m in out.get("mismatches", [])), out)
+
+
+def story2_repeat_closure(tmp: Path) -> None:
+    """Closing an already-closed spec is an explicit refusal, not a silent
+    rewrite that would overwrite the original decision's reason and timestamp."""
+    repo = new_repo(tmp)
+    state = tmp / "s2-repeat.json"
+    helper("init", "--state", str(state), "--repo", str(repo), "--phase", "6",
+           "--phase-branch", "phase/6", "--spec-order", "a")
+    helper("close-spec", "--state", str(state), "--repo", str(repo),
+           "--spec", "a", "--reason", "first decision")
+    first = json.loads(state.read_text())["specs"]["a"]["closure"]
+
+    code, out = helper("close-spec", "--state", str(state), "--repo", str(repo),
+                       "--spec", "a", "--reason", "second decision")
+    after = json.loads(state.read_text())["specs"]["a"]["closure"]
+    emit("repeat-closure-refused-and-preserves-original",
+         code != 0 and out.get("blocker", {}).get("code") == "already_closed"
+         and after == first, f"code={code} out={out} closure={after}")
+
+
 def main() -> int:
     mod = load_module()
     story1_vocabulary(mod)
@@ -325,6 +558,13 @@ def main() -> int:
         story1_challenge_required_still_writable(Path(t))
     with tempfile.TemporaryDirectory() as t:
         story1_existing_transitions_intact(Path(t))
+
+    for scenario in (story2_reason_gate, story2_close_pending, story2_close_midrun,
+                     story2_missing_worktree, story2_cascade,
+                     story2_progress_distinguishes_quarantine, story2_reconcile,
+                     story2_repeat_closure):
+        with tempfile.TemporaryDirectory() as t:
+            scenario(Path(t))
 
     return 0 if failed == 0 else 1
 
