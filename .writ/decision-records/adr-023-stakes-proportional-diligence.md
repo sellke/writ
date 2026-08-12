@@ -1,7 +1,7 @@
 # ADR-023: Stakes-Proportional Diligence Replaces the Byte Budget
 
 > **Date:** 2026-08-12
-> **Status:** Proposed
+> **Status:** Accepted
 > **Category:** Framework Architecture
 > **Supersedes:** [ADR-021](adr-021-progressive-disclosure-token-budget.md) — its premise and its binding instrument, not its extraction work
 > **Extends:** [ADR-022](adr-022-autonomy-gate-classes.md) — adds a second axis to a classifier that already ships
