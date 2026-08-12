@@ -171,6 +171,7 @@ def scan(specs_dir: Path, knowledge_dir: Path) -> dict[str, Any]:
                 "complete": complete,
                 "evidence": evidence,
                 "eligible": complete,
+                "matched_value": row.get("matched_value"),
             }
         )
     return {
@@ -200,6 +201,7 @@ def _append_ledger(
     evidence: list[str],
     timestamp: str,
     pr_number: int | None = None,
+    note: str | None = None,
 ) -> str:
     """Append one archive-audit line to `LEDGER.md`, creating it with its
     header on first write. Returns the exact line written (including its
@@ -212,12 +214,23 @@ def _append_ledger(
     existing evidence parenthetical rather than restructuring the line, so a
     future reader only ever needs to treat it as one optional trailing
     clause (spec.md Ledger annotation format).
+
+    `note` is the second such clause, added 2026-08-12 on the same terms. It
+    carries a spec's terminal status when that status is not a plain
+    completion — `spec-status.py`'s COMPLETE_FAMILY_PREFIXES deliberately
+    admits `Closed`, so a spec that was terminated without ever being built is
+    complete-family and archives like any other. `LEDGER.md` is the one place a
+    reader scans without opening every spec, and an unannotated line there
+    reports "deliberately not built" exactly like "shipped". Omitted for plain
+    completions, so every pre-existing line keeps its byte-for-byte format.
     """
     is_new = not ledger_path.exists()
     ledger_path.parent.mkdir(parents=True, exist_ok=True)
     evidence_str = ", ".join(f"`{e}`" for e in evidence) if evidence else "no knowledge evidence yet"
     if pr_number is not None:
         evidence_str += f", via PR #{pr_number}"
+    if note:
+        evidence_str += f", {note}"
     line = f"- {timestamp} — `{spec_id}` archived (evidence: {evidence_str})\n"
     with ledger_path.open("a", encoding="utf-8") as fh:
         if is_new:
@@ -267,7 +280,12 @@ def sweep(repo_root: Path, specs_dir: Path, knowledge_dir: Path) -> dict[str, An
             continue
 
         timestamp = _now_iso()
-        _append_ledger(ledger_path, spec_id, row["evidence"], timestamp)
+        # Annotate only a non-plain terminal status. `Closed` is complete-family
+        # by design, so the move is correct — the ledger line just has to say
+        # the spec was never built rather than implying it shipped.
+        matched = (row.get("matched_value") or "").strip()
+        note = matched if matched.startswith("Closed") else None
+        _append_ledger(ledger_path, spec_id, row["evidence"], timestamp, note=note)
         archived.append({"spec": spec_id, "evidence": row["evidence"], "timestamp": timestamp})
 
     summary = f"{len(archived)} specs archived"
