@@ -277,6 +277,52 @@ command — must be rewritten into capability prose or the boundary lint blocks 
 Second, **every extracted skill needs a live consumer**: because Writ skills are
 `disable-model-invocation: true`, a skill nothing `Read`s is dead weight.
 
+### Naming the extracted skill
+
+`skills/` is one flat namespace shared by every command and agent that will ever
+extract into it. A name chosen for one extraction site is inherited by everybody.
+Six rules:
+
+| # | Rule | Why |
+|---|---|---|
+| 1 | **Kebab-case noun phrase, 2–3 words, ≤ 30 characters**, unique across `commands:`, `agents:` and `skills:` in `.writ/manifest.yaml` | One namespace, one lookup. All six incumbents match. |
+| 2 | **Shape is `<object>-<operation>` or `<operation>-<object>`** — `safe-refactor-loop`, `code-explanation`, `error-rescue-mapping` | The name says which capability is wielded, so a reader can tell what loading it buys. |
+| 3 | **Never named after its extraction site** — no command name, no gate number, no step number | A skill named after where it came from cannot be read by a second consumer without reading as a foreign import, and it re-encodes the workflow shape the boundary lint exists to reject. |
+| 4 | **`description:` is a bare-imperative verb phrase** — "Write…", "Compute…", "Classify…", "Triage…" | The only shape `lint-skill.sh`'s `DESC_PATTERNS` grammar leaves standing, and the difference between a tool and a role. |
+| 5 | **A shared skill carries no consumer's vocabulary** | If two or more consumers read it, its `## When to Use` states trigger conditions, not gate or step numbers, and its body never names the command it was extracted from. |
+| 6 | **Collision protocol** (below) | First writer owns the name. |
+
+**Collision protocol.** *Before* running `/new-skill`, grep the `skills:` block of
+`.writ/manifest.yaml` for the intended name **and for its head noun**. If an
+earlier extraction already claimed the noun, do **not** author a near-duplicate:
+read the existing skill at your own point of need and record an
+[ADR-014](../decision-records/adr-014-skill-lifecycle.md) `evidence:` entry of
+`type: promotion` against it. First writer owns the name; later consumers adopt
+rather than fork.
+
+### Where the load goes
+
+Extraction only pays off if the load is genuinely conditional, and that is
+decided by **where** the consumer reads the skill, not by the fact that it was
+extracted:
+
+- The read sits at the **narrowest** step, gate or phase that needs the skill —
+  inside the branch, not one level up "for readability". A run that never
+  reaches that line never pays for the skill.
+- **Never hoisted into a preamble.** A `Read skills/<name>/SKILL.md` placed in
+  frontmatter, an overview, an invocation table, a phase list, or any prose
+  every run passes through is an *eager* load wearing conditional syntax — it
+  costs the same as declaring the skill and hides that fact in the body. A phase
+  list may **name** the skill against its step; it must not read it.
+  `scripts/measure-invocation.py` reports such reads under `hoisted_skills`.
+- **Never both mechanisms for one skill.** `required_skills:` is an
+  unconditional pre-load resolved once per *command*, so declaring a skill *and*
+  inline-reading it buys no conditionality — the declaration wins and the read is
+  dead weight. Pick one; for extracted per-phase procedure, pick the inline read.
+- **Never read from inside another skill** (`scripts/lint-skill.sh:52`). Skills
+  do not chain, so every read lives in the consuming command or agent — which is
+  also what keeps load order and load cost auditable in one file.
+
 ### Shrink note shape
 
 Each shrunk section becomes a short orchestration note naming the skill and the

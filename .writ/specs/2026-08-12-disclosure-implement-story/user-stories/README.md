@@ -1,17 +1,17 @@
 # User Stories: Progressive Disclosure — `implement-story`
 
-> **Status:** Not Started — 0/6 stories, 0/48 tasks.
+> **Status:** Completed ✅ — 6/6 stories, 48/48 tasks.
 >
 > **Amended 2026-08-12 (maintainer):** skills load via an inline `Read skills/<name>/SKILL.md` at the point of need; `required_skills:` is not used. See [spec.md → Approved Scope Change](../spec.md). Stories 1, 5 and 6 gained tasks; the extraction plan is unchanged.
 
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Extraction Pattern, Naming Convention, and the ADR-021 Amendment](./story-1-extraction-pattern-and-adr-amendment.md) | Not Started | 8 | 0/8 | None |
-| 2 | [Context Assembly Skills](./story-2-context-assembly-skills.md) | Not Started | 7 | 0/7 | Story 1 |
-| 3 | [Gate Procedure Skills](./story-3-gate-procedure-skills.md) | Not Started | 8 | 0/8 | Story 1 |
-| 4 | [Record and Snapshot Skills](./story-4-record-and-snapshot-skills.md) | Not Started | 8 | 0/8 | Story 1 |
-| 5 | [The Thin Command and the Budget](./story-5-thin-command-and-budget.md) | Not Started | 10 | 0/10 | Stories 2, 3, 4 |
-| 6 | [No-Drift Verification and the Load Report](./story-6-no-drift-verification-and-load-report.md) | Not Started | 7 | 0/7 | Story 5 |
+| 1 | [Extraction Pattern, Naming Convention, and the ADR-021 Amendment](./story-1-extraction-pattern-and-adr-amendment.md) | Completed ✅ | 8 | 8/8 | None |
+| 2 | [Context Assembly Skills](./story-2-context-assembly-skills.md) | Completed ✅ | 7 | 7/7 | Story 1 |
+| 3 | [Gate Procedure Skills](./story-3-gate-procedure-skills.md) | Completed ✅ | 8 | 8/8 | Story 1 |
+| 4 | [Record and Snapshot Skills](./story-4-record-and-snapshot-skills.md) | Completed ✅ | 8 | 8/8 | Story 1 |
+| 5 | [The Thin Command and the Budget](./story-5-thin-command-and-budget.md) | Completed ✅ | 10 | 10/10 | Stories 2, 3, 4 |
+| 6 | [No-Drift Verification and the Load Report](./story-6-no-drift-verification-and-load-report.md) | Completed ✅ | 7 | 7/7 | Story 5 |
 
 ## Dependency Graph
 

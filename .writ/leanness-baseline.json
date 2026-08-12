@@ -14,7 +14,7 @@
         "chars": {
           "value": 560772,
           "date": "2026-08-11",
-          "text": "Same causes as commands.lines \u2014 the contract fields are prose-heavy by design (a falsifiable exit criterion costs a sentence, not a token), so chars grew far harder than lines. Raised 2026-08-11 during Phase 10 UAT execution: commands/research.md's first exit_criteria entry was the only one of 94 ending in a bare 'exists', which .writ/docs/component-contract.md:84 explicitly bans; it gained a predicate naming the scoped questions and synthesis (+88 chars)."
+          "text": "Same causes as commands.lines — the contract fields are prose-heavy by design (a falsifiable exit criterion costs a sentence, not a token), so chars grew far harder than lines. Raised 2026-08-11 during Phase 10 UAT execution: commands/research.md's first exit_criteria entry was the only one of 94 ending in a bare 'exists', which .writ/docs/component-contract.md:84 explicitly bans; it gained a predicate naming the scoped questions and synthesis (+88 chars)."
         }
       }
     },
@@ -25,7 +25,7 @@
         "lines": {
           "value": 1810,
           "date": "2026-08-11",
-          "text": "79dcc60 feat(agents): declare the component contract across both agent carriers \u2014 problem/outcome/exit_criteria added to all 7 agents by 2026-08-11-component-contract. Reviewed, merged migration work."
+          "text": "79dcc60 feat(agents): declare the component contract across both agent carriers — problem/outcome/exit_criteria added to all 7 agents by 2026-08-11-component-contract. Reviewed, merged migration work."
         },
         "chars": {
           "value": 72473,
@@ -36,7 +36,19 @@
     },
     "skills": {
       "lines": 932,
-      "chars": 41620
+      "chars": 41620,
+      "justifications": {
+        "lines": {
+          "value": 1814,
+          "date": "2026-08-12",
+          "text": "2026-08-12-disclosure-implement-story, the Phase 10 progressive-disclosure pilot (ADR-021, amended 2026-08-12). This is a TRANSFER, not growth: commands/implement-story.md fell 989 -> 340 lines and 52,709 -> 24,837 chars in the same change, and the eight extracted skills carry that procedure. The skills surface rises 932 -> 1814 lines (+882) while commands falls by 649 lines; the net product-line delta is +233, which is per-skill scaffolding (frontmatter + Title + Purpose + When to Use + How to Apply, ~900-1,000 bytes per file across eight files). Skills: story-context-assembly, dependency-context-loading, boundary-map-computation, change-surface-classification, drift-triage, what-was-built-authoring, project-context-snapshot, story-commit-provenance. Five sibling disclosure specs will add more; MAX_SKILLS = 12 is already exceeded at 14 and its raise belongs to 2026-08-12-governor-enforcement."
+        },
+        "chars": {
+          "value": 77625,
+          "date": "2026-08-12",
+          "text": "Same cause as skills.lines. Chars relocated out of commands/implement-story.md: -27,872. Chars added to skills: +36,005 (eight files, 36,006 bytes measured by wc -c). The ~8,100-char excess over the transfer is measured per-skill scaffolding and is the pilot's headline finding for ADR-021's 2026-11-11 review trigger: extraction bought a -35.9% floor on this command and cost a +9.7% full-path ceiling, and the overhead is the whole cost. The input for the remaining five specs is fewer, larger skills. Every Compression Ledger target landed (~4,230 chars, five of six beat projection) plus ~3,974 chars of further prose compression; no rule was deleted to reduce this number. --update-baseline was deliberately NOT run: it would move every surface's floor and erase the commands justifications recorded on 2026-08-11."
+        }
+      }
     },
     "adapters": {
       "lines": 1677,
@@ -49,12 +61,12 @@
         "lines": {
           "value": 30757,
           "date": "2026-08-11",
-          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py), and 2026-08-11-governor-instrumentation Stories 1 and 3-7 \u2014 the bound-justification reader, the emission seam, the component-contract, `## Completion`, loop-bound and required_skills: checks, and the flip-seam proof, with scripts/tests/test_eval_leanness_contract.py (81 cases) carrying most of the delta. Raised 2026-08-12: scripts/measure-invocation.py + its 20-case test suite (per-invocation load measurement, the prerequisite for progressive disclosure's success criterion, which the roadmap requires be 'measured per-invocation load, not just file size' and which nothing measured). Raised 2026-08-12: measure-invocation.py corrected to model BOTH skill load mechanisms after Phase 10 spec authoring proved required_skills: is an eager pre-load, not conditional \u2014 the old floor understated real load by 44,580 bytes across 6 commands. Raised 2026-08-12: measure-invocation.py gained placement enforcement (a hoisted inline Read is eager loading in conditional syntax and nothing else detects it) and an explicit ceiling-is-an-envelope label."
+          "text": "a5c5a66 (install.sh/update.sh/unlink.sh runtime fan-out, PR #34, v0.28.0), 9b65a94 (scripts/eval-loop-bounds.py), and 2026-08-11-governor-instrumentation Stories 1 and 3-7 — the bound-justification reader, the emission seam, the component-contract, `## Completion`, loop-bound and required_skills: checks, and the flip-seam proof, with scripts/tests/test_eval_leanness_contract.py (81 cases) carrying most of the delta. Raised 2026-08-12: scripts/measure-invocation.py + its 20-case test suite (per-invocation load measurement, the prerequisite for progressive disclosure's success criterion, which the roadmap requires be 'measured per-invocation load, not just file size' and which nothing measured). Raised 2026-08-12: measure-invocation.py corrected to model BOTH skill load mechanisms after Phase 10 spec authoring proved required_skills: is an eager pre-load, not conditional — the old floor understated real load by 44,580 bytes across 6 commands. Raised 2026-08-12: measure-invocation.py gained placement enforcement (a hoisted inline Read is eager loading in conditional syntax and nothing else detects it) and an explicit ceiling-is-an-envelope label."
         },
         "chars": {
           "value": 1314935,
           "date": "2026-08-11",
-          "text": "Same commits as scripts.lines. Raised 2026-08-12: scripts/measure-invocation.py + its 20-case test suite (per-invocation load measurement, the prerequisite for progressive disclosure's success criterion, which the roadmap requires be 'measured per-invocation load, not just file size' and which nothing measured). Raised 2026-08-12: measure-invocation.py corrected to model BOTH skill load mechanisms after Phase 10 spec authoring proved required_skills: is an eager pre-load, not conditional \u2014 the old floor understated real load by 44,580 bytes across 6 commands. Raised 2026-08-12: measure-invocation.py gained placement enforcement (a hoisted inline Read is eager loading in conditional syntax and nothing else detects it) and an explicit ceiling-is-an-envelope label."
+          "text": "Same commits as scripts.lines. Raised 2026-08-12: scripts/measure-invocation.py + its 20-case test suite (per-invocation load measurement, the prerequisite for progressive disclosure's success criterion, which the roadmap requires be 'measured per-invocation load, not just file size' and which nothing measured). Raised 2026-08-12: measure-invocation.py corrected to model BOTH skill load mechanisms after Phase 10 spec authoring proved required_skills: is an eager pre-load, not conditional — the old floor understated real load by 44,580 bytes across 6 commands. Raised 2026-08-12: measure-invocation.py gained placement enforcement (a hoisted inline Read is eager loading in conditional syntax and nothing else detects it) and an explicit ceiling-is-an-envelope label."
         }
       }
     },

@@ -128,12 +128,20 @@ and unlink manage this file alongside its reducer.
 
 | Skill | Status | File | Description |
 |-------|--------|------|-------------|
+| `boundary-map-computation` | `candidate` | `skills/boundary-map-computation/SKILL.md` | Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data. |
+| `change-surface-classification` | `candidate` | `skills/change-surface-classification/SKILL.md` | Classify a change set as style-only, single-component, cross-component, or full-stack. |
 | `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |
 | `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
+| `dependency-context-loading` | `candidate` | `skills/dependency-context-loading/SKILL.md` | Load, filter, and truncate upstream stories' implementation records into dependency context. |
+| `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `gbrain-interop` | `candidate` | `skills/gbrain-interop/SKILL.md` | Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy. |
+| `project-context-snapshot` | `candidate` | `skills/project-context-snapshot/SKILL.md` | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
+| `story-commit-provenance` | `candidate` | `skills/story-commit-provenance/SKILL.md` | Record a completion commit SHA into a story file header idempotently and without amending it. |
+| `story-context-assembly` | `candidate` | `skills/story-context-assembly/SKILL.md` | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections. |
 | `tdd-cycle` | `proven` | `skills/tdd-cycle/SKILL.md` | Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time. |
+| `what-was-built-authoring` | `candidate` | `skills/what-was-built-authoring/SKILL.md` | Extract implementation facts from agent output and format them into a What Was Built record. |
 
 ## Platform Adapters
 
