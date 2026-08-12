@@ -4,7 +4,7 @@ description: "Autonomously execute a whole roadmap phase - resolve features to s
 problem: "A roadmap phase is delivered one spec at a time by hand, so cross-spec order is guessed, unspecced features are forgotten, and the exit criteria the phase declares go unchecked."
 outcome: "Every spec the phase resolves to has been merged into the phase branch or quarantined off it, and the phase carries a terminal status backed by per-criterion evidence."
 exit_criteria:
-  - "every spec resolved from the phase reached merged, quarantined, or skipped_blocked in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
+  - "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_unimplemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches"
   - "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented"
   - "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified"
   - "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE"
@@ -122,6 +122,8 @@ Confirm with AskQuestion: create these specs / edit the breakdown / stop. **The 
 
 **On approval, create the specs — contract-first is not bypassed.** For each proposed spec in dependency order, run `/create-spec` seeded with its deliverable, files-in-scope, `dependencies:`, and ownership constraints from the proposal. Each spec is still contract-locked (per ADR-001, specs are never created without agreement); the seed makes each discovery short and focused rather than starting cold. Specs are *authored* collaboratively in this pre-pass; only *implementation* (Phase 3) runs autonomously. **In `--recommend` mode, run `/create-spec --recommend` instead** — each spec's contract is auto-locked from evidence and its decisions recorded in `recommendation-log.md`; the seed still applies.
 
+**Closing a spec instead of building it.** The pre-pass may conclude a resolved spec should never be built — measured evidence retired its premise, another spec subsumes it, or the phase's scope moved. Record that with `phase-state.py close-spec --spec {id} --reason "{why}"` rather than leaving it `pending`: `pending` claims the work is still coming. The reason is mandatory and is printed in the completion report. Closure is **terminal** — no lane, no retry, no quarantine — and its declared dependents become `skipped_blocked`.
+
 **After the specs exist, re-resolve** — return to Step 1.2 classification. The freshly created specs are now **Specced** and enter the normal inventory, sequencing, and execution flow.
 
 > **`--all` boundary:** the pre-pass is never auto-entered in `--all` mode — creating specs requires human agreement. Unspecced features encountered under `--all` fall back to the "partially complete" path unless the phase is run interactively. **`--recommend` is the explicit exception:** it authorizes autonomous spec creation, so `--recommend` (with or without `--all`) auto-enters the pre-pass and authors missing specs via `/create-spec --recommend`.
@@ -228,6 +230,8 @@ When a lane returns a non-successful `phase-spec-result-v1`, classify and dispos
 3. **Block dependents, continue independents.** Direct and transitive dependents become `skipped_blocked` with `blockedBy` evidence; **specs independent of the failure continue** — don't hold finished work hostage to one failure.
 4. **Ask only if ambiguous:** if the dependency relationship between the failed spec and a remaining spec is unclear (no explicit declaration, but shared surfaces), ask whether to proceed — condition (c) of the question policy.
 
+**Mid-run closure is not failure handling.** If a decision mid-phase is that a spec should never be built (not that it failed), use `close-spec --reason "{why}"`, not this path. Nothing here applies: no `classify`, no retry, no `quarantine`, no recovery command. `close-spec` frees the lane worktree but **keeps the lane branch** under its `writ/phase/…` name — preserving any partial work without the `writ/quarantine/…` rename that would assert a failure that did not happen. Dependents still become `skipped_blocked`, so `blockedBy` means "upstream reached a terminal status without delivering" — a quarantine *or* a closure. Say which when reporting a blocked spec; `progress` supplies the cause.
+
 On `--resume`, run `reconcile` first: it checks phase, lane, worktree, and quarantine branches against recorded state and continues only if they agree. On any discrepancy it reports the named mismatch and a recovery command and **does not guess or mutate git**.
 
 #### Step 3.4: `--all` Mode
@@ -254,7 +258,7 @@ python3 scripts/phase-state.py health   --state .writ/state/phase-execution-{tim
   --eval <latest-eval-summary> --verification <latest-verification-report> --drift <drift-log>
 ```
 
-`progress` reports the current spec/lane, per-status spec counts, and quarantine branches. `health` returns a **categorical** disposition (`Healthy` / `Warning` / `Attention`), never a score: missing or stale evidence degrades to `Warning` (never a silent pass), and `Attention` requires an affirmative current failure (eval findings, failing verification, unresolved material drift, or a `phase-state`/git mismatch). Carry both into the completion report so the maintainer sees phase progress and production health with the evidence behind each. The same reducers back `/status`, so an interrupted phase reports identically on resume.
+`progress` reports the current spec/lane, per-status spec counts, quarantine branches, each spec closed by decision with its reason, and each blocked spec with the cause that blocked it. `health` returns a **categorical** disposition (`Healthy` / `Warning` / `Attention`), never a score: missing or stale evidence degrades to `Warning` (never a silent pass), and `Attention` requires an affirmative current failure (eval findings, failing verification, unresolved material drift, or a `phase-state`/git mismatch). Carry both into the completion report so the maintainer sees phase progress and production health with the evidence behind each. The same reducers back `/status`, so an interrupted phase reports identically on resume.
 
 #### Step 4.2: The Honest Completion Report
 
@@ -267,6 +271,9 @@ python3 scripts/phase-state.py health   --state .writ/state/phase-execution-{tim
 | drag-and-drop-across-states     | ✅ 1/1 stories | ✅ 9 scenarios  | — |
 | contact-linkedin-website-fields | ✅ 1/1 stories | ✅ 6 scenarios  | — |
 
+Closed by decision:
+  ✖ disclosure-release — pilot measured ~1,017 B irreducible overhead per extracted skill
+
 Exit criteria:
   ✅ Old JSON files load cleanly — verified (integration check)
   ✅ No external dependencies introduced — verified (no network refs in file)
@@ -276,6 +283,8 @@ Phase status: IMPLEMENTED — pending human validation
 ```
 
 **The command never declares a phase "complete" when human-judgment criteria remain.** The terminal status is `IMPLEMENTED — pending human validation`, with the UAT plans as the handoff. If every exit criterion is machine-checkable and passing, the status may be `COMPLETE`.
+
+**A `Closed by decision` section is mandatory whenever any spec is `closed_unimplemented`** — one line per spec with the reason recorded in its `closure`, read from `progress`'s `closed` map. A phase whose specs are all `integrated` or `closed_unimplemented` may report `COMPLETE`, because closure is terminal — but only because this section names what was dropped and why. Omitting it for brevity turns the `COMPLETE` verdict into a false claim of delivered scope.
 
 #### Step 4.3: Partial Completion Honesty
 

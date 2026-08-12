@@ -502,3 +502,49 @@ def test_archive_one_cli_subcommand_via_main_in_process(tmp_path: Path) -> None:
     assert payload["status"] == "archived"
     assert "via PR #32" in payload["ledger_line"]
     assert not (specs_dir / "2026-01-01-eligible-spec").exists()
+
+
+def test_closed_spec_ledger_line_records_that_it_was_never_built(tmp_path: Path) -> None:
+    """A terminal-but-unbuilt spec archives, and its ledger line says so.
+
+    `spec-status.py`'s COMPLETE_FAMILY_PREFIXES deliberately admits `Closed`,
+    so "Closed — Not Implemented" is complete-family: the spec is done being
+    worked on. But `LEDGER.md` is the one place a future reader scans without
+    opening 13 spec files, and an unannotated line there reports a spec that
+    was deliberately never built exactly like one that shipped.
+    """
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-shipped", "> **Status:** Complete")
+    make_spec(
+        repo,
+        "2026-01-01-never-built",
+        "> **Status:** Closed — Not Implemented (measured evidence, 2026-01-01)",
+    )
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    result = archive_sweep.sweep(repo, specs_dir, knowledge_dir)
+
+    assert len(result["archived"]) == 2
+    ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    shipped_line = next(l for l in ledger.splitlines() if "2026-01-01-shipped" in l)
+    closed_line = next(l for l in ledger.splitlines() if "2026-01-01-never-built" in l)
+
+    # The closed spec carries its terminal status; the shipped one is unchanged.
+    assert "Closed — Not Implemented (measured evidence, 2026-01-01)" in closed_line
+    assert "Closed" not in shipped_line
+    assert shipped_line.endswith("archived (evidence: no knowledge evidence yet)")
+
+
+def test_complete_family_note_is_absent_for_plain_complete(tmp_path: Path) -> None:
+    """The annotation is trailing and optional — the 41 pre-existing ledger
+    lines and every `Complete` spec keep their exact current format."""
+    repo = init_repo(tmp_path)
+    specs_dir = make_spec(repo, "2026-01-01-plain", "> **Status:** Completed ✅ (2026-01-01)")
+    knowledge_dir = repo / ".writ" / "knowledge"
+    commit_all(repo)
+
+    archive_sweep.sweep(repo, specs_dir, knowledge_dir)
+    ledger = (specs_dir / "archive" / "LEDGER.md").read_text(encoding="utf-8")
+    line = next(l for l in ledger.splitlines() if "2026-01-01-plain" in l)
+    assert line.endswith("archived (evidence: no knowledge evidence yet)")

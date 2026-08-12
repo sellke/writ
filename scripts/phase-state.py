@@ -51,7 +51,13 @@ CHALLENGE_PARTS = (
 )
 SPEC_STATUSES = {
     "pending", "implementing", "integrated", "failed",
-    "quarantined", "skipped_blocked",
+    "quarantined", "skipped_blocked", "challenge_required",
+    "closed_unimplemented",
+}
+# Statuses from which no further execution follows. A spec here is never
+# retried, relaunched, or downgraded by another spec's disposition.
+TERMINAL_SPEC_STATUSES = {
+    "integrated", "quarantined", "skipped_blocked", "closed_unimplemented",
 }
 
 
@@ -60,6 +66,21 @@ class ContractError(Exception):
         super().__init__(summary)
         self.code = code
         self.summary = summary
+
+
+def _set_status(record: dict[str, Any], value: str) -> None:
+    """The single spec-status mutation point.
+
+    Validate on **write**, tolerate on **read**. The schema's compatibility
+    promise is that unknown fields survive a round-trip so later stories can
+    extend it; rejecting an unrecognized status while *reading* would turn a
+    state file written by a newer reducer into a hard failure. So this guard
+    covers mutation only, and the read paths (`progress`, `show`, `reconcile`)
+    stay permissive.
+    """
+    if value not in SPEC_STATUSES:
+        raise ContractError("invalid_status", f"unknown spec status: {value!r}")
+    record["status"] = value
 
 
 def _fail(err: ContractError) -> None:
@@ -128,7 +149,6 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
     specs = {
         spec: {
             "dependencies": [],
-            "status": "pending",
             "attempts": 0,
             "laneBranch": None,
             "worktreePath": None,
@@ -141,6 +161,8 @@ def cmd_init(args: argparse.Namespace) -> dict[str, Any]:
         }
         for spec in order
     }
+    for record in specs.values():
+        _set_status(record, "pending")
     state = {
         "schemaVersion": SCHEMA_VERSION,
         "phase": args.phase,
@@ -195,8 +217,8 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
 
     _git(repo, "worktree", "add", "-b", lane_branch, str(worktree_path), phase_branch)
 
+    _set_status(record, "implementing")
     record.update({
-        "status": "implementing",
         "attempts": record.get("attempts", 0) + 1,
         "laneBranch": lane_branch,
         "worktreePath": str(worktree_path),
@@ -313,7 +335,7 @@ def cmd_record_challenge(args: argparse.Namespace) -> dict[str, Any]:
     # An unresolved challenge blocks the challenged decision: mark the spec so
     # the scheduler will not pass the decision until it is answered.
     if not resolved and args.spec in state.get("specs", {}):
-        state["specs"][args.spec]["status"] = "challenge_required"
+        _set_status(state["specs"][args.spec], "challenge_required")
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": entry["status"], "challengeId": entry["id"], "blocked": not resolved}
@@ -366,7 +388,7 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     if merge.returncode != 0:
         # Abort safely; retain the lane and mark attention (Story 4 territory).
         _git(repo, "merge", "--abort", check=False)
-        record["status"] = "failed"
+        _set_status(record, "failed")
         record["evidence"].append("merge_conflict")
         state["updatedAt"] = _now()
         _atomic_write(state_path, state)
@@ -377,8 +399,8 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     if worktree_path:
         _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
 
+    _set_status(record, "integrated")
     record.update({
-        "status": "integrated",
         "mergeCommit": merge_commit,
         "worktreePath": None,
     })
@@ -426,7 +448,7 @@ def cmd_retry(args: argparse.Namespace) -> dict[str, Any]:
         raise ContractError("retry_exhausted",
                             f"{args.spec} already used its permitted retry")
     record["attempts"] = record.get("attempts", 0) + 1
-    record["status"] = "implementing"
+    _set_status(record, "implementing")
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": "retrying", "attempts": record["attempts"], "laneBranch": record.get("laneBranch")}
@@ -474,7 +496,7 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
         rename = _git(repo, "branch", "-m", lane_branch, quarantine_branch, check=False)
         if rename.returncode != 0:
             # Renaming failed: keep the lane, mark attention, leave phase clean.
-            record["status"] = "failed"
+            _set_status(record, "failed")
             record["evidence"].append("quarantine_rename_failed")
             state["updatedAt"] = _now()
             _atomic_write(state_path, state)
@@ -485,8 +507,8 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
     phase_head_after = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
     phase_clean = phase_head_after == phase_head_before
 
+    _set_status(record, "quarantined")
     record.update({
-        "status": "quarantined",
         "quarantineBranch": quarantine_branch,
         "worktreePath": None,
         "failure": {"summary": args.summary or "terminal failure",
@@ -496,7 +518,7 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
 
     blocked = _transitive_dependents(state, args.spec)
     for dep in blocked:
-        state["specs"][dep]["status"] = "skipped_blocked"
+        _set_status(state["specs"][dep], "skipped_blocked")
         bl = state["specs"][dep].setdefault("blockedBy", [])
         if args.spec not in bl:
             bl.append(args.spec)
@@ -509,6 +531,75 @@ def cmd_quarantine(args: argparse.Namespace) -> dict[str, Any]:
         "phaseBranchClean": phase_clean,
         "blockedDependents": blocked,
         "recovery": f"git checkout {quarantine_branch}  # inspect, fix, then re-run the phase",
+    }
+
+
+def cmd_close_spec(args: argparse.Namespace) -> dict[str, Any]:
+    """Terminal disposition by *decision*: this spec will never be built.
+
+    Distinct from quarantine in three ways that all follow from "nothing
+    failed": the lane branch keeps its `writ/phase/...` name rather than being
+    renamed into `writ/quarantine/...`, no recovery command is offered, and the
+    reason is mandatory — the phase report is obliged to print it, so an
+    unexplained closure is an invalid write rather than a blank line in a report.
+    """
+    reason = (args.reason or "").strip()
+    if not reason:
+        # Validated before _load and before any git call: a refused closure must
+        # leave the state file byte-identical.
+        raise ContractError("invalid_closure",
+                            "a closure must record why the spec will not be built")
+
+    state_path = Path(args.state)
+    repo = Path(args.repo)
+    state = _load(state_path)
+    record = _spec_record(state, args.spec)
+
+    if record.get("status") == "closed_unimplemented":
+        # Never silently overwrite the first decision's reason and timestamp.
+        raise ContractError(
+            "already_closed",
+            f"{args.spec} was already closed: "
+            f"{(record.get('closure') or {}).get('reason', 'no reason recorded')}",
+        )
+
+    phase_head_before = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
+
+    # Free the worktree, but keep the lane branch: partial work is preserved
+    # without a quarantine rename that would imply something went wrong.
+    worktree_path = record.get("worktreePath")
+    if worktree_path and Path(worktree_path).exists():
+        _git(repo, "worktree", "remove", "--force", worktree_path, check=False)
+    record["worktreePath"] = None
+
+    _set_status(record, "closed_unimplemented")
+    record["closure"] = {"reason": reason, "closedAt": _now()}
+    record.setdefault("evidence", []).append(f"closed:{reason}")
+
+    blocked: list[str] = []
+    for dep in _transitive_dependents(state, args.spec):
+        dep_record = state["specs"][dep]
+        if dep_record.get("status") in TERMINAL_SPEC_STATUSES:
+            # A dependent that already reached a terminal status keeps it —
+            # downgrading an integrated spec would discard its merge commit.
+            continue
+        _set_status(dep_record, "skipped_blocked")
+        bl = dep_record.setdefault("blockedBy", [])
+        if args.spec not in bl:
+            bl.append(args.spec)
+        blocked.append(dep)
+
+    phase_head_after = _git(repo, "rev-parse", state["phaseBranch"]).stdout.strip()
+
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {
+        "status": "closed_unimplemented",
+        "spec": args.spec,
+        "reason": reason,
+        "laneBranch": record.get("laneBranch"),
+        "phaseBranchClean": phase_head_after == phase_head_before,
+        "blockedDependents": blocked,
     }
 
 
@@ -541,6 +632,17 @@ def cmd_reconcile(args: argparse.Namespace) -> dict[str, Any]:
             qb = rec.get("quarantineBranch")
             if qb and not branch_exists(qb):
                 mismatches.append(f"{spec}: quarantine branch {qb} recorded but missing in git")
+        if status == "closed_unimplemented":
+            # A closed spec keeps its lane branch as preserved evidence, so a
+            # recorded lane that has vanished is reported — symmetric with a
+            # missing quarantine branch. Its worktree must already be released.
+            lane = rec.get("laneBranch")
+            if lane and not branch_exists(lane):
+                mismatches.append(
+                    f"{spec}: retained lane {lane} recorded for a closed spec but missing in git")
+            if rec.get("worktreePath"):
+                mismatches.append(
+                    f"{spec}: closed spec still records worktree {rec['worktreePath']}")
         if status == "integrated" and not rec.get("mergeCommit"):
             mismatches.append(f"{spec}: integrated without a recorded merge commit")
 
@@ -682,9 +784,13 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
     """Read-only phase progress summary for /status."""
     state = _load(Path(args.state))
     specs = state.get("specs", {})
-    counts = {"pending": 0, "implementing": 0, "integrated": 0,
-              "failed": 0, "quarantined": 0, "skipped_blocked": 0}
+    # Seeded from the vocabulary so the counts and SPEC_STATUSES cannot drift —
+    # the drift that let `challenge_required` go uncounted for three stories.
+    # Accumulation below still uses .get(), so a status written by a newer
+    # reducer is reported under its own key rather than crashing or vanishing.
+    counts = {status: 0 for status in sorted(SPEC_STATUSES)}
     quarantine = []
+    closed = {}
     current = None
     for spec, rec in specs.items():
         counts[rec.get("status", "pending")] = counts.get(rec.get("status", "pending"), 0) + 1
@@ -692,12 +798,32 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
             current = {"spec": spec, "laneBranch": rec.get("laneBranch")}
         if rec.get("quarantineBranch"):
             quarantine.append(rec["quarantineBranch"])
+        if rec.get("status") == "closed_unimplemented":
+            closed[spec] = (rec.get("closure") or {}).get("reason")
+
+    # `blockedBy` means "upstream reached a terminal status without delivering"
+    # — which is either a quarantine or a closure. Report which, or a reader who
+    # sees skipped_blocked goes hunting for a quarantine branch that was never
+    # created.
+    blocked = {}
+    for spec, rec in specs.items():
+        if rec.get("status") != "skipped_blocked":
+            continue
+        upstream = [u for u in rec.get("blockedBy", []) if u in specs]
+        causes = {specs[u].get("status") for u in upstream}
+        blocked[spec] = {
+            "by": upstream,
+            "cause": causes.pop() if len(causes) == 1 else ("mixed" if causes else None),
+        }
+
     return {
         "phase": state.get("phase"),
         "phaseBranch": state.get("phaseBranch"),
         "current": current,
         "counts": counts,
         "quarantineBranches": quarantine,
+        "blocked": blocked,
+        "closed": closed,
     }
 
 
@@ -851,6 +977,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--spec", required=True)
     p.add_argument("--summary", default="")
     p.set_defaults(func=cmd_quarantine)
+
+    p = sub.add_parser("close-spec")
+    p.add_argument("--state", required=True)
+    p.add_argument("--repo", required=True)
+    p.add_argument("--spec", required=True)
+    p.add_argument("--reason", required=True)
+    p.set_defaults(func=cmd_close_spec)
 
     p = sub.add_parser("reconcile")
     p.add_argument("--state", required=True)
