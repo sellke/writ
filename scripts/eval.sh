@@ -2844,6 +2844,41 @@ if "per_surface" in m:
 if "story_context_bytes" in m:
     print("METRIC\tstory_context_bytes=%s (%s)" % (
         m.get("story_context_bytes"), m.get("story_context_bytes_note", "proxy — declared load, not consumed tokens")))
+# Component-contract counts (2026-08-12-governor-enforcement Story 1). These
+# reached eval-leanness.py's JSON and never this report, so the only channel a
+# maintainer reads carried neither the gate's coverage nor its vacuous-pass
+# guard. Both branches are guarded on key PRESENCE, never on truthiness: a
+# mismatched or older helper must print nothing rather than
+# `contract_compliance: None`, and `required_skills_declarations=0` is exactly
+# the value that must still be rendered (governor-instrumentation Business
+# Rule 8 — "0 findings" and "0 things checked" must not read the same).
+# Rendering is `key=int` pairs only, so no value can carry a tab and shift the
+# `while IFS=$'\t' read -r kind a b c` reader's fields.
+if "contract_compliance" in m:
+    print("METRIC\tcontract_compliance: %s" % " ".join(
+        "%s=%s" % (key, value) for key, value in m.get("contract_compliance", {}).items()))
+if "required_skills_declarations" in m:
+    print("METRIC\trequired_skills_declarations=%s (frontmatter declarations; the phase's mechanism is the inline read counted beside it)" % (
+        m.get("required_skills_declarations"),))
+if "inline_skill_reads" in m:
+    print("METRIC\tinline_skill_reads=%s (resolved `Read skills/<name>/SKILL.md` occurrences across commands and agents)" % (
+        m.get("inline_skill_reads"),))
+# The absolute per-invocation byte budget (Story 2), reported NON-BLOCKING per
+# the 2026-08-12 (d) rescope: every over-budget command is named here with its
+# overage so the number is visible without being a wall.
+if "command_budget" in m:
+    cb = m.get("command_budget", {})
+    over = cb.get("over_budget", [])
+    named = "; ".join("%s +%s" % (entry.get("subject"), entry.get("over_by")) for entry in over)
+    print("METRIC\tcommand_budget: budget=%s checked=%s over_budget=%s total_overage=%s%s" % (
+        cb.get("budget"), cb.get("checked"), len(over), cb.get("total_overage"),
+        (" — " + named) if named else ""))
+if "per_command_invocation" in m:
+    pci = m.get("per_command_invocation", {})
+    heaviest = max(pci.items(), key=lambda kv: kv[1].get("ceiling_bytes", 0), default=None)
+    print("METRIC\tper_command_invocation: %s commands measured (command_bytes/floor_bytes/ceiling_bytes per command in the JSON metrics)%s" % (
+        len(pci),
+        ("; heaviest ceiling: %s at %s bytes" % (heaviest[0], heaviest[1].get("ceiling_bytes"))) if heaviest else ""))
 PY
 
   while IFS=$'\t' read -r kind a b c; do

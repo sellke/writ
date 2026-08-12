@@ -1,6 +1,6 @@
 # Story 1: Compliance Counts Reach the Eval Report
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Priority:** High
 > **Dependencies:** None
 
@@ -12,23 +12,23 @@
 
 ## Acceptance Criteria
 
-- [ ] Given the current `scripts/eval.sh` before this story, when `bash scripts/eval.sh --check=leanness` runs and the report is grepped for `contract_compliance` or `required_skills_declarations`, then the count is **0** — the defect is reproduced and recorded before it is fixed.
-- [ ] Given this story's change, when the same command runs, then the report carries a `Metrics: contract_compliance: ...` line rendering `commands_checked`, `commands_with_contract`, `commands_with_completion`, `loop_commands_checked`, `loop_commands_bounded`, `agents_checked`, and `agents_with_contract` as counts.
-- [ ] Given the same run, when the report is read, then it carries a `Metrics: required_skills_declarations=<n>` line — so `0 findings` and `0 things checked` are distinguishable in the report, which is the whole point of instrumentation Business Rule 8.
-- [ ] Given the legacy first `METRIC` line (`commands= agents= skills= command_lines= command_chars=`), when this story's diff is inspected, then that line is **byte-identical** to its pre-story form. Its own comment names the Tier B consumers that read only the first METRIC line.
-- [ ] Given an `eval-leanness.py` whose JSON lacks either key (a mismatched install, or an older copy in a fixture root), when the bridge runs, then it prints **nothing** for the absent key — never `contract_compliance: None`.
-- [ ] Given the bash reader `while IFS=$'\t' read -r kind a b c`, when the new lines are rendered, then neither contains a literal tab or newline, so no field shifts. Counts and key names cannot introduce one, and the rendering must not.
-- [ ] Given `scripts/eval.sh` after this story, when `bash scripts/eval.sh` runs end to end, then it exits 0 and no other check's output changes.
+- [x] Given the current `scripts/eval.sh` before this story, when `bash scripts/eval.sh --check=leanness` runs and the report is grepped for `contract_compliance` or `required_skills_declarations`, then the count is **0** — the defect is reproduced and recorded before it is fixed.
+- [x] Given this story's change, when the same command runs, then the report carries a `Metrics: contract_compliance: ...` line rendering `commands_checked`, `commands_with_contract`, `commands_with_completion`, `loop_commands_checked`, `loop_commands_bounded`, `agents_checked`, and `agents_with_contract` as counts.
+- [x] Given the same run, when the report is read, then it carries a `Metrics: required_skills_declarations=<n>` line — so `0 findings` and `0 things checked` are distinguishable in the report, which is the whole point of instrumentation Business Rule 8.
+- [x] Given the legacy first `METRIC` line (`commands= agents= skills= command_lines= command_chars=`), when this story's diff is inspected, then that line is **byte-identical** to its pre-story form. Its own comment names the Tier B consumers that read only the first METRIC line.
+- [x] Given an `eval-leanness.py` whose JSON lacks either key (a mismatched install, or an older copy in a fixture root), when the bridge runs, then it prints **nothing** for the absent key — never `contract_compliance: None`.
+- [x] Given the bash reader `while IFS=$'\t' read -r kind a b c`, when the new lines are rendered, then neither contains a literal tab or newline, so no field shifts. Counts and key names cannot introduce one, and the rendering must not.
+- [x] Given `scripts/eval.sh` after this story, when `bash scripts/eval.sh` runs end to end, then it exits 0 and no other check's output changes.
 
 ## Implementation Tasks
 
-- [ ] 1.1 Reproduce and record the defect: run `bash scripts/eval.sh --check=leanness --report=<tmp>`, grep the report for both keys, record the zero result in the story's Notes as the pre-state
-- [ ] 1.2 Add a guarded `contract_compliance` branch to the TSV bridge at `scripts/eval.sh:~2828-2847`, in the same `if "<key>" in m:` shape the `per_surface` and `story_context_bytes` branches already use
-- [ ] 1.3 Add a guarded `required_skills_declarations` branch in the same shape
-- [ ] 1.4 Verify the legacy first `METRIC` line is untouched — assert byte-identity against `git show HEAD:scripts/eval.sh`, not by eye
-- [ ] 1.5 Add a test asserting both keys reach a generated report, and that a metrics dict missing them produces no line at all
-- [ ] 1.6 Raise `surfaces.scripts.justifications.{lines,chars}` in `.writ/leanness-baseline.json` to this story's post-change measurement, dated, with `text` naming this story (instrumentation Business Rule 9)
-- [ ] 1.7 Verify acceptance criteria and that `bash scripts/eval.sh` is green end to end
+- [x] 1.1 Reproduce and record the defect: run `bash scripts/eval.sh --check=leanness --report=<tmp>`, grep the report for both keys, record the zero result in the story's Notes as the pre-state
+- [x] 1.2 Add a guarded `contract_compliance` branch to the TSV bridge at `scripts/eval.sh:~2828-2847`, in the same `if "<key>" in m:` shape the `per_surface` and `story_context_bytes` branches already use
+- [x] 1.3 Add a guarded `required_skills_declarations` branch in the same shape
+- [x] 1.4 Verify the legacy first `METRIC` line is untouched — assert byte-identity against `git show HEAD:scripts/eval.sh`, not by eye
+- [x] 1.5 Add a test asserting both keys reach a generated report, and that a metrics dict missing them produces no line at all
+- [x] 1.6 Raise `surfaces.scripts.justifications.{lines,chars}` in `.writ/leanness-baseline.json` to this story's post-change measurement, dated, with `text` naming this story (instrumentation Business Rule 9)
+- [x] 1.7 Verify acceptance criteria and that `bash scripts/eval.sh` is green end to end
 
 ## Notes
 
@@ -52,13 +52,64 @@
 - Story 2's `per_command_invocation` metric will use the same bridge shape this story establishes.
 - Story 4's pre-flip gate reads `contract_compliance` from the JSON directly, not from the report, so it does not depend on this story — but a maintainer reading Story 4's failure needs this story's output to interpret it.
 
+## Implementation Notes (2026-08-12)
+
+**Pre-state, reproduced before the fix (task 1.1).**
+
+```
+$ bash scripts/eval.sh --check=leanness --report=/tmp/lean-prestate.md   # exit 0
+$ grep -c "contract_compliance\|required_skills_declarations" /tmp/lean-prestate.md
+0
+$ grep -c "^- Metrics:" /tmp/lean-prestate.md
+4
+```
+
+Four `Metrics:` lines, zero hits for either key. The defect is exactly as the
+spec recorded it: `check_leanness()`'s TSV bridge prints one legacy aggregate
+line, a `per_surface` pair behind `if "per_surface" in m`, and a
+`story_context_bytes` line behind its own guard — and no branch for either
+contract key.
+
+**Post-state.**
+
+```
+- Metrics: contract_compliance: commands_checked=31 commands_with_contract=31 commands_with_completion=31 loop_commands_checked=5 loop_commands_bounded=5 agents_checked=7 agents_with_contract=7
+- Metrics: required_skills_declarations=0 (frontmatter declarations; the phase's mechanism is the inline read counted beside it)
+```
+
+**Legacy line (task 1.4).** Asserted by diff against `git show HEAD:scripts/eval.sh`,
+not by eye — the four-line legacy block is byte-identical, and
+`test_the_legacy_first_metric_line_is_byte_identical_to_its_shipped_form`
+keeps asserting both its source form and its rendered output.
+
+**Branches added.** Beyond the two the story names, the same guarded shape
+carries the keys Stories 2 and 7 introduce (`inline_skill_reads`,
+`command_budget`, `per_command_invocation`), so the bridge is edited once
+rather than in three separate diffs to the same heredoc.
+
+**Absent-key behavior.** Every new branch is guarded on key PRESENCE
+(`if "<key>" in m`), never truthiness — `required_skills_declarations=0` is
+precisely the value that must still render, and a mismatched helper must print
+nothing rather than `contract_compliance: None`. Asserted by
+`test_absent_keys_print_nothing_never_none`. The legacy first line's
+pre-existing `None` rendering for absent aggregate keys is untouched and out of
+this story's scope.
+
+**Tests.** `scripts/tests/test_governor_enforcement.py` → `MetricBridgeTests`,
+7 cases. The renderer under test is **extracted from the committed
+`scripts/eval.sh` heredoc** rather than re-typed, so a passing copy cannot hide
+a broken original — the defect class this spec exists to close.
+
+**Baseline (task 1.6).** `surfaces.scripts.justifications.{lines,chars}` raised
+to 31,501 / 1,353,170, dated 2026-08-12, text naming this story.
+
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 
