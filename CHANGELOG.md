@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.30.1] - 2026-08-12
+
+**The same bug, one layer up.** v0.30.0 shipped a fix for a vocabulary that was declared and referenced nowhere. Two questions about that release — *why wasn't the completed spec archived?* and *why are never-executed specs in the archive?* — found the identical defect in `spec-status.py`, the file v0.30.0's spec had explicitly scoped out as "already correct."
+
+### Fixed
+
+- **The spec status vocabulary was decorative.** `spec-status.py` matched `Closed` as a **bare prefix**, so any subtype passed silently — which is how `Closed — Not Implemented` accumulated across five specs while `.writ/docs/spec-lifecycle.md` still instructed authors not to introduce a fourth prefix. Nothing compared the doc to the detector because nothing could. `CANONICAL_STATUS_HEADS` is now declared in code, `spec-status.py validate` reports any non-canonical head, and the new `spec-vocabulary` eval check asserts doc/script agreement. **Detection stays tolerant** — an off-vocabulary value is still complete-family, so enforcement never silently reclassifies an existing spec or strands it out of the archive.
+- **`/release`'s post-merge archival hook was structurally blind to Writ's own commit convention.** It fed the resolver `messageHeadline` only, while Writ commits carry the spec path in the *body* (`Story N of .writ/specs/<id>`) — so it could match only when a branch name happened to contain the spec id. It had fired **exactly once** (`5a9a2d2`, PR #33) against 40+ archived specs; every other spec was swept by hand. The hook now feeds headline **and** body, verified on the case that exposed it.
+
+### Added
+
+- **`spec-status.py validate`** — reports every spec whose status head is off-vocabulary, scanning `archive/` as well, since an archived spec's status is the permanent record of *how* it ended and archived specs are most of the corpus. Never mutates; separates a missing header (a documented, intentional state) from actual drift.
+- **`Closed — Not Implemented` as a canonical fourth value.** It carries what `Abandoned` does not: the decision was made *on evidence gathered after the spec was written* — a measured pilot, a changed premise, a subsuming spec — rather than the work lapsing.
+- **`spec-vocabulary` eval check** with a **mutation proof**: an off-vocabulary value is injected into a disposable fixture and must be reported. A validator nothing has ever seen fail is decorative in exactly the way this release exists to fix, so a clean `ok: true` was not accepted as evidence on its own.
+
+### Changed
+
+- **Both layers now use the same words.** The phase-layer enum `closed_unimplemented` is renamed **`closed_not_implemented`** to match the spec-layer prose, which is the incumbent across five specs. Live surfaces only — the v0.30.0 changelog entry, the refresh log, the archived spec, and the source issue are historical records of what shipped and are left intact. `phase-execution-v2` stays at schema version 2; read-tolerance means a state file carrying the old value still reports.
+- `.writ/docs/spec-lifecycle.md` documents the enforcement mechanism and the spec ↔ phase layer mapping, and no longer forbids the prefix five specs already used.
+
 ## [0.30.0] - 2026-08-12
 
 **Closure by Decision** — Writ could record that work was *completed*, but not that it was deliberately *never built*. Both layers that needed the distinction got it: the spec archive ledger now carries terminal status, and `phase-execution-v2` gains a `closed_unimplemented` state written by a new `close-spec` reducer subcommand. The gap was found by `/refresh-command`, which rejected it as out of its own scope and filed it instead — the loop closing on itself. `/status` no longer reports a finished phase as five specs of work in flight.
