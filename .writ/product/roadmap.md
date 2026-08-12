@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-08-12 | **Phase 10 closed PARTIALLY COMPLETE.** Determinism half shipped and enforced; progressive disclosure stopped after the pilot measured ~1,017 B overhead per skill and a +9.7% worst-path regression. Five specs closed unimplemented. |
 | 2026-08-11 | **Phase 10 added** (Component Contract & Progressive Disclosure) via `/plan-product`. Parking lot renamed *Beyond Phase 9* → *Beyond Phase 10*; effort-sizing `L` row filled (was "none currently planned"); pacing discipline extended. Three new ADRs: 020, 021, 022. Phase 10's `## Completion` mandate framing corrected the same day — `new-command.md` never mandated it; see [ADR-020 Amendments](../decision-records/adr-020-component-contract.md#amendments). |
 | 2026-07-19 | Phase 9 (Git-Native Provenance & Recovery) recorded as implemented. |
 | 2026-07-10 | Strategic refresh from the 2026 harness audit (ADR-010 → ADR-013). |
@@ -336,12 +337,12 @@ Machine-checkable unless marked otherwise:
 
 ### Features
 
-- [ ] **Component contract** `Effort: M` — `problem:` / `outcome:` / `exit_criteria:` in the frontmatter that already exists in 32/32 commands; same fields in agents' existing fenced Agent Configuration block (the `model_tier` carrier — no new mechanism). Skills already comply in shape; lint asserts `## Purpose` + `## When to Use`. See [ADR-020](../decision-records/adr-020-component-contract.md).
-- [ ] **Loop bounds** `Effort: S` — `loop.bound` / `max_iterations` / `on_exhaustion` on the five verified-unbounded commands, wired to `phase-state.py`'s existing `retry` / `quarantine` paths rather than new failure handling. Highest-severity gap; independent of the token work.
-- [ ] **Progressive disclosure** `Effort: L` — thin command contract (frontmatter, Overview, Invocation, phase list with gate names, Completion, References); per-phase procedural detail extracts to `skills/<name>/SKILL.md` via `/new-skill`, loaded on demand through `required_skills:`. Top 6 files in descending size order, `implement-story` first. See [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md).
-- [ ] **Make the governor bite** `Effort: S-M` — `check_length` command limit 2000 → 400 (single highest-leverage line change in the phase); new blocking `structural` checks for contract presence, Completion presence, loop bounds, and `required_skills:` resolution; absolute `per_surface.commands.chars` cap so growth fails rather than warns; extend `status:`/`evidence:` (ADR-014 vocabulary) to commands and agents so `/refresh-command`'s existing Evidence Gate accrues per-component evidence.
-- [ ] **Retire dead prescription** `Effort: XS-S` — correct the stale no-frontmatter claim in `system-instructions.md` (32/32 commands carry it); resolve the **8-days-overdue** `required_skills:` review trigger (2026-08-03) by **adoption rather than deprecation**; re-decide `model_tier` ordinal-offset reservation ahead of its 2026-10-16 trigger; fix `.writ/manifest.yaml` (`version: 0.13.1` → `0.28.0`, 44 entries → 31 commands); formally deprecate `.writ/product/decisions.md`.
-- [ ] **Autonomy boundary** `Effort: XS` — gate-class table in `_preamble.md` extending ADR-013's evidence-based select-or-pause boundary rather than replacing it. See [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md).
+- [x] **Component contract** `Effort: M` — `problem:` / `outcome:` / `exit_criteria:` in the frontmatter that already exists in 32/32 commands; same fields in agents' existing fenced Agent Configuration block (the `model_tier` carrier — no new mechanism). Skills already comply in shape; lint asserts `## Purpose` + `## When to Use`. See [ADR-020](../decision-records/adr-020-component-contract.md).
+- [x] **Loop bounds** `Effort: S` — `loop.bound` / `max_iterations` / `on_exhaustion` on the five verified-unbounded commands, wired to `phase-state.py`'s existing `retry` / `quarantine` paths rather than new failure handling. Highest-severity gap; independent of the token work.
+- [✗] **Progressive disclosure** `Effort: L` — thin command contract (frontmatter, Overview, Invocation, phase list with gate names, Completion, References); per-phase procedural detail extracts to `skills/<name>/SKILL.md` via `/new-skill`, loaded on demand through `required_skills:`. Top 6 files in descending size order, `implement-story` first. See [ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md).
+- [◐] **Make the governor bite** `Effort: S-M` — `check_length` command limit 2000 → 400 (single highest-leverage line change in the phase); new blocking `structural` checks for contract presence, Completion presence, loop bounds, and `required_skills:` resolution; absolute `per_surface.commands.chars` cap so growth fails rather than warns; extend `status:`/`evidence:` (ADR-014 vocabulary) to commands and agents so `/refresh-command`'s existing Evidence Gate accrues per-component evidence.
+- [x] **Retire dead prescription** `Effort: XS-S` — correct the stale no-frontmatter claim in `system-instructions.md` (32/32 commands carry it); resolve the **8-days-overdue** `required_skills:` review trigger (2026-08-03) by **adoption rather than deprecation**; re-decide `model_tier` ordinal-offset reservation ahead of its 2026-10-16 trigger; fix `.writ/manifest.yaml` (`version: 0.13.1` → `0.28.0`, 44 entries → 31 commands); formally deprecate `.writ/product/decisions.md`.
+- [x] **Autonomy boundary** `Effort: XS` — gate-class table in `_preamble.md` extending ADR-013's evidence-based select-or-pause boundary rather than replacing it. See [ADR-022](../decision-records/adr-022-autonomy-gate-classes.md).
 
 ### Autonomy Gate Classes
 
@@ -377,6 +378,45 @@ Machine-checkable unless marked otherwise:
 4. **Extracted skills are born `status: candidate`.** Promotion to `proven` accrues from real use afterward, so this phase does not close the lifecycle loop by itself.
 
 ---
+
+
+### Phase 10 Closure (2026-08-12)
+
+**Status: PARTIALLY COMPLETE.** The determinism half shipped in full; the token
+half was measured and stopped on evidence.
+
+**Shipped (merged to `main`, PRs #35/#36):** component contract (31/31 commands
+and 7/7 agents declare `problem`/`outcome`/`exit_criteria`; 13 → 31 carry
+`## Completion`), loop bounds (0 → 5, each citing calibration evidence), autonomy
+gate classes, dead prescription retired, governor instrumented — and its
+`justification` field fixed, which had silenced a whole surface at any magnitude
+forever. Enforcement then flipped the contract checks to **blocking `structural`**,
+proven to bite by mutation.
+
+**Stopped on evidence:** progressive disclosure. One command was converted
+(`implement-story`, 52,709 → 24,837 bytes, floor −35.9%, zero drift across a
+281-row inventory). It measured **~1,017 bytes of irreducible overhead per
+extracted skill** and a **+9.7% worst-path regression** against a projected
++4.1%. The five sibling specs were closed unimplemented, contracts intact, as
+the design record.
+
+**Two premises the phase falsified in its own artifacts:**
+
+1. **The token alarm was largely a measurement artifact.** `commands/` measured
+   560,772 chars, but no invocation loads the directory. The worst real
+   invocation was **77,669 bytes (~19.4k tokens), 7.2× smaller**, and 24,960 of
+   it is a shared base no restructuring reduces. `scripts/measure-invocation.py`
+   exists because nothing measured this.
+2. **ADR-021's mechanism could not do what ADR-021 claimed.** §12 promised skills
+   "loaded on demand"; §18 specified `required_skills:`, which the harness
+   pre-loads eagerly. Corrected to inline `Read` at point of need.
+
+**Unmet criteria, stated plainly:** `per_surface.commands.chars` did not drop —
+it rose to ~560k, and the absolute byte budget ships **non-blocking** because
+five of six target commands are unconverted (39,829 bytes total overage, named
+in every eval report). The manual criterion — one real `/implement-story` run
+with disclosure active — is **not yet run**; it is Scenario 20 of that spec's
+UAT plan and no one has yet observed whether the inline reads fire lazily.
 
 ## Beyond Phase 10 (Parking Lot)
 
