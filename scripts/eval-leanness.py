@@ -33,14 +33,19 @@ Contract:
                      "per_surface", "total_product_lines",
                      "total_product_chars", "writ_workspace_lines",
                      "story_context_bytes", "story_context_bytes_note",
-                     "contract_compliance", "required_skills_declarations"}
+                     "contract_compliance", "required_skills_declarations",
+                     "inline_skill_reads", "command_budget",
+                     "per_command_invocation"}
     }
 
-  Component-contract findings (see CONTRACT_CHECK_SEVERITY) land in
-  "warnings" today and become "structural" when the governor-enforcement
-  spec flips that one constant. "contract_compliance" is the trend channel
-  beside them: counts of files checked and files compliant, so the migration
-  specs have one number to move instead of a diff of findings.
+  Component-contract findings (see CONTRACT_CHECK_SEVERITY) are BLOCKING as
+  of 2026-08-12: 2026-08-12-governor-enforcement threw that one constant to
+  "structural" once the surface measured compliant. "contract_compliance" is
+  the coverage channel beside them — counts of files checked and files
+  compliant, so a red or green run says how much surface it covers. The
+  absolute per-invocation byte budget (COMMAND_BYTE_BUDGET) is a separate
+  decision under COMMAND_BUDGET_SEVERITY and is reported non-blocking; the
+  reasoning is at its constant.
 
   "story_context_bytes" is a mixed measurement, not consumed tokens — see
   STORY_CONTEXT_BYTES_NOTE and the sibling "story_context_bytes_note" key.
@@ -68,7 +73,110 @@ import sys
 # until genuine growth, then speaks once (warn-only, never blocking).
 MAX_COMMANDS = 35
 MAX_AGENTS = 10
-MAX_SKILLS = 12
+
+# MAX_SKILLS: 12 -> 45, re-derived 2026-08-12 by 2026-08-12-governor-enforcement
+# Story 7. Five sibling specs flagged the old 12 and none could take it, because
+# every progressive-disclosure spec bars itself from scripts/.
+#
+#     MAX_SKILLS = MAX_COMMANDS + MAX_AGENTS = 35 + 10 = 45
+#
+# WHY THAT, AND NOT A NUMBER THAT CLEARS THE ROSTER. Under ADR-021 a skill is
+# not an independent artifact: it exists only because a CONSUMER — a command or
+# an agent — extracted a capability out of itself, and §4 requires shared
+# capability rather than per-consumer copies. So the skill population is
+# structurally bounded by the consumer population, and that population already
+# carries two deliberate ceilings, in this block, set for their own reasons.
+# One skill per potential consumer is the line where extraction has stopped
+# producing shared capability and become a 1:1 shadow of the consumer surface —
+# ADR-021 §4's "two copies instead of one shared skill" expressed as a count,
+# which is the only thing a count can meaningfully express here.
+#
+# 2026-08-11-autonomy-gate-classes Business Rule 1: "a cap chosen after the fact
+# to accommodate whatever was written is not a cap." The three tests it implies:
+#   - computed from constants that exist for other reasons — MAX_COMMANDS and
+#     MAX_AGENTS are untouched here, and the derivation never reads the roster;
+#   - IT CAN STILL FIRE — it fires at 46, and ADR-021 §4 explicitly anticipates
+#     a second disclosure programme (implement-spec among its targets);
+#   - it moves only when its inputs move, each by a deliberate edit.
+# The counterfactual is the whole argument: had the phase's roster landed at 50,
+# this derivation would still yield 45, the cap would fire, and the correct
+# output would be a Tier B escalation rather than a bigger constant.
+#
+# MEASURED 2026-08-12: the corpus is 14 skills — 31 of headroom. The phase's
+# authored rosters projected 35 (29 new across six specs + 6 existing), but five
+# of the six disclosure specs were closed UNIMPLEMENTED after the pilot measured
+# ~1,017 bytes of per-skill overhead and a +9.7% worst-path ceiling regression.
+# Only the pilot's 8 landed. The projection is recorded because the derivation
+# must be answerable to it and clears it either way, not because 14 was the
+# input — a cap derived from what shipped could not have said anything about
+# what did not.
+#
+# WARN-ONLY, and stated because everything around it became blocking. A count is
+# not a unit of load: that is ADR-021's central finding, and Story 3 of the same
+# spec retires a 2000-line command limit for exactly that reason
+# (commands/implement-phase.md is 321 lines and 4,176 bytes over budget). Three
+# further reasons, each independently sufficient: a blocking count cap would
+# BLOCK THE FIX, since under conditional loading a skill on an untaken path
+# costs that run nothing and extraction is the action that lowers per-invocation
+# load; skill bloat is already governed in BYTES by ADR-019's per-surface
+# ratchet with schema-3 bound justifications, which is the right unit and is
+# blocking; and the ceiling_bytes budget that would supersede this count is
+# deferred pending post-disclosure data. Revisit condition, recorded now: if a
+# ceiling_bytes budget is ever adopted, this count cap becomes REDUNDANT, not
+# stricter.
+MAX_SKILLS = 45
+
+# --- The absolute per-invocation byte budget (spec: 2026-08-12-governor-
+# enforcement Story 2; decision: ADR-021 reason 3 + its 2026-08-12 amendment)
+#
+# "A ratchet is not a budget." check_baseline()'s per-surface delta ratchet
+# stays exactly as it is; this is an absolute ceiling ALONGSIDE it. They answer
+# different questions — the ratchet detects drift from a recorded floor, the
+# budget refuses a size regardless of history.
+#
+# The budget is the irreducible shared base every invocation pays before it
+# reads the command it was asked to run:
+#     system-instructions.md   20,153
+#     commands/_preamble.md     4,807
+#                              ------
+#                              24,960   (measure-invocation.py -> base.bytes)
+#
+# A command file may not cost more to load than the shared contract it runs
+# inside. PINNED, not derived live: a live derivation would let growth in
+# system-instructions.md silently raise every command's allowance, which is
+# reason 3 rebuilt in a new place. check_budget_derivation() reports base drift
+# as a non-blocking finding so re-deriving stays a deliberate, dated act.
+COMMAND_BYTE_BUDGET = 24960
+COMMAND_BYTE_BUDGET_DERIVED = "2026-08-12: system-instructions.md + commands/_preamble.md"
+
+# The two files the budget was derived from, in the order the derivation
+# records them. Read live by check_budget_derivation() and by nothing else.
+BUDGET_BASE_COMPONENTS = ("system-instructions.md", os.path.join("commands", "_preamble.md"))
+
+# NON-BLOCKING, by the 2026-08-12 (d) rescope, and the reasoning belongs at the
+# constant rather than in a spec folder:
+#
+# The five sibling progressive-disclosure specs were closed UNIMPLEMENTED after
+# the pilot (2026-08-12-disclosure-implement-story) measured ~1,017 bytes of
+# per-skill extraction overhead and a +9.7% worst-path ceiling regression. Five
+# of the six target commands are therefore unconverted and stay over budget,
+# and nobody is converting them. Landing this cap blocking would make eval.sh
+# permanently red on files no owner exists for — and a permanently-red gate
+# becomes invisible, which is precisely the ADR-021 reason 2 failure this spec
+# was written to prevent.
+#
+# So the cap ships MEASURED and REPORTED: computed on every run, every violator
+# named with its overage in `warnings` and in `metrics.command_budget`. It
+# becomes blocking when a future decision converts the remaining commands or
+# lowers the base. Recorded against ADR-021's 2026-11-11 review trigger.
+#
+# What is NOT done to make it green: no command gains an `eval-exempt:` marker
+# and this module gains no exemption reader (Business Rule 1). The half of the
+# deliverable the surface passes — the four component-contract checks — flips
+# to blocking on its own evidence (CONTRACT_CHECK_SEVERITY). Enforcing what
+# complies and warning on what does not is the deliverable applied honestly,
+# not a softened one.
+COMMAND_BUDGET_SEVERITY = "warnings"
 
 # The full declared product surface (spec: 2026-07-26-leanness-instrumentation).
 # Each entry: name, path (repo-relative), glob patterns to sum (None = a single
@@ -263,19 +371,57 @@ BARE_TOKEN = re.compile(r"`([a-z][a-z0-9-]*)`")
 # turns every eval run red, and a permanently red gate becomes invisible —
 # exactly how the growth warnings came to be ignored.
 #
-# THE GOVERNOR-ENFORCEMENT SPEC FLIPS THIS ONE STRING to "structural".
-# Nothing else changes: every check below is a pure function returning
-# list[dict] and routes through emit_contract_findings().
+# THE FLIP WAS THROWN ON 2026-08-12 by 2026-08-12-governor-enforcement Story 5.
+# The whole handoff lives here, at the constant, rather than in a spec folder —
+# which is what the seam was built for. Everything below this line is history a
+# reader arriving cold needs, not decoration.
 #
-# Precondition for the flip: the two migration specs have brought commands and
-# agents into compliance, so a flipped run of the `governor-enforcement` spec
-# is green on a clean tree. Flipping early is the failure this constant exists
-# to prevent, which is why the shipped value is asserted by the test suite.
-#
-# The one-line diff it becomes:
 #     -CONTRACT_CHECK_SEVERITY = "warnings"
 #     +CONTRACT_CHECK_SEVERITY = "structural"
-CONTRACT_CHECK_SEVERITY = "warnings"   # -> "structural"
+#
+# One string. Nothing else changed: every check below is still a pure function
+# returning list[dict] and still routes through emit_contract_findings(). That
+# was 2026-08-11-governor-instrumentation Story 7's promise and it held.
+#
+# THE PRECONDITION, MEASURED BEFORE IT WAS THROWN (Story 4, and it is a
+# committed test — ComplianceGateTests in scripts/tests/test_governor_
+# enforcement.py — not a note someone wrote after checking once):
+#
+#     contract_compliance   commands_with_contract   31/31
+#                           commands_with_completion 31/31
+#                           loop_commands_bounded      5/5
+#                           agents_with_contract       7/7
+#     required_skills_declarations                       0
+#     structural under an in-process "structural" pin   []
+#
+# The last line is the one that mattered: `structural: []` under the shipped
+# "warnings" value proves nothing, because the findings would sit in `warnings`
+# either way. Pinning "structural" in-process and finding the list STILL empty
+# is what proved the flip was safe. That test stays in the suite as the
+# permanent regression guard for the state this constant now depends on.
+#
+# GOVERNING DECISIONS. ADR-020 "Enforcement sequencing (load-bearing)": checks
+# land as `warnings` and flip to blocking ONLY once the migration brings the
+# surface into compliance. ADR-021 reason 2 ("growth warns, it does not fail")
+# is what this answers — the reason the old governor never caught 516KB of
+# command prose. Both are satisfied in that order and not before.
+#
+# WHAT AN UN-FLIP WOULD MEAN. Setting this back to "warnings" does not weaken
+# one check; it silently disarms all four across every command and agent, and
+# the surface would stay green while drifting. If a future migration genuinely
+# needs the channel quiet, un-flip DELIBERATELY, record the date and the reason
+# here, and expect FlipSeamTests.test_shipped_default_is_structural to go red —
+# that test exists to make an accidental un-flip impossible to land unnoticed.
+#
+# WHAT THIS CONSTANT DOES NOT GOVERN. The absolute per-invocation byte budget
+# (COMMAND_BYTE_BUDGET / COMMAND_BUDGET_SEVERITY) is its own decision and never
+# routes through here — one string must not control two independent gates, or
+# an un-flip would take the budget out as collateral. `check_required_skills`
+# stays pinned to "warnings" regardless of this value, per system-instructions.md's
+# graceful-degradation contract. An unrecognised value here still falls back to
+# "warnings": a typo must never silently disable a check and must never
+# accidentally block a run.
+CONTRACT_CHECK_SEVERITY = "structural"
 
 # The three fields ADR-020 makes the component contract. Presence and
 # non-emptiness only: the lint can verify the field exists and says something;
@@ -679,15 +825,74 @@ def parse_skill_names(raw: str) -> list[str]:
     return names
 
 
-def check_required_skills(root: str) -> tuple[list[dict], int]:
-    """Every declared skill name resolves to a real skills/<name>/SKILL.md.
+# The phase's ACTUAL loading mechanism. The 2026-08-12 mechanism ruling
+# (ADR-021, second amendment) retired `required_skills:` for Phase 10 because
+# it is an EAGER pre-load — the harness loads every declared skill "before any
+# phase work begins", so extraction under it moves bytes into the floor and
+# makes a command cost MORE per invocation than the monolith it replaced. Every
+# consumer switched to an inline `Read skills/<name>/SKILL.md` at the point of
+# need, which is genuinely conditional.
+#
+# Byte-identical to scripts/measure-invocation.py's INLINE_READ, and a test
+# asserts the two patterns stay equal: one accounting, two readers. A literal
+# `<name>` placeholder (commands/new-skill.md teaches the form) cannot match —
+# angle brackets are outside the class — so documenting the convention is never
+# a finding.
+INLINE_SKILL_READ = re.compile(r"Read\s+skills/([A-Za-z0-9._-]+)/SKILL\.md")
 
-    Returns (findings, declaration_count). The count is the point of the
-    second return value: this check has nothing to resolve today — zero
-    declarations exist across the whole product surface — and "0 findings"
-    must not read the same as "0 things checked" (Business Rule 8).
-    check_baseline() is the established precedent for a check that returns
-    more than a bare list.
+
+def inline_skill_reads(path: str) -> list[str]:
+    """Skill names an inline `Read skills/<n>/SKILL.md` in the body would load.
+
+    Frontmatter is excluded so a `required_skills:` block is never counted as
+    an inline read. Order-preserving and deduplicated, matching the declared
+    path's own schema.
+    """
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+    except (OSError, UnicodeDecodeError):
+        return []
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            text = text[end + 4:]
+    names: list[str] = []
+    for match in INLINE_SKILL_READ.finditer(text):
+        if match.group(1) not in names:
+            names.append(match.group(1))
+    return names
+
+
+def check_required_skills(root: str) -> tuple[list[dict], int, int]:
+    """Every skill name a consumer names resolves to a real SKILL.md.
+
+    BOTH mechanisms, since 2026-08-12-governor-enforcement Story 7. Returns
+    (findings, declaration_count, inline_read_count).
+
+    Two counts because there are two loading mechanisms and they mean opposite
+    things. `required_skills:` is EAGER — the harness loads every declared skill
+    "before any phase work begins" (system-instructions.md -> Harness contract;
+    adapters/claude-code.md), so a declaration moves those bytes into the floor
+    where every invocation pays them. An inline `Read skills/<n>/SKILL.md` is
+    CONDITIONAL — it costs a run only if execution reaches it. Phase 10 measured
+    that difference and retired the declarative form, so declaration_count is 0
+    by design and indefinitely, while inline_read_count is where the whole
+    surface actually lives.
+
+    Reporting both is Business Rule 8 of 2026-08-11-governor-instrumentation
+    doing its job: "0 findings" must not read the same as "0 things checked",
+    and a permanent 0 on one mechanism is only legible next to a non-zero count
+    on the other. check_baseline() is the established precedent for a check that
+    returns more than a bare list.
+
+    WHY THE INLINE HALF EXISTS. Until this story, a mistyped
+    `Read skills/tdd-cyle/SKILL.md` was a silent no-op: the gate passed, the
+    skill never loaded, and the command quietly lost a capability with nothing
+    failing anywhere. The phase moved its entire skill-loading surface from a
+    mechanism WITH a resolution check to one WITHOUT.
+    scripts/measure-invocation.py does report it under `unresolved_skills`, but
+    it always exits 0 by design and therefore cannot gate.
 
     Resolution is a filesystem check, never a lookup in .writ/manifest.yaml:
     the manifest is separately known-stale, and resolving against it would
@@ -695,23 +900,28 @@ def check_required_skills(root: str) -> tuple[list[dict], int]:
     """
     findings: list[dict] = []
     declarations = 0
+    inline_reads = 0
 
-    sources: list[tuple[str, dict[str, str] | None]] = []
+    sources: list[tuple[str, str, dict[str, str] | None]] = []
     for path in all_command_files(root):
         stem = os.path.splitext(os.path.basename(path))[0]
         if is_infra(stem):
             continue
-        sources.append((f"commands/{stem}.md", read_frontmatter(path)))
+        sources.append((f"commands/{stem}.md", path, read_frontmatter(path)))
     for path in all_agent_files(root):
         stem = os.path.splitext(os.path.basename(path))[0]
-        sources.append((f"agents/{stem}.md", read_agent_config(path)))
+        sources.append((f"agents/{stem}.md", path, read_agent_config(path)))
 
-    for rel, fields in sources:
-        if not fields:
-            continue  # carrier absence is check_component_contract's finding
-        for name in parse_skill_names(fields.get("required_skills", "")):
+    def resolves(name: str) -> bool:
+        return os.path.isfile(os.path.join(root, "skills", name, "SKILL.md"))
+
+    for rel, path, fields in sources:
+        # A missing carrier is check_component_contract's finding, not this
+        # one — but the body is still readable, and an inline read in a file
+        # with no frontmatter is exactly as broken as one in a file with it.
+        for name in parse_skill_names((fields or {}).get("required_skills", "")):
             declarations += 1
-            if os.path.isfile(os.path.join(root, "skills", name, "SKILL.md")):
+            if resolves(name):
                 continue
             findings.append({
                 "subject": f"{rel} → required_skills: {name}",
@@ -721,7 +931,23 @@ def check_required_skills(root: str) -> tuple[list[dict], int]:
                        f"or drop it from required_skills:.",
             })
 
-    return findings, declarations
+        for name in inline_skill_reads(path):
+            inline_reads += 1
+            if resolves(name):
+                continue
+            findings.append({
+                "subject": f"{rel} → Read skills/{name}/SKILL.md",
+                "what": f"inline read of `{name}` resolves to no "
+                        f"skills/{name}/SKILL.md. This is a silent no-op at "
+                        "run time: the agent issues the read, nothing loads, "
+                        "and the command quietly runs without the capability.",
+                "fix": f"Create skills/{name}/SKILL.md, correct the path in {rel}, "
+                       "or remove the read. Inline reads are the phase's loading "
+                       "mechanism (ADR-021, amended 2026-08-12), so a typo here "
+                       "costs a capability rather than a byte.",
+            })
+
+    return findings, declarations, inline_reads
 
 
 def _offender_files(findings: list[dict]) -> set[str]:
@@ -1124,6 +1350,172 @@ def check_baseline(baseline: dict | None, err: str | None, baseline_path: str,
     return structural, warnings
 
 
+# --- The absolute per-invocation byte budget -------------------------------
+#
+# Accounting is REUSED, never re-invented. scripts/measure-invocation.py loads
+# this module by path to reuse its parsers (all_command_files, is_infra,
+# read_frontmatter, parse_skill_names), so the dependency runs measure ->
+# leanness and cannot be reversed without a cycle. The cap therefore lives here
+# and uses the identical definition of command_bytes: the raw byte length of
+# the file. Two implementations of "how big is this command" that can disagree
+# is a defect waiting for its first file, so a test asserts the two agree per
+# command against the real repo.
+
+
+def _read_command_bytes(path: str) -> int | None:
+    """Raw byte length, or None when the file cannot be read.
+
+    None is a distinguishable outcome rather than a 0, because a 0 would read
+    as a compliant empty command and silently exempt an unreadable file from
+    the budget.
+    """
+    try:
+        with open(path, "rb") as handle:
+            return len(handle.read())
+    except OSError:
+        return None
+
+
+def command_byte_sizes(root: str) -> dict[str, int]:
+    """Non-infra command stem -> raw file bytes. Unreadable files are omitted.
+
+    The shared accounting behind both check_command_budget() and
+    metrics.per_command_invocation, and the thing that must equal
+    measure-invocation.py's `command_bytes` for every command.
+    """
+    sizes: dict[str, int] = {}
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        size = _read_command_bytes(path)
+        if size is not None:
+            sizes[stem] = size
+    return sizes
+
+
+def check_command_budget(root: str) -> list[dict]:
+    """A command file may not cost more to load than the contract it runs in.
+
+    Pure function returning list[dict]. It reads no baseline, consults no
+    `justifications` map, and knows nothing about CONTRACT_CHECK_SEVERITY: a
+    justification explains growth against a BASELINE and has no meaning against
+    an ABSOLUTE budget (Business Rule 3), and the flip governs the four
+    component-contract checks it was built for, not this. Non-silenceability is
+    structural — there is no exemption reader in this module to reach for.
+
+    `commands/_preamble.md` is base, not a command, and is excluded by the
+    existing is_infra() rule. Hardcoding the filename here would be the defect.
+    """
+    findings: list[dict] = []
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        rel = f"commands/{stem}.md"
+        size = _read_command_bytes(path)
+        if size is None:
+            findings.append({
+                "subject": rel,
+                "what": "the file could not be read, so its per-invocation cost "
+                        "is unknown and the budget could not be applied.",
+                "fix": f"Restore read permission on {rel} (or fix its encoding) "
+                       "and re-run. An unmeasurable command is not a compliant one.",
+            })
+            continue
+        # `>` and not `>=`: exactly at budget is compliant.
+        if size <= COMMAND_BYTE_BUDGET:
+            continue
+        over = size - COMMAND_BYTE_BUDGET
+        findings.append({
+            "subject": rel,
+            "what": f"{size} bytes, over the {COMMAND_BYTE_BUDGET}-byte "
+                    f"per-invocation budget by {over} "
+                    f"({round(100.0 * size / COMMAND_BYTE_BUDGET)}% of budget). "
+                    "A command may not cost more to load than the shared "
+                    "contract it runs inside.",
+            "fix": "Extract procedural detail to skills/<name>/SKILL.md and load "
+                   f"it inline at its point of need (ADR-021, amended 2026-08-12). "
+                   f"Budget derivation: {COMMAND_BYTE_BUDGET_DERIVED}. "
+                   "Reported non-blocking today because the disclosure specs that "
+                   "owned this file were closed unimplemented — never exempt it.",
+        })
+    return findings
+
+
+def check_budget_derivation(root: str) -> list[dict]:
+    """COMMAND_BYTE_BUDGET is pinned; the base it was derived from is live.
+
+    Base drift must be a visible finding demanding a deliberate re-derivation,
+    never a silent allowance increase — a budget that tracks its own inputs is
+    ADR-021 reason 3 rebuilt. This check therefore reports and never mutates.
+    """
+    live = 0
+    for component in BUDGET_BASE_COMPONENTS:
+        size = _read_command_bytes(os.path.join(root, component))
+        live += size or 0
+    if live == COMMAND_BYTE_BUDGET:
+        return []
+    delta = live - COMMAND_BYTE_BUDGET
+    components = " + ".join(BUDGET_BASE_COMPONENTS)
+    return [{
+        "subject": "COMMAND_BYTE_BUDGET",
+        "what": f"the pinned budget is {COMMAND_BYTE_BUDGET} bytes "
+                f"({COMMAND_BYTE_BUDGET_DERIVED}); the live base "
+                f"({components}) now measures {live}, a delta of "
+                f"{delta:+d}. The budget is UNCHANGED — this is a report, not "
+                "an adjustment.",
+        "fix": "Re-derive COMMAND_BYTE_BUDGET deliberately and re-record it with "
+               "its components and a date, or shrink the base back. Never let the "
+               "budget track its own inputs: a self-raising ceiling is ADR-021 "
+               "reason 3 in a new place.",
+    }]
+
+
+def per_command_invocation(root: str) -> dict:
+    """command_bytes / floor_bytes / ceiling_bytes for every non-infra command.
+
+    ADR-021 caveat 2 — disclosure can RAISE total load, because a command that
+    pulls every skill costs more than the monolith did — is made visible here
+    as a metric rather than gated. Gating on ceiling_bytes needs post-disclosure
+    data this spec is the first to produce, and is a decision it does not have.
+
+    floor  = base + command + every EAGER byte (a `required_skills:` skill is
+             pre-loaded before any phase work begins, so every invocation pays
+             it — see system-instructions.md -> Harness contract).
+    ceiling = floor + every CONDITIONAL byte (inline `Read skills/<n>/SKILL.md`
+             occurrences, which only cost a run that reaches them). It is an
+             ENVELOPE, not a path: mutually exclusive branches are both summed.
+    """
+    base = 0
+    for component in BUDGET_BASE_COMPONENTS:
+        base += _read_command_bytes(os.path.join(root, component)) or 0
+
+    def skill_bytes(name: str) -> int:
+        return _read_command_bytes(os.path.join(root, "skills", name, "SKILL.md")) or 0
+
+    report: dict[str, dict] = {}
+    for path in all_command_files(root):
+        stem = os.path.splitext(os.path.basename(path))[0]
+        if is_infra(stem):
+            continue
+        size = _read_command_bytes(path)
+        if size is None:
+            continue
+        fields = read_frontmatter(path) or {}
+        eager = [n for n in parse_skill_names(fields.get("required_skills", ""))]
+        conditional = [n for n in inline_skill_reads(path) if n not in eager]
+        eager_bytes = sum(skill_bytes(name) for name in eager)
+        conditional_bytes = sum(skill_bytes(name) for name in conditional)
+        floor = base + size + eager_bytes
+        report[stem] = {
+            "command_bytes": size,
+            "floor_bytes": floor,
+            "ceiling_bytes": floor + conditional_bytes,
+        }
+    return report
+
+
 def check_ceilings(metrics: dict) -> list[dict]:
     warnings: list[dict] = []
     for label, value, ceiling in (
@@ -1219,6 +1611,38 @@ def main(argv: list[str] | None = None) -> int:
 
     warnings = scan_warnings + base_warnings + check_ceilings(metrics)
 
+    # The absolute per-invocation byte budget (ADR-021 reason 3). Appended to
+    # its bucket DIRECTLY — never through emit_contract_findings(), never
+    # reading CONTRACT_CHECK_SEVERITY. Routing the budget behind the flip's
+    # string would put two independent decisions behind one constant, so a
+    # future un-flip (or the typo fallback) would disable the budget as
+    # collateral. COMMAND_BUDGET_SEVERITY is the budget's own decision and
+    # carries its own reasoning at the constant.
+    budget_findings = check_command_budget(root)
+    if COMMAND_BUDGET_SEVERITY == "structural":
+        structural += budget_findings
+    else:
+        warnings += budget_findings
+    # Base drift: pinned budget vs. live base. Non-blocking by design — it
+    # demands a deliberate re-derivation, it never performs one.
+    warnings += check_budget_derivation(root)
+
+    metrics["command_budget"] = {
+        "budget": COMMAND_BYTE_BUDGET,
+        "derivation": COMMAND_BYTE_BUDGET_DERIVED,
+        "severity": COMMAND_BUDGET_SEVERITY,
+        "checked": len(command_byte_sizes(root)),
+        "over_budget": sorted(
+            ({"subject": f"commands/{stem}.md", "bytes": size,
+              "over_by": size - COMMAND_BYTE_BUDGET}
+             for stem, size in command_byte_sizes(root).items()
+             if size > COMMAND_BYTE_BUDGET),
+            key=lambda entry: -entry["over_by"]),
+    }
+    metrics["command_budget"]["total_overage"] = sum(
+        entry["over_by"] for entry in metrics["command_budget"]["over_budget"])
+    metrics["per_command_invocation"] = per_command_invocation(root)
+
     # Component-contract instrumentation. Every check below is a pure function
     # returning list[dict]; emit_contract_findings() is the only thing that
     # decides which bucket they land in (CONTRACT_CHECK_SEVERITY).
@@ -1235,12 +1659,15 @@ def main(argv: list[str] | None = None) -> int:
     # mid-flight; consumers shouldn't break catastrophically)." Hard-failing
     # eval.sh on an unresolved name would contradict the root behavioral
     # contract during exactly the phase that renames skills most.
-    skill_findings, skill_declarations = check_required_skills(root)
+    skill_findings, skill_declarations, skill_inline_reads = check_required_skills(root)
     emit_contract_findings(skill_findings, structural, warnings, severity="warnings")
 
     metrics["contract_compliance"] = contract_compliance(
         root, contract_findings, completion_findings, loop_findings)
     metrics["required_skills_declarations"] = skill_declarations
+    # Beside the permanently-zero declaration count, the count of the mechanism
+    # the phase actually uses. Read them as a pair or neither means anything.
+    metrics["inline_skill_reads"] = skill_inline_reads
 
     json.dump({"structural": structural, "warnings": warnings, "metrics": metrics},
               sys.stdout, indent=2)

@@ -8,9 +8,17 @@
 # 95 lines passes, 96 lines produces a blocking finding and a non-zero exit.
 #
 # Secondary contract (Business Rule 3): that spec owns exactly one constant in
-# check_length(). The two neighbouring limits — commands/*.md at 2000 and
-# spec-lite.md at 100 — are owned by other Phase 10 work and must be
-# byte-identical. Fixtures below assert both still fire with their own numbers.
+# check_length(). The two neighbouring limits — commands/*.md and spec-lite.md
+# at 100 — are owned by other Phase 10 work and must be byte-identical.
+# Fixtures below assert both still speak with their own numbers.
+#
+# The commands/*.md limit moved on 2026-08-12, by its OWN owner
+# (2026-08-12-governor-enforcement Story 3) and not by a stray edit from this
+# side: 2000 -> 400, and add_finding -> add_note. ADR-021's amendment makes an
+# absolute byte budget the binding instrument and retains the line cap as a
+# "secondary, non-binding tripwire". Scenario 3 below asserts the new posture,
+# and it is still the ownership tripwire it always was — the _preamble cap at
+# 95 sits eleven lines away and must never move with it.
 #
 # Tripwire (Business Rule 4): file_has_exemption() short-circuits the whole
 # check, so an `eval-exempt: length` marker in commands/_preamble.md would
@@ -119,18 +127,55 @@ grep -q '^FAIL' "$ROOT96/eval-report.md" \
 ok "_preamble cap: 96 lines -> exit 1 with a blocking \`limit 95\` finding (the cap still binds)"
 
 # ---------------------------------------------------------------------------
-# Scenario 3 (ownership boundary): the commands/*.md limit is NOT this spec's
-# to change. It sits eleven lines below the constant that moved, which is close
-# enough for a loose search-and-replace to take both. A 2001-line command file
-# must still report `limit 2000`.
+# Scenario 3: the commands/*.md tripwire is 400 and NON-BINDING.
+#
+# ADR-021, amended 2026-08-12: the binding instrument is COMMAND_BYTE_BUDGET
+# (24,960 bytes) in scripts/eval-leanness.py; the line cap is retained only as
+# a secondary tripwire. So a 401-line command file must produce a NOTE and exit
+# 0 — never a blocking finding. Asserting the note text and not just the exit
+# code matters: --check=length runs three separate limits, and a bare exit-code
+# assertion cannot distinguish "the command tripwire stayed quiet" from "it
+# fired as a note".
+#
+# The retired 2000 is asserted absent. It was 2.02x the largest command in the
+# tree (989 lines) and could never bind — ADR-021 reason 1 — and leaving it
+# beside a real byte budget taught readers that lines are a governed quantity.
 # ---------------------------------------------------------------------------
 ROOTCMD="$(new_root)"
-gen_lines "$ROOTCMD/commands/example.md" 2001
+gen_lines "$ROOTCMD/commands/example.md" 401
 RC="$(run_length "$ROOTCMD")"
-[ "$RC" -eq 1 ] || { report_of "$ROOTCMD"; fail "2001-line command file must still fail --check=length, got exit $RC"; }
-grep -Fq '`commands/example.md`: 2001 lines (limit 2000).' "$ROOTCMD/eval-report.md" \
-  || { report_of "$ROOTCMD"; fail 'adjacent command limit changed — expected `commands/example.md`: 2001 lines (limit 2000).'; }
-ok "ownership boundary: commands/*.md limit untouched (2001 lines -> \`limit 2000\`)"
+[ "$RC" -eq 0 ] || { report_of "$ROOTCMD"; fail "401-line command file must NOT fail --check=length (the tripwire is non-binding), got exit $RC"; }
+grep -Fq 'NOTE [commands/example.md]: 401 lines (secondary tripwire 400, non-binding).' "$ROOTCMD/eval-report.md" \
+  || { report_of "$ROOTCMD"; fail 'expected a non-blocking NOTE: `commands/example.md`: 401 lines (secondary tripwire 400, non-binding).'; }
+grep -Fq 'COMMAND_BYTE_BUDGET' "$ROOTCMD/eval-report.md" \
+  || { report_of "$ROOTCMD"; fail 'the tripwire must point the reader at the limit that actually binds (COMMAND_BYTE_BUDGET)'; }
+grep -q '^FAIL' "$ROOTCMD/eval-report.md" \
+  && { report_of "$ROOTCMD"; fail "the command tripwire must be a non-blocking note, not a blocking finding"; }
+ok "command tripwire: 401 lines -> exit 0 with a non-binding NOTE naming COMMAND_BYTE_BUDGET"
+
+# ---------------------------------------------------------------------------
+# Scenario 3b: 400 lines is legal. The test is `-gt`, and the boundary is
+# asserted rather than left to a reading of the code.
+# ---------------------------------------------------------------------------
+ROOT400="$(new_root)"
+gen_lines "$ROOT400/commands/example.md" 400
+RC="$(run_length "$ROOT400")"
+[ "$RC" -eq 0 ] || { report_of "$ROOT400"; fail "400-line command file must pass --check=length, got exit $RC"; }
+if grep -q 'commands/example.md' "$ROOT400/eval-report.md"; then
+  report_of "$ROOT400"
+  fail "400-line command file must produce no note (400 is legal; the test is -gt)"
+fi
+ok "command tripwire: 400 lines -> exit 0, no note (400 is legal; the test is -gt)"
+
+# ---------------------------------------------------------------------------
+# Scenario 3c: the retired 2000-line limit is gone from the source, in any
+# form. Leaving it in place beside a real byte budget teaches a reader that
+# line count is a governed quantity when it is not.
+# ---------------------------------------------------------------------------
+if grep -Eq 'gt[[:space:]]+2000' "$EVAL"; then
+  fail "scripts/eval.sh still holds a 2000-line command limit — ADR-021's amendment retired it"
+fi
+ok "retired: no 2000-line command limit survives in scripts/eval.sh"
 
 # ---------------------------------------------------------------------------
 # Scenario 4 (ownership boundary): the spec-lite.md limit belongs to nobody in

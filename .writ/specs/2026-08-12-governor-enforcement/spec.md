@@ -1,6 +1,6 @@
 # Spec: Governor Enforcement
 
-> **Status:** Not Started
+> **Status:** Complete (2026-08-12) — 7/7 stories. The contract half enforces; the byte half is measured and reported. See § Approved Scope Changes, 2026-08-12 (d).
 > **Owner:** @AdamSellke
 > **Created:** 2026-08-12
 > **Dependencies:** [2026-08-12-disclosure-implement-story, 2026-08-12-disclosure-create-spec, 2026-08-12-disclosure-verify-spec, 2026-08-12-disclosure-release, 2026-08-12-disclosure-ship, 2026-08-12-disclosure-implement-phase]
