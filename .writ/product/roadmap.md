@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-08-12 | **Reconcile follow-ups:** the closure's "Scenario 20 not yet run" claim corrected — the probe ran and passed later the same day (lazy loading confirmed on the full path; `--quick` + degradation probes still open); `.writ/manifest.yaml` `metadata.version` gained a maintainer in `/release` Step 3.1 after drifting again (0.29.0 vs v0.30.2) within a day of its one-time Phase 10 fix. |
 | 2026-08-12 | **Reconcile pass** (`/plan-product --reconcile`) after Phase 10 closure: header status, Phase 10 heading, and mission Phase 10 / Next Horizon blocks aligned to the closure record; four stale "pending `/release`" closure claims corrected (Phases 6–9 released in v0.19.0/v0.20.0/v0.23.0); Leanness Guardian annotated with its v0.24.0 full-surface successor (ADR-019); inter-phase infrastructure recorded in the condensed history. Derivatives regenerated. |
 | 2026-08-12 | **Phase 10 closed PARTIALLY COMPLETE.** Determinism half shipped and enforced; progressive disclosure stopped after the pilot measured ~1,017 B overhead per skill and a +9.7% worst-path regression. Five specs closed unimplemented. |
 | 2026-08-11 | **Phase 10 added** (Component Contract & Progressive Disclosure) via `/plan-product`. Parking lot renamed *Beyond Phase 9* → *Beyond Phase 10*; effort-sizing `L` row filled (was "none currently planned"); pacing discipline extended. Three new ADRs: 020, 021, 022. Phase 10's `## Completion` mandate framing corrected the same day — `new-command.md` never mandated it; see [ADR-020 Amendments](../decision-records/adr-020-component-contract.md#amendments). |
@@ -347,7 +348,7 @@ Machine-checkable unless marked otherwise:
 - Every `required_skills:` entry resolves to a real `skills/<name>/SKILL.md`
 - `bash scripts/gen-skill.sh --check` passes (manifest/SKILL.md consistency restored)
 - ~~`per_surface.commands.chars` drops materially from 516,589~~ — **void, [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) (2026-08-12).** This was the phase's central byte goal. It is withdrawn, not merely unmet: byte count measures file size, while the stated aim is economy of *steps and ruminations to reach exit criteria*. Where the two diverge the byte metric points the wrong way — extraction cut `implement-story`'s floor 35.9% while adding eight decision points, five of which fire unconditionally and buy nothing. Bytes remain measured as drift signal; they no longer drive architecture, and no replacement number is adopted.
-- *(manual)* One real `/implement-story` run completes with progressive disclosure active and every gate firing
+- *(manual)* One real `/implement-story` run completes with progressive disclosure active and every gate firing — ✅ **run and passed 2026-08-12, after the closure below was first written** (Scenario 20, `disclosure-implement-story` UAT plan): lazy loading confirmed on the full path; the `--quick` and missing-skill probes remain open
 
 ### Features
 
@@ -429,8 +430,15 @@ the design record.
 it rose to ~560k, and the absolute byte budget ships **non-blocking** because
 five of six target commands are unconverted (39,829 bytes total overage, named
 in every eval report). The manual criterion — one real `/implement-story` run
-with disclosure active — is **not yet run**; it is Scenario 20 of that spec's
-UAT plan and no one has yet observed whether the inline reads fire lazily.
+with disclosure active — was written here as **not yet run**, and was then **run
+and passed later the same day** (`uat/disclosure-harness-probe`, story-1 of the
+dirty-tree-guard spec, commit `56f43b3`): all eight applicable skill reads fired
+lazily at their own steps, none early, and the story completed — so the −35.9%
+floor reduction is real, not paper. Recorded in Scenario 20 of that spec's UAT
+plan, with three caveats and two probes still open: the `--quick` path (whether
+`boundary-map-computation` and `drift-triage` stay unread — the entire claim of
+the skipped path) and the missing-skill degradation probe (steps 5 and 7).
+*(Corrected 2026-08-12 — the closure predated the probe by a few commits.)*
 
 ### Postscript, 2026-08-12 — the byte goal is withdrawn, not deferred
 

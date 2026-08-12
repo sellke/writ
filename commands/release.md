@@ -356,6 +356,17 @@ sed -i "s/^version = .*/version = \"${VERSION}\"/" Cargo.toml
 
 # VERSION file (always — methodology source of truth)
 echo "${VERSION}" > VERSION
+
+# Writ component manifest — metadata.version tracks the release when the file
+# exists. Two version keys live in this file: the top-level `version:` at column
+# 0 is the manifest SCHEMA version and must never move; only the indented
+# `metadata.version` follows the release. (This value drifted 15 minor versions
+# once and was hand-fixed by 2026-08-11-retire-dead-prescription; it drifted
+# again within a day of v0.30.x because nothing maintained it — now this does.)
+if [ -f .writ/manifest.yaml ]; then
+  sed -i.writ-bak -E "s/^([[:space:]]+version: ).*/\1${VERSION}/" .writ/manifest.yaml \
+    && rm -f .writ/manifest.yaml.writ-bak
+fi
 ```
 
 > When `package.json#name == "@sellke/writ"`, the Step 2.3 "Files to update" preview should omit `package.json` from its list — methodology releases do not touch the runtime-helper package version.
