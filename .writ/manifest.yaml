@@ -253,6 +253,11 @@ skills:
     description: "Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists."
     status: proven
     tags: [git, commits, changelog]
+  - name: dependency-context-loading
+    file: skills/dependency-context-loading/SKILL.md
+    description: "Load, filter, and truncate upstream stories' implementation records into dependency context."
+    status: candidate
+    tags: [context, dependencies, records]
   - name: error-rescue-mapping
     file: skills/error-rescue-mapping/SKILL.md
     description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."
@@ -268,6 +273,11 @@ skills:
     description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."
     status: candidate
     tags: [refactor, quality, verification]
+  - name: story-context-assembly
+    file: skills/story-context-assembly/SKILL.md
+    description: "Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections."
+    status: candidate
+    tags: [context, knowledge, spec-lite]
   - name: tdd-cycle
     file: skills/tdd-cycle/SKILL.md
     description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."
