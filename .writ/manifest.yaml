@@ -243,6 +243,16 @@ agents:
 # See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
 #      ADR-014 (.writ/decision-records/adr-014-skill-lifecycle.md)
 skills:
+  - name: boundary-map-computation
+    file: skills/boundary-map-computation/SKILL.md
+    description: "Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data."
+    status: candidate
+    tags: [boundaries, scope, ownership]
+  - name: change-surface-classification
+    file: skills/change-surface-classification/SKILL.md
+    description: "Classify a change set as style-only, single-component, cross-component, or full-stack."
+    status: candidate
+    tags: [review, classification, scope]
   - name: code-explanation
     file: skills/code-explanation/SKILL.md
     description: "Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target."
@@ -258,6 +268,11 @@ skills:
     description: "Load, filter, and truncate upstream stories' implementation records into dependency context."
     status: candidate
     tags: [context, dependencies, records]
+  - name: drift-triage
+    file: skills/drift-triage/SKILL.md
+    description: "Triage implementation deviations by severity and route each to amend, warn, or pause."
+    status: candidate
+    tags: [drift, severity, spec]
   - name: error-rescue-mapping
     file: skills/error-rescue-mapping/SKILL.md
     description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."

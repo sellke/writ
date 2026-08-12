@@ -128,9 +128,12 @@ and unlink manage this file alongside its reducer.
 
 | Skill | Status | File | Description |
 |-------|--------|------|-------------|
+| `boundary-map-computation` | `candidate` | `skills/boundary-map-computation/SKILL.md` | Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data. |
+| `change-surface-classification` | `candidate` | `skills/change-surface-classification/SKILL.md` | Classify a change set as style-only, single-component, cross-component, or full-stack. |
 | `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |
 | `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
 | `dependency-context-loading` | `candidate` | `skills/dependency-context-loading/SKILL.md` | Load, filter, and truncate upstream stories' implementation records into dependency context. |
+| `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `gbrain-interop` | `candidate` | `skills/gbrain-interop/SKILL.md` | Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
