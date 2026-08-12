@@ -133,7 +133,11 @@ The harness pre-loads each named skill before the consumer's first phase begins.
 - Duplicates are silently deduplicated.
 - Unknown skill names produce a **warning**, not a hard failure.
 
-**Status: adopted.** The 2026-08-03 review trigger (90 days post-ship) fired, and its "deprecate or revisit" terms were resolved as **revisit → adopt**. The first consumer is Phase 10 progressive disclosure ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)), which needs exactly the declarative, harness-resolved, per-invocation load contract this convention specifies — graceful degradation included. The schema above is adopted unchanged. The first real declarations land with progressive disclosure's extraction work; no consumer declares the field yet.
+**Status: documented, and the convention still has no consumer.** The 2026-08-03 review trigger fired and was resolved **revisit → adopt** on the strength of one named consumer: Phase 10 progressive disclosure ([ADR-021](../decision-records/adr-021-progressive-disclosure-token-budget.md)). **That consumer evaluated the mechanism and did not adopt it.**
+
+`required_skills:` is resolved by the harness *before the consumer's first phase begins*, so a static array cannot express per-run conditionality — every invocation pays for every declared skill. Progressive disclosure needed the opposite, and uses an inline `Read skills/<name>/SKILL.md` placed at the step that needs it, which loads only if execution reaches that step. `required_skills_declarations` is therefore `0`, and the eval report counts `inline_skill_reads` beside it.
+
+The schema above is **unchanged and still available** — nothing here deprecates it, and its graceful-degradation rule stands. It simply has no consumer, and a **2026-11-11 review trigger** is restored to revisit that. Corrected 2026-08-12: this file was the fourth carrier of the superseded "first consumer" claim, alongside `system-instructions.md` and the three adapters, and was missed when those were fixed.
 
 ---
 
