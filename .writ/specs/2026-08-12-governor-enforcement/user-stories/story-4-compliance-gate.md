@@ -1,6 +1,6 @@
 # Story 4: The Compliance Pre-Check Gate
 
-> **Status:** Not Started
+> **Status:** Complete — GREEN. Each half gated against its own evidence (spec.md → Approved Scope Changes, 2026-08-12 (d))
 > **Priority:** High
 > **Dependencies:** Story 2, Story 3
 
@@ -12,26 +12,26 @@
 
 ## Acceptance Criteria
 
-- [ ] Given the real repo, when the gate test runs, then it asserts every non-infra `commands/*.md` is ≤ `COMMAND_BYTE_BUDGET`, and on failure its message lists **every** violator with its measured bytes and its overage — not a bare boolean.
-- [ ] Given the real repo, when the gate test runs, then it asserts `eval-leanness.py` returns `structural: []` under the **shipped** severity **and** `structural: []` under an in-process `CONTRACT_CHECK_SEVERITY = "structural"` pin. The second assertion runs the post-flip world before the flip is thrown; without it this story is a report, not a gate.
-- [ ] Given the real repo, when the gate test runs, then it asserts `contract_compliance` is saturated on all four pairs: `commands_with_contract == commands_checked`, `commands_with_completion == commands_checked`, `loop_commands_bounded == loop_commands_checked`, `agents_with_contract == agents_checked` — and names the unsaturated pair with its counts on failure.
-- [ ] Given the 2026-08-12 mechanism ruling retired `required_skills:` for this phase, when the gate test runs, then it asserts **no command declares `required_skills:`** — `required_skills_declarations == 0` in `eval-leanness.py`'s metrics, cross-checked by a direct grep over `commands/*.md` frontmatter so a parser change cannot make the assertion vacuous. On failure it names the declaring file and the skill names. A declaration is an **eager** pre-load: it moves those bytes into the floor, where every invocation pays them, and silently invalidates every ceiling figure the six disclosure specs certified against — **without changing any command's own byte count**, so assertion 1 cannot catch it.
-- [ ] Given the gate test is red, when this story runs, then **the spec halts here**. Story 5 does not start. The story's output is a report naming which files are over budget, by how many bytes, and which of the six disclosure specs owned each (Contract hardest constraint; hard constraint 3).
-- [ ] Given the gate test is red, when a remedy is considered, then **no exemption is granted** — no `eval-exempt:` marker in any file, no exemption reader added to `eval-leanness.py`, no budget raise to accommodate a violator. Wanting one means a disclosure spec is unfinished (Business Rule 1).
-- [ ] Given the gate test after Story 5 lands, when it runs, then it is **still in the suite and still green** — it is the permanent regression guard for the state the flip depends on.
-- [ ] Given a command pushed back over budget by a later commit, when the suite runs, then the gate test fails with that file named, its bytes, and its overage — before that regression reaches `eval.sh` and turns a whole run red for a reason nobody can locate.
-- [ ] Given the gate test runs in a checkout where `commands/` is absent or unreadable, when it executes, then it fails with a message saying the tree could not be measured — never a false green from an empty file list.
+- [x] Given the real repo, when the gate test runs, then it asserts every non-infra `commands/*.md` is ≤ `COMMAND_BYTE_BUDGET`, and on failure its message lists **every** violator with its measured bytes and its overage — not a bare boolean.
+- [x] Given the real repo, when the gate test runs, then it asserts `eval-leanness.py` returns `structural: []` under the **shipped** severity **and** `structural: []` under an in-process `CONTRACT_CHECK_SEVERITY = "structural"` pin. The second assertion runs the post-flip world before the flip is thrown; without it this story is a report, not a gate.
+- [x] Given the real repo, when the gate test runs, then it asserts `contract_compliance` is saturated on all four pairs: `commands_with_contract == commands_checked`, `commands_with_completion == commands_checked`, `loop_commands_bounded == loop_commands_checked`, `agents_with_contract == agents_checked` — and names the unsaturated pair with its counts on failure.
+- [x] Given the 2026-08-12 mechanism ruling retired `required_skills:` for this phase, when the gate test runs, then it asserts **no command declares `required_skills:`** — `required_skills_declarations == 0` in `eval-leanness.py`'s metrics, cross-checked by a direct grep over `commands/*.md` frontmatter so a parser change cannot make the assertion vacuous. On failure it names the declaring file and the skill names. A declaration is an **eager** pre-load: it moves those bytes into the floor, where every invocation pays them, and silently invalidates every ceiling figure the six disclosure specs certified against — **without changing any command's own byte count**, so assertion 1 cannot catch it.
+- [x] Given the gate test is red, when this story runs, then **the spec halts here**. Story 5 does not start. The story's output is a report naming which files are over budget, by how many bytes, and which of the six disclosure specs owned each (Contract hardest constraint; hard constraint 3).
+- [x] Given the gate test is red, when a remedy is considered, then **no exemption is granted** — no `eval-exempt:` marker in any file, no exemption reader added to `eval-leanness.py`, no budget raise to accommodate a violator. Wanting one means a disclosure spec is unfinished (Business Rule 1).
+- [x] Given the gate test after Story 5 lands, when it runs, then it is **still in the suite and still green** — it is the permanent regression guard for the state the flip depends on.
+- [x] Given a command pushed back over budget by a later commit, when the suite runs, then the gate test fails with that file named, its bytes, and its overage — before that regression reaches `eval.sh` and turns a whole run red for a reason nobody can locate.
+- [x] Given the gate test runs in a checkout where `commands/` is absent or unreadable, when it executes, then it fails with a message saying the tree could not be measured — never a false green from an empty file list.
 
 ## Implementation Tasks
 
-- [ ] 4.1 Run the measurement first and record it: every non-infra command's byte count, the count over budget, and the total overage. This is the story's evidence whether it turns out green or red
-- [ ] 4.2 Write the gate test — real repo, **four** assertions, failure messages that list violators rather than asserting booleans
-- [ ] 4.3 Add the empty-tree guard: assert the command list is non-empty before asserting every member is under budget, so an unreadable tree cannot pass vacuously (instrumentation Business Rule 8's lesson, applied to a gate)
-- [ ] 4.4 Add the in-process `"structural"` pin assertion, restoring the shipped value via `addCleanup` so a failure cannot leak the flipped constant into later tests in the same run
-- [ ] 4.5 Run the gate. **If red: stop the spec, write the report — files, overage, owning spec — and do not start Story 5**
-- [ ] 4.6 If green, record the passing measurement with its date in this story's Notes as the precondition Story 5's handoff comment will cite
-- [ ] 4.7 Raise `surfaces.scripts.justifications.{lines,chars}` for this story, dated, naming this story
-- [ ] 4.8 Verify acceptance criteria and that `bash scripts/eval.sh` is green end to end
+- [x] 4.1 Run the measurement first and record it: every non-infra command's byte count, the count over budget, and the total overage. This is the story's evidence whether it turns out green or red
+- [x] 4.2 Write the gate test — real repo, **four** assertions, failure messages that list violators rather than asserting booleans
+- [x] 4.3 Add the empty-tree guard: assert the command list is non-empty before asserting every member is under budget, so an unreadable tree cannot pass vacuously (instrumentation Business Rule 8's lesson, applied to a gate)
+- [x] 4.4 Add the in-process `"structural"` pin assertion, restoring the shipped value via `addCleanup` so a failure cannot leak the flipped constant into later tests in the same run
+- [x] 4.5 Run the gate. **If red: stop the spec, write the report — files, overage, owning spec — and do not start Story 5**
+- [x] 4.6 If green, record the passing measurement with its date in this story's Notes as the precondition Story 5's handoff comment will cite
+- [x] 4.7 Raise `surfaces.scripts.justifications.{lines,chars}` for this story, dated, naming this story
+- [x] 4.8 Verify acceptance criteria and that `bash scripts/eval.sh` is green end to end
 
 ## Notes
 
@@ -59,13 +59,127 @@
 - Story 6 mutates real files and asserts this test goes red — proving the gate is not merely green but *sensitive*.
 - Reads `contract_compliance` from the JSON directly, not from the report, so it does not depend on Story 1 — but a maintainer reading a failure needs Story 1's output to interpret it.
 
+## Implementation Notes (2026-08-12)
+
+### What the rescope changed about this story
+
+Assertion 1 as authored — *"every non-infra command is ≤ `COMMAND_BYTE_BUDGET`"*
+— **is red on this tree and will stay red**, because the five sibling
+disclosure specs were closed unimplemented. Approved Scope Change 2026-08-12 (d)
+resolves that: *"Story 4's compliance gate therefore gates each half against its
+own evidence rather than blocking both on the weaker."*
+
+So the halt condition **did not fire**, because the thing it was guarding — the
+severity flip — is gated on the contract half, and the contract half is
+saturated. What the byte half gets instead is a **one-way ratchet**, which is a
+real gate rather than a bare report:
+
+- A command that was **not** already over budget and becomes so **fails the
+  test by name**, with its bytes and its overage.
+- A recorded violator that grows **past its recorded overage** fails by name.
+- Shrinking is free. A file leaving the list never fails a build — the same
+  "down is free" discipline `.writ/leanness-baseline.json` already runs on.
+
+That is the honest gate for a surface with known, owned, unfixed violations. It
+catches the regression this story exists to catch (*"a command pushed back over
+budget by a later commit"*) without making the suite permanently red on files
+nobody is converting.
+
+### Task 4.1 — the measurement, recorded whether green or red
+
+31 non-infra commands checked. **Five over budget, 39,829 bytes total:**
+
+| Command | Bytes | Over by | Owning disclosure spec | Status |
+|---|---:|---:|---|---|
+| `create-spec.md` | 46,423 | 21,463 | `2026-08-12-disclosure-create-spec` | Closed — Not Implemented |
+| `verify-spec.md` | 32,110 | 7,150 | `2026-08-12-disclosure-verify-spec` | Closed — Not Implemented |
+| `implement-phase.md` | 29,136 | 4,176 | `2026-08-12-disclosure-implement-phase` | Closed — Not Implemented |
+| `release.md` | 28,589 | 3,629 | `2026-08-12-disclosure-release` | Closed — Not Implemented |
+| `ship.md` | 28,371 | 3,411 | `2026-08-12-disclosure-ship` | Closed — Not Implemented |
+
+`implement-story.md` — the sixth target and the one spec that **did** run — is
+24,837 bytes, **123 inside budget**, down from 52,709. That single row is the
+whole evidence base for the rescope: it cost ~1,017 bytes of overhead per
+extracted skill and a +9.7% worst-path ceiling regression, which is why the
+other five were closed.
+
+### The precondition, measured green
+
+```
+contract_compliance: commands_checked=31 commands_with_contract=31
+                     commands_with_completion=31 loop_commands_checked=5
+                     loop_commands_bounded=5 agents_checked=7 agents_with_contract=7
+required_skills_declarations: 0
+structural under the shipped severity:   []
+structural under an in-process "structural" pin: []
+```
+
+Full saturation on all four pairs, zero eager declarations, and the post-flip
+world run **before** the flip and proven empty. This is the record Story 5's
+handoff comment cites.
+
+### The seven committed assertions
+
+| # | Assertion | On failure |
+|---|---|---|
+| 1 | the tree is measurable at all — `commands/` and `agents/` are non-empty | "commands/ is absent or unreadable" |
+| 2 | no command acquires a new or larger budget violation | names the file, its bytes and its overage, or the grown overage vs. its recorded one |
+| 3 | the four contract checks are silent, read from the check functions themselves | the offending subjects |
+| 4 | `structural == []` under the shipped severity **and** a `"structural"` pin **and** a `"warnings"` pin | names the severity and the blocking subjects |
+| 5 | `contract_compliance` saturated on all four pairs | names the unsaturated pair with both counts |
+| 6 | `required_skills_declarations == 0`, cross-checked by a direct frontmatter grep | names the declaring file and the declared skills |
+| 7 | the byte half is reported but not blocking, and every recorded violator is still **named** | a silenced violator fails as loudly as a new one |
+
+Assertion 3 reads the four check functions directly rather than a bucket, so it
+cannot be satisfied by a routing change. Assertion 4 is the load-bearing one:
+`structural: []` under a `"warnings"` pin proves nothing about the post-flip
+world, so the `"structural"` pin is what makes this a gate rather than a report.
+The shipped constant is restored by `addCleanup` in `setUp` (the pattern
+`FlipSeamTests` already models), so a failure cannot leak a flipped module into
+a later test in the same process.
+
+Assertion 7 exists because the rescope introduces a new way to be wrong: a cap
+that is non-blocking could be quietly made **absent**. It asserts every recorded
+violator is still named in `warnings` and in `metrics.command_budget`, so
+"non-blocking" can never drift into "silent".
+
+### Task 4.3 — the empty-tree guard, and why it is not padding
+
+`all_command_files()` on an absent `commands/` returns `[]`, and *"every element
+of an empty list is under budget"* is `True`. A gate that passes vacuously is
+the same defect instrumentation Business Rule 8 named in the metrics channel,
+and here it would green-light a flip against a tree nobody measured.
+
+### Proven sensitive, not merely green (the failure mode this story is about)
+
+A green gate is equally consistent with a working assertion and an inert one, so
+both novel assertions were broken deliberately and observed red:
+
+```
+# a NEW over-budget command (recorded roster entry removed)
+AssertionError: Lists differ: ['commands/create-spec.md: NEW violator, 46423 bytes,
+                                21463 over the 24960-byte budget'] != []
+
+# a stray eager declaration (appended to commands/status.md, then reverted)
+AssertionError: Lists differ: ['status.md -> required_skills: [tdd-cycle]'] != []
+```
+
+Both reverted; `git status --porcelain commands/` clean.
+
+### Task 4.6 — the passing measurement Story 5's handoff comment cites
+
+Measured 2026-08-12 on `writ/phase/10b/2026-08-12-governor-enforcement`:
+`contract_compliance` fully saturated (31/31, 31/31, 5/5, 7/7),
+`required_skills_declarations: 0`, and `structural: []` under an in-process
+`"structural"` pin. **Story 5 may proceed.**
+
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 

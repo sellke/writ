@@ -480,21 +480,60 @@ class ComplianceGateTests(unittest.TestCase):
                     f"was {recorded}")
         self.assertEqual(regressions, [], "\n".join(regressions))
 
-    def test_the_contract_half_is_silent_under_both_severities(self):
-        """The assertion that makes this a gate rather than a report: the
-        post-flip world, run under BOTH pins, on the real tree."""
-        for severity in ("structural", "warnings"):
+    def test_the_four_contract_checks_are_silent_on_the_real_tree(self):
+        """The precondition the flip rests on, measured at its source.
+
+        Read from the check functions themselves rather than from a bucket, so
+        the assertion cannot be satisfied by a routing change: whatever
+        CONTRACT_CHECK_SEVERITY says, these four lists must be empty.
+        """
+        root = str(REPO_ROOT)
+        offenders = (lean.check_component_contract(root)
+                     + lean.check_completion_sections(root)
+                     + lean.check_loop_bounds(root))
+        self.assertEqual([f["subject"] for f in offenders], [])
+        skill_findings = lean.check_required_skills(root)[0]
+        self.assertEqual([f["subject"] for f in skill_findings], [])
+
+    def test_structural_is_empty_under_the_shipped_severity_and_a_structural_pin(self):
+        """The load-bearing assertion, and the one that makes this a gate.
+
+        Asserting `structural: []` under a `"warnings"` pin proves nothing
+        about the post-flip world — the contract findings would sit in
+        `warnings` either way. Pinning `"structural"` in-process and asserting
+        the list is STILL empty is what proves the flip is safe. Both pins are
+        run, and the shipped constant is restored by addCleanup so a failure
+        cannot leak a flipped module into a later test in the same process.
+        """
+        for severity in (self._shipped, "structural", "warnings"):
             lean.CONTRACT_CHECK_SEVERITY = severity
             payload = self.run_main()
-            contract_subjects = [
-                f["subject"] for f in payload["structural"] + payload["warnings"]
-                if f["subject"].startswith(("commands/", "agents/"))
-                and " → " in f["subject"] or "contract" in f.get("what", "")
-            ]
-            blocking = [f for f in payload["structural"]]
-            self.assertEqual(blocking, [], f"under {severity}: {blocking}")
-            self.assertEqual(
-                [s for s in contract_subjects if "required_skills" not in s], [])
+            blocking = [f["subject"] for f in payload["structural"]]
+            self.assertEqual(blocking, [], f"under {severity!r}: {blocking}")
+
+    def test_the_byte_cap_is_the_half_that_does_not_comply_and_is_not_blocking(self):
+        """The other half of the same precondition, gated on its own evidence.
+
+        Five commands are over budget and the specs that owned them were closed
+        unimplemented, so the cap is reported rather than blocking. Landing it
+        blocking would make every run red for files with no owner — the exact
+        ADR-021 reason 2 failure this spec exists to prevent. Business Rule 1's
+        "no exemption to make the flip possible" is upheld by not flipping this
+        half, never by silencing it, so the finding must still be PRESENT.
+        """
+        self.assertEqual(lean.COMMAND_BUDGET_SEVERITY, "warnings")
+        payload = self.run_main()
+        reported = {f["subject"] for f in payload["warnings"]}
+        blocking = {f["subject"] for f in payload["structural"]}
+        for subject in KNOWN_OVER_BUDGET:
+            self.assertIn(subject, reported,
+                          "an over-budget command must still be named — the cap "
+                          "is non-blocking, not silent")
+            self.assertNotIn(subject, blocking)
+        budget = payload["metrics"]["command_budget"]
+        self.assertEqual({entry["subject"] for entry in budget["over_budget"]},
+                         set(KNOWN_OVER_BUDGET))
+        self.assertEqual(budget["total_overage"], sum(KNOWN_OVER_BUDGET.values()))
 
     def test_contract_compliance_is_saturated_on_all_four_pairs(self):
         compliance = self.run_main()["metrics"]["contract_compliance"]
