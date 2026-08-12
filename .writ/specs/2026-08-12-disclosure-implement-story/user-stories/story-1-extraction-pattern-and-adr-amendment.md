@@ -1,6 +1,6 @@
 # Story 1: Extraction Pattern, Naming Convention, and the ADR-021 Amendment
 
-> **Status:** Not Started
+> **Status:** Completed ✅ (2026-08-12)
 > **Priority:** High
 > **Dependencies:** None
 
@@ -12,28 +12,28 @@
 
 ## Acceptance Criteria
 
-- [ ] Given `skills/` is a namespace shared by six sibling Phase 10 specs and holds 6 skills today with no naming convention recorded anywhere, when this story lands, then `.writ/docs/skills.md` → `## Extraction Patterns` documents all six rules from spec.md → Business Rule 3 — kebab-case noun phrase (2–3 words, ≤30 chars, unique across all three primitive namespaces); `<object>-<operation>` shape; never named after a command, gate, or step; bare-imperative verb-phrase `description:`; no consumer vocabulary in a shared skill; and the collision protocol — at that file's existing density, as a table and a paragraph rather than a second specification.
-- [ ] Given the collision protocol is what stops five later specs re-authoring the same skill, when this story lands, then it states explicitly that the check is run **before** `/new-skill` against both the intended name and its head noun in `.writ/manifest.yaml`'s `skills:` block, that the first writer owns the name, and that a later consumer inline-reads the existing skill at its own point of need and records an ADR-014 `evidence:` entry with `type: promotion` rather than forking a near-duplicate.
-- [ ] Given placement is now the mechanism (Business Rule 8), when this story lands, then `.writ/docs/skills.md` → `## Extraction Patterns` also states the load rule extraction implies: a skill is loaded by an inline `Read skills/<name>/SKILL.md` at the **narrowest** step that needs it, never hoisted to a command's preamble, never declared in `required_skills:` alongside it, and never read from inside another skill (`lint-skill.sh:52`). This ships to installed projects and is the sentence that stops a Writ user reproducing the mistake ADR-021 made.
-- [ ] Given ADR-021 Decision point 5 makes `check_length`'s 400-line command limit the binding instrument, when this story lands, then `.writ/decision-records/adr-021-progressive-disclosure-token-budget.md` carries a `## Amendments` section immediately before `## References`, following ADR-009's convention as ADR-020's does (`### <date> — <title>` with **Correction:** / **Rationale:** / **Measured:** / **Originating work:**), whose first entry records that the binding instrument is now an absolute byte budget of 24,960 with the 400-line cap demoted to a secondary non-binding tripwire.
-- [ ] Given a claim about an instrument must itself be measured, when this story lands, then that entry's **Measured:** line carries the reproducing command (`python3 scripts/measure-invocation.py --root .`) and the three figures that justify the change: the 2.63× bytes-per-line spread (34.5 for `migrate`, 90.8 for `implement-phase`), that a 400-line cap exempts `implement-phase` at 321 lines and 29,136 bytes — the 4th-heaviest command file — and that it fires on `create-uat-plan` at 417 lines and 16,239 bytes.
-- [ ] Given ADR-021:12 promises *"skills loaded on demand"* while ADR-021:18 selects a mechanism that is eager, when this story lands, then a second amendment entry records the **mechanism correction** — not merely an instrument change and not merely a measurement — carrying all four of: (a) the internal contradiction, with `system-instructions.md` → *Harness contract* (*"before any phase work begins"*) and `adapters/claude-code.md:396` cited as the evidence that selection is per **command**, never per **run**; (b) the correction, that the six disclosure specs use an inline `Read skills/<name>/SKILL.md` at the point of need and `required_skills:` is not used; (c) that ADR-021:54–58 chose the field partly because *"the convention has 0 real adoptions"* and deprecating it *"would mean designing the same thing again under a new name"* — a reason to examine a convention, not evidence that it meets the requirement; and (d) that under the eager mechanism extraction is byte-neutral at best, with named placeholders for the measured floor, full-path ceiling and `--quick` ceiling Story 6 supplies.
-- [ ] Given a correction is not a deprecation, when this story lands, then entry 2 explicitly states what it does **not** do: it does not deprecate `required_skills:` (still correct for a skill needed on every invocation, and `system-instructions.md`'s status to change), does not reopen Decision points 1–5, and does not move the 2026-11-11 review trigger — it attaches evidence to it.
-- [ ] Given an amendment corrects a premise and does not reopen a decision, when this story lands, then `git diff` shows ADR-021's Decision points 1–5, its Context, its Considered Alternatives, its Consequences, and its 2026-11-11 review trigger unchanged apart from the Date line gaining `(amended 2026-08-12 — see Amendments)`, and no sentence anywhere in the ADR is deleted.
-- [ ] Given "nothing was lost" is unprovable without a pre-edit record, when this story lands, then `.writ/specs/2026-08-12-disclosure-implement-story/no-drift-inventory.md` exists, is built from `git show <base>:commands/implement-story.md`, and enumerates one row per item with its pre-edit line number across all eight categories in `sub-specs/technical-spec.md` → Testing Strategy — gates, agent bindings, skip rules, numeric thresholds, result vocabularies, degradation rows, literal log strings, and named output variables.
-- [ ] Given the inventory is the spec's only defense against a budget met by deleting behavior, when this story lands, then it includes every numeric threshold named in the technical spec — 3 review iterations, 2 testing iterations, `MAX_SELF_FIX_ITERATIONS = 3`, 100% pass rate, ≥80% new-file coverage, 85%/70% visual match, 1000-line WWB truncation, ~2KB `knowledge_context`, 21000-byte context budget, depth-1 import graph, the <10s Gate 0.5 target, and the `+3/+2/+1/+1` knowledge scoring weights — with a `Where it lives now` column left blank for Story 6 to fill.
-- [ ] Given this story is documentation and record-keeping only, when this story lands, then `git diff --name-only` lists exactly three paths: `.writ/docs/skills.md`, `.writ/decision-records/adr-021-progressive-disclosure-token-budget.md`, and `.writ/specs/2026-08-12-disclosure-implement-story/no-drift-inventory.md` — no path under `commands/`, `skills/`, or `scripts/`.
+- [x] Given `skills/` is a namespace shared by six sibling Phase 10 specs and holds 6 skills today with no naming convention recorded anywhere, when this story lands, then `.writ/docs/skills.md` → `## Extraction Patterns` documents all six rules from spec.md → Business Rule 3 — kebab-case noun phrase (2–3 words, ≤30 chars, unique across all three primitive namespaces); `<object>-<operation>` shape; never named after a command, gate, or step; bare-imperative verb-phrase `description:`; no consumer vocabulary in a shared skill; and the collision protocol — at that file's existing density, as a table and a paragraph rather than a second specification.
+- [x] Given the collision protocol is what stops five later specs re-authoring the same skill, when this story lands, then it states explicitly that the check is run **before** `/new-skill` against both the intended name and its head noun in `.writ/manifest.yaml`'s `skills:` block, that the first writer owns the name, and that a later consumer inline-reads the existing skill at its own point of need and records an ADR-014 `evidence:` entry with `type: promotion` rather than forking a near-duplicate.
+- [x] Given placement is now the mechanism (Business Rule 8), when this story lands, then `.writ/docs/skills.md` → `## Extraction Patterns` also states the load rule extraction implies: a skill is loaded by an inline `Read skills/<name>/SKILL.md` at the **narrowest** step that needs it, never hoisted to a command's preamble, never declared in `required_skills:` alongside it, and never read from inside another skill (`lint-skill.sh:52`). This ships to installed projects and is the sentence that stops a Writ user reproducing the mistake ADR-021 made.
+- [x] Given ADR-021 Decision point 5 makes `check_length`'s 400-line command limit the binding instrument, when this story lands, then `.writ/decision-records/adr-021-progressive-disclosure-token-budget.md` carries a `## Amendments` section immediately before `## References`, following ADR-009's convention as ADR-020's does (`### <date> — <title>` with **Correction:** / **Rationale:** / **Measured:** / **Originating work:**), whose first entry records that the binding instrument is now an absolute byte budget of 24,960 with the 400-line cap demoted to a secondary non-binding tripwire.
+- [x] Given a claim about an instrument must itself be measured, when this story lands, then that entry's **Measured:** line carries the reproducing command (`python3 scripts/measure-invocation.py --root .`) and the three figures that justify the change: the 2.63× bytes-per-line spread (34.5 for `migrate`, 90.8 for `implement-phase`), that a 400-line cap exempts `implement-phase` at 321 lines and 29,136 bytes — the 4th-heaviest command file — and that it fires on `create-uat-plan` at 417 lines and 16,239 bytes.
+- [x] Given ADR-021:12 promises *"skills loaded on demand"* while ADR-021:18 selects a mechanism that is eager, when this story lands, then a second amendment entry records the **mechanism correction** — not merely an instrument change and not merely a measurement — carrying all four of: (a) the internal contradiction, with `system-instructions.md` → *Harness contract* (*"before any phase work begins"*) and `adapters/claude-code.md:396` cited as the evidence that selection is per **command**, never per **run**; (b) the correction, that the six disclosure specs use an inline `Read skills/<name>/SKILL.md` at the point of need and `required_skills:` is not used; (c) that ADR-021:54–58 chose the field partly because *"the convention has 0 real adoptions"* and deprecating it *"would mean designing the same thing again under a new name"* — a reason to examine a convention, not evidence that it meets the requirement; and (d) that under the eager mechanism extraction is byte-neutral at best, with named placeholders for the measured floor, full-path ceiling and `--quick` ceiling Story 6 supplies.
+- [x] Given a correction is not a deprecation, when this story lands, then entry 2 explicitly states what it does **not** do: it does not deprecate `required_skills:` (still correct for a skill needed on every invocation, and `system-instructions.md`'s status to change), does not reopen Decision points 1–5, and does not move the 2026-11-11 review trigger — it attaches evidence to it.
+- [x] Given an amendment corrects a premise and does not reopen a decision, when this story lands, then `git diff` shows ADR-021's Decision points 1–5, its Context, its Considered Alternatives, its Consequences, and its 2026-11-11 review trigger unchanged apart from the Date line gaining `(amended 2026-08-12 — see Amendments)`, and no sentence anywhere in the ADR is deleted.
+- [x] Given "nothing was lost" is unprovable without a pre-edit record, when this story lands, then `.writ/specs/2026-08-12-disclosure-implement-story/no-drift-inventory.md` exists, is built from `git show <base>:commands/implement-story.md`, and enumerates one row per item with its pre-edit line number across all eight categories in `sub-specs/technical-spec.md` → Testing Strategy — gates, agent bindings, skip rules, numeric thresholds, result vocabularies, degradation rows, literal log strings, and named output variables.
+- [x] Given the inventory is the spec's only defense against a budget met by deleting behavior, when this story lands, then it includes every numeric threshold named in the technical spec — 3 review iterations, 2 testing iterations, `MAX_SELF_FIX_ITERATIONS = 3`, 100% pass rate, ≥80% new-file coverage, 85%/70% visual match, 1000-line WWB truncation, ~2KB `knowledge_context`, 21000-byte context budget, depth-1 import graph, the <10s Gate 0.5 target, and the `+3/+2/+1/+1` knowledge scoring weights — with a `Where it lives now` column left blank for Story 6 to fill.
+- [x] Given this story is documentation and record-keeping only, when this story lands, then `git diff --name-only` lists exactly three paths: `.writ/docs/skills.md`, `.writ/decision-records/adr-021-progressive-disclosure-token-budget.md`, and `.writ/specs/2026-08-12-disclosure-implement-story/no-drift-inventory.md` — no path under `commands/`, `skills/`, or `scripts/`.
 
 ## Implementation Tasks
 
-- [ ] 1.1 Re-measure before writing anything that asserts a number: run `python3 scripts/measure-invocation.py --root . --format table` and record `base.bytes`, `command_bytes`, `eager_bytes`, `floor_bytes`, `conditional_bytes` and `ceiling_bytes` for `implement-story`, plus the bytes-per-line extremes. Confirm the tool is post-`e8f2a09` (it reports an `eager_bytes` key and `conditional_skills: ["tdd-cycle"]` for this command); **a run that reports `ceiling_bytes: 77669` is the old, wrong instrument — stop.** If `base.bytes` is not 24,960, **stop and escalate** — the budget in the locked contract is derived from that number, and authoring an amendment around a stale one repeats the defect the amendment exists to correct
-- [ ] 1.2 Read `.writ/docs/skills.md` end to end (especially `## Extraction Patterns` and `## Authoring a Skill`) and `scripts/lint-skill.sh`'s `DESC_PATTERNS` / `BODY_PATTERNS` arrays, so the convention is written against what the lint actually rejects rather than against an idea of it
-- [ ] 1.3 Write the six naming rules and the collision protocol into `.writ/docs/skills.md` → `## Extraction Patterns`, after the existing transform diagram. Match that file's density — the incumbent six skill names are the worked examples; do not invent new ones
-- [ ] 1.4 Read `.writ/decision-records/adr-020-component-contract.md`'s `## Amendments` section as the format exemplar (it is the ADR-009 convention applied in this repo, with the `**Measured:**` line this spec also needs)
-- [ ] 1.5 Add `## Amendments` to ADR-021 immediately before `## References`, with entry 1 (instrument: lines → bytes) carrying **Correction:** / **Rationale:** / **Measured:** / **Originating work:**, and update the Date line to `> **Date:** 2026-08-11 (amended 2026-08-12 — see Amendments)`
-- [ ] 1.6 Add entry 2 (the mechanism correction) to the same `## Amendments` section: the :12-versus-:18 contradiction, the switch to inline `Read` at the point of need, the :54–58 adoption reasoning that a convention needing a consumer is not evidence it fits, and the byte-neutrality consequence — citing `system-instructions.md` → *Harness contract*, `adapters/claude-code.md:396`, and `scripts/measure-invocation.py`'s post-`e8f2a09` `eager_bytes` / `conditional_bytes` split; attaching to the existing 2026-11-11 review trigger; stating explicitly that it does not deprecate the convention; and leaving named placeholders for the measured floor, full-path ceiling and `--quick` ceiling Story 6 fills in
-- [ ] 1.7 Build `no-drift-inventory.md` from `git show <base>:commands/implement-story.md` — one row per rule, with pre-edit line number, category, the rule stated in its own words, and an empty `Where it lives now` column. Work section by section from the pre-edit file, not from the technical spec's summary tables, which are lossy by design
-- [ ] 1.8 Verify with `git diff` that ADR-021's Decision, Context, Considered Alternatives, Consequences and review trigger are unchanged; confirm `git diff --name-only` lists exactly the three expected paths; run `bash scripts/eval.sh` and `python3 scripts/spec-deps.py validate --specs-dir .writ/specs` and confirm no new findings and `status: ok`
+- [x] 1.1 Re-measure before writing anything that asserts a number: run `python3 scripts/measure-invocation.py --root . --format table` and record `base.bytes`, `command_bytes`, `eager_bytes`, `floor_bytes`, `conditional_bytes` and `ceiling_bytes` for `implement-story`, plus the bytes-per-line extremes. Confirm the tool is post-`e8f2a09` (it reports an `eager_bytes` key and `conditional_skills: ["tdd-cycle"]` for this command); **a run that reports `ceiling_bytes: 77669` is the old, wrong instrument — stop.** If `base.bytes` is not 24,960, **stop and escalate** — the budget in the locked contract is derived from that number, and authoring an amendment around a stale one repeats the defect the amendment exists to correct
+- [x] 1.2 Read `.writ/docs/skills.md` end to end (especially `## Extraction Patterns` and `## Authoring a Skill`) and `scripts/lint-skill.sh`'s `DESC_PATTERNS` / `BODY_PATTERNS` arrays, so the convention is written against what the lint actually rejects rather than against an idea of it
+- [x] 1.3 Write the six naming rules and the collision protocol into `.writ/docs/skills.md` → `## Extraction Patterns`, after the existing transform diagram. Match that file's density — the incumbent six skill names are the worked examples; do not invent new ones
+- [x] 1.4 Read `.writ/decision-records/adr-020-component-contract.md`'s `## Amendments` section as the format exemplar (it is the ADR-009 convention applied in this repo, with the `**Measured:**` line this spec also needs)
+- [x] 1.5 Add `## Amendments` to ADR-021 immediately before `## References`, with entry 1 (instrument: lines → bytes) carrying **Correction:** / **Rationale:** / **Measured:** / **Originating work:**, and update the Date line to `> **Date:** 2026-08-11 (amended 2026-08-12 — see Amendments)`
+- [x] 1.6 Add entry 2 (the mechanism correction) to the same `## Amendments` section: the :12-versus-:18 contradiction, the switch to inline `Read` at the point of need, the :54–58 adoption reasoning that a convention needing a consumer is not evidence it fits, and the byte-neutrality consequence — citing `system-instructions.md` → *Harness contract*, `adapters/claude-code.md:396`, and `scripts/measure-invocation.py`'s post-`e8f2a09` `eager_bytes` / `conditional_bytes` split; attaching to the existing 2026-11-11 review trigger; stating explicitly that it does not deprecate the convention; and leaving named placeholders for the measured floor, full-path ceiling and `--quick` ceiling Story 6 fills in
+- [x] 1.7 Build `no-drift-inventory.md` from `git show <base>:commands/implement-story.md` — one row per rule, with pre-edit line number, category, the rule stated in its own words, and an empty `Where it lives now` column. Work section by section from the pre-edit file, not from the technical spec's summary tables, which are lossy by design
+- [x] 1.8 Verify with `git diff` that ADR-021's Decision, Context, Considered Alternatives, Consequences and review trigger are unchanged; confirm `git diff --name-only` lists exactly the three expected paths; run `bash scripts/eval.sh` and `python3 scripts/spec-deps.py validate --specs-dir .writ/specs` and confirm no new findings and `status: ok`
 
 ## Notes
 
@@ -64,14 +64,14 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] `bash scripts/eval.sh` shows no new findings
-- [ ] `python3 scripts/spec-deps.py validate --specs-dir .writ/specs` returns `status: ok`
-- [ ] Reviewed against Business Rules 2, 3, 7
-- [ ] ADR-021 diff reviewed: `## Amendments` present with two entries, Decision points 1–5 and the review trigger otherwise unchanged
-- [ ] `.writ/docs/skills.md` reviewed for density against its own `## Extraction Patterns` section
-- [ ] `no-drift-inventory.md` spot-checked: pick three arbitrary sections of the pre-edit file and confirm every rule in them has a row
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] `bash scripts/eval.sh` shows no new findings
+- [x] `python3 scripts/spec-deps.py validate --specs-dir .writ/specs` returns `status: ok`
+- [x] Reviewed against Business Rules 2, 3, 7
+- [x] ADR-021 diff reviewed: `## Amendments` present with two entries, Decision points 1–5 and the review trigger otherwise unchanged
+- [x] `.writ/docs/skills.md` reviewed for density against its own `## Extraction Patterns` section
+- [x] `no-drift-inventory.md` spot-checked: pick three arbitrary sections of the pre-edit file and confirm every rule in them has a row
 
 ## Context for Agents
 
@@ -81,3 +81,51 @@
 - **Technical concerns:** [`required_skills:` loses its first consumer and the correction has no owner; a second guard goes vacuous; `.writ/product/roadmap.md` Phase 10's Success Criteria will be stale on landing] — from spec.md → ## Technical Concerns
 - **Contract:** ["The spec must report **floor and ceiling separately** and is not done if the ceiling regresses without justification"] — from spec.md → ## Contract (Locked)
 - **Technical spec:** [Measured Baseline; Why lines are the wrong instrument; Testing Strategy — the eight inventory categories] — from sub-specs/technical-spec.md
+
+---
+
+## What Was Built
+
+**Implementation Date:** 2026-08-12
+
+### Files Created
+
+1. **`.writ/specs/2026-08-12-disclosure-implement-story/no-drift-inventory.md`** (281 rules + 5 cross-cutting indexes)
+   - Built from `git show 9e76d1e:commands/implement-story.md` — the pre-edit file — section by section, one row per rule with its pre-edit line number, category and an empty `Where it lives now` column for Story 6. Indexes Z1–Z5 group thresholds, result vocabularies, output variables, literal log strings and the skip-mode matrix so a whole category can be spot-checked at once.
+
+### Files Modified
+
+- **`.writ/docs/skills.md`** (`## Extraction Patterns`)
+  - Added `### Naming the extracted skill` — the six naming rules as a table plus the collision protocol paragraph — and `### Where the load goes`, which states the placement rule extraction implies: narrowest step, never hoisted into a preamble, never both mechanisms, never read from inside another skill (`lint-skill.sh:52`). Written at the file's existing density; the six incumbent skill names are the worked examples.
+- **`.writ/decision-records/adr-021-progressive-disclosure-token-budget.md`**
+  - Date line → `2026-08-11 (amended 2026-08-12 — see Amendments)`. Added `## Amendments` immediately before `## References` with two dated entries in the ADR-009 convention (**Correction:** / **Rationale:** / **Measured:** / **Originating work:**): entry 1, the instrument changes from lines to bytes; entry 2, the mechanism correction, carrying the :12-vs-:18 contradiction, the switch to the inline `Read`, the "a convention needing a consumer is not evidence it fits" finding, and three named placeholders for Story 6's measured figures.
+
+### Implementation Decisions
+
+1. **`<base>` resolved once** — `git merge-base HEAD phase/10-progressive-disclosure` = `9e76d1ecf50a6e2ecfe86b673175e5fb12ecce1f`. Stories 5 and 6 use the same value; three stories comparing against three baselines would make the walk meaningless.
+2. **The inventory was built from the file, not from the technical spec's section ledger.** That ledger accounts for 36 sections of bytes; the file contains 281 discrete rules. An inventory derived from the ledger would be complete-looking and empty.
+3. **Entry 2 stops short of deprecating `required_skills:`** and says so explicitly. The convention still fits a skill needed on *every* invocation; its status is `system-instructions.md`'s to change and that file is out of this spec's set.
+4. **The amendment's `Measured:` line uses `create-uat-plan`** (417 lines / 16,239 bytes) as the fires-when-it-should-not example, not `migrate` — `migrate` is under the 400-line cap and is cited only as the low end of the bytes-per-line spread.
+
+### Test Results
+
+**Verification:** structural — there is no application code in this repository.
+
+- ✅ `python3 scripts/measure-invocation.py --root . --command implement-story --format table` — post-`e8f2a09` instrument confirmed: `base.bytes` 24,960; `command_bytes` 52,709 / 989 lines; `floor_bytes` 77,669; `conditional_bytes` 6,101 (`tdd-cycle`); `ceiling_bytes` **83,770**; `base_share_of_floor` 32.1%. Not the 77,669 ceiling of the old instrument.
+- ✅ `bash scripts/eval.sh` — **Findings: 0, Run errors: 0** (identical to the pre-spec baseline captured before any edit).
+- ✅ `python3 scripts/spec-deps.py validate --specs-dir .writ/specs` — `status: ok`.
+- ✅ `git diff` on ADR-021 removes exactly one line (the Date line, replaced in place); Decision points 1–5, Context, Considered Alternatives, Consequences and the 2026-11-11 review trigger are untouched, and no sentence is deleted.
+- ✅ Story deliverable diff lists exactly the three expected paths — no path under `commands/`, `skills/` or `scripts/`.
+
+### Review Outcome
+
+**Result:** PASS
+
+- **Iteration count:** 1 iteration(s)
+- **Drift:** None
+- **Security:** Clean
+- **Boundary Compliance:** Documentation and record-keeping only; no product-source file touched.
+
+### Deviations from Spec
+
+None
