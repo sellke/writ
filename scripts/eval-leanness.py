@@ -188,9 +188,26 @@ BUDGET_BASE_COMPONENTS = ("system-instructions.md", os.path.join("commands", "_p
 # was written to prevent.
 #
 # So the cap ships MEASURED and REPORTED: computed on every run, every violator
-# named with its overage in `warnings` and in `metrics.command_budget`. It
-# becomes blocking when a future decision converts the remaining commands or
-# lowers the base. Recorded against ADR-021's 2026-11-11 review trigger.
+# named with its overage in `warnings` and in `metrics.command_budget`.
+#
+# DEMOTED PERMANENTLY, 2026-08-12, by ADR-023 (stakes-proportional diligence).
+# The paragraph above framed non-blocking as circumstantial — "blocking once a
+# future decision converts the remaining commands." That decision came, and it
+# went the other way: there will be no conversion, and byte count is no longer
+# a design constraint at any threshold.
+#
+# The reason is that this cap measures the wrong quantity. The goal is economy
+# of steps and ruminations to reach exit criteria; bytes measure file size.
+# Where they diverge bytes point the wrong way — the pilot cut implement-story's
+# floor 35.9% while adding eight decision points, five of which fire on every
+# run and buy nothing. No byte instrument can see that: it counts what is
+# loaded, never what must be decided.
+#
+# Nothing here is deleted. The number is still computed and still reported,
+# because the ADR-019 ratchet is cheap and does catch genuine runaway growth.
+# Only its AUTHORITY is removed: no command is restructured to satisfy it, and
+# it must not be flipped to blocking without a recorded derivation linking the
+# threshold to measured harm. Reviewed 2026-11-11 with ADR-021 and ADR-023.
 #
 # What is NOT done to make it green: no command gains an `eval-exempt:` marker
 # and this module gains no exemption reader (Business Rule 1). The half of the

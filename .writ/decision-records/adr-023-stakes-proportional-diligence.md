@@ -175,8 +175,8 @@ This example is recorded because it implicates the process rather than flatterin
 **Prerequisites:** none. No tooling is built. That is the point.
 
 1. Add the two-question triage to [`commands/_preamble.md`](../../commands/_preamble.md), beside ADR-022's gate-class table. **Done 2026-08-12 — and the file's 95-line cap forced it from a table into one dense paragraph.** That is the cap working as designed: shared surface is paid on every invocation, so a new rule must earn its lines by displacing prose or compressing itself. The preamble now sits at exactly 95/95; the next addition must cut something.
-2. Record this reversal in `.writ/product/roadmap.md` Phase 10, whose success criteria still cite byte targets.
-3. Verify (do not tighten) that `scripts/eval-leanness.py`'s byte cap emits a warning, not a finding; document the demotion.
+2. Record this reversal in `.writ/product/roadmap.md` Phase 10. **Done 2026-08-12** — both byte/line success criteria struck through as *void* rather than deleted (the roadmap records what was planned as well as what happened), with a postscript stating the goal is withdrawn, not merely unmet.
+3. Verify (do not tighten) that `scripts/eval-leanness.py`'s byte cap emits a warning, not a finding; document the demotion. **Done 2026-08-12** — it already shipped non-blocking, but for a *circumstantial* reason ("blocking once a future decision converts the remaining commands"). That decision came and went the other way, so the comment now records the demotion as permanent and principled. The number is still computed and every violator still named; only its authority is removed.
 
 **Success criteria:**
 
