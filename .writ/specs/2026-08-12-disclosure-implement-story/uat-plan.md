@@ -870,7 +870,14 @@ This is what a pilot is for and it is the only reason the negative result is not
 - Step 6: `dependency-context-loading` is not read for a dependency-free story.
 - Step 7: the harness **warns and continues**. `system-instructions.md` → *Schema* and `eval-leanness.py:1239` specify warn-never-fail for the declarative form and the inline form is meant to degrade in the same spirit. Scenario 15 established that the *measuring instrument* does this; whether the *harness* does is unknown.
 
-**Status:** [ ] Pass  [ ] Fail  **[ ] NOT YET RUN — this is the current state**
+**Status:** **[x] Pass** — executed 2026-08-12 on `uat/disclosure-harness-probe`, story `2026-08-12-refactor-dirty-tree-guard/story-1`.
+
+> **Result: loading is genuinely lazy.** All eight applicable skills were read at their own step, in step order, with no early read and no batch at the start. `dependency-context-loading` was **never opened** — the story declares `Dependencies: None`, so the branch never ran. The story reached `Status: Completed ✅` with commit `56f43b3` and a full `## What Was Built`; `eval.sh` `Findings: 0`. **The −35.9% floor reduction is real, not fictional.**
+>
+> **Three caveats recorded by the runner, none of which the pass erases:**
+> 1. **Laziness here is a convention, not a mechanism.** The Pipeline table (L54–67) and References (L340) pre-announce all nine skill *names and paths* in the always-loaded body. That is names, not bodies — cheap — and the table says the `Read` is issued inside the stage. But nothing *forces* it: a model reading top-to-bottom sees every path and could follow it.
+> 2. **`tdd-cycle` is ambiguous about who loads it.** Gate 1 reads "Spawns the coding agent … via `Read skills/tdd-cycle/SKILL.md`". The runner read it *and* instructed the agent to, so it plausibly loads twice in two context windows.
+> 3. **Subagent loads are invisible here.** Skills read inside a spawned agent live in that agent's context and are not counted by the orchestrator's floor.
 
 **Implementation Reference:** `.writ/product/roadmap.md:335`; `load-report.md` § Harness observation
 

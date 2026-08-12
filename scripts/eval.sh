@@ -2824,6 +2824,11 @@ check_revert() {
   require_literal "$refactor_cmd" 'not a git repository' "refactor.md must degrade with a warning outside a git repository rather than halt."
   require_literal "$refactor_cmd" 'git ls-files --error-unmatch' "refactor.md must test each --dead-code file target for git tracking."
   require_literal "$refactor_cmd" 'report it as skipped' "refactor.md must skip rather than delete an untracked --dead-code target."
+  # Presence pins prove the guard EXISTS; none proved it was REACHABLE. Both the
+  # review and testing gates flagged that reverting refactor.md:48 to "proceed to
+  # Step 1.2" would leave every other pin green while re-opening the exact defect
+  # iteration 1 shipped: /refactor <path> jumping clean over the guard.
+  require_literal "$refactor_cmd" 'proceed to Step 1.1b' "refactor.md's direct-target path must route through the dirty-tree guard."
 
   # Story-SHA recording + reverted-WWB non-authoritative loader rule.
   require_literal "$implement_story" '> **Commit:**' "implement-story must record the story commit SHA."
