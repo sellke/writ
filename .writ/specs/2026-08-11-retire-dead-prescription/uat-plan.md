@@ -102,7 +102,9 @@
    grep -rn -F "no frontmatter mechanism" .writ/decision-records/ .writ/specs/archive/ CHANGELOG.md | wc -l
    ```
 2. Read `CHANGELOG.md:143` and `.writ/decision-records/adr-016-model-tier-delegation.md:76`.
-3. Run `git diff --stat fe2af84 HEAD -- CHANGELOG.md .writ/decision-records/ .writ/specs/archive/ .writ/research/` (`fe2af84` is the last commit before this spec's first story).
+3. Run `git diff --stat fe2af84 e23fbdc -- CHANGELOG.md .writ/decision-records/ .writ/specs/archive/ .writ/research/` (`fe2af84` is the last commit before this spec's first story; `e23fbdc` is this spec's merge commit).
+
+   > **Corrected 2026-08-11 (UAT execution).** This step originally ended at `HEAD`. That was correct when written and wrong the moment a sibling lane merged: `HEAD` now includes four other Phase 10 specs, and `3ac178a` (component-contract) legitimately edits `adr-020-component-contract.md`, so the step reported `1 file changed, 18 insertions(+), 6 deletions(-)` and read as a failure. The property being asserted — *this spec* rewrote no history — holds exactly; the command had stopped measuring it. Pinning the endpoint to this spec's own merge restores the assertion.
 4. Now run `grep -n -F "verified 0/31 files" .writ/product/roadmap.md`.
 
 **Expected Result:**
@@ -520,7 +522,9 @@
 
 **Steps:**
 1. Read `commands/plan-product.md:345` and `commands/create-adr.md:170`.
-2. Run `git diff --stat fe2af84 HEAD -- commands/plan-product.md commands/create-adr.md`.
+2. Run `git diff --stat fe2af84 e23fbdc -- commands/plan-product.md commands/create-adr.md` (`e23fbdc` is this spec's merge commit — see the note on Scenario 3 step 3).
+
+   > **Corrected 2026-08-11 (UAT execution).** Originally ended at `HEAD`, which now reports `2 files changed, 12 insertions(+)` from `e691de6` (component-contract adding the `problem:`/`outcome:`/`exit_criteria:` frontmatter — 6 lines per file). Both promise sentences are byte-unchanged; only the surrounding file grew. Scoped to this spec's merge the diff is empty, which is the assertion.
 3. Run `grep -rn -F ".writ/product/decisions.md" commands/ agents/ scripts/ system-instructions.md` to enumerate every live inbound reference.
 
 **Expected Result:**

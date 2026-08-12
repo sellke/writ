@@ -359,8 +359,12 @@ The roadmap's Phase 10 measurement line still reads `**0 of 5**` at `.writ/produ
 **Expected Result:**
 - Step 1: `EXIT=0`.
 - Step 2: **37**.
-- Step 3: **zero `FAIL` lines, exactly one `SKIP`** — `governor-boundary-intact`, with the reason "2026-08-11-governor-instrumentation Check 3 has not landed, so loop-bound PRESENCE is currently unchecked. This check deliberately does not fill that gap…". A skip that is silent is the bug; a skip that names itself is the design.
-- Step 4: the report's `## loop-bounds` section reads `PASS`, `Scenarios: 37/37 passed`, and carries the skip under **Notes (non-blocking)** as `SKIPPED [governor-boundary-intact]: …`. `SKIP` is a third TSV verb added specifically because `eval.sh`'s reader recognized only `PASS`/`FAIL` and would have dropped skip lines on the floor.
+- Step 3: **zero `FAIL` lines.** On a maintainer working copy (with `.writ/state/` present): **38 PASS, 0 SKIP**. A skip that is silent is the bug; a skip that names itself is the design.
+
+  > **Corrected 2026-08-11 (UAT execution).** This step originally expected 37 PASS and exactly one SKIP — `governor-boundary-intact`, reasoning that presence was unchecked because `2026-08-11-governor-instrumentation` had not landed. **It has since landed.** `scripts/eval-leanness.py:618 check_loop_bounds` now exists, so `eval-loop-bounds.py:547`'s `landed = "check_loop_bounds" in read("scripts/eval-leanness.py")` resolves true and the scenario **PASSes** instead of skipping. The gap this step was written to document is closed.
+  >
+  > **In a git worktree** the count is 37 PASS + 1 SKIP, but the skip is `historical-run-regression`, not `governor-boundary-intact` — `.writ/state/` is gitignored and so is absent from worktrees. Both results are correct behavior; only the plan's numbers were stale.
+- Step 4: the report's `## loop-bounds` section reads `PASS`. Scenario count is `38/38` on a working copy, or `37/37` with `SKIPPED [historical-run-regression]` under **Notes (non-blocking)** in a worktree (see the correction above). `SKIP` is a third TSV verb added specifically because `eval.sh`'s reader recognized only `PASS`/`FAIL` and would have dropped skip lines on the floor.
 - Step 5: `EXIT=0`.
 
 **Status:** [ ] Pass  [ ] Fail
@@ -391,11 +395,11 @@ Baseline in the fixture root is the same 37 PASS + 1 SKIP. Delete `$FX` when fin
 - `ls .writ/state/*.json` returns files. **If it returns nothing, this scenario cannot run** — see Honest Note 1. The assertion will skip instead of firing, and that skip is itself the thing to verify (Scenario 17).
 
 **Steps:**
-1. Confirm the current bound: `grep -A1 '^loop:' commands/implement-spec.md`.
+1. Confirm the current bound: `grep -A2 '^loop:' commands/implement-spec.md`.
 2. Lower it from 12 to 2:
    ```
    perl -0pi -e 's/  unit: "story"\n  max_iterations: 12/  unit: "story"\n  max_iterations: 2/' commands/implement-spec.md
-   grep -A1 '^loop:' commands/implement-spec.md
+   grep -A2 '^loop:' commands/implement-spec.md
    ```
 3. `python3 scripts/eval-loop-bounds.py | grep '^FAIL'; python3 scripts/eval-loop-bounds.py > /dev/null; echo "EXIT=$?"`
 4. **Revert immediately:** `git checkout -- commands/implement-spec.md` and confirm `git status --porcelain commands/implement-spec.md` is empty again.
@@ -620,7 +624,11 @@ The same cross-read protects `implement-story`'s three numbers. If you want a se
   ``SKIP	schema-verify-spec	commands/verify-spec.md declares no loop: block - deferred_to_check3 (2026-08-11-governor-instrumentation Check 3 owns presence)``
   A missing block is another check's finding, and this check says whose.
 - Step 4: `check_loop_bounds` carries no `require_literal 'loop:'`, and a comment states the absence is on purpose — "Adding a `require_literal` for 'loop:' would report the same missing block twice, which is how a check registry becomes noise a maintainer learns to skim."
-- **The honest cost, stated:** `2026-08-11-governor-instrumentation` has not landed, so presence is *currently unchecked by anything* — which is what the `governor-boundary-intact` skip in Scenario 11 is telling you. Deleting a `loop:` block today produces a green eval run with two skips. That is the correct behavior for this check and a real open gap in the phase. Do not close it by adding a presence assertion here.
+- **The honest cost, as originally stated:** `2026-08-11-governor-instrumentation` had not landed, so presence was *unchecked by anything* — which is what the `governor-boundary-intact` skip was telling you. Do not close that by adding a presence assertion here.
+
+  > **Corrected 2026-08-11 (UAT execution). The gap is closed.** `2026-08-11-governor-instrumentation` landed; `scripts/eval-leanness.py:618 check_loop_bounds` exists and fires. Deleting `verify-spec`'s `loop:` block now produces two findings — ``commands/verify-spec.md → loop.max_iterations`` and ``→ loop.on_exhaustion``, each *"a bound with no exhaustion behaviour … is half a contract"*.
+  >
+  > **The nuance is worth keeping.** Those findings surface as `WARNING` and the run still reports `Findings: 0`, so the narrower sentence *"deleting a `loop:` block today produces a green eval run"* remains **literally true**. Presence went from *unchecked* to *reported but non-blocking*. It becomes blocking only when the unbuilt `governor-enforcement` spec flips the severity constant. This scenario's numbered steps all still pass; only this narrative was stale.
 - Step 5: back to **37 PASS**.
 
 **Status:** [ ] Pass  [ ] Fail

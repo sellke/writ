@@ -115,7 +115,7 @@
 5. Confirm `commands/new-command.md` points at this doc rather than restating it: `grep -n 'component-contract.md' commands/new-command.md`.
 
 **Expected Result:**
-- Step 1: the file exists, **128 lines** — the density of `.writ/docs/model-tiers.md`, not a second spec.
+- Step 1: the file exists, **127 lines** *(corrected 2026-08-11 during UAT execution: the plan said 128; the file is 127 at HEAD and was 127 at `b8b96d5` too — a plan arithmetic error, not drift)* — the density of `.writ/docs/model-tiers.md`, not a second spec.
 - Step 2: `overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs"` appears twice (preview at ~938, apply at ~1029), plus `for f in .writ/docs/*.md` manifest loops at ~809 and ~991 and a `git add .writ/docs/*.md` at ~1128. The doc reaches installed projects.
 - Step 3: both agent carriers are documented, including the explicit warning that "an editor matching `^## Agent Configuration$` alone silently skips the seventh file and reports 6/7 as success."
 - Step 4: the paragraph reads, in part: *"`exit_criteria` is only **nominally** machine-checkable. A lint can verify the field exists and is non-empty; it cannot verify the assertion is true."* It goes on to argue the field earns its lines because it forces the author to name a falsifiable condition, and cites ADR-020's 2026-11-11 review trigger. **This sentence is the honest boundary of this whole spec. Scenario 18 is built on it.**
@@ -578,7 +578,11 @@
 
 **Expected Result:**
 - Step 2: **`Findings: 0`, `Run errors: 0`.** `prime-directive-sync`, `artifact-integrity` (19/19), and `recommended-spec-impl` (23/23) all pass.
-- Step 3: **four non-blocking WARNINGs attributable to this spec** — `commands` lines `10974 → 11364 (+390)`, `commands` chars `514594 → 552568 (+37974)`, `agents` lines `1768 → 1810 (+42)`, `agents` chars `67012 → 72473 (+5461)`, each reading "with no justification." They do not fail the run; `eval.sh` exits 0. **Read them anyway** — Scenario 17 is about what they mean. (The two `scripts` warnings are not this spec's; nothing under `scripts/` was touched.)
+- Step 3: **zero warnings.** *(Corrected 2026-08-11 during UAT execution.)* The plan expected four non-blocking WARNINGs attributable to this spec. They are gone — but **not because growth stopped**. `2026-08-11-governor-instrumentation` landed after this plan was written, and its Story 2 (`3feb631`) recorded per-metric *justifications at ceilings* in `.writ/leanness-baseline.json`, moving the baseline from schema 2 to schema 3. The floors are untouched (`commands` still 10974/514594); the growth is now **declared** rather than unexplained.
+  >
+  > **This matters for how you read the phase's exit criteria.** Roadmap line 327 — *"`eval.sh` exits 0 with 0 findings and **0 unjustified** growth warnings"* — is now satisfied **by writing justifications, not by shrinking anything**. Line 334 — *"`per_surface.commands.chars` drops materially from 516,589"* — is still violated, and the gap widened to **560,684 (+8.5%)**. A reviewer should not read a clean warning channel as evidence the surface shrank.
+  >
+  > Historical expectation, for reference — — `commands` lines `10974 → 11364 (+390)`, `commands` chars `514594 → 552568 (+37974)`, `agents` lines `1768 → 1810 (+42)`, `agents` chars `67012 → 72473 (+5461)`, each reading "with no justification." They do not fail the run; `eval.sh` exits 0. **Read them anyway** — Scenario 17 is about what they mean. (The two `scripts` warnings are not this spec's; nothing under `scripts/` was touched.)
 - Step 4: `parity OK — agents/, claude-code/agents/, and codex/agents/ aligned (subject to documented exclusions)`, `EXIT=0`. `check-agent-parity.sh` checks file existence, not field parity, so the `claude-code/agents/` and `codex/agents/` mirrors do **not** carry the three fields and do not need to — extending the contract to them is a later decision.
 - Step 5: **empty**. No line of `scripts/eval.sh`, `scripts/eval-leanness.py`, or any `eval-*.py` changed. Business Rule 9 held: this spec produces the compliant surface, `2026-08-11-governor-instrumentation` asserts it.
 
@@ -651,10 +655,19 @@
 
 **Expected Result:**
 - Step 1: *"`exit_criteria` is only **nominally** machine-checkable. A lint can verify the field exists and is non-empty; it cannot verify the assertion is true."* The doc argues the field still earns its lines because it forces the author to name a falsifiable condition — and cites ADR-020's **2026-11-11 review trigger**, which exists precisely because that argument might turn out to be insufficient.
-- Step 2: **exactly one hit, and it is not a check** — `scripts/phase-state.py:47` defines `CHALLENGE_TRIGGERS = {"scope_degradation", "exit_criteria_degradation"}`, a phase-state trigger *name* that predates this spec and refers to a roadmap phase's exit criteria, not a command's frontmatter field. Read the line and confirm it. Nothing reads the field.
+> **Scenario 18 is stale — corrected 2026-08-11 during UAT execution.** This scenario was written to confirm that *nothing* checks the 94 assertions. That was true at `b8b96d5` and is **no longer true**: `2026-08-11-governor-instrumentation` is Complete (7/7 stories), and `scripts/eval-leanness.py` now carries `CONTRACT_FIELDS` (line 283) and `check_completion_sections()` (line 515). Steps 2, 3 and 5 as written instruct you to confirm a state of the world that no longer exists — **do not treat their failure as an implementation defect.**
+>
+> **The scenario's substance survives, and it is the half that matters.** Verify these instead:
+> 1. The new checks are **presence-only by explicit design** — `eval-leanness.py:520`: *"Presence, not content: a `## Completion` heading with nothing under it passes."*
+> 2. They are **warn-only** — `eval-leanness.py:278`: `CONTRACT_CHECK_SEVERITY = "warnings"   # -> "structural"`. The flip is a documented one-string change that **has not been thrown**.
+> 3. **Step 6 still holds exactly**: nothing would notice if all three of `/knowledge`'s criteria became untrue. The Honest limit at `component-contract.md:86` is unamended and still correct.
+>
+> Net: the *field is present* is checked; the *criterion is true* is not. Do not read the new checks as verification of the 94 assertions.
+
+- Step 2 *(historical — see correction above)*: **exactly one hit, and it is not a check** — `scripts/phase-state.py:47` defines `CHALLENGE_TRIGGERS = {"scope_degradation", "exit_criteria_degradation"}`, a phase-state trigger *name* that predates this spec and refers to a roadmap phase's exit criteria, not a command's frontmatter field. Read the line and confirm it. Nothing reads the field.
 - Step 3: **no output, `EXIT=1`.** Nothing under `scripts/` reads `## Completion` either. There is no presence check, no emptiness check, and certainly no truth check. Business Rule 9 forbade adding one in this spec, deliberately.
 - Step 4: `2026-08-11-governor-instrumentation` owns enforcement and depends on this spec. Its Story 3 is the `## Completion` presence check.
-- Step 5: `> **Status:** Not Started`, and **zero** completed stories. Enforcement is a future spec's deliverable and no part of it exists.
+- Step 5 *(historical — see correction above)*: the plan expected `> **Status:** Not Started` with zero completed stories. That spec now reads `Status: Complete`, 7/7 stories, 48/48 tasks. Enforcement machinery exists; enforcement **severity** does not.
 - Step 6: **nothing.** If `/knowledge` stopped writing to `.writ/knowledge/`, if `--list` started mutating files, if `--consolidate` wrote `superseded_by` in only one direction — every check in this repository would still pass, and the frontmatter would still declare the opposite. The same is true of all 94 entries and all 31 sections.
 - **What this scenario is asserting, exactly.** The gap between *declared* and *enforced* is total today. This spec's deliverable is a surface that *can* be checked; nothing checks it. That is not a defect — it is the documented design, sequenced deliberately so the surface is compliant before a blocking check is switched on. But two things follow, and both should be written into the sign-off: (a) the value delivered so far is entirely **authorial** — the discipline of naming a falsifiable condition, verified only by Scenarios 9–11 and only by a human; and (b) if `2026-08-11-governor-instrumentation` slips, the fields decay silently, because a field nothing reads cannot rot loudly. ADR-020's 2026-11-11 trigger is the only thing scheduled to notice.
 
