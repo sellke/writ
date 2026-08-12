@@ -1,6 +1,7 @@
 # Story 1: Criterion Classification
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** 48d73f52c8abd64ddbd832cd648e0026c4891b6d
 > **Priority:** High
 > **Dependencies:** None
 
