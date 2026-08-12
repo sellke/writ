@@ -1,6 +1,7 @@
 # Story 1: Porcelain Guard Before Baseline Verification
 
 > **Status:** Completed ✅ — 2026-08-12
+> **Commit:** 56f43b35d456fa76d9a5d24df160a56d35aa15e1
 > **Priority:** High
 > **Dependencies:** None
 
