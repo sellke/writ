@@ -1,6 +1,6 @@
 # User Stories — Machine-Evaluable Exit Criteria
 
-> **Status:** In Progress — 5/6 stories (83%)
+> **Status:** Completed ✅ — 6/6 stories (100%)
 
 | # | Story | Status | Depends on | Files |
 |---|---|---|---|---|
@@ -9,7 +9,7 @@
 | 3 | The checker | Completed ✅ | 1, 2 | `scripts/exit-criteria.py`, `scripts/tests/test_exit_criteria.py` |
 | 4 | Eval integration | Completed ✅ | 3 | `scripts/eval-exit-criteria.py`, `scripts/eval.sh` |
 | 5 | Command wiring | Completed ✅ | 3 | `commands/implement-phase.md`, `commands/implement-spec.md` |
-| 6 | Adapter wiring | Not Started | 5 | `adapters/claude-code.md` |
+| 6 | Adapter wiring | Completed ✅ | 5 | `adapters/claude-code.md` |
 
 ## Dependency graph
 
