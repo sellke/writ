@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-08-12
+> Last Updated: 2026-08-13
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 **Current status (2026-08-12):** Phases 1–10 closed. **Phase 10 closed PARTIALLY COMPLETE (2026-08-12)** — the determinism half (component contract, loop bounds, gate classes, blocking governor checks) shipped and is enforced; progressive disclosure stopped on measured evidence; the byte goal withdrawn outright by [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md). **No phase is currently committed** — next candidates live in [Beyond Phase 10 (Parking Lot)](#beyond-phase-10-parking-lot), pulled forward on concrete signal.
@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-08-13 | **Reconcile pass** after v0.31.0: two inter-phase infrastructure specs recorded in the condensed history (machine-evaluable exit criteria; implement-loop recalibration) — neither was a roadmap parking-lot candidate before it was built, matching the same "unrecorded direction" pattern the 2026-08-12 pass caught. No direction change — routine "shipped what was needed" bookkeeping, no new ADR. Derivatives (`mission.md` header, `mission-lite.md`) regenerated. |
 | 2026-08-12 | **Reconcile follow-ups:** the closure's "Scenario 20 not yet run" claim corrected — the probe ran and passed later the same day (lazy loading confirmed on the full path; `--quick` + degradation probes still open); `.writ/manifest.yaml` `metadata.version` gained a maintainer in `/release` Step 3.1 after drifting again (0.29.0 vs v0.30.2) within a day of its one-time Phase 10 fix. |
 | 2026-08-12 | **Reconcile pass** (`/plan-product --reconcile`) after Phase 10 closure: header status, Phase 10 heading, and mission Phase 10 / Next Horizon blocks aligned to the closure record; four stale "pending `/release`" closure claims corrected (Phases 6–9 released in v0.19.0/v0.20.0/v0.23.0); Leanness Guardian annotated with its v0.24.0 full-surface successor (ADR-019); inter-phase infrastructure recorded in the condensed history. Derivatives regenerated. |
 | 2026-08-12 | **Phase 10 closed PARTIALLY COMPLETE.** Determinism half shipped and enforced; progressive disclosure stopped after the pilot measured ~1,017 B overhead per skill and a +9.7% worst-path regression. Five specs closed unimplemented. |
@@ -39,6 +40,8 @@
 | **— Spec lifecycle & archival** | Format-tolerant status detection (27/39 specs were misclassified), archive sweep to `specs/archive/` + `LEDGER.md`, status-alone eligibility, post-merge archival hook | v0.26–0.28 |
 | **— Phase-closure status vocabulary** | Terminal `Closed — Not Implemented` status, `phase-state.py close-spec`, load-bearing vocabulary enforcement — the machinery Phase 10's own closure used | v0.30.0–0.30.1 |
 | **— `/refactor` dirty-tree guard** | Porcelain guard HALTs before mutation; executable `safe-refactor-loop` checkpoint — promoted from a bug Phase 10's UAT filed | v0.29–0.30 |
+| **— Machine-evaluable exit criteria** | `scripts/exit-criteria.py` read-only checker re-derives `met`/`unmet`/`unknown`/`impossible` for `/implement-phase` + `/implement-spec` exit criteria from disk state instead of self-report; wired into completion reports and the Claude Code `/goal` Stop hook | v0.31.0 |
+| **— Implement-loop recalibration** | Fixes to real friction from running the exit-criteria spec end-to-end: `/implement-spec` spawn-mechanism clarity, required execution-state writes, `spec.md` header sync; two new skills (`subagent-result-completeness`, `subagent-worktree-integration`) closing gaps in how `/implement-story` gates handle mid-task stops and isolated worktrees | v0.31.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 

@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-08-12
+> Regenerated from mission.md on 2026-08-13
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-08-12
+> Last Updated: 2026-08-13
 
 ## Core Value
 
@@ -32,7 +32,7 @@ Code and methodology that score well on six production-grade criteria — audita
 
 ## Current Phase
 
-**Phases 1–9:** Shipped and released (through v0.23.0), plus inter-phase infrastructure through v0.30.x (full-surface leanness measurement, deterministic story substrate, spec lifecycle & archival, phase-closure status vocabulary).
+**Phases 1–9:** Shipped and released (through v0.23.0), plus inter-phase infrastructure through v0.31.0 (full-surface leanness measurement, deterministic story substrate, spec lifecycle & archival, phase-closure status vocabulary, machine-evaluable exit criteria, implement-loop recalibration).
 
 **Phase 10 — Component Contract & Progressive Disclosure (◐ partially complete, closed 2026-08-12):** The determinism half shipped and is enforced — component contract on 31/31 commands + 7/7 agents, loop bounds on all 5 loop-bearing commands, autonomy gate classes, blocking `structural` governor checks proven by mutation. Progressive disclosure stopped on measured evidence after one conversion; the byte budget was withdrawn outright ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) supersedes ADR-021).
 

@@ -1,10 +1,10 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-08-12
+> Last Updated: 2026-08-13
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Revision: 2026-08-12 — `/plan-product --reconcile` after Phase 10 closed partially complete: determinism half shipped and enforced; byte program withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) supersedes ADR-021)
+> Last Revision: 2026-08-13 — reconcile pass after v0.31.0: two inter-phase infrastructure specs (machine-evaluable exit criteria, implement-loop recalibration) recorded in `roadmap.md`'s condensed history. Routine bookkeeping, no direction change, no new ADR.
 
 ## Pitch
 
