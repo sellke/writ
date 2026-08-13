@@ -1,6 +1,7 @@
 # Story 5: Command Wiring
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** a609ce051c22bb29eff76cc76f0d663f956fedce
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
