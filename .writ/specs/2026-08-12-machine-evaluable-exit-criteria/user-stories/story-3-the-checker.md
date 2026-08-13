@@ -1,6 +1,7 @@
 # Story 3: The Checker
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** 2333e8673963b6e8df1c924202e3f20d17f3d434
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
