@@ -121,6 +121,20 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 
 > **File creation discipline:** Agents must only create files explicitly listed in the story's implementation tasks. Verification results, validation reports, acceptance-criteria checklists, test plans and other analysis artifacts belong in the agent's **structured output** — never as new files on disk. The orchestrator must not commit any file that isn't in the story's task list or a known pipeline output (drift-log, context.md, story status updates).
 
+> **Sub-agent completeness:** `Read skills/subagent-result-completeness/SKILL.md`
+> for *how* to tell a spawned gate agent's complete verdict from a mid-task
+> stop, and what to do about the latter. This note owns *when* every gate
+> below that spawns a sub-agent (Gate 0, 1, 3, 4, 4.5) checks for
+> completeness before advancing; the skill owns *how* to tell a complete
+> verdict from a partial one.
+
+> **Sub-agent worktree integration:** `Read skills/subagent-worktree-integration/SKILL.md`
+> for *how* to reconcile a spawned agent's isolated worktree with the
+> orchestrator's own checkout, including the stale-worktree failure mode.
+> This note owns *when* every gate below that spawns a sub-agent (Gate 0, 1,
+> 3, 4, 4.5) reconciles isolated output before trusting it; the skill owns
+> *how* the diff → copy → re-verify → cleanup procedure runs.
+
 ---
 
 #### Gate 0: Architecture Check (Pre-Implementation)

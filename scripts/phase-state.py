@@ -24,6 +24,9 @@ Subcommands:
   create-lane    --state --repo --spec [--worktree-root]
   validate-result --input
   integrate      --state --repo --spec --result
+  record-exit-criterion --state --id --source --class --verdict [--evidence]
+  set-terminal-status   --state --status
+  record-halt    --state --unit --bound --reached [--last-integrated]
   show           --state
 """
 
@@ -53,6 +56,12 @@ SPEC_STATUSES = {
     "pending", "implementing", "integrated", "failed",
     "quarantined", "skipped_blocked", "challenge_required",
     "closed_not_implemented",
+}
+# Story 2: run-record extensions for machine-evaluable exit criteria.
+EXIT_CRITERION_CLASSES = {"machine", "human"}
+EXIT_CRITERION_VERDICTS = {"pass", "fail", "unachievable", "handed_off"}
+TERMINAL_STATUSES = {
+    "COMPLETE", "IMPLEMENTED_PENDING_HUMAN_VALIDATION", "PARTIALLY_COMPLETE",
 }
 # Statuses from which no further execution follows. A spec here is never
 # retried, relaunched, or downgraded by another spec's disposition.
@@ -408,6 +417,90 @@ def cmd_integrate(args: argparse.Namespace) -> dict[str, Any]:
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": "integrated", "mergeCommit": merge_commit, "merged": True}
+
+
+def cmd_record_exit_criterion(args: argparse.Namespace) -> dict[str, Any]:
+    """Record one exit-criterion verdict onto `exitCriteria[]` (Story 2).
+
+    Idempotent by `id`: re-recording the same criterion (e.g. re-verified
+    after `--resume`) updates its entry in place instead of accumulating
+    duplicates. `.class` and `.verdict` are validated on write, same as
+    `_set_status` — readers stay tolerant of an unrecognized value written by
+    a newer reducer; only mutation is guarded.
+    """
+    if args.cls not in EXIT_CRITERION_CLASSES:
+        raise ContractError("invalid_criterion", f"unknown criterion class: {args.cls!r}")
+    if args.verdict not in EXIT_CRITERION_VERDICTS:
+        raise ContractError("invalid_criterion", f"unknown criterion verdict: {args.verdict!r}")
+
+    state_path = Path(args.state)
+    state = _load(state_path)
+    entry = {
+        "id": args.id,
+        "source": args.source,
+        "class": args.cls,
+        "verdict": args.verdict,
+        "evidence": args.evidence,
+    }
+    criteria = state.setdefault("exitCriteria", [])
+    for i, existing in enumerate(criteria):
+        if existing.get("id") == args.id:
+            criteria[i] = entry
+            break
+    else:
+        criteria.append(entry)
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {"status": "recorded", "id": args.id, "verdict": args.verdict}
+
+
+def cmd_set_terminal_status(args: argparse.Namespace) -> dict[str, Any]:
+    """Set the phase's terminal status (Story 2).
+
+    Mutually exclusive with `haltReported` by construction: a run that hit
+    its loop bound has not reached a terminal status. This writer always
+    clears any stale `haltReported` left by an earlier halt in the same
+    write — a phase that halted once and later `--resume`s to completion
+    must not carry both fields, or Story 3's checker would keep reporting it
+    `impossible` forever.
+    """
+    if args.status not in TERMINAL_STATUSES:
+        raise ContractError("invalid_terminal_status", f"unknown terminal status: {args.status!r}")
+
+    state_path = Path(args.state)
+    state = _load(state_path)
+    state["terminalStatus"] = args.status
+    halt_reported_cleared = state.pop("haltReported", None) is not None
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {"status": "recorded", "terminalStatus": args.status,
+            "haltReportedCleared": halt_reported_cleared}
+
+
+def cmd_record_halt(args: argparse.Namespace) -> dict[str, Any]:
+    """Record loop-bound exhaustion as `haltReported` (Story 2).
+
+    Never sets `terminalStatus`: a halted run has not reached a terminal
+    status, and writing one here would be exactly the self-certification
+    `on_exhaustion: halt_reported` forbids.
+    """
+    try:
+        bound = int(args.bound)
+        reached = int(args.reached)
+    except ValueError:
+        raise ContractError("invalid_halt", "bound and reached must be integers")
+
+    state_path = Path(args.state)
+    state = _load(state_path)
+    state["haltReported"] = {
+        "unit": args.unit,
+        "bound": bound,
+        "reached": reached,
+        "lastIntegrated": args.last_integrated or None,
+    }
+    state["updatedAt"] = _now()
+    _atomic_write(state_path, state)
+    return {"status": "recorded", "haltReported": state["haltReported"]}
 
 
 def cmd_set_dependencies(args: argparse.Namespace) -> dict[str, Any]:
@@ -953,6 +1046,28 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--spec", required=True)
     p.add_argument("--result", required=True)
     p.set_defaults(func=cmd_integrate)
+
+    p = sub.add_parser("record-exit-criterion")
+    p.add_argument("--state", required=True)
+    p.add_argument("--id", required=True)
+    p.add_argument("--source", required=True)
+    p.add_argument("--class", dest="cls", required=True)
+    p.add_argument("--verdict", required=True)
+    p.add_argument("--evidence", default="")
+    p.set_defaults(func=cmd_record_exit_criterion)
+
+    p = sub.add_parser("set-terminal-status")
+    p.add_argument("--state", required=True)
+    p.add_argument("--status", required=True)
+    p.set_defaults(func=cmd_set_terminal_status)
+
+    p = sub.add_parser("record-halt")
+    p.add_argument("--state", required=True)
+    p.add_argument("--unit", required=True)
+    p.add_argument("--bound", required=True)
+    p.add_argument("--reached", required=True)
+    p.add_argument("--last-integrated", default="")
+    p.set_defaults(func=cmd_record_halt)
 
     p = sub.add_parser("set-dependencies")
     p.add_argument("--state", required=True)

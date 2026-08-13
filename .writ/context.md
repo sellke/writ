@@ -1,6 +1,6 @@
 # Writ Context
 
-> Last Updated: 2026-08-12T19:37:00+00:00
+> Last Updated: 2026-08-13T03:04:05+00:00
 
 ## Product Mission
 
@@ -8,7 +8,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-**None.** All 55 specs are archived under `.writ/specs/archive/` (see `LEDGER.md`). The most recent, `2026-08-12-refactor-dirty-tree-guard`, completed 2/2 stories and was archived 2026-08-12. Phase 10 closed PARTIALLY COMPLETE the same day; **no phase is currently committed** — next candidates live in the roadmap's *Beyond Phase 10* parking lot.
+- **Spec:** `2026-08-12-recalibrate-implement-loop` — Recalibrate the implement-spec / implement-story Loop
+- **Status:** All 3 stories complete; not yet archived
+- **Story:** 3 of 3 — Sub-Agent Worktree Integration (Completed ✅)
+- **Progress:** 3/3 stories complete (100%)
 
 ## Artifact Map
 
@@ -16,28 +19,26 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 |---|---|---|
 | Product mission | `.writ/product/mission.md` | yes |
 | Roadmap | `.writ/product/roadmap.md` | yes |
-| Active spec | — (none in flight) | n/a |
-| Knowledge ledger | `.writ/knowledge/` | yes |
+| Active spec | `.writ/specs/2026-08-12-recalibrate-implement-loop/` | yes — spec.md, spec-lite.md, sub-specs/, user-stories/ |
+| Knowledge ledger | `.writ/knowledge/` | yes (26 entries) |
 | Decision records | `.writ/decision-records/` | yes |
-| Docs | `.writ/docs/` | yes |
+| Docs | `.writ/docs/` | yes (21 files) |
 | Issues | `.writ/issues/` | yes |
 
-**Integrity:** all required artifacts resolve. Optional artifacts absent are reported, not fatal.
+**Integrity:** ✅ all required present. Optional artifacts absent are reported, not fatal.
 
 ## Recent Drift
 
-From `2026-08-12-refactor-dirty-tree-guard` (now archived):
+No `drift-log.md` for `2026-08-12-recalibrate-implement-loop` — all drift was inline, documentation-level corrections recorded in each story's What Was Built rather than a standalone log:
 
-- **DEV-001 (Story 1, Small)** — dirty-tree guard implemented as a distinct numbered step (`Step 1.1b`) rather than prose inside Step 1.1; spec intent preserved and reachability made structural.
-- **DEV-002 (Story 1, Small)** — `scripts/` leanness ratchet tripped by the eval.sh pins; non-blocking, left unsilenced for the baseline owner.
-- **DEV-001 (Story 2, Low)** — this file was itself regenerated out of boundary during `/status` and asserted "No drift log for the active spec" while `drift-log.md` existed, and dropped a live follow-up. Corrected 2026-08-12.
-
-**Closed follow-up (Story 1):** `require_literal` pins proved the `/refactor` guard exists but not that it was *reachable*; a 9th pin on `proceed to Step 1.1b` closed it. Story 2 hit the same class twice more — see its What Was Built.
+- **Story 1** — an unrelated transcription slip ("Gate 0/1/3/4/5" → corrected to "Gate 0/1/3/4/4.5") caught and fixed during Story 2's review pass.
+- **Story 2** — first-draft blockquote wording matched `technical-spec.md`'s illustrative insertion text verbatim, but that draft omitted the "this note owns *when*...; the skill owns *how*" ownership-split clause the story's own acceptance criterion requires exactly; resolved in favor of the acceptance criterion over the technical-spec draft, re-reviewed clean.
+- **Story 3** — none; the phrasing-convention gap found in Story 2 was already fixed before Story 3's blockquote was authored, so it matched on first review.
 
 ## Open Issues
 
-4 files — the two filed 2026-08-11/12 by Phase 10's own UAT both have shipped remedies (`/refactor` dirty-tree guard spec, complete; `phase-closure-status` spec, complete — carried a `spec_ref`) and await formal closure; plus `2026-08-11-restore-path-recording-for-destructive-commands` (improvement, open) and the long-parked business-process pipeline feature with a roadmap parking-lot entry.
+4 files under `.writ/issues/` — unchanged this run; not investigated as part of this spec's scope.
 
 ## Release
 
-v0.30.2 tagged 2026-08-12 (releases v0.29.0 → v0.30.2 all landed today). Phase 10 closed PARTIALLY COMPLETE: determinism half shipped and enforced; progressive disclosure stopped after one conversion on measured evidence; byte program withdrawn per ADR-023. Product docs reconciled to the closure via `/plan-product --reconcile` (2026-08-12).
+v0.30.3 tagged 2026-08-12. `2026-08-12-recalibrate-implement-loop` is implemented and verified (`bash scripts/lint-skill.sh` clean on both new skills, full `bash scripts/eval.sh` suite green — Findings 0, Run errors 0) but not yet shipped/released — next steps are optional `/verify-spec`, then `/ship`.

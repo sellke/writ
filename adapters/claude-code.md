@@ -361,6 +361,40 @@ Use Claude Code hooks to enforce quality gates automatically:
 
 If tests fail after the coder completes, the hook returns exit code 2 and sends the coder back to fix.
 
+### The /goal Stop Hook
+
+Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentCompleted` example above, aimed instead at `scripts/exit-criteria.py check` — see `.writ/specs/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the full case against treating `/goal` itself as the mechanism.
+
+**The checker is the authority; `/goal` is only the delivery vehicle.** Exactly as Story 5's command wiring makes `exit-criteria.py check` the independent, read-only re-derivation that `implement-phase`'s and `implement-spec`'s own completion steps defer to rather than trusting their own self-assessment, the `/goal` condition below does not restate or reinterpret the verdict — it just asks the checker and relays what comes back. Never write a `/goal` condition that encodes its own pass/fail logic.
+
+Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is **satisfiable by pausing**, not only by finishing — per spec.md Business Rule 1, "Reaching a retained pause satisfies the gate." A condition that only accepts a clean checker pass would push the model past a human gate, which is exactly the failure mode spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") as causing. Word the condition as an explicit three-way disjunction so no state is left implicit:
+
+```
+/goal Treat this stop as acceptable when ANY of the following is true — do not
+collapse these into "the checker passed":
+(a) `python3 scripts/exit-criteria.py check --command implement-phase --state .writ/state/phase-execution-{timestamp}.json` exits 0 (verdict: met);
+(b) the run is currently paused awaiting a retained AskQuestion — for example the
+    Step 2.3 execute/edit/abort confirmation — regardless of whether the checker
+    has been invoked yet; this state is met on its own;
+(c) the checker exits 2 (verdict: impossible) — a tripped loop bound, an
+    unresolved challenge_required, or a phase-state/git mismatch.
+If none of these hold, the condition is not-met: continue the run rather than
+stopping, and never treat a pause as something to route around.
+```
+
+Clause (b) has to stand on its own in the condition text, not as something the checker reports: `implement-phase.md` and `implement-spec.md` invoke the checker late — Step 4.1c / the completion step — while a retained `AskQuestion`, such as Step 2.3's execute/edit/abort confirmation, can occur earlier, before the checker has run at all. A condition that only names "exits 0" and mentions the pause as an aside is the naive anti-pattern the spec's "What `/goal` showed" section warns against; naming all three states is what keeps the hook compatible with `on_exhaustion: halt_reported` and the Autonomy Gate Classes instead of steamrolling them.
+
+**Single-slot behavior.** Registering a goal removes every existing top-level prompt Stop hook. Goals cannot nest — if `/implement-phase` holds a goal and then calls `/implement-spec`, and `/implement-spec` also tries to register one, "the innermost silently destroys the outer, and clears leaving nothing behind." As a direct consequence of this single-slot mechanism (not a separate rule to remember), only the outermost running command may ever hold a goal — `/implement-story`, the innermost loop of the three, must never register one regardless of what else is true.
+
+**Refusal modes.** `/goal` can silently fail to register in two ways, and both return a message rather than throwing, so check for the message instead of assuming enforcement is active:
+
+- **Restricted hooks** — the session has `disableAllHooks` set, or `allowManagedHooksOnly` is set and the goal hook isn't managed.
+- **Untrusted workspace** — the project has not been marked trusted.
+
+Both refusal modes return a message and register nothing. A silently-unset goal is worse than no goal at all, because the run proceeds believing it is gated when it is not — treat the absence of a confirmation message as a diagnosable failure, not as successful enforcement.
+
+`adapters/cursor.md`, `adapters/codex.md`, and `adapters/openclaw.md` need no change for this wiring: they get the checker through Story 5's command wiring (the `exit-criteria.py check` calls already embedded in `implement-phase.md` and `implement-spec.md`), which is adapter-neutral by construction. `/goal` is a Claude-Code-native addition on top of that, not a replacement for it.
+
 ---
 
 ## Skills
