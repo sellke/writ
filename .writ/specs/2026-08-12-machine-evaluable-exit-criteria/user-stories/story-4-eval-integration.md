@@ -1,6 +1,7 @@
 # Story 4: Eval Integration
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** 358e0229c62df2b3e9286e845f48be31ed298a9e
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
