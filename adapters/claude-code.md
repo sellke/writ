@@ -363,7 +363,7 @@ If tests fail after the coder completes, the hook returns exit code 2 and sends 
 
 ### The /goal Stop Hook
 
-Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentCompleted` example above, aimed instead at `scripts/exit-criteria.py check` — see `.writ/specs/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the full case against treating `/goal` itself as the mechanism.
+Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentCompleted` example above, aimed instead at `scripts/exit-criteria.py check` — see `.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the full case against treating `/goal` itself as the mechanism.
 
 **The checker is the authority; `/goal` is only the delivery vehicle.** Exactly as Story 5's command wiring makes `exit-criteria.py check` the independent, read-only re-derivation that `implement-phase`'s and `implement-spec`'s own completion steps defer to rather than trusting their own self-assessment, the `/goal` condition below does not restate or reinterpret the verdict — it just asks the checker and relays what comes back. Never write a `/goal` condition that encodes its own pass/fail logic.
 
