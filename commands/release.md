@@ -371,6 +371,32 @@ fi
 
 > When `package.json#name == "@sellke/writ"`, the Step 2.3 "Files to update" preview should omit `package.json` from its list — methodology releases do not touch the runtime-helper package version.
 
+#### Step 3.1b: Roadmap Sync (Inter-Phase Infrastructure)
+
+**Strictly non-blocking.** Failure here never fails the release — log a warning and continue to Step 3.2.
+
+A spec regularly ships without ever being a roadmap parking-lot candidate — inter-phase infrastructure, a bug fix, a bookkeeping amendment. Left unrecorded, it sits invisible until an occasional manual `/plan-product --reconcile` pass sweeps it in as a batch (two real specs sat this way after v0.31.0 until a human noticed). This step closes only the **mechanical** half of that gap — recording the fact that a spec shipped — never the judgment half:
+
+For each spec identified in Step 1.2's completed-specs enumeration:
+
+```bash
+python3 scripts/roadmap-sync.py check --roadmap .writ/product/roadmap.md --spec-name "<spec-folder-name>"
+```
+
+If `already_recorded` is `false`, author a terse, factual title and one-line description from the spec's own `spec.md` **Deliverable:** line — never invented, never a narrative judgment call — then:
+
+```bash
+python3 scripts/roadmap-sync.py append-row --roadmap .writ/product/roadmap.md \
+  --spec-name "<spec-folder-name>" --title "<Title>" --description "<one-line description>" \
+  --version "${VERSION}"
+```
+
+`append-row` is idempotent — a spec already recorded (by full folder name, its date-stripped slug, or a prior run's own embedded marker) is a clean no-op, never a duplicate row.
+
+**Boundary (critical):** this step only ever writes to `roadmap.md`'s condensed-history table, its Revision Log, and its `Last Updated` line. It **never** touches `mission.md`'s prose, **never** creates an ADR, and **never** classifies whether a spec represents a genuine direction change — those stay `/plan-product --reconcile`'s and `/verify-spec --product`'s P1/P4 checks, run periodically by a human. This step only ensures a shipped spec is never *silently* unrecorded by the time that judgment pass happens.
+
+**Derivative note:** if any row was appended, `mission-lite.md`'s "Current Phase" section may now be stale (it names inter-phase infrastructure). Regenerate it now if convenient, or flag in the completion report that `/plan-product --reconcile` would catch it — do not leave the two silently disagreeing.
+
 #### Step 3.2: Commit Release
 
 ```bash
@@ -475,6 +501,7 @@ Add a confirmation line to the release summary:
 - **Tag:** v${VERSION} pushed to origin
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
 - **Audit rollup:** 📝 Attached to <tag-target-sha> (refs/notes/writ) / ⏭️ Skipped (writ.auditNotes=false)
+- **Roadmap:** ✅ Current / 📋 N inter-phase spec(s) recorded (`roadmap.md`) — consider `/plan-product --reconcile` if `mission-lite.md` needs a matching update
 
 ## Changes Released
 ${changelog_summary}

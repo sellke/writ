@@ -38,6 +38,7 @@ CHECKS=(
   supersession-writeback
   archive-dogfood
   post-merge-archival
+  roadmap-sync
   story-deps
   story-context
   phase-lanes
@@ -2105,6 +2106,42 @@ check_post_merge_archival() {
   require_literal "$release_cmd" 'gh CLI unavailable or no merge data — running full test suite' "release.md Step 1.3c's original gh-unavailable row must remain verbatim — the archival hook must not alter non-firing gate behavior."
   require_literal "$release_cmd" 'Tests skipped — HEAD matches last merged PR' "release.md Step 1.3c's original SHA-match row must remain verbatim — the archival hook only piggybacks on this existing test-skip branch, it does not change it."
   require_literal "$release_cmd" '| Otherwise | Run **full** test suite |' "release.md Step 1.3c's original otherwise-run-full-suite row must remain verbatim."
+}
+
+check_roadmap_sync() {
+  local fake="$PROJECT_ROOT/scripts/eval-roadmap-sync.py"
+  local helper="$PROJECT_ROOT/scripts/roadmap-sync.py"
+  local release_cmd="$PROJECT_ROOT/commands/release.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "roadmap-sync:$scenario_name" "$scenario_reason" "Fix scripts/roadmap-sync.py or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def is_recorded(' "roadmap-sync.py must expose the shared already-recorded detector."
+  require_literal "$helper" 'def append_row(' "roadmap-sync.py must expose the idempotent row-append function."
+  require_literal "$helper" '<!-- {spec_name} -->' "roadmap-sync.py must embed the invisible spec-name marker in every row it writes — a human-authored title alone does not reliably substring-match its own spec's dated folder name."
+
+  # Pins release.md Step 3.1b's actual wired prose against silent regression,
+  # mirroring how Step 1.3c's archival hook is pinned above.
+  require_literal "$release_cmd" 'roadmap-sync.py check --roadmap .writ/product/roadmap.md --spec-name' "release.md Step 3.1b must check via the shared roadmap-sync.py CLI, not a second drifting heuristic."
+  require_literal "$release_cmd" 'roadmap-sync.py append-row --roadmap .writ/product/roadmap.md' "release.md Step 3.1b must append via the shared roadmap-sync.py CLI."
+  require_literal "$release_cmd" '**never** touches `mission.md`' "release.md Step 3.1b must state it never touches mission.md's prose — the mechanical/judgment boundary is the whole point of this step."
+  require_literal "$release_cmd" 'never fails the release' "release.md Step 3.1b must be documented as strictly non-blocking."
 }
 
 check_story_deps() {
