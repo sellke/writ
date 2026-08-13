@@ -168,6 +168,14 @@ For each batch in order:
 - Wait for all to complete before proceeding to next batch
 - If any story fails, decide: continue with independent stories or halt
 
+**Platform note:** on a harness where invoking `/implement-story` loads its
+instructions into the *current* context rather than running it as a
+backgrounded subagent, "spawn ... concurrently" means the orchestrator issues
+one parallel tool-call per story (each running that story's own Gate
+0/1/3/4/4.5 sequence) — not a nested command call the harness
+auto-parallelizes. Confirm which behavior your platform's invocation gives
+before assuming concurrency is free.
+
 **If sequential batch:**
 - Run `/implement-story {story-id}` one at a time
 
@@ -177,7 +185,12 @@ For each batch in order:
 #### Step 3.3: Update State After Each Story
 
 After each `/implement-story` completes:
-- Update execution state file with result
+- **Update execution state file with result** — this is a required disk
+  write, not a mental note: update the story's `stories.{id}` entry in
+  `.writ/state/execution-{timestamp}.json` immediately, before dispatching
+  the next story. It is the only artifact `--resume` reads; tracking
+  progress solely in conversation state does not substitute for it and will
+  not survive a restart.
 - Log: pass/fail, review iterations, test count, coverage
 - **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2 (including the `## Artifact Map` + Integrity line), reflecting the updated story progress. Each write replaces the entire file.
 
@@ -250,6 +263,13 @@ Next steps:
 - **`met`** — the `✅ Specification Complete` banner stands as shown.
 - **`unmet`** — the banner is replaced with the checker's verdict and the unmet criterion's reason instead of `✅ Specification Complete`, even if every story in this run's own account finished — e.g. `⚠️ Specification: implement-spec.c2 unmet — story-5-integration still pending`.
 - **`impossible`** — same substitution, naming the fired trigger from the checker's `reason` (e.g. an unreadable state file or a criterion whose own inputs could not be read) rather than presenting `✅ Specification Complete`.
+
+**Spec header sync.** When the checker verdict is `met` and every story is
+`Completed ✅`, update `spec.md`'s own `> **Status:**` line to `Complete
+(<date>)` — the same completion status story files and `README.md` already
+receive at Step 3.3 / Step 4 of `implement-story.md`. This header is easy to
+leave stale, since nothing else in this file writes it; `/verify-spec`
+Check 5b is otherwise the first thing to notice.
 
 ---
 
