@@ -20,9 +20,15 @@ not tie-break):
    both the full folder name and the folder name with its leading
    `YYYY-MM-DD-` date component stripped.
 2. Commit messages vs. spec-folder name: case-insensitive substring scan of
-   the full folder name (covers `.writ/specs/<name>/` path references), plus
-   a scan for any of that spec's `user-stories/*.md` filenames (covers a
-   commit mentioning `story-3-session-management.md` without the full path).
+   both the full folder name (covers `.writ/specs/<name>/` path references)
+   and the folder name with its leading `YYYY-MM-DD-` date component
+   stripped (covers a completing commit naming the spec by its bare slug,
+   e.g. "Completes Story 6 and the machine-evaluable-exit-criteria spec." --
+   the exact phrasing that silently missed a real spec pre-v0.31.1, since
+   this signal previously checked only the dated folder name while signal 1
+   already stripped the date prefix), plus a scan for any of that spec's
+   `user-stories/*.md` filenames (covers a commit mentioning
+   `story-3-session-management.md` without the full path).
 3. Candidates from both signals are deduplicated by resolved spec-folder
    name *before* counting distinctness -- the same spec surfaced by two
    signals is one match, not two. Zero distinct matches after dedup is
@@ -118,7 +124,9 @@ def _match_commit_messages(
     blob = "\n".join(commit_messages).lower()
     matches: list[str] = []
     for folder in spec_folders:
-        if folder.lower() in blob:
+        folder_lower = folder.lower()
+        slug = DATE_PREFIX.sub("", folder_lower)
+        if folder_lower in blob or slug in blob:
             matches.append(folder)
             continue
         stories_dir = specs_dir / folder / "user-stories"

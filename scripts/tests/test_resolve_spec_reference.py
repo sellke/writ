@@ -78,6 +78,28 @@ def test_story_file_reference_in_commit_message_matches(tmp_path: Path) -> None:
     assert result["spec"] == "2026-04-12-session-management"
 
 
+def test_commit_message_matches_date_stripped_slug(tmp_path: Path) -> None:
+    """Real dogfood bug (v0.31.0 release): a completing commit said "Completes
+    Story 6 and the machine-evaluable-exit-criteria spec." -- the slug, without
+    its `2026-08-12-` date prefix. Signal 1 (branch matching) already strips
+    the date prefix before comparing; signal 2 (commit-message matching) did
+    not, so this reference was invisible to the resolver and the spec was
+    silently skipped by the post-merge archival hook. Signal 2 must match the
+    date-stripped slug too, exactly like signal 1 already does."""
+    specs_dir = tmp_path / "specs"
+    make_spec(specs_dir, "2026-08-12-machine-evaluable-exit-criteria")
+
+    result = resolve_spec_reference(
+        None,
+        ["docs(adapters): wire /goal Stop hook\n\nCompletes Story 6 and the "
+         "machine-evaluable-exit-criteria spec."],
+        specs_dir,
+    )
+
+    assert result["result"] == "matched"
+    assert result["spec"] == "2026-08-12-machine-evaluable-exit-criteria"
+
+
 def test_zero_matches_returns_none(tmp_path: Path) -> None:
     specs_dir = tmp_path / "specs"
     make_spec(specs_dir, "2026-03-15-auth-system")
