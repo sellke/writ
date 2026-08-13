@@ -60,40 +60,20 @@ CRITERIA_BY_COMMAND: dict[str, tuple[str, ...]] = {
 # each predicate to cite the text it evaluates -- these constants are that
 # citation, and Story 4's `require_literal` binds them back to the command
 # files so transcription drift is caught by the suite rather than a reader.
+#
+# Each value is a single-line string literal (not split across source lines)
+# so a plain `grep -F '<the sentence>' scripts/exit-criteria.py` finds it
+# verbatim. A multi-line-concatenated fragment produces the same runtime
+# value but is invisible to a single-line grep -- Story 4's `require_literal`
+# bindings need the former (Gate 0 review finding).
 CRITERION_TEXT: dict[str, str] = {
-    "implement-phase.c1": (
-        "every spec resolved from the phase reached merged, quarantined, "
-        "skipped_blocked, or closed_not_implemented in "
-        ".writ/state/phase-execution-*.json, and failed work exists only on "
-        "writ/quarantine/<spec-id> branches"
-    ),
-    "implement-phase.c2": (
-        "each merged spec folder contains a populated uat-plan.md generated "
-        "after that spec was implemented"
-    ),
-    "implement-phase.c3": (
-        "each machine-checkable roadmap exit criterion is recorded pass or "
-        "fail with its evidence, and human-judgment criteria are handed off "
-        "rather than self-certified"
-    ),
-    "implement-phase.c4": (
-        "the phase report ends in exactly one of COMPLETE, IMPLEMENTED "
-        "pending human validation, or PARTIALLY COMPLETE"
-    ),
-    "implement-spec.c1": (
-        "scripts/story-deps.py validate returned status ok for the full "
-        "story graph before the first story ran"
-    ),
-    "implement-spec.c2": (
-        "no story remains pending in .writ/state/execution-<timestamp>.json "
-        "- each is complete, skipped with its blocking chain, or failed "
-        "with a reason"
-    ),
-    "implement-spec.c3": (
-        "one typecheck plus full test suite ran after the final story, "
-        "separate from the targeted per-story Gate 4 runs, and "
-        ".writ/context.md was rewritten to the post-run story counts"
-    ),
+    "implement-phase.c1": "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_not_implemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches",
+    "implement-phase.c2": "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented",
+    "implement-phase.c3": "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified",
+    "implement-phase.c4": "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE",
+    "implement-spec.c1": "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran",
+    "implement-spec.c2": "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason",
+    "implement-spec.c3": "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts",
 }
 
 # The one criterion Story 1 classified structurally-unobservable, and the

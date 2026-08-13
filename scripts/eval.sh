@@ -56,6 +56,7 @@ CHECKS=(
   leanness
   artifact-integrity
   loop-bounds
+  exit-criteria
 )
 
 TOTAL_FINDINGS=0
@@ -3099,6 +3100,93 @@ check_loop_bounds() {
   # Check 3's finding in 2026-08-11-governor-instrumentation. Adding a
   # require_literal for 'loop:' would report the same missing block twice,
   # which is how a check registry becomes noise a maintainer learns to skim.
+}
+
+check_exit_criteria() {
+  # Story 4 of 2026-08-12-machine-evaluable-exit-criteria: the checker's own
+  # correctness, asserted alongside every other Writ instrument, with its
+  # predicates bound to the criterion prose they claim to evaluate so the
+  # checker cannot drift away from its own contract without the suite going
+  # red. Follows check_story_deps' exact shape: scenario loop, then
+  # require_literal assertions binding prose to implementation.
+  local fake="$PROJECT_ROOT/scripts/eval-exit-criteria.py"
+  local helper="$PROJECT_ROOT/scripts/exit-criteria.py"
+  local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
+  local technical_spec
+  technical_spec="$(resolve_spec_path ".writ/specs/2026-08-12-machine-evaluable-exit-criteria/sub-specs/technical-spec.md")"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  if [ ! -f "$fake" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-exit-criteria.py" "exit-criteria asserter is missing." "Restore scripts/eval-exit-criteria.py (machine-evaluable exit criteria spec, Story 4)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "exit-criteria:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  # Task 4.3: each criterion's verbatim text, present in both the command
+  # frontmatter it was transcribed from and scripts/exit-criteria.py's
+  # CRITERION_TEXT constants -- the prose binding is the point (Story 4
+  # Notes). A predicate whose cited text no longer matches either side FAILs
+  # here, naming the criterion, exactly the transcription-drift assertion
+  # scripts/eval-loop-bounds.py assertion 8 makes for loop bounds.
+  require_literal "$implement_phase" "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_not_implemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches" "implement-phase.c1's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "every spec resolved from the phase reached merged, quarantined, skipped_blocked, or closed_not_implemented in .writ/state/phase-execution-*.json, and failed work exists only on writ/quarantine/<spec-id> branches" "implement-phase.c1's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  require_literal "$implement_phase" "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented" "implement-phase.c2's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "each merged spec folder contains a populated uat-plan.md generated after that spec was implemented" "implement-phase.c2's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  require_literal "$implement_phase" "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified" "implement-phase.c3's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "each machine-checkable roadmap exit criterion is recorded pass or fail with its evidence, and human-judgment criteria are handed off rather than self-certified" "implement-phase.c3's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  require_literal "$implement_phase" "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE" "implement-phase.c4's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "the phase report ends in exactly one of COMPLETE, IMPLEMENTED pending human validation, or PARTIALLY COMPLETE" "implement-phase.c4's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  require_literal "$implement_spec" "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran" "implement-spec.c1's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran" "implement-spec.c1's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  require_literal "$implement_spec" "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason" "implement-spec.c2's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason" "implement-spec.c2's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  require_literal "$implement_spec" "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts" "implement-spec.c3's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts" "implement-spec.c3's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
+  # Task 4.4: the rollup precedence and the four `impossible` trigger names.
+  # Bound against each side's own exact wording (technical-spec.md's prose is
+  # not forced to match exit-criteria.py's docstring verbatim -- Gate 0
+  # review: reconcile wording carefully rather than eyeballing a full-sentence
+  # match across unicode arrows and prose reflow).
+  require_literal "$technical_spec" "Evaluated in this order; the first match wins." "technical-spec.md must state the rollup's first-match-wins precedence."
+  require_literal "$helper" "Rollup precedence, first match wins" "scripts/exit-criteria.py must document the rollup precedence it implements."
+
+  require_literal "$technical_spec" "Loop bound tripped" "technical-spec.md's impossible-trigger table must name \"Loop bound tripped\"."
+  require_literal "$helper" "Loop bound tripped" "scripts/exit-criteria.py must raise Impossible naming \"Loop bound tripped\"."
+
+  require_literal "$technical_spec" "Unresolved escalation" "technical-spec.md's impossible-trigger table must name \"Unresolved escalation\"."
+  require_literal "$helper" "Unresolved escalation" "scripts/exit-criteria.py must raise Impossible naming \"Unresolved escalation\"."
+
+  require_literal "$technical_spec" "Criterion recorded unachievable" "technical-spec.md's impossible-trigger table must name \"Criterion recorded unachievable\"."
+  require_literal "$helper" "Criterion recorded unachievable" "scripts/exit-criteria.py must raise Impossible naming \"Criterion recorded unachievable\"."
+
+  require_literal "$technical_spec" "State/git mismatch" "technical-spec.md's impossible-trigger table must name \"State/git mismatch\"."
+  require_literal "$helper" "State/git mismatch" "scripts/exit-criteria.py must raise Impossible naming \"State/git mismatch\"."
 }
 
 run_check() {

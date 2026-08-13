@@ -1,13 +1,13 @@
 # User Stories — Machine-Evaluable Exit Criteria
 
-> **Status:** In Progress — 4/6 stories (67%)
+> **Status:** In Progress — 5/6 stories (83%)
 
 | # | Story | Status | Depends on | Files |
 |---|---|---|---|---|
 | 1 | Criterion classification | Completed ✅ | — | `.writ/docs/exit-criteria-classification.md` |
 | 2 | Run-record extensions | Completed ✅ | — | `scripts/phase-state.py`, `commands/implement-phase.md`, `commands/implement-spec.md`, `.writ/docs/phase-execution-state-format.md` |
 | 3 | The checker | Completed ✅ | 1, 2 | `scripts/exit-criteria.py`, `scripts/tests/test_exit_criteria.py` |
-| 4 | Eval integration | In Progress (review) | 3 | `scripts/eval-exit-criteria.py`, `scripts/eval.sh` |
+| 4 | Eval integration | Completed ✅ | 3 | `scripts/eval-exit-criteria.py`, `scripts/eval.sh` |
 | 5 | Command wiring | Completed ✅ | 3 | `commands/implement-phase.md`, `commands/implement-spec.md` |
 | 6 | Adapter wiring | Not Started | 5 | `adapters/claude-code.md` |
 
