@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-08-13T19:26:15+00:00
+> Last Updated: 2026-08-13T20:40:00+00:00
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-08-13-acceptance-criteria-traceability-ids — Per-Criterion Traceability IDs and an Orphan Check
 - **Status:** In Progress
-- **Story:** 1 of 4 — ID Grammar and Emitter (Completed ✅)
-- **Progress:** 7/28 tasks complete (25%)
+- **Story:** 2 of 4 — The Checker (in progress); Story 4 — Edit-Spec Stability Guard (Completed ✅)
+- **Progress:** 14/28 tasks complete (50%)
 
 ## Artifact Map
 
@@ -23,8 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- [DEV-2] `scripts/tests/test_governor_enforcement.py` byte-budget disclosure update (Story 1) — Small, accepted, no spec-lite.md amendment needed
-- [DEV-1] Step 2.6b addition to `create-spec.md` (Story 1) — Small, accepted, no spec-lite.md amendment needed
+- [DEV-3] Task 4.1 reinterpreted as a golden-fixture test file (Story 4) — Small, accepted, no spec-lite.md amendment needed
+- [DEV-2] `scripts/tests/test_governor_enforcement.py` byte-budget disclosure update (Story 1) — Small, accepted
+- [DEV-1] Step 2.6b addition to `create-spec.md` (Story 1) — Small, accepted
 
 ## Open Issues
 

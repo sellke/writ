@@ -10,9 +10,9 @@
 | 1 | [ID Grammar and Emitter](story-1-id-grammar-and-emitter.md) | Completed ✅ | 4 | 7/7 | 100% |
 | 2 | [The Checker](story-2-the-checker.md) | Not Started | 5 | 0/7 | 0% |
 | 3 | [Verify-Spec Wiring](story-3-verify-spec-wiring.md) | Not Started | 4 | 0/7 | 0% |
-| 4 | [Edit-Spec Stability Guard](story-4-edit-spec-stability-guard.md) | Not Started | 4 | 0/7 | 0% |
+| 4 | [Edit-Spec Stability Guard](story-4-edit-spec-stability-guard.md) | Completed ✅ | 4 | 7/7 | 100% |
 
-**Total: 7/28 tasks (25%)** · 17 acceptance criteria across 4 stories
+**Total: 14/28 tasks (50%)** · 17 acceptance criteria across 4 stories
 
 ## Dependencies
 

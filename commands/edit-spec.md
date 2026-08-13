@@ -90,7 +90,7 @@ Only proceed to Phase 2 when the user locks the contract.
 
 #### Step 2.1: Backup & Track
 
-Create a backup in `.writ/specs/[spec-folder]/backups/[timestamp]/`. Create or append to `CHANGELOG.md` within the spec folder: date, change type, what changed, files updated, backup location.
+Create a backup in `.writ/specs/[spec-folder]/backups/[timestamp]/`. Create or append to `CHANGELOG.md` within the spec folder: date, change type, what changed, files updated, backup location — and, whenever the edit assigned or retired an acceptance-criterion ID under Step 2.2's ID-stability rules, an **AC IDs assigned:** line and an **AC IDs retired:** line, each listing the affected IDs by story (`none` when the edit didn't touch that direction). These two lines are additive to the shape above, not a replacement for it.
 
 Use `todo_write` to track the modification steps.
 
@@ -108,6 +108,46 @@ Use `todo_write` to track the modification steps.
 - Story grows beyond 7 tasks → split it
 - Story shrinks below 3 tasks → consider combining with a related story
 - Update all dependency declarations across affected stories
+
+**Acceptance-criterion ID stability (never renumber):** every criterion tag and marker
+follows the grammar in `.writ/docs/acceptance-criteria-ids.md` — the `AC-<story>.<n>` form,
+the trailing `` `[AC-n.m]` `` tag, and the `> **AC IDs assigned through:** AC-n.m` marker line
+directly beneath the story's `## Acceptance Criteria` heading. That doc is the contract; the
+three procedures below are how this command implements it. In all three, an existing
+criterion's tag is either left byte-identical or not touched at all — never rewritten to a
+different ID.
+
+- **Insert (a criterion is added, anywhere in reading order):** read the story's own current
+  marker value `<mark>`, assign the new criterion `<mark> + 1`, and advance the marker to that
+  same new value. Do not change any existing criterion's tag. The new criterion's ID has no
+  relationship to where it lands in reading order — reading order and ID order are
+  deliberately independent, exactly as in the grammar doc's worked insert example (a marker at
+  `AC-3.4` with a new criterion inserted second in reading order still gets `AC-3.5`, and the
+  three pre-existing tags stay `AC-3.1`, `AC-3.3`, `AC-3.4`, untouched).
+- **Remove (a criterion is deleted):** delete the criterion's line only. Do not move the
+  marker down — it stays at the highest ID ever assigned to the story, even though that exact
+  ID no longer labels any surviving criterion. The removed ID is retired permanently: no
+  future insert in this story may ever be assigned that number, and the next insert still
+  takes `<mark> + 1` from the unchanged marker. Before the edit completes, search the repo for
+  citations of the retired ID — a self-contained scan this command runs itself, e.g. `grep -rn
+  "AC-<n>.<m>" --include=*.md --include=*.py .` from the repo root, skipping `backups/` and
+  anything git-ignored — and surface every match (a task tag or a test name/docstring still
+  citing the retired ID) to the human as a reference that needs repointing to a surviving
+  criterion or deleting outright. This grep is local to `/edit-spec`; it is not a call to
+  `scripts/ac-trace.py`, which belongs to a different story and is not a dependency here.
+  **Out of scope:** whole-story archival (the "Removed stories" rule above, moving a removed
+  story to `user-stories/archived/`) is a different operation from removing a single criterion
+  within a surviving story, and this citation-surfacing rule does not apply at the story
+  level — mirroring how `sub-specs/technical-spec.md`'s Interaction Edge Cases table already
+  scopes out story-renumbering as a separate, unimplemented concern.
+- **First adoption (a legacy story with zero IDs and no marker gains a tagged criterion):**
+  never tag only the new or changed criterion — tagging one criterion while its siblings stay
+  untagged produces `partial_adoption`, which `/verify-spec` reports as blocking. Instead:
+  create the `> **AC IDs assigned through:**` marker line directly beneath the story's
+  `## Acceptance Criteria` heading (it does not exist yet in a legacy story), then assign
+  `AC-<story>.1` through `AC-<story>.N` to every criterion currently in the story, in reading
+  order, and set the marker to the final value assigned. The story leaves the edit either
+  fully adopted — every criterion tagged — or entirely untouched. There is no partial state.
 
 **README and sub-specs:** Update progress table, dependency graph, and quick links. Only update sub-specs that are actually affected.
 
