@@ -1,6 +1,7 @@
 # Story 3: Sub-Agent Worktree Integration
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** c154903cce85b9013ef712d02236594745530545
 > **Priority:** High
 > **Dependencies:** Story 2
 
