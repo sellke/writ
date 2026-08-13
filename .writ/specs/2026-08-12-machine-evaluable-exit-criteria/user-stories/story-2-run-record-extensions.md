@@ -1,6 +1,7 @@
 # Story 2: Run-Record Extensions
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** 3617180992248c5af42cf71426325b6587ca8c12
 > **Priority:** High
 > **Dependencies:** None
 
