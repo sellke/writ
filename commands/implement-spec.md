@@ -207,6 +207,14 @@ If integration failures: identify which story likely broke it, report to user.
 
 Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`, `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
 
+**Only after `postRun` is written**, run the exit-criteria checker against the now-current state file — sequencing matters because `implement-spec.c1` and `.c3` read `preflight`/`postRun` directly, so a checker run before `postRun` exists would read it absent and correctly, but unhelpfully, report `unknown` instead of the true verdict:
+
+```bash
+python3 scripts/exit-criteria.py check --command implement-spec --spec <spec-dir> --state .writ/state/execution-{timestamp}.json
+```
+
+Carry its overall verdict and each criterion's evidence into the Step 4.2 report.
+
 #### Step 4.2: Summary Report
 
 ```
@@ -226,11 +234,22 @@ Execution Stats:
 - Review iterations: 4 total (1.3 avg)
 - Integration tests: ✅ passing
 
+Checker verdict: met
+  ✅ implement-spec.c1 — met — story graph validated ok at 2026-02-22T17:40:00Z, before batch 1
+  ✅ implement-spec.c2 — met — 3/3 stories terminal
+  ✅ implement-spec.c3 — met — typecheck+test suite ran after the final story at 2026-02-22T18:05:00Z; context.md rewritten
+
 Next steps:
 - Optional: `/verify-spec` if you want a standalone metadata pass
 - Run `/security-audit` for a security review
 - `/ship` to open a PR, then `/release --dry-run` → `/release` when ready to publish
 ```
+
+**Checker verdict governs the banner (AC4).** `implement-spec` carries no `terminalStatus` field to defer to, so here "governs" means the `✅ Specification Complete` banner itself is gated on the checker's verdict, not on the run's own account of story completion:
+
+- **`met`** — the `✅ Specification Complete` banner stands as shown.
+- **`unmet`** — the banner is replaced with the checker's verdict and the unmet criterion's reason instead of `✅ Specification Complete`, even if every story in this run's own account finished — e.g. `⚠️ Specification: implement-spec.c2 unmet — story-5-integration still pending`.
+- **`impossible`** — same substitution, naming the fired trigger from the checker's `reason` (e.g. an unreadable state file or a criterion whose own inputs could not be read) rather than presenting `✅ Specification Complete`.
 
 ---
 
