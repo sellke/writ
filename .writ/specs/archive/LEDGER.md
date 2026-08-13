@@ -57,3 +57,4 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-08-12T14:08:57Z — `2026-08-12-governor-enforcement` archived (evidence: no knowledge evidence yet)
 - 2026-08-12T14:08:57Z — `2026-08-12-refactor-dirty-tree-guard` archived (evidence: no knowledge evidence yet)
 - 2026-08-12T16:16:32Z — `2026-08-12-phase-closure-status` archived (evidence: no knowledge evidence yet)
+- 2026-08-13T03:47:02Z — `2026-08-12-recalibrate-implement-loop` archived (evidence: no knowledge evidence yet, via PR #43)
