@@ -74,6 +74,36 @@ Story 4 activates `quarantineBranch`, `blockedBy`, and failure records; Story 5
 activates `knowledgeWritten`; Story 3 activates `challenges`. They are present and
 inert until then.
 
+## Run-Record Extensions (Story 2 — machine-evaluable exit criteria)
+
+Additive, top-level fields so the stop-time checker (Story 3) can evaluate
+completion facts from disk instead of taking a narrated report on trust.
+`schemaVersion` stays `2`; the preserve-unknown-fields rule above already
+covers a reader built before these fields existed.
+
+| Field | Meaning | Writer | Step | Optional |
+|---|---|---|---|---|
+| `exitCriteria[]` | Per-criterion verdict list | `/implement-phase` (`phase-state.py record-exit-criterion`) | Step 4.1, per criterion verified | yes |
+| `exitCriteria[].id` | Stable criterion id from the Story 1 classification | — | — | no (within an entry) |
+| `exitCriteria[].source` | Where the criterion came from (e.g. `roadmap`) | — | — | no |
+| `exitCriteria[].class` | `machine` or `human` | — | — | no |
+| `exitCriteria[].verdict` | `pass`, `fail`, `unachievable`, or `handed_off` | — | — | no |
+| `exitCriteria[].evidence` | Evidence string backing the verdict | — | — | no |
+| `terminalStatus` | One of `COMPLETE`, `IMPLEMENTED_PENDING_HUMAN_VALIDATION`, `PARTIALLY_COMPLETE` | `/implement-phase` (`phase-state.py set-terminal-status`) | Step 4.2, with the completion report | yes |
+| `haltReported` | `{unit, bound, reached, lastIntegrated}` recorded when `loop.max_iterations` exhausts | `/implement-phase` (`phase-state.py record-halt`) | Step 3.2 on exhaustion | yes |
+
+**`haltReported` and `terminalStatus` are mutually exclusive.** A run that hit
+its loop bound has not reached a terminal status — writing one would let a
+stop-time checker report `met` for a run that never finished. `set-terminal-status`
+enforces this on write: it always clears any stale `haltReported` left by an
+earlier halt in the same operation, so a phase that halted once and later
+`--resume`s to completion never carries both fields (and is never reported
+`impossible` forever by the checker).
+
+`record-exit-criterion` is idempotent by `id`: re-recording the same criterion
+(e.g. re-verified after `--resume`) updates its entry in place rather than
+accumulating duplicates.
+
 ## Lane Lifecycle (D2 — Isolation Begins Before Work)
 
 1. **Create before work.** `phase-state.py create-lane` verifies the phase branch

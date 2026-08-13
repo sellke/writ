@@ -205,7 +205,7 @@ The orchestrator owns lane creation, result validation, merge, and UAT handoff. 
 4. **Preserve anything else** — a missing, malformed, non-successful, or unverifiable result never touches the phase branch; its lane is preserved for Step 3.3 / Story 4 to classify, quarantine, and recover.
 5. **On a merged success, run `/create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated *after* implementation so it reflects what was actually built. Update phase state and continue.
 
-**Iteration bound:** this loop is bounded at `loop.max_iterations` (12) **distinct specs per phase** — the counter resets at each phase boundary in `--all` mode, and a spec retried under Step 3.3 is the same iteration, not a second one (retries are bounded separately by the nested `spec_attempt` cap). On exhaustion, `loop.on_exhaustion: halt_reported` applies: **do not quarantine anything.** Nothing has failed at this point — the phase merely ran longer than declared, so fabricating a failure record would also mark dependents `skipped_blocked` and degrade scope. Unstarted specs stay `pending` and the phase stays `status: executing`; report the unit (`spec`), the bound, the count reached, the last integrated spec, the `phase-execution-*.json` path, and the literal resume command `/implement-phase --resume`.
+**Iteration bound:** this loop is bounded at `loop.max_iterations` (12) **distinct specs per phase** — the counter resets at each phase boundary in `--all` mode, and a spec retried under Step 3.3 is the same iteration, not a second one (retries are bounded separately by the nested `spec_attempt` cap). On exhaustion, `loop.on_exhaustion: halt_reported` applies: **do not quarantine anything.** Nothing has failed at this point — the phase merely ran longer than declared, so fabricating a failure record would also mark dependents `skipped_blocked` and degrade scope. Unstarted specs stay `pending` and the phase stays `status: executing`; report the unit (`spec`), the bound, the count reached, the last integrated spec, the `phase-execution-*.json` path, and the literal resume command `/implement-phase --resume`. Persist the same facts with `scripts/phase-state.py record-halt --unit spec --bound 12 --reached <n> --last-integrated <spec-id>`, which writes `haltReported` and never sets `terminalStatus` — a halted run has not reached a terminal status.
 
 **Inherited-answer rule:** any question `/implement-spec` or its sub-pipeline would ask that is answered by the spec contract, story files, technical spec, or roadmap is answered from those artifacts without surfacing to the user. Only questions with no artifact-derivable answer bubble up.
 
@@ -242,7 +242,7 @@ After a phase completes, advance to the next roadmap phase **only if** the compl
 
 #### Step 4.1: Verify Machine-Checkable Criteria
 
-Run each machine-checkable exit criterion from the roadmap (plus `/implement-spec`'s own integration verification, which already ran per spec). Record pass/fail per criterion — with evidence, not assertion.
+Run each machine-checkable exit criterion from the roadmap (plus `/implement-spec`'s own integration verification, which already ran per spec). Record pass/fail per criterion — with evidence, not assertion — persisting each as it's produced with `scripts/phase-state.py record-exit-criterion --id <criterion-id> --source roadmap --class machine|human --verdict pass|fail|unachievable|handed_off --evidence "<evidence>"`, so `exitCriteria[]` in phase state carries the same facts the report narrates.
 
 #### Step 4.1b: Evidence-Bound Knowledge Writeback
 
@@ -285,6 +285,8 @@ Phase status: IMPLEMENTED — pending human validation
 **The command never declares a phase "complete" when human-judgment criteria remain.** The terminal status is `IMPLEMENTED — pending human validation`, with the UAT plans as the handoff. If every exit criterion is machine-checkable and passing, the status may be `COMPLETE`.
 
 **A `Closed by decision` section is mandatory whenever any spec is `closed_not_implemented`** — one line per spec with the reason recorded in its `closure`, read from `progress`'s `closed` map. A phase whose specs are all `integrated` or `closed_not_implemented` may report `COMPLETE`, because closure is terminal — but only because this section names what was dropped and why. Omitting it for brevity turns the `COMPLETE` verdict into a false claim of delivered scope.
+
+Persist the reported status with `scripts/phase-state.py set-terminal-status --status COMPLETE|IMPLEMENTED_PENDING_HUMAN_VALIDATION|PARTIALLY_COMPLETE`. This is the same write that clears any stale `haltReported` left by an earlier exhaustion — a phase that halted once and later `--resume`s to one of these three statuses must not carry both fields.
 
 #### Step 4.3: Partial Completion Honesty
 

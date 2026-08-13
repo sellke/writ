@@ -142,6 +142,7 @@ Skipping (already complete): Story 1, Story 2
 {
   "spec": "2026-02-22-feature-name",
   "startedAt": "2026-02-22T17:40:00Z",
+  "preflight": { "storyDepsValidated": true, "at": "2026-02-22T17:40:00Z" },
   "plan": {
     "batches": [
       { "parallel": true, "stories": ["story-3-api", "story-4-rate-limit"] },
@@ -155,6 +156,8 @@ Skipping (already complete): Story 1, Story 2
   }
 }
 ```
+
+`preflight.storyDepsValidated` / `.at` record the Step 2.1 `story-deps.py validate` result already computed — never re-run it here — closing `implement-spec.c1`'s "before the first story ran" criterion for a post-hoc filesystem read.
 
 #### Step 3.2: Execute Batches
 
@@ -201,6 +204,8 @@ npm test    # or equivalent (pytest, cargo test, go test ./...)
 If integration failures: identify which story likely broke it, report to user.
 
 > **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
+
+Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`, `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
 
 #### Step 4.2: Summary Report
 
