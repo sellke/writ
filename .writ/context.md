@@ -1,6 +1,6 @@
 # Writ Context
 
-> Last Updated: 2026-08-12T19:37:00+00:00
+> Last Updated: 2026-08-12T20:00:00+00:00
 
 ## Product Mission
 
@@ -8,7 +8,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-**None.** All 55 specs are archived under `.writ/specs/archive/` (see `LEDGER.md`). The most recent, `2026-08-12-refactor-dirty-tree-guard`, completed 2/2 stories and was archived 2026-08-12. Phase 10 closed PARTIALLY COMPLETE the same day; **no phase is currently committed** — next candidates live in the roadmap's *Beyond Phase 10* parking lot.
+- **Spec:** `2026-08-12-machine-evaluable-exit-criteria` — Machine-Evaluable Exit Criteria
+- **Status:** All 6 stories complete; not yet archived
+- **Story:** 6 of 6 — Adapter Wiring (Completed ✅)
+- **Progress:** 6/6 stories complete (100%)
 
 ## Artifact Map
 
@@ -16,7 +19,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 |---|---|---|
 | Product mission | `.writ/product/mission.md` | yes |
 | Roadmap | `.writ/product/roadmap.md` | yes |
-| Active spec | — (none in flight) | n/a |
+| Active spec | `.writ/specs/2026-08-12-machine-evaluable-exit-criteria/` | yes — spec.md, spec-lite.md, sub-specs/, user-stories/ |
 | Knowledge ledger | `.writ/knowledge/` | yes |
 | Decision records | `.writ/decision-records/` | yes |
 | Docs | `.writ/docs/` | yes |
@@ -26,13 +29,14 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-From `2026-08-12-refactor-dirty-tree-guard` (now archived):
+From `2026-08-12-machine-evaluable-exit-criteria` (active, no separate `drift-log.md` — Small drift recorded inline in each story's What Was Built rather than a standalone log, since every instance was a documentation-level correction, not an implementation deviation):
 
-- **DEV-001 (Story 1, Small)** — dirty-tree guard implemented as a distinct numbered step (`Step 1.1b`) rather than prose inside Step 1.1; spec intent preserved and reachability made structural.
-- **DEV-002 (Story 1, Small)** — `scripts/` leanness ratchet tripped by the eval.sh pins; non-blocking, left unsilenced for the baseline owner.
-- **DEV-001 (Story 2, Low)** — this file was itself regenerated out of boundary during `/status` and asserted "No drift log for the active spec" while `drift-log.md` existed, and dropped a live follow-up. Corrected 2026-08-12.
+- **Story 1** — one imprecise closing sentence in the classification doc, corrected inline post-review; no contract deviation.
+- **Story 3** — deliberate, disclosed id-format correction (dotted strings over `spec.md`'s stale positional-int worked example).
+- **Story 4** — none; drift-detection binding independently verified twice (by coder and reviewer) by actually breaking and reverting a criterion string.
+- **Story 6** — a citation slip (referenced "Step-3" where the actual step is 2.3), caught by review and corrected inline; the substantive claim held under the correct step number.
 
-**Closed follow-up (Story 1):** `require_literal` pins proved the `/refactor` guard exists but not that it was *reachable*; a 9th pin on `proceed to Step 1.1b` closed it. Story 2 hit the same class twice more — see its What Was Built.
+**Known, disclosed limitation (not drift, recorded in Story 3's What Was Built):** the archived `.writ/state/phase-execution-20260812-0200.json` (Phase 10, PARTIALLY COMPLETE) replays to `unmet` rather than the `impossible` that `spec.md`'s Success Criterion 2 names, because that file predates this spec's own instrumentation entirely — exposing a genuine tension between `spec.md`'s Business Rule 2 and Success Criterion 2 for pre-instrumentation archives, not an implementation defect. Flagged for the spec owner at `/verify-spec` or spec closure; unresolved by design (rewriting the criterion or the checker to force a match was explicitly rejected per Business Rule 5).
 
 ## Open Issues
 
@@ -40,4 +44,4 @@ From `2026-08-12-refactor-dirty-tree-guard` (now archived):
 
 ## Release
 
-v0.30.2 tagged 2026-08-12 (releases v0.29.0 → v0.30.2 all landed today). Phase 10 closed PARTIALLY COMPLETE: determinism half shipped and enforced; progressive disclosure stopped after one conversion on measured evidence; byte program withdrawn per ADR-023. Product docs reconciled to the closure via `/plan-product --reconcile` (2026-08-12).
+v0.30.3 tagged 2026-08-12. `2026-08-12-machine-evaluable-exit-criteria` is implemented and verified (full eval suite green, 71 unit tests passing) but not yet shipped/released — next steps are `/verify-spec` (recommended, to address the disclosed Success Criterion 2 gap) and `/ship`.
