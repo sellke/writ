@@ -440,9 +440,17 @@ class CommandBudgetTests(unittest.TestCase):
 # criterion-ID-grammar note, the Step 2.4 note deferring ID tags on
 # spec-lite.md's Review-agent bullets, and the new Step 2.6b that appends
 # those tags once story files exist.
+#
+# Updated 2026-08-13 (acceptance-criteria-traceability-ids, Story 3):
+# verify-spec.md 7150 -> 10298, a disclosed increase from wiring Check 3e
+# (criterion coverage) and Check 3f (dangling/malformed references) into
+# Check 3 Completion Integrity, plus the auto-fix-boundary and status-rollup
+# prose that names them. Sub-checks of Check 3, not a ninth top-level check
+# — the eight-row check table promise is unchanged (see check_ac_trace in
+# scripts/eval.sh, which asserts the row count directly).
 KNOWN_OVER_BUDGET = {
     "commands/create-spec.md": 24036,
-    "commands/verify-spec.md": 7150,
+    "commands/verify-spec.md": 10298,
     "commands/implement-phase.md": 11090,
     "commands/release.md": 7167,
     "commands/ship.md": 3411,

@@ -69,3 +69,19 @@
   it), or whether AC-2.5 should be scoped to a documented, accepted exception covering Stories
   1/2/4's pre-existing test suites. No spec-lite.md amendment made; AC-2.5's checkbox left
   unchecked rather than satisfied by reinterpretation.
+
+#### [DEV-5] Task 3.6 reinterpreted as static assertions + worked examples (Story 3)
+- **Severity:** Small
+- **Spec said:** "run `/verify-spec` against one spec with seeded findings and one legacy spec,
+  comparing default and `--check` output."
+- **Implementation did:** `/verify-spec` has no executable harness (same situation as Story
+  4's `/edit-spec`), so AC-3.2/3.3/3.4 were demonstrated via `scripts/eval.sh`'s wiring
+  assertions plus two live `ac-trace.py` runs against real fixtures instead — this spec's own
+  live, disclosed DEV-4 state for the seeded-findings case, and an archived legacy spec for the
+  zero-ID case.
+- **Resolution:** Accepted, no spec-lite.md amendment needed — same class of reinterpretation
+  as DEV-3, validated as adequate by review.
+
+Once Story 3 landed, wiring `ac-trace.py` into `/verify-spec` as a blocking Check 3e/3f means
+`/verify-spec` on this spec folder will now correctly report Check 3 as failing, per DEV-4's
+still-open gap — the mechanism working exactly as designed, on its own source.

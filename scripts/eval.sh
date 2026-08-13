@@ -3236,6 +3236,7 @@ check_ac_trace() {
   local fake="$PROJECT_ROOT/scripts/eval-ac-trace.py"
   local helper="$PROJECT_ROOT/scripts/ac-trace.py"
   local grammar_doc="$PROJECT_ROOT/.writ/docs/acceptance-criteria-ids.md"
+  local verify_spec="$PROJECT_ROOT/commands/verify-spec.md"
   local scenario_output scenario_status scenario_name scenario_reason
 
   scenario_output="$(mktemp)"
@@ -3286,6 +3287,31 @@ check_ac_trace() {
   forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
   forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
   forbid_literal "$helper" 'git", "add' "The checker's git usage must stay within rev-parse/check-ignore -- never a mutating subcommand."
+
+  # Story 3: verify-spec.md must wire the checker in as Check 3e/3f -- sub-
+  # checks of Check 3, never a ninth top-level check (the frontmatter's own
+  # "eight-row check table" exit criterion). Follows check_story_deps' exact
+  # shape for asserting prose against a command file.
+  require_literal "$verify_spec" '**3e. Criterion coverage' "verify-spec.md Check 3 must add the 3e criterion-coverage sub-check."
+  require_literal "$verify_spec" '**3f. Dangling and malformed references' "verify-spec.md Check 3 must add the 3f dangling/malformed-reference sub-check."
+  require_literal "$verify_spec" 'scripts/ac-trace.py check --spec' "verify-spec.md must name the ac-trace.py executable reference for Check 3e/3f."
+  require_literal "$verify_spec" 'untasked_criterion' "verify-spec.md Check 3e must name the untasked_criterion finding code."
+  require_literal "$verify_spec" 'untested_criterion' "verify-spec.md Check 3e must name the untested_criterion finding code."
+  require_literal "$verify_spec" 'dangling_reference' "verify-spec.md Check 3f must name the dangling_reference finding code."
+  require_literal "$verify_spec" 'duplicate_id' "verify-spec.md Check 3f must name the duplicate_id finding code."
+  require_literal "$verify_spec" 'marker_violation' "verify-spec.md Check 3f must name the marker_violation finding code."
+  require_literal "$verify_spec" 'partial_adoption' "verify-spec.md Check 3f must name the partial_adoption finding code."
+  require_literal "$verify_spec" 'legacy_story' "verify-spec.md Check 3 must name the legacy_story finding code."
+  require_literal "$verify_spec" 'report-only inside default mode' "verify-spec.md must state that Check 3e/3f are report-only in default mode."
+  require_literal "$verify_spec" "Phase 4's auto-fix list is unchanged" "verify-spec.md must state that Phase 4's auto-fix list never touches Check 3e/3f."
+  require_literal "$verify_spec" '3e/3f finding belongs in **Outstanding Warnings**' "verify-spec.md must state that every 3e/3f finding lands in Outstanding Warnings, never Issues Found & Resolved."
+
+  # The row-count guard: 3e/3f are sub-checks of Check 3, so the Phase 3
+  # report table's eight numbered rows (checks 1-8) must be unchanged -- no
+  # ninth top-level check was added alongside them.
+  require_literal "$verify_spec" 'an eight-row check table' "verify-spec.md's exit_criteria must still promise an eight-row check table (Check 3e/3f are sub-checks, not a ninth check)."
+  require_literal "$verify_spec" ' 8. Spec owner field' "verify-spec.md's Phase 3 report mock must still end at row 8 (Spec owner field)."
+  forbid_literal "$verify_spec" ' 9. ' "verify-spec.md must not gain a ninth top-level check row -- Check 3e/3f are sub-checks of Check 3."
 }
 
 run_check() {
