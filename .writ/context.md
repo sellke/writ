@@ -1,6 +1,6 @@
 # Writ Context
 
-> Last Updated: 2026-08-13T03:52:00+00:00
+> Last Updated: 2026-08-13T04:05:00+00:00
 
 ## Product Mission
 
@@ -8,10 +8,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-08-12-machine-evaluable-exit-criteria` — Machine-Evaluable Exit Criteria
-- **Status:** All 6 stories complete; shipped in v0.31.0; not yet archived
-- **Story:** 6 of 6 — Adapter Wiring (Completed ✅)
-- **Progress:** 6/6 stories complete (100%)
+None — both specs shipped in v0.31.0 are now archived under `.writ/specs/archive/`. No spec folder currently sits at the top level of `.writ/specs/`.
 
 ## Artifact Map
 
@@ -19,7 +16,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 |---|---|---|
 | Product mission | `.writ/product/mission.md` | yes |
 | Roadmap | `.writ/product/roadmap.md` | yes |
-| Active spec | `.writ/specs/2026-08-12-machine-evaluable-exit-criteria/` | yes — spec.md, spec-lite.md, sub-specs/, user-stories/ |
+| Active spec | — | none |
 | Knowledge ledger | `.writ/knowledge/` | yes (26 entries) |
 | Decision records | `.writ/decision-records/` | yes |
 | Docs | `.writ/docs/` | yes (21 files) |
@@ -29,7 +26,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-No `drift-log.md` for `2026-08-12-machine-evaluable-exit-criteria` — all drift was inline, documentation-level corrections recorded in each story's What Was Built rather than a standalone log (Stories 1, 3, 6 — Small; Story 4's drift-detection gate independently verified twice). See the spec's own story files for detail.
+No open `drift-log.md` for either recently-shipped spec — all drift was recorded inline in per-story What Was Built sections. See `.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/` and `.writ/specs/archive/2026-08-12-recalibrate-implement-loop/` for detail.
 
 ## Open Issues
 
@@ -37,4 +34,4 @@ No `drift-log.md` for `2026-08-12-machine-evaluable-exit-criteria` — all drift
 
 ## Release
 
-**v0.31.0 tagged 2026-08-13.** Both `2026-08-12-machine-evaluable-exit-criteria` and `2026-08-12-recalibrate-implement-loop` shipped via PR #43 (merged `d269228`). `/release`'s post-merge archival hook auto-archived `2026-08-12-recalibrate-implement-loop` (resolved unambiguously from commit bodies); `2026-08-12-machine-evaluable-exit-criteria` wasn't resolved by the same hook (its commits didn't carry an unambiguous spec-path reference the resolver could match) and remains un-archived — a known, disclosed limitation of the resolver's single-match behavior, not a defect requiring action here.
+**v0.31.0 tagged 2026-08-13.** Both `2026-08-12-machine-evaluable-exit-criteria` and `2026-08-12-recalibrate-implement-loop` shipped via PR #43 (merged `d269228`). The post-merge archival hook auto-archived `2026-08-12-recalibrate-implement-loop`; `2026-08-12-machine-evaluable-exit-criteria` was initially missed because `scripts/resolve-spec-reference.py`'s commit-message signal only matched a spec's full dated folder name, not its bare slug — the completing commit said "Completes Story 6 and the machine-evaluable-exit-criteria spec" (no date prefix), so it was invisible to the resolver. Root-caused, fixed with a regression test (`cd1c782`), and the missed spec archived by hand (`851f58f`). Both stale post-archival doc references (`commands/implement-phase.md`, `adapters/claude-code.md`) repointed to `.writ/specs/archive/...` (`b2a15b7`). Going forward, a normal single-spec-per-PR release will resolve and auto-archive correctly.
