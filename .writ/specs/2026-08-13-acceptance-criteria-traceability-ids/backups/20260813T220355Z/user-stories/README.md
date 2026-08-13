@@ -8,12 +8,12 @@
 | # | Story | Status | Criteria | Tasks | Progress |
 |---|---|---|---|---|---|
 | 1 | [ID Grammar and Emitter](story-1-id-grammar-and-emitter.md) | Completed ✅ | 4 | 7/7 | 100% |
-| 2 | [The Checker](story-2-the-checker.md) | Completed ✅ | 5 | 7/7 | 100% |
+| 2 | [The Checker](story-2-the-checker.md) | Completed ✅ (AC-2.5 disclosed exception — see DEV-4) | 5 | 7/7 | 100% |
 | 3 | [Verify-Spec Wiring](story-3-verify-spec-wiring.md) | Completed ✅ | 4 | 7/7 | 100% |
 | 4 | [Edit-Spec Stability Guard](story-4-edit-spec-stability-guard.md) | Completed ✅ | 4 | 7/7 | 100% |
 
-**Total: 28/28 tasks (100%)** · 17 acceptance criteria across 4 stories — 17/17 literally met
-(AC-2.5 amended 2026-08-13 via `/edit-spec` to resolve DEV-4; see spec folder's `CHANGELOG.md`)
+**Total: 28/28 tasks (100%)** · 17 acceptance criteria across 4 stories (16/17 literally met —
+AC-2.5 disclosed as an open, accepted exception; see `drift-log.md` DEV-4)
 
 ## Dependencies
 

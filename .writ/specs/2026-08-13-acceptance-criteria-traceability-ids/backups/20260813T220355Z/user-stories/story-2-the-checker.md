@@ -21,16 +21,13 @@ executable reference behind it like every other blocking check in this repo
 - [x] Given an ID-shaped token that is not an end-anchored `` `[AC-n.m]` `` group — a high-water-mark line, or an example ID quoted in criterion prose — when the check runs, then that token is neither a definition nor a citation, so a marker never satisfies its own ID and quoted prose never manufactures one. `[AC-2.2]`
 - [x] Given two runs over byte-identical input, when their stdout is compared, then it is byte-identical and finding order is deterministic rather than filesystem-order dependent. `[AC-2.3]`
 - [x] Given a `--spec` path with no `user-stories/` directory, or a story file that cannot be read, when the check runs, then it exits 2 naming the offending path — never 0, and never 1. `[AC-2.4]`
-- [x] Given this spec's own four story files, when the check runs against this spec folder, then it exits 0, or it exits 1 with only the findings documented as accepted exceptions in `drift-log.md` → DEV-4 as of 2026-08-13 (`untested_criterion` on Stories 1/2's own criteria; fixture-collision `dangling_reference` findings) — any finding outside that documented set is a real failure. `[AC-2.5]`
+- [ ] Given this spec's own four story files, when the check runs against this spec folder, then it exits 0. `[AC-2.5]`
 
-> **Amended 2026-08-13 via `/edit-spec`** — see the spec folder's `CHANGELOG.md`. Originally
-> read "then it exits 0" with no exception; DEV-4 (below) disclosed that this could never be
-> honestly satisfied without backfilling tests onto already-`Completed ✅` stories or
-> weakening the checker, so the criterion was reworded to name its own disclosed exception
-> rather than promise an absolute clean exit. (Kept off the criterion line above so the
+> **NOT literally met** — see What Was Built → Deviations (DEV-4) for why this is a disclosed
+> defect in AC-2.5's premise, not in the checker. (Kept off the criterion line above so the
 > trailing `[AC-2.5]` tag stays end-anchored per this spec's own grammar — an earlier version
-> of a similar note broke that anchoring and produced two spurious findings of its own, caught
-> by Story 3's architecture review.)
+> of this note broke that anchoring and produced two spurious findings of its own, caught by
+> Story 3's architecture review.)
 
 ## Implementation Tasks
 
@@ -69,7 +66,7 @@ the recorded contract stays authoritative.
 ## Definition of Done
 
 - [x] All tasks completed
-- [x] All acceptance criteria met — AC-2.5 amended 2026-08-13 via `/edit-spec` to resolve DEV-4
+- [ ] All acceptance criteria met — AC-2.1–2.4 met; AC-2.5 disclosed as not literally met (DEV-4)
 - [x] Tests passing
 - [x] Code reviewed
 - [x] Documentation updated
@@ -148,8 +145,7 @@ already-covered symlink `OSError` paths)
 **Result:** PASS
 
 - **Iteration count:** 1 iteration
-- **Drift:** Small, plus one disclosed spec-contract gap (DEV-4, resolved 2026-08-13 via
-  `/edit-spec` — not implementation drift)
+- **Drift:** Small, plus one disclosed spec-contract gap (DEV-4, not implementation drift)
 - **Security:** Clean — read-only discipline independently verified (no write calls, git usage
   confined to `rev-parse`/`check-ignore`, no shell injection surface)
 - **Boundary Compliance:** Only the four declared Owned files touched; `commands/verify-spec.md`
@@ -159,9 +155,7 @@ already-covered symlink `OSError` paths)
 ### Deviations from Spec
 
 - **[DEV-4] AC-2.5's literal "exits 0" is not satisfied by a live dogfood run** — Severity:
-  Disclosed; **resolved 2026-08-13 via `/edit-spec`** (see spec folder's `CHANGELOG.md`) —
-  AC-2.5 reworded to name its own disclosed exception rather than promise an absolute clean
-  exit; not a Story 2 implementation defect
+  Disclosed, unresolved at the spec-contract level (not a Story 2 implementation defect)
   - Spec said: "Given this spec's own four story files, when the check runs against this spec
     folder, then it exits 0."
   - Reality: running `ac-trace.py check` against this spec's own folder exits **1**. As of
