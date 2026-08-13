@@ -21,7 +21,13 @@ executable reference behind it like every other blocking check in this repo
 - [x] Given an ID-shaped token that is not an end-anchored `` `[AC-n.m]` `` group — a high-water-mark line, or an example ID quoted in criterion prose — when the check runs, then that token is neither a definition nor a citation, so a marker never satisfies its own ID and quoted prose never manufactures one. `[AC-2.2]`
 - [x] Given two runs over byte-identical input, when their stdout is compared, then it is byte-identical and finding order is deterministic rather than filesystem-order dependent. `[AC-2.3]`
 - [x] Given a `--spec` path with no `user-stories/` directory, or a story file that cannot be read, when the check runs, then it exits 2 naming the offending path — never 0, and never 1. `[AC-2.4]`
-- [ ] Given this spec's own four story files, when the check runs against this spec folder, then it exits 0. `[AC-2.5]` — **NOT literally met; see What Was Built → Deviations (DEV-4) for why this is a disclosed defect in AC-2.5's premise, not in the checker.**
+- [ ] Given this spec's own four story files, when the check runs against this spec folder, then it exits 0. `[AC-2.5]`
+
+> **NOT literally met** — see What Was Built → Deviations (DEV-4) for why this is a disclosed
+> defect in AC-2.5's premise, not in the checker. (Kept off the criterion line above so the
+> trailing `[AC-2.5]` tag stays end-anchored per this spec's own grammar — an earlier version
+> of this note broke that anchoring and produced two spurious findings of its own, caught by
+> Story 3's architecture review.)
 
 ## Implementation Tasks
 
@@ -152,28 +158,36 @@ already-covered symlink `OSError` paths)
   Disclosed, unresolved at the spec-contract level (not a Story 2 implementation defect)
   - Spec said: "Given this spec's own four story files, when the check runs against this spec
     folder, then it exits 0."
-  - Reality: running `ac-trace.py check` against this spec's own folder exits **1**, with 12
-    findings: four `untested_criterion` on Story 1's `AC-1.1`–`AC-1.4` (genuine — Story 1 is
-    `Completed ✅`, its criteria are tasked, but no test file cites them; Story 1 was verified
-    by manual inspection, not automated tests), plus eight `dangling_reference` findings whose
-    IDs are literal fixture-content strings inside `scripts/tests/test_ac_trace.py` and
-    `scripts/tests/test_edit_spec_ac_stability_fixtures.py` that happen to collide with this
-    spec's own live ID space.
+  - Reality: running `ac-trace.py check` against this spec's own folder exits **1**. As of
+    Story 3's architecture review, this is 14 findings, in two classes: (1) `untested_criterion`
+    on Story 1's `AC-1.1`–`AC-1.4` **and** Story 2's own `AC-2.2`/`AC-2.3` — six total, and
+    systemic rather than unique to Story 1: none of this spec's own test suites (Stories 1, 2,
+    4) were written to cite their AC IDs by name/docstring, since that convention didn't exist
+    until this very story built the checker that wants it; (2) eight `dangling_reference`
+    findings whose IDs are literal fixture-content strings inside `scripts/tests/test_ac_trace.py`
+    and `scripts/tests/test_edit_spec_ac_stability_fixtures.py` that happen to collide with
+    this spec's own live ID space. See `drift-log.md` DEV-4 for the fuller, updated accounting.
   - Why not resolved: the grammar doc's "no retroactive backfill" rule (`.writ/docs/acceptance-criteria-ids.md`
     → Legacy and Archive Posture) explicitly forbids writing sham tests now to launder a
     completed story's real gap — doing so "would manufacture the appearance of a trace link
     that never existed." Weakening the checker to stop reporting this would defeat the spec's
     own stated purpose (spec.md → Must Include: the bidirectional, dangling-reference-catching
     check). Reviewer's independent assessment: this is a defect in AC-2.5's premise (written
-    assuming a clean dogfood state that Story 1's own inspection-only verification, landed
-    before Story 2 was coded, made structurally impossible), not in Story 2's implementation.
+    assuming a clean dogfood state that this spec's own pre-Story-2 test-authoring convention
+    made structurally impossible), not in Story 2's implementation.
   - Resolution: **left open for the spec owner.** Options on the table: (a) amend AC-2.5's
     wording via `/edit-spec` to scope it appropriately (e.g., "no *new* blocking findings
-    beyond the disclosed Story 1 gap"), or (b) record the four `untested_criterion(AC-1.*)`
-    findings as a documented, accepted exception. AC-2.5's checkbox above is deliberately left
-    unchecked rather than marked met by reinterpretation — checking it without the literal
-    condition holding would be exactly the kind of quiet box-ticking this whole spec exists to
-    make impossible to get away with.
+    beyond a documented, accepted exception for Stories 1/2/4's pre-existing test suites"), or
+    (b) record the `untested_criterion` findings on Stories 1 and 2 as that documented,
+    accepted exception directly. AC-2.5's checkbox above is deliberately left unchecked rather
+    than marked met by reinterpretation — checking it without the literal condition holding
+    would be exactly the kind of quiet box-ticking this whole spec exists to make impossible to
+    get away with.
   - Minor, non-blocking follow-up noted by review: the 8 fixture-collision `dangling_reference`
-    findings could be reduced (not eliminated — the 4 Story-1 findings remain regardless) by
-    choosing fixture IDs outside any real story's ID range in a future cleanup pass.
+    findings could be reduced (not eliminated — the `untested_criterion` findings remain
+    regardless) by choosing fixture IDs outside any real story's ID range in a future cleanup
+    pass.
+  - **Authoring note:** an earlier version of the AC-2.5 checkbox line above appended this
+    disclosure directly after the `` `[AC-2.5]` `` tag, un-anchoring it per this spec's own
+    grammar and producing two further spurious findings. Caught by Story 3's architecture
+    review before landing; fixed by moving the annotation below the criterion line.

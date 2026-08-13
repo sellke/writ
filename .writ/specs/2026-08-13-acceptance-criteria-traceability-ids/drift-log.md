@@ -40,12 +40,32 @@
 - **Severity:** Disclosed, unresolved at the spec-contract level (not an implementation defect)
 - **Spec said:** AC-2.5 — running `ac-trace.py check` against this spec's own four story files
   exits 0.
-- **Implementation did:** Running the built checker against this spec exits 1 with 12 findings:
-  4 genuine `untested_criterion` on Story 1's `AC-1.1`–`AC-1.4` (Story 1 was verified by manual
-  inspection, not automated tests, before Story 2 existed to require otherwise) plus 8
-  `dangling_reference` from Story 2/4's own test fixture strings colliding with this spec's
-  live ID space.
+- **Implementation did:** Running the built checker against this spec currently exits 1 with 14
+  findings, in two classes:
+  1. **`untested_criterion` on `AC-1.1`–`AC-1.4` (Story 1) and `AC-2.2`/`AC-2.3` (Story 2) — 6
+     total, genuine and systemic, not unique to Story 1.** None of Stories 1, 2, or 4's actual
+     test suites cite their own AC IDs by name/docstring — their tests are written against
+     finding codes and behavior, the normal way software is tested, not retrofitted to also
+     literally name `AC-N.M` in every test. `AC-2.1`/`AC-2.4`/`AC-2.5` happen to escape this
+     finding only because unrelated fixture strings in `test_ac_trace.py` (regression fixtures
+     quoting Story 4's or another test's example text) incidentally contain those bare tokens
+     — accidental, not real, coverage. This means the spec's own dogfood-clean expectation
+     (AC-2.5) was unmet from the moment Story 1 landed, and the gap grew as Stories 2 and 4
+     landed under the same test-authoring convention.
+  2. **`dangling_reference` on 8 IDs (`AC-3.5/3.6/3.7/3.9`, `AC-7.1/7.2/7.3`, `AC-9.9`) — fixture
+     content in `scripts/tests/test_ac_trace.py` and `test_edit_spec_ac_stability_fixtures.py`
+     that happens to collide with this spec's live ID space.** Cosmetic; does not affect the
+     exit code either way (class 1 alone already blocks exit 0).
+  A related, now-fixed authoring bug: an earlier version of this very drift-log/story-file
+  disclosure appended prose directly after the `` `[AC-2.5]` `` tag on its criterion line,
+  un-anchoring the tag per this spec's own end-anchoring grammar rule and producing two more
+  spurious findings (`partial_adoption`, a second `dangling_reference(AC-2.5)`). Caught by
+  Story 3's architecture review before landing; fixed by moving the annotation to a line below
+  the criterion rather than the criterion line itself.
 - **Resolution:** Left open for the spec owner — see Story 2's What Was Built → Deviations
-  (DEV-4) for full reasoning and the two options on the table (amend AC-2.5's wording, or
-  record the Story 1 gap as an accepted exception). No spec-lite.md amendment made; AC-2.5's
-  checkbox left unchecked rather than satisfied by reinterpretation.
+  (DEV-4) for full reasoning. The real choice is no longer just about AC-2.5's wording in
+  isolation: it's whether this spec's own tests should have cited AC IDs by name (a test
+  authoring convention this spec never established for itself before Story 2 existed to want
+  it), or whether AC-2.5 should be scoped to a documented, accepted exception covering Stories
+  1/2/4's pre-existing test suites. No spec-lite.md amendment made; AC-2.5's checkbox left
+  unchecked rather than satisfied by reinterpretation.
