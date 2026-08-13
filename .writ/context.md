@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-08-13T20:40:00+00:00
+> Last Updated: 2026-08-13T21:15:00+00:00
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-08-13-acceptance-criteria-traceability-ids — Per-Criterion Traceability IDs and an Orphan Check
 - **Status:** In Progress
-- **Story:** 2 of 4 — The Checker (in progress); Story 4 — Edit-Spec Stability Guard (Completed ✅)
-- **Progress:** 14/28 tasks complete (50%)
+- **Story:** 3 of 4 — Verify-Spec Wiring (not started); Stories 1, 2, 4 Completed ✅
+- **Progress:** 21/28 tasks complete (75%)
 
 ## Artifact Map
 
@@ -23,7 +23,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- [DEV-3] Task 4.1 reinterpreted as a golden-fixture test file (Story 4) — Small, accepted, no spec-lite.md amendment needed
+- [DEV-4] AC-2.5's literal "exits 0" not satisfied by a live dogfood run (Story 2) — disclosed, unresolved at the spec-contract level; the checker correctly caught that Story 1 has untested criteria (verified by inspection, not tests) and the "no retroactive backfill" rule forbids silencing it. Left open for the spec owner: amend AC-2.5's wording or accept as a documented exception.
+- [DEV-3] Task 4.1 reinterpreted as a golden-fixture test file (Story 4) — Small, accepted
 - [DEV-2] `scripts/tests/test_governor_enforcement.py` byte-budget disclosure update (Story 1) — Small, accepted
 - [DEV-1] Step 2.6b addition to `create-spec.md` (Story 1) — Small, accepted
 

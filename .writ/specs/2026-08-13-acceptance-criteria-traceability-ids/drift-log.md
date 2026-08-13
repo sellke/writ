@@ -35,3 +35,17 @@
 - **Resolution:** Accepted, no spec-lite.md amendment needed — satisfies the task's intent via
   the only mechanism available for a prose-driven command; drops none of AC-4.1–4.4's
   requirements.
+
+#### [DEV-4] AC-2.5's literal "exits 0" is not satisfied by a live dogfood run (Story 2)
+- **Severity:** Disclosed, unresolved at the spec-contract level (not an implementation defect)
+- **Spec said:** AC-2.5 — running `ac-trace.py check` against this spec's own four story files
+  exits 0.
+- **Implementation did:** Running the built checker against this spec exits 1 with 12 findings:
+  4 genuine `untested_criterion` on Story 1's `AC-1.1`–`AC-1.4` (Story 1 was verified by manual
+  inspection, not automated tests, before Story 2 existed to require otherwise) plus 8
+  `dangling_reference` from Story 2/4's own test fixture strings colliding with this spec's
+  live ID space.
+- **Resolution:** Left open for the spec owner — see Story 2's What Was Built → Deviations
+  (DEV-4) for full reasoning and the two options on the table (amend AC-2.5's wording, or
+  record the Story 1 gap as an accepted exception). No spec-lite.md amendment made; AC-2.5's
+  checkbox left unchecked rather than satisfied by reinterpretation.

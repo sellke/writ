@@ -58,6 +58,7 @@ CHECKS=(
   artifact-integrity
   loop-bounds
   exit-criteria
+  ac-trace
 )
 
 TOTAL_FINDINGS=0
@@ -3224,6 +3225,67 @@ check_exit_criteria() {
 
   require_literal "$technical_spec" "State/git mismatch" "technical-spec.md's impossible-trigger table must name \"State/git mismatch\"."
   require_literal "$helper" "State/git mismatch" "scripts/exit-criteria.py must raise Impossible naming \"State/git mismatch\"."
+}
+
+check_ac_trace() {
+  # Story 2 of 2026-08-13-acceptance-criteria-traceability-ids: the
+  # acceptance-criterion traceability checker's own correctness, asserted
+  # alongside every other Writ instrument. Follows check_story_deps' exact
+  # shape: scenario loop, then require_literal/forbid_literal assertions
+  # binding the grammar doc's finding vocabulary to the implementation.
+  local fake="$PROJECT_ROOT/scripts/eval-ac-trace.py"
+  local helper="$PROJECT_ROOT/scripts/ac-trace.py"
+  local grammar_doc="$PROJECT_ROOT/.writ/docs/acceptance-criteria-ids.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "ac-trace:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def parse_story_file(' "The checker must parse story files into their checkable shape."
+  require_literal "$helper" 'def _analyze_story(' "The checker must analyze a story's own Acceptance Criteria section."
+  require_literal "$helper" 'def _validate_marker(' "The checker must validate the high-water-mark marker."
+  require_literal "$helper" 'def scan_repo_citations(' "The checker must scan the repo for test/source citations."
+  require_literal "$helper" 'def check(' "The checker must expose the top-level check() entry point."
+
+  # The seven finding codes are fixed by the grammar doc (Story 1) -- the
+  # checker must transcribe them exactly, never rename or invent new ones.
+  require_literal "$helper" 'untasked_criterion' "The checker must emit the untasked_criterion finding code."
+  require_literal "$helper" 'untested_criterion' "The checker must emit the untested_criterion finding code."
+  require_literal "$helper" 'dangling_reference' "The checker must emit the dangling_reference finding code."
+  require_literal "$helper" 'duplicate_id' "The checker must emit the duplicate_id finding code."
+  require_literal "$helper" 'marker_violation' "The checker must emit the marker_violation finding code."
+  require_literal "$helper" 'partial_adoption' "The checker must emit the partial_adoption finding code."
+  require_literal "$helper" 'legacy_story' "The checker must emit the legacy_story finding code."
+
+  require_literal "$grammar_doc" 'untasked_criterion' "The grammar doc must define untasked_criterion."
+  require_literal "$grammar_doc" 'untested_criterion' "The grammar doc must define untested_criterion."
+  require_literal "$grammar_doc" 'dangling_reference' "The grammar doc must define dangling_reference."
+  require_literal "$grammar_doc" 'duplicate_id' "The grammar doc must define duplicate_id."
+  require_literal "$grammar_doc" 'marker_violation' "The grammar doc must define marker_violation."
+  require_literal "$grammar_doc" 'partial_adoption' "The grammar doc must define partial_adoption."
+  require_literal "$grammar_doc" 'legacy_story' "The grammar doc must define legacy_story."
+
+  require_literal "$helper" 'ac-trace-check-v1' "The checker must emit the ac-trace-check-v1 schema string."
+  require_literal "$helper" 'check-ignore' "The checker must use git check-ignore for the citation scan's ignore filter."
+  require_literal "$helper" '"--stdin"' "The checker must batch git check-ignore via --stdin, never one subprocess per file."
+  forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
+  forbid_literal "$helper" 'git", "add' "The checker's git usage must stay within rev-parse/check-ignore -- never a mutating subcommand."
 }
 
 run_check() {
