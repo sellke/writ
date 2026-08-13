@@ -16,6 +16,7 @@ exit_criteria:
   - "<spec_folder>/<story_filename> exists and is the only path this instance wrote — sibling instances own their own files"
   - "that file holds 3 to 5 Given/When/Then acceptance criteria and 5 to 7 implementation tasks, the first writing tests and the last verifying them"
   - "its Context for Agents section names spec sections, error map rows, or shadow paths instead of reproducing their text, and Status reads Not Started"
+  - "every acceptance criterion carries a trailing `[AC-N.M]` tag, the `> **AC IDs assigned through:**` marker equals the highest ID present, and every criterion ID is cited by at least one implementation task"
 ```
 
 ## Input Requirements
@@ -103,24 +104,43 @@ Create the user story file with the following structure:
 
 ## Acceptance Criteria
 
-Write 3-5 specific, testable acceptance criteria using Given/When/Then format:
-- [ ] Given [context], when [action], then [outcome]
+> **AC IDs assigned through:** AC-{story_number}.N
+
+Write 3-5 specific, testable acceptance criteria using Given/When/Then format. The marker
+line above goes directly beneath the `## Acceptance Criteria` heading, and every criterion
+line ends with a trailing backticked tag `` `[AC-{story_number}.n]` `` — the ordinal starts
+at 1 and increments once per criterion, in the order written. Set the marker's `N` to the
+highest ordinal actually assigned (i.e. the count of criteria, since this is a fresh story
+with no prior edits). See `.writ/docs/acceptance-criteria-ids.md` for the full grammar —
+the tag is end-anchored (trailing on the line, inside backticks) and is the only thing
+Story 2's checker treats as a definition:
+
+- [ ] Given [context], when [action], then [outcome] `[AC-{story_number}.1]`
+- [ ] Given [context], when [action], then [outcome] `[AC-{story_number}.2]`
+- [ ] Given [context], when [action], then [outcome] `[AC-{story_number}.3]`
 
 ## Implementation Tasks
 
-Create 5-7 focused tasks:
-- [ ] {story_number}.1 Write tests for [specific component]
-- [ ] {story_number}.2 [Implementation step]
-- [ ] {story_number}.3 [Implementation step]
-- [ ] {story_number}.4 [Implementation step]
-- [ ] {story_number}.5 Verify acceptance criteria are met
-- [ ] {story_number}.6 Verify all tests pass
+Create 5-7 focused tasks. Every task line ends with a trailing tag citing the acceptance
+criterion ID(s) it satisfies — comma-separated inside one tag when a task covers more than
+one criterion (e.g. `` `[AC-{story_number}.1, AC-{story_number}.3]` ``). Every criterion ID
+defined above must be cited by at least one task below — an ID with no citing task is
+exactly the `untasked_criterion` finding Story 2's checker reports:
+
+- [ ] {story_number}.1 Write tests for [specific component] `[AC-{story_number}.n]`
+- [ ] {story_number}.2 [Implementation step] `[AC-{story_number}.n]`
+- [ ] {story_number}.3 [Implementation step] `[AC-{story_number}.n]`
+- [ ] {story_number}.4 [Implementation step] `[AC-{story_number}.n]`
+- [ ] {story_number}.5 Verify acceptance criteria are met `[AC-{story_number}.n]`
+- [ ] {story_number}.6 Verify all tests pass `[AC-{story_number}.n]`
 
 Rules for tasks:
 - Always start with writing tests
 - Always end with verification tasks
 - Keep tasks focused and achievable
 - Reference specific files/components from codebase context
+- Fill each `[AC-{story_number}.n]` placeholder with the actual criterion ordinal(s) that
+  task satisfies — never leave the literal placeholder `n` in the written file
 
 ## Notes
 
@@ -225,12 +245,16 @@ Each agent instance produces:
 - Must be testable (Given/When/Then format)
 - Should cover happy path and edge cases
 - Should be specific to this story, not general
+- Every criterion line ends with a trailing `` `[AC-{story_number}.n]` `` tag; the marker
+  beneath `## Acceptance Criteria` equals the highest ordinal assigned
 
 ### Implementation Tasks
 - Must be achievable in a focused work session
 - Should reference actual files/components when known
 - Must include test-first and verification tasks
 - Should not exceed 7 tasks (split story if needed)
+- Every task line ends with a trailing tag citing the criterion ID(s) it satisfies; every
+  criterion ID must be cited by at least one task
 
 ### Notes Section
 - Identify technical risks early
@@ -250,3 +274,4 @@ If the agent cannot create the file:
 
 - Standing instructions: [`commands/_preamble.md`](../commands/_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
+- Acceptance criterion ID grammar: [`.writ/docs/acceptance-criteria-ids.md`](../.writ/docs/acceptance-criteria-ids.md)
