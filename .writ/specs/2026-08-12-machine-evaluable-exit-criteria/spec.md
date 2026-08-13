@@ -1,6 +1,6 @@
 # Spec: Machine-Evaluable Exit Criteria
 
-> **Status:** Not Started
+> **Status:** Complete (2026-08-12)
 > **Created:** 2026-08-12
 > **Owner:** @AdamSellke
 > **Dependencies:** []
