@@ -1,7 +1,7 @@
 version: 1
 metadata:
   name: writ
-  version: 0.30.3
+  version: 0.31.0
   description: "AI-powered development workflow framework - contract-first specs, multi-agent SDLC, automated quality gates."
   runtime_contract: ".writ/docs/recommended-delivery-state-format.md"
 

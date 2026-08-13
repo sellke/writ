@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.31.0] - 2026-08-13
+
+**Machine-Evaluable Exit Criteria + Implement-Loop Recalibration** — `/implement-phase`, `/implement-spec`, and `/implement-story` gain a read-only stop-time checker that turns their `exit_criteria` frontmatter into verdicts (`met`/`unmet`/`unknown`/`impossible`) instead of self-reported completion. A full 6-story run of that spec then surfaced real orchestration friction, fixed in the same release: an ambiguous spawn-mechanism note, two completion-bookkeeping gaps, and two undocumented sub-agent-integration failure modes.
+
+### Added
+
+- **`scripts/exit-criteria.py`** — a read-only checker classifying each of the 10 `exit_criteria` across the three implement commands into evaluable-now, needs-run-record, or structurally-unobservable, with the full classification recorded in `.writ/docs/exit-criteria-classification.md`. Additive run-record fields (`exitCriteria[]`, `terminalStatus`, `haltReported`) land in `scripts/phase-state.py`, wired into `scripts/eval.sh` (18 fixture scenarios) and the adapters' `/goal` Stop hook.
+- **`skills/subagent-result-completeness`** — how to tell a spawned gate agent's complete verdict (the exact shape each of Gate 0/1/3/4/4.5 requires) apart from a mid-task stop, and the resume-and-ask-again recovery step. Directly evidenced: nearly every spawned agent in the run that produced this spec stopped mid-synthesis at least once.
+- **`skills/subagent-worktree-integration`** — how to reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout (recognize → scoped diff → copy → re-verify → cleanup), including the stale-worktree-behind-main failure mode. Every gate agent in that same run — including nominally read-only ones — ran in its own isolated worktree with no documented reconciliation procedure.
+
+### Changed
+
+- **`commands/implement-phase.md` / `commands/implement-spec.md`** — completion reports now carry the checker's verdict and per-criterion evidence; `implement-spec.md`'s own `✅ Specification Complete` banner is gated on a `met` verdict rather than the run's self-report.
+- **`commands/implement-spec.md`** — Step 3.2 states explicitly what "spawn ... concurrently" means on a harness that loads `/implement-story` inline rather than backgrounding it; Step 3.3's execution-state write is now a required disk write, not an optional log line; the completion step syncs `spec.md`'s own `> **Status:**` header on a `met` verdict, closing a gap `/verify-spec` had to catch by hand.
+- **`commands/implement-story.md`** — two new cross-cutting blockquote notes under the Step 3 pipeline intro point at the skills above, applying to every gate that spawns a sub-agent (Gate 0, 1, 3, 4, 4.5).
+- **README.md** — the Skills table was six releases stale (listed 6, 16 exist); now lists all 16, and the "six skills are live today" claim is corrected.
+
+### Why
+
+Both specs came from the same real run: `2026-08-12-machine-evaluable-exit-criteria` built the checker across 6 stories, and running that spec end-to-end — architecture-check, coding, and review agents spawned roughly 18 times — is what surfaced the orchestration gaps `2026-08-12-recalibrate-implement-loop` fixes. Neither is speculative hardening; both are named, evidenced friction from one execution, not a generic "commands could be better" pass.
+
 ## [0.30.3] - 2026-08-12
 
 **Product Docs Reconciled to the Phase 10 Closure** — `/plan-product --reconcile` caught the framing layers of `mission.md`/`roadmap.md` still describing Phase 10 as "planned, in flight" after it closed, plus two stale-truth defects the pass surfaced. One `/release` fix ships to installed projects; the rest is this repo's product layer catching up to its own closure record.

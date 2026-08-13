@@ -43,7 +43,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; six skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 16 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -179,6 +179,16 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`error-rescue-mapping`](skills/error-rescue-mapping/SKILL.md) | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables |
 | [`code-explanation`](skills/code-explanation/SKILL.md) | Explain existing code — purpose, mechanics, context, complexity — at a depth proportional to the target |
 | [`gbrain-interop`](skills/gbrain-interop/SKILL.md) | Route knowledge retrieval brain-first when a healthy GBrain index is detected; markdown stays canonical, grep is the fallback |
+| [`boundary-map-computation`](skills/boundary-map-computation/SKILL.md) | Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data |
+| [`change-surface-classification`](skills/change-surface-classification/SKILL.md) | Classify a change set as style-only, single-component, cross-component, or full-stack |
+| [`dependency-context-loading`](skills/dependency-context-loading/SKILL.md) | Load, filter, and truncate upstream stories' implementation records into dependency context |
+| [`drift-triage`](skills/drift-triage/SKILL.md) | Triage implementation deviations by severity and route each to amend, warn, or pause |
+| [`project-context-snapshot`](skills/project-context-snapshot/SKILL.md) | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources |
+| [`story-commit-provenance`](skills/story-commit-provenance/SKILL.md) | Record a completion commit SHA into a story file header idempotently and without amending it |
+| [`story-context-assembly`](skills/story-context-assembly/SKILL.md) | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections |
+| [`what-was-built-authoring`](skills/what-was-built-authoring/SKILL.md) | Extract implementation facts from agent output and format them into a What Was Built record |
+| [`subagent-result-completeness`](skills/subagent-result-completeness/SKILL.md) | Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early |
+| [`subagent-worktree-integration`](skills/subagent-worktree-integration/SKILL.md) | Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 
