@@ -1,6 +1,7 @@
 # Story 6: Adapter Wiring
 
 > **Status:** Completed ✅ (2026-08-12)
+> **Commit:** 8b0f6a78dc2b748508a1e6035162a34aaeef88b2
 > **Priority:** Low
 > **Dependencies:** Story 5
 
