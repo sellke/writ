@@ -7,9 +7,9 @@
 | Story | Status | Priority | Dependencies | AC | Tasks |
 |---|---|---|---|---|---|
 | [Story 1: install.sh — marker-based CLAUDE.md merge](story-1-install-merge.md) | Completed ✅ (2026-08-13) | High | None | 5 (AC-1.1–1.5) | 7 |
-| [Story 2: update.sh — migrate CLAUDE.md to inner-block hash tracking](story-2-update-migration.md) | Not Started | High | Story 1 | 5 (AC-2.1–2.5) | 7 |
+| [Story 2: update.sh — migrate CLAUDE.md to inner-block hash tracking](story-2-update-migration.md) | Completed ✅ (2026-08-13) | High | Story 1 | 5 (AC-2.1–2.5) | 7 |
 
-**Total:** 1/2 stories complete, 5/10 acceptance criteria met, 7/14 tasks done.
+**Total:** 2/2 stories complete, 10/10 acceptance criteria met, 14/14 tasks done.
 
 ## Dependency Notes
 

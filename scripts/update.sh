@@ -216,8 +216,9 @@ EOF
       echo "$(hash_file "$f")  $rel" >> "$target"
     done
   elif [ "$PLATFORM" = "claude" ]; then
-    if [ -f "CLAUDE.md" ]; then
-      echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$target"
+    local iw=""
+    if [ -f "CLAUDE.md" ] && iw="$(writ_compute_writ_block_inner_hash "CLAUDE.md")"; then
+      echo "$iw  CLAUDE.md.writ-block" >> "$target"
     fi
   fi
 
@@ -233,6 +234,7 @@ EOF
   fi
 }
 
+# <<< writ-merge-bundled-begin (used by scripts/tests/test_update_claude_md.sh — keep synced) >>>
 writ_block_marker_counts() {
   local file="$1"
   awk '{
@@ -405,6 +407,103 @@ merge_agents_md() {
   echo "    ⚡ Preserved: AGENTS.md (Writ block has local modifications)"
   return 0
 }
+
+# merge_claude_md — Claude Code ONLY. Integrates claude-code/CLAUDE.md into CLAUDE.md.
+# Structurally a same-file duplicate of merge_agents_md (keep synced) — see Notes in
+# .writ/specs/2026-08-13-claude-md-install-merge for why this isn't a shared helper.
+# Also a separately-maintained copy of install.sh's own merge_claude_md (keep synced).
+# Globals: WRIT_SRC, MANIFEST_FILE, FORCE, CLAUDE_MD_ACTION/CLAUDE_MD_NOTE (set on every path)
+merge_claude_md() {
+  local mode="${1:-preview}"
+  local template="$WRIT_SRC/claude-code/CLAUDE.md"
+  local claude_md="CLAUDE.md"
+  CLAUDE_MD_ACTION="unchanged"
+  CLAUDE_MD_NOTE=""
+
+  [ -f "$template" ] || {
+    CLAUDE_MD_ACTION="error"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block error: missing claude-code/CLAUDE.md template"
+    echo "    ❌ $CLAUDE_MD_NOTE"
+    return 12
+  }
+
+  local upstream_inner upstream_hash
+  upstream_inner=$(cat "$template")
+  upstream_hash=$(hash_file "$template")
+
+  if [ ! -f "$claude_md" ]; then
+    CLAUDE_MD_ACTION="restore"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block re-added"
+    [ "$mode" = "preview" ] && echo "    ✨ Restored: CLAUDE.md (Writ block re-added)"
+    if [ "$mode" = "apply" ]; then
+      {
+        printf '%s\n' '<!-- writ:start -->'
+        printf '%s\n' "$upstream_inner"
+        printf '%s\n' '<!-- writ:end -->'
+      } >"$claude_md"
+    fi
+    return 0
+  fi
+
+  local counts start_count end_count
+  counts=$(writ_block_marker_counts "$claude_md")
+  read -r start_count end_count <<<"$counts"
+
+  if [ "${start_count:-0}" -eq 0 ] && [ "${end_count:-0}" -eq 0 ]; then
+    CLAUDE_MD_ACTION="restore"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block re-added"
+    [ "$mode" = "preview" ] && echo "    ✨ Restored: CLAUDE.md (Writ block re-added)"
+    if [ "$mode" = "apply" ]; then
+      local tmp
+      tmp=$(mktemp)
+      cat "$claude_md" >"$tmp"
+      if ! writ_file_ends_with_newline "$claude_md"; then
+        printf '\n' >>"$tmp"
+      fi
+      printf '%s\n' '<!-- writ:start -->' >>"$tmp"
+      printf '%s\n' "$upstream_inner" >>"$tmp"
+      printf '%s\n' '<!-- writ:end -->' >>"$tmp"
+      mv "$tmp" "$claude_md"
+    fi
+    return 0
+  fi
+
+  if [ "${start_count:-0}" -ne 1 ] || [ "${end_count:-0}" -ne 1 ]; then
+    CLAUDE_MD_ACTION="error"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block error: malformed markers"
+    echo "    ❌ $CLAUDE_MD_NOTE"
+    return 13
+  fi
+
+  local inner_hash baseline_hash
+  if ! inner_hash="$(writ_compute_writ_block_inner_hash "$claude_md")"; then
+    CLAUDE_MD_ACTION="error"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block error: malformed markers"
+    echo "    ❌ $CLAUDE_MD_NOTE"
+    return 13
+  fi
+  baseline_hash=$(manifest_hash_for "CLAUDE.md.writ-block")
+
+  if [ "$inner_hash" = "$upstream_hash" ]; then
+    CLAUDE_MD_ACTION="unchanged"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block unchanged"
+    return 0
+  fi
+
+  if [ "$FORCE" = true ] || { [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; }; then
+    CLAUDE_MD_ACTION="update"
+    CLAUDE_MD_NOTE="CLAUDE.md: Writ block updated"
+    [ "$mode" = "preview" ] && echo "    🔄 Updated: CLAUDE.md (Writ block$([ "$FORCE" = true ] && echo " forced"))"
+    [ "$mode" = "apply" ] && writ_rewrite_agents_md_with_inner "$claude_md" "$upstream_inner"
+    return 0
+  fi
+
+  CLAUDE_MD_ACTION="preserved"
+  CLAUDE_MD_NOTE="CLAUDE.md: Writ block preserved (local modifications)"
+  echo "    ⚡ Preserved: CLAUDE.md (Writ block has local modifications)"
+  return 0
+}
+# <<< writ-merge-bundled-end >>>
 
 # ---------------------------------------------------------------------------
 # Linked installation guard — must convert first
@@ -695,7 +794,7 @@ detect_stale_files() {
       local_file="CLAUDE.md"
     elif [ "${manifest_path%%/*}" = "skills" ]; then
       local_file="$SKILLS_DIR/${manifest_path#skills/}"
-    elif [ "$manifest_path" = "AGENTS.md.writ-block" ] || [ "$manifest_path" = ".codex/config.toml.baseline" ]; then
+    elif [ "$manifest_path" = "AGENTS.md.writ-block" ] || [ "$manifest_path" = "CLAUDE.md.writ-block" ] || [ "$manifest_path" = ".codex/config.toml.baseline" ]; then
       continue
     elif [ "${manifest_path%%/*}" = ".writ" ]; then
       local_file="$manifest_path"
@@ -838,30 +937,14 @@ if [ "$PLATFORM" = "cursor" ]; then
   fi
 
 elif [ "$PLATFORM" = "claude" ]; then
-  CLAUDE_MD_ACTION="unchanged"
-  if [ -f "CLAUDE.md" ] && [ -f "$WRIT_SRC/claude-code/CLAUDE.md" ]; then
-    claude_upstream=$(hash_file "$WRIT_SRC/claude-code/CLAUDE.md")
-    claude_local=$(hash_file "CLAUDE.md")
-    claude_baseline=$(manifest_hash_for "CLAUDE.md")
-
-    if [ "$claude_local" != "$claude_upstream" ]; then
-      if [ "$FORCE" = true ]; then
-        CLAUDE_MD_ACTION="update"
-        echo "    🔄 Update:    CLAUDE.md (forced)"
-      elif [ -z "$claude_baseline" ] || [ "$claude_local" = "$claude_baseline" ]; then
-        CLAUDE_MD_ACTION="update"
-        echo "    🔄 Update:    CLAUDE.md"
-      else
-        CLAUDE_MD_ACTION="preserved"
-        echo "    ⚡ Preserved: CLAUDE.md (local modifications)"
-        TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
-        ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    CLAUDE.md\n"
-      fi
-    fi
-  elif [ ! -f "CLAUDE.md" ] && [ -f "$WRIT_SRC/claude-code/CLAUDE.md" ]; then
-    CLAUDE_MD_ACTION="new"
-    echo "    ✨ New:       CLAUDE.md"
-  fi
+  echo "  CLAUDE.md:"
+  merge_claude_md preview
+  case "$CLAUDE_MD_ACTION" in
+    preserved)
+      TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
+      ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    CLAUDE.md (Writ block)\n"
+      ;;
+  esac
 elif [ "$PLATFORM" = "codex" ]; then
   echo "  AGENTS.md:"
   merge_agents_md preview
@@ -884,7 +967,7 @@ if [ "$PLATFORM" = "cursor" ]; then
   { [ "$RULE_ACTION" = "update" ] || [ "$RULE_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "claude" ]; then
-  { [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
+  { [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "codex" ]; then
   { [ "${AGENTS_MD_ACTION:-unchanged}" = "update" ] || [ "${AGENTS_MD_ACTION:-unchanged}" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 fi
@@ -972,8 +1055,8 @@ if [ "$PLATFORM" = "cursor" ]; then
     UPDATES=$((UPDATES + 1))
   fi
 elif [ "$PLATFORM" = "claude" ]; then
-  if [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "new" ]; then
-    cp "$WRIT_SRC/claude-code/CLAUDE.md" "CLAUDE.md"
+  if [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; then
+    merge_claude_md apply
     UPDATES=$((UPDATES + 1))
   fi
 elif [ "$PLATFORM" = "codex" ]; then

@@ -1,6 +1,6 @@
 # Marker-Based `CLAUDE.md` Merge for `install.sh` and `update.sh`
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-08-13
 > **Owner:** @AdamSellke
 > **Dependencies:** []

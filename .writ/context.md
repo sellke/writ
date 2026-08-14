@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-08-13T22:15:00Z
+> Last Updated: 2026-08-13T22:45:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-08-13-claude-md-install-merge — Marker-Based CLAUDE.md Merge for install.sh and update.sh
-- **Status:** In Progress
-- **Story:** 1 of 2 complete — Story 1 (install.sh merge) Completed ✅; Story 2 (update.sh migration) Not Started
-- **Progress:** 7/14 tasks complete (50%)
+- **Status:** Complete
+- **Story:** 2 of 2 complete — Story 1 (install.sh merge) and Story 2 (update.sh migration) both Completed ✅
+- **Progress:** 14/14 tasks complete (100%); 10/10 acceptance criteria met
 
 ## Artifact Map
 
@@ -23,8 +23,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-No drift entries for the active spec yet (Story 1 reviewed clean — Overall Drift: None).
+- [DEV-1] Bundle markers added around merge functions in update.sh (Story 2) — Small, accepted, purely additive test-extraction comments.
 
 ## Open Issues
 
-4 files under `.writ/issues/` — one promoted to the active spec this run (`2026-08-13-install-overwrites-existing-claude-md.md`, spec_ref recorded); not otherwise investigated as part of this implementation.
+4 files under `.writ/issues/` — one promoted to this spec earlier in the run (`2026-08-13-install-overwrites-existing-claude-md.md`); that source file has since disappeared from disk (untracked, no git record) via what appears to be an unrelated concurrent process — flagged to the user, not caused by this implementation, and not investigated further here.
