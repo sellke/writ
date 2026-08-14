@@ -85,3 +85,17 @@
 Once Story 3 landed, wiring `ac-trace.py` into `/verify-spec` as a blocking Check 3e/3f means
 `/verify-spec` on this spec folder will now correctly report Check 3 as failing, per DEV-4's
 still-open gap — the mechanism working exactly as designed, on its own source.
+
+#### [DEV-6] `/release`'s gate surfaces a new instance of DEV-4's collision category (post-ship)
+- **Severity:** Small, informational — not a change to this spec's own implementation
+- **Context:** `2026-08-13-claude-md-install-merge` (a separate spec, shipped in the same
+  release) added literal `AC-1.1`–`AC-1.5` citation comments to its own test files to close its
+  own `untested_criterion` findings. Because `ac-trace.py`'s citation scan is repo-wide rather
+  than scoped to the spec folder being checked, and AC numbers are only unique *within* a spec,
+  that spec's `AC-1.5` token now also surfaces as a `dangling_reference` when checking *this*
+  spec (whose own Story 1 only defines `AC-1.1`–`AC-1.4`).
+- **Resolution:** Accepted — identical root cause to DEV-4's class 2 (fixture/citation
+  collision from a repo-global scan against per-spec-unique IDs), just a new instance rather
+  than a new category. Disclosed here, and in `2026-08-13-claude-md-install-merge/drift-log.md`
+  (its DEV-2), for anyone cross-referencing either spec's `/verify-spec` output. No spec-lite.md
+  amendment; DEV-4's own text is left unmodified per this log's append-only convention.

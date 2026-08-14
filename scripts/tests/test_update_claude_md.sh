@@ -4,6 +4,10 @@
 # but exercises update.sh's own separately-maintained copy — same decision tree,
 # using update.sh's naming convention (CLAUDE_MD_ACTION / CLAUDE_MD_NOTE) instead
 # of install.sh's (CLAUDE_MERGE_NOTE).
+#
+# AC coverage: AC-2.1 (absent-file restore), AC-2.2 (pre-fix-upgrade restore,
+# see the crux-case comment below), AC-2.3 (malformed markers -> error),
+# AC-2.4 (baseline/force -> update), AC-2.5 (neither match -> preserved).
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"

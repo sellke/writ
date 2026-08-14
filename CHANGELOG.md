@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.32.0] - 2026-08-13
+
+**Per-Criterion AC Traceability + CLAUDE.md Install/Update Safety** — acceptance criteria now carry stable per-criterion IDs with an orphan/coverage checker wired into `/verify-spec`, and `install.sh`/`update.sh` no longer silently destroy a pre-existing hand-written `CLAUDE.md`. Plus a batch of smaller fixes and housekeeping accumulated since v0.31.0.
+
+### Added
+
+- **Per-criterion acceptance-criteria traceability IDs** (`.writ/docs/acceptance-criteria-ids.md`) — a trailing `` `[AC-N.M]` `` tag grammar, assigned at story-generation time by `agents/user-story-generator.md`, so every criterion and the task(s) that satisfy it are individually addressable.
+- **`scripts/ac-trace.py`** — a read-only checker detecting orphaned, untested, duplicate, and dangling-reference criteria across a spec folder (96% covered by its own test suite), now wired into `/verify-spec` as a blocking check and into `/edit-spec` as a stability guard against ID renumbering churn on edits.
+- **Marker-bounded `CLAUDE.md` merge** (`scripts/install.sh`, `scripts/update.sh`) — `CLAUDE.md` gets the same `<!-- writ:start/end -->` block treatment `AGENTS.md` already had: a pre-existing hand-written file is appended-below rather than overwritten, tracked via a new `CLAUDE.md.writ-block` manifest key shared by both scripts.
+- **`scripts/roadmap-sync.py`** — `/release` now auto-records inter-phase infrastructure specs into `roadmap.md` instead of leaving them undocumented once shipped.
+
+### Changed
+
+- **README.md** — Skills/Key-Features sections kept current; the Claude Code install description now accurately describes the merge/preserve `CLAUDE.md` behavior instead of implying an overwrite.
+- **`.writ/product/mission.md` / `roadmap.md`** — reconciled after v0.31.0's closure.
+
+### Fixed
+
+- **`install.sh` no longer overwrites a hand-written `CLAUDE.md` on first install**, and **`update.sh`** migrated its own whole-file-hash comparison to the same inner-block model so the ongoing update path doesn't regress once markers are in play — including a verified-clean upgrade path for installations that predate this fix.
+- Stale doc references repointed after the `2026-08-12-machine-evaluable-exit-criteria` spec's archival.
+- `resolve-spec-reference.py` now matches commit messages against the date-stripped slug too.
+- Governor test suite updated to acknowledge three real command-budget overage regressions rather than mask them.
+
+### Internal
+
+- `2026-08-12-machine-evaluable-exit-criteria` manually archived via PR #43; `.writ/context.md` regenerated to match.
+
 ## [0.31.0] - 2026-08-13
 
 **Machine-Evaluable Exit Criteria + Implement-Loop Recalibration** — `/implement-phase`, `/implement-spec`, and `/implement-story` gain a read-only stop-time checker that turns their `exit_criteria` frontmatter into verdicts (`met`/`unmet`/`unknown`/`impossible`) instead of self-reported completion. A full 6-story run of that spec then surfaced real orchestration friction, fixed in the same release: an ambiguous spawn-mechanism note, two completion-bookkeeping gaps, and two undocumented sub-agent-integration failure modes.
