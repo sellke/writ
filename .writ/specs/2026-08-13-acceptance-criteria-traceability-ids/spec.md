@@ -1,6 +1,6 @@
 # Per-Criterion Traceability IDs and an Orphan Check
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-08-13
 > **Owner:** @AdamSellke
 > **Dependencies:** []
