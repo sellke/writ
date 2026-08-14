@@ -181,6 +181,12 @@ If sum doesn't match → flag
 
 #### Check 3: Completion Integrity
 
+**Status rollup:** Check 3 renders exactly one status cell in the Phase 3 report table. That
+cell rolls up the **worst status across all of 3a through 3f** — a 3e/3f finding fails the row
+exactly as a 3a false-completion finding would. Do not compute the cell from 3a–3d alone and
+silently drop 3e/3f from the roll-up; a future editor reading only the older sub-checks here
+would otherwise regress this silently.
+
 **3a. Acceptance criteria verification (for "Completed" stories):**
 ```
 If story status is "Completed ✅":
@@ -207,6 +213,56 @@ If story status is "Completed ✅":
 If story status is "Not Started" but has checked tasks → should be "In Progress"
 If story status is "In Progress" but all tasks checked → should be "Completed"
 ```
+
+**3e. Criterion coverage (acceptance-criterion traceability):**
+
+This validates the per-criterion `AC-<story>.<n>` IDs assigned per
+[`.writ/docs/acceptance-criteria-ids.md`](../.writ/docs/acceptance-criteria-ids.md) — a
+**separate contract** from 3a–3d's story-level checkbox checks. Every defined criterion ID must
+be cited by an implementation task; once its story reads `Completed ✅`, it must also be cited
+by a test.
+
+```
+For the spec being verified:
+  Run scripts/ac-trace.py check --spec <folder> [--repo .]
+  Flag as blocking:
+    - a defined ID cited by no implementation task in the spec, at any story status
+        → untasked_criterion
+    - a tasked ID with no test citation, on a story that reads Completed ✅
+        → untested_criterion
+```
+
+The executable reference for this contract is `scripts/ac-trace.py check --spec <folder>`. As
+with Check 4d's `scripts/spec-deps.py validate`, the command file describes the contract; the
+script is what actually decides, so a human and an agent reach the same verdict.
+
+**3f. Dangling and malformed references:**
+
+Decided by the same `scripts/ac-trace.py check --spec <folder>` run as 3e — one invocation
+backs both sub-checks.
+
+```
+Flag as blocking:
+  - a task or test cites an ID that no criterion in the spec defines → dangling_reference
+  - the same ID appears on two criterion lines                       → duplicate_id
+  - an ID exceeds the marker, or the marker is missing/malformed
+      while IDs are present                                          → marker_violation
+  - some criteria in a story carry IDs and others do not              → partial_adoption
+```
+
+**Legacy posture:** zero criteria in a story carry IDs → `legacy_story`, reported
+**informationally and never blocking** — mirrors how Check 4d treats a spec with no
+`Dependencies` header as `[]`. Some-but-not-all IDs in a story is not a migration state — it is
+`partial_adoption`, which **is** blocking, because the unaddressed criteria in that story are
+invisible to the check while the story appears to participate.
+
+> Checks **3e** and **3f** are **report-only inside default mode** — they behave identically
+> under `/verify-spec` and `/verify-spec --check`, and **Phase 4's auto-fix list is unchanged
+> and never touches them.** Deciding which task covers a criterion, or whether a dangling
+> reference should be repointed or deleted, is authorial judgment the check exists to demand —
+> a machine-appended tag would produce a satisfied check with no real trace link behind it,
+> which is worse than the finding it silenced. Since nothing in 3e/3f is auto-fixed, every
+> 3e/3f finding belongs in **Outstanding Warnings** and never in **Issues Found & Resolved**.
 
 ---
 

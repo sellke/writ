@@ -636,6 +636,11 @@ Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` fi
 2. [Business rule verification]
 3. [Integration success condition]
 
+**ID tags come later, not here:** at this step (2.4), story files do not exist yet, so
+these bullets cannot cite a story-level `AC-N.M` ID — those IDs aren't assigned until
+Step 2.6 generates the story files. Write these bullets untagged now; Step 2.6b appends
+the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
+
 **Business Rules:**
 - [Permission/access control rules]
 - [Validation constraints]
@@ -748,7 +753,33 @@ For each story, spawn a Task subagent (`generalPurpose`, model `fast`) in a sing
 
 Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, definition of done, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
 
+**Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`'s prompt template — do not duplicate it here; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
+
 Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
+
+#### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
+
+**Why this step exists (sequencing rationale, recorded so it is not relitigated):** Step 2.4
+writes `spec.md` and `spec-lite.md` *before* Step 2.5 plans stories and Step 2.6 generates the
+story files that actually assign per-story criterion ordinals. At Step 2.4 time, no story-level
+`AC-N.M` ID exists yet, so `spec-lite.md`'s "For Review Agents" acceptance-criteria bullets are
+written untagged — tagging them then would require inventing IDs ahead of the stories that own
+them. This step closes that gap immediately after the IDs exist.
+
+1. Read every generated `user-stories/story-*.md` file's `## Acceptance Criteria` section.
+2. For each existing bullet under `spec-lite.md`'s `## For Review Agents` → `**Acceptance
+   Criteria:**` list, match it by content to the story criterion (or criteria) it summarizes —
+   the bullet is a condensed restatement of one or more Given/When/Then lines, not new text.
+3. Append the corresponding `` `[AC-N.M]` `` tag (comma-separated inside one tag when a bullet
+   summarizes more than one criterion) to the end of that bullet.
+4. Leave every other line of `spec-lite.md` untouched. This step only appends trailing tags to
+   the acceptance-criteria bullets already written in Step 2.4 — it does not rewrite prose or
+   change the line count in a way that would risk the <100-line budget (Step 2.4's "Line Budget
+   Enforcement").
+
+If a bullet cannot be confidently matched to any story criterion, leave it untagged rather than
+guessing — an untagged Review-agent bullet is a gap to note in Step 2.9's final package review,
+not a reason to fabricate a citation.
 
 #### Step 2.7: Create User Stories README
 

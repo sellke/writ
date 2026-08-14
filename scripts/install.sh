@@ -394,6 +394,173 @@ merge_agents_md() {
   printf '%s\n' "⚡ $AGENTS_MERGE_NOTE — re-run with --force to overwrite the Writ block."
   return 0
 }
+
+# merge_claude_md — Claude Code ONLY. Integrates claude-code/CLAUDE.md into CLAUDE.md.
+# Structurally a same-file duplicate of merge_agents_md (keep synced) — see Notes in
+# .writ/specs/2026-08-13-claude-md-install-merge for why this isn't a shared helper.
+# Globals: WRIT_SRC, MANIFEST_FILE, FORCE, CLAUDE_MERGE_NOTE (set on every path)
+merge_claude_md() {
+  local op="${1:-apply}" # preview | apply
+  local template="$WRIT_SRC/claude-code/CLAUDE.md"
+  if [ ! -f "$template" ]; then
+    echo "❌ Missing $template — cannot integrate CLAUDE.md for Claude Code."
+    return 12
+  fi
+  CLAUDE_MERGE_NOTE=""
+  local upstream_inner
+  upstream_inner=$(cat "$template")
+  local upstream_hash
+  upstream_hash=$(hash_file "$template")
+
+  local claude_md="CLAUDE.md"
+  if [ "$op" = "preview" ]; then
+    if [ ! -f "$claude_md" ]; then
+      CLAUDE_MERGE_NOTE="Would create CLAUDE.md with Writ block (no prior file)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    local cnt
+    cnt=$(writ_block_marker_counts "$claude_md")
+    local start_cnt end_cnt
+    read -r start_cnt end_cnt <<<"$cnt"
+    if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
+      CLAUDE_MERGE_NOTE="Would append Writ block to existing CLAUDE.md (no markers found)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
+      CLAUDE_MERGE_NOTE="Writ block error: malformed markers (expected exactly one start and end marker)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    local start_line end_line
+    read -r start_line end_line <<<"$(awk '{
+        line=$0
+        sub(/\r$/, "", line)
+        if (line == "<!-- writ:start -->") printf "%d ", NR
+        if (line == "<!-- writ:end -->") print NR
+      }' "$claude_md")"
+    if [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
+      CLAUDE_MERGE_NOTE="Writ block error: malformed marker order."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    local inner_hash=""
+    inner_hash=""
+    if ! inner_hash="$(writ_compute_writ_block_inner_hash "$claude_md")"; then
+      CLAUDE_MERGE_NOTE="Writ block error: malformed markers (inner parse)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    local baseline_hash
+    baseline_hash=$(manifest_hash_for "CLAUDE.md.writ-block")
+    if [ "$FORCE" = true ]; then
+      CLAUDE_MERGE_NOTE="Would replace marker-bounded Writ block (--force)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    if [ "$inner_hash" = "$upstream_hash" ]; then
+      CLAUDE_MERGE_NOTE="Writ block already matches upstream template (unchanged)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
+      CLAUDE_MERGE_NOTE="Would update Writ block (matches manifest baseline → safe overwrite)."
+      printf '%s\n' "$CLAUDE_MERGE_NOTE"
+      return 0
+    fi
+    CLAUDE_MERGE_NOTE="Would preserve Writ block (local modifications detected)."
+    printf '%s\n' "$CLAUDE_MERGE_NOTE"
+    return 0
+  fi
+
+  local tmp_new
+  tmp_new=$(mktemp)
+
+  if [ ! -f "$claude_md" ]; then
+    printf '%s\n' '<!-- writ:start -->' > "$tmp_new"
+    printf '%s\n' "$upstream_inner" >> "$tmp_new"
+    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
+    mv "$tmp_new" "$claude_md"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block created"
+    return 0
+  fi
+
+  local cnt
+  cnt=$(writ_block_marker_counts "$claude_md")
+  local start_cnt end_cnt
+  read -r start_cnt end_cnt <<<"$cnt"
+  if [ "${start_cnt:-0}" -eq 0 ] && [ "${end_cnt:-0}" -eq 0 ]; then
+    cat "$claude_md" >> "$tmp_new"
+    if ! writ_file_ends_with_newline "$claude_md"; then
+      printf '\n' >> "$tmp_new"
+    fi
+    printf '%s\n' '<!-- writ:start -->' >> "$tmp_new"
+    printf '%s\n' "$upstream_inner" >> "$tmp_new"
+    printf '%s\n' '<!-- writ:end -->' >> "$tmp_new"
+    mv "$tmp_new" "$claude_md"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block appended (existing content preserved)"
+    return 0
+  fi
+
+  if [ "${start_cnt:-0}" -ne 1 ] || [ "${end_cnt:-0}" -ne 1 ]; then
+    rm -f "$tmp_new"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block error: malformed markers"
+    printf '%s\n' "❌ $CLAUDE_MERGE_NOTE (expected exactly one <!-- writ:start --> and one <!-- writ:end -->)."
+    return 13
+  fi
+
+  local start_line end_line
+  read -r start_line end_line <<<"$(awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") printf "%d ", NR
+      if (line == "<!-- writ:end -->") print NR
+    }' "$claude_md")"
+
+  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ] || [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
+    rm -f "$tmp_new"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block error: malformed markers"
+    printf '%s\n' "❌ $CLAUDE_MERGE_NOTE (invalid marker order)."
+    return 13
+  fi
+
+  local inner_hash=""
+  if ! inner_hash="$(writ_compute_writ_block_inner_hash "$claude_md")"; then
+    rm -f "$tmp_new"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block error: malformed markers"
+    printf '%s\n' "❌ $CLAUDE_MERGE_NOTE (inner block parse failed)."
+    return 13
+  fi
+
+  local baseline_hash
+  baseline_hash=$(manifest_hash_for "CLAUDE.md.writ-block")
+
+  if [ "$FORCE" = true ]; then
+    writ_rewrite_agents_md_with_inner "$claude_md" "$upstream_inner"
+    rm -f "$tmp_new"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block updated (--force)"
+    return 0
+  fi
+
+  if [ "$inner_hash" = "$upstream_hash" ]; then
+    rm -f "$tmp_new"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block preserved (already current)"
+    return 0
+  fi
+
+  if [ -n "$baseline_hash" ] && [ "$inner_hash" = "$baseline_hash" ]; then
+    writ_rewrite_agents_md_with_inner "$claude_md" "$upstream_inner"
+    rm -f "$tmp_new"
+    CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block updated"
+    return 0
+  fi
+
+  rm -f "$tmp_new"
+  CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block preserved (local modifications)"
+  printf '%s\n' "⚡ $CLAUDE_MERGE_NOTE — re-run with --force to overwrite the Writ block."
+  return 0
+}
 # <<< writ-merge-bundled-end >>>
 
 # seed_codex_config — install-once copy of codex/config.toml.template.
@@ -523,10 +690,6 @@ EOF
       rel="${f#"$PLATFORM_DIR"/}"
       echo "$(hash_file "$f")  $rel" >> "$target"
     done
-  elif [ "$PLATFORM" = "claude" ]; then
-    if [ -f "CLAUDE.md" ]; then
-      echo "$(hash_file "CLAUDE.md")  CLAUDE.md" >> "$target"
-    fi
   fi
 
   if [ "$PLATFORM" = "codex" ]; then
@@ -536,6 +699,11 @@ EOF
     fi
     if [ -n "${WRIT_CODEX_CONFIG_BASELINE_HASH:-}" ]; then
       echo "$WRIT_CODEX_CONFIG_BASELINE_HASH  .codex/config.toml.baseline" >> "$target"
+    fi
+  elif [ "$PLATFORM" = "claude" ]; then
+    local iw=""
+    if [ -f "CLAUDE.md" ] && iw="$(writ_compute_writ_block_inner_hash "CLAUDE.md")"; then
+      echo "$iw  CLAUDE.md.writ-block" >> "$target"
     fi
   fi
 }
@@ -949,7 +1117,8 @@ if [ "$DRY_RUN" = true ]; then
       echo "  Rules:   writ.mdc → always updated"
       echo "  System:  system-instructions.md → always updated"
     elif [ "$PLATFORM" = "claude" ]; then
-      echo "  Root:    CLAUDE.md → always updated"
+      echo "  CLAUDE.md integration plan:"
+      merge_claude_md preview
     elif [ "$PLATFORM" = "codex" ]; then
       echo "  AGENTS.md integration plan:"
       merge_agents_md preview
@@ -1051,8 +1220,8 @@ if [ "$PLATFORM" = "cursor" ]; then
   echo "  [$STEP/$STEP_TOTAL] System instructions..."
   cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
 elif [ "$PLATFORM" = "claude" ]; then
-  echo "  [$STEP/$STEP_TOTAL] CLAUDE.md..."
-  cp "$WRIT_SRC/claude-code/CLAUDE.md" "CLAUDE.md"
+  echo "  [$STEP/$STEP_TOTAL] CLAUDE.md integration..."
+  merge_claude_md apply
   STEP=$((STEP + 1))
   echo "  [$STEP/$STEP_TOTAL] (skipped — no system-instructions for Claude Code)"
 elif [ "$PLATFORM" = "codex" ]; then
@@ -1112,6 +1281,9 @@ if [ "$PLATFORM" = "codex" ]; then
   echo ""
   [ -n "${AGENTS_MERGE_NOTE:-}" ] && echo "  $AGENTS_MERGE_NOTE"
   [ -n "${SEED_CODEX_CONFIG_NOTE:-}" ] && echo "  $SEED_CODEX_CONFIG_NOTE"
+elif [ "$PLATFORM" = "claude" ]; then
+  echo ""
+  [ -n "${CLAUDE_MERGE_NOTE:-}" ] && echo "  $CLAUDE_MERGE_NOTE"
 fi
 
 [ -n "${SEED_CURSORINDEXINGIGNORE_NOTE:-}" ] && { echo ""; echo "  $SEED_CURSORINDEXINGIGNORE_NOTE"; }

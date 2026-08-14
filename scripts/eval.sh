@@ -58,6 +58,7 @@ CHECKS=(
   artifact-integrity
   loop-bounds
   exit-criteria
+  ac-trace
 )
 
 TOTAL_FINDINGS=0
@@ -3224,6 +3225,93 @@ check_exit_criteria() {
 
   require_literal "$technical_spec" "State/git mismatch" "technical-spec.md's impossible-trigger table must name \"State/git mismatch\"."
   require_literal "$helper" "State/git mismatch" "scripts/exit-criteria.py must raise Impossible naming \"State/git mismatch\"."
+}
+
+check_ac_trace() {
+  # Story 2 of 2026-08-13-acceptance-criteria-traceability-ids: the
+  # acceptance-criterion traceability checker's own correctness, asserted
+  # alongside every other Writ instrument. Follows check_story_deps' exact
+  # shape: scenario loop, then require_literal/forbid_literal assertions
+  # binding the grammar doc's finding vocabulary to the implementation.
+  local fake="$PROJECT_ROOT/scripts/eval-ac-trace.py"
+  local helper="$PROJECT_ROOT/scripts/ac-trace.py"
+  local grammar_doc="$PROJECT_ROOT/.writ/docs/acceptance-criteria-ids.md"
+  local verify_spec="$PROJECT_ROOT/commands/verify-spec.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "ac-trace:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def parse_story_file(' "The checker must parse story files into their checkable shape."
+  require_literal "$helper" 'def _analyze_story(' "The checker must analyze a story's own Acceptance Criteria section."
+  require_literal "$helper" 'def _validate_marker(' "The checker must validate the high-water-mark marker."
+  require_literal "$helper" 'def scan_repo_citations(' "The checker must scan the repo for test/source citations."
+  require_literal "$helper" 'def check(' "The checker must expose the top-level check() entry point."
+
+  # The seven finding codes are fixed by the grammar doc (Story 1) -- the
+  # checker must transcribe them exactly, never rename or invent new ones.
+  require_literal "$helper" 'untasked_criterion' "The checker must emit the untasked_criterion finding code."
+  require_literal "$helper" 'untested_criterion' "The checker must emit the untested_criterion finding code."
+  require_literal "$helper" 'dangling_reference' "The checker must emit the dangling_reference finding code."
+  require_literal "$helper" 'duplicate_id' "The checker must emit the duplicate_id finding code."
+  require_literal "$helper" 'marker_violation' "The checker must emit the marker_violation finding code."
+  require_literal "$helper" 'partial_adoption' "The checker must emit the partial_adoption finding code."
+  require_literal "$helper" 'legacy_story' "The checker must emit the legacy_story finding code."
+
+  require_literal "$grammar_doc" 'untasked_criterion' "The grammar doc must define untasked_criterion."
+  require_literal "$grammar_doc" 'untested_criterion' "The grammar doc must define untested_criterion."
+  require_literal "$grammar_doc" 'dangling_reference' "The grammar doc must define dangling_reference."
+  require_literal "$grammar_doc" 'duplicate_id' "The grammar doc must define duplicate_id."
+  require_literal "$grammar_doc" 'marker_violation' "The grammar doc must define marker_violation."
+  require_literal "$grammar_doc" 'partial_adoption' "The grammar doc must define partial_adoption."
+  require_literal "$grammar_doc" 'legacy_story' "The grammar doc must define legacy_story."
+
+  require_literal "$helper" 'ac-trace-check-v1' "The checker must emit the ac-trace-check-v1 schema string."
+  require_literal "$helper" 'check-ignore' "The checker must use git check-ignore for the citation scan's ignore filter."
+  require_literal "$helper" '"--stdin"' "The checker must batch git check-ignore via --stdin, never one subprocess per file."
+  forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
+  forbid_literal "$helper" 'git", "add' "The checker's git usage must stay within rev-parse/check-ignore -- never a mutating subcommand."
+
+  # Story 3: verify-spec.md must wire the checker in as Check 3e/3f -- sub-
+  # checks of Check 3, never a ninth top-level check (the frontmatter's own
+  # "eight-row check table" exit criterion). Follows check_story_deps' exact
+  # shape for asserting prose against a command file.
+  require_literal "$verify_spec" '**3e. Criterion coverage' "verify-spec.md Check 3 must add the 3e criterion-coverage sub-check."
+  require_literal "$verify_spec" '**3f. Dangling and malformed references' "verify-spec.md Check 3 must add the 3f dangling/malformed-reference sub-check."
+  require_literal "$verify_spec" 'scripts/ac-trace.py check --spec' "verify-spec.md must name the ac-trace.py executable reference for Check 3e/3f."
+  require_literal "$verify_spec" 'untasked_criterion' "verify-spec.md Check 3e must name the untasked_criterion finding code."
+  require_literal "$verify_spec" 'untested_criterion' "verify-spec.md Check 3e must name the untested_criterion finding code."
+  require_literal "$verify_spec" 'dangling_reference' "verify-spec.md Check 3f must name the dangling_reference finding code."
+  require_literal "$verify_spec" 'duplicate_id' "verify-spec.md Check 3f must name the duplicate_id finding code."
+  require_literal "$verify_spec" 'marker_violation' "verify-spec.md Check 3f must name the marker_violation finding code."
+  require_literal "$verify_spec" 'partial_adoption' "verify-spec.md Check 3f must name the partial_adoption finding code."
+  require_literal "$verify_spec" 'legacy_story' "verify-spec.md Check 3 must name the legacy_story finding code."
+  require_literal "$verify_spec" 'report-only inside default mode' "verify-spec.md must state that Check 3e/3f are report-only in default mode."
+  require_literal "$verify_spec" "Phase 4's auto-fix list is unchanged" "verify-spec.md must state that Phase 4's auto-fix list never touches Check 3e/3f."
+  require_literal "$verify_spec" '3e/3f finding belongs in **Outstanding Warnings**' "verify-spec.md must state that every 3e/3f finding lands in Outstanding Warnings, never Issues Found & Resolved."
+
+  # The row-count guard: 3e/3f are sub-checks of Check 3, so the Phase 3
+  # report table's eight numbered rows (checks 1-8) must be unchanged -- no
+  # ninth top-level check was added alongside them.
+  require_literal "$verify_spec" 'an eight-row check table' "verify-spec.md's exit_criteria must still promise an eight-row check table (Check 3e/3f are sub-checks, not a ninth check)."
+  require_literal "$verify_spec" ' 8. Spec owner field' "verify-spec.md's Phase 3 report mock must still end at row 8 (Spec owner field)."
+  forbid_literal "$verify_spec" ' 9. ' "verify-spec.md must not gain a ninth top-level check row -- Check 3e/3f are sub-checks of Check 3."
 }
 
 run_check() {

@@ -46,3 +46,7 @@ Display behavior:
 ## Rationale
 
 The owner field is intentionally small. Solo users see their own name on active work, while future small teams get an ownership substrate without introducing accounts, permissions, external services, or retroactive migration.
+
+## Acceptance Criterion IDs
+
+Per-criterion traceability IDs (`AC-<story>.<n>`) on story-level acceptance criteria and their task/test citations are a separate grammar, not header metadata. See [`acceptance-criteria-ids.md`](acceptance-criteria-ids.md) for the full specification.
