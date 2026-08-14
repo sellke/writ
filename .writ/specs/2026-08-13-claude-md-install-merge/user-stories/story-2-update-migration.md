@@ -3,6 +3,7 @@
 > **Status:** Completed ✅ (2026-08-13)
 > **Priority:** High
 > **Dependencies:** Story 1 (introduces the `CLAUDE.md.writ-block` manifest key format this story reads/writes)
+> **Commit:** 1a6f77290440c4e8d264be9e0024ff6b212c7dd3
 
 ## User Story
 
