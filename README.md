@@ -256,7 +256,7 @@ To reset a single file to upstream: delete it and re-run update.
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude
 ```
 
-This copies all commands and Claude Code–native agents (with YAML frontmatter) into `.claude/`, creates `CLAUDE.md` at your project root, and commits the result. Preview first with `--dry-run`:
+This copies all commands and Claude Code–native agents (with YAML frontmatter) into `.claude/`, merges a Writ block into `CLAUDE.md` at your project root (creating it if absent, appending below any pre-existing hand-written content otherwise — your own instructions are never overwritten), and commits the result. Preview first with `--dry-run`:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude --dry-run
