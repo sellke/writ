@@ -157,13 +157,37 @@ or it stays local-only. `scripts/install.sh` (and platform setup) configures the
 following refspecs on the default push remote (origin fallback), **unless opted out**:
 
 ```
-git config --add remote.<remote>.fetch "+refs/notes/writ:refs/notes/writ"
+git config --add remote.<remote>.fetch "+refs/notes/writ:refs/notes/origin-writ"
 git config --add remote.<remote>.push  "refs/notes/writ"
 ```
+
+**Why the fetch lands on `refs/notes/origin-writ`.** Notes refs are not
+fast-forward-only the way branches are, and Writ writes to `refs/notes/writ` locally.
+A refspec of `+refs/notes/writ:refs/notes/writ` therefore makes any `git fetch`
+overwrite the local ref with the remote's — silently discarding every note added since
+the last push, with no rejection message and no reflog warning the user will look at.
+Fetching into `refs/notes/origin-writ`, a ref local operations never write, makes the
+force flag harmless: the remote state lands somewhere disposable and is folded in
+deliberately.
+
+`/ship` and `/release` therefore merge before they attach:
+
+```bash
+git fetch origin
+git notes --ref=writ merge -s cat_sort_uniq refs/notes/origin-writ 2>/dev/null || true
+git notes --ref=writ add -f -F <digest> <sha>
+git push origin refs/notes/writ
+```
+
+`cat_sort_uniq` concatenates and de-duplicates note lines, so two machines attaching
+notes to different commits both survive, and re-attaching to the same commit is still
+an overwrite via `-f`.
 
 Sync setup is:
 
 - **Idempotent** — existing refspecs are grepped first; no duplicates are ever added.
+- **Migrating** — a repo carrying the pre-0.33 `+refs/notes/writ:refs/notes/writ`
+  refspec has it removed and replaced; re-run `install.sh` to pick this up.
 - **Guarded** — skipped entirely when the feature is opted out (see below).
 - **No-op graceful** — when there is no git repo or no remote, it warns and skips
   (never fails install).
@@ -189,7 +213,7 @@ When `writ.auditNotes` is `false`:
 
 - `/ship` and `/release` skip note composition/attachment entirely (silent no-op).
 - `install.sh` adds no refspecs and **removes any Writ-added `refs/notes/writ`
-  refspecs** it previously created.
+  refspecs** it previously created, including the pre-0.33 clobbering fetch line.
 - Opt-out leaves **no residue**: no `refs/notes/writ` refspec lines, and no dangling
   config beyond the single `writ.auditNotes=false` marker.
 

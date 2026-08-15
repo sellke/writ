@@ -477,8 +477,21 @@ transcripts, prompts, or chain-of-thought.
 
 ```bash
 TAG_TARGET_SHA=$(git rev-list -n 1 "v${VERSION}")
+git fetch origin                                              # updates refs/notes/origin-writ
+git notes --ref=writ merge -s cat_sort_uniq refs/notes/origin-writ 2>/dev/null || true
 git notes --ref=writ add -f -F "$ROLLUP_TMPFILE" "$TAG_TARGET_SHA"
+git push origin refs/notes/writ
 ```
+
+**Merge before attaching, and never fetch straight into `refs/notes/writ`.** The
+install-configured refspec lands remote notes on `refs/notes/origin-writ`, which local
+operations never write; `cat_sort_uniq` folds them in so per-spec digests attached by
+`/ship` on another machine are not discarded by this rollup. A
+`+refs/notes/writ:refs/notes/writ` refspec silently drops unpushed local notes — if
+`git fetch` shows it, re-run `install.sh` to migrate.
+
+**Push the ref.** An unpushed rollup is local-only. Push failure stays non-blocking:
+log `⚠️ audit rollup attached locally but not pushed — {error}` and continue.
 
 Always pass `--ref=writ` explicitly. **Never** write to `refs/notes/commits`. View
 later with `git notes --ref=writ show <tag-target-sha>` or `git log --notes=writ`.
@@ -486,7 +499,7 @@ later with `git notes --ref=writ show <tag-target-sha>` or `git log --notes=writ
 Add a confirmation line to the release summary:
 
 ```
-📝 Release audit rollup attached to <tag-target-sha> (refs/notes/writ)
+📝 Release audit rollup attached to <tag-target-sha> (refs/notes/writ) and pushed
 ```
 
 ### Phase 5: Release Summary
