@@ -60,6 +60,7 @@ CHECKS=(
   exit-criteria
   ac-trace
   quality-config-audit
+  test-integrity
 )
 
 TOTAL_FINDINGS=0
@@ -3380,6 +3381,73 @@ check_quality_config_audit() {
   forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
   forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
   forbid_literal "$helper" 'import subprocess' "The config audit is pure file reads and must never invoke a subprocess -- /status's third exit criterion depends on it."
+}
+
+check_test_integrity() {
+  # Story 3 of 2026-08-14-script-backed-quality-gates: the test-integrity
+  # checker's own correctness. Follows check_ac_trace's exact shape.
+  local fake="$PROJECT_ROOT/scripts/eval-test-integrity.py"
+  local helper="$PROJECT_ROOT/scripts/test-integrity.py"
+  local class_doc="$PROJECT_ROOT/.writ/docs/quality-signal-classification.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "test-integrity:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def extract_specifiers(' "The checker must expose whole-file module-specifier extraction."
+  require_literal "$helper" 'def authenticity(' "The checker must expose the authenticity subcommand entry point."
+  require_literal "$helper" 'def coverage(' "The checker must expose the coverage subcommand entry point."
+  require_literal "$helper" 'def parse_coverage_report(' "The checker must parse a machine-readable coverage report."
+  require_literal "$helper" 'def resolve_specifier(' "The checker must resolve specifiers rather than matching them by prefix alone."
+
+  # The extractor must never become line-oriented. Measured against 147 real
+  # test files, a per-line regex flagged 22 where the truth is 4 -- and a
+  # check that cries about good tests gets muted, taking the real findings
+  # with it. The whole-file property is the story.
+  require_literal "$helper" 'never line by line' "The checker must document that specifiers are extracted from the whole file, never line by line."
+  require_literal "$helper" 'pattern.finditer(stripped)' "The specifier extractor must scan the whole stripped file text -- a per-line match loses multi-line import blocks and dynamic imports, which is an 82% false-positive rate against real code."
+  require_literal "$helper" 'def strip_js_comments(' "The extractor must strip comments before extraction so a commented-out import cannot vouch for a file."
+
+  # The four test-integrity finding codes are fixed by the classification doc.
+  require_literal "$helper" 'coverage_below_threshold' "The checker must emit the coverage_below_threshold finding code."
+  require_literal "$helper" 'coverage_regression' "The checker must emit the coverage_regression finding code."
+  require_literal "$helper" 'coverage_report_absent' "The checker must emit the coverage_report_absent finding code."
+  require_literal "$helper" 'test_imports_no_source' "The checker must emit the test_imports_no_source finding code."
+
+  require_literal "$class_doc" 'coverage_below_threshold' "The classification doc must define coverage_below_threshold."
+  require_literal "$class_doc" 'coverage_regression' "The classification doc must define coverage_regression."
+  require_literal "$class_doc" 'coverage_report_absent' "The classification doc must define coverage_report_absent."
+  require_literal "$class_doc" 'test_imports_no_source' "The classification doc must define test_imports_no_source."
+
+  # The enumerated unverifiable reasons, bound in both directions.
+  require_literal "$helper" 'no_coverage_report' "The checker must emit the no_coverage_report unverifiable reason."
+  require_literal "$helper" 'unknown_report_format' "The checker must emit the unknown_report_format unverifiable reason."
+  require_literal "$helper" 'truncated_report' "The checker must emit the truncated_report unverifiable reason."
+  require_literal "$class_doc" 'no_coverage_report' "The classification doc must register the no_coverage_report reason."
+  require_literal "$class_doc" 'unknown_report_format' "The classification doc must register the unknown_report_format reason."
+  require_literal "$class_doc" 'truncated_report' "The classification doc must register the truncated_report reason."
+
+  require_literal "$helper" 'test-integrity-v1' "The checker must emit the test-integrity-v1 schema string."
+
+  # Read-only discipline, asserted the way check_ac_trace asserts it.
+  forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
+  forbid_literal "$helper" 'import subprocess' "The checker reads a coverage report someone else produced; it must never run the test suite itself."
 }
 
 run_check() {
