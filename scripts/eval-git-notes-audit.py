@@ -97,8 +97,14 @@ def scenario_install() -> None:
     emit("install-guards-behind-opt-out", "writ.auditNotes" in inst,
          "install.sh must gate refspec config behind writ.auditNotes")
     emit("install-fetch-refspec",
-         "+refs/notes/writ:refs/notes/writ" in inst,
-         "install.sh must configure the refs/notes/writ fetch refspec")
+         "+refs/notes/writ:refs/notes/origin-writ" in inst,
+         "install.sh must fetch notes into the remote-tracking ref")
+    emit("install-no-clobbering-fetch",
+         'fetch_refspec="+refs/notes/writ:refs/notes/writ"' not in inst,
+         "install.sh must not configure a fetch that overwrites refs/notes/writ")
+    emit("install-migrates-legacy-refspec",
+         "legacy_fetch_regex" in inst,
+         "install.sh must remove the pre-0.33 clobbering refspec on upgrade")
     emit("install-push-refspec", "refs/notes/writ" in inst,
          "install.sh must configure the refs/notes/writ push refspec")
     emit("install-idempotent",

@@ -464,12 +464,22 @@ class CommandBudgetTests(unittest.TestCase):
 # agents/visual-qa-agent.md, and a --quick policy decision, for two checks that
 # are the missing halves of existing stages rather than new ones. Acknowledged
 # here, not exempted: eval.sh's leanness warning still reports the overage.
+# Updated 2026-08-15 (audit-notes refspec fix, DEV-007 on the git-notes spec):
+# ship.md 3411 -> 4488 and release.md 7167 -> 8020, a disclosed increase from
+# correcting a silent data-loss defect in the audit channel. Both attach steps
+# gain a fetch/merge/push sequence plus the reason the fetch must land on
+# refs/notes/origin-writ rather than refs/notes/writ. The prose is the point:
+# the old refspec destroyed unpushed notes with no error, so a bare command
+# sequence would leave the next maintainer free to "simplify" it back. Neither
+# command gained a step or a gate -- 6.4 and 4.4 already existed and were
+# incomplete (they never pushed the ref at all, making every note local-only).
+# Acknowledged, not exempted: eval.sh's leanness warning still reports both.
 KNOWN_OVER_BUDGET = {
     "commands/create-spec.md": 24036,
     "commands/verify-spec.md": 10298,
     "commands/implement-phase.md": 11090,
-    "commands/release.md": 7167,
-    "commands/ship.md": 3411,
+    "commands/release.md": 8020,
+    "commands/ship.md": 4488,
     "commands/implement-story.md": 2730,
 }
 

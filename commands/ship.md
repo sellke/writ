@@ -451,11 +451,26 @@ counts, total review iterations. Write it to a tmpfile.
   SHA + `git diff --stat` summary) and log a warning that WWB records were absent.
 
 **6.4 — Attach to the landed SHA** under `refs/notes/writ` (overwrite on re-ship so a
-re-ship supersedes the prior digest):
+re-ship supersedes the prior digest), then reconcile with the remote and push:
 
 ```bash
+git fetch origin                                              # updates refs/notes/origin-writ
+git notes --ref=writ merge -s cat_sort_uniq refs/notes/origin-writ 2>/dev/null || true
 git notes --ref=writ add -f -F "$DIGEST_TMPFILE" "$LANDED_SHA"
+git push origin refs/notes/writ
 ```
+
+**Merge before attaching, and never fetch straight into `refs/notes/writ`.** The
+install-configured fetch refspec lands the remote's notes on `refs/notes/origin-writ`,
+a ref local operations never write; `cat_sort_uniq` folds it into the local ref so
+notes written on another machine survive. A `+refs/notes/writ:refs/notes/writ` refspec
+instead *discards* any local note added since the last push — silently, with no
+rejection message. If `git fetch` reports that refspec, the repo predates this fix:
+re-run `install.sh` to migrate it, or clear it by hand.
+
+**The push is part of the step, not optional.** A note that is never pushed is
+local-only, which defeats the channel's purpose. Push failure is still non-blocking —
+log `⚠️ audit note attached locally but not pushed — {error}` and continue.
 
 Always pass `--ref=writ` explicitly. **Never** write to `refs/notes/commits` (the git
 default) — that would clobber the user's own notes.
@@ -463,7 +478,7 @@ default) — that would clobber the user's own notes.
 **6.5 — Confirm** in the completion report:
 
 ```
-📝 Audit note attached to <sha> (refs/notes/writ)
+📝 Audit note attached to <sha> (refs/notes/writ) and pushed
 ```
 
 View it later with `git log --notes=writ` or `git notes --ref=writ show <sha>`.

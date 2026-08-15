@@ -815,11 +815,17 @@ init_writ_workspace() {
 # Globals: DRY_RUN
 configure_audit_notes_sync() {
   local mode="${1:-apply}" # preview | apply
-  local fetch_refspec="+refs/notes/writ:refs/notes/writ"
+  # Fetch into a remote-tracking ref that local operations never write. Fetching
+  # straight into refs/notes/writ with a '+' silently discards any local note
+  # added since the last push; /ship and /release merge origin-writ in instead.
+  local fetch_refspec="+refs/notes/writ:refs/notes/origin-writ"
   local push_refspec="refs/notes/writ"
   # Anchored value regexes for --unset-all (only '+' is a regex metachar here).
-  local fetch_regex='^\+refs/notes/writ:refs/notes/writ$'
+  local fetch_regex='^\+refs/notes/writ:refs/notes/origin-writ$'
   local push_regex='^refs/notes/writ$'
+  # Pre-0.33 refspec, replaced by the line above. Removed on upgrade and on
+  # opt-out so no repo keeps clobbering local notes on fetch.
+  local legacy_fetch_regex='^\+refs/notes/writ:refs/notes/writ$'
 
   if ! command -v git &>/dev/null || ! git rev-parse --is-inside-work-tree &>/dev/null; then
     echo "    ⏭️  Audit notes: not a git repository — skipping refs/notes/writ sync."
@@ -844,8 +850,10 @@ configure_audit_notes_sync() {
       echo "    ⏭️  Audit notes: writ.auditNotes=false — would remove any refs/notes/writ refspecs on '$remote'."
       return 0
     fi
-    # Opt-out: remove only Writ-added refspecs; leave no residue.
+    # Opt-out: remove only Writ-added refspecs; leave no residue. The legacy
+    # refspec is cleared too — opting out must not leave a clobbering fetch.
     git config --unset-all "remote.$remote.fetch" "$fetch_regex" 2>/dev/null || true
+    git config --unset-all "remote.$remote.fetch" "$legacy_fetch_regex" 2>/dev/null || true
     git config --unset-all "remote.$remote.push" "$push_regex" 2>/dev/null || true
     echo "    🧹 Audit notes disabled (writ.auditNotes=false) — refs/notes/writ refspecs removed from '$remote'."
     return 0
@@ -855,6 +863,9 @@ configure_audit_notes_sync() {
     local have_fetch=no have_push=no
     git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec" && have_fetch=yes
     git config --get-all "remote.$remote.push" 2>/dev/null | grep -Fxq "$push_refspec" && have_push=yes
+    if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "+refs/notes/writ:refs/notes/writ"; then
+      echo "    🔀 Audit notes: would migrate the legacy fetch refspec on '$remote' (it discarded local notes on fetch)."
+    fi
     if [ "$have_fetch" = yes ] && [ "$have_push" = yes ]; then
       echo "    ✓ Audit notes: refs/notes/writ sync already configured on '$remote' (idempotent — no change)."
     else
@@ -863,7 +874,14 @@ configure_audit_notes_sync() {
     return 0
   fi
 
-  # Enabled: idempotently add each refspec (grep existing first — never duplicate).
+  # Enabled: drop the pre-0.33 clobbering refspec before adding the safe one, so
+  # an upgrade migrates rather than accumulating two fetch lines for the same ref.
+  if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "+refs/notes/writ:refs/notes/writ"; then
+    git config --unset-all "remote.$remote.fetch" "$legacy_fetch_regex" 2>/dev/null || true
+    echo "    🔀 Audit notes: migrated legacy fetch refspec (it discarded local notes on fetch)."
+  fi
+
+  # Idempotently add each refspec (grep existing first — never duplicate).
   if ! git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec"; then
     git config --add "remote.$remote.fetch" "$fetch_refspec"
   fi
