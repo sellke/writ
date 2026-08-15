@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.33.0] - 2026-08-15
+
+**Script-Backed Quality Gates** — four quality guarantees Writ previously stated as instructions to a language model (coverage ≥80%, tests that actually import the code they claim to test, an app that still builds, and a project whose own gates are switched on) become read-only scripts whose verdicts override the agent's self-report. Each was validated against a real application codebase before shipping, reproducing by machine four defects a year of manual use had surfaced by hand. Plus a fix to the git-notes audit channel, which was silently destroying audit notes on every fetch.
+
+### Added
+
+- **Quality-signal classification** (`.writ/docs/quality-signal-classification.md`) — the finding vocabulary the checkers implement against: 13 finding codes across two severities, the verdict rules, the parse-failure rule, a stack support matrix, and the baseline format. Bound into `scripts/eval.sh` by literal rather than parsed at runtime, so the checkers keep working in a degraded project.
+- **`scripts/quality-config-audit.py`** — read-only audit of a project's build, typecheck, lint and coverage configuration, detecting the switched-off-gate patterns (`ignoreBuildErrors`, `ignoreDuringBuilds`, tests excluded from typecheck, coverage scope gaps). Recording a parse failure without downgrading the findings that file would have decided is structurally inexpressible, so a parser that gives up cannot produce a clean report.
+- **`scripts/test-integrity.py`** — two subcommands. `authenticity` uses whole-file module-specifier extraction to find test files that resolve zero imports into project source, catching the multi-line-import blind spot by construction. `coverage` re-derives per-file line coverage from lcov, Jest `coverage-summary.json`, Istanbul `coverage-final.json`, and Cobertura XML; it has no parameter for the agent's claimed coverage at all, so the self-report is unrepresentable rather than merely ignored.
+- **`scripts/build-smoke.py`** — the one checker that executes rather than reads. Classifies environment failures before source failures and resolves mixed output to environment, because a false `fail` on a developer without a database costs the whole check and, by association, the other three.
+- **`/initialize` quality baseline** — brownfield Gap Analysis now folds audit findings into Technical debt, writes `.writ/quality-baseline.md`, and sets the coverage floor at `floor(measured)` rather than an aspirational 80%, carrying the same explicit confirmation the `.writ/config.md` write already does.
+- **`/status` quality health line** — one omit-if-empty line reusing the existing `Healthy`/`Warning`/`Attention` vocabulary, plus two next-action rows. Only the pure file-read checker runs here; the two that execute tooling are kept out by `forbid_literal` guards, so `/status`'s "no build, test or git-mutating command ran" exit criterion cannot be quietly breached.
+
+### Changed
+
+- **`/implement-story` Gate 2 and Gate 4 are now verified rather than trusted.** Gate 2 gains a build smoke step routed through the existing shared BLOCKED escalation; Gate 4 runs both `test-integrity.py` subcommands after the testing agent returns and treats the checker's verdict as authoritative, reporting the claim and the measurement side by side. No new gate number was introduced — both checks are the missing halves of stages that already existed.
+- **`agents/testing-agent.md`** — the `Coverage threshold met: [YES/NO]` field remains, but is now recorded as verified rather than trusted.
+
+### Fixed
+
+- **Audit notes were silently destroyed on every fetch.** The git-notes audit channel configured `+refs/notes/writ:refs/notes/writ`, but Writ writes notes to that same ref locally and the `+` forces the update — so any `git fetch` overwrote local notes with the remote's, discarding every note added since the last push, with no rejection line and no non-zero exit. The fetch now lands on `refs/notes/origin-writ`, a ref local operations never write, and `/ship` and `/release` merge it in with `cat_sort_uniq` before attaching. `install.sh` migrates repos carrying the old refspec, in both the enabled and opted-out paths.
+- **Audit notes were never pushed.** Neither `/ship` §6.4 nor `/release` §4.4 pushed `refs/notes/writ`, so every note the channel produced was local-only unless pushed by hand — which is why the clobbering went unnoticed. Both now push the ref, non-blocking on failure.
+- **`skills/tdd-cycle/SKILL.md`** said Gate 2 spawns the coding agent; it is Gate 1.
+
+### Internal
+
+- 243 new unit tests across the three checker suites, all written before their implementations, plus `scripts/tests/test_quality_gate_wiring.py` verifying the gate prose by content rather than line number. 63 new eval scenarios across three `eval-*.py` asserters, and five new `refs/notes/writ` bindings including one asserting the clobbering refspec is *absent* from `install.sh`.
+- Roadmap rows recorded for `2026-08-14-script-backed-quality-gates` and `2026-08-13-acceptance-criteria-traceability-ids`, the latter a gap left over from v0.32.0.
+
 ## [0.32.0] - 2026-08-13
 
 **Per-Criterion AC Traceability + CLAUDE.md Install/Update Safety** — acceptance criteria now carry stable per-criterion IDs with an orphan/coverage checker wired into `/verify-spec`, and `install.sh`/`update.sh` no longer silently destroy a pre-existing hand-written `CLAUDE.md`. Plus a batch of smaller fixes and housekeeping accumulated since v0.31.0.
