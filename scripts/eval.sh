@@ -59,6 +59,9 @@ CHECKS=(
   loop-bounds
   exit-criteria
   ac-trace
+  quality-config-audit
+  test-integrity
+  build-smoke
 )
 
 TOTAL_FINDINGS=0
@@ -3312,6 +3315,220 @@ check_ac_trace() {
   require_literal "$verify_spec" 'an eight-row check table' "verify-spec.md's exit_criteria must still promise an eight-row check table (Check 3e/3f are sub-checks, not a ninth check)."
   require_literal "$verify_spec" ' 8. Spec owner field' "verify-spec.md's Phase 3 report mock must still end at row 8 (Spec owner field)."
   forbid_literal "$verify_spec" ' 9. ' "verify-spec.md must not gain a ninth top-level check row -- Check 3e/3f are sub-checks of Check 3."
+}
+
+check_quality_config_audit() {
+  # Story 2 of 2026-08-14-script-backed-quality-gates: the quality-config
+  # audit's own correctness, asserted alongside every other Writ instrument.
+  # Follows check_ac_trace's exact shape: scenario loop, then
+  # require_literal/forbid_literal assertions binding the classification
+  # doc's finding vocabulary to the implementation.
+  local fake="$PROJECT_ROOT/scripts/eval-quality-config-audit.py"
+  local helper="$PROJECT_ROOT/scripts/quality-config-audit.py"
+  local class_doc="$PROJECT_ROOT/.writ/docs/quality-signal-classification.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "quality-config-audit:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def check(' "The checker must expose the top-level check() entry point."
+  require_literal "$helper" 'def strip_jsonc(' "The checker must implement the JSONC comment/trailing-comma stripping pass."
+  require_literal "$helper" 'def scan_disable_keys(' "The checker must implement the bounded disable-key heuristic."
+  require_literal "$helper" 'def parse_baseline(' "The checker must parse .writ/quality-baseline.md."
+  require_literal "$helper" 'def apply_baseline(' "The checker must apply baseline suppression to its findings."
+
+  # The six config-audit finding codes are fixed by the classification doc
+  # (Story 1) -- the checker transcribes them exactly, never renaming or
+  # inventing. A code present in one file and not the other fails here.
+  require_literal "$helper" 'build_gate_disabled' "The checker must emit the build_gate_disabled finding code."
+  require_literal "$helper" 'coverage_threshold_absent' "The checker must emit the coverage_threshold_absent finding code."
+  require_literal "$helper" 'coverage_scope_gap' "The checker must emit the coverage_scope_gap finding code."
+  require_literal "$helper" 'tests_excluded_from_typecheck' "The checker must emit the tests_excluded_from_typecheck finding code."
+  require_literal "$helper" 'duplicate_lockfile' "The checker must emit the duplicate_lockfile finding code."
+  require_literal "$helper" 'could_not_parse' "The checker must emit the could_not_parse finding code."
+  require_literal "$helper" 'unsupported_stack' "The checker must emit the unsupported_stack finding code."
+
+  require_literal "$class_doc" 'build_gate_disabled' "The classification doc must define build_gate_disabled."
+  require_literal "$class_doc" 'coverage_threshold_absent' "The classification doc must define coverage_threshold_absent."
+  require_literal "$class_doc" 'coverage_scope_gap' "The classification doc must define coverage_scope_gap."
+  require_literal "$class_doc" 'tests_excluded_from_typecheck' "The classification doc must define tests_excluded_from_typecheck."
+  require_literal "$class_doc" 'duplicate_lockfile' "The classification doc must define duplicate_lockfile."
+  require_literal "$class_doc" 'could_not_parse' "The classification doc must define could_not_parse."
+  require_literal "$class_doc" 'unsupported_stack' "The classification doc must define unsupported_stack."
+
+  # The verdict trichotomy and the exit-code ladder, bound in both directions.
+  require_literal "$class_doc" 'unverifiable' "The classification doc must define the unverifiable verdict."
+  require_literal "$class_doc" 'never exits 2' "The classification doc must state that unverifiable never exits 2."
+  require_literal "$class_doc" 'Unparseable is not absent' "The classification doc must state the parse-failure rule."
+  require_literal "$class_doc" 'No automatic re-baselining' "The classification doc must prohibit automatic re-baselining."
+  require_literal "$helper" 'quality-config-audit-v1' "The checker must emit the quality-config-audit-v1 schema string."
+
+  # Read-only discipline, asserted the way check_ac_trace asserts it.
+  forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
+  forbid_literal "$helper" 'import subprocess' "The config audit is pure file reads and must never invoke a subprocess -- /status's third exit criterion depends on it."
+
+  # Story 6: the /initialize and /status wiring prose, bound the way
+  # check_ac_trace binds verify-spec.md's Check 3e/3f.
+  local initialize="$PROJECT_ROOT/commands/initialize.md"
+  local status="$PROJECT_ROOT/commands/status.md"
+
+  require_literal "$initialize" 'scripts/quality-config-audit.py check --project .' "initialize.md must run the quality-config audit during brownfield Gap Analysis."
+  require_literal "$initialize" '.writ/quality-baseline.md' "initialize.md must write the quality baseline."
+  require_literal "$initialize" 'Never re-baseline automatically' "initialize.md must prohibit automatic re-baselining -- a baseline that absorbs each new finding is a disabled check."
+  require_literal "$initialize" 'floor(measured)' "initialize.md must write the coverage threshold at the measured floor, never at the aspiration."
+  require_literal "$initialize" 'same explicit confirmation' "initialize.md's coverage-floor write mutates target-project config and must carry the same confirmation the .writ/config.md write does."
+
+  require_literal "$status" 'scripts/quality-config-audit.py check --project .' "status.md must surface the quality-config findings."
+  require_literal "$status" 'Quality config:' "status.md must render the quality-config health line."
+  require_literal "$status" 'Omit the line entirely' "status.md must omit the quality-config line when empty, matching Steps 4 and 5."
+
+  # /status's third exit criterion is a hard constraint: only the pure
+  # file-read checker may appear there. The two that execute tooling must not.
+  forbid_literal "$status" 'test-integrity.py coverage --project' "status.md must never invoke the coverage checker -- it executes test tooling and would breach /status's no-build-no-test exit criterion."
+  forbid_literal "$status" 'build-smoke.py check --project' "status.md must never invoke the build smoke check -- it runs a build and would breach /status's no-build-no-test exit criterion."
+}
+
+check_test_integrity() {
+  # Story 3 of 2026-08-14-script-backed-quality-gates: the test-integrity
+  # checker's own correctness. Follows check_ac_trace's exact shape.
+  local fake="$PROJECT_ROOT/scripts/eval-test-integrity.py"
+  local helper="$PROJECT_ROOT/scripts/test-integrity.py"
+  local class_doc="$PROJECT_ROOT/.writ/docs/quality-signal-classification.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "test-integrity:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def extract_specifiers(' "The checker must expose whole-file module-specifier extraction."
+  require_literal "$helper" 'def authenticity(' "The checker must expose the authenticity subcommand entry point."
+  require_literal "$helper" 'def coverage(' "The checker must expose the coverage subcommand entry point."
+  require_literal "$helper" 'def parse_coverage_report(' "The checker must parse a machine-readable coverage report."
+  require_literal "$helper" 'def resolve_specifier(' "The checker must resolve specifiers rather than matching them by prefix alone."
+
+  # The extractor must never become line-oriented. Measured against 147 real
+  # test files, a per-line regex flagged 22 where the truth is 4 -- and a
+  # check that cries about good tests gets muted, taking the real findings
+  # with it. The whole-file property is the story.
+  require_literal "$helper" 'never line by line' "The checker must document that specifiers are extracted from the whole file, never line by line."
+  require_literal "$helper" 'pattern.finditer(stripped)' "The specifier extractor must scan the whole stripped file text -- a per-line match loses multi-line import blocks and dynamic imports, which is an 82% false-positive rate against real code."
+  require_literal "$helper" 'def strip_js_comments(' "The extractor must strip comments before extraction so a commented-out import cannot vouch for a file."
+
+  # The four test-integrity finding codes are fixed by the classification doc.
+  require_literal "$helper" 'coverage_below_threshold' "The checker must emit the coverage_below_threshold finding code."
+  require_literal "$helper" 'coverage_regression' "The checker must emit the coverage_regression finding code."
+  require_literal "$helper" 'coverage_report_absent' "The checker must emit the coverage_report_absent finding code."
+  require_literal "$helper" 'test_imports_no_source' "The checker must emit the test_imports_no_source finding code."
+
+  require_literal "$class_doc" 'coverage_below_threshold' "The classification doc must define coverage_below_threshold."
+  require_literal "$class_doc" 'coverage_regression' "The classification doc must define coverage_regression."
+  require_literal "$class_doc" 'coverage_report_absent' "The classification doc must define coverage_report_absent."
+  require_literal "$class_doc" 'test_imports_no_source' "The classification doc must define test_imports_no_source."
+
+  # The enumerated unverifiable reasons, bound in both directions.
+  require_literal "$helper" 'no_coverage_report' "The checker must emit the no_coverage_report unverifiable reason."
+  require_literal "$helper" 'unknown_report_format' "The checker must emit the unknown_report_format unverifiable reason."
+  require_literal "$helper" 'truncated_report' "The checker must emit the truncated_report unverifiable reason."
+  require_literal "$class_doc" 'no_coverage_report' "The classification doc must register the no_coverage_report reason."
+  require_literal "$class_doc" 'unknown_report_format' "The classification doc must register the unknown_report_format reason."
+  require_literal "$class_doc" 'truncated_report' "The classification doc must register the truncated_report reason."
+
+  require_literal "$helper" 'test-integrity-v1' "The checker must emit the test-integrity-v1 schema string."
+
+  # Read-only discipline, asserted the way check_ac_trace asserts it.
+  forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
+  forbid_literal "$helper" 'import subprocess' "The checker reads a coverage report someone else produced; it must never run the test suite itself."
+}
+
+check_build_smoke() {
+  # Story 4 of 2026-08-14-script-backed-quality-gates: the build smoke
+  # check's own correctness. The scenarios drive the classifier over recorded
+  # build output and never invoke a real toolchain -- a CI job that actually
+  # ran `next build` would depend on the very environment this check exists
+  # to reason about.
+  local fake="$PROJECT_ROOT/scripts/eval-build-smoke.py"
+  local helper="$PROJECT_ROOT/scripts/build-smoke.py"
+  local class_doc="$PROJECT_ROOT/.writ/docs/quality-signal-classification.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "build-smoke:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def classify_failure(' "The checker must classify a failure's cause rather than reporting every non-zero exit as a code defect."
+  require_literal "$helper" 'def select_build_command(' "The checker must select the narrowest framework-booting invocation."
+  require_literal "$helper" 'def check(' "The checker must expose the top-level check() entry point."
+
+  # The two build-smoke finding codes, bound against the classification doc.
+  require_literal "$helper" 'build_failed_source' "The checker must emit the build_failed_source finding code."
+  require_literal "$helper" 'build_failed_environment' "The checker must emit the build_failed_environment finding code."
+  require_literal "$class_doc" 'build_failed_source' "The classification doc must define build_failed_source."
+  require_literal "$class_doc" 'build_failed_environment' "The classification doc must define build_failed_environment."
+
+  # "Environment failure is never code failure" is the hardest constraint in
+  # the parent spec. Both halves are pinned: the enumerated signature lists
+  # exist, and environment is decided before source so mixed output can never
+  # be reported as a code defect.
+  require_literal "$helper" 'ENVIRONMENT_SIGNATURES' "The checker must carry an enumerated list of environment-failure signatures."
+  require_literal "$helper" 'SOURCE_SIGNATURES' "The checker must carry an enumerated list of source-failure signatures."
+  require_literal "$helper" 'Environment first, source second' "The classifier must check environment signatures before source signatures."
+  require_literal "$helper" 'return Classification("unverifiable", "")' "The classifier must default to unverifiable for output it does not recognize -- never fail."
+  require_literal "$class_doc" 'never a code defect' "The classification doc must state that an unavailable environment is never a code defect."
+
+  # The composite-script decline (AC-4.3): the reference project chains four
+  # database-dependent steps before the compiler.
+  require_literal "$helper" 'NON_COMPILER_MARKERS' "The checker must decline a build script that chains non-compiler steps."
+  require_literal "$helper" 'timeout' "The checker must bound the build with a timeout."
+  require_literal "$helper" 'build-smoke-v1' "The checker must emit the build-smoke-v1 schema string."
+
+  # Exempt from the subprocess ban (it runs a build), never from the write ban.
+  forbid_literal "$helper" 'os.remove' "The checker must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker executes a build but must never write a file itself."
 }
 
 run_check() {

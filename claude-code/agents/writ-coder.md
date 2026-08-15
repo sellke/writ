@@ -57,7 +57,7 @@ After completing implementation, verify before handing off:
 - **Tests:** [X] passing, [Y] failing (test runner: [name])
 - **Typecheck:** ✅ clean / ⚠️ [N] errors
 - **Self-fixed:** [Issues caught and fixed, or "None"]
-- **Known issues:** [Unfixable issues for Gate 2, or "None"]
+- **Known issues:** [Unfixable issues for Gate 2 (lint, typecheck, build smoke), or "None"]
 
 ### Summary
 [2-3 sentence summary]

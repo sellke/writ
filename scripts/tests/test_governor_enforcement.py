@@ -448,13 +448,29 @@ class CommandBudgetTests(unittest.TestCase):
 # prose that names them. Sub-checks of Check 3, not a ninth top-level check
 # — the eight-row check table promise is unchanged (see check_ac_trace in
 # scripts/eval.sh, which asserts the row count directly).
+#
+# Updated 2026-08-14 (script-backed-quality-gates, Story 5):
+# implement-story.md 735 -> 2730, a disclosed increase from wiring the two
+# script-backed checks into gates that already existed. Gate 2 gains the
+# build-smoke step; Gate 4 gains the coverage/authenticity re-derivation whose
+# verdict overrides the testing agent's self-reported "Coverage threshold met"
+# field. Both blocks also state the unverifiable-is-not-DEGRADED rule
+# explicitly, which is the bulk of the prose and is deliberate: conflating the
+# two either floods DEGRADED until it stops meaning anything or hides real gate
+# failures. This is the cheaper of the two available edits by construction --
+# inserting Gate 2.6 and Gate 4.6 instead would have cost five literal-pinned
+# rows in eval.sh, eval-leanness.py's GATE_AGENT_FILES, the gate->verdict table
+# in skills/subagent-result-completeness/SKILL.md, an ASCII diagram in
+# agents/visual-qa-agent.md, and a --quick policy decision, for two checks that
+# are the missing halves of existing stages rather than new ones. Acknowledged
+# here, not exempted: eval.sh's leanness warning still reports the overage.
 KNOWN_OVER_BUDGET = {
     "commands/create-spec.md": 24036,
     "commands/verify-spec.md": 10298,
     "commands/implement-phase.md": 11090,
     "commands/release.md": 7167,
     "commands/ship.md": 3411,
-    "commands/implement-story.md": 735,
+    "commands/implement-story.md": 2730,
 }
 
 

@@ -129,7 +129,7 @@ After completing implementation, verify your own work before handing off:
 4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.
 5. **If issues are unfixable** — Flag them clearly in your output so the pipeline knows what to expect at Gate 2. Don't silently hand off broken code.
 
-Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis or lint — those are Gate 2's job.
+Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis, lint, or a build — those are Gate 2's job. Note that Gate 2 also runs a **build smoke check** when the story changed source: a passing typecheck does not mean the framework boots, and a route collision breaks every deployment while passing every unit test that imports handlers as plain functions.
 
 ## Tasks to Complete
 
@@ -218,7 +218,7 @@ The Coding Agent must return a structured summary:
 - **Tests:** [X] passing, [Y] failing (test runner: [vitest/jest/pytest/etc.])
 - **Typecheck:** ✅ clean / ⚠️ [N] errors (details below)
 - **Self-fixed:** [List any issues caught and fixed during self-check, or "None"]
-- **Known issues:** [Any unfixable issues flagged for Gate 2, or "None"]
+- **Known issues:** [Any unfixable issues flagged for Gate 2 (lint, typecheck, build smoke), or "None"]
 
 ### Boundary Compliance
 
