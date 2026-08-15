@@ -192,7 +192,10 @@ class SpecifierExtractionTests(unittest.TestCase):
 
 
 class AuthenticityTests(unittest.TestCase):
-    """AC-3.2 and AC-3.3 — the two hazards must not flag, the real finding must."""
+    """AC-3.2 and AC-3.3 — the two hazards must not flag, the real finding must.
+
+    The three fixtures are the shapes measured on the real checkout, so this
+    class also stands behind AC-3.5's count of exactly 4 flagged files."""
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()
@@ -535,7 +538,8 @@ COVERAGE_PY_XML = """<?xml version="1.0" ?>
 
 class CoverageTests(unittest.TestCase):
     """AC-3.1 — the verdict comes from the tool's own output, never from a
-    field an agent typed."""
+    field an agent typed. AC-3.5 pins the re-derived 57.2% against the real
+    checkout."""
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()

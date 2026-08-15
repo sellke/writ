@@ -160,7 +160,12 @@ TSCONFIG_CLEAN = """{
 
 
 class BuildGateDisabledTests(unittest.TestCase):
-    """AC-2.1 — a Next.js config that switches off the typecheck or lint gate."""
+    """AC-2.1 — a Next.js config that switches off the typecheck or lint gate.
+
+    The NEXT_CONFIG_DISABLED fixture reproduces the shape of the real checkout
+    this spec's evidence comes from, including both keys' line numbers, so it
+    also stands behind AC-2.5.
+    """
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()
@@ -196,7 +201,8 @@ class BuildGateDisabledTests(unittest.TestCase):
 
 
 class CoverageThresholdTests(unittest.TestCase):
-    """AC-2.2 — a zero bar and an absent bar are the same bar."""
+    """AC-2.2 — a zero bar and an absent bar are the same bar. AC-2.5 pins the
+    same finding against the real checkout's jest.config.js."""
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()
@@ -316,7 +322,8 @@ class ParseFailureDowngradeTests(unittest.TestCase):
 
 
 class InformationalFindingTests(unittest.TestCase):
-    """AC-2.4 — findings that report without changing the exit code."""
+    """AC-2.4 — findings that report without changing the exit code. AC-2.5
+    pins duplicate_lockfile and coverage_scope_gap against the real checkout."""
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()

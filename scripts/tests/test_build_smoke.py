@@ -476,7 +476,10 @@ class CheckIntegrationTests(unittest.TestCase):
 
 class UnsupportedStackTests(unittest.TestCase):
     """AC-4.4 — no recognized build command is `unsupported_stack`, never
-    `fail`, and never a silent pass."""
+    `fail`, and never a silent pass.
+
+    AC-4.5's disposition — ship a checker that prefers unverifiable over fail —
+    is what these tests, together with ClassifierUncertaintyTests, hold."""
 
     def setUp(self) -> None:
         self.fx = ProjectFixture()

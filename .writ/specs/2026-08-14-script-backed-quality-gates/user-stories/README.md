@@ -6,14 +6,14 @@
 
 | # | Story | Status | Priority | Tasks | AC | Dependencies |
 |---|---|---|---|---|---|---|
-| 1 | [Classification doc](story-1-classification-doc.md) | Not Started | High | 0/7 | 5 | — |
-| 2 | [Quality-config audit](story-2-quality-config-audit.md) | Not Started | High | 0/7 | 5 | Story 1 |
-| 3 | [Test integrity](story-3-test-integrity.md) | Not Started | High | 0/7 | 5 | Story 1 |
-| 4 | [Build smoke](story-4-build-smoke.md) | Not Started | Medium | 0/7 | 5 | Story 1 |
-| 5 | [Gate wiring](story-5-gate-wiring.md) | Not Started | High | 0/7 | 5 | Stories 3, 4 |
-| 6 | [Initialize & status](story-6-initialize-and-status.md) | Not Started | Medium | 0/7 | 5 | Stories 2, 3 |
+| 1 | [Classification doc](story-1-classification-doc.md) | Completed ✅ | High | 7/7 | 5 | — |
+| 2 | [Quality-config audit](story-2-quality-config-audit.md) | Completed ✅ | High | 7/7 | 5 | Story 1 |
+| 3 | [Test integrity](story-3-test-integrity.md) | Completed ✅ | High | 7/7 | 5 | Story 1 |
+| 4 | [Build smoke](story-4-build-smoke.md) | Completed ✅ | Medium | 7/7 | 5 | Story 1 |
+| 5 | [Gate wiring](story-5-gate-wiring.md) | Completed ✅ | High | 7/7 | 5 | Stories 3, 4 |
+| 6 | [Initialize & status](story-6-initialize-and-status.md) | Completed ✅ | Medium | 7/7 | 5 | Stories 2, 3 |
 
-**Progress:** 0/6 stories complete · 0/42 tasks · 30 acceptance criteria
+**Progress:** 6/6 stories complete ✅ · 42/42 tasks · 30 acceptance criteria
 
 ## Dependency Graph
 

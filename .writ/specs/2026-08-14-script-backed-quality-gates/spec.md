@@ -1,6 +1,6 @@
 # Script-Backed Quality Gates
 
-> **Status:** Not Started
+> **Status:** Complete (2026-08-14)
 > **Created:** 2026-08-14
 > **Owner:** @AdamSellke
 > **Dependencies:** []
