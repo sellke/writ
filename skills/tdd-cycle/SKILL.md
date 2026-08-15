@@ -7,7 +7,7 @@ evidence:
   - date: 2026-07-10
     type: usage
     ref: commands/implement-story.md
-    note: "Gate 2 spawns the coding agent to run this skill's red → green → refactor loop."
+    note: "Gate 1 spawns the coding agent to run this skill's red → green → refactor loop."
   - date: 2026-07-18
     type: usage
     ref: agents/coding-agent.md

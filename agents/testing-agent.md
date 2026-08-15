@@ -132,6 +132,12 @@ If coverage thresholds aren't met:
 - **New files average:** X% line coverage
 - **Coverage threshold met:** [YES/NO]
 
+> This field is now **verified, not trusted**. After you return, Gate 4 runs
+> `scripts/test-integrity.py coverage`, which re-derives the number from the coverage
+> tool's own output; where your value and the measurement disagree, the measurement wins
+> and the story does not close. Report what you actually measured — a `YES` over a
+> re-derived `NO` blocks the story rather than passing it.
+
 ### Test Details
 [List of test files and their results]
 

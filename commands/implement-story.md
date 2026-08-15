@@ -57,7 +57,7 @@ One row per stage, so the shape stays visible even when the detail does not. The
 | Gate 0 | Architecture Check | `architecture-check-agent` — read-only | `--quick`, `--review-only` | — |
 | Gate 0.5 | Boundary Map | inline — data transformation | `--quick`, `--review-only`, `/prototype` | `boundary-map-computation` |
 | Gate 1 | Coding Agent | `coding-agent` — TDD | `--review-only` | `tdd-cycle` |
-| Gate 2 | Lint, Typecheck & Format | inline — auto | — | — |
+| Gate 2 | Lint, Typecheck, Format & Build Smoke | inline — auto | — | — |
 | Gate 2.5 | Change Surface | inline | — | `change-surface-classification` |
 | Gate 3 | Review Agent | `review-agent` — read-only | `--quick` | — |
 | Gate 3.5 | Drift Response & WWB Extraction | inline — auto | `--quick` | `drift-triage` (§ A) |
@@ -180,13 +180,18 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ski
 
 ---
 
-#### Gate 2: Lint, Typecheck & Format
+#### Gate 2: Lint, Typecheck, Format & Build Smoke
 
 **Runs inline — no sub-agent needed.**
 
 Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `prettier --check` · **Python:** `mypy`, `ruff`, `black --check` · **Rust:** `cargo check`, `cargo clippy`, `cargo fmt --check`.
 
 **On failure:** (1) auto-fix what's fixable (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); (2) re-run checks; (3) if typecheck still fails → send errors back to coding agent; (4) if still failing after auto-fix → flag for review agent.
+
+**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report. Typechecking cannot see framework-level structural errors — a route collision breaks every deployment and passes every unit test that imports handlers as plain functions.
+
+- **`build_failed_source`** → blocking. Apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 2**. No new control flow, no iteration cap.
+- **`build_failed_environment` or any `unverifiable` verdict** → the pipeline continues. Surface the reason verbatim; the story is **not** marked `⚠️ DEGRADED` on that basis. An unverifiable check is not a failed gate — DEGRADED means a gate could not be cleared, `unverifiable` means a check could not be run here.
 
 ---
 
@@ -245,6 +250,18 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 **On failure:** Send test output back to coding agent. 2 fix iterations max (separate from the review loop's 3-iteration cap), then escalate.
 
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `testing-agent`, restarting **Gate 4**; skip-with-warning continues to Gate 5 with the story marked `⚠️ DEGRADED`.
+
+**Verify the claim, don't trust it.** After the testing agent returns, run:
+
+```bash
+python3 scripts/test-integrity.py coverage --project . --new-files <story's new files>
+python3 scripts/test-integrity.py authenticity --project . --tests <story's test files>
+```
+
+`Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and **where they disagree the checker wins** — a run may report `TEST_RESULT: PASS` and still not close, exactly as `scripts/exit-criteria.py` lets a run report COMPLETE and be published `unmet`. Show both the claim and the measurement in the story report.
+
+- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. The escape hatch is the shared [BLOCKED escalation](#blocked-agent-escalation) with its human decision, never a quiet downgrade.
+- **Any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ---
 
@@ -330,7 +347,7 @@ AskQuestion({
 ## Quick Mode (`--quick`)
 
 **Skips:** Gate 0 (arch-check), **Gate 0.5 (boundary map)**, Gate 3 (review), Gate 3.5 (drift handling), Gate 5 (docs)
-**Keeps:** Gate 1 (coding/TDD), Gate 2 (lint), Gate 4 (testing)
+**Keeps:** Gate 1 (coding/TDD), Gate 2 (lint + build smoke), Gate 4 (testing + coverage re-derivation)
 
 Use for prototyping, spikes, internal tools. Run full pipeline later:
 ```
