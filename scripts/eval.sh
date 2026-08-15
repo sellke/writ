@@ -61,6 +61,7 @@ CHECKS=(
   ac-trace
   quality-config-audit
   test-integrity
+  build-smoke
 )
 
 TOTAL_FINDINGS=0
@@ -3448,6 +3449,66 @@ check_test_integrity() {
   forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
   forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
   forbid_literal "$helper" 'import subprocess' "The checker reads a coverage report someone else produced; it must never run the test suite itself."
+}
+
+check_build_smoke() {
+  # Story 4 of 2026-08-14-script-backed-quality-gates: the build smoke
+  # check's own correctness. The scenarios drive the classifier over recorded
+  # build output and never invoke a real toolchain -- a CI job that actually
+  # ran `next build` would depend on the very environment this check exists
+  # to reason about.
+  local fake="$PROJECT_ROOT/scripts/eval-build-smoke.py"
+  local helper="$PROJECT_ROOT/scripts/build-smoke.py"
+  local class_doc="$PROJECT_ROOT/.writ/docs/quality-signal-classification.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "build-smoke:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def classify_failure(' "The checker must classify a failure's cause rather than reporting every non-zero exit as a code defect."
+  require_literal "$helper" 'def select_build_command(' "The checker must select the narrowest framework-booting invocation."
+  require_literal "$helper" 'def check(' "The checker must expose the top-level check() entry point."
+
+  # The two build-smoke finding codes, bound against the classification doc.
+  require_literal "$helper" 'build_failed_source' "The checker must emit the build_failed_source finding code."
+  require_literal "$helper" 'build_failed_environment' "The checker must emit the build_failed_environment finding code."
+  require_literal "$class_doc" 'build_failed_source' "The classification doc must define build_failed_source."
+  require_literal "$class_doc" 'build_failed_environment' "The classification doc must define build_failed_environment."
+
+  # "Environment failure is never code failure" is the hardest constraint in
+  # the parent spec. Both halves are pinned: the enumerated signature lists
+  # exist, and environment is decided before source so mixed output can never
+  # be reported as a code defect.
+  require_literal "$helper" 'ENVIRONMENT_SIGNATURES' "The checker must carry an enumerated list of environment-failure signatures."
+  require_literal "$helper" 'SOURCE_SIGNATURES' "The checker must carry an enumerated list of source-failure signatures."
+  require_literal "$helper" 'Environment first, source second' "The classifier must check environment signatures before source signatures."
+  require_literal "$helper" 'return Classification("unverifiable", "")' "The classifier must default to unverifiable for output it does not recognize -- never fail."
+  require_literal "$class_doc" 'never a code defect' "The classification doc must state that an unavailable environment is never a code defect."
+
+  # The composite-script decline (AC-4.3): the reference project chains four
+  # database-dependent steps before the compiler.
+  require_literal "$helper" 'NON_COMPILER_MARKERS' "The checker must decline a build script that chains non-compiler steps."
+  require_literal "$helper" 'timeout' "The checker must bound the build with a timeout."
+  require_literal "$helper" 'build-smoke-v1' "The checker must emit the build-smoke-v1 schema string."
+
+  # Exempt from the subprocess ban (it runs a build), never from the write ban.
+  forbid_literal "$helper" 'os.remove' "The checker must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker executes a build but must never write a file itself."
 }
 
 run_check() {
