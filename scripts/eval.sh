@@ -59,6 +59,7 @@ CHECKS=(
   loop-bounds
   exit-criteria
   ac-trace
+  quality-config-audit
 )
 
 TOTAL_FINDINGS=0
@@ -3312,6 +3313,73 @@ check_ac_trace() {
   require_literal "$verify_spec" 'an eight-row check table' "verify-spec.md's exit_criteria must still promise an eight-row check table (Check 3e/3f are sub-checks, not a ninth check)."
   require_literal "$verify_spec" ' 8. Spec owner field' "verify-spec.md's Phase 3 report mock must still end at row 8 (Spec owner field)."
   forbid_literal "$verify_spec" ' 9. ' "verify-spec.md must not gain a ninth top-level check row -- Check 3e/3f are sub-checks of Check 3."
+}
+
+check_quality_config_audit() {
+  # Story 2 of 2026-08-14-script-backed-quality-gates: the quality-config
+  # audit's own correctness, asserted alongside every other Writ instrument.
+  # Follows check_ac_trace's exact shape: scenario loop, then
+  # require_literal/forbid_literal assertions binding the classification
+  # doc's finding vocabulary to the implementation.
+  local fake="$PROJECT_ROOT/scripts/eval-quality-config-audit.py"
+  local helper="$PROJECT_ROOT/scripts/quality-config-audit.py"
+  local class_doc="$PROJECT_ROOT/.writ/docs/quality-signal-classification.md"
+  local scenario_output scenario_status scenario_name scenario_reason
+
+  scenario_output="$(mktemp)"
+  if ! python3 "$fake" > "$scenario_output"; then
+    :
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        add_finding "quality-config-audit:$scenario_name" "$scenario_reason" "Fix the executable checker or the fixture scenario."
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+
+  require_literal "$helper" 'def check(' "The checker must expose the top-level check() entry point."
+  require_literal "$helper" 'def strip_jsonc(' "The checker must implement the JSONC comment/trailing-comma stripping pass."
+  require_literal "$helper" 'def scan_disable_keys(' "The checker must implement the bounded disable-key heuristic."
+  require_literal "$helper" 'def parse_baseline(' "The checker must parse .writ/quality-baseline.md."
+  require_literal "$helper" 'def apply_baseline(' "The checker must apply baseline suppression to its findings."
+
+  # The six config-audit finding codes are fixed by the classification doc
+  # (Story 1) -- the checker transcribes them exactly, never renaming or
+  # inventing. A code present in one file and not the other fails here.
+  require_literal "$helper" 'build_gate_disabled' "The checker must emit the build_gate_disabled finding code."
+  require_literal "$helper" 'coverage_threshold_absent' "The checker must emit the coverage_threshold_absent finding code."
+  require_literal "$helper" 'coverage_scope_gap' "The checker must emit the coverage_scope_gap finding code."
+  require_literal "$helper" 'tests_excluded_from_typecheck' "The checker must emit the tests_excluded_from_typecheck finding code."
+  require_literal "$helper" 'duplicate_lockfile' "The checker must emit the duplicate_lockfile finding code."
+  require_literal "$helper" 'could_not_parse' "The checker must emit the could_not_parse finding code."
+  require_literal "$helper" 'unsupported_stack' "The checker must emit the unsupported_stack finding code."
+
+  require_literal "$class_doc" 'build_gate_disabled' "The classification doc must define build_gate_disabled."
+  require_literal "$class_doc" 'coverage_threshold_absent' "The classification doc must define coverage_threshold_absent."
+  require_literal "$class_doc" 'coverage_scope_gap' "The classification doc must define coverage_scope_gap."
+  require_literal "$class_doc" 'tests_excluded_from_typecheck' "The classification doc must define tests_excluded_from_typecheck."
+  require_literal "$class_doc" 'duplicate_lockfile' "The classification doc must define duplicate_lockfile."
+  require_literal "$class_doc" 'could_not_parse' "The classification doc must define could_not_parse."
+  require_literal "$class_doc" 'unsupported_stack' "The classification doc must define unsupported_stack."
+
+  # The verdict trichotomy and the exit-code ladder, bound in both directions.
+  require_literal "$class_doc" 'unverifiable' "The classification doc must define the unverifiable verdict."
+  require_literal "$class_doc" 'never exits 2' "The classification doc must state that unverifiable never exits 2."
+  require_literal "$class_doc" 'Unparseable is not absent' "The classification doc must state the parse-failure rule."
+  require_literal "$class_doc" 'No automatic re-baselining' "The classification doc must prohibit automatic re-baselining."
+  require_literal "$helper" 'quality-config-audit-v1' "The checker must emit the quality-config-audit-v1 schema string."
+
+  # Read-only discipline, asserted the way check_ac_trace asserts it.
+  forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
+  forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
+  forbid_literal "$helper" 'import subprocess' "The config audit is pure file reads and must never invoke a subprocess -- /status's third exit criterion depends on it."
 }
 
 run_check() {

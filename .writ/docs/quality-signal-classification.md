@@ -340,8 +340,9 @@ entirely. A baseline that grows on every run is a disabled check wearing a costu
 
 ### Format
 
-The file is reviewable markdown, not a machine-generated blob. One `###` section per finding
-code, one `- ` entry per waived instance.
+The file is reviewable markdown, not a machine-generated blob. One `##` section per finding
+code, one `- ` entry per waived instance. Prose before the first `##` section is preamble and
+carries no entries.
 
 ```markdown
 # Quality Baseline
@@ -377,7 +378,7 @@ Each entry is a single list item with three fields separated by ` — ` (spaced 
 - `<file>[:<line>]` — <YYYY-MM-DD> — <rationale>
 ```
 
-- **Locator** — backticked file path, optionally `:line`. This plus the enclosing `###` code
+- **Locator** — backticked file path, optionally `:line`. This plus the enclosing `##` code
   is the identity a later run matches against.
 - **Date** — ISO `YYYY-MM-DD`, the date the entry was written. Not the date it was reviewed,
   not a range.
