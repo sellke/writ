@@ -3382,6 +3382,26 @@ check_quality_config_audit() {
   forbid_literal "$helper" 'os.remove' "The checker is read-only and must never delete a file."
   forbid_literal "$helper" '.write_text(' "The checker is read-only and must never write a file."
   forbid_literal "$helper" 'import subprocess' "The config audit is pure file reads and must never invoke a subprocess -- /status's third exit criterion depends on it."
+
+  # Story 6: the /initialize and /status wiring prose, bound the way
+  # check_ac_trace binds verify-spec.md's Check 3e/3f.
+  local initialize="$PROJECT_ROOT/commands/initialize.md"
+  local status="$PROJECT_ROOT/commands/status.md"
+
+  require_literal "$initialize" 'scripts/quality-config-audit.py check --project .' "initialize.md must run the quality-config audit during brownfield Gap Analysis."
+  require_literal "$initialize" '.writ/quality-baseline.md' "initialize.md must write the quality baseline."
+  require_literal "$initialize" 'Never re-baseline automatically' "initialize.md must prohibit automatic re-baselining -- a baseline that absorbs each new finding is a disabled check."
+  require_literal "$initialize" 'floor(measured)' "initialize.md must write the coverage threshold at the measured floor, never at the aspiration."
+  require_literal "$initialize" 'same explicit confirmation' "initialize.md's coverage-floor write mutates target-project config and must carry the same confirmation the .writ/config.md write does."
+
+  require_literal "$status" 'scripts/quality-config-audit.py check --project .' "status.md must surface the quality-config findings."
+  require_literal "$status" 'Quality config:' "status.md must render the quality-config health line."
+  require_literal "$status" 'Omit the line entirely' "status.md must omit the quality-config line when empty, matching Steps 4 and 5."
+
+  # /status's third exit criterion is a hard constraint: only the pure
+  # file-read checker may appear there. The two that execute tooling must not.
+  forbid_literal "$status" 'test-integrity.py coverage --project' "status.md must never invoke the coverage checker -- it executes test tooling and would breach /status's no-build-no-test exit criterion."
+  forbid_literal "$status" 'build-smoke.py check --project' "status.md must never invoke the build smoke check -- it runs a build and would breach /status's no-build-no-test exit criterion."
 }
 
 check_test_integrity() {

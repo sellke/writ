@@ -160,6 +160,12 @@ Present findings as a prioritized list with effort estimates (quick win / modera
 
 **Prioritization principle:** Lead with gaps that block developer onboarding or cause silent bugs. Cosmetic inconsistencies go last.
 
+**Quality-configuration audit.** Run `python3 scripts/quality-config-audit.py check --project .` and fold its findings into **Technical debt** — a project whose own build gate is switched off is the prioritization principle's "silent bugs" case exactly. Report `build_gate_disabled` and `coverage_threshold_absent` first.
+
+**Write `.writ/quality-baseline.md`** recording every finding, per the format in [`.writ/docs/quality-signal-classification.md`](../.writ/docs/quality-signal-classification.md): one `##` section per finding code, one `` - `file[:line]` — YYYY-MM-DD — rationale `` entry per instance. Baselined findings are acknowledged debt and do not block; anything **not** in the baseline blocks on later runs. Ask the developer for the rationale per entry rather than generating one — an entry nobody wrote is an entry nobody will retire. Never re-baseline automatically on a later run: a baseline that absorbs each new finding is a disabled check wearing a costume. On greenfield the baseline is empty by construction; write it with a header and no entries.
+
+**Write the coverage floor at the measured value.** If `.writ/config.md` names a **Test Coverage Tool**, run it, then write `floor(measured)` into the project's coverage config — never 80% or any other aspiration. Writing 80% into a project measuring 57% breaks its build on the first run and teaches the developer to delete the key; writing 57% makes 57% the new minimum and lets it only go up. Record the value and date. This mutates target-project config, so on the brownfield path it needs the **same explicit confirmation** the `.writ/config.md` write already carries — offer it, and write only on **y**.
+
 ---
 
 ## Next Steps

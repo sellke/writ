@@ -202,6 +202,18 @@ Quick checks — run only what's fast and relevant:
 
 Do **not** run build or test commands inline in `/status` — those belong in `/release` and `/implement-story`.
 
+**Quality configuration:** run `python3 scripts/quality-config-audit.py check --project .` — pure file reads, no subprocess, which is why this one and **not** `test-integrity.py coverage` or `build-smoke.py` may appear here; those execute tooling and would breach the terminal constraint below.
+
+Render one line using the health vocabulary Step 4 already uses — `Healthy` when the verdict is `pass`, `Warning` when `unverifiable`, `Attention` when `fail` — with the count of findings **not** in `.writ/quality-baseline.md`:
+
+```
+Quality config: Attention — 2 new findings (3 baselined). `build_gate_disabled` next.
+```
+
+Surface the count and the newest finding code only; the enumeration lives in the baseline file. A block listing forty baselined items defeats a command meant to orient in under ten seconds.
+
+**Omit the line entirely** when there are no findings, when `.writ/quality-baseline.md` is absent, or when the checker reports `unsupported_stack` — matching how Step 4's phase-health block and Step 5's stale-issue block already behave. An empty rendered block is worse than no block.
+
 ### Step 8: Regenerate `.writ/context.md`
 
 After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using the schema defined in `implement-story.md` Step 2. Each `/status` run replaces the entire file — no append, merge, or patch. Sources:
@@ -230,6 +242,8 @@ Based on the gathered state, produce 2–4 suggested next actions. Rules:
 | Stale untriaged issues (Step 5) | `/create-spec --from-issue [path]` to promote |
 | Refresh opportunities exist (stale, recently used command) | `/refresh-command [command]` |
 | In-flight batch job exists | `/implement-spec --resume` if needed |
+| Quality-config findings, no `.writ/quality-baseline.md` (Step 7) | `/initialize` to record the baseline |
+| New quality-config findings against an existing baseline (Step 7) | Fix the finding, or add a dated entry with a rationale to `.writ/quality-baseline.md` |
 
 **Command allowlist — only suggest commands that exist in the suite:**
 `/create-spec`, `/implement-story`, `/implement-spec`, `/implement-phase`, `/prototype`, `/review`, `/verify-spec`, `/refresh-command`, `/assess-spec`, `/ship`, `/release`, `/plan-product`, `/design`, `/research`, `/refactor`, `/status`, `/new-command`, `/new-skill`, `/initialize`, `/create-adr`, `/create-issue`, `/create-uat-plan`, `/edit-spec`, `/knowledge`, `/migrate`, `/retro`, `/security-audit`, `/update-writ`, `/reinstall-writ`, `/uninstall-writ`
