@@ -1,0 +1,130 @@
+%% WritUS workflow — commands × protocol assets × human meetings × roles
+%% Source of truth for the mapping; PNG is rendered from workflow.dot (same mapping).
+%% WritUS = Writ + User Stories (human story/ceremony layer), not a geographic region.
+%% Dashed command nodes = AI-assisted execution. Filled meeting nodes = humans in a room.
+%% /create-story is a planned WritUS overlay; it does not exist in Writ 0.33.0.
+
+flowchart TB
+  classDef cmd fill:#dbeafe,stroke:#1d4ed8,color:#111827,stroke-width:1.5px
+  classDef cmdMulti fill:#dbeafe,stroke:#1d4ed8,color:#111827,stroke-width:1.5px,stroke-dasharray: 4 3
+  classDef asset fill:#dcfce7,stroke:#15803d,color:#111827
+  classDef meet fill:#fef3c7,stroke:#b45309,color:#111827,stroke-width:2px
+  classDef role fill:#f3f4f6,stroke:#4b5563,color:#111827
+  classDef topo fill:#ede9fe,stroke:#6d28d9,color:#111827
+
+  subgraph TOPO["Squad topology — three product-led squads"]
+    ORG["Org: mission, compliance, asset protocols, /release cadence"]:::topo
+    SA["Squad A — Product leader A"]:::topo
+    SB["Squad B — Product leader B"]:::topo
+    SC["Squad C — Product leader C"]:::topo
+    SH["Shared: Support, Ops, Stakeholders; Data/UX org-or-embedded"]:::topo
+    ORG --> SA & SB & SC
+    SH --- SA & SB & SC
+  end
+
+  subgraph S1["1. Product discovery"]
+    direction TB
+    C_PP["/plan-product\nProduct owns lock"]:::cmd
+    C_RS["/research · /create-adr"]:::cmd
+    A_MS["mission.md · roadmap.md\nmission-lite.md · 000-series ADRs"]:::asset
+    A_SB["WritUS: stakeholder briefing"]:::asset
+    M_SC["HUMAN: Stakeholder check-ins"]:::meet
+    R1["Roles: Product O · Stakeholders C\nBA, Data, Support, Ops I"]:::role
+    C_PP --> A_MS --> A_SB --> M_SC
+    C_RS --> A_MS
+    M_SC --- R1
+  end
+
+  subgraph S2["2. Spec / story"]
+    direction TB
+    C_CS["/create-spec\nProduct owns lock"]:::cmd
+    C_ST["/create-story  ★ overlay\nBA typical; many roles may invoke"]:::cmdMulti
+    A_SPEC["spec.md · spec-lite.md\nuser-stories/story-*.md\nsub-specs/"]:::asset
+    A_SOP["WritUS: story one-pager"]:::asset
+    M_SOC["HUMAN: Story socializations"]:::meet
+    R2["Roles: Product O on spec\nBA O on stories · Dev, QA, UX C"]:::role
+    C_CS --> A_SPEC
+    C_ST --> A_SPEC
+    A_SPEC --> A_SOP --> M_SOC
+    M_SOC --- R2
+  end
+
+  subgraph S3["3. Design / feasibility"]
+    direction TB
+    C_DS["/design\nUX owns"]:::cmd
+    C_AS["/assess-spec · Gate 0 arch-check"]:::cmd
+    A_MU["mockups/ · component-inventory.md"]:::asset
+    A_FE["WritUS: feasibility note · design pack"]:::asset
+    M_DR["HUMAN: Design reviews"]:::meet
+    M_FV["HUMAN: Feasibility conversations"]:::meet
+    R3["Roles: UX O design · Product+Dev O feasibility\nData, Ops, QA C"]:::role
+    C_DS --> A_MU --> A_FE --> M_DR
+    C_AS --> A_FE --> M_FV
+    M_DR --- R3
+    M_FV --- R3
+  end
+
+  subgraph S4["4. Planning"]
+    direction TB
+    C_ED["/edit-spec · /verify-spec"]:::cmd
+    A_CH["spec CHANGELOG · AC IDs"]:::asset
+    A_PB["WritUS: planning board\nfrom story-deps.py batches"]:::asset
+    M_RF["HUMAN: Story refinement"]:::meet
+    M_PL["HUMAN: Story planning"]:::meet
+    R4["Roles: BA+Product O refine\nProduct O plan · Dev, QA C"]:::role
+    C_ED --> A_CH --> M_RF
+    A_CH --> A_PB --> M_PL
+    M_RF --- R4
+    M_PL --- R4
+  end
+
+  subgraph S5["5. Build"]
+    direction TB
+    C_IP["/implement-phase"]:::cmd
+    C_IS["/implement-spec"]:::cmd
+    C_IY["/implement-story\nDev owns · AI gates assist"]:::cmd
+    A_WWB["What Was Built · drift-log\nCommit SHA on story"]:::asset
+    R5["Roles: Dev O · UX visual-QA · Product on PAUSE"]:::role
+    C_IP --> C_IS --> C_IY --> A_WWB
+    A_WWB --- R5
+  end
+
+  subgraph S6["6. QA handoff"]
+    direction TB
+    C_UAT["/create-uat-plan"]:::cmd
+    C_RV["/review"]:::cmd
+    A_HO["WritUS: Dev→QA handoff packet\nuat-plan.md · review recommendation"]:::asset
+    M_HO["HUMAN: Dev to QA handoff"]:::meet
+    R6["Roles: Dev O packet · QA O accept"]:::role
+    C_UAT --> A_HO
+    C_RV --> A_HO
+    A_HO --> M_HO
+    M_HO --- R6
+  end
+
+  subgraph S7["7. UAT / release"]
+    direction TB
+    C_SH["/ship  ·  /release\nProduct+Ops on release"]:::cmd
+    A_PR["PR · CHANGELOG · VERSION · tag"]:::asset
+    A_UATR["WritUS: UAT execution record\nrelease / marketing narrative"]:::asset
+    M_ST2["HUMAN: Stakeholder check-ins"]:::meet
+    M_MKT["HUMAN: Product marketing collaboration"]:::meet
+    R7["Roles: Product O · QA UAT · Ops release\nStakeholders C"]:::role
+    C_SH --> A_PR --> A_UATR
+    A_UATR --> M_ST2
+    A_UATR --> M_MKT
+    M_ST2 --- R7
+    M_MKT --- R7
+  end
+
+  subgraph S8["8. Support / ops / marketing"]
+    direction TB
+    C_KN["/knowledge · /retro · /security-audit"]:::cmd
+    A_TR["WritUS: support/ops training brief"]:::asset
+    M_TR["HUMAN: Support and ops training"]:::meet
+    R8["Roles: Support+Ops O session\nProduct, Dev C"]:::role
+    C_KN --> A_TR --> M_TR
+    M_TR --- R8
+  end
+
+  S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8

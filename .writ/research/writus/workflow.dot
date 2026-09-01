@@ -1,0 +1,147 @@
+digraph WritUS {
+  /* Single-node HTML table so layout stays a readable 2×4 pipeline, not an ultra-wide strip.
+     Mapping matches workflow.mmd and fork-plan.md. */
+
+  graph [
+    bgcolor="#f1f5f9"
+    pad="0.25"
+    margin="0.15"
+    fontname="DejaVu Sans"
+  ];
+
+  node [shape=plain fontname="DejaVu Sans"];
+
+  workflow [
+    label=<
+<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="10" CELLPADDING="0" BGCOLOR="#f1f5f9">
+
+  <TR><TD COLSPAN="4" ALIGN="LEFT">
+    <FONT FACE="DejaVu Sans" POINT-SIZE="26"><B>WritUS workflow</B></FONT>
+    <FONT FACE="DejaVu Sans" POINT-SIZE="14" COLOR="#334155"> — User Stories and the human ceremony layer on Writ 0.33.0</FONT>
+  </TD></TR>
+
+  <TR><TD COLSPAN="4" ALIGN="LEFT">
+    <FONT FACE="DejaVu Sans" POINT-SIZE="11" COLOR="#1e293b">Staged pipeline: product discovery → spec/story → design/feasibility → planning → build → QA handoff → UAT/release → support/ops/marketing. Solid blue commands are role-owned locks (/plan-product, /create-spec). /create-story is a planned multi-role overlay (BA typical; Product, Dev, QA, UX, Data, Support may invoke) — it does not exist in Writ 0.33.0. Amber rows are meetings between humans; an agent PASS is not that stamp.</FONT>
+  </TD></TR>
+
+  <TR>
+    <TD COLSPAN="3" ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="7" COLOR="#6d28d9" BGCOLOR="#f5f3ff">
+        <TR><TD COLSPAN="4" BGCOLOR="#6d28d9" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>Squad topology — three product-led squads</B></FONT></TD></TR>
+        <TR>
+          <TD BGCOLOR="#ede9fe" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Organization</B><BR ALIGN="LEFT"/>/plan-product mission<BR ALIGN="LEFT"/>compliance + protocols<BR ALIGN="LEFT"/>/release cadence</FONT></TD>
+          <TD BGCOLOR="white" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Squad A</B><BR ALIGN="LEFT"/>Product leader A<BR ALIGN="LEFT"/>specs · stories<BR ALIGN="LEFT"/>plan · build · QA</FONT></TD>
+          <TD BGCOLOR="white" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Squad B</B><BR ALIGN="LEFT"/>Product leader B<BR ALIGN="LEFT"/>same primitives<BR ALIGN="LEFT"/>squad agreements</FONT></TD>
+          <TD BGCOLOR="white" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Squad C</B><BR ALIGN="LEFT"/>Product leader C<BR ALIGN="LEFT"/>same primitives<BR ALIGN="LEFT"/>squad agreements</FONT></TD>
+        </TR>
+        <TR><TD COLSPAN="4" ALIGN="LEFT" BGCOLOR="#faf5ff"><FONT POINT-SIZE="10"><B>Shared:</B> Support · Operations · Stakeholders · Data/UX (org pool or embedded). Overlay commands are not copied per squad.</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#475569" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#334155" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="12"><B>Legend</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT"><FONT POINT-SIZE="10"><B>Command</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Writ / overlay verb</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT"><FONT POINT-SIZE="10"><B>Writ artifact</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Contract source of truth</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT"><FONT POINT-SIZE="10"><B>WritUS asset</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Human brief / packet</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT"><FONT POINT-SIZE="10"><B>HUMAN meeting</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">People in a room</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">O owns · I invoke · C consult</FONT></TD></TR>
+      </TABLE>
+    </TD>
+  </TR>
+
+  <TR>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>1. Product discovery</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10"><B>/plan-product</B> Product owns lock<BR ALIGN="LEFT"/>/research · /create-adr</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">mission.md · roadmap.md<BR ALIGN="LEFT"/>mission-lite.md · 000-series ADRs</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS asset</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Stakeholder briefing</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meeting</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Stakeholder check-ins</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Product O · Stakeholders C<BR ALIGN="LEFT"/>BA, Data, Support, Ops I</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>2. Spec / story</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10"><B>/create-spec</B> Product owns lock<BR ALIGN="LEFT"/><B>/create-story</B> ★ multi-role invoke</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">spec.md · spec-lite.md (&lt;100 lines)<BR ALIGN="LEFT"/>user-stories/story-*.md · sub-specs/</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS asset</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Story one-pager (AC + intent)</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meeting</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Story socializations</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Product O spec · BA O stories<BR ALIGN="LEFT"/>Dev, QA, UX C · many roles I stories</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>3. Design / feasibility</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10"><B>/design</B> UX owns<BR ALIGN="LEFT"/>/assess-spec · Gate 0 arch-check</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">mockups/ · component-inventory.md<BR ALIGN="LEFT"/>assessment rating · research note</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS assets</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Design review pack · Feasibility note</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meetings</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Design reviews<BR ALIGN="LEFT"/>Feasibility conversations</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">UX O design · Product+Dev O feasibility<BR ALIGN="LEFT"/>Data, Ops, QA C</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>4. Planning</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">/edit-spec · /verify-spec<BR ALIGN="LEFT"/>overlay pause before /implement-spec</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">spec CHANGELOG · AC IDs<BR ALIGN="LEFT"/>story-deps.py batches</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS assets</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Refinement delta · Planning board</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meetings</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Story refinement<BR ALIGN="LEFT"/>Story planning</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">BA+Product O refine<BR ALIGN="LEFT"/>Product O plan · Dev, QA C</FONT></TD></TR>
+      </TABLE>
+    </TD>
+  </TR>
+
+  <TR><TD COLSPAN="4" ALIGN="CENTER"><FONT POINT-SIZE="14" COLOR="#1e3a5f"><B>↓  story graph accepted at planning  →  build  ↓</B></FONT></TD></TR>
+
+  <TR>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>5. Build</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">/implement-phase → /implement-spec<BR ALIGN="LEFT"/><B>/implement-story</B> Dev owns; AI gates assist</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">What Was Built · drift-log<BR ALIGN="LEFT"/>Commit SHA on story</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS asset</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">In-flight notes → handoff packet</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fde68a" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Human in the loop</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Gate 0 ABORT / Gate 3.5 PAUSE escalate to people — does not replace design review or planning</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Dev O · UX visual QA<BR ALIGN="LEFT"/>Product on PAUSE</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>6. QA handoff</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">/create-uat-plan · /review</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">uat-plan.md (person-runnable)<BR ALIGN="LEFT"/>review recommendation</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS asset</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Dev→QA handoff packet</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meeting</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Dev to QA handoff</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Dev O packet · QA O accept/reject</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>7. UAT / release</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">/ship (Product-gated in overlay)<BR ALIGN="LEFT"/><B>/release</B> Product + Ops</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">PR · CHANGELOG · VERSION · tag<BR ALIGN="LEFT"/>phase UAT handoff report</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS assets</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">UAT execution record<BR ALIGN="LEFT"/>Release / marketing narrative</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meetings</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Stakeholder check-ins<BR ALIGN="LEFT"/>Product marketing collaboration</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Product O · QA runs UAT · Ops release<BR ALIGN="LEFT"/>Stakeholders C (incl. marketing)</FONT></TD></TR>
+      </TABLE>
+    </TD>
+    <TD ALIGN="LEFT" VALIGN="TOP">
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" COLOR="#1e3a5f" BGCOLOR="white">
+        <TR><TD COLSPAN="2" BGCOLOR="#1e3a5f" ALIGN="CENTER"><FONT COLOR="white" POINT-SIZE="13"><B>8. Support / ops / marketing</B></FONT></TD></TR>
+        <TR><TD BGCOLOR="#93c5fd" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Commands</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">/knowledge · /retro · /security-audit</FONT></TD></TR>
+        <TR><TD BGCOLOR="#86efac" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Writ artifacts</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">knowledge ledger · retro snapshot<BR ALIGN="LEFT"/>security audit-YYYY-MM-DD.md</FONT></TD></TR>
+        <TR><TD BGCOLOR="#4ade80" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>WritUS asset</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Support/ops training brief</FONT></TD></TR>
+        <TR><TD BGCOLOR="#fbbf24" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>HUMAN meeting</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Support and ops training</FONT></TD></TR>
+        <TR><TD BGCOLOR="#e5e7eb" ALIGN="LEFT" VALIGN="TOP"><FONT POINT-SIZE="10"><B>Roles</B></FONT></TD><TD ALIGN="LEFT"><FONT POINT-SIZE="10">Support+Ops O session<BR ALIGN="LEFT"/>Product, Dev C</FONT></TD></TR>
+      </TABLE>
+    </TD>
+  </TR>
+
+  <TR><TD COLSPAN="4" ALIGN="LEFT">
+    <FONT FACE="DejaVu Sans" POINT-SIZE="10" COLOR="#334155">Required human connection points shown in amber: stakeholder check-ins · feasibility conversations · design reviews · story socializations · story refinement · story planning · dev to QA handoff · support and ops training · product marketing collaboration. Contract artifacts stay source of truth; WritUS assets are derived. Overlay on Writ upstream — do not rewrite commands/.</FONT>
+  </TD></TR>
+
+</TABLE>
+    >
+  ];
+}
