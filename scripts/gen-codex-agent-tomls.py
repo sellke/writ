@@ -9,6 +9,7 @@ Purposes must stay aligned with .writ/manifest.yaml agents[].purpose.
 from __future__ import annotations
 
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -48,8 +49,14 @@ SANDBOX: dict[str, str] = {
     "visual-qa-agent": "read-only",
 }
 
-# Manifest model: fast → concrete Codex tier ID (revisit when upstream aliases change).
-FAST_MODEL = "gpt-5-mini"
+# ADR-024: Codex is single-vendor, so the floor is effort-only — the parent's
+# model is always used (`model` omitted), and floor stems run it at low effort.
+# Mirrors the `model_tier: floor` declarations in agents/*.md.
+FLOOR_STEMS = frozenset({"architecture-check-agent", "user-story-generator"})
+
+# Historical template argument retired by ADR-024; stripped defensively so a
+# stale body can never re-embed it (bare or comma-terminated Task({...}) form).
+RETIRED_FAST_LINE = re.compile(r'^\s*model:\s*"fast",?\s*$')
 
 
 def strip_optional_yaml_frontmatter(text: str) -> str:
@@ -67,9 +74,16 @@ def toml_long_string(body: str) -> str:
     return '"""\n' + escaped + '\n"""'
 
 
-def optional_model_line(stem: str) -> str:
-    if stem in ("architecture-check-agent", "user-story-generator"):
-        return f'model = "{FAST_MODEL}"\n'
+def strip_retired_fast_lines(body: str) -> str:
+    return "\n".join(
+        line for line in body.split("\n") if not RETIRED_FAST_LINE.match(line)
+    )
+
+
+def floor_effort_line(stem: str) -> str:
+    """Effort-only floor: never a `model =` line, for any stem."""
+    if stem in FLOOR_STEMS:
+        return 'model_reasoning_effort = "low"'
     return ""
 
 
@@ -84,11 +98,13 @@ def emit_toml(stem: str, body: str) -> str:
         f'description = """{purpose}"""',
         f'sandbox_mode = "{sandbox}"',
     ]
-    extra = optional_model_line(stem).rstrip()
+    extra = floor_effort_line(stem)
     if extra:
         parts.append(extra)
     parts.append("")
-    parts.append("developer_instructions = " + toml_long_string(body))
+    parts.append(
+        "developer_instructions = " + toml_long_string(strip_retired_fast_lines(body))
+    )
     parts.append("")
     return "\n".join(parts)
 

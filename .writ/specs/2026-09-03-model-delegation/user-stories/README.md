@@ -8,11 +8,11 @@
 |---|---|---|---|---|---|---|---|
 | 1 | [The Contract — Anchor/Floor Vocabulary, Origin, Ceiling, and Lint Aliases](story-1-contract.md) | Completed ✅ (2026-09-03) | High | — | 5 | 6 | 6/6 |
 | 2 | [Agents, Manifest, and Scaffolders — Rename Tiers, Retire "fast", Replace the Advisory Carrier](story-2-agents-manifest-scaffolders.md) | Completed ✅ (2026-09-03) | High | 1 | 5 | 7 | 7/7 |
-| 3 | [Adapters and Platform Files — Verified Cursor Floor, Origin Sources, Resolution Tables](story-3-adapters-cursor-verification.md) | Not Started | High | 1 | 5 | 7 | 0/7 |
+| 3 | [Adapters and Platform Files — Verified Cursor Floor, Origin Sources, Resolution Tables](story-3-adapters-cursor-verification.md) | Completed ✅ (2026-09-03) | High | 1 | 5 | 7 | 7/7 |
 | 4 | [Escalation — Floor Results Are Provisional at Two Sites](story-4-escalation.md) | Not Started | High | 2, 3 | 5 | 6 | 0/6 |
 | 5 | [Entry-Level Check — Every Command Declares What It Expects You Chose](story-5-entry-level.md) | Not Started | Medium | 1 | 5 | 7 | 0/7 |
 
-**Total:** 5 stories · 25 acceptance criteria · 33 tasks · 13/33 complete (39%)
+**Total:** 5 stories · 25 acceptance criteria · 33 tasks · 20/33 complete (61%)
 
 ## Dependency Graph
 

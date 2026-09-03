@@ -27,7 +27,7 @@ Maps Cursor-specific tool calls to OpenClaw equivalents for running Writ command
 ```
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story 1",
   prompt: "You are a User Story Generator agent..."
 })
@@ -53,21 +53,17 @@ All run concurrently. Each auto-announces completion back to the requester chat.
 
 **Key differences:**
 - No `subagent_type` — all OpenClaw sub-agents are general purpose
-- No `model: "fast"` — use `model` param if you want a specific model override (see tier table below)
+- No tier vocabulary on the call — `model_tier` resolves to the optional `model` param per the table below
 - `label` is optional but recommended for identification
 - Completion is push-based — no polling needed
 
-**Tier resolution:** agents express weight intent via `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)), which OpenClaw resolves through the optional `model` param on `sessions_spawn`:
+**Tier resolution:** agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers), which OpenClaw resolves through the optional `model` param on `sessions_spawn`. **This row is unverified** — no OpenClaw install was available to observe a spawn; it is written from the documented `sessions_spawn` primitive, not from an observation:
 
-| Tier | OpenClaw resolution |
-|---|---|
-| `orchestration` | omit the `model` param (inherits from config/anchor) |
-| `capability` | pass a cheaper/faster `model` param to `sessions_spawn` |
-| unset | omit the param (today's default) |
+| Origin source | `anchor` | `floor` | escalation |
+|---|---|---|---|
+| *(unverified)* `anchor.model` from the session config, `unknown` when absent; `anchor.effort` = `unknown`; `anchor.platform = openclaw` | omit `model` | an operator-configured cheaper model of the same vendor, passed as `model`; else omit | omit `model` |
 
-This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for OpenClaw; omitting `model` vs. passing a cheaper one are OpenClaw's own primitives, not a Writ-maintained ranking.
-
-**Graceful degradation:** if OpenClaw cannot honor a requested tier (no cheaper model configured, or an unrecognized `model_tier` value), warn and fall back to the parent/inherited model (omit `model`) — never hard-fail the spawn.
+**Degradation:** an unrecognized `model_tier` warns and runs as `anchor`; when no cheaper same-vendor model is configured, `floor` runs with `model` omitted (the parent's model) and emits one `degraded` line — never hard-fail the spawn.
 
 ### 2. Resuming / Steering Agents (`resume` → `subagents steer`)
 
@@ -438,4 +434,4 @@ When a Writ command uses a discovery or planning phase, that phase serves the co
 
 5. **File conflicts**: When multiple sub-agents write files in the same workspace, ensure they write to different paths. The user-story-generator pattern (each agent writes its own `story-N-*.md`) is safe.
 
-6. **Model for sub-agents**: see § 1 tier table for the `model_tier` → `model`-param mapping (cheaper model for `capability`, omit for `orchestration`).
+6. **Model for sub-agents**: see the § 1 resolution table — `floor` passes an operator-configured cheaper same-vendor `model`, `anchor` omits the param. The row is unverified.

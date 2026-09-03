@@ -120,7 +120,7 @@ Each adapter owns its table; this is the target shape. *Verify* cells are filled
 
 | Platform | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|---|
-| Cursor | model named in the harness prompt; effort from the slug suffix (`…-thinking-high`, `…-medium`) | `inherit` | *verify — Story 3 fills from observation* | `inherit` |
+| Cursor | model named in the harness prompt; effort from the slug suffix (`…-thinking-high`, `…-medium`) | `inherit` | (a) the listed `Task` slug sharing the anchor's vendor prefix, below the anchor's tier, with effort suffix ≤ `anchor.effort` (verified 2026-09-03: Fable 5.1/high → `claude-opus-5-thinking-high`); (b) `inherit[effort=…]` is rejected by the tool; else `inherit` | `inherit` |
 | Claude Code | reported model; effort `unknown` unless present in settings | `inherit` | `haiku` (family bottom, always ≤ origin) or `inherit` + `effort: low` | `inherit` |
 | Codex CLI | `config.toml` `model` + `model_reasoning_effort` | omit `model` | omit `model`, `model_reasoning_effort = "low"` | omit / parent effort |
 | OpenClaw | session config (unverified) | omit `model` | operator-configured cheaper model on `sessions_spawn`; else omit | omit |

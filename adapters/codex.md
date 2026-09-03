@@ -89,7 +89,7 @@ your-project/
 
 ### Project subagents (`codex/agents/*.toml`)
 
-Codex loads project agents from `.codex/agents/` (personal agents use `~/.codex/agents/`). Each file carries `name`, `description`, `developer_instructions`, optional `model`, and `sandbox_mode`. Writ ships seven agents aligned with the Cursor/Claude pipeline — see **Tool Mapping** for the inventory.
+Codex loads project agents from `.codex/agents/` (personal agents use `~/.codex/agents/`). Each file carries `name`, `description`, `sandbox_mode`, `developer_instructions`, and — on `floor` agents only — `model_reasoning_effort`; Writ never emits `model`. Writ ships seven agents aligned with the Cursor/Claude pipeline — see **Tool Mapping** for the inventory.
 
 ### Sandbox enforcement
 
@@ -146,23 +146,23 @@ On Codex, native memory is **`AGENTS.md`** — the primary instruction surface C
 
 ### Writ agents ↔ Codex TOML
 
-Each agent's `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)) resolves to a concrete Codex model or an omitted field:
+Each agent's `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) resolves to the TOML header `scripts/gen-codex-agent-tomls.py` emits. Codex is single-vendor, so the floor is family-locked by construction and effort-only:
 
-| Agent (`agents/*.md`) | `.codex/agents/*.toml` | `sandbox_mode` | `model_tier` | Resolved model |
+| Origin source | `anchor` | `floor` | escalation |
+|---|---|---|---|
+| `.codex/config.toml` (project, else `~/.codex/config.toml`) → `model` and `model_reasoning_effort`; `unknown` when the keys are absent (`codex/config.toml.template` sets neither); `anchor.platform = codex` | omit `model` (parent's model and effort) | omit `model`, `model_reasoning_effort = "low"` | omit `model`, parent effort |
+
+**Degradation:** an unrecognized `model_tier` warns and is emitted as `anchor` (both keys omitted); a parent already at `low` effort means `floor` collapses to `anchor`, said once, no `degraded`; if a Codex version rejects `model_reasoning_effort` on a subagent, drop the key and run at `anchor` with one `degraded` line — never hard-fail the spawn.
+
+| Agent (`agents/*.md`) | `.codex/agents/*.toml` | `sandbox_mode` | `model_tier` | Emitted header |
 |-----------------------|-------------------------|----------------|---------------|-----------------|
-| architecture-check-agent | `architecture-check-agent.toml` | `read-only` | `capability` | `gpt-5-mini` |
-| coding-agent | `coding-agent.toml` | `workspace-write` | `orchestration` | omit / inherit |
-| documentation-agent | `documentation-agent.toml` | `workspace-write` | `orchestration` | omit / inherit |
-| review-agent | `review-agent.toml` | `read-only` | `orchestration` | omit / inherit |
-| testing-agent | `testing-agent.toml` | `workspace-write` | `orchestration` | omit / inherit |
-| user-story-generator | `user-story-generator.toml` | `workspace-write` | `capability` | `gpt-5-mini` |
-| visual-qa-agent | `visual-qa-agent.toml` | `read-only` | `orchestration` | inherit / unspecified |
-
-Model IDs are concrete Codex model strings — verify against `/model` on your CLI if defaults drift.
-
-This is a **relative** resolution: Codex is one of the two platforms (with Claude Code) that needs a concrete model name to express `capability`'s floor weight, so the mini ID lives in this single isolated table rather than being duplicated across agent files.
-
-**Graceful degradation:** if a `model_tier` value is unrecognized, or the platform has no mini-model configured, warn and fall back to the parent/inherited model (omit `model` from the TOML) — never hard-fail the subagent spawn.
+| architecture-check-agent | `architecture-check-agent.toml` | `read-only` | `floor` | `model_reasoning_effort = "low"` |
+| coding-agent | `coding-agent.toml` | `workspace-write` | `anchor` | — |
+| documentation-agent | `documentation-agent.toml` | `workspace-write` | `anchor` | — |
+| review-agent | `review-agent.toml` | `read-only` | `anchor` | — |
+| testing-agent | `testing-agent.toml` | `workspace-write` | `anchor` | — |
+| user-story-generator | `user-story-generator.toml` | `workspace-write` | `floor` | `model_reasoning_effort = "low"` |
+| visual-qa-agent | `visual-qa-agent.toml` | `read-only` | `anchor` | — |
 
 ### Triggering agents
 
@@ -373,7 +373,7 @@ Always consult the official slash popup — OpenAI adds commands over time.
 | Built-in slash ambiguity | Default to Codex built-ins for bare `/commands`; require explicit `Read` of Writ markdown for Writ workflows |
 | Subagent schema drift | Track upstream [multi-agent](https://developers.openai.com/codex/multi-agent/) docs — regenerate TOML via `scripts/gen-codex-agent-tomls.py` after editing `agents/*.md` |
 | Skills path divergence | Codex uses `.agents/skills/` while Cursor/Claude remain platform-namespaced — see ADR-009 Amendments |
-| Fast model aliases | Manifest `model: fast` becomes concrete IDs (`gpt-5-mini` today) — verify with `/model` |
+| Floor is effort-only | `model_reasoning_effort = "low"` with `model` omitted — the parent's model is used; verify the parent model with `/model` |
 | Markdown fenced blocks inside TOML `developer_instructions` | Preserve triple-quote escaping — regenerate via `scripts/gen-codex-agent-tomls.py` rather than hand-editing huge blobs |
 | Parallel agents confusing transcripts | Name threads explicitly; use `/agent` to confirm which subagent owns which phase |
 | Browser / vision tooling | Optional UI flows (`visual-qa-agent`) expect browser-class tools when available — skip when running minimal sandboxes |

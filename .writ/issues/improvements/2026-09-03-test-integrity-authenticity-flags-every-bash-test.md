@@ -50,3 +50,14 @@ were caught 3/3.
 Surfaced during `/implement-spec 2026-09-03-model-delegation` Story 1 Gate 4. The story was
 carried to Completed on the mutation evidence above with this issue filed as the durable
 record — the orchestrator's judgment, recorded here rather than made quietly.
+
+**Second occurrence — Story 3 of the same spec, Python this time.**
+`scripts/tests/test_gen_codex_agent_tomls.py` loads `scripts/gen-codex-agent-tomls.py` via
+`importlib.util.spec_from_file_location` because the module name contains a hyphen — the
+same recipe `scripts/tests/test_ac_trace.py` already uses. The whole-file specifier extractor
+finds no `import`/`from` statement naming project source and returns
+`test_imports_no_source` / `blocking`. The review agent ran the same test file against
+`git show HEAD:scripts/gen-codex-agent-tomls.py` and got 6 failures, so the file demonstrably
+fails when its subject changes. Add to Expected Outcome: treat a `spec_from_file_location(...,
+<path under project>)` call (or any `Path(__file__)...` that resolves inside the project) as
+a project-source import. Every hyphenated script under `scripts/` can only be tested this way.

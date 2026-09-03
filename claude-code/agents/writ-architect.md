@@ -3,7 +3,7 @@ name: writ-architect
 description: Pre-implementation design review for Writ stories. Use before coding to validate approach, check integration risk, and catch design issues early.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit
-model: inherit
+model: haiku
 permissionMode: plan
 isolation: worktree
 maxTurns: 15

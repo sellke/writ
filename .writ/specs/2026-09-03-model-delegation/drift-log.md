@@ -87,3 +87,33 @@ schema and generator; the agent-file `model:` remains the override". `spec.md` n
 skills carry the same field, but only advisory" clause. **Why:** deferred from Story 1's Gate 5 because
 the sentences describe what agents declare, which changes here; leaving them would ship user-facing
 docs contradicting the contract. `spec-lite.md` amended.
+
+## DEV-007 — Cursor `floor` cell states the rule; the record names the slug
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-03, Gate 3
+
+**Spec said:** AC-3.1 — "the `floor` cell names whichever value was observed to resolve below the
+anchor, listed first in the (a)/(b) order that actually worked." **Implementation did:** the cell
+states rule (a) — same-prefix listed slug with effort suffix ≤ `anchor.effort` — in the order that
+worked; the literal `claude-opus-5-thinking-high` lives in the dated verification record beneath it
+and in `.writ/docs/model-tiers.md:123`. **Why:** Cursor's slug list is version-dependent; a rule plus
+a dated observation stays true when the list changes, a literal does not. Intent (observe first,
+(a) first) preserved. `spec-lite.md` amended.
+
+## DEV-008 — Opus-origin Cursor sessions emit `degraded`, not a silent collapse
+
+**Severity:** Medium · **Story:** 3 · **Found:** 2026-09-03, Gate 3 (review finding)
+
+**Spec said:** technical-spec §8 — collapse without `degraded` when "origin at family floor (e.g.
+`haiku`/low)"; `degraded` for platform rejection or an empty list. `system-instructions.md:286` —
+"When the origin already sits at the family floor, `floor` collapses to `anchor` … Otherwise (c)
+emits `degraded`." **Implementation did (first draft):** treated "no listed same-prefix slug below
+the anchor" (an Opus origin on Cursor today) as the family floor → silent collapse. **Corrected
+to:** silent collapse only when the origin is the vendor's bottom tier; when the vendor has lower
+tiers Cursor's list does not expose, emit one `degraded(reason=no lower same-family slug listed)`.
+**Why:** ADR-024 Decision 1 ("cheapest same-family configuration the platform exposes") supports
+the first reading, but its success criterion — "resolves to something other than the anchor, **or a
+`degraded` signal says why not**" — and ADR-025's ledger both need the signal; a silent collapse is
+exactly the invisible case the ADR set out to surface. The limit is the platform's, which is the
+category `degraded` already covers. `adapters/cursor.md` fixed; `spec-lite.md` amended to define
+"family floor" as the vendor's bottom tier. Story 4's escalation prose should cite this.

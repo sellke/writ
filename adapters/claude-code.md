@@ -70,7 +70,7 @@ your-project/
 │   │   ├── writ-coder.md             # isolation: worktree, acceptEdits
 │   │   ├── writ-reviewer.md          # read-only, persistent memory
 │   │   ├── writ-tester.md            # acceptEdits
-│   │   ├── writ-documenter.md        # sonnet model, acceptEdits
+│   │   ├── writ-documenter.md        # inherit, acceptEdits
 │   │   └── writ-story-gen.md         # haiku model, worktree
 │   ├── commands/                      # Writ command workflows
 │   │   ├── create-spec.md
@@ -119,26 +119,24 @@ Agents learn across sessions. The review agent remembers patterns it's seen, the
 
 ### Model Selection
 
-Each agent uses the most cost-effective model for its role. This table documents the **legacy Claude-native agent set** under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen`) — six agents, not the canonical seven (there is no `visual-qa` equivalent here yet; don't infer a seventh row).
+The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen` — no `visual-qa` equivalent here yet; don't infer a seventh) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value, resolved per this table:
 
-The `model_tier` column (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)) is the portable intent each `Model` value resolves from:
+| Origin source | `anchor` | `floor` | escalation |
+|---|---|---|---|
+| `anchor.model` = the model Claude Code reports for the session; `anchor.effort` = `unknown` unless an effort setting is present in `.claude/settings*.json`; `anchor.platform = claude-code` | `model: inherit` | `model: haiku` — `haiku` is the family bottom, so it is at or below any Claude origin by construction, which is why static frontmatter can carry it without a runtime `min(haiku, origin)` check. If `haiku` is unavailable on the install: `model: inherit` + `effort: low`. | `model: inherit` |
 
-| Agent | Model | `model_tier` | Rationale |
-|-------|-------|-----|-----------|
-| writ-architect | inherit (Opus/Sonnet) | `orchestration` | Needs deep reasoning about architecture |
-| writ-coder | inherit | `orchestration` | Needs full coding capability |
-| writ-reviewer | inherit | `orchestration` | Needs thorough analysis |
-| writ-tester | inherit | `orchestration` | Needs to understand and fix code |
-| writ-documenter | sonnet | `capability` | Good enough for docs, saves cost — **capability tier resolving to `sonnet`, not `haiku`**, showing capability doesn't always mean the absolute floor |
-| writ-story-gen | haiku | `capability` | Template-based generation, fast + cheap |
+**Degradation:** an unrecognized `model_tier`, or a family alias the install cannot resolve (verify `haiku`/`inherit` still resolve if your Claude Code version's defaults drift), warns and falls back to `inherit` — never hard-fail the spawn; a Claude origin already at `haiku` means `floor` collapses to `anchor`, said once, no `degraded`.
 
-`capability` means "at or below the invoking unit's model," not always the single cheapest option on the platform — `writ-documenter`'s `sonnet` choice is intentionally a capability-tier, higher-cost variant, and it stays that way here even though other platforms' `capability` resolution lands on the cheapest tier. Do not "fix" this by changing `writ-documenter`'s actual model in `claude-code/agents/writ-documenter.md` to match a binary scheme — the concrete file is out of this adapter doc's scope, and the divergence is the intended example.
+| Agent | `model_tier` | `model:` |
+|-------|------|------|
+| writ-architect | `floor` | `haiku` |
+| writ-story-gen | `floor` | `haiku` |
+| writ-coder | `anchor` | `inherit` |
+| writ-reviewer | `anchor` | `inherit` |
+| writ-tester | `anchor` | `inherit` |
+| writ-documenter | `anchor` | `inherit` |
 
-This is a **relative** resolution: Claude Code is one of the two platforms (with Codex) that needs a concrete model name to express `capability`'s weight, so `sonnet`/`haiku` live in this single isolated table rather than being duplicated across agent files.
-
-**Graceful degradation:** if a `model_tier` value is unrecognized, or a named model is unavailable on your Claude Code install, warn and fall back to the parent/inherited model — never hard-fail the subagent spawn.
-
-**Verification flag:** `sonnet`/`haiku` are concrete Claude model names — verify they still resolve as expected on your Claude Code version if defaults drift (mirrors Codex's `/model`-verification caveat for `gpt-5-mini`).
+`sonnet` is gone from `writ-tester` and `writ-documenter`: both are `anchor`, and a fixed `sonnet` would exceed a `haiku` origin. `inherit` is the only anchor value that respects the ceiling.
 
 ### Permission Modes
 
@@ -281,7 +279,7 @@ neutral reducer:
 6. If FAIL: re-delegate to writ-coder with feedback (max 3×)
 7. Delegates to writ-tester (full access)
    → Returns PASS/FAIL with coverage
-8. Delegates to writ-documenter (sonnet, full access)
+8. Delegates to writ-documenter (inherit, full access)
    → Updates docs
 9. Orchestrator updates story status, commits
 ```
@@ -524,6 +522,6 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 
 4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
 
-5. **Subagents can't spawn subagents**: The orchestrator (main session or top-level CLI invocation) must handle all delegation. Agents spawned as subagents can't delegate further — use agent teams if you need inter-agent communication. Note: a top-level CLI session IS the orchestrator, so it can spawn sub-agents (e.g., a review sub-agent).
+5. **Subagents nest**: delegation is not confined to the top-level session — three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). What does *not* nest is `/goal`: see **Single-slot behavior** under *The /goal Stop Hook* above — only the outermost running command may hold one.
 
 6. **Plan mode is truly read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer genuinely cannot modify files, even if prompted to.
