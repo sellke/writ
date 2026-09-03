@@ -3,6 +3,7 @@ name: new-skill
 description: "Scaffold a reusable Writ skill (SKILL.md) that commands and agents can read to acquire a focused competence. Enforces the command/agent/skill boundary."
 problem: "Reusable know-how stays inlined in agent and command bodies, and hand-written skill files drift into role or workflow shape that nobody catches until a consumer loads them."
 outcome: "A lint-clean skills/<name>/SKILL.md scaffold exists, registered in .writ/manifest.yaml and reflected in the regenerated root SKILL.md catalog."
+entry_level: standard
 exit_criteria:
   - "skills/<name>/SKILL.md exists carrying disable-model-invocation: true and status: candidate in its frontmatter"
   - "scripts/lint-skill.sh exited 0 on the captured description before any file was written"

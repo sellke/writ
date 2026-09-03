@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# scripts/lint-skill.sh — Boundary lint for Writ skills.
+# scripts/lint-skill.sh — Boundary lint for Writ skills; value lint for commands.
 #
 # Enforces the role convention from ADR-009: skills describe a capability,
 # not a workflow and not a role. Used by /new-skill at authoring time and by
 # /refresh-command for batch checking of existing skills.
 #
+# Command files (commands/*.md) are also accepted, for the ADR-024 value
+# checks ONLY: their `entry_level:` frontmatter must be high|standard|any.
+# The skill-boundary body patterns and ADR-014 lifecycle checks do not apply
+# to commands and are not run on them. Routing is by path: a basename of
+# SKILL.md always gets the full skill lint; otherwise a path under a
+# `commands/` directory gets the value checks.
+#
 # Usage:
 #   bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]
 #   bash scripts/lint-skill.sh skills/*/SKILL.md
+#   bash scripts/lint-skill.sh commands/*.md          # entry_level values only
 #
 # Exit codes:
 #   0  All files passed lint
@@ -18,6 +26,7 @@ set -euo pipefail
 
 usage() {
   echo "Usage: bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]" >&2
+  echo "       bash scripts/lint-skill.sh commands/*.md" >&2
   echo "" >&2
   echo "Lints SKILL.md files against the ADR-009 role convention:" >&2
   echo "  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)" >&2
@@ -26,6 +35,9 @@ usage() {
   echo "    or 'floor'; 'orchestration'/'capability' warn as aliases — see ADR-024" >&2
   echo "  - Any declared entry_level value (command frontmatter) must be 'high'," >&2
   echo "    'standard' or 'any'" >&2
+  echo "" >&2
+  echo "Paths under a commands/ directory (basename not SKILL.md) receive the" >&2
+  echo "ADR-024 value checks only — no boundary or lifecycle checks." >&2
   exit 2
 }
 
@@ -393,8 +405,43 @@ lint_file() {
   return 0
 }
 
+# Lint a command file: ADR-024 value checks only. Commands are not skills —
+# they legitimately dispatch subagents, name slash commands, and carry no
+# ADR-014 lifecycle status — so none of lint_file's boundary or lifecycle
+# grammar applies. What does apply is the `entry_level:` value grammar (and,
+# harmlessly, the model_tier grammar, which no command should trip).
+lint_command_file() {
+  local file="$1"
+
+  if [ ! -f "$file" ]; then
+    echo "❌ $file: file not found" >&2
+    return 2
+  fi
+
+  lint_model_tier "$file"
+
+  if [ "$MODEL_TIER_VIOLATIONS" -eq 0 ]; then
+    echo "✅ $file: clean (value checks only)"
+  fi
+
+  TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + MODEL_TIER_VIOLATIONS))
+  return 0
+}
+
+# Dispatch. Basename wins: a SKILL.md is a skill wherever it lives, even under
+# a directory named commands/. Anything else under a commands/ directory is a
+# command. Everything else (agents, manifests, ad-hoc temp files such as
+# /new-skill's /tmp/new-skill-lint-$$.md) keeps the full skill lint.
 for arg in "$@"; do
-  lint_file "$arg"
+  case "$(basename "$arg")" in
+    SKILL.md) lint_file "$arg" ;;
+    *)
+      case "$arg" in
+        commands/[!/]*.md|*/commands/[!/]*.md) lint_command_file "$arg" ;;
+        *) lint_file "$arg" ;;
+      esac
+      ;;
+  esac
 done
 
 if [ $TOTAL_VIOLATIONS -gt 0 ]; then

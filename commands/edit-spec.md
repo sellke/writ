@@ -3,6 +3,7 @@ name: edit-spec
 description: "Modify an existing spec contract-first - agree on a modification contract before any file changes, preventing scope surprises."
 problem: "Changing a spec mid-flight quietly destroys completed work — tasks get rewritten, stories disappear, and afterwards nobody can tell what changed or how to get back."
 outcome: "An existing spec folder reflects an agreed modification, with the pre-edit state preserved under backups/ and the change recorded in that spec's CHANGELOG.md."
+entry_level: standard
 exit_criteria:
   - "backups/<timestamp>/ holds the pre-edit copy of every file the modification touched"
   - "the spec's CHANGELOG.md gained an entry naming the change type, the files updated, and the backup location"

@@ -58,6 +58,7 @@ CHECKS=(
   artifact-integrity
   loop-bounds
   exit-criteria
+  entry-level
   ac-trace
   quality-config-audit
   test-integrity
@@ -454,6 +455,42 @@ check_length() {
     if [ "$count" -gt 400 ]; then
       add_note "NOTE [$rel]: $count lines (secondary tripwire 400, non-binding). The binding limit is COMMAND_BYTE_BUDGET (24960 bytes) in scripts/eval-leanness.py — check the byte figure there before acting on this. ADR-021, amended 2026-08-12."
     fi
+  done < <(command_files)
+}
+
+# True when the `---` frontmatter of $1 (lines strictly between the first two
+# `---` fences; the file must open with one) has a column-0 `key:` line for $2.
+# Frontmatter-scoped on purpose: a body-wide `^key:` grep would be satisfied by
+# a fenced scaffold literal — commands/new-command.md carries exactly one for
+# entry_level — and would permanently exempt that file from declaring the key.
+frontmatter_has_key() {
+  local file="$1" key="$2"
+  awk -v key="$key" '
+    NR == 1 && $0 !~ /^---[[:space:]]*$/ { exit 1 }
+    /^---[[:space:]]*$/ { fm++; if (fm >= 2) exit (found ? 0 : 1); next }
+    fm == 1 && index($0, key ":") == 1 { found = 1 }
+    END { exit (fm >= 2 && found ? 0 : 1) }
+  ' "$file"
+}
+
+# entry_level presence — NON-BLOCKING (ADR-024 Amendment A3).
+#
+# Every command declares `entry_level: high | standard | any` in its frontmatter
+# (system-instructions.md § Model Tiers derives it by Q1/Q2). A command missing
+# the field degrades to "no entry notice", which is today's behavior, so the
+# miss is a note and never a finding — same posture as the length tripwire
+# above. command_files() already skips `_*.md`, which is the one place
+# commands/_preamble.md (not a command, at its 95-line cap) is excluded.
+# The VALUE grammar is scripts/lint-skill.sh's job, not this check's.
+check_entry_level() {
+  local file rel
+
+  while IFS= read -r file; do
+    rel="$(relpath "$file")"
+    if frontmatter_has_key "$file" "entry_level"; then
+      continue
+    fi
+    add_note "NOTE [$rel]: no entry_level: in frontmatter (ADR-024 A3). Derive it by Q1/Q2 — see system-instructions.md § Model Tiers."
   done < <(command_files)
 }
 

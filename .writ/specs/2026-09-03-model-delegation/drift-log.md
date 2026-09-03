@@ -117,3 +117,37 @@ the first reading, but its success criterion — "resolves to something other th
 exactly the invisible case the ADR set out to surface. The limit is the platform's, which is the
 category `degraded` already covers. `adapters/cursor.md` fixed; `spec-lite.md` amended to define
 "family floor" as the vendor's bottom tier. Story 4's escalation prose should cite this.
+
+## DEV-009 — AC-5.3's positive notice path is not observable on Cursor
+
+**Severity:** Medium ⚠️ · **Story:** 5 · **Found:** 2026-09-03, Gate 4 (manual runs)
+
+**Spec said:** AC-5.3 — verify by "one manual run of a `high`-level command at a deliberately low
+origin (one line, command proceeds)". **Observed:** four `Task` spawns. `/status` (`any`) → no line.
+`/create-spec` (`high`) at `cursor-grok-4.6-medium-fast` reading the harness prompt → `effort=unknown`
+→ skipped (nil-origin path, correct). Same with effort read from the matching `Task` slug → medium,
+self-assessed **meets** because Grok 4.6 is the top listed slug of its family. Same at
+`claude-opus-5-thinking-high` → self-assessed **meets** despite `claude-fable-5-1-thinking-high`
+listed above it. **Why:** the `high` guidance — "a frontier-class model of its family at a
+non-minimal thinking level" — is satisfied by the top slug of *any* family, and Cursor lists no
+Anthropic slug below Opus/high, so no available origin classifies as below `high`. Separately, the
+Cursor harness prompt names the model but never the effort; only the adapter's slug-matching origin
+source recovers it. **Resolution:** Flagged for review. Story Notes already accept a missed notice
+and forbid a ranking or threshold table; not "fixed" here. Recorded for the ADR-025 friction ledger:
+the entry check's bite today is on Claude Code (`haiku` sessions) and Codex (`low` effort), not
+Cursor. Also observed: the harness phrase differs by model ("powered by Claude …" vs "You are Cursor
+Grok 4.6"); `adapters/cursor.md`'s origin cell says "powered by …" — a one-word generalization for a
+later adapter pass, not touched here (Story 3 leanness pin).
+
+## DEV-010–013 — Story 5 task-text corrections (Small)
+
+**Found:** 2026-09-03, Gate 0/3. **DEV-010:** AC-5.1's literal `rg -c "^entry_level:"` reads 2 for
+`commands/new-command.md` (Story 2's pinned scaffold literal at :161); the count is frontmatter-scoped.
+**DEV-011:** Task 5.6's `grep -Eq '^entry_level:'` would be satisfied by that same fenced literal and
+permanently exempt the file — replaced by `frontmatter_has_key()` and a separate `entry-level`
+`CHECKS` entry. **DEV-012:** Task 5.1's `max`/`High` fixtures already exist in Story 1's
+`test_lint_model_tier.sh:150-161`; `test_lint_entry_level.sh` holds only the real-tree run and the
+command-path routing cases. **DEV-013:** Task 5.5 assumed `lint-skill.sh commands/*.md` could exit 0;
+it produced 49 inapplicable skill-boundary/lifecycle findings, so the dispatch loop now routes
+`commands/[!/]*.md` (basename not `SKILL.md`) to `lint_command_file()` — value checks only.
+`spec-lite.md` amended for all four.

@@ -3,6 +3,7 @@ name: implement-spec
 description: "Execute one full spec end-to-end - dependency-aware plan, parallel story batches, calling implement-story per story uninterrupted."
 problem: "Stories inside one spec get run in whatever order someone notices them, so a dependency cycle surfaces mid-run and cross-story breakage is found long after several stories landed."
 outcome: "One spec has no unexecuted story left in its batch plan, and the stories are proven to work together by a single check run after the last of them landed."
+entry_level: high
 exit_criteria:
   - "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran"
   - "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason"

@@ -3,6 +3,7 @@ name: implement-story
 description: "Run a single user story through the full SDLC pipeline: architecture check, boundary map, TDD coding, lint, review, testing, documentation."
 problem: "A story gets coded straight off its task list, so architecture fit, review, and coverage are skipped once the code looks right, and nothing records what was built for the stories downstream."
 outcome: "One story file is closed out - status flipped, tasks and acceptance criteria checked, a What Was Built record appended, and the implementing commit SHA written into its header."
+entry_level: high
 exit_criteria:
   - "the story file header reads Status: Completed and carries a > **Commit:** line holding the full SHA of the completion commit, written once rather than duplicated on re-runs"
   - "the story file ends with a ## What Was Built section naming files created, files modified, and test results, and user-stories/README.md progress counts match it"

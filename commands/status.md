@@ -3,6 +3,7 @@ name: status
 description: "Orient in under 10 seconds: config, active spec, in-flight batch work, and what to do next."
 problem: "Picking work back up means re-deriving position from scattered sources — config, the newest spec folder, execution state files, the issue backlog — before anything can start."
 outcome: "One skimmable orientation over the active spec, any in-flight batch execution and the stale-issue backlog, with .writ/context.md rewritten to agree with it."
+entry_level: any
 exit_criteria:
   - ".writ/context.md has been replaced wholesale and carries an Active Spec section, an Artifact Map and a current Last Updated timestamp"
   - "the report names the active spec and its story progress or states that none is active, and ends with 2 to 4 suggested next actions"

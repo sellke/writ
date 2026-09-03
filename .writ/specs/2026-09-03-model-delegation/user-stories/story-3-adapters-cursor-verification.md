@@ -1,6 +1,7 @@
 # Story 3: Adapters and Platform Files — Verified Cursor Floor, Origin Sources, Resolution Tables
 
 > **Status:** Completed ✅ (2026-09-03)
+> **Commit:** 172825394048ce4a45ebd28d9cdd38e3c63e1633
 > **Priority:** High
 > **Dependencies:** Story 1
 

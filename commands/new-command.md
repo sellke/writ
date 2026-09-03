@@ -3,6 +3,7 @@ name: new-command
 description: "Create a new Writ command contract-first, challenging whether it is needed and surfacing overlap with existing commands before writing files."
 problem: "New commands get written ad hoc — duplicating a command that already exists, or shipping without the structure the rest of commands/ carries."
 outcome: "One agreed commands/<name>.md exists, structurally consistent with its neighbours and cross-referenced from the commands it relates to."
+entry_level: standard
 exit_criteria:
   - "commands/<name>.md exists and carries Overview, Invocation, Command Process, Integration with Writ, Completion, and References headings"
   - "no other file in commands/ declares the same name: value"

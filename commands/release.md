@@ -3,6 +3,7 @@ name: release
 description: "Run the release lifecycle: changelog from completed stories, version bump, git tag, and optional GitHub release, behind an inline release gate."
 problem: "Cut by hand, the version files, the changelog entry and the tag drift apart, leaving a published version nobody can trace back to the work it contains."
 outcome: "One version number is cut consistently across every detected version file, the changelog and an annotated tag, with the specs it shipped attributed in the entry."
+entry_level: standard
 exit_criteria:
   - "VERSION holds the new version and differs from its pre-run value, and every other detected version file agrees with it"
   - "CHANGELOG.md contains a heading for <VERSION> whose entries derive from specs completed since the previous release tag"

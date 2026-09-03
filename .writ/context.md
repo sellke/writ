@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-03T21:40:00Z
+> Last Updated: 2026-09-03T22:22:00Z
 
 ## Product Mission
 
@@ -10,16 +10,21 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-09-03-model-delegation — Model Delegation: Anchor, Floor, Origin, Escalation
 - **Status:** In Progress
-- **Story:** 2 of 5 — Agents, Manifest, Scaffolders (Completed ✅); next: Story 3 (adapters + Cursor verification)
-- **Progress:** 13/33 tasks complete (39%); 10/25 acceptance criteria met
+- **Story:** 3 of 5 — Adapters + Cursor Verification (Completed ✅); next: Story 5 (`entry_level` on 31 commands), then Story 4 (escalation)
+- **Progress:** 20/33 tasks complete (61%); 15/25 acceptance criteria met
 
-Stories 1–2 landed the ADR-024 contract and migrated the carriers: `system-instructions.md`
-§ Model Tiers (anchor/floor, two-question derivation, origin, ceiling, resolution order,
-escalate-once, `entry_level`), its `cursor/writ.mdc` mirror, `.writ/docs/model-tiers.md`, the
-lint grammar (aliases warned until 0.35.0); all 7 agents now declare `anchor|floor`, `"fast"` is
-gone from `agents/`, the manifest carries `model_tier` only, `gen-skill.sh` renders a `Tier`
-column, and `/new-command` scaffolds `entry_level`. Still stale until Story 3: `adapters/*.md`,
-`claude-code/agents/*.md`, `codex/agents/*.toml`, `scripts/gen-codex-agent-tomls.py`.
+Stories 1–3 landed the ADR-024 contract, migrated the carriers, and verified the platforms:
+`system-instructions.md` § Model Tiers (anchor/floor, two-question derivation, origin, ceiling,
+resolution order, escalate-once, `entry_level`), its `cursor/writ.mdc` mirror,
+`.writ/docs/model-tiers.md`, lint aliases (warned until 0.35.0); all 7 agents declare
+`anchor|floor`, manifest carries `model_tier` only, `gen-skill.sh` renders `Tier`, `/new-command`
+scaffolds `entry_level`; four adapters carry Origin source · `anchor` · `floor` · escalation tables
+(Cursor verified 2026-09-03 from a Fable 5.1/high origin: `"fast"` accepted but self-reports the
+anchor, `inherit[effort=low]` rejected, `claude-opus-5-thinking-high` resolves below; OpenClaw
+unverified), Claude Code agents `inherit`/`haiku`, Codex floor is effort-only
+(`model_reasoning_effort = "low"`), `"fast"` is gone from every carrier. Remaining: Story 5
+(`entry_level` on every command + lint test), Story 4 (escalate-once at `create-spec` 2.6a and
+Gate 0 — must cite DEV-008: Opus-origin Cursor emits `degraded`, not a silent collapse).
 
 ## Artifact Map
 
@@ -31,18 +36,20 @@ column, and `/new-command` scaffolds `entry_level`. Still stale until Story 3: `
 
 ## Recent Drift
 
-- [DEV-006] Story 1 Gate-5 doc handoff (`README.md`, `AGENTS.md`, `component-contract.md`) edited in Story 2 — Small
+- [DEV-008] Opus-origin Cursor sessions emit `degraded(reason=no lower same-family slug listed)` rather than collapsing silently; "family floor" = vendor's bottom tier — Medium (resolved in Story 3; Story 4 must cite)
+- [DEV-007] Cursor `floor` cell states rule (a); the dated verification record names the observed slug — Small
 - [DEV-005] Generator drops `model` entirely; `Tier` column replaces `Model` — Medium (technical-spec §1 amendment suggested)
-- [DEV-004] Template comment uses `model_tier=floor`, not `model_tier: floor` — Small
 
 ## Open Issues
 
-5 files under `.writ/issues/` (new: `test-integrity.py authenticity` flags every bash test as `test_imports_no_source`).
+5 files under `.writ/issues/` (`test-integrity.py authenticity` flags bash tests and importlib-by-path Python tests as `test_imports_no_source` — two occurrences recorded).
 
 ## Verification State
 
-- `bash scripts/eval.sh` — Findings: 0 (after Story 2)
+- `bash scripts/eval.sh` — Findings: 0 (after Story 3; pre-existing leanness warning set unchanged)
+- `python3 -m unittest discover -s scripts/tests -p 'test_gen_codex*'` — 5/5 OK; `python3 scripts/gen-codex-agent-tomls.py` byte-stable
 - `bash scripts/tests/test_lint_model_tier.sh` — OK (15 cases); `test_model_tier_migration.sh` — OK
 - `bash scripts/gen-skill.sh --check` — exit 0 (pure-bash and yq parsers); `check-agent-parity.sh` — OK
-- `python3 -m unittest discover -s scripts/tests` — 703 ran; 7 pre-existing environmental errors (missing `pytest`, symlink-loop case)
+- `rg '"fast"' adapters/ claude-code/ codex/` → 0; `rg -n 'Origin source' adapters/*.md` → 4
+- `python3 -m unittest discover -s scripts/tests` — 708 ran; 7 pre-existing environmental errors (missing `pytest`, symlink-loop case)
 - Mirror: `diff <(sed '/^## Self-Dogfooding/,$d' cursor/writ.mdc | sed '$d') system-instructions.md` → empty

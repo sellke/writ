@@ -3,6 +3,7 @@ name: assess-spec
 description: "Analyze an unbuilt spec for implementability risks - oversized stories, deep dependency chains, file-overlap conflicts - and recommend decomposition. Run when a spec feels too heavy to build."
 problem: "An oversized or deeply chained spec reads fine on paper and only fails once /implement-spec is halfway through it, with orchestrator context already spent."
 outcome: "The unbuilt spec has a stated implementability rating backed by all six checks, with every flag paired with a concrete before/after decomposition."
+entry_level: high
 exit_criteria:
   - "all six checks have a recorded result, including the ones that passed"
   - "the spec has exactly one overall rating of Ready to implement, Implementable with adjustments, or Needs restructuring"

@@ -3,6 +3,7 @@ name: create-issue
 description: "Fast-capture a bug, feature, or improvement mid-development in under 2 minutes. Speed over completeness."
 problem: "A bug or idea spotted mid-build either derails the task in hand or is lost, because writing it up properly costs more than the interruption is worth."
 outcome: "A dated file under .writ/issues/<type>/ holds enough to act on later — type, priority, effort, and the current-versus-expected gap — without ending the current task."
+entry_level: standard
 exit_criteria:
   - "the file is at .writ/issues/<bugs|features|improvements>/<YYYY-MM-DD>-<slug>.md with a slug of at most 40 characters"
   - "the file carries Type, Priority, and Effort metadata plus TL;DR, Current State, and Expected Outcome sections"

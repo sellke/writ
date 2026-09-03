@@ -3,6 +3,7 @@ name: retro
 description: "Turn git history into a retrospective: what shipped, how fast, what patterns emerged, and how it compares to the previous period."
 problem: "How a stretch of work actually went gets answered from memory, while the git history that could measure it is never reduced to anything a person will read."
 outcome: "A retrospective over a bounded period backed by measured git metrics, plus a persisted snapshot that gives the next period something to be compared against."
+entry_level: standard
 exit_criteria:
   - ".writ/retros/YYYY-MM-DD.json exists carrying the period start and end dates, commit and net-line counts, session and streak figures, and the Ship of the Week commit hash"
   - "the report header names the period, branch and timezone, and each metric shows a delta against the prior snapshot or is marked as having no baseline"
