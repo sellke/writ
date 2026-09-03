@@ -1,7 +1,7 @@
 # ADR-025: Friction Signals — Record Locally, Nudge Quietly, Let the Human Send It Upstream
 
 > **Date:** 2026-09-03
-> **Status:** Proposed
+> **Status:** Accepted
 > **Category:** Framework Architecture
 > **Extends:** [ADR-022](adr-022-autonomy-gate-classes.md) (nothing leaves the machine or changes a command without a human gate), [ADR-014](adr-014-skill-lifecycle.md) (three occurrences make a pattern), Phase 7's evidence-bound `/refresh-command`
 > **Constrains:** [ADR-017](adr-017-git-notes-audit-channel.md) — not extended; friction is not commit-shaped

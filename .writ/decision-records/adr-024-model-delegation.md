@@ -1,11 +1,12 @@
 # ADR-024: Model Delegation — Orchestrators Anchor, Executors Floor, Failures Escalate
 
 > **Date:** 2026-09-03
-> **Status:** Proposed
+> **Status:** Accepted
 > **Category:** Framework Architecture
 > **Supersedes:** [ADR-016](adr-016-model-tier-delegation.md) — its vocabulary, its advisory carriers, and its reserved ordinal ladder; its agent-as-carrier boundary and graceful degradation are kept
 > **Extends:** [ADR-009](adr-009-command-agent-skill-boundary.md) (only agents are spawned, so only agents get a model), [ADR-023](adr-023-stakes-proportional-diligence.md) (the two-question triage shape)
 > **Deciders:** @AdamSellke
+> **Amended:** 2026-09-03 — origin capture, anchor-as-ceiling, and `entry_level` on commands (see § Amendments; Decision 5 is revised there)
 > **Research:** [`2026-09-03-family-relative-model-routing-research.md`](../research/2026-09-03-family-relative-model-routing-research.md)
 
 ## Decision
@@ -158,6 +159,16 @@ Single spec, four stories, no new tooling beyond one adapter verification. **Pre
 - ADR-016 shows `Superseded` with a link here; the roadmap parking lot carries the spec as a candidate.
 
 **Review date: 2026-12-02** (90 days). The review reads `escalated` counts per floor agent from ADR-025's ledger. A floor agent whose escalation rate approaches the break-even (`1 − f/a`, roughly 0.8 at a five-to-one price gap) is moved to `anchor`; a floor agent that never escalates is left alone; a floor agent in between is the trigger to reopen Option E. If the ledger is empty because ADR-025 did not ship, the review question is why not.
+
+## Amendments
+
+**2026-09-03 — recorded during `/create-spec` for this ADR, at the maintainer's direction.** Three clarifications that the contract discussion showed the Decision left implicit. None changes an agent's tier; the Implementation Plan gains one story (entry-level check) and the spec is five stories, not four.
+
+**A1. The anchor is the origin, and Writ knows it.** "The user's session model" was carried only implicitly, through the platform's `inherit`. That is sufficient for `anchor` and for escalation, but two paths need Writ to *know* the origin rather than inherit it: family-locking the floor (Decision 3a requires the family), and not stepping below where the user already is. So: at command entry, the commands that spawn agents capture the **origin** as the harness reveals it — `anchor.model` (name or `unknown`), `anchor.effort` (`low|medium|high|…` or `unknown`), `anchor.platform` — by *reading*, never by asking. The origin is stamped on every spawn decision and on every `escalated`/`degraded` line, which is what makes those lines legible. Per-platform origin sources belong in the adapter tables. Known limit: Claude Code reveals the model but not reliably the session effort; `anchor.effort` will usually be `unknown` there, and the effort path uses `low` absolute.
+
+**A2. The anchor is the ceiling.** No spawn resolves above `anchor.model` or above `anchor.effort`. Escalation returns *to* the anchor, never past it — the user's choice of model and thinking level is a cost decision Writ does not override. Decision 3 is read with this constraint: the floor is the cheapest same-family configuration **at or below the origin**; when the origin already sits at the family floor, `floor` collapses to `anchor`, the run says so once, and that is correct behavior — not degradation.
+
+**A3. Commands carry `entry_level`, not `model_tier` — Decision 5 revised.** If Writ can only step down from the entry point, the one useful thing a command can do about its own weight is tell the user when they have entered below what it needs. Every command therefore declares `entry_level: high | standard | any` in its existing frontmatter — the same carrier the advisory `model_tier` occupied, with a different meaning: not *what this command runs at* (Writ cannot choose) but *what it expects the user to have chosen*. The value is derived by two questions in Decision 2's shape: **Q1** — does the command spawn agents, lock a contract, or make a judgment the user acts on without a later gate? → `high`. **Q2** — does it create or modify artifacts? → `standard`. Otherwise → `any`. At entry the command compares the captured origin against its level and, if below, prints **one line and continues** — never a question, once per session — because the answer only changes what happens if the user restarts, which is the user's call. Writ maintains no model ranking to make that comparison: the running model self-assesses against plain guidance (`high` expects a frontier-class model of its family at a non-minimal thinking level; `standard` a non-smallest model or medium-plus effort; `any` nothing). Skills carry nothing, as before. The maintainer's example ordered `/implement-spec` above `/implement-story`; the rule places both at `high` and this ADR declines a finer ordering — `/implement-story` adjudicates five gates and there is no evidence for ranking the two, which ADR-023 forbids inventing.
 
 ## Dissent and Corrections
 
