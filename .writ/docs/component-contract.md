@@ -51,7 +51,7 @@ Six agents use `## Agent Configuration` with an **unlabeled** fence:
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
-model_tier: orchestration
+model_tier: anchor
 readonly: false
 problem: "..."
 outcome: "..."

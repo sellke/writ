@@ -11,6 +11,9 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 | DEV-001 | 1 | Small | Entry notice rendered with inline code spans, not a code-span-escaped line |
 | DEV-002 | 1 | Small | `cursor/writ.mdc` regenerated whole-file, closing a pre-existing § Skills drift |
 | DEV-003 | 1 | Small | `.writ/leanness-baseline.json` gained dated `system_instructions` justifications |
+| DEV-004 | 2 | Small | Template comment uses `model_tier=floor`, not `model_tier: floor` |
+| DEV-005 | 2 | Medium | Generator drops `model` entirely; `Tier` column replaces `Model` |
+| DEV-006 | 2 | Small | Story 1 Gate-5 doc handoff (`README.md`, `AGENTS.md`, `component-contract.md`) edited in Story 2 |
 
 ---
 
@@ -51,3 +54,36 @@ justifications were added under `surfaces.system_instructions.justifications`.
 `BASE_BYTE_CAP` in `scripts/eval-leanness.py` was not raised; its pre-existing non-blocking
 warning grows from 837 to 2,549 bytes over. **Why:** the ratchet is the only path by which the
 root contract can grow with `Findings: 0`, and a dated justification is the file's convention.
+
+## DEV-004 — Template comment uses `model_tier=floor`
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-03, Gate 1
+
+**Spec said:** Task 2.3's example comment reads `…from model_tier: floor (ADR-024)…`.
+**Implementation did:** `# model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded` (×6).
+**Why:** the colon form would make `grep -rn 'model_tier:' agents/` return 13, breaking AC-2.1's
+"exactly 7", and would match the lint's unanchored `model_tier:` scan on prose. `spec-lite.md` amended.
+
+## DEV-005 — Generator drops `model`; `Tier` column replaces `Model`
+
+**Severity:** Medium · **Story:** 2 · **Found:** 2026-09-03, Gate 0
+
+**Spec said:** technical-spec §1:20–24 — make `model` optional in `gen-skill.sh`, "render `model` only
+when present as an override", read `model_tier` for the tier column. **Implementation did:**
+`gen-skill.sh` reads only `.model_tier` (both parser paths), requires it non-empty, and renders a
+single `Tier` column; `model` is neither parsed nor rendered. **Why:** Business Rule 6 removes every
+manifest `model:` line, so an override column would be permanently empty — a dead column with no
+reader. The story's own Task 2.4 already specified this shape; the tech spec and the story disagreed.
+**Flagged for review:** technical-spec §1 should be amended to "drop `model` from the manifest
+schema and generator; the agent-file `model:` remains the override". `spec.md` not modified.
+
+## DEV-006 — Story 1's doc handoff edited in Story 2
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-03, Gate 0
+
+**Spec said:** Story 2 surface = `agents/*.md`, manifest, `gen-skill.sh`, `SKILL.md`, `new-command.md`,
+`new-skill.md`. **Implementation did:** one-line edits to `README.md:159`, `AGENTS.md:63`,
+`.writ/docs/component-contract.md:54` replacing `orchestration`/`capability` and the "commands and
+skills carry the same field, but only advisory" clause. **Why:** deferred from Story 1's Gate 5 because
+the sentences describe what agents declare, which changes here; leaving them would ship user-facing
+docs contradicting the contract. `spec-lite.md` amended.

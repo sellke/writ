@@ -114,15 +114,15 @@ and unlink manage this file alongside its reducer.
 
 ## Available Agents
 
-| Agent | File | Model | Purpose |
-|-------|------|-------|---------|
-| architecture-check-agent | `agents/architecture-check-agent.md` | fast | Pre-implementation design review that catches architecture risks before coding. |
-| coding-agent | `agents/coding-agent.md` | default | TDD implementation agent that writes code, follows conventions, and self-verifies. |
-| documentation-agent | `agents/documentation-agent.md` | default | Framework-adaptive documentation agent for feature, component, and architecture docs. |
-| review-agent | `agents/review-agent.md` | default | Quality gate agent that verifies acceptance criteria, code quality, tests, and drift. |
-| testing-agent | `agents/testing-agent.md` | default | Test and coverage agent that verifies pass rate, regressions, and coverage thresholds. |
-| user-story-generator | `agents/user-story-generator.md` | fast | Parallel story authoring agent for create-spec workflows. |
-| visual-qa-agent | `agents/visual-qa-agent.md` | inherit | Optional UI validation gate that compares implementation screenshots against visual references. |
+| Agent | File | Tier | Purpose |
+|-------|------|------|---------|
+| architecture-check-agent | `agents/architecture-check-agent.md` | floor | Pre-implementation design review that catches architecture risks before coding. |
+| coding-agent | `agents/coding-agent.md` | anchor | TDD implementation agent that writes code, follows conventions, and self-verifies. |
+| documentation-agent | `agents/documentation-agent.md` | anchor | Framework-adaptive documentation agent for feature, component, and architecture docs. |
+| review-agent | `agents/review-agent.md` | anchor | Quality gate agent that verifies acceptance criteria, code quality, tests, and drift. |
+| testing-agent | `agents/testing-agent.md` | anchor | Test and coverage agent that verifies pass rate, regressions, and coverage thresholds. |
+| user-story-generator | `agents/user-story-generator.md` | floor | Parallel story authoring agent for create-spec workflows. |
+| visual-qa-agent | `agents/visual-qa-agent.md` | anchor | Optional UI validation gate that compares implementation screenshots against visual references. |
 
 ## Available Skills
 

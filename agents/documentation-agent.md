@@ -9,7 +9,7 @@ Specialized agent for creating and maintaining developer documentation. Detects 
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
-model_tier: orchestration
+model_tier: anchor
 readonly: false  # CRITICAL: Must be false - agent creates documentation files!
 problem: "Docs get written for a site generator the project does not have, or dumped into loose markdown next to the spec, so shipped behavior ends up described where no reader looks."
 outcome: "A DOCS_UPDATED verdict that names the framework actually detected, with pages filed in that framework's own location and inline JSDoc or docstrings on the changed public surface."

@@ -23,7 +23,7 @@ description: Validates UI implementation against mockups and design specificatio
 tools: Read, Bash, Browser
 disallowedTools: Write, Edit
 model: inherit
-model_tier: orchestration
+model_tier: anchor
 readonly: true
 maxTurns: 20
 problem: "A UI story can clear tests and review while looking nothing like its mockups, and the only gate that would notice is optional — it runs solely when visual references were attached."

@@ -8,8 +8,7 @@ Specialized agent for generating individual user story files as part of the crea
 
 ```
 subagent_type: "generalPurpose"
-model: "fast"
-model_tier: capability
+model_tier: floor
 problem: "Writing story files one at a time inside the create-spec conversation stalls the spec and lets each story drift into a different shape than its siblings."
 outcome: "One story file at this instance's assigned path, carrying its own criteria, tasks, and context hints that index into the spec rather than copying it."
 exit_criteria:
@@ -53,7 +52,7 @@ Use this template when spawning the agent:
 ```
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story {story_number}",
   prompt: `You are a User Story Generator agent. Create a focused, actionable user story file.
 
@@ -203,28 +202,28 @@ When the create-spec command reaches Step 2.6, spawn multiple instances:
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story 1",
   prompt: `[Use template above with story 1 details]`
 })
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story 2",
   prompt: `[Use template above with story 2 details]`
 })
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story 3",
   prompt: `[Use template above with story 3 details]`
 })
 
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story 4",
   prompt: `[Use template above with story 4 details]`
 })

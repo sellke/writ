@@ -9,7 +9,7 @@ Specialized agent for implementing user story code following TDD principles. Spa
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
-model_tier: orchestration
+model_tier: anchor
 readonly: false
 problem: "Story tasks turn into code with no test written first and no suite run before handoff, so the review gate inherits work whose failures nobody has seen yet."
 outcome: "The story's tasks implemented test-first, with a summary naming every file touched, every test written, and the result of running them."

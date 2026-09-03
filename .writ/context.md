@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-03T21:05:00Z
+> Last Updated: 2026-09-03T21:40:00Z
 
 ## Product Mission
 
@@ -10,15 +10,16 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-09-03-model-delegation — Model Delegation: Anchor, Floor, Origin, Escalation
 - **Status:** In Progress
-- **Story:** 1 of 5 — The Contract (Completed ✅); next: Story 2 (agents, manifest, scaffolders)
-- **Progress:** 6/33 tasks complete (18%); 5/25 acceptance criteria met
+- **Story:** 2 of 5 — Agents, Manifest, Scaffolders (Completed ✅); next: Story 3 (adapters + Cursor verification)
+- **Progress:** 13/33 tasks complete (39%); 10/25 acceptance criteria met
 
-Story 1 landed the ADR-024 contract: `system-instructions.md` § Model Tiers (anchor/floor,
-two-question derivation, origin, ceiling, resolution order, escalate-once, `entry_level`
-subsection with the normative notice), `cursor/writ.mdc` regenerated as its mirror,
-`.writ/docs/model-tiers.md` rewritten, and `scripts/lint-skill.sh` accepting `anchor|floor`
-with `orchestration`/`capability` as warned aliases until 0.35.0 plus `entry_level` validation.
-Agents still carry the old values (lint warns, not fails) until Story 2.
+Stories 1–2 landed the ADR-024 contract and migrated the carriers: `system-instructions.md`
+§ Model Tiers (anchor/floor, two-question derivation, origin, ceiling, resolution order,
+escalate-once, `entry_level`), its `cursor/writ.mdc` mirror, `.writ/docs/model-tiers.md`, the
+lint grammar (aliases warned until 0.35.0); all 7 agents now declare `anchor|floor`, `"fast"` is
+gone from `agents/`, the manifest carries `model_tier` only, `gen-skill.sh` renders a `Tier`
+column, and `/new-command` scaffolds `entry_level`. Still stale until Story 3: `adapters/*.md`,
+`claude-code/agents/*.md`, `codex/agents/*.toml`, `scripts/gen-codex-agent-tomls.py`.
 
 ## Artifact Map
 
@@ -30,9 +31,9 @@ Agents still carry the old values (lint warns, not fails) until Story 2.
 
 ## Recent Drift
 
-- [DEV-001] Entry notice rendered with inline code spans, not a code-span-escaped line — Small (Story 1)
-- [DEV-002] `cursor/writ.mdc` regenerated whole-file, closing a pre-existing § Skills drift — Small (Story 1)
-- [DEV-003] `.writ/leanness-baseline.json` gained dated `system_instructions` justifications — Small (Story 1)
+- [DEV-006] Story 1 Gate-5 doc handoff (`README.md`, `AGENTS.md`, `component-contract.md`) edited in Story 2 — Small
+- [DEV-005] Generator drops `model` entirely; `Tier` column replaces `Model` — Medium (technical-spec §1 amendment suggested)
+- [DEV-004] Template comment uses `model_tier=floor`, not `model_tier: floor` — Small
 
 ## Open Issues
 
@@ -40,7 +41,8 @@ Agents still carry the old values (lint warns, not fails) until Story 2.
 
 ## Verification State
 
-- `bash scripts/eval.sh` — Findings: 0, `prime-directive-sync` PASS (Story 1)
-- `bash scripts/tests/test_lint_model_tier.sh` — OK (15 cases)
+- `bash scripts/eval.sh` — Findings: 0 (after Story 2)
+- `bash scripts/tests/test_lint_model_tier.sh` — OK (15 cases); `test_model_tier_migration.sh` — OK
+- `bash scripts/gen-skill.sh --check` — exit 0 (pure-bash and yq parsers); `check-agent-parity.sh` — OK
 - `python3 -m unittest discover -s scripts/tests` — 703 ran; 7 pre-existing environmental errors (missing `pytest`, symlink-loop case)
 - Mirror: `diff <(sed '/^## Self-Dogfooding/,$d' cursor/writ.mdc | sed '$d') system-instructions.md` → empty

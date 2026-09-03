@@ -8,8 +8,7 @@ Pre-implementation review agent that validates the planned approach before any c
 
 ```
 subagent_type: "generalPurpose"
-model: "fast"
-model_tier: capability
+model_tier: floor
 readonly: true   # This agent MUST NOT modify any files
 problem: "A story's task list is judged only by whoever wrote it, so infeasible approaches and hidden integration risk are discovered after the code exists, when they are expensive to undo."
 outcome: "A single ARCH_CHECK verdict on the plan as written, plus risk-rated findings, task-split suggestions, and any path-level warnings Gate 0.5 turns into boundary demotions."
@@ -45,7 +44,7 @@ exit_criteria:
 ```
 Task({
   subagent_type: "generalPurpose",
-  model: "fast",  # mirrors model_tier: capability — see Agent Configuration above
+  # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   readonly: true,
   description: "Architecture pre-check for story N",
   prompt: `You are the Architecture Check Agent. Your job is to review the planned implementation approach and flag concerns BEFORE any code is written.
