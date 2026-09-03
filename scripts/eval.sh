@@ -41,6 +41,7 @@ CHECKS=(
   roadmap-sync
   story-deps
   story-context
+  model-escalation
   phase-lanes
   phase-challenges
   phase-quarantine
@@ -2274,6 +2275,24 @@ check_story_context() {
   require_literal "$implement_story" '| Review Agent (Gate 3) |' "implement-story.md must retain the per-gate routing table's Review Agent row."
   require_literal "$implement_story" '| Testing Agent (Gate 4) |' "implement-story.md must retain the per-gate routing table's Testing Agent row."
   require_literal "$implement_story" '| Documentation Agent (Gate 5) |' "implement-story.md must retain the per-gate routing table's Documentation Agent row."
+}
+
+check_model_escalation() {
+  # ADR-024 escalate-once (model-delegation Story 4): the two floor-tier sites
+  # must state the one-attempt iteration accounting verbatim and emit the
+  # `escalated` line ADR-025 will record. ADR-025 must keep the `escalated(`
+  # tuple as its `detail` payload or update these pins in the same change.
+  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
+  local implement_story="$PROJECT_ROOT/commands/implement-story.md"
+  local iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
+  local noop_prefix='(no-op until ADR-025 Story 1)'
+
+  require_literal "$create_spec" "$iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
+  require_literal "$implement_story" "$iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
+  require_literal "$create_spec" 'escalated(agent=user-story-generator, site=create-spec.2.6, origin=' "create-spec.md must emit the escalated line for the Step 2.6 story-validation site (site label is create-spec.2.6, never 2.6a)."
+  require_literal "$implement_story" 'escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=' "implement-story.md must emit the escalated line for the Gate 0 ABORT site."
+  require_literal "$create_spec" "$noop_prefix" "create-spec.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
+  require_literal "$implement_story" "$noop_prefix" "implement-story.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
 }
 
 check_phase_lanes() {

@@ -151,3 +151,15 @@ command-path routing cases. **DEV-013:** Task 5.5 assumed `lint-skill.sh command
 it produced 49 inapplicable skill-boundary/lifecycle findings, so the dispatch loop now routes
 `commands/[!/]*.md` (basename not `SKILL.md`) to `lint_command_file()` — value checks only.
 `spec-lite.md` amended for all four.
+
+## DEV-014–015 — Story 4 corrections (Small)
+
+**Found:** 2026-09-03, Gate 1/4. **DEV-014:** Task 4.2's `ac-trace.py check --spec <folder>` scans
+the whole repo for citations by default; at Step 2.6a no story is Completed (`untested_criterion`
+cannot fire) and other specs' `dangling_reference`s would be attributed to these story numbers, so
+the command passes `--repo <spec folder>` as well. `/verify-spec` keeps `--repo .`. **DEV-015:**
+`scripts/tests/test_governor_enforcement.py` (not a listed surface) was already red at HEAD — Story
+5's 31 `entry_level:` lines pushed six commands past `KNOWN_OVER_BUDGET`, and the test asserts
+exact overage equality — so the pins were re-measured in-story with a dated disclosure (create-spec
+24036 → 25992, implement-story 2730 → 4102, four Story 5 files +18–22). No budget recovery (ADR-023).
+`spec-lite.md` amended for both.

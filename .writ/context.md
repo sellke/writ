@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-03T22:22:00Z
+> Last Updated: 2026-09-03T23:04:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-09-03-model-delegation — Model Delegation: Anchor, Floor, Origin, Escalation
 - **Status:** In Progress
-- **Story:** 3 of 5 — Adapters + Cursor Verification (Completed ✅); next: Story 5 (`entry_level` on 31 commands), then Story 4 (escalation)
-- **Progress:** 20/33 tasks complete (61%); 15/25 acceptance criteria met
+- **Story:** 5 of 5 — Entry-Level Check (Completed ✅); next and last: Story 4 (escalation at `create-spec` 2.6a and Gate 0)
+- **Progress:** 27/33 tasks complete (82%); 20/25 acceptance criteria met
 
 Stories 1–3 landed the ADR-024 contract, migrated the carriers, and verified the platforms:
 `system-instructions.md` § Model Tiers (anchor/floor, two-question derivation, origin, ceiling,
@@ -22,9 +22,11 @@ scaffolds `entry_level`; four adapters carry Origin source · `anchor` · `floor
 (Cursor verified 2026-09-03 from a Fable 5.1/high origin: `"fast"` accepted but self-reports the
 anchor, `inherit[effort=low]` rejected, `claude-opus-5-thinking-high` resolves below; OpenClaw
 unverified), Claude Code agents `inherit`/`haiku`, Codex floor is effort-only
-(`model_reasoning_effort = "low"`), `"fast"` is gone from every carrier. Remaining: Story 5
-(`entry_level` on every command + lint test), Story 4 (escalate-once at `create-spec` 2.6a and
-Gate 0 — must cite DEV-008: Opus-origin Cursor emits `degraded`, not a silent collapse).
+(`model_reasoning_effort = "low"`), `"fast"` is gone from every carrier; all 31 commands declare
+`entry_level` (14/12/5), `lint-skill.sh` routes `commands/*.md` to value checks only, `eval.sh` notes
+a missing field (non-blocking, frontmatter-scoped). Remaining: Story 4 (escalate-once at
+`create-spec` 2.6a and Gate 0, `require_literal` pins, live forced-invalid run — must cite DEV-008:
+Opus-origin Cursor emits `degraded`, not a silent collapse).
 
 ## Artifact Map
 
@@ -36,9 +38,10 @@ Gate 0 — must cite DEV-008: Opus-origin Cursor emits `degraded`, not a silent 
 
 ## Recent Drift
 
+- [DEV-009] Entry notice's positive path is not observable on Cursor today — every listed slug self-assesses ≥ `high`; harness prompt states no effort — Medium ⚠️ (flagged for ADR-025 ledger; no ranking added)
+- [DEV-010–013] Story 5 task-text corrections: frontmatter-scoped count/predicate, own `entry-level` CHECKS entry, fixtures stay in Story 1's test, lint routing for commands — Small
 - [DEV-008] Opus-origin Cursor sessions emit `degraded(reason=no lower same-family slug listed)` rather than collapsing silently; "family floor" = vendor's bottom tier — Medium (resolved in Story 3; Story 4 must cite)
 - [DEV-007] Cursor `floor` cell states rule (a); the dated verification record names the observed slug — Small
-- [DEV-005] Generator drops `model` entirely; `Tier` column replaces `Model` — Medium (technical-spec §1 amendment suggested)
 
 ## Open Issues
 
@@ -46,7 +49,8 @@ Gate 0 — must cite DEV-008: Opus-origin Cursor emits `degraded`, not a silent 
 
 ## Verification State
 
-- `bash scripts/eval.sh` — Findings: 0 (after Story 3; pre-existing leanness warning set unchanged)
+- `bash scripts/eval.sh` — Findings: 0 (after Story 5; `## entry-level PASS`, no `entry_level` note; pre-existing leanness warning set unchanged)
+- `bash scripts/tests/test_lint_entry_level.sh` 4/4; `test_eval_entry_level_note.sh` 8/8; `bash scripts/lint-skill.sh commands/*.md skills/*/SKILL.md` exit 0
 - `python3 -m unittest discover -s scripts/tests -p 'test_gen_codex*'` — 5/5 OK; `python3 scripts/gen-codex-agent-tomls.py` byte-stable
 - `bash scripts/tests/test_lint_model_tier.sh` — OK (15 cases); `test_model_tier_migration.sh` — OK
 - `bash scripts/gen-skill.sh --check` — exit 0 (pure-bash and yq parsers); `check-agent-parity.sh` — OK

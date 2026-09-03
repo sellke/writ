@@ -1,6 +1,7 @@
 # Story 5: Entry-Level Check — Every Command Declares What It Expects You Chose
 
 > **Status:** Completed ✅ (2026-09-03)
+> **Commit:** d2314b1d172fdb9d69a0a2b3602a2e9440e90ae0
 > **Priority:** Medium
 > **Dependencies:** Story 1
 
