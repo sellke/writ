@@ -1,6 +1,7 @@
 # Story 4: Escalation — Floor Results Are Provisional at Two Sites
 
 > **Status:** Completed ✅ (2026-09-03)
+> **Commit:** dd0af22ecab15b69a602696d7e7ca26ca8a2ca2f
 > **Priority:** High
 > **Dependencies:** Story 2, Story 3
 
