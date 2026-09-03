@@ -1,6 +1,7 @@
 # Story 1: The Contract — Anchor/Floor Vocabulary, Origin, Ceiling, and Lint Aliases
 
 > **Status:** Completed ✅ (2026-09-03)
+> **Commit:** 0fec71fc73e411e049ffad6e9bab490154730667
 > **Priority:** High
 > **Dependencies:** None
 
