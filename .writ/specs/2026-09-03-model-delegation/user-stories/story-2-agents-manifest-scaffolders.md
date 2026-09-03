@@ -1,6 +1,7 @@
 # Story 2: Agents, Manifest, and Scaffolders — Rename Tiers, Retire "fast", Replace the Advisory Carrier
 
 > **Status:** Completed ✅ (2026-09-03)
+> **Commit:** 5d26a461786974cc37ec0a20d9c6f2706a2013e6
 > **Priority:** High
 > **Dependencies:** Story 1
 
