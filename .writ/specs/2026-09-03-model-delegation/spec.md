@@ -1,6 +1,6 @@
 # Model Delegation — Anchor, Floor, Origin, Escalation
 
-> **Status:** Not Started
+> **Status:** In Progress
 > **Created:** 2026-09-03
 > **Owner:** @AdamSellke
 > **Dependencies:** []

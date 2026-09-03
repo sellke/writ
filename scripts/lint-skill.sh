@@ -22,11 +22,10 @@ usage() {
   echo "Lints SKILL.md files against the ADR-009 role convention:" >&2
   echo "  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)" >&2
   echo "  - Body must not invoke commands, skills, subagents, or slash commands" >&2
-  echo "  - Any declared model_tier value (skill or command frontmatter, or an" >&2
-  echo "    agent config block) must be 'orchestration' or 'capability'" >&2
-  echo "    — see ADR-016" >&2
-  echo "    (skill/command values are advisory only — they run at the session/" >&2
-  echo "    caller model; only an agent's model_tier is enforced at spawn)" >&2
+  echo "  - Any declared model_tier value (agent config block) must be 'anchor'" >&2
+  echo "    or 'floor'; 'orchestration'/'capability' warn as aliases — see ADR-024" >&2
+  echo "  - Any declared entry_level value (command frontmatter) must be 'high'," >&2
+  echo "    'standard' or 'any'" >&2
   exit 2
 }
 
@@ -250,17 +249,23 @@ lint_lifecycle() {
   fi
 }
 
-# ---------- model_tier value validation (ADR-016) ----------
-# Advisory (skill and command frontmatter) and enforced (agent config blocks)
-# model_tier declarations share one allowed-value grammar. This check is
-# format-agnostic and scans the ENTIRE raw file (unlike extract_frontmatter,
-# which is fence-gated), so it recognizes one shape wherever it appears:
-#   Key-value:   model_tier: <value>   (skill frontmatter, command frontmatter,
-#                agent Agent Configuration/Specification blocks)
-# A trailing `# comment` or descriptive prose after the value is not part of
-# the value itself — the capture stops at the first non-identifier character,
-# which naturally strips comments/whitespace/placeholder markup.
+# ---------- model_tier / entry_level value validation (ADR-024) ----------
+# model_tier lives on agents only (their Agent Configuration/Specification
+# block) and takes `anchor` or `floor`. entry_level lives on commands only
+# (their `---` frontmatter) and takes `high`, `standard` or `any`.
+#
+# model_tier is scanned across the ENTIRE raw file (unlike extract_frontmatter,
+# which is fence-gated), so the agent config block is recognized wherever it
+# appears. entry_level is anchored on `^entry_level:` so prose mentions of the
+# field never trip it. A trailing `# comment` or prose after a value is not
+# part of the value — the capture stops at the first non-identifier character.
+#
+# Alias window: the ADR-016 values `orchestration` (→ anchor) and `capability`
+# (→ floor) are WARNED, not rejected, until Writ 0.35.0 — the next minor
+# release after the one that ships spec 2026-09-03-model-delegation (0.34.0).
+# At 0.35.0, delete the two alias branches below so both fall into `*`.
 MODEL_TIER_VIOLATIONS=0
+MODEL_TIER_ALIAS_REJECT_RELEASE="0.35.0"
 
 lint_model_tier() {
   local file="$1"
@@ -269,17 +274,25 @@ lint_model_tier() {
 
   while IFS= read -r line || [ -n "$line" ]; do
     line_num=$((line_num + 1))
-    value=""
 
     if [[ "$line" =~ model_tier:[[:space:]]*([A-Za-z0-9-]+) ]]; then
       value="${BASH_REMATCH[1]}"
-    else
-      continue
-    fi
-
-    if ! [[ "$value" =~ ^(orchestration|capability)$ ]]; then
-      echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'orchestration' or 'capability'."
-      MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
+      case "$value" in
+        anchor|floor) ;;
+        orchestration)
+          echo "⚠️ $file:$line_num: model_tier 'orchestration' is a deprecated alias — use 'anchor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
+        capability)
+          echo "⚠️ $file:$line_num: model_tier 'capability' is a deprecated alias — use 'floor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
+        *)
+          echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'anchor' or 'floor'."
+          MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1)) ;;
+      esac
+    elif [[ "$line" =~ ^entry_level:[[:space:]]*([A-Za-z0-9-]+) ]]; then
+      value="${BASH_REMATCH[1]}"
+      if ! [[ "$value" =~ ^(high|standard|any)$ ]]; then
+        echo "❌ $file:$line_num: entry_level '$value' is invalid. Use 'high', 'standard' or 'any'."
+        MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
+      fi
     fi
   done < "$file"
 }

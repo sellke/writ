@@ -13,6 +13,7 @@
 - No new state file: origin is stamped on ADR-017 audit records and `escalated`/`degraded` lines only.
 - `escalated`/`degraded` calls are documented no-ops until ADR-025's spec ships.
 - Every path degrades to `anchor` = `inherit` (today's behavior).
+- *(DEV-001–003, Story 1)* The entry notice renders its placeholders as inline code spans (no backslashes); `cursor/writ.mdc` is regenerated whole-file from `system-instructions.md` + its `## Self-Dogfooding` appendix (verify with `diff <(sed '/^## Self-Dogfooding/,$d' cursor/writ.mdc | sed '$d') system-instructions.md`); root-contract growth is recorded as a dated justification in `.writ/leanness-baseline.json`, never by raising `BASE_BYTE_CAP`.
 
 **Files in Scope:**
 - `system-instructions.md`, `cursor/writ.mdc`, `.writ/docs/model-tiers.md` — rewrite § Model Tiers
