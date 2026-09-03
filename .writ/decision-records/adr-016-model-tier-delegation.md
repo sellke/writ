@@ -1,7 +1,8 @@
 # ADR-016: Model-Tier Delegation — Portable Weight Intent, Agent-as-Carrier
 
 > **Date:** 2026-07-10
-> **Status:** Accepted
+> **Status:** Superseded
+> **Superseded by:** [ADR-024](adr-024-model-delegation.md) (2026-09-03) — keeps this ADR's agent-as-carrier boundary, `model:`-wins precedence, and graceful degradation; replaces the tier vocabulary (`orchestration`/`capability` → `anchor`/`floor`), removes the advisory carrier on commands and skills, and closes the reserved ordinal-offset form, which `2026-08-11-retire-dead-prescription` had already deprecated ahead of the 2026-10-16 trigger below. The body is preserved as written.
 > **Category:** Framework Architecture
 > **Extends:** [ADR-009](adr-009-command-agent-skill-boundary.md) (command/agent/skill boundary)
 
