@@ -36,6 +36,11 @@ commands:
     category: planning
     purpose: "Create architecture decision records with research-backed context."
     tags: [planning, adr, architecture]
+  - name: create-goal
+    file: commands/create-goal.md
+    category: planning
+    purpose: "Interview for a recurring task and write a Goal Card with a checkable finish line, or record that a loop is the wrong tool."
+    tags: [planning, goal, loop, capture]
   - name: create-issue
     file: commands/create-issue.md
     category: planning
@@ -275,6 +280,11 @@ skills:
     description: "Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy."
     status: candidate
     tags: [memory, retrieval, interop]
+  - name: plain-prose
+    file: skills/plain-prose/SKILL.md
+    description: "Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries."
+    status: candidate
+    tags: [prose, style, authoring]
   - name: project-context-snapshot
     file: skills/project-context-snapshot/SKILL.md
     description: "Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources."

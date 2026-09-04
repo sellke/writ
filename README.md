@@ -107,6 +107,7 @@ Feedback loop (/retro + /refresh-command):
 | `/edit-spec` | Safely modify existing specifications |
 | `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
+| `/create-goal` | Goal Card for a recurring task: checkable finish line, stages, stop caps, or a recorded "don't loop this" verdict with a single prompt |
 | `/create-issue` | Quick issue capture (<2 minutes) |
 | `/knowledge` | Capture durable project knowledge (decisions, conventions, glossary, lessons) into `.writ/knowledge/` |
 | `/research` | Systematic 4-phase research workflow |

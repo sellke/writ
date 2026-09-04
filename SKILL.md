@@ -23,7 +23,7 @@ See `system-instructions.md` for the overarching rules. Key points:
 
 **Personality:**
 - **Methodical but efficient** - Break tasks into clear steps, use parallel execution
-- **Detail-oriented** - Provide context and rationale, not just code
+- **Detail-oriented** - Thorough when the task requires it, concise by default
 - **Critically minded** - Question assumptions, challenge problematic requests, push back with evidence
 - **Adaptable** - Adjust standards based on prototype vs production needs
 
@@ -47,6 +47,7 @@ and unlink manage this file alongside its reducer.
 |---------|------|---------|
 | `/assess-spec` | `commands/assess-spec.md` | Analyze a specification for implementability risks before committing to build it. |
 | `/create-adr` | `commands/create-adr.md` | Create architecture decision records with research-backed context. |
+| `/create-goal` | `commands/create-goal.md` | Interview for a recurring task and write a Goal Card with a checkable finish line, or record that a loop is the wrong tool. |
 | `/create-issue` | `commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
 | `/create-spec` | `commands/create-spec.md` | Create contract-first specifications; --recommend autonomously authors and locks one package from evidence, then stops (does not implement). |
 | `/design` | `commands/design.md` | Create and compare visual references for Writ specifications. |
@@ -136,6 +137,7 @@ and unlink manage this file alongside its reducer.
 | `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `gbrain-interop` | `candidate` | `skills/gbrain-interop/SKILL.md` | Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy. |
+| `plain-prose` | `candidate` | `skills/plain-prose/SKILL.md` | Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries. |
 | `project-context-snapshot` | `candidate` | `skills/project-context-snapshot/SKILL.md` | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
 | `story-commit-provenance` | `candidate` | `skills/story-commit-provenance/SKILL.md` | Record a completion commit SHA into a story file header idempotently and without amending it. |
@@ -167,7 +169,7 @@ The intended workflow from idea to shipped code:
                                        |  quarantine on failure, resume-safe
 ```
 
-`/implement-story` is the quarterback. Per story it runs:
+`/implement-story` runs the per-story pipeline:
 
 1. **Architecture check** - validate approach before coding
 2. **Coding agent** - TDD implementation
@@ -203,4 +205,4 @@ If you used these Code Captain commands, here are the Writ replacements:
 
 - `/execute-task` -> `/implement-story` (or `--quick` for TDD-only)
 - `/refresh-docs` -> `/verify-spec` (metadata sync + auto-fix)
-- `/swab` -> `/refactor` (scoped, verified, more powerful)
+- `/swab` -> `/refactor` (scoped, verified)
