@@ -483,7 +483,10 @@ class CommandBudgetTests(unittest.TestCase):
 # 24036 -> 25992 (26003 after the coding pass; -11 from dropping a literal
 # `model_tier:` mention that test_model_tier_migration.sh forbids in
 # commands/), implement-phase.md 11090 -> 11108, verify-spec.md
-# 10298 -> 10320, release.md 8020 -> 8042, ship.md 4488 -> 4510,
+# 10298 -> 10320, release.md 8020 -> 8444 (8042 from entry_level; +402 on
+# 2026-09-04 fixing Step 1.3c's `echo "$JSON" | jq` — zsh's echo expands the
+# ~100 \n escapes in gh's payload and breaks the parse on every run), ship.md
+# 4488 -> 4510,
 # implement-story.md 2730 -> 4102 (4074 after the coding pass; +28 from the
 # review-fix pointing Gate 0 spawn errors at the Agent crash handler). No
 # budget recovery attempted (ADR-023 triage). Acknowledged, not exempted:
@@ -492,7 +495,7 @@ KNOWN_OVER_BUDGET = {
     "commands/create-spec.md": 25992,
     "commands/verify-spec.md": 10320,
     "commands/implement-phase.md": 11108,
-    "commands/release.md": 8042,
+    "commands/release.md": 8444,
     "commands/ship.md": 4510,
     "commands/implement-story.md": 4102,
 }
