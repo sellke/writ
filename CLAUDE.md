@@ -22,7 +22,20 @@ Editing `commands/foo.md`, `.cursor/commands/foo.md`, and `.claude/commands/foo.
 
 ## Development Commands
 
-There is no build, lint, or test command. Validation is manual or via Writ commands:
+There is no build step. The product is markdown, but `scripts/` carries a Python and bash test suite plus `eval.sh`, the repo's quality gate. **Python floor: 3.9** (the macOS system interpreter), declared in `pyproject.toml`; the suite must stay green from 3.9 up, so never rely on newer-only stdlib behavior (a 3.13-only `pathlib` assumption already bit once).
+
+```bash
+# Python tests — `uv run` picks a supported interpreter and provides pytest
+uv run pytest                        # or: uv run --python 3.9 pytest to exercise the floor
+
+# Bash tests
+for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
+
+# Quality gate (does `git init` in a temp dir — run outside any sandbox)
+bash scripts/eval.sh                 # --check=<name> for one check
+```
+
+Validation of the methodology itself is via Writ commands:
 
 ```bash
 # Check spec integrity

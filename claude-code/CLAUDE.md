@@ -42,7 +42,7 @@ Writ uses Claude Code's native subagent system. Agents are defined in `.claude/a
 - `writ-reviewer.md` — Quality + security gate (read-only, persistent memory)
 - `writ-tester.md` — Test execution + coverage enforcement
 - `writ-documenter.md` — Framework-adaptive documentation
-- `writ-story-gen.md` — Parallel story file creation (fast model, worktree)
+- `writ-story-gen.md` — Parallel story file creation (haiku, worktree)
 
 ## Pipeline
 

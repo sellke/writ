@@ -3,6 +3,7 @@ name: refresh-command
 description: "Turn your experience running a Writ command into concrete improvements to that command file. The learning loop."
 problem: "Friction noticed while running a command is forgotten by the next invocation, and edits made from memory land in the command file with nothing recording why they were kept."
 outcome: "commands/<name>.md carries only the amendments that survived the evidence gate, and .writ/refresh-log.md records what was applied alongside what was rejected and for which reason."
+entry_level: high
 exit_criteria:
   - "every amendment written to commands/<name>.md cites a transcript ID or path plus a short observable signal, and no transcript body or chain-of-thought was copied anywhere"
   - "bash scripts/eval.sh --check=refresh-evidence exited 0 before any diff was applied"

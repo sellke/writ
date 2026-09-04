@@ -3,6 +3,7 @@ name: security-audit
 description: "Multi-phase security audit: dependency vulnerabilities, code-level patterns, secrets detection, infrastructure configuration, and compliance posture."
 problem: "Exposure accumulates across dimensions nobody inspects together — a CVE in a lockfile, a committed key, an injection sink, an unpinned workflow — so no single check ever sees the whole posture."
 outcome: "A dated audit file that grades the codebase to one overall risk level, with every finding classified by category and severity and carrying its own remediation."
+entry_level: high
 exit_criteria:
   - ".writ/security/audit-YYYY-MM-DD.md exists with an Executive Summary declaring one overall risk level and a category-by-severity findings table"
   - "each finding carries an ID, a severity, a file-and-line location, and a remediation step"

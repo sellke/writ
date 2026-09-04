@@ -265,31 +265,45 @@ Writ-authored SKILL.md files set `disable-model-invocation: true` so platforms w
 
 ## Model Tiers
 
-Writ agents, commands, and skills express model-weight intent through a portable `model_tier` convention instead of hardcoding platform-specific model names. See [ADR-016](.writ/decision-records/adr-016-model-tier-delegation.md) for the full rationale (agent-as-carrier, relative-not-absolute tiers, staged 2-band resolver).
+Writ delegates by role, not by depth — [ADR-024](.writ/decision-records/adr-024-model-delegation.md), which supersedes ADR-016 (history only). Only **agents** carry `model_tier`, in their existing fenced block — `## Agent Configuration` with a plain fence (6 agents) or `## Agent Specification` with a `yaml` fence (`visual-qa-agent.md`). Commands run at the session model and carry `entry_level` (below); skills carry nothing. A concrete `model:` always wins over `model_tier:`.
 
-**Two named tiers:**
+| Tier | Meaning |
+|---|---|
+| `anchor` | The user's session model — the platform's `inherit`. |
+| `floor` | The cheapest same-family configuration at or below the anchor. |
 
-- `orchestration` — anchor weight; resolves to the platform's `inherit`/default primitive.
-- `capability` — floor weight; resolves to the platform's fastest/cheapest available model.
+**Derive the tier — two questions, in order:**
 
-**Enforcement boundary:** only an **agent's** `model_tier` is enforced at spawn — Writ actually selects a model when instantiating an agent. Command and skill `model_tier` is **advisory only**: a command runs at the user's session model (Writ has no mechanism to override it), and a skill loads into its caller's context (it has no model of its own). Advisory tier documents assumed execution weight for readers; it is never resolved to a concrete model.
+| Question | Yes | No |
+|---|---|---|
+| **Q1.** Does the agent decide anything for others — spawn agents, route context, or judge another agent's output? | `anchor`. Stop. | Ask Q2. |
+| **Q2.** Is its output *bounded* (a template, a checklist verdict, a summary) **and** checked by a later gate or a human before it takes effect? | `floor` | `anchor` |
 
-**Carrier per file type** ("frontmatter" is the umbrella term — the literal carrier differs by file type):
+Applied: `coding-agent` (open-ended), `review-agent`, `testing-agent`, `visual-qa-agent` (judge), `documentation-agent` (nothing checks it) → `anchor`; `architecture-check-agent` (checklist verdict; later gates catch a wrong PROCEED), `user-story-generator` (templated; the user reviews before lock) → `floor`.
 
-- **Skills** (`skills/*/SKILL.md`) carry `model_tier` in real `---` YAML frontmatter, advisory only.
-- **Agents** (`agents/*.md`) carry `model_tier` in their existing fenced **Agent Configuration** block — not a new `---` header. 6 of 7 agents use `## Agent Configuration` with a plain fence; `visual-qa-agent.md` alone uses `## Agent Specification` with a `yaml` fence. Either way, `model_tier` is a new line in that existing block, enforced at spawn.
-- **Commands** (`commands/*.md`) carry `model_tier` in the same `---` YAML frontmatter that already holds `name:` and `description:` — that frontmatter is present in 32/32 files under `commands/` (31 commands plus `_preamble.md`). Advisory only.
+**Origin.** Commands that spawn agents read — never ask — the **origin** at entry: `anchor.model` (name or `unknown`), `anchor.effort` (`low|medium|high|…` or `unknown`), `anchor.platform`. It is stamped as `origin=<model>/<effort>@<platform>` on ADR-017 audit records, `recommendation-log.md` entries, and every `escalated`/`degraded` line — no new state file; the user sees it only in the entry notice below. **The anchor is the ceiling:** no spawn resolves above `anchor.model` or `anchor.effort`, and escalation returns to the anchor, never past it.
 
-**Schema:**
+**Resolve `floor`**, in order, never crossing vendors: (a) the anchor's family at its lowest tier below `anchor.model`, if the platform exposes one; (b) the anchor at the lowest effort below `anchor.effort` (`low` when unknown); (c) the anchor. When the origin already sits at the family floor, `floor` collapses to `anchor`, the run says so once, and no `degraded` line is emitted — that is correct, not degraded. Otherwise (c) emits `degraded`. Per-platform values live in `adapters/*.md`.
 
-- **Allowed values:** `orchestration` or `capability` — regex `^(orchestration|capability)$`.
-- **Unset:** inherits parent/default — identical to today's behavior. No warning.
-- **Precedence:** an explicit concrete `model:` always overrides `model_tier:` (concrete override wins). No warning.
-- **Unknown/unhonorable tier:** warns and falls back to inherit — never hard-fails. Mirrors the `required_skills:` graceful-degradation contract above.
+**Escalate once.** A `floor` result that fails its check, or would interrupt the human, is re-run once at `anchor`; the anchor result stands; the pair counts as one attempt against `loop.max_iterations`; each re-run emits `escalated` (a no-op until ADR-025 Story 1). Sites today: `/create-spec` Step 2.6 story validation and `/implement-story` Gate 0 ABORT.
+
+**Degradation** — nothing hard-fails:
 
 | Condition | Behavior |
 |---|---|
-| `model_tier` unset | Resolve to parent/default (inherit). No warning. |
-| `model_tier: capability` but platform exposes no fast/cheaper model | Warn: "capability tier unavailable on \<platform\>; running at parent model." Fall back to inherit. |
-| `model_tier` value unrecognized at resolution time | Warn: "unknown model_tier '\<value\>'; running at parent model." Fall back to inherit. |
-| Both `model:` and `model_tier:` set | Use `model:` (concrete override wins). No warning. |
+| `model_tier` unset | Inherit (`anchor`). No warning. |
+| `orchestration` / `capability` | Lint warns; resolves as `anchor` / `floor`. Rejected after the alias window `scripts/lint-skill.sh` names. |
+| Unknown value | Lint fails at authoring; at runtime warn `unknown model_tier '<value>'; running at anchor` and run at `anchor`. |
+| Both `model:` and `model_tier:` | `model:` wins. No warning. |
+
+### `entry_level`
+
+Every command declares `entry_level: high | standard | any` in its existing `---` frontmatter, after `outcome:` — not what it runs at (Writ cannot choose) but what it expects the user to have chosen. Derive it: **Q1** — spawns agents, locks a contract (spec/ADR/roadmap/design), or renders an unverified judgment the user acts on (review, audit, research, drift assessment)? → `high`. **Q2** — creates or modifies durable project artifacts (specs, issues, code, docs, git state; derived caches do not count)? → `standard`. Otherwise → `any`. Commands do not repeat the following text:
+
+> At entry, compare the captured origin against this command's `entry_level`. If the origin
+> is below it, print exactly one line and continue:
+> This command expects `<level>` entry; you're running `<model>/<effort>`. Floor-tier retries cannot escalate above this. Consider re-running at a higher thinking level.
+> Print it at most once per session. Never ask. If the origin is `unknown`, skip the check.
+> "Below" is your own assessment against: `high` — a frontier-class model of its family at a
+> non-minimal thinking level; `standard` — a non-smallest model, or medium-plus effort;
+> `any` — nothing.

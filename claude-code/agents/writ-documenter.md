@@ -2,7 +2,7 @@
 name: writ-documenter
 description: Framework-adaptive documentation agent for Writ. Detects the project's doc framework (VitePress, Docusaurus, README, etc.) and creates/updates documentation accordingly.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 permissionMode: acceptEdits
 maxTurns: 25
 ---

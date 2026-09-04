@@ -3,6 +3,7 @@ name: plan-product
 description: "Establish product mission, strategy, and roadmap through structured discovery. Use --reconcile to diff existing product docs against reality."
 problem: "Features get specced with no shared statement of who the product serves or which phase they belong to, and the mission and roadmap drift from what actually shipped."
 outcome: ".writ/product/ carries a mission, roadmap, and mission-lite that agree with what has shipped — authored whole on a greenfield run, edited file-by-file under --reconcile."
+entry_level: high
 exit_criteria:
   - "mission.md, mission-lite.md, and roadmap.md exist in .writ/product/, and each roadmap phase carries an effort estimate and success criteria"
   - "the 000-series product ADRs for posture and market focus exist in .writ/decision-records/"

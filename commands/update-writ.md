@@ -3,6 +3,7 @@ name: update-writ
 description: "Pull the latest Writ release and decide per customized file whether to overwrite, keep, or diff. Not for use in the Writ source repo."
 problem: "Upstream ships new commands, scripts, and docs while some local files were edited on purpose, and a blanket copy would overwrite exactly those edits without asking."
 outcome: "Unmodified files match the new upstream release, each locally modified file was settled by an explicit per-file keep or overwrite choice, and the manifest re-baselines both kinds."
+entry_level: any
 exit_criteria:
   - "every file classified CUSTOMIZED was presented and resolved by an explicit keep or overwrite decision before anything was written"
   - "files the user chose to keep, and stale files whose local hash no longer matches the baseline, are byte-identical before and after the run"

@@ -3,6 +3,7 @@ name: review
 description: "Pre-landing code review focused on failure modes, shadow paths, and interaction edge cases - the things that look fine in a PR and break in production."
 problem: "A diff can read cleanly line by line and still hide the ways it fails — unhandled error paths, shadow paths, interaction edges — until it is running in production."
 outcome: "A per-branch review report that registers each failure mode against a location and closes with an explicit ship or do-not-ship recommendation."
+entry_level: high
 exit_criteria:
   - ".writ/state/review-<branch>.md exists and carries a Failure Modes Registry and a Recommendation section"
   - "the Recommendation reads ready to ship, ship with caution, or do not ship, and follows the highest severity present in the registry"

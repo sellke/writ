@@ -474,13 +474,27 @@ class CommandBudgetTests(unittest.TestCase):
 # command gained a step or a gate -- 6.4 and 4.4 already existed and were
 # incomplete (they never pushed the ref at all, making every note local-only).
 # Acknowledged, not exempted: eval.sh's leanness warning still reports both.
+# Updated 2026-09-03 (spec 2026-09-03-model-delegation, Stories 4 and 5):
+# Story 5 added `entry_level: <value>` (18-22 bytes) to every command
+# frontmatter, growing all six recorded violators; Story 4 adds Step 2.6a
+# (~1.9 KB: ac-trace validation, count bounds, escalate-once regeneration
+# with the `escalated` line) to create-spec.md and the Gate 0 anchor
+# confirmation (~1.3 KB) to implement-story.md. Measured: create-spec.md
+# 24036 -> 25992 (26003 after the coding pass; -11 from dropping a literal
+# `model_tier:` mention that test_model_tier_migration.sh forbids in
+# commands/), implement-phase.md 11090 -> 11108, verify-spec.md
+# 10298 -> 10320, release.md 8020 -> 8042, ship.md 4488 -> 4510,
+# implement-story.md 2730 -> 4102 (4074 after the coding pass; +28 from the
+# review-fix pointing Gate 0 spawn errors at the Agent crash handler). No
+# budget recovery attempted (ADR-023 triage). Acknowledged, not exempted:
+# eval.sh's leanness warning still reports all six.
 KNOWN_OVER_BUDGET = {
-    "commands/create-spec.md": 24036,
-    "commands/verify-spec.md": 10298,
-    "commands/implement-phase.md": 11090,
-    "commands/release.md": 8020,
-    "commands/ship.md": 4488,
-    "commands/implement-story.md": 2730,
+    "commands/create-spec.md": 25992,
+    "commands/verify-spec.md": 10320,
+    "commands/implement-phase.md": 11108,
+    "commands/release.md": 8042,
+    "commands/ship.md": 4510,
+    "commands/implement-story.md": 4102,
 }
 
 

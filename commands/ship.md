@@ -3,6 +3,7 @@ name: ship
 description: "Take a green branch to a merged PR - merge the default branch, organize commits, write the PR description, push, and open it. The last-mile command."
 problem: "The last mile from green branch to open PR is a manual chain — merge default, split commits, write the body, push, open — and a skipped link yields a stale or unreviewable PR."
 outcome: "The branch has the default branch merged into it and its commits grouped by concern, and an open pull request states the change's spec, test and drift position."
+entry_level: standard
 exit_criteria:
   - "the current branch has an origin upstream and its local tip equals the pushed tip"
   - "an open pull request exists whose head is the current branch and whose body carries Summary, Changes, Spec Reference and Test Results sections"

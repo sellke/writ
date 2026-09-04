@@ -2,7 +2,7 @@
 name: writ-tester
 description: Test execution and coverage enforcement for Writ. Runs tests, fixes failures, ensures 80% coverage on new code. Returns PASS or FAIL.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 permissionMode: acceptEdits
 maxTurns: 30
 ---

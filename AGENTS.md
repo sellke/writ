@@ -24,7 +24,20 @@ Editing `commands/foo.md`, `.cursor/commands/foo.md`, or `.claude/commands/foo.m
 
 ## Development Commands
 
-There is no build, lint, or test command. Validation is manual or via Writ commands:
+There is no build step. The product is markdown, but `scripts/` carries a Python and bash test suite plus `eval.sh`, the repo's quality gate. **Python floor: 3.9** (the macOS system interpreter), declared in `pyproject.toml`; the suite must stay green from 3.9 up, so never rely on newer-only stdlib behavior (a 3.13-only `pathlib` assumption already bit once).
+
+```bash
+# Python tests — `uv run` picks a supported interpreter and provides pytest
+uv run pytest                        # or: uv run --python 3.9 pytest to exercise the floor
+
+# Bash tests
+for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
+
+# Quality gate (does `git init` in a temp dir — run outside any sandbox)
+bash scripts/eval.sh                 # --check=<name> for one check
+```
+
+Validation of the methodology itself is via Writ commands:
 
 ```bash
 # Check spec integrity
@@ -60,7 +73,7 @@ Agent definitions for the multi-agent SDLC pipeline within `/implement-story`:
 
 Additional: `visual-qa-agent.md` (optional UI validation), `user-story-generator.md` (parallel story creation for `/create-spec`, generates context hints that index into spec content for targeted agent context).
 
-Each agent declares a `model_tier` (`orchestration` or `capability`) in its Agent Configuration block, enforced at spawn. See [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention — commands and skills carry the same field, but only as advisory documentation (they run at the session/caller model, not Writ-selectable).
+Each agent declares a `model_tier` (`anchor` or `floor`) in its Agent Configuration block, derived by two questions and resolved by the platform adapter at spawn. See [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention.
 
 ### Adapters (`adapters/`)
 Platform-specific integration guides. `adapters/codex.md` maps Writ concepts to Codex CLI subagents, `AGENTS.md`, and `.codex/config.toml`. `cursor.md` maps to Cursor's Task/AskQuestion APIs. `openclaw.md` maps to OpenClaw's session system. Each adapter includes a Skills section documenting per-platform install paths and invocation behavior.

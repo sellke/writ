@@ -9,7 +9,7 @@ Specialized agent for reviewing code implementations and determining if they mee
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
-model_tier: orchestration
+model_tier: anchor
 readonly: true   # Review agent should only read and analyze
 problem: "Code that satisfies its task list can still leave an acceptance criterion unmet or quietly redefine the spec, and nothing else in the pipeline reads those two documents against each other."
 outcome: "A REVIEW_RESULT backed by a per-criterion verdict, a named security risk level, and an Overall Drift classification of the implementation against the spec contract."

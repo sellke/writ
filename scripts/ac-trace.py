@@ -419,7 +419,9 @@ def _walk_candidates(repo: Path) -> list[Path]:
             if child.is_symlink():
                 try:
                     resolved = child.resolve()
-                except OSError:
+                except (OSError, RuntimeError):
+                    # RuntimeError: symlink loop on Python < 3.13 (ELOOP
+                    # OSError, or silent non-resolution, on 3.13+).
                     continue
                 if not _under_repo(resolved, repo):
                     continue
@@ -434,7 +436,7 @@ def _walk_candidates(repo: Path) -> list[Path]:
             if file_path.is_symlink():
                 try:
                     resolved = file_path.resolve()
-                except OSError:
+                except (OSError, RuntimeError):
                     continue
                 if not _under_repo(resolved, repo):
                     continue

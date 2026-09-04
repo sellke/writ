@@ -3,6 +3,7 @@ name: initialize
 description: "Set up a project's technical foundation, auto-detecting greenfield vs brownfield. Infrastructure only - product strategy belongs to plan-product."
 problem: "A project carries no written record of the stack it runs on or the conventions it follows, so every later command re-derives them from the code and guesses differently."
 outcome: "The technical foundation is written down — stack, style, and the machine-readable conventions later commands read — for a codebase whether it was scaffolded yesterday or predates Writ."
+entry_level: standard
 exit_criteria:
   - ".writ/docs/tech-stack.md and .writ/docs/code-style.md exist and record this project's observed versions and conventions rather than generic defaults"
   - ".writ/config.md follows .writ/docs/config-format.md and names Default Branch, Test Runner, Merge Strategy, and Version File, and a pre-existing one was not overwritten without confirmation"

@@ -3,6 +3,7 @@ name: refactor
 description: "Restructure code without changing behavior - one verified, independently revertable commit per concern, tests green before and after every change."
 problem: "Cleanups land as one large commit on a baseline nobody verified was green, so a behavior change hides among them and backing out the one bad idea means backing out all of them."
 outcome: "The target code has a different structure and the same observable behavior, with each concern isolated in its own commit that can be dropped without disturbing the others."
+entry_level: high
 exit_criteria:
   - "the project test suite, typechecker, and linter passed before the first change and pass again after the last, with the delta reported against the Step 1.2 baseline"
   - "git log shows one commit per approved concern and no commit mixing two, with imports of moved code updated inside the same commit that moved it"

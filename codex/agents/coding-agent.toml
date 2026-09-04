@@ -14,7 +14,14 @@ Specialized agent for implementing user story code following TDD principles. Spa
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
+model_tier: anchor
 readonly: false
+problem: "Story tasks turn into code with no test written first and no suite run before handoff, so the review gate inherits work whose failures nobody has seen yet."
+outcome: "The story's tasks implemented test-first, with a summary naming every file touched, every test written, and the result of running them."
+exit_criteria:
+  - "every path under Files Created traces to a task in the story; no verification guide, validation report, or criteria checklist was added beside them"
+  - "Self-Check Results names the detected test runner and reports 0 failing, or lists each unfixed failure under Known issues"
+  - "the story file's Status field is untouched — declaring the story done belongs to a later gate, not this one"
 ```
 
 ## Responsibilities
@@ -111,7 +118,7 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 
 ## Implementation Requirements
 
-1. **Follow TDD**: Write tests FIRST, then implement to make them pass
+1. **Follow TDD**: `Read skills/tdd-cycle/SKILL.md` and run its red → green → refactor loop per unit of behavior — write the failing test first, implement the least code to pass, refactor under green. This agent owns *what* to build (the story's tasks and acceptance criteria) and *when* to hand off; the skill owns *how* the cycle runs.
 2. **Match patterns**: Follow existing codebase conventions
 3. **Small commits**: Make logical, incremental changes. When authoring each commit message, `Read skills/conventional-commits/SKILL.md` so coding-agent commits match the format `/ship` will use downstream.
 4. **Document as you go**: Add inline comments for complex logic
@@ -127,7 +134,7 @@ After completing implementation, verify your own work before handing off:
 4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.
 5. **If issues are unfixable** — Flag them clearly in your output so the pipeline knows what to expect at Gate 2. Don't silently hand off broken code.
 
-Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis or lint — those are Gate 2's job.
+Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis, lint, or a build — those are Gate 2's job. Note that Gate 2 also runs a **build smoke check** when the story changed source: a passing typecheck does not mean the framework boots, and a route collision breaks every deployment while passing every unit test that imports handlers as plain functions.
 
 ## Tasks to Complete
 
@@ -216,7 +223,7 @@ The Coding Agent must return a structured summary:
 - **Tests:** [X] passing, [Y] failing (test runner: [vitest/jest/pytest/etc.])
 - **Typecheck:** ✅ clean / ⚠️ [N] errors (details below)
 - **Self-fixed:** [List any issues caught and fixed during self-check, or "None"]
-- **Known issues:** [Any unfixable issues flagged for Gate 2, or "None"]
+- **Known issues:** [Any unfixable issues flagged for Gate 2 (lint, typecheck, build smoke), or "None"]
 
 ### Boundary Compliance
 

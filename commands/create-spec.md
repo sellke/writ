@@ -3,6 +3,7 @@ name: create-spec
 description: "Generate a full feature specification contract-first - discovery conversation, then user stories, sub-specs, and acceptance criteria. The entry point for any feature large enough to need a spec."
 problem: "Implementation starts from a feature idea nobody wrote down, so scope, story boundaries, and acceptance criteria get invented mid-build and argued about afterwards."
 outcome: "A new .writ/specs/<date>-<name>/ package exists — spec, spec-lite, per-story files, and sub-specs — matching a contract the user locked before any file was written."
+entry_level: high
 exit_criteria:
   - "spec.md carries a Status line and a Dependencies line listing exact spec-folder IDs, or [] when there are none"
   - "every user-stories/story-*.md file has 3-5 Given/When/Then acceptance criteria and no more than 7 implementation tasks"
@@ -743,7 +744,7 @@ Story Plan:
 
 Launch parallel Task subagents to create all story files simultaneously. Reference `agents/user-story-generator.md` for the agent spec and prompt template.
 
-For each story, spawn a Task subagent (`generalPurpose`, model `fast`) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, **and full specification content for context hint generation**.
+For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, **and full specification content for context hint generation**.
 
 **Context hint generation (new):** Pass these additional parameters to each user-story-generator agent:
 - `spec_content` — full text of `spec.md` (read from `.writ/specs/{spec-folder}/spec.md`)
@@ -756,6 +757,17 @@ Each story file should contain: status/priority/dependencies metadata, user stor
 **Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`'s prompt template — do not duplicate it here; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
 
 Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
+
+#### Step 2.6a: Validate Generated Stories
+
+After **all** generators return, and before Step 2.6b (which reads each story's `## Acceptance Criteria` and must see the regenerated file):
+
+1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder because no story is Completed yet (`untested_criterion` cannot fire) and a repo-wide test scan would misattribute other specs' `dangling_reference`s to these story numbers — `/verify-spec` keeps `--repo .` because it needs that scan.
+2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
+3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9 exactly as today. A passing story is never regenerated.
+4. Per regeneration emit `(no-op until ADR-025 Story 1) escalated(agent=user-story-generator, site=create-spec.2.6, origin=<model>/<effort>@<platform>)` — site is ADR-024's step label, not this heading; origin is the one captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here; `origin=unknown/unknown@<platform>` is valid.
+
+Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file is today's error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations` — there is no second regeneration.
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 

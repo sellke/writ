@@ -1,0 +1,113 @@
+# Story 4: Escalation — Floor Results Are Provisional at Two Sites
+
+> **Status:** Completed ✅ (2026-09-03)
+> **Commit:** dd0af22ecab15b69a602696d7e7ca26ca8a2ca2f
+> **Priority:** High
+> **Dependencies:** Story 2, Story 3
+
+## User Story
+
+**As a** Writ maintainer implementing ADR-024 (command author)
+**I want to** wire the one dynamic rule into the two sites that exist today — `/create-spec` Step 2.6 regenerates a structurally invalid `floor` story once at `anchor` before reporting it, and `/implement-story` Gate 0 confirms an `architecture-check-agent` ABORT once at `anchor` before interrupting the user — with both sites stating the one-attempt iteration accounting verbatim, stamping the captured origin, emitting the `escalated` line ADR-025 will record, and pinned in `scripts/eval.sh`
+**So that** a user running `/create-spec` at their usual model is never handed a malformed story that a second pass at their own model would have fixed, a `/implement-story` run is never interrupted by a floor-tier ABORT the anchor would have cleared, and the `escalated` count per floor agent exists for ADR-024's 90-day review the moment ADR-025 Story 1 makes it recordable
+
+## Acceptance Criteria
+
+> **AC IDs assigned through:** AC-4.5
+
+- [x] Given `/create-spec` Step 2.6 after the parallel user-story-generator subagents return, when the orchestrator validates each `user-stories/story-*.md` — `python3 scripts/ac-trace.py check --spec <folder>` exits 0 with no finding attributed to that story, 3–5 criteria each ending in a `` `[AC-N.M]` `` tag, the `> **AC IDs assigned through:**` marker equal to the highest criterion ID, 5–7 tasks each citing ≥1 ID, and `**Status:** Not Started` — then a story that fails any part of the check is regenerated exactly once with the identical prompt at `anchor` (`model` = platform `inherit`), the anchor result overwrites the floor result whether or not it passes, a second failure is reported to the user exactly as today, and a story that passes is never regenerated. `[AC-4.1]`
+- [x] Given `/implement-story` Gate 0 when `architecture-check-agent` returns **ABORT** from its `floor` spawn, when the orchestrator re-runs the check once at `anchor` with the identical prompt and context payload before presenting anything, then an anchor verdict of PROCEED or CAUTION continues the pipeline as that verdict with no AskQuestion and no user-visible line, an anchor verdict of ABORT presents findings and asks proceed/modify/skip exactly as today, and a floor PROCEED or CAUTION is never re-run. `[AC-4.2]`
+- [x] Given both edited command files, when a reader searches them, then each contains the sentence *the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`* verbatim, each escalation branch emits its line as the literal `escalated(agent=<agent>, site=<create-spec.2.6 | implement-story.gate0>, origin=<model>/<effort>@<platform>)` prefixed *(no-op until ADR-025 Story 1)*, the origin fields are the ones captured at command entry (Business Rule 3) and never re-read or asked at the site, and both sites state that escalation fires only on a returned result that fails its check — never on a spawn error, which follows today's error path. `[AC-4.3]`
+- [x] Given `scripts/eval.sh` after this story, when `bash scripts/eval.sh --check=model-escalation` runs, then it applies `require_literal` pins for the iteration sentence in `commands/create-spec.md` and `commands/implement-story.md` and for the two `escalated(` literals (`agent=user-story-generator, site=create-spec.2.6` and `agent=architecture-check-agent, site=implement-story.gate0`), fails against the pre-story command files, passes after them, and the full `bash scripts/eval.sh` ends `Findings: 0` with no byte-budget recovery attempted on either command file. `[AC-4.4]`
+- [x] Given one real `/create-spec` run on a throwaway spec in which one generator's floor result is forced structurally invalid (for example a prompt instructed to emit two criteria and no marker), when Step 2.6 validation runs, then the transcript shows the check failing on that story only, exactly one anchor re-spawn with the same prompt, the regenerated file replacing the floor file and passing validation, the `escalated(agent=user-story-generator, site=create-spec.2.6, origin=…)` line with a concrete origin, and the other stories untouched — with the transcript path and the observed origin recorded in this story's What Was Built. `[AC-4.5]`
+
+## Implementation Tasks
+
+- [x] 4.1 Add `check_model_escalation()` to `scripts/eval.sh` next to `check_story_context()` (~line 2194), register `model-escalation` in the `CHECKS=(...)` array (~line 19), and pin with `require_literal`: the sentence `the floor attempt and its anchor re-run count as one attempt against \`loop.max_iterations\`` in both `commands/create-spec.md` and `commands/implement-story.md`; `escalated(agent=user-story-generator, site=create-spec.2.6` in `create-spec.md`; `escalated(agent=architecture-check-agent, site=implement-story.gate0` in `implement-story.md`; and `(no-op until ADR-025 Story 1)` in both. Run `bash scripts/eval.sh --check=model-escalation` (outside the sandbox) and confirm all pins fail before any command edit. `[AC-4.4]`
+- [x] 4.2 In `commands/create-spec.md` Step 2.6 (~line 746) replace ``model `fast` `` with the adapter-resolved `floor` value of `agents/user-story-generator.md` (`model_tier: floor`, per Story 3's tables), then add **Step 2.6a: Validate Generated Stories** between Step 2.6 and Step 2.6b: run `python3 scripts/ac-trace.py check --spec <folder>` once after all generators return and attribute each finding to its `story=`; apply the inline count bounds per file (3–5 tagged criteria, marker = highest ID, 5–7 tasks each with ≥1 ID, `**Status:** Not Started`); for each failing story spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result regardless, re-check, and report a second failure in Step 2.9 exactly as today. Name the trigger precisely: a returned file that fails the check — a Task error or an absent file is today's error path, not an escalation. `[AC-4.1, AC-4.3]`
+- [x] 4.3 In `commands/implement-story.md` Gate 0 (~lines 140–148) extend the **Results** line: **ABORT** → re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`; the anchor verdict stands — PROCEED/CAUTION continue as that verdict with no user interruption, ABORT presents findings and asks proceed/modify/skip as today. Update the **Control flow** summary (~line 69) to read "Gate 0 ABORT (confirmed at anchor)". Note that `--quick` and `--review-only` skip Gate 0 entirely, so no escalation path exists there, and that a spawn error at Gate 0 follows the existing BLOCKED/error handling, not this branch. `[AC-4.2, AC-4.3]`
+- [x] 4.4 Write the shared escalation prose at both sites in the same words: the verbatim iteration sentence (also add one clause to the **Review loop** paragraph in `implement-story.md` ~line 218 so the shared counter definition acknowledges the pair-counts-once rule); the emitted line as the exact literal `(no-op until ADR-025 Story 1) escalated(agent=…, site=…, origin=<model>/<effort>@<platform>)` using the origin captured at command entry — `/implement-phase`'s spec-runner passes it down, `/create-spec` and `/implement-story` read it once at entry (technical-spec §2), and the site never re-reads or asks; and the single-shot rule — the anchor result stands even when it also fails, there is no third attempt. Keep each site's addition to a few lines; both files are already over the non-blocking byte budget and ADR-023's triage says leave that alone. `[AC-4.3]`
+- [x] 4.5 Run one real `/create-spec` against a throwaway spec (delete the folder afterward or archive it under a clearly-named test path outside `.writ/specs/`): force one generator's floor result invalid by amending that single subagent's prompt to emit two criteria and omit the `AC IDs assigned through` marker; confirm Step 2.6a fails only that story, spawns exactly one anchor re-run, the anchor file replaces the floor file and passes, the `escalated(…)` line prints with a concrete `origin=` (the model/effort/platform this session's harness states), and the remaining stories are untouched. Record the transcript reference, the observed origin, and the before/after file in this story's What Was Built. `[AC-4.5, AC-4.1]`
+- [x] 4.6 Verify: `bash scripts/eval.sh --check=model-escalation` passes; full `bash scripts/eval.sh` ends `Findings: 0` (run outside the sandbox — it does `git init` in a temp dir); `rg "count as one attempt against" commands/` → 2 hits; `rg "escalated\(" commands/` → exactly the two site literals; `rg '`fast`|"fast"' commands/create-spec.md` → 0; `bash scripts/lint-skill.sh skills/*/SKILL.md` clean; the byte-budget notes for `create-spec.md` and `implement-story.md` remain non-blocking notes, not findings. `[AC-4.1, AC-4.2, AC-4.3, AC-4.4, AC-4.5]`
+
+## Notes
+
+**The trigger is a returned result, never a spawn error.** Escalation is a cascade whose verifier is a check that already exists: `ac-trace.py check` plus the count bounds at Step 2.6a, and the ABORT verdict at Gate 0. A Task that errors, times out, or returns no file is the platform's failure, not the floor model's, and it follows today's error path unchanged (technical-spec §8 shadow path *Upstream error*). Both sites must say this in one sentence, or a future reader will wire retries onto spawn failures and double the cost of every outage.
+
+**`ac-trace.py check` is folder-scoped.** It runs once over the whole spec folder and exits 1 on any blocking finding; each finding carries the story it came from. Step 2.6a runs it once after *all* generators return, attributes findings per story, and regenerates only the failing files — it does not re-run the check per generator. The count bounds (3–5 criteria, 5–7 tasks, marker equality, `Status: Not Started`) are not in `ac-trace.py` today and are applied inline as described in the command; extending the script is not in scope here.
+
+**The anchor result stands, even when it also fails.** There is no third attempt and no "keep whichever was better" comparison. A second failure is reported to the user through Step 2.9 (create-spec) or the existing ABORT AskQuestion (Gate 0) exactly as it would have been before this story. Business Rule 7 and ADR-024 Decision 4 both say *once*; the eval pins enforce the words, and the live run in 4.5 proves the behavior.
+
+**The signal line and its prefix.** The line is written as `(no-op until ADR-025 Story 1) escalated(agent=…, site=…, origin=…)`. ADR-025's spec removes the prefix and, per its Implementation Plan, routes the call through `scripts/signal.py append --kind escalated`; when it does, it must either keep the `escalated(` tuple as the `detail` payload or update this story's `require_literal` pins in the same change — otherwise `--check=model-escalation` breaks on the ADR-025 story that ships the script. Flag this in the What Was Built so ADR-025 Story 2 inherits it.
+
+**Origin comes from entry, not from the site.** Business Rule 3: the origin is read once at command entry as the harness reveals it (Cursor: the model the harness prompt names, effort from the slug suffix; other platforms per Story 3's *Origin source* column) or `unknown`. The escalation site stamps what was captured — it never re-reads the harness and never asks. When the origin is `unknown` the line reads `origin=unknown/unknown@<platform>`; that is a valid line, not a reason to skip emission.
+
+**Anchor is the ceiling (ADR-024 A2).** The re-run resolves to `anchor` = platform `inherit`, never to anything above the user's origin. On a platform where Story 3 found the floor collapses to anchor (origin already at the family floor), the floor spawn and the "anchor re-run" are the same model — the retry is still taken once, because the check failed and a second sample at the same weight is the cheapest available correction, and the `escalated` line is still emitted so ADR-024's review sees a true escalation rate.
+
+**Byte budget.** `commands/create-spec.md` and `commands/implement-story.md` are both already over the non-blocking byte budget. This story adds a few lines to each and does not attempt recovery — ADR-023's triage placed budget recovery out of scope for escalation wiring. Do not trim unrelated prose to compensate; a budget note remains a note.
+
+**Risks.** (1) *Double-counting iterations* — if the Gate 0 re-run or a Step 2.6a regeneration increments the review-loop counter, a story that escalates once loses one of its three review iterations before Gate 1 runs. The verbatim sentence exists to forbid this; 4.4's clause in the Review loop paragraph makes the shared-counter definition say it too. (2) *Regenerating a valid story* — a too-strict inline count check (for example counting a criterion continuation line as a criterion) would re-spawn at anchor for nothing and inflate the escalation rate ADR-024's review reads. Anchor the count on `- [ ] Given` lines and `- [ ] N.M` task lines only, and let `ac-trace.py` own the ID grammar. (3) *Silent success masking* — a Gate 0 anchor PROCEED after a floor ABORT is invisible to the user by design; the `escalated` line is the only record. Until ADR-025 lands it is a no-op, so the 90-day review may find fewer lines than escalations occurred — ADR-025 Story 1 closes this, and the review date already treats an empty ledger as its own finding. (4) *Pin brittleness* — a later prose edit that rewords the iteration sentence fails `eval.sh`; that is the intended protection, same as every other gate wiring.
+
+**Integration.** Story 2 removed `model: "fast"` from the two `Task({...})` templates in `agents/user-story-generator.md` and `agents/architecture-check-agent.md` and renamed both to `model_tier: floor`; this story's floor spawns rely on that. Story 3 fixed the per-platform `anchor` value (`inherit` on Cursor and Claude Code, omitted `model` on Codex and OpenClaw) that the re-run uses, and the *Origin source* column this story's `origin=` stamp reads from. Story 5's entry-level notice already tells a user running below `high` that floor-tier retries cannot escalate above their origin — this story is the mechanism that sentence describes. ADR-025's future spec replaces the no-op prefix with a live `signal.py append` call and reads the `escalated` count per floor agent at the 2026-12-02 review.
+
+## Definition of Done
+
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
+
+## Context for Agents
+
+- **Error map rows:** [Story validation (floor story malformed), Story validation (anchor story also malformed), Gate 0 (floor ABORT), Gate 0 (anchor ABORT)]
+- **Shadow paths:** [Upstream error (escalation is not attempted on a spawn error, only on a returned result that fails its check)]
+- **Business rules:** [3 — origin is read never asked; stamped on `escalated`/`degraded` lines, 4 — anchor is the ceiling; escalation returns to the anchor never past it, 7 — escalation is once and counted; the pair counts as one attempt against `loop.max_iterations`; today's two sites]
+- **Experience:** [Moment of truth (a `/create-spec` story that fails structural validation is silently regenerated at anchor; a `/implement-story` ABORT is confirmed at anchor before the user is interrupted), State catalog (Floor result fails check — one re-run at anchor, anchor result stands, `escalated` line, audit only)]
+
+Reference: `.writ/docs/context-hint-format.md`.
+
+## What Was Built
+
+**Implementation Date:** 2026-09-03
+
+### Files Created
+
+None. Story 4 is prose wiring plus pins; its executable test is `eval.sh --check=model-escalation` (Task 4.1: all six pins red against the pre-story command files, green after).
+
+### Files Modified
+
+- **`commands/create-spec.md`** — Step 2.6 ``model `fast` `` → "at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares" (no `model_tier` literal: `test_model_tier_migration.sh` (b) forbids it in `commands/`). New **Step 2.6a: Validate Generated Stories** between 2.6 and 2.6b: one `ac-trace.py check --spec <folder> --repo <folder>` run over the whole folder, findings attributed by `story=`; inline count bounds (3–5 `- [ ] Given` criteria each `[AC-N.M]`-tagged, marker = highest ID, 5–7 `- [ ] N.M` tasks each citing ≥1 ID, `**Status:** Not Started`); per failing story one regeneration at `anchor` (`inherit`) with the identical prompt, anchor file overwrites the floor file regardless, one re-check, second failure → Step 2.9 as today; the `(no-op until ADR-025 Story 1) escalated(agent=user-story-generator, site=create-spec.2.6, origin=<model>/<effort>@<platform>)` line with the entry-captured origin; the spawn-error exclusion and the verbatim iteration sentence.
+- **`commands/implement-story.md`** — Control flow: "Gate 0 ABORT (confirmed at anchor)". New **Anchor confirmation (ADR-024)** paragraph under Gate 0: floor ABORT is provisional → one anchor re-run with identical prompt, `spec_lite_content`, `fetched_context`, `knowledge_context`; anchor PROCEED/CAUTION continue silently, anchor ABORT → today's AskQuestion; floor PROCEED/CAUTION never re-run; `--quick`/`--review-only` skip Gate 0 so no path exists; spawn error → existing **Agent crash** handling (§ Error Handling), not this branch; the `escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=…)` line. **Review loop** paragraph: one clause stating the escalated pair never increments the shared 3-iteration counter.
+- **`scripts/eval.sh`** — `model-escalation` in `CHECKS`; `check_model_escalation()` with six `require_literal` pins: the iteration sentence ×2, `(no-op until ADR-025 Story 1)` ×2, and the two site literals extended through `, origin=` so `create-spec.2.6` cannot be satisfied by a `2.6a` heading.
+- **`scripts/tests/test_governor_enforcement.py`** — `KNOWN_OVER_BUDGET` re-pinned with a dated disclosure: `create-spec.md` 24036 → 25992, `implement-story.md` 2730 → 4102, and the four Story 5 `entry_level:` overages (`implement-phase`, `verify-spec`, `release`, `ship`, +18–22 each) that had left the ratchet red at HEAD before this story began. No budget recovery attempted (ADR-023 triage); `eval.sh`'s leanness warning still reports all six.
+
+### Implementation Decisions
+
+1. **`--repo` is the spec folder, not `.`** (DEV-014). At Step 2.6a no story is Completed, so `untested_criterion` cannot fire; a repo-wide scan would attribute other specs' `dangling_reference`s to these story numbers and regenerate valid stories. `/verify-spec` keeps `--repo .` because it runs after implementation.
+2. **Site label is ADR-024's step (`create-spec.2.6`), not the new heading (`2.6a`).** The pin was tightened to `…site=create-spec.2.6, origin=` after review caught the prefix match.
+3. **Regenerate-once is folder-level, then per-file.** One check run after all generators return; per-file re-check after regeneration; no per-generator loop.
+4. **Governor pins updated in-story rather than left red.** The ratchet asserts exact equality on the sum of overages, so every byte change to either command file requires a re-pin; the dated comment records the coding-pass value and each post-review delta separately.
+
+### Test Results
+
+- ✅ `bash scripts/eval.sh --check=model-escalation` PASS; full `bash scripts/eval.sh` → `Findings: 0`, byte-budget entries for both commands remain notes.
+- ✅ `rg "count as one attempt against" commands/` → 2; `rg 'escalated\(' commands/` → exactly the two site literals; `` rg '`fast`|"fast"' commands/create-spec.md `` → 0; `bash scripts/lint-skill.sh skills/*/SKILL.md` clean; all `scripts/tests/test_*.sh` OK; `test_governor_enforcement` OK.
+- ✅ Full Python suite under Python 3.12 (`uv run --with pytest`): 798 passed, 1 skipped, 1 failed — `test_ac_trace.py::CitationScanTests::test_symlink_loop_does_not_crash_the_scan`, which fails identically at HEAD (`pathlib.resolve` raises `RuntimeError: Symlink loop`); unrelated to this spec. System Python 3.9 additionally lacks `pytest` (6 modules import it) — environmental, also identical at HEAD.
+- ✅ **AC-4.5 live run (2026-09-03, Cursor, this transcript `70eb0e66-ed27-487c-b1a5-e0f7d7180340`):** throwaway spec at `$TMPDIR/writ-throwaway-spec.K3bkXj` (deleted after the run). Two `user-story-generator` spawns at the floor slug `claude-opus-5-thinking-high`; Story 2's prompt amended to emit two criteria and omit the marker. Floor file: 2 criteria, 0 markers, 7 tasks, 51 lines → `ac-trace.py check --spec … --repo …` exit 1, one `marker_violation` attributed to `story=2`; Story 1 clean. Exactly one anchor re-spawn (`model: inherit`) with the original prompt; anchor file: 5 criteria, marker `AC-2.5`, 7 tasks, 60 lines, overwrote the floor file; re-check exit 0, Story 1 byte-identical. Emitted: `(no-op until ADR-025 Story 1) escalated(agent=user-story-generator, site=create-spec.2.6, origin=claude-fable-5.1/high@cursor)`.
+- ⚠️ **For ADR-025 Story 2:** when `signal.py append --kind escalated` replaces the no-op prefix, keep the `escalated(` tuple as the `detail` payload or update `check_model_escalation()`'s pins in the same change, or `--check=model-escalation` breaks.
+
+### Review Outcome
+
+**Result:** PASS
+
+- **Iteration count:** 1 iteration(s)
+- **Drift:** Small ×2
+- **Findings applied:** Gate 0 spawn-error pointer corrected from "BLOCKED handling" (Gate 1/4 path) to **Agent crash** handling (§ Error Handling); site pins extended through `, origin=`.
+- **Post-review fixes by orchestrator:** dropped the literal `model_tier:` mention Step 2.6 introduced (broke `test_model_tier_migration.sh` (b)); re-pinned `KNOWN_OVER_BUDGET` for both post-review byte deltas.
+- **Deferred:** pre-existing `test_symlink_loop_does_not_crash_the_scan` failure (out of scope; not introduced here).
+
+### Drift
+
+- **[DEV-014] Task 4.2's `ac-trace.py check --spec <folder>` needs `--repo <folder>` too** — Small — repo-wide scan misattributes other specs' dangling references at authoring time; `spec-lite.md` amended.
+- **[DEV-015] Governor ratchet re-pinned in-story** — Small — `test_governor_enforcement.py` was already red at HEAD from Story 5's 31 `entry_level:` lines and asserts exact overage equality; not a file the story listed, updated with a dated disclosure rather than leaving the suite red; `spec-lite.md` amended.

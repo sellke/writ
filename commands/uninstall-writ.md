@@ -3,6 +3,7 @@ name: uninstall-writ
 description: "Remove Writ platform files from the project while preserving everything under .writ/ (specs, ADRs, research)."
 problem: "Pulling Writ out by hand means deciding file by file what belongs to the tool, and the specs, ADRs, and research under .writ/ are the easiest thing to delete by mistake."
 outcome: "The platform directory holds no Writ commands, agents, rules, or manifest, while .writ/ and every non-Writ file around it remain exactly as they were."
+entry_level: any
 exit_criteria:
   - ".writ/ is unchanged — every spec, story, ADR, research doc, and docs file present before the run is still present after it"
   - "[platform_dir]/.writ-manifest is gone and no Writ command or agent file remains in [platform_dir]/commands/ or [platform_dir]/agents/"

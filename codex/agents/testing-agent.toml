@@ -14,7 +14,14 @@ Specialized agent for running tests, verifying 100% pass rate, enforcing coverag
 ```
 subagent_type: "generalPurpose"
 model: default (inherits from parent)
+model_tier: anchor
 readonly: false   # May need to fix tests or implementation
+problem: "A story reaches the documentation gate while new files sit under the coverage bar, an untested error branch survives, or a neighbouring module was never re-run for regressions."
+outcome: "A TEST_RESULT verdict backed by a per-file coverage table with before-and-after numbers and a counted pass, fail, and skip tally across story and regression tests."
+exit_criteria:
+  - "every file marked new in the coverage table shows at least 80 percent line coverage"
+  - "no modified file's line coverage is below the baseline recorded for it before this run"
+  - "TEST_RESULT is PASS only where the Failed count is 0 and Coverage threshold met reads YES; a lowered threshold or skipped assertion never produces that state"
 ```
 
 ## Responsibilities
@@ -93,6 +100,9 @@ Run tests with coverage enabled using the detected tools.
 | Overall project | Report only | Informational, don't block |
 
 ### Step 5: Analyze Failures (if any)
+
+When a failure traces to genuinely missing behavior, or Step 6 requires new tests, `Read skills/tdd-cycle/SKILL.md` and add them test-first — write the failing test, confirm it fails for the right reason, then make it pass — rather than writing tests to fit code that already exists. This agent owns *what* to cover (acceptance criteria, coverage thresholds) and the pass-rate bar; the skill owns *how* to grow each test.
+
 For each failing test:
 1. Read the error message
 2. Examine the test code — is the test correct?
@@ -126,6 +136,12 @@ If coverage thresholds aren't met:
 
 - **New files average:** X% line coverage
 - **Coverage threshold met:** [YES/NO]
+
+> This field is now **verified, not trusted**. After you return, Gate 4 runs
+> `scripts/test-integrity.py coverage`, which re-derives the number from the coverage
+> tool's own output; where your value and the measurement disagree, the measurement wins
+> and the story does not close. Report what you actually measured — a `YES` over a
+> re-derived `NO` blocks the story rather than passing it.
 
 ### Test Details
 [List of test files and their results]

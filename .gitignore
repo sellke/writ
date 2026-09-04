@@ -3,5 +3,7 @@
 .writ-lanes-*/
 __pycache__/
 *.pyc
+.venv/
+uv.lock
 eval-report.md
 .claude/agent-memory/

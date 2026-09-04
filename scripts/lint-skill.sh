@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# scripts/lint-skill.sh — Boundary lint for Writ skills.
+# scripts/lint-skill.sh — Boundary lint for Writ skills; value lint for commands.
 #
 # Enforces the role convention from ADR-009: skills describe a capability,
 # not a workflow and not a role. Used by /new-skill at authoring time and by
 # /refresh-command for batch checking of existing skills.
 #
+# Command files (commands/*.md) are also accepted, for the ADR-024 value
+# checks ONLY: their `entry_level:` frontmatter must be high|standard|any.
+# The skill-boundary body patterns and ADR-014 lifecycle checks do not apply
+# to commands and are not run on them. Routing is by path: a basename of
+# SKILL.md always gets the full skill lint; otherwise a path under a
+# `commands/` directory gets the value checks.
+#
 # Usage:
 #   bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]
 #   bash scripts/lint-skill.sh skills/*/SKILL.md
+#   bash scripts/lint-skill.sh commands/*.md          # entry_level values only
 #
 # Exit codes:
 #   0  All files passed lint
@@ -18,15 +26,18 @@ set -euo pipefail
 
 usage() {
   echo "Usage: bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]" >&2
+  echo "       bash scripts/lint-skill.sh commands/*.md" >&2
   echo "" >&2
   echo "Lints SKILL.md files against the ADR-009 role convention:" >&2
   echo "  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)" >&2
   echo "  - Body must not invoke commands, skills, subagents, or slash commands" >&2
-  echo "  - Any declared model_tier value (skill or command frontmatter, or an" >&2
-  echo "    agent config block) must be 'orchestration' or 'capability'" >&2
-  echo "    — see ADR-016" >&2
-  echo "    (skill/command values are advisory only — they run at the session/" >&2
-  echo "    caller model; only an agent's model_tier is enforced at spawn)" >&2
+  echo "  - Any declared model_tier value (agent config block) must be 'anchor'" >&2
+  echo "    or 'floor'; 'orchestration'/'capability' warn as aliases — see ADR-024" >&2
+  echo "  - Any declared entry_level value (command frontmatter) must be 'high'," >&2
+  echo "    'standard' or 'any'" >&2
+  echo "" >&2
+  echo "Paths under a commands/ directory (basename not SKILL.md) receive the" >&2
+  echo "ADR-024 value checks only — no boundary or lifecycle checks." >&2
   exit 2
 }
 
@@ -250,17 +261,23 @@ lint_lifecycle() {
   fi
 }
 
-# ---------- model_tier value validation (ADR-016) ----------
-# Advisory (skill and command frontmatter) and enforced (agent config blocks)
-# model_tier declarations share one allowed-value grammar. This check is
-# format-agnostic and scans the ENTIRE raw file (unlike extract_frontmatter,
-# which is fence-gated), so it recognizes one shape wherever it appears:
-#   Key-value:   model_tier: <value>   (skill frontmatter, command frontmatter,
-#                agent Agent Configuration/Specification blocks)
-# A trailing `# comment` or descriptive prose after the value is not part of
-# the value itself — the capture stops at the first non-identifier character,
-# which naturally strips comments/whitespace/placeholder markup.
+# ---------- model_tier / entry_level value validation (ADR-024) ----------
+# model_tier lives on agents only (their Agent Configuration/Specification
+# block) and takes `anchor` or `floor`. entry_level lives on commands only
+# (their `---` frontmatter) and takes `high`, `standard` or `any`.
+#
+# model_tier is scanned across the ENTIRE raw file (unlike extract_frontmatter,
+# which is fence-gated), so the agent config block is recognized wherever it
+# appears. entry_level is anchored on `^entry_level:` so prose mentions of the
+# field never trip it. A trailing `# comment` or prose after a value is not
+# part of the value — the capture stops at the first non-identifier character.
+#
+# Alias window: the ADR-016 values `orchestration` (→ anchor) and `capability`
+# (→ floor) are WARNED, not rejected, until Writ 0.35.0 — the next minor
+# release after the one that ships spec 2026-09-03-model-delegation (0.34.0).
+# At 0.35.0, delete the two alias branches below so both fall into `*`.
 MODEL_TIER_VIOLATIONS=0
+MODEL_TIER_ALIAS_REJECT_RELEASE="0.35.0"
 
 lint_model_tier() {
   local file="$1"
@@ -269,17 +286,25 @@ lint_model_tier() {
 
   while IFS= read -r line || [ -n "$line" ]; do
     line_num=$((line_num + 1))
-    value=""
 
     if [[ "$line" =~ model_tier:[[:space:]]*([A-Za-z0-9-]+) ]]; then
       value="${BASH_REMATCH[1]}"
-    else
-      continue
-    fi
-
-    if ! [[ "$value" =~ ^(orchestration|capability)$ ]]; then
-      echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'orchestration' or 'capability'."
-      MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
+      case "$value" in
+        anchor|floor) ;;
+        orchestration)
+          echo "⚠️ $file:$line_num: model_tier 'orchestration' is a deprecated alias — use 'anchor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
+        capability)
+          echo "⚠️ $file:$line_num: model_tier 'capability' is a deprecated alias — use 'floor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
+        *)
+          echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'anchor' or 'floor'."
+          MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1)) ;;
+      esac
+    elif [[ "$line" =~ ^entry_level:[[:space:]]*([A-Za-z0-9-]+) ]]; then
+      value="${BASH_REMATCH[1]}"
+      if ! [[ "$value" =~ ^(high|standard|any)$ ]]; then
+        echo "❌ $file:$line_num: entry_level '$value' is invalid. Use 'high', 'standard' or 'any'."
+        MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
+      fi
     fi
   done < "$file"
 }
@@ -380,8 +405,43 @@ lint_file() {
   return 0
 }
 
+# Lint a command file: ADR-024 value checks only. Commands are not skills —
+# they legitimately dispatch subagents, name slash commands, and carry no
+# ADR-014 lifecycle status — so none of lint_file's boundary or lifecycle
+# grammar applies. What does apply is the `entry_level:` value grammar (and,
+# harmlessly, the model_tier grammar, which no command should trip).
+lint_command_file() {
+  local file="$1"
+
+  if [ ! -f "$file" ]; then
+    echo "❌ $file: file not found" >&2
+    return 2
+  fi
+
+  lint_model_tier "$file"
+
+  if [ "$MODEL_TIER_VIOLATIONS" -eq 0 ]; then
+    echo "✅ $file: clean (value checks only)"
+  fi
+
+  TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + MODEL_TIER_VIOLATIONS))
+  return 0
+}
+
+# Dispatch. Basename wins: a SKILL.md is a skill wherever it lives, even under
+# a directory named commands/. Anything else under a commands/ directory is a
+# command. Everything else (agents, manifests, ad-hoc temp files such as
+# /new-skill's /tmp/new-skill-lint-$$.md) keeps the full skill lint.
 for arg in "$@"; do
-  lint_file "$arg"
+  case "$(basename "$arg")" in
+    SKILL.md) lint_file "$arg" ;;
+    *)
+      case "$arg" in
+        commands/[!/]*.md|*/commands/[!/]*.md) lint_command_file "$arg" ;;
+        *) lint_file "$arg" ;;
+      esac
+      ;;
+  esac
 done
 
 if [ $TOTAL_VIOLATIONS -gt 0 ]; then

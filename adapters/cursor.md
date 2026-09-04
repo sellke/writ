@@ -152,19 +152,25 @@ neutral reducer — no Cursor-specific runtime is required:
 
 ### Sub-Agent Models
 
-Agents express weight intent via `model_tier` (see [ADR-016](../.writ/decision-records/adr-016-model-tier-delegation.md)), which Cursor resolves to its own native primitives:
+Agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers). Cursor resolves it through the `Task` tool's `model` parameter, whose schema lists the accepted slugs at run time:
 
-| Tier | Cursor resolution |
-|---|---|
-| `orchestration` | `inherit` (anchor — runs at the user's session model) |
-| `capability` | `"fast"` (floor — Cursor's own fast-model primitive) |
-| unset | `inherit` (today's default behavior) |
+| Origin source | `anchor` | `floor` | escalation |
+|---|---|---|---|
+| `anchor.model` = the model the harness prompt names ("powered by …"); `anchor.effort` = the effort suffix of the matching listed slug (`-thinking-high` → `high`, `-medium` → `medium`, none → `unknown`); `anchor.platform = cursor` | `inherit` (or omit `model`) | **(a)** a listed slug that shares the anchor's vendor prefix, is not the anchor's own slug, and whose embedded effort suffix is ≤ `anchor.effort` (when `anchor.effort` is `unknown`, the same-prefix slug with the lowest suffix). "Below" follows the vendor's published tier naming as read from the slug — Anthropic: haiku < sonnet < opus < fable — medium confidence; Writ keeps no ranking. **(b)** `inherit[effort=…]` — rejected by the tool on Cursor; skip. **(c)** `inherit` — when no listed same-prefix slug sits below the anchor. If the origin is the vendor's bottom tier (Anthropic: haiku/low), that is the family floor: say so once, no `degraded`. If the vendor has lower tiers that Cursor's list simply does not expose (an Opus origin today — no haiku/sonnet slug listed), emit one `degraded` line with `reason=no lower same-family slug listed`: the limit is the platform's, and the ADR-025 ledger needs to see it. | `inherit` |
 
-This is a **relative**, native-primitive resolution — Writ ships zero concrete model names for Cursor; `inherit`/`fast` are Cursor's own abstractions, not a Writ-maintained ranking.
+**Degradation:** if the schema lists only `inherit`, or the resolved slug is rejected, `floor` runs at `inherit` and emits one `degraded` line naming the observed reason — never hard-fail. The retired string value `fast` is still *accepted* by the tool but self-reported the anchor model (medium confidence — see the verification record); it is not a cheaper value and must not be reintroduced.
 
-**Graceful degradation:** if Cursor cannot honor a requested tier (no fast model available, or an unrecognized `model_tier` value), warn and fall back to the parent/inherited model — never hard-fail.
+#### Verification record — 2026-09-03
 
-`user-story-generator.md` ships with `model_tier: capability`, which resolves to `"fast"` regardless of whether a concrete `model:` field is also present — a concrete `model:` always wins over `model_tier:` per precedence, but removing `model:` alone no longer changes behavior once `model_tier: capability` is set. To get default-model story generation quality, override the tier itself (edit `user-story-generator.md` to set `model_tier: orchestration`, or set `model: default`/`model: inherit` explicitly) rather than just deleting the `model:` line.
+Origin: Claude Fable 5.1 / `high` @ cursor (harness prompt "powered by Claude Fable 5.1"; listed slug `claude-fable-5-1-thinking-high`). Slugs listed at run time: `inherit`, `claude-fable-5-1-thinking-high`, `claude-opus-5-thinking-high`, `composer-2.5-fast`, `cursor-grok-4.5-high-fast`, `cursor-grok-4.6-medium-fast`, `gpt-5.6-sol-medium`; `fast` not listed. Identical prompt for all three spawns: *"Report verbatim, and only, the model identity your own system prompt states. Do not use any tools. One line."*
+
+| Spawn | `model` argument | Tool-level result (high confidence) | Self-report (medium confidence) |
+|---|---|---|---|
+| V1 | `fast` | accepted | "powered by Claude Fable 5.1" — the anchor |
+| V2 | `inherit[effort=low]` | rejected — `Invalid model selection "inherit[effort=low]". Model could not be resolved to a valid subagent model.` + the allowed-slug list | — (never spawned) |
+| V3 | `claude-opus-5-thinking-high` | accepted | "powered by Claude Opus 5" — a different model, same vendor prefix |
+
+For this origin, (a) resolves to `claude-opus-5-thinking-high` (`-thinking-high` ≤ `high`, so the ceiling holds). The slug list changes between Cursor versions: re-derive from the live schema at spawn, and treat a stale record as a reason to re-verify, not a value to copy.
 
 ### Read-Only Agents
 

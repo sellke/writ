@@ -35,7 +35,7 @@ COMMAND_ALIASES=()
 AGENT_NAMES=()
 AGENT_FILES=()
 AGENT_PURPOSES=()
-AGENT_MODELS=()
+AGENT_TIERS=()
 
 SKILL_NAMES=()
 SKILL_FILES=()
@@ -121,7 +121,7 @@ yq_read() {
 }
 
 parse_with_yq() {
-  local line name file category purpose tags aliases model label id
+  local line name file category purpose tags aliases tier label id
 
   METADATA_NAME="$(yq_read ".metadata.name // \"\"")"
   METADATA_VERSION="$(yq_read ".metadata.version // \"\"")"
@@ -143,12 +143,12 @@ parse_with_yq() {
     COMMAND_ALIASES+=("${aliases:-}")
   done < <(yq_read ".commands[] | [.name, .file, .category, .purpose, ((.tags // []) | join(\",\")), ((.aliases // []) | join(\",\"))] | @tsv")
 
-  while IFS=$'\t' read -r name file purpose model; do
+  while IFS=$'\t' read -r name file purpose tier; do
     AGENT_NAMES+=("$name")
     AGENT_FILES+=("$file")
     AGENT_PURPOSES+=("$purpose")
-    AGENT_MODELS+=("$model")
-  done < <(yq_read ".agents[] | [.name, .file, .purpose, .model] | @tsv")
+    AGENT_TIERS+=("$tier")
+  done < <(yq_read ".agents[] | [.name, .file, .purpose, .model_tier] | @tsv")
 
   if yq_read ".skills" >/dev/null 2>&1 && [ "$(yq_read '.skills | length // 0')" != "0" ]; then
     while IFS=$'\t' read -r name file description status tags aliases; do
@@ -189,7 +189,7 @@ reset_agent_item() {
   _AGENT_NAME=""
   _AGENT_FILE=""
   _AGENT_PURPOSE=""
-  _AGENT_MODEL=""
+  _AGENT_TIER=""
 }
 
 flush_agent_item() {
@@ -197,7 +197,7 @@ flush_agent_item() {
     AGENT_NAMES+=("$_AGENT_NAME")
     AGENT_FILES+=("$_AGENT_FILE")
     AGENT_PURPOSES+=("$_AGENT_PURPOSE")
-    AGENT_MODELS+=("$_AGENT_MODEL")
+    AGENT_TIERS+=("$_AGENT_TIER")
   fi
   reset_agent_item
 }
@@ -365,9 +365,9 @@ parse_with_bash() {
         elif [[ "$line" == "purpose:"* ]]; then
           _AGENT_STARTED="true"
           _AGENT_PURPOSE="$(strip_value "${line#purpose:}")"
-        elif [[ "$line" == "model:"* ]]; then
+        elif [[ "$line" == "model_tier:"* ]]; then
           _AGENT_STARTED="true"
-          _AGENT_MODEL="$(strip_value "${line#model:}")"
+          _AGENT_TIER="$(strip_value "${line#model_tier:}")"
         fi
         ;;
       skills)
@@ -481,8 +481,8 @@ validate_manifest() {
       echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) missing required field 'purpose'" >&2
       exit 1
     fi
-    if [ -z "${AGENT_MODELS[$i]}" ]; then
-      echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) missing required field 'model'" >&2
+    if [ -z "${AGENT_TIERS[$i]}" ]; then
+      echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) missing required field 'model_tier'" >&2
       exit 1
     fi
     path="$PROJECT_ROOT/${AGENT_FILES[$i]}"
@@ -631,12 +631,12 @@ EOF
 
 ## Available Agents
 
-| Agent | File | Model | Purpose |
-|-------|------|-------|---------|
+| Agent | File | Tier | Purpose |
+|-------|------|------|---------|
 EOF
 
   for ((i = 0; i < ${#AGENT_NAMES[@]}; i++)); do
-    echo "| ${AGENT_NAMES[$i]} | \`${AGENT_FILES[$i]}\` | ${AGENT_MODELS[$i]} | ${AGENT_PURPOSES[$i]} |"
+    echo "| ${AGENT_NAMES[$i]} | \`${AGENT_FILES[$i]}\` | ${AGENT_TIERS[$i]} | ${AGENT_PURPOSES[$i]} |"
   done
 
   if [ ${#SKILL_NAMES[@]} -gt 0 ]; then

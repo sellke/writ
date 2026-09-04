@@ -3,6 +3,7 @@ name: new-skill
 description: "Scaffold a reusable Writ skill (SKILL.md) that commands and agents can read to acquire a focused competence. Enforces the command/agent/skill boundary."
 problem: "Reusable know-how stays inlined in agent and command bodies, and hand-written skill files drift into role or workflow shape that nobody catches until a consumer loads them."
 outcome: "A lint-clean skills/<name>/SKILL.md scaffold exists, registered in .writ/manifest.yaml and reflected in the regenerated root SKILL.md catalog."
+entry_level: standard
 exit_criteria:
   - "skills/<name>/SKILL.md exists carrying disable-model-invocation: true and status: candidate in its frontmatter"
   - "scripts/lint-skill.sh exited 0 on the captured description before any file was written"
@@ -114,7 +115,6 @@ name: <name>
 description: "<description>"
 disable-model-invocation: true
 status: candidate
-model_tier: orchestration   # advisory only — skills run in the caller's context, not selectable
 ---
 
 # <Title-Cased Name>
@@ -170,7 +170,6 @@ name: <name>
 description: "<description>"
 disable-model-invocation: true
 status: candidate
-model_tier: orchestration   # advisory only — skills run in the caller's context, not selectable
 ---
 
 # <Title-Cased Name>
@@ -263,7 +262,7 @@ Next steps:
 
 This command succeeds when:
 
-1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`, `model_tier: orchestration` — advisory only, skills run in the caller's context) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
+1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
 2. **Lint passed** — `scripts/lint-skill.sh` returned exit `0` against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
 3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed
 4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (verified via `bash scripts/gen-skill.sh --check`)

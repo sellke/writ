@@ -3,6 +3,7 @@ name: verify-spec
 description: "Metadata linter for a spec - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
 problem: "Spec bookkeeping drifts from the story files that are its source of truth — README statuses, task counts, deliverable checkboxes and spec-lite all rot silently."
 outcome: "The spec's derived metadata is realigned where realignment is safe, and every finding that needs human judgement is recorded against the check that raised it."
+entry_level: standard
 exit_criteria:
   - "in default mode .writ/specs/<spec>/verification-YYYY-MM-DD.md exists with an eight-row check table plus Issues Found & Resolved and Outstanding Warnings sections"
   - "every finding appears under exactly one of those two sections — auto-fixed, or left open and named with its check number"

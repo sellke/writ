@@ -3,6 +3,7 @@ name: reinstall-writ
 description: "Nuclear reinstall - remove all Writ platform files and install fresh from upstream, discarding local modifications. Use update-writ for selective updates."
 problem: "An installation has diverged from upstream far enough that repairing it file by file costs more than discarding every local edit and starting over."
 outcome: "Every platform file is byte-identical to a freshly cloned upstream release with no customization carried forward, on a manifest rebuilt from scratch, while .writ/ is left alone."
+entry_level: any
 exit_criteria:
   - "every file under [platform_dir]/commands/ and [platform_dir]/agents/ hashes equal to its upstream counterpart, with no file retained on the grounds that it was customized"
   - "[platform_dir]/.writ-manifest names the newly cloned version and carries a baseline for every installed file"

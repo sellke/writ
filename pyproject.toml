@@ -1,0 +1,30 @@
+# Writ ships no Python package. This file exists for two reasons only:
+#
+#   1. Declare the interpreter floor for scripts/*.py and scripts/tests/.
+#      The floor is the macOS system Python; the suite is run against it
+#      before every bump (see CLAUDE.md → Development Commands).
+#   2. Make the test suite runnable with one command that always picks a
+#      supported interpreter and has pytest available:
+#
+#          uv run pytest
+#
+# The product version lives in the VERSION file. PEP 621 forces a `version`
+# on any [project] table, so the one below mirrors VERSION: /release Step 3.1
+# rewrites both in the same commit, and .writ/config.md pins
+# `Version File: VERSION` so /release reads that, never this. Nothing is
+# published. `.venv/` and `uv.lock` are gitignored — one dev tool in a
+# no-dependency repo does not need a lockfile.
+
+[project]
+name = "writ-scripts"
+version = "0.33.0"
+requires-python = ">=3.9"
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["scripts/tests"]

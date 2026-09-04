@@ -3,6 +3,7 @@ name: prototype
 description: "Ship a small-to-medium code change with TDD and lint, without spec files or multi-gate ceremony. Use when writing a spec costs more than the change is worth."
 problem: "A change too small to spec gets either the whole story pipeline it cannot justify or no discipline at all, and when it quietly outgrows a prototype nobody notices until it is merged."
 outcome: "The change sits in the working tree with tests written first and lint plus typecheck run, and the repository gained no planning artifact describing it."
+entry_level: high
 exit_criteria:
   - "no spec folder, story file, or task list was created under .writ/specs/ for this change"
   - "tests covering the changed behavior and its error, empty, and loading paths exist, and the linter and typechecker ran with any remaining errors itemized in the summary"

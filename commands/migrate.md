@@ -3,6 +3,7 @@ name: migrate
 description: "Migrate an existing Code Captain project to Writ, renaming directories and updating references with zero data loss."
 problem: "A Code Captain project cannot run Writ commands, and renaming its directories by hand silently drops story statuses or leaves dead .code-captain paths behind."
 outcome: "Everything that lived under .code-captain/ lives under .writ/ with identical content, the platform directory carries Writ commands and agents, and the whole move is one commit."
+entry_level: any
 exit_criteria:
   - "no .code-captain/ or code-captain/ directory remains and .writ/ holds the specs, decision-records, research, docs, and issues that were under it"
   - "the story-*.md count under .writ/specs/ equals the pre-migration count and every Status line is unchanged from its Code Captain original"
