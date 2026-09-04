@@ -14,9 +14,9 @@ exit_criteria:
 
 ## Overview
 
-Safely unwinds a **logical unit** of Writ work — a single `story` or an entire `spec` — on the current branch. `/revert` maps the unit to its real git commits with a layered, rewrite-resilient resolver, shows you the exact commits and artifacts that will change **before** anything mutates, then executes a history-preserving `git revert` (default) or, only behind a second destructive confirmation, a `git reset --hard`. On success it restores Writ's artifacts (story status, tasks/AC, `## What Was Built`, `drift-log.md`, `context.md`) so the plan and reality stay in sync.
+Safely unwinds a **logical unit** of Writ work — a single `story` or an entire `spec` — on the current branch. `/revert` maps the unit to its real git commits with a layered, rewrite-resilient resolver, shows you the exact commits and artifacts that will change before anything mutates, then executes a history-preserving `git revert` (default) or, only behind a second destructive confirmation, a `git reset --hard`. On success it restores Writ's artifacts (story status, tasks/AC, `## What Was Built`, `drift-log.md`, `context.md`) so the plan and reality stay in sync.
 
-**Core discipline:** Plan before mutate. No git-mutating command runs until the working tree is verified clean **and** you have confirmed a plan that names every resolved commit and the chosen strategy. Ghost (rewritten-SHA) substitutions are never auto-applied — each requires explicit confirmation.
+**Core discipline:** Plan before mutate. No git-mutating command runs until the working tree is verified clean and you have confirmed a plan that names every resolved commit and the chosen strategy. Ghost (rewritten-SHA) substitutions are never auto-applied — each requires explicit confirmation.
 
 **Scope boundary:** First cut handles `story` and `spec` units on the **current branch** only. Phase-lane, worktree, and quarantine reverts are out of scope — those are owned by `phase-state.py`'s reconcile/quarantine machinery. `/revert` also never reverts across base branches, auto-reverts a released version, or undoes a previous revert. For behavioral rollbacks of a single refactor step, use `/refactor`'s per-change revert loop instead.
 
@@ -54,7 +54,7 @@ python3 scripts/revert-resolve.py <unit> <id> [--spec <spec-id>] --json
 
 The resolver returns the ordered commit list (newest → oldest), any `ghost` candidates, the `base` (parent of the earliest commit), and `warnings`. It layers four sources by confidence: recorded `> **Commit:**` SHA → `/ship` `Ref:` footer → phase-state JSON `commit`/`mergeCommit` → ghost-commit subject-similarity fallback.
 
-**Ghost confirmation:** For every entry in the resolver's `ghost` array, present the recorded SHA, the candidate SHA + subject, and the similarity score, then **AskQuestion** to confirm each substitution individually. A ghost candidate is **never** auto-selected or silently promoted into the commit list. Decline → drop that commit from the plan and surface a warning that the unit may be only partially reverted.
+**Ghost confirmation:** For every entry in the resolver's `ghost` array, present the recorded SHA, the candidate SHA + subject, and the similarity score, then **AskQuestion** to confirm each substitution individually. A ghost candidate is never auto-selected or silently promoted into the commit list. Decline → drop that commit from the plan and surface a warning that the unit may be only partially reverted.
 
 If the resolver returns **no commits** (`commits` empty), halt with an explanation and offer manual target entry — there is nothing to revert.
 
@@ -76,7 +76,7 @@ Only once the tree is clean, present the **revert plan**:
 - **Artifacts to reset** — the story/spec status, tasks/AC, WWB banner, drift-log entry, and `context.md` regeneration (Phase 5).
 - **Warnings** — merge commits, possible cherry-pick duplicates, missing-SHA notes.
 
-This pre-execution plan is the **moment of truth**: nothing has mutated yet. Then **AskQuestion**:
+Nothing has mutated at this point. Then **AskQuestion**:
 
 - **Safe (revert)** — history-preserving new commits. **[Recommended]**
 - **Hard reset (destructive)** — rewinds the branch to `base`; discards later work.
@@ -88,7 +88,7 @@ This pre-execution plan is the **moment of truth**: nothing has mutated yet. The
 
 **Safe strategy (default):**
 
-Run `git revert --no-edit <sha>` for each resolved commit, **newest → oldest**. On a **conflict**, HALT and leave the repository mid-revert for the user with clear manual-resolution guidance ("resolve conflicts, then `git revert --continue`, or `git revert --abort` to back out"). Do not attempt automatic conflict resolution and do not proceed to Phase 5 until the revert sequence completes cleanly.
+Run `git revert --no-edit <sha>` for each resolved commit, **newest → oldest**. On a **conflict**, HALT and leave the repository mid-revert for the user with manual-resolution guidance ("resolve conflicts, then `git revert --continue`, or `git revert --abort` to back out"). Do not attempt automatic conflict resolution and do not proceed to Phase 5 until the revert sequence completes cleanly.
 
 **Hard reset strategy (destructive):**
 
@@ -108,16 +108,16 @@ After a clean revert (safe or hard), restore Writ's artifacts so no artifact cla
 - Artifacts updated (status, tasks/AC, WWB banner, drift-log entry).
 - New repository state and suggested next action.
 
-**Optional audit note (soft link):** If the git-notes audit channel (`refs/notes/writ`) is present in this repo, the revert *may* attach a short audit note recording the unit, strategy, and commits under `refs/notes/writ`. This is optional and non-required — skip silently if the channel is absent.
+**Optional audit note (soft link):** If the git-notes audit channel (`refs/notes/writ`) is present in this repo, the revert may attach a short audit note recording the unit, strategy, and commits under `refs/notes/writ`. This is optional; skip silently if the channel is absent.
 
 ---
 
 ## Artifact Restoration
 
-On a successful revert, restore artifacts to match reality. For a **spec** revert, apply the per-story steps to **every** story in the spec and reset the spec's own status.
+On a successful revert, restore artifacts to match reality. For a **spec** revert, apply the per-story steps to every story in the spec and reset the spec's own status.
 
 1. **Story status → `Not Started`.** In each affected story file, set `> **Status:** Not Started` and uncheck every `- [x]` back to `- [ ]` in the Implementation Tasks and Acceptance Criteria / Definition of Done lists.
-2. **WWB "Reverted" banner (preserve, never delete).** Insert a banner at the top of the story's `## What Was Built` section — do **not** remove the record:
+2. **WWB "Reverted" banner (preserve, never delete).** Insert a banner at the top of the story's `## What Was Built` section; do not remove the record:
 
    ```
    > **Reverted:** {YYYY-MM-DD} — reverted via /revert ({strategy}); commits {short-shas}. Record preserved for history.
@@ -165,7 +165,7 @@ Six invariants hold for every `/revert` operation:
 
 This command succeeds when each commit in the confirmed plan has a matching revert commit, every affected story reads `Status: Not Started` with its checkboxes cleared, and a new `DEV-NNN` entry records the unit, strategy, and commits.
 
-The `## What Was Built` record is retained under a Reverted banner rather than deleted — keeping the history of what was tried is the point.
+The `## What Was Built` record is retained under a Reverted banner rather than deleted, to keep the history of what was tried.
 
 **Terminal constraint:** This command unwinds work on the current branch. Do not re-implement what was reverted, and do not force-push or rewrite published history.
 

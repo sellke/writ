@@ -9,18 +9,17 @@ status: candidate
 
 ## Purpose
 
-Capture **implementation reality** — what was actually created, changed,
-decided, tested and deviated from — as a durable record appended to the work
+Capture **implementation reality** (what was actually created, changed,
+decided, tested and deviated from) as a durable record appended to the work
 item, so downstream work builds on facts rather than the plan. Two halves:
 extracting the data defensively from whatever output exists, and formatting it
 into the record's fixed shape.
 
-> **Format reference:** `.writ/docs/what-was-built-format.md` — the authority on
+> **Format reference:** `.writ/docs/what-was-built-format.md`, the authority on
 > the record's conventions, including the `> **Reverted:**` banner.
 
-**The single governing rule: never block completion on incomplete data.
-Partial records are better than no records.** Every extraction below has a
-fallback for exactly that reason.
+**Never block completion on incomplete data. Partial records are better than no
+records.** Every extraction below has a fallback.
 
 ## When to Use
 
@@ -28,45 +27,44 @@ fallback for exactly that reason.
   produced.
 - Whenever review or test output exists that will otherwise be discarded when
   the transcript ends.
-- Also on reduced runs where no review happened — a smaller record is still
+- Also on reduced runs where no review happened; a smaller record is still
   written (see *Minimal record*).
 
 ## How to Apply
 
 ### 1. Extract — five sources, three failure semantics
 
-**Files Created/Modified — mandatory.** Parse the `### Files Created` and
+**Files Created/Modified (mandatory).** Parse the `### Files Created` and
 `### Files Modified` sections of the implementation output; extract file paths
 (in backticks) and descriptions. *Fallback:* if the sections are missing, run
 `git diff --name-status` against the branch start. *Validation:* if no files are
 found, log `⚠️ "What Was Built" record incomplete — no files found` and continue
 with empty lists.
 
-**Implementation Decisions — best-effort.** Parse the
+**Implementation Decisions (best-effort).** Parse the
 `### Implementation Decisions` list items or paragraphs. *Fallback:* omit the
 section from the final record.
 
-**Test Results — best-effort.** Parse `### Test Coverage` and any testing
+**Test Results (best-effort).** Parse `### Test Coverage` and any testing
 results available; extract coverage percentages and the verification approach.
 *Fallback:* `**Verification:** N/A`.
 
-**Review Outcome — mandatory result, best-effort detail.**
+**Review Outcome (mandatory result, best-effort detail).**
 - **Result** (mandatory): parse `### REVIEW_RESULT: [PASS/FAIL/PAUSE]`. If it is
   missing, log an error and use `"Unknown"`.
 - **Drift** (best-effort): `### Drift Analysis → **Overall Drift:** [level]`.
 - **Security** (best-effort): `### Security Assessment → **Risk Level:** [level]`.
 - **Boundary Compliance** (best-effort): the
   `### Boundary Compliance → **Summary:**` line.
-- **Iteration count**: tracked by the caller — the number of review loops.
+- **Iteration count**: tracked by the caller (the number of review loops).
 - *Fallbacks* for missing best-effort fields: `"None"` / `"Not assessed"` / omit.
 
-**Deviations from Spec — best-effort.** Parse the `#### [DEV-NNN]` entries under
+**Deviations from Spec (best-effort).** Parse the `#### [DEV-NNN]` entries under
 `### Drift Analysis` with all their fields, **preserving DEV-ID numbering**.
 *Fallback:* if overall drift is "None", use `"None"`.
 
-Hold the extracted fields until the record is written: extraction and writing
-are separate moments, and later results (test results in particular) update the
-held data before it is formatted.
+Hold the extracted fields until the record is written; later results (test
+results in particular) update the held data before it is formatted.
 
 ### 2. Format
 
@@ -129,7 +127,7 @@ None
   {If spec_amendment present: "- Spec amendment: {dev.spec_amendment}"}
 ```
 
-Three empty-state rules differ deliberately and must not be harmonized: Files
+The three empty-state rules differ and must not be harmonized: Files
 Created/Modified print `[None created]` / `[None modified]`; Implementation
 Decisions is **omitted entirely** rather than printing "None"; Deviations prints
 the word `None`.
@@ -141,13 +139,13 @@ the word `None`.
 3. Add the formatted content.
 4. Save.
 
-Append — never rewrite the file around the record.
+Append; never rewrite the file around the record.
 
 ### Minimal record (reduced runs, no review data)
 
 When no review ran, no extracted data exists. Construct a smaller record from
-the implementation and testing output. It is a **second template**, not a
-degraded copy of the first — its own banner, its own section list:
+the implementation and testing output. It is a separate template with its own
+banner and section list:
 
 ```markdown
 ## What Was Built
@@ -169,7 +167,7 @@ degraded copy of the first — its own banner, its own section list:
 ### Graceful degradation
 
 - **Incomplete extraction:** already handled by the validation warnings and
-  fallback values above — use the partial data, log the warnings, continue.
+  fallback values above; use the partial data, log the warnings, continue.
 - **Missing test results:** if testing was skipped or failed, use
   `**Verification:** N/A`.
 - **Any other gap:** write the record anyway. **The work must NEVER be blocked

@@ -15,7 +15,7 @@ Create or update developer documentation for implemented stories.
 
 ## Framework Detection
 
-First detect what documentation system this project uses:
+Detect the project's documentation system:
 1. `docs/.vitepress/` → VitePress
 2. `docusaurus.config.*` → Docusaurus
 3. `.storybook/` → Storybook (component docs)
@@ -68,4 +68,4 @@ If documentation cannot be generated (e.g., missing source files, framework conf
 ### Suggested Resolution: [How to unblock]
 ```
 
-Do not create partial or placeholder documentation files. Either produce complete docs or report the blocker.
+Do not create partial or placeholder documentation files. Produce complete docs or report the blocker.

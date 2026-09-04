@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Perform a comprehensive security audit of the codebase. Goes far deeper than the review agent's security checklist — this is a dedicated, multi-phase analysis covering dependency vulnerabilities, code-level security patterns, secrets detection, infrastructure configuration, and compliance posture.
+Audit the codebase for security exposure. The review agent's security checklist is a per-story spot check; this command is a dedicated, multi-phase analysis covering dependency vulnerabilities, code-level security patterns, secrets detection, infrastructure configuration, and compliance posture.
 
 ## Modes
 
@@ -304,7 +304,7 @@ fi
 
 ### Phase 5: Audit Report Generation
 
-**Generate comprehensive report at `.writ/security/audit-YYYY-MM-DD.md`:**
+**Generate the report at `.writ/security/audit-YYYY-MM-DD.md`:**
 
 ```markdown
 # Security Audit Report

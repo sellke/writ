@@ -10,18 +10,18 @@ status_evidence: "Authored 2026-07-11 for the gbrain-compatibility-recipe spec. 
 
 ## Purpose
 
-Decide *where a retrieval query goes* when a project may or may not run an
+Decide where a retrieval query goes when a project may or may not run an
 external [GBrain](https://github.com/garrytan/gbrain) index over its markdown.
-When a healthy brain is present, semantic recall (`gbrain search`) beats a grep
-guess for "what did we decide about X?" questions across specs, ADRs, and
-knowledge entries. When no brain is present — the common case — retrieval falls
+When a healthy brain is present, semantic recall (`gbrain search`) answers "what
+did we decide about X?" questions across specs, ADRs, and knowledge entries
+better than grep. When no brain is present — the common case — retrieval falls
 back to grep over `.writ/` with no change in behavior.
 
-This capability owns *retrieval routing only*. It never changes the canonical
-store: markdown in git stays the single system of record, GBrain is a disposable
-read-acceleration layer over it, and removing the index loses zero canonical
-data by construction. The consumer owns *what* to retrieve and *why* — this skill
-answers only *which path answers the query fastest without taking a dependency*.
+This capability covers retrieval routing only. It never changes the canonical
+store: markdown in git is the system of record, GBrain is a disposable
+read-acceleration layer over it, and removing the index leaves `.writ/`
+byte-for-byte intact. The consumer decides what to retrieve and why; this skill
+decides which path answers the query without taking a dependency.
 
 ## When to Use
 
@@ -34,7 +34,7 @@ answers only *which path answers the query fastest without taking a dependency*.
   first, then the index re-syncs.
 - Not the right tool when the query is a plain exact-string search that grep
   already answers well, or when no `.writ/` substrate exists yet — detection
-  simply degrades to grep and this skill is invisible.
+  degrades to grep.
 
 ## How to Apply
 
@@ -69,17 +69,16 @@ gbrain search "how do we detect a healthy brain"
 
 In an MCP host, call `mcp__gbrain__search` with the same query. Reserve grep for
 exact-string needs (a specific symbol, a literal filename, a config key) where
-lexical match is what you actually want. Brain-first is a *preference*, never an
-exclusive: if a brain search returns nothing useful, grep the markdown directly.
+a lexical match is wanted. Brain-first is a preference: if a brain search
+returns nothing useful, grep the markdown directly.
 
 ### 3. Cite — always point at the canonical markdown path
 
 Every retrieved answer must name the reviewable markdown file it came from
 (e.g. `.writ/decision-records/adr-011-...md`, `.writ/knowledge/...`), so a human
-can open, verify, and trust the source of truth. A GBrain hit is a pointer into
-the substrate, not the substrate itself — never present an index row as the
-authority. If a result cannot be traced back to a canonical file, treat it as
-untrusted and confirm against the markdown before relying on it.
+can open and verify it. Never present an index row as the authority. If a result
+cannot be traced back to a canonical file, treat it as untrusted and confirm
+against the markdown before relying on it.
 
 ### 4. Write — markdown-first, then re-index
 
@@ -94,9 +93,8 @@ gbrain sync
 ```
 
 Never write durable Writ knowledge *only* into GBrain (`gbrain put` into the
-index without a backing markdown file). That would put canonical data somewhere
-the round-trip guarantee cannot protect — a brain removal would lose it. The
-index is a mirror of markdown, never the origin.
+index without a backing markdown file). The round-trip guarantee does not cover
+such data; removing the brain would lose it.
 
 ### 5. Degrade — absence is a clean no-op
 
@@ -104,7 +102,7 @@ On a machine with no brain (or an `error`-status one), routing falls back to
 grep over `.writ/` and nothing changes in the normal workflow. Announce the
 fallback at most once per session, then stay silent — do not re-probe or narrate
 on every query. A missing brain is never a hard failure and never blocks a
-command; it is the default posture this skill is built to disappear into.
+command.
 
 ## Examples
 
@@ -133,19 +131,15 @@ detect: gbrain doctor --json → status: error      → treat as absent
 route:  grep fallback; point the user at `gbrain doctor` if they want the index back
 ```
 
-The invariant across all three: the answer traces to a canonical markdown file,
-every durable write lands in markdown first, and pulling the index out leaves
-`.writ/` byte-for-byte intact.
-
 > Human setup — installing GBrain, registering `.writ/` as a source, the
 > artifact→page tag mapping, MCP registration, and the removal path — lives in
 > the recipe at `.writ/docs/gbrain-recipe.md`. This skill covers routing only.
 
 ## Evidence
 
-Born `candidate` on 2026-07-11 with **0 evidence entries** — the valid born
+Born `candidate` on 2026-07-11 with **0 evidence entries**, the valid born
 state for a new skill under ADR-014. No `evidence:` block is required while
-`candidate`. Promotion is earned, not asserted:
+`candidate`. Promotion requires evidence:
 
 - **→ proven** requires ≥3 well-formed `evidence:` entries (`date`, `type`,
   `ref`, `note`) recording real use — e.g. a command or agent that routes

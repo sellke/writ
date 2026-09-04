@@ -16,9 +16,9 @@ exit_criteria:
 
 Generate a structured User Acceptance Test plan from a completed (or partially completed) specification. Reads story files, spec contracts, and technical sub-specs to produce human-readable test scenarios that enable manual validation **without reading implementation code**.
 
-The UAT plan bridges the gap between "AI says it works" and "human confirmed it works." Scenarios are derived from four structured sources — acceptance criteria, error maps, shadow paths, and edge cases — then enriched with concrete implementation details from "What Was Built" records.
+The UAT plan lets a person confirm behavior the agent reported as working. Scenarios are derived from four structured sources — acceptance criteria, error maps, shadow paths, and edge cases — then enriched with concrete implementation details from "What Was Built" records.
 
-**Design principle:** UAT plans are generated **after** story completion, not during spec creation. They reflect actual implementation, not spec intentions.
+**Design principle:** UAT plans are generated after story completion, not during spec creation. They reflect actual implementation, not spec intentions.
 
 ## Invocation
 
@@ -365,7 +365,7 @@ If a `uat-plan.md` already exists, **overwrite** it — UAT plans are regenerate
 ⚠️ No technical-spec.md found — error map, shadow path, and edge case scenarios
    will not be generated. UAT plan will be based on acceptance criteria only.
 ```
-Continue with acceptance criteria scenarios. The plan is still useful — just less comprehensive.
+Continue with acceptance criteria scenarios; the plan is valid with that coverage.
 
 **Story file parse error:**
 ```
@@ -395,7 +395,7 @@ Not an error — Phase 4 enhancement is best-effort. Scenarios are still valid.
 
 **Recommended flow:** `/implement-spec` (all stories) → `/create-uat-plan` → manual UAT execution → `/ship`
 
-**Standalone usage:** `/create-uat-plan` works independently of the pipeline. Run it anytime after at least one story is complete — partial plans are valid and useful for incremental validation.
+**Standalone usage:** `/create-uat-plan` works independently of the pipeline. Run it anytime after at least one story is complete; partial plans are valid.
 
 ## Completion
 

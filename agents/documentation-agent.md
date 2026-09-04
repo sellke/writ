@@ -191,7 +191,7 @@ Brief summary of documentation changes.
 ### Partial Progress: [Files updated before the block, or "None"]
 ### Suggested Resolution: [How to unblock — missing info, config fix, etc.]
 
-Do not create partial or placeholder documentation files. Complete docs or a clear blocker report — never half-finished artifacts.
+Do not create partial or placeholder documentation files. Produce either complete docs or a blocker report.
 `
 })
 ```

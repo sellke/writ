@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Take a green branch to a merged PR - merge the default branch, organize commits, write the PR description, push, and open it. The last-mile command."
+description: "Take a green branch to a merged PR - merge the default branch, organize commits, write the PR description, push, and open it."
 problem: "The last mile from green branch to open PR is a manual chain — merge default, split commits, write the body, push, open — and a skipped link yields a stale or unreviewable PR."
 outcome: "The branch has the default branch merged into it and its commits grouped by concern, and an open pull request states the change's spec, test and drift position."
 entry_level: standard
@@ -14,11 +14,11 @@ exit_criteria:
 
 ## Overview
 
-Unified shipping workflow that takes a green branch to a merged PR. Replaces the manual sequence of merge-main → run-tests → organize-commits → write-PR → push → open-PR. Non-interactive by default — momentum over ceremony.
+Unified shipping workflow that takes a green branch to a merged PR. Replaces the manual sequence of merge-main → run-tests → organize-commits → write-PR → push → open-PR. Non-interactive by default.
 
-`/ship` is the *last mile* command. It assumes the code is ready (review complete, confidence in correctness) and focuses on getting it merged cleanly. **Tests do not run by default** — use `/ship --test` when you want the suite after merging the default branch. It's not a second review gate — that's what `/review` is for.
+`/ship` assumes the code is ready (review complete, correctness established) and gets it merged. Tests do not run by default; use `/ship --test` to run the suite after merging the default branch. `/ship` is not a review gate; `/review` is.
 
-Use `/ship` standalone on any branch, or as the natural next step after `/implement-story` completes.
+Use `/ship` standalone on any branch, or after `/implement-story` completes.
 
 **How `/ship` absorbs the PR agent concept:**
 
@@ -136,7 +136,7 @@ git fetch origin
 git merge origin/[default-branch]
 ```
 
-**On clean merge:** Continue silently — momentum over ceremony.
+**On clean merge:** Continue silently.
 
 **On already up-to-date:** Continue silently.
 
@@ -154,7 +154,7 @@ Options:
 2. Abort — stop shipping, resolve conflicts first
 ```
 
-Do not auto-resolve merge conflicts. The cost of a bad resolution is much higher than pausing for 2 minutes of human judgment.
+Do not auto-resolve merge conflicts. A bad resolution costs more than pausing for human judgment.
 
 **If `--rebase` flag or rebase convention detected:**
 
@@ -202,7 +202,7 @@ make test             # Makefile-based
 
 ### Step 4: Commit Intelligence
 
-Analyze the diff and organize changes into bisectable commits when beneficial. The goal is a git history that supports future debugging — `git bisect` should land on meaningful boundaries, not arbitrary save points.
+Analyze the diff and organize changes into bisectable commits when beneficial. The goal is a git history where `git bisect` lands on logical boundaries.
 
 **Splitting heuristic — split when the diff contains distinct logical layers:**
 
@@ -220,9 +220,9 @@ Analyze the diff and organize changes into bisectable commits when beneficial. T
 - All changes are tightly coupled — splitting would create broken intermediate states (e.g., a type change + all its call sites)
 - `--no-split` flag is set
 
-**Each intermediate commit should leave the repo in a good state.** When `/ship --test` is used, avoid splits that would leave tests failing midway — merge layers if needed. When `--test` was not used, prioritize **buildability** (no syntax/type errors obvious from the split).
+Each intermediate commit should leave the repo in a good state. When `/ship --test` is used, avoid splits that would leave tests failing midway; merge layers if needed. When `--test` was not used, prioritize buildability (no syntax/type errors obvious from the split).
 
-**Commit message authoring:** `Read skills/conventional-commits/SKILL.md` for the message grammar (type/scope/summary/body/footers) and the project-convention detection step. The skill owns *how to phrase* each commit; this command owns *which* data populates each component and adds the Writ-specific `Ref:` footer when the diff traces back to a spec story.
+**Commit message authoring:** `Read skills/conventional-commits/SKILL.md` for the message grammar (type/scope/summary/body/footers) and the project-convention detection step. The skill owns how to phrase each commit; this command owns which data populates each component and adds the Writ-specific `Ref:` footer when the diff traces back to a spec story.
 
 > **Non-extraction note (Phase 7 skill extraction):** `/ship`'s high-traffic capability was already extracted as `conventional-commits`; the commit-splitting and PR-assembly logic above is command-specific orchestration, not a reusable capability. No further skill extraction from `/ship` was warranted — documented here so the four-skill decision (`code-explanation`, `tdd-cycle`, `error-rescue-mapping`, `safe-refactor-loop`) is not mistaken for an oversight.
 
@@ -276,7 +276,7 @@ AskQuestion({
 })
 ```
 
-This gate prevents the commit plan from executing without explicit approval — restructuring git history is not something to auto-proceed on.
+Do not restructure git history without explicit approval.
 
 ### Step 5: PR Creation
 
@@ -287,7 +287,7 @@ Create a pull request with a structured body, auto-labels, and appropriate draft
 ```markdown
 ## Summary
 [2-3 sentence description derived from commit messages and diff analysis.
-Focus on *what changed and why*, not implementation details.]
+Focus on what changed and why, not implementation details.]
 
 ## Changes
 [Bullet list of logical changes, grouped by domain:]
@@ -329,7 +329,7 @@ Run /review before /ship for failure mode analysis."]
 | Drift Report | Read from `drift-log.md` in the active spec folder if it exists |
 | Review Notes | Read from `.writ/state/review-[branch-name].md` if `/review` was run before `/ship` |
 
-If any section has no data (no spec, no drift log, no review), use clear placeholder text — don't leave the section empty or omit it, **except Spec Health** which must be omitted when there is nothing to report. The consistent structure helps reviewers know where to look.
+If any section has no data (no spec, no drift log, no review), use placeholder text; do not leave the section empty or omit it, except Spec Health, which must be omitted when there is nothing to report. Consistent structure tells reviewers where to look.
 
 **Inline spec health (silent):** During Step 5, if `.writ/specs/` exists **and** an active spec is identified (same discovery as **Spec Reference**):
 
@@ -356,7 +356,7 @@ Multiple labels can apply to the same PR. A change that adds a feature and updat
    Create them with: gh label create feature
 ```
 
-Never fail the entire `/ship` flow because of missing labels. The PR is the deliverable, not the labels.
+Never fail the `/ship` flow because of missing labels.
 
 **Draft vs. Ready determination:**
 
@@ -399,7 +399,7 @@ Then re-run /ship.
    will be orphaned. For follow-up changes, open a new branch.
 ```
 
-This warning prevents the scenario where additional commits are pushed to the branch after the PR is merged on GitHub, resulting in lost work that requires manual cherry-pick recovery.
+This warning prevents pushing commits to the branch after the PR has merged on GitHub, which orphans them and requires manual cherry-pick recovery.
 
 ### Step 6: Audit Note (post-land)
 
@@ -411,7 +411,7 @@ rationale: [`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audi
 and [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
 
 > **This step is strictly non-blocking.** Audit-note composition or attachment
-> failure **never fails the ship**. On any error, log `⚠️ audit note not attached —
+> failure never fails the ship. On any error, log `⚠️ audit note not attached —
 > {error}` and continue to the completion report.
 
 **6.0 — Opt-out gate (first).** Read the per-repo marker:
@@ -420,17 +420,17 @@ and [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
 AUDIT_NOTES=$(git config --bool writ.auditNotes 2>/dev/null || echo true)   # absent = true
 ```
 
-If `AUDIT_NOTES` is `false`, **skip this entire step silently** — no note, no output,
+If `AUDIT_NOTES` is `false`, skip this entire step silently: no note, no output,
 no git-config changes.
 
 **6.1 — Resolve the landed SHA** per land strategy (a note binds to a commit SHA, so
-this must be the commit that actually exists on the base branch):
+this must be the commit that exists on the base branch):
 
 | Land strategy | Landed SHA |
 |---|---|
 | Squash-merge | the single squash commit — `git rev-parse origin/[default-branch]` after the merge lands |
 | Merge commit | the merge commit SHA on the base branch |
-| Rebase-and-merge (replays N commits) | the **tip** of the replayed commits on the base branch |
+| Rebase-and-merge (replays N commits) | the tip of the replayed commits on the base branch |
 
 If `/ship` opened a PR that has not merged yet, the land happens when the PR merges;
 attach the note once the landed commit exists on the base branch (re-running this
@@ -445,7 +445,7 @@ per-story `## What Was Built` records: aggregate verdict (worst story result),
 highest drift severity, union of DEV-IDs, aggregate coverage, files created/modified
 counts, total review iterations. Write it to a tmpfile.
 
-- **Audit-only content:** include only the audit fields — **never** chain-of-thought,
+- **Audit-only content:** include only the audit fields, never chain-of-thought,
   prompts, or transcripts, and never copy "Implementation Decisions" narrative
   verbatim.
 - **Fallback (no WWB records found):** attach the minimal digest (spec ref + landed
@@ -461,20 +461,19 @@ git notes --ref=writ add -f -F "$DIGEST_TMPFILE" "$LANDED_SHA"
 git push origin refs/notes/writ
 ```
 
-**Merge before attaching, and never fetch straight into `refs/notes/writ`.** The
+Merge before attaching, and never fetch straight into `refs/notes/writ`. The
 install-configured fetch refspec lands the remote's notes on `refs/notes/origin-writ`,
 a ref local operations never write; `cat_sort_uniq` folds it into the local ref so
 notes written on another machine survive. A `+refs/notes/writ:refs/notes/writ` refspec
-instead *discards* any local note added since the last push — silently, with no
+instead discards any local note added since the last push, silently, with no
 rejection message. If `git fetch` reports that refspec, the repo predates this fix:
 re-run `install.sh` to migrate it, or clear it by hand.
 
-**The push is part of the step, not optional.** A note that is never pushed is
-local-only, which defeats the channel's purpose. Push failure is still non-blocking —
-log `⚠️ audit note attached locally but not pushed — {error}` and continue.
+Push as part of this step. An unpushed note is local-only. Push failure is still
+non-blocking: log `⚠️ audit note attached locally but not pushed — {error}` and continue.
 
-Always pass `--ref=writ` explicitly. **Never** write to `refs/notes/commits` (the git
-default) — that would clobber the user's own notes.
+Always pass `--ref=writ` explicitly. Never write to `refs/notes/commits` (the git
+default); that would clobber the user's own notes.
 
 **6.5 — Confirm** in the completion report:
 
@@ -588,7 +587,7 @@ Options:
 3. Abort — commit or stash manually, then re-run /ship
 ```
 
-I recommend **option 1** (commit now) — it's the most common intent. The commit will go through Step 4's splitting heuristic anyway, so the initial commit message is a draft. Stashing risks losing track of uncommitted work.
+Recommend **option 1** (commit now): it is the most common intent, and Step 4's splitting heuristic reprocesses the commit, so the initial commit message is a draft. Stashing risks losing track of uncommitted work.
 
 **Combined scenario — on main with uncommitted changes:**
 
@@ -622,7 +621,7 @@ Proceed? [Enter to continue, or specify a branch name]
 | Command | Relationship |
 |---------|-------------|
 | `/review` | Optional quality pass before `/ship` |
-| `/release` | Natural follow-up **after** the PR lands — runs its own gate (build + conditional tests + changelog) |
+| `/release` | Follow-up after the PR lands; runs its own gate (build + conditional tests + changelog) |
 | `/verify-spec` | Standalone metadata diagnostic; `/ship` embeds checks **1–3** only when opening a PR |
 
 **Typical flow:** `/ship` → merge PR → `/release --dry-run` → `/release`.
@@ -631,7 +630,7 @@ Proceed? [Enter to continue, or specify a branch name]
 
 This command succeeds when the branch has an origin upstream whose tip matches local, the default branch is an ancestor of it, and an open pull request exists whose body carries Summary, Changes, Spec Reference, and Test Results.
 
-Failing tests or unresolved drift do not stop the run — they make the pull request a draft. That is the honest outcome, not a degraded one.
+Failing tests or unresolved drift do not stop the run; they make the pull request a draft.
 
 **Terminal constraint:** This command stops at an opened pull request. Do not merge it, request reviewers, or begin the next piece of work.
 

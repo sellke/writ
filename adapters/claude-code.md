@@ -1,6 +1,6 @@
 # Claude Code Platform Adapter
 
-Native integration with Claude Code's subagent system, git worktrees, agent teams, and hooks. Writ agents are defined as `.claude/agents/` markdown files with YAML frontmatter — no shell scripting needed.
+Native integration with Claude Code's subagent system, git worktrees, agent teams, and hooks. Writ agents are `.claude/agents/` markdown files with YAML frontmatter; no shell scripting is needed.
 
 ---
 
@@ -18,7 +18,7 @@ This installs all commands, Claude Code–native agents (with YAML frontmatter),
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update.sh) --platform claude
 ```
 
-The updater uses a manifest (`.claude/.writ-manifest`) for three-way overlay merges — files you've customized are never overwritten.
+The updater uses a manifest (`.claude/.writ-manifest`) for three-way overlay merges. Files you have customized are never overwritten.
 
 ### Manual Installation
 
@@ -33,7 +33,7 @@ cp path/to/writ/claude-code/agents/*.md .claude/agents/
 cp path/to/writ/claude-code/CLAUDE.md ./CLAUDE.md
 ```
 
-Agent source files live in `claude-code/agents/` in the Writ repo — these are Claude Code–native with YAML frontmatter (`name`, `tools`, `model`, `permissionMode`, `isolation`, `maxTurns`, `memory`).
+Agent source files live in `claude-code/agents/` in the Writ repo. They carry YAML frontmatter (`name`, `tools`, `model`, `permissionMode`, `isolation`, `maxTurns`, `memory`).
 
 #### Step 2: Project Context (Optional)
 
@@ -92,7 +92,7 @@ your-project/
 
 ### Git Worktree Isolation (`isolation: worktree`)
 
-The game-changer for parallel execution. When a subagent has `isolation: worktree`, Claude Code:
+When a subagent has `isolation: worktree`, Claude Code:
 1. Creates a temporary git worktree (isolated copy of the repo)
 2. Runs the subagent in that worktree (no file conflicts with other agents)
 3. Merges changes back when the subagent completes
@@ -103,8 +103,7 @@ The game-changer for parallel execution. When a subagent has `isolation: worktre
 - `writ-coder` — implements in isolation, no conflicts with parallel stories
 - `writ-story-gen` — generates story files in parallel without conflicts
 
-**Why this matters for `/implement-story --all`:**
-Multiple stories can be implemented simultaneously in separate worktrees. Each coder gets its own branch/worktree, implements independently, and changes merge back. No file locking, no conflicts on shared files.
+**`/implement-story --all`:** stories run simultaneously in separate worktrees. Each coder gets its own branch and worktree, and changes merge back. No file locking, no conflicts on shared files.
 
 ### Persistent Memory (`memory: project`)
 
@@ -119,13 +118,13 @@ Agents learn across sessions. The review agent remembers patterns it's seen, the
 
 ### Model Selection
 
-The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen` — no `visual-qa` equivalent here yet; don't infer a seventh) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value, resolved per this table:
+The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen`) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value. There is no `visual-qa` equivalent here yet; do not infer a seventh. The table resolves the tiers:
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
-| `anchor.model` = the model Claude Code reports for the session; `anchor.effort` = `unknown` unless an effort setting is present in `.claude/settings*.json`; `anchor.platform = claude-code` | `model: inherit` | `model: haiku` — `haiku` is the family bottom, so it is at or below any Claude origin by construction, which is why static frontmatter can carry it without a runtime `min(haiku, origin)` check. If `haiku` is unavailable on the install: `model: inherit` + `effort: low`. | `model: inherit` |
+| `anchor.model` = the model Claude Code reports for the session; `anchor.effort` = `unknown` unless an effort setting is present in `.claude/settings*.json`; `anchor.platform = claude-code` | `model: inherit` | `model: haiku`. `haiku` is the family bottom, so it is at or below any Claude origin; static frontmatter can carry it without a runtime `min(haiku, origin)` check. If `haiku` is unavailable on the install: `model: inherit` + `effort: low`. | `model: inherit` |
 
-**Degradation:** an unrecognized `model_tier`, or a family alias the install cannot resolve (verify `haiku`/`inherit` still resolve if your Claude Code version's defaults drift), warns and falls back to `inherit` — never hard-fail the spawn; a Claude origin already at `haiku` means `floor` collapses to `anchor`, said once, no `degraded`.
+**Degradation:** an unrecognized `model_tier`, or a family alias the install cannot resolve (verify `haiku`/`inherit` still resolve if your Claude Code version's defaults drift), warns and falls back to `inherit`. Never hard-fail the spawn. A Claude origin already at `haiku` means `floor` collapses to `anchor`, said once, no `degraded`.
 
 | Agent | `model_tier` | `model:` |
 |-------|------|------|
@@ -155,11 +154,11 @@ The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `wri
 
 > **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
 
-On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session) plus **`.claude/agent-memory/`** (the per-agent `MEMORY.md` files where the architect, coder, and reviewer accumulate what they have learned). Let `CLAUDE.md` carry stable project preferences and let agent memory hold cross-session working notes. But when a decision, convention, or lesson is *negotiated* and needs to outlive one machine's memory store, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/` — the layer a teammate reviews in a PR.
+On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session) plus **`.claude/agent-memory/`** (the per-agent `MEMORY.md` files where the architect, coder, and reviewer accumulate what they have learned). Let `CLAUDE.md` carry stable project preferences and let agent memory hold cross-session working notes. When a decision, convention, or lesson is negotiated and needs to outlive one machine's memory store, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/`, the layer a teammate reviews in a PR.
 
-**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+**Anti-pattern:** negotiated decisions that live only in native memory are unreviewable and are lost on a reinstall, a new machine, or a teammate who never had your store. Write the decision, the convention, or the lesson to the ledger, and let native memory keep only the ephemeral trivia.
 
-**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md) cover the external-index layer. Removing that index loses nothing; the ledger is the only copy.
 
 ---
 
@@ -187,8 +186,6 @@ Claude Code delegates to subagents automatically based on the `description` fiel
 Use the writ-coder agent to implement this story.
 Use the writ-reviewer agent to review the implementation.
 ```
-
-Or Claude will delegate automatically when the task matches an agent's description.
 
 ### Structured Questions (no AskQuestion equivalent)
 
@@ -290,7 +287,7 @@ neutral reducer:
 
 ### Preamble Convention
 
-Manual and scripted installs copy `commands/_preamble.md` into `.claude/commands/` with the rest of the command files. Claude Code loads the invoked command markdown; the command's final `## References` section points the orchestrator at `_preamble.md` and `system-instructions.md`, so the convention stays markdown-driven rather than hook-driven.
+Manual and scripted installs copy `commands/_preamble.md` into `.claude/commands/` with the rest of the command files. Claude Code loads the invoked command markdown; the command's final `## References` section points the orchestrator at `_preamble.md` and `system-instructions.md`, No hook is needed.
 
 ### implement-story --all: Agent Teams (Experimental)
 
@@ -361,11 +358,11 @@ If tests fail after the coder completes, the hook returns exit code 2 and sends 
 
 ### The /goal Stop Hook
 
-Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentCompleted` example above, aimed instead at `scripts/exit-criteria.py check` — see `.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the full case against treating `/goal` itself as the mechanism.
+Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentCompleted` example above, aimed at `scripts/exit-criteria.py check`. See `.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the case against treating `/goal` itself as the mechanism.
 
-**The checker is the authority; `/goal` is only the delivery vehicle.** Exactly as Story 5's command wiring makes `exit-criteria.py check` the independent, read-only re-derivation that `implement-phase`'s and `implement-spec`'s own completion steps defer to rather than trusting their own self-assessment, the `/goal` condition below does not restate or reinterpret the verdict — it just asks the checker and relays what comes back. Never write a `/goal` condition that encodes its own pass/fail logic.
+**The checker is the authority; `/goal` is only the delivery vehicle.** Story 5's command wiring makes `exit-criteria.py check` the independent, read-only re-derivation that `implement-phase` and `implement-spec` defer to in their completion steps. The `/goal` condition below likewise asks the checker and relays the verdict without restating or reinterpreting it. Never write a `/goal` condition that encodes its own pass/fail logic.
 
-Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is **satisfiable by pausing**, not only by finishing — per spec.md Business Rule 1, "Reaching a retained pause satisfies the gate." A condition that only accepts a clean checker pass would push the model past a human gate, which is exactly the failure mode spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") as causing. Word the condition as an explicit three-way disjunction so no state is left implicit:
+Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is satisfiable by pausing as well as by finishing (spec.md Business Rule 1: "Reaching a retained pause satisfies the gate"). A condition that only accepts a clean checker pass pushes the model past a human gate; spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") causing this. Word the condition as an explicit three-way disjunction:
 
 ```
 /goal Treat this stop as acceptable when ANY of the following is true — do not
@@ -380,26 +377,26 @@ If none of these hold, the condition is not-met: continue the run rather than
 stopping, and never treat a pause as something to route around.
 ```
 
-Clause (b) has to stand on its own in the condition text, not as something the checker reports: `implement-phase.md` and `implement-spec.md` invoke the checker late — Step 4.1c / the completion step — while a retained `AskQuestion`, such as Step 2.3's execute/edit/abort confirmation, can occur earlier, before the checker has run at all. A condition that only names "exits 0" and mentions the pause as an aside is the naive anti-pattern the spec's "What `/goal` showed" section warns against; naming all three states is what keeps the hook compatible with `on_exhaustion: halt_reported` and the Autonomy Gate Classes instead of steamrolling them.
+Clause (b) must stand on its own in the condition text; the checker does not report it. `implement-phase.md` and `implement-spec.md` invoke the checker late (Step 4.1c / the completion step), while a retained `AskQuestion`, such as Step 2.3's execute/edit/abort confirmation, can occur before the checker has run. A condition that only names "exits 0" and mentions the pause as an aside is the anti-pattern the spec's "What `/goal` showed" section warns against. Naming all three states keeps the hook compatible with `on_exhaustion: halt_reported` and the Autonomy Gate Classes.
 
-**Single-slot behavior.** Registering a goal removes every existing top-level prompt Stop hook. Goals cannot nest — if `/implement-phase` holds a goal and then calls `/implement-spec`, and `/implement-spec` also tries to register one, "the innermost silently destroys the outer, and clears leaving nothing behind." As a direct consequence of this single-slot mechanism (not a separate rule to remember), only the outermost running command may ever hold a goal — `/implement-story`, the innermost loop of the three, must never register one regardless of what else is true.
+**Single-slot behavior.** Registering a goal removes every existing top-level prompt Stop hook. Goals cannot nest: if `/implement-phase` holds a goal, calls `/implement-spec`, and `/implement-spec` also registers one, "the innermost silently destroys the outer, and clears leaving nothing behind." So only the outermost running command may hold a goal. `/implement-story`, the innermost loop of the three, must never register one.
 
-**Refusal modes.** `/goal` can silently fail to register in two ways, and both return a message rather than throwing, so check for the message instead of assuming enforcement is active:
+**Refusal modes.** `/goal` can fail to register in two ways. Both return a message rather than throwing, so check for the message instead of assuming enforcement is active:
 
 - **Restricted hooks** — the session has `disableAllHooks` set, or `allowManagedHooksOnly` is set and the goal hook isn't managed.
 - **Untrusted workspace** — the project has not been marked trusted.
 
-Both refusal modes return a message and register nothing. A silently-unset goal is worse than no goal at all, because the run proceeds believing it is gated when it is not — treat the absence of a confirmation message as a diagnosable failure, not as successful enforcement.
+Both register nothing. A silently unset goal is worse than none: the run proceeds believing it is gated. Treat a missing confirmation message as a failure to diagnose, not as enforcement.
 
-`adapters/cursor.md`, `adapters/codex.md`, and `adapters/openclaw.md` need no change for this wiring: they get the checker through Story 5's command wiring (the `exit-criteria.py check` calls already embedded in `implement-phase.md` and `implement-spec.md`), which is adapter-neutral by construction. `/goal` is a Claude-Code-native addition on top of that, not a replacement for it.
+`adapters/cursor.md`, `adapters/codex.md`, and `adapters/openclaw.md` need no change for this wiring. They get the checker through the `exit-criteria.py check` calls already embedded in `implement-phase.md` and `implement-spec.md`, which are adapter-neutral. `/goal` adds to that; it does not replace it.
 
 ---
 
 ## Skills
 
-Skills are the third Writ primitive (peer to commands and agents) — capability files that describe how to do a specific thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
+Skills are the third Writ primitive, peer to commands and agents: capability files that describe how to do one thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
 
-Claude Code uses a **platform-namespaced** install path (below). Codex CLI installs Writ skills at `.agents/skills/` per the AgentSkills standard — see [ADR-009 § Amendments](../.writ/decision-records/adr-009-command-agent-skill-boundary.md#amendments).
+Claude Code uses a platform-namespaced install path (below). Codex CLI installs Writ skills at `.agents/skills/` per the AgentSkills standard; see [ADR-009 § Amendments](../.writ/decision-records/adr-009-command-agent-skill-boundary.md#amendments).
 
 ### Install Path
 
@@ -407,13 +404,13 @@ Claude Code uses a **platform-namespaced** install path (below). Codex CLI insta
 .claude/skills/<name>/SKILL.md
 ```
 
-`install.sh --platform claude` and `update.sh --platform claude` fan skills out alongside commands and agents using the same three-way overlay logic — local modifications to `.claude/skills/<name>/SKILL.md` are preserved across updates. Sidecar files inside a skill folder (anything that isn't `SKILL.md`) are install-once: they're copied on first install and never overwritten on subsequent updates.
+`install.sh --platform claude` and `update.sh --platform claude` fan skills out alongside commands and agents using the same three-way overlay logic, so local modifications to `.claude/skills/<name>/SKILL.md` survive updates. Sidecar files inside a skill folder (anything other than `SKILL.md`) are install-once: copied on first install, never overwritten on update.
 
 ### Loading Mechanism
 
 Claude Code's skill discovery scans `.claude/skills/` and surfaces installed skills to the model with their frontmatter `description:` text. By default Claude may auto-invoke skills based on description match.
 
-**Writ-authored skills opt out of ambient invocation** by setting `disable-model-invocation: true` in their frontmatter. This keeps every skill load deterministic and traceable — Writ commands and agents name skills explicitly when they need them. Community skills installed by other means (e.g. `clawhub`, `agentskills.io` catalogs) are out of Writ's control and follow whatever invocation behavior their installer configured.
+**Writ-authored skills opt out of ambient invocation** by setting `disable-model-invocation: true` in their frontmatter. Every skill load is then deterministic and traceable: Writ commands and agents name skills explicitly when they need them. Community skills installed by other means (e.g. `clawhub`, `agentskills.io` catalogs) follow whatever invocation behavior their installer configured.
 
 ### Invocation
 
@@ -423,9 +420,9 @@ Commands and agents that need a skill load it explicitly:
 Read skills/<name>/SKILL.md
 ```
 
-In Claude Code's tool model, this maps directly to the native `Read` tool. The orchestrator (or command body) issues the `Read` call when the relevant phase begins; the skill's content lands in the agent's context for that phase.
+This maps to the native `Read` tool. The orchestrator (or command body) issues the `Read` call when the relevant phase begins, and the skill's content enters the agent's context for that phase.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness issues `Read skills/<name>/SKILL.md` calls before the consumer's first phase begins. The convention was resolved revisit-to-adopt on 2026-08-11 on the strength of a named future consumer, Phase 10 progressive disclosure (ADR-021) — which then **evaluated the mechanism and did not adopt it**, because an eager pre-load moves extracted bytes into the floor that every invocation pays, so a disclosed command costs more per invocation than the monolith it replaced. Phase 10 loads its skills with an inline `Read skills/<name>/SKILL.md` at the point of need instead. **The convention therefore has no consumer**: nothing in the product declares the field. The schema, this mechanism, and the graceful-degradation rule are unchanged and stay supported; the adoption carries a restored review trigger of **2026-11-11**, aligned to ADR-021's own review — no consumer by then, deprecate; a consumer appears, record it and reset. See `system-instructions.md` → `required_skills:` frontmatter convention.
+For commands and agents that declare `required_skills:` in their frontmatter (see Story 5 / `system-instructions.md`), the harness issues `Read skills/<name>/SKILL.md` calls before the consumer's first phase begins. The convention was resolved revisit-to-adopt on 2026-08-11 on the strength of a named future consumer, Phase 10 progressive disclosure (ADR-021). Phase 10 evaluated the mechanism and did not adopt it: an eager pre-load moves extracted bytes into the floor that every invocation pays, so a disclosed command costs more per invocation than the monolith it replaced. Phase 10 loads its skills with an inline `Read skills/<name>/SKILL.md` at the point of need. The convention therefore has no consumer; nothing in the product declares the field. The schema, this mechanism, and the graceful-degradation rule are unchanged and stay supported. The adoption carries a review trigger of **2026-11-11**, aligned to ADR-021's own review: no consumer by then, deprecate; a consumer appears, record it and reset. See `system-instructions.md` → `required_skills:` frontmatter convention.
 
 ### Authoring & Reference
 
@@ -483,30 +480,29 @@ claude -p "/verify-spec --check" --permission-mode acceptEdits
 
 ## Autonomous Multi-Spec Execution (retired CLI loop)
 
-The former unattended CLI loop for multi-spec execution is **retired and archived**
+The former unattended CLI loop for multi-spec execution is retired and archived
 (see `archive/`). Supervised multi-spec execution now runs through `/implement-phase`,
 which sequences specs by cross-spec dependency, gives each spec a fresh isolated
 execution lane (branch + worktree), quarantines terminal failures while independent
 specs continue, and reconciles state read-only on resume. Map it to Claude Code as
 the orchestrator session driving one `/implement-spec` worker per lane.
 
-Recommended autonomy is a separate, explicitly supported path on two commands:
-`/create-spec --recommend` autonomously authors and locks one spec package from
-evidence, then stops (it never implements); `/implement-phase --recommend` runs
-the phase as an end-to-end loop — authoring any missing specs (via
-`/create-spec --recommend`) and implementing the phase's specs through the
-isolated lanes above, ending at the completion report with manual UAT handoff. It
-never merges, opens PRs, or releases.
+Recommended autonomy is a separate supported path on two commands.
+`/create-spec --recommend` authors and locks one spec package from evidence, then
+stops; it never implements. `/implement-phase --recommend` runs the phase end to
+end: it authors any missing specs via `/create-spec --recommend`, implements the
+phase's specs through the isolated lanes above, and ends at the completion report
+with manual UAT handoff. It never merges, opens PRs, or releases.
 
 ---
 
 ## Command Workflow Integrity
 
-When a Writ command uses a planning phase for discovery, the planning conversation serves the command — it does not become the command.
+When a Writ command uses a planning phase for discovery, the planning conversation serves the command; it does not become the command.
 
 **Rule:** After discovery completes, the command resumes its documented phases and produces its documented artifacts (spec files, stories, ADRs, etc.). After artifact creation, the command terminates with a next-step suggestion. Do not spawn implementation subagents or offer to begin building after a planning command completes.
 
-**Common failure:** After writing spec artifacts, the session offers to run `/implement-spec` or spawn coding subagents. Planning commands produce files and stop — implementation is a separate command the user invokes deliberately.
+**Common failure:** After writing spec artifacts, the session offers to run `/implement-spec` or spawn coding subagents. Planning commands produce files and stop. Implementation is a separate command the user invokes.
 
 **Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
 
@@ -522,6 +518,6 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 
 4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
 
-5. **Subagents nest**: delegation is not confined to the top-level session — three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). What does *not* nest is `/goal`: see **Single-slot behavior** under *The /goal Stop Hook* above — only the outermost running command may hold one.
+5. **Subagents nest**: three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). `/goal` does not nest: see **Single-slot behavior** under *The /goal Stop Hook* above. Only the outermost running command may hold one.
 
-6. **Plan mode is truly read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer genuinely cannot modify files, even if prompted to.
+6. **Plan mode is read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer cannot modify files, even if prompted to.

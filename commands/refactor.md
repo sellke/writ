@@ -23,7 +23,7 @@ Scoped, safe refactoring with automated verification. Analyzes a file, module, o
 
 **Core discipline:** Each refactoring is an isolated, verified, revertable commit. Never batch changes. Never skip verification. Never refactor on a broken baseline. Refactoring changes structure, never behavior — if a change alters observable behavior, it's not a refactor.
 
-**Scope boundary:** Refactoring does not add features, fix bugs, or change APIs. If the user needs behavioral changes, direct them to `/implement-story`. If they need security fixes, use `/security-audit`. This command makes existing code cleaner, not different.
+**Scope boundary:** Refactoring does not add features, fix bugs, or change APIs. If the user needs behavioral changes, direct them to `/implement-story`. If they need security fixes, use `/security-audit`.
 
 ## Modes
 
@@ -38,7 +38,7 @@ Scoped, safe refactoring with automated verification. Analyzes a file, module, o
 | `/refactor --extract pattern` | Extract | Pull a named pattern into a shared utility/component |
 | `/refactor --dry-run` | Preview | Analyze and report without making changes |
 
-All modes follow the same four-phase workflow. The mode determines *what to scan for* (Step 1.3), not *how to execute*.
+All modes follow the same four-phase workflow. The mode determines what to scan for (Step 1.3), not how to execute.
 
 ## Command Process
 
@@ -58,7 +58,7 @@ If no target, present scope selection via AskQuestion with these options:
 - Strengthen TypeScript types
 - Analyze the project and suggest refactoring targets
 
-The last option triggers a **hotspot analysis**: scan the project for files with the highest complexity, most frequent git churn, largest size, and weakest test coverage. Present the top candidates ranked by refactoring value — complexity × churn is a strong signal for high-value targets. Let the user choose which to proceed with.
+The last option triggers a **hotspot analysis**: scan the project for files with the highest complexity, most frequent git churn, largest size, and weakest test coverage. Present the top candidates ranked by refactoring value — complexity × churn signals high-value targets. Let the user choose which to proceed with.
 
 #### Step 1.1b: Dirty-Tree Guard
 
@@ -74,7 +74,7 @@ If the command **exits non-zero**, HALT the same way — a repo whose state cann
 
 **Before touching anything, establish a green baseline.** Run the project's test suite, typechecker, and linter. All three must pass.
 
-**If the baseline fails, stop.** Report the specific failures and instruct the user to fix them first. Do not offer to "work around" failing tests or proceed with partial verification. Refactoring on a broken baseline makes it impossible to verify changes are safe — you cannot distinguish regressions you introduced from pre-existing failures.
+**If the baseline fails, stop.** Report the specific failures and instruct the user to fix them first. Do not offer to "work around" failing tests or proceed with partial verification. On a broken baseline you cannot distinguish regressions you introduced from pre-existing failures.
 
 Store baseline metrics for the Phase 4 comparison: test count and pass rate, type error count, lint error count, and mode-specific baselines (e.g., `any` count for `--types`, dead export count for `--dead-code`).
 
@@ -91,11 +91,11 @@ Analyze the target scope and produce a structured analysis report. What to detec
 | **Types** | `any` annotations, `as any` casts, `@ts-ignore`/`@ts-expect-error`, missing return types, untyped parameters. Propose specific replacements where inferable from usage |
 | **Extract** | All occurrences of the named pattern, variation points between them, proposed shared abstraction (utility, component, hook, or base class) with parameterized variations |
 
-**`--dead-code` file targets must be tracked.** Before a whole-file deletion enters the plan, run `git ls-files --error-unmatch -- <path>` on it (the `--` keeps a target whose name starts with `-` from parsing as a flag). A non-zero exit means the file is untracked — report it as skipped and never delete it, because no git object exists to restore it from. The dirty-tree guard already refuses untracked files, so the target that reaches here is a **gitignored** one. Unused exports and symbols *inside* tracked files are unaffected — their file is already under version control.
+**`--dead-code` file targets must be tracked.** Before a whole-file deletion enters the plan, run `git ls-files --error-unmatch -- <path>` on it (the `--` keeps a target whose name starts with `-` from parsing as a flag). A non-zero exit means the file is untracked — report it as skipped and never delete it, because no git object exists to restore it from. The dirty-tree guard already refuses untracked files, so the target that reaches here is a **gitignored** one. Unused exports and symbols inside tracked files are unaffected — their file is already under version control.
 
 **Report format:** For each issue, state the problem, recommended change, risk level (Low / Medium / High), and impact (Low / Medium / High). Risk reflects breakage likelihood and dependent count. Impact reflects improvement value.
 
-**Order findings low → high risk.** This ordering determines execution priority in Phase 3 — safe changes land first, building confidence before riskier transformations.
+**Order findings low → high risk.** This ordering determines execution priority in Phase 3 — safe changes land first.
 
 For file/module mode, also report cross-cutting context: which files depend on the target (at risk during changes), the target's own dependencies, and test coverage gaps that increase refactoring risk.
 
@@ -133,7 +133,7 @@ Present execution options via AskQuestion:
 - **Preview diffs** — show detailed diffs for each proposed change before applying
 - **Create ADR first** — document the architectural rationale before executing
 
-If the user selects "Create ADR first," produce one following `/create-adr` conventions: document the refactoring rationale, what will change, impact on dependent code, and how to navigate the new structure. Then return to execution.
+If the user selects "Create ADR first," produce one following `/create-adr` conventions: document the refactoring rationale, what will change, impact on dependent code, and where code lives in the new structure. Then return to execution.
 
 For `--dry-run` mode, the command ends here — present analysis and plan, then stop.
 
@@ -141,7 +141,7 @@ For `--dry-run` mode, the command ends here — present analysis and plan, then 
 
 ### Phase 3: Execution
 
-**Behavior-preserving execution:** `Read skills/safe-refactor-loop/SKILL.md` for the per-change loop — green-baseline gate, surgical minimal change, verify (tests + typecheck + lint), commit-or-revert, one concern per isolated commit, and updating moved imports in the same commit as the structural change. This command owns *which* changes run and *in what order* (the risk-ranked plan approved in Phase 2) plus the before/after reporting (Phase 4); the skill owns *how* each change is executed safely.
+**Behavior-preserving execution:** `Read skills/safe-refactor-loop/SKILL.md` for the per-change loop — green-baseline gate, surgical minimal change, verify (tests + typecheck + lint), commit-or-revert, one concern per isolated commit, and updating moved imports in the same commit as the structural change. This command owns which changes run and in what order (the risk-ranked plan approved in Phase 2) plus the before/after reporting (Phase 4); the skill owns how each change is executed safely.
 
 Process the approved changes low → high risk as planned. **Mid-plan failure handling:** on a revert, if the reverted change was a prerequisite for later ones, skip those automatically, then present the updated remaining plan and let the user decide whether to continue, adjust, or stop.
 
@@ -158,9 +158,9 @@ Run the full verification suite one final time. Compare against the Step 1.2 bas
 - **Files changed** — each file with a one-line summary (modified, created, deleted, moved)
 - **ADRs created** — link to any architecture decision records produced
 
-**Quality bar:** Every metric should be equal or improved. If any metric regressed (e.g., file count increased from a module split), explain why the trade-off is acceptable. A reviewer reading this report should have complete confidence the refactoring was safe.
+**Quality bar:** Every metric should be equal or improved. If any metric regressed (e.g., file count increased from a module split), explain why the trade-off is acceptable.
 
-If any changes were skipped or reverted during execution, list them with the failure reason. This gives the user a clear picture of what was accomplished and what remains for a follow-up session.
+If any changes were skipped or reverted during execution, list them with the failure reason.
 
 ---
 
@@ -181,21 +181,21 @@ These eight invariants hold for every refactoring operation:
 
 ## Refactoring Discipline
 
-Non-obvious principles that prevent common refactoring failures:
+Principles that prevent common refactoring failures:
 
-**Stay in scope.** If you discover new issues during execution that weren't in the approved plan, note them for a follow-up session — don't silently expand scope. The user approved a specific plan; changing it mid-execution without consent erodes trust.
+**Stay in scope.** If you discover new issues during execution that weren't in the approved plan, note them for a follow-up session — don't silently expand scope. The user approved a specific plan; do not change it mid-execution without consent.
 
-**Don't refactor without tests.** If the target code has no test coverage, flag this in the analysis report. Refactoring untested code is gambling — you can't verify behavioral preservation. Recommend adding characterization tests first.
+**Don't refactor without tests.** If the target code has no test coverage, flag this in the analysis report. Without tests you cannot verify that behavior is preserved. Recommend adding characterization tests first.
 
-**Don't refactor doomed code.** Check whether the target is scheduled for replacement or deletion in an active spec. Refactoring code that's about to be rewritten is wasted effort — surface this and let the user decide.
+**Don't refactor doomed code.** Check whether the target is scheduled for replacement or deletion in an active spec. Surface this and let the user decide.
 
 **Respect backward compatibility.** When splitting modules, consider whether external consumers import from the original path. If so, create a re-export barrel at the original location so existing imports continue working, then migrate consumers incrementally.
 
-**Dead code confidence.** Not all "unused" exports are actually dead — they may be consumed dynamically via string-based lookups, reflection, test utilities, plugin systems, or CLI entry points. Flag low-confidence findings rather than auto-removing.
+**Dead code confidence.** Not all "unused" exports are dead — they may be consumed dynamically via string-based lookups, reflection, test utilities, plugin systems, or CLI entry points. Flag low-confidence findings rather than auto-removing.
 
-**One concern per commit.** Each commit should address exactly one refactoring concern. Don't combine "extract constants" with "simplify conditionals" in the same commit, even if they touch the same file. Atomic commits make review and rollback trivial.
+**One concern per commit.** Each commit should address exactly one refactoring concern. Don't combine "extract constants" with "simplify conditionals" in the same commit, even if they touch the same file.
 
-**Preserve the public interface.** Unless the plan explicitly calls for API changes, keep function signatures, return types, and export names stable. Internal restructuring should be invisible to consumers.
+**Preserve the public interface.** Unless the plan explicitly calls for API changes, keep function signatures, return types, and export names stable.
 
 ---
 

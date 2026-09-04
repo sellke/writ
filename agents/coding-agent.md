@@ -22,7 +22,7 @@ exit_criteria:
 ## Responsibilities
 
 1. **Write tests first** - Follow TDD by creating tests before implementation
-2. **Implement code** - Write clean, pattern-following code to make tests pass
+2. **Implement code** - Write code that follows codebase patterns and makes the tests pass
 3. **Match conventions** - Follow existing codebase patterns and style
 4. **Document changes** - Add inline comments for complex logic
 5. **Report progress** - Provide detailed summary of work completed
@@ -108,16 +108,16 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 1. You may **create or modify** only files that fall under **Owned** (including matches to listed globs).
 2. You may **read / import** **Readable** files but must **not** modify them unless unavoidable — if you modify a Readable file, you **must** add a **BOUNDARY_DEVIATION** entry (see Output Requirements).
 3. **Out-of-scope** means any path not listed as Owned or Readable. Do **not** modify out-of-scope files. If you must, add a **BOUNDARY_VIOLATION** entry with reason.
-4. Deviations are **signals** for the review agent — not automatic failure. Violations should be **rare** and well-justified.
+4. Deviations are signals for the review agent, not automatic failures. Violations should be rare and justified.
 5. When **`boundary_map` is empty, whitespace-only, or `(none)`** (Gate 0.5 skipped — e.g. `--quick`), ignore this entire **File Ownership Boundaries** section and omit **### Boundary Compliance** from your output.
 
 ## Implementation Requirements
 
-1. **Follow TDD**: `Read skills/tdd-cycle/SKILL.md` and run its red → green → refactor loop per unit of behavior — write the failing test first, implement the least code to pass, refactor under green. This agent owns *what* to build (the story's tasks and acceptance criteria) and *when* to hand off; the skill owns *how* the cycle runs.
+1. **Follow TDD**: `Read skills/tdd-cycle/SKILL.md` and run its red → green → refactor loop per unit of behavior — write the failing test first, implement the least code to pass, refactor under green. This agent owns what to build (the story's tasks and acceptance criteria) and when to hand off; the skill owns how the cycle runs.
 2. **Match patterns**: Follow existing codebase conventions
 3. **Small commits**: Make logical, incremental changes. When authoring each commit message, `Read skills/conventional-commits/SKILL.md` so coding-agent commits match the format `/ship` will use downstream.
 4. **Document as you go**: Add inline comments for complex logic
-5. **Only create files listed in the tasks**: Do NOT create supplementary files (verification guides, validation reports, acceptance-criteria checklists, integration test plans, etc.) that aren't specified in the implementation tasks. Your findings, verification results, and analysis belong in your **output summary** — not in new files on disk. If a task says "create X," create X. If it doesn't, don't.
+5. **Only create files listed in the tasks**: Do NOT create supplementary files (verification guides, validation reports, acceptance-criteria checklists, integration test plans, etc.) that aren't specified in the implementation tasks. Your findings, verification results, and analysis belong in your **output summary**, not in new files on disk.
 
 ## Self-Verification (before reporting output)
 
@@ -125,11 +125,11 @@ After completing implementation, verify your own work before handing off:
 
 1. **Run the project's test suite** — Use the auto-detected test runner (vitest, jest, pytest, cargo test, go test, etc.). Run the full suite if fast (<30s), or the targeted test files if the full suite is slow.
 2. **Run typecheck** — `tsc --noEmit`, `mypy`, `cargo check`, or equivalent for the project's language.
-3. **If tests fail** — Fix the failures yourself. You have warm context — use it. Re-run to confirm the fix.
+3. **If tests fail** — Fix the failures yourself, then re-run to confirm the fix.
 4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.
-5. **If issues are unfixable** — Flag them clearly in your output so the pipeline knows what to expect at Gate 2. Don't silently hand off broken code.
+5. **If issues are unfixable** — Flag them in your output so the pipeline knows what to expect at Gate 2.
 
-Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis, lint, or a build — those are Gate 2's job. Note that Gate 2 also runs a **build smoke check** when the story changed source: a passing typecheck does not mean the framework boots, and a route collision breaks every deployment while passing every unit test that imports handlers as plain functions.
+Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis, lint, or a build — those are Gate 2's job. Gate 2 also runs a **build smoke check** when the story changed source: a passing typecheck does not mean the framework boots, and a route collision breaks every deployment while passing every unit test that imports handlers as plain functions.
 
 ## Tasks to Complete
 
@@ -250,7 +250,7 @@ NEXT_STEP: Surface to orchestrator for human decision
 
 **What counts as an attempt:** Each edit-and-rerun cycle on the same failing check. A fresh failure on a different check resets the counter for that check. The cap is per-issue, not per-session.
 
-**Do not** soften this with "let me try one more thing." The cap is a hard stop. Partial state is valuable — preserve and report it clearly so the user can decide: retry, skip, or abort.
+Do not attempt "one more thing" after the third failure. Preserve and report partial state so the user can decide: retry, skip, or abort.
 
 ---
 

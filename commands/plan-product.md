@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Generate comprehensive product planning documentation using a contract-first approach that establishes clear product vision, mission, and roadmap before creating any supporting files. This command eliminates assumptions by gathering complete product context through structured discovery, then creates a complete product planning package for AI-assisted development.
+Generate product planning documentation contract-first: establish product vision, mission, and roadmap before creating any files. Gather product context through structured discovery, then create the product planning package.
 
 ## Invocation
 
@@ -24,40 +24,39 @@ Generate comprehensive product planning documentation using a contract-first app
 | `/plan-product --reconcile` | Revision | Scan existing product docs → diff against reality → propose **targeted** revisions in Plan Mode. **Not** a from-scratch regeneration (see [Reconcile Mode](#reconcile-mode---reconcile)) |
 
 > **`--reconcile` is a revision posture, not a second greenfield run.** Greenfield
-> discovers a product that doesn't exist yet; `--reconcile` keeps an *existing*
-> mission/roadmap honest against what actually shipped. It never regenerates the
-> whole product package — it proposes surgical edits to the files that drifted.
+> discovers a product that doesn't exist yet; `--reconcile` updates an existing
+> mission/roadmap to match what shipped. It never regenerates the
+> whole product package; it proposes targeted edits to the files that drifted.
 
 ## Reconcile Mode (`--reconcile`)
 
 An alternate entry point that **replaces greenfield Phase 1 discovery** with a
 scan → diff → propose flow, then reuses Phase 2's writing mechanics **only for the
-files that change**. The greenfield flow below is untouched; `--reconcile` is a
-different door into the same house.
+files that change**. The greenfield flow below is unchanged.
 
 **Boundary (critical):** `--reconcile` **revises** the product plan — it runs
-*after* you've decided something needs to change. Its consistency counterpart is
+after you've decided something needs to change. Its consistency counterpart is
 [`/verify-spec --product`](verify-spec.md#product-consistency-checks---product),
 which only **checks** whether the product layer is internally consistent and true
-to reality (the *before*). **Run `--product` first to see *what* drifted; then run
-`--reconcile` to decide *what to do* about it.** This mirrors the `/assess-spec`
-(before) ↔ `/verify-spec` (after) discipline — keep the two crisp, never blurred:
-`--product` proposes no direction changes; `--reconcile` makes no consistency
-claims it hasn't first re-derived.
+to reality (before). Run `--product` first to see what drifted; then run
+`--reconcile` to decide what to do about it. The same before/after split applies to
+`/assess-spec` (before) and `/verify-spec` (after). `--product` proposes no
+direction changes; `--reconcile` makes no consistency claims it has not first
+re-derived.
 
 ### Step R1: Scan Existing (no file creation)
 
 - Read `.writ/product/mission.md`, `roadmap.md`, `mission-lite.md`.
 - Read foundational ADRs under `.writ/decision-records/` (especially the 000-series
   product ADRs — posture, market focus — plus any that record direction changes).
-- Build a picture of what the docs *currently claim*: current phase, live
+- List what the docs currently claim: current phase, live
   differentiators, shipped vs. planned features, stated non-goals.
 - **Graceful fallback:** if `.writ/product/` is absent, there is nothing to
   reconcile — tell the user and offer greenfield `/plan-product` instead.
 
 ### Step R2: Diff vs. Reality (no file creation)
 
-Compare the docs against what actually happened:
+Compare the docs against what shipped:
 
 - **Shipped specs** — enumerate `.writ/specs/*/` with status **Complete**; map them
   to roadmap phases/features. A roadmap item still marked "next"/planned whose spec
@@ -68,13 +67,13 @@ Compare the docs against what actually happened:
 - **Recent git direction** — scan recent history (`git log --oneline -n 50`, tags,
   merged phase branches) for direction the docs haven't caught up with.
 
-Produce a concise **drift ledger**: stale phase labels, "next" items that already
-shipped, roadmap items with no evidence, and any genuine *direction* change (a
+Produce a **drift ledger**: stale phase labels, "next" items that already
+shipped, roadmap items with no evidence, and any direction change (a
 non-goal that became a goal, a differentiator that shifted).
 
 > If `/verify-spec --product` was run recently, fold its findings in rather than
 > re-deriving them — but `--reconcile` may go deeper (git, spec mapping) than the
-> cheap consistency lint.
+> consistency lint.
 
 ### Step R3: Propose Targeted Revisions (Plan Mode)
 
@@ -82,11 +81,11 @@ Switch to **Plan Mode** and present the drift ledger with proposed edits:
 
 - **Targeted edits** to `mission.md` / `roadmap.md` — update phase labels, move
   shipped items, correct differentiators. Show the specific lines, not a rewrite.
-- **Derivatives** (`mission-lite.md`, `.writ/context.md`) regenerate *after*
+- **Derivatives** (`mission-lite.md`, `.writ/context.md`) regenerate after
   authoritative edits land — do not hand-edit them.
 - **New ADRs only for genuine direction changes** — a changed non-goal, a new
   market focus, a reversed bet. Routine "we shipped what we planned" status updates
-  need **no** ADR. Follow the standard ADR format (Phase 2.4) and continue the
+  need no ADR. Follow the standard ADR format (Phase 2.4) and continue the
   existing number sequence.
 - **Do not** regenerate the whole product package. Files that didn't drift are not
   touched.
@@ -113,7 +112,7 @@ change worth a roadmap entry.
 ### Phase 1: Product Discovery & Contract Establishment (No File Creation)
 
 **Mission Statement:**
-> Your goal is to find the best possible version of a product idea and turn it into a comprehensive, actionable plan. You will deliver the complete product planning package only after we both agree on the product contract. **Don't just gather information — challenge the premise, push for the version that makes users' hearts sing, and surface the product that *should* exist.** It's better to discover the wrong framing early than build the wrong product well.
+> Find the best version of a product idea and turn it into an actionable plan. Deliver the product planning package only after both parties agree on the product contract. Do not only gather information: challenge the premise and push for the product that should exist. Discovering the wrong framing early costs less than building the wrong product well.
 
 #### Step 1.1: Initial Context Scan
 
@@ -171,15 +170,15 @@ AskQuestion({
 ```
 
 **How posture shapes everything downstream:**
-- **EXPANSION:** Challenge whether the vision is ambitious *enough*. Ask "what's the version that's 10x more ambitious for 2x the effort?" Look for delight opportunities — adjacent 30-minute improvements that make the product sing. Push scope *up*, not just down. Dream State Mapping is mandatory.
-- **HOLD:** The user's framing is roughly correct. Focus on pressure-testing assumptions, finding gaps, validating feasibility. This is the classic Writ discovery flow — thorough, balanced, critical.
-- **REDUCTION:** Ruthlessly strip features. Every feature must justify its existence against "could we launch without this?" The goal is the smallest thing that proves the core value proposition.
+- **EXPANSION:** Challenge whether the vision is ambitious enough. Ask "what's the version that's 10x more ambitious for 2x the effort?" Look for delight opportunities: adjacent 30-minute improvements with outsized user impact. Push scope up as well as down. Dream State Mapping is mandatory.
+- **HOLD:** The user's framing is roughly correct. Focus on pressure-testing assumptions, finding gaps, validating feasibility.
+- **REDUCTION:** Strip features. Every feature must justify its existence against "could we launch without this?" The goal is the smallest thing that proves the core value proposition.
 
-The posture is a commitment — once selected, fully adopt that lens for the entire discovery and contract phase.
+Once selected, apply the posture for the entire discovery and contract phase.
 
 #### Step 1.2: Switch to Plan Mode for Product Discovery
 
-**After context scan and initial product direction selection, this discovery phase works best in Plan Mode.** Product strategy is inherently open-ended — the real value is in the discussion, not multiple-choice boxes.
+**After context scan and initial product direction selection, run discovery in Plan Mode.** Product strategy is open-ended and needs discussion rather than multiple-choice questions.
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 
@@ -189,7 +188,7 @@ The posture is a commitment — once selected, fully adopt that lens for the ent
 - Silently list every missing product detail and requirement
 - Identify ambiguities in the initial product description
 - Note potential market and technical constraints
-- Assess whether the user's framing of the problem is *correct* (not just complete)
+- Assess whether the user's framing of the problem is correct (not just complete)
 - Catalog unknowns across these domains:
   - Product vision and core value proposition
   - Target market and user personas
@@ -207,9 +206,7 @@ The posture is a commitment — once selected, fully adopt that lens for the ent
 Before gathering details, challenge the premise of the request itself:
 - "Is this the right problem to solve? What would happen if we did nothing?"
 - "Who benefits most from this — and is that who you think it is?"
-- "What's the version of this that would make users *fall in love*, not just sign up?"
-
-This isn't combative — it's clarifying. Most products fail not because of bad execution but because the framing was slightly off. Surface that now.
+- "What's the version of this that would make users fall in love, not just sign up?"
 
 **Dream State Mapping (required in EXPANSION mode, encouraged in HOLD):**
 
@@ -218,7 +215,7 @@ At some point during discovery, construct this progression with the user:
     CURRENT STATE          →  THIS PLAN           →  12-MONTH IDEAL
     [How users solve today]   [What MVP delivers]    [The product that should exist]
 
-This forces long-horizon thinking. The 12-month ideal isn't a commitment — it's a compass. It reveals whether the MVP is pointed in the right direction or just solving today's problem.
+The 12-month ideal is not a commitment. Use it to check whether the MVP moves toward that ideal or only solves today's problem.
 
 **Conversation Rules:**
 - Ask ONE focused question at a time, targeting the highest-impact unknown
@@ -227,12 +224,12 @@ This forces long-horizon thinking. The 12-month ideal isn't a commitment — it'
 - **Never declare "final question"** — let the conversation flow naturally
 - Let the user signal when they're ready to see a contract
 - **Be opinionated.** Lead with your recommendation, explain why, then offer alternatives. "I think the right move here is X because Y — but you could also Z" beats "here are three options, what do you think?"
-- **Challenge ideas that don't make business or technical sense** — better to surface concerns early than plan the wrong product
+- **Challenge ideas that don't make business or technical sense** — surface concerns early
 
 **Posture-Specific Behavior:**
 - **EXPANSION:** Actively look for the bigger opportunity. "What if this wasn't just [stated scope] but actually [larger vision]?" Ask about delight opportunities: "What adjacent 30-minute improvements would make this feature sing?" Push the user to articulate the 10-star version — the one that's 10x more ambitious for 2x the effort.
 - **HOLD:** Balanced pressure-testing. Validate the framing, find gaps, confirm feasibility. Challenge where needed but respect the user's scope judgment.
-- **REDUCTION:** Every feature is guilty until proven essential. "Could we launch without this? What's the absolute minimum that proves the core thesis?"
+- **REDUCTION:** Every feature must justify inclusion. "Could we launch without this? What's the absolute minimum that proves the core thesis?"
 
 **Topic Areas to Explore (across the conversation):**
 - "Who specifically has this problem, and how painful is it for them?"
@@ -407,7 +404,7 @@ For each major decision surfaced during the discovery conversation, create a num
 
 **Number assignment:** Start at ADR-000 for the first product-level ADR. If `.writ/decision-records/` already has ADRs from a prior `plan-product` or `/create-adr` run, continue the sequence from the highest existing number.
 
-**Quality bar:** A future AI reading these files understands *why* each product decision was made — the reasoning chain is preserved, not just the outcome. Alternatives considered with honest pros/cons. Every negative consequence documented.
+**Quality bar:** A future AI reading these files understands why each product decision was made — the reasoning chain is preserved, not just the outcome. Alternatives considered, with pros and cons for each. Every negative consequence documented.
 
 #### Step 2.5: Create Mission-Lite for AI Context
 
@@ -415,7 +412,7 @@ For each major decision surfaced during the discovery conversation, create a num
 - Must contain: core value proposition, target users, key differentiator, success definition, current phase — all expressible in ~5 sentences
 - Quality bar: An AI with only this file can make product-aligned decisions
 
-Example of the right feel:
+Example:
 > TaskMaster is a project management tool that helps remote software teams coordinate work efficiently through automated workflow integration and intelligent task prioritization. It serves distributed development teams who struggle with task coordination across time zones. Unlike traditional project management tools, TaskMaster automatically syncs with Git workflows and provides AI-powered task prioritization based on team capacity and code dependencies.
 
 #### Step 2.6: Final Review

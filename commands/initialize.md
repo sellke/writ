@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Set up technical foundation by detecting whether this is a greenfield (new) or brownfield (existing) project, then executing the appropriate workflow. This command handles *technical infrastructure only* — product strategy belongs to `/plan-product`.
+Set up technical foundation by detecting whether this is a greenfield (new) or brownfield (existing) project, then executing the appropriate workflow. This command handles technical infrastructure only; product strategy belongs to `/plan-product`.
 
 ### Detection Logic
 
@@ -30,7 +30,7 @@ Auto-detect project type — never ask the user which workflow to run.
    - **Greenfield** — empty directory or only boilerplate files (README, LICENSE, .gitignore)
    - **Brownfield** — existing codebase with established structure and dependencies
 
-**Edge case:** A freshly scaffolded project (e.g., `create-react-app` just ran) is greenfield — it has structure but no custom code. Look for meaningful source files and git history beyond the initial commit, not just directory presence.
+**Edge case:** A freshly scaffolded project (e.g., `create-react-app` just ran) is greenfield — it has structure but no custom code. Look for non-boilerplate source files and git history beyond the initial commit, not just directory presence.
 
 After classification, announce the result and the evidence: *"Detected brownfield project — found package.json with 47 dependencies, src/ with 200+ files, 6 months of git history."* This gives the user a chance to correct a misclassification before proceeding.
 
@@ -86,11 +86,11 @@ Create the project skeleton and documentation.
 | `.writ/docs/code-style.md` | File organization patterns, naming conventions, code patterns, testing patterns, documentation style |
 | `README.md` | Project overview, prerequisites, setup instructions, development workflow |
 
-**Quality bar:** Each doc captures *decisions and reasoning*, not just lists. A new developer should understand both what was chosen and why.
+**Quality bar:** Each doc captures decisions and reasoning, not just lists. A new developer should understand both what was chosen and why.
 
 After creating all files, verify the project runs — execute the basic dev command (e.g., `npm run dev`, `cargo build`) and fix any setup issues before declaring the foundation complete.
 
-**Write `.writ/config.md`** after the project runs successfully. This is the natural save point — the user just configured everything, so no confirmation is needed. Use the format defined in `.writ/docs/config-format.md`. Record the conventions established during setup: Default Branch, Test Runner, Merge Strategy, Version File, Test Coverage Tool, and Changelog path. Example:
+**Write `.writ/config.md`** after the project runs successfully. No confirmation is needed; the user just configured everything. Use the format defined in `.writ/docs/config-format.md`. Record the conventions established during setup: Default Branch, Test Runner, Merge Strategy, Version File, Test Coverage Tool, and Changelog path. Example:
 
 ```markdown
 # Writ Project Config
@@ -119,9 +119,9 @@ After creating all files, verify the project runs — execute the basic dev comm
 
 ### Phase 1: Codebase Analysis
 
-Scan the existing project systematically. No questions needed — the code tells the story.
+Scan the existing project systematically. No questions needed; derive everything from the code.
 
-**Scan strategy:** Read dependency files, but also check what's *actually imported* in source code — some dependencies are vestigial. Check CI configs and deployment scripts for the real build/deploy story. Git log frequency by directory reveals which areas are actively developed. For monorepos, scope analysis to the relevant package unless the user indicates otherwise.
+**Scan strategy:** Read dependency files, but also check what is actually imported in source code — some dependencies are vestigial. Check CI configs and deployment scripts for the actual build/deploy process. Git log frequency by directory reveals which areas are actively developed. For monorepos, scope analysis to the relevant package unless the user indicates otherwise.
 
 | Analyze | What to capture |
 |---|---|
@@ -142,7 +142,7 @@ Create the same three files as greenfield, derived from analysis rather than cho
 | `.writ/docs/code-style.md` | Observed patterns — file organization, naming conventions, code idioms, testing patterns |
 | `README.md` | Only create if missing; update if incomplete. Never overwrite a curated README — append a "Development Setup" section if one is missing |
 
-**Quality bar:** Document what the codebase *actually does*, not what it should do. Distinguish intentional patterns (consistent across the codebase) from accidental ones (copy-paste artifacts). Flag inconsistencies as observations, not corrections.
+**Quality bar:** Document what the codebase actually does, not what it should do. Distinguish intentional patterns (consistent across the codebase) from accidental ones (copy-paste artifacts). Flag inconsistencies as observations, not corrections.
 
 ### Phase 3: Gap Analysis
 
@@ -163,9 +163,9 @@ Present findings as a prioritized list with effort estimates (quick win / modera
 
 **Quality-configuration audit.** Run `python3 scripts/quality-config-audit.py check --project .` and fold its findings into **Technical debt** — a project whose own build gate is switched off is the prioritization principle's "silent bugs" case exactly. Report `build_gate_disabled` and `coverage_threshold_absent` first.
 
-**Write `.writ/quality-baseline.md`** recording every finding, per the format in [`.writ/docs/quality-signal-classification.md`](../.writ/docs/quality-signal-classification.md): one `##` section per finding code, one `` - `file[:line]` — YYYY-MM-DD — rationale `` entry per instance. Baselined findings are acknowledged debt and do not block; anything **not** in the baseline blocks on later runs. Ask the developer for the rationale per entry rather than generating one — an entry nobody wrote is an entry nobody will retire. Never re-baseline automatically on a later run: a baseline that absorbs each new finding is a disabled check wearing a costume. On greenfield the baseline is empty by construction; write it with a header and no entries.
+**Write `.writ/quality-baseline.md`** recording every finding, per the format in [`.writ/docs/quality-signal-classification.md`](../.writ/docs/quality-signal-classification.md): one `##` section per finding code, one `` - `file[:line]` — YYYY-MM-DD — rationale `` entry per instance. Baselined findings are acknowledged debt and do not block; anything **not** in the baseline blocks on later runs. Ask the developer for the rationale per entry rather than generating one. Never re-baseline automatically on a later run: a baseline that absorbs each new finding is equivalent to a disabled check. On greenfield the baseline is empty by construction; write it with a header and no entries.
 
-**Write the coverage floor at the measured value.** If `.writ/config.md` names a **Test Coverage Tool**, run it, then write `floor(measured)` into the project's coverage config — never 80% or any other aspiration. Writing 80% into a project measuring 57% breaks its build on the first run and teaches the developer to delete the key; writing 57% makes 57% the new minimum and lets it only go up. Record the value and date. This mutates target-project config, so on the brownfield path it needs the **same explicit confirmation** the `.writ/config.md` write already carries — offer it, and write only on **y**.
+**Write the coverage floor at the measured value.** If `.writ/config.md` names a **Test Coverage Tool**, run it, then write `floor(measured)` into the project's coverage config — never 80% or any other aspiration. Writing 80% into a project measuring 57% breaks its build on the first run and teaches the developer to delete the key; writing 57% makes 57% the new minimum and lets it only go up. Record the value and date. This mutates target-project config, so on the brownfield path it needs the same explicit confirmation the `.writ/config.md` write already carries — offer it, and write only on **y**.
 
 ---
 
@@ -180,7 +180,7 @@ Present the recommendation prominently:
 - **Primary:** `/plan-product "your product vision"` — define product strategy and roadmap
 - **Alternatives:** `/create-spec` to jump to feature specs, `/research` to investigate identified gaps, `/create-adr` to document architectural decisions
 
-Do not end the command without presenting this recommendation. It's the bridge between technical setup and product development.
+Do not end the command without presenting this recommendation.
 
 **Write `.writ/config.md`** with conventions discovered during analysis (same format as the greenfield path — see above). For brownfield, offer to save: *"Detected conventions: [values]. Save to `.writ/config.md`? (y/n)"* — write only on **y**. If a `.writ/config.md` already exists, do not overwrite it without explicit confirmation.
 

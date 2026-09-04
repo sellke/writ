@@ -14,11 +14,11 @@ exit_criteria:
 
 ## Overview
 
-Analyze a specification for implementability risks *before* you commit to building it. Flags oversized stories, deep dependency chains, context accumulation hazards, and file-overlap conflicts — then recommends specific decomposition strategies.
+Analyze a specification for implementability risks before building it. Flags oversized stories, deep dependency chains, context accumulation hazards, and file-overlap conflicts, then recommends specific decomposition strategies.
 
-This is the "will this actually work?" check. Run it after `/create-spec` or `/edit-spec`, or anytime a spec feels too heavy. `/implement-spec` also runs a lightweight version of this analysis as a pre-flight check.
+Run it after `/create-spec` or `/edit-spec`, or anytime a spec feels too heavy. `/implement-spec` also runs a lightweight version of this analysis as a pre-flight check.
 
-**What this is NOT:** `/verify-spec` checks whether a *built* spec is correct. Assessment checks whether an *unbuilt* spec is **shaped well enough to build successfully**.
+**What this is NOT:** `/verify-spec` checks whether a built spec is correct. Assessment checks whether an unbuilt spec is shaped well enough to build.
 
 ## Invocation
 
@@ -40,13 +40,13 @@ If no argument provided, present spec selection from `.writ/specs/` — show nam
 3. Read `sub-specs/technical-spec.md` — architecture, file paths, integration points
 4. Scan codebase — identify files referenced by stories, check import graphs
 
-Build a mental model of: total stories/tasks/AC remaining, per-story sizing, dependency graph shape, file areas each story touches, and change surface per story.
+Determine: total stories/tasks/AC remaining, per-story sizing, dependency graph shape, file areas each story touches, and change surface per story.
 
 **Only count remaining work** — completed stories don't contribute to implementation risk.
 
 ### Step 2: Run Assessment Checks
 
-Run all six checks. Collect every flag — never stop at the first finding. Report the full picture.
+Run all six checks. Collect every flag; do not stop at the first finding.
 
 ---
 
@@ -93,7 +93,7 @@ For each remaining story:
 
 #### Check 4: Change Surface Complexity
 
-Classify each story's change surface from its tasks and notes (same categories as `/implement-story` Gate 2.5 but inferred from the *plan*):
+Classify each story's change surface from its tasks and notes (same categories as `/implement-story` Gate 2.5 but inferred from the plan):
 
 - **data layer** — schema, migration, model changes
 - **API layer** — routes, endpoints, middleware
@@ -140,7 +140,7 @@ Rate each remaining story across four factors (Low/Medium/High): task count (≤
 
 ### Step 3: Decomposition Recommendations
 
-For every ⚠️ Warn and 🛑 Flag, generate a **specific, actionable** recommendation — not "consider splitting."
+For every ⚠️ Warn and 🛑 Flag, generate a specific recommendation, not "consider splitting."
 
 **Story-level split patterns:**
 
@@ -212,13 +212,13 @@ When the user chooses to apply recommendations, execute the splits directly — 
 | `/create-spec` | Run `/assess-spec` after creating a spec to validate its shape |
 | `/edit-spec` | Run after major edits to re-validate; `/assess-spec` can invoke `/edit-spec` for splits |
 | `/implement-spec` | Runs a **lightweight pre-flight assessment** (Checks 1-3 + context score) before execution |
-| `/verify-spec` | Complementary — assess checks shape *before* building; verify checks correctness *after* |
+| `/verify-spec` | Complementary — assess checks shape before building; verify checks correctness after |
 
 ## Completion
 
 This command succeeds when every one of the six checks has a recorded result and the spec carries exactly one overall rating — Ready to implement, Implementable with adjustments, or Needs restructuring.
 
-A spec that passes all six is a valid outcome, not a wasted run: "Ready to implement" is the finding, and it is recorded like any other.
+A spec that passes all six checks is a valid outcome; record "Ready to implement" as the finding.
 
 **Terminal constraint:** This command assesses a spec and proposes decompositions. Applying a split is a separate, confirmed step — do not begin implementing the spec that was just assessed.
 

@@ -40,7 +40,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/implement-spec --quick` | Passes `--quick` to each `/implement-story` call |
 | `/implement-spec --resume` | Resumes from last saved execution state |
 
-`/implement-spec` is an explicit execute command: invoking it *is* the instruction to run. It builds the plan, presents it for visibility, and executes — there is no execution-plan confirmation gate.
+`/implement-spec` is an explicit execute command: invoking it is the instruction to run. It builds the plan, presents it for visibility, and executes — there is no execution-plan confirmation gate.
 
 ## Command Process
 
@@ -87,7 +87,7 @@ Parse the JSON result:
 
 - **Success** — `{"schema": "story-graph/v1", "status": "ok", "batches": [[...]], "graph": {...}}`, exit 0. Carry the `batches` array unchanged into Step 2.2 — it is already topologically ordered with a numeric story-number tie-break.
 - **Blocker** — `{"blocker": {"code": ..., "summary": ...}}`, exit 1. The code names one of `malformed_dependencies`, `missing_reference`, `self_reference`, `duplicate_reference`, or `dependency_cycle` (the summary includes the full cycle path for cycles). **Invalid explicit metadata is blocking.** Stop before Step 2.2 and present the affected story plus the exact diagnostic. Do not guess an order around invalid metadata.
-- **Script missing or crashes** — a different failure than a blocker: the graph was never verified at all. Report "cannot verify story graph" (not a named diagnostic code) and stop before Step 2.2 — an unverifiable graph is not a verified graph.
+- **Script missing or crashes** — a different failure than a blocker: the graph was never verified at all. Report "cannot verify story graph" (not a named diagnostic code) and stop before Step 2.2, because the graph is unverifiable.
 
 #### Step 2.2: Compute Parallel Batches (from script output)
 
@@ -112,7 +112,7 @@ For each story, count:
 
 Run lightweight sizing checks against remaining stories. Flag if: >8 stories, >50 tasks, dependency depth >3, bottleneck story with >3 dependents, or any story with >7 tasks / >8 AC. Estimate per-story context cost (task count × change surface breadth).
 
-**If no flags:** Proceed silently. **If flags found:** Show concerns above the execution plan and note that `/assess-spec` is available for a full analysis. Pre-flight is advisory — never blocks execution.
+**If no flags:** Proceed silently. **If flags found:** Show concerns above the execution plan and point to `/assess-spec` for a full analysis. Pre-flight is advisory — never blocks execution.
 
 #### Step 2.4: Present Execution Plan
 
@@ -170,12 +170,12 @@ For each batch in order:
 - If any story fails, decide: continue with independent stories or halt
 
 **Platform note:** on a harness where invoking `/implement-story` loads its
-instructions into the *current* context rather than running it as a
+instructions into the current context rather than running it as a
 backgrounded subagent, "spawn ... concurrently" means the orchestrator issues
 one parallel tool-call per story (each running that story's own Gate
 0/1/3/4/4.5 sequence) — not a nested command call the harness
 auto-parallelizes. Confirm which behavior your platform's invocation gives
-before assuming concurrency is free.
+before assuming concurrency.
 
 **If sequential batch:**
 - Run `/implement-story {story-id}` one at a time
@@ -187,7 +187,7 @@ before assuming concurrency is free.
 
 After each `/implement-story` completes:
 - **Update execution state file with result** — this is a required disk
-  write, not a mental note: update the story's `stories.{id}` entry in
+  write: update the story's `stories.{id}` entry in
   `.writ/state/execution-{timestamp}.json` immediately, before dispatching
   the next story. It is the only artifact `--resume` reads; tracking
   progress solely in conversation state does not substitute for it and will
@@ -205,7 +205,7 @@ After each `/implement-story` completes:
 
 #### Step 4.1: Integration Verification
 
-After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work *together*.
+After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work together.
 
 ```bash
 # 1. Typecheck — catches cross-story type conflicts (always fast)
@@ -221,7 +221,7 @@ If integration failures: identify which story likely broke it, report to user.
 
 Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`, `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
 
-**Only after `postRun` is written**, run the exit-criteria checker against the now-current state file — sequencing matters because `implement-spec.c1` and `.c3` read `preflight`/`postRun` directly, so a checker run before `postRun` exists would read it absent and correctly, but unhelpfully, report `unknown` instead of the true verdict:
+**Only after `postRun` is written**, run the exit-criteria checker against the now-current state file — sequencing matters because `implement-spec.c1` and `.c3` read `preflight`/`postRun` directly, so a checker run before `postRun` exists would report `unknown` instead of the true verdict:
 
 ```bash
 python3 scripts/exit-criteria.py check --command implement-spec --spec <spec-dir> --state .writ/state/execution-{timestamp}.json
@@ -281,7 +281,7 @@ When `/implement-phase` invokes this command inside an isolated per-spec lane, `
 - It executes **only inside the supplied lane** worktree and branch that the orchestrator created (`writ/phase/{phase-id}/{spec-id}`). It **must not mutate the parent checkout**, create its own lanes, or make merge/quarantine decisions — those belong to `/implement-phase`.
 - It receives a fresh, artifact-seeded context (spec path, phase-state path, lane branch/worktree, mode) with **no prior conversational transcript**, and loads what it needs from repository artifacts by path.
 - On completion it returns a single structured `phase-spec-result-v1` result (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md)) reporting status, story counts, verification evidence, changed files, the lane commit, and any failure or challenge — and then exits. The orchestrator validates that result (`scripts/phase-state.py validate-result`) and decides whether to merge, retry, or quarantine.
-- On failure it sets `failure.classification` to **`transient`** (e.g. a flaky check that a single retry may clear) or **`terminal`** (a genuine, non-recoverable failure). It never renames branches, quarantines, or blocks dependents itself — the orchestrator owns retry and quarantine decisions based on this classification.
+- On failure it sets `failure.classification` to **`transient`** (e.g. a flaky check that a single retry may clear) or **`terminal`** (a non-recoverable failure). It never renames branches, quarantines, or blocks dependents itself — the orchestrator owns retry and quarantine decisions based on this classification.
 
 **Scope-degradation escalation (User Challenge).** If, inside a lane, a choice would weaken roadmap scope, the locked spec contract, or exit criteria, apply the evidence-based **select-or-pause** boundary (see [`_preamble.md`](_preamble.md) → User Challenge). A defensible low-risk reversible choice may be selected locally **only** when returned with the structured four-part challenge and durable audit evidence; missing evidence, critical ambiguity, or material irreversible risk returns `status: challenge_required` with the four-part challenge and selectable options for the orchestrator to present. Ordinary progress, transient failures, and decisions already answered by artifacts are **not** challenges and use normal handling.
 

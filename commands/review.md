@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Pre-landing code review that identifies failure modes, shadow paths, and interaction edge cases — the things that break in production but look fine in a PR. Produces *judgment*, not a checklist.
+Pre-landing code review that identifies failure modes, shadow paths, and interaction edge cases — the things that look fine in a PR and break in production.
 
 `/review` goes deeper than the pipeline's Gate 3 review agent. The pipeline reviewer focuses on spec adherence and code quality within a story context. `/review` analyzes any diff for the specific ways code can fail and whether those failures are handled.
 
@@ -46,7 +46,7 @@ Print the scope before starting:
 
 ### Step 2: Scan the Diff
 
-Read the full diff and build a mental model of what changed:
+Read the full diff and determine what changed:
 
 1. **Categorize files** — data flows vs UI vs infrastructure
 2. **Identify trust boundaries** — where user input enters, where data crosses services
@@ -57,7 +57,7 @@ This scan determines which techniques to prioritize. Not every technique applies
 
 ### Step 3: Apply Review Techniques
 
-Apply all applicable techniques. **Prioritize depth over breadth** — deeply analyzing 3 critical paths catches more real bugs than superficially scanning 20 functions.
+Apply all applicable techniques. Prioritize depth over breadth: analyzing 3 critical paths fully catches more bugs than scanning 20 functions superficially.
 
 ---
 
@@ -80,7 +80,7 @@ For every method in the diff that can fail:
 | `RESCUED=Yes` + `TEST=No` | **High** | Rescue exists but isn't tested — might not work |
 | `TEST=No` on any error path | **Medium** | Error path untested |
 
-I recommend **starting with methods that handle external I/O** — database, network, file system, third-party APIs. These are where failures actually happen. Pure computation rarely fails in ways that matter.
+I recommend starting with methods that handle external I/O — database, network, file system, third-party APIs. That is where failures happen; pure computation rarely fails in ways that matter.
 
 **Table format note:** This table structure is shared with the error mapping in `/create-spec`. When `--spec` is provided, compare planned handling (from spec) against actual handling (from code) and flag discrepancies.
 
@@ -104,7 +104,7 @@ For critical data flows, trace four paths through each:
 - API response → UI render
 - File upload → processing pipeline
 
-I recommend **tracing at most 5 critical flows**. Beyond that, diminishing returns — the most dangerous shadow paths are almost always in the first 3 flows you examine.
+I recommend tracing at most 5 critical flows. The most dangerous shadow paths are almost always in the first 3 flows examined.
 
 ---
 
@@ -124,7 +124,7 @@ For user-facing features, evaluate these standard scenarios:
 
 Mark each as: ✅ Handled, ⚠️ Partial (with gap), ❌ Unhandled.
 
-**Add feature-specific edge cases** beyond the standard set. A payment form needs "card declined" and "duplicate charge". A file upload needs "oversized file" and "wrong format". Think about what's specific to *this* code.
+**Add feature-specific edge cases** beyond the standard set. A payment form needs "card declined" and "duplicate charge". A file upload needs "oversized file" and "wrong format".
 
 **Skip this technique for backend-only changes.**
 
@@ -150,7 +150,7 @@ Aggregate all findings from Techniques 1–3 into a single prioritized list:
 | **Medium** | Interaction edge case that degrades UX but causes no data loss. |
 | **Low** | Minor inconsistency, non-critical path, cosmetic or logging gap. |
 
-I recommend **addressing all Critical and High items before shipping**. Medium items are worth noting in the PR but shouldn't block merge. Low items are informational.
+I recommend addressing all Critical and High items before shipping. Medium items are worth noting in the PR but shouldn't block merge. Low items are informational.
 
 ---
 
@@ -165,7 +165,7 @@ User → [Form Submit] → API Route → [Validate] → DB Write → [Notify] �
                        (rescued ✅)   (retry ✅)   (silent ❌ FM-001)
 ```
 
-Annotate each failure point with its registry ID and rescue status. The diagram makes the failure topology visible at a glance — something tables alone can't do.
+Annotate each failure point with its registry ID and rescue status.
 
 **Include when** the diff touches 3+ files in a chain, has multiple failure points, or the component relationship isn't obvious. **Skip for** single-file changes, pure utility modifications, or test-only changes.
 
@@ -201,13 +201,13 @@ Generate a structured markdown report:
 [Code-level guidance for addressing it, not just "fix this".]
 ```
 
-**The Recommendation section is the soul of `/review`.** Don't bury the lead in tables — open with the single most important thing the developer needs to know, and why it matters. If no critical/high findings: state the code is ready to ship.
+**Recommendation section:** open with the single most important finding and why it matters; do not bury it in the tables. If no critical/high findings: state the code is ready to ship.
 
 ### Step 5: Integration with /ship
 
 Save the report to `.writ/state/review-[branch-name].md` (create `.writ/state/` if needed). When `/ship` runs on the same branch, it reads this file and includes the Failure Modes Registry in the PR body's Review Notes section, highlighting Critical and High findings.
 
-This integration is output-based: `/review` writes a file, `/ship` reads it. No tight coupling.
+`/review` writes the file and `/ship` reads it; there is no other coupling.
 
 ## Completion
 

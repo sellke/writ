@@ -492,12 +492,14 @@ class CommandBudgetTests(unittest.TestCase):
 # budget recovery attempted (ADR-023 triage). Acknowledged, not exempted:
 # eval.sh's leanness warning still reports all six.
 KNOWN_OVER_BUDGET = {
-    "commands/create-spec.md": 25992,
-    "commands/verify-spec.md": 10320,
-    "commands/implement-phase.md": 11108,
-    "commands/release.md": 8444,
-    "commands/ship.md": 4510,
-    "commands/implement-story.md": 4102,
+    # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
+    # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
+    "commands/create-spec.md": 24712,
+    "commands/verify-spec.md": 9887,
+    "commands/implement-phase.md": 10208,
+    "commands/release.md": 7576,
+    "commands/ship.md": 3820,
+    "commands/implement-story.md": 3964,
 }
 
 

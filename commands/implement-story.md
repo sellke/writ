@@ -50,7 +50,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 
 ## Pipeline
 
-One row per stage, so the shape stays visible even when the detail does not. The **Skill** column *names* what a stage loads; the `Read` is issued inside that stage, never here.
+One row per stage. The **Skill** column names what a stage loads; the `Read` is issued inside that stage, never here.
 
 | Stage | Name | Runs as | Skipped in | Skill |
 |---|---|---|---|---|
@@ -77,7 +77,7 @@ If no argument provided, present story selection from current spec (not-started 
 
 ### Step 2: Load Context
 
-1. **Read `.writ/context.md`** (if present) — product mission, active spec state, recent drift, open issues. This is the **first** context item loaded; it primes all subsequent steps.
+1. **Read `.writ/context.md`** (if present) — product mission, active spec state, recent drift, open issues. This is the first context item loaded; it primes all subsequent steps.
 2. **Read the story file** — tasks, acceptance criteria, dependencies
 3. **Read spec-lite.md** — overall spec context
 4. **Parse context hints and fetch referenced content** — invoke the assembler below
@@ -100,7 +100,7 @@ Proceeding anyway — some integration points may be unavailable.
 python3 scripts/story-context.py assemble --story <story-file-path> --budget-bytes 21000
 ```
 
-`Read skills/story-context-assembly/SKILL.md` for *how* the payloads are built. This step owns *when* assembly runs and who receives what (routing table below); the skill owns *how*. Outputs: `fetched_context`, `context_warnings`, `knowledge_context`, `spec_lite_for_coding` / `spec_lite_for_review` / `spec_lite_for_testing`.
+`Read skills/story-context-assembly/SKILL.md` for how the payloads are built. This step owns when assembly runs and who receives what (routing table below); the skill owns how. Outputs: `fetched_context`, `context_warnings`, `knowledge_context`, `spec_lite_for_coding` / `spec_lite_for_review` / `spec_lite_for_testing`.
 
 **Routing table — what each agent receives:**
 
@@ -114,7 +114,7 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 
 **Dependency records (item 9).** **If — and only if — the story declares dependencies**, load the completed upstream stories' "What Was Built" records into `dependency_wwb_context`, which Gate 1 routes to the coding agent. Skip reverted records: one carrying a `> **Reverted:**` banner is not authoritative and is never loaded as live dependency context. A story with no dependencies skips this branch entirely.
 
-`Read skills/dependency-context-loading/SKILL.md` for *how* those records are located, filtered, truncated and aggregated. This step owns *whether* the branch runs at all; the skill owns *how* the block is built.
+`Read skills/dependency-context-loading/SKILL.md` for how those records are located, filtered, truncated and aggregated. This step owns whether the branch runs at all; the skill owns how the block is built.
 
 ### Step 3: Run Pipeline
 
@@ -123,18 +123,18 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 > **File creation discipline:** Agents must only create files explicitly listed in the story's implementation tasks. Verification results, validation reports, acceptance-criteria checklists, test plans and other analysis artifacts belong in the agent's **structured output** — never as new files on disk. The orchestrator must not commit any file that isn't in the story's task list or a known pipeline output (drift-log, context.md, story status updates).
 
 > **Sub-agent completeness:** `Read skills/subagent-result-completeness/SKILL.md`
-> for *how* to tell a spawned gate agent's complete verdict from a mid-task
-> stop, and what to do about the latter. This note owns *when* every gate
+> for how to tell a spawned gate agent's complete verdict from a mid-task
+> stop, and what to do about the latter. This note owns when every gate
 > below that spawns a sub-agent (Gate 0, 1, 3, 4, 4.5) checks for
-> completeness before advancing; the skill owns *how* to tell a complete
+> completeness before advancing; the skill owns how to tell a complete
 > verdict from a partial one.
 
 > **Sub-agent worktree integration:** `Read skills/subagent-worktree-integration/SKILL.md`
-> for *how* to reconcile a spawned agent's isolated worktree with the
+> for how to reconcile a spawned agent's isolated worktree with the
 > orchestrator's own checkout, including the stale-worktree failure mode.
-> This note owns *when* every gate below that spawns a sub-agent (Gate 0, 1,
+> This note owns when every gate below that spawns a sub-agent (Gate 0, 1,
 > 3, 4, 4.5) reconciles isolated output before trusting it; the skill owns
-> *how* the diff → copy → re-verify → cleanup procedure runs.
+> how the diff → copy → re-verify → cleanup procedure runs.
 
 ---
 
@@ -162,7 +162,7 @@ Before Gate 1, compute a **`boundary_map`** so the coding and review agents have
 
 **Not applicable — `/prototype`:** `commands/prototype.md` does not run `implement-story`; that path stays boundary-free. Gate 0.5 exists only on the full pipeline.
 
-`Read skills/boundary-map-computation/SKILL.md` for *how* the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns *when* it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns *how*.
+`Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
 
 ---
 
@@ -171,7 +171,7 @@ Before Gate 1, compute a **`boundary_map`** so the coding and review agents have
 > **Agent:** `agents/coding-agent.md`
 > **Skip in:** `--review-only` mode
 
-Spawns the coding agent to run the red → green → refactor loop via `Read skills/tdd-cycle/SKILL.md`, with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5. This gate owns *when* coding runs, the context it routes below, and `STATUS: BLOCKED` handling; the skill owns *how* the test-first cycle runs.
+Spawns the coding agent to run the red → green → refactor loop via `Read skills/tdd-cycle/SKILL.md`, with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5. This gate owns when coding runs, the context it routes below, and `STATUS: BLOCKED` handling; the skill owns how the test-first cycle runs.
 
 **Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules). Pass `knowledge_context` after spec context and before dependency records when populated. If dependencies have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` — positioned after knowledge context, before implementation tasks.
 
@@ -204,7 +204,7 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 After lint/typecheck passes, classify the files the coding agent created or modified as **style-only**, **single-component**, **cross-component** or **full-stack** and pass it to Gate 3 as `change_surface`, which guides review depth. Optionally cross-check those paths against **`boundary_map`** (Gate 0.5) when present — an unexpected **full-stack** result for a file listed as Readable warrants a stricter review posture.
 
-`Read skills/change-surface-classification/SKILL.md` for *how* the four classes are told apart. This gate owns *when* classification runs and who consumes `change_surface`; the skill owns *how* the class is decided.
+`Read skills/change-surface-classification/SKILL.md` for how the four classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how the class is decided.
 
 ---
 
@@ -218,7 +218,7 @@ Spawns a **read-only** sub-agent for code review: acceptance criteria; code qual
 
 **Results:** **PASS** → continue to testing (may include Small or Medium drift) · **FAIL** → send feedback to coding agent for fixes · **PAUSE** → Large drift detected; surface conflict to user before continuing
 
-**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share **one** counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations *are* the implementation, and no cap may be silently continued past.
+**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
 
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
@@ -230,7 +230,7 @@ After the review agent returns, perform two operations:
 
 Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — **PAUSE**, present accept / reject / modify-spec, wait for the decision). `spec.md` is never auto-modified.
 
-`Read skills/drift-triage/SKILL.md` for *how* each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns *when* triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns *how*.
+`Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
 ##### B. "What Was Built" Data Extraction
 
@@ -261,9 +261,9 @@ python3 scripts/test-integrity.py coverage --project . --new-files <story's new 
 python3 scripts/test-integrity.py authenticity --project . --tests <story's test files>
 ```
 
-`Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and **where they disagree the checker wins** — a run may report `TEST_RESULT: PASS` and still not close, exactly as `scripts/exit-criteria.py` lets a run report COMPLETE and be published `unmet`. Show both the claim and the measurement in the story report.
+`Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and where they disagree the checker wins — a run may report `TEST_RESULT: PASS` and still not close, as `scripts/exit-criteria.py` lets a run report COMPLETE and be published `unmet`. Show both the claim and the measurement in the story report.
 
-- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. The escape hatch is the shared [BLOCKED escalation](#blocked-agent-escalation) with its human decision, never a quiet downgrade.
+- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. The only exit is the shared [BLOCKED escalation](#blocked-agent-escalation) with its human decision; do not downgrade the story silently.
 - **Any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ---
@@ -309,11 +309,11 @@ After all gates pass:
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
 8. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
 
-**Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for *what* `.writ/context.md` contains. This step owns *when* regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
+**Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 
-**Item 4 — the record.** `Read skills/what-was-built-authoring/SKILL.md` for *how* the record is extracted and formatted. A `--quick` run reaches this step with no `what_was_built_data` and **still writes the minimal record** — which is why the skill loads here, not at Gate 3.5.
+**Item 4 — the record.** `Read skills/what-was-built-authoring/SKILL.md` for how the record is extracted and formatted. A `--quick` run reaches this step with no `what_was_built_data` and still writes the minimal record, which is why the skill loads here, not at Gate 3.5.
 
-**Item 7 — provenance.** `Read skills/story-commit-provenance/SKILL.md` for *how* the SHA is captured, placed idempotently, and landed without amending the commit it names. Written right after item 6's commit; `/revert` and `scripts/revert-resolve.py` consume it.
+**Item 7 — provenance.** `Read skills/story-commit-provenance/SKILL.md` for how the SHA is captured, placed idempotently, and landed without amending the commit it names. Written right after item 6's commit; `/revert` and `scripts/revert-resolve.py` consume it.
 
 ---
 
@@ -343,7 +343,7 @@ AskQuestion({
 })
 ```
 
-**Skip with warning:** continue the pipeline but add a visible `⚠️ DEGRADED` flag to the final story report. The story is **NOT** marked `Completed ✅` — it carries the gate-specific note above.
+**Skip with warning:** continue the pipeline but add a visible `⚠️ DEGRADED` flag to the final story report. The story is not marked `Completed ✅` — it carries the gate-specific note above.
 
 ---
 

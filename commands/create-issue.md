@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Fast-capture for bugs, features, and improvements mid-development. Speed over completeness — get it documented in under 2 minutes and get back to coding. Good enough beats perfect.
+Fast-capture for bugs, features, and improvements mid-development. Speed over completeness: document it in under 2 minutes and get back to coding.
 
 ## Invocation
 
@@ -34,7 +34,7 @@ Parse the description for:
 
 ### Step 2: Light Clarification (Only If Needed)
 
-Ask 2-3 questions MAX in a single message. Be conversational, not a checklist — respect that the user is mid-flow. Default to normal priority, medium effort unless clearly otherwise.
+Ask 2-3 questions MAX in a single message. Be conversational, not a checklist; the user is mid-task. Default to normal priority, medium effort unless clearly otherwise.
 
 **Question triggers:**
 
@@ -67,7 +67,7 @@ Max 3 files in the final issue.
 
 ### Step 4: Related Issues Check
 
-Quick scan of `.writ/issues/` with `Glob` for existing issues in the same area or with similar keywords. Include genuinely related ones in the Related Issues section.
+Quick scan of `.writ/issues/` with `Glob` for existing issues in the same area or with similar keywords. Include related ones in the Related Issues section.
 
 **Skip if:**
 - No `.writ/issues/` folder exists yet

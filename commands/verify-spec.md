@@ -19,7 +19,7 @@ loop:
 
 ## Overview
 
-Fast **metadata diagnostic** for Writ specs. Confirms story files, README tracking, statuses, deliverables, dependencies, and contract alignment are consistent. **Default mode auto-fixes** everything that can be repaired safely, then reports what still needs human judgment.
+**Metadata diagnostic** for Writ specs. Confirms story files, README tracking, statuses, deliverables, dependencies, and contract alignment are consistent. **Default mode auto-fixes** everything that can be repaired safely, then reports what still needs human judgment.
 
 This command is **not a pipeline gate** — run it when you suspect spec drift, like a linter. Release-time tests, build verification, and changelog work live in `/release`.
 
@@ -34,7 +34,7 @@ This command is **not a pipeline gate** — run it when you suspect spec drift, 
 | `/verify-spec --all` | All specs | Run the full diagnostic for every spec under `.writ/specs/` |
 | `/verify-spec --product` | Product docs | Run the **Product Consistency** check set (its own ~4 checks — **not** spec checks 1–8) over `.writ/product/` + `.writ/context.md`; hybrid auto-fix (regenerate derivatives) / report-only (authoritative divergence) |
 
-> **`--product` is a distinct check set, not spec checks pointed at product docs.** Default `/verify-spec` (checks 1–8) answers "is this *spec* internally consistent?"; `--product` answers "is the *product layer* internally consistent and true to reality?" The two do not share checks. See [Product Consistency Checks](#product-consistency-checks---product) below. `--product` is the consistency lint (the *before*); its revision counterpart is `/plan-product --reconcile` (the *after*).
+> **`--product` is a distinct check set, not spec checks pointed at product docs.** Default `/verify-spec` (checks 1–8) answers "is this spec internally consistent?"; `--product` answers "is the product layer internally consistent and true to reality?" The two do not share checks. See [Product Consistency Checks](#product-consistency-checks---product) below. `--product` is the consistency lint (before); its revision counterpart is `/plan-product --reconcile` (after).
 
 ## Command Process
 
@@ -185,8 +185,7 @@ If sum doesn't match → flag
 **Status rollup:** Check 3 renders exactly one status cell in the Phase 3 report table. That
 cell rolls up the **worst status across all of 3a through 3f** — a 3e/3f finding fails the row
 exactly as a 3a false-completion finding would. Do not compute the cell from 3a–3d alone and
-silently drop 3e/3f from the roll-up; a future editor reading only the older sub-checks here
-would otherwise regress this silently.
+silently drop 3e/3f from the roll-up.
 
 **3a. Acceptance criteria verification (for "Completed" stories):**
 ```
@@ -235,7 +234,7 @@ For the spec being verified:
 
 The executable reference for this contract is `scripts/ac-trace.py check --spec <folder>`. As
 with Check 4d's `scripts/spec-deps.py validate`, the command file describes the contract; the
-script is what actually decides, so a human and an agent reach the same verdict.
+script decides, so a human and an agent reach the same verdict.
 
 **3f. Dangling and malformed references:**
 
@@ -254,15 +253,14 @@ Flag as blocking:
 **Legacy posture:** zero criteria in a story carry IDs → `legacy_story`, reported
 **informationally and never blocking** — mirrors how Check 4d treats a spec with no
 `Dependencies` header as `[]`. Some-but-not-all IDs in a story is not a migration state — it is
-`partial_adoption`, which **is** blocking, because the unaddressed criteria in that story are
+`partial_adoption`, which is blocking, because the unaddressed criteria in that story are
 invisible to the check while the story appears to participate.
 
 > Checks **3e** and **3f** are **report-only inside default mode** — they behave identically
 > under `/verify-spec` and `/verify-spec --check`, and **Phase 4's auto-fix list is unchanged
 > and never touches them.** Deciding which task covers a criterion, or whether a dangling
-> reference should be repointed or deleted, is authorial judgment the check exists to demand —
-> a machine-appended tag would produce a satisfied check with no real trace link behind it,
-> which is worse than the finding it silenced. Since nothing in 3e/3f is auto-fixed, every
+> reference should be repointed or deleted, requires human judgment; a machine-appended tag
+> would satisfy the check without a real trace link. Since nothing in 3e/3f is auto-fixed, every
 > 3e/3f finding belongs in **Outstanding Warnings** and never in **Issues Found & Resolved**.
 
 ---
@@ -306,7 +304,7 @@ For the reachable cross-spec graph (this spec + every spec it references):
 ```
 
 The executable reference for this contract is `scripts/spec-deps.py validate`. Invalid
-explicit metadata is **blocking**; shared-file or prose overlap can only *warn* about a
+explicit metadata is **blocking**; shared-file or prose overlap can only warn about a
 potentially missing declaration and can never reorder a valid explicit graph.
 
 > Checks **4a–4c** are **report-only** in both default and `--check` — story dependency
@@ -338,7 +336,7 @@ If ALL stories completed AND all deliverables checked:
 
 #### Check 6: Spec Contract vs Implementation
 
-**Drift detection — does the built thing match the specced thing?**
+**Drift detection — does the implementation match the spec?**
 
 ```
 Read spec.md "Contract Summary" section
@@ -603,16 +601,15 @@ See report: .writ/specs/[spec-folder]/verification-YYYY-MM-DD.md
 A **separate, self-contained check set** for the product layer, run only under
 `/verify-spec --product`. These are **not** spec checks 1–8 pointed at product
 docs — they are their own ~4 checks with their own dispositions, report, and
-output file. Resist the urge to mirror all eight spec checks onto product docs;
-the value is a tight, high-signal lint, not a second full diagnostic.
+output file. Do not mirror the eight spec checks onto product docs.
 
-**Boundary (critical):** `--product` answers *"is the product layer internally
-consistent and true to reality?"* — a lint you run **before** deciding anything.
+**Boundary (critical):** `--product` answers "is the product layer internally
+consistent and true to reality?" — a lint you run before deciding anything.
 Its revision counterpart is [`/plan-product --reconcile`](plan-product.md), which
-answers *"is it still the right plan? revise it,"* run **after** you decide to
-change. Run `--product` first to see *what* drifted; run `--reconcile` to decide
-*what to do*. This is the same before/after discipline that keeps `/assess-spec`
-(before) and default `/verify-spec` (after) distinct — do not let the two blur.
+answers "is it still the right plan? revise it," run after you decide to
+change. Run `--product` first to see what drifted; run `--reconcile` to decide
+what to do. The same before/after split separates `/assess-spec` (before) from
+default `/verify-spec` (after).
 
 ### Inputs
 
@@ -625,7 +622,7 @@ change. Run `--product` first to see *what* drifted; run `--reconcile` to decide
 | `.writ/decision-records/adr-*.md` | Reference targets for Check P2 |
 | `.writ/specs/*/` | Evidence for Check P4 (shipped-claim sanity) |
 
-**Graceful skip:** If no `.writ/product/` directory exists, print a clear message
+**Graceful skip:** If no `.writ/product/` directory exists, print this message
 (`No .writ/product/ found — nothing to verify. Run /plan-product first.`) and exit
 with no error and no files written. A missing `.writ/context.md` is **not** an
 error — it is treated as a derivative to (re)generate in Check P3.
@@ -663,8 +660,8 @@ For each ADR id referenced in the product docs:
   If not → flag as unresolved ADR reference (name the id and citing file)
 ```
 
-> **Disposition: report-only.** A missing ADR file is a real bug worth human eyes —
-> either the reference is wrong or the ADR was never written. Do not auto-create.
+> **Disposition: report-only.** Either the reference is wrong or the ADR was never
+> written; a human decides which. Do not auto-create.
 
 #### Check P3: Derivative Freshness — auto-fix (regenerate)
 
@@ -688,7 +685,7 @@ Compare mission-lite.md (and .writ/context.md) against mission.md:
 
 For each roadmap feature/phase marked shipped/complete, look for plausible
 evidence: a matching spec folder under `.writ/specs/` (status Complete) or a
-changelog/CHANGELOG entry. Absence is a *soft* signal, not proof of error.
+changelog/CHANGELOG entry. Absence is a soft signal, not proof of error.
 
 ```
 For each roadmap item marked shipped/complete:
@@ -697,7 +694,7 @@ For each roadmap item marked shipped/complete:
 ```
 
 > **Disposition: report-only, heuristic.** Naming rarely maps 1:1; treat findings
-> as "worth a glance," never as failures. High false-positive tolerance by design.
+> as prompts to look, never as failures. False positives are expected.
 
 ### Auto-Fix Mechanics (Check P3 only)
 
@@ -715,7 +712,7 @@ regen), applied to the product derivatives. Runs only in default `--product` (no
 
 **Never touch authoritative prose.** `mission.md` and `roadmap.md` are always the
 source, never the target of `--product` — exactly as `spec.md` is never modified by
-spec Check 7. P1 (phase parity) and P2 (ADR references) surface *authoritative*
+spec Check 7. P1 (phase parity) and P2 (ADR references) surface authoritative
 divergence, which is reported for a human to resolve, never silently rewritten.
 
 ### Report

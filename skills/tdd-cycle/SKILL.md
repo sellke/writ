@@ -24,15 +24,14 @@ evidence:
 
 Grow implementation code **test-first**, one small increment at a time, so that
 every line of production code exists to satisfy a test that failed before it was
-written. The discipline is a tight three-beat loop — **red** (write a failing
-test), **green** (write the least code that passes it), **refactor** (clean up
-under a passing suite) — repeated per unit of behavior until the work is done.
+written. The loop has three beats — **red** (write a failing test), **green**
+(write the least code that passes it), **refactor** (clean up under a passing
+suite) — repeated per unit of behavior until the work is done.
 
-This capability owns *how to run the loop well*. It does not decide *which*
-units to build, how work is routed between roles, or what happens when the loop
-stalls past its limits — those belong to the consumer that wields it. The value
-is that the same discipline produces code that is designed for testability,
-minimal, and continuously verified rather than tested as an afterthought.
+This capability owns how to run the loop. It does not decide which units to
+build, how work is routed between roles, or what happens when the loop stalls
+past its limits — those belong to the consumer. The result is code that is
+designed for testability, minimal, and continuously verified.
 
 ## When to Use
 
@@ -52,16 +51,16 @@ minimal, and continuously verified rather than tested as an afterthought.
 Run this loop for each small unit of behavior, not for the whole feature at once.
 
 1. **Red — write one failing test.** Express a single, concrete piece of desired
-   behavior as a test and run it. Confirm it fails, and fails *for the right
-   reason* (the behavior is missing — not a typo, missing import, or broken
-   harness). A test that passes immediately, or errors before it even asserts,
-   teaches you nothing; fix the test until the failure is meaningful.
+   behavior as a test and run it. Confirm it fails, and fails for the right
+   reason (the behavior is missing — not a typo, missing import, or broken
+   harness). A test that passes immediately, or errors before it asserts, is not
+   a valid red; fix the test until it fails because the behavior is missing.
 
 2. **Green — make it pass with the least code.** Write the simplest
-   implementation that turns the test green. Resist building for imagined future
-   cases: only the current test's behavior earns code right now. "Simplest" means
-   least code, not sloppiest — but a hard-coded return that passes is a legitimate
-   first step you will generalize in the next cycle. Run the test; confirm green.
+   implementation that turns the test green. Do not build for future cases; only
+   the current test's behavior gets code now. "Simplest" means least code, not
+   lowest quality. A hard-coded return that passes is an acceptable first step;
+   generalize it in the next cycle. Run the test; confirm green.
 
 3. **Refactor — clean up under green.** With the test passing, improve the
    structure: remove duplication, clarify names, extract helpers, tighten types.
@@ -75,26 +74,24 @@ Then repeat: pick the next small unit, write the next failing test, and go again
 
 Keep each pass small enough that the failing test is obvious and the passing code
 is a few lines. A good unit is one branch, one edge case, or one small behavior —
-not a whole module. Prioritize the cycles in the order bugs hide: error and
-failure paths first, then edge cases, then happy-path variants. If writing the
-test is hard, that is a design signal — the code under test is probably doing too
-much or is too coupled, and the friction is telling you to reshape it.
+not a whole module. Order the cycles: error and failure paths first, then edge
+cases, then happy-path variants. If writing the test is hard, the code under
+test is probably doing too much or is too coupled; reshape it.
 
 ### Staying honest
 
 - **Never weaken a test to make it pass.** Skipping it, deleting the assertion,
-  loosening a threshold, or widening a matcher until it stops failing all defeat
-  the point. When a test cannot legitimately pass, the implementation is wrong or
-  the test's expectation is — fix the real cause.
+  loosening a threshold, or widening a matcher until it stops failing are all
+  prohibited. When a test cannot legitimately pass, either the implementation or
+  the test's expectation is wrong — fix the real cause.
 - **Fix failures with the context you have.** When a check fails, feed the
   specific failure into the next small change rather than rewriting broadly; the
   failing output names exactly what to address.
 - **Keep the loop green between units.** Do not start the next red beat while the
   previous cycle is still red. A continuously-green baseline is what makes each
-  new failure trustworthy.
-- **Know when to stop.** If the same failure resists repeated, distinct fix
-  attempts, stop rather than thrashing — a persistently red test after several
-  genuine tries is a signal that the problem needs a rethink, not another patch.
+  new failure attributable to the latest change.
+- **Know when to stop.** If the same failure resists several distinct fix
+  attempts, stop. The approach needs a rethink, not another patch.
 
 ## Examples
 
@@ -119,6 +116,5 @@ green: guard the empty-string case before parsing          → passes
 refactor: fold the guard into the existing validation block → suite stays green
 ```
 
-The guarantee at the end of each cycle is the same: a test that would have failed
-without the change now passes, every earlier test still passes, and the structure
-is a little cleaner than it was.
+At the end of each cycle: the new test passes, every earlier test still passes,
+and the structure is no worse than before.

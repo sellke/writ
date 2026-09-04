@@ -14,9 +14,9 @@ exit_criteria:
 
 ## Overview
 
-Create new Writ commands through a contract-first approach. No files are created until the developer and AI agree on a command specification through collaborative discovery. This command generates properly structured command files that integrate with the Writ ecosystem.
+Create new Writ commands contract-first. No files are created until the developer and AI agree on a command specification. The generated file follows the structure of the existing commands in `commands/`.
 
-**When to use** — creating a genuinely new command for the Writ system. Before building, this command challenges whether the proposed command is needed, surfaces overlap with existing commands, and ensures the design fits Writ's patterns.
+**When to use** — creating a new command for the Writ system. Before building, this command challenges whether the proposed command is needed, surfaces overlap with existing commands, and checks that the design fits Writ's patterns.
 
 ## Invocation
 
@@ -31,7 +31,7 @@ Create new Writ commands through a contract-first approach. No files are created
 
 **Mission Statement:**
 
-> Your goal is to turn my rough command idea into a comprehensive command specification. You will deliver the complete command package only after we both agree on the command contract. **Important: Challenge command ideas that don't fit the Writ ecosystem or would create maintenance burden — it's better to surface concerns early than build the wrong command.**
+> Your goal is to turn my rough command idea into a complete command specification. Deliver the command package only after we both agree on the command contract. Challenge command ideas that don't fit the Writ ecosystem or would create maintenance burden; surface concerns before any file is written.
 
 #### Step 1.1: Initial Context Scan
 
@@ -42,7 +42,7 @@ Create new Writ commands through a contract-first approach. No files are created
 
 #### Step 1.2: Switch to Plan Mode for Command Discovery
 
-After the context scan, switch to Plan Mode. Designing a new command is an open-ended conversation — understanding the workflow it serves, how it fits with existing commands, what patterns to follow, where simplification exists. Multiple-choice boxes can't capture this.
+After the context scan, switch to Plan Mode. Designing a new command is open-ended — the workflow it serves, how it fits with existing commands, what patterns to follow, where simplification exists — and multiple-choice options cannot capture it.
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 
@@ -60,9 +60,9 @@ After the context scan, switch to Plan Mode. Designing a new command is an open-
 - Ask ONE focused question at a time, targeting the highest-impact unknown
 - After each answer, re-scan existing commands for additional context if relevant
 - Continue until reaching 95% confidence on the command specification
-- **Never declare "final question"** — let the conversation flow naturally
+- **Never declare "final question"**
 - Let the user signal when they're ready to see a contract
-- **Challenge command ideas that create complexity or don't fit** — better to surface concerns early than build problematic commands
+- **Challenge command ideas that create complexity or don't fit**
 
 **Critical Analysis Responsibility:**
 
@@ -138,7 +138,7 @@ Triggered only after user confirms contract with "yes." Track progress with `tod
 
 #### Step 2.1: Generate the Command File
 
-Create `commands/[command-name].md`. A well-structured command file contains:
+Create `commands/[command-name].md`. Before writing the prose, `Read skills/plain-prose/SKILL.md`; command files are loaded on every invocation, and the skill's rewrite and preserve rules apply to every sentence you author here. The command file contains:
 
 | Section | Purpose |
 |---|---|
@@ -147,7 +147,7 @@ Create `commands/[command-name].md`. A well-structured command file contains:
 | **Command Process** | The workflow — phases, steps, decision points. Contract-style commands get Phase 1 (discovery) and Phase 2 (execution). Direct commands get a linear step sequence. |
 | **Core rules or conventions** | Non-obvious constraints, quality bars, patterns to follow |
 | **Integration with Writ** | Table mapping relationships to other commands |
-| **Completion** | The command's terminal condition — what is true when it has succeeded, whether a zero result is valid, and, where the command produces something an agent would otherwise volunteer to act on, a **Terminal constraint** line naming what it does *not* do next |
+| **Completion** | The command's terminal condition — what is true when it has succeeded, whether a zero result is valid, and, where the command produces something an agent would otherwise volunteer to act on, a **Terminal constraint** line naming what it does not do next |
 | **References** | Final section linking to `commands/_preamble.md` and `system-instructions.md` |
 
 **Entry level note (every generated command):** every generated command declares `entry_level` in its `---` YAML frontmatter, after `outcome:`, per `system-instructions.md` § Model Tiers:
@@ -164,7 +164,7 @@ exit_criteria:
 ---
 ```
 
-Derive the value with two questions, in order. **Q1** — does the command spawn agents, lock a contract (spec, ADR, roadmap, design), or render an unverified judgment the user acts on (review, audit, research, drift assessment)? → `high`. **Q2** — does it create or modify durable project artifacts (specs, issues, code, docs, git state; derived caches such as `.writ/context.md` do not count)? → `standard`. Otherwise → `any`. The value is what the command *expects the user to have entered at* — the model and thinking level the session is running — not what the command runs at; Writ never selects a model for a command, and a session below the level gets one non-blocking notice line. See [ADR-024](../.writ/decision-records/adr-024-model-delegation.md) and [`.writ/docs/model-tiers.md`](../.writ/docs/model-tiers.md).
+Derive the value with two questions, in order. **Q1** — does the command spawn agents, lock a contract (spec, ADR, roadmap, design), or render an unverified judgment the user acts on (review, audit, research, drift assessment)? → `high`. **Q2** — does it create or modify durable project artifacts (specs, issues, code, docs, git state; derived caches such as `.writ/context.md` do not count)? → `standard`. Otherwise → `any`. The value is what the command expects the user to have entered at — the model and thinking level the session is running — not what the command runs at; Writ never selects a model for a command, and a session below the level gets one non-blocking notice line. See [ADR-024](../.writ/decision-records/adr-024-model-delegation.md) and [`.writ/docs/model-tiers.md`](../.writ/docs/model-tiers.md).
 
 **Component contract (every generated command):** the frontmatter also declares `problem:`, `outcome:`, and `exit_criteria:` — appended after the last existing key, in that fixed order (with `entry_level:` sitting between `outcome:` and `exit_criteria:`), within a 7-line ceiling (2–4 criteria entries; three is the expected shape). `problem:` and `outcome:` are one sentence each, no block scalars. Full schema, both carriers, and the budget derivation: [`.writ/docs/component-contract.md`](../.writ/docs/component-contract.md).
 
@@ -175,10 +175,10 @@ exit_criteria:
   - "a present-tense assertion about post-run state"
 ```
 
-**Authoring `exit_criteria` is where this either works or becomes filler.** Each entry must name something a script could check — a path, a field value, a count, a process outcome, a git-observable state — and must survive two tests:
+Each `exit_criteria` entry must name something a script could check — a path, a field value, a count, a process outcome, a git-observable state — and must survive two tests:
 
-- **Swap test** — paste the entry into a different command's frontmatter. Still plausible there? It's boilerplate. Rewrite it.
-- **Restatement test** — could you re-derive the entry from `description:` alone? Then it carries no information. `description:` says what the command is *for*; `exit_criteria` says what is observably *true afterward*.
+- **Swap test** — paste the entry into a different command's frontmatter. If it is still plausible there, it is boilerplate; rewrite it.
+- **Restatement test** — could you re-derive the entry from `description:` alone? If so, it carries no information. `description:` says what the command is for; `exit_criteria` says what is observably true afterward.
 
 ✗ `"the release completes successfully"` — true of nothing in particular, asserts nothing.
 ✓ `"a git tag matching v<VERSION> exists"` — false and nonsensical in any other command, and checkable.
@@ -196,7 +196,7 @@ exit_criteria:
 **Quality bars for the generated command file:**
 
 - Every section passes the litmus test: teaches something non-obvious, sets a quality bar, or prevents a likely mistake
-- Principles over prescriptions — tell the AI *what matters*, not *how to format*
+- Principles over prescriptions — tell the AI what matters, not how to format
 - No hardcoded line numbers or brittle references to other files
 - Language and shell agnostic — use Writ's tools, not platform-specific commands
 - Include the standard final `## References` section with `commands/_preamble.md` and `system-instructions.md`

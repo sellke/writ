@@ -9,11 +9,10 @@ status: candidate
 
 ## Purpose
 
-Put a change set into one of four named surfaces so that whatever reads it next
-can allocate attention proportionally. A style tweak and a migration are not the
-same review, and the difference is decidable from the file list plus a short
-ordered heuristic — no judgment about quality, only about reach. The output is
-one value: `change_surface`.
+Put a change set into one of four named surfaces so the next reader can scale
+review depth to it. The class is decided from the file list plus a short ordered
+heuristic; it measures reach, not quality. The output is one value:
+`change_surface`.
 
 ## When to Use
 
@@ -47,9 +46,9 @@ one value: `change_surface`.
    middleware → **full-stack**.
 6. **When ambiguous, classify UP one level** — prefer more scrutiny over less.
 
-Step 6 is the rule that cannot be re-derived from the table, and it decides the
-awkward cases: a change readable as single-component *or* cross-component is
-**cross-component**.
+Step 6 decides ambiguous cases: a change readable as single-component or
+cross-component is **cross-component**.
 
-Step 2's **ALL** is equally load-bearing — a change set touching a stylesheet
-*and* a migration does not satisfy it, and falls through to **full-stack**.
+Step 2 requires **ALL** changes to be style changes: a change set touching a
+stylesheet and a migration does not satisfy it and falls through to
+**full-stack**.

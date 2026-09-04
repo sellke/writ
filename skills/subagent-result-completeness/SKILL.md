@@ -13,10 +13,9 @@ Decide whether a spawned gate agent's turn actually ended with the verdict its
 gate requires, or merely stopped partway through — a partial finding, or a
 sentence describing what it is about to check next, with no verdict at all.
 Every gate in `implement-story.md` that spawns a sub-agent names an exact
-verdict shape; a turn that ends without producing that shape is not done, no
-matter how much useful-looking output it produced first. Treating a mid-task
-stop as a real result is how an orchestrator advances a gate on work nobody
-actually reviewed.
+verdict shape; a turn that ends without that shape is not done, regardless of
+how much output preceded it. Treating a mid-task stop as a result advances a
+gate on unreviewed work.
 
 ## When to Use
 
@@ -33,8 +32,8 @@ actually reviewed.
 
 ### 1. Know the verdict shape each gate requires
 
-A turn is complete only when it ends in the exact shape its gate names —
-never a paraphrase, and never inferred from how thorough the output looks:
+A turn is complete only when it ends in the exact shape its gate names — not
+a paraphrase, and not inferred from how thorough the output looks:
 
 | Gate | Agent | Complete-turn signal |
 |---|---|---|
@@ -49,15 +48,14 @@ never a paraphrase, and never inferred from how thorough the output looks:
 A turn is a mid-task stop, not a result, when it ends in any of these —
 regardless of how much analysis preceded it:
 
-- A partial finding, with some criteria or files evaluated and others simply
-  not mentioned.
+- A partial finding, with some criteria or files evaluated and others not
+  mentioned.
 - A narration of upcoming work ("next I'll verify...", "let me also check...")
   with no verdict line following it.
 - Any of the table's required lines missing entirely from the final output.
 
-A verbose, thorough-looking report that never emits its gate's required line
-is exactly as incomplete as a one-sentence stub — length is not a proxy for
-completeness.
+A long report that never emits its gate's required line is incomplete; length
+is not a proxy for completeness.
 
 ### 3. Recover, never advance on a partial return
 
@@ -65,9 +63,8 @@ When a spawned agent's turn ends mid-synthesis: resume the same agent with
 the same context it already has, and explicitly ask it to finish and state
 its final verdict in the required shape. Do not summarize the partial output
 into a verdict on the agent's behalf, and do not treat silence past a
-partial finding as an implicit PASS or PROCEED. The gate does not advance —
-its result is not yet known — until the resumed turn produces the required
-line.
+partial finding as an implicit PASS or PROCEED. The gate does not advance
+until the resumed turn produces the required line.
 
 ## Examples
 

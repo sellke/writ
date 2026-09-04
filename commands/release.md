@@ -110,7 +110,7 @@ For **completed specs** relevant to this release (same inventory you use for cha
 
 **1.3b: Build verification (always runs)**
 
-Fast checks; run only when tooling/config is present — do not fail the repo for missing tools:
+Fast checks. Run only when tooling/config is present; do not fail the repo for missing tools:
 
 Run each check **only** when configuration exists (probe for `tsconfig.json`, ESLint config variants, Prettier config variants — same heuristics as `/ship`). Example pattern:
 
@@ -119,7 +119,7 @@ Run each check **only** when configuration exists (probe for `tsconfig.json`, ES
 # eslint / prettier: run only after detecting a config file for that tool
 ```
 
-If a tool is not configured, skip it — **do not** treat “no config” as failure.
+If a tool is not configured, skip it. Do not treat “no config” as failure.
 
 **On failure:** Block release. Report which command failed and where.
 
@@ -144,7 +144,7 @@ LAST_MERGED_BRANCH=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].headRefNam
 LAST_MERGED_COMMITS=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]? | "\(.messageHeadline)\n\(.messageBody // "")"' 2>/dev/null)
 ```
 
-> **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), since extracting four independent fields from one payload needs a general-purpose filter, not a single scalar. This mirrors the same external-`jq`-with-graceful-fallback assumption Step 3.1's version-bump logic already makes elsewhere in this file. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it. **Feed the variable with `printf '%s'`, never `echo`:** zsh's builtin `echo` expands the `\n` and `\t` escapes inside the JSON (a real payload carries ~100 of them), yielding unescaped control characters and a `jq` parse error on *every* run; bash's `echo` does not, so the bug is invisible on one shell and total on another. Observed 2026-09-04 during the v0.34.0 release.
+> **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), because extracting four independent fields from one payload needs a general-purpose filter. Step 3.1's version-bump logic makes the same external-`jq`-with-fallback assumption. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it. **Feed the variable with `printf '%s'`, never `echo`:** zsh's builtin `echo` expands the `\n` and `\t` escapes inside the JSON (a real payload carries ~100 of them), yielding unescaped control characters and a `jq` parse error on every run; bash's `echo` does not, so the bug appears on one shell and not the other. Observed 2026-09-04 during the v0.34.0 release.
 
 | Condition | Behavior |
 |---|---|
@@ -158,14 +158,14 @@ LAST_MERGED_COMMITS=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]
 
 **`--dry-run` preview:** State whether the gate **would** run, whether tests **would** run vs skipped (include resolved `HEAD_SHA` and whether `gh` produced a merge SHA), and that build + spec steps **would** always run except when `--skip-gate`.
 
-> **Post-merge archival hook (fires only inside the `LAST_MERGED_SHA` equals `HEAD_SHA` branch above — nowhere else).** Immediately after the test-skip log line, attempt to archive the spec that merged PR belongs to — silently, best-effort, never blocking. Because this lives entirely inside the same `LAST_MERGED_SHA == HEAD_SHA` branch, which itself only evaluates inside the `Unless --skip-gate is set` block gating all of Step 1.3, `--skip-gate` skips this hook automatically with no separate check required. Wrap the **entire** sequence below in one best-effort guard (e.g. run it as `{ ... } 2>/dev/null || true`, or check each step's exit code explicitly) so any failure anywhere in the chain — resolver error, missing script, a non-zero exit, malformed JSON — is caught and skipped without affecting the log line above, the rest of the gate, or any later phase.
+> **Post-merge archival hook (fires only inside the `LAST_MERGED_SHA` equals `HEAD_SHA` branch above — nowhere else).** Immediately after the test-skip log line, attempt to archive the spec that merged PR belongs to: silently, best-effort, never blocking. Because this runs inside the `LAST_MERGED_SHA == HEAD_SHA` branch, which itself only evaluates inside the `Unless --skip-gate is set` block gating all of Step 1.3, `--skip-gate` skips this hook with no separate check. Wrap the entire sequence below in one best-effort guard (e.g. run it as `{ ... } 2>/dev/null || true`, or check each step's exit code explicitly) so any failure anywhere in the chain — resolver error, missing script, a non-zero exit, malformed JSON — is caught and skipped without affecting the log line above, the rest of the gate, or any later phase.
 >
-> 1. **Resolve:** `scripts/resolve-spec-reference.py resolve --branch "${LAST_MERGED_BRANCH}" --commits "${LAST_MERGED_COMMITS}" --specs-dir .writ/specs` — the same shared implementation `/ship` Step 5 uses for its PR body's Spec Reference section, not a second drifting heuristic.
-> 2. On `"result": "none"` or `"result": "ambiguous"` — stop here. No archive call, no output, no side effect anywhere: behaviorally identical to `/release` before this hook existed.
+> 1. **Resolve:** `scripts/resolve-spec-reference.py resolve --branch "${LAST_MERGED_BRANCH}" --commits "${LAST_MERGED_COMMITS}" --specs-dir .writ/specs` — the same shared implementation `/ship` Step 5 uses for its PR body's Spec Reference section.
+> 2. On `"result": "none"` or `"result": "ambiguous"` — stop here. No archive call, no output, no side effect.
 > 3. On `"result": "matched"` — call `scripts/archive-sweep.py archive-one --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root . --spec-name "<resolved spec>" --pr-number "${LAST_MERGED_PR_NUMBER}"` directly. It already performs its own complete-family check and its own already-archived/collision check internally — do not add a second eligibility check in this step.
-> 4. Branch **purely** on `archive-one`'s returned `status` field:
->    - `"archived"` or `"archived_unlogged"` — the `git mv` succeeded either way (`"archived_unlogged"` means only the ledger write failed, not the move). Commit it **right here**, inside Step 1.3c, rather than deferring to Phase 3's version-bump commit: `git add -A && git commit -m "chore(archive): auto-archive <resolved spec> via PR #${LAST_MERGED_PR_NUMBER}"`, including the returned `ledger_line` in the commit body when present. Committing immediately avoids leaving a dangling uncommitted `git mv` if the user later cancels the release at Step 2.3's confirmation gate.
->    - anything else (`"already_archived"`, `"not_eligible"`, `"collision"`, `"git_mv_failed"`) — no commit, no output, continue exactly as if this hook had not run.
+> 4. Branch only on `archive-one`'s returned `status` field:
+>    - `"archived"` or `"archived_unlogged"` — the `git mv` succeeded either way (`"archived_unlogged"` means only the ledger write failed, not the move). Commit it inside Step 1.3c, not in Phase 3's version-bump commit: `git add -A && git commit -m "chore(archive): auto-archive <resolved spec> via PR #${LAST_MERGED_PR_NUMBER}"`, including the returned `ledger_line` in the commit body when present. Committing immediately avoids leaving a dangling uncommitted `git mv` if the user later cancels the release at Step 2.3's confirmation gate.
+>    - anything else (`"already_archived"`, `"not_eligible"`, `"collision"`, `"git_mv_failed"`) — no commit, no output; continue as if this hook had not run.
 >
 > This hook never produces new terminal output, PR-body content, or a release-summary line, and never affects the gate's pass/fail verdict — the only observable side effect in any outcome is the standalone commit in step 4's first bullet (spec.md's silent Feedback Model). **Sequencing note for Phase 2:** the changelog data Step 2.1 consumes was already gathered earlier in Step 1.2, before this hook runs — Step 2.1 must keep using that already-gathered data rather than re-scanning `.writ/specs/<name>/` from disk, since this hook may have already moved that folder to `.writ/specs/archive/<name>/` by the time Step 2.1 runs.
 
@@ -173,7 +173,7 @@ LAST_MERGED_COMMITS=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]
 
 #### Step 1.4: README Freshness Check
 
-Cross-reference `README.md` against the actual repo to catch silent staleness — the release is the natural checkpoint because you're already enumerating what changed.
+Cross-reference `README.md` against the repo to catch staleness. The release already enumerates what changed, so check here.
 
 **Automated checks:**
 
@@ -201,9 +201,9 @@ Options:
 3. Abort — fix manually first
 ```
 
-I recommend **option 1** (fix now) — bundling the README fix into the release commit is the cleanest outcome. The discrepancy was already shipped; the release is the right moment to heal it.
+Recommend **option 1** (fix now): bundle the README fix into the release commit.
 
-**What this check does NOT do:** Validate that command *descriptions* in the README are accurate. Descriptions are judgment calls — the check catches structural drift (missing/extra entries), not semantic drift. If a command's purpose fundamentally changed, the changelog entry is the signal to review its README description manually.
+**What this check does NOT do:** Validate that command descriptions in the README are accurate. The check catches structural drift (missing/extra entries), not semantic drift. If a command's purpose changed, review its README description manually when writing the changelog entry.
 
 #### Step 1.5: Propose Version Bump
 
@@ -376,7 +376,7 @@ fi
 
 **Strictly non-blocking.** Failure here never fails the release — log a warning and continue to Step 3.2.
 
-A spec regularly ships without ever being a roadmap parking-lot candidate — inter-phase infrastructure, a bug fix, a bookkeeping amendment. Left unrecorded, it sits invisible until an occasional manual `/plan-product --reconcile` pass sweeps it in as a batch (two real specs sat this way after v0.31.0 until a human noticed). This step closes only the **mechanical** half of that gap — recording the fact that a spec shipped — never the judgment half:
+Specs often ship without being a roadmap parking-lot candidate (inter-phase infrastructure, a bug fix, a bookkeeping amendment). Unrecorded, they stay invisible until a manual `/plan-product --reconcile` pass picks them up in a batch (two specs sat this way after v0.31.0 until a human noticed). This step records the fact that a spec shipped. It makes no judgment about the spec:
 
 For each spec identified in Step 1.2's completed-specs enumeration:
 
@@ -384,7 +384,7 @@ For each spec identified in Step 1.2's completed-specs enumeration:
 python3 scripts/roadmap-sync.py check --roadmap .writ/product/roadmap.md --spec-name "<spec-folder-name>"
 ```
 
-If `already_recorded` is `false`, author a terse, factual title and one-line description from the spec's own `spec.md` **Deliverable:** line — never invented, never a narrative judgment call — then:
+If `already_recorded` is `false`, author a terse, factual title and one-line description from the spec's own `spec.md` **Deliverable:** line. Do not invent content or add judgment. Then:
 
 ```bash
 python3 scripts/roadmap-sync.py append-row --roadmap .writ/product/roadmap.md \
@@ -392,11 +392,11 @@ python3 scripts/roadmap-sync.py append-row --roadmap .writ/product/roadmap.md \
   --version "${VERSION}"
 ```
 
-`append-row` is idempotent — a spec already recorded (by full folder name, its date-stripped slug, or a prior run's own embedded marker) is a clean no-op, never a duplicate row.
+`append-row` is idempotent. A spec already recorded (by full folder name, its date-stripped slug, or a prior run's embedded marker) is a no-op.
 
-**Boundary (critical):** this step only ever writes to `roadmap.md`'s condensed-history table, its Revision Log, and its `Last Updated` line. It **never** touches `mission.md`'s prose, **never** creates an ADR, and **never** classifies whether a spec represents a genuine direction change — those stay `/plan-product --reconcile`'s and `/verify-spec --product`'s P1/P4 checks, run periodically by a human. This step only ensures a shipped spec is never *silently* unrecorded by the time that judgment pass happens.
+**Boundary (critical):** this step only ever writes to `roadmap.md`'s condensed-history table, its Revision Log, and its `Last Updated` line. It **never** touches `mission.md`'s prose, never creates an ADR, and never classifies whether a spec represents a direction change; those remain `/plan-product --reconcile`'s and `/verify-spec --product`'s P1/P4 checks, run periodically by a human. This step only ensures a shipped spec is recorded before that judgment pass happens.
 
-**Derivative note:** if any row was appended, `mission-lite.md`'s "Current Phase" section may now be stale (it names inter-phase infrastructure). Regenerate it now if convenient, or flag in the completion report that `/plan-product --reconcile` would catch it — do not leave the two silently disagreeing.
+**Derivative note:** if any row was appended, `mission-lite.md`'s "Current Phase" section may now be stale (it names inter-phase infrastructure). Regenerate it now if convenient, or flag in the completion report that `/plan-product --reconcile` would catch it. Do not leave the two disagreeing without a flag.
 
 #### Step 3.2: Commit Release
 
@@ -454,8 +454,8 @@ git-native summary of the specs it shipped and their verdicts. Full schema:
 [`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md) §4;
 rationale: [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
 
-> **Strictly non-blocking.** Rollup composition or attachment failure **never fails
-> the release**. On any error, log `⚠️ audit note not attached — {error}` and continue
+> **Strictly non-blocking.** Rollup composition or attachment failure never fails
+> the release. On any error, log `⚠️ audit note not attached — {error}` and continue
 > to the summary.
 
 **Opt-out gate (first):**
@@ -467,11 +467,11 @@ AUDIT_NOTES=$(git config --bool writ.auditNotes 2>/dev/null || echo true)   # ab
 If `AUDIT_NOTES` is `false`, **skip this step silently** — no rollup note, no output.
 
 **Compose the rollup** from the specs shipped since the previous release tag —
-**reuse** the changelog-from-completed-specs list already assembled in Phase 1/2 (do
+reuse the changelog-from-completed-specs list already assembled in Phase 1/2 (do
 not re-scan). Per the format doc's §4 schema, include: version, released date, tag +
 tag-target SHA, previous version, and the list of shipped specs each with its
-aggregate verdict and highest drift. **Reference** the per-spec digests attached by
-`/ship` rather than duplicating their full contents. Content is **audit-only** — never
+aggregate verdict and highest drift. Reference the per-spec digests attached by
+`/ship` rather than duplicating their full contents. Content is audit-only: no
 transcripts, prompts, or chain-of-thought.
 
 **Attach to the tag's target commit** (overwrite if re-releasing the same commit):
@@ -484,7 +484,7 @@ git notes --ref=writ add -f -F "$ROLLUP_TMPFILE" "$TAG_TARGET_SHA"
 git push origin refs/notes/writ
 ```
 
-**Merge before attaching, and never fetch straight into `refs/notes/writ`.** The
+Merge before attaching, and never fetch straight into `refs/notes/writ`. The
 install-configured refspec lands remote notes on `refs/notes/origin-writ`, which local
 operations never write; `cat_sort_uniq` folds them in so per-spec digests attached by
 `/ship` on another machine are not discarded by this rollup. A
@@ -494,7 +494,7 @@ operations never write; `cat_sort_uniq` folds them in so per-spec digests attach
 **Push the ref.** An unpushed rollup is local-only. Push failure stays non-blocking:
 log `⚠️ audit rollup attached locally but not pushed — {error}` and continue.
 
-Always pass `--ref=writ` explicitly. **Never** write to `refs/notes/commits`. View
+Always pass `--ref=writ` explicitly. Never write to `refs/notes/commits`. View
 later with `git notes --ref=writ show <tag-target-sha>` or `git log --notes=writ`.
 
 Add a confirmation line to the release summary:
@@ -661,7 +661,7 @@ Proceed?
 
 > **Applies only to the Writ source repository.** Other Writ-using projects can ignore this section.
 
-The `@sellke/writ` npm package is a tiny runtime helper (`bin/writ.js`) that emits deterministic dates and timestamps for use inside Writ commands. **It is not the methodology in npm form.** It is essentially frozen — `bin/writ.js` is expected to change rarely, if ever — so it is intentionally **decoupled from `/release`**:
+The `@sellke/writ` npm package is a small runtime helper (`bin/writ.js`) that emits deterministic dates and timestamps for use inside Writ commands. It is not the methodology in npm form. `bin/writ.js` rarely changes, so it is decoupled from `/release`:
 
 - `/release` does not run `npm test`, `npm pack`, or `npm publish`.
 - `/release` does not bump `package.json#version`.
@@ -678,15 +678,15 @@ scripts/publish-writ-runtime.sh --dry-run             # inspect the tarball befo
 scripts/publish-writ-runtime.sh                       # publish
 ```
 
-Use `scripts/publish-writ-runtime.sh` instead of raw `npm publish` — npm always bundles whatever file is literally named `README.md` at the package root regardless of the `files` array (package.json, README, and LICENSE are always included), and since `package.json` lives at the repo root, that would otherwise be this repo's full product README, not a description of the two-command CLI. The script swaps in `scripts/writ-runtime-readme.md` for the publish only, then restores the repo's real `README.md` via a `git checkout` trap — safe even if publish fails or the script is interrupted.
+Use `scripts/publish-writ-runtime.sh` instead of raw `npm publish`. npm always bundles the file named `README.md` at the package root regardless of the `files` array (package.json, README, and LICENSE are always included). Because `package.json` lives at the repo root, a raw publish would ship this repo's full product README instead of a description of the two-command CLI. The script swaps in `scripts/writ-runtime-readme.md` for the publish only, then restores the repo's `README.md` via a `git checkout` trap, which also runs if publish fails or the script is interrupted.
 
-That's the entire workflow. No gate, no preflight, no orchestration. The Writ methodology version printed in your release notes and the `@sellke/writ` version on npm are unrelated by design.
+No gate, preflight, or orchestration applies. The Writ methodology version and the `@sellke/writ` version on npm are unrelated by design.
 
 ## Completion
 
 This command succeeds when `VERSION` and every other detected version file agree on the new number, `CHANGELOG.md` carries a heading for it, and an annotated `v<VERSION>` tag exists on the release commit.
 
-Choosing bump-only or `--no-tag` is a valid outcome — the tag assertion is waived, the changelog and version assertions are not.
+Choosing bump-only or `--no-tag` waives the tag assertion; the changelog and version assertions still apply.
 
 **Terminal constraint:** This command cuts a release. Do not publish to a package registry or announce the release beyond the steps the run explicitly included.
 

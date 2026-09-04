@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Pull the latest Writ release from upstream and interactively decide what to do with files you've customized. Unlike `update.sh` (which silently preserves all local modifications), this command presents each customized file and lets you choose — overwrite, keep, or diff — so you stay in control of what changes.
+Pull the latest Writ release from upstream and interactively decide what to do with files you've customized. Unlike `update.sh` (which silently preserves all local modifications), this command presents each customized file and lets you choose: overwrite, keep, or diff.
 
 **When to use:** You want the latest commands, agents, skills, runtime scripts, Writ reference docs, and rules from upstream but have customized some files and want per-file control over what gets overwritten.
 
@@ -106,22 +106,22 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
   → CUSTOMIZED (local was modified by user)
 ```
 
-**Apply same logic to runtime scripts** (project-root `scripts/` — mirror `scripts/install.sh` / `scripts/update.sh`):
+**Apply same logic to runtime scripts** (project-root `scripts/`; mirror `scripts/install.sh` / `scripts/update.sh`):
 
 Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
 
 **Apply same logic to Writ reference docs** (project-root `.writ/docs/*.md`):
 
-Ship every upstream markdown doc under `.writ/docs/`. User-authored docs that exist only locally (e.g. `tech-stack.md`, `code-style.md`, `design-system.md` from `/initialize`) are untouched — they have no upstream counterpart. Locally modified shipped docs follow the same three-way overlay as commands.
+Ship every upstream markdown doc under `.writ/docs/`. User-authored docs that exist only locally (e.g. `tech-stack.md`, `code-style.md`, `design-system.md` from `/initialize`) are untouched; they have no upstream counterpart. Locally modified shipped docs follow the same three-way overlay as commands.
 
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
 - Claude Code: `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
 - Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
-**Skills overlay** — folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).
+**Skills overlay:** folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).
 
-**Detect stale files** — files present in the manifest but removed upstream. Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
+**Detect stale files:** files present in the manifest but removed upstream. Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
 
 ### Step 4: Present Summary
 
@@ -146,7 +146,7 @@ If everything is unchanged, report "Already up to date!" and stop.
 
 If customized files exist, present them one at a time or as a batch depending on count.
 
-**For 1–5 customized files — per-file AskQuestion:**
+**For 1–5 customized files, per-file AskQuestion:**
 
 ```
 AskQuestion({
@@ -165,7 +165,7 @@ AskQuestion({
 
 If the user picks "diff," show a unified diff between local and upstream, then re-ask with keep/overwrite only.
 
-**For 6+ customized files — batch AskQuestion:**
+**For 6+ customized files, batch AskQuestion:**
 
 ```
 AskQuestion({
@@ -220,7 +220,7 @@ Write a new manifest with updated baselines for all installed files:
 <sha256>  .codex/config.toml.baseline # Codex only, preserved from install
 ```
 
-Every currently installed file gets a fresh hash entry — including files the user chose to keep (their current hash becomes the new baseline).
+Every currently installed file gets a fresh hash entry, including files the user chose to keep (their current hash becomes the new baseline).
 
 ### Step 8: Git Commit
 
@@ -254,7 +254,7 @@ Remove the temporary clone directory.
   Codex details: adapters/codex.md
 ```
 
-Codex note: Restart your Codex session to load AGENTS.md changes after `/update-writ`. See [`adapters/codex.md`](../adapters/codex.md) for the AGENTS.md ownership convention.
+See [`adapters/codex.md`](../adapters/codex.md) for the AGENTS.md ownership convention.
 
 ---
 
@@ -277,7 +277,7 @@ Codex note: Restart your Codex session to load AGENTS.md changes after `/update-
 | `install.sh` | First-time installation — `/update-writ` handles subsequent updates |
 | `update.sh` | Non-interactive terminal counterpart — silently preserves all local modifications |
 | `unlink.sh` | Must run before `/update-writ` if installation uses symlinks |
-| `/reinstall-writ` | Nuclear option — removes everything and installs fresh (no three-way merge) |
+| `/reinstall-writ` | Removes everything and installs fresh (no three-way merge) |
 | `/uninstall-writ` | Removes Writ entirely |
 | `/status` | Could surface "Writ update available" in future iterations |
 
@@ -285,7 +285,7 @@ Codex note: Restart your Codex session to load AGENTS.md changes after `/update-
 
 This command succeeds when every file classified CUSTOMIZED was resolved by an explicit keep-or-overwrite decision, files kept are byte-identical before and after, and `.writ-manifest` re-baselines every installed file.
 
-Choosing to keep every customized file is a valid outcome. The manifest still re-baselines, so the next update compares against what is actually on disk.
+Choosing to keep every customized file is a valid outcome. The manifest still re-baselines, so the next update compares against what is on disk.
 
 **Terminal constraint:** This command updates the installation. Do not run the newly updated commands to test them, and do not reconcile customizations it was told to keep.
 
