@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.34.1] - 2026-09-04
+
+**Patch:** `/release`'s conditional-test gate could not read its own input on zsh.
+
+### Fixed
+- **`/release` Step 1.3c fed `gh`'s JSON to `jq` with `echo`.** zsh's builtin `echo` expands backslash escapes, so the ~100 `\n` sequences inside the merged PR's commit bodies became real newlines — unescaped control characters inside JSON strings — and `jq` failed to parse on *every* run. bash's `echo` leaves them alone, so the bug was invisible on one shell and total on another. Neither `gh` (whose output is valid JSON) nor `jq` was at fault. All four extraction sites now use `printf '%s'`, and the note beside them records why so it doesn't get simplified back.
+
+  The gate failed safe — an empty `LAST_MERGED_SHA` falls through to "run full suite", exactly as documented — so the only symptom was a redundant test run and two parse errors on stderr, never a wrong release. Same variables feed the post-merge archival hook, which on zsh could therefore never fire.
+
+### Internal
+- `test_governor_enforcement.py` `KNOWN_OVER_BUDGET` for `commands/release.md` re-pinned 8042 → 8444 with dated disclosure. No budget recovery (ADR-023 triage).
+
 ## [0.34.0] - 2026-09-04
 
 **Model Delegation** — Writ now delegates by role, not by depth. Every agent declares a `model_tier` of `anchor` (the model you chose for the session) or `floor` (the cheapest same-family configuration at or below it), derived by two questions; commands read your **origin** once at entry and stamp it on audit lines; the anchor is a ceiling nothing spawns above; and a floor result that fails its check is re-run once at anchor before anyone is interrupted. Every command also declares what thinking level it expects you to have chosen. Decided in [ADR-024](.writ/decision-records/adr-024-model-delegation.md); [ADR-025](.writ/decision-records/adr-025-friction-signals.md) (friction signals) accepted for the next spec. Spec: `2026-09-03-model-delegation`.
