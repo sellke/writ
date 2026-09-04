@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.34.0] - 2026-09-04
+
+**Model Delegation** — Writ now delegates by role, not by depth. Every agent declares a `model_tier` of `anchor` (the model you chose for the session) or `floor` (the cheapest same-family configuration at or below it), derived by two questions; commands read your **origin** once at entry and stamp it on audit lines; the anchor is a ceiling nothing spawns above; and a floor result that fails its check is re-run once at anchor before anyone is interrupted. Every command also declares what thinking level it expects you to have chosen. Decided in [ADR-024](.writ/decision-records/adr-024-model-delegation.md); [ADR-025](.writ/decision-records/adr-025-friction-signals.md) (friction signals) accepted for the next spec. Spec: `2026-09-03-model-delegation`.
+
+### Added
+- **`model_tier: anchor | floor`** on all seven agents, replacing the hardcoded `"fast"` model. `anchor` is the platform's `inherit`; `floor` resolves per adapter — Cursor: the lowest same-family slug the harness lists (verified live from a Fable 5.1 origin: `"fast"` is accepted but silently self-reports the anchor); Claude Code: `haiku`; Codex: effort-only (`model_reasoning_effort = "low"`); OpenClaw: unverified and says so. (Stories 1–3)
+- **Origin capture and the anchor ceiling.** Commands that spawn agents read `<model>/<effort>@<platform>` at entry — never ask — and stamp it on ADR-017 audit records and every `escalated`/`degraded` line. No spawn resolves above the origin; escalation returns to the anchor, never past it. (Story 1)
+- **Escalate once.** `/create-spec` Step 2.6a validates every generated story (`ac-trace.py check`, folder-scoped, plus count bounds) and regenerates a structurally invalid one exactly once at anchor; `/implement-story` Gate 0 confirms a floor ABORT at anchor before presenting it. The pair counts as one iteration. Both sites emit `escalated(agent=…, site=…, origin=…)` — a documented no-op until ADR-025 Story 1 wires `signal.py`. Six `require_literal` pins under `eval.sh --check=model-escalation`. (Story 4)
+- **`entry_level: high | standard | any`** in every command's frontmatter (14 / 12 / 5). A session running below what a command expects gets one advisory line, once, and continues. `lint-skill.sh` now lints command files for the value grammar only; `eval.sh --check=entry-level` notes a missing field. (Story 5)
+- `.writ/docs/model-tiers.md` — the user-facing explainer for the tier convention.
+- **Python floor declared.** `pyproject.toml` states `requires-python >= 3.9` and `uv run pytest` is the one-command test runner; `.writ/config.md` pins `Version File: VERSION` and `Test Runner`; `CLAUDE.md`/`AGENTS.md` replace the stale "there is no test command" sentence.
+
+### Changed
+- `.writ/manifest.yaml` carries `model_tier` only; `gen-skill.sh` renders a `Tier` column in `SKILL.md`; `/new-command` scaffolds `entry_level`; `/new-skill` and the agent template carry the tier comment.
+- Codex agent TOMLs are regenerated from `model_tier` (`scripts/gen-codex-agent-tomls.py`).
+- `lint-skill.sh` accepts the retired `orchestration`/`capability` tier aliases with a warning until 0.35.0, then rejects them.
+
+### Fixed
+- `scripts/ac-trace.py` no longer crashes the citation scan on a symlink loop under Python < 3.13, where `Path.resolve()` raises `RuntimeError` rather than `OSError`.
+
+### Internal
+- `test_governor_enforcement.py` `KNOWN_OVER_BUDGET` re-pinned with dated disclosure for the six over-budget commands; no budget recovery, per ADR-023 triage.
+- `eval-leanness.py` declares `pyproject.toml` and `uv.lock` out of scope (dev tooling, never installed).
+- `2026-09-03-model-delegation` and `2026-08-14-script-backed-quality-gates` archived under `.writ/specs/archive/`.
+- Known limitation recorded (DEV-009): on Cursor, the `entry_level` notice's positive path is not currently observable — every listed slug self-assesses at or above `high`. The check bites on Claude Code and Codex today.
+
 ## [0.33.0] - 2026-08-15
 
 **Script-Backed Quality Gates** — four quality guarantees Writ previously stated as instructions to a language model (coverage ≥80%, tests that actually import the code they claim to test, an app that still builds, and a project whose own gates are switched on) become read-only scripts whose verdicts override the agent's self-report. Each was validated against a real application codebase before shipping, reproducing by machine four defects a year of manual use had surfaced by hand. Plus a fix to the git-notes audit channel, which was silently destroying audit notes on every fetch.
