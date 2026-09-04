@@ -61,3 +61,5 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-08-13T03:58:55Z — `2026-08-12-machine-evaluable-exit-criteria` archived (evidence: no knowledge evidence yet, via PR #43)
 - 2026-08-14T16:34:53Z — `2026-08-13-acceptance-criteria-traceability-ids` archived (evidence: no knowledge evidence yet)
 - 2026-08-14T16:34:53Z — `2026-08-13-claude-md-install-merge` archived (evidence: no knowledge evidence yet)
+- 2026-09-04T13:06:29Z — `2026-08-14-script-backed-quality-gates` archived (evidence: no knowledge evidence yet)
+- 2026-09-04T13:06:29Z — `2026-09-03-model-delegation` archived (evidence: no knowledge evidence yet)
