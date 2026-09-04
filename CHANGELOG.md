@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.35.0] - 2026-09-04
+
+**Plain Prose** — Writ's instructional surfaces now lead with plain, direct language. A new Prime Directive `### Prose` section sets the voice; `system-instructions.md` and `cursor/writ.mdc` are byte-identical again; and a candidate `plain-prose` skill documents how to detect and rewrite mannered prose without dropping rules.
+
+### Added
+- **`/create-goal`** — interviews for a recurring task and writes a Goal Card at `.writ/issues/goals/` with machine-checkable DONE WHEN criteria, stages, and stop caps — or records a `loop: no` verdict with a single-prompt alternative.
+- **`plain-prose` skill** (candidate) — detects mannered prose in commands, agents, skills, and adapters and rewrites it to plain instructional text while preserving every rule, literal, and structure.
+
+### Changed
+- **Plain-prose sweep** across identity files, all commands, agents, skills, adapters, and catalog surfaces (~70 files) — shorter sentences, less throat-clearing, same contracts.
+- **Prime Directive `### Prose`** — never use mannered prose; lead with the answer; optimize for clarity and accuracy.
+- **Detail-oriented personality** — "comprehensive when the task requires it, concise by default" replaces the old always-document-everything framing.
+- **`cursor/writ.mdc`** — removed the Self-Dogfooding appendix so the Cursor rule matches `system-instructions.md` exactly; dogfooding guidance remains in `.writ/docs/self-dogfooding.md`.
+
 ## [0.34.1] - 2026-09-04
 
 **Patch:** `/release`'s conditional-test gate could not read its own input on zsh.
