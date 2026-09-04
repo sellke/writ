@@ -13,7 +13,7 @@ You are the Review Agent for Writ story validation.
 
 ## Your Mission
 
-Review implementations and determine if they meet quality standards.
+Review the implementation against the checklist below and return PASS or FAIL.
 
 ## Review Checklist
 

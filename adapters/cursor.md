@@ -79,7 +79,7 @@ Cursor auto-discovers `.md` files in `commands/` and makes them available as sla
 
 ## Native Tool Availability
 
-These Cursor tools are used directly — no adapter needed:
+These Cursor tools are used directly; no adapter is needed:
 
 | Tool | Used By | Purpose |
 |------|---------|---------|
@@ -136,7 +136,7 @@ Task subagents and git worktrees:
 ### Quarantine and Resume
 
 Terminal failure disposition and `--resume` reconciliation are plain git plus the
-neutral reducer — no Cursor-specific runtime is required:
+neutral reducer; no Cursor-specific runtime is required:
 
 - On terminal failure the orchestrator calls `scripts/phase-state.py quarantine`,
   which removes the lane worktree and renames the lane branch to
@@ -156,9 +156,9 @@ Agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
-| `anchor.model` = the model the harness prompt names ("powered by …"); `anchor.effort` = the effort suffix of the matching listed slug (`-thinking-high` → `high`, `-medium` → `medium`, none → `unknown`); `anchor.platform = cursor` | `inherit` (or omit `model`) | **(a)** a listed slug that shares the anchor's vendor prefix, is not the anchor's own slug, and whose embedded effort suffix is ≤ `anchor.effort` (when `anchor.effort` is `unknown`, the same-prefix slug with the lowest suffix). "Below" follows the vendor's published tier naming as read from the slug — Anthropic: haiku < sonnet < opus < fable — medium confidence; Writ keeps no ranking. **(b)** `inherit[effort=…]` — rejected by the tool on Cursor; skip. **(c)** `inherit` — when no listed same-prefix slug sits below the anchor. If the origin is the vendor's bottom tier (Anthropic: haiku/low), that is the family floor: say so once, no `degraded`. If the vendor has lower tiers that Cursor's list simply does not expose (an Opus origin today — no haiku/sonnet slug listed), emit one `degraded` line with `reason=no lower same-family slug listed`: the limit is the platform's, and the ADR-025 ledger needs to see it. | `inherit` |
+| `anchor.model` = the model the harness prompt names ("powered by …"); `anchor.effort` = the effort suffix of the matching listed slug (`-thinking-high` → `high`, `-medium` → `medium`, none → `unknown`); `anchor.platform = cursor` | `inherit` (or omit `model`) | **(a)** a listed slug that shares the anchor's vendor prefix, is not the anchor's own slug, and whose embedded effort suffix is ≤ `anchor.effort` (when `anchor.effort` is `unknown`, the same-prefix slug with the lowest suffix). "Below" follows the vendor's published tier naming as read from the slug (Anthropic: haiku < sonnet < opus < fable; medium confidence; Writ keeps no ranking). **(b)** `inherit[effort=…]`: rejected by the tool on Cursor; skip. **(c)** `inherit`: when no listed same-prefix slug sits below the anchor. If the origin is the vendor's bottom tier (Anthropic: haiku/low), that is the family floor: say so once, no `degraded`. If the vendor has lower tiers that Cursor's list does not expose (an Opus origin today; no haiku/sonnet slug listed), emit one `degraded` line with `reason=no lower same-family slug listed`. The limit is the platform's, and the ADR-025 ledger records it. | `inherit` |
 
-**Degradation:** if the schema lists only `inherit`, or the resolved slug is rejected, `floor` runs at `inherit` and emits one `degraded` line naming the observed reason — never hard-fail. The retired string value `fast` is still *accepted* by the tool but self-reported the anchor model (medium confidence — see the verification record); it is not a cheaper value and must not be reintroduced.
+**Degradation:** if the schema lists only `inherit`, or the resolved slug is rejected, `floor` runs at `inherit` and emits one `degraded` line naming the observed reason. Never hard-fail. The retired string value `fast` is still accepted by the tool but self-reported the anchor model (medium confidence; see the verification record). It is not a cheaper value and must not be reintroduced.
 
 #### Verification record — 2026-09-03
 
@@ -174,27 +174,27 @@ For this origin, (a) resolves to `claude-opus-5-thinking-high` (`-thinking-high`
 
 ### Read-Only Agents
 
-The review agent specifies `readonly: true`. Cursor enforces this at the tool level — the agent literally cannot write files. This is stronger than prompt-based restrictions used on other platforms.
+The review agent specifies `readonly: true`. Cursor enforces this at the tool level; the agent cannot write files. This is stronger than the prompt-based restrictions other platforms use.
 
 ### Parallel Agent Limits
 
-Cursor supports up to 4 concurrent `Task()` sub-agents in a single message. If you have more than 4 stories to generate, they'll be batched automatically (first 4, then next 4, etc.). This is handled in the `create-spec` command's Step 2.6.
+Cursor supports up to 4 concurrent `Task()` sub-agents in a single message. More than 4 stories are batched (first 4, then next 4) by the `create-spec` command's Step 2.6.
 
 ## Command Workflow Integrity
 
-When a Writ command uses Plan Mode for discovery (e.g., `/create-spec` Phase 1, `/plan-product` discovery), Plan Mode serves as a phase within the command — not a replacement for it.
+When a Writ command uses Plan Mode for discovery (e.g., `/create-spec` Phase 1, `/plan-product` discovery), Plan Mode is a phase within the command, not a replacement for it.
 
 **Rule:** After Plan Mode discovery completes, the command must resume its documented phases in Agent Mode and produce its documented artifacts (spec files, stories, ADRs, etc.). The conversation is an intermediate step, not the deliverable.
 
-**Common failure:** The agent stays in Plan Mode and treats the planning conversation as the command's output, or switches to Agent Mode and offers to implement/build. Neither is correct — the command's next phase is artifact creation, not implementation.
+**Common failure:** The agent stays in Plan Mode and treats the planning conversation as the command's output, or switches to Agent Mode and offers to implement. Neither is correct; the command's next phase is artifact creation.
 
 **Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
 
 ## Skills
 
-Skills are the third Writ primitive (peer to commands and agents) — capability files that describe how to do a specific thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
+Skills are the third Writ primitive, peer to commands and agents: capability files that describe how to do one thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
 
-Cursor uses a **platform-namespaced** install path (below). Codex CLI installs Writ skills at `.agents/skills/` per the AgentSkills standard — see [ADR-009 § Amendments](../.writ/decision-records/adr-009-command-agent-skill-boundary.md#amendments).
+Cursor uses a platform-namespaced install path (below). Codex CLI installs Writ skills at `.agents/skills/` per the AgentSkills standard; see [ADR-009 § Amendments](../.writ/decision-records/adr-009-command-agent-skill-boundary.md#amendments).
 
 ### Install Path
 
@@ -202,13 +202,13 @@ Cursor uses a **platform-namespaced** install path (below). Codex CLI installs W
 .cursor/skills/<name>/SKILL.md
 ```
 
-`install.sh` and `update.sh` fan skills out alongside commands and agents using the same three-way overlay logic — local modifications to `.cursor/skills/<name>/SKILL.md` are preserved across updates. Sidecar files inside a skill folder (anything that isn't `SKILL.md`) are install-once: they're copied on first install and never overwritten on subsequent updates.
+`install.sh` and `update.sh` fan skills out alongside commands and agents using the same three-way overlay logic, so local modifications to `.cursor/skills/<name>/SKILL.md` survive updates. Sidecar files inside a skill folder (anything other than `SKILL.md`) are install-once: copied on first install, never overwritten on update.
 
 ### Loading Mechanism
 
-Cursor exposes installed skills via the `<agent_skills>` system context block. This means Cursor's auto-discovery will surface skill `description:` text to the model and make it eligible for ambient invocation by description match.
+Cursor exposes installed skills via the `<agent_skills>` system context block, which surfaces skill `description:` text to the model and makes each skill eligible for ambient invocation by description match.
 
-**Writ-authored skills opt out of ambient invocation** by setting `disable-model-invocation: true` in their frontmatter. This keeps every skill load deterministic and traceable in transcripts — agents and commands name skills explicitly when they need them. Community skills installed by other means (e.g. `clawhub`, `agentskills.io` catalogs) are out of Writ's control and follow whatever invocation behavior their installer configured.
+**Writ-authored skills opt out of ambient invocation** by setting `disable-model-invocation: true` in their frontmatter. Every skill load is then deterministic and traceable in transcripts: agents and commands name skills explicitly when they need them. Community skills installed by other means (e.g. `clawhub`, `agentskills.io` catalogs) follow whatever invocation behavior their installer configured.
 
 ### Invocation
 
@@ -220,7 +220,7 @@ Read skills/<name>/SKILL.md
 
 The orchestrator (or command body) issues the `Read` call when the relevant phase begins. The skill's content is then in the agent's context for that phase.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the harness pre-loads each named skill before the consumer's first phase begins. The convention was resolved revisit-to-adopt on 2026-08-11 on the strength of a named future consumer, Phase 10 progressive disclosure (ADR-021) — which then **evaluated the mechanism and did not adopt it**, because an eager pre-load moves extracted bytes into the floor that every invocation pays, so a disclosed command costs more per invocation than the monolith it replaced. Phase 10 loads its skills with an inline `Read skills/<name>/SKILL.md` at the point of need instead. **The convention therefore has no consumer**: nothing in the product declares the field. The schema, this mechanism, and the graceful-degradation rule are unchanged and stay supported; the adoption carries a restored review trigger of **2026-11-11**, aligned to ADR-021's own review — no consumer by then, deprecate; a consumer appears, record it and reset. See `system-instructions.md` → `required_skills:` frontmatter convention.
+For commands and agents that declare `required_skills:` in their frontmatter (see Story 5 / `system-instructions.md`), the harness pre-loads each named skill before the consumer's first phase begins. The convention was resolved revisit-to-adopt on 2026-08-11 on the strength of a named future consumer, Phase 10 progressive disclosure (ADR-021). Phase 10 evaluated the mechanism and did not adopt it: an eager pre-load moves extracted bytes into the floor that every invocation pays, so a disclosed command costs more per invocation than the monolith it replaced. Phase 10 loads its skills with an inline `Read skills/<name>/SKILL.md` at the point of need. The convention therefore has no consumer; nothing in the product declares the field. The schema, this mechanism, and the graceful-degradation rule are unchanged and stay supported. The adoption carries a review trigger of **2026-11-11**, aligned to ADR-021's own review: no consumer by then, deprecate; a consumer appears, record it and reset. See `system-instructions.md` → `required_skills:` frontmatter convention.
 
 ### Authoring & Reference
 
@@ -263,17 +263,17 @@ For an existing project:
 # !.writ/decision-records/
 ```
 
-Or commit everything — specs, ADRs, and research are all worth version-controlling.
+Or commit everything; specs, ADRs, and research are worth version-controlling.
 
 ## Native Memory & the Writ Ledger
 
 > **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
 
-On Cursor, native memory is **Cursor Memories** (the preferences and facts Cursor remembers about you across chats) plus **semantic codebase indexing** (the embedding index Cursor builds over your files for retrieval). Let Cursor Memories hold your preferred tone, your name, editor trivia, and ephemeral session context, and let the semantic index accelerate search. Neither is the system of record: when you and the agent *negotiate* a decision or convention, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/`, where it is reviewable in a PR.
+On Cursor, native memory is **Cursor Memories** (the preferences and facts Cursor remembers about you across chats) plus **semantic codebase indexing** (the embedding index Cursor builds over your files for retrieval). Let Cursor Memories hold your preferred tone, your name, editor trivia, and ephemeral session context, and let the semantic index accelerate search. Neither is the system of record: when you and the agent negotiate a decision or convention, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/`, where it is reviewable in a PR.
 
-**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+**Anti-pattern:** negotiated decisions that live only in native memory are unreviewable and are lost on a reinstall, a new machine, or a teammate who never had your store. Write the decision, the convention, or the lesson to the ledger, and let native memory keep only the ephemeral trivia.
 
-**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md) cover the external-index layer. Removing that index loses nothing; the ledger is the only copy.
 
 ## Customization
 

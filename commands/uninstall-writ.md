@@ -165,7 +165,7 @@ Codex note: `uninstall.sh --platform codex` removes only the Writ block from `AG
 
 This command succeeds when the platform directory holds no Writ command, agent, rule, or manifest file, and `.writ/` is byte-for-byte what it was before the run.
 
-Preserving `.writ/` is the defining property, not a courtesy: every spec, story, decision record, and research document survives. A run that removed them has failed even if the platform files are gone.
+Preserving `.writ/` is required: every spec, story, decision record, and research document must survive. A run that removed them has failed even if the platform files are gone.
 
 **Terminal constraint:** This command removes the tooling. Do not delete `.writ/`, and do not offer to reinstall.
 

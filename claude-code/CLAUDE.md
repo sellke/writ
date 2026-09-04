@@ -21,6 +21,7 @@ Run Writ commands by reading the command file and following its workflow:
 | `/release` | `.claude/commands/release.md` | Changelog, version bump, git tag |
 | `/security-audit` | `.claude/commands/security-audit.md` | Full security audit with auto-fix |
 | `/create-adr` | `.claude/commands/create-adr.md` | Architecture Decision Records |
+| `/create-goal` | `.claude/commands/create-goal.md` | Goal Card with a checkable finish line, or a don't-loop verdict |
 | `/create-issue` | `.claude/commands/create-issue.md` | Quick issue capture |
 | `/research` | `.claude/commands/research.md` | Systematic research |
 | `/status` | `.claude/commands/status.md` | Project status report |

@@ -1,6 +1,6 @@
 ---
 name: refresh-command
-description: "Turn your experience running a Writ command into concrete improvements to that command file. The learning loop."
+description: "Turn your experience running a Writ command into concrete improvements to that command file."
 problem: "Friction noticed while running a command is forgotten by the next invocation, and edits made from memory land in the command file with nothing recording why they were kept."
 outcome: "commands/<name>.md carries only the amendments that survived the evidence gate, and .writ/refresh-log.md records what was applied alongside what was rejected and for which reason."
 entry_level: high
@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-The learning loop. After running a Writ command, `/refresh-command` turns your experience into concrete improvements. You describe what worked and what didn't — the agent reads the command file, proposes diffs, and applies approved changes. Commands get better through use.
+After running a Writ command, `/refresh-command` turns your experience into concrete improvements. You describe what worked and what didn't; the agent reads the command file, proposes diffs, and applies approved changes.
 
 This is **local-first**: amendments are applied to the project's command copy. Core commands in `commands/` stay untouched unless you manually promote changes.
 
@@ -169,7 +169,7 @@ transcript body. Keep it to a single short line. Never store chain-of-thought.
 - Each diff must be surgical — change only what's needed, preserve surrounding structure
 - Don't propose changes for things that worked well
 - If a signal points to a problem but the fix isn't clear, say so rather than proposing a low-confidence guess
-- If a proposal cannot cite a transcript ID/path plus a short observable signal, do not dress it up — mark it unevidenced; Phase 4 will reject it with reason `no evidence`.
+- If a proposal cannot cite a transcript ID/path plus a short observable signal, mark it unevidenced; Phase 4 will reject it with reason `no evidence`.
 
 **Present proposals and ask:**
 
@@ -190,10 +190,9 @@ affected section.
 
 - **No transcript citation → reject.** The amendment is not written to the command
   file. Record it under `**Rejected:**` with reason `no evidence`.
-- Rejection is a **normal, first-class outcome**, not an error. A plausible edit
-  that cannot be justified is visibly rejected rather than silently applied — this
-  is what keeps the learning loop falsifiable and directly supplies the "rejected
-  for lacking evidence" audit record.
+- Rejection is a normal outcome, not an error. A plausible edit that cannot be
+  justified is rejected and logged rather than applied; the log entry is the
+  "rejected for lacking evidence" audit record.
 
 > The full pre-merge eval gate (`bash scripts/eval.sh --check=refresh-evidence`)
 > and the structural Tier 2 check for high-traffic commands run here as well —
@@ -201,8 +200,8 @@ affected section.
 > Step 4.1.
 
 If the maintainer insists on applying an unevidenced edit anyway, that is a
-**contract-degrading** choice: it requires an explicit human decision, is never a
-silent default, and is still recorded in the log as an override.
+contract-degrading choice: it requires an explicit human decision, is never a
+silent default, and is recorded in the log as an override.
 
 ### Step 4.1a: Pre-Merge Eval Gate
 
@@ -226,10 +225,10 @@ section. A structural regression rejects the amendment with reason `eval failed`
 A target not on the allowlist runs the base evidence check only.
 
 **Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant is
-deliberately **deferred** behind an explicit future decision: research
+deferred behind an explicit future decision: research
 (`.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md`) found its cost
-(~$0.15 / ~30s per run) grossly exceeds its value at current scale. Do not
-introduce an LLM judge here — keep Tier 2 a bounded structural reuse of Tier 1.
+(~$0.15 / ~30s per run) exceeds its value at current scale. Do not
+introduce an LLM judge here; keep Tier 2 a bounded structural reuse of Tier 1.
 
 CI (`.github/workflows/eval.yml`) is the backstop: it runs the same
 `refresh-evidence` check from the registry on every PR and push, so it needs no
@@ -238,7 +237,9 @@ new wiring.
 ### Step 4.1: Apply Changes
 
 For each approved **and evidenced** amendment that passed the gate, apply the diff
-to the command file. After applying all changes, show a summary:
+to the command file. Any amendment that adds or rewrites prose follows
+`Read skills/plain-prose/SKILL.md`: plain imperative sentences, no new
+flourish, pinned literals left intact. After applying all changes, show a summary:
 
 ```
 Applied [N] of [M] proposed amendments to commands/[command].md
@@ -272,9 +273,9 @@ chain-of-thought into the log — IDs and short observable signals only.
 **Target file:** commands/[command].md
 ```
 
-A run that applies **zero** amendments ("reviewed, no changes") is a valid outcome
-and is **exempt** from the evidence requirement — there is nothing to justify when
-nothing is applied. Log the review without an Evidence block.
+A run that applies zero amendments ("reviewed, no changes") is a valid outcome
+and is exempt from the evidence requirement, since nothing was applied. Log the
+review without an Evidence block.
 
 ### Step 4.3: Final Output
 
@@ -303,23 +304,21 @@ Logged to .writ/refresh-log.md for reference.
 
 ### Acceptance: two-example proof
 
-The learning loop is proven falsifiable by two real `.writ/refresh-log.md`
-records that must both exist:
+Two real `.writ/refresh-log.md` records must both exist:
 
 1. **One refinement merged with cited transcript evidence** and a clean eval gate.
 2. **One proposal rejected for lacking evidence** (reason `no evidence`).
 
-Together these demonstrate the "kept vs. discarded" decision is auditable — a
-justified edit is applied with its evidence, and an unjustifiable one is visibly
-rejected rather than silently applied.
+Together these make the kept-vs-discarded decision auditable: a justified edit
+is applied with its evidence, and an unjustifiable one is rejected and logged.
 
 ---
 
 ## Phase 5: Skills Boundary Lint
 
-> **Triggered when:** the user picks `lint-skills` from the Phase 1 menu, or invokes `/refresh-command --lint-skills`. This is a separate refresh path — it does *not* run when refreshing a specific command, and the command-refresh flow above does *not* invoke it.
+> **Triggered when:** the user picks `lint-skills` from the Phase 1 menu, or invokes `/refresh-command --lint-skills`. This is a separate refresh path: it does not run when refreshing a specific command, and the command-refresh flow above does not invoke it.
 
-The boundary lint enforces the role convention from [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh` so there is **no divergence** between authoring-time and review-time checks.
+The boundary lint enforces the role convention from [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh`, so authoring-time and review-time checks cannot diverge.
 
 ### Step 5.1: Discover Skills
 
@@ -363,7 +362,7 @@ or body so it reads as a verb-phrase capability, not a role or workflow.
 For deep boundary questions, see ADR-009.
 ```
 
-Do **not** auto-rewrite skill files. The lint surfaces problems; the human (and `/new-skill` for net-new skills) owns the fix. This preserves the contract that skills are deliberately authored, not auto-generated.
+Do not auto-rewrite skill files. The lint surfaces problems; the human (and `/new-skill` for net-new skills) owns the fix.
 
 **If exit `2`:** Surface the script's stderr and abort.
 
@@ -412,7 +411,7 @@ Logged to .writ/refresh-log.md
 
 > **Triggered when:** the user picks `parity` from the Phase 1 menu, or invokes `/refresh-command --check-parity`.
 
-Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart — **warnings only; exit code is always 0** when the script completes.
+Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart. Warnings only; exit code is always 0 when the script completes.
 
 ### Exclusions
 
@@ -459,7 +458,7 @@ Regenerate Codex TOMLs after editing canonical agents:
 python3 scripts/gen-codex-agent-tomls.py
 ```
 
-Do **not** auto-create agent files — surfacing drift is the goal.
+Do not auto-create agent files; this phase only surfaces drift.
 
 ---
 
@@ -472,7 +471,7 @@ List available commands, ask the user to pick. Don't fail silently.
 Explain that `/refresh-command` works best right after running a command, when the experience is fresh. Offer to proceed anyway with the user providing feedback manually.
 
 **All proposals declined:**
-Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome — not every run produces improvements.
+Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome.
 
 ---
 

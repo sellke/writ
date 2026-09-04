@@ -12,8 +12,7 @@ status: candidate
 Turn a story's task list, its spec's file map, the repository's import graph and
 any recorded cross-story overlap into an explicit **file ownership map** — which
 paths this work may create or modify, which it may only read, and which are out
-of scope. A data transformation, not a judgment call: the same inputs yield the
-same map.
+of scope. The same inputs yield the same map.
 
 Boundaries are **advisory**. Whoever edits outside them flags the edit; whoever
 reviews the work verifies compliance. **There is no hard file locking.**
@@ -137,4 +136,4 @@ available, persist it in either place:
    assessment recommendations are applied — same parsing rules.
 
 If **no** such section exists in the active spec folder, computation proceeds
-**without** Check 5 data. That is graceful degradation, not an error.
+**without** Check 5 data. This is not an error.

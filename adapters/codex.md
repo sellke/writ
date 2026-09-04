@@ -1,6 +1,6 @@
 # Codex CLI Platform Adapter
 
-Native integration with **OpenAI Codex CLI**: project-scoped TOML subagents under `.codex/agents/`, `AGENTS.md` as the primary instruction surface, and Codex’s tool stack (`Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`) backing Writ commands. Writ does **not** register custom slash commands in Codex; users invoke workflows by asking the assistant to follow the Markdown files under `.codex/commands/`.
+Native integration with OpenAI Codex CLI: project-scoped TOML subagents under `.codex/agents/`, `AGENTS.md` as the primary instruction surface, and Codex’s tool stack (`Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`) backing Writ commands. Writ does not register custom slash commands in Codex; users invoke workflows by asking the assistant to follow the Markdown files under `.codex/commands/`.
 
 **Official references (verify claims here first):**
 
@@ -58,7 +58,7 @@ cp path/to/writ/codex/agents/*.toml .codex/agents/
 # Merge Writ block from codex/AGENTS.md.template into AGENTS.md (see Story 4 merge semantics)
 ```
 
-Baseline Codex config is optional but recommended — copy `codex/config.toml.template` to `.codex/config.toml` once; Writ treats it as **install-once** user-owned thereafter.
+Baseline Codex config is optional but recommended: copy `codex/config.toml.template` to `.codex/config.toml` once. Writ treats it as install-once and user-owned thereafter.
 
 ### `.gitignore` snippet
 
@@ -89,7 +89,7 @@ your-project/
 
 ### Project subagents (`codex/agents/*.toml`)
 
-Codex loads project agents from `.codex/agents/` (personal agents use `~/.codex/agents/`). Each file carries `name`, `description`, `sandbox_mode`, `developer_instructions`, and — on `floor` agents only — `model_reasoning_effort`; Writ never emits `model`. Writ ships seven agents aligned with the Cursor/Claude pipeline — see **Tool Mapping** for the inventory.
+Codex loads project agents from `.codex/agents/` (personal agents use `~/.codex/agents/`). Each file carries `name`, `description`, `sandbox_mode`, `developer_instructions`, and, on `floor` agents only, `model_reasoning_effort`. Writ never emits `model`. Writ ships seven agents aligned with the Cursor/Claude pipeline; see **Tool Mapping** for the inventory.
 
 ### Sandbox enforcement
 
@@ -104,17 +104,17 @@ This replaces Cursor’s `readonly:` flag and Claude Code’s `permissionMode` /
 
 ### AGENTS.md layering
 
-Codex walks from repo root toward the working directory, merging `AGENTS.override.md` then `AGENTS.md`. Writ owns **only** the HTML-comment-delimited block injected by the installer; outside that region stays user-controlled. Default per-file budget is **32 KiB** — keep the Writ block lean (template targets ≤ 8 KiB) so projects retain room for product context.
+Codex walks from repo root toward the working directory, merging `AGENTS.override.md` then `AGENTS.md`. Writ owns only the HTML-comment-delimited block injected by the installer; everything outside that region stays user-controlled. The default per-file budget is 32 KiB. Keep the Writ block small (the template targets ≤ 8 KiB) so projects retain room for product context.
 
 When an install would push `AGENTS.md` beyond Codex’s effective limit, raise `project_doc_max_bytes` in `.codex/config.toml` (see [advanced configuration](https://developers.openai.com/codex/config-advanced)) or move bulky guidance into ordinary Markdown files under `.writ/docs/` that agents `Read` on demand.
 
 ### Experimental features
 
-Codex exposes `/experimental` to toggle optional capabilities ([docs](https://developers.openai.com/codex/cli/slash-commands#toggle-experimental-features-with-experimental)). Writ does **not** require experimental flags for baseline `/implement-story`, but multi-thread fan-out may benefit from settings your Codex version documents alongside `/agent`. Treat experimental toggles as operator preference — mirror them in team docs if everyone needs the same behavior.
+Codex exposes `/experimental` to toggle optional capabilities ([docs](https://developers.openai.com/codex/cli/slash-commands#toggle-experimental-features-with-experimental)). Writ does not require experimental flags for baseline `/implement-story`; multi-thread fan-out may benefit from settings your Codex version documents alongside `/agent`. Experimental toggles are operator preference. Mirror them in team docs if everyone needs the same behavior.
 
 ### Hooks (`codex_hooks`)
 
-Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false`. Hooks are powerful but noisy for first-time installs — users opt in deliberately. Future specs may wire Codex hooks to Writ gates; until then, keep hooks off unless you own the automation surface.
+Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false`. Hooks are noisy for first-time installs, so users opt in. Future specs may wire Codex hooks to Writ gates; until then, keep hooks off unless you own the automation surface.
 
 ---
 
@@ -122,11 +122,11 @@ Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false
 
 > **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
 
-On Codex, native memory is **`AGENTS.md`** — the primary instruction surface Codex merges from repo root toward the working directory. Writ owns only the HTML-comment-delimited block the installer injects; the surrounding region and **`AGENTS.override.md`** stay user-controlled for local, unshared preferences. Let `AGENTS.md` and `AGENTS.override.md` hold session-level and machine-local trivia; when a decision or convention is *negotiated*, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/` so it is reviewable in git rather than buried in an instruction file.
+On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Codex merges from repo root toward the working directory. Writ owns only the HTML-comment-delimited block the installer injects; the surrounding region and **`AGENTS.override.md`** stay user-controlled for local, unshared preferences. Let `AGENTS.md` and `AGENTS.override.md` hold session-level and machine-local trivia. When a decision or convention is negotiated, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/`, where it is reviewable in git.
 
-**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+**Anti-pattern:** negotiated decisions that live only in native memory are unreviewable and are lost on a reinstall, a new machine, or a teammate who never had your store. Write the decision, the convention, or the lesson to the ledger, and let native memory keep only the ephemeral trivia.
 
-**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md) cover the external-index layer. Removing that index loses nothing; the ledger is the only copy.
 
 ---
 
@@ -146,13 +146,13 @@ On Codex, native memory is **`AGENTS.md`** — the primary instruction surface C
 
 ### Writ agents ↔ Codex TOML
 
-Each agent's `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) resolves to the TOML header `scripts/gen-codex-agent-tomls.py` emits. Codex is single-vendor, so the floor is family-locked by construction and effort-only:
+Each agent's `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) resolves to the TOML header `scripts/gen-codex-agent-tomls.py` emits. Codex is single-vendor, so the floor is family-locked and effort-only:
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
 | `.codex/config.toml` (project, else `~/.codex/config.toml`) → `model` and `model_reasoning_effort`; `unknown` when the keys are absent (`codex/config.toml.template` sets neither); `anchor.platform = codex` | omit `model` (parent's model and effort) | omit `model`, `model_reasoning_effort = "low"` | omit `model`, parent effort |
 
-**Degradation:** an unrecognized `model_tier` warns and is emitted as `anchor` (both keys omitted); a parent already at `low` effort means `floor` collapses to `anchor`, said once, no `degraded`; if a Codex version rejects `model_reasoning_effort` on a subagent, drop the key and run at `anchor` with one `degraded` line — never hard-fail the spawn.
+**Degradation:** an unrecognized `model_tier` warns and is emitted as `anchor` (both keys omitted). A parent already at `low` effort means `floor` collapses to `anchor`, said once, no `degraded`. If a Codex version rejects `model_reasoning_effort` on a subagent, drop the key and run at `anchor` with one `degraded` line. Never hard-fail the spawn.
 
 | Agent (`agents/*.md`) | `.codex/agents/*.toml` | `sandbox_mode` | `model_tier` | Emitted header |
 |-----------------------|-------------------------|----------------|---------------|-----------------|
@@ -173,21 +173,21 @@ Spawn architecture-check-agent (read-only sandbox) to review story X before codi
 Then spawn coding-agent (workspace-write) for implementation.
 ```
 
-Codex also exposes `/agent` as a built-in slash command for switching threads inspecting subagent work ([docs](https://developers.openai.com/codex/cli/slash-commands#switch-agent-threads-with-agent)).
+Codex also exposes `/agent` as a built-in slash command for switching threads and inspecting subagent work ([docs](https://developers.openai.com/codex/cli/slash-commands#switch-agent-threads-with-agent)).
 
 ### MCP tools
 
-Writ commands sometimes reference MCP servers generically. Codex surfaces MCP through `/mcp` ([docs](https://developers.openai.com/codex/cli/slash-commands#list-mcp-tools-with-mcp)). Configure servers in `.codex/config.toml`; the Writ template ships a commented placeholder block only — no servers are enabled by default.
+Writ commands sometimes reference MCP servers generically. Codex surfaces MCP through `/mcp` ([docs](https://developers.openai.com/codex/cli/slash-commands#list-mcp-tools-with-mcp)). Configure servers in `.codex/config.toml`; the Writ template ships only a commented placeholder block; no servers are enabled by default.
 
 ### Apps & plugins
 
-Codex lists connectors via `/apps` and plugins via `/plugins` ([slash reference](https://developers.openai.com/codex/cli/slash-commands)). Writ neither bundles nor requires plugins — treat them as optional acceleration, not dependencies of the methodology.
+Codex lists connectors via `/apps` and plugins via `/plugins` ([slash reference](https://developers.openai.com/codex/cli/slash-commands)). Writ neither bundles nor requires plugins.
 
 ---
 
 ## Skills
 
-Writ skills install to **`.agents/skills/<name>/SKILL.md`** on Codex — the AgentSkills-friendly layout Codex documents for shared capability files (see ADR-009 Amendments). Commands and agents continue to load skills explicitly via `Read skills/<name>/SKILL.md` (path relative to repo root in Writ prompts).
+Writ skills install to `.agents/skills/<name>/SKILL.md` on Codex, the AgentSkills layout Codex documents for shared capability files (see ADR-009 Amendments). Commands and agents load skills explicitly via `Read skills/<name>/SKILL.md` (path relative to repo root in Writ prompts).
 
 Regenerate parity after editing canonical agents:
 
@@ -212,21 +212,21 @@ bash scripts/check-agent-parity.sh
 8. Spawn **documentation-agent** (`workspace-write`).
 9. Update story checkboxes / status; commit if policy allows.
 
-Parallel fan-out inside a phase is achieved by multiple Codex subagent threads — consult `/agent` to inspect each thread.
+Parallel fan-out inside a phase uses multiple Codex subagent threads; use `/agent` to inspect each thread.
 
 ### create-spec — parallel story generation
 
-Delegate multiple **user-story-generator** instances (each `workspace-write`) with disjoint outputs — isolate paths per story file to avoid contention.
+Delegate multiple **user-story-generator** instances (each `workspace-write`) with disjoint outputs, one path per story file, to avoid contention.
 
 ### Preamble convention
 
-As with other platforms, Writ commands reference `commands/_preamble.md` and `system-instructions.md` inside their `## References` sections — ensure both exist in the installation target (`Read` them when starting a command).
+Writ commands reference `commands/_preamble.md` and `system-instructions.md` in their `## References` sections. Ensure both exist in the installation target and `Read` them when starting a command.
 
 Copy `_preamble.md` beside the other command markdown files during install so relative paths resolve inside `.codex/commands/`.
 
 ### Knowledge loading (`/implement-story`)
 
-Before spawning architecture-check or coding agents, `/implement-story` loads optional `.writ/knowledge/` snippets keyed to story keywords. On Codex there is no separate memory daemon — the orchestrator must `Read` or `Grep` those files into the prompt bundle explicitly. Keep knowledge files small and curated; large dumps belong in specs, not ambient knowledge.
+Before spawning architecture-check or coding agents, `/implement-story` loads optional `.writ/knowledge/` snippets keyed to story keywords. On Codex there is no separate memory daemon; the orchestrator must `Read` or `Grep` those files into the prompt bundle. Keep knowledge files small; large dumps belong in specs.
 
 ### Structured questions (`AskQuestion` emulation)
 
@@ -288,21 +288,20 @@ neutral reducer:
 
 ### `/implement-spec` batches
 
-`/implement-spec` computes story dependency batches — parallel batches should map to concurrent Codex subagent threads when safe, sequential batches stay strictly ordered. The orchestrator session owns dependency bookkeeping; individual subagents should not mutate downstream story files outside their assigned scope.
+`/implement-spec` computes story dependency batches. Parallel batches map to concurrent Codex subagent threads when safe; sequential batches stay ordered. The orchestrator session owns dependency bookkeeping; subagents must not mutate story files outside their assigned scope.
 
 ### Autonomous multi-spec execution (retired CLI loop)
 
-The former unattended CLI loop for multi-spec execution is **retired and archived**
+The former unattended CLI loop for multi-spec execution is retired and archived
 (see `archive/`). Use `/implement-phase` for supervised multi-spec execution: it
 sequences specs by cross-spec dependency, isolates each spec in a fresh execution
 lane (branch + worktree), quarantines terminal failures while independent specs
 continue, and reconciles state read-only on resume. Recommended autonomy is a
-separate, explicitly supported path on two commands: `/create-spec --recommend`
-autonomously authors and locks one spec package from evidence, then stops; and
-`/implement-phase --recommend` runs the phase as an end-to-end loop — authoring
-any missing specs and implementing the phase's specs through the isolated lanes
-above, ending at the completion report with manual UAT handoff. It never merges,
-opens PRs, or releases.
+separate supported path on two commands. `/create-spec --recommend` authors and
+locks one spec package from evidence, then stops. `/implement-phase --recommend`
+runs the phase end to end: it authors any missing specs, implements the phase's
+specs through the isolated lanes above, and ends at the completion report with
+manual UAT handoff. It never merges, opens PRs, or releases.
 
 ---
 
@@ -323,34 +322,34 @@ Prefer the Codex CLI flags documented upstream for your version (`codex --help`)
 
 ### Session housekeeping
 
-Codex provides `/compact` for transcript compression, `/clear` for a fresh chat inside the CLI, `/fork` and `/side` for branching conversations, `/resume` for returning to saved sessions, and `/copy` for grabbing the latest assistant output ([slash reference](https://developers.openai.com/codex/cli/slash-commands)). Long `/implement-spec` runs benefit from occasional `/compact` passes so earlier story context does not crowd out active work — schedule compacts between batches when transcripts grow large.
+Codex provides `/compact` for transcript compression, `/clear` for a fresh chat inside the CLI, `/fork` and `/side` for branching conversations, `/resume` for returning to saved sessions, and `/copy` for copying the latest assistant output ([slash reference](https://developers.openai.com/codex/cli/slash-commands)). On long `/implement-spec` runs, `/compact` between batches keeps earlier story context from crowding out active work.
 
 ### Permissions & approvals
 
-`/permissions` adjusts approval presets interactively ([docs](https://developers.openai.com/codex/cli/slash-commands#update-permissions-with-permissions)). Align CLI approvals with Writ’s gate expectations: read-only agents should never rely on human diligence alone — prefer `sandbox_mode = "read-only"` on those TOML files so Codex enforces the boundary.
+`/permissions` adjusts approval presets interactively ([docs](https://developers.openai.com/codex/cli/slash-commands#update-permissions-with-permissions)). Align CLI approvals with Writ’s gate expectations: set `sandbox_mode = "read-only"` on read-only agents' TOML files so Codex enforces the boundary rather than relying on human diligence.
 
 ### Debugging configuration drift
 
-Use `/debug-config` when an effective setting disagrees with `.codex/config.toml` ([docs](https://developers.openai.com/codex/cli/slash-commands#inspect-config-layers-with-debug-config)). Common during Writ upgrades when users overlay local experimentation — capture `/debug-config` output before filing upstream issues.
+Use `/debug-config` when an effective setting disagrees with `.codex/config.toml` ([docs](https://developers.openai.com/codex/cli/slash-commands#inspect-config-layers-with-debug-config)). This is common during Writ upgrades when users overlay local experimentation. Capture `/debug-config` output before filing upstream issues.
 
 ---
 
 ## Command Workflow Integrity
 
-Writ commands assume **Plan Mode vs Agent Mode discipline** (see `commands/_preamble.md`): discovery may switch to Plan Mode, but the command must finish in Agent Mode producing its artifacts. Codex has a built-in `/plan` slash command — that is **Codex planning UX**, not Writ Plan Mode. When a Writ command says “switch to Plan Mode,” follow the **Writ command’s linked phases**, not an automatic `/plan` slash invocation, unless the user explicitly chooses Codex plan mode for exploration.
+Writ commands assume Plan Mode vs Agent Mode discipline (see `commands/_preamble.md`): discovery may switch to Plan Mode, but the command must finish in Agent Mode and produce its artifacts. Codex's built-in `/plan` slash command is Codex planning UX, not Writ Plan Mode. When a Writ command says “switch to Plan Mode,” follow the Writ command’s linked phases rather than invoking `/plan`, unless the user explicitly chooses Codex plan mode for exploration.
 
 ---
 
 ## Built-in Codex Commands vs Writ Commands
 
-Codex exposes many built-ins (`/plan`, `/review`, `/status`, `/init`, `/permissions`, `/model`, `/agent`, `/fork`, `/side`, `/compact`, …) documented in the [slash command reference](https://developers.openai.com/codex/cli/slash-commands). Writ ships Markdown workflows that conceptually overlap names (`/plan-product`, `/review`, `/status`, …) but those **Writ names live in documentation + `.codex/commands/` filenames**, not as Codex slash registrations.
+Codex exposes many built-ins (`/plan`, `/review`, `/status`, `/init`, `/permissions`, `/model`, `/agent`, `/fork`, `/side`, `/compact`, …) documented in the [slash command reference](https://developers.openai.com/codex/cli/slash-commands). Writ ships Markdown workflows with overlapping names (`/plan-product`, `/review`, `/status`, …), but those Writ names live in documentation and `.codex/commands/` filenames, not as Codex slash registrations.
 
 **Coexistence rules:**
 
-- Bare `/status`, `/review`, or `/plan` in the Codex composer runs **Codex’s** built-ins.
-- To run **Writ’s** `/status`, `/review`, or `/plan-product` workflows, instruct the assistant to `Read` the corresponding `.codex/commands/<name>.md` file and execute its phases verbatim.
+- Bare `/status`, `/review`, or `/plan` in the Codex composer runs Codex’s built-ins.
+- To run Writ’s `/status`, `/review`, or `/plan-product` workflows, instruct the assistant to `Read` the corresponding `.codex/commands/<name>.md` file and execute its phases verbatim.
 
-Writ intentionally **does not rename** commands to avoid collisions — documentation carries the resolution.
+Writ does not rename commands to avoid collisions; this documentation carries the resolution.
 
 ### Collision reference table (non-exhaustive)
 
@@ -361,7 +360,7 @@ Writ intentionally **does not rename** commands to avoid collisions — document
 | `/status` | Session diagnostics (model, tokens, roots) | `/status` project dashboard command | `Read .codex/commands/status.md` |
 | `/init` | Scaffold `AGENTS.md` | `/initialize` Writ bootstrap | `Read .codex/commands/initialize.md` |
 
-Always consult the official slash popup — OpenAI adds commands over time.
+Consult the official slash popup; OpenAI adds commands over time.
 
 ---
 
@@ -394,33 +393,33 @@ Use this when translating `/implement-story` gates without Cursor-specific tooli
 | Testing | `testing-agent` (`workspace-write`). Enforce coverage policy via repo tooling. |
 | Documentation | `documentation-agent` (`workspace-write`). |
 
-Codex does not automatically replay failures across gates — the orchestrator command markdown owns loops (`implement-story.md`).
+Codex does not replay failures across gates; the orchestrator command markdown (`implement-story.md`) owns the loops.
 
 ### Maintainer checklist (ship / upgrade)
 
 1. Regenerate `codex/agents/*.toml` after touching `agents/*.md`.
-2. Run `bash scripts/check-agent-parity.sh` — warnings must be intentional.
+2. Run `bash scripts/check-agent-parity.sh`; warnings must be intentional.
 3. Re-measure `wc -c codex/AGENTS.md.template` after manifest command churn (stay ≤ 8192 bytes).
-4. Re-read OpenAI Codex release notes when bumping pinned CLI assumptions — adjust slash collision tables if new built-ins overlap Writ names.
+4. Re-read OpenAI Codex release notes when bumping pinned CLI assumptions; adjust the slash collision table if new built-ins overlap Writ names.
 5. Verify dry-run install output lists seven agents and correct `SKILLS_DIR` (`.agents/skills/`).
 
 ### Observability
 
-Writ stores durable artifacts under `.writ/` (specs, logs like `refresh-log.md`, execution snapshots under `.writ/state/`). Codex’s `/feedback` command ships diagnostics to OpenAI ([slash docs](https://developers.openai.com/codex/cli/slash-commands#send-feedback-with-feedback)) — it is unrelated to Writ’s own logging discipline. When debugging a Writ-on-Codex issue, capture **both** the relevant `.writ/` files **and** the Codex `/debug-config` / `/status` output so maintainers can see CLI policy versus methodology state.
+Writ stores durable artifacts under `.writ/` (specs, logs like `refresh-log.md`, execution snapshots under `.writ/state/`). Codex’s `/feedback` command ships diagnostics to OpenAI ([slash docs](https://developers.openai.com/codex/cli/slash-commands#send-feedback-with-feedback)); it is unrelated to Writ’s logging. When debugging a Writ-on-Codex issue, capture both the relevant `.writ/` files and the Codex `/debug-config` / `/status` output so maintainers can compare CLI policy with methodology state.
 
 ### Windows sandbox note
 
-`/sandbox-add-read-dir` exists for Windows-only extra read roots ([slash docs](https://developers.openai.com/codex/cli/slash-commands#grant-sandbox-read-access-with-sandbox-add-read-dir)). Writ agents assume POSIX paths in examples — adjust drive-letter paths when scripting `Bash` steps on Windows hosts.
+`/sandbox-add-read-dir` exists for Windows-only extra read roots ([slash docs](https://developers.openai.com/codex/cli/slash-commands#grant-sandbox-read-access-with-sandbox-add-read-dir)). Writ examples assume POSIX paths; adjust drive-letter paths when scripting `Bash` steps on Windows hosts.
 
 ### Security posture
 
-Writ’s `/security-audit` command remains Markdown-orchestrated; Codex’s sandbox reduces blast radius but does not replace dependency audits or secret scanning. Keep `[features] codex_hooks = false` until your team documents hook handlers — accidental auto-approval hooks have burned teams that blurred “CLI convenience” with “CI policy.”
+Writ’s `/security-audit` command remains Markdown-orchestrated; Codex’s sandbox reduces blast radius but does not replace dependency audits or secret scanning. Keep `[features] codex_hooks = false` until your team documents hook handlers; an accidental auto-approval hook turns CLI convenience into CI policy.
 
-Read-only agents (`sandbox_mode = "read-only"`) materially constrain lateral movement during architecture/review/visual QA phases — prefer tightening sandbox defaults before weakening prompts.
+Read-only agents (`sandbox_mode = "read-only"`) constrain lateral movement during architecture, review, and visual QA phases. Tighten sandbox defaults before weakening prompts.
 
 **Baseline reminders:**
 
-- Never paste production secrets into agent prompts — treat transcripts as semi-public.
+- Never paste production secrets into agent prompts; treat transcripts as semi-public.
 - Review `Bash` proposals carefully before approving workspace-write agents.
 - Use `/permissions` intentionally after changing repos or checking out unfamiliar branches.
 

@@ -11,7 +11,7 @@ You are the Testing Agent for Writ story verification.
 
 ## Your Mission
 
-Run all tests, ensure 100% pass rate, and verify adequate coverage.
+Run all tests, require a 100% pass rate, and verify coverage against the thresholds below.
 
 ## Testing Process
 
@@ -24,8 +24,8 @@ Run all tests, ensure 100% pass rate, and verify adequate coverage.
 
 ## Coverage Requirements
 
-- New files: ≥80% line coverage (MANDATORY)
-- Modified files: coverage must not decrease (MANDATORY)
+- New files: ≥80% line coverage (required)
+- Modified files: coverage must not decrease (required)
 - Overall: report only (informational)
 
 ## Output Format
@@ -42,4 +42,4 @@ Run all tests, ensure 100% pass rate, and verify adequate coverage.
 ### Failures Addressed (if any)
 [What was fixed and how]
 
-**100% pass rate is MANDATORY before reporting PASS.**
+Report PASS only with a 100% pass rate.

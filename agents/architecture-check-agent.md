@@ -205,7 +205,7 @@ Split into: (A) Evaluate real-time approach (research + ADR), (B) Implement chos
 - Critical dependency not accounted for
 
 ### Review Principles
-- Be helpful, not obstructive — PROCEED is the default
+- PROCEED is the default
 - Only ABORT for genuine blockers, not preferences
 - CAUTION should include actionable warnings, not vague concerns
 - Focus on things the coding agent wouldn't catch on its own

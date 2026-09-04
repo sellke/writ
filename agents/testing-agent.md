@@ -96,7 +96,7 @@ Run tests with coverage enabled using the detected tools.
 
 ### Step 5: Analyze Failures (if any)
 
-When a failure traces to genuinely missing behavior, or Step 6 requires new tests, `Read skills/tdd-cycle/SKILL.md` and add them test-first — write the failing test, confirm it fails for the right reason, then make it pass — rather than writing tests to fit code that already exists. This agent owns *what* to cover (acceptance criteria, coverage thresholds) and the pass-rate bar; the skill owns *how* to grow each test.
+When a failure traces to missing behavior, or Step 6 requires new tests, `Read skills/tdd-cycle/SKILL.md` and add them test-first — write the failing test, confirm it fails for the right reason, then make it pass — rather than writing tests to fit code that already exists. This agent owns *what* to cover (acceptance criteria, coverage thresholds) and the pass-rate bar; the skill owns *how* to grow each test.
 
 For each failing test:
 1. Read the error message
@@ -132,10 +132,10 @@ If coverage thresholds aren't met:
 - **New files average:** X% line coverage
 - **Coverage threshold met:** [YES/NO]
 
-> This field is now **verified, not trusted**. After you return, Gate 4 runs
+> This field is verified, not trusted. After you return, Gate 4 runs
 > `scripts/test-integrity.py coverage`, which re-derives the number from the coverage
 > tool's own output; where your value and the measurement disagree, the measurement wins
-> and the story does not close. Report what you actually measured — a `YES` over a
+> and the story does not close. Report what you measured — a `YES` over a
 > re-derived `NO` blocks the story rather than passing it.
 
 ### Test Details
@@ -249,7 +249,7 @@ NEXT_STEP: Surface to orchestrator for human decision
 
 **What counts as an attempt:** Each fix-and-rerun cycle targeting the same failing test or uncovered file. A failure on a different test resets the counter for that test. The cap is per-failure, not per-session.
 
-**Do not** attempt a workaround that weakens the test (e.g., marking it skip, lowering a threshold, deleting the assertion). The cap means: this needs human judgment. Report partial state clearly — it lets the user decide: retry, skip gate, or abort pipeline.
+Do not weaken the test to get past the cap (marking it skip, lowering a threshold, deleting the assertion). Report partial state so the user can decide: retry, skip gate, or abort pipeline.
 
 ---
 
@@ -273,7 +273,7 @@ NEXT_STEP: Surface to orchestrator for human decision
 ### Coverage Best Practices
 - **Don't chase 100%** — 80% on new code catches most bugs
 - **Branch coverage matters** — An `if` with no `else` test is half-tested
-- **Error paths are critical** — These are where bugs hide
+- **Error paths are critical** — most bugs are in error handling
 - **Don't test framework code** — Focus on your logic, not React rendering boilerplate
 
 ---

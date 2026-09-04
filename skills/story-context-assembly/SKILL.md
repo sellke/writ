@@ -9,8 +9,8 @@ status: candidate
 
 ## Purpose
 
-Turn a story file and its spec-lite into the **targeted** context each agent
-actually needs, instead of handing every agent the whole spec. Three payloads:
+Turn a story file and its spec-lite into the targeted context each agent
+needs, rather than the whole spec. Three payloads:
 `fetched_context` (spec content resolved from the story's context hints),
 `knowledge_context` (durable project knowledge matched by keyword), and per-role
 `spec_lite_for_*` sections. Every one degrades to something usable rather than
@@ -35,16 +35,16 @@ consumer.
 
 `scripts/story-context.py` is the **sole** implementation that parses a story's
 `## Context for Agents` hints and fetches the referenced content. Invoke it;
-never restate its parsing algorithm in prose — a second prose copy is how the
-two diverge.
+do not restate its parsing algorithm in prose, because a second copy would
+diverge from the script.
 
 ```bash
 python3 scripts/story-context.py assemble --story <story-file-path> --budget-bytes 21000
 ```
 
-`21000` is `FETCHED_CONTEXT_BUDGET_BYTES`. **Read the constant's current value
-from the script and prefer it over any number written in prose** — the script,
-not its callers, owns the derivation.
+`21000` is `FETCHED_CONTEXT_BUDGET_BYTES`. Read the constant's current value
+from the script and prefer it over any number written in prose; the script owns
+the value.
 
 The script **always exits 0** and prints one JSON object:
 
@@ -64,7 +64,7 @@ Map its keys to output variables:
 - `warnings` → **`context_warnings`** — pass through verbatim. This already
   includes the informational "no hints section" log, every parse/fetch warning,
   and — when `truncated` is `true` — the truncation warning naming actual vs.
-  budget bytes. **No separate truncation handling is needed**; the script
+  budget bytes. No separate truncation handling is needed; the script
   embeds it.
 - `bytes` → informational byte report for the invocation only; not consumed
   anywhere else beyond logging.
@@ -78,7 +78,7 @@ Guard the **invocation** separately:
 | Non-zero exit | Process exit code is not `0` | Warn: `⚠️ story-context.py exited non-zero — proceeding with spec-lite only`; set `fetched_context` to `{}` and continue |
 | Malformed stdout | stdout is not valid JSON, or lacks the `fetched_context`/`warnings` keys | Warn: `⚠️ story-context.py produced unparseable output — proceeding with spec-lite only`; set `fetched_context` to `{}` and continue |
 
-**A broken assembler degrades context; it never halts the work.** In every row
+A broken assembler degrades context; it never halts the work. In every row
 above, proceed on `spec-lite.md` alone.
 
 ### 2. Knowledge context — extract, score, cap
@@ -119,8 +119,8 @@ tasks, boundary candidates and context hints. Then normalize, in order:
    - TL;DR: Use `YYYY-MM-DD-short-slug.md` for dated Writ artifacts...
    ```
 
-6. If the block exceeds 2KB, **keep higher-scoring entries first and truncate
-   lower-scoring details before dropping whole entries.**
+6. If the block exceeds 2KB, keep higher-scoring entries first and truncate
+   lower-scoring details before dropping whole entries.
 
 **Graceful degradation:**
 
@@ -131,8 +131,8 @@ tasks, boundary candidates and context hints. Then normalize, in order:
 | Entry has malformed frontmatter | Skip that entry and log `⚠️ Knowledge entry skipped: malformed frontmatter in {path}` |
 | Context exceeds 2KB | Truncate by relevance score and log `ℹ️ knowledge_context truncated to 2KB` |
 
-The two silent rows are **deliberate** — an absent knowledge directory is a
-normal project shape, not a defect. Do not "improve" either into a warning.
+The two silent rows are deliberate: an absent knowledge directory is normal,
+not a defect. Do not change either into a warning.
 
 **Output variable:** `knowledge_context` — an optional markdown block of loaded
 entries; the **empty string** when no relevant entries were found.
@@ -152,11 +152,10 @@ it, is the consumer's routing decision.
 **Graceful degradation:**
 
 - `spec-lite.md` does not use the agent-specific format (legacy specs without
-  `## For {Role} Agents` headers) → use **full** spec-lite content for **all**
+  `## For {Role} Agents` headers) → use full spec-lite content for all
   roles.
 - A specific section is missing → fall back to full spec-lite content for that
   role and log:
   `⚠️ Spec-lite.md missing "## For {Role} Agents" section — using full content`
 - `fetched_context` is empty (no hints parsed, or all references missing) →
-  the role receives its spec-lite section only. That is still an improvement
-  over the full file for non-legacy specs.
+  the role receives its spec-lite section only.

@@ -52,18 +52,18 @@ sessions_spawn({ task: "Create story 4...", label: "cc-story-4" })
 All run concurrently. Each auto-announces completion back to the requester chat.
 
 **Key differences:**
-- No `subagent_type` — all OpenClaw sub-agents are general purpose
-- No tier vocabulary on the call — `model_tier` resolves to the optional `model` param per the table below
+- No `subagent_type`: all OpenClaw sub-agents are general purpose
+- No tier vocabulary on the call: `model_tier` resolves to the optional `model` param per the table below
 - `label` is optional but recommended for identification
-- Completion is push-based — no polling needed
+- Completion is push-based: no polling needed
 
-**Tier resolution:** agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers), which OpenClaw resolves through the optional `model` param on `sessions_spawn`. **This row is unverified** — no OpenClaw install was available to observe a spawn; it is written from the documented `sessions_spawn` primitive, not from an observation:
+**Tier resolution:** agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers), which OpenClaw resolves through the optional `model` param on `sessions_spawn`. **This row is unverified**: no OpenClaw install was available to observe a spawn, so it is written from the documented `sessions_spawn` primitive:
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
 | *(unverified)* `anchor.model` from the session config, `unknown` when absent; `anchor.effort` = `unknown`; `anchor.platform = openclaw` | omit `model` | an operator-configured cheaper model of the same vendor, passed as `model`; else omit | omit `model` |
 
-**Degradation:** an unrecognized `model_tier` warns and runs as `anchor`; when no cheaper same-vendor model is configured, `floor` runs with `model` omitted (the parent's model) and emits one `degraded` line — never hard-fail the spawn.
+**Degradation:** an unrecognized `model_tier` warns and runs as `anchor`; when no cheaper same-vendor model is configured, `floor` runs with `model` omitted (the parent's model) and emits one `degraded` line. Never hard-fail the spawn.
 
 ### 2. Resuming / Steering Agents (`resume` → `subagents steer`)
 
@@ -244,7 +244,7 @@ sessions_spawn({
 
 ## Skills
 
-Skills are the third Writ primitive (peer to commands and agents) — capability files that describe how to do a specific thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
+Skills are the third Writ primitive, peer to commands and agents: capability files that describe how to do one thing well. See [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the verb/noun/tool framing and [`.writ/docs/skills.md`](../.writ/docs/skills.md) for the user-facing explainer.
 
 ### Install Path
 
@@ -252,13 +252,13 @@ Skills are the third Writ primitive (peer to commands and agents) — capability
 .openclaw/skills/<name>/SKILL.md
 ```
 
-> **Status note:** OpenClaw is one of ADR-009's four target platforms but isn't currently a `--platform` flag in `install.sh`. The path above is the conceptual install location for ADR consistency; actual install fanout to OpenClaw is blocked on a future OpenClaw install adapter (separate spec). Until then, OpenClaw users wire skills manually following the same `<name>/SKILL.md` layout.
+> **Status note:** OpenClaw is one of ADR-009's four target platforms but is not yet a `--platform` flag in `install.sh`. The path above is the install location the ADR names; install fanout to OpenClaw waits on a future OpenClaw install adapter (separate spec). Until then, OpenClaw users wire skills manually with the same `<name>/SKILL.md` layout.
 
 ### Loading Mechanism
 
-OpenClaw's session loader reads files from the project workspace on demand — there is no built-in `<agent_skills>` ambient discovery channel like Cursor. Skills are loaded via explicit `Read` calls when a command or agent needs them.
+OpenClaw's session loader reads files from the project workspace on demand; there is no `<agent_skills>` ambient discovery channel as on Cursor. Skills load via explicit `Read` calls when a command or agent needs them.
 
-**Writ-authored skills set `disable-model-invocation: true`** in frontmatter for cross-platform consistency, even though OpenClaw doesn't currently auto-invoke skills. The flag makes the explicit-invocation policy portable: the same SKILL.md works correctly on Cursor, Claude Code, and OpenClaw without per-platform frontmatter variants. Community skills installed by other means follow whatever invocation behavior their installer configured.
+**Writ-authored skills set `disable-model-invocation: true`** in frontmatter for cross-platform consistency, even though OpenClaw does not auto-invoke skills. The same SKILL.md then works on Cursor, Claude Code, and OpenClaw without per-platform frontmatter variants. Community skills installed by other means follow whatever invocation behavior their installer configured.
 
 ### Invocation
 
@@ -268,9 +268,9 @@ Commands and agents that need a skill load it explicitly. In OpenClaw, the `Read
 Read({ path: "skills/<name>/SKILL.md" })
 ```
 
-For sub-agents spawned via `sessions_spawn`, the orchestrator includes the skill content (or an explicit `Read` instruction) in the spawn prompt — sub-agents inherit context only through the prompt, not via shared session state.
+For sub-agents spawned via `sessions_spawn`, the orchestrator includes the skill content (or an explicit `Read` instruction) in the spawn prompt. Sub-agents inherit context only through the prompt, not shared session state.
 
-For commands and agents that declare `required_skills:` in their frontmatter (the convention defined in this spec — see Story 5 / `system-instructions.md`), the orchestrator pre-loads each named skill via `Read` before spawning the consumer session. The convention was resolved revisit-to-adopt on 2026-08-11 on the strength of a named future consumer, Phase 10 progressive disclosure (ADR-021) — which then **evaluated the mechanism and did not adopt it**, because an eager pre-load moves extracted bytes into the floor that every invocation pays, so a disclosed command costs more per invocation than the monolith it replaced. Phase 10 loads its skills with an inline `Read skills/<name>/SKILL.md` at the point of need instead. **The convention therefore has no consumer**: nothing in the product declares the field. The schema, this mechanism, and the graceful-degradation rule are unchanged and stay supported; the adoption carries a restored review trigger of **2026-11-11**, aligned to ADR-021's own review — no consumer by then, deprecate; a consumer appears, record it and reset. See `system-instructions.md` → `required_skills:` frontmatter convention.
+For commands and agents that declare `required_skills:` in their frontmatter (see Story 5 / `system-instructions.md`), the orchestrator pre-loads each named skill via `Read` before spawning the consumer session. The convention was resolved revisit-to-adopt on 2026-08-11 on the strength of a named future consumer, Phase 10 progressive disclosure (ADR-021). Phase 10 evaluated the mechanism and did not adopt it: an eager pre-load moves extracted bytes into the floor that every invocation pays, so a disclosed command costs more per invocation than the monolith it replaced. Phase 10 loads its skills with an inline `Read skills/<name>/SKILL.md` at the point of need. The convention therefore has no consumer; nothing in the product declares the field. The schema, this mechanism, and the graceful-degradation rule are unchanged and stay supported. The adoption carries a review trigger of **2026-11-11**, aligned to ADR-021's own review: no consumer by then, deprecate; a consumer appears, record it and reset. See `system-instructions.md` → `required_skills:` frontmatter convention.
 
 ### Authoring & Reference
 
@@ -402,21 +402,21 @@ This enables recovery if the orchestrator session is interrupted.
 
 > **Native memory holds session preferences and trivia; the Writ ledger holds negotiated decisions, conventions, and lessons — the reviewable markdown layer that feeds native memory and any external index.**
 
-On OpenClaw there is no ambient persistent memory store — native context is **session state / file-based context**, the per-session working state (for example the `.writ/state/` JSON an `/implement-story` run persists between phases). Let that state hold ephemeral, in-flight session context. When a decision, convention, or lesson is *negotiated* and needs to survive past the session, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/` — the reviewable markdown that outlives any single session.
+On OpenClaw there is no ambient persistent memory store. Native context is **session state / file-based context**: the per-session working state, for example the `.writ/state/` JSON an `/implement-story` run persists between phases. Let that state hold ephemeral, in-flight session context. When a decision, convention, or lesson is negotiated and needs to survive past the session, write it to the ledger under `.writ/decision-records/` or `.writ/knowledge/`.
 
-**Anti-pattern:** negotiated decisions that live *only* in native memory are unreviewable and evaporate on platform churn — a reinstall, a new machine, or a teammate who never had your store. Write the *why* (the decision, the convention, the lesson) to the ledger instead, and let native memory keep only the ephemeral trivia.
+**Anti-pattern:** negotiated decisions that live only in native memory are unreviewable and are lost on a reinstall, a new machine, or a teammate who never had your store. Write the decision, the convention, or the lesson to the ledger, and let native memory keep only the ephemeral trivia.
 
-**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The external-index layer is covered by the [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md); removing that index loses nothing, because the ledger is the only copy that matters.
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md) cover the external-index layer. Removing that index loses nothing; the ledger is the only copy.
 
 ---
 
 ## Command Workflow Integrity
 
-When a Writ command uses a discovery or planning phase, that phase serves the command — it does not replace the command's artifact creation steps.
+When a Writ command uses a discovery or planning phase, that phase serves the command; it does not replace the command's artifact creation steps.
 
 **Rule:** After discovery completes, the command resumes its documented phases and produces its documented artifacts. After artifact creation, the command terminates with a next-step suggestion. Do not continue the session into implementation or offer to execute what was planned.
 
-**Common failure:** After producing spec artifacts, the session naturally continues toward "what's next?" and slides into offering implementation. Planning commands produce files, present a summary, and stop — the user decides what to run next.
+**Common failure:** After producing spec artifacts, the session offers implementation. Planning commands produce files, present a summary, and stop; the user decides what to run next.
 
 **Reference:** System instructions → Prime Directive → Hard Constraints → "Never let Plan Mode absorb a command's workflow."
 
@@ -430,8 +430,8 @@ When a Writ command uses a discovery or planning phase, that phase serves the co
 
 3. **Button limitations**: Telegram inline buttons have a 64-byte callback_data limit. Keep IDs short. For complex multi-question forms, use sequential messages.
 
-4. **Parallel spawn limit**: OpenClaw doesn't enforce a hard limit on concurrent sub-agents, but be mindful of API costs. 4 parallel story generators is fine; 20 might get expensive.
+4. **Parallel spawn limit**: OpenClaw does not enforce a hard limit on concurrent sub-agents. Watch API costs: 4 parallel story generators is fine; 20 gets expensive.
 
 5. **File conflicts**: When multiple sub-agents write files in the same workspace, ensure they write to different paths. The user-story-generator pattern (each agent writes its own `story-N-*.md`) is safe.
 
-6. **Model for sub-agents**: see the § 1 resolution table — `floor` passes an operator-configured cheaper same-vendor `model`, `anchor` omits the param. The row is unverified.
+6. **Model for sub-agents**: see the § 1 resolution table: `floor` passes an operator-configured cheaper same-vendor `model`, `anchor` omits the param. The row is unverified.

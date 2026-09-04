@@ -13,12 +13,12 @@ status_evidence: "Extracted 2026-07-10 from the retired explain-code command. 1 
 Produce a clear, structured explanation of a piece of existing code — a
 function, class, file, or line range — that a reader can act on without opening
 the source themselves. The explanation is **read-only**: it describes what the
-code does and how, never proposing edits, tests, or rewrites. Its defining
-quality is that depth scales with the target: a ten-line utility earns three
-sentences, a multi-branch state machine earns a full walkthrough and a diagram.
+code does and how, never proposing edits, tests, or rewrites. Depth scales with
+the target: a ten-line utility gets three sentences, a multi-branch state
+machine gets a full walkthrough and a diagram.
 
-This capability owns *how to explain code well*. The consumer owns *what target
-to explain and why* — a research workflow reaching for it to describe a module,
+This capability owns how to explain code. The consumer owns what target
+to explain and why — a research workflow reaching for it to describe a module,
 an implementation flow using it to understand an existing pattern before
 changing it, or an interactive request where the user names a symbol.
 
@@ -29,8 +29,8 @@ changing it, or an interactive request where the user names a symbol.
 - An investigation surfaces an unfamiliar module whose behavior must be
   described before deciding what to do with it.
 - Understanding an existing pattern is a prerequisite to changing it safely.
-- The request is explanation only — if the reader wants the code restructured,
-  tested, or re-specified, that is a different job and this capability stops at
+- The request is explanation only. If the reader wants the code restructured,
+  tested, or re-specified, that is a separate task; this capability stops at
   the description.
 
 ## How to Apply
@@ -52,40 +52,38 @@ Read the target and the immediate context that makes it legible — no more:
 - **Types** — the relevant type definitions, interfaces, or schemas.
 
 Do not read the whole codebase. Pull in only the context required to explain the
-target accurately; extra reading dilutes focus and burns budget.
+target accurately.
 
 ### 3. Explain in scaling sections
 
 Every explanation carries the same skeleton, but each section's depth tracks the
-target's complexity. Lead with purpose; end only with what earns its place.
+target's complexity. Lead with purpose; include the conditional sections only
+when warranted.
 
-- **Purpose** — what the code does, in one or two sentences. This comes first
-  because it frames everything else.
+- **Purpose** — what the code does, in one or two sentences.
 - **How It Works** — a walkthrough of the logic. A paragraph suffices for a
   simple function; a numbered breakdown serves a complex flow. Cover input
   handling and validation, the core logic and its decision points, error
   handling and edge cases, and return values and side effects.
 - **Context** — where the code sits in the system: what calls it and when, what
-  it depends on, and any design pattern genuinely in use (name a pattern only
-  when it is really present, never to sound thorough).
-- **Diagrams (conditional)** — include a diagram only when it reveals structure
-  prose cannot. A flowchart earns its place for multi-branch decision logic, a
-  sequence diagram for a multi-step or multi-service call chain, a class diagram
-  for an inheritance hierarchy of three or more classes. Skip diagrams for
-  simple functions, CRUD, and linear flows; a diagram that merely restates the
-  prose is noise.
+  it depends on, and any design pattern in use (name a pattern only when it is
+  present).
+- **Diagrams (conditional)** — include a diagram only when it shows structure
+  prose cannot. Use a flowchart for multi-branch decision logic, a sequence
+  diagram for a multi-step or multi-service call chain, a class diagram for an
+  inheritance hierarchy of three or more classes. Skip diagrams for simple
+  functions, CRUD, and linear flows.
 - **Complexity Notes (conditional)** — include time/space complexity,
   performance characteristics, or known gotchas only when they matter. Omit this
   section entirely for straightforward code.
 
 ### 4. Match the register and stay honest
 
-Speak the codebase's own dialect — React terminology for a component, systems
-terminology for a systems routine — and do not over-explain language
-fundamentals unless asked. When intent is unclear, say so; when a construct looks
-unusual and the reason is not evident, flag the uncertainty rather than inventing
-a rationale. Keep the output proportional: scale the words to the input, and
-stop when the reader has enough to act.
+Use the codebase's own terminology — React terms for a component, systems terms
+for a systems routine — and do not explain language fundamentals unless asked.
+When intent is unclear, say so; when a construct looks unusual and the reason is
+not evident, flag the uncertainty instead of inventing a rationale. Scale the
+output to the input and stop when the reader has enough to act.
 
 ## Examples
 
@@ -98,7 +96,7 @@ single hyphen, and trims leading/trailing hyphens. Returns the empty string for
 input that has no alphanumeric characters.
 ```
 
-**Multi-branch flow — prose plus a flowchart, because the branching is the point:**
+**Multi-branch flow — prose plus a flowchart for the branching:**
 
 ```text
 Purpose: `resolveConfig()` merges defaults, a config file, and env overrides
@@ -124,7 +122,7 @@ flowchart TD
     F -- no --> H[throw on missing key]
 ```
 
-**Uncertain intent — name the doubt instead of fabricating a reason:**
+**Uncertain intent — state the doubt; do not invent a reason:**
 
 ```text
 The retry loop caps at five attempts with no backoff. The fixed cap is clear;

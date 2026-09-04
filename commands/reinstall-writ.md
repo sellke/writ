@@ -1,6 +1,6 @@
 ---
 name: reinstall-writ
-description: "Nuclear reinstall - remove all Writ platform files and install fresh from upstream, discarding local modifications. Use update-writ for selective updates."
+description: "Remove all Writ platform files and install fresh from upstream, discarding local modifications. Use update-writ for selective updates."
 problem: "An installation has diverged from upstream far enough that repairing it file by file costs more than discarding every local edit and starting over."
 outcome: "Every platform file is byte-identical to a freshly cloned upstream release with no customization carried forward, on a manifest rebuilt from scratch, while .writ/ is left alone."
 entry_level: any
@@ -14,9 +14,9 @@ exit_criteria:
 
 ## Overview
 
-Remove all Writ platform files and install fresh from the latest upstream release. This is the nuclear option — all local modifications to commands, agents, and rules are discarded. Use when your installation is in a bad state or you want a clean slate without manual cleanup.
+Remove all Writ platform files and install fresh from the latest upstream release. All local modifications to commands, agents, and rules are discarded. Use when your installation is in a bad state or you want a clean install without manual cleanup.
 
-**When to use:** Local files are corrupted, heavily diverged from upstream, or you just want to start fresh. For selective updates that preserve your customizations, use `/update-writ` instead.
+**When to use:** Local files are corrupted or heavily diverged from upstream, or you want to start over. For selective updates that preserve your customizations, use `/update-writ` instead.
 
 ## Invocation
 
@@ -183,7 +183,7 @@ Codex note: Restart your Codex session to load AGENTS.md changes. See [`adapters
 | Clone succeeds but copy fails | Report which files failed, attempt cleanup |
 | No git repo | Skip commit step, warn user |
 
-**Critical safety:** If the clone fails *after* files have been removed (Step 3 completed but Step 4 fails), the installation is broken. Report this clearly and provide recovery instructions:
+**Critical safety:** If the clone fails after files have been removed (Step 3 completed but Step 4 fails), the installation is broken. Report this and provide recovery instructions:
 
 ```
 ❌ Reinstall failed — upstream clone failed after removal.
@@ -212,7 +212,7 @@ For Codex CLI specifically:
 
 This command succeeds when every file under the platform's `commands/` and `agents/` matches upstream byte for byte, `.writ-manifest` names the newly cloned version, and `.writ/` is unchanged.
 
-No file is retained on the grounds that it was customized — discarding local modifications is this command's purpose, not a side effect of it.
+Do not retain any file on the grounds that it was customized. Discarding local modifications is this command's purpose.
 
 **Terminal constraint:** This command replaces the installation. Do not re-apply the customizations it just discarded.
 

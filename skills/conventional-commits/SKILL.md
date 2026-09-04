@@ -28,8 +28,8 @@ message is one logical unit per commit; if the diff covers multiple unrelated
 changes, the consumer's job is to split it before invoking this skill.
 
 This skill replaces the inline commit-format guidance previously duplicated
-across shipping, release, and refactor workflows. It does not decide *what* to
-commit — only *how to phrase* a single commit, given a diff and the project's
+across shipping, release, and refactor workflows. It does not decide what to
+commit — only how to phrase a single commit, given a diff and the project's
 existing commit history.
 
 ## When to Use
@@ -56,12 +56,12 @@ Three outcomes:
 | Recent commits look like… | Action |
 |---|---|
 | `feat(...): ...`, `fix: ...`, `chore(deps): ...` | Conventional Commits — proceed with the rules below |
-| `[AUTH] add session timeout`, `JIRA-123: fix bug`, freeform | Match the existing style; do **not** impose Conventional Commits |
+| `[AUTH] add session timeout`, `JIRA-123: fix bug`, freeform | Match the existing style; do not impose Conventional Commits |
 | Mixed / no clear pattern | Default to Conventional Commits — it's the most widely understood |
 
 When matching a non-Conventional style, still apply the universal craft rules
-(imperative summary, ≤72 chars, body explains *why*) — they're not specific to
-Conventional Commits, just good commit hygiene.
+(imperative summary, ≤72 chars, body explains why). They apply to any commit
+format.
 
 ### 2. Pick the type
 
@@ -83,11 +83,11 @@ The Angular type vocabulary, in order of changelog prominence:
 
 **Tie-break rule:** when two types fit, pick the one that signals more
 risk — `fix` outranks `test`, `feat` outranks `refactor`, `revert` outranks
-everything. The reader should never be surprised by what's inside.
+everything.
 
 ### 3. Pick (or skip) the scope
 
-Scope is **optional** and lives in parentheses after the type:
+Scope is optional and goes in parentheses after the type:
 
 ```
 feat(auth): add session timeout handling
@@ -119,9 +119,9 @@ The summary is the part after `: ` on the header line.
 - **Self-contained** — should make sense without reading the body or diff
 
 **Quality rules:**
-- Describe *what changed*, not *what you did* — "add X" beats "implement X"
-- Skip filler verbs like "update", "improve", "refactor" unless that's
-  literally the change — they convey almost nothing
+- Describe what changed, not what you did — "add X" beats "implement X"
+- Skip filler verbs like "update", "improve", "refactor" unless that is
+  literally the change
 - If you reach for "and" in the summary, the commit probably needs splitting
 
 **Good vs bad:**
@@ -142,7 +142,7 @@ The summary is the part after `: ` on the header line.
 Skip the body entirely when the summary tells the whole story (typo fixes,
 trivial bumps, formatting). Write a body when any of these apply:
 
-- The *why* isn't obvious from the diff
+- The why isn't obvious from the diff
 - There's a non-obvious trade-off or alternative considered
 - The change has a behavioral knock-on effect a future bisector should know
 - The commit is part of a planned series (reference the others)
@@ -151,7 +151,7 @@ trivial bumps, formatting). Write a body when any of these apply:
 - One blank line between summary and body
 - Wrap at ~72 columns (readability in `git log`, terminal mailers, GitHub)
 - Use prose; bullets are fine for enumerations but don't bullet a single point
-- Explain *why* and *what's notable*, not *what* — the diff already shows what
+- Explain why and what's notable, not what — the diff already shows what
 
 ```
 feat(auth): add session timeout with configurable TTL
@@ -192,9 +192,9 @@ The response shape changes from `{user: {...}}` to `{account: {...}}`,
 and the `email` field is renamed to `primary_email`.
 ```
 
-Note the `!` after the scope — it's an alternative to the `BREAKING CHANGE:`
-footer that some tools recognize. Use **both** for maximum compatibility:
-the `!` for visual scanning, the footer for semver tools.
+The `!` after the scope is an alternative to the `BREAKING CHANGE:`
+footer that some tools recognize. Use both: the `!` for visual scanning, the
+footer for semver tools.
 
 Writ-spec reference example:
 
@@ -261,5 +261,4 @@ adds activity-based TTL extension.
 | `[FEAT] add session timeout` | Wrong format unless the project's existing commits use this style — then match it |
 | Header > 72 chars | Truncates in `git log --oneline`, GitHub PR titles, email clients |
 
-When the diff doesn't cleanly map to a single message, the answer is to split
-the commit, not to compress two stories into one summary.
+When the diff doesn't map to a single message, split the commit.

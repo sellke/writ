@@ -27,7 +27,7 @@ Conduct systematic research through four progressive phases — scoping, discove
 
 ## Search Tooling
 
-Exa produces higher-quality results with richer content extraction. If the **Exa skill** is listed in available skills, read it first and use Exa as your primary search engine.
+Exa extracts fuller page content than `web_search`. If the **Exa skill** is listed in available skills, read it first and use Exa as your primary search engine.
 
 | Tool | When | Key Advantage |
 |---|---|---|
@@ -51,7 +51,7 @@ Exa produces higher-quality results with richer content extraction. If the **Exa
 
 ### Phase 1: Define Research Scope
 
-Establish clear boundaries before searching anything. This phase prevents the most common research failure: going broad and shallow instead of targeted and deep.
+Establish boundaries before searching anything. Without scope, research goes broad and shallow.
 
 1. Define primary research questions — specific enough to know when they're answered
 2. Identify who needs this research and what decisions it informs
@@ -63,14 +63,14 @@ Good research questions are falsifiable. "Is React good?" is vague. "Does React'
 
 ### Phase 2: Initial Discovery
 
-Map the topic landscape broadly. The goal is orientation, not depth — identify themes, key players, terminology, and knowledge gaps that Phase 3 will address.
+Map the topic broadly. The goal is orientation, not depth — identify themes, key players, terminology, and knowledge gaps that Phase 3 will address.
 
 **With Exa:**
 
 - Start with `/answer`: `"What is [topic] and what are the current best practices?"`
 - Follow with `/search` using broad queries and `type: "auto"`
 - Use `category: "news"` for recent developments
-- Request `highlights` (not full text) to scan many results without burning tokens
+- Request `highlights` (not full text) to scan many results at low token cost
 
 **Without Exa:**
 
@@ -78,7 +78,7 @@ Map the topic landscape broadly. The goal is orientation, not depth — identify
 - Prioritize authoritative sources: documentation, whitepapers, industry reports
 - Note recurring themes and terminology for Phase 3
 
-End Phase 2 by listing specific questions for Phase 3. This sharpening step is what makes the deep dive productive rather than wandering.
+End Phase 2 by listing specific questions for Phase 3.
 
 ### Phase 3: Deep Dive Analysis
 
@@ -98,17 +98,17 @@ Investigate specific sub-topics surfaced in Phase 2 — implementation details, 
 - Search for: "[approach] vs [alternative]", "[topic] case study", "[topic] performance"
 - Actively seek criticism and limitations, not just benefits
 
-Cross-reference key claims across sources. A finding supported by one blog post is an anecdote; supported by three independent sources, it's evidence.
+Cross-reference key claims across sources. A claim backed by one source is unconfirmed; three independent sources make it evidence.
 
-**Explaining code the deep dive turns up:** When the investigation hinges on understanding an internal function, class, file, or module rather than external sources, `Read skills/code-explanation/SKILL.md` for the structured, depth-scaled explanation technique (purpose first, then a mechanics walkthrough, then context, with diagrams and complexity notes only when they earn their place). This command owns *when* an explanation is warranted — a codebase artifact material to the research question — and *which* target to read; the skill owns *how* to explain it well.
+**Explaining code the deep dive turns up:** When the investigation hinges on understanding an internal function, class, file, or module rather than external sources, `Read skills/code-explanation/SKILL.md` for the structured, depth-scaled explanation technique (purpose first, then a mechanics walkthrough, then context, with diagrams and complexity notes only when needed). This command owns when an explanation is warranted — a codebase artifact material to the research question — and which target to read; the skill owns how to explain it.
 
 ### Phase 4: Synthesis and Recommendations
 
 Transform raw findings into an actionable research document. Synthesis means connecting findings to the original questions and forming a position — not restating what each source said.
 
 1. Distill findings into key insights that directly answer Phase 1's research questions
-2. Build options analysis with honest pros/cons and effort/risk assessment
-3. Form recommendations with clear rationale — explain *why*, not just *what*
+2. Build options analysis with pros, cons, and effort/risk assessment
+3. Form recommendations with rationale — explain why, not just what
 4. Identify remaining unknowns and flag where further research is needed
 5. Determine current date and create the output document (see Output below)
 
@@ -123,8 +123,6 @@ Calibrate effort to the decision's stakes and reversibility. Not all research ne
 | Low-stakes or easily reversible (convention, minor tool choice) | Abbreviated — Phase 1 + lightweight Phase 2, skip deep dive if answer is clear |
 | Exploratory / learning-oriented | Emphasis on Phase 2 breadth, Phase 3 on most promising directions |
 
-Over-researching a trivial decision wastes tokens and time. Under-researching a critical one creates expensive mistakes.
-
 ## Output
 
 **Date:** Use `npx @sellke/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
@@ -133,30 +131,30 @@ Over-researching a trivial decision wastes tokens and time. Under-researching a 
 
 ### Research Document Quality Bar
 
-These are quality principles, not a template. Structure the document naturally — every section must meet its bar.
+These are quality principles, not a template. Structure the document as the topic requires; every section must meet its bar.
 
 | Section | Quality Bar |
 |---|---|
 | **Research Questions** | Specific, scoped questions this research answers — not vague topic labels |
 | **Executive Summary** | 2-3 paragraphs a busy stakeholder can read and act on. Lead with findings and recommendation, not background |
 | **Key Findings** | Each finding backed by evidence (sources, data, quotes) with implications for the decision at hand |
-| **Options Analysis** | Each option: pros, cons, effort/cost, risk level. Honest — don't sandbag the option you didn't pick |
+| **Options Analysis** | Each option: pros, cons, effort/cost, risk level. Do not sandbag the option you didn't pick |
 | **Recommendations** | Primary recommendation with rationale. Alternatives if primary isn't feasible. Implementation considerations |
-| **Risks & Mitigation** | Specific risks with concrete mitigations — not generic "things could go wrong" |
-| **Further Research** | Honest about what questions remain unanswered and why they matter |
+| **Risks & Mitigation** | Specific risks with concrete mitigations |
+| **Further Research** | Which questions remain unanswered and why they matter |
 | **Sources** | Every claim traceable to a source with URL. No orphaned assertions |
 
 ## Exa Tips
 
-Non-obvious tips that meaningfully improve research quality:
+Tips:
 
 - **`type: "auto"` is the safe default** — built-in fallback between neural and keyword search
-- **`highlights` for scanning, `text` for reading** — don't request full text on exploratory queries; this is the #1 token-saving lever
+- **`highlights` for scanning, `text` for reading** — don't request full text on exploratory queries; this is the largest token saving
 - **Set `max_characters` on text content** (10000–20000) to avoid token blowout on long pages
 - **Run parallel searches with different categories** to cover more ground in fewer round trips
 - **`/answer` for factual questions, `/search` for open-ended exploration** — different engines, different strengths
 - **Combine `startPublishedDate` with `category: "news"`** for current events research
-- **`excludeDomains` is underused** — filter out content farms and SEO-bait sites to improve signal
+- **Use `excludeDomains`** to filter out content farms and SEO-bait sites
 
 ---
 

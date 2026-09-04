@@ -13,26 +13,23 @@ status_evidence: "Extracted 2026-07-10 from create-spec Step 2.8. 1 consumer (co
 Turn a data-flow feature's failure surface into a small set of explicit tables —
 an **Error & Rescue Map**, **Shadow Paths**, and **Interaction Edge Cases** — so
 that every way the feature can fail has a *planned* response before any code is
-written. The defining move is the **`[UNPLANNED]` marker**: any failure whose
-handling has not been decided is marked in place, forcing a real decision rather
-than a silent gap.
+written. Any failure whose handling has not been decided is marked
+`[UNPLANNED]` in place, so the gap is visible and must be decided.
 
-This capability owns *how to build the failure map*. The consumer owns *when* to
+This capability covers how to build the failure map. The consumer decides when to
 build one — which features warrant it and which sub-specs carry it. The tables
-are deliberately written in the same shape a code reviewer would use to describe
-a diff's actual handling, so the plan and the eventual code can be compared cell
-for cell.
+use the same shape a code reviewer uses to describe a diff's handling, so the
+plan and the code can be compared cell for cell.
 
 ## When to Use
 
 - Specifying or reviewing a feature that touches real data flow: API routes,
   auth flows, payments, file operations, or external integrations.
-- Any point where "what happens when this fails?" must be answered before build,
-  not discovered in production.
+- Any point where "what happens when this fails?" must be answered before build.
 - Preparing a plan that a later review pass will compare against actual code —
   the shared table shape makes the comparison mechanical.
 - Not warranted for pure UI/CSS, documentation, configuration, or internal
-  refactors with no failure surface; when genuinely in doubt, build the map.
+  refactors with no failure surface; when in doubt, build the map.
 
 ## How to Apply
 
@@ -40,9 +37,9 @@ for cell.
 
 Every cell is written from the outside in. "422 with inline field errors" and
 "503 with a retry prompt" are user-visible outcomes; "throws ValidationError" is
-an internal mechanism and does not belong in these tables. This framing is what
-lets a non-implementer read the map and what lets a reviewer check the code
-against a promise about behavior rather than about internals.
+an internal mechanism and does not belong in these tables. This lets a
+non-implementer read the map and lets a reviewer check the code against stated
+behavior.
 
 ### 1. Error & Rescue Map
 
@@ -56,31 +53,26 @@ most and cost most.
 | Create session | DB unavailable | Retry 3×, then a clear error page | Integration test with the DB down |
 
 When the planned handling for a failure has **not** been decided, write
-`[UNPLANNED]` in that cell rather than inventing an answer. The `[UNPLANNED]`
-marker is the highest-value output of the whole technique: it converts a hidden
-gap into a visible decision. Every `[UNPLANNED]` must be resolved before
-implementation — either by filling in real handling or by declaring it
-`[OUT OF SCOPE — reason]` so the omission is deliberate and recorded. A plan
-that still carries an unresolved `[UNPLANNED]` is not ready to build.
+`[UNPLANNED]` in that cell rather than inventing an answer. Every `[UNPLANNED]`
+must be resolved before implementation — either by filling in real handling or
+by declaring it `[OUT OF SCOPE — reason]` so the omission is deliberate and
+recorded. A plan with an unresolved `[UNPLANNED]` is not ready to build.
 
 ### 2. Shadow Paths
 
-The happy path is one column; the failure columns are the shadows that get
-skipped in casual planning. One row per flow, each cell a user-visible outcome.
+One row per flow; one column for the happy path and one per failure input. Each
+cell is a user-visible outcome.
 
 | Flow | Happy Path | Nil Input | Empty Input | Upstream Error |
 |---|---|---|---|---|
 | User registration | Account created → welcome email | 422 + field errors | 422 + "required" message | 503 + retry prompt |
 
-Nil, empty, and upstream-error inputs are where real systems break; naming the
-user-visible outcome for each forces the design to account for them up front.
-
 ### 3. Interaction Edge Cases
 
 The standard four for any interactive feature — double-submit, rapid repeat,
-stale/expired state, and concurrent action — plus whatever is specific to *this*
+stale/expired state, and concurrent action — plus whatever is specific to this
 feature. A payment form needs "card declined"; a search box needs "rapid
-keystrokes." The feature-specific rows are the ones worth the most thought.
+keystrokes."
 
 | Edge Case | Planned Handling |
 |---|---|
@@ -88,12 +80,9 @@ keystrokes." The feature-specific rows are the ones worth the most thought.
 
 ### Shared shape enables drift detection
 
-Because these tables are written in the same structure a reviewer uses to
-describe a diff, they double as a contract: a reviewer compares the map to the
-code's actual handling, and any discrepancy is a **drift signal**. An
-`[UNPLANNED]` that reaches code still unhandled, or a planned rescue the code
-never implements, is a critical gap — not a stylistic nit. Keeping the plan and
-the review in one shape is what makes that comparison cheap and honest.
+A reviewer compares the map to the code's actual handling; any discrepancy is a
+**drift signal**. An `[UNPLANNED]` that reaches code still unhandled, or a
+planned rescue the code never implements, is a critical gap.
 
 ## Examples
 
@@ -107,7 +96,7 @@ the review in one shape is what makes that comparison cheap and honest.
 | Charge card (Stripe) | Webhook never arrives| [UNPLANNED]                      | —                        |
 ```
 
-The `[UNPLANNED]` webhook row is the point of the exercise: it must become real
+The `[UNPLANNED]` webhook row must become real
 handling ("reconcile via a scheduled poll after 10 min") or an explicit
 `[OUT OF SCOPE — reconciliation handled by billing service]` before build.
 

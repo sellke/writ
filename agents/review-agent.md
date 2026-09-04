@@ -111,7 +111,7 @@ If `boundary_map` is empty, whitespace-only, or `(none)`, **ignore** this entire
 Review against the categories below. Depth per category is governed by the Change Surface table above. **Boundary Compliance** applies only when a non-empty `boundary_map` was provided.
 
 ### 1. Acceptance Criteria (primary gate)
-Verify each criterion is satisfied by the implementation. This is non-negotiable — every criterion must map to working code and a passing test.
+Verify each criterion is satisfied by the implementation. Every criterion must map to working code and a passing test.
 {acceptance_criteria_with_checkboxes}
 
 ### 2. Code Quality
@@ -131,12 +131,12 @@ No breaking changes to public APIs. No circular dependencies. Migrations include
 Compare **files created/modified** (from the coding agent summary) against **Owned / Readable / Out-of-scope** in the boundary map.
 
 - **Owned** changes — no boundary issue.
-- **Readable** changes — acceptable only if the coding agent documented a **BOUNDARY_DEVIATION** with a **credible reason** (e.g. required type export). Judge **justified** vs **unjustified** scope creep.
-- **Out-of-scope** changes — treat as **high risk**; **unjustified** violations should be **Major** findings (or **Critical** if they break contract or security). Justified violations should be **rare** and explicitly argued.
+- **Readable** changes — acceptable only if the coding agent documented a **BOUNDARY_DEVIATION** with a credible reason (e.g. required type export). Judge whether the scope creep is justified or unjustified.
+- **Out-of-scope** changes — treat as high risk; unjustified violations are **Major** findings (or **Critical** if they break contract or security). Justified violations should be rare and explicitly argued.
 
-**High-overlap** and **overlap** annotations: apply **stricter** scrutiny to integration and justification for any file touching those paths.
+**High-overlap** and **overlap** annotations: apply stricter scrutiny to integration and justification for any file touching those paths.
 
-**Do not** auto-FAIL solely for a justified deviation. **Do** FAIL (or flag Major) for unjustified violations.
+Do not auto-FAIL solely for a justified deviation. FAIL (or flag Major) for unjustified violations.
 
 ### 7. Drift Analysis (Spec Healing)
 
@@ -242,7 +242,7 @@ _If no `boundary_map` was provided, write a single line: **Not applicable** (no 
 
 ## Drift Analysis
 
-The review agent performs **spec drift detection** — comparing the implementation against the spec contract (`spec_lite_content`) to identify deviations. This is purely **additive**: all existing review duties (acceptance criteria, code quality, security, test coverage, integration) are performed regardless of drift findings.
+The review agent performs **spec drift detection** — comparing the implementation against the spec contract (`spec_lite_content`) to identify deviations. This is additive: all existing review duties (acceptance criteria, code quality, security, test coverage, integration) are performed regardless of drift findings.
 
 ### Severity Classification
 
@@ -272,7 +272,7 @@ The review agent performs **spec drift detection** — comparing the implementat
 ### REVIEW_RESULT: PASS
 
 ### Summary
-All acceptance criteria satisfied. Code follows existing patterns, comprehensive test coverage, no security concerns. One cosmetic spec deviation (function renamed).
+All acceptance criteria satisfied. Code follows existing patterns, all criteria covered by tests, no security concerns. One cosmetic spec deviation (function renamed).
 
 ### Checklist Results
 
@@ -287,7 +287,7 @@ Clean. Follows existing patterns, proper error handling, no debug artifacts.
 **Risk Level:** Clean — zod validation, bcrypt hashing, httpOnly session cookies.
 
 #### Test Coverage
-All criteria covered. Error and edge case paths tested. Assertions are meaningful.
+All criteria covered. Error and edge case paths tested. No vacuous assertions.
 
 #### Integration
 Migration included for `users` table. `AUTH_SECRET` env var documented in `.env.example`. No breaking changes.

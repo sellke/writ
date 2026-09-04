@@ -12,7 +12,7 @@ status: candidate
 Decide what happens when what was built differs from what the contract said.
 Every deviation gets one of three severities, and the severity decides the
 route: auto-amend the lightweight artifact, warn and carry on, or stop and ask a
-human. The decision comes from a stated rule, not from whoever noticed.
+human.
 
 > **Format reference:** `.writ/docs/drift-report-format.md` is the authority on
 > the drift-log entry's shape. This capability decides severity and routing; it

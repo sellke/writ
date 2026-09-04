@@ -14,14 +14,14 @@ exit_criteria:
 
 ## Overview
 
-Session orientation command. Reads stable project state — config, active spec, in-flight batch work, and refresh opportunities — and produces a skimmable report that tells you exactly where you are and what to do next. Under 10 seconds. No convention-detection questions when `.writ/config.md` is present.
+Session orientation command. Reads stable project state (config, active spec, in-flight batch work, refresh opportunities) and produces a skimmable report of where you are and what to do next. Under 10 seconds. No convention-detection questions when `.writ/config.md` is present.
 
 ## Required Artifacts
 
 Verify per the preamble's **Artifact Integrity** rule before starting.
 
-- **Required:** none — `/status` runs in any git repository and degrades per-section.
-- **Optional:** everything (`.writ/config.md`, product docs, specs, issues) — each section omits gracefully when its source is absent.
+- **Required:** none. `/status` runs in any git repository and degrades per section.
+- **Optional:** everything (`.writ/config.md`, product docs, specs, issues); each section is omitted when its source is absent.
 
 ## Invocation
 
@@ -33,9 +33,9 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | Invocation | Behavior |
 |---|---|
 | `/status` | Standard orientation report (Steps 1–9 below). Never archives anything. |
-| `/status --archive` | Runs the standard orientation report, then the **archive sweep** (see [Archive Sweep](#archive-sweep---archive) below) as an explicit, deliberate additional phase. |
+| `/status --archive` | Runs the standard orientation report, then the **archive sweep** (see [Archive Sweep](#archive-sweep---archive) below) as an additional phase. |
 
-`--archive` is opt-in only — routine `/status` (no flag) never triggers archival as a side effect, per Business Rule 2.
+`--archive` is opt-in only: routine `/status` (no flag) never triggers archival as a side effect, per Business Rule 2.
 
 ---
 
@@ -49,7 +49,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 - `Writ Specs` — path to spec folder (default: `.writ/specs/`)
 - `Writ Issues` — path to issues folder (default: `.writ/issues/`)
 
-If `.writ/config.md` is **missing or incomplete** for any needed key, run detection for that key only. After detection, offer once: *"Save detected conventions to `.writ/config.md`? (y/n)"* — only write on **y**. Never auto-save.
+If `.writ/config.md` is **missing or incomplete** for any needed key, run detection for that key only. After detection, offer once: *"Save detected conventions to `.writ/config.md`? (y/n)"*. Write only on **y**; never auto-save.
 
 See `.writ/docs/config-format.md` for the key reference and file format.
 
@@ -73,16 +73,16 @@ Extract: branch name, commits ahead/behind default branch, last commit message a
 git log --notes=writ -1 --format="%h %cs" $(git notes --ref=writ list 2>/dev/null | awk '{print $2}') 2>/dev/null
 ```
 
-If at least one Writ audit note exists, add one line to the CURRENT POSITION output —
-short SHA of the noted commit, the spec title from the note's `Spec:` line, and the
-note date:
+If at least one Writ audit note exists, add one line to the CURRENT POSITION output:
+the short SHA of the noted commit, the spec title from the note's `Spec:` line, and
+the note date:
 
 ```
 📝 Last audit note: {short-sha} — {spec title} ({date})
 ```
 
-If no `refs/notes/writ` notes exist (empty ref), **omit the line entirely**. This is
-read-only — `/status` never writes or syncs notes.
+If no `refs/notes/writ` notes exist (empty ref), omit the line entirely. This is
+read-only: `/status` never writes or syncs notes.
 
 ### Step 3: Detect Active Spec
 
@@ -93,11 +93,11 @@ ls -t .writ/specs/*/spec.md
 
 For the most recently modified spec that does not resolve to **complete-family**
 under the format-tolerant classification in `scripts/spec-status.py` (see
-[Spec Detection](#spec-detection) below — recognizes bold/unbold `Status:` labels
+[Spec Detection](#spec-detection) below, which recognizes bold/unbold `Status:` labels
 and `Complete` / `Completed ✅` / `Closed — Abandoned` as complete-family; an absent
 status header conservatively resolves not-complete):
-1. Read `spec.md` header — name, status, phase, owner
-2. Read `user-stories/README.md` — overall progress (X/Y tasks, Z%)
+1. Read `spec.md` header: name, status, phase, owner
+2. Read `user-stories/README.md`: overall progress (X/Y tasks, Z%)
 3. Find the active story: `In Progress` status, or first `Not Started` if none in progress
 4. Read active story file — next unchecked task
 
@@ -136,7 +136,7 @@ python3 scripts/phase-state.py health   --state <phase-execution-*.json> --repo 
   (`pending`, `implementing`, `integrated`, `failed`, `quarantined`, `skipped_blocked`,
   `challenge_required`, `closed_not_implemented`), and any **quarantine** branches so the
   maintainer can see preserved failed work and its recovery path. Report a
-  `closed_not_implemented` spec as **closed by decision** with its recorded reason — never
+  `closed_not_implemented` spec as **closed by decision** with its recorded reason, never
   as work in flight. When a spec is `skipped_blocked`, say which cause blocked it
   (`quarantined` or `closed_not_implemented`, from the reducer's `blocked` map): `blockedBy`
   means "upstream reached a terminal status without delivering", so a reader told only
@@ -145,7 +145,7 @@ python3 scripts/phase-state.py health   --state <phase-execution-*.json> --repo 
   `Warning` / `Attention`) computed from locally available evidence. Missing or stale
   evidence is reported as a Warning (never a silent pass); `Attention` means an
   affirmative current failure. Surface the `unavailable` and `failures` lists verbatim
-  so the maintainer sees *why*.
+  so the maintainer sees why.
 
 This is a read-only recovery summary; `/status` never renames, merges, or deletes branches, and health never runs deep, external, or mutating checks.
 
@@ -176,11 +176,11 @@ If no issues qualify (all are recent or already have spec_ref), omit this sectio
 
 ### Step 6: Surface Refresh Opportunities
 
-Check `.writ/refresh-log.md` (the canonical, committed refresh log maintained by `/refresh-command`). This is read-only surfacing — `/status` never runs a refresh itself.
+Check `.writ/refresh-log.md` (the canonical, committed refresh log maintained by `/refresh-command`). This is read-only surfacing; `/status` never runs a refresh itself.
 
 **How "last refresh" is determined:** For each command, find the most recent entry in `.writ/refresh-log.md` matching that command name (e.g., a line starting with `## [DATE] — /implement-story refreshed`). The date on that line is the last refresh timestamp. If no entry exists for a command, treat the command as never refreshed.
 
-**How staleness is judged:** `/refresh-command` is human-driven — the maintainer runs a command, notices friction, and refreshes it with cited transcript evidence. `/status` does not scan or ingest transcripts. Instead, surface commands the maintainer has used recently in this project but not refreshed in a while (by the log dates above), so they can decide whether a refresh is worth running.
+**How staleness is judged:** `/refresh-command` is human-driven: the maintainer runs a command, notices friction, and refreshes it with cited transcript evidence. `/status` does not scan or ingest transcripts. Instead, surface commands the maintainer has used recently in this project but not refreshed in a while (by the log dates above), so they can decide whether a refresh is worth running.
 
 **Report format (one line per command):**
 ```
@@ -191,33 +191,33 @@ Check `.writ/refresh-log.md` (the canonical, committed refresh log maintained by
 
 If nothing looks stale, omit this section.
 
-If `.writ/refresh-log.md` does not exist yet, omit this section silently — no error.
+If `.writ/refresh-log.md` does not exist yet, omit this section silently, with no error.
 
 ### Step 7: Project Health Signals
 
-Quick checks — run only what's fast and relevant:
+Quick checks; run only what is fast and relevant:
 - **Uncommitted changes:** flag count if > 0
-- **Merge conflicts:** `git status --porcelain` — flag if `UU` entries exist
+- **Merge conflicts:** `git status --porcelain`; flag if `UU` entries exist
 - **Stashed changes:** flag count if > 0
 - **Branch age:** flag if branch was last committed > 5 days ago and has uncommitted changes
 
-Do **not** run build or test commands inline in `/status` — those belong in `/release` and `/implement-story`.
+Do not run build or test commands inline in `/status`; those belong in `/release` and `/implement-story`.
 
-**Quality configuration:** run `python3 scripts/quality-config-audit.py check --project .` — pure file reads, no subprocess, which is why this one and **not** `test-integrity.py coverage` or `build-smoke.py` may appear here; those execute tooling and would breach the terminal constraint below.
+**Quality configuration:** run `python3 scripts/quality-config-audit.py check --project .`. It is pure file reads with no subprocess, so it may appear here while `test-integrity.py coverage` and `build-smoke.py` may not; those execute tooling and would breach the terminal constraint below.
 
-Render one line using the health vocabulary Step 4 already uses — `Healthy` when the verdict is `pass`, `Warning` when `unverifiable`, `Attention` when `fail` — with the count of findings **not** in `.writ/quality-baseline.md`:
+Render one line using the health vocabulary Step 4 already uses (`Healthy` when the verdict is `pass`, `Warning` when `unverifiable`, `Attention` when `fail`) with the count of findings not in `.writ/quality-baseline.md`:
 
 ```
 Quality config: Attention — 2 new findings (3 baselined). `build_gate_disabled` next.
 ```
 
-Surface the count and the newest finding code only; the enumeration lives in the baseline file. A block listing forty baselined items defeats a command meant to orient in under ten seconds.
+Surface the count and the newest finding code only; the full list is in the baseline file.
 
-**Omit the line entirely** when there are no findings, when `.writ/quality-baseline.md` is absent, or when the checker reports `unsupported_stack` — matching how Step 4's phase-health block and Step 5's stale-issue block already behave. An empty rendered block is worse than no block.
+**Omit the line entirely** when there are no findings, when `.writ/quality-baseline.md` is absent, or when the checker reports `unsupported_stack`, matching how Step 4's phase-health block and Step 5's stale-issue block behave.
 
 ### Step 8: Regenerate `.writ/context.md`
 
-After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using the schema defined in `implement-story.md` Step 2. Each `/status` run replaces the entire file — no append, merge, or patch. Sources:
+After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using the schema defined in `implement-story.md` Step 2. Each `/status` run replaces the entire file; no append, merge, or patch. Sources:
 
 - **Product Mission** — 1–3 sentences from `.writ/product/mission-lite.md` (omit section if absent)
 - **Active Spec** — spec id, title, status, active story N of M, tasks X/Y complete (from Steps 3–4)
@@ -225,8 +225,6 @@ After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using 
 - **Recent Drift** — last 3 entries from `.writ/specs/{spec}/drift-log.md` (omit if absent)
 - **Open Issues** — count from `.writ/issues/` (omit if absent)
 - **Last Updated** — current ISO 8601 timestamp
-
-This ensures every agent run that follows a `/status` call starts with fresh, accurate context.
 
 ### Step 9: Suggest Next Actions
 
@@ -246,7 +244,7 @@ Based on the gathered state, produce 2–4 suggested next actions. Rules:
 | Quality-config findings, no `.writ/quality-baseline.md` (Step 7) | `/initialize` to record the baseline |
 | New quality-config findings against an existing baseline (Step 7) | Fix the finding, or add a dated entry with a rationale to `.writ/quality-baseline.md` |
 
-**Command allowlist — only suggest commands that exist in the suite:**
+**Command allowlist (only suggest commands that exist in the suite):**
 `/create-spec`, `/implement-story`, `/implement-spec`, `/implement-phase`, `/prototype`, `/review`, `/verify-spec`, `/refresh-command`, `/assess-spec`, `/ship`, `/release`, `/plan-product`, `/design`, `/research`, `/refactor`, `/status`, `/new-command`, `/new-skill`, `/initialize`, `/create-adr`, `/create-issue`, `/create-uat-plan`, `/edit-spec`, `/knowledge`, `/migrate`, `/retro`, `/security-audit`, `/update-writ`, `/reinstall-writ`, `/uninstall-writ`
 
 Never suggest a command not in this list. If you need to suggest something that doesn't match an existing command, describe the action in plain English instead (e.g., "Resolve merge conflicts manually").
@@ -255,7 +253,7 @@ Never suggest a command not in this list. If you need to suggest something that 
 
 ### Archive Sweep (`--archive`)
 
-> Only runs when `/status --archive` is explicitly invoked — never as a side effect of routine `/status`, `create-spec`, or `implement-spec` (Business Rule 2). See `.writ/docs/spec-lifecycle.md` for the full convention this step implements.
+> Only runs when `/status --archive` is explicitly invoked, never as a side effect of routine `/status`, `create-spec`, or `implement-spec` (Business Rule 2). See `.writ/docs/spec-lifecycle.md` for the full convention this step implements.
 
 When `--archive` is present, run this as an additional phase **after** Step 9:
 
@@ -263,10 +261,10 @@ When `--archive` is present, run this as an additional phase **after** Step 9:
    ```bash
    python3 scripts/archive-sweep.py sweep --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root .
    ```
-   For each spec under `.writ/specs/*/spec.md` (single-level glob — never recurse into `archive/`), the reducer:
+   For each spec under `.writ/specs/*/spec.md` (single-level glob; never recurse into `archive/`), the reducer:
    - Classifies complete-family status via `scripts/spec-status.py` (Story 1's format-tolerant detector).
-   - Checks eligibility: **complete-family status, alone** (Amendment 2026-08-04 to Business Rule 1 — knowledge evidence is no longer a gate). It also looks up whether any `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name, purely to record it on the ledger line as enrichment.
-   - Moves each eligible spec via `git mv .writ/specs/<name> .writ/specs/archive/<name>` and appends one line to `.writ/specs/archive/LEDGER.md` (created on first use, committed to git — never `.writ/state/`) — the evidence field reads "no knowledge evidence yet" when none exists.
+   - Checks eligibility: **complete-family status, alone** (Amendment 2026-08-04 to Business Rule 1: knowledge evidence is no longer a gate). It also looks up whether any `.writ/knowledge/{decisions,conventions,glossary,lessons}/*.md` entry's `related_artifacts` frontmatter references the spec's folder name, purely to record it on the ledger line as enrichment.
+   - Moves each eligible spec via `git mv .writ/specs/<name> .writ/specs/archive/<name>` and appends one line to `.writ/specs/archive/LEDGER.md` (created on first use, committed to git, never `.writ/state/`); the evidence field reads "no knowledge evidence yet" when none exists.
    - Skips (never fails) on a destination collision or a `git mv` failure for that one spec, naming it in output, and continues the sweep for the rest.
 2. **Report the terminal summary** from the reducer's JSON `summary` field, e.g.:
    ```
@@ -274,15 +272,15 @@ When `--archive` is present, run this as an additional phase **after** Step 9:
       • Archived: 2026-04-24-phase4-production-grade-substrate (evidence: 6 knowledge entries)
       • Archived: 2026-07-18-artifact-integrity-handshake (evidence: no knowledge evidence yet)
    ```
-   If any collisions or `git mv` failures occurred, list them by name under a `⚠️` line — the sweep still completes for the rest.
-3. **No confirmation prompt per spec.** Reversibility — a plain `git mv` plus a committed, append-only ledger — substitutes for a human "are you sure" (Business Rule 2) — this step never pauses to ask before moving an eligible spec.
-4. **Idempotent by construction.** A spec already under `.writ/specs/archive/<name>/` no longer appears in the next sweep's `.writ/specs/*/spec.md` scan at all — running `/status --archive` twice in a row is a clean no-op the second time.
+   If any collisions or `git mv` failures occurred, list them by name under a `⚠️` line; the sweep still completes for the rest.
+3. **No confirmation prompt per spec.** Reversibility (a plain `git mv` plus a committed, append-only ledger) substitutes for a confirmation prompt (Business Rule 2).
+4. **Idempotent by construction.** A spec already under `.writ/specs/archive/<name>/` does not appear in the next sweep's `.writ/specs/*/spec.md` scan; running `/status --archive` twice in a row is a no-op the second time.
 
 ---
 
 ## Output Format
 
-Present as **clean, formatted text** — not wrapped in code blocks. Use Unicode characters and box-drawing for visual clarity.
+Present as formatted text, not wrapped in code blocks. Use Unicode characters and box-drawing for visual clarity.
 
 ### Standard Output
 
@@ -424,7 +422,7 @@ grep -c "^\- \[[x ]\]" "$STORY_FILE" # total
 
 ### In-Flight Batch Job Parsing
 
-Read `.writ/state/execution-*.json` — fields to extract:
+Read `.writ/state/execution-*.json`; fields to extract:
 
 | JSON field | Used for |
 |---|---|
@@ -457,7 +455,7 @@ If a new command is added to the suite, add it here. If a command is removed, re
 
 ### No Writ Structure
 
-The report still runs — git position, health signals, and suggested next actions work without `.writ/`. Simply omit the ACTIVE WORK section and adjust suggestions accordingly.
+The report still runs: git position, health signals, and suggested next actions work without `.writ/`. Omit the ACTIVE WORK section and adjust suggestions accordingly.
 
 ### Corrupted or Partial Spec State
 
@@ -487,9 +485,9 @@ If spec files exist but cannot be parsed (malformed README, missing story files)
 
 This command succeeds when `.writ/context.md` has been rewritten with an Active Spec section, an Artifact Map, and a current timestamp, and the report ends with two to four suggested next actions.
 
-No active spec is a valid outcome. The report says so plainly rather than searching harder for one.
+No active spec is a valid outcome; report it rather than searching harder for one.
 
-**Terminal constraint:** This command orients and nothing else — it reads state files without writing them and runs no build, test, or git-mutating command. Do not begin the next action it suggests.
+**Terminal constraint:** This command only orients: it reads state files without writing them and runs no build, test, or git-mutating command. Do not begin the next action it suggests.
 
 ---
 

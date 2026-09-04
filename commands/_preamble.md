@@ -6,8 +6,8 @@ disable-model-invocation: true
 
 # Writ Command Preamble
 
-> Every command in `commands/` references this file. Standing instructions that
-> apply across the surface area live here, not duplicated per command.
+> Every command in `commands/` references this file. It holds the standing
+> instructions that apply to every command, so they are not duplicated per command.
 
 ## Plan Mode Integrity
 
@@ -60,7 +60,7 @@ Extends ADR-013's select-or-pause boundary above; it does not replace it.
 
 **Reversibility precondition.** A destructive-class operation runs unattended **only when both hold**: (1) its effect is provably git-revertable — confined to tracked files with a resolvable revert target; (2) the restore path is recorded **before** the mutation. If either fails, it **pauses** with a bounded `AskQuestion`.
 
-**Stakes triage (ADR-023).** Before spending diligence on any decision — a read, a gate, a question, a verification step — answer two questions from what you already know. **Does the answer change what happens?** If no, it is not a decision: drop it. **How bad if it's wrong?** Reversible and contained → decide, act, record, no verification step. Irreversible or wide blast radius → full rigor, and the gate class above applies. The triage must cost less than the decision it governs; if answering it needs investigation, that *is* the answer — escalate. No universal exchange rate exists between a decision and its cost, so don't seek one. **Safety gates are never capped by count** — rarity is not irrelevance; a gate names the failure it catches and the cost of missing it, and one that can name neither is the candidate for removal.
+**Stakes triage (ADR-023).** Before spending diligence on any decision — a read, a gate, a question, a verification step — answer two questions from what you already know. **Does the answer change what happens?** If no, it is not a decision: drop it. **How bad if it's wrong?** Reversible and contained → decide, act, record, no verification step. Irreversible or wide blast radius → full rigor, and the gate class above applies. The triage must cost less than the decision it governs; if answering it needs investigation, that is the answer: escalate. Do not look for a universal ratio between a decision's stakes and its cost; none exists. **Safety gates are never capped by count.** A rare failure still justifies its gate. Each gate names the failure it catches and the cost of missing it; a gate that can name neither is the candidate for removal.
 
 ## File Organization
 
@@ -87,7 +87,7 @@ Creating commands: roadmap/`mission.md` → `/plan-product`; `.writ/docs/` → `
 ## Knowledge Context
 
 Before starting work, load relevant `.writ/knowledge/` entries and treat them as
-first-class context, not optional reading.
+required context.
 
 ## Adapter Neutrality
 

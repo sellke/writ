@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change, ship code with TDD and lint verification — no spec files, no multi-gate ceremony, no pre-flight questions.
+Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change and ship code with TDD and lint verification. No spec files, no multi-gate ceremony, no pre-flight questions.
 
 Use `/prototype` when the cost of creating a specification exceeds the value of the change itself. For anything that touches core architecture, requires cross-team coordination, or spans many files, use `/create-spec` + `/implement-story` instead.
 
@@ -35,7 +35,7 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 | `/prototype "description"` | Explicit inline description |
 | `/prototype @issue-file.md` | Reads the attached issue/file as the change description |
 
-All invocations go straight to Context Scan — no interactive questions. If the input is ambiguous, ask a single clarifying question in natural language rather than presenting a menu.
+All invocations go straight to Context Scan with no interactive questions. If the input is ambiguous, ask a single clarifying question in natural language rather than presenting a menu.
 
 ## Pipeline
 
@@ -81,14 +81,14 @@ Gather lightweight context before coding:
 6. **Sniff nearby rules** — scan for permission checks, validation logic, state machines, or business rules the change must respect. Pass discovered rules to the coding agent.
 7. **Detect UI surface** — classify as UI-touching (triggers Visual Preview)
 
-**UI detection heuristic** — UI-touching if ANY of:
+**UI detection heuristic:** UI-touching if any of:
 - Files match frontend patterns: `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
 - Target area includes: `components/`, `pages/`, `app/`, `views/`, `layouts/`, `screens/`
 - Description contains visual language: "button", "modal", "layout", "form", "page", "dashboard", "sidebar", "card", "table", "nav", "header", "footer", "responsive", "style", "CSS", "UI", "design"
 
-**Figma MCP detection** — if `cursor-ide-browser` MCP and `design-system.md` or Figma MCP server are available, note in context so the coding agent generates token-referenced code instead of hardcoded values.
+**Figma MCP detection:** if `cursor-ide-browser` MCP and `design-system.md` or Figma MCP server are available, note in context so the coding agent generates token-referenced code instead of hardcoded values.
 
-Output a brief context summary (internal — passed to coding agent, not shown to user):
+Output a brief context summary (internal: passed to the coding agent, not shown to the user):
 
 ```
 Context:
@@ -106,12 +106,12 @@ Context:
 
 **Skip entirely if no UI change.** For backend, utility, or non-visual changes, go directly to Step 3.
 
-When a change touches user-facing UI, generate a quick visual preview *before* production code. A 30-second preview that saves 10-15 minutes of rework.
+When a change touches user-facing UI, generate a quick visual preview before production code.
 
 **How it works:**
 
-1. **Generate a canvas-based HTML mockup** using `cursor-ide-browser` canvas tool — live, interactive, approximating the intended UI. Use the project's CSS framework and design tokens from Step 2.
-2. **Keep low-fidelity but structurally accurate.** Layout, hierarchy, flow — not pixel-perfect polish. Placeholder content, approximate colors, real component names as labels. Wireframe-in-code.
+1. **Generate a canvas-based HTML mockup** using the `cursor-ide-browser` canvas tool: live, interactive, approximating the intended UI. Use the project's CSS framework and design tokens from Step 2.
+2. **Keep low-fidelity but structurally accurate.** Show layout, hierarchy, and flow with placeholder content, approximate colors, and real component names as labels. Skip pixel-level polish.
 3. **Present to the user** with a brief description and key design decisions:
 
 ```
@@ -131,10 +131,10 @@ Adjust the layout or interaction pattern before I write production code?
 - Show multiple states if relevant (empty, loading, error, populated)
 - Keep to a single focused screen
 
-**What the canvas is NOT:**
-- Not a design deliverable — it's a conversation starter
-- Not production code — the coding agent builds the real implementation
-- Not required — user can skip if they'd rather just see code
+**Canvas limits:**
+- It gathers layout feedback before coding; it is not a design deliverable
+- The coding agent builds the real implementation
+- The user can skip it
 
 ### Step 3: Spawn Coding Agent
 
@@ -152,12 +152,12 @@ Spawn the coding agent with extracted intent and codebase context.
 
 1. **TDD** — tests first covering core behavior and obvious edge cases
 2. **Match codebase** — follow existing patterns and conventions
-3. **Respect nearby rules** — don't bypass auth, skip validation, or ignore state transitions. Prototype ≠ permission to cut corners on correctness.
-4. **Don't ship only the happy path** — handle error, empty, and loading states. A prototype that crashes on edge cases isn't lightweight — it's broken.
+3. **Respect nearby rules** — don't bypass auth, skip validation, or ignore state transitions.
+4. **Don't ship only the happy path** — handle error, empty, and loading states.
 5. **Keep focused** — prototype scope, not full feature build
 6. **Match visual reference** — if a preview was approved, match its layout and component hierarchy
 
-**Scope escalation signals** — instruct the agent to flag if ANY are true:
+**Scope escalation signals:** instruct the agent to flag if any are true:
 
 - More than 5 files need creation or modification
 - New database schema changes or migrations are required
@@ -185,7 +185,7 @@ Visual preview: [approved / skipped — no UI changes]
 Ready to commit.
 ```
 
-**On scope escalation:** Same as above, plus a ⚠️ block listing the specific flags that triggered, followed by an active escalation offer — not just a note. Present the following:
+**On scope escalation:** Same as above, plus a ⚠️ block listing the specific flags that triggered, followed by the AskQuestion escalation offer below. Present the following:
 
 ```
 ⚠️ Scope Escalation Detected
@@ -216,7 +216,7 @@ AskQuestion({
 })
 ```
 
-If the user selects **"Yes — run /create-spec --from-prototype now"**, immediately invoke the `--from-prototype` flow from `create-spec.md` (no need to re-invoke as a separate command — continue inline).
+If the user selects **"Yes — run /create-spec --from-prototype now"**, immediately invoke the `--from-prototype` flow from `create-spec.md` (continue inline; do not re-invoke it as a separate command).
 
 **On lint/typecheck failure after retries:**
 
@@ -245,7 +245,7 @@ Options: fix manually · retry · discard
 
 This command succeeds when the change sits in the working tree with tests written first, the linter and typechecker run, and no spec folder or story file created for it.
 
-A scope-escalation signal firing is a valid outcome, not a failure — it is named in the summary alongside the `/create-spec --from-prototype` offer, and the decision belongs to the user.
+A scope-escalation signal firing is a valid outcome, not a failure. It is named in the summary alongside the `/create-spec --from-prototype` offer, and the decision belongs to the user.
 
 **Terminal constraint:** This command ships a small change. Do not open a PR, write spec artifacts, or escalate to the story pipeline without an explicit yes.
 

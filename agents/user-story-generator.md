@@ -54,7 +54,7 @@ Task({
   subagent_type: "generalPurpose",
   # model: adapter-resolved from model_tier=floor (ADR-024), never hardcoded
   description: "Create user story {story_number}",
-  prompt: `You are a User Story Generator agent. Create a focused, actionable user story file.
+  prompt: `You are a User Story Generator agent. Create one user story file.
 
 ## Story Details
 

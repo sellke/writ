@@ -72,7 +72,7 @@ Applied to the 31 commands (proposed; Story 5 confirms with the maintainer befor
 
 | Level | Commands (count) | Derivation |
 |---|---|---|
-| `high` | `assess-spec`, `create-adr`, `create-spec`, `design`, `implement-phase`, `implement-spec`, `implement-story`, `plan-product`, `prototype`, `refactor`, `refresh-command`, `research`, `review`, `security-audit` (14) | Q1 yes |
+| `high` | `assess-spec`, `create-adr`, `create-goal`, `create-spec`, `design`, `implement-phase`, `implement-spec`, `implement-story`, `plan-product`, `prototype`, `refactor`, `refresh-command`, `research`, `review`, `security-audit` (15) | Q1 yes |
 | `standard` | `create-issue`, `create-uat-plan`, `edit-spec`, `initialize`, `knowledge`, `new-command`, `new-skill`, `release`, `retro`, `revert`, `ship`, `verify-spec` (12) | Q1 no, Q2 yes |
 | `any` | `migrate`, `reinstall-writ`, `status`, `uninstall-writ`, `update-writ` (5) | Q1 no, Q2 no |
 

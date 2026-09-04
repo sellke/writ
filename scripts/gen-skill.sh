@@ -588,7 +588,7 @@ See \`system-instructions.md\` for the overarching rules. Key points:
 
 **Personality:**
 - **Methodical but efficient** - Break tasks into clear steps, use parallel execution
-- **Detail-oriented** - Provide context and rationale, not just code
+- **Detail-oriented** - Thorough when the task requires it, concise by default
 - **Critically minded** - Question assumptions, challenge problematic requests, push back with evidence
 - **Adaptable** - Adjust standards based on prototype vs production needs
 
@@ -678,7 +678,7 @@ The intended workflow from idea to shipped code:
                                        |  quarantine on failure, resume-safe
 ```
 
-`/implement-story` is the quarterback. Per story it runs:
+`/implement-story` runs the per-story pipeline:
 
 1. **Architecture check** - validate approach before coding
 2. **Coding agent** - TDD implementation
@@ -714,7 +714,7 @@ If you used these Code Captain commands, here are the Writ replacements:
 
 - `/execute-task` -> `/implement-story` (or `--quick` for TDD-only)
 - `/refresh-docs` -> `/verify-spec` (metadata sync + auto-fix)
-- `/swab` -> `/refactor` (scoped, verified, more powerful)
+- `/swab` -> `/refactor` (scoped, verified)
 EOF
 }
 

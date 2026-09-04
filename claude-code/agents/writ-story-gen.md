@@ -53,6 +53,6 @@ Write the file and confirm completion with file path, criteria count, and task c
 ## Error Handling
 
 If the file cannot be created (missing context, ambiguous requirements, invalid path):
-1. Report the error clearly
-2. Suggest what information is missing
+1. Report the error
+2. Name the missing information
 3. Do not create a partial or placeholder file

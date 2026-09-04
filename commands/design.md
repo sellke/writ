@@ -69,7 +69,7 @@ Generate `.excalidraw` JSON files following these conventions:
 - **Red annotations** (`#e03131`) for interaction notes
 - **Label everything** — the coding agent reads these labels to map wireframe elements to components
 
-These conventions are non-negotiable. Without them, the coding agent misinterprets wireframes during Gate 1.
+Follow these conventions; the coding agent depends on them to interpret wireframes at Gate 1.
 
 #### Step A.3: Generate Component States
 
@@ -125,7 +125,7 @@ Update relevant story files with a `## Visual References` section:
 - **Design notes:** Cards use 8px border-radius, 16px padding, subtle shadow on hover
 ```
 
-This format is important — the coding agent pattern-matches on `## Visual References` to load visual context.
+Use this exact heading; the coding agent pattern-matches on `## Visual References` to load visual context.
 
 ---
 
@@ -159,7 +159,7 @@ Visual comparison of target mockups against the live implementation.
 2. **Capture current** — use browser MCP to screenshot the live app at matching viewport
 3. **Compare via vision** — analyze both images and produce a structured comparison
 
-**Comparison table** (this is the key deliverable):
+**Comparison table** (the primary deliverable):
 
 | Aspect | Mockup | Implementation | Match |
 |--------|--------|----------------|-------|

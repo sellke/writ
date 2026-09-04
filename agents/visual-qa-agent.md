@@ -146,7 +146,7 @@ Design system: .writ/docs/design-system.md
 
 ## Integration with implement-story
 
-The visual QA gate runs as **Gate 4.5** — after tests pass, before docs:
+The visual QA gate runs as **Gate 4.5**, after tests pass and before docs:
 
 ```
 arch-check → code → lint → review → test → VISUAL QA → docs
@@ -161,8 +161,8 @@ Failures route back to the coding agent (same as review failures). Counts toward
 
 - **Read-only agent** — never modifies code, only reports
 - **Vision-dependent** — requires a model with vision capabilities
-- **Tolerant by default** — pixel-perfect matching is not the goal; structural and stylistic alignment is
-- **Skippable** — not every story touches UI; the gate auto-skips when no visual references exist
+- **Tolerant by default** — checks structural and stylistic alignment; pixel-perfect matching is not required
+- **Skippable** — the gate auto-skips when no visual references exist
 
 ---
 

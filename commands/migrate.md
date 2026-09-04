@@ -385,7 +385,7 @@ A: They'll be in `.cursor/commands/` or `.code-captain/commands/`. The migration
 
 This command succeeds when no `.code-captain/` directory remains, `.writ/` holds every spec, decision record, research document, and issue that was under it, and a recursive grep for `.code-captain` returns zero hits.
 
-The story count and every `Status:` line must match their pre-migration values exactly. A migration that renames directories but loses a status has failed, however clean the tree looks.
+The story count and every `Status:` line must match their pre-migration values exactly. A migration that renames directories but loses a status has failed.
 
 **Terminal constraint:** This command moves an existing project onto Writ. Do not begin planning or implementing work in the migrated project.
 

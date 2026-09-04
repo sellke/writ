@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Modify existing specifications using a contract-first approach. No files change until the developer and AI agree on a modification contract through structured clarification. This prevents assumptions and scope surprises.
+Modify existing specifications contract-first. No files change until the developer and AI agree on a modification contract through structured clarification.
 
 ## Invocation
 
@@ -65,7 +65,7 @@ Use AskQuestion for bounded decisions, batching related questions (max 5-7 per r
 
 **Round 2+** adapts based on Round 1 answers. Continue until you're 95% confident on the full impact. Use free-text follow-up only when structured options can't capture the nuance.
 
-**Critical: push back constructively.** Examples of non-obvious pushback:
+**Push back with evidence.** Examples:
 - "This would invalidate 3 completed tasks in Story 2. Is the rework worth it?"
 - "I see a simpler path that only touches Story 4 instead of Stories 2-5. Want to explore that?"
 - "This conflicts with your existing [pattern]. Update the pattern or adjust the change?"
@@ -120,9 +120,8 @@ different ID.
 
 - **Insert (a criterion is added, anywhere in reading order):** read the story's own current
   marker value `<mark>`, assign the new criterion `<mark> + 1`, and advance the marker to that
-  same new value. Do not change any existing criterion's tag. The new criterion's ID has no
-  relationship to where it lands in reading order — reading order and ID order are
-  deliberately independent, exactly as in the grammar doc's worked insert example (a marker at
+  same new value. Do not change any existing criterion's tag. Reading order and ID order are
+  independent, as in the grammar doc's worked insert example (a marker at
   `AC-3.4` with a new criterion inserted second in reading order still gets `AC-3.5`, and the
   three pre-existing tags stay `AC-3.1`, `AC-3.3`, `AC-3.4`, untouched).
 - **Remove (a criterion is deleted):** delete the criterion's line only. Do not move the
@@ -148,9 +147,9 @@ different ID.
   `## Acceptance Criteria` heading (it does not exist yet in a legacy story), then assign
   `AC-<story>.1` through `AC-<story>.N` to every criterion currently in the story, in reading
   order, and set the marker to the final value assigned. The story leaves the edit either
-  fully adopted — every criterion tagged — or entirely untouched. There is no partial state.
+  fully adopted — every criterion tagged — or entirely untouched.
 
-**README and sub-specs:** Update progress table, dependency graph, and quick links. Only update sub-specs that are actually affected.
+**README and sub-specs:** Update progress table, dependency graph, and quick links. Only update affected sub-specs.
 
 **Supersession write-back (`Amends:`/`Extends:`):** if the modification contract adds or changes an `> **Amends:**` or `> **Extends:**` line on this spec's header (declaring that it now supersedes or builds on another spec), invoke the same reference implementation `create-spec.md` Step 2.4b uses for new specs:
 
@@ -176,7 +175,7 @@ This command succeeds when all of:
 4. **Changelog appended** — the spec's `CHANGELOG.md` records what changed, when, and why
 5. **Package validated** — the updated package summary was presented and the user approved or acknowledged
 
-If the user selects rollback at Step 2.3, restoring from backup is a valid successful outcome — the command completed its job by preserving the user's intent.
+If the user selects rollback at Step 2.3, restoring from backup is a valid successful outcome.
 
 **Suggested next step:** `/implement-spec` or `/implement-story` to continue implementation with the updated spec.
 

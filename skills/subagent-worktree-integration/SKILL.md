@@ -44,9 +44,8 @@ alone, since even read-only gates can be isolated.
 
 Diff the isolated worktree against the orchestrator's checkout, scoped to
 the files the story's task list and boundary map say it owns — not a
-full-repository diff, which would surface unrelated drift from either side
-moving independently. A change outside the story's owned scope is a signal
-to inspect before copying it, not to copy it silently.
+full-repository diff, which would include unrelated changes from either side.
+Inspect any change outside the story's owned scope before copying it.
 
 ### 3. Copy changed and created files into the main checkout
 
@@ -57,10 +56,9 @@ scope are not copied without inspection first.
 
 ### 4. Re-verify in the orchestrator's own checkout
 
-Never trust the isolated worktree's own verification as sufficient — run
-verification again in the orchestrator's checkout, after the copy, because
-the copy is the step most likely to silently drop a file or leave a stale
-one behind:
+The isolated worktree's own verification is not sufficient. Run verification
+again in the orchestrator's checkout after the copy, because the copy can
+drop a file or leave a stale one behind:
 
 - **Minimum, every time:** lint and typecheck for the languages the touched
   files belong to.
@@ -70,15 +68,13 @@ one behind:
 ### 5. Remove the worktree
 
 Once the copy is verified, remove the isolated worktree and any branch that
-existed only to hold it. A worktree left behind after its output is already
-reconciled is dead state with no further purpose.
+existed only to hold it.
 
 ### 6. Recognize and resolve a stale worktree
 
 A worktree can be **behind** the orchestrator's checkout — missing commits
 from earlier stories in the same spec that landed after the worktree was
-created. This is a distinct, recognizable failure mode, not a silent
-surprise: its symptom is a diff that looks larger than the story's actual
+created. Its symptom is a diff that looks larger than the story's actual
 change (because the worktree is also missing unrelated prior work), or the
 agent's output referencing files or behavior the orchestrator's checkout
 already changed.
@@ -94,8 +90,7 @@ Two resolutions, either is valid depending on what already happened:
   from a fast-forwarded worktree would waste already-good work.
 
 Do not silently copy a stale worktree's files over newer work already in the
-orchestrator's checkout — that would revert the intervening commits without
-anyone deciding to.
+orchestrator's checkout — that reverts the intervening commits.
 
 ## Examples
 

@@ -16,7 +16,7 @@ ones no longer authoritative, truncates oversized ones by a fixed priority, and
 aggregates the survivors into one `dependency_wwb_context` block. Deciding who
 receives the block, and when, belongs to the consumer.
 
-> **Format reference:** `.writ/docs/what-was-built-format.md` — the authority on
+> **Format reference:** `.writ/docs/what-was-built-format.md`, the authority on
 > the record's shape and on the `> **Reverted:**` banner convention. This
 > capability reads that format; it does not restate it.
 
@@ -30,7 +30,7 @@ receives the block, and when, belongs to the consumer.
 - Any time cross-story continuity matters more than a clean-slate reading of
   the current story.
 
-Skip it entirely when the story has no dependencies — there is nothing to load
+Skip it entirely when the story has no dependencies; there is nothing to load
 and nothing to warn about.
 
 ## How to Apply
@@ -60,12 +60,12 @@ Proceeding anyway — some integration points may be unavailable.
 ### 4. Extract the WWB sections
 
 For each **completed** dependency, locate its `## What Was Built` section and
-read the whole thing — from the `## What Was Built` heading to the next `##`
+read the whole thing, from the `## What Was Built` heading to the next `##`
 heading or end of file.
 
 **Skip reverted records.** If the section begins with a `> **Reverted:**`
 banner, the work it describes was undone and the record is **not
-authoritative**. Do NOT load it as live dependency context — skip it (or flag it
+authoritative**. Do not load it as live dependency context; skip it (or flag it
 as reverted) and log:
 
 ```
@@ -82,7 +82,7 @@ Proceeding with reduced context — cross-story continuity may be degraded.
 ### 5. Apply size limits and truncation
 
 Count the lines of each record. **If a record exceeds 1000 lines**, truncate it
-using this priority order — the order *is* the rule:
+in this priority order:
 
 1. **Files Created** — keep full (highest priority).
 2. **Files Modified** — keep full.
@@ -99,7 +99,7 @@ Log the truncation:
 
 **Preserve markdown structure** in the truncated version.
 
-**Only load direct dependencies — never transitive.** Story 3 loads Story 2's
+**Only load direct dependencies, never transitive.** Story 3 loads Story 2's
 record, but not Story 1's, even if Story 2 depended on Story 1.
 
 ### 6. Aggregate
@@ -131,5 +131,4 @@ spec context and **before** the implementation tasks.
 | Multiple dependencies, some with WWB and some without | Include the available records; log a warning per missing one |
 | No dependencies | Skip the whole capability — nothing to load, nothing to warn |
 
-None of these is a failure: missing upstream context degrades the payload, it
-never blocks the work.
+None of these is a failure. Missing upstream context never blocks the work.

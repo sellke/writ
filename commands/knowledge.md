@@ -78,7 +78,7 @@ Consolidation is a **gated write** mode. Its default behavior is read-only (dry-
 
 2. **Present the proposal.** Show each finding with the evidence that triggered it:
    - **Merges** — the canonical (surviving) entry, the entries it would replace, and the duplicate signal (token overlap). Preview the unified diff.
-   - **Contradictions** — both entries and their conflicting assertions, presented as a **decision for the human**. The reducer proposes no resolution; never auto-resolve.
+   - **Contradictions** — both entries and their conflicting assertions, presented as a decision for the human. The reducer proposes no resolution; never auto-resolve.
    - **Stale flags** — the entry and the observable signal (superseded, all `related_artifacts` missing, or dominated). Never cite age alone.
    - **Skipped** — any malformed entry with its named reason. It is neither rewritten nor dropped.
 
@@ -247,8 +247,8 @@ phase report and per-spec drift logs. Knowledge writeback then applies the
 evidence-bound gates (see [`.writ/docs/phase-execution-state-format.md`](../.writ/docs/phase-execution-state-format.md) → Knowledge Writeback) using the executable evaluator `scripts/phase-state.py knowledge-writeback`:
 
 - A candidate is written to `.writ/knowledge/lessons/` only if it generalizes beyond one spec, cites a supporting artifact or repeated drift, is below ADR blast radius, and is **not a substantive duplicate** of an existing entry.
-- **Substantive** deduplication compares *meaning* against every existing knowledge entry — not filenames or exact text — and is conservative: a high overlap with any existing entry is treated as a duplicate to avoid noisy repeated writeback.
-- Rejected and no-op outcomes are first-class successes: no qualifying candidate writes nothing and reports the rejected candidates with terse reasons.
+- **Substantive** deduplication compares meaning against every existing knowledge entry — not filenames or exact text — and is conservative: a high overlap with any existing entry is treated as a duplicate to avoid noisy repeated writeback.
+- Rejected and no-op outcomes are successes: no qualifying candidate writes nothing and reports the rejected candidates with terse reasons.
 
 ## Completion
 

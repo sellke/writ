@@ -31,7 +31,7 @@ Scaffold a new Writ skill — a capability file (SKILL.md) that an agent or comm
 
 ## Command Process
 
-This is a **direct command** (not contract-first like `/new-command`). Skills are smaller-scope artifacts; the boundary lint *is* the contract.
+This is a **direct command** (not contract-first like `/new-command`). Skills are smaller-scope artifacts; the boundary lint is the contract.
 
 ### Phase 1: Capture
 
@@ -80,7 +80,7 @@ AskQuestion({
 })
 ```
 
-The description is the **highest-leverage signal** — it's what a future agent reads to decide whether to load the skill. Treat it as the primary lint target.
+The description is what a future agent reads to decide whether to load the skill. Treat it as the primary lint target.
 
 #### Step 1.3: Optional Tags
 
@@ -103,7 +103,7 @@ Parse comma-separated input into an array; treat blank as empty.
 
 ### Phase 2: Lint
 
-Run `bash scripts/lint-skill.sh` against a *temporary* SKILL.md in `/tmp` containing the captured frontmatter and an empty body. The lint enforces ADR-009's role convention — **shared with `/refresh-command`** so there is no divergence between authoring and review.
+Run `bash scripts/lint-skill.sh` against a *temporary* SKILL.md in `/tmp` containing the captured frontmatter and an empty body. The lint enforces ADR-009's role convention and is shared with `/refresh-command`, so authoring and review cannot diverge.
 
 #### Step 2.1: Build the Lint Candidate
 
@@ -162,7 +162,7 @@ Triggered only after lint passes. Track with `todo_write` if more than three wri
 
 #### Step 3.1: Generate `skills/<name>/SKILL.md`
 
-Create the directory `skills/<name>/` if needed, then write `skills/<name>/SKILL.md`:
+Create the directory `skills/<name>/` if needed. `Read skills/plain-prose/SKILL.md` before filling the body sections below; a skill is read inline by every consumer, so its prose carries the same rules as a command's. Then write `skills/<name>/SKILL.md`:
 
 ```markdown
 ---
@@ -238,9 +238,9 @@ Next steps:
 
 ## Core Rules
 
-1. **Boundary lint is non-negotiable.** Description-shape and body-shape rejections (per [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md)) are the contract. Lint failure means revise or abort — never write a half-shaped skill.
+1. **Boundary lint gates every write.** Description-shape and body-shape rejections (per [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md)) are the contract. On lint failure, revise or abort; do not write a half-shaped skill.
 2. **Lint logic lives in `scripts/lint-skill.sh`.** Both `/new-skill` and `/refresh-command` invoke the same script. No regex grammar duplicated inline in command files.
-3. **Verb-phrase descriptions only.** "Write", "Validate", "Generate", "Audit", "Convert", "Detect" — not "Acts as", "Run the full", "The X agent". The description is the most-read signal; protect it.
+3. **Verb-phrase descriptions only.** "Write", "Validate", "Generate", "Audit", "Convert", "Detect" — not "Acts as", "Run the full", "The X agent". The description is the field agents read most.
 4. **`disable-model-invocation: true` is mandatory** for Writ-authored skills. Explicit invocation is the only invocation mode.
 5. **Names are unique across primitives.** A skill cannot share a name with a command or agent. The validation runs before the lint to fail fast.
 6. **Manifest in alphabetical order.** Within `skills:`, entries are sorted by `name:` to keep diffs reviewable.
@@ -271,7 +271,7 @@ This command succeeds when:
 
 **Suggested next step:** Open `skills/<name>/SKILL.md` and write the body. When ready to use the skill, declare it in the consumer's `required_skills:` frontmatter (see [`system-instructions.md`](../system-instructions.md) → Skills) or invoke it inline with `Read skills/<name>/SKILL.md`.
 
-**Terminal constraint:** This command produces a skill scaffold. Do not offer to implement, build, or execute the skill body — that's the user's craft work. For quick prototyping of skill content, the user can edit the file directly.
+**Terminal constraint:** This command produces a skill scaffold. Do not offer to implement, build, or execute the skill body; the user writes it. For quick prototyping of skill content, the user can edit the file directly.
 
 ---
 
