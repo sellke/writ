@@ -386,6 +386,10 @@ OUT_OF_SCOPE = {
     "archive", "bin", "claude-code", "codex", "cursor", "node_modules", "test",
     "README.md", "CHANGELOG.md", "CLAUDE.md", "AGENTS.md", "SKILL.md",
     "LICENSE", "VERSION", "package.json",
+    # Python floor + test-runner declaration for scripts/ (`uv run pytest`),
+    # and the gitignored lockfile uv writes beside it. Dev tooling only —
+    # install.sh never copies either, and VERSION stays the product version.
+    "pyproject.toml", "uv.lock",
     # eval.sh's own `--report=eval-report.md` convention (see its usage
     # comment and .github/workflows/*.yml): a transient CI artifact written
     # to repo root DURING the very eval.sh run that invokes this coverage
