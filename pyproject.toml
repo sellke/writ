@@ -8,15 +8,16 @@
 #
 #          uv run pytest
 #
-# The product version lives in the VERSION file. The `version` below is a
-# placeholder PEP 621 forces on any [project] table; it is never published
-# and never bumped. .writ/config.md pins `Version File: VERSION` so /release
-# reads that, not this. `.venv/` and `uv.lock` are gitignored — one dev tool
-# in a no-dependency repo does not need a lockfile.
+# The product version lives in the VERSION file. PEP 621 forces a `version`
+# on any [project] table, so the one below mirrors VERSION: /release Step 3.1
+# rewrites both in the same commit, and .writ/config.md pins
+# `Version File: VERSION` so /release reads that, never this. Nothing is
+# published. `.venv/` and `uv.lock` are gitignored — one dev tool in a
+# no-dependency repo does not need a lockfile.
 
 [project]
 name = "writ-scripts"
-version = "0"
+version = "0.33.0"
 requires-python = ">=3.9"
 
 [dependency-groups]
