@@ -1,0 +1,11 @@
+writ-audit: version-rollup
+version: 0.30.3
+released: 2026-08-12
+tag: v0.30.3
+previous: 0.30.2
+specs-shipped: none (standalone change — no spec)
+source: PR #42 (docs/product-reconcile-phase-10-closure, merge b7e8589)
+summary: product docs reconciled to Phase 10 closure via /plan-product --reconcile;
+  /release Step 3.1 gains manifest metadata.version maintenance (first live run
+  this release); Scenario 20 pass recorded in roadmap closure.
+verification: eval.sh Findings 0 / Run errors 0 (x2); /verify-spec --product P1-P4 clean
