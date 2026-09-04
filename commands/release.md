@@ -127,24 +127,24 @@ If a tool is not configured, skip it — **do not** treat “no config” as fai
 
 ```bash
 LAST_MERGED_PR_JSON=$(gh pr list --state merged --limit 1 --json mergeCommit,number,headRefName,commits 2>/dev/null)
-LAST_MERGED_SHA=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].mergeCommit.oid // empty' 2>/dev/null)
+LAST_MERGED_SHA=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].mergeCommit.oid // empty' 2>/dev/null)
 HEAD_SHA=$(git rev-parse HEAD)
 
 # Additive only (Story 3) — same single `gh pr list` call above, no second `gh` call.
 # Unused unless the archival hook below fires; leaving them empty never changes
 # LAST_MERGED_SHA/HEAD_SHA or anything else in this step.
-LAST_MERGED_PR_NUMBER=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].number // empty' 2>/dev/null)
-LAST_MERGED_BRANCH=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].headRefName // empty' 2>/dev/null)
+LAST_MERGED_PR_NUMBER=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].number // empty' 2>/dev/null)
+LAST_MERGED_BRANCH=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].headRefName // empty' 2>/dev/null)
 # Headline AND body. Writ's own commit convention puts the spec path in the
 # BODY ("Story N of .writ/specs/<id>"), never the subject, so a headline-only
 # feed makes the resolver structurally blind to the convention Writ itself
 # writes — it can then only match when the branch name happens to carry the
 # spec id. Measured 2026-08-12: the archival hook had fired exactly once in the
 # repo's history (PR #33) against 40+ archived specs, for precisely this reason.
-LAST_MERGED_COMMITS=$(echo "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]? | "\(.messageHeadline)\n\(.messageBody // "")"' 2>/dev/null)
+LAST_MERGED_COMMITS=$(printf '%s' "$LAST_MERGED_PR_JSON" | jq -r '.[0].commits[]? | "\(.messageHeadline)\n\(.messageBody // "")"' 2>/dev/null)
 ```
 
-> **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), since extracting four independent fields from one payload needs a general-purpose filter, not a single scalar. This mirrors the same external-`jq`-with-graceful-fallback assumption Step 3.1's version-bump logic already makes elsewhere in this file. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it.
+> **Note on the external `jq` dependency (Story 3).** This step now pipes `gh`'s raw JSON through the external `jq` binary (rather than `gh`'s own built-in `--jq` flag), since extracting four independent fields from one payload needs a general-purpose filter, not a single scalar. This mirrors the same external-`jq`-with-graceful-fallback assumption Step 3.1's version-bump logic already makes elsewhere in this file. If `jq` is absent, `LAST_MERGED_SHA` resolves empty and this step's own table falls through to "Otherwise: run full suite" — fails safe, consistent with the `gh unavailable` row above it. **Feed the variable with `printf '%s'`, never `echo`:** zsh's builtin `echo` expands the `\n` and `\t` escapes inside the JSON (a real payload carries ~100 of them), yielding unescaped control characters and a `jq` parse error on *every* run; bash's `echo` does not, so the bug is invisible on one shell and total on another. Observed 2026-09-04 during the v0.34.0 release.
 
 | Condition | Behavior |
 |---|---|
