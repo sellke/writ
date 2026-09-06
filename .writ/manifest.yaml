@@ -305,6 +305,16 @@ skills:
     description: "Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections."
     status: candidate
     tags: [context, knowledge, spec-lite]
+  - name: subagent-result-completeness
+    file: skills/subagent-result-completeness/SKILL.md
+    description: "Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early."
+    status: candidate
+    tags: [subagents, gates, verification]
+  - name: subagent-worktree-integration
+    file: skills/subagent-worktree-integration/SKILL.md
+    description: "Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale."
+    status: candidate
+    tags: [subagents, worktree, git]
   - name: tdd-cycle
     file: skills/tdd-cycle/SKILL.md
     description: "Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time."

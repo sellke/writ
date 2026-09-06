@@ -762,7 +762,7 @@ See report: .writ/product/verification-YYYY-MM-DD.md
 | `/implement-spec` | May leave spec metadata noisy after bulk story work — `/verify-spec` cleans it up |
 | `/plan-product --reconcile` | The revision counterpart to `--product`: `--product` lints (before), `--reconcile` revises (after) |
 | `/ship` | Optionally runs a **subset** of these checks (1–3) inline when opening a PR |
-| `/release` | Runs the **full** checks 1–8 again as part of its **internal** release gate (self-sufficient) — same logic, different entry point |
+| `/release` | Runs checks **1–6** inline as part of its **internal** release gate (Step 1.3a) — same logic, different entry point; Check 4/8 judgment findings warn there, never block |
 | `/security-audit` | Complementary — verify-spec checks spec structure; security-audit checks safety |
 | `/status` | Quick overview; verify-spec is the deep metadata pass |
 

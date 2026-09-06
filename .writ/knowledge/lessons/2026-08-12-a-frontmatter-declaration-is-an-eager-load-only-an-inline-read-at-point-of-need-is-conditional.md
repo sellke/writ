@@ -3,200 +3,27 @@ category: lessons
 tags: [phase-close]
 created: 2026-08-12
 related_artifacts:
-  - .
-  - /
-  - .
-  - /
-  - .
-  - .
+  - system-instructions.md
+  - adapters/claude-code.md
+  - scripts/measure-invocation.py
 ---
 
 # A frontmatter declaration is an eager load; only an inline read at point of need is conditional
 
 ## TL;DR
 
-
+A frontmatter declaration is an eager load; only an inline read at point of need is conditional.
 
 ## Context
 
-Recorded at phase close from evidence-bound knowledge writeback.
+Recorded at phase close from evidence-bound knowledge writeback (commit 2dba942; payload rejoined 2026-09-06).
 
 **Cited evidence:**
 
-- s
-- y
-- s
-- t
-- e
-- m
-- -
-- i
-- n
-- s
-- t
-- r
-- u
-- c
-- t
-- i
-- o
-- n
-- s
-- .
-- m
-- d
--  
-- r
-- e
-- q
-- u
-- i
-- r
-- e
-- d
-- _
-- s
-- k
-- i
-- l
-- l
-- s
-- :
--  
-- h
-- a
-- r
-- n
-- e
-- s
-- s
--  
-- c
-- o
-- n
-- t
-- r
-- a
-- c
-- t
-- ;
--  
-- a
-- d
-- a
-- p
-- t
-- e
-- r
-- s
-- /
-- c
-- l
-- a
-- u
-- d
-- e
-- -
-- c
-- o
-- d
-- e
-- .
-- m
-- d
-- ;
--  
-- s
-- c
-- r
-- i
-- p
-- t
-- s
-- /
-- m
-- e
-- a
-- s
-- u
-- r
-- e
-- -
-- i
-- n
-- v
-- o
-- c
-- a
-- t
-- i
-- o
-- n
-- .
-- p
-- y
--  
-- h
-- o
-- i
-- s
-- t
-- e
-- d
-- _
-- s
-- k
-- i
-- l
-- l
-- s
--  
-- c
-- h
-- e
-- c
-- k
--  
-- a
-- d
-- d
-- e
-- d
--  
-- 2
-- 0
-- 2
-- 6
-- -
-- 0
-- 8
-- -
-- 1
-- 2
--  
-- (
-- c
-- o
-- m
-- m
-- i
-- t
--  
-- a
-- 1
-- 9
-- 1
-- b
-- d
-- 7
-- )
-- .
+- system-instructions.md required_skills: harness contract; adapters/claude-code.md; scripts/measure-invocation.py hoisted_skills check added 2026-08-12 (commit a191bd7).
 
 ## Related
 
-- `.`
-- `/`
-- `.`
-- `/`
-- `.`
-- `.`
+- `system-instructions.md`
+- `adapters/claude-code.md`
+- `scripts/measure-invocation.py`

@@ -23,6 +23,9 @@ CHECKS=(
   broken-refs
   length
   manifest
+  referenced-paths
+  skill-manifest-parity
+  knowledge-integrity
   preamble
   owner
   autonomy-governance
@@ -571,6 +574,219 @@ check_manifest() {
   done < <(root_agent_files)
 
   rm -f "$command_list" "$agent_list"
+}
+
+# ---------------------------------------------------------------------------
+# Stage 1 dead-end regression checks (2026-09-05-phase11-repair-and-baseline,
+# Story 1, Business Rule 6). Each class of dead end the Goldilocks assessment
+# found (§2.4) gets one BLOCKING check — add_finding, never add_note — that
+# names the file and line. Story 5 adds check_pipeline_baseline beside them.
+# ---------------------------------------------------------------------------
+
+# Allowlist for check_referenced_paths: `.md` paths commands legitimately name
+# that do not exist in this repository because a named command CREATES them at
+# runtime in the target project (or, for two rows, because the path is an
+# illustrative example). Rows are `path|creating command|reason`. Every row
+# must earn its place: an entry with no reason, or one added to silence a
+# finding on a path nothing creates, turns this check into a second
+# check_broken_refs. Rows that no command references any more are reported
+# as stale so the table cannot rot silently.
+referenced_paths_allowlist() {
+  cat <<'EOF'
+.writ/docs/tech-stack.md|/initialize|Written by /initialize Step 3 from the detected stack; absent until a project is initialized.
+.writ/docs/code-style.md|/initialize|Written by /initialize Step 3 from the detected conventions; absent until a project is initialized.
+tech-stack.md|/initialize|Bare form of .writ/docs/tech-stack.md used when the enclosing sentence already names .writ/docs/.
+code-style.md|/initialize|Bare form of .writ/docs/code-style.md used when the enclosing sentence already names .writ/docs/.
+.writ/quality-baseline.md|/initialize|Written by /initialize Step 4 (quality-signal classification); /status reads it when present.
+.writ/docs/design-system.md|/design|Written by /design when a design system is generated; optional in every project.
+design-system.md|/design|Bare form of .writ/docs/design-system.md.
+component-inventory.md|/design|Written by /design under the spec's mockups/ folder.
+mockups/README.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
+mockups/component-inventory.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
+user-stories/README.md|/create-spec|Written by /create-spec Step 2.6 for every spec; spec-relative.
+sub-specs/technical-spec.md|/create-spec|Written by /create-spec Step 2.5 for every spec; spec-relative.
+database-schema.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs a schema.
+api-spec.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs an API surface.
+ui-wireframes.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs wireframes.
+ADR-000-product-posture.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-001-market-focus.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-002-positioning.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-003-monetization.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-004-mvp-scope.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md category table); no braces, so the grammar cannot tell it from a real name.
+.writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
+EOF
+}
+
+# Every backticked `*.md` token in commands/*.md is a claim that a file exists
+# or will exist. The token grammar, chosen so the allowlist stays under ~30
+# rows and readable: a backticked run with no whitespace ending in `.md`;
+# skipped when it carries a placeholder or glob character (`* { } < > [ ] $`,
+# `YYYY`, `NNNN`, `DATE`), starts with `/` or `../`, or has a basename of
+# three characters or fewer (`.md` alone). A token containing `/` resolves
+# against the repo root, then commands/ (`_preamble.md` style), then the spec
+# archive (resolve_spec_path). A bare filename resolves when any tracked or
+# untracked file by that basename exists in the tree — the assessment's own
+# criterion for `objective.md` ("zero files by that name in the repo").
+# Anything left must be on the allowlist above, or it is a dead end.
+check_referenced_paths() {
+  local file rel line_no token base resolved basenames allow allowed_paths used
+  local allow_path allow_cmd allow_reason
+
+  basenames="$(mktemp)"
+  allowed_paths="$(mktemp)"
+  used="$(mktemp)"
+  git -C "$PROJECT_ROOT" ls-files -co --exclude-standard 2>/dev/null | awk -F/ '{ print $NF }' | sort -u > "$basenames"
+  if [ ! -s "$basenames" ]; then
+    # Not a git checkout (fixture trees): walk the tree instead.
+    find "$PROJECT_ROOT" -type f -name '*.md' -not -path '*/.git/*' 2>/dev/null | awk -F/ '{ print $NF }' | sort -u > "$basenames"
+  fi
+  while IFS='|' read -r allow_path allow_cmd allow_reason; do
+    [ -n "$allow_path" ] || continue
+    if [ -z "$allow_cmd" ] || [ -z "$allow_reason" ]; then
+      add_finding "scripts/eval.sh" "referenced-paths allowlist row '$allow_path' lacks a creating command or a reason." "Every allowlist row is path|command|reason; fill both or drop the row."
+    fi
+    printf "%s\n" "$allow_path" >> "$allowed_paths"
+  done < <(referenced_paths_allowlist)
+
+  while IFS= read -r file; do
+    rel="$(relpath "$file")"
+    if file_has_exemption "$file" "referenced-paths"; then
+      continue
+    fi
+    while IFS=$'\t' read -r line_no token; do
+      [ -n "$token" ] || continue
+      base="${token##*/}"
+      [ "${#base}" -gt 3 ] || continue
+      if grep -Fxq "$token" "$allowed_paths"; then
+        printf "%s\n" "$token" >> "$used"
+        continue
+      fi
+      if [[ "$token" == */* ]]; then
+        resolved="$PROJECT_ROOT/$token"
+        [ -e "$resolved" ] || resolved="$PROJECT_ROOT/commands/$token"
+        [ -e "$resolved" ] || resolved="$(resolve_spec_path "$token")"
+        [ -e "$resolved" ] && continue
+      else
+        grep -Fxq "$token" "$basenames" && continue
+      fi
+      add_finding "$rel:$line_no" "references '$token', which does not exist and no command is recorded as creating." "Fix the path, drop the reference, or add a path|command|reason row to referenced_paths_allowlist in scripts/eval.sh if a named command creates it at runtime."
+    done < <(awk '
+      {
+        rest = $0
+        while (match(rest, /`[^`[:space:]]+\.md`/)) {
+          token = substr(rest, RSTART + 1, RLENGTH - 2)
+          rest = substr(rest, RSTART + RLENGTH)
+          if (token ~ /[*{}<>\[\]$]|YYYY|NNNN|DATE/) continue
+          if (token ~ /^\// || token ~ /^\.\.\//) continue
+          print FNR "\t" token
+        }
+      }
+    ' "$file")
+  done < <(command_files)
+
+  # A row nothing references any more is stale: the reference it excused was
+  # removed, so the row should go too (or it is hiding a typo in the path).
+  # Judged only when the row's creating command is in this tree, so a fixture
+  # tree carrying a subset of commands is not blamed for the full table.
+  while IFS='|' read -r allow_path allow_cmd allow_reason; do
+    [ -n "$allow_path" ] || continue
+    [ -f "$PROJECT_ROOT/commands/${allow_cmd#/}.md" ] || continue
+    if ! grep -Fxq "$allow_path" "$used"; then
+      add_finding "scripts/eval.sh" "referenced-paths allowlist row '$allow_path' is no longer referenced by any command." "Remove the stale row from referenced_paths_allowlist (or fix the path it was meant to cover)."
+    fi
+  done < <(referenced_paths_allowlist)
+
+  rm -f "$basenames" "$allowed_paths" "$used"
+}
+
+# skills/<name>/SKILL.md on disk and the `skills:` section of the manifest must
+# name the same set, in both directions. check_manifest reads only `commands`
+# and `agents`; this is the skills half. A disk-only skill is invisible to the
+# root SKILL.md catalog and to every consumer that discovers skills through
+# the manifest; a manifest-only skill points readers at a file that is not
+# there. Findings name the SKILL.md (disk-only) or the manifest line
+# (manifest-only) so the fix is one edit away.
+check_skill_manifest_parity() {
+  local manifest="$PROJECT_ROOT/.writ/manifest.yaml"
+  local disk_list manifest_list dir name path line_no
+
+  if [ ! -r "$manifest" ]; then
+    add_finding ".writ/manifest.yaml:1" "manifest missing or unreadable; cannot compare against skills/." "Restore .writ/manifest.yaml."
+    return
+  fi
+
+  disk_list="$(mktemp)"
+  manifest_list="$(mktemp)"
+  for dir in "$PROJECT_ROOT"/skills/*/; do
+    [ -d "$dir" ] || continue
+    name="$(basename "$dir")"
+    if [ ! -f "$dir/SKILL.md" ]; then
+      add_finding "skills/$name" "skill directory has no SKILL.md." "Add skills/$name/SKILL.md or remove the directory."
+      continue
+    fi
+    printf "%s\n" "$name" >> "$disk_list"
+  done
+  manifest_paths "skills" | awk -F/ '$1 == "skills" && $3 == "SKILL.md" { print $2 }' > "$manifest_list"
+
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if ! grep -Fxq "$name" "$manifest_list"; then
+      add_finding "skills/$name/SKILL.md:1" "skill '$name' exists on disk but is not registered under skills: in .writ/manifest.yaml." "Add a name/file/description/status/tags entry for it to .writ/manifest.yaml and run bash scripts/gen-skill.sh."
+    fi
+  done < "$disk_list"
+
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if ! grep -Fxq "$name" "$disk_list"; then
+      path="skills/$name/SKILL.md"
+      line_no="$(grep -nF "file: $path" "$manifest" | head -1 | cut -d: -f1)"
+      add_finding ".writ/manifest.yaml:${line_no:-1}" "manifest registers skill '$name' but $path is not on disk." "Create the skill file or remove the manifest entry, then run bash scripts/gen-skill.sh."
+    fi
+  done < "$manifest_list"
+
+  rm -f "$disk_list" "$manifest_list"
+}
+
+# No .writ/knowledge/**/*.md — all four categories, and the README — may carry
+# a bullet whose content is a single character (frontmatter `  - /` or body
+# `- 2`), or an empty `## TL;DR`. Both are the signature of a payload that was
+# iterated as a sequence of characters instead of as one string (the
+# phase-close writeback defect, fixed in scripts/phase-state.py alongside this
+# check). A ledger entry with no statement and no readable evidence teaches
+# nothing and pollutes every consolidation pass that reads it.
+check_knowledge_integrity() {
+  local file rel line_no kind
+
+  while IFS= read -r file; do
+    rel="$(relpath "$file")"
+    while IFS=$'\t' read -r line_no kind; do
+      [ -n "$line_no" ] || continue
+      case "$kind" in
+        bullet)
+          add_finding "$rel:$line_no" "bullet with single-character content (a shredded writeback payload)." "Reconstruct the entry from its source record (phase-close What Was Built or refresh log) or delete it and note the deletion in .writ/knowledge/README.md."
+          ;;
+        tldr)
+          add_finding "$rel:$line_no" "empty ## TL;DR (the entry records no statement)." "Recover the statement from the source record or delete the entry and note the deletion in .writ/knowledge/README.md."
+          ;;
+      esac
+    done < <(awk '
+      function flush_tldr() {
+        if (in_tldr && !tldr_has_text) print tldr_line "\ttldr"
+        in_tldr = 0
+      }
+      /^[[:space:]]*-[[:space:]]/ {
+        content = $0
+        sub(/^[[:space:]]*-[[:space:]]+/, "", content)
+        sub(/[[:space:]]+$/, "", content)
+        if (length(content) <= 1) print FNR "\tbullet"
+      }
+      /^##[[:space:]]+TL;DR[[:space:]]*$/ { flush_tldr(); in_tldr = 1; tldr_has_text = 0; tldr_line = FNR; next }
+      /^#/ { flush_tldr() }
+      in_tldr && /[^[:space:]]/ { tldr_has_text = 1 }
+      END { flush_tldr() }
+    ' "$file")
+  done < <(find "$PROJECT_ROOT/.writ/knowledge" -type f -name '*.md' 2>/dev/null | sort)
 }
 
 append_preamble_reference() {
@@ -2284,11 +2500,20 @@ check_model_escalation() {
   # tuple as its `detail` payload or update these pins in the same change.
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
-  local iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
+  # Two per-file pins (Phase 11 Stage 1, Story 1): implement-story.md declares
+  # `loop.max_iterations: 3` in its frontmatter and may name it; create-spec.md
+  # has no `loop:` block, so its sentence states the pair-counts-once rule
+  # without citing a bound the file does not declare.
+  local implement_story_iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
+  local create_spec_iteration_sentence='the floor attempt and its anchor re-run count as one attempt — there is no second regeneration'
   local noop_prefix='(no-op until ADR-025 Story 1)'
+  local missing_sink='The line has no sink today'
 
-  require_literal "$create_spec" "$iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
-  require_literal "$implement_story" "$iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
+  require_literal "$create_spec" "$create_spec_iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim, without naming a loop bound the file does not declare (Business Rule 7)."
+  forbid_literal "$create_spec" 'loop.max_iterations' "create-spec.md has no loop: frontmatter block and must not cite loop.max_iterations (assessment §2.4)."
+  require_literal "$implement_story" "$implement_story_iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
+  require_literal "$create_spec" "$missing_sink" "create-spec.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
+  require_literal "$implement_story" "$missing_sink" "implement-story.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
   require_literal "$create_spec" 'escalated(agent=user-story-generator, site=create-spec.2.6, origin=' "create-spec.md must emit the escalated line for the Step 2.6 story-validation site (site label is create-spec.2.6, never 2.6a)."
   require_literal "$implement_story" 'escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=' "implement-story.md must emit the escalated line for the Gate 0 ABORT site."
   require_literal "$create_spec" "$noop_prefix" "create-spec.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."

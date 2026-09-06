@@ -491,15 +491,31 @@ class CommandBudgetTests(unittest.TestCase):
 # review-fix pointing Gate 0 spawn errors at the Agent crash handler). No
 # budget recovery attempted (ADR-023 triage). Acknowledged, not exempted:
 # eval.sh's leanness warning still reports all six.
+# Updated 2026-09-06 (spec 2026-09-05-phase11-repair-and-baseline, Story 1 —
+# dead-end repair, assessment §2.4): four of the six grew, none by a new step
+# or gate. create-spec.md 24712 -> 25189 (+477: `--from-issue <path>` added to
+# the Invocation list it was missing from; `objective.md` replaced by the two
+# full `.writ/docs/` paths /initialize writes; the missing-sink sentence beside
+# the `escalated(` literal; "count as one attempt" reworded without the
+# `loop.max_iterations` bound the file never declared). implement-story.md
+# 3964 -> 4414 (+450: the same missing-sink sentence beside its `escalated(`
+# literal; Gate 3 / Gate 3.5 / control-flow now say once that Gate 3 emits
+# PAUSE and Gate 3.5 owns it). ship.md 3820 -> 4030 (+210: Step 6.1 names the
+# re-entry invocation for a note that cannot attach until the PR merges).
+# verify-spec.md 9887 -> 9926 (+39: the Integration row now agrees with
+# release.md — checks 1–6, not 1–8). implement-phase.md and release.md are
+# unchanged. Each item is a dead end the Stage 1 baseline must not measure;
+# Stage 2 is the cut. Acknowledged, not exempted: eval.sh's leanness warning
+# still reports all six.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
-    "commands/create-spec.md": 24712,
-    "commands/verify-spec.md": 9887,
+    "commands/create-spec.md": 25189,
+    "commands/verify-spec.md": 9926,
     "commands/implement-phase.md": 10208,
     "commands/release.md": 7576,
-    "commands/ship.md": 3820,
-    "commands/implement-story.md": 3964,
+    "commands/ship.md": 4030,
+    "commands/implement-story.md": 4414,
 }
 
 

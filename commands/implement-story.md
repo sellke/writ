@@ -67,7 +67,7 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Gate 5 | Documentation Agent | `documentation-agent` — adaptive | `--quick` | — |
 | Step 4 | Story Completion | inline | — | `project-context-snapshot` (item 3); `what-was-built-authoring` (item 4); `story-commit-provenance` (item 7) |
 
-**Control flow:** Gate 0 ABORT (confirmed at anchor) and Gate 3.5 PAUSE → ask user. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA).
+**Control flow:** Gate 0 ABORT (confirmed at anchor) → ask user. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA).
 
 ## Command Process
 
@@ -147,7 +147,7 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 
 **Results:** **PROCEED** → continue to coding · **CAUTION** → continue, inject warnings into coding agent prompt · **ABORT** → present findings to user, ask whether to proceed/modify/skip
 
-**Anchor confirmation (ADR-024):** a `floor` **ABORT** is provisional. Before presenting anything, re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`. The anchor verdict stands: PROCEED/CAUTION continue as that verdict with no AskQuestion and no user-visible line; ABORT presents findings and asks proceed/modify/skip as above. A floor PROCEED/CAUTION is never re-run; `--quick`/`--review-only` skip Gate 0, so no escalation path exists there; a spawn error follows the existing **Agent crash** handling (§ Error Handling), not this branch — escalation fires only on a returned verdict. On the re-run emit `(no-op until ADR-025 Story 1) escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=<model>/<effort>@<platform>)`, stamping the origin captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`; Gate 0 runs before the `review_cycle` counter exists and does not consume an iteration.
+**Anchor confirmation (ADR-024):** a `floor` **ABORT** is provisional. Before presenting anything, re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`. The anchor verdict stands: PROCEED/CAUTION continue as that verdict with no AskQuestion and no user-visible line; ABORT presents findings and asks proceed/modify/skip as above. A floor PROCEED/CAUTION is never re-run; `--quick`/`--review-only` skip Gate 0, so no escalation path exists there; a spawn error follows the existing **Agent crash** handling (§ Error Handling), not this branch — escalation fires only on a returned verdict. On the re-run emit `(no-op until ADR-025 Story 1) escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=<model>/<effort>@<platform>)`, stamping the origin captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here. The line has no sink today: ADR-025 Story 1 has not shipped the recorder it names, so the emit is a printed line nothing reads — do not look for a `scripts/signal.py` or a `/retro --friction` consumer. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`; Gate 0 runs before the `review_cycle` counter exists and does not consume an iteration.
 
 **Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content`; if agent-specific sections are unavailable, pass full spec-lite. Also pass `fetched_context` when hints were parsed in Step 2, and `knowledge_context` when populated.
 
@@ -216,7 +216,7 @@ Spawns a **read-only** sub-agent for code review: acceptance criteria; code qual
 
 **Input:** all standard review inputs plus `spec_lite_for_review` as `spec_lite_content` (extracted in Step 2) for drift analysis, optional `knowledge_context`, and `change_surface` (Gate 2.5) to guide review depth. Also **`boundary_map`** (the same block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines carrying `overlap` or `high-overlap`. If agent-specific sections are unavailable (legacy spec-lite), pass full spec-lite content.
 
-**Results:** **PASS** → continue to testing (may include Small or Medium drift) · **FAIL** → send feedback to coding agent for fixes · **PAUSE** → Large drift detected; surface conflict to user before continuing
+**Results:** **PASS** → continue to testing (may include Small or Medium drift) · **FAIL** → send feedback to coding agent for fixes · **PAUSE** → Large drift detected; this gate only emits the verdict — Gate 3.5 § A owns the pause and its options
 
 **Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
 
@@ -228,7 +228,7 @@ After the review agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — **PAUSE**, present accept / reject / modify-spec, wait for the decision). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 

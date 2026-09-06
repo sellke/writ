@@ -30,29 +30,49 @@ your-project/
 ├── .cursor/
 │   ├── rules/
 │   │   └── writ.mdc               # Writ identity & rules (alwaysApply: true)
-│   ├── commands/
-│   │   ├── create-spec.md         # /create-spec
-│   │   ├── implement-story.md     # /implement-story
-│   │   ├── refactor.md            # /refactor
-│   │   ├── plan-product.md        # /plan-product
+│   ├── commands/                  # one file per `commands:` entry in .writ/manifest.yaml (32)
+│   │   ├── assess-spec.md         # /assess-spec
 │   │   ├── create-adr.md          # /create-adr
+│   │   ├── create-goal.md         # /create-goal
 │   │   ├── create-issue.md        # /create-issue
-│   │   ├── research.md            # /research
+│   │   ├── create-spec.md         # /create-spec
+│   │   ├── create-uat-plan.md     # /create-uat-plan
+│   │   ├── design.md              # /design
 │   │   ├── edit-spec.md           # /edit-spec
-│   │   ├── verify-spec.md         # /verify-spec
-│   │   ├── release.md             # /release
-│   │   ├── security-audit.md      # /security-audit
-│   │   ├── status.md              # /status
-│   │   ├── migrate.md             # /migrate
+│   │   ├── implement-phase.md     # /implement-phase
+│   │   ├── implement-spec.md      # /implement-spec
+│   │   ├── implement-story.md     # /implement-story
 │   │   ├── initialize.md          # /initialize
+│   │   ├── knowledge.md           # /knowledge
+│   │   ├── migrate.md             # /migrate
 │   │   ├── new-command.md         # /new-command
-│   └── agents/
-│       ├── architecture-check-agent.md  # Pre-implementation gate
-│       ├── coding-agent.md              # TDD implementation
-│       ├── review-agent.md              # Quality + security gate
-│       ├── testing-agent.md             # Tests + coverage
-│       ├── documentation-agent.md       # Framework-adaptive docs
-│       └── user-story-generator.md      # Parallel story creation
+│   │   ├── new-skill.md           # /new-skill
+│   │   ├── plan-product.md        # /plan-product
+│   │   ├── prototype.md           # /prototype
+│   │   ├── refactor.md            # /refactor
+│   │   ├── refresh-command.md     # /refresh-command
+│   │   ├── reinstall-writ.md      # /reinstall-writ
+│   │   ├── release.md             # /release
+│   │   ├── research.md            # /research
+│   │   ├── retro.md               # /retro
+│   │   ├── revert.md              # /revert
+│   │   ├── review.md              # /review
+│   │   ├── security-audit.md      # /security-audit
+│   │   ├── ship.md                # /ship
+│   │   ├── status.md              # /status
+│   │   ├── uninstall-writ.md      # /uninstall-writ
+│   │   ├── update-writ.md         # /update-writ
+│   │   └── verify-spec.md         # /verify-spec
+│   ├── agents/                    # one file per `agents:` entry in .writ/manifest.yaml (7)
+│   │   ├── architecture-check-agent.md  # Pre-implementation gate
+│   │   ├── coding-agent.md              # TDD implementation
+│   │   ├── documentation-agent.md       # Framework-adaptive docs
+│   │   ├── review-agent.md              # Quality + security gate
+│   │   ├── testing-agent.md             # Tests + coverage
+│   │   ├── user-story-generator.md      # Parallel story creation
+│   │   └── visual-qa-agent.md           # Optional UI validation (Gate 4.5)
+│   └── skills/                    # one folder per `skills:` entry in .writ/manifest.yaml
+│       └── <name>/SKILL.md
 └── .writ/                 # Created at runtime (add to .gitignore or commit)
     ├── specs/
     ├── product/

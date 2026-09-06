@@ -29,7 +29,7 @@ Writ-authored agents for Codex live in the Writ repo at `codex/agents/*.toml` an
 
 ### Automated (recommended)
 
-After this platform ships in Writ core:
+`install.sh --platform codex` is supported today:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
@@ -114,7 +114,7 @@ Codex exposes `/experimental` to toggle optional capabilities ([docs](https://de
 
 ### Hooks (`codex_hooks`)
 
-Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false`. Hooks are noisy for first-time installs, so users opt in. Future specs may wire Codex hooks to Writ gates; until then, keep hooks off unless you own the automation surface.
+Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false`. Hooks are noisy for first-time installs, so users opt in. Writ ships no hook handlers — the seven TOMLs under `codex/agents/` are agent definitions, not hooks — and no Writ gate depends on one. *(unverified)*: whether Codex hooks can carry a Writ gate has not been observed on an install; keep hooks off unless you own the automation surface.
 
 ---
 

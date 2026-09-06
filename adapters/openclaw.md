@@ -57,7 +57,7 @@ All run concurrently. Each auto-announces completion back to the requester chat.
 - `label` is optional but recommended for identification
 - Completion is push-based: no polling needed
 
-**Tier resolution:** agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers), which OpenClaw resolves through the optional `model` param on `sessions_spawn`. **This row is unverified**: no OpenClaw install was available to observe a spawn, so it is written from the documented `sessions_spawn` primitive:
+**Tier resolution:** agents declare `model_tier: anchor | floor` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers), which OpenClaw resolves through the optional `model` param on `sessions_spawn`. The row below is marked *(unverified)*: no OpenClaw install was available to observe a spawn, so it is written from the documented `sessions_spawn` primitive:
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
@@ -434,4 +434,4 @@ When a Writ command uses a discovery or planning phase, that phase serves the co
 
 5. **File conflicts**: When multiple sub-agents write files in the same workspace, ensure they write to different paths. The user-story-generator pattern (each agent writes its own `story-N-*.md`) is safe.
 
-6. **Model for sub-agents**: see the § 1 resolution table: `floor` passes an operator-configured cheaper same-vendor `model`, `anchor` omits the param. The row is unverified.
+6. **Model for sub-agents**: see the § 1 resolution table: `floor` passes an operator-configured cheaper same-vendor `model`, `anchor` omits the param. That row is marked *(unverified)*.

@@ -516,7 +516,7 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 
 3. **Memory bootstrapping**: Agent memory starts empty. First few runs will be less effective. Ask agents explicitly to "update your memory with patterns you discover."
 
-4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
+4. **Haiku for story-gen is the floor, not a knob**: `writ-story-gen` carries `model: haiku` because it is a `floor` agent under ADR-024 (templated output the user reviews before lock). Do not change it to a fixed `model: sonnet` — the anchor is the ceiling, and a fixed `sonnet` exceeds a `haiku` origin (see the tier table above). If a generated story fails validation, `/create-spec` Step 2.6a already re-runs it once at `anchor` (`inherit`); that escalate-once path is the quality lever.
 
 5. **Subagents nest**: three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). `/goal` does not nest: see **Single-slot behavior** under *The /goal Stop Hook* above. Only the outermost running command may hold one.
 
