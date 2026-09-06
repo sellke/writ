@@ -1,6 +1,7 @@
 # Story 1: Repair Dead Ends — Nineteen Verified Items and Three Blocking Regression Checks
 
 > **Status:** Completed ✅ (2026-09-06)
+> **Commit:** 1fd9561f742bafcd250c02a1e34d29173a94e3bd
 > **Priority:** High
 > **Dependencies:** None
 
