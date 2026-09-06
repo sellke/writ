@@ -1,6 +1,7 @@
 # Story 3: Story Selection — pipeline-baseline.py select Picks Four yuss.app Stories by Fixed Criteria
 
 > **Status:** Complete
+> **Commit:** 92eb2b2598e728fbe0d4455ecd5c3e9765ab8b92
 > **Priority:** High
 > **Dependencies:** Story 1 (lands after Story 1's commit; no code dependency)
 
