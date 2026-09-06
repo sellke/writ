@@ -7,7 +7,7 @@
 | # | Story | Status | Priority | Deps | AC | Tasks | Progress |
 |---|---|---|---|---|---|---|---|
 | 1 | [Repair Dead Ends — Nineteen Verified Items and Three Blocking Regression Checks](story-1-repair-dead-ends.md) | Completed ✅ (2026-09-06) | High | — | 5 | 7 | 7/7 |
-| 2 | [Validated Token Measurement — measure-invocation.py Counts With the Anthropic API](story-2-validated-token-measurement.md) | Not Started | High | 1 (ordering only) | 5 | 7 | 0/7 |
+| 2 | [Validated Token Measurement — measure-invocation.py Counts With the Anthropic API](story-2-validated-token-measurement.md) | Completed ✅ (2026-09-06; real-key run pending) | High | 1 (ordering only) | 5 | 7 | 7/7 |
 | 3 | [Story Selection — pipeline-baseline.py select Picks Four yuss.app Stories by Fixed Criteria](story-3-story-selection.md) | Not Started | High | 1 (ordering only) | 5 | 7 | 0/7 |
 | 4 | [Replay Runner — Isolated Checkout, Headless /implement-story, Metrics Per Run](story-4-replay-runner.md) | Not Started | High | 3 | 5 | 7 | 0/7 |
 | 5 | [Baseline Capture and Gate — Eight Fable 5.1 Runs, One Committed JSON, check_pipeline_baseline](story-5-baseline-capture-and-gate.md) | Not Started | High | 2, 4 | 5 | 7 | 0/7 |

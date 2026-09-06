@@ -131,6 +131,10 @@ Deferred, not rejected. The goal-orientation audit ([ADR-020](adr-020-component-
 
 **Originating work:** Stories 1 and 6 of [`2026-08-12-disclosure-implement-story`](../specs/2026-08-12-disclosure-implement-story/spec.md), following a maintainer scope ruling recorded in that spec's *Approved Scope Change — 2026-08-12*. A consequence with **no owner**: `system-instructions.md`'s `required_skills:` *Status: adopted* paragraph and `adapters/claude-code.md:396` both name Phase 10 progressive disclosure as the convention's first consumer, and both become false. Neither file is in that spec's file set; the correction is recorded there and unassigned.
 
+### 2026-09-06 — Token counts can now be measured
+
+`scripts/measure-invocation.py --tokenizer anthropic` (or the default `auto` with `ANTHROPIC_API_KEY` set) now counts every measured text with Anthropic's Messages `count_tokens` endpoint for `claude-fable-5-1` and reports `token_method: anthropic-count-tokens`, `token_method_validated: true`, and `token_model`; without a key it emits the same estimate it always did. The chars/4 figures quoted in this ADR (`≈ 129k tokens`, `≈ 12.3k`, `≈ 11.4k`) remain the historical estimates they were labeled as — none has been re-measured, and this entry does not restate them. The first real-key run is the recalibration step; it has not been performed. Originating work: Story 2 of [`2026-09-05-phase11-repair-and-baseline`](../specs/2026-09-05-phase11-repair-and-baseline/spec.md).
+
 ## References
 
 - Roadmap: [Phase 10 — Component Contract & Progressive Disclosure](../product/roadmap.md)

@@ -350,7 +350,8 @@ class CommandBudgetTests(unittest.TestCase):
         command" that can disagree is a defect waiting for its first file."""
         result = subprocess.run(
             [sys.executable, str(MEASURE_PATH), "--root", str(REPO_ROOT),
-             "--format", "json"], capture_output=True, text=True, check=True)
+             "--format", "json", "--tokenizer", "estimate"],
+            capture_output=True, text=True, check=True)
         reported = json.loads(result.stdout)["commands"]
         mine = lean.command_byte_sizes(str(REPO_ROOT))
         self.assertGreater(len(mine), 0)

@@ -15,6 +15,16 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 | DEV-005 | 1 | Small | Bare `*.md` tokens in `check_referenced_paths` resolve by basename anywhere in `git ls-files -co` |
 | DEV-006 | 1 | Small | Allowlist self-checks (malformed row, stale row) are additional blocking findings |
 | DEV-007 | 1 | Small | Lesson TL;DR reconstructed from the H1 title; payload `statement` was empty in all ten |
+| DEV-008 | 3 | Medium | technical-spec §2 field/class/reason names superseded by story-3 AC-3.1 names; `SCHEMA_KEYS`/`SELECTION_KEYS`/`REASONS` are the contract |
+| DEV-009 | 3 | Small | Short surface class exits 1 (task 3.5), not 2 (tech-spec §7); 2 is reserved for usage/refusal |
+| DEV-010 | 3 | Small | Top-level keys add `runs_per_story` (null until run) and `rejection_tally` (uncapped counts behind the capped `excluded[]`) |
+| DEV-011 | 3 | Small | Reason codes add `no_surface_class` and `git_error` (tech-spec §8) to AC-3.2's six |
+| DEV-012 | 3 | Small | Test-file rule narrowed: source extension required, deleted files excluded, test files ignored for class paths — each echoed in `criteria` |
+| DEV-013 | 3 | Small | New flags `--live-test-scope` (default `story`, echoed) and `--force`; `--out` refused whenever it exists |
+| DEV-014 | 2 | Small | Cache key separator is NUL per story task 2.3; technical-spec §5 said `"\n"` — intra-spec conflict, story text followed |
+| DEV-015 | 2 | Small | Tokenizer tests live in `test_measure_invocation.py` per story task 2.1, not §10's `test_measure_invocation_tokenizer.py` — intra-spec conflict, story text followed |
+| DEV-016 | 2 | Small | `token_failures` counts distinct failed texts by content hash — a skill shared by N commands is 1 failure |
+| DEV-017 | 2 | Small | `--tokenizer estimate` bypasses an installed `tiktoken` (chars/N regardless); `auto` without a key keeps tiktoken-if-installed |
 
 ---
 
@@ -47,3 +57,45 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 ## DEV-007 — TL;DR from title
 
 **Severity:** Small · **Story:** 1 · **Found:** 2026-09-06, Gate 3 review. The payload `statement` was empty in all ten source records (which is why the files had empty TL;DRs); the H1 is the lesson as source commits `a9b3ed8` / `2dba942` list it. Not invented content, not a distinct recovered field. `spec-lite.md` amended.
+
+## DEV-008 — technical-spec §2 names superseded by story-3 AC-3.1
+
+**Severity:** Medium · **Story:** 3 · **Found:** 2026-09-06, Gate 0 + Gate 3
+
+**Spec said:** `sub-specs/technical-spec.md` §2 sketches the baseline with `created`, `yuss_commit_at_selection`, `parent_is_first_parent_of_merge`, `admitted_by`, `commit_found_via`, `test_command`, `writ_version`/`writ_commit`, classes `api|ui|data`, and reasons `denylist:prisma|no_test_file|no_commit|class_full:ui`. **Implementation did:** followed story-3 AC-3.1, the later and more specific artifact — `generated_at`, `yuss_head`, `parent_is_merge`, `criteria_values`, `commit_source`, classes `api_route|ui|data_model|refactor`, reasons `status_not_completed|commit_unresolved|no_test_files|live_service_import|migration_prerequisite|class_filled` (+ `git_error`, `no_surface_class`, DEV-011). `test_command` is not emitted; Story 4 derives it from `test_files`. **Why it matters:** Story 4 reads `selection[]` verbatim and Story 5's validator checks the schema — both must read Story 3's *What Was Built* and import `SCHEMA_KEYS`/`SELECTION_KEYS`/`REASONS` from `scripts/pipeline-baseline.py`, not transcribe §2. **Resolution:** ⚠️ flagged; pipeline PASS. `technical-spec.md` §2 is left as authored (append-only rule); the module constants are the contract.
+
+## DEV-009 — Short class exits 1
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-06, Gate 0. Task 3.5 says exit 1; tech-spec §7 says 2. Implemented 1; 2 is reserved for usage errors and refusals (`--yuss` invalid, `--out` inside yuss or existing without `--force`, zero candidates). `spec-lite.md` amended.
+
+## DEV-010 — `runs_per_story` and `rejection_tally` at top level
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-06, Gate 0. AC-3.1's "exactly" list omits both. `runs_per_story: null` exists so Story 4 fills it and Story 5's `runs = runs_per_story × 4` check finds the key; `rejection_tally` gives counts for all ~364 rejections while `excluded[]` stays capped at 10. `spec-lite.md` amended.
+
+## DEV-011 — Two additional reason codes
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-06, Gate 1. `git_error` (tech-spec §8 row the story omitted) and `no_surface_class` (a Completed, resolved, tested story whose commit touches no class path and is not a refactor — AC-3.2 has no reason for it). Both in `REASONS`; `criteria.reason_codes` echoes the vocabulary. `spec-lite.md` amended.
+
+## DEV-012 — Test-file rule narrowed
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-06, Gate 1. Test files must carry a source extension (`tests/integration/README.md` matched `stripe` in prose otherwise); files the commit deleted are excluded (no content at `<commit>`); test files do not count toward class paths (`app/api/x/__tests__/` alone is not an API-route change). Each echoed as a `criteria` key. Side effect noted by review: `tests/setup.ts`-style helpers count as test files and reach Story 4's `test_files`.
+
+## DEV-013 — `--live-test-scope`, `--force`, and `--out` refusal
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-06, Gate 0. `--live-test-scope {story,file}` carries the user-approved widening (story file → Approved Scope Additions) as a flag echoed in `criteria`, default strict. `--out` is refused whenever it exists unless `--force` — stricter than tech-spec §9 — to protect Story 4's run records. `spec-lite.md` amended.
+
+## DEV-014 — Cache key separator
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-06, Gate 0. Story task 2.3 says `sha256(model + "\0" + text)`; tech-spec §5 says `"\n"`. NUL implemented (the story is the later, more specific artifact); exported as `token_cache_key(model, text)` so no caller re-derives the formula. `spec-lite.md` amended.
+
+## DEV-015 — Tokenizer test location
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-06, Gate 0. Tech-spec §10 names a new `test_measure_invocation_tokenizer.py`; story task 2.1 extends the existing `test_measure_invocation.py`. Story followed; six new test classes live in the existing file. `spec-lite.md` amended.
+
+## DEV-016 — `token_failures` is per distinct text
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-06, Gate 3 review. AC-2.4's "number of failed texts" is read literally: failures are counted once per content hash, so a skill referenced by N commands that fails to count is one failure with one label, and a failed text is not re-requested within the run. `spec-lite.md` amended.
+
+## DEV-017 — `--tokenizer estimate` semantics
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-06, Gate 3 review. Task 2.5 left `estimate` undefined relative to an installed `tiktoken`. Implemented: `estimate` is chars/N regardless of site-packages (this is what makes `--tokenizer estimate` a safe test flag); `auto` without a key preserves the pre-story tiktoken-if-installed path so AC-2.2 byte-identity holds. The tiktoken branch's `validated: true` mislabel is untouched, per story Notes — follow-up candidate. `spec-lite.md` amended.
