@@ -1,6 +1,7 @@
 # Story 2: Validated Token Measurement — measure-invocation.py Counts With the Anthropic API
 
 > **Status:** Complete
+> **Commit:** 0286fab3c556e9cf40e3bcddc2180a17506bc918
 > **Priority:** High
 > **Dependencies:** Story 1 (lands after Story 1's commit so measurements are taken on the repaired corpus; no code dependency)
 
