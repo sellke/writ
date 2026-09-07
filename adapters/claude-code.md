@@ -521,3 +521,7 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 5. **Subagents nest**: three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). `/goal` does not nest: see **Single-slot behavior** under *The /goal Stop Hook* above. Only the outermost running command may hold one.
 
 6. **Plan mode is read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer cannot modify files, even if prompted to.
+
+## Model-specific
+
+Claude Fable 5.1 may serialize independent tool calls: issue independent reads, searches, and checks as one batched message, not one at a time (the only model-specific line this adapter carries — ADR-026; see ADR-024 for delegation).

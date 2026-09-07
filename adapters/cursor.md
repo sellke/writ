@@ -325,3 +325,7 @@ Use the meta-command:
 ```
 
 This walks you through creating a new command file following Writ conventions.
+
+## Model-specific
+
+Claude Fable 5.1 may serialize independent tool calls: issue independent reads, searches, and checks as one batched message, not one at a time (the only model-specific line this adapter carries — ADR-026; see ADR-024 for delegation).

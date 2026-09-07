@@ -435,3 +435,7 @@ When a Writ command uses a discovery or planning phase, that phase serves the co
 5. **File conflicts**: When multiple sub-agents write files in the same workspace, ensure they write to different paths. The user-story-generator pattern (each agent writes its own `story-N-*.md`) is safe.
 
 6. **Model for sub-agents**: see the § 1 resolution table: `floor` passes an operator-configured cheaper same-vendor `model`, `anchor` omits the param. That row is marked *(unverified)*.
+
+## Model-specific
+
+Claude Fable 5.1 may serialize independent tool calls: issue independent reads, searches, and checks as one batched message, not one at a time (the only model-specific line this adapter carries — ADR-026; see ADR-024 for delegation).

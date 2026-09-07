@@ -435,3 +435,7 @@ Read-only agents (`sandbox_mode = "read-only"`) constrain lateral movement durin
 | `codex/AGENTS.md.template` | Merge template fragment |
 | `codex/config.toml.template` | Install-once baseline |
 | `.writ/decision-records/adr-009-command-agent-skill-boundary.md` | Skills boundary + Codex path amendment |
+
+## Model-specific
+
+Claude Fable 5.1 may serialize independent tool calls: issue independent reads, searches, and checks as one batched message, not one at a time (the only model-specific line this adapter carries — ADR-026; see ADR-024 for delegation).
