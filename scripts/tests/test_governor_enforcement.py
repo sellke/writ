@@ -508,6 +508,15 @@ class CommandBudgetTests(unittest.TestCase):
 # unchanged. Each item is a dead end the Stage 1 baseline must not measure;
 # Stage 2 is the cut. Acknowledged, not exempted: eval.sh's leanness warning
 # still reports all six.
+# Updated 2026-09-07 (spec 2026-09-07-phase11-stage2-prune-the-base, Story 4 —
+# gate verification markers): implement-story.md 4414 -> 5381 (+967: the
+# `gates:` frontmatter block naming all ten Step 3 gates' verdict sources, 8
+# `verification: prose-only` and 2 `script:`, checked by
+# scripts/verdict-provenance.py and eval.sh verdict-provenance; plus one
+# sentence at Gate 4.5 recording that the match-percentage thresholds are
+# gone). implement-story.md is a command file, not one of the two base files
+# the Stage 2 byte cap governs; the block is the checkable count the
+# mechanization spec starts from. Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
@@ -516,7 +525,7 @@ KNOWN_OVER_BUDGET = {
     "commands/implement-phase.md": 10208,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 4414,
+    "commands/implement-story.md": 5381,
 }
 
 

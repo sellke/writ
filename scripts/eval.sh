@@ -69,6 +69,7 @@ CHECKS=(
   build-smoke
   pipeline-baseline
   pruned-base
+  verdict-provenance
 )
 
 TOTAL_FINDINGS=0
@@ -3921,6 +3922,57 @@ check_pruned_base() {
         ;;
     esac
   done <<< "$out"
+}
+
+check_verdict_provenance() {
+  # Story 4 of 2026-09-07-phase11-stage2-prune-the-base: every #### Gate
+  # heading in commands/implement-story.md must have a gates: frontmatter
+  # entry naming its verdict source (script: path or verification:
+  # prose-only). Drift lines from `verdict-provenance.py check` are relayed
+  # as findings; the `prose_only_count` line is a note, not a finding, until
+  # the mechanization spec passes --prose-only-blocking here (technical-spec
+  # §5). Sits beside check_pruned_base (Story 1) and check_pipeline_baseline.
+  local helper="$PROJECT_ROOT/scripts/verdict-provenance.py"
+  local command="$PROJECT_ROOT/commands/implement-story.md"
+  local rel output rc line field reason
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/verdict-provenance.py" "verdict-provenance helper is missing." \
+      "Restore scripts/verdict-provenance.py so check can run."
+    return
+  fi
+  if [ ! -f "$command" ]; then
+    add_finding "commands/implement-story.md" "command file is missing; nothing to check gates: against." \
+      "Restore commands/implement-story.md with its gates: frontmatter block."
+    return
+  fi
+  rel="$(relpath "$command")"
+
+  # check exits 1 on findings and 2 on a usage defect; `set -e` must not abort.
+  rc=0
+  output="$(python3 "$helper" check --command "$command" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "$rel" "verdict-provenance.py check refused: ${output##*$'\n'}" \
+      "Fix the gates: frontmatter block so python3 scripts/verdict-provenance.py check --command $rel parses it."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      "note: "*)
+        add_note "NOTE [$rel]: ${line#note: }. Not blocking until the gate-mechanization spec passes --prose-only-blocking (technical-spec §5)."
+        ;;
+      "gates: "*)
+        add_note "Metrics: $line"
+        ;;
+      *)
+        field="${line%%: *}"
+        reason="${line#*: }"
+        add_finding "$rel:$field" "$reason" \
+          "Align the gates: frontmatter entry with its #### Gate heading; run python3 scripts/verdict-provenance.py check --command $rel."
+        ;;
+    esac
+  done <<< "$output"
 }
 
 run_check() {

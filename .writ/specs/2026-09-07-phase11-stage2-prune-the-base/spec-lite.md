@@ -22,7 +22,7 @@
 - `.writ/decision-records/adr-026-constraint-test-pruning.md`, `.writ/decision-records/pruned-instructions-ledger.md` — new
 - `scripts/prune-ledger.py`, `scripts/verdict-provenance.py` — new
 - `scripts/eval.sh` — `pruned-base`, `verdict-provenance` checks
-- `commands/implement-story.md` — frontmatter `gates:` block; Gate 4.5 percentages dropped
+- `commands/implement-story.md` — frontmatter `gates:` block; Gate 4.5 percentages dropped (from the command body only; `agents/visual-qa-agent.md` keeps its 85/70 lines until the mechanization spec — DEV-102)
 - `.writ/eval/baselines/<date>-claude-fable-5-1.json` — re-run file, Stage 1 `selection` copied verbatim
 
 **Error Handling:**
