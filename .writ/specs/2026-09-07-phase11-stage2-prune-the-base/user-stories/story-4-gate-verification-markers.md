@@ -1,6 +1,7 @@
 # Story 4: Gate Verification Markers and Provenance Check — gates: Frontmatter, verdict-provenance.py, and the verdict-provenance Eval Check
 
 > **Status:** Completed ✅ (2026-09-07)
+> **Commit:** e6be367f65d9aade30ea7cbde5588aac98079d8a
 > **Priority:** High
 > **Dependencies:** None
 
