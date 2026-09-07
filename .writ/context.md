@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-07T13:42:51Z
+> Last Updated: 2026-09-07T19:40:00Z
 
 ## Product Mission
 
@@ -9,17 +9,20 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-05-phase11-repair-and-baseline` — Phase 11 Stage 1 of the contract-and-verifier-layer Goal Card (`.writ/issues/goals/2026-09-05-writ-contract-and-verifier-layer.md`)
-- **Status:** In Progress — Stories 1–4 Complete (2026-09-06); Story 5 In Progress. (`spec.md` header still reads `Not Started`; story-5 task checkboxes are unchecked while README reports 4/7 — run `/verify-spec`.)
-- **Story:** 5 of 5 — Baseline Capture and Gate (In Progress; tasks 5.1–5.4 landed per README, 5.5 live capture next)
-- **Progress:** 32/35 tasks complete (91%)
+- **Status:** Complete — Stories 1–5 Completed ✅ (Story 5 on 2026-09-07, commit `cf84742`, SHA record `9840386`)
+- **Story:** 5 of 5 — Baseline Capture and Gate (Completed ✅)
+- **Progress:** 35/35 tasks complete (100%)
 
-Last landed: Story 4 `eefffa1` (replay runner), SHA record `d2f92de`. Story 5 code for `validate` / `compare` / `check_pipeline_baseline` plus tests is in the working tree, uncommitted (11 modified, 1 untracked). DEV-028 removed the `ANTHROPIC_API_KEY` requirement: the `claude` CLI on `PATH` (`~/.local/bin/claude`) authenticates the headless driver. Next: task 5.5 — `python3 scripts/pipeline-baseline.py run --model claude-fable-5-1 --runs 2` outside the sandbox. Batch state: `.writ/state/execution-20260906T124537Z.json` (4 complete, 1 in progress).
+The Fable 5.1 pipeline baseline is committed at `.writ/eval/baselines/2026-09-06-claude-fable-5-1.json`: eight runs (four yuss stories × 2), every exit criteria met, driver cost $187.60 over 5.5 h. `validate` exit 0; `eval.sh` Findings 0; `compare <file> <file>` all-zero deltas. Stage 2 (the next Goal Card stage) gets its own spec. Not started.
+
+`/implement-spec` checker verdict: `implement-spec.c1` met, `c2` met, `c3` unmet only because the checker requires `typecheck == "pass"` and this stack has no typechecker — filed as `.writ/issues/improvements/2026-09-07-exit-criteria-c3-rejects-stacks-without-a-typechecker.md`.
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md present; `2026-09-05-goldilocks-assessment.md` present
+- **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md, `2026-09-05-goldilocks-assessment.md` present
 - **Research:** `2026-09-05-goldilocks-harness-research.md` present
-- **Active spec:** `.writ/specs/2026-09-05-phase11-repair-and-baseline/` (spec, spec-lite, technical-spec, 5 stories, drift-log) — 62 archived under .writ/specs/archive/ (LEDGER.md current)
+- **Active spec:** `.writ/specs/2026-09-05-phase11-repair-and-baseline/` (spec, spec-lite, technical-spec, 5 stories, drift-log) — Complete, eligible for `/status --archive`; 62 archived under .writ/specs/archive/ (LEDGER.md current)
+- **Baselines:** `.writ/eval/baselines/2026-09-06-claude-fable-5-1.json` (committed)
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (23 files)
 - **Config:** .writ/config.md present (Default Branch main · Test Runner `uv run pytest` · Version File VERSION)
@@ -35,15 +38,15 @@ From `2026-09-05-phase11-repair-and-baseline/drift-log.md`:
 
 ## Open Issues
 
-6 files under `.writ/issues/` — 2 untriaged and older than 7 days (`2026-08-11-restore-path-recording-for-destructive-commands.md`, `2026-09-03-test-integrity-authenticity-flags-every-bash-test.md`).
+7 files under `.writ/issues/` — 3 untriaged: `2026-08-11-restore-path-recording-for-destructive-commands.md` (27 days), `2026-09-03-test-integrity-authenticity-flags-every-bash-test.md`, `2026-09-07-exit-criteria-c3-rejects-stacks-without-a-typechecker.md` (new).
 
 ## Verification State
 
-2026-09-06, Story 5 mid-pipeline (resume):
+2026-09-07, spec closeout:
 
-- Story 4 closeout: `eefffa1` / SHA record `d2f92de`; 119 pytest; eval.sh Findings 0 (before Story 5 registered the check)
-- Story 5 Gates 0–3: ARCH_CHECK CAUTION → coding 5.1–5.4 → REVIEW PASS (Small drift DEV-026/027, Medium DEV-028)
-- `uv run --python 3.9 pytest scripts/tests/test_pipeline_baseline.py scripts/tests/test_pipeline_baseline_run.py` — 146 passed
-- `bash scripts/tests/test_eval_pipeline_baseline.sh` — 5 assertions passed
-- Committed skeleton fails `validate` (`runs_per_story` null) until eight live records exist
-- Quality config: pass, 0 findings (no `.writ/quality-baseline.md`)
+- `uv run --python 3.9 pytest` — 1017 passed, 1 skipped
+- `for t in scripts/tests/test_*.sh` — all green
+- `bash scripts/eval.sh` — Findings: 0 (report `.writ/state/eval-20260907-193029.md`), with the committed baseline present
+- Typecheck: skipped, no typechecker configured (ad-hoc mypy: 105 pre-existing errors, not a gate)
+- Story 2's real-key `measure-invocation.py --tokenizer anthropic` run remains pending a maintainer
+- Baseline cost note: the task 5.6 formula ($52.54) understates the driver's `cost_usd` ($187.60) 3.6×; `cost_usd` is the price of record
