@@ -22,6 +22,29 @@ loop:
       max_iterations: 3
       on_exhaustion: escalate
       calibrated_against: "Transcribes MAX_SELF_FIX_ITERATIONS = 3, declared in agents/coding-agent.md and agents/testing-agent.md and consumed by this file's STATUS: BLOCKED handlers at Gate 1 and Gate 4. Evidence: strong - two agent definitions already enforce it; this declaration must not drift from them."
+gates:
+  # One per #### Gate heading: `script` re-derives the verdict; `prose-only`
+  # means the agent's own report is the verdict. scripts/verdict-provenance.py.
+  - id: gate0_arch
+    verification: prose-only
+  - id: gate0_5_boundary
+    verification: prose-only
+  - id: gate1_coding
+    verification: prose-only
+  - id: gate2_build
+    script: scripts/build-smoke.py
+  - id: gate2_5_surface
+    verification: prose-only
+  - id: gate3_review
+    verification: prose-only
+  - id: gate3_5_drift
+    verification: prose-only
+  - id: gate4_tests
+    script: scripts/test-integrity.py
+  - id: gate4_5_visual
+    verification: prose-only
+  - id: gate5_docs
+    verification: prose-only
 ---
 
 # Implement Story Command (implement-story)
@@ -277,7 +300,9 @@ python3 scripts/test-integrity.py authenticity --project . --tests <story's test
 
 Spawns a **read-only** sub-agent that captures the current UI via browser/Playwright, compares against mockups linked in the story, and reports structural, spacing and styling matches/mismatches.
 
-**Results:** **PASS** (≥85% match) → continue to docs · **SOFT PASS** (≥70% match, only cosmetic issues) → continue, log issues · **FAIL** (<70% match or high-priority mismatches) → send fixes back to coding agent
+**Results:** **PASS** (no mismatches, or none the agent rates above low) → continue to docs · **SOFT PASS** (only cosmetic, medium-or-low mismatches) → continue, log issues · **FAIL** (any high-priority mismatch, or structural drift from the mockup) → send fixes back to coding agent
+
+The former match-percentage thresholds are gone: no pixel or DOM diff produced the number, so the verdict rests on the agent's per-aspect mismatch list, and the `gates:` frontmatter records this gate as `prose-only`.
 
 Failures count toward the shared review-loop cap declared at Gate 3.
 
