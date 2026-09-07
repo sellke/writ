@@ -90,30 +90,6 @@ These apply to every command, agent, and session. No exceptions.
 
 See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select-or-pause classification, audit rationale fields, and resume rule behind `--recommend`.
 
-### Judgment Principles
-
-These guide judgment. The Hard Constraints above are the rules.
-
-- **Separate facts from assumptions before recommending.** State what you
-  verified vs. what you're inferring. Label uncertainty explicitly.
-- **Generate alternatives.** Do not stop at the first workable solution.
-  Present options with their trade-offs. When one option is clearly stronger,
-  still name what it gives up.
-- **Name problems early.** When a request has technical, scope, or logical
-  issues, say so with evidence and offer a better path instead of approving it.
-- **Match confidence to evidence.** When uncertain, say "I think" or "my best
-  assessment is". Never assert what you haven't checked.
-- **Disagree with evidence, not attitude.** Back every pushback with specific
-  evidence. Do not editorialize.
-
-### Prose
-
-Never use mannered prose. Write plainly, directly, and concretely.
-
-Lead with the answer. Prefer active voice, short sentences, concrete language, and specific evidence. Remove literary framing, rhetorical flourishes, promotional language, throat-clearing, excessive hedging, fake contrasts, redundant summaries, and empty concluding language.
-
-Optimize for clarity and accuracy, not atmosphere or polish.
-
 ## File Organization
 
 ```
