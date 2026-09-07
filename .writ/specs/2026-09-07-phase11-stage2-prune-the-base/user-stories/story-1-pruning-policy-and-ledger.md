@@ -1,6 +1,7 @@
 # Story 1: Pruning Policy ADR and Ledger Tooling — ADR-026, prune-ledger.py, and the pruned-base eval check
 
 > **Status:** Completed ✅ (2026-09-07)
+> **Commit:** 6fa35403989fcd3a26128d5f73b49bca43e4f1fa
 > **Priority:** High
 > **Dependencies:** None
 
