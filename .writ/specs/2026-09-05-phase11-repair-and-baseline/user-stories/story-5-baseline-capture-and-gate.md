@@ -1,6 +1,7 @@
 # Story 5: Baseline Capture and Gate — Eight Fable 5.1 Runs, One Committed JSON, check_pipeline_baseline
 
 > **Status:** Completed ✅ (2026-09-07)
+> **Commit:** cf84742214eea8c19f023993f63a801a4d4e4b2a
 > **Priority:** High
 > **Dependencies:** Story 2, Story 4
 
