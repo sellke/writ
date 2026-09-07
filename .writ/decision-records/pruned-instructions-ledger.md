@@ -195,3 +195,5 @@
 | 2026-09-07 | system-instructions.md | behavior-request | Orientation on a bare session; the model reads git branch and .writ/specs/ unprompted and /status is the full command | 3. **Suggested next action** — based on what's in progress (e.g., "Story 3 of auth-refactor is next" or "No active specs — ready for a new task") |
 | 2026-09-07 | system-instructions.md | behavior-request | Orientation on a bare session; the model reads git branch and .writ/specs/ unprompted and /status is the full command | Keep it to 3 lines max. This is not the full `/status` command. |
 | 2026-09-07 | system-instructions.md | duplicate | .writ/docs/skills.md (Verb / Noun / Tool table, path, ADR-009 link); the pointer line below stays | Writ has three primitives — **commands** (verb), **agents** (noun), and **skills** (tool). Skills are capability files in `skills/<name>/SKILL.md` that describe how to do one specific thing. They are not workflows and not roles. See `.writ/decision-records/adr-009-command-agent-skill-boundary.md` for the boundary rationale and `.writ/docs/skills.md` for the user-facing explainer. |
+
+<!-- cap: blocking -->
