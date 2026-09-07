@@ -25,11 +25,34 @@ text. `excluded[].detail` is capped at 200 characters.
 Subcommands:
   select   --yuss PATH --out PATH [--model ID] [--deny-list a,b,...]
            [--excluded-cap N] [--live-test-scope story|file] [--force]
-  run / ingest / compare   stubs until Story 4 / Story 5
+  run      --baseline PATH --yuss PATH [--model ID] [--runs N] [--story ID]
+           [--cap S] [--budget-usd N] [--keep] [--force] [--tmp-root DIR]
+           [--writ-root DIR]
+  ingest   --baseline PATH --yuss PATH --checkout DIR --transcript FILE
+           [--story-id ID --run N] [--force] [--tmp-root DIR] [--writ-root DIR]
+  compare  stub until Story 5
 
-Exit codes: 0 written · 1 a surface class has no admissible story
-(`--out` untouched) · 2 usage, invalid `--yuss`, refused `--out`, or no
-candidates.
+`run` (Story 4) replays each selected story `--runs` times: a fresh
+`git init` + `fetch --depth 1 <yuss> <parent_sha>` checkout under
+`$TMPDIR/writ-baseline-<story-stem>-<n>/checkout/` (Business Rule 1: exactly
+one reachable commit, asserted and recorded before anything else touches the
+tree), the current Writ overlaid via `scripts/install.sh --platform claude`,
+`pnpm install`, then `claude -p "/implement-story <story path>"` headless
+under a wall-clock cap and a dollar budget. Afterwards jest runs twice (the
+produced tree's whole suite with coverage, then the story's original test
+files restored from `git show <story_commit>:<path>`), Gates 2 and 4 are
+re-derived by `--writ-root`'s `build-smoke.py` and `test-integrity.py`
+(Business Rule 5), completion is re-derived from `/implement-story`'s own
+success predicates, and the transcript's `result` event supplies tokens,
+cost, and wall-clock. One record per run is appended to `runs[]` and flushed
+before the next run starts; `ingest` computes the identical record from an
+existing checkout + transcript. A run directory is removed only after its
+record is complete; on any exception it is kept and its path printed.
+
+Exit codes: 0 written · 1 (`select`) a surface class has no admissible story
+(`--out` untouched) · 2 usage or refusal (invalid `--yuss`, refused `--out`,
+no candidates, `run` preflight: missing `ANTHROPIC_API_KEY` or `claude`) ·
+3 (`run`/`ingest`) a record failed `scrub()` or yuss's HEAD moved.
 """
 
 from __future__ import annotations
@@ -662,6 +685,1017 @@ def cmd_select(args: argparse.Namespace) -> None:
     sys.exit(0)
 
 
+# ---------------------------------------------------------------------------
+# run / ingest — record contract
+# ---------------------------------------------------------------------------
+
+# Key order of one `runs[]` record. Story 5's validator imports this.
+RUN_KEYS = (
+    "story_id", "run", "status", "reason", "started_at", "isolation", "writ", "inputs", "deps",
+    "invocation", "wall_clock_s", "num_turns", "tokens", "tokens_main_thread", "cost_usd",
+    "interrupts", "review_iterations", "tests", "gates", "rederivation", "exit_criteria", "yuss_head_unchanged",
+)
+GATE_NAMES = ("gate0_arch", "gate2_build", "gate3_review", "gate4_tests", "gate5_docs")
+GATE_KEYS = ("verdict", "source", "rederived")      # gate4_tests also carries `integrity`
+ISOLATION_KEYS = ("reachable_commits", "expected", "asserted", "answer_scrub_asserted")
+WRIT_KEYS = ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count")
+TEST_BLOCK_KEYS = ("passed", "total", "reason")
+# Business Rule 5: Gate 2 and Gate 4 are re-derived by Writ's own scripts, run
+# from `--writ-root` against the produced checkout. Each block is
+# {argv, verdict, reason}; `gate2_build.rederived` and `gate4_tests.integrity`
+# carry the verdicts. Argv paths are shown as <writ_root>/<checkout>/<artifacts>.
+REDERIVATION_KEYS = ("build_smoke", "test_integrity")
+REDERIVATION_BLOCK_KEYS = ("argv", "verdict", "reason")
+GATE_SCRIPT_VERDICTS = ("pass", "fail", "unverifiable")
+BUILD_SMOKE_REL = "scripts/build-smoke.py"
+TEST_INTEGRITY_REL = "scripts/test-integrity.py"
+BUILD_SMOKE_TIMEOUT_S = 300           # the script's own --timeout
+GATE_SCRIPT_TIMEOUT_S = 600           # our wrapper around either script
+PATH_PLACEHOLDERS = ("<writ_root>", "<checkout>", "<artifacts>")
+INVOCATION_KEYS = ("argv", "model", "model_resolved", "claude_version", "permission_mode", "api_key_source")
+TOKEN_KEYS = ("input", "output", "cache_read", "cache_creation")
+INTERRUPT_KEYS = ("ask_user_question", "status_blocked")
+RUN_STATUSES = ("complete", "budget", "error", "timeout")
+INPUT_SOURCES = ("parent", "parent_show")      # checkout tree · `git show <parent_sha>:<path>`
+EXPECTED_REACHABLE = 1
+REDERIVED_BY = "implement-story success predicates"
+
+# stream-json event shape (`claude -p --output-format stream-json --verbose`).
+# Pinned here so the task 4.2 smoke run confirms one place. Tokens and cost
+# come from the `result` event: subagent spend is invisible on the main
+# thread's per-message `usage`, which is kept only as `tokens_main_thread`.
+RESULT_TYPE = "result"
+RESULT_SUBTYPE_STATUS = {
+    "success": "complete",
+    "error_max_budget_usd": "budget", "error_max_budget": "budget",
+    "error_during_execution": "error", "error_max_turns": "error",
+}
+RESULT_USAGE_FIELDS = {"input": "input_tokens", "output": "output_tokens",
+                       "cache_read": "cache_read_input_tokens", "cache_creation": "cache_creation_input_tokens"}
+RESULT_COST_FIELD = "total_cost_usd"
+RESULT_DURATION_FIELD = "duration_ms"
+RESULT_TURNS_FIELD = "num_turns"
+INIT_FIELDS = {"model_resolved": "model", "api_key_source": "apiKeySource", "claude_version": "claude_code_version"}
+SUBAGENT_TOOLS = frozenset({"Task", "Agent"})
+INTERRUPT_TOOLS = frozenset({"AskUserQuestion", "ExitPlanMode"})
+READ_TOOL = "Read"
+# No `[` in the alternation: the agent templates read `ARCH_CHECK: [PROCEED/CAUTION/ABORT]`.
+VERDICT_LINE = re.compile(
+    r"\b(ARCH_CHECK|REVIEW_RESULT|TEST_RESULT|DOCS_UPDATED): "
+    r"(PROCEED|CAUTION|ABORT|PASS|FAIL|PAUSE|YES|NO|BLOCKED)\b")
+VERDICT_GATE = {"ARCH_CHECK": "gate0_arch", "REVIEW_RESULT": "gate3_review",
+                "TEST_RESULT": "gate4_tests", "DOCS_UPDATED": "gate5_docs"}
+STATUS_BLOCKED = re.compile(r"\bSTATUS: BLOCKED\b")
+DEGRADED_REPORT = re.compile(r"\bDEGRADED\b")
+COMPLETED_REPORT = re.compile(r"(?i)\bcomplete(d)?\b")
+WWB_HEADING = re.compile(r"(?m)^## What Was Built\s*$")
+
+# Headless invocation. `bypass`: Writ's gates run Bash, spawn subagents, and
+# commit; a permission prompt in `-p` mode would hang the cap away.
+PERMISSION_MODE = "bypass"
+PERMISSION_FLAGS = ("--dangerously-skip-permissions", "--permission-prompts", "none",
+                    "--setting-sources", "project", "--strict-mcp-config", "--no-session-persistence")
+DEFAULT_CAP_S = 5400
+DEFAULT_BUDGET_USD = 75.0
+KILL_GRACE_S = 15
+# `signal` is outside the 3.9 import set Story 3's StdlibOnlyTest pins, so the
+# POSIX numbers are spelled out. `start_new_session=True` makes pgid == pid.
+SIGTERM, SIGKILL = 15, 9
+KEY_ENV = "ANTHROPIC_API_KEY"
+CLAUDE_INSTALL_HINT = "https://docs.anthropic.com/en/docs/claude-code/setup"
+PNPM_INSTALL_HINT = "https://pnpm.io/installation"
+# `claude` refuses to start inside another Claude Code session; a maintainer
+# launching `run` from one must not pass that marker down.
+NESTED_SESSION_VARS = frozenset({"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT"})
+TMP_PREFIX = "writ-baseline-"
+SIDECAR = "run-meta.json"
+PNPM_INSTALL = ("pnpm", "install", "--frozen-lockfile", "--prefer-offline")
+DEPS_TIMEOUT_S = 900
+# `--forceExit`: a hung handle must not outlive the run. Coverage goes to an
+# out-of-tree directory so test-integrity can read it without the tree
+# ever holding an artifact.
+JEST_ARGV = ("pnpm", "exec", "jest", "--ci", "--json", "--forceExit")
+JEST_TIMEOUT_S = 1200
+COVERAGE_DIR = "coverage"
+COVERAGE_REPORT = "coverage-final.json"     # jest's default `json` reporter
+OVERLAY_ARGS = ("--platform", "claude", "--no-commit", "--force")
+MANIFEST_REL = ".claude/.writ-manifest"
+MANIFEST_VERSION = re.compile(r"(?m)^# version: (\S+)")
+
+
+class Refusal(Exception):
+    """`run`/`ingest` cannot start. Exit 2, nothing written."""
+
+
+class RunError(Exception):
+    """One run failed before the model ran. `reason` is a short code."""
+
+    def __init__(self, reason: str, isolation: Optional[dict] = None) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.isolation = isolation
+
+
+class ScrubError(Exception):
+    """A record carries a string the baseline must never hold."""
+
+
+# ---------------------------------------------------------------------------
+# Small stdlib stand-ins (shutil/signal/time are outside the pinned import set)
+# ---------------------------------------------------------------------------
+
+
+def which(name: str, path: Optional[str] = None) -> Optional[str]:
+    for directory in (os.environ.get("PATH", "") if path is None else path).split(os.pathsep):
+        if not directory:
+            continue
+        candidate = os.path.join(directory, name)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def rmtree(path: Path) -> None:
+    if path.is_symlink() or not path.is_dir():
+        if path.is_symlink() or path.exists():
+            path.unlink()
+        return
+    for root, dirs, files in os.walk(str(path), topdown=False):
+        for name in files:
+            os.unlink(os.path.join(root, name))
+        for name in dirs:
+            full = os.path.join(root, name)
+            if os.path.islink(full):
+                os.unlink(full)
+            else:
+                os.rmdir(full)
+    os.rmdir(str(path))
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _stamp(when: datetime) -> str:
+    return when.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _seconds(start: datetime) -> float:
+    return round((_utcnow() - start).total_seconds(), 3)
+
+
+def preflight(env: Optional[dict] = None) -> None:
+    """Refuse before any filesystem or subprocess side effect (AC-4.1)."""
+    env = os.environ if env is None else env
+    if not env.get(KEY_ENV):
+        raise Refusal("%s is not set in the environment; run refuses to start (Business Rule 3)" % KEY_ENV)
+    if which("claude", env.get("PATH", "")) is None:
+        raise Refusal("claude binary not found on PATH; install it first: %s" % CLAUDE_INSTALL_HINT)
+    if which("pnpm", env.get("PATH", "")) is None:
+        raise Refusal("pnpm not found on PATH (yuss's package manager); install it first: %s" % PNPM_INSTALL_HINT)
+
+
+# ---------------------------------------------------------------------------
+# Checkout: isolation, inputs, overlay, deps
+# ---------------------------------------------------------------------------
+
+
+def local_git(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+    """`git -C <checkout> ...` — the checkout is ours, any subcommand goes.
+    Never pointed at `<yuss>`; that is `Git.run`'s read-only job."""
+    proc = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True,
+                          encoding="utf-8", errors="replace")
+    if check and proc.returncode != 0:
+        verb = next((a for a in args if not a.startswith("-")), args[0] if args else "")
+        raise RunError("git_%s_failed" % verb)
+    return proc
+
+
+def build_checkout(yuss: Path, parent_sha: str, run_dir: Path) -> tuple:
+    """Fresh `git init` + `fetch --depth 1 <yuss> <parent_sha>` + checkout, so
+    exactly one commit is reachable (Business Rule 1). Returns
+    (checkout, isolation). `<yuss>` is only ever the fetch source."""
+    checkout = run_dir / "checkout"
+    checkout.mkdir(parents=True, exist_ok=True)
+    isolation = {"reachable_commits": None, "expected": EXPECTED_REACHABLE,
+                 "asserted": False, "answer_scrub_asserted": False}
+    local_git(checkout, "init", "-q")
+    fetch = local_git(checkout, "fetch", "-q", "--depth", "1", str(yuss), parent_sha, check=False)
+    if fetch.returncode != 0:
+        raise RunError("fetch_failed", isolation)
+    local_git(checkout, "checkout", "-q", "FETCH_HEAD")
+    # A signing key configured globally would make the pipeline's own commit
+    # prompt inside a headless run.
+    local_git(checkout, "config", "commit.gpgsign", "false")
+    fetch_head = checkout / ".git" / "FETCH_HEAD"       # the only file naming yuss's path
+    if fetch_head.exists():
+        fetch_head.unlink()
+    remotes = (local_git(checkout, "remote", "-v").stdout or "").strip()
+    count = (local_git(checkout, "rev-list", "--all", "--count").stdout or "").strip()
+    isolation["reachable_commits"] = int(count) if count.isdigit() else None
+    isolation["asserted"] = isolation["reachable_commits"] == EXPECTED_REACHABLE and remotes == ""
+    assert tuple(isolation) == ISOLATION_KEYS
+    return checkout, isolation
+
+
+def story_rel_path(entry: dict) -> str:
+    """The story's path inside an *active* spec folder at the parent SHA.
+    `story_path` in `selection[]` is the archived path at yuss HEAD."""
+    return ".writ/specs/%s/user-stories/%s.md" % (entry["spec_folder"], Path(entry["story_path"]).stem)
+
+
+def _show_tree(git: Git, sha: str, rel: str, checkout: Path) -> bool:
+    """Materialize `<sha>:<rel>/` from yuss into the checkout. False if absent."""
+    listing = git.run("show", "%s:%s/" % (sha, rel), check=False)
+    if listing is None:
+        return False
+    names = [l for l in listing.splitlines()[1:] if l.strip()]
+    for name in names:
+        if name.endswith("/"):
+            if not _show_tree(git, sha, "%s/%s" % (rel, name[:-1]), checkout):
+                return False
+            continue
+        content = git.run("show", "%s:%s/%s" % (sha, rel, name), check=False)
+        if content is None:
+            return False
+        target = checkout / rel / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+    return True
+
+
+def stage_inputs(git: Git, checkout: Path, entry: dict) -> str:
+    """The spec folder must be the one the parent commit had — never yuss
+    HEAD, where the story is already Completed. Returns the `inputs` source."""
+    base = ".writ/specs/%s" % entry["spec_folder"]
+    parent = entry["parent_sha"]
+    source = "parent"
+    for rel in ("%s/spec.md" % base, "%s/spec-lite.md" % base, story_rel_path(entry)):
+        if (checkout / rel).is_file():
+            continue
+        content = git.run("show", "%s:%s" % (parent, rel), check=False)
+        if content is None:
+            raise RunError("inputs_missing")
+        (checkout / rel).parent.mkdir(parents=True, exist_ok=True)
+        (checkout / rel).write_text(content, encoding="utf-8")
+        source = "parent_show"
+    if not (checkout / base / "sub-specs").is_dir():
+        if not _show_tree(git, parent, "%s/sub-specs" % base, checkout):
+            raise RunError("inputs_missing")
+        source = "parent_show"
+    return source
+
+
+def assert_answer_scrubbed(checkout: Path, story_rel: str) -> None:
+    """The staged story must not carry its own answer."""
+    text = (checkout / story_rel).read_text(encoding="utf-8", errors="replace")
+    status = STATUS_LINE.search(text)
+    if WWB_HEADING.search(text) or COMMIT_LINE.search(text) or (status and is_completed(status.group(1))):
+        raise RunError("answer_leak")
+
+
+def _parse_manifest(text: str) -> tuple:
+    version = MANIFEST_VERSION.search(text)
+    entries = {}
+    for line in text.splitlines():
+        if line.startswith("#") or "  " not in line:
+            continue
+        digest, rel = line.split("  ", 1)
+        entries[rel.strip()] = digest.strip()
+    return (version.group(1) if version else None), entries
+
+
+def overlay_writ(checkout: Path, writ_root: Path, log: Path) -> dict:
+    """Install the current repo's Writ into the checkout (`install.sh` run
+    from `scripts/` uses the local repo as source). Records what it replaced."""
+    manifest = checkout / MANIFEST_REL
+    before_version, before = _parse_manifest(manifest.read_text(encoding="utf-8", errors="replace")) \
+        if manifest.is_file() else (None, {})
+    commit = (local_git(writ_root, "rev-parse", "HEAD").stdout or "").strip()
+    # install.sh copies the working tree, so `commit` alone under-describes a
+    # dirty repo.
+    dirty = bool((local_git(writ_root, "status", "--porcelain").stdout or "").strip())
+    proc = subprocess.run(["bash", str(writ_root / "scripts" / "install.sh"), *OVERLAY_ARGS],
+                          cwd=str(checkout), capture_output=True, encoding="utf-8", errors="replace")
+    log.write_text((proc.stdout or "") + (proc.stderr or ""), encoding="utf-8")
+    if proc.returncode != 0:
+        raise RunError("overlay_failed")
+    _, after = _parse_manifest(manifest.read_text(encoding="utf-8", errors="replace")) \
+        if manifest.is_file() else (None, {})
+    diff = sum(1 for rel in set(before) | set(after) if before.get(rel) != after.get(rel))
+    block = {"source": "overlay", "commit": commit, "dirty": dirty, "checkout_manifest_version": before_version,
+             "manifest_diff_count": diff}
+    assert tuple(block) == WRIT_KEYS
+    return block
+
+
+def install_deps(checkout: Path, log: Path) -> dict:
+    start = _utcnow()
+    try:
+        proc = subprocess.run(list(PNPM_INSTALL), cwd=str(checkout), capture_output=True,
+                              encoding="utf-8", errors="replace", timeout=DEPS_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        log.write_text("pnpm install timed out after %ds\n" % DEPS_TIMEOUT_S, encoding="utf-8")
+        return {"seconds": _seconds(start), "exit": "timeout"}
+    log.write_text((proc.stdout or "") + (proc.stderr or ""), encoding="utf-8")
+    return {"seconds": _seconds(start), "exit": proc.returncode}
+
+
+# ---------------------------------------------------------------------------
+# Headless invocation
+# ---------------------------------------------------------------------------
+
+
+def claude_argv(story_rel: str, model: str, budget_usd: float) -> list:
+    return ["claude", "-p", "/implement-story %s" % story_rel, "--output-format", "stream-json", "--verbose",
+            "--model", model, "--max-budget-usd", "%g" % budget_usd, *PERMISSION_FLAGS]
+
+
+def _kill_group(proc: "subprocess.Popen") -> None:
+    """SIGTERM the process group, wait `KILL_GRACE_S`, then SIGKILL it — the
+    SIGKILL always goes out because processes the agent spawned (a test run,
+    a dev server) share the group and may outlive `claude` itself. Every step
+    is best-effort: nothing here may raise past the caller."""
+    for sig in (SIGTERM, SIGKILL):
+        try:
+            os.killpg(proc.pid, sig)
+        except ProcessLookupError:
+            pass
+        try:
+            proc.wait(timeout=KILL_GRACE_S)
+        except subprocess.TimeoutExpired:
+            pass
+
+
+def invoke_headless(argv: list, checkout: Path, transcript: Path, stderr_log: Path, cap_s: int) -> tuple:
+    """Stream stdout to `transcript` (never `capture_output` on a 90-minute
+    run). Returns (timed_out, elapsed_s). On the cap the group is killed and
+    the run is recorded as a timeout. `start_new_session=True` also detaches
+    the group from the terminal, so a Ctrl-C reaches only this process: any
+    other exception kills the group too, then propagates."""
+    start = _utcnow()
+    timed_out = False
+    env = {k: v for k, v in os.environ.items() if k not in NESTED_SESSION_VARS}
+    with open(str(transcript), "wb") as out, open(str(stderr_log), "wb") as err:
+        proc = subprocess.Popen(argv, cwd=str(checkout), stdout=out, stderr=err, env=env, start_new_session=True)
+        try:
+            proc.wait(timeout=cap_s)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            _kill_group(proc)
+        except BaseException:
+            _kill_group(proc)
+            raise
+    return timed_out, _seconds(start)
+
+
+# ---------------------------------------------------------------------------
+# Post-processing: tests, transcript, completion
+# ---------------------------------------------------------------------------
+
+
+def _jest_counts(report: Path) -> tuple:
+    """(passed, total, success, failed_suites) from a jest `--json` report;
+    `success` is None when the report is not JSON. A suite that fails to
+    load reports `numTotalTests: 0` with `success: false` and a non-zero
+    `numFailedTestSuites` — that is a failed run, not an empty one."""
+    try:
+        doc = json.loads(report.read_text(encoding="utf-8"))
+        if not isinstance(doc, dict):
+            raise TypeError("jest report is not an object")
+        success = doc.get("success")
+        return (int(doc.get("numPassedTests", 0)), int(doc.get("numTotalTests", 0)),
+                bool(success) if isinstance(success, bool) else None, int(doc.get("numFailedTestSuites", 0) or 0))
+    except (OSError, ValueError, TypeError):
+        return 0, 0, None, 0
+
+
+def run_jest(checkout: Path, report: Path, paths: Optional[list] = None,
+             coverage_dir: Optional[Path] = None) -> dict:
+    """`pnpm exec jest --ci --json --outputFile=<report>` in the checkout; the
+    report (and coverage, when asked for) live outside the tree. A compile
+    failure is a failed test run, not an error: passed stays below total, or
+    — when no test ever ran — `reason` names the failed suites so the gate
+    still reads `fail`. A hang past `JEST_TIMEOUT_S` is 0/0 with a reason,
+    not an exception."""
+    if report.exists():
+        report.unlink()
+    argv = [*JEST_ARGV, "--outputFile=%s" % report]
+    if coverage_dir is not None:
+        argv += ["--coverage", "--coverageDirectory=%s" % coverage_dir]
+    if paths:
+        argv += ["--runTestsByPath", *paths]
+    try:
+        subprocess.run(argv, cwd=str(checkout), capture_output=True, encoding="utf-8", errors="replace",
+                       timeout=JEST_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return {"passed": 0, "total": 0, "reason": "timeout after %ds" % JEST_TIMEOUT_S}
+    if not report.is_file():
+        return {"passed": 0, "total": 0, "reason": "no jest report"}
+    passed, total, success, failed_suites = _jest_counts(report)
+    if success is None:
+        return {"passed": 0, "total": 0, "reason": "unreadable jest report"}
+    if success is False and total == 0:
+        return {"passed": 0, "total": 0, "reason": "suite failed to run (%d failed suites)" % failed_suites}
+    return {"passed": passed, "total": total, "reason": None}
+
+
+SUITE_FAILED_TO_RUN = re.compile(r"^suite failed to run \(")
+
+
+def _suite_verdict(suite: dict) -> Optional[str]:
+    """`gate4_tests.rederived` from the mechanical suite run: pass/fail when
+    tests ran, fail when the suite could not even load, otherwise None."""
+    if suite["total"]:
+        return "pass" if suite["passed"] == suite["total"] else "fail"
+    if SUITE_FAILED_TO_RUN.match(suite.get("reason") or ""):
+        return "fail"
+    return None
+
+
+def _redact_paths(argv: list, names: dict) -> list:
+    """Show machine-specific prefixes as placeholders; longest prefix wins so
+    `<checkout>` (under the run dir) is not swallowed by `<artifacts>`."""
+    shown = []
+    for arg in argv:
+        for prefix in sorted(names, key=len, reverse=True):
+            if prefix in arg:
+                arg = arg.replace(prefix, names[prefix])
+        shown.append(arg)
+    return shown
+
+
+def run_gate_script(script: Path, argv_tail: list, checkout: Path, names: dict) -> dict:
+    """Run one of Writ's quality-gate scripts (`build-smoke.py`,
+    `test-integrity.py`) against the checkout and reduce it to
+    {argv, verdict, reason}. Non-zero exit without a parseable verdict, a
+    timeout, or a missing interpreter are `unverifiable` with a short reason —
+    never an exception (Business Rule 5's re-derivation must not sink a paid
+    run)."""
+    argv = ["python3", str(script), *argv_tail]
+    shown = _redact_paths(argv, names)
+    try:
+        proc = subprocess.run(argv, cwd=str(checkout), capture_output=True, encoding="utf-8", errors="replace",
+                              timeout=GATE_SCRIPT_TIMEOUT_S)
+    except subprocess.TimeoutExpired:
+        return {"argv": shown, "verdict": "unverifiable", "reason": "timeout after %ds" % GATE_SCRIPT_TIMEOUT_S}
+    except OSError as exc:
+        return {"argv": shown, "verdict": "unverifiable", "reason": "could not start: %s" % type(exc).__name__}
+    try:
+        doc = json.loads(proc.stdout or "")
+    except ValueError:
+        doc = None
+    verdict = doc.get("verdict") if isinstance(doc, dict) else None
+    if verdict not in GATE_SCRIPT_VERDICTS:
+        return {"argv": shown, "verdict": "unverifiable",
+                "reason": "exit %s, no verdict in output" % proc.returncode}
+    reason = None
+    if verdict == "unverifiable":
+        causes = doc.get("unverifiable") if isinstance(doc.get("unverifiable"), list) else []
+        codes = sorted({str(c.get("reason") or c.get("code")) for c in causes if isinstance(c, dict)
+                        if c.get("reason") or c.get("code")})
+        reason = (", ".join(codes) or "exit %s" % proc.returncode)[:DETAIL_MAX_CHARS]
+    return {"argv": shown, "verdict": verdict, "reason": reason}
+
+
+def rederive_gates(writ_root: Path, checkout: Path, artifacts: Path) -> dict:
+    """Gate 2 (build smoke) and Gate 4 (coverage integrity) re-derived by the
+    scripts `/implement-story` itself relies on, with cwd = the checkout."""
+    names = {str(writ_root): "<writ_root>", str(checkout): "<checkout>", str(artifacts): "<artifacts>"}
+    report = artifacts / COVERAGE_DIR / COVERAGE_REPORT
+    block = {
+        "build_smoke": run_gate_script(
+            writ_root / BUILD_SMOKE_REL,
+            ["check", "--project", str(checkout), "--timeout", str(BUILD_SMOKE_TIMEOUT_S)], checkout, names),
+        "test_integrity": run_gate_script(
+            writ_root / TEST_INTEGRITY_REL,
+            ["coverage", "--project", str(checkout), "--report", str(report)], checkout, names),
+    }
+    assert tuple(block) == REDERIVATION_KEYS
+    return block
+
+
+def restore_original_tests(git: Git, checkout: Path, entry: dict) -> list:
+    """Write the story's original test files (at `story_commit`) into the
+    produced tree. Runs only after the agent has exited."""
+    written = []
+    for rel in entry["test_files"]:
+        content = git.run("show", "%s:%s" % (entry["story_commit"], rel), check=False)
+        if content is None:
+            continue
+        target = checkout / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        written.append(rel)
+    return written
+
+
+def _text_of(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+    return ""
+
+
+def _parse_timestamp(raw) -> Optional[datetime]:
+    if not isinstance(raw, str):
+        return None
+    try:
+        return datetime.strptime(raw[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def parse_transcript(path: Path) -> dict:
+    """Metrics from a `claude -p --output-format stream-json` transcript, or
+    from a `~/.claude/projects/*.jsonl` session file (no `result` event:
+    usage is summed and wall-clock comes from the first/last `timestamp`).
+
+    Verdicts are read from `tool_result` blocks whose `tool_use_id` maps to a
+    `Task`/`Agent` call (the gate agents' own output), then from assistant
+    text as a fallback; the last occurrence wins. `Read` results of `*.md`
+    files are skipped for `STATUS: BLOCKED`, which would otherwise count the
+    command templates the agent reads."""
+    tool_names, tool_inputs = {}, {}
+    verdicts = {g: {"tool_result": None, "assistant_text": None} for g in VERDICT_GATE.values()}
+    interrupts = {"ask_user_question": 0, "status_blocked": 0}
+    # Counted per source so an orchestrator echoing the review agent's
+    # `REVIEW_RESULT: FAIL` in its own text does not double the iteration count.
+    review_fails = {"tool_result": 0, "assistant_text": 0}
+    main = {k: 0 for k in TOKEN_KEYS}
+    init, result = {}, None
+    first_ts = last_ts = None
+    assistant_turns = 0
+    last_text = ""
+
+    def note_verdicts(text: str, source: str) -> None:
+        for m in VERDICT_LINE.finditer(text):
+            verdicts[VERDICT_GATE[m.group(1)]][source] = m.group(2)
+            if m.group(1) == "REVIEW_RESULT" and m.group(2) == "FAIL":
+                review_fails[source] += 1
+
+    with open(str(path), encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            # With --verbose, subagent turns are echoed as assistant/user
+            # events carrying `parent_tool_use_id`. Their usage, text and tool
+            # calls belong to the subagent; the main thread sees each
+            # subagent's outcome once, in the Task tool_result.
+            if event.get("parent_tool_use_id"):
+                continue
+            kind = event.get("type")
+            ts = _parse_timestamp(event.get("timestamp"))
+            if ts is not None:
+                first_ts = first_ts or ts
+                last_ts = ts
+            if kind == "system" and event.get("subtype") == "init":
+                init = {k: event.get(field) for k, field in INIT_FIELDS.items()}
+                continue
+            if kind == RESULT_TYPE:
+                result = event
+                continue
+            message = event.get("message") if isinstance(event.get("message"), dict) else {}
+            content = message.get("content")
+            blocks = content if isinstance(content, list) else [{"type": "text", "text": content or ""}]
+            if kind == "assistant":
+                assistant_turns += 1
+                usage = message.get("usage") or {}
+                for k, field in RESULT_USAGE_FIELDS.items():
+                    main[k] += int(usage.get(field) or 0)
+                for block in blocks:
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") == "tool_use":
+                        tool_names[block.get("id")] = block.get("name")
+                        tool_inputs[block.get("id")] = block.get("input") or {}
+                        if block.get("name") in INTERRUPT_TOOLS:
+                            interrupts["ask_user_question"] += 1
+                    elif block.get("type") == "text":
+                        text = block.get("text") or ""
+                        if text.strip():
+                            last_text = text
+                        note_verdicts(text, "assistant_text")
+                        interrupts["status_blocked"] += len(STATUS_BLOCKED.findall(text))
+            elif kind == "user":
+                for block in blocks:
+                    if not isinstance(block, dict) or block.get("type") != "tool_result":
+                        continue
+                    name = tool_names.get(block.get("tool_use_id"))
+                    text = _text_of(block.get("content"))
+                    if name == READ_TOOL and str(tool_inputs.get(block.get("tool_use_id"), {})
+                                                 .get("file_path", "")).endswith(".md"):
+                        continue
+                    if name in SUBAGENT_TOOLS:
+                        note_verdicts(text, "tool_result")
+                    interrupts["status_blocked"] += len(STATUS_BLOCKED.findall(text))
+
+    gates = {}
+    for g in GATE_NAMES:
+        found = verdicts.get(g, {})
+        if found.get("tool_result"):
+            gates[g] = {"verdict": found["tool_result"], "source": "tool_result"}
+        elif found.get("assistant_text"):
+            gates[g] = {"verdict": found["assistant_text"], "source": "assistant_text"}
+        else:
+            gates[g] = {"verdict": None, "source": None}
+    review_source = gates["gate3_review"]["source"] or "tool_result"
+    review_iterations = review_fails[review_source]
+
+    # A `-p` stream opens with `system/init` and closes with `result`; a
+    # session file has neither but stamps every line with `timestamp`.
+    if result is not None or init or first_ts is None:
+        mode = "stream"
+    else:
+        mode = "session"
+    if result is not None:
+        usage = result.get("usage") or {}
+        tokens = {k: usage.get(field) for k, field in RESULT_USAGE_FIELDS.items()}
+        subtype = str(result.get("subtype") or "")
+        status = RESULT_SUBTYPE_STATUS.get(subtype, "error")
+        reason = None if status == "complete" else (subtype or "unknown_subtype")
+        duration = result.get(RESULT_DURATION_FIELD)
+        wall = round(duration / 1000.0, 3) if isinstance(duration, (int, float)) else None
+        turns = result.get(RESULT_TURNS_FIELD)
+        cost = result.get(RESULT_COST_FIELD)
+        final = _text_of(result.get("result")) or last_text
+    elif mode == "session":
+        tokens = dict(main)
+        status, reason = "complete", None
+        wall = round((last_ts - first_ts).total_seconds(), 3) if first_ts and last_ts else None
+        turns, cost, final = assistant_turns, None, last_text
+    else:
+        tokens = {k: None for k in TOKEN_KEYS}
+        status, reason, wall, turns, cost, final = "error", "no_result_event", None, None, None, last_text
+
+    if DEGRADED_REPORT.search(final or ""):
+        exit_reported = "DEGRADED"
+    elif COMPLETED_REPORT.search(final or ""):
+        exit_reported = "COMPLETE"
+    else:
+        exit_reported = None
+    return {
+        "mode": mode, "status": status, "reason": reason,
+        "init": init or {k: None for k in INIT_FIELDS},
+        "tokens": tokens, "tokens_main_thread": main, "cost_usd": cost, "wall_clock_s": wall,
+        "num_turns": turns, "interrupts": interrupts, "review_iterations": review_iterations,
+        "gates": gates, "exit_reported": exit_reported,
+    }
+
+
+def rederive_completion(checkout: Path, story_rel: str) -> str:
+    """`/implement-story` succeeds when the story reads Completed, carries the
+    completion commit SHA in its header, ends with `## What Was Built`, and
+    that commit exists in the checkout. `exit-criteria.py` has no
+    implement-story mode, so the predicates are re-applied here."""
+    story = checkout / story_rel
+    if not story.is_file():
+        return "unmet"
+    text = story.read_text(encoding="utf-8", errors="replace")
+    status = STATUS_LINE.search(text)
+    header = COMMIT_LINE.search(text)
+    sha = commit_from_header(header.group(1)) if header else None
+    if not (status and is_completed(status.group(1)) and sha and WWB_HEADING.search(text)):
+        return "unmet"
+    exists = local_git(checkout, "cat-file", "-e", sha + "^{commit}", check=False)
+    return "met" if exists.returncode == 0 else "unmet"
+
+
+# ---------------------------------------------------------------------------
+# Record assembly
+# ---------------------------------------------------------------------------
+
+
+def _null_record(story_id: str, run: int, started_at: str) -> dict:
+    return {
+        "story_id": story_id, "run": run, "status": "error", "reason": None, "started_at": started_at,
+        "isolation": {"reachable_commits": None, "expected": EXPECTED_REACHABLE,
+                      "asserted": False, "answer_scrub_asserted": False},
+        "writ": None, "inputs": None, "deps": None,
+        "invocation": {k: None for k in INVOCATION_KEYS},
+        "wall_clock_s": None, "num_turns": None,
+        "tokens": {k: None for k in TOKEN_KEYS}, "tokens_main_thread": {k: None for k in TOKEN_KEYS},
+        "cost_usd": None, "interrupts": {k: None for k in INTERRUPT_KEYS}, "review_iterations": None,
+        "tests": {"suite": {"passed": None, "total": None, "reason": None},
+                  "original": {"passed": None, "total": None, "reason": None, "files": []}},
+        "gates": {g: {"verdict": None, "source": None, "rederived": None} for g in GATE_NAMES},
+        "rederivation": {k: {"argv": None, "verdict": None, "reason": None} for k in REDERIVATION_KEYS},
+        "exit_criteria": {"reported": None, "rederived": None, "rederived_by": REDERIVED_BY},
+        "yuss_head_unchanged": None,
+    }
+
+
+def assemble_record(meta: dict, transcript: Optional[dict], tests: Optional[dict], rederived: Optional[str],
+                    gates_rederived: Optional[dict] = None) -> dict:
+    """One `runs[]` entry in `RUN_KEYS` order. `meta` is the sidecar; the
+    others are None for a run that never reached the model."""
+    rec = _null_record(meta["story_id"], meta["run"], meta["started_at"])
+    rec["gates"]["gate4_tests"]["integrity"] = None
+    rec["isolation"] = dict(meta.get("isolation") or rec["isolation"])
+    rec["writ"] = meta.get("writ")
+    rec["inputs"] = meta.get("inputs")
+    rec["deps"] = meta.get("deps")
+    rec["yuss_head_unchanged"] = meta.get("yuss_head_unchanged")
+    rec["reason"] = meta.get("reason")
+    inv = meta.get("invocation") or {}
+    rec["invocation"].update({k: inv.get(k) for k in ("argv", "model", "permission_mode") if k in inv})
+    if transcript is not None:
+        rec["invocation"].update(transcript["init"])
+        rec["status"] = "timeout" if meta.get("timed_out") else transcript["status"]
+        if not meta.get("timed_out"):
+            # The transcript's own stop reason (`error_max_budget_usd`, ...)
+            # explains a non-complete status; the sidecar's provenance note
+            # only fills in when the transcript has nothing to say —
+            # `isolation.asserted: false` already marks a sidecar-less ingest.
+            if transcript["status"] != "complete" and transcript["reason"]:
+                rec["reason"] = transcript["reason"]
+            else:
+                rec["reason"] = meta.get("reason") or transcript["reason"]
+        rec["wall_clock_s"] = transcript["wall_clock_s"]
+        if rec["wall_clock_s"] is None and meta.get("elapsed_s") is not None:
+            rec["wall_clock_s"] = float(meta["elapsed_s"])
+        rec["num_turns"] = transcript["num_turns"]
+        rec["tokens"] = dict(transcript["tokens"])
+        rec["tokens_main_thread"] = dict(transcript["tokens_main_thread"])
+        rec["cost_usd"] = transcript["cost_usd"]
+        rec["interrupts"] = dict(transcript["interrupts"])
+        rec["review_iterations"] = transcript["review_iterations"]
+        for g in GATE_NAMES:
+            rec["gates"][g].update(transcript["gates"][g])
+        rec["exit_criteria"]["reported"] = transcript["exit_reported"]
+    if tests is not None:
+        rec["tests"] = tests
+        rec["gates"]["gate4_tests"]["rederived"] = _suite_verdict(tests["suite"])
+    if gates_rederived is not None:
+        rec["rederivation"] = {k: {f: gates_rederived[k].get(f) for f in REDERIVATION_BLOCK_KEYS}
+                               for k in REDERIVATION_KEYS}
+        rec["gates"]["gate2_build"]["rederived"] = gates_rederived["build_smoke"]["verdict"]
+        rec["gates"]["gate4_tests"]["integrity"] = gates_rederived["test_integrity"]["verdict"]
+    if rederived is not None:
+        rec["exit_criteria"]["rederived"] = rederived
+    assert tuple(rec) == RUN_KEYS
+    return rec
+
+
+def scrub(record: dict) -> None:
+    """Business Rule 3 and Story 5's validator, enforced before the write:
+    no key material, no string over `DETAIL_MAX_CHARS`, no newline anywhere."""
+    def walk(value, path: str) -> None:
+        if isinstance(value, dict):
+            for k, v in value.items():
+                walk(v, "%s.%s" % (path, k))
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                walk(v, "%s[%d]" % (path, i))
+        elif isinstance(value, str):
+            if "sk-ant-" in value:
+                raise ScrubError("%s looks like key material" % path)
+            if len(value) > DETAIL_MAX_CHARS:
+                raise ScrubError("%s is %d characters (max %d)" % (path, len(value), DETAIL_MAX_CHARS))
+            if "\n" in value:
+                raise ScrubError("%s contains a newline" % path)
+    walk(record, "$")
+
+
+def postprocess(git: Git, checkout: Path, transcript_path: Path, entry: dict, meta: dict, artifacts: Path,
+                writ_root: Path) -> dict:
+    """Everything after the agent exits — shared by `run` and `ingest` so the
+    two produce identical records (AC-4.5)."""
+    transcript = parse_transcript(transcript_path)
+    suite = run_jest(checkout, artifacts / "jest-suite.json", coverage_dir=artifacts / COVERAGE_DIR)
+    gates_rederived = rederive_gates(writ_root, checkout, artifacts)
+    files = restore_original_tests(git, checkout, entry)
+    original = run_jest(checkout, artifacts / "jest-original.json", files) if files \
+        else {"passed": 0, "total": 0, "reason": None}
+    tests = {"suite": suite, "original": {"passed": original["passed"], "total": original["total"],
+                                          "reason": original["reason"], "files": files}}
+    rederived = rederive_completion(checkout, story_rel_path(entry))
+    return assemble_record(meta, transcript, tests, rederived, gates_rederived)
+
+
+# ---------------------------------------------------------------------------
+# run / ingest commands
+# ---------------------------------------------------------------------------
+
+
+def _refuse(command: str, message: str, code: int = 2) -> None:
+    print("%s: error: %s" % (command, message), file=sys.stderr)
+    sys.exit(code)
+
+
+def load_baseline(command: str, path: Path, yuss: Path) -> dict:
+    if not path.is_file():
+        _refuse(command, "--baseline %s does not exist; run select first" % path)
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        _refuse(command, "--baseline %s is not valid JSON" % path)
+    if not isinstance(doc, dict) or doc.get("schema") != SCHEMA or tuple(doc) != SCHEMA_KEYS:
+        _refuse(command, "--baseline %s is not a %s file" % (path, SCHEMA))
+    if not doc["selection"]:
+        _refuse(command, "--baseline %s has an empty selection; run select first" % path)
+    if not yuss.is_dir():
+        _refuse(command, "--yuss %s is not a directory" % yuss)
+    git = Git(yuss)
+    top = git.run("rev-parse", "--show-toplevel", check=False)
+    if not top or Path(top.strip()).resolve() != yuss:
+        _refuse(command, "--yuss %s is not a git repository" % yuss)
+    return doc
+
+
+def _present_pairs(doc: dict) -> set:
+    return {(r.get("story_id"), r.get("run")) for r in doc["runs"] if isinstance(r, dict)}
+
+
+def _select_entries(command: str, doc: dict, story: Optional[str]) -> list:
+    entries = doc["selection"]
+    if story:
+        entries = [e for e in entries if story in (e["story_id"], Path(e["story_path"]).stem)]
+        if not entries:
+            _refuse(command, "--story %s matches no selected story" % story)
+    return entries
+
+
+def _write_sidecar(run_dir: Path, meta: dict) -> None:
+    write_json(run_dir / SIDECAR, meta)
+
+
+def _progress(command: str, rec: dict) -> str:
+    tokens = rec["tokens"]
+    tests = rec["tests"]["suite"]
+    interrupts = sum(v or 0 for v in rec["interrupts"].values())
+
+    def n(v):
+        return "?" if v is None else v
+
+    return ("%s: %s run %d: %s%s exit=%s tests=%s/%s tokens=%s/%s/%s wall=%ss interrupts=%d" % (
+        command, rec["story_id"], rec["run"], rec["status"],
+        " (%s)" % rec["reason"] if rec["reason"] else "",
+        n(rec["exit_criteria"]["rederived"]), n(tests["passed"]), n(tests["total"]),
+        n(tokens["input"]), n(tokens["output"]), n(tokens["cache_read"]), n(rec["wall_clock_s"]), interrupts))
+
+
+def _append_and_flush(command: str, doc: dict, out: Path, rec: dict, replace: bool = False) -> None:
+    try:
+        scrub(rec)
+    except ScrubError as exc:
+        _refuse(command, "record for %s run %s failed scrub: %s; nothing written"
+                % (rec.get("story_id"), rec.get("run"), exc), code=3)
+    if replace:
+        doc["runs"] = [r for r in doc["runs"] if (r.get("story_id"), r.get("run")) != (rec["story_id"], rec["run"])]
+    doc["runs"].append(rec)
+    write_json(out, doc)
+    print(_progress(command, rec))
+
+
+def execute_run(git: Git, yuss: Path, entry: dict, run: int, args: argparse.Namespace, model: str) -> dict:
+    """One (story, run): build, stage, overlay, deps, invoke, post-process.
+    Every failure before the model runs becomes an error record."""
+    stem = Path(entry["story_path"]).stem
+    run_dir = Path(args.tmp_root) / ("%s%s-%d" % (TMP_PREFIX, stem, run))
+    story_rel = story_rel_path(entry)
+    head_before = (git.run("rev-parse", "HEAD") or "").strip()
+    meta = {"story_id": entry["story_id"], "run": run, "parent_sha": entry["parent_sha"],
+            "started_at": _stamp(_utcnow()), "isolation": None, "writ": None, "inputs": None, "deps": None,
+            "invocation": {"argv": claude_argv(story_rel, model, args.budget_usd), "model": model,
+                           "permission_mode": PERMISSION_MODE},
+            "elapsed_s": None, "timed_out": False, "yuss_head_unchanged": None, "reason": None}
+    if run_dir.exists():
+        rmtree(run_dir)
+    run_dir.mkdir(parents=True)
+    try:
+        rec = _replay(git, yuss, entry, run_dir, story_rel, meta, args, head_before)
+        scrub(rec)
+    except BaseException:
+        # A Ctrl-C, a post-processing bug, a scrub failure: the transcript is
+        # the paid artifact, and `ingest` can rebuild the record from it.
+        print("run: run dir kept: %s" % run_dir, file=sys.stderr)
+        raise
+    if not args.keep:
+        rmtree(run_dir)
+    return rec
+
+
+def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, meta: dict,
+            args: argparse.Namespace, head_before: str) -> dict:
+    try:
+        checkout, meta["isolation"] = build_checkout(yuss, entry["parent_sha"], run_dir)
+        if not meta["isolation"]["asserted"]:
+            raise RunError("isolation_failed")
+        meta["inputs"] = stage_inputs(git, checkout, entry)
+        assert_answer_scrubbed(checkout, story_rel)
+        meta["isolation"]["answer_scrub_asserted"] = True
+        meta["writ"] = overlay_writ(checkout, Path(args.writ_root), run_dir / "install.log")
+        meta["deps"] = install_deps(checkout, run_dir / "pnpm-install.log")
+        _write_sidecar(run_dir, meta)               # persisted before the long-running step
+    except RunError as exc:
+        meta["reason"] = exc.reason
+        if exc.isolation is not None:
+            meta["isolation"] = exc.isolation
+        meta["yuss_head_unchanged"] = (git.run("rev-parse", "HEAD") or "").strip() == head_before
+        return assemble_record(meta, None, None, None)
+    transcript = run_dir / "transcript.jsonl"
+    meta["timed_out"], meta["elapsed_s"] = invoke_headless(
+        meta["invocation"]["argv"], checkout, transcript, run_dir / "stderr.log", args.cap)
+    meta["yuss_head_unchanged"] = (git.run("rev-parse", "HEAD") or "").strip() == head_before
+    _write_sidecar(run_dir, meta)
+    return postprocess(git, checkout, transcript, entry, meta, run_dir, Path(args.writ_root))
+
+
+def cmd_run(args: argparse.Namespace) -> None:
+    try:
+        preflight()
+    except Refusal as exc:
+        _refuse("run", str(exc))
+    baseline = Path(args.baseline).expanduser().resolve()
+    yuss = Path(args.yuss).expanduser().resolve()
+    doc = load_baseline("run", baseline, yuss)
+    model = args.model or doc["model"]
+    if model != doc["model"]:
+        _refuse("run", "--model %s differs from the file's model %s; one model per file (Business Rule 4)"
+                % (model, doc["model"]))
+    if args.runs < 1:
+        _refuse("run", "--runs must be at least 1")
+    if doc["runs_per_story"] is not None and doc["runs_per_story"] != args.runs and not args.force:
+        _refuse("run", "runs_per_story is already %s; pass --force to change it to %d"
+                % (doc["runs_per_story"], args.runs))
+    entries = _select_entries("run", doc, args.story)
+    git = Git(yuss)
+    runs_per_story_changed = doc["runs_per_story"] != args.runs
+    doc["runs_per_story"] = args.runs
+    present = _present_pairs(doc)
+    flushed = False
+    for entry in entries:
+        for run in range(1, args.runs + 1):
+            if (entry["story_id"], run) in present:
+                print("run: %s run %d: skip (already recorded)" % (entry["story_id"], run))
+                continue
+            try:
+                rec = execute_run(git, yuss, entry, run, args, model)
+            except ScrubError as exc:
+                _refuse("run", "record for %s run %s failed scrub: %s; nothing written"
+                        % (entry["story_id"], run, exc), code=3)
+            _append_and_flush("run", doc, baseline, rec)
+            flushed = True
+            if rec["yuss_head_unchanged"] is False:
+                _refuse("run", "yuss HEAD moved during %s run %d; yuss must stay read-only (Business Rule 2)"
+                        % (entry["story_id"], run), code=3)
+    if runs_per_story_changed and not flushed:
+        # `--force --runs N` with every pair already present: the only change
+        # is runs_per_story, and the loop wrote nothing.
+        write_json(baseline, doc)
+        print("run: runs_per_story set to %d" % args.runs)
+    sys.exit(0)
+
+
+def cmd_ingest(args: argparse.Namespace) -> None:
+    baseline = Path(args.baseline).expanduser().resolve()
+    yuss = Path(args.yuss).expanduser().resolve()
+    checkout = Path(args.checkout).expanduser().resolve()
+    transcript = Path(args.transcript).expanduser().resolve()
+    if not (checkout / ".git").is_dir():
+        _refuse("ingest", "--checkout %s is not a git checkout" % checkout)
+    if not transcript.is_file():
+        _refuse("ingest", "--transcript %s does not exist" % transcript)
+    doc = load_baseline("ingest", baseline, yuss)
+    sidecar = next((p for p in (checkout.parent / SIDECAR, checkout / SIDECAR) if p.is_file()), None)
+    if sidecar is not None:
+        meta = json.loads(sidecar.read_text(encoding="utf-8"))
+        story_id = args.story_id or meta.get("story_id")
+        run = args.run or meta.get("run")
+    else:
+        if not (args.story_id and args.run):
+            _refuse("ingest", "no %s beside %s; pass --story-id and --run" % (SIDECAR, checkout))
+        story_id, run = args.story_id, args.run
+        meta = {"story_id": story_id, "run": run, "started_at": _stamp(_utcnow()), "reason": "ingested without sidecar",
+                "isolation": {"reachable_commits": None, "expected": EXPECTED_REACHABLE,
+                              "asserted": False, "answer_scrub_asserted": False},
+                "invocation": {"model": doc["model"]}}
+    entry = next((e for e in doc["selection"] if e["story_id"] == story_id), None)
+    if entry is None:
+        _refuse("ingest", "story %s is not in the file's selection" % story_id)
+    if (story_id, run) in _present_pairs(doc) and not args.force:
+        _refuse("ingest", "%s run %s is already recorded; pass --force to replace it" % (story_id, run))
+    artifacts = Path(args.tmp_root) / ("%singest-%s-%s" % (TMP_PREFIX, Path(entry["story_path"]).stem, run))
+    if artifacts.exists():
+        rmtree(artifacts)
+    artifacts.mkdir(parents=True)
+    try:
+        rec = postprocess(Git(yuss), checkout, transcript, entry, meta, artifacts, Path(args.writ_root))
+    finally:
+        rmtree(artifacts)
+    _append_and_flush("ingest", doc, baseline, rec, replace=args.force)
+    sys.exit(0)
+
+
 def cmd_stub(args: argparse.Namespace) -> None:
     owner = {"run": "Story 4", "ingest": "Story 4", "compare": "Story 5"}[args.command]
     print("%s: not implemented until %s" % (args.command, owner), file=sys.stderr)
@@ -691,9 +1725,39 @@ def build_parser() -> argparse.ArgumentParser:
     sel.add_argument("--force", action="store_true", help="overwrite an existing --out")
     sel.set_defaults(func=cmd_select)
 
-    for name in ("run", "ingest", "compare"):
-        stub = sub.add_parser(name, help="not implemented until Story 4/5")
-        stub.set_defaults(func=cmd_stub)
+    def common(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--baseline", required=True, help="the pipeline-baseline-v1 JSON select wrote; runs[] is appended")
+        p.add_argument("--yuss", required=True, help="path to the read-only yuss.app checkout (fetch source only)")
+        p.add_argument("--tmp-root", default=tempfile.gettempdir(),
+                       help="where %s<story>-<n>/ run directories are created (default: $TMPDIR)" % TMP_PREFIX)
+        p.add_argument("--force", action="store_true", help="run: change runs_per_story; ingest: replace a recorded pair")
+        p.add_argument("--writ-root", default=str(Path(__file__).resolve().parent.parent),
+                       help="Writ repo whose scripts/install.sh is overlaid onto the checkout and whose "
+                            "build-smoke.py / test-integrity.py re-derive Gates 2 and 4 (default: this repo)")
+
+    run = sub.add_parser("run", help="replay each selected story headless in an isolated checkout")
+    common(run)
+    run.add_argument("--model", default=None, help="Claude model ID; must equal the file's model (default: the file's)")
+    run.add_argument("--runs", type=int, default=2, help="runs per story; sets runs_per_story (default: %(default)s)")
+    run.add_argument("--story", default=None, help="only this story_id or story file stem (smoke runs)")
+    run.add_argument("--cap", type=int, default=DEFAULT_CAP_S,
+                     help="wall-clock cap per run in seconds; a breach records status timeout (default: %(default)s)")
+    run.add_argument("--budget-usd", type=float, default=DEFAULT_BUDGET_USD,
+                     help="passed to claude as --max-budget-usd (default: %(default)s)")
+    run.add_argument("--keep", action="store_true", help="keep the run directory (checkout, transcript, sidecar)")
+    run.set_defaults(func=cmd_run)
+
+    ingest = sub.add_parser("ingest", help="compute a run record from an existing checkout and transcript")
+    common(ingest)
+    ingest.add_argument("--checkout", required=True, help="the isolated checkout the session ran in")
+    ingest.add_argument("--transcript", required=True,
+                        help="stream-json transcript, or a ~/.claude/projects/*.jsonl session file")
+    ingest.add_argument("--story-id", default=None, help="required when no %s sits beside --checkout" % SIDECAR)
+    ingest.add_argument("--run", type=int, default=None, help="run number; required without a sidecar")
+    ingest.set_defaults(func=cmd_ingest)
+
+    stub = sub.add_parser("compare", help="not implemented until Story 5")
+    stub.set_defaults(func=cmd_stub)
     return parser
 
 

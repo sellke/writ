@@ -88,6 +88,16 @@ Rules the validator enforces (Story 5): every string field ≤ 200 characters; n
 
 ## 3. Isolation procedure (Business Rule 1)
 
+> **Amended 2026-09-06 (Story 4):** §3, §4, and the runner rows of §7 are left as authored. The
+> implemented runner contract is `drift-log.md` DEV-018–025 plus Story 4's *What Was Built*
+> (`user-stories/story-4-replay-runner.md`), whose `RUN_KEYS`/`GATE_NAMES` constants are what
+> Story 5 imports. Three headline changes: (1) inputs are staged from the **parent** commit,
+> never yuss HEAD, with an answer-scrub assertion (DEV-018); (2) permission mode is **bypass**
+> with compensating controls — no remotes, `FETCH_HEAD` removed, yuss `HEAD` asserted — not
+> `acceptEdits` (DEV-019, user-approved); (3) the **current** repo's Writ is overlaid via
+> `install.sh --platform claude --no-commit --force`, replacing `writ_scripts` (DEV-021,
+> user-approved). No `git archive` fallback exists; a refused fetch is `fetch_failed` (DEV-025).
+
 ```bash
 dir="$TMPDIR/writ-baseline-${story}-${n}"; mkdir -p "$dir" && cd "$dir"
 git init -q

@@ -838,7 +838,9 @@ class RefusalTest(unittest.TestCase):
             self.assertEqual(list(out.parent.iterdir()), [])
 
     def test_stubs_exit_2(self) -> None:
-        for sub in ("run", "ingest", "compare"):
+        # Story 4 implemented `run` and `ingest`; `compare` is the remaining
+        # stub until Stage 2. Story 4's own suite covers run/ingest argv.
+        for sub in ("compare",):
             err = io.StringIO()
             with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stderr(err):
                 pb.main([sub])

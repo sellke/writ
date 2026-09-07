@@ -25,6 +25,14 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 | DEV-015 | 2 | Small | Tokenizer tests live in `test_measure_invocation.py` per story task 2.1, not §10's `test_measure_invocation_tokenizer.py` — intra-spec conflict, story text followed |
 | DEV-016 | 2 | Small | `token_failures` counts distinct failed texts by content hash — a skill shared by N commands is 1 failure |
 | DEV-017 | 2 | Small | `--tokenizer estimate` bypasses an installed `tiktoken` (chars/N regardless); `auto` without a key keeps tiktoken-if-installed |
+| DEV-018 | 4 | Medium | Inputs staged from the parent commit, never yuss HEAD; `assert_answer_scrubbed` aborts with `answer_leak` |
+| DEV-019 | 4 | Medium | Permission mode is bypass (`--dangerously-skip-permissions --permission-prompts none …`), not `acceptEdits`; compensating controls recorded — user-approved |
+| DEV-020 | 4 | Medium | Completion re-derived from `implement-story.md` success predicates, not `exit-criteria.py` (no `implement-story` mode); `build-smoke.py` / `test-integrity.py` called for Gates 2/4 |
+| DEV-021 | 4 | Medium | Current-repo Writ overlaid via `install.sh --platform claude --no-commit --force`; `writ{source, commit, dirty, checkout_manifest_version, manifest_diff_count}` replaces `writ_scripts` — user-approved |
+| DEV-022 | 4 | Small | Tests split into `tests.suite` and `tests.original` (story-commit test files restored post-exit); `pnpm install` before `claude` as `deps`; `pnpm` in preflight |
+| DEV-023 | 4 | Small | `Popen(start_new_session=True)` + `killpg` escalation replaces `subprocess.run(timeout=)`; `--budget-usd` → `--max-budget-usd` beside `--cap`; no `--max-turns` in `claude` 2.1.260 |
+| DEV-024 | 4 | Small | `gates.<g>.source`, `tokens_main_thread`, `exit_criteria.reported` heuristic, `run-meta.json` sidecar, session-`.jsonl` ingest (`cost_usd: null`), exit 3 for scrub/HEAD-moved |
+| DEV-025 | 4 | Small | No `git archive` fallback (fetch refusal → `fetch_failed`); no `<json>.lock`; smoke run (task 4.2) deferred — user-approved |
 
 ---
 
@@ -99,3 +107,43 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 ## DEV-017 — `--tokenizer estimate` semantics
 
 **Severity:** Small · **Story:** 2 · **Found:** 2026-09-06, Gate 3 review. Task 2.5 left `estimate` undefined relative to an installed `tiktoken`. Implemented: `estimate` is chars/N regardless of site-packages (this is what makes `--tokenizer estimate` a safe test flag); `auto` without a key preserves the pre-story tiktoken-if-installed path so AC-2.2 byte-identity holds. The tiktoken branch's `validated: true` mislabel is untouched, per story Notes — follow-up candidate. `spec-lite.md` amended.
+
+## DEV-018 — Inputs from the parent, never HEAD
+
+**Severity:** Medium · **Story:** 4 · **Found:** 2026-09-06, Gate 0
+
+**Spec said:** technical-spec §3 stages the story and spec files "from `$YUSS` at HEAD". **Implementation did:** verifies the inputs in the checkout tree at `parent_sha` (all four parents carry the spec folder active with the story `Not Started`), falls back to `git -C <yuss> show <parent_sha>:<path>` only if a file is missing, and asserts before invoking `claude` that the staged story has no `## What Was Built`, no `> **Commit:**`, and Status ≠ Complete(d) — a violation aborts the run with `reason: answer_leak`. `inputs ∈ {parent, parent_show}`, `isolation.answer_scrub_asserted` added. Story-commit test files are restored only after the agent exits. **Why it matters:** the HEAD/archive copy of every selected story carries `Status: Completed`, the closing commit SHA, and a `What Was Built` file list — the answer key. **Resolution:** ⚠️ flagged; pipeline PASS. Story → Approved Scope Additions records the correction.
+
+## DEV-019 — Permission mode is bypass
+
+**Severity:** Medium · **Story:** 4 · **Found:** 2026-09-06, Gate 0 · **User decision** 2026-09-06
+
+**Spec said:** technical-spec §4 `--permission-mode acceptEdits`. **Implementation did:** `--dangerously-skip-permissions --permission-prompts none --setting-sources project --strict-mcp-config --no-session-persistence`; `invocation.permission_mode: "bypass"`; exact argv recorded; `CLAUDECODE`/`CLAUDE_CODE_ENTRYPOINT` stripped from the child env. Compensating controls: the checkout has no remotes, `.git/FETCH_HEAD` is removed, yuss `HEAD` is asserted unchanged (exit 3 on change), no `.claude/settings.json` or hooks exist at the parents or in the overlay. **Why it matters:** in `-p` mode anything that would prompt is denied and `acceptEdits` does not cover Bash — `pnpm test`, `git commit`, and `python3 scripts/*.py` would all be denied and the record would measure denial handling. **Resolution:** user-approved (story → Approved Scope Additions, decision 2).
+
+## DEV-020 — Completion re-derivation and Gate 2/4 scripts
+
+**Severity:** Medium · **Story:** 4 · **Found:** 2026-09-06, Gate 0 (exit-criteria) and Gate 3 (build-smoke / test-integrity)
+
+**Spec said:** AC-4.4 / Business Rule 5 re-derive gate verdicts with `exit-criteria.py check`, `build-smoke.py check`, `test-integrity.py coverage`. **Implementation did:** `exit-criteria.py` has no `implement-story` mode and requires an `execution-*.json` only `/implement-spec` writes, so completion is re-derived from `implement-story.md`'s own success predicates (Status Complete(d), commit SHA in header, `## What Was Built`, `cat-file -e <sha>`) — `exit_criteria: {reported, rederived, rederived_by}`. Gate 3 found `build-smoke.py` / `test-integrity.py` had been dropped without approval; the fix pass restores both calls (`gate2_build.rederived`, `gate4_tests.integrity`, `unverifiable` on non-zero exit). **Resolution:** ⚠️ flagged; pipeline PASS after the fix pass.
+
+## DEV-021 — Current-Writ overlay
+
+**Severity:** Medium · **Story:** 4 · **Found:** 2026-09-06, Gate 0 · **User decision** 2026-09-06
+
+**Spec said:** AC-4.3 copies current `scripts/` when the checkout predates one; `writ_scripts: current|checkout`. **Implementation did:** full overlay of this repo's install via `bash scripts/install.sh --platform claude --no-commit --force` with `cwd=<checkout>`; `writ: {source: "overlay", commit, dirty, checkout_manifest_version, manifest_diff_count}` replaces `writ_scripts`; `--writ-root` flag. **Why it matters:** all four parents run Writ `e1a3fd1` (2026-04-27, no scripts, no skills); the spec baselines the *repaired current* corpus. `dirty` (added at Gate 3) records whether the overlaid tree matched `commit`. **Resolution:** user-approved (decision 1).
+
+## DEV-022 — Tests split; deps before the clock
+
+**Severity:** Small · **Story:** 4 · **Found:** 2026-09-06, Gate 0. `tests.suite` (whole jest suite, `--ci --json --outputFile` outside the tree) and `tests.original` (story-commit test files restored via `git show <story_commit>:<path>` after the agent exits, `--runTestsByPath`); compile failure reads as failed, not error. `pnpm install --frozen-lockfile --prefer-offline` runs before `claude` → `deps{seconds, exit}`; `pnpm` added to preflight. `spec-lite.md` amended.
+
+## DEV-023 — Process control and stop caps
+
+**Severity:** Small · **Story:** 4 · **Found:** 2026-09-06, Gate 0. `Popen(start_new_session=True)` with stdout streamed to `transcript.jsonl` (never `capture_output` on a 90-minute stream); `killpg` SIGTERM → 15 s → SIGKILL, also on `KeyboardInterrupt` (Gate 3 S1); `--cap` 5400 s plus `--budget-usd` 75 → `--max-budget-usd` (`claude` 2.1.260 has no `--max-turns`); `status ∈ {complete, budget, error, timeout}` from `result.subtype`. `spec-lite.md` amended.
+
+## DEV-024 — Record shape extras and ingest modes
+
+**Severity:** Small · **Story:** 4 · **Found:** 2026-09-06, Gates 1–3. `gates.<g>.source ∈ {tool_result, assistant_text, null}`; `review_iterations` counted per source; `exit_criteria.reported` is a regex heuristic on the final text (`rederived` is authoritative); `tokens_main_thread` beside `tokens` (subagent spend is only in the `result` event); `run-meta.json` sidecar; `ingest` accepts a session `.jsonl` (`cost_usd: null`, `tokens == tokens_main_thread`); `runs_per_story` set on first run, `--force` to change; exit 3 for scrub failure / yuss HEAD moved. Story 5 must read `source` and treat `cost_usd: null` as "not from a `result` event". `spec-lite.md` amended.
+
+## DEV-025 — No archive fallback, no lock, smoke deferred
+
+**Severity:** Small · **Story:** 4 · **Found:** 2026-09-06, Gate 3 · **User decision** (deferral). Fetch refusal → `fetch_failed` error record (no `git archive` fallback); no `<json>.lock` (two concurrent `run`s would interleave); task 4.2 smoke run deferred because `ANTHROPIC_API_KEY` is unset in the implementing environment — `RESULT_*`/`INIT_*` field-name constants are pinned pending it. `spec-lite.md` amended.
