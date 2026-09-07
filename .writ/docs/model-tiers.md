@@ -3,7 +3,7 @@
 > **Status:** Contract shipped by `2026-09-03-model-delegation` Story 1; agent, adapter, and command migration land in Stories 2–5 of the same spec.
 > **Source of truth for the mechanism:** [ADR-024](../decision-records/adr-024-model-delegation.md), including its § Amendments A1–A3. [ADR-016](../decision-records/adr-016-model-tier-delegation.md) is superseded history: its agent-as-carrier boundary and graceful degradation are kept; its vocabulary, advisory carriers, and ordinal ladder are not.
 
-This document is the user-facing explainer. ADR-024 captures the *why*; the normative contract text lives in [`system-instructions.md`](../../system-instructions.md) → Model Tiers (mirrored in `cursor/writ.mdc`); this document captures the *what* and *how* with the full derivation tables.
+This document is the user-facing explainer **and, since 2026-09-07, the normative contract text**. ADR-024 captures the *why*; this document captures the *what* and *how* with the full derivation tables. The `## Model Tiers` and `### entry_level` sections that lived in [`system-instructions.md`](../../system-instructions.md) were moved here under [ADR-026](../decision-records/adr-026-constraint-test-pruning.md) (every removed line is in [`pruned-instructions-ledger.md`](../decision-records/pruned-instructions-ledger.md)); the base keeps one pointer line to this file.
 
 ---
 
@@ -84,7 +84,7 @@ At entry, a command compares the captured origin (below) against its `entry_leve
 
 > This command expects `<level>` entry; you're running `<model>/<effort>`. Floor-tier retries cannot escalate above this. Consider re-running at a higher thinking level.
 
-"Below" is the running model's own assessment against plain guidance: `high` — a frontier-class model of its family at a non-minimal thinking level; `standard` — a non-smallest model, or medium-plus effort; `any` — nothing. The normative text lives in `system-instructions.md` § Model Tiers; commands do not repeat it.
+"Below" is the running model's own assessment against plain guidance: `high` — a frontier-class model of its family at a non-minimal thinking level; `standard` — a non-smallest model, or medium-plus effort; `any` — nothing. Commands do not repeat this text; this section is its normative home (moved from `system-instructions.md` § Model Tiers, 2026-09-07). Print the notice at most once per session; never ask; if the origin is `unknown`, skip the check.
 
 ---
 
@@ -176,7 +176,7 @@ Nothing hard-fails. Every path degrades to `anchor` = `inherit`, which is today'
 - **Superseded history:** [ADR-016](../decision-records/adr-016-model-tier-delegation.md)
 - **Boundary this extends:** [ADR-009](../decision-records/adr-009-command-agent-skill-boundary.md); **two-question shape:** [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)
 - **Signals consumed:** [ADR-025](../decision-records/adr-025-friction-signals.md) — `escalated`, `degraded`
-- **Normative contract text:** [`system-instructions.md`](../../system-instructions.md) → Model Tiers
+- **Normative contract text:** this document (moved from [`system-instructions.md`](../../system-instructions.md) § Model Tiers on 2026-09-07; the base keeps a pointer line)
 - **Per-platform resolution:** [`adapters/cursor.md`](../../adapters/cursor.md), [`adapters/claude-code.md`](../../adapters/claude-code.md), [`adapters/codex.md`](../../adapters/codex.md), [`adapters/openclaw.md`](../../adapters/openclaw.md)
 - **Lint grammar:** [`scripts/lint-skill.sh`](../../scripts/lint-skill.sh); **tests:** [`scripts/tests/test_lint_model_tier.sh`](../../scripts/tests/test_lint_model_tier.sh)
 - **Research:** [`2026-09-03-family-relative-model-routing-research.md`](../research/2026-09-03-family-relative-model-routing-research.md)

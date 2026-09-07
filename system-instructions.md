@@ -268,45 +268,4 @@ Writ-authored SKILL.md files set `disable-model-invocation: true` so platforms w
 
 ## Model Tiers
 
-Writ delegates by role, not by depth — [ADR-024](.writ/decision-records/adr-024-model-delegation.md), which supersedes ADR-016 (history only). Only **agents** carry `model_tier`, in their existing fenced block — `## Agent Configuration` with a plain fence (6 agents) or `## Agent Specification` with a `yaml` fence (`visual-qa-agent.md`). Commands run at the session model and carry `entry_level` (below); skills carry nothing. A concrete `model:` always wins over `model_tier:`.
-
-| Tier | Meaning |
-|---|---|
-| `anchor` | The user's session model — the platform's `inherit`. |
-| `floor` | The cheapest same-family configuration at or below the anchor. |
-
-**Derive the tier — two questions, in order:**
-
-| Question | Yes | No |
-|---|---|---|
-| **Q1.** Does the agent decide anything for others — spawn agents, route context, or judge another agent's output? | `anchor`. Stop. | Ask Q2. |
-| **Q2.** Is its output bounded (a template, a checklist verdict, a summary) **and** checked by a later gate or a human before it takes effect? | `floor` | `anchor` |
-
-Applied: `coding-agent` (open-ended), `review-agent`, `testing-agent`, `visual-qa-agent` (judge), `documentation-agent` (nothing checks it) → `anchor`; `architecture-check-agent` (checklist verdict; later gates catch a wrong PROCEED), `user-story-generator` (templated; the user reviews before lock) → `floor`.
-
-**Origin.** Commands that spawn agents read — never ask — the **origin** at entry: `anchor.model` (name or `unknown`), `anchor.effort` (`low|medium|high|…` or `unknown`), `anchor.platform`. It is stamped as `origin=<model>/<effort>@<platform>` on ADR-017 audit records, `recommendation-log.md` entries, and every `escalated`/`degraded` line — no new state file; the user sees it only in the entry notice below. **The anchor is the ceiling:** no spawn resolves above `anchor.model` or `anchor.effort`, and escalation returns to the anchor, never past it.
-
-**Resolve `floor`**, in order, never crossing vendors: (a) the anchor's family at its lowest tier below `anchor.model`, if the platform exposes one; (b) the anchor at the lowest effort below `anchor.effort` (`low` when unknown); (c) the anchor. When the origin already sits at the family floor, `floor` collapses to `anchor`, the run says so once, and no `degraded` line is emitted — that is correct, not degraded. Otherwise (c) emits `degraded`. Per-platform values live in `adapters/*.md`.
-
-**Escalate once.** A `floor` result that fails its check, or would interrupt the human, is re-run once at `anchor`; the anchor result stands; the pair counts as one attempt against `loop.max_iterations`; each re-run emits `escalated` (a no-op until ADR-025 Story 1). Sites today: `/create-spec` Step 2.6 story validation and `/implement-story` Gate 0 ABORT.
-
-**Degradation** — nothing hard-fails:
-
-| Condition | Behavior |
-|---|---|
-| `model_tier` unset | Inherit (`anchor`). No warning. |
-| `orchestration` / `capability` | Lint warns; resolves as `anchor` / `floor`. Rejected after the alias window `scripts/lint-skill.sh` names. |
-| Unknown value | Lint fails at authoring; at runtime warn `unknown model_tier '<value>'; running at anchor` and run at `anchor`. |
-| Both `model:` and `model_tier:` | `model:` wins. No warning. |
-
-### `entry_level`
-
-Every command declares `entry_level: high | standard | any` in its existing `---` frontmatter, after `outcome:` — not what it runs at (Writ cannot choose) but what it expects the user to have chosen. Derive it: **Q1** — spawns agents, locks a contract (spec/ADR/roadmap/design), or renders an unverified judgment the user acts on (review, audit, research, drift assessment)? → `high`. **Q2** — creates or modifies durable project artifacts (specs, issues, code, docs, git state; derived caches do not count)? → `standard`. Otherwise → `any`. Commands do not repeat the following text:
-
-> At entry, compare the captured origin against this command's `entry_level`. If the origin
-> is below it, print exactly one line and continue:
-> This command expects `<level>` entry; you're running `<model>/<effort>`. Floor-tier retries cannot escalate above this. Consider re-running at a higher thinking level.
-> Print it at most once per session. Never ask. If the origin is `unknown`, skip the check.
-> "Below" is your own assessment against: `high` — a frontier-class model of its family at a
-> non-minimal thinking level; `standard` — a non-smallest model, or medium-plus effort;
-> `any` — nothing.
+See `.writ/docs/model-tiers.md` for the model-tier contract: `model_tier` (anchor/floor), origin, floor resolution, escalation, degradation, and `entry_level`.
