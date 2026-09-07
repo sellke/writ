@@ -18,7 +18,7 @@
 - `system-instructions.md`, `commands/_preamble.md` — the cut
 - `cursor/writ.mdc` — Prime Directive mirror, edited in lockstep (only the Prime Directive block: after Story 2 its other sections still carry the pre-move text — DEV-007)
 - `.writ/docs/{model-tiers,skills,startup-update-awareness,recommendation-semantics}.md` — merged into the two existing docs, two new; base after Story 2 measured 15,713 bytes
-- `adapters/*.md` — one Fable 5.1 batching line each
+- `adapters/*.md` — one Fable 5.1 batching line each under `## Model-specific` (authored there; the base never named the model — its generic parallel-call nudges were ledgered as behavior-request, DEV-010)
 - `.writ/decision-records/adr-026-constraint-test-pruning.md`, `.writ/decision-records/pruned-instructions-ledger.md` — new
 - `scripts/prune-ledger.py`, `scripts/verdict-provenance.py` — new
 - `scripts/eval.sh` — `pruned-base`, `verdict-provenance` checks

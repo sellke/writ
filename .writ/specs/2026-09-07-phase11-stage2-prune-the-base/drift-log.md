@@ -84,3 +84,23 @@ Before this story `cursor/writ.mdc` was `system-instructions.md` whole, behind a
 **Severity:** Small · **Story:** 2 · **Found:** 2026-09-07, Gate 3 review
 
 AC-2.3 and the story notes say `check_referenced_paths` resolves the new `.writ/docs/` links in the base. The check iterates `command_files()` — `commands/*.md` minus `_*.md` — and never reads `system-instructions.md`, so it is green regardless of the pointers. All four pointer paths exist on disk (`ls`), and `check_broken_refs` is green. No code change; extending the check to the base is outside the story. `spec-lite.md` amended.
+
+---
+
+## DEV-009 — `grep -c "Fable 5.1" adapters/cursor.md` cannot return 1
+
+**Severity:** Medium · **Story:** 3 · **Found:** 2026-09-07, Gate 0 arch check; confirmed at Gate 3 review
+
+**Spec said:** AC-3.4 proves the one-line-per-adapter rule by `grep -c "Fable 5.1" adapters/<file>.md` returning `1` for each of the four adapters. **Implementation did:** `adapters/cursor.md` already carried the model name on two lines before this story — the dated *Verification record — 2026-09-03* under `### Sub-Agent Models` (the origin line and the V1 self-report row), evidence from a real spawn experiment that must not be reworded to satisfy a grep. After the `## Model-specific` line lands, `grep -c` reads `1` for `claude-code.md`, `codex.md`, `openclaw.md` and `3` for `cursor.md`; the section-scoped count `awk '/^## Model-specific/,0' adapters/cursor.md | grep -c "Fable 5.1"` reads `1` for all four. **Why it matters:** the Goal Card rule ("no file under `adapters/` gains more than one model-specific instruction line per model") and Business Rule 7 hold — the story adds exactly one instruction line per file — but the AC's proxy counts mentions, not instruction lines. **Resolution:** ⚠️ flagged; pipeline PASS; the story records both counts; `spec.md` unchanged. A maintainer who wants the literal proxy can move the verification record out of `adapters/cursor.md`.
+
+## DEV-010 — The base carried no literal Fable 5.1 batching line
+
+**Severity:** Small · **Story:** 3 · **Found:** 2026-09-07, Gate 0 arch check
+
+AC-3.4 and task 3.5 describe moving "the Fable 5.1 batching line currently in `system-instructions.md`". At `cf84742` neither base file names Fable 5.1; the batching instruction exists only in generic form — `## Command Execution Protocol` item 2 (*Use parallel tool execution when possible*), the *Methodical but efficient* personality bullet, and `_preamble.md` `## Tool Selection`'s *Parallel tool calls* bullet. Those three lines left with `behavior-request` rows whose reason names the adapters as the model-specific home (research F1 counter-signal), and the Fable 5.1 line itself was authored fresh under `## Model-specific` in each adapter (commit `99c1b0e`). `spec-lite.md` amended (Files in Scope, adapters row).
+
+## DEV-011 — `cursor/writ.mdc` re-synced whole, not only its Prime Directive block
+
+**Severity:** Medium · **Story:** 3 · **Found:** 2026-09-07, Gate 0 arch check; applied in commit `8596281`
+
+**Spec said:** `cursor/writ.mdc` is the Prime Directive mirror; Business Rule 8 requires only that block to stay byte-identical, and DEV-007 left the decision about its other sections to this story. **Implementation did:** the file is now a byte-for-byte copy of the pruned `system-instructions.md` (4,600 bytes), as it was of the unpruned base at `cf84742`. `install.sh` copies `cursor/writ.mdc` to `.cursor/rules/` as the `alwaysApply: true` rule, so it is the base Cursor sessions actually load; leaving the moved and cut sections in it would have shipped the 20,885-byte pre-move base to Cursor while Claude Code and Codex got the pruned one, and Story 5's re-run would then measure a state Cursor users never see. Business Rule 8 holds trivially; `check_prime_directive_sync` green; the three `writ.mdc` literal pins (`check_autonomy_governance`, `check_recommendation_semantics`) are all inside the Prime Directive and still resolve. **Why it matters:** `spec-lite.md` line 19's parenthetical about DEV-007 is now historical. **Resolution:** ⚠️ flagged; pipeline PASS. `spec.md` unchanged.
