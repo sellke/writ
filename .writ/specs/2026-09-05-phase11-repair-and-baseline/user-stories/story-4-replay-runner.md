@@ -1,7 +1,7 @@
 # Story 4: Replay Runner — Isolated Checkout, Headless /implement-story, Metrics Per Run
 
 > **Status:** Completed ✅ (2026-09-06)
-> **Commit:** _pending_
+> **Commit:** eefffa1c4b21ab0777b8031a7d8c8d3492a4b7a2
 > **Priority:** High
 > **Dependencies:** Story 3
 
