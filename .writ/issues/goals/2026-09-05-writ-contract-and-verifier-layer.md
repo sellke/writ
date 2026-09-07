@@ -5,7 +5,7 @@
 > **Effort:** Large
 > **Created:** 2026-09-05
 > **loop:** yes
-> **spec_ref:** .writ/specs/2026-09-05-phase11-repair-and-baseline/spec.md _(Stage 1; Stages 2–4 get their own specs)_
+> **spec_ref:** .writ/specs/2026-09-05-phase11-repair-and-baseline/spec.md _(Stage 1, complete)_ · .writ/specs/2026-09-07-phase11-stage2-prune-the-base/spec.md _(Stage 2a; Stage 2b mechanization, Stages 3–4 get their own specs)_
 
 ## OBJECTIVE
 
