@@ -802,10 +802,15 @@ class InlineSkillReadTests(unittest.TestCase):
 
 
 class MechanismRecordTests(unittest.TestCase):
-    """The false first-consumer claim lived in four files, not one."""
+    """The false first-consumer claim lived in four files, not one.
+
+    2026-09-07 (Phase 11 Stage 2a Story 2, ADR-026): the `required_skills:`
+    convention text moved out of system-instructions.md into
+    .writ/docs/skills.md, so the pins follow it there; the base keeps one
+    pointer line and carries none of the pinned clauses."""
 
     CLAIM_FILES = (
-        "system-instructions.md",
+        ".writ/docs/skills.md",
         "adapters/cursor.md",
         "adapters/claude-code.md",
         "adapters/openclaw.md",
@@ -827,7 +832,7 @@ class MechanismRecordTests(unittest.TestCase):
             self.assertIn("2026-11-11", text, f"{rel} must carry the review trigger")
 
     def test_the_schema_and_the_graceful_degradation_rule_are_unchanged(self):
-        text = (REPO_ROOT / "system-instructions.md").read_text(encoding="utf-8")
+        text = (REPO_ROOT / ".writ/docs/skills.md").read_text(encoding="utf-8")
         for clause in (
             "`required_skills` is an **optional** array of strings.",
             "Order is **preserved** — downstream tooling may use it for load priority.",

@@ -38,3 +38,29 @@
 | 2026-09-07 | system-instructions.md | moved | .writ/docs/model-tiers.md | > "Below" is your own assessment against: `high` — a frontier-class model of its family at a |
 | 2026-09-07 | system-instructions.md | moved | .writ/docs/model-tiers.md | > non-minimal thinking level; `standard` — a non-smallest model, or medium-plus effort; |
 | 2026-09-07 | system-instructions.md | moved | .writ/docs/model-tiers.md | > `any` — nothing. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | ### `required_skills:` frontmatter convention |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | Commands and agents may declare a `required_skills:` array in their frontmatter to have the harness pre-load named skills before the consumer's first phase begins: |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | ```yaml |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | --- |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | name: example-agent |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | required_skills: |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md |   - tdd-cycle |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md |   - conventional-commits |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | --- |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | ``` |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | **Schema:** |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | - `required_skills` is an **optional** array of strings. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | - Values are skill names matching `name:` entries in `.writ/manifest.yaml`. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | - Order is **preserved** — downstream tooling may use it for load priority. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | - Duplicates are **silently deduplicated**. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | - Unknown skill names produce a **warning** at consumer load time, not a hard failure (graceful degradation: a pilot extraction may rename a skill mid-flight; consumers should not hard-fail). |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | **Harness contract:** |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | When a consumer with `required_skills: [foo]` is invoked, the harness loads `skills/foo/SKILL.md` (typically via `Read skills/foo/SKILL.md`) and makes it accessible to the agent before any phase work begins. Per-platform mechanism is documented in each adapter's Skills → Invocation subsection (`adapters/cursor.md`, `adapters/claude-code.md`, `adapters/openclaw.md`). |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | Without the field, agents and commands continue to inline `Read skills/<name>/SKILL.md` instructions in their prompts at the point where the skill is needed. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | **Status: documented, no consumer.** The 2026-08-03 review resolved **revisit → adopt** on a justification that rested almost entirely on one named future consumer: Phase 10 progressive disclosure. That consumer evaluated the mechanism and did not adopt it. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | `required_skills:` is an **eager pre-load** — the harness loads every declared skill before any phase work begins (see **Harness contract** above), and selection is per **command**, never per **run**. A static array cannot express "only what this invocation needs", so extraction under this field moves the extracted bytes into the floor that every invocation pays, and a disclosed command costs more than the monolith it replaced. Phase 10 uses an inline `Read skills/<name>/SKILL.md` at the point of need instead, which is conditional. [ADR-021](.writ/decision-records/adr-021-progressive-disclosure-token-budget.md)'s 2026-08-12 amendments carry the full record. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | The schema stays documented — `/new-skill`, all three adapters, and `check_required_skills()` reference it. Deprecating it is an ADR-scale decision; the spec that found the mechanism wrong for a single phase does not make it. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | **Review trigger: 2026-11-11**, aligned to ADR-021's own review, which already reads the per-invocation data that would justify a consumer. The trigger is restored because the adoption's premise proved false. **Terms:** if no command or agent declares `required_skills:` by then, deprecate; if one does, record it and reset. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | ### Skill authoring |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | Use `/new-skill <name>` to scaffold a new skill with the role convention (verb-phrase description, `disable-model-invocation: true` frontmatter, boundary lint enforced at authoring time). `/refresh-command` includes a boundary check that lints existing skills. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/skills.md | Writ-authored SKILL.md files set `disable-model-invocation: true` so platforms with skill auto-discovery don't ambient-load them. Every skill load is explicit and traceable. |
