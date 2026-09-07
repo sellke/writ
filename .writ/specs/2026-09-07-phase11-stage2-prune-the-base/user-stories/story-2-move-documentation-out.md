@@ -1,6 +1,7 @@
 # Story 2: Move Documentation Out — Five Base Sections Relocated to .writ/docs/ With Ledger Rows and a Measured Byte Count
 
 > **Status:** Completed ✅ (2026-09-07)
+> **Commit:** e1a60abd872ab96b47dc1b6a5705ad7ae211fa56
 > **Priority:** High
 > **Dependencies:** Story 1
 
