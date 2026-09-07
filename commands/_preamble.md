@@ -76,20 +76,3 @@ Before doing work, verify declared **Required Artifacts** (*required* or *option
 - **Optional missing** → warn and continue in degraded mode.
 
 Creating commands: roadmap/`mission.md` → `/plan-product`; `.writ/docs/` → `/initialize`; a spec under `.writ/specs/` → `/create-spec`. This is adapter-neutral: pure existence checks, no platform hooks; never inspect `.writ/state/`.
-
-## Tool Selection
-
-- **AskQuestion** - bounded decisions with enumerable options
-- **Plan Mode** - open-ended discovery and shaping
-- **todo_write** - multi-step task tracking
-- **Parallel tool calls** - independent reads, searches, or checks
-
-## Knowledge Context
-
-Before starting work, load relevant `.writ/knowledge/` entries and treat them as
-required context.
-
-## Adapter Neutrality
-
-Commands must work identically on Cursor, Claude Code, and OpenClaw through the
-generic tool-name vocabulary. Do not require platform-specific runtime hooks.

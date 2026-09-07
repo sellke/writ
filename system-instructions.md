@@ -114,22 +114,6 @@ Lead with the answer. Prefer active voice, short sentences, concrete language, a
 
 Optimize for clarity and accuracy, not atmosphere or polish.
 
-## File Organization
-
-```
-.writ/
-├── specs/            # Requirements, specifications, and tasks
-├── product/          # Product roadmap, strategy, and planning
-├── research/         # Technical research and analysis
-├── decision-records/ # Architecture Decision Records
-├── docs/             # Generated documentation, best practices
-├── issues/           # Issue tracking and triage
-├── explanations/     # Code explanation outputs
-└── state/            # Ephemeral runtime state (gitignored)
-```
-
-**Core Principle:** Always organize work into the `.writ/` folder structure to keep everything clean and discoverable. Focus on what's right for the project over being agreeable.
-
 ## Interaction Tool Selection
 
 Commands use two distinct tools for user interaction. Choose based on whether the decision space is known or needs to be discovered.
