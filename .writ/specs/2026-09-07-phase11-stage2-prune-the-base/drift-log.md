@@ -14,6 +14,10 @@ DEV-001).
 | DEV-002 | 1 | Medium | Whitespace-only lines are exempt from ledger accounting |
 | DEV-003 | 1 | Small | `ledger_text_reappeared` requires the text to be absent from the file's net removals, not merely present at HEAD |
 | DEV-004 | 1 | Small | `check`/`measure` exit 2 when a base file is missing; `check_pruned_base()` notes and skips a tree with no shared base |
+| DEV-005 | 2 | Medium | `MechanismRecordTests` pins in `test_governor_enforcement.py` follow the `required_skills:` text to `.writ/docs/skills.md` |
+| DEV-006 | 2 | Medium | `check_recommendation_semantics` pins for the moved bullets read `.writ/docs/recommendation-semantics.md`; the `cursor/writ.mdc` pin reads the pointer line |
+| DEV-007 | 2 | Small | `cursor/writ.mdc` took only the Prime Directive cut; its other sections still carry the pre-move text |
+| DEV-008 | 2 | Small | `check_referenced_paths` scans `commands/*.md` only, so the base's pointer links are verified by hand, not by the check |
 | DEV-101 | 4 | Medium | `KNOWN_OVER_BUDGET` pin for `implement-story.md` raised 4414 → 5381 in `test_governor_enforcement.py` |
 | DEV-102 | 4 | Small | `agents/visual-qa-agent.md` still names the 85/70 match thresholds the command body dropped |
 
@@ -54,3 +58,29 @@ The spec is silent on a missing `system-instructions.md` or `commands/_preamble.
 ## DEV-102 — `agents/visual-qa-agent.md` still carries the thresholds
 
 **Severity:** Small · **Story:** 4 · **Found:** 2026-09-07, Gate 0 review. Task 4.5 scopes the percentage removal to the command body's `#### Gate 4.5` section, which now names no percentage. `agents/visual-qa-agent.md` (outcome, exit criterion, and the PASS / SOFT PASS / FAIL list at lines 132–134) still says 85 / 70. Left as authored — the agent file is outside this story's boundary and the mechanization spec that gives Gate 4.5 a real diff owns the rewrite. `spec-lite.md` amended with one parenthetical.
+
+---
+
+## DEV-005 — `MechanismRecordTests` pins follow the moved text
+
+**Severity:** Medium · **Story:** 2 · **Found:** 2026-09-07, Gate 0 arch check; applied in commit `2b11f7d`
+
+**Spec said:** Story 2 edits `system-instructions.md`, `.writ/docs/`, and the ledger. **Implementation did:** `scripts/tests/test_governor_enforcement.py::MechanismRecordTests` pinned four schema clauses, "no consumer", and the `2026-11-11` trigger in `system-instructions.md`; the `required_skills:` convention moved to `.writ/docs/skills.md`, so `CLAIM_FILES` and the clause test now read that file (a dated docstring records the move). **Why it matters:** a test outside the story's file list was edited; the pins still bite — the doc carries every clause verbatim. **Resolution:** ⚠️ flagged; pipeline PASS. `spec.md` unchanged.
+
+## DEV-006 — `check_recommendation_semantics` pins retargeted
+
+**Severity:** Medium · **Story:** 2 · **Found:** 2026-09-07, Gate 0 arch check; applied in commit `724e86a`
+
+**Spec said:** the tutorial part of `### Recommendation Semantics` moves out, the rule sentence stays. **Implementation did:** `scripts/eval.sh` → `check_recommendation_semantics` required 16 literals in `system-instructions.md` covering every bullet of the section, so the move could not land without touching the check. The 13 pins for bullets 2–5 (evidence, select-or-pause, audit rationale, resume) now read `.writ/docs/recommendation-semantics.md`; the 3 pins for the labeling rule still read the base; the `cursor/writ.mdc` pin for the Story 2/3 boundary sentence now requires the pointer line instead (the mirror lost that sentence with the cut). A mutation run confirmed a changed literal in the doc still yields one finding. **Why it matters:** the governor now guarantees the text exists in a doc the model reads only on demand, not on every invocation — which is the intent of ADR-026, and `commands/_preamble.md` (User Challenge, Autonomy Gate Classes) still carries the select-or-pause boundary every command loads. **Resolution:** ⚠️ flagged; pipeline PASS. `spec.md` unchanged.
+
+## DEV-007 — `cursor/writ.mdc` mirrors only the Prime Directive cut
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-07, Gate 3 review
+
+Before this story `cursor/writ.mdc` was `system-instructions.md` whole, behind a three-line frontmatter. Business Rule 8 and `check_prime_directive_sync` govern only the `## Prime Directive` block, so the Recommendation Semantics cut was mirrored (same commit) and the Model Tiers, Skills, and Startup Update Awareness moves were not: the Cursor rule still carries those sections in full (about 21,400 bytes against the base's 10,061). Left as authored — the spec scopes `writ.mdc` as the Prime Directive mirror, and re-syncing the whole file is a decision for Story 3 or the maintainer. `spec-lite.md` amended with one clause.
+
+## DEV-008 — pointer links are verified by hand
+
+**Severity:** Small · **Story:** 2 · **Found:** 2026-09-07, Gate 3 review
+
+AC-2.3 and the story notes say `check_referenced_paths` resolves the new `.writ/docs/` links in the base. The check iterates `command_files()` — `commands/*.md` minus `_*.md` — and never reads `system-instructions.md`, so it is green regardless of the pointers. All four pointer paths exist on disk (`ls`), and `check_broken_refs` is green. No code change; extending the check to the base is outside the story. `spec-lite.md` amended.

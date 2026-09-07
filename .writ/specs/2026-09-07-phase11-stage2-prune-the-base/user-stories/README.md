@@ -7,12 +7,12 @@
 | # | Story | Status | Priority | Deps | AC | Tasks | Progress |
 |---|---|---|---|---|---|---|---|
 | 1 | [Pruning Policy ADR and Ledger Tooling — ADR-026, prune-ledger.py, and the pruned-base eval check](story-1-pruning-policy-and-ledger.md) | Completed ✅ (2026-09-07) | High | — | 5 | 7 | 7/7 |
-| 2 | [Move Documentation Out — Five Base Sections Relocated to .writ/docs/ With Ledger Rows and a Measured Byte Count](story-2-move-documentation-out.md) | Not Started | High | 1 | 5 | 6 | 0/6 |
+| 2 | [Move Documentation Out — Five Base Sections Relocated to .writ/docs/ With Ledger Rows and a Measured Byte Count](story-2-move-documentation-out.md) | Completed ✅ (2026-09-07) | High | 1 | 5 | 6 | 6/6 |
 | 3 | [Cut Behavior Requests — Line-by-Line Classification to a 10,000-Byte Base, Batching Line to Adapters](story-3-cut-behavior-requests.md) | Not Started | High | 2 | 5 | 7 | 0/7 |
 | 4 | [Gate Verification Markers and Provenance Check — gates: Frontmatter, verdict-provenance.py, and the verdict-provenance Eval Check](story-4-gate-verification-markers.md) | Completed ✅ | High | — | 5 | 7 | 7/7 |
 | 5 | [Baseline Re-run and Keep-or-Revert — Eight Fable 5.1 Runs on the Pruned Base, Compared Against Stage 1](story-5-baseline-rerun-keep-or-revert.md) | Not Started | High | 3, 4 | 4 | 6 | 0/6 |
 
-**Total:** 5 stories · 24 acceptance criteria · 33 tasks · 14/33 complete (42%)
+**Total:** 5 stories · 24 acceptance criteria · 33 tasks · 20/33 complete (61%)
 
 ## Dependency Graph
 

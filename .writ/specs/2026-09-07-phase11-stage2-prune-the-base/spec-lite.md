@@ -16,8 +16,8 @@
 
 **Files in Scope:**
 - `system-instructions.md`, `commands/_preamble.md` — the cut
-- `cursor/writ.mdc` — Prime Directive mirror, edited in lockstep
-- `.writ/docs/{model-tiers,skills-convention,startup-update-awareness,recommendation-semantics}.md` — new or merged
+- `cursor/writ.mdc` — Prime Directive mirror, edited in lockstep (only the Prime Directive block: after Story 2 its other sections still carry the pre-move text — DEV-007)
+- `.writ/docs/{model-tiers,skills,startup-update-awareness,recommendation-semantics}.md` — merged into the two existing docs, two new; base after Story 2 measured 15,713 bytes
 - `adapters/*.md` — one Fable 5.1 batching line each
 - `.writ/decision-records/adr-026-constraint-test-pruning.md`, `.writ/decision-records/pruned-instructions-ledger.md` — new
 - `scripts/prune-ledger.py`, `scripts/verdict-provenance.py` — new
@@ -31,7 +31,7 @@
 - Gate heading without marker / marker without heading / missing script path → `verdict-provenance` finding
 - Re-run below 8/8 → retry failed pair once, then revert Stories 2–3
 
-**Integration Points:** `check_prime_directive_sync`, `check_referenced_paths` (new doc links), `pipeline-baseline.py run|compare`, `install.sh` ships `.writ/docs/*.md`.
+**Integration Points:** `check_prime_directive_sync`, `check_referenced_paths` (scans `commands/*.md` only — the base's pointer links are checked by hand, DEV-008), `check_recommendation_semantics` (moved-bullet pins read `.writ/docs/recommendation-semantics.md`, DEV-006), `test_governor_enforcement.py::MechanismRecordTests` (pins read `.writ/docs/skills.md`, DEV-005), `pipeline-baseline.py run|compare`, `install.sh` ships `.writ/docs/*.md`.
 
 ---
 
