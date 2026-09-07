@@ -9,8 +9,8 @@
 
 **Implementation Approach:**
 - Python 3.9 stdlib; tests in `scripts/tests/`; each story ends with `bash scripts/eval.sh` → `Findings: 0` (outside sandbox)
-- Line diffs come from `git diff -U0 cf84742 -- <file>`; kept lines stay byte-identical
-- Ledger row: `| date | file | reason-class | reason | verbatim text |`; rows land in the removal commit
+- Line diffs come from `git diff -U0 cf84742 -- <file>`; kept lines stay byte-identical. In-file moves cancel (multiset per file); whitespace-only lines need no row (DEV-002); `eval.sh` honors `WRIT_PRUNE_BASE_COMMIT` for fixture trees (DEV-001); a missing base file is exit 2, a tree with no base is a note (DEV-004)
+- Ledger row: `| date | file | reason-class | reason | verbatim text |`; rows land in the removal commit. A row has reappeared when its text is a whole line in its file and not among that file's net removals (DEV-003)
 - Moves (Story 2) before cuts (Story 3); bytes recorded between
 - Keep-or-revert (Story 5) is mechanical: every `compare` exit-criteria row `2/2` or revert Stories 2–3
 
