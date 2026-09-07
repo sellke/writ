@@ -67,6 +67,7 @@ CHECKS=(
   quality-config-audit
   test-integrity
   build-smoke
+  pipeline-baseline
 )
 
 TOTAL_FINDINGS=0
@@ -3814,6 +3815,51 @@ check_build_smoke() {
   # Exempt from the subprocess ban (it runs a build), never from the write ban.
   forbid_literal "$helper" 'os.remove' "The checker must never delete a file."
   forbid_literal "$helper" '.write_text(' "The checker executes a build but must never write a file itself."
+}
+
+check_pipeline_baseline() {
+  # Story 5 of 2026-09-05-phase11-repair-and-baseline: note when no baseline
+  # JSON exists (installed projects have none); block on a schema or leak
+  # violation by relaying `pipeline-baseline.py validate` lines as findings.
+  local dir="$PROJECT_ROOT/.writ/eval/baselines"
+  local helper="$PROJECT_ROOT/scripts/pipeline-baseline.py"
+  local file rel line field reason
+  local files=()
+
+  shopt -s nullglob
+  files=("$dir"/*.json)
+  shopt -u nullglob
+
+  if [ "${#files[@]}" -eq 0 ]; then
+    add_note "NOTE [.writ/eval/baselines]: no baseline JSON found. Create one with python3 scripts/pipeline-baseline.py select."
+    return
+  fi
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/pipeline-baseline.py" "pipeline-baseline helper is missing." \
+      "Restore scripts/pipeline-baseline.py so validate can run."
+    return
+  fi
+
+  for file in "${files[@]}"; do
+    rel="$(relpath "$file")"
+    # validate exits 1 on findings; `set -e` must not abort the check.
+    if line="$(python3 "$helper" validate "$file" 2>&1)"; then
+      continue
+    fi
+    if [ -z "$line" ]; then
+      add_finding "$rel" "validate failed with no path: reason lines." \
+        "Run python3 scripts/pipeline-baseline.py validate $rel."
+      continue
+    fi
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      field="${line%%: *}"
+      reason="${line#*: }"
+      add_finding "$rel:$field" "$reason" \
+        "Fix the baseline JSON or regenerate it with python3 scripts/pipeline-baseline.py select."
+    done <<< "$line"
+  done
 }
 
 run_check() {

@@ -30,15 +30,17 @@ Subcommands:
            [--writ-root DIR]
   ingest   --baseline PATH --yuss PATH --checkout DIR --transcript FILE
            [--story-id ID --run N] [--force] [--tmp-root DIR] [--writ-root DIR]
-  compare  stub until Story 5
+  validate FILE
+  compare  A B
 
 `run` (Story 4) replays each selected story `--runs` times: a fresh
 `git init` + `fetch --depth 1 <yuss> <parent_sha>` checkout under
 `$TMPDIR/writ-baseline-<story-stem>-<n>/checkout/` (Business Rule 1: exactly
 one reachable commit, asserted and recorded before anything else touches the
-tree), the current Writ overlaid via `scripts/install.sh --platform claude`,
-`pnpm install`, then `claude -p "/implement-story <story path>"` headless
-under a wall-clock cap and a dollar budget. Afterwards jest runs twice (the
+tree), the current Writ overlaid via `scripts/install.sh --platform <driver>`,
+`pnpm install`, then the selected headless driver (`claude` today; others
+via `--driver` or `ingest` after an IDE session) under a wall-clock cap
+and a dollar budget. Afterwards jest runs twice (the
 produced tree's whole suite with coverage, then the story's original test
 files restored from `git show <story_commit>:<path>`), Gates 2 and 4 are
 re-derived by `--writ-root`'s `build-smoke.py` and `test-integrity.py`
@@ -50,8 +52,10 @@ existing checkout + transcript. A run directory is removed only after its
 record is complete; on any exception it is kept and its path printed.
 
 Exit codes: 0 written · 1 (`select`) a surface class has no admissible story
-(`--out` untouched) · 2 usage or refusal (invalid `--yuss`, refused `--out`,
-no candidates, `run` preflight: missing `ANTHROPIC_API_KEY` or `claude`) ·
+(`--out` untouched); (`validate`) one or more schema/leak findings · 2 usage
+or refusal (invalid `--yuss`, refused `--out`, no candidates, `run` preflight:
+missing driver or `pnpm`, or a model with no headless driver; `compare`
+selection mismatch) ·
 3 (`run`/`ingest`) a record failed `scrub()` or yuss's HEAD moved.
 """
 
@@ -61,6 +65,7 @@ import argparse
 import json
 import os
 import re
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -695,6 +700,16 @@ RUN_KEYS = (
     "invocation", "wall_clock_s", "num_turns", "tokens", "tokens_main_thread", "cost_usd",
     "interrupts", "review_iterations", "tests", "gates", "rederivation", "exit_criteria", "yuss_head_unchanged",
 )
+# Numeric (or nested-numeric) fields `compare` medians. Exit-criteria is
+# pass-count / run-count, not a median, and is handled beside this list.
+COMPARE_METRICS = (
+    "wall_clock_s", "num_turns",
+    "tokens.input", "tokens.output", "tokens.cache_read", "tokens.cache_creation",
+    "tokens_main_thread.input", "tokens_main_thread.output",
+    "tokens_main_thread.cache_read", "tokens_main_thread.cache_creation",
+    "interrupts.ask_user_question", "interrupts.status_blocked",
+    "review_iterations", "cost_usd",
+)
 GATE_NAMES = ("gate0_arch", "gate2_build", "gate3_review", "gate4_tests", "gate5_docs")
 GATE_KEYS = ("verdict", "source", "rederived")      # gate4_tests also carries `integrity`
 ISOLATION_KEYS = ("reachable_commits", "expected", "asserted", "answer_scrub_asserted")
@@ -712,7 +727,7 @@ TEST_INTEGRITY_REL = "scripts/test-integrity.py"
 BUILD_SMOKE_TIMEOUT_S = 300           # the script's own --timeout
 GATE_SCRIPT_TIMEOUT_S = 600           # our wrapper around either script
 PATH_PLACEHOLDERS = ("<writ_root>", "<checkout>", "<artifacts>")
-INVOCATION_KEYS = ("argv", "model", "model_resolved", "claude_version", "permission_mode", "api_key_source")
+INVOCATION_KEYS = ("driver", "argv", "model", "model_resolved", "claude_version", "permission_mode", "api_key_source")
 TOKEN_KEYS = ("input", "output", "cache_read", "cache_creation")
 INTERRUPT_KEYS = ("ask_user_question", "status_blocked")
 RUN_STATUSES = ("complete", "budget", "error", "timeout")
@@ -761,12 +776,98 @@ KILL_GRACE_S = 15
 # `signal` is outside the 3.9 import set Story 3's StdlibOnlyTest pins, so the
 # POSIX numbers are spelled out. `start_new_session=True` makes pgid == pid.
 SIGTERM, SIGKILL = 15, 9
-KEY_ENV = "ANTHROPIC_API_KEY"
-CLAUDE_INSTALL_HINT = "https://docs.anthropic.com/en/docs/claude-code/setup"
 PNPM_INSTALL_HINT = "https://pnpm.io/installation"
 # `claude` refuses to start inside another Claude Code session; a maintainer
 # launching `run` from one must not pass that marker down.
 NESTED_SESSION_VARS = frozenset({"CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT"})
+CLAUDE_INSTALL_HINT = "https://docs.anthropic.com/en/docs/claude-code/setup"
+CODEX_INSTALL_HINT = "https://github.com/openai/codex"
+CURSOR_INSTALL_HINT = "https://cursor.com/docs/cli/overview"
+
+
+@dataclass(frozen=True)
+class Driver:
+    """A headless agent CLI that can execute `/implement-story`.
+
+    This is not a model vendor. Claude Code, Codex, and a future Cursor
+    agent CLI are drivers; Grok, local weights, and any other IDE-session
+    model have no driver and are captured with `ingest`.
+    """
+
+    name: str
+    binary: str
+    platform: str
+    hint: str
+    nested_vars: frozenset
+    model_prefixes: tuple
+    implemented: bool
+
+
+DRIVERS = {
+    "claude": Driver("claude", "claude", "claude", CLAUDE_INSTALL_HINT,
+                     NESTED_SESSION_VARS, ("claude-",), True),
+    "codex": Driver("codex", "codex", "codex", CODEX_INSTALL_HINT,
+                    frozenset(), ("gpt-", "o1-", "o1", "o3-", "o3", "o4-", "o4", "codex-"), False),
+    "cursor": Driver("cursor", "cursor-agent", "cursor", CURSOR_INSTALL_HINT,
+                     frozenset(), (), False),
+}
+DRIVER_NAMES = ("auto",) + tuple(DRIVERS)
+# Prefixes that resolve to an IDE session, never a headless CLI we own.
+INGEST_ONLY_PREFIXES = (
+    "grok-", "llama", "qwen", "mistral", "gemma", "deepseek", "phi-", "olmo",
+    "yi-", "glm-", "command-r",
+)
+INGEST_HINT = (
+    "this model has no headless driver; run /implement-story in your CLI or IDE "
+    "(Cursor, Claude Code, Codex, a local agent) and capture with "
+    "pipeline-baseline.py ingest --checkout --transcript"
+)
+
+
+def _classify_model(model: str) -> Optional[str]:
+    """Driver name, the ingest-only sentinel, or None if the id matches nothing."""
+    lower = model.lower()
+    if any(lower.startswith(p) for p in INGEST_ONLY_PREFIXES):
+        return "ingest"
+    for name, driver in DRIVERS.items():
+        if any(lower.startswith(p) for p in driver.model_prefixes):
+            return name
+    return None
+
+
+def resolve_driver(requested: str, model: Optional[str] = None) -> Driver:
+    """Pick a driver. ``auto`` uses the model id; an explicit name wins."""
+    if requested != "auto":
+        if requested not in DRIVERS:
+            raise Refusal("unknown driver %r (known: %s); %s"
+                          % (requested, ", ".join(DRIVERS), INGEST_HINT))
+        driver = DRIVERS[requested]
+        if not driver.implemented:
+            raise Refusal("%s driver is registered but has no headless argv yet; %s"
+                          % (driver.name, INGEST_HINT))
+        return driver
+    if not model:
+        implemented = [d for d in DRIVERS.values() if d.implemented]
+        if not implemented:
+            raise Refusal("no implemented headless driver is registered; %s" % INGEST_HINT)
+        return implemented[0]
+    kind = _classify_model(model)
+    if kind == "ingest":
+        raise Refusal("model %r: %s" % (model, INGEST_HINT))
+    if kind is None:
+        raise Refusal("no headless driver for model %r; pass --driver if a CLI can "
+                      "run /implement-story, otherwise %s" % (model, INGEST_HINT))
+    driver = DRIVERS[kind]
+    if not driver.implemented:
+        raise Refusal("model %r maps to the %s driver, which has no headless argv yet; %s"
+                      % (model, driver.name, INGEST_HINT))
+    return driver
+
+
+def overlay_args(platform: str) -> tuple:
+    return ("--platform", platform, "--no-commit", "--force")
+
+
 TMP_PREFIX = "writ-baseline-"
 SIDECAR = "run-meta.json"
 PNPM_INSTALL = ("pnpm", "install", "--frozen-lockfile", "--prefer-offline")
@@ -778,7 +879,6 @@ JEST_ARGV = ("pnpm", "exec", "jest", "--ci", "--json", "--forceExit")
 JEST_TIMEOUT_S = 1200
 COVERAGE_DIR = "coverage"
 COVERAGE_REPORT = "coverage-final.json"     # jest's default `json` reporter
-OVERLAY_ARGS = ("--platform", "claude", "--no-commit", "--force")
 MANIFEST_REL = ".claude/.writ-manifest"
 MANIFEST_VERSION = re.compile(r"(?m)^# version: (\S+)")
 
@@ -844,14 +944,33 @@ def _seconds(start: datetime) -> float:
     return round((_utcnow() - start).total_seconds(), 3)
 
 
-def preflight(env: Optional[dict] = None) -> None:
-    """Refuse before any filesystem or subprocess side effect (AC-4.1)."""
+def preflight(env: Optional[dict] = None, driver: str = "auto",
+              model: Optional[str] = None) -> None:
+    """Refuse before any filesystem or subprocess side effect (AC-4.1).
+
+    Writ holds no vendor key. Auth is the operator's CLI or IDE login.
+    Preflight requires `pnpm` (yuss's package manager) and a headless
+    driver when the model has one. Grok, local weights, and other
+    IDE-session models are not a missing-binary error — they are ingest.
+    """
     env = os.environ if env is None else env
-    if not env.get(KEY_ENV):
-        raise Refusal("%s is not set in the environment; run refuses to start (Business Rule 3)" % KEY_ENV)
-    if which("claude", env.get("PATH", "")) is None:
-        raise Refusal("claude binary not found on PATH; install it first: %s" % CLAUDE_INSTALL_HINT)
-    if which("pnpm", env.get("PATH", "")) is None:
+    path = env.get("PATH", "")
+    if driver != "auto" or model:
+        resolved = resolve_driver(driver, model)
+        if which(resolved.binary, path) is None:
+            raise Refusal("%s binary not found on PATH; install it first: %s"
+                          % (resolved.binary, resolved.hint))
+    else:
+        implemented = [d for d in DRIVERS.values() if d.implemented]
+        found = [d for d in implemented if which(d.binary, path)]
+        if not found:
+            names = ", ".join(d.binary for d in implemented)
+            hints = "; ".join("%s → %s" % (d.binary, d.hint) for d in implemented)
+            raise Refusal("no implemented headless driver on PATH (looked for: %s). "
+                          "Writ does not hold vendor keys; your CLI or IDE authenticates. "
+                          "Grok, local weights, and other IDE-session models use ingest. "
+                          "Install a driver: %s" % (names, hints))
+    if which("pnpm", path) is None:
         raise Refusal("pnpm not found on PATH (yuss's package manager); install it first: %s" % PNPM_INSTALL_HINT)
 
 
@@ -965,7 +1084,7 @@ def _parse_manifest(text: str) -> tuple:
     return (version.group(1) if version else None), entries
 
 
-def overlay_writ(checkout: Path, writ_root: Path, log: Path) -> dict:
+def overlay_writ(checkout: Path, writ_root: Path, log: Path, platform: str = "claude") -> dict:
     """Install the current repo's Writ into the checkout (`install.sh` run
     from `scripts/` uses the local repo as source). Records what it replaced."""
     manifest = checkout / MANIFEST_REL
@@ -975,7 +1094,7 @@ def overlay_writ(checkout: Path, writ_root: Path, log: Path) -> dict:
     # install.sh copies the working tree, so `commit` alone under-describes a
     # dirty repo.
     dirty = bool((local_git(writ_root, "status", "--porcelain").stdout or "").strip())
-    proc = subprocess.run(["bash", str(writ_root / "scripts" / "install.sh"), *OVERLAY_ARGS],
+    proc = subprocess.run(["bash", str(writ_root / "scripts" / "install.sh"), *overlay_args(platform)],
                           cwd=str(checkout), capture_output=True, encoding="utf-8", errors="replace")
     log.write_text((proc.stdout or "") + (proc.stderr or ""), encoding="utf-8")
     if proc.returncode != 0:
@@ -1011,6 +1130,12 @@ def claude_argv(story_rel: str, model: str, budget_usd: float) -> list:
             "--model", model, "--max-budget-usd", "%g" % budget_usd, *PERMISSION_FLAGS]
 
 
+def driver_argv(driver: Driver, story_rel: str, model: str, budget_usd: float) -> list:
+    if driver.name == "claude":
+        return claude_argv(story_rel, model, budget_usd)
+    raise Refusal("%s driver has no headless argv yet; %s" % (driver.name, INGEST_HINT))
+
+
 def _kill_group(proc: "subprocess.Popen") -> None:
     """SIGTERM the process group, wait `KILL_GRACE_S`, then SIGKILL it — the
     SIGKILL always goes out because processes the agent spawned (a test run,
@@ -1027,7 +1152,8 @@ def _kill_group(proc: "subprocess.Popen") -> None:
             pass
 
 
-def invoke_headless(argv: list, checkout: Path, transcript: Path, stderr_log: Path, cap_s: int) -> tuple:
+def invoke_headless(argv: list, checkout: Path, transcript: Path, stderr_log: Path, cap_s: int,
+                    nested_vars: Optional[frozenset] = None) -> tuple:
     """Stream stdout to `transcript` (never `capture_output` on a 90-minute
     run). Returns (timed_out, elapsed_s). On the cap the group is killed and
     the run is recorded as a timeout. `start_new_session=True` also detaches
@@ -1035,7 +1161,8 @@ def invoke_headless(argv: list, checkout: Path, transcript: Path, stderr_log: Pa
     other exception kills the group too, then propagates."""
     start = _utcnow()
     timed_out = False
-    env = {k: v for k, v in os.environ.items() if k not in NESTED_SESSION_VARS}
+    strip = NESTED_SESSION_VARS if nested_vars is None else nested_vars
+    env = {k: v for k, v in os.environ.items() if k not in strip}
     with open(str(transcript), "wb") as out, open(str(stderr_log), "wb") as err:
         proc = subprocess.Popen(argv, cwd=str(checkout), stdout=out, stderr=err, env=env, start_new_session=True)
         try:
@@ -1406,7 +1533,7 @@ def assemble_record(meta: dict, transcript: Optional[dict], tests: Optional[dict
     rec["yuss_head_unchanged"] = meta.get("yuss_head_unchanged")
     rec["reason"] = meta.get("reason")
     inv = meta.get("invocation") or {}
-    rec["invocation"].update({k: inv.get(k) for k in ("argv", "model", "permission_mode") if k in inv})
+    rec["invocation"].update({k: inv.get(k) for k in ("driver", "argv", "model", "permission_mode") if k in inv})
     if transcript is not None:
         rec["invocation"].update(transcript["init"])
         rec["status"] = "timeout" if meta.get("timed_out") else transcript["status"]
@@ -1445,24 +1572,221 @@ def assemble_record(meta: dict, transcript: Optional[dict], tests: Optional[dict
     return rec
 
 
+CODE_LINE_STARTS = ("import ", "def ", "function ")
+TURN_MARKERS = ("Human:", "Assistant:")
+FILENAME_MODEL = re.compile(r"^\d{4}-\d{2}-\d{2}-(.+)\.json$")
+
+
+def _string_leaks(value: str, path: str) -> list:
+    """Leak heuristics shared with `scrub` plus Story 5's source/transcript
+    patterns. Walks each string on its own — never join a list (argv)."""
+    hits = []
+    if "sk-ant-" in value:
+        hits.append((path, "looks like key material (sk-ant-)"))
+    if len(value) > DETAIL_MAX_CHARS:
+        hits.append((path, "is %d characters (max %d)" % (len(value), DETAIL_MAX_CHARS)))
+    if "\n" in value:
+        hits.append((path, "contains a newline"))
+    for line in value.splitlines() or [value]:
+        if line.startswith(CODE_LINE_STARTS):
+            hits.append((path, "looks like source code"))
+            break
+    if any(m in value for m in TURN_MARKERS):
+        hits.append((path, "looks like a transcript turn marker"))
+    return hits
+
+
+def _walk_leaks(value, path: str) -> list:
+    hits = []
+    if isinstance(value, dict):
+        for k, v in value.items():
+            hits.extend(_walk_leaks(v, "%s.%s" % (path, k)))
+    elif isinstance(value, list):
+        for i, v in enumerate(value):
+            hits.extend(_walk_leaks(v, "%s[%d]" % (path, i)))
+    elif isinstance(value, str):
+        hits.extend(_string_leaks(value, path))
+    return hits
+
+
 def scrub(record: dict) -> None:
     """Business Rule 3 and Story 5's validator, enforced before the write:
     no key material, no string over `DETAIL_MAX_CHARS`, no newline anywhere."""
-    def walk(value, path: str) -> None:
-        if isinstance(value, dict):
-            for k, v in value.items():
-                walk(v, "%s.%s" % (path, k))
-        elif isinstance(value, list):
-            for i, v in enumerate(value):
-                walk(v, "%s[%d]" % (path, i))
-        elif isinstance(value, str):
-            if "sk-ant-" in value:
-                raise ScrubError("%s looks like key material" % path)
-            if len(value) > DETAIL_MAX_CHARS:
-                raise ScrubError("%s is %d characters (max %d)" % (path, len(value), DETAIL_MAX_CHARS))
-            if "\n" in value:
-                raise ScrubError("%s contains a newline" % path)
-    walk(record, "$")
+    hits = _walk_leaks(record, "$")
+    if hits:
+        raise ScrubError("%s %s" % (hits[0][0], hits[0][1]))
+
+
+def model_from_filename(name: str) -> Optional[str]:
+    match = FILENAME_MODEL.match(name)
+    return match.group(1) if match else None
+
+
+def validate_doc(doc, filename: str) -> list:
+    """Return `(json_path, reason)` pairs. `selection` must be a list of 4
+    objects — a `{stories: []}` wrapper is a violation on `selection`."""
+    findings = []
+    if not isinstance(doc, dict):
+        return [("$", "not a JSON object")]
+    schema = doc.get("schema")
+    if schema is None:
+        findings.append(("$.schema", "missing"))
+    elif schema != SCHEMA:
+        findings.append(("$.schema", "expected %s" % SCHEMA))
+    if "model" not in doc:
+        findings.append(("$.model", "missing"))
+    else:
+        segment = model_from_filename(filename)
+        if segment is None:
+            findings.append(("$.model", "filename is not <YYYY-MM-DD>-<model-id>.json"))
+        elif doc.get("model") != segment:
+            findings.append(("$.model", "does not match filename segment %r" % segment))
+    if "criteria" not in doc or doc.get("criteria") in (None, ""):
+        findings.append(("$.criteria", "missing"))
+    sel = doc.get("selection")
+    if not isinstance(sel, list) or len(sel) != 4:
+        findings.append(("$.selection", "expected a list of 4 objects"))
+    elif SELECTION_KEYS and any(not isinstance(e, dict) for e in sel):
+        findings.append(("$.selection", "expected a list of 4 objects"))
+    rps = doc.get("runs_per_story")
+    if not isinstance(rps, int) or isinstance(rps, bool) or rps < 1:
+        findings.append(("$.runs_per_story", "must be a positive int"))
+        rps = None
+    runs = doc.get("runs")
+    if not isinstance(runs, list):
+        findings.append(("$.runs", "expected a list"))
+        runs = None
+    elif rps is not None:
+        expected = rps * 4
+        if len(runs) != expected:
+            findings.append(("$.runs", "expected %d records (runs_per_story * 4), got %d"
+                             % (expected, len(runs))))
+    if isinstance(runs, list):
+        for i, rec in enumerate(runs):
+            base = "$.runs[%d]" % i
+            if not isinstance(rec, dict):
+                findings.append((base, "expected an object"))
+                continue
+            for key in RUN_KEYS:
+                if key not in rec:
+                    findings.append(("%s.%s" % (base, key), "missing"))
+    findings.extend(_walk_leaks(doc, "$"))
+    return findings
+
+
+def cmd_validate(args: argparse.Namespace) -> None:
+    path = Path(args.file).expanduser()
+    if not path.is_file():
+        print("validate: error: %s does not exist" % path, file=sys.stderr)
+        sys.exit(2)
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        print("$: not valid JSON")
+        sys.exit(1)
+    findings = validate_doc(doc, path.name)
+    if findings:
+        for field, reason in findings:
+            print("%s: %s" % (field, reason))
+        sys.exit(1)
+    sys.exit(0)
+
+
+def _lookup(rec: dict, dotted: str):
+    cur = rec
+    for part in dotted.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+def _median(values: list):
+    nums = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
+    if not nums:
+        return None
+    return statistics.median(nums)
+
+
+def _fmt(value) -> str:
+    if value is None:
+        return "—"
+    if isinstance(value, bool):
+        return str(value)
+    if isinstance(value, float):
+        return "%g" % value
+    if isinstance(value, tuple) and len(value) == 2:
+        return "%d/%d" % value
+    return str(value)
+
+
+def _story_pairs(doc: dict) -> list:
+    sel = doc.get("selection")
+    if not isinstance(sel, list):
+        return []
+    pairs = []
+    for entry in sel:
+        if not isinstance(entry, dict):
+            pairs.append((None, None, None))
+            continue
+        pairs.append((entry.get("story_path"), entry.get("parent_sha"), entry.get("story_id")))
+    return pairs
+
+
+def _runs_for(doc: dict, story_id) -> list:
+    runs = doc.get("runs")
+    if not isinstance(runs, list):
+        return []
+    return [r for r in runs if isinstance(r, dict) and r.get("story_id") == story_id]
+
+
+def cmd_compare(args: argparse.Namespace) -> None:
+    a_path = Path(args.a).expanduser()
+    b_path = Path(args.b).expanduser()
+    for label, path in (("a", a_path), ("b", b_path)):
+        if not path.is_file():
+            print("compare: error: %s does not exist" % path, file=sys.stderr)
+            sys.exit(2)
+    try:
+        a_doc = json.loads(a_path.read_text(encoding="utf-8"))
+        b_doc = json.loads(b_path.read_text(encoding="utf-8"))
+    except ValueError:
+        print("compare: error: a baseline file is not valid JSON", file=sys.stderr)
+        sys.exit(2)
+    if not isinstance(a_doc, dict) or not isinstance(b_doc, dict):
+        print("compare: error: a baseline file is not a JSON object", file=sys.stderr)
+        sys.exit(2)
+    a_pairs, b_pairs = _story_pairs(a_doc), _story_pairs(b_doc)
+    limit = max(len(a_pairs), len(b_pairs))
+    for i in range(limit):
+        aa = a_pairs[i] if i < len(a_pairs) else (None, None, None)
+        bb = b_pairs[i] if i < len(b_pairs) else (None, None, None)
+        if aa[0] != bb[0] or aa[1] != bb[1]:
+            name = aa[0] or bb[0] or aa[2] or bb[2] or "story %d" % (i + 1)
+            print("compare: selection mismatch: first differing story is %s" % name)
+            sys.exit(2)
+    a_runs = a_doc.get("runs") if isinstance(a_doc.get("runs"), list) else []
+    b_runs = b_doc.get("runs") if isinstance(b_doc.get("runs"), list) else []
+    if not a_runs and not b_runs:
+        print("nothing to compare")
+        sys.exit(0)
+    rows = [("story", "metric", "a", "b", "delta")]
+    for path, parent, story_id in a_pairs:
+        ar, br = _runs_for(a_doc, story_id), _runs_for(b_doc, story_id)
+        for metric in COMPARE_METRICS:
+            av = _median([_lookup(r, metric) for r in ar])
+            bv = _median([_lookup(r, metric) for r in br])
+            delta = None if av is None or bv is None else bv - av
+            rows.append((story_id or path or "", metric, _fmt(av), _fmt(bv), _fmt(delta)))
+        a_met = sum(1 for r in ar if (_lookup(r, "exit_criteria.rederived") == "met"))
+        b_met = sum(1 for r in br if (_lookup(r, "exit_criteria.rederived") == "met"))
+        rows.append((story_id or path or "", "exit_criteria",
+                     "%d/%d" % (a_met, len(ar)), "%d/%d" % (b_met, len(br)),
+                     _fmt(b_met - a_met)))
+    widths = [max(len(row[c]) for row in rows) for c in range(5)]
+    for row in rows:
+        print("  ".join(row[c].ljust(widths[c]) for c in range(5)))
+    sys.exit(0)
 
 
 def postprocess(git: Git, checkout: Path, transcript_path: Path, entry: dict, meta: dict, artifacts: Path,
@@ -1556,7 +1880,8 @@ def _append_and_flush(command: str, doc: dict, out: Path, rec: dict, replace: bo
     print(_progress(command, rec))
 
 
-def execute_run(git: Git, yuss: Path, entry: dict, run: int, args: argparse.Namespace, model: str) -> dict:
+def execute_run(git: Git, yuss: Path, entry: dict, run: int, args: argparse.Namespace,
+                model: str, driver: Driver) -> dict:
     """One (story, run): build, stage, overlay, deps, invoke, post-process.
     Every failure before the model runs becomes an error record."""
     stem = Path(entry["story_path"]).stem
@@ -1565,8 +1890,8 @@ def execute_run(git: Git, yuss: Path, entry: dict, run: int, args: argparse.Name
     head_before = (git.run("rev-parse", "HEAD") or "").strip()
     meta = {"story_id": entry["story_id"], "run": run, "parent_sha": entry["parent_sha"],
             "started_at": _stamp(_utcnow()), "isolation": None, "writ": None, "inputs": None, "deps": None,
-            "invocation": {"argv": claude_argv(story_rel, model, args.budget_usd), "model": model,
-                           "permission_mode": PERMISSION_MODE},
+            "invocation": {"driver": driver.name, "argv": driver_argv(driver, story_rel, model, args.budget_usd),
+                           "model": model, "permission_mode": PERMISSION_MODE},
             "elapsed_s": None, "timed_out": False, "yuss_head_unchanged": None, "reason": None}
     if run_dir.exists():
         rmtree(run_dir)
@@ -1593,7 +1918,9 @@ def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, me
         meta["inputs"] = stage_inputs(git, checkout, entry)
         assert_answer_scrubbed(checkout, story_rel)
         meta["isolation"]["answer_scrub_asserted"] = True
-        meta["writ"] = overlay_writ(checkout, Path(args.writ_root), run_dir / "install.log")
+        driver = DRIVERS[meta["invocation"]["driver"]]
+        meta["writ"] = overlay_writ(checkout, Path(args.writ_root), run_dir / "install.log",
+                                   platform=driver.platform)
         meta["deps"] = install_deps(checkout, run_dir / "pnpm-install.log")
         _write_sidecar(run_dir, meta)               # persisted before the long-running step
     except RunError as exc:
@@ -1603,8 +1930,10 @@ def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, me
         meta["yuss_head_unchanged"] = (git.run("rev-parse", "HEAD") or "").strip() == head_before
         return assemble_record(meta, None, None, None)
     transcript = run_dir / "transcript.jsonl"
+    driver = DRIVERS[meta["invocation"]["driver"]]
     meta["timed_out"], meta["elapsed_s"] = invoke_headless(
-        meta["invocation"]["argv"], checkout, transcript, run_dir / "stderr.log", args.cap)
+        meta["invocation"]["argv"], checkout, transcript, run_dir / "stderr.log", args.cap,
+        nested_vars=driver.nested_vars)
     meta["yuss_head_unchanged"] = (git.run("rev-parse", "HEAD") or "").strip() == head_before
     _write_sidecar(run_dir, meta)
     return postprocess(git, checkout, transcript, entry, meta, run_dir, Path(args.writ_root))
@@ -1612,16 +1941,27 @@ def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, me
 
 def cmd_run(args: argparse.Namespace) -> None:
     try:
-        preflight()
+        preflight(driver=args.driver, model=args.model)
     except Refusal as exc:
         _refuse("run", str(exc))
     baseline = Path(args.baseline).expanduser().resolve()
+    # Refuse ingest-only models from --model or the filename before any git.
+    hint = args.model or model_from_filename(baseline.name)
+    if hint:
+        try:
+            resolve_driver(args.driver, hint)
+        except Refusal as exc:
+            _refuse("run", str(exc))
     yuss = Path(args.yuss).expanduser().resolve()
     doc = load_baseline("run", baseline, yuss)
     model = args.model or doc["model"]
     if model != doc["model"]:
         _refuse("run", "--model %s differs from the file's model %s; one model per file (Business Rule 4)"
                 % (model, doc["model"]))
+    try:
+        driver = resolve_driver(args.driver, model)
+    except Refusal as exc:
+        _refuse("run", str(exc))
     if args.runs < 1:
         _refuse("run", "--runs must be at least 1")
     if doc["runs_per_story"] is not None and doc["runs_per_story"] != args.runs and not args.force:
@@ -1639,7 +1979,7 @@ def cmd_run(args: argparse.Namespace) -> None:
                 print("run: %s run %d: skip (already recorded)" % (entry["story_id"], run))
                 continue
             try:
-                rec = execute_run(git, yuss, entry, run, args, model)
+                rec = execute_run(git, yuss, entry, run, args, model, driver)
             except ScrubError as exc:
                 _refuse("run", "record for %s run %s failed scrub: %s; nothing written"
                         % (entry["story_id"], run, exc), code=3)
@@ -1696,12 +2036,6 @@ def cmd_ingest(args: argparse.Namespace) -> None:
     sys.exit(0)
 
 
-def cmd_stub(args: argparse.Namespace) -> None:
-    owner = {"run": "Story 4", "ingest": "Story 4", "compare": "Story 5"}[args.command]
-    print("%s: not implemented until %s" % (args.command, owner), file=sys.stderr)
-    sys.exit(2)
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pipeline-baseline.py",
@@ -1737,13 +2071,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="replay each selected story headless in an isolated checkout")
     common(run)
-    run.add_argument("--model", default=None, help="Claude model ID; must equal the file's model (default: the file's)")
+    run.add_argument("--model", default=None, help="model ID; must equal the file's model (default: the file's)")
+    run.add_argument("--driver", default="auto", choices=DRIVER_NAMES,
+                     help="headless agent CLI (default: auto — inferred from --model / the file). "
+                          "Grok, local weights, and other IDE-session models use ingest")
     run.add_argument("--runs", type=int, default=2, help="runs per story; sets runs_per_story (default: %(default)s)")
     run.add_argument("--story", default=None, help="only this story_id or story file stem (smoke runs)")
     run.add_argument("--cap", type=int, default=DEFAULT_CAP_S,
                      help="wall-clock cap per run in seconds; a breach records status timeout (default: %(default)s)")
     run.add_argument("--budget-usd", type=float, default=DEFAULT_BUDGET_USD,
-                     help="passed to claude as --max-budget-usd (default: %(default)s)")
+                     help="passed to the driver as a dollar cap when it supports one (default: %(default)s)")
     run.add_argument("--keep", action="store_true", help="keep the run directory (checkout, transcript, sidecar)")
     run.set_defaults(func=cmd_run)
 
@@ -1751,13 +2088,19 @@ def build_parser() -> argparse.ArgumentParser:
     common(ingest)
     ingest.add_argument("--checkout", required=True, help="the isolated checkout the session ran in")
     ingest.add_argument("--transcript", required=True,
-                        help="stream-json transcript, or a ~/.claude/projects/*.jsonl session file")
+                        help="driver transcript (claude stream-json, or an IDE session jsonl)")
     ingest.add_argument("--story-id", default=None, help="required when no %s sits beside --checkout" % SIDECAR)
     ingest.add_argument("--run", type=int, default=None, help="run number; required without a sidecar")
     ingest.set_defaults(func=cmd_ingest)
 
-    stub = sub.add_parser("compare", help="not implemented until Story 5")
-    stub.set_defaults(func=cmd_stub)
+    val = sub.add_parser("validate", help="check a baseline JSON against the schema and leak heuristics")
+    val.add_argument("file", help="pipeline-baseline-v1 JSON to validate (read-only)")
+    val.set_defaults(func=cmd_validate)
+
+    cmp_ = sub.add_parser("compare", help="print per-story metric deltas between two baseline files")
+    cmp_.add_argument("a", help="baseline A (left column)")
+    cmp_.add_argument("b", help="baseline B (right column)")
+    cmp_.set_defaults(func=cmd_compare)
     return parser
 
 

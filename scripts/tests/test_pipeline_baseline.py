@@ -20,6 +20,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -837,15 +838,12 @@ class RefusalTest(unittest.TestCase):
             # The parent was created, but the sibling temp file was cleaned up.
             self.assertEqual(list(out.parent.iterdir()), [])
 
-    def test_stubs_exit_2(self) -> None:
-        # Story 4 implemented `run` and `ingest`; `compare` is the remaining
-        # stub until Stage 2. Story 4's own suite covers run/ingest argv.
-        for sub in ("compare",):
-            err = io.StringIO()
-            with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stderr(err):
-                pb.main([sub])
-            self.assertEqual(ctx.exception.code, 2)
-            self.assertIn("not implemented", err.getvalue())
+    def test_compare_without_paths_is_usage(self) -> None:
+        err = io.StringIO()
+        with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stderr(err):
+            pb.main(["compare"])
+        self.assertEqual(ctx.exception.code, 2)
+        self.assertNotIn("not implemented", err.getvalue())
 
     def test_tilde_expansion(self) -> None:
         with TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"HOME": tmp}):
@@ -1138,6 +1136,313 @@ class GitErrorTest(unittest.TestCase):
             self.assertNotIn("git_error", doc["rejection_tally"])
 
 
+# ---------------------------------------------------------------------------
+# Story 5: validate / compare fixtures (eight-record docs, never the committed
+# select skeleton under .writ/eval/baselines/)
+# ---------------------------------------------------------------------------
+
+
+def _hex(n: int) -> str:
+    return "%040x" % n
+
+
+def _selection_entry(i: int) -> dict:
+    return {
+        "story_path": "s%d.md" % i,
+        "spec_folder": "f%d" % i,
+        "story_id": "f%d/story-%d" % (i, i),
+        "story_commit": _hex(i),
+        "parent_sha": _hex(100 + i),
+        "parent_is_merge": False,
+        "surface_class": pb.SURFACE_CLASSES[i],
+        "eligible_classes": [pb.SURFACE_CLASSES[i]],
+        "test_files": ["t%d.test.ts" % i],
+        "criteria_values": {"status": "Completed"},
+    }
+
+
+def _filled_run(story_id: str, run: int, **metrics) -> dict:
+    rec = pb._null_record(story_id, run, "2026-09-06T00:00:00Z")
+    rec["status"] = "complete"
+    rec["gates"]["gate4_tests"]["integrity"] = None
+    rec["wall_clock_s"] = metrics.get("wall_clock_s", 10.0 + run)
+    rec["num_turns"] = metrics.get("num_turns", 4)
+    rec["tokens"] = {
+        "input": metrics.get("tin", 100), "output": metrics.get("tout", 50),
+        "cache_read": metrics.get("tread", 10), "cache_creation": metrics.get("tcreate", 1),
+    }
+    rec["tokens_main_thread"] = dict(rec["tokens"])
+    rec["cost_usd"] = metrics.get("cost_usd", 0.5)
+    rec["interrupts"] = {
+        "ask_user_question": metrics.get("ask", 0),
+        "status_blocked": metrics.get("blocked", 0),
+    }
+    rec["review_iterations"] = metrics.get("review_iterations", 1)
+    rec["exit_criteria"]["rederived"] = metrics.get("rederived", "met")
+    rec["invocation"]["argv"] = ["claude", "-p", "go"]
+    rec["invocation"]["model"] = "claude-fable-5-1"
+    rec["invocation"]["permission_mode"] = "bypass"
+    return rec
+
+
+def clean_baseline(*, model: str = "claude-fable-5-1", runs_per_story: int = 2,
+                   metric_fn=None, cost_usd=0.5) -> dict:
+    selection = [_selection_entry(i) for i in range(4)]
+    runs = []
+    for entry in selection:
+        for n in range(1, runs_per_story + 1):
+            extra = metric_fn(entry["story_id"], n) if metric_fn else {}
+            extra.setdefault("cost_usd", cost_usd)
+            runs.append(_filled_run(entry["story_id"], n, **extra))
+    return {
+        "schema": pb.SCHEMA,
+        "model": model,
+        "generated_at": "2026-09-06T00:00:00Z",
+        "yuss_head": _hex(1),
+        "runs_per_story": runs_per_story,
+        "criteria": {"status_required": "Completed"},
+        "selection": selection,
+        "excluded": [],
+        "rejection_tally": {},
+        "runs": runs,
+    }
+
+
+def write_baseline(directory: Path, doc: dict, name: str = "2026-09-06-claude-fable-5-1.json") -> Path:
+    path = directory / name
+    path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    return path
+
+
+def invoke_cmd(argv: list) -> tuple:
+    """Like `invoke`, but validate/compare never spawn git."""
+    return invoke(argv)
+
+
+class ValidateTest(unittest.TestCase):
+    def _validate(self, tmp: Path, doc: dict, name: str = "2026-09-06-claude-fable-5-1.json") -> tuple:
+        path = write_baseline(Path(tmp), doc, name)
+        return invoke_cmd(["validate", str(path)]) + (path,)
+
+    def test_clean_eight_record_fixture_exits_0(self) -> None:
+        with TemporaryDirectory() as tmp:
+            code, stdout, stderr, _, _ = self._validate(tmp, clean_baseline())
+            self.assertEqual(code, 0, stdout + stderr)
+            self.assertEqual(stdout.strip(), "")
+
+    def test_astra_filename_segment_is_not_tied_to_default_model(self) -> None:
+        with TemporaryDirectory() as tmp:
+            doc = clean_baseline(model="claude-opus-4-1")
+            code, stdout, stderr, _, _ = self._validate(
+                tmp, doc, "2026-09-06-claude-opus-4-1.json")
+            self.assertEqual(code, 0, stdout + stderr)
+
+    def _assert_finding(self, doc: dict, needle: str, name: str = "2026-09-06-claude-fable-5-1.json") -> str:
+        with TemporaryDirectory() as tmp:
+            code, stdout, stderr, _, _ = self._validate(tmp, doc, name)
+            self.assertEqual(code, 1, stdout + stderr)
+            self.assertTrue(stdout.strip(), "expected path: reason lines")
+            self.assertIn(needle, stdout)
+            for line in stdout.splitlines():
+                self.assertIn(": ", line)
+            return stdout
+
+    def test_wrong_schema(self) -> None:
+        doc = clean_baseline()
+        doc["schema"] = "pipeline-baseline-v0"
+        self._assert_finding(doc, "$.schema")
+
+    def test_missing_schema(self) -> None:
+        doc = clean_baseline()
+        del doc["schema"]
+        self._assert_finding(doc, "$.schema")
+
+    def test_missing_model(self) -> None:
+        doc = clean_baseline()
+        del doc["model"]
+        self._assert_finding(doc, "$.model")
+
+    def test_model_does_not_match_filename_segment(self) -> None:
+        doc = clean_baseline(model="claude-fable-5-1")
+        self._assert_finding(doc, "$.model", "2026-09-06-claude-opus-4-1.json")
+
+    def test_missing_criteria(self) -> None:
+        doc = clean_baseline()
+        del doc["criteria"]
+        self._assert_finding(doc, "$.criteria")
+
+    def test_selection_count_not_four(self) -> None:
+        doc = clean_baseline()
+        doc["selection"] = doc["selection"][:3]
+        doc["runs"] = [r for r in doc["runs"] if r["story_id"] != "f3/story-3"]
+        self._assert_finding(doc, "$.selection")
+
+    def test_selection_not_a_list(self) -> None:
+        doc = clean_baseline()
+        doc["selection"] = {"stories": doc["selection"]}
+        self._assert_finding(doc, "$.selection")
+
+    def test_runs_count_not_runs_per_story_times_four(self) -> None:
+        doc = clean_baseline()
+        doc["runs"] = doc["runs"][:7]
+        self._assert_finding(doc, "$.runs")
+
+    def test_runs_per_story_null(self) -> None:
+        doc = clean_baseline()
+        doc["runs_per_story"] = None
+        out = self._assert_finding(doc, "$.runs_per_story")
+        self.assertNotIn("NoneType", out)
+
+    def test_run_missing_run_keys_field(self) -> None:
+        doc = clean_baseline()
+        del doc["runs"][0]["wall_clock_s"]
+        out = self._assert_finding(doc, "$.runs[0]")
+        self.assertIn("wall_clock_s", out)
+
+    def test_string_over_200_chars(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "x" * 201
+        self._assert_finding(doc, "$.runs[0].reason")
+
+    def test_sk_ant_leak(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "sk-ant-api03-short"
+        self._assert_finding(doc, "sk-ant-")
+
+    def test_line_start_import(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "import os"
+        self._assert_finding(doc, "$.runs[0].reason")
+
+    def test_line_start_def(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "def helper():"
+        self._assert_finding(doc, "$.runs[0].reason")
+
+    def test_line_start_function(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "function helper() {"
+        self._assert_finding(doc, "$.runs[0].reason")
+
+    def test_human_assistant_turn_markers(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "Human: hello"
+        self._assert_finding(doc, "$.runs[0].reason")
+        doc["runs"][0]["reason"] = "Assistant: hi"
+        self._assert_finding(doc, "$.runs[0].reason")
+
+    def test_import_not_at_line_start_is_not_a_leak(self) -> None:
+        doc = clean_baseline()
+        doc["runs"][0]["reason"] = "did not import secret"
+        with TemporaryDirectory() as tmp:
+            code, stdout, stderr, _, _ = self._validate(tmp, doc)
+            self.assertEqual(code, 0, stdout + stderr)
+
+
+class CompareTest(unittest.TestCase):
+    def test_identical_selections_equal_runs_per_story_exits_0(self) -> None:
+        with TemporaryDirectory() as tmp:
+            a = write_baseline(Path(tmp), clean_baseline(), "2026-09-06-claude-fable-5-1.json")
+            bdoc = clean_baseline(metric_fn=lambda sid, n: {"wall_clock_s": 20.0 + n})
+            b = write_baseline(Path(tmp), bdoc, "2026-09-07-claude-fable-5-1.json")
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(a), str(b)])
+            self.assertEqual(code, 0, stdout + stderr)
+            self.assertIn("wall_clock_s", stdout)
+            self.assertIn("delta", stdout.lower())
+            self.assertIn("f0/story-0", stdout)
+
+    def test_unequal_runs_per_story_uses_median(self) -> None:
+        with TemporaryDirectory() as tmp:
+            def a_fn(sid, n):
+                return {"wall_clock_s": 10.0 if n == 1 else 20.0}
+
+            def b_fn(sid, n):
+                return {"wall_clock_s": float(10 * n)}
+
+            a = write_baseline(Path(tmp), clean_baseline(runs_per_story=2, metric_fn=a_fn),
+                               "2026-09-06-claude-fable-5-1.json")
+            b = write_baseline(Path(tmp), clean_baseline(runs_per_story=3, metric_fn=b_fn),
+                               "2026-09-07-claude-fable-5-1.json")
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(a), str(b)])
+            self.assertEqual(code, 0, stdout + stderr)
+            # A median(10, 20)=15; B median(10, 20, 30)=20; delta 5
+            self.assertRegex(stdout, r"wall_clock_s\s+15\S*\s+20\S*\s+5")
+
+    def test_mismatched_selection_exits_2_names_first_story_no_table(self) -> None:
+        with TemporaryDirectory() as tmp:
+            adoc = clean_baseline()
+            bdoc = clean_baseline()
+            bdoc["selection"][1]["story_path"] = "other.md"
+            a = write_baseline(Path(tmp), adoc, "2026-09-06-claude-fable-5-1.json")
+            b = write_baseline(Path(tmp), bdoc, "2026-09-07-claude-fable-5-1.json")
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(a), str(b)])
+            self.assertEqual(code, 2)
+            combined = stdout + stderr
+            self.assertIn("s1.md", combined)
+            self.assertNotIn("wall_clock_s", combined)
+            self.assertNotRegex(combined, r"(?i)\bdelta\b")
+
+    def test_mismatched_parent_sha_exits_2(self) -> None:
+        with TemporaryDirectory() as tmp:
+            adoc = clean_baseline()
+            bdoc = clean_baseline()
+            bdoc["selection"][0]["parent_sha"] = _hex(999)
+            a = write_baseline(Path(tmp), adoc, "2026-09-06-claude-fable-5-1.json")
+            b = write_baseline(Path(tmp), bdoc, "2026-09-07-claude-fable-5-1.json")
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(a), str(b)])
+            self.assertEqual(code, 2)
+            self.assertIn("s0.md", stdout + stderr)
+            self.assertNotIn("wall_clock_s", stdout + stderr)
+
+    def test_compare_file_with_itself_all_zero_deltas(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = write_baseline(Path(tmp), clean_baseline())
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(path), str(path)])
+            self.assertEqual(code, 0, stdout + stderr)
+            deltas = re.findall(r"\s(0(?:\.0+)?|—)\s*$", stdout, flags=re.M)
+            self.assertTrue(stdout.strip())
+            self.assertNotIn("+", stdout.split("delta")[-1] if "delta" in stdout.lower() else stdout)
+            for line in stdout.splitlines():
+                if "exit_criteria" in line:
+                    continue
+                if any(m in line for m in ("wall_clock_s", "num_turns", "cost_usd", "tokens.")):
+                    self.assertRegex(line, r"\b0(?:\.0+)?\b")
+
+    def test_cost_usd_all_null_stays_null_not_zero(self) -> None:
+        with TemporaryDirectory() as tmp:
+            adoc = clean_baseline(cost_usd=None)
+            bdoc = clean_baseline(cost_usd=None)
+            a = write_baseline(Path(tmp), adoc, "2026-09-06-claude-fable-5-1.json")
+            b = write_baseline(Path(tmp), bdoc, "2026-09-07-claude-fable-5-1.json")
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(a), str(b)])
+            self.assertEqual(code, 0, stdout + stderr)
+            cost_lines = [l for l in stdout.splitlines() if "cost_usd" in l]
+            self.assertTrue(cost_lines)
+            for line in cost_lines:
+                self.assertNotRegex(line, r"\b0\.0\b")
+                self.assertRegex(line, r"(—|null)")
+
+    def test_empty_runs_prints_nothing_to_compare(self) -> None:
+        with TemporaryDirectory() as tmp:
+            adoc = clean_baseline()
+            adoc["runs"] = []
+            adoc["runs_per_story"] = 2
+            bdoc = clean_baseline()
+            bdoc["runs"] = []
+            a = write_baseline(Path(tmp), adoc, "2026-09-06-claude-fable-5-1.json")
+            b = write_baseline(Path(tmp), bdoc, "2026-09-07-claude-fable-5-1.json")
+            code, stdout, stderr, _ = invoke_cmd(["compare", str(a), str(b)])
+            self.assertEqual(code, 0, stdout + stderr)
+            self.assertIn("nothing to compare", stdout + stderr)
+            self.assertNotIn("wall_clock_s", stdout)
+
+    def test_one_path_is_usage_exit_2(self) -> None:
+        err = io.StringIO()
+        with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stderr(err):
+            pb.main(["compare", "only-one.json"])
+        self.assertEqual(ctx.exception.code, 2)
+
+
 class StdlibOnlyTest(unittest.TestCase):
     def test_imports_are_stdlib_only(self) -> None:
         import ast
@@ -1151,7 +1456,8 @@ class StdlibOnlyTest(unittest.TestCase):
         stdlib = getattr(sys, "stdlib_module_names", None)
         if stdlib is None:  # Python 3.9 has no sys.stdlib_module_names
             stdlib = {"argparse", "collections", "dataclasses", "datetime", "fnmatch", "json",
-                      "os", "re", "subprocess", "sys", "tempfile", "pathlib", "typing", "__future__"}
+                      "os", "re", "subprocess", "sys", "tempfile", "pathlib", "typing",
+                      "statistics", "__future__"}
         self.assertTrue(names <= set(stdlib) | {"__future__"}, names - set(stdlib))
 
 

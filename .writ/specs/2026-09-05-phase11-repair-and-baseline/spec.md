@@ -50,7 +50,7 @@
 
 **Feedback model.** Each `run` prints one line per story per run: story id, exit-criteria verdict, tests passed/total, tokens in/out/cache, wall-clock, interrupts. The JSON is the durable record; stdout is the progress view.
 
-**Error experience.** No `ANTHROPIC_API_KEY`: `measure-invocation.py` prints its existing estimate with `token_method_validated: false` and a one-line note naming the env var; `pipeline-baseline.py run` refuses to start. `claude` binary missing: `run` stops before creating any checkout and names the install path. A replay whose tests need a live service: excluded at `select` time with the reason in the JSON's `excluded` list, never discovered mid-run. Story 1's regression checks failing after a later edit: `eval.sh` names the file and line.
+**Error experience.** No `ANTHROPIC_API_KEY`: `measure-invocation.py` prints its existing estimate with `token_method_validated: false` and a one-line note naming the env var. `pipeline-baseline.py run` never requires a vendor key — it inherits the operator environment. Missing headless driver (or `pnpm`): `run` stops before creating any checkout and names the install path. A model with no headless driver (Grok, local weights, a Cursor session): `run` refuses and names `ingest` after an IDE `/implement-story`. A replay whose tests need a live service: excluded at `select` time with the reason in the JSON's `excluded` list, never discovered mid-run. Story 1's regression checks failing after a later edit: `eval.sh` names the file and line.
 
 **State catalog.** `select` written / `run` in progress (partial records flushed after each run so a crash loses one run, not eight) / `run` complete / `compare` with mismatched selections (refused — different story sets are not comparable).
 
@@ -58,13 +58,13 @@
 
 1. **Isolation.** A replay checkout contains no commit later than the story's parent SHA. `pipeline-baseline.py run` asserts `git rev-list --all | wc -l` equals the truncated depth before invoking the model, and records the assertion in the run record.
 2. **yuss is read-only.** The runner reads `~/Projects/yuss` and writes only under a temp directory it creates and removes. No command in this spec pushes, commits, or writes inside `~/Projects/yuss`.
-3. **Secrets stay in the environment.** `ANTHROPIC_API_KEY` is read from `os.environ` only. The baseline JSON carries story IDs, SHAs, metrics, and the selection criteria — never source text, transcript text, or keys.
+3. **Secrets stay in the environment.** Writ never stores a provider key and does not pick a vendor. The runner inherits the operator environment and forwards it to the selected driver. Auth is the CLI or IDE login — Anthropic, OpenAI, xAI/Grok, a local runtime, or anything else the host already has. The baseline JSON carries story IDs, SHAs, metrics, and the selection criteria — never source text, transcript text, or keys.
 4. **One model per file.** A baseline file is named `<date>-<model-id>.json` and carries `model` in its header. Astra lands as a sibling file under the same schema; the schema does not change for it.
 5. **Verdict beside re-derivation.** For every gate that has a script today (Gate 2 `build-smoke.py`, Gate 4 `test-integrity.py`, completion `exit-criteria.py`), a run record stores the agent's reported verdict and the script's re-derived verdict as two fields. Gates with no script store the reported verdict and `rederived: null`.
 6. **Dead ends stay closed.** Story 1 adds three `eval.sh` checks (referenced-path resolution, skills↔manifest parity, knowledge-entry integrity). They block, not note.
 7. **ADR-013 boundary.** Nothing in this spec merges, opens a PR, or releases. Installed projects see these scripts only after a human `/release`.
 8. **Decision log.** Each story's closing commit appends one line to `.writ/decision-log.md` in the form `{date} stage-1: {what changed and why}`; Story 1 creates the file.
-9. **Fable 5.1 only.** The card's constraint stands; `run --model` accepts any Claude model ID but this spec commits only a `claude-fable-5-1` file.
+9. **Fable 5.1 only.** The card's constraint stands; `run --model` accepts any model ID but this spec commits only a `claude-fable-5-1` file. Sibling files (Grok, Codex, local weights) use the same schema.
 
 ## Detailed Requirements
 
@@ -109,4 +109,4 @@ Python 3.9-compatible scripts in `scripts/`, tested under `scripts/tests/` with 
 
 ## Approved Scope Additions
 
-_None yet. Additions agreed after lock are recorded here with date, approver, and the story they land in; the contract above is unchanged._
+**2026-09-07 — no resident key; driver ≠ model (user-approved, Stories 4–5).** Writ does not hold a vendor API key and does not treat Anthropic as the only host. `run` talks to a **driver** (a headless agent CLI that can execute `/implement-story`). `--driver auto` infers from the model id: `claude-*` → the implemented `claude` driver; `gpt-*` / `o1` / `o3` / `o4` → registered `codex` (ingest until a headless argv exists); `grok-*`, `llama*`, `qwen*`, and other local/open-weight prefixes → ingest after an IDE session. Auth is the operator's CLI or IDE. Preflight requires `pnpm` plus a driver binary only when the model has an implemented driver. `invocation.driver` is recorded. `measure-invocation.py` still uses `ANTHROPIC_API_KEY` *when present* for optional `count_tokens`; baseline run tokens come from the driver's result event. AC-4.1 and AC-5.1 amended. This spec still *commits* only the Fable 5.1 file (Business Rule 9).

@@ -10,8 +10,8 @@
 **Implementation Approach:**
 - Python 3.9 stdlib only; tests in `scripts/tests/`; every story ends `bash scripts/eval.sh` → `Findings: 0` (outside sandbox)
 - Replay isolation: fresh clone truncated at parent SHA (`fetch --depth 1 <sha>`), never a worktree; assert `rev-list --all` count before the model runs
-- Token counting: Anthropic `count_tokens` via `urllib`, keyed by `ANTHROPIC_API_KEY`, content-hash cache in `.writ/state/`
-- Runner: `claude -p "/implement-story <id>" --model claude-fable-5-1 --output-format stream-json`; parse usage + gate strings from transcript
+- Token counting: optional Anthropic `count_tokens` via `urllib` when `ANTHROPIC_API_KEY` is present; otherwise estimate. Baseline run tokens come from the driver result event
+- Runner: `--driver auto` selects a headless CLI from the model id (`claude-*` → `claude`). Grok / local / IDE-session models use `ingest`. No vendor key required. Parse usage + gate strings from the transcript
 - Story 1 lands before any measurement
 
 **Files in Scope:**
@@ -26,10 +26,12 @@
 - Story 2 amendments (Gates 0–3, 2026-09-06): cache key `sha256(model + "\0" + text)` via exported `token_cache_key` (DEV-014); tokenizer tests in `test_measure_invocation.py` (DEV-015); `token_failures` counts distinct texts by hash (DEV-016); `--tokenizer estimate` is chars/N regardless of tiktoken, `auto` without a key is pre-story behavior (DEV-017); `token_model`/`token_failures` keys appear only on the anthropic path; helpers `_count_tokens_anthropic`, `TokenCache`, `_AnthropicCounter` are importable by path for Stories 4–5
 - Story 4 amendments (Gates 0–3, 2026-09-06): inputs staged from `parent_sha`, never yuss HEAD, with an answer-leak assertion (DEV-018); permission bypass flags with compensating controls — user-approved (DEV-019); completion re-derived from `implement-story.md` predicates, `build-smoke.py`/`test-integrity.py` called for Gates 2/4, `exit-criteria.py` not used (DEV-020); current-Writ overlay via `install.sh --no-commit`, `writ{source, commit, dirty, …}` replaces `writ_scripts` — user-approved (DEV-021); `tests.suite` + `tests.original`, `deps` before `claude` (DEV-022); `Popen` + `killpg`, `--cap` + `--budget-usd` (DEV-023); `gates.<g>.source`, `tokens_main_thread`, sidecar, session-jsonl ingest, exit 3 (DEV-024); no archive fallback/lock, smoke run deferred — user-approved (DEV-025). `RUN_KEYS`/`GATE_NAMES` are the record contract Story 5 imports
 - Story 3 amendments (Gates 0–3, 2026-09-06): field/class/reason names per story-3 AC-3.1, exported as `SCHEMA_KEYS`/`SELECTION_KEYS`/`REASONS` — Stories 4–5 import these, not tech-spec §2 (DEV-008); short class exits 1, usage/refusal exits 2 (DEV-009); top level adds `runs_per_story` (null until run) and `rejection_tally` (DEV-010); reasons add `git_error`, `no_surface_class` (DEV-011); test files need a source extension, deleted files excluded, test paths don't set class (DEV-012); `--live-test-scope {story,file}` (user-approved `file` for the committed baseline — story → Approved Scope Additions) and `--force`; `--out` refused if it exists (DEV-013)
+- Story 5 amendments (Gates 0–3, 2026-09-06): `validate` checks `len(selection) == 4` (a list, not `selection.stories`) and imports `SCHEMA_KEYS`/`SELECTION_KEYS`/`RUN_KEYS` (DEV-026); leak walk also rejects embedded newlines, shared with `scrub()` (DEV-027); `COMPARE_METRICS` + exit-criteria pass/run; `cost_usd` null prints as `—`, never 0.0; `check_pipeline_baseline` notes when `.writ/eval/baselines/*.json` is empty and relays validate lines as findings. Live eight-run capture (AC-5.1) uses the operator CLI (`--driver auto`), not a Writ-resident key (DEV-028)
 
 **Error Handling:**
-- No API key → estimate + `token_method_validated: false`; `run` refuses to start
-- `claude` missing → stop before any checkout, name install path
+- No API key → `measure-invocation.py` estimates + `token_method_validated: false`; `run` does not refuse
+- Implemented driver missing → stop before any checkout, name install path
+- Model with no headless driver (Grok, local weights) → refuse with `ingest` instruction
 - Live-service test → excluded at `select`, reason in `excluded[]`
 - Crash mid-`run` → records flushed per run; resume skips completed (story, n) pairs
 
@@ -67,7 +69,7 @@
 
 **Shadow Paths to Verify:**
 - **Happy path:** 4 stories × 2 runs → 8 records → check passes → commit
-- **Nil input:** no key / no `claude` / no yuss path → named refusal, zero side effects
+- **Nil input:** no driver / no yuss path → named refusal, zero side effects; no key is not a refusal
 - **Empty input:** yuss archive yields <4 admissible stories → `select` fails naming the short class
 - **Upstream error:** API timeout → estimate for failed items, `validated: false`, failure count; headless run timeout → record `status: timeout`, continue
 

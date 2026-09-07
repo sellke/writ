@@ -10,9 +10,9 @@
 | 2 | [Validated Token Measurement — measure-invocation.py Counts With the Anthropic API](story-2-validated-token-measurement.md) | Completed ✅ (2026-09-06; real-key run pending) | High | 1 (ordering only) | 5 | 7 | 7/7 |
 | 3 | [Story Selection — pipeline-baseline.py select Picks Four yuss.app Stories by Fixed Criteria](story-3-story-selection.md) | Complete (2026-09-06) | High | 1 (ordering only) | 5 | 7 | 7/7 |
 | 4 | [Replay Runner — Isolated Checkout, Headless /implement-story, Metrics Per Run](story-4-replay-runner.md) | Completed ✅ (2026-09-06; smoke run 4.2 pending) | High | 3 | 5 | 7 | 7/7 |
-| 5 | [Baseline Capture and Gate — Eight Fable 5.1 Runs, One Committed JSON, check_pipeline_baseline](story-5-baseline-capture-and-gate.md) | Not Started | High | 2, 4 | 5 | 7 | 0/7 |
+| 5 | [Baseline Capture and Gate — Eight Fable 5.1 Runs, One Committed JSON, check_pipeline_baseline](story-5-baseline-capture-and-gate.md) | In Progress (5.5 — live capture via operator CLI) | High | 2, 4 | 5 | 7 | 4/7 |
 
-**Total:** 5 stories · 25 acceptance criteria · 35 tasks · 28/35 complete (80%)
+**Total:** 5 stories · 25 acceptance criteria · 35 tasks · 32/35 complete (91%)
 
 ## Dependency Graph
 
@@ -30,5 +30,6 @@ Story 3 (select) ── Story 4 (run) ── Story 5 (capture + gate)
 ## Prerequisites outside this repo
 
 - `~/Projects/yuss` — clone of `github.com/sellke/yuss` (read-only; the runner writes only under `$TMPDIR`).
-- `ANTHROPIC_API_KEY` in the environment (Stories 2, 4, 5).
-- `claude` CLI on `PATH` (Stories 4, 5).
+- A headless driver on `PATH` only for models that have one (this spec's Fable 5.1 file uses `claude`). No vendor API key is required in Writ; the operator's CLI or IDE login authenticates.
+- Models without a headless driver (Grok, local/open-weight, a Cursor session) are captured with `pipeline-baseline.py ingest` after `/implement-story` in that host.
+- `ANTHROPIC_API_KEY` is optional and only used by Story 2's `measure-invocation.py --tokenizer anthropic`.

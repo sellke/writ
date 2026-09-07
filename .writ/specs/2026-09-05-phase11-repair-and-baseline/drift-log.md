@@ -33,6 +33,9 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 | DEV-023 | 4 | Small | `Popen(start_new_session=True)` + `killpg` escalation replaces `subprocess.run(timeout=)`; `--budget-usd` → `--max-budget-usd` beside `--cap`; no `--max-turns` in `claude` 2.1.260 |
 | DEV-024 | 4 | Small | `gates.<g>.source`, `tokens_main_thread`, `exit_criteria.reported` heuristic, `run-meta.json` sidecar, session-`.jsonl` ingest (`cost_usd: null`), exit 3 for scrub/HEAD-moved |
 | DEV-025 | 4 | Small | No `git archive` fallback (fetch refusal → `fetch_failed`); no `<json>.lock`; smoke run (task 4.2) deferred — user-approved |
+| DEV-026 | 5 | Small | `validate` checks `len(selection) == 4` (list), not `selection.stories` |
+| DEV-027 | 5 | Small | Leak walk also rejects embedded newlines, shared with `scrub()` |
+| DEV-028 | 4–5 | Medium | Driver ≠ model; no resident vendor key; ingest for Grok/local |
 
 ---
 
@@ -147,3 +150,15 @@ spec-level entries. Append-only; `spec.md` is never auto-modified.
 ## DEV-025 — No archive fallback, no lock, smoke deferred
 
 **Severity:** Small · **Story:** 4 · **Found:** 2026-09-06, Gate 3 · **User decision** (deferral). Fetch refusal → `fetch_failed` error record (no `git archive` fallback); no `<json>.lock` (two concurrent `run`s would interleave); task 4.2 smoke run deferred because `ANTHROPIC_API_KEY` is unset in the implementing environment — `RESULT_*`/`INIT_*` field-name constants are pinned pending it. `spec-lite.md` amended.
+
+## DEV-026 — `selection` is a list of four, not `selection.stories`
+
+**Severity:** Small · **Story:** 5 · **Found:** 2026-09-06, Gate 0 + Gate 3. Task 5.2 says `len(selection.stories) == 4`. DEV-008 already made `selection` a top-level list; `validate` requires `isinstance(selection, list) and len(selection) == 4` and treats a `{stories: []}` wrapper as a `selection` violation. `spec-lite.md` amended.
+
+## DEV-027 — Leak walk also flags newlines
+
+**Severity:** Small · **Story:** 5 · **Found:** 2026-09-06, Gate 3. Task 5.2 lists length, `sk-ant-`, code line-starts, and turn markers. `_string_leaks` (shared with `scrub`) also rejects any string containing `\n`. Tightens Business Rule 3; required checks remain. `spec-lite.md` amended.
+
+## DEV-028 — Driver is not a model vendor
+
+**Severity:** Medium · **Stories:** 4–5 · **Found:** 2026-09-07, user-approved plan change. The locked spec named `claude` and `ANTHROPIC_API_KEY` as if they were Writ. **Implementation:** `run` selects a `Driver` (`--driver auto|claude|codex|cursor`); only `claude` has a headless argv today. No vendor key is required. `grok-*` / local-weight prefixes and unimplemented drivers refuse with `ingest`. `invocation.driver` is recorded. This spec still commits only the Fable 5.1 file. `spec-lite.md` amended; `spec.md` Approved Scope Additions + Experience / Business Rules 3 and 9.

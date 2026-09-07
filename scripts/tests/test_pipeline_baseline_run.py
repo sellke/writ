@@ -539,13 +539,21 @@ class ContractTest(unittest.TestCase):
         self.assertEqual(pb.GATE_SCRIPT_VERDICTS, ("pass", "fail", "unverifiable"))
         self.assertEqual(pb.RUN_STATUSES, ("complete", "budget", "error", "timeout"))
         self.assertEqual(pb.PERMISSION_MODE, "bypass")
+        self.assertEqual(list(pb.INVOCATION_KEYS), [
+            "driver", "argv", "model", "model_resolved", "claude_version", "permission_mode",
+            "api_key_source",
+        ])
+        self.assertEqual(pb.DRIVERS["claude"].implemented, True)
+        self.assertFalse(pb.DRIVERS["codex"].implemented)
+        self.assertFalse(pb.DRIVERS["cursor"].implemented)
         # Story 3's contract is byte-stable.
         self.assertEqual(pb.READ_ONLY_GIT, frozenset({"rev-parse", "log", "show", "diff-tree"}))
         self.assertEqual(len(pb.SCHEMA_KEYS), 10)
 
     def test_stdlib_only_including_39_fallback_set(self) -> None:
         """Story 3's StdlibOnlyTest pins a literal module set on 3.9; the new
-        code must stay inside it (no shutil/signal/time)."""
+        code must stay inside it (no shutil/signal/time). Story 5 added
+        `statistics` for compare medians."""
         import ast
         tree = ast.parse(pb.__file__ and Path(pb.__file__).read_text(encoding="utf-8"))
         names = set()
@@ -555,7 +563,8 @@ class ContractTest(unittest.TestCase):
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names.add(node.module.split(".")[0])
         allowed = {"argparse", "collections", "dataclasses", "datetime", "fnmatch", "json",
-                   "os", "re", "subprocess", "sys", "tempfile", "pathlib", "typing", "__future__"}
+                   "os", "re", "statistics", "subprocess", "sys", "tempfile", "pathlib",
+                   "typing", "__future__"}
         self.assertTrue(names <= allowed, names - allowed)
 
 
@@ -565,25 +574,26 @@ class ContractTest(unittest.TestCase):
 
 
 class PreflightTest(Case):
-    def test_missing_key_refuses_with_zero_side_effects(self) -> None:
-        before = self.baseline.read_bytes()
+    def test_missing_key_does_not_refuse(self) -> None:
+        """Writ does not require a resident API key — the operator's CLI login is enough."""
         disp = self.disp()
         code, out, err, _ = invoke(self.run_args(), disp, env=self.env(key=False))
-        self.assertEqual(code, 2)
-        self.assertIn("ANTHROPIC_API_KEY", err)
+        self.assertNotEqual(code, 2, err)
+        self.assertNotIn("ANTHROPIC_API_KEY is not set", err)
         self.assertNotIn(FAKE_KEY, err + out)
-        self.assertEqual(disp.calls, [])
-        self.assertEqual(self.run_dirs(), [])
-        self.assertEqual(self.baseline.read_bytes(), before)
+        self.assertTrue(disp.calls)          # preflight passed; checkout started
+        if disp.popen_kwargs:
+            self.assertIsNone(disp.popen_kwargs[0]["env"].get("ANTHROPIC_API_KEY"))
 
     def test_missing_binary_names_install_path(self) -> None:
         disp = self.disp()
         env = self.env()
-        env["PATH"] = str(self.gitbin)          # git present, claude absent
+        env["PATH"] = str(self.gitbin)          # git present, driver absent
         code, out, err, _ = invoke(self.run_args(), disp, env=env)
         self.assertEqual(code, 2)
         self.assertIn("claude", err)
         self.assertIn(pb.CLAUDE_INSTALL_HINT, err)
+        self.assertIn("ingest", err)
         self.assertNotIn(FAKE_KEY, err + out)
         self.assertEqual(disp.calls, [])
         self.assertEqual(self.run_dirs(), [])
@@ -602,25 +612,69 @@ class PreflightTest(Case):
         disp = self.disp()
         args = self.run_args()
         args[args.index("--baseline") + 1] = str(self.root / "nope.json")
-        code, _, err, _ = invoke(args, disp, env=self.env(key=False))
+        env = self.env()
+        env["PATH"] = str(self.gitbin)          # git present, claude absent
+        code, _, err, _ = invoke(args, disp, env=env)
         self.assertEqual(code, 2)
-        self.assertIn("ANTHROPIC_API_KEY", err)
+        self.assertIn("claude", err)
         self.assertNotIn("nope.json", err)
         self.assertEqual(disp.calls, [])
 
     def test_preflight_helper_direct(self) -> None:
-        with mock.patch.dict(os.environ, {"PATH": str(self.bin)}, clear=True):
+        no_key = {"PATH": str(self.bin)}
+        with mock.patch.dict(os.environ, no_key, clear=True):
+            pb.preflight()  # no key required
+        with mock.patch.dict(os.environ, {"PATH": str(self.gitbin)}, clear=True):
             with self.assertRaises(pb.Refusal) as ctx:
                 pb.preflight()
-            self.assertIn("ANTHROPIC_API_KEY", str(ctx.exception))
-        with mock.patch.dict(os.environ, {"PATH": str(self.bin), "ANTHROPIC_API_KEY": ""}, clear=True):
-            with self.assertRaises(pb.Refusal):
-                pb.preflight()
+            self.assertIn("claude", str(ctx.exception))
         with mock.patch.dict(os.environ, self.env(), clear=True):
-            pb.preflight()  # no raise
+            pb.preflight()  # key present is also fine
         self.assertEqual(pb.which("claude", str(self.bin)), str(self.bin / "claude"))
         self.assertIsNone(pb.which("claude", str(self.gitbin)))
         self.assertIsNone(pb.which("claude", str(self.root / "empty")))
+
+    def test_resolve_driver_is_model_agnostic(self) -> None:
+        self.assertEqual(pb.resolve_driver("auto", "claude-fable-5-1").name, "claude")
+        self.assertEqual(pb.resolve_driver("claude", "grok-4").name, "claude")  # explicit wins
+        with self.assertRaises(pb.Refusal) as grok:
+            pb.resolve_driver("auto", "grok-4")
+        self.assertIn("ingest", str(grok.exception))
+        with self.assertRaises(pb.Refusal) as local:
+            pb.resolve_driver("auto", "llama-3.3-70b")
+        self.assertIn("ingest", str(local.exception))
+        with self.assertRaises(pb.Refusal) as gpt:
+            pb.resolve_driver("auto", "gpt-5")
+        self.assertIn("codex", str(gpt.exception))
+        self.assertIn("ingest", str(gpt.exception))
+        with self.assertRaises(pb.Refusal) as cursor:
+            pb.resolve_driver("cursor")
+        self.assertIn("ingest", str(cursor.exception))
+        with self.assertRaises(pb.Refusal) as unknown:
+            pb.resolve_driver("auto", "mystery-weights-7b")
+        self.assertIn("--driver", str(unknown.exception))
+
+    def test_grok_baseline_refuses_with_ingest_zero_side_effects(self) -> None:
+        grok = self.root / "baselines" / "2026-09-06-grok-4.json"
+        write_baseline(grok, [selection_entry(self.parent, self.story)], self.head, model="grok-4")
+        disp = self.disp()
+        args = self.run_args()
+        args[args.index("--baseline") + 1] = str(grok)
+        code, out, err, _ = invoke(args, disp, env=self.env(key=False))
+        self.assertEqual(code, 2)
+        self.assertIn("grok-4", err)
+        self.assertIn("ingest", err)
+        self.assertNotIn("ANTHROPIC_API_KEY is not set", err)
+        self.assertEqual(disp.calls, [])
+        self.assertEqual(self.run_dirs(), [])
+
+    def test_unimplemented_driver_flag_refuses_before_checkout(self) -> None:
+        disp = self.disp()
+        code, _, err, _ = invoke(self.run_args("--driver", "cursor"), disp, env=self.env())
+        self.assertEqual(code, 2)
+        self.assertIn("ingest", err)
+        self.assertEqual(disp.calls, [])
+        self.assertEqual(self.run_dirs(), [])
 
     def test_missing_baseline_and_empty_selection_refuse(self) -> None:
         disp = self.disp()
@@ -969,8 +1023,9 @@ class RunTest(Case):
         self.assertEqual(rec["deps"]["exit"], 0)
         self.assertIsInstance(rec["deps"]["seconds"], float)
         inv = rec["invocation"]
-        self.assertEqual(list(inv), ["argv", "model", "model_resolved", "claude_version", "permission_mode",
-                                     "api_key_source"])
+        self.assertEqual(list(inv), ["driver", "argv", "model", "model_resolved", "claude_version",
+                                     "permission_mode", "api_key_source"])
+        self.assertEqual(inv["driver"], "claude")
         self.assertEqual(inv["argv"], [
             "claude", "-p", "/implement-story " + STORY_REL, "--output-format", "stream-json", "--verbose",
             "--model", "claude-fable-5-1", "--max-budget-usd", "75",
@@ -1030,7 +1085,7 @@ class RunTest(Case):
         self.assertTrue(kw["stdout"].name.endswith("transcript.jsonl"))
         self.assertTrue(kw["stderr"].name.endswith("stderr.log"))
         self.assertEqual(disp.procs[0].waits, [pb.DEFAULT_CAP_S])
-        # the key reaches claude; a parent Claude Code session marker does not
+        # operator env is inherited (any vendor key included); nested session markers are not
         self.assertEqual(kw["env"].get("ANTHROPIC_API_KEY"), FAKE_KEY)
         self.assertFalse(set(kw["env"]) & pb.NESTED_SESSION_VARS)
         # one progress line; temp dir removed without --keep
@@ -1729,15 +1784,16 @@ class CliTest(unittest.TestCase):
         out = io.StringIO()
         with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stdout(out):
             pb.main(["run", "--help"])
-        for flag in ("--runs", "--cap", "--budget-usd", "--keep", "--force", "--story", "--model"):
+        for flag in ("--runs", "--cap", "--budget-usd", "--keep", "--force", "--story", "--model", "--driver"):
             self.assertIn(flag, out.getvalue())
 
-    def test_compare_is_still_a_stub(self) -> None:
+    def test_compare_requires_two_paths(self) -> None:
         err = io.StringIO()
         with self.assertRaises(SystemExit) as ctx, contextlib.redirect_stderr(err):
             pb.main(["compare"])
         self.assertEqual(ctx.exception.code, 2)
-        self.assertIn("not implemented until Story 5", err.getvalue())
+        self.assertNotIn("not implemented", err.getvalue())
+        self.assertRegex(err.getvalue(), r"compare|the following arguments are required")
 
 
 if __name__ == "__main__":
