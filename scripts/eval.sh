@@ -969,8 +969,13 @@ check_autonomy_governance() {
   forbid_literal "$mission_lite" 'single-spec `--recommend` delivery' "mission-lite still frames recommended delivery as single-spec, superseded by ADR-013 as revised 2026-07-17."
 }
 
+# 2026-09-07 (Phase 11 Stage 2a Story 2, ADR-026): the section's bullets 2-5
+# (evidence, select-or-pause, audit rationale, resume) moved out of the base
+# into .writ/docs/recommendation-semantics.md; the labeling rule stays in the
+# base. $system pins the rule, $semantics_doc pins the moved text.
 check_recommendation_semantics() {
   local system="$PROJECT_ROOT/system-instructions.md"
+  local semantics_doc="$PROJECT_ROOT/.writ/docs/recommendation-semantics.md"
   local cursor_rule="$PROJECT_ROOT/cursor/writ.mdc"
   local cursor_adapter="$PROJECT_ROOT/adapters/cursor.md"
   local claude_adapter="$PROJECT_ROOT/adapters/claude-code.md"
@@ -980,22 +985,22 @@ check_recommendation_semantics() {
   require_literal "$system" 'Exactly one option label ends with the literal suffix `(Recommended)`.' "Normal bounded questions must label exactly one recommendation."
   require_literal "$system" 'If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.' "Equivalent options must remain unlabeled and be disclosed."
   require_literal "$system" 'Normal mode remains human-selected; the label is advisory.' "Recommendation labels must not change normal interactive control."
-  require_literal "$system" 'Option order, affirmative wording, and user inactivity are never evidence.' "Recommendation evidence must not come from presentation or inactivity."
-  require_literal "$system" 'governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility' "Recommendation evidence precedence must be domain-scoped and deterministic."
-  require_literal "$system" 'Conflicting authoritative evidence pauses the decision.' "Conflicting authoritative evidence must pause."
-  require_literal "$system" 'eligible evidence-supported option' "Recommend mode must automatically select only an eligible evidence-supported option."
-  require_literal "$system" 'select the simplest viable, most reversible choice.' "Low-risk reversible ties must resolve to the simplest viable option."
-  require_literal "$system" 'safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence' "The complete recommendation pause taxonomy must be present."
-  require_literal "$system" 'Hard platform blockers remain blockers.' "Hard platform blockers must not be converted into recommendations."
-  require_literal "$system" 'A pause states the classification' "Recommendation pauses must identify their classification."
-  require_literal "$system" 'choices, and a safe next action.' "Recommendation pauses must provide bounded choices and a safe next action."
-  require_literal "$system" 'Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact' "Concise recommendation rationale fields must be explicit."
-  require_literal "$system" 'Never include private chain-of-thought or transcript content.' "Recommendation rationale must exclude private reasoning and transcripts."
-  require_literal "$system" 'continue automatically in the same session with recommendation mode retained and do not repeat the answered decision' "Required answers must resume recommendation mode without repeated decisions."
-  require_literal "$system" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "Story 2 must not claim Story 3 persistence mechanics."
+  require_literal "$semantics_doc" 'Option order, affirmative wording, and user inactivity are never evidence.' "Recommendation evidence must not come from presentation or inactivity."
+  require_literal "$semantics_doc" 'governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility' "Recommendation evidence precedence must be domain-scoped and deterministic."
+  require_literal "$semantics_doc" 'Conflicting authoritative evidence pauses the decision.' "Conflicting authoritative evidence must pause."
+  require_literal "$semantics_doc" 'eligible evidence-supported option' "Recommend mode must automatically select only an eligible evidence-supported option."
+  require_literal "$semantics_doc" 'select the simplest viable, most reversible choice.' "Low-risk reversible ties must resolve to the simplest viable option."
+  require_literal "$semantics_doc" 'safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence' "The complete recommendation pause taxonomy must be present."
+  require_literal "$semantics_doc" 'Hard platform blockers remain blockers.' "Hard platform blockers must not be converted into recommendations."
+  require_literal "$semantics_doc" 'A pause states the classification' "Recommendation pauses must identify their classification."
+  require_literal "$semantics_doc" 'choices, and a safe next action.' "Recommendation pauses must provide bounded choices and a safe next action."
+  require_literal "$semantics_doc" 'Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact' "Concise recommendation rationale fields must be explicit."
+  require_literal "$semantics_doc" 'Never include private chain-of-thought or transcript content.' "Recommendation rationale must exclude private reasoning and transcripts."
+  require_literal "$semantics_doc" 'continue automatically in the same session with recommendation mode retained and do not repeat the answered decision' "Required answers must resume recommendation mode without repeated decisions."
+  require_literal "$semantics_doc" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "Story 2 must not claim Story 3 persistence mechanics."
 
   require_literal "$cursor_rule" 'Exactly one option label ends with the literal suffix `(Recommended)`.' "The Cursor rule mirror must include the recommendation label contract."
-  require_literal "$cursor_rule" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "The Cursor rule mirror must preserve the Story 2/3 boundary."
+  require_literal "$cursor_rule" 'See `.writ/docs/recommendation-semantics.md`' "The Cursor rule mirror must carry the same pointer to the moved recommendation semantics as the base (Prime Directive mirror, Business Rule 8 of 2026-09-07-phase11-stage2-prune-the-base)."
 
   for adapter in "$cursor_adapter" "$claude_adapter" "$codex_adapter"; do
     require_literal "$adapter" 'Preserve stable option identity across display, selection, rationale, and resume.' "Each adapter must preserve stable option identity."

@@ -90,3 +90,23 @@
 | 2026-09-07 | system-instructions.md | moved | .writ/docs/startup-update-awareness.md | Use this exact notification style only after recording `status: "update_available"` for a copied install with a strictly newer upstream identity: "Writ update available. Run `/update-writ` when you are ready." |
 | 2026-09-07 | system-instructions.md | moved | .writ/docs/startup-update-awareness.md | Stay quiet and continue the original workflow when Writ is current, already checked today, offline, missing usable manifest/source metadata, unsupported, running from the Writ source repo, running from a linked installation, or already executing `/update-writ`. |
 | 2026-09-07 | system-instructions.md | moved | .writ/docs/startup-update-awareness.md | Startup update discovery is read-only except for the daily cache under `.writ/state/`. It must never apply updates, overwrite Writ files, edit manifests, install packages, create commits, clone or pull repositories, or add an `@sellke/writ` update-check runtime command. `/update-writ` remains the only Writ workflow that applies updates. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md | - **Use evidence, never presentation defaults.** Option order, affirmative wording, and user inactivity are never evidence. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Evaluate only the domains relevant to the decision, in this precedence: |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Higher-precedence |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   evidence establishes eligibility or constraints; it does not substitute for |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   missing evidence in another domain. Conflicting authoritative evidence pauses the decision. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md | - **Select or pause transparently.** In `--recommend` mode, automatically select |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   an eligible evidence-supported option. When multiple eligible choices remain |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   low-risk and reversible, select the simplest viable, most reversible choice. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Pause for safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Hard platform blockers remain blockers. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   A pause states the classification, missing or conflicting evidence, bounded |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   choices, and a safe next action. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md | - **Emit concise audit rationale.** Briefly show these fields in the active |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   session: Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Evidence must be observable; alternatives include only material options. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Never include private chain-of-thought or transcript content. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md | - **Resume only the answered interaction.** After a required human answer, continue automatically in the same session with recommendation mode retained and do not repeat the answered decision. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   This is an in-session behavioral contract only. |
+| 2026-09-07 | system-instructions.md | moved | .writ/docs/recommendation-semantics.md |   Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption. |

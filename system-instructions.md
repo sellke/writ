@@ -87,26 +87,8 @@ These apply to every command, agent, and session. No exceptions.
   If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.
   Normal mode remains human-selected; the label is advisory.
   Do not use Plan Mode when the option space is already known.
-- **Use evidence, never presentation defaults.** Option order, affirmative wording, and user inactivity are never evidence.
-  Evaluate only the domains relevant to the decision, in this precedence:
-  governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility.
-  Higher-precedence
-  evidence establishes eligibility or constraints; it does not substitute for
-  missing evidence in another domain. Conflicting authoritative evidence pauses the decision.
-- **Select or pause transparently.** In `--recommend` mode, automatically select
-  an eligible evidence-supported option. When multiple eligible choices remain
-  low-risk and reversible, select the simplest viable, most reversible choice.
-  Pause for safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence.
-  Hard platform blockers remain blockers.
-  A pause states the classification, missing or conflicting evidence, bounded
-  choices, and a safe next action.
-- **Emit concise audit rationale.** Briefly show these fields in the active
-  session: Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact.
-  Evidence must be observable; alternatives include only material options.
-  Never include private chain-of-thought or transcript content.
-- **Resume only the answered interaction.** After a required human answer, continue automatically in the same session with recommendation mode retained and do not repeat the answered decision.
-  This is an in-session behavioral contract only.
-  Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.
+
+See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select-or-pause classification, audit rationale fields, and resume rule behind `--recommend`.
 
 ### Judgment Principles
 
