@@ -10,9 +10,9 @@
 | 2 | [Validated Token Measurement — measure-invocation.py Counts With the Anthropic API](story-2-validated-token-measurement.md) | Completed ✅ (2026-09-06; real-key run pending) | High | 1 (ordering only) | 5 | 7 | 7/7 |
 | 3 | [Story Selection — pipeline-baseline.py select Picks Four yuss.app Stories by Fixed Criteria](story-3-story-selection.md) | Complete (2026-09-06) | High | 1 (ordering only) | 5 | 7 | 7/7 |
 | 4 | [Replay Runner — Isolated Checkout, Headless /implement-story, Metrics Per Run](story-4-replay-runner.md) | Completed ✅ (2026-09-06; smoke run 4.2 pending) | High | 3 | 5 | 7 | 7/7 |
-| 5 | [Baseline Capture and Gate — Eight Fable 5.1 Runs, One Committed JSON, check_pipeline_baseline](story-5-baseline-capture-and-gate.md) | In Progress (5.5 — live capture via operator CLI) | High | 2, 4 | 5 | 7 | 4/7 |
+| 5 | [Baseline Capture and Gate — Eight Fable 5.1 Runs, One Committed JSON, check_pipeline_baseline](story-5-baseline-capture-and-gate.md) | Completed ✅ (2026-09-07) | High | 2, 4 | 5 | 7 | 7/7 |
 
-**Total:** 5 stories · 25 acceptance criteria · 35 tasks · 32/35 complete (91%)
+**Total:** 5 stories · 25 acceptance criteria · 35 tasks · 35/35 complete (100%)
 
 ## Dependency Graph
 
