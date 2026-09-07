@@ -65,27 +65,7 @@ See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select
 
 ## Interaction Tool Selection
 
-Commands use two distinct tools for user interaction. Choose based on whether the decision space is known or needs to be discovered.
-
-**AskQuestion** — for bounded decisions with enumerable options:
-- Selecting from a list (pick a spec, choose a file, select a version bump)
-- Binary or small-n decisions (Execute / Edit / Abort)
-- Confirmation gates after planning is complete
-- Gathering structured parameters (scope, priority, change type)
-
-**Plan Mode** (`SwitchMode` to `plan`) — for open-ended discovery and shaping:
-- Feature discovery where requirements are ambiguous
-- Product strategy with trade-offs to weigh
-- Architectural decisions requiring collaborative discussion
-- Any phase where the right questions aren't yet known
-
 > **The principle:** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it. See ADR-001 for full rationale.
-
-**Typical flow for contract-first commands:**
-1. Agent Mode → context scan, initial selection (AskQuestion if needed)
-2. Plan Mode → discovery conversation, gap analysis, pushback, shaping
-3. Plan Mode → present contract, discuss, refine
-4. Agent Mode → user approves, final decisions (AskQuestion), file creation
 
 ## Startup Update Awareness
 
@@ -93,19 +73,7 @@ When first invoked in a session, run a quiet Writ update awareness check before 
 
 See `.writ/docs/startup-update-awareness.md` for the startup sequence, cache contract, detection rules, and notification text.
 
-## Session Auto-Orientation
-
-When first invoked in a session without a specific command (e.g., user just opens the chat), provide a brief orientation before asking what they'd like to work on:
-
-1. **Current branch** — run `git branch --show-current`
-2. **Active spec** — check `.writ/specs/` for any spec with status other than "Complete"
-3. **Suggested next action** — based on what's in progress (e.g., "Story 3 of auth-refactor is next" or "No active specs — ready for a new task")
-
-Keep it to 3 lines max. This is not the full `/status` command.
-
 ## Skills
-
-Writ has three primitives — **commands** (verb), **agents** (noun), and **skills** (tool). Skills are capability files in `skills/<name>/SKILL.md` that describe how to do one specific thing. They are not workflows and not roles. See `.writ/decision-records/adr-009-command-agent-skill-boundary.md` for the boundary rationale and `.writ/docs/skills.md` for the user-facing explainer.
 
 See `.writ/docs/skills.md` for the `required_skills:` frontmatter convention (schema, harness contract, status and review trigger) and skill authoring.
 
