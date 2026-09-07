@@ -1,6 +1,7 @@
 # Story 3: Cut Behavior Requests — Line-by-Line Classification to a 10,000-Byte Base, Batching Line to Adapters
 
 > **Status:** Completed ✅ (2026-09-07)
+> **Commit:** 2fc26f935c26bf0da8281b714be4b805f848add1
 > **Priority:** High
 > **Dependencies:** Story 2
 
