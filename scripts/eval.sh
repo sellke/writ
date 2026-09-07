@@ -68,6 +68,7 @@ CHECKS=(
   test-integrity
   build-smoke
   pipeline-baseline
+  pruned-base
 )
 
 TOTAL_FINDINGS=0
@@ -3860,6 +3861,66 @@ check_pipeline_baseline() {
         "Fix the baseline JSON or regenerate it with python3 scripts/pipeline-baseline.py select."
     done <<< "$line"
   done
+}
+
+check_pruned_base() {
+  # Story 1 of 2026-09-07-phase11-stage2-prune-the-base (ADR-026): every line
+  # removed from system-instructions.md or commands/_preamble.md since the
+  # pinned Stage 1 closeout commit must have a row in the pruned-instructions
+  # ledger, and no row's text may be back in its file. Findings are relayed
+  # one per `<code>: <detail>` line; `note:` lines and the closing summary
+  # line surface as notes. The byte cap blocks only once the ledger carries
+  # the `<!-- cap: blocking -->` marker line, which Story 3 appends on
+  # reaching the cap. WRIT_PRUNE_BASE_COMMIT overrides the pin for fixture
+  # trees, whose history cannot contain cf84742.
+  local helper="$PROJECT_ROOT/scripts/prune-ledger.py"
+  local ledger="$PROJECT_ROOT/.writ/decision-records/pruned-instructions-ledger.md"
+  local base_commit="${WRIT_PRUNE_BASE_COMMIT:-cf84742}"
+  local args=(check --repo "$PROJECT_ROOT" --base-commit "$base_commit")
+  local out err rc=0 line code detail
+
+  if [ ! -f "$PROJECT_ROOT/system-instructions.md" ] || [ ! -f "$PROJECT_ROOT/commands/_preamble.md" ]; then
+    add_note "NOTE [pruned-base]: no shared base (system-instructions.md + commands/_preamble.md) in this tree; nothing to check."
+    return
+  fi
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/prune-ledger.py" "prune-ledger helper is missing." \
+      "Restore scripts/prune-ledger.py so check can run."
+    return
+  fi
+  if [ -f "$ledger" ] && grep -Fxq '<!-- cap: blocking -->' "$ledger"; then
+    args+=(--cap-blocking)
+  fi
+
+  err="$(mktemp)"
+  # check exits 1 on findings and 2 on a git/usage failure; `set -e` must not
+  # abort the check either way.
+  out="$(python3 "$helper" "${args[@]}" 2>"$err")" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/prune-ledger.py" "check could not run: $(tr '\n' ' ' < "$err" | sed 's/ *$//')" \
+      "Fix the base commit (WRIT_PRUNE_BASE_COMMIT or --base-commit) or the missing base file, then rerun."
+    rm -f "$err"
+    return
+  fi
+  rm -f "$err"
+
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      note:\ *)
+        add_note "NOTE [pruned-base]: ${line#note: }"
+        ;;
+      base:\ *)
+        add_note "NOTE [pruned-base]: $line"
+        ;;
+      *)
+        code="${line%%: *}"
+        detail="${line#*: }"
+        add_finding "pruned-base:$code" "$detail" \
+          "Add the ledger row for the removed line (or restore the line), or fix the malformed row; see ADR-026."
+        ;;
+    esac
+  done <<< "$out"
 }
 
 run_check() {
