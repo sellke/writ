@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-07T22:35:00Z
+> Last Updated: 2026-09-08T15:50:00Z
 
 ## Product Mission
 
@@ -8,22 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-09-07-phase11-stage2-prune-the-base` — Phase 11 Stage 2a (Goal Card `.writ/issues/goals/2026-09-05-writ-contract-and-verifier-layer.md`, Stage 2 first of two specs)
-- **Status:** In Progress — Stories 1–4 Completed ✅ (2026-09-07); Story 5 In Progress
-- **Story:** 5 of 5 — Baseline Re-run and Keep-or-Revert (task 5.2: eight Fable 5.1 runs in flight since 22:28 UTC, detached under nohup)
-- **Progress:** 27/33 tasks complete (82%)
+- **Spec:** `2026-09-07-phase11-stage2-prune-the-base` — Phase 11 Stage 2a (Goal Card `.writ/issues/goals/2026-09-05-writ-contract-and-verifier-layer.md`)
+- **Status:** Complete — Stories 1–5 Completed ✅ (Story 5 on 2026-09-08, commit `deed2a1`, SHA record `212026d`)
+- **Story:** 5 of 5 — Baseline Re-run and Keep-or-Revert (decision: KEEP)
+- **Progress:** 33/33 tasks complete (100%)
 
-Base is 9,704 bytes (from 28,157), 187 ledger rows, cap blocking. Story commits: 1 `6fa3540`, 4 `e6be367`, 2 `e1a60ab`, 3 `2fc26f9`; batch-1 merge `272da3d`. Re-run file `.writ/eval/baselines/2026-09-07-claude-fable-5-1.json` (selection/criteria identical to Stage 1). Keep if `compare` shows exit criteria 2/2 on all four rows; else retry the failed pair once, then `/revert` Stories 2–3. State: `.writ/state/execution-20260907T211644Z.json`.
+The shared base is 9,704 bytes (from 28,157), 187 ledger rows, cap blocking. The Stage 2a re-run (`.writ/eval/baselines/2026-09-07-claude-fable-5-1.json`) met exit criteria 8/8 against Stage 1's 8/8; driver cost −4.7%, cache-creation tokens −36%. Next Goal Card work: Stage 2b (mechanize Gates 0, 0.5, 1, 2.5, 3, 5; flip `verdict-provenance` to blocking), not yet specced.
+
+`/implement-spec` checker: c1 met, c2 met, c3 unmet only on the typecheck literal (no typechecker in this stack; issue `2026-09-07-exit-criteria-c3-rejects-stacks-without-a-typechecker.md`).
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md, `2026-09-05-goldilocks-assessment.md` present
 - **Research:** `2026-09-05-goldilocks-harness-research.md` present
-- **Active spec:** `.writ/specs/2026-09-07-phase11-stage2-prune-the-base/` (spec, spec-lite, technical-spec, 5 stories, drift-log DEV-001..011, DEV-101..102) — previous spec `2026-09-05-phase11-repair-and-baseline` Complete, eligible for archive; 62 archived under .writ/specs/archive/
-- **Baselines:** `2026-09-06-claude-fable-5-1.json` (Stage 1, committed) · `2026-09-07-claude-fable-5-1.json` (Stage 2 re-run, filling)
+- **Specs:** `2026-09-07-phase11-stage2-prune-the-base` Complete · `2026-09-05-phase11-repair-and-baseline` Complete — both eligible for `/status --archive`; 62 archived
+- **Baselines:** `2026-09-06-claude-fable-5-1.json` (Stage 1) · `2026-09-07-claude-fable-5-1.json` (Stage 2a), both committed
 - **Decision records:** ADR-026 constraint-test pruning · `pruned-instructions-ledger.md` (187 rows, `<!-- cap: blocking -->`)
 - **Knowledge:** .writ/knowledge/ (21 entries)
-- **Docs:** .writ/docs/ (25 files; +startup-update-awareness, +recommendation-semantics; model-tiers and skills now source of truth)
+- **Docs:** .writ/docs/ (25 files)
 - **Config:** .writ/config.md present (Default Branch main · Test Runner `uv run pytest` · Version File VERSION)
 - **Integrity:** ✅ all required present
 
@@ -33,7 +35,7 @@ From `2026-09-07-phase11-stage2-prune-the-base/drift-log.md`:
 
 - [DEV-011] `cursor/writ.mdc` re-synced whole (20,885 → 4,600) as Cursor's alwaysApply rule — Medium
 - [DEV-009] AC-3.4 `grep -c` proxy cannot return 1 for cursor.md (pre-existing verification record) — Medium
-- [DEV-006] `check_recommendation_semantics` literals retargeted to the new doc, 3 rule pins stay on the base — Medium
+- [DEV-006] `check_recommendation_semantics` literals retargeted to the new doc — Medium
 
 ## Open Issues
 
@@ -41,11 +43,13 @@ From `2026-09-07-phase11-stage2-prune-the-base/drift-log.md`:
 
 ## Verification State
 
-2026-09-07, after Story 3 (`e5792ce`):
+2026-09-08, spec closeout (`212026d`):
 
 - `uv run --python 3.9 pytest -q` — 1075 passed, 1 skipped
 - `scripts/tests/test_*.sh` — 14/14 green
-- `bash scripts/eval.sh` — Findings 0, Run errors 0 (54 checks incl. new `pruned-base`, `verdict-provenance`)
-- `prune-ledger.py check --cap-blocking` — exit 0, `base: 9704 bytes (cap 10000), ledger: 187 rows, removed: 187, re-added: 0`
-- `verdict-provenance.py check` — exit 0, note `prose_only_count: 8 (cap 2)` (mechanization spec flips to blocking)
-- Story 5 re-run: in flight
+- `bash scripts/eval.sh` — Findings 0, Run errors 0
+- `prune-ledger.py check --cap-blocking` — exit 0, `base: 9704 bytes (cap 10000), ledger: 187 rows, re-added: 0`
+- `verdict-provenance.py check` — exit 0, note `prose_only_count: 8 (cap 2)`
+- `pipeline-baseline.py compare` Stage 1 vs 2a — exit criteria 2/2 × 4
+- Typecheck: skipped, none configured
+- Host side effect from replays: Homebrew Postgres 17 running with `writ_story{2,3,4}_test` databases
