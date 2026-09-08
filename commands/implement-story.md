@@ -26,17 +26,17 @@ gates:
   # One per #### Gate heading: `script` re-derives the verdict; `prose-only`
   # means the agent's own report is the verdict. scripts/verdict-provenance.py.
   - id: gate0_arch
-    verification: prose-only
+    script: scripts/arch-check.py
   - id: gate0_5_boundary
-    verification: prose-only
+    script: scripts/boundary-map.py
   - id: gate1_coding
     verification: prose-only
   - id: gate2_build
     script: scripts/build-smoke.py
   - id: gate2_5_surface
-    verification: prose-only
+    script: scripts/change-surface.py
   - id: gate3_review
-    verification: prose-only
+    script: scripts/review-override.py
   - id: gate3_5_drift
     verification: prose-only
   - id: gate4_tests
@@ -44,7 +44,7 @@ gates:
   - id: gate4_5_visual
     verification: prose-only
   - id: gate5_docs
-    verification: prose-only
+    script: scripts/docs-check.py
 ---
 
 # Implement Story Command (implement-story)
@@ -174,6 +174,19 @@ Spawns a **read-only** sub-agent to review the planned approach before any code 
 
 **Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content`; if agent-specific sections are unavailable, pass full spec-lite. Also pass `fetched_context` when hints were parsed in Step 2, and `knowledge_context` when populated.
 
+**Verify the claim, don't trust it.** After the architecture-check agent returns PROCEED or CAUTION — never on ABORT; do not invoke this script on an ABORT-shaped result — run:
+
+```bash
+python3 scripts/arch-check.py check --story <story-file> --repo . --planned <planned files> [--boundary <map.json>]
+```
+
+`--planned` is Gate 0's live pre-implementation set. `--changed` is replay / post-hoc only. The script never prints `abort`; the ABORT path and the ADR-024 floor→anchor re-run stay untouched.
+
+- **`rederived: caution`** → inject the script `reason` into the coding-agent warnings the way the agent's CAUTION already does.
+- **script `fail`** → apply the shared [BLOCKED escalation](#blocked-agent-escalation).
+- **`rederived: proceed`** → continue.
+- **any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
+
 ---
 
 #### Gate 0.5: Boundary Computation (File Ownership Map)
@@ -186,6 +199,12 @@ Before Gate 1, compute a **`boundary_map`** so the coding and review agents have
 **Not applicable — `/prototype`:** `commands/prototype.md` does not run `implement-story`; that path stays boundary-free. Gate 0.5 exists only on the full pipeline.
 
 `Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
+
+Run the checkable artifact and pass stdout onward — maps stay **advisory** (no hard file locking):
+
+```bash
+python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>]
+```
 
 ---
 
@@ -229,6 +248,12 @@ After lint/typecheck passes, classify the files the coding agent created or modi
 
 `Read skills/change-surface-classification/SKILL.md` for how the four classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how the class is decided.
 
+Run the path-heuristic classifier and pass stdout to Gate 3 as `change_surface`:
+
+```bash
+python3 scripts/change-surface.py classify --changed <files>
+```
+
 ---
 
 #### Gate 3: Review Agent
@@ -242,6 +267,19 @@ Spawns a **read-only** sub-agent for code review: acceptance criteria; code qual
 **Results:** **PASS** → continue to testing (may include Small or Medium drift) · **FAIL** → send feedback to coding agent for fixes · **PAUSE** → Large drift detected; this gate only emits the verdict — Gate 3.5 § A owns the pause and its options
 
 **Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
+
+**Verify the claim, don't trust it.** After the review agent returns, run:
+
+```bash
+python3 scripts/review-override.py check --spec <spec-folder> --repo . --story <story-file> [--new-files <story's new files>] [--tests <story's test files>]
+```
+
+The review agent's PASS/FAIL is a field the agent types. The checker re-derives a mechanical verdict from `ac-trace.py` and (when those path flags are present) `test-integrity.py`, and show both the claim and the measurement in the story report.
+
+This override is **FAIL-only**: a script `fail` takes the existing review-loop recode path (Gate 3 FAIL → recode). A script `pass` or `unverifiable` leaves the review-agent FAIL or PAUSE standing — a mechanical pass does not force PASS. Residual architecture, security, and taste stay with `review-agent`. Spawn behavior is unchanged.
+
+- **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the existing review-loop recode path.
+- **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
@@ -318,6 +356,15 @@ Failures count toward the shared review-loop cap declared at Gate 3.
 **Auto-detects the docs framework** (VitePress, Docusaurus, Nextra, MkDocs, Storybook, or plain README).
 
 **Updates:** inline docs (JSDoc/docstrings) for new public APIs; README if user-facing features added; CHANGELOG entry; framework docs pages if detected; Mermaid diagrams where appropriate.
+
+**Verify the claim, don't trust it.** After the documentation agent returns, run:
+
+```bash
+python3 scripts/docs-check.py check --repo . [--changed <story's changed files>]
+```
+
+- **script `fail`** → apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `documentation-agent`, restarting **Gate 5**.
+- **any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ---
 

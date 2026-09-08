@@ -6,6 +6,7 @@
 > **Dependencies:** [2026-09-05-phase11-repair-and-baseline]
 > **Origin:** Promoted from Goal Card [`2026-09-05-writ-contract-and-verifier-layer.md`](../../issues/goals/2026-09-05-writ-contract-and-verifier-layer.md) — Stage 2, first of two specs (this one prunes the shared base; gate mechanization for Gates 0, 0.5, 1, 2.5, 3, 5 is the second). Evidence: [`2026-09-05-goldilocks-assessment.md`](../../product/2026-09-05-goldilocks-assessment.md) §2.1, §3 Mechanism 1, §5 Step 2 and Governor; [`2026-09-05-goldilocks-harness-research.md`](../../research/2026-09-05-goldilocks-harness-research.md) (the constraint-vs-behavior-request test).
 > **Loop:** unit `story` · `max_iterations: 8` · `on_exhaustion: halt_reported` · stalled 3 turns: stop and report (carried from the Goal Card's STOP-CAPS)
+> **Superseded by:** [2026-09-08-phase11-stage2b-mechanize-the-gates](../2026-09-08-phase11-stage2b-mechanize-the-gates/spec.md)
 
 ## Specification Contract
 

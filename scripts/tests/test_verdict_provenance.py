@@ -323,7 +323,7 @@ class CheckTests(unittest.TestCase):
 class RealCommandTests(unittest.TestCase):
     """AC-4.1 against the shipped commands/implement-story.md."""
 
-    def test_real_command_is_clean_with_eight_prose_only(self) -> None:
+    def test_real_command_is_clean_with_current_prose_only(self) -> None:
         argv = ["check", "--command", str(REPO_ROOT / "commands" / "implement-story.md"),
                 "--repo", str(REPO_ROOT)]
         out = io.StringIO()
@@ -336,7 +336,9 @@ class RealCommandTests(unittest.TestCase):
         text = out.getvalue()
         self.assertEqual(code, 0, text)
         self.assertEqual(finding_lines(text), [])
-        self.assertIn("note: prose_only_count: 8 (cap 2)", text)
+        # Stage 2b lands scripts one gate at a time; the count is truthful,
+        # not frozen at Stage 2a's 8. Cap stays 2 until Story 5 flips blocking.
+        self.assertRegex(text, r"note: prose_only_count: \d+ \(cap 2\)")
 
     def test_real_command_gates_block_names_all_ten_truthfully(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
@@ -344,8 +346,17 @@ class RealCommandTests(unittest.TestCase):
         self.assertEqual(tuple(by_id), ALL_IDS)
         self.assertEqual(by_id["gate2_build"], {"id": "gate2_build", "script": "scripts/build-smoke.py"})
         self.assertEqual(by_id["gate4_tests"], {"id": "gate4_tests", "script": "scripts/test-integrity.py"})
+        self.assertEqual(by_id["gate0_arch"], {"id": "gate0_arch", "script": "scripts/arch-check.py"})
+        self.assertEqual(by_id["gate0_5_boundary"], {"id": "gate0_5_boundary", "script": "scripts/boundary-map.py"})
+        self.assertEqual(by_id["gate2_5_surface"], {"id": "gate2_5_surface", "script": "scripts/change-surface.py"})
+        self.assertEqual(by_id["gate3_review"], {"id": "gate3_review", "script": "scripts/review-override.py"})
+        self.assertEqual(by_id["gate5_docs"], {"id": "gate5_docs", "script": "scripts/docs-check.py"})
+        shipped_scripts = set(SCRIPTS) | {
+            "gate0_arch", "gate0_5_boundary", "gate2_5_surface",
+            "gate3_review", "gate5_docs",
+        }
         for gate_id in ALL_IDS:
-            if gate_id in SCRIPTS:
+            if gate_id in shipped_scripts:
                 continue
             self.assertEqual(by_id[gate_id], {"id": gate_id, "verification": "prose-only"})
 

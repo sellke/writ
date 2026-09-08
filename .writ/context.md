@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-08T15:50:00Z
+> Last Updated: 2026-09-08T22:25:00Z
 
 ## Product Mission
 
@@ -8,34 +8,26 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-09-07-phase11-stage2-prune-the-base` — Phase 11 Stage 2a (Goal Card `.writ/issues/goals/2026-09-05-writ-contract-and-verifier-layer.md`)
-- **Status:** Complete — Stories 1–5 Completed ✅ (Story 5 on 2026-09-08, commit `deed2a1`, SHA record `212026d`)
-- **Story:** 5 of 5 — Baseline Re-run and Keep-or-Revert (decision: KEEP)
-- **Progress:** 33/33 tasks complete (100%)
+- **Spec:** `2026-09-08-phase11-stage2b-mechanize-the-gates` — Phase 11 Stage 2b (Goal Card `.writ/issues/goals/2026-09-05-writ-contract-and-verifier-layer.md`)
+- **Status:** In Progress — Stories 1–4 Completed ✅; Story 5 Not Started
+- **Story:** 5 of 5 — Gate 3.5 format + flip + watch (pending)
+- **Progress:** 25/32 tasks complete (78%)
 
-The shared base is 9,704 bytes (from 28,157), 187 ledger rows, cap blocking. The Stage 2a re-run (`.writ/eval/baselines/2026-09-07-claude-fable-5-1.json`) met exit criteria 8/8 against Stage 1's 8/8; driver cost −4.7%, cache-creation tokens −36%. Next Goal Card work: Stage 2b (mechanize Gates 0, 0.5, 1, 2.5, 3, 5; flip `verdict-provenance` to blocking), not yet specced.
-
-`/implement-spec` checker: c1 met, c2 met, c3 unmet only on the typecheck literal (no typechecker in this stack; issue `2026-09-07-exit-criteria-c3-rejects-stacks-without-a-typechecker.md`).
+Batch 1 landed `review-override.py`, `arch-check.py`, `docs-check.py`, `boundary-map.py`, and `change-surface.py`. Frontmatter now names those five scripts plus the two existing Gate 2/4 scripts; `gate1_coding`, `gate3_5_drift`, and `gate4_5_visual` remain `prose-only`. `--prose-only-blocking` is still off (Story 5).
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md, `2026-09-05-goldilocks-assessment.md` present
-- **Research:** `2026-09-05-goldilocks-harness-research.md` present
-- **Specs:** `2026-09-07-phase11-stage2-prune-the-base` Complete · `2026-09-05-phase11-repair-and-baseline` Complete — both eligible for `/status --archive`; 62 archived
-- **Baselines:** `2026-09-06-claude-fable-5-1.json` (Stage 1) · `2026-09-07-claude-fable-5-1.json` (Stage 2a), both committed
-- **Decision records:** ADR-026 constraint-test pruning · `pruned-instructions-ledger.md` (187 rows, `<!-- cap: blocking -->`)
+- **Active spec:** .writ/specs/2026-09-08-phase11-stage2b-mechanize-the-gates/ — spec.md + spec-lite.md, user-stories/, sub-specs/
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (25 files)
-- **Config:** .writ/config.md present (Default Branch main · Test Runner `uv run pytest` · Version File VERSION)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-From `2026-09-07-phase11-stage2-prune-the-base/drift-log.md`:
+From `2026-09-08-phase11-stage2b-mechanize-the-gates/drift-log.md`:
 
-- [DEV-011] `cursor/writ.mdc` re-synced whole (20,885 → 4,600) as Cursor's alwaysApply rule — Medium
-- [DEV-009] AC-3.4 `grep -c` proxy cannot return 1 for cursor.md (pre-existing verification record) — Medium
-- [DEV-006] `check_recommendation_semantics` literals retargeted to the new doc — Medium
+- [DEV-001] Parallel batch landed shared files in one checkout — Medium
 
 ## Open Issues
 
@@ -43,13 +35,10 @@ From `2026-09-07-phase11-stage2-prune-the-base/drift-log.md`:
 
 ## Verification State
 
-2026-09-08, spec closeout (`212026d`):
+2026-09-08, Stories 1–4 closeout:
 
-- `uv run --python 3.9 pytest -q` — 1075 passed, 1 skipped
-- `scripts/tests/test_*.sh` — 14/14 green
+- `uv run --python 3.9 pytest -q` — 1135 passed, 1 skipped
 - `bash scripts/eval.sh` — Findings 0, Run errors 0
-- `prune-ledger.py check --cap-blocking` — exit 0, `base: 9704 bytes (cap 10000), ledger: 187 rows, re-added: 0`
-- `verdict-provenance.py check` — exit 0, note `prose_only_count: 8 (cap 2)`
-- `pipeline-baseline.py compare` Stage 1 vs 2a — exit criteria 2/2 × 4
+- `verdict-provenance.py check` — exit 0, note `prose_only_count` truthful (7 after Story 1, then 3 after Stories 2–4: gate1, gate3.5, gate4.5)
 - Typecheck: skipped, none configured
-- Host side effect from replays: Homebrew Postgres 17 running with `writ_story{2,3,4}_test` databases
+- `test-integrity` coverage: unverifiable (`no_coverage_report`)

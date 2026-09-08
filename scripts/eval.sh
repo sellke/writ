@@ -70,6 +70,11 @@ CHECKS=(
   pipeline-baseline
   pruned-base
   verdict-provenance
+  review-override
+  arch-check
+  docs-check
+  boundary-map
+  change-surface
 )
 
 TOTAL_FINDINGS=0
@@ -3978,6 +3983,224 @@ check_verdict_provenance() {
         ;;
     esac
   done <<< "$output"
+}
+
+check_review_override() {
+  # Story 1 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 3's
+  # mechanical override. Relays review-override.py findings via add_finding
+  # and the summary / unverifiable reasons via add_note. Not count-blocking;
+  # check_verdict_provenance still does not pass --prose-only-blocking.
+  local helper="$PROJECT_ROOT/scripts/review-override.py"
+  local output rc line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/review-override.py" "review-override helper is missing." \
+      "Restore scripts/review-override.py so check can run."
+    return
+  fi
+
+  rc=0
+  output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/review-override.py" "review-override.py check refused: ${output##*$'\n'}" \
+      "Fix the review-override.py CLI so python3 scripts/review-override.py check --repo . parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/review-override.py" "review-override printed fail." \
+          "Resolve the ac-trace or test-integrity finding the override reported."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [review-override]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "review-override:${line#reason: }" "${line#reason: }" \
+            "Resolve the helper finding; Gate 3 is FAIL-only (mechanical pass does not wash out an agent FAIL)."
+        else
+          add_note "NOTE [review-override]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [review-override]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_arch_check() {
+  # Story 2 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 0's
+  # mechanical re-derivation. Relays arch-check.py findings via add_finding
+  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  local helper="$PROJECT_ROOT/scripts/arch-check.py"
+  local output rc line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/arch-check.py" "arch-check helper is missing." \
+      "Restore scripts/arch-check.py so check can run."
+    return
+  fi
+
+  rc=0
+  output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/arch-check.py" "arch-check.py check refused: ${output##*$'\n'}" \
+      "Fix the arch-check.py CLI so python3 scripts/arch-check.py check --repo . parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/arch-check.py" "arch-check printed fail." \
+          "Resolve the story-deps graph finding the checker reported."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [arch-check]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "arch-check:${line#reason: }" "${line#reason: }" \
+            "Resolve the story-deps blocker; Gate 0 ABORT stays LLM-judged."
+        else
+          add_note "NOTE [arch-check]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [arch-check]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_docs_check() {
+  # Story 3 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 5's
+  # symbol-to-export diff. Relays docs-check.py findings via add_finding
+  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  # Live invoke pins --changed to README.md so this markdown repo stays
+  # unverifiable rather than inventing a fail from git diff.
+  local helper="$PROJECT_ROOT/scripts/docs-check.py"
+  local output rc line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/docs-check.py" "docs-check helper is missing." \
+      "Restore scripts/docs-check.py so check can run."
+    return
+  fi
+
+  rc=0
+  if [ -f "$PROJECT_ROOT/README.md" ]; then
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" --changed "$PROJECT_ROOT/README.md" 2>&1)" || rc=$?
+  else
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  fi
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/docs-check.py" "docs-check.py check refused: ${output##*$'\n'}" \
+      "Fix the docs-check.py CLI so python3 scripts/docs-check.py check --repo . parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/docs-check.py" "docs-check printed fail." \
+          "Document the public export or stop exporting it."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [docs-check]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "docs-check:${line#reason: }" "${line#reason: }" \
+            "Name the export in README / CHANGELOG / framework docs / a docstring."
+        else
+          add_note "NOTE [docs-check]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [docs-check]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_boundary_map() {
+  # Story 4 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 0.5
+  # advisory map. Exit 1 (malformed story) is a finding; well-formed JSON
+  # is a note. Fixture trees may supply story.md at the project root.
+  local helper="$PROJECT_ROOT/scripts/boundary-map.py"
+  local output rc=0 story="" cand
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/boundary-map.py" "boundary-map helper is missing." \
+      "Restore scripts/boundary-map.py so check can run."
+    return
+  fi
+
+  if [ -f "$PROJECT_ROOT/story.md" ]; then
+    story="$PROJECT_ROOT/story.md"
+  else
+    for cand in "$PROJECT_ROOT"/.writ/specs/*/user-stories/story-*.md; do
+      [ -f "$cand" ] || continue
+      story="$cand"
+      break
+    done
+  fi
+  if [ -z "$story" ]; then
+    add_note "NOTE [boundary-map]: no story file; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" compute --story "$story" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/boundary-map.py" "boundary-map.py compute refused: ${output##*$'\n'}" \
+      "Fix the boundary-map.py CLI so compute --story PATH --repo . parses."
+    return
+  fi
+  if [ "$rc" -eq 1 ]; then
+    add_finding "scripts/boundary-map.py" "boundary-map.py reported a malformed story." \
+      "Fix the story file passed to compute."
+    return
+  fi
+  add_note "NOTE [boundary-map]: $output"
+}
+
+check_change_surface() {
+  # Story 4 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 2.5
+  # path-heuristic class. Usage (exit 2) is a finding; a class token is a note.
+  local helper="$PROJECT_ROOT/scripts/change-surface.py"
+  local output rc=0 changed=""
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/change-surface.py" "change-surface helper is missing." \
+      "Restore scripts/change-surface.py so check can run."
+    return
+  fi
+
+  if [ -f "$PROJECT_ROOT/fixture.css" ]; then
+    changed="$PROJECT_ROOT/fixture.css"
+  elif [ -f "$PROJECT_ROOT/commands/implement-story.md" ]; then
+    changed="$PROJECT_ROOT/commands/implement-story.md"
+  else
+    add_note "NOTE [change-surface]: no file to classify; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" classify --changed "$changed" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/change-surface.py" "change-surface.py classify refused: ${output##*$'\n'}" \
+      "Fix the change-surface.py CLI so classify --changed FILE parses."
+    return
+  fi
+  if [ "$rc" -ne 0 ]; then
+    add_finding "scripts/change-surface.py" "change-surface.py classify failed." \
+      "Investigate scripts/change-surface.py."
+    return
+  fi
+  add_note "NOTE [change-surface]: $output"
 }
 
 run_check() {
