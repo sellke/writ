@@ -1,0 +1,303 @@
+[
+  {
+    "story_id": "2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption",
+    "run": 1,
+    "status": "complete",
+    "reason": null,
+    "started_at": "2026-09-08T01:31:32Z",
+    "isolation": {
+      "reachable_commits": 1,
+      "expected": 1,
+      "asserted": true,
+      "answer_scrub_asserted": true
+    },
+    "writ": {
+      "source": "overlay",
+      "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+      "dirty": true,
+      "checkout_manifest_version": "e1a3fd1",
+      "manifest_diff_count": 156
+    },
+    "inputs": "parent",
+    "deps": {
+      "seconds": 5.511,
+      "exit": 0
+    },
+    "invocation": {
+      "driver": "claude",
+      "argv": [
+        "claude",
+        "-p",
+        "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-3-fee-sharing-pro-exemption.md",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "claude-fable-5-1",
+        "--max-budget-usd",
+        "75",
+        "--dangerously-skip-permissions",
+        "--permission-prompts",
+        "none",
+        "--setting-sources",
+        "project",
+        "--strict-mcp-config",
+        "--no-session-persistence"
+      ],
+      "model": "claude-fable-5-1",
+      "model_resolved": "claude-fable-5-1",
+      "claude_version": "2.1.260",
+      "permission_mode": "bypass",
+      "api_key_source": "none"
+    },
+    "wall_clock_s": 147.799,
+    "num_turns": 7,
+    "tokens": {
+      "input": 16,
+      "output": 11536,
+      "cache_read": 925696,
+      "cache_creation": 22364
+    },
+    "tokens_main_thread": {
+      "input": 178,
+      "output": 705,
+      "cache_read": 7554491,
+      "cache_creation": 274420
+    },
+    "cost_usd": 10.722004299999998,
+    "interrupts": {
+      "ask_user_question": 0,
+      "status_blocked": 4
+    },
+    "review_iterations": 0,
+    "tests": {
+      "suite": {
+        "passed": 3071,
+        "total": 3073,
+        "reason": null
+      },
+      "original": {
+        "passed": 1,
+        "total": 8,
+        "reason": null,
+        "files": [
+          "app/__tests__/dashboard-fee-share-prompt.test.tsx",
+          "components/__tests__/FeeShareModal.test.tsx"
+        ]
+      }
+    },
+    "gates": {
+      "gate0_arch": {
+        "verdict": null,
+        "source": null,
+        "rederived": null
+      },
+      "gate2_build": {
+        "verdict": null,
+        "source": null,
+        "rederived": "pass"
+      },
+      "gate3_review": {
+        "verdict": null,
+        "source": null,
+        "rederived": null
+      },
+      "gate4_tests": {
+        "verdict": null,
+        "source": null,
+        "rederived": "fail",
+        "integrity": "unverifiable"
+      },
+      "gate5_docs": {
+        "verdict": null,
+        "source": null,
+        "rederived": null
+      }
+    },
+    "rederivation": {
+      "build_smoke": {
+        "argv": [
+          "python3",
+          "<writ_root>/scripts/build-smoke.py",
+          "check",
+          "--project",
+          "<checkout>",
+          "--timeout",
+          "300"
+        ],
+        "verdict": "pass",
+        "reason": null
+      },
+      "test_integrity": {
+        "argv": [
+          "python3",
+          "<writ_root>/scripts/test-integrity.py",
+          "coverage",
+          "--project",
+          "<checkout>",
+          "--report",
+          "<artifacts>/coverage/coverage-final.json"
+        ],
+        "verdict": "unverifiable",
+        "reason": "nothing_inspected"
+      }
+    },
+    "exit_criteria": {
+      "reported": null,
+      "rederived": "unmet",
+      "rederived_by": "implement-story success predicates"
+    },
+    "yuss_head_unchanged": true
+  },
+  {
+    "story_id": "2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard",
+    "run": 2,
+    "status": "complete",
+    "reason": null,
+    "started_at": "2026-09-08T03:05:16Z",
+    "isolation": {
+      "reachable_commits": 1,
+      "expected": 1,
+      "asserted": true,
+      "answer_scrub_asserted": true
+    },
+    "writ": {
+      "source": "overlay",
+      "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+      "dirty": true,
+      "checkout_manifest_version": "e1a3fd1",
+      "manifest_diff_count": 156
+    },
+    "inputs": "parent",
+    "deps": {
+      "seconds": 5.233,
+      "exit": 0
+    },
+    "invocation": {
+      "driver": "claude",
+      "argv": [
+        "claude",
+        "-p",
+        "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-4-messaging-migration-quick-split-guard.md",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--model",
+        "claude-fable-5-1",
+        "--max-budget-usd",
+        "75",
+        "--dangerously-skip-permissions",
+        "--permission-prompts",
+        "none",
+        "--setting-sources",
+        "project",
+        "--strict-mcp-config",
+        "--no-session-persistence"
+      ],
+      "model": "claude-fable-5-1",
+      "model_resolved": "claude-fable-5-1",
+      "claude_version": "2.1.260",
+      "permission_mode": "bypass",
+      "api_key_source": "none"
+    },
+    "wall_clock_s": 14.034,
+    "num_turns": 3,
+    "tokens": {
+      "input": 4,
+      "output": 657,
+      "cache_read": 43739,
+      "cache_creation": 28436
+    },
+    "tokens_main_thread": {
+      "input": 8,
+      "output": 26,
+      "cache_read": 63753,
+      "cache_creation": 75886
+    },
+    "cost_usd": 0.57721225,
+    "interrupts": {
+      "ask_user_question": 0,
+      "status_blocked": 0
+    },
+    "review_iterations": 0,
+    "tests": {
+      "suite": {
+        "passed": 3051,
+        "total": 3051,
+        "reason": null
+      },
+      "original": {
+        "passed": 52,
+        "total": 57,
+        "reason": null,
+        "files": [
+          "app/__tests__/dashboard-event-limit-error.test.tsx",
+          "components/__tests__/FeatureGateModal.test.tsx",
+          "components/__tests__/UpgradeModal.test.tsx"
+        ]
+      }
+    },
+    "gates": {
+      "gate0_arch": {
+        "verdict": null,
+        "source": null,
+        "rederived": null
+      },
+      "gate2_build": {
+        "verdict": null,
+        "source": null,
+        "rederived": "pass"
+      },
+      "gate3_review": {
+        "verdict": null,
+        "source": null,
+        "rederived": null
+      },
+      "gate4_tests": {
+        "verdict": null,
+        "source": null,
+        "rederived": "pass",
+        "integrity": "unverifiable"
+      },
+      "gate5_docs": {
+        "verdict": null,
+        "source": null,
+        "rederived": null
+      }
+    },
+    "rederivation": {
+      "build_smoke": {
+        "argv": [
+          "python3",
+          "<writ_root>/scripts/build-smoke.py",
+          "check",
+          "--project",
+          "<checkout>",
+          "--timeout",
+          "300"
+        ],
+        "verdict": "pass",
+        "reason": null
+      },
+      "test_integrity": {
+        "argv": [
+          "python3",
+          "<writ_root>/scripts/test-integrity.py",
+          "coverage",
+          "--project",
+          "<checkout>",
+          "--report",
+          "<artifacts>/coverage/coverage-final.json"
+        ],
+        "verdict": "unverifiable",
+        "reason": "nothing_inspected"
+      }
+    },
+    "exit_criteria": {
+      "reported": null,
+      "rederived": "unmet",
+      "rederived_by": "implement-story success predicates"
+    },
+    "yuss_head_unchanged": true
+  }
+]
