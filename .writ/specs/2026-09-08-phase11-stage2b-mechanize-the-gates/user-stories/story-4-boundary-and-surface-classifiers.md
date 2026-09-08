@@ -1,6 +1,7 @@
 # Story 4: Gate 0.5 + 2.5 Classifiers — boundary-map.py and change-surface.py from git + path heuristics
 
 > **Status:** Completed ✅
+> **Commit:** dda5623edcac6b435be25d005e3f4c4239cc5c17
 > **Priority:** Medium
 > **Dependencies:** None
 

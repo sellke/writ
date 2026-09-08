@@ -1,6 +1,7 @@
 # Story 2: Gate 0 Architecture Re-derivation — arch-check.py Re-derives PROCEED/CAUTION, Never ABORT
 
 > **Status:** Completed ✅
+> **Commit:** dda5623edcac6b435be25d005e3f4c4239cc5c17
 > **Priority:** High
 > **Dependencies:** None
 

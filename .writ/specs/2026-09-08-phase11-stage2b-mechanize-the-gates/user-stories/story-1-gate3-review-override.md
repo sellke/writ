@@ -1,6 +1,7 @@
 # Story 1: Gate 3 Review Override — review-override.py Re-derives PASS/FAIL from ac-trace + test-integrity
 
 > **Status:** Completed ✅
+> **Commit:** dda5623edcac6b435be25d005e3f4c4239cc5c17
 > **Priority:** High
 > **Dependencies:** None
 

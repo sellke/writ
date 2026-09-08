@@ -1,6 +1,7 @@
 # Story 3: Gate 5 Docs Check — docs-check.py Diffs Documented Symbols Against Changed Exports
 
 > **Status:** Completed ✅
+> **Commit:** dda5623edcac6b435be25d005e3f4c4239cc5c17
 > **Priority:** High
 > **Dependencies:** None
 
