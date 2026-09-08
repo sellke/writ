@@ -1,6 +1,7 @@
 # Story 5: Gate 3.5 Format + Flip + Watch — drift-format.py, prose-only-blocking, runner watch field, baseline replay
 
 > **Status:** Completed ✅
+> **Commit:** 5fd325fb10721ccc99adf31e5a3f2447692d9d91
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2, Story 3, Story 4
 
