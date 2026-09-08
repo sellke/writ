@@ -12,3 +12,4 @@
 2026-09-08 stage-2b: Story 2 — arch-check.py re-derives Gate 0 proceed/caution (never abort); --planned is the live mode.
 2026-09-08 stage-2b: Story 3 — docs-check.py diffs public exports against README/CHANGELOG/framework docs/docstrings; Writ-the-product is unverifiable.
 2026-09-08 stage-2b: Story 4 — boundary-map.py compute + change-surface.py classify land; Gate 0.5/2.5 pass stdout; maps stay advisory.
+2026-09-08 stage-2b: Story 5 — drift-format.py; gates flipped to 8 script / 2 prose-only; --prose-only-blocking on; watch field; replay totals {54 agree / 42 note / 48 unverifiable}

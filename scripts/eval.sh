@@ -75,6 +75,7 @@ CHECKS=(
   docs-check
   boundary-map
   change-surface
+  drift-format
 )
 
 TOTAL_FINDINGS=0
@@ -3939,9 +3940,9 @@ check_verdict_provenance() {
   # heading in commands/implement-story.md must have a gates: frontmatter
   # entry naming its verdict source (script: path or verification:
   # prose-only). Drift lines from `verdict-provenance.py check` are relayed
-  # as findings; the `prose_only_count` line is a note, not a finding, until
-  # the mechanization spec passes --prose-only-blocking here (technical-spec
-  # §5). Sits beside check_pruned_base (Story 1) and check_pipeline_baseline.
+  # as findings. Story 5 of 2026-09-08-phase11-stage2b-mechanize-the-gates
+  # passes --prose-only-blocking so a third prose-only gate is a finding.
+  # Sits beside check_pruned_base (Story 1) and check_pipeline_baseline.
   local helper="$PROJECT_ROOT/scripts/verdict-provenance.py"
   local command="$PROJECT_ROOT/commands/implement-story.md"
   local rel output rc line field reason
@@ -3960,7 +3961,7 @@ check_verdict_provenance() {
 
   # check exits 1 on findings and 2 on a usage defect; `set -e` must not abort.
   rc=0
-  output="$(python3 "$helper" check --command "$command" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  output="$(python3 "$helper" check --command "$command" --repo "$PROJECT_ROOT" --prose-only-blocking 2>&1)" || rc=$?
   if [ "$rc" -eq 2 ]; then
     add_finding "$rel" "verdict-provenance.py check refused: ${output##*$'\n'}" \
       "Fix the gates: frontmatter block so python3 scripts/verdict-provenance.py check --command $rel parses it."
@@ -3970,7 +3971,7 @@ check_verdict_provenance() {
     [ -n "$line" ] || continue
     case "$line" in
       "note: "*)
-        add_note "NOTE [$rel]: ${line#note: }. Not blocking until the gate-mechanization spec passes --prose-only-blocking (technical-spec §5)."
+        add_note "NOTE [$rel]: ${line#note: }"
         ;;
       "gates: "*)
         add_note "Metrics: $line"
@@ -3988,8 +3989,8 @@ check_verdict_provenance() {
 check_review_override() {
   # Story 1 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 3's
   # mechanical override. Relays review-override.py findings via add_finding
-  # and the summary / unverifiable reasons via add_note. Not count-blocking;
-  # check_verdict_provenance still does not pass --prose-only-blocking.
+  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  # --prose-only-blocking is owned by check_verdict_provenance (Story 5).
   local helper="$PROJECT_ROOT/scripts/review-override.py"
   local output rc line
 
@@ -4201,6 +4202,59 @@ check_change_surface() {
     return
   fi
   add_note "NOTE [change-surface]: $output"
+}
+
+check_drift_format() {
+  # Story 5 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 3.5
+  # format check. Relays findings via add_finding and the summary via add_note.
+  local helper="$PROJECT_ROOT/scripts/drift-format.py"
+  local output rc=0 line story=""
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/drift-format.py" "drift-format helper is missing." \
+      "Restore scripts/drift-format.py so check can run."
+    return
+  fi
+
+  if [ -f "$PROJECT_ROOT/story.md" ]; then
+    story="$PROJECT_ROOT/story.md"
+  else
+    story="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage2b-mechanize-the-gates/user-stories/story-5-drift-format-flip-and-watch.md"
+  fi
+  if [ ! -f "$story" ]; then
+    add_note "NOTE [drift-format]: no story file; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" check --story "$story" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/drift-format.py" "drift-format.py check refused: ${output##*$'\n'}" \
+      "Fix the drift-format.py CLI so check --story PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/drift-format.py" "drift-format printed fail." \
+          "Fix the drift-log format or emit PAUSE on Large drift."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [drift-format]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "drift-format:${line#reason: }" "${line#reason: }" \
+            "Format-check only; accept/reject/modify-spec stay human."
+        else
+          add_note "NOTE [drift-format]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [drift-format]: $line"
+        ;;
+    esac
+  done <<< "$output"
 }
 
 run_check() {

@@ -242,10 +242,7 @@ ok "missing boundary-map helper -> exit 1, one finding"
 # ---------------------------------------------------------------------------
 # Real eval.sh: --prose-only-blocking still not passed (Story 5)
 # ---------------------------------------------------------------------------
-if awk '/^check_verdict_provenance\(\)/,/^}/' "$EVAL" | grep '"\$helper" check ' | grep -q -- '--prose-only-blocking'; then
-  fail "check_verdict_provenance must not pass --prose-only-blocking yet (Story 5 flips it)"
-fi
-ok "provenance not blocking"
+ok "provenance flag owned by Story 5"
 
 # When the parent has registered the names, require add_finding / add_note.
 if awk '/^CHECKS=\(/{f=1} f && /^\)/{exit} f' "$EVAL" | grep -Fxq "  boundary-map"; then

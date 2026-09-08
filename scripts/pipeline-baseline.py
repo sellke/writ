@@ -710,7 +710,10 @@ COMPARE_METRICS = (
     "interrupts.ask_user_question", "interrupts.status_blocked",
     "review_iterations", "cost_usd",
 )
-GATE_NAMES = ("gate0_arch", "gate2_build", "gate3_review", "gate4_tests", "gate5_docs")
+GATE_NAMES = (
+    "gate0_arch", "gate0_5_boundary", "gate2_build", "gate2_5_surface",
+    "gate3_review", "gate3_5_drift", "gate4_tests", "gate5_docs",
+)
 GATE_KEYS = ("verdict", "source", "rederived")      # gate4_tests also carries `integrity`
 ISOLATION_KEYS = ("reachable_commits", "expected", "asserted", "answer_scrub_asserted")
 WRIT_KEYS = ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count")
@@ -719,7 +722,19 @@ TEST_BLOCK_KEYS = ("passed", "total", "reason")
 # from `--writ-root` against the produced checkout. Each block is
 # {argv, verdict, reason}; `gate2_build.rederived` and `gate4_tests.integrity`
 # carry the verdicts. Argv paths are shown as <writ_root>/<checkout>/<artifacts>.
-REDERIVATION_KEYS = ("build_smoke", "test_integrity")
+REDERIVATION_KEYS = (
+    "build_smoke", "test_integrity",
+    "arch_check", "review_override", "docs_check",
+    "boundary_map", "change_surface", "drift_format",
+)
+BACKGROUND_DROP = "Background tasks still running after 600s"
+
+
+def count_background_drops(text: str) -> int:
+    """Count Claude Code print-mode 'Background tasks still running after 600s'."""
+    if not text:
+        return 0
+    return text.count(BACKGROUND_DROP)
 REDERIVATION_BLOCK_KEYS = ("argv", "verdict", "reason")
 GATE_SCRIPT_VERDICTS = ("pass", "fail", "unverifiable")
 BUILD_SMOKE_REL = "scripts/build-smoke.py"
@@ -1298,7 +1313,8 @@ def rederive_gates(writ_root: Path, checkout: Path, artifacts: Path) -> dict:
             writ_root / TEST_INTEGRITY_REL,
             ["coverage", "--project", str(checkout), "--report", str(report)], checkout, names),
     }
-    assert tuple(block) == REDERIVATION_KEYS
+    for key in REDERIVATION_KEYS:
+        block.setdefault(key, {"argv": None, "verdict": None, "reason": None})
     return block
 
 
@@ -1562,13 +1578,18 @@ def assemble_record(meta: dict, transcript: Optional[dict], tests: Optional[dict
         rec["tests"] = tests
         rec["gates"]["gate4_tests"]["rederived"] = _suite_verdict(tests["suite"])
     if gates_rederived is not None:
-        rec["rederivation"] = {k: {f: gates_rederived[k].get(f) for f in REDERIVATION_BLOCK_KEYS}
-                               for k in REDERIVATION_KEYS}
-        rec["gates"]["gate2_build"]["rederived"] = gates_rederived["build_smoke"]["verdict"]
-        rec["gates"]["gate4_tests"]["integrity"] = gates_rederived["test_integrity"]["verdict"]
+        rec["rederivation"] = {}
+        for k in REDERIVATION_KEYS:
+            src = gates_rederived.get(k) or {}
+            rec["rederivation"][k] = {f: src.get(f) for f in REDERIVATION_BLOCK_KEYS}
+        if "build_smoke" in gates_rederived:
+            rec["gates"]["gate2_build"]["rederived"] = gates_rederived["build_smoke"].get("verdict")
+        if "test_integrity" in gates_rederived:
+            rec["gates"]["gate4_tests"]["integrity"] = gates_rederived["test_integrity"].get("verdict")
     if rederived is not None:
         rec["exit_criteria"]["rederived"] = rederived
-    assert tuple(rec) == RUN_KEYS
+    rec["background_tasks_outstanding"] = int(meta.get("background_tasks_outstanding") or 0)
+    assert tuple(list(rec)[:len(RUN_KEYS)]) == RUN_KEYS
     return rec
 
 
@@ -1931,9 +1952,14 @@ def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, me
         return assemble_record(meta, None, None, None)
     transcript = run_dir / "transcript.jsonl"
     driver = DRIVERS[meta["invocation"]["driver"]]
+    stderr_log = run_dir / "stderr.log"
     meta["timed_out"], meta["elapsed_s"] = invoke_headless(
-        meta["invocation"]["argv"], checkout, transcript, run_dir / "stderr.log", args.cap,
+        meta["invocation"]["argv"], checkout, transcript, stderr_log, args.cap,
         nested_vars=driver.nested_vars)
+    stderr_text = ""
+    if stderr_log.is_file():
+        stderr_text = stderr_log.read_text(encoding="utf-8", errors="replace")
+    meta["background_tasks_outstanding"] = count_background_drops(stderr_text)
     meta["yuss_head_unchanged"] = (git.run("rev-parse", "HEAD") or "").strip() == head_before
     _write_sidecar(run_dir, meta)
     return postprocess(git, checkout, transcript, entry, meta, run_dir, Path(args.writ_root))
@@ -2005,6 +2031,12 @@ def cmd_ingest(args: argparse.Namespace) -> None:
         _refuse("ingest", "--checkout %s is not a git checkout" % checkout)
     if not transcript.is_file():
         _refuse("ingest", "--transcript %s does not exist" % transcript)
+    stderr_text = ""
+    for candidate in (transcript.with_name("stderr.log"), checkout / "stderr.log"):
+        if candidate.is_file():
+            stderr_text = candidate.read_text(encoding="utf-8", errors="replace")
+            break
+    ingest_background = count_background_drops(stderr_text)
     doc = load_baseline("ingest", baseline, yuss)
     sidecar = next((p for p in (checkout.parent / SIDECAR, checkout / SIDECAR) if p.is_file()), None)
     if sidecar is not None:
@@ -2028,6 +2060,7 @@ def cmd_ingest(args: argparse.Namespace) -> None:
     if artifacts.exists():
         rmtree(artifacts)
     artifacts.mkdir(parents=True)
+    meta["background_tasks_outstanding"] = ingest_background
     try:
         rec = postprocess(Git(yuss), checkout, transcript, entry, meta, artifacts, Path(args.writ_root))
     finally:

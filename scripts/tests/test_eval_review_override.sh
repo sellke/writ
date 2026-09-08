@@ -145,9 +145,6 @@ awk '/^check_review_override\(\)/,/^}/' "$EVAL" | grep -q 'add_finding' \
   || fail "check_review_override must relay findings via add_finding"
 awk '/^check_review_override\(\)/,/^}/' "$EVAL" | grep -q 'add_note' \
   || fail "check_review_override must relay the summary via add_note"
-if awk '/^check_verdict_provenance\(\)/,/^}/' "$EVAL" | grep '"\$helper" check ' | grep -q -- '--prose-only-blocking'; then
-  fail "check_verdict_provenance must not pass --prose-only-blocking yet (Story 5 flips it)"
-fi
-ok "registration: review-override in CHECKS, findings/notes relayed, provenance not blocking"
+ok "registration: review-override in CHECKS, findings/notes relayed"
 
 printf '\nAll %d review-override check assertions passed.\n' "$pass_count"

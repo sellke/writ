@@ -38,7 +38,7 @@ gates:
   - id: gate3_review
     script: scripts/review-override.py
   - id: gate3_5_drift
-    verification: prose-only
+    script: scripts/drift-format.py
   - id: gate4_tests
     script: scripts/test-integrity.py
   - id: gate4_5_visual
@@ -292,6 +292,15 @@ After the review agent returns, perform two operations:
 Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
+
+**Verify the claim, don't trust it.** After the drift step, format-check only — this script never decides accept / reject / modify-spec:
+
+```bash
+python3 scripts/drift-format.py check --story <story-file> [--drift-log <spec>/drift-log.md] [--review-output <review-agent stdout>]
+```
+
+- **script `fail`** → apply the shared [BLOCKED escalation](#blocked-agent-escalation).
+- **any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ##### B. "What Was Built" Data Extraction
 

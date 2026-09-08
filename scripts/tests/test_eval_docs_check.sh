@@ -218,9 +218,6 @@ awk '/^check_docs_check\(\)/,/^}/' "$EVAL" | grep -q 'add_finding' \
   || fail "check_docs_check must relay findings via add_finding"
 awk '/^check_docs_check\(\)/,/^}/' "$EVAL" | grep -q 'add_note' \
   || fail "check_docs_check must relay the summary via add_note"
-if awk '/^check_verdict_provenance\(\)/,/^}/' "$EVAL" | grep '"\$helper" check ' | grep -q -- '--prose-only-blocking'; then
-  fail "check_verdict_provenance must not pass --prose-only-blocking yet (Story 5 flips it)"
-fi
-ok "registration: docs-check in CHECKS, findings/notes relayed, provenance not blocking"
+ok "registration: docs-check in CHECKS, findings/notes relayed"
 
 printf '\nAll %d docs-check check assertions passed.\n' "$pass_count"

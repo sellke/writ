@@ -520,7 +520,9 @@ class CommandBudgetTests(unittest.TestCase):
 # Updated 2026-09-08 (spec 2026-09-08-phase11-stage2b-mechanize-the-gates,
 # Stories 1–4): implement-story.md 5381 -> 8554 overage (file 33514 bytes)
 # from Gate 0/0.5/2.5/3/5 verify-the-claim blocks and script invocations.
-# Still a command file, not under the Stage 2 base-byte cap. Acknowledged.
+# Updated 2026-09-08 Story 5: 8554 -> 9103 overage (file 34063 bytes) from
+# the Gate 3.5 drift-format verify block and gates: flip. Still a command
+# file, not under the Stage 2 base-byte cap. Acknowledged.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
@@ -529,7 +531,7 @@ KNOWN_OVER_BUDGET = {
     "commands/implement-phase.md": 10208,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 8554,
+    "commands/implement-story.md": 9103,
 }
 
 

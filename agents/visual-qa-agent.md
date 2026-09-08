@@ -31,7 +31,7 @@ outcome: "On an activated run, a Visual QA Report scoring the running UI against
 exit_criteria:
   - "activation was warranted: the story carries a Visual References section or the spec carries a non-empty mockups/ directory — a skipped gate satisfies nothing here"
   - "Mockups compared equals the number of mockup files the story references, and every compared screen has Expected versus Actual rows at the captured viewports"
-  - "the decision matches the match percentage: PASS at 85 or above with no high-priority mismatch, SOFT PASS at 70 or above, FAIL below 70 or on any high-priority mismatch"
+  - "the decision is PASS, SOFT PASS, or FAIL from the agent's per-aspect mismatch list — no match-percentage threshold"
 ```
 
 ## Process
@@ -103,7 +103,7 @@ For each screen/component with a mockup reference:
 
 **Story:** {story name}
 **Mockups compared:** {count}
-**Overall match:** {percentage}%
+**Overall:** {PASS / SOFT PASS / FAIL}
 
 ### Screen: {name}
 
@@ -129,9 +129,9 @@ For each screen/component with a mockup reference:
 
 ### Step 5: Gate Decision
 
-- **PASS** — ≥85% match, no high-priority mismatches
-- **SOFT PASS** — ≥70% match, only medium/low issues → continue, log issues
-- **FAIL** — <70% match or any high-priority mismatch → send fixes back to coding agent
+- **PASS** — no mismatches, or none the agent rates above low
+- **SOFT PASS** — only cosmetic, medium-or-low mismatches → continue, log issues
+- **FAIL** — any high-priority mismatch, or structural drift from the mockup → send fixes back to coding agent
 
 On FAIL, structure feedback for the coding agent:
 ```

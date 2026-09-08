@@ -39,8 +39,10 @@ new_root() {
   mkdir -p "$root/scripts" "$root/commands"
   cp "$EVAL" "$root/scripts/eval.sh"
   cp "$HELPER" "$root/scripts/verdict-provenance.py"
-  printf '# stub\n' > "$root/scripts/build-smoke.py"
-  printf '# stub\n' > "$root/scripts/test-integrity.py"
+  for stub in arch-check.py boundary-map.py build-smoke.py change-surface.py \
+              review-override.py drift-format.py test-integrity.py docs-check.py; do
+    printf '# stub\n' > "$root/scripts/$stub"
+  done
   printf "%s" "$root"
 }
 
@@ -55,7 +57,7 @@ report_of() {
 }
 
 # Write a ten-gate fixture command file. $2 selects a mutation:
-#   ""            clean: 2 script entries, 8 prose-only
+#   ""            clean: 8 script entries, 2 prose-only (Stage 2b truthful)
 #   drop-entry    gate2_5_surface entry removed  -> heading_without_entry
 #   drop-heading  Gate 3.5 heading removed       -> entry_without_heading
 #   bad-value     gate5_docs verification: manual -> unknown_verification_value
@@ -70,7 +72,16 @@ mutate = sys.argv[2]
 ids = ["gate0_arch", "gate0_5_boundary", "gate1_coding", "gate2_build",
        "gate2_5_surface", "gate3_review", "gate3_5_drift", "gate4_tests",
        "gate4_5_visual", "gate5_docs"]
-scripts = {"gate2_build": "scripts/build-smoke.py", "gate4_tests": "scripts/test-integrity.py"}
+scripts = {
+    "gate0_arch": "scripts/arch-check.py",
+    "gate0_5_boundary": "scripts/boundary-map.py",
+    "gate2_build": "scripts/build-smoke.py",
+    "gate2_5_surface": "scripts/change-surface.py",
+    "gate3_review": "scripts/review-override.py",
+    "gate3_5_drift": "scripts/drift-format.py",
+    "gate4_tests": "scripts/test-integrity.py",
+    "gate5_docs": "scripts/docs-check.py",
+}
 numbers = ["0", "0.5", "1", "2", "2.5", "3", "3.5", "4", "4.5", "5"]
 
 fm = ["---", "name: implement-story", 'description: "fixture"', "gates:"]
@@ -78,10 +89,10 @@ for gid in ids:
     if mutate == "drop-entry" and gid == "gate2_5_surface":
         continue
     fm.append("  - id: %s" % gid)
-    if gid in scripts:
-        fm.append("    script: %s" % scripts[gid])
-    elif mutate == "bad-value" and gid == "gate5_docs":
+    if mutate == "bad-value" and gid == "gate5_docs":
         fm.append("    verification: manual")
+    elif gid in scripts:
+        fm.append("    script: %s" % scripts[gid])
     else:
         fm.append("    verification: prose-only")
 fm.append("---")
@@ -109,8 +120,8 @@ if grep -q '^FAIL' "$ROOT/eval-report.md"; then
 fi
 note_count="$(grep -c '^\- NOTE' "$ROOT/eval-report.md" || true)"
 [ "$note_count" -eq 1 ] || { report_of "$ROOT"; fail "clean: expected exactly one add_note, got $note_count"; }
-grep -Fq 'prose_only_count: 8 (cap 2)' "$ROOT/eval-report.md" \
-  || { report_of "$ROOT"; fail "clean: note must carry prose_only_count: 8 (cap 2)"; }
+grep -Fq 'prose_only_count: 2 (cap 2)' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "clean: note must carry prose_only_count: 2 (cap 2)"; }
 ok "clean ten-gate fixture -> PASS, exit 0, prose_only_count relayed as a note"
 
 # ---------------------------------------------------------------------------
@@ -164,9 +175,8 @@ grep -q '^check_verdict_provenance()' "$EVAL" \
   || fail "check_verdict_provenance must be defined in scripts/eval.sh"
 awk '/^check_verdict_provenance\(\)/,/^}/' "$EVAL" | grep -q '"\$helper" check ' \
   || fail "check_verdict_provenance must invoke \"\$helper\" check"
-if awk '/^check_verdict_provenance\(\)/,/^}/' "$EVAL" | grep '"\$helper" check ' | grep -q -- '--prose-only-blocking'; then
-  fail "check_verdict_provenance must not pass --prose-only-blocking yet (mechanization spec flips it)"
-fi
-ok "registration: verdict-provenance in CHECKS, function defined, count not blocking"
+awk '/^check_verdict_provenance\(\)/,/^}/' "$EVAL" | grep '"\$helper" check ' | grep -q -- '--prose-only-blocking' \
+  || fail "check_verdict_provenance must pass --prose-only-blocking after Stage 2b Story 5"
+ok "registration: verdict-provenance in CHECKS, function defined, prose-only blocking on"
 
 printf '\nAll %d verdict-provenance check assertions passed.\n' "$pass_count"

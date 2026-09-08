@@ -533,9 +533,16 @@ class ContractTest(unittest.TestCase):
             "interrupts", "review_iterations", "tests", "gates", "rederivation", "exit_criteria",
             "yuss_head_unchanged",
         ])
-        self.assertEqual(list(pb.GATE_NAMES), ["gate0_arch", "gate2_build", "gate3_review", "gate4_tests", "gate5_docs"])
+        self.assertEqual(list(pb.GATE_NAMES), [
+            "gate0_arch", "gate0_5_boundary", "gate2_build", "gate2_5_surface",
+            "gate3_review", "gate3_5_drift", "gate4_tests", "gate5_docs",
+        ])
         self.assertEqual(pb.WRIT_KEYS, ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count"))
-        self.assertEqual(pb.REDERIVATION_KEYS, ("build_smoke", "test_integrity"))
+        self.assertEqual(pb.REDERIVATION_KEYS, (
+            "build_smoke", "test_integrity",
+            "arch_check", "review_override", "docs_check",
+            "boundary_map", "change_surface", "drift_format",
+        ))
         self.assertEqual(pb.GATE_SCRIPT_VERDICTS, ("pass", "fail", "unverifiable"))
         self.assertEqual(pb.RUN_STATUSES, ("complete", "budget", "error", "timeout"))
         self.assertEqual(pb.PERMISSION_MODE, "bypass")
@@ -1009,7 +1016,8 @@ class RunTest(Case):
                 self.assertEqual(doc[k], before[k], k)
         self.assertEqual(len(doc["runs"]), 1)
         rec = doc["runs"][0]
-        self.assertEqual(list(rec), list(pb.RUN_KEYS))
+        self.assertEqual(list(rec)[:len(pb.RUN_KEYS)], list(pb.RUN_KEYS))
+        self.assertEqual(rec["background_tasks_outstanding"], 0)
         self.assertEqual(rec["story_id"], STORY_ID)
         self.assertEqual(rec["run"], 1)
         self.assertEqual(rec["status"], "complete")
@@ -1052,7 +1060,7 @@ class RunTest(Case):
                                                        "rederived": "pass", "integrity": "pass"})
         # Business Rule 5: the gate scripts ran from --writ-root against the
         # checkout; argv is recorded with machine paths as placeholders
-        self.assertEqual(list(rec["rederivation"]), ["build_smoke", "test_integrity"])
+        self.assertEqual(list(rec["rederivation"]), list(pb.REDERIVATION_KEYS))
         self.assertEqual(rec["rederivation"]["build_smoke"], {
             "argv": ["python3", "<writ_root>/scripts/build-smoke.py", "check", "--project", "<checkout>",
                      "--timeout", "300"], "verdict": "pass", "reason": None})
@@ -1693,7 +1701,8 @@ class IngestTest(Case):
                                  disp, env=self.env(key=False))
         self.assertEqual(code, 0, err)
         rec = load(self.baseline)["runs"][0]
-        self.assertEqual(list(rec), list(pb.RUN_KEYS))
+        self.assertEqual(list(rec)[:len(pb.RUN_KEYS)], list(pb.RUN_KEYS))
+        self.assertEqual(rec["background_tasks_outstanding"], 0)
         self.assertEqual(rec["isolation"], {"reachable_commits": None, "expected": 1, "asserted": False,
                                             "answer_scrub_asserted": False})
         self.assertEqual(rec["reason"], "ingested without sidecar")

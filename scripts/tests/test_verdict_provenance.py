@@ -353,8 +353,9 @@ class RealCommandTests(unittest.TestCase):
         self.assertEqual(by_id["gate5_docs"], {"id": "gate5_docs", "script": "scripts/docs-check.py"})
         shipped_scripts = set(SCRIPTS) | {
             "gate0_arch", "gate0_5_boundary", "gate2_5_surface",
-            "gate3_review", "gate5_docs",
+            "gate3_review", "gate3_5_drift", "gate5_docs",
         }
+        self.assertEqual(by_id["gate3_5_drift"], {"id": "gate3_5_drift", "script": "scripts/drift-format.py"})
         for gate_id in ALL_IDS:
             if gate_id in shipped_scripts:
                 continue

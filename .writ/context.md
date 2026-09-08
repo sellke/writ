@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-08T22:25:00Z
+> Last Updated: 2026-09-08T22:35:00Z
 
 ## Product Mission
 
@@ -9,11 +9,11 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-08-phase11-stage2b-mechanize-the-gates` — Phase 11 Stage 2b (Goal Card `.writ/issues/goals/2026-09-05-writ-contract-and-verifier-layer.md`)
-- **Status:** In Progress — Stories 1–4 Completed ✅; Story 5 Not Started
-- **Story:** 5 of 5 — Gate 3.5 format + flip + watch (pending)
-- **Progress:** 25/32 tasks complete (78%)
+- **Status:** In Progress — Stories 1–5 Completed ✅ (spec header sync waits on implement-spec checker)
+- **Story:** 5 of 5 — Gate 3.5 format + flip + watch (Completed ✅)
+- **Progress:** 32/32 tasks complete (100%)
 
-Batch 1 landed `review-override.py`, `arch-check.py`, `docs-check.py`, `boundary-map.py`, and `change-surface.py`. Frontmatter now names those five scripts plus the two existing Gate 2/4 scripts; `gate1_coding`, `gate3_5_drift`, and `gate4_5_visual` remain `prose-only`. `--prose-only-blocking` is still off (Story 5).
+Frontmatter is 8 script / 2 prose-only (`gate1_coding`, `gate4_5_visual`). `--prose-only-blocking` is on. Replay totals: 54 agree / 42 note / 48 unverifiable. No keep-or-revert. No `/revert`.
 
 ## Artifact Map
 
@@ -31,14 +31,14 @@ From `2026-09-08-phase11-stage2b-mechanize-the-gates/drift-log.md`:
 
 ## Open Issues
 
-7 files under `.writ/issues/` — 3 untriaged (`2026-08-11-restore-path-recording…`, `2026-09-03-test-integrity-authenticity…`, `2026-09-07-exit-criteria-c3-rejects-stacks-without-a-typechecker.md`).
+7 files under `.writ/issues/` — 1 goal, 5 improvements (including `2026-09-07-exit-criteria-c3-rejects-stacks-without-a-typechecker.md`), 1 feature.
 
 ## Verification State
 
-2026-09-08, Stories 1–4 closeout:
+2026-09-08, Story 5 closeout:
 
-- `uv run --python 3.9 pytest -q` — 1135 passed, 1 skipped
+- `uv run --python 3.9 pytest -q` — 1146 passed, 1 skipped
+- `python3 scripts/verdict-provenance.py check --command commands/implement-story.md --prose-only-blocking` — exit 0, `prose_only_count: 2 (cap 2)`
 - `bash scripts/eval.sh` — Findings 0, Run errors 0
-- `verdict-provenance.py check` — exit 0, note `prose_only_count` truthful (7 after Story 1, then 3 after Stories 2–4: gate1, gate3.5, gate4.5)
 - Typecheck: skipped, none configured
 - `test-integrity` coverage: unverifiable (`no_coverage_report`)
