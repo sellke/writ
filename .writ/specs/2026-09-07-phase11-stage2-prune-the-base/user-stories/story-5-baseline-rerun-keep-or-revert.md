@@ -1,6 +1,7 @@
 # Story 5: Baseline Re-run and Keep-or-Revert — Eight Fable 5.1 Runs on the Pruned Base, Compared Against Stage 1
 
 > **Status:** Completed ✅ (2026-09-08)
+> **Commit:** deed2a1c1ecd3ef2f7d82f46486bfde3d8c59d74
 > **Priority:** High
 > **Dependencies:** Story 3, Story 4
 
