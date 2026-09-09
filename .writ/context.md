@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T14:50:00Z
+> Last Updated: 2026-09-09T16:40:00Z
 
 ## Product Mission
 
@@ -8,24 +8,18 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-09-09-phase11-stage4-goal-emit` — Phase 11 Stage 4a: Goal Emit
-- **Status:** Stories complete (3/3 Completed ✅); post-run suite green; typecheck skipped (no configured checker)
-- **Story:** 3 of 3 — Adapter + Eval + Gold Round-Trip (Completed ✅)
-- **Progress:** 20/20 tasks complete (100%)
+- **Spec:** `2026-09-09-phase11-stage4b-pipeline-demote` — Phase 11 Stage 4b: Pipeline Demote
+- **Status:** In Progress (1/3 stories Completed ✅)
+- **Story:** 1 of 3 — Evaluator Agent (Completed ✅)
+- **Progress:** 7/20 tasks complete (35%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md present
-- **Active spec:** .writ/specs/2026-09-09-phase11-stage4-goal-emit/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Active spec:** .writ/specs/2026-09-09-phase11-stage4b-pipeline-demote/ — spec.md + spec-lite.md, user-stories/, sub-specs/
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (25 files)
 - **Integrity:** ✅ all required present
-
-## Recent Drift
-
-- **DEV-001** Small — VERIFY.md names exit-criteria.py when spec_ref exists
-- **DEV-002** Small — check maps missing emit files to missing_boundary
-- **DEV-003** Small — banned-token matcher uses word boundaries
 
 ## Open Issues
 

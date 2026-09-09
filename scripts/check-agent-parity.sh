@@ -17,6 +17,7 @@ claude_counterpart() {
     architecture-check-agent) echo "writ-architect.md" ;;
     coding-agent) echo "writ-coder.md" ;;
     documentation-agent) echo "writ-documenter.md" ;;
+    evaluator-agent) echo "writ-evaluator.md" ;;
     review-agent) echo "writ-reviewer.md" ;;
     testing-agent) echo "writ-tester.md" ;;
     user-story-generator) echo "writ-story-gen.md" ;;

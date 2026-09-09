@@ -200,6 +200,10 @@ agents:
     file: agents/documentation-agent.md
     purpose: "Framework-adaptive documentation agent for feature, component, and architecture docs."
     model_tier: anchor
+  - name: evaluator-agent
+    file: agents/evaluator-agent.md
+    purpose: "Fresh-context rubric agent that adjudicates acceptance criteria and recorded test results; residual architecture, security, and taste; never applies a patch."
+    model_tier: anchor
   - name: review-agent
     file: agents/review-agent.md
     purpose: "Quality gate agent that verifies acceptance criteria, code quality, tests, and drift."
