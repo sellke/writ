@@ -3,171 +3,25 @@ category: lessons
 tags: [phase-close]
 created: 2026-08-12
 related_artifacts:
-  - .
-  - /
-  - /
-  - /
-  - .
-  - .
-  - /
-  - .
-  - .
+  - .writ/specs/archive/2026-08-12-disclosure-implement-story/load-report.md
+  - commands/implement-story.md
 ---
 
 # Progressive disclosure costs ~1,017 bytes of overhead per extracted skill
 
 ## TL;DR
 
-
+Progressive disclosure costs ~1,017 bytes of overhead per extracted skill.
 
 ## Context
 
-Recorded at phase close from evidence-bound knowledge writeback.
+Recorded at phase close from evidence-bound knowledge writeback (commit 2dba942; payload rejoined 2026-09-06).
 
 **Cited evidence:**
 
-- .
-- w
-- r
-- i
-- t
-- /
-- s
-- p
-- e
-- c
-- s
-- /
-- 2
-- 0
-- 2
-- 6
-- -
-- 0
-- 8
-- -
-- 1
-- 2
-- -
-- d
-- i
-- s
-- c
-- l
-- o
-- s
-- u
-- r
-- e
-- -
-- i
-- m
-- p
-- l
-- e
-- m
-- e
-- n
-- t
-- -
-- s
-- t
-- o
-- r
-- y
-- /
-- l
-- o
-- a
-- d
-- -
-- r
-- e
-- p
-- o
-- r
-- t
-- .
-- m
-- d
--  
-- a
-- n
-- d
--  
-- u
-- a
-- t
-- -
-- p
-- l
-- a
-- n
-- .
-- m
-- d
-- ;
--  
-- m
-- e
-- a
-- s
-- u
-- r
-- e
-- d
--  
-- 2
-- 0
-- 2
-- 6
-- -
-- 0
-- 8
-- -
-- 1
-- 2
--  
-- o
-- n
--  
-- c
-- o
-- m
-- m
-- a
-- n
-- d
-- s
-- /
-- i
-- m
-- p
-- l
-- e
-- m
-- e
-- n
-- t
-- -
-- s
-- t
-- o
-- r
-- y
-- .
-- m
-- d
-- .
+- .writ/specs/2026-08-12-disclosure-implement-story/load-report.md and uat-plan.md; measured 2026-08-12 on commands/implement-story.md.
 
 ## Related
 
-- `.`
-- `/`
-- `/`
-- `/`
-- `.`
-- `.`
-- `/`
-- `.`
-- `.`
+- `.writ/specs/archive/2026-08-12-disclosure-implement-story/load-report.md`
+- `commands/implement-story.md`

@@ -261,7 +261,9 @@ neutral reducer:
 
 ## Workflow Patterns
 
-### implement-story: Single Story
+### implement-story --full-pipeline: Single Story
+
+Default `/implement-story` is `writ-coder` + `writ-evaluator` plus scripts. The six-agent hatch is `--full-pipeline`:
 
 ```
 1. Orchestrator gathers context (reads story, spec, codebase)
@@ -362,7 +364,11 @@ Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop ho
 
 **The checker is the authority; `/goal` is only the delivery vehicle.** Story 5's command wiring makes `exit-criteria.py check` the independent, read-only re-derivation that `implement-phase` and `implement-spec` defer to in their completion steps. The `/goal` condition below likewise asks the checker and relays the verdict without restating or reinterpreting it. Never write a `/goal` condition that encodes its own pass/fail logic.
 
-Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is satisfiable by pausing as well as by finishing (spec.md Business Rule 1: "Reaching a retained pause satisfies the gate"). A condition that only accepts a clean checker pass pushes the model past a human gate; spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") causing this. Word the condition as an explicit three-way disjunction:
+Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is satisfiable by pausing as well as by finishing (spec.md Business Rule 1: "Reaching a retained pause satisfies the gate"). A condition that only accepts a clean checker pass pushes the model past a human gate; spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") causing this.
+
+**Paste the emitter's printed invoke line unchanged.** After `/create-goal` saves a `loop: yes` card, or `/implement-phase` resolves a Goal Card origin, `python3 scripts/goal-emit.py emit --card PATH` prints the `/goal` line after its summary. Paste that printed text as-is. It must match the three-way template below; do not rewrite clauses (a)/(b)/(c).
+
+Word the condition as an explicit three-way disjunction:
 
 ```
 /goal Treat this stop as acceptable when ANY of the following is true — do not
@@ -516,8 +522,12 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 
 3. **Memory bootstrapping**: Agent memory starts empty. First few runs will be less effective. Ask agents explicitly to "update your memory with patterns you discover."
 
-4. **Haiku for story-gen**: Fast and cheap but may produce less nuanced stories. If story quality matters, change `model: haiku` to `model: sonnet` in `writ-story-gen.md`.
+4. **Haiku for story-gen is the floor, not a knob**: `writ-story-gen` carries `model: haiku` because it is a `floor` agent under ADR-024 (templated output the user reviews before lock). Do not change it to a fixed `model: sonnet` — the anchor is the ceiling, and a fixed `sonnet` exceeds a `haiku` origin (see the tier table above). If a generated story fails validation, `/create-spec` Step 2.6a already re-runs it once at `anchor` (`inherit`); that escalate-once path is the quality lever.
 
 5. **Subagents nest**: three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). `/goal` does not nest: see **Single-slot behavior** under *The /goal Stop Hook* above. Only the outermost running command may hold one.
 
 6. **Plan mode is read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer cannot modify files, even if prompted to.
+
+## Model-specific
+
+Claude Fable 5.1 may serialize independent tool calls: issue independent reads, searches, and checks as one batched message, not one at a time (the only model-specific line this adapter carries — ADR-026; see ADR-024 for delegation).

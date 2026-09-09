@@ -120,6 +120,7 @@ and unlink manage this file alongside its reducer.
 | architecture-check-agent | `agents/architecture-check-agent.md` | floor | Pre-implementation design review that catches architecture risks before coding. |
 | coding-agent | `agents/coding-agent.md` | anchor | TDD implementation agent that writes code, follows conventions, and self-verifies. |
 | documentation-agent | `agents/documentation-agent.md` | anchor | Framework-adaptive documentation agent for feature, component, and architecture docs. |
+| evaluator-agent | `agents/evaluator-agent.md` | anchor | Fresh-context rubric agent that adjudicates acceptance criteria and recorded test results; residual architecture, security, and taste; never applies a patch. |
 | review-agent | `agents/review-agent.md` | anchor | Quality gate agent that verifies acceptance criteria, code quality, tests, and drift. |
 | testing-agent | `agents/testing-agent.md` | anchor | Test and coverage agent that verifies pass rate, regressions, and coverage thresholds. |
 | user-story-generator | `agents/user-story-generator.md` | floor | Parallel story authoring agent for create-spec workflows. |
@@ -142,6 +143,8 @@ and unlink manage this file alongside its reducer.
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
 | `story-commit-provenance` | `candidate` | `skills/story-commit-provenance/SKILL.md` | Record a completion commit SHA into a story file header idempotently and without amending it. |
 | `story-context-assembly` | `candidate` | `skills/story-context-assembly/SKILL.md` | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections. |
+| `subagent-result-completeness` | `candidate` | `skills/subagent-result-completeness/SKILL.md` | Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early. |
+| `subagent-worktree-integration` | `candidate` | `skills/subagent-worktree-integration/SKILL.md` | Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale. |
 | `tdd-cycle` | `proven` | `skills/tdd-cycle/SKILL.md` | Grow code test-first through the red → green → refactor cycle, one small unit of behavior at a time. |
 | `what-was-built-authoring` | `candidate` | `skills/what-was-built-authoring/SKILL.md` | Extract implementation facts from agent output and format them into a What Was Built record. |
 

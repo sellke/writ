@@ -139,7 +139,17 @@ route:  grep fallback; point the user at `gbrain doctor` if they want the index 
 
 Born `candidate` on 2026-07-11 with **0 evidence entries**, the valid born
 state for a new skill under ADR-014. No `evidence:` block is required while
-`candidate`. Promotion requires evidence:
+`candidate`.
+
+**No consumer, by design (verified 2026-09-06).** No command, agent, or adapter
+loads this skill at a point of need. The adapters' "Native Memory & the Writ
+Ledger" sections cross-link it as the external-index layer but do not invoke
+it, because no Writ workflow depends on a brain being present: retrieval
+already degrades to grep with no behavior change. `candidate` is the lifecycle
+state the lint accepts for a skill with zero consumers, and it stays here until
+one exists. What would make a consumer: a command or agent that loads this file
+inline before a knowledge-retrieval step on a project with a registered brain —
+that use is the first evidence entry. Promotion requires evidence:
 
 - **→ proven** requires ≥3 well-formed `evidence:` entries (`date`, `type`,
   `ref`, `note`) recording real use — e.g. a command or agent that routes

@@ -67,6 +67,8 @@ Use `/knowledge --list [category]` to scan entries and `/knowledge --read <slug>
 
 Keep entries short. If the explanation needs a long comparison, write research. If it changes architecture, write an ADR.
 
+An entry's `## TL;DR` must not be empty, and no bullet may hold a single character (frontmatter `  - /` or body `- 2`); `bash scripts/eval.sh --check=knowledge-integrity` blocks both, because they are the signature of a writeback payload iterated as characters instead of as one string.
+
 ## Consolidation and Lineage
 
 The ledger is append-friendly for capture but must not grow into a junk drawer. `/knowledge --consolidate` runs a periodic maintenance pass under one principle: **merge, never append.** A log grows unbounded; a merged document stays searchable.

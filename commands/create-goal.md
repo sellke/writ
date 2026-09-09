@@ -102,6 +102,21 @@ Created: .writ/issues/goals/YYYY-MM-DD-{slug}.md
 
 For `loop: no`, the second line reads `{Title} (loop: no — {missing ingredient}; single prompt saved)`.
 
+**Emit after save.** After the card file is written, emit paste-ready `/goal` files. Do not AskQuestion on emit notes. Core Rule 4 still holds.
+
+1. If `scripts/goal-emit.py` is missing, `add_finding` and continue. The save confirmation above still stands.
+2. Otherwise run:
+
+```bash
+python3 scripts/goal-emit.py emit --card .writ/issues/goals/<YYYY-MM-DD>-<slug>.md
+```
+
+3. Print the invoke line the helper prints after its summary on a `pass` emit.
+4. Relay the helper verdict:
+   - `pass`, `fail`, or `unverifiable` (including `loop_no` when the saved card is `loop: no`) → `add_note`. The helper writes no emit dir on `loop: no`; do not create one yourself.
+   - helper exit 2 → `add_finding`.
+5. A `loop: no` save is still success. Emit notes never fail this command.
+
 ## Goal Card Format
 
 ```markdown

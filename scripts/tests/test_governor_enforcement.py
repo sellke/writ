@@ -350,7 +350,8 @@ class CommandBudgetTests(unittest.TestCase):
         command" that can disagree is a defect waiting for its first file."""
         result = subprocess.run(
             [sys.executable, str(MEASURE_PATH), "--root", str(REPO_ROOT),
-             "--format", "json"], capture_output=True, text=True, check=True)
+             "--format", "json", "--tokenizer", "estimate"],
+            capture_output=True, text=True, check=True)
         reported = json.loads(result.stdout)["commands"]
         mine = lean.command_byte_sizes(str(REPO_ROOT))
         self.assertGreater(len(mine), 0)
@@ -491,15 +492,50 @@ class CommandBudgetTests(unittest.TestCase):
 # review-fix pointing Gate 0 spawn errors at the Agent crash handler). No
 # budget recovery attempted (ADR-023 triage). Acknowledged, not exempted:
 # eval.sh's leanness warning still reports all six.
+# Updated 2026-09-06 (spec 2026-09-05-phase11-repair-and-baseline, Story 1 —
+# dead-end repair, assessment §2.4): four of the six grew, none by a new step
+# or gate. create-spec.md 24712 -> 25189 (+477: `--from-issue <path>` added to
+# the Invocation list it was missing from; `objective.md` replaced by the two
+# full `.writ/docs/` paths /initialize writes; the missing-sink sentence beside
+# the `escalated(` literal; "count as one attempt" reworded without the
+# `loop.max_iterations` bound the file never declared). implement-story.md
+# 3964 -> 4414 (+450: the same missing-sink sentence beside its `escalated(`
+# literal; Gate 3 / Gate 3.5 / control-flow now say once that Gate 3 emits
+# PAUSE and Gate 3.5 owns it). ship.md 3820 -> 4030 (+210: Step 6.1 names the
+# re-entry invocation for a note that cannot attach until the PR merges).
+# verify-spec.md 9887 -> 9926 (+39: the Integration row now agrees with
+# release.md — checks 1–6, not 1–8). implement-phase.md and release.md are
+# unchanged. Each item is a dead end the Stage 1 baseline must not measure;
+# Stage 2 is the cut. Acknowledged, not exempted: eval.sh's leanness warning
+# still reports all six.
+# Updated 2026-09-07 (spec 2026-09-07-phase11-stage2-prune-the-base, Story 4 —
+# gate verification markers): implement-story.md 4414 -> 5381 (+967: the
+# `gates:` frontmatter block naming all ten Step 3 gates' verdict sources, 8
+# `verification: prose-only` and 2 `script:`, checked by
+# scripts/verdict-provenance.py and eval.sh verdict-provenance; plus one
+# sentence at Gate 4.5 recording that the match-percentage thresholds are
+# gone). implement-story.md is a command file, not one of the two base files
+# the Stage 2 byte cap governs; the block is the checkable count the
+# mechanization spec starts from. Acknowledged, not exempted.
+# Updated 2026-09-08 (spec 2026-09-08-phase11-stage2b-mechanize-the-gates,
+# Stories 1–4): implement-story.md 5381 -> 8554 overage (file 33514 bytes)
+# from Gate 0/0.5/2.5/3/5 verify-the-claim blocks and script invocations.
+# Updated 2026-09-08 Story 5: 8554 -> 9103 overage (file 34063 bytes) from
+# the Gate 3.5 drift-format verify block and gates: flip. Still a command
+# file, not under the Stage 2 base-byte cap. Acknowledged.
+# Updated 2026-09-08 Stage 3 Story 2: create-spec.md 25189 -> 26891
+# (file 51851) for Step 2.6c; verify-spec.md 9926 -> 10666 (file 35626)
+# for advisory 3g. Command files, not the Stage 2 base-byte cap.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
-    "commands/create-spec.md": 24712,
-    "commands/verify-spec.md": 9887,
-    "commands/implement-phase.md": 10208,
+    "commands/create-spec.md": 26891,
+    "commands/verify-spec.md": 10666,
+    # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
+    "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
-    "commands/ship.md": 3820,
-    "commands/implement-story.md": 3964,
+    "commands/ship.md": 4030,
+    "commands/implement-story.md": 9103,
 }
 
 
@@ -776,10 +812,15 @@ class InlineSkillReadTests(unittest.TestCase):
 
 
 class MechanismRecordTests(unittest.TestCase):
-    """The false first-consumer claim lived in four files, not one."""
+    """The false first-consumer claim lived in four files, not one.
+
+    2026-09-07 (Phase 11 Stage 2a Story 2, ADR-026): the `required_skills:`
+    convention text moved out of system-instructions.md into
+    .writ/docs/skills.md, so the pins follow it there; the base keeps one
+    pointer line and carries none of the pinned clauses."""
 
     CLAIM_FILES = (
-        "system-instructions.md",
+        ".writ/docs/skills.md",
         "adapters/cursor.md",
         "adapters/claude-code.md",
         "adapters/openclaw.md",
@@ -801,7 +842,7 @@ class MechanismRecordTests(unittest.TestCase):
             self.assertIn("2026-11-11", text, f"{rel} must carry the review trigger")
 
     def test_the_schema_and_the_graceful_degradation_rule_are_unchanged(self):
-        text = (REPO_ROOT / "system-instructions.md").read_text(encoding="utf-8")
+        text = (REPO_ROOT / ".writ/docs/skills.md").read_text(encoding="utf-8")
         for clause in (
             "`required_skills` is an **optional** array of strings.",
             "Order is **preserved** — downstream tooling may use it for load priority.",

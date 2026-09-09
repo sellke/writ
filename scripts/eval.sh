@@ -23,6 +23,9 @@ CHECKS=(
   broken-refs
   length
   manifest
+  referenced-paths
+  skill-manifest-parity
+  knowledge-integrity
   preamble
   owner
   autonomy-governance
@@ -64,6 +67,18 @@ CHECKS=(
   quality-config-audit
   test-integrity
   build-smoke
+  pipeline-baseline
+  pruned-base
+  verdict-provenance
+  review-override
+  arch-check
+  docs-check
+  boundary-map
+  change-surface
+  drift-format
+  spec-analyze
+  goal-emit
+  spawn-cap
 )
 
 TOTAL_FINDINGS=0
@@ -573,6 +588,219 @@ check_manifest() {
   rm -f "$command_list" "$agent_list"
 }
 
+# ---------------------------------------------------------------------------
+# Stage 1 dead-end regression checks (2026-09-05-phase11-repair-and-baseline,
+# Story 1, Business Rule 6). Each class of dead end the Goldilocks assessment
+# found (§2.4) gets one BLOCKING check — add_finding, never add_note — that
+# names the file and line. Story 5 adds check_pipeline_baseline beside them.
+# ---------------------------------------------------------------------------
+
+# Allowlist for check_referenced_paths: `.md` paths commands legitimately name
+# that do not exist in this repository because a named command CREATES them at
+# runtime in the target project (or, for two rows, because the path is an
+# illustrative example). Rows are `path|creating command|reason`. Every row
+# must earn its place: an entry with no reason, or one added to silence a
+# finding on a path nothing creates, turns this check into a second
+# check_broken_refs. Rows that no command references any more are reported
+# as stale so the table cannot rot silently.
+referenced_paths_allowlist() {
+  cat <<'EOF'
+.writ/docs/tech-stack.md|/initialize|Written by /initialize Step 3 from the detected stack; absent until a project is initialized.
+.writ/docs/code-style.md|/initialize|Written by /initialize Step 3 from the detected conventions; absent until a project is initialized.
+tech-stack.md|/initialize|Bare form of .writ/docs/tech-stack.md used when the enclosing sentence already names .writ/docs/.
+code-style.md|/initialize|Bare form of .writ/docs/code-style.md used when the enclosing sentence already names .writ/docs/.
+.writ/quality-baseline.md|/initialize|Written by /initialize Step 4 (quality-signal classification); /status reads it when present.
+.writ/docs/design-system.md|/design|Written by /design when a design system is generated; optional in every project.
+design-system.md|/design|Bare form of .writ/docs/design-system.md.
+component-inventory.md|/design|Written by /design under the spec's mockups/ folder.
+mockups/README.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
+mockups/component-inventory.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
+user-stories/README.md|/create-spec|Written by /create-spec Step 2.6 for every spec; spec-relative.
+sub-specs/technical-spec.md|/create-spec|Written by /create-spec Step 2.5 for every spec; spec-relative.
+database-schema.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs a schema.
+api-spec.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs an API surface.
+ui-wireframes.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs wireframes.
+ADR-000-product-posture.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-001-market-focus.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-002-positioning.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-003-monetization.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+ADR-004-mvp-scope.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
+term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md category table); no braces, so the grammar cannot tell it from a real name.
+.writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
+EOF
+}
+
+# Every backticked `*.md` token in commands/*.md is a claim that a file exists
+# or will exist. The token grammar, chosen so the allowlist stays under ~30
+# rows and readable: a backticked run with no whitespace ending in `.md`;
+# skipped when it carries a placeholder or glob character (`* { } < > [ ] $`,
+# `YYYY`, `NNNN`, `DATE`), starts with `/` or `../`, or has a basename of
+# three characters or fewer (`.md` alone). A token containing `/` resolves
+# against the repo root, then commands/ (`_preamble.md` style), then the spec
+# archive (resolve_spec_path). A bare filename resolves when any tracked or
+# untracked file by that basename exists in the tree — the assessment's own
+# criterion for `objective.md` ("zero files by that name in the repo").
+# Anything left must be on the allowlist above, or it is a dead end.
+check_referenced_paths() {
+  local file rel line_no token base resolved basenames allow allowed_paths used
+  local allow_path allow_cmd allow_reason
+
+  basenames="$(mktemp)"
+  allowed_paths="$(mktemp)"
+  used="$(mktemp)"
+  git -C "$PROJECT_ROOT" ls-files -co --exclude-standard 2>/dev/null | awk -F/ '{ print $NF }' | sort -u > "$basenames"
+  if [ ! -s "$basenames" ]; then
+    # Not a git checkout (fixture trees): walk the tree instead.
+    find "$PROJECT_ROOT" -type f -name '*.md' -not -path '*/.git/*' 2>/dev/null | awk -F/ '{ print $NF }' | sort -u > "$basenames"
+  fi
+  while IFS='|' read -r allow_path allow_cmd allow_reason; do
+    [ -n "$allow_path" ] || continue
+    if [ -z "$allow_cmd" ] || [ -z "$allow_reason" ]; then
+      add_finding "scripts/eval.sh" "referenced-paths allowlist row '$allow_path' lacks a creating command or a reason." "Every allowlist row is path|command|reason; fill both or drop the row."
+    fi
+    printf "%s\n" "$allow_path" >> "$allowed_paths"
+  done < <(referenced_paths_allowlist)
+
+  while IFS= read -r file; do
+    rel="$(relpath "$file")"
+    if file_has_exemption "$file" "referenced-paths"; then
+      continue
+    fi
+    while IFS=$'\t' read -r line_no token; do
+      [ -n "$token" ] || continue
+      base="${token##*/}"
+      [ "${#base}" -gt 3 ] || continue
+      if grep -Fxq "$token" "$allowed_paths"; then
+        printf "%s\n" "$token" >> "$used"
+        continue
+      fi
+      if [[ "$token" == */* ]]; then
+        resolved="$PROJECT_ROOT/$token"
+        [ -e "$resolved" ] || resolved="$PROJECT_ROOT/commands/$token"
+        [ -e "$resolved" ] || resolved="$(resolve_spec_path "$token")"
+        [ -e "$resolved" ] && continue
+      else
+        grep -Fxq "$token" "$basenames" && continue
+      fi
+      add_finding "$rel:$line_no" "references '$token', which does not exist and no command is recorded as creating." "Fix the path, drop the reference, or add a path|command|reason row to referenced_paths_allowlist in scripts/eval.sh if a named command creates it at runtime."
+    done < <(awk '
+      {
+        rest = $0
+        while (match(rest, /`[^`[:space:]]+\.md`/)) {
+          token = substr(rest, RSTART + 1, RLENGTH - 2)
+          rest = substr(rest, RSTART + RLENGTH)
+          if (token ~ /[*{}<>\[\]$]|YYYY|NNNN|DATE/) continue
+          if (token ~ /^\// || token ~ /^\.\.\//) continue
+          print FNR "\t" token
+        }
+      }
+    ' "$file")
+  done < <(command_files)
+
+  # A row nothing references any more is stale: the reference it excused was
+  # removed, so the row should go too (or it is hiding a typo in the path).
+  # Judged only when the row's creating command is in this tree, so a fixture
+  # tree carrying a subset of commands is not blamed for the full table.
+  while IFS='|' read -r allow_path allow_cmd allow_reason; do
+    [ -n "$allow_path" ] || continue
+    [ -f "$PROJECT_ROOT/commands/${allow_cmd#/}.md" ] || continue
+    if ! grep -Fxq "$allow_path" "$used"; then
+      add_finding "scripts/eval.sh" "referenced-paths allowlist row '$allow_path' is no longer referenced by any command." "Remove the stale row from referenced_paths_allowlist (or fix the path it was meant to cover)."
+    fi
+  done < <(referenced_paths_allowlist)
+
+  rm -f "$basenames" "$allowed_paths" "$used"
+}
+
+# skills/<name>/SKILL.md on disk and the `skills:` section of the manifest must
+# name the same set, in both directions. check_manifest reads only `commands`
+# and `agents`; this is the skills half. A disk-only skill is invisible to the
+# root SKILL.md catalog and to every consumer that discovers skills through
+# the manifest; a manifest-only skill points readers at a file that is not
+# there. Findings name the SKILL.md (disk-only) or the manifest line
+# (manifest-only) so the fix is one edit away.
+check_skill_manifest_parity() {
+  local manifest="$PROJECT_ROOT/.writ/manifest.yaml"
+  local disk_list manifest_list dir name path line_no
+
+  if [ ! -r "$manifest" ]; then
+    add_finding ".writ/manifest.yaml:1" "manifest missing or unreadable; cannot compare against skills/." "Restore .writ/manifest.yaml."
+    return
+  fi
+
+  disk_list="$(mktemp)"
+  manifest_list="$(mktemp)"
+  for dir in "$PROJECT_ROOT"/skills/*/; do
+    [ -d "$dir" ] || continue
+    name="$(basename "$dir")"
+    if [ ! -f "$dir/SKILL.md" ]; then
+      add_finding "skills/$name" "skill directory has no SKILL.md." "Add skills/$name/SKILL.md or remove the directory."
+      continue
+    fi
+    printf "%s\n" "$name" >> "$disk_list"
+  done
+  manifest_paths "skills" | awk -F/ '$1 == "skills" && $3 == "SKILL.md" { print $2 }' > "$manifest_list"
+
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if ! grep -Fxq "$name" "$manifest_list"; then
+      add_finding "skills/$name/SKILL.md:1" "skill '$name' exists on disk but is not registered under skills: in .writ/manifest.yaml." "Add a name/file/description/status/tags entry for it to .writ/manifest.yaml and run bash scripts/gen-skill.sh."
+    fi
+  done < "$disk_list"
+
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if ! grep -Fxq "$name" "$disk_list"; then
+      path="skills/$name/SKILL.md"
+      line_no="$(grep -nF "file: $path" "$manifest" | head -1 | cut -d: -f1)"
+      add_finding ".writ/manifest.yaml:${line_no:-1}" "manifest registers skill '$name' but $path is not on disk." "Create the skill file or remove the manifest entry, then run bash scripts/gen-skill.sh."
+    fi
+  done < "$manifest_list"
+
+  rm -f "$disk_list" "$manifest_list"
+}
+
+# No .writ/knowledge/**/*.md — all four categories, and the README — may carry
+# a bullet whose content is a single character (frontmatter `  - /` or body
+# `- 2`), or an empty `## TL;DR`. Both are the signature of a payload that was
+# iterated as a sequence of characters instead of as one string (the
+# phase-close writeback defect, fixed in scripts/phase-state.py alongside this
+# check). A ledger entry with no statement and no readable evidence teaches
+# nothing and pollutes every consolidation pass that reads it.
+check_knowledge_integrity() {
+  local file rel line_no kind
+
+  while IFS= read -r file; do
+    rel="$(relpath "$file")"
+    while IFS=$'\t' read -r line_no kind; do
+      [ -n "$line_no" ] || continue
+      case "$kind" in
+        bullet)
+          add_finding "$rel:$line_no" "bullet with single-character content (a shredded writeback payload)." "Reconstruct the entry from its source record (phase-close What Was Built or refresh log) or delete it and note the deletion in .writ/knowledge/README.md."
+          ;;
+        tldr)
+          add_finding "$rel:$line_no" "empty ## TL;DR (the entry records no statement)." "Recover the statement from the source record or delete the entry and note the deletion in .writ/knowledge/README.md."
+          ;;
+      esac
+    done < <(awk '
+      function flush_tldr() {
+        if (in_tldr && !tldr_has_text) print tldr_line "\ttldr"
+        in_tldr = 0
+      }
+      /^[[:space:]]*-[[:space:]]/ {
+        content = $0
+        sub(/^[[:space:]]*-[[:space:]]+/, "", content)
+        sub(/[[:space:]]+$/, "", content)
+        if (length(content) <= 1) print FNR "\tbullet"
+      }
+      /^##[[:space:]]+TL;DR[[:space:]]*$/ { flush_tldr(); in_tldr = 1; tldr_has_text = 0; tldr_line = FNR; next }
+      /^#/ { flush_tldr() }
+      in_tldr && /[^[:space:]]/ { tldr_has_text = 1 }
+      END { flush_tldr() }
+    ' "$file")
+  done < <(find "$PROJECT_ROOT/.writ/knowledge" -type f -name '*.md' 2>/dev/null | sort)
+}
+
 append_preamble_reference() {
   local file="$1"
 
@@ -750,8 +978,13 @@ check_autonomy_governance() {
   forbid_literal "$mission_lite" 'single-spec `--recommend` delivery' "mission-lite still frames recommended delivery as single-spec, superseded by ADR-013 as revised 2026-07-17."
 }
 
+# 2026-09-07 (Phase 11 Stage 2a Story 2, ADR-026): the section's bullets 2-5
+# (evidence, select-or-pause, audit rationale, resume) moved out of the base
+# into .writ/docs/recommendation-semantics.md; the labeling rule stays in the
+# base. $system pins the rule, $semantics_doc pins the moved text.
 check_recommendation_semantics() {
   local system="$PROJECT_ROOT/system-instructions.md"
+  local semantics_doc="$PROJECT_ROOT/.writ/docs/recommendation-semantics.md"
   local cursor_rule="$PROJECT_ROOT/cursor/writ.mdc"
   local cursor_adapter="$PROJECT_ROOT/adapters/cursor.md"
   local claude_adapter="$PROJECT_ROOT/adapters/claude-code.md"
@@ -761,22 +994,22 @@ check_recommendation_semantics() {
   require_literal "$system" 'Exactly one option label ends with the literal suffix `(Recommended)`.' "Normal bounded questions must label exactly one recommendation."
   require_literal "$system" 'If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.' "Equivalent options must remain unlabeled and be disclosed."
   require_literal "$system" 'Normal mode remains human-selected; the label is advisory.' "Recommendation labels must not change normal interactive control."
-  require_literal "$system" 'Option order, affirmative wording, and user inactivity are never evidence.' "Recommendation evidence must not come from presentation or inactivity."
-  require_literal "$system" 'governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility' "Recommendation evidence precedence must be domain-scoped and deterministic."
-  require_literal "$system" 'Conflicting authoritative evidence pauses the decision.' "Conflicting authoritative evidence must pause."
-  require_literal "$system" 'eligible evidence-supported option' "Recommend mode must automatically select only an eligible evidence-supported option."
-  require_literal "$system" 'select the simplest viable, most reversible choice.' "Low-risk reversible ties must resolve to the simplest viable option."
-  require_literal "$system" 'safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence' "The complete recommendation pause taxonomy must be present."
-  require_literal "$system" 'Hard platform blockers remain blockers.' "Hard platform blockers must not be converted into recommendations."
-  require_literal "$system" 'A pause states the classification' "Recommendation pauses must identify their classification."
-  require_literal "$system" 'choices, and a safe next action.' "Recommendation pauses must provide bounded choices and a safe next action."
-  require_literal "$system" 'Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact' "Concise recommendation rationale fields must be explicit."
-  require_literal "$system" 'Never include private chain-of-thought or transcript content.' "Recommendation rationale must exclude private reasoning and transcripts."
-  require_literal "$system" 'continue automatically in the same session with recommendation mode retained and do not repeat the answered decision' "Required answers must resume recommendation mode without repeated decisions."
-  require_literal "$system" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "Story 2 must not claim Story 3 persistence mechanics."
+  require_literal "$semantics_doc" 'Option order, affirmative wording, and user inactivity are never evidence.' "Recommendation evidence must not come from presentation or inactivity."
+  require_literal "$semantics_doc" 'governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility' "Recommendation evidence precedence must be domain-scoped and deterministic."
+  require_literal "$semantics_doc" 'Conflicting authoritative evidence pauses the decision.' "Conflicting authoritative evidence must pause."
+  require_literal "$semantics_doc" 'eligible evidence-supported option' "Recommend mode must automatically select only an eligible evidence-supported option."
+  require_literal "$semantics_doc" 'select the simplest viable, most reversible choice.' "Low-risk reversible ties must resolve to the simplest viable option."
+  require_literal "$semantics_doc" 'safety, security, data integrity, compliance, unexpected cost, destructive or irreversible pre-production behavior, core-contract ambiguity, or subjective taste without evidence' "The complete recommendation pause taxonomy must be present."
+  require_literal "$semantics_doc" 'Hard platform blockers remain blockers.' "Hard platform blockers must not be converted into recommendations."
+  require_literal "$semantics_doc" 'A pause states the classification' "Recommendation pauses must identify their classification."
+  require_literal "$semantics_doc" 'choices, and a safe next action.' "Recommendation pauses must provide bounded choices and a safe next action."
+  require_literal "$semantics_doc" 'Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact' "Concise recommendation rationale fields must be explicit."
+  require_literal "$semantics_doc" 'Never include private chain-of-thought or transcript content.' "Recommendation rationale must exclude private reasoning and transcripts."
+  require_literal "$semantics_doc" 'continue automatically in the same session with recommendation mode retained and do not repeat the answered decision' "Required answers must resume recommendation mode without repeated decisions."
+  require_literal "$semantics_doc" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "Story 2 must not claim Story 3 persistence mechanics."
 
   require_literal "$cursor_rule" 'Exactly one option label ends with the literal suffix `(Recommended)`.' "The Cursor rule mirror must include the recommendation label contract."
-  require_literal "$cursor_rule" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "The Cursor rule mirror must preserve the Story 2/3 boundary."
+  require_literal "$cursor_rule" 'See `.writ/docs/recommendation-semantics.md`' "The Cursor rule mirror must carry the same pointer to the moved recommendation semantics as the base (Prime Directive mirror, Business Rule 8 of 2026-09-07-phase11-stage2-prune-the-base)."
 
   for adapter in "$cursor_adapter" "$claude_adapter" "$codex_adapter"; do
     require_literal "$adapter" 'Preserve stable option identity across display, selection, rationale, and resume.' "Each adapter must preserve stable option identity."
@@ -2284,11 +2517,20 @@ check_model_escalation() {
   # tuple as its `detail` payload or update these pins in the same change.
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
-  local iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
+  # Two per-file pins (Phase 11 Stage 1, Story 1): implement-story.md declares
+  # `loop.max_iterations: 3` in its frontmatter and may name it; create-spec.md
+  # has no `loop:` block, so its sentence states the pair-counts-once rule
+  # without citing a bound the file does not declare.
+  local implement_story_iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
+  local create_spec_iteration_sentence='the floor attempt and its anchor re-run count as one attempt — there is no second regeneration'
   local noop_prefix='(no-op until ADR-025 Story 1)'
+  local missing_sink='The line has no sink today'
 
-  require_literal "$create_spec" "$iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
-  require_literal "$implement_story" "$iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
+  require_literal "$create_spec" "$create_spec_iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim, without naming a loop bound the file does not declare (Business Rule 7)."
+  forbid_literal "$create_spec" 'loop.max_iterations' "create-spec.md has no loop: frontmatter block and must not cite loop.max_iterations (assessment §2.4)."
+  require_literal "$implement_story" "$implement_story_iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
+  require_literal "$create_spec" "$missing_sink" "create-spec.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
+  require_literal "$implement_story" "$missing_sink" "implement-story.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
   require_literal "$create_spec" 'escalated(agent=user-story-generator, site=create-spec.2.6, origin=' "create-spec.md must emit the escalated line for the Step 2.6 story-validation site (site label is create-spec.2.6, never 2.6a)."
   require_literal "$implement_story" 'escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=' "implement-story.md must emit the escalated line for the Gate 0 ABORT site."
   require_literal "$create_spec" "$noop_prefix" "create-spec.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
@@ -3589,6 +3831,532 @@ check_build_smoke() {
   # Exempt from the subprocess ban (it runs a build), never from the write ban.
   forbid_literal "$helper" 'os.remove' "The checker must never delete a file."
   forbid_literal "$helper" '.write_text(' "The checker executes a build but must never write a file itself."
+}
+
+check_pipeline_baseline() {
+  # Story 5 of 2026-09-05-phase11-repair-and-baseline: note when no baseline
+  # JSON exists (installed projects have none); block on a schema or leak
+  # violation by relaying `pipeline-baseline.py validate` lines as findings.
+  local dir="$PROJECT_ROOT/.writ/eval/baselines"
+  local helper="$PROJECT_ROOT/scripts/pipeline-baseline.py"
+  local file rel line field reason
+  local files=()
+
+  shopt -s nullglob
+  files=("$dir"/*.json)
+  shopt -u nullglob
+
+  if [ "${#files[@]}" -eq 0 ]; then
+    add_note "NOTE [.writ/eval/baselines]: no baseline JSON found. Create one with python3 scripts/pipeline-baseline.py select."
+    return
+  fi
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/pipeline-baseline.py" "pipeline-baseline helper is missing." \
+      "Restore scripts/pipeline-baseline.py so validate can run."
+    return
+  fi
+
+  for file in "${files[@]}"; do
+    rel="$(relpath "$file")"
+    # validate exits 1 on findings; `set -e` must not abort the check.
+    if line="$(python3 "$helper" validate "$file" 2>&1)"; then
+      continue
+    fi
+    if [ -z "$line" ]; then
+      add_finding "$rel" "validate failed with no path: reason lines." \
+        "Run python3 scripts/pipeline-baseline.py validate $rel."
+      continue
+    fi
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      field="${line%%: *}"
+      reason="${line#*: }"
+      add_finding "$rel:$field" "$reason" \
+        "Fix the baseline JSON or regenerate it with python3 scripts/pipeline-baseline.py select."
+    done <<< "$line"
+  done
+}
+
+check_pruned_base() {
+  # Story 1 of 2026-09-07-phase11-stage2-prune-the-base (ADR-026): every line
+  # removed from system-instructions.md or commands/_preamble.md since the
+  # pinned Stage 1 closeout commit must have a row in the pruned-instructions
+  # ledger, and no row's text may be back in its file. Findings are relayed
+  # one per `<code>: <detail>` line; `note:` lines and the closing summary
+  # line surface as notes. The byte cap blocks only once the ledger carries
+  # the `<!-- cap: blocking -->` marker line, which Story 3 appends on
+  # reaching the cap. WRIT_PRUNE_BASE_COMMIT overrides the pin for fixture
+  # trees, whose history cannot contain cf84742.
+  local helper="$PROJECT_ROOT/scripts/prune-ledger.py"
+  local ledger="$PROJECT_ROOT/.writ/decision-records/pruned-instructions-ledger.md"
+  local base_commit="${WRIT_PRUNE_BASE_COMMIT:-cf84742}"
+  local args=(check --repo "$PROJECT_ROOT" --base-commit "$base_commit")
+  local out err rc=0 line code detail
+
+  if [ ! -f "$PROJECT_ROOT/system-instructions.md" ] || [ ! -f "$PROJECT_ROOT/commands/_preamble.md" ]; then
+    add_note "NOTE [pruned-base]: no shared base (system-instructions.md + commands/_preamble.md) in this tree; nothing to check."
+    return
+  fi
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/prune-ledger.py" "prune-ledger helper is missing." \
+      "Restore scripts/prune-ledger.py so check can run."
+    return
+  fi
+  if [ -f "$ledger" ] && grep -Fxq '<!-- cap: blocking -->' "$ledger"; then
+    args+=(--cap-blocking)
+  fi
+
+  err="$(mktemp)"
+  # check exits 1 on findings and 2 on a git/usage failure; `set -e` must not
+  # abort the check either way.
+  out="$(python3 "$helper" "${args[@]}" 2>"$err")" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/prune-ledger.py" "check could not run: $(tr '\n' ' ' < "$err" | sed 's/ *$//')" \
+      "Fix the base commit (WRIT_PRUNE_BASE_COMMIT or --base-commit) or the missing base file, then rerun."
+    rm -f "$err"
+    return
+  fi
+  rm -f "$err"
+
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      note:\ *)
+        add_note "NOTE [pruned-base]: ${line#note: }"
+        ;;
+      base:\ *)
+        add_note "NOTE [pruned-base]: $line"
+        ;;
+      *)
+        code="${line%%: *}"
+        detail="${line#*: }"
+        add_finding "pruned-base:$code" "$detail" \
+          "Add the ledger row for the removed line (or restore the line), or fix the malformed row; see ADR-026."
+        ;;
+    esac
+  done <<< "$out"
+}
+
+check_verdict_provenance() {
+  # Story 4 of 2026-09-07-phase11-stage2-prune-the-base: every #### Gate
+  # heading in commands/implement-story.md must have a gates: frontmatter
+  # entry naming its verdict source (script: path or verification:
+  # prose-only). Drift lines from `verdict-provenance.py check` are relayed
+  # as findings. Story 5 of 2026-09-08-phase11-stage2b-mechanize-the-gates
+  # passes --prose-only-blocking so a third prose-only gate is a finding.
+  # Sits beside check_pruned_base (Story 1) and check_pipeline_baseline.
+  local helper="$PROJECT_ROOT/scripts/verdict-provenance.py"
+  local command="$PROJECT_ROOT/commands/implement-story.md"
+  local rel output rc line field reason
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/verdict-provenance.py" "verdict-provenance helper is missing." \
+      "Restore scripts/verdict-provenance.py so check can run."
+    return
+  fi
+  if [ ! -f "$command" ]; then
+    add_finding "commands/implement-story.md" "command file is missing; nothing to check gates: against." \
+      "Restore commands/implement-story.md with its gates: frontmatter block."
+    return
+  fi
+  rel="$(relpath "$command")"
+
+  # check exits 1 on findings and 2 on a usage defect; `set -e` must not abort.
+  rc=0
+  output="$(python3 "$helper" check --command "$command" --repo "$PROJECT_ROOT" --prose-only-blocking 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "$rel" "verdict-provenance.py check refused: ${output##*$'\n'}" \
+      "Fix the gates: frontmatter block so python3 scripts/verdict-provenance.py check --command $rel parses it."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      "note: "*)
+        add_note "NOTE [$rel]: ${line#note: }"
+        ;;
+      "gates: "*)
+        add_note "Metrics: $line"
+        ;;
+      *)
+        field="${line%%: *}"
+        reason="${line#*: }"
+        add_finding "$rel:$field" "$reason" \
+          "Align the gates: frontmatter entry with its #### Gate heading; run python3 scripts/verdict-provenance.py check --command $rel."
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_review_override() {
+  # Story 1 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 3's
+  # mechanical override. Relays review-override.py findings via add_finding
+  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  # --prose-only-blocking is owned by check_verdict_provenance (Story 5).
+  local helper="$PROJECT_ROOT/scripts/review-override.py"
+  local output rc line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/review-override.py" "review-override helper is missing." \
+      "Restore scripts/review-override.py so check can run."
+    return
+  fi
+
+  rc=0
+  output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/review-override.py" "review-override.py check refused: ${output##*$'\n'}" \
+      "Fix the review-override.py CLI so python3 scripts/review-override.py check --repo . parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/review-override.py" "review-override printed fail." \
+          "Resolve the ac-trace or test-integrity finding the override reported."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [review-override]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "review-override:${line#reason: }" "${line#reason: }" \
+            "Resolve the helper finding; Gate 3 is FAIL-only (mechanical pass does not wash out an agent FAIL)."
+        else
+          add_note "NOTE [review-override]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [review-override]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_arch_check() {
+  # Story 2 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 0's
+  # mechanical re-derivation. Relays arch-check.py findings via add_finding
+  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  local helper="$PROJECT_ROOT/scripts/arch-check.py"
+  local output rc line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/arch-check.py" "arch-check helper is missing." \
+      "Restore scripts/arch-check.py so check can run."
+    return
+  fi
+
+  rc=0
+  output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/arch-check.py" "arch-check.py check refused: ${output##*$'\n'}" \
+      "Fix the arch-check.py CLI so python3 scripts/arch-check.py check --repo . parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/arch-check.py" "arch-check printed fail." \
+          "Resolve the story-deps graph finding the checker reported."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [arch-check]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "arch-check:${line#reason: }" "${line#reason: }" \
+            "Resolve the story-deps blocker; Gate 0 ABORT stays LLM-judged."
+        else
+          add_note "NOTE [arch-check]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [arch-check]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_docs_check() {
+  # Story 3 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 5's
+  # symbol-to-export diff. Relays docs-check.py findings via add_finding
+  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  # Live invoke pins --changed to README.md so this markdown repo stays
+  # unverifiable rather than inventing a fail from git diff.
+  local helper="$PROJECT_ROOT/scripts/docs-check.py"
+  local output rc line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/docs-check.py" "docs-check helper is missing." \
+      "Restore scripts/docs-check.py so check can run."
+    return
+  fi
+
+  rc=0
+  if [ -f "$PROJECT_ROOT/README.md" ]; then
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" --changed "$PROJECT_ROOT/README.md" 2>&1)" || rc=$?
+  else
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  fi
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/docs-check.py" "docs-check.py check refused: ${output##*$'\n'}" \
+      "Fix the docs-check.py CLI so python3 scripts/docs-check.py check --repo . parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/docs-check.py" "docs-check printed fail." \
+          "Document the public export or stop exporting it."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [docs-check]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "docs-check:${line#reason: }" "${line#reason: }" \
+            "Name the export in README / CHANGELOG / framework docs / a docstring."
+        else
+          add_note "NOTE [docs-check]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [docs-check]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_boundary_map() {
+  # Story 4 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 0.5
+  # advisory map. Exit 1 (malformed story) is a finding; well-formed JSON
+  # is a note. Fixture trees may supply story.md at the project root.
+  local helper="$PROJECT_ROOT/scripts/boundary-map.py"
+  local output rc=0 story="" cand
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/boundary-map.py" "boundary-map helper is missing." \
+      "Restore scripts/boundary-map.py so check can run."
+    return
+  fi
+
+  if [ -f "$PROJECT_ROOT/story.md" ]; then
+    story="$PROJECT_ROOT/story.md"
+  else
+    for cand in "$PROJECT_ROOT"/.writ/specs/*/user-stories/story-*.md; do
+      [ -f "$cand" ] || continue
+      story="$cand"
+      break
+    done
+  fi
+  if [ -z "$story" ]; then
+    add_note "NOTE [boundary-map]: no story file; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" compute --story "$story" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/boundary-map.py" "boundary-map.py compute refused: ${output##*$'\n'}" \
+      "Fix the boundary-map.py CLI so compute --story PATH --repo . parses."
+    return
+  fi
+  if [ "$rc" -eq 1 ]; then
+    add_finding "scripts/boundary-map.py" "boundary-map.py reported a malformed story." \
+      "Fix the story file passed to compute."
+    return
+  fi
+  add_note "NOTE [boundary-map]: $output"
+}
+
+check_change_surface() {
+  # Story 4 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 2.5
+  # path-heuristic class. Usage (exit 2) is a finding; a class token is a note.
+  local helper="$PROJECT_ROOT/scripts/change-surface.py"
+  local output rc=0 changed=""
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/change-surface.py" "change-surface helper is missing." \
+      "Restore scripts/change-surface.py so check can run."
+    return
+  fi
+
+  if [ -f "$PROJECT_ROOT/fixture.css" ]; then
+    changed="$PROJECT_ROOT/fixture.css"
+  elif [ -f "$PROJECT_ROOT/commands/implement-story.md" ]; then
+    changed="$PROJECT_ROOT/commands/implement-story.md"
+  else
+    add_note "NOTE [change-surface]: no file to classify; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" classify --changed "$changed" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/change-surface.py" "change-surface.py classify refused: ${output##*$'\n'}" \
+      "Fix the change-surface.py CLI so classify --changed FILE parses."
+    return
+  fi
+  if [ "$rc" -ne 0 ]; then
+    add_finding "scripts/change-surface.py" "change-surface.py classify failed." \
+      "Investigate scripts/change-surface.py."
+    return
+  fi
+  add_note "NOTE [change-surface]: $output"
+}
+
+check_drift_format() {
+  # Story 5 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 3.5
+  # format check. Relays findings via add_finding and the summary via add_note.
+  local helper="$PROJECT_ROOT/scripts/drift-format.py"
+  local output rc=0 line story=""
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/drift-format.py" "drift-format helper is missing." \
+      "Restore scripts/drift-format.py so check can run."
+    return
+  fi
+
+  if [ -f "$PROJECT_ROOT/story.md" ]; then
+    story="$PROJECT_ROOT/story.md"
+  else
+    story="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage2b-mechanize-the-gates/user-stories/story-5-drift-format-flip-and-watch.md"
+  fi
+  if [ ! -f "$story" ]; then
+    add_note "NOTE [drift-format]: no story file; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" check --story "$story" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/drift-format.py" "drift-format.py check refused: ${output##*$'\n'}" \
+      "Fix the drift-format.py CLI so check --story PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "scripts/drift-format.py" "drift-format printed fail." \
+          "Fix the drift-log format or emit PAUSE on Large drift."
+        ;;
+      pass|unverifiable)
+        add_note "NOTE [drift-format]: $line"
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "drift-format:${line#reason: }" "${line#reason: }" \
+            "Format-check only; accept/reject/modify-spec stay human."
+        else
+          add_note "NOTE [drift-format]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [drift-format]: $line"
+        ;;
+    esac
+  done <<< "$output"
+}
+
+check_spec_analyze() {
+  # Story 3 of 2026-09-08-phase11-stage3-spec-analysis: advisory analysis.
+  # Helper missing / exit 2 → add_finding. Analysis pass/fail/unverifiable
+  # on the live repo → add_note only (not count-blocking).
+  local helper="$PROJECT_ROOT/scripts/spec-analyze.py"
+  local spec output rc=0 line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/spec-analyze.py" "spec-analyze helper is missing." \
+      "Restore scripts/spec-analyze.py so check can run."
+    return
+  fi
+
+  spec=""
+  if [ -d "$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis" ]; then
+    spec="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis"
+  else
+    spec="$(ls -d "$PROJECT_ROOT/.writ/specs"/*/ 2>/dev/null | head -n 1 || true)"
+  fi
+  if [ -z "$spec" ] || [ ! -d "$spec" ]; then
+    add_note "NOTE [spec-analyze]: no spec folder; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" check --spec "$spec" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/spec-analyze.py" "spec-analyze.py check refused: ${output##*$'\n'}" \
+      "Fix the spec-analyze.py CLI so check --spec PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [spec-analyze]: $line"
+  done <<< "$output"
+}
+
+check_goal_emit() {
+  # Story 3 of 2026-09-09-phase11-stage4-goal-emit: emit is advisory.
+  # Helper missing / exit 2 → add_finding. Emit pass/fail/unverifiable
+  # → add_note only (not count-blocking). Writes only to a temp --out.
+  local helper="$PROJECT_ROOT/scripts/goal-emit.py"
+  local card out_dir output rc=0 line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/goal-emit.py" "goal-emit helper is missing." \
+      "Restore scripts/goal-emit.py so emit can run."
+    return
+  fi
+
+  card=""
+  if [ -d "$PROJECT_ROOT/.writ/issues/goals" ]; then
+    card="$(ls "$PROJECT_ROOT/.writ/issues/goals"/*.md 2>/dev/null | head -n 1 || true)"
+  fi
+
+  out_dir="$(mktemp -d "${TMPDIR:-/tmp}/eval-goal-emit.XXXXXX")"
+  if [ -n "$card" ] && [ -f "$card" ]; then
+    output="$(python3 "$helper" emit --card "$card" --out "$out_dir" 2>&1)" || rc=$?
+  else
+    output="$(python3 "$helper" emit 2>&1)" || rc=$?
+  fi
+  rm -rf "$out_dir"
+
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/goal-emit.py" "goal-emit.py emit refused: ${output##*$'\n'}" \
+      "Fix the goal-emit.py CLI so emit --card PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [goal-emit]: $line"
+  done <<< "$output"
+}
+
+check_spawn_cap() {
+  # Story 3 of 2026-09-09-phase11-stage4b-pipeline-demote: spawn-cap is advisory.
+  # Helper missing / exit 2 → add_finding. Scan pass/fail/unverifiable
+  # → add_note only (do not count-block on a documented --full-pipeline hatch).
+  local helper="$PROJECT_ROOT/scripts/spawn-cap.py"
+  local command output rc=0 line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/spawn-cap.py" "spawn-cap helper is missing." \
+      "Restore scripts/spawn-cap.py so check can run."
+    return
+  fi
+
+  command="$PROJECT_ROOT/commands/implement-story.md"
+  output="$(python3 "$helper" check --command "$command" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/spawn-cap.py" "spawn-cap.py check refused: ${output##*$'\n'}" \
+      "Fix the spawn-cap.py CLI so check --command PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [spawn-cap]: $line"
+  done <<< "$output"
 }
 
 run_check() {

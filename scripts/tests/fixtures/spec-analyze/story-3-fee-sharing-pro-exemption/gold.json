@@ -1,0 +1,12 @@
+{
+  "label": "ambiguity",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "ambiguity",
+      "story": "story-3-fee-sharing-pro-exemption.md",
+      "summary": "The lapsed-pro criterion does not say whether a lapsed pro is exempt or charged."
+    }
+  ]
+}

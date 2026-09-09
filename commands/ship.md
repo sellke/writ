@@ -432,9 +432,12 @@ this must be the commit that exists on the base branch):
 | Merge commit | the merge commit SHA on the base branch |
 | Rebase-and-merge (replays N commits) | the tip of the replayed commits on the base branch |
 
-If `/ship` opened a PR that has not merged yet, the land happens when the PR merges;
-attach the note once the landed commit exists on the base branch (re-running this
-step after merge is safe — see 6.4). Never attach to the pre-merge feature-branch tip.
+If `/ship` opened a PR that has not merged yet, the land happens when the PR merges
+and this step cannot complete in this session. **Re-entry:** the next `/ship`
+invocation that finds the landed commit on the base branch runs Step 6 from 6.1
+(resolve the SHA per the table above) — re-running after merge is safe (see 6.4)
+— and the next `/release` rolls the spec into that version's rollup note (its
+Step 4.4). Never attach to the pre-merge feature-branch tip.
 
 **6.2 — Resolve the spec + source range.** Use the spec context `/ship` already
 tracked (Step 5 Spec Reference). Capture the source commit range that was squashed/

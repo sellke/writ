@@ -786,9 +786,20 @@ def _looks_like_path(token: str) -> bool:
     tokens belong in `related_artifacts`, or the consolidation reducer's stale
     detector misreads the prose as dangling references."""
     t = token.strip()
-    if not t or " " in t:
+    if len(t) <= 1 or " " in t:
         return False
     return "/" in t or "." in t
+
+
+def _as_list(value: Any) -> list:
+    """Normalize a candidate field that may arrive as a scalar. A string is one
+    item, never a sequence of characters — iterating it directly is what
+    shredded ten ledger entries into single-character bullets (Phase 11 Stage 1)."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        return [v for v in value if v is not None]
+    return [value]
 
 
 def knowledge_writeback(candidates: list[dict[str, Any]], knowledge_dir: Path,
@@ -803,11 +814,16 @@ def knowledge_writeback(candidates: list[dict[str, Any]], knowledge_dir: Path,
         cid = cand.get("id")
         if cid in already:
             continue  # resume-safe: never write a completed lesson twice
-        statement = cand.get("statement", "")
+        statement = str(cand.get("statement") or "").strip()
+        evidence = [str(e).strip() for e in _as_list(cand.get("evidence"))]
+        evidence = [e for e in evidence if e]
+        if not statement:
+            rejected.append({"id": cid, "reason": "empty statement (nothing to record as the TL;DR)"})
+            continue
         if not cand.get("generalizes"):
             rejected.append({"id": cid, "reason": "one-off (does not generalize beyond one spec)"})
             continue
-        if not cand.get("evidence"):
+        if not evidence:
             rejected.append({"id": cid, "reason": "unsupported (no cited artifact or repeated drift)"})
             continue
         if cand.get("adr_scale"):
@@ -825,9 +841,10 @@ def knowledge_writeback(candidates: list[dict[str, Any]], knowledge_dir: Path,
 
         # `related_artifacts` must hold resolvable repo paths only; the prose
         # `evidence` becomes cited provenance in Context. Prefer an explicit
-        # `artifacts` list, else keep only path-like evidence tokens.
-        evidence = cand.get("evidence", [])
-        artifact_paths = cand.get("artifacts") or [e for e in evidence if _looks_like_path(e)]
+        # `artifacts` list, else keep only path-like evidence tokens. Both are
+        # normalized through `_as_list` so a scalar payload is one item.
+        artifact_paths = [str(a).strip() for a in _as_list(cand.get("artifacts"))]
+        artifact_paths = [a for a in artifact_paths if a] or [e for e in evidence if _looks_like_path(e)]
         if artifact_paths:
             related_block = "related_artifacts:\n" + "\n".join(f"  - {a}" for a in artifact_paths)
         else:

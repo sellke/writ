@@ -25,11 +25,11 @@ loop:
 
 ## Overview
 
-Autonomous phase-level orchestrator. Reads a roadmap phase from `.writ/product/roadmap.md`, resolves its features to specs in `.writ/specs/`, creating any missing specs through a decomposition pre-pass, then loops `/implement-spec` → `/create-uat-plan` per spec in cross-spec dependency order until every spec in the phase is implemented and has a UAT plan. Ends by mapping results against the phase's exit criteria and handing off manual UAT execution.
+Reads a roadmap phase from `.writ/product/roadmap.md`, resolves features to specs in `.writ/specs/` (creating missing ones via a decomposition pre-pass), then loops `/implement-spec` → `/create-uat-plan` per spec in dependency order until each spec is implemented and has a UAT plan. Maps results to the phase exit criteria and hands off manual UAT.
 
-This is the layer above `/implement-spec`: roadmap → **`/implement-phase`** → `/implement-spec` → `/implement-story`. It owns cross-spec sequencing; `/implement-spec` owns story batching within a spec.
+Layer above `/implement-spec`: roadmap → `/implement-phase` → `/implement-spec` → `/implement-story`. Owns cross-spec sequencing; `/implement-spec` owns story batching.
 
-**Question policy:** the roadmap and specs already answered most questions. This command asks only when the artifacts contain no answer.
+**Question policy:** ask only when artifacts contain no answer.
 
 ## Required Artifacts
 
@@ -89,11 +89,11 @@ AskQuestion: Phase N includes features without specs: [list].
   - Stop so I can run /create-spec myself first
 ```
 
-**Decompose now** is the recommended default when two or more features are unspecced; otherwise the split into specs is decided informally at the first `/create-spec`. For a single unspecced feature there is nothing to decompose; route it to one `/create-spec`.
+**Decompose now** is the default when two or more features are unspecced. A single unspecced feature routes to one `/create-spec`.
 
 #### Step 1.2b: Decomposition Pre-Pass (unspecced features → the right set of specs)
 
-Runs only when the user chose **Decompose now**. It runs at implementation time so spec boundaries are drawn against the current codebase rather than plan-time assumptions.
+Runs only when the user chose **Decompose now**. Boundaries are drawn against the current codebase, not plan-time assumptions.
 
 **Produce a decomposition proposal (one artifact, one confirmation):**
 
@@ -139,6 +139,21 @@ For each specced feature, determine its actual state so `--resume` and re-runs s
 
 Specs that are fully complete with a current UAT plan are skipped and reported as such.
 
+#### Step 1.4: Emit Goal files when origin is a Goal Card
+
+When a spec `Origin:` or issue `spec_ref` resolves to a Goal Card, emit paste-ready `/goal` files. Do not register a `/goal` hook, AskQuestion on emit notes, or change `/implement-story` spawn.
+
+1. No path → `add_note` `unverifiable` and continue. Do not invent a card.
+2. Missing `scripts/goal-emit.py` → `add_finding` and continue.
+3. Else run:
+
+```bash
+python3 scripts/goal-emit.py emit --card <path>
+```
+
+4. On `pass`, print the invoke line after the helper summary.
+5. `pass` / `fail` / `unverifiable` → `add_note`; helper exit 2 → `add_finding`. Notes never fail the phase.
+
 ### Phase 2: Sequencing & The One Confirmation
 
 #### Step 2.1: Validate and Order the Specs
@@ -147,13 +162,13 @@ Cross-spec order is determined from the **authoritative `> **Dependencies:** [..
 
 1. **Valid explicit `Dependencies` graph** — parse each spec's `> **Dependencies:** [spec-folder-id, ...]` header (a legacy spec with no header is treated as `[]`), then **topological**ly order the resulting DAG. This explicit graph is binding.
 2. **Roadmap order** — among otherwise independent specs (no dependency relationship), release them in **roadmap order** as the deterministic tie-break, so the plan is reproducible run to run.
-3. **Shared-surface inference remains advisory** — if two specs with no declared relationship touch the same files/functions, *warn* in the phase plan and run them sequentially by roadmap order. Inference can never reorder or override a valid explicit graph.
+3. **Shared-surface inference remains advisory** — if two unrelated specs touch the same files, *warn* and run them sequentially by roadmap order. Inference cannot reorder a valid explicit graph.
 
 The executable reference for parsing and ordering is `scripts/spec-deps.py validate --specs-dir .writ/specs --roadmap-order <phase spec order>`.
 
 **Invalid explicit metadata is blocking.** If the graph has a malformed header, a missing reference, a self-reference, a duplicate entry, or a cycle, **stop before the confirmation gate** and present the affected spec plus the exact graph diagnostic (missing reference, self edge, duplicate, or cycle path). Do not guess an order around invalid metadata.
 
-Specs with no ordering relationship may be listed as independent, but execution is sequential by default; parallel spec execution multiplies conflict risk across a shared codebase for little gain at this scale.
+Independent specs still run sequentially; parallel spec execution multiplies conflict risk.
 
 #### Step 2.2: Verify Exit Criteria Exist
 
@@ -162,7 +177,7 @@ Read the phase's **Exit Criteria** and **Success Metrics** from the roadmap. Cla
 - **Machine-checkable** — tests pass, files load, no external dependencies introduced, typecheck clean
 - **Human-judgment** — "feels complete for daily use", UAT scenario passes
 
-**If the phase has no exit criteria at all**, this is an ask-worthy condition. Ask the user to state completion criteria before executing; never invent exit criteria and then self-certify against them.
+**If the phase has no exit criteria**, ask the user to state them before executing; never invent-and-self-certify.
 
 #### Step 2.3: Present the Phase Execution Plan (single confirmation gate)
 

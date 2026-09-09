@@ -1,0 +1,1486 @@
+{
+  "schema": "pipeline-baseline-v1",
+  "model": "claude-fable-5-1",
+  "generated_at": "2026-09-07T22:19:28Z",
+  "yuss_head": "7c2d0430c12fd5f2a6ebe11eb6ece5f03ee41029",
+  "runs_per_story": 2,
+  "criteria": {
+    "status_required": "Completed",
+    "status_pattern": "^complete(d)?$ case-insensitive, after stripping non-ASCII symbols, parentheticals, and whitespace",
+    "commit_resolution": {
+      "header": "> **Commit:** first 7-40 hex token, verified with rev-parse --verify <token>^{commit}",
+      "fallback": "git log -1 -E -i --grep <regex> -- <pathspecs>",
+      "log_grep_regex": "stor(y|ies)[ -]?<N>([^0-9]|$)",
+      "log_grep_pathspecs": [
+        ".writ/specs/<folder>",
+        ".writ/specs/archive/<folder>"
+      ],
+      "parent": "rev-parse <commit>^1; root commits are commit_unresolved"
+    },
+    "requires_test_file": true,
+    "test_file_globs": [
+      "*.test.*",
+      "*.spec.*",
+      "__tests__/**",
+      "tests/**"
+    ],
+    "test_file_extensions": [
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".mjs",
+      ".cjs",
+      ".mts",
+      ".cts"
+    ],
+    "test_files_exclude_deleted": true,
+    "deny_list": [
+      "prisma",
+      "stripe",
+      "@neondatabase",
+      "next-auth"
+    ],
+    "deny_list_scan": "direct import/require specifiers of each touched test file at <commit>; transitive imports are not followed",
+    "deny_list_match": "deny-list entry is a substring of the module specifier",
+    "live_test_scope": "file",
+    "live_test_dirs": [
+      "tests/integration/",
+      "tests/e2e/"
+    ],
+    "schema_only_relaxation": {
+      "schema_paths": [
+        "prisma/**",
+        "lib/db/**"
+      ],
+      "story_scope": "a deny-list import is tolerated only when the same file jest.mock()s that module and every non-test touch is a schema path",
+      "file_scope": "jest.mock() in the same file covers the import; live_test_dirs are always live"
+    },
+    "surface_classes": {
+      "api_route": [
+        "app/api/**"
+      ],
+      "ui": [
+        "components/**",
+        "app/**/page.tsx"
+      ],
+      "data_model": [
+        "prisma/**",
+        "lib/db/**"
+      ],
+      "refactor": "no new files and net negative lines (renames counted as delete+add)"
+    },
+    "class_paths_exclude_test_files": true,
+    "migration_note_pattern": "(?im)^(?=.*\\bmigrations?\\b)(?=.*\\b(prerequisites?|requires?|required|must|before|first|depends?|apply|applied|run)\\b).*$",
+    "migration_note_scope": "## Notes section only",
+    "tie_break": "commit date desc, then story number desc, then story_path asc",
+    "class_fill_order": "ascending eligible-candidate count, then api_route, ui, data_model, refactor",
+    "exclusion_cap": 10,
+    "detail_max_chars": 200,
+    "reason_codes": [
+      "status_not_completed",
+      "commit_unresolved",
+      "git_error",
+      "no_test_files",
+      "live_service_import",
+      "migration_prerequisite",
+      "no_surface_class",
+      "class_filled"
+    ]
+  },
+  "selection": [
+    {
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-2-event-creation-payment-flow.md",
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow",
+      "story_commit": "79d79ae4a2fb18ba1b5318823f6dc2479f73fa7e",
+      "parent_sha": "ae9e47e6a45fe95e44dcf3c44d597e2d9100f376",
+      "parent_is_merge": false,
+      "surface_class": "api_route",
+      "eligible_classes": [
+        "api_route",
+        "ui"
+      ],
+      "test_files": [
+        "app/__tests__/dashboard-feature-gate.test.tsx",
+        "components/__tests__/EventFeeForkModal.test.tsx"
+      ],
+      "criteria_values": {
+        "status": "Completed",
+        "commit_source": "header",
+        "commit_timestamp": 1785165640,
+        "test_file_count": 2,
+        "deny_list_hits": 0,
+        "deny_list_mocked": 0,
+        "live_test_files_dropped": 3,
+        "migration_note": false,
+        "new_files": 4,
+        "net_lines": 2020
+      }
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-23-quick-split-single-transaction/user-stories/story-3-settlement-view-share-link.md",
+      "spec_folder": "2026-07-23-quick-split-single-transaction",
+      "story_id": "2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link",
+      "story_commit": "8d97930a73bf2d7fd6c29323d5c395402c31095c",
+      "parent_sha": "81ed2e4ed0693fedf566b279c97f913483bd6891",
+      "parent_is_merge": false,
+      "surface_class": "ui",
+      "eligible_classes": [
+        "api_route",
+        "ui"
+      ],
+      "test_files": [
+        "components/quick-split/__tests__/ExpiredSplitState.test.tsx",
+        "components/quick-split/__tests__/QuickSplitConfirmation.test.tsx",
+        "components/quick-split/__tests__/QuickSplitFAB.test.tsx",
+        "components/quick-split/__tests__/QuickSplitShareView.test.tsx",
+        "components/quick-split/__tests__/SettlementRow.test.tsx",
+        "components/quick-split/__tests__/ShareActionsRow.test.tsx"
+      ],
+      "criteria_values": {
+        "status": "Completed",
+        "commit_source": "header",
+        "commit_timestamp": 1785115892,
+        "test_file_count": 6,
+        "deny_list_hits": 0,
+        "deny_list_mocked": 0,
+        "live_test_files_dropped": 2,
+        "migration_note": false,
+        "new_files": 12,
+        "net_lines": 1780
+      }
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-3-fee-sharing-pro-exemption.md",
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption",
+      "story_commit": "c9350fca11ca673fab2000066e0118e369faffab",
+      "parent_sha": "f840c3fcc2d00ee7c797b8e5aaa015b4a54d0387",
+      "parent_is_merge": false,
+      "surface_class": "data_model",
+      "eligible_classes": [
+        "api_route",
+        "ui",
+        "data_model"
+      ],
+      "test_files": [
+        "app/__tests__/dashboard-fee-share-prompt.test.tsx",
+        "components/__tests__/FeeShareModal.test.tsx"
+      ],
+      "criteria_values": {
+        "status": "Completed",
+        "commit_source": "header",
+        "commit_timestamp": 1785170973,
+        "test_file_count": 2,
+        "deny_list_hits": 0,
+        "deny_list_mocked": 0,
+        "live_test_files_dropped": 2,
+        "migration_note": false,
+        "new_files": 7,
+        "net_lines": 2125
+      }
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-4-messaging-migration-quick-split-guard.md",
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard",
+      "story_commit": "12eea11e766c9a9b282ce84fd55fc885fa6fdb40",
+      "parent_sha": "5dceffa6efcb8f585b6c282b81271d370e5105b6",
+      "parent_is_merge": false,
+      "surface_class": "refactor",
+      "eligible_classes": [
+        "ui",
+        "refactor"
+      ],
+      "test_files": [
+        "app/__tests__/dashboard-event-limit-error.test.tsx",
+        "components/__tests__/FeatureGateModal.test.tsx",
+        "components/__tests__/UpgradeModal.test.tsx"
+      ],
+      "criteria_values": {
+        "status": "Completed",
+        "commit_source": "header",
+        "commit_timestamp": 1785173459,
+        "test_file_count": 3,
+        "deny_list_hits": 0,
+        "deny_list_mocked": 0,
+        "live_test_files_dropped": 1,
+        "migration_note": false,
+        "new_files": 0,
+        "net_lines": -375
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "story_path": ".writ/specs/archive/2026-07-23-quick-split-single-transaction/user-stories/story-4-dashboard-integration.md",
+      "reason": "live_service_import",
+      "detail": "tests/integration/quick-split-dashboard-fold-in.integration.test.ts: live_dir; 0 clean test files of 1"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-1-billing-foundation.md",
+      "reason": "no_test_files",
+      "detail": "14 changed paths, 0 test files"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-5-concurrent-slot-free-tier.md",
+      "reason": "no_test_files",
+      "detail": "13 changed paths, 0 test files"
+    },
+    {
+      "story_path": ".writ/specs/archive/2025-12-24-sms-invitation-enhancement/user-stories/story-3-contact-picker-ui.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: ui"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-02-22-multi-stretch-attendance/user-stories/story-6-participant-card-stretch-display.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: ui"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-03-08-linked-events-settlement-report/user-stories/story-1-data-layer-refactor.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: api_route,ui"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-03-08-linked-events-settlement-report/user-stories/story-2-csv-export-endpoint.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: api_route,ui"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-05-18-rebrand-product-identity/user-stories/story-2-yuss-bus-mascot.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: ui"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-23-quick-split-single-transaction/user-stories/story-1-data-model-settlement-api.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: api_route,ui,data_model"
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-07-23-quick-split-single-transaction/user-stories/story-2-creation-flow.md",
+      "reason": "class_filled",
+      "detail": "eligible classes already filled: ui"
+    }
+  ],
+  "rejection_tally": {
+    "status_not_completed": 30,
+    "commit_unresolved": 299,
+    "no_test_files": 17,
+    "live_service_import": 11,
+    "class_filled": 7
+  },
+  "runs": [
+    {
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow",
+      "run": 1,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-07T22:19:34Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "e5792ceec48c57c11709053b5b72186f1a2d8081",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 5.724,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-2-event-creation-payment-flow.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 3376.767,
+      "num_turns": 91,
+      "tokens": {
+        "input": 182,
+        "output": 84678,
+        "cache_read": 13583644,
+        "cache_creation": 232751
+      },
+      "tokens_main_thread": {
+        "input": 350,
+        "output": 1481,
+        "cache_read": 25828655,
+        "cache_creation": 495345
+      },
+      "cost_usd": 26.385244000000007,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 4
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3055,
+          "total": 3055,
+          "reason": null
+        },
+        "original": {
+          "passed": 0,
+          "total": 0,
+          "reason": "suite failed to run (2 failed suites)",
+          "files": [
+            "app/__tests__/dashboard-feature-gate.test.tsx",
+            "components/__tests__/EventFeeForkModal.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": "PROCEED",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow",
+      "run": 2,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-07T23:16:16Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 5.215,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-2-event-creation-payment-flow.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 3543.699,
+      "num_turns": 95,
+      "tokens": {
+        "input": 190,
+        "output": 100917,
+        "cache_read": 17024261,
+        "cache_creation": 285040
+      },
+      "tokens_main_thread": {
+        "input": 376,
+        "output": 1886,
+        "cache_read": 33456643,
+        "cache_creation": 609716
+      },
+      "cost_usd": 32.48841275000002,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 4
+      },
+      "review_iterations": 2,
+      "tests": {
+        "suite": {
+          "passed": 3102,
+          "total": 3102,
+          "reason": null
+        },
+        "original": {
+          "passed": 0,
+          "total": 0,
+          "reason": "suite failed to run (2 failed suites)",
+          "files": [
+            "app/__tests__/dashboard-feature-gate.test.tsx",
+            "components/__tests__/EventFeeForkModal.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": "CAUTION",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link",
+      "run": 1,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-08T00:15:43Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 5.146,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-23-quick-split-single-transaction/user-stories/story-3-settlement-view-share-link.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 2145.736,
+      "num_turns": 60,
+      "tokens": {
+        "input": 120,
+        "output": 61345,
+        "cache_read": 7595642,
+        "cache_creation": 192560
+      },
+      "tokens_main_thread": {
+        "input": 248,
+        "output": 1124,
+        "cache_read": 15659491,
+        "cache_creation": 415163
+      },
+      "cost_usd": 17.908744699999996,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 4
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3047,
+          "total": 3047,
+          "reason": null
+        },
+        "original": {
+          "passed": 15,
+          "total": 49,
+          "reason": null,
+          "files": [
+            "components/quick-split/__tests__/ExpiredSplitState.test.tsx",
+            "components/quick-split/__tests__/QuickSplitConfirmation.test.tsx",
+            "components/quick-split/__tests__/QuickSplitFAB.test.tsx",
+            "components/quick-split/__tests__/QuickSplitShareView.test.tsx",
+            "components/quick-split/__tests__/SettlementRow.test.tsx",
+            "components/quick-split/__tests__/ShareActionsRow.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": "CAUTION",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link",
+      "run": 2,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-08T00:51:52Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 4.982,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-23-quick-split-single-transaction/user-stories/story-3-settlement-view-share-link.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 2356.835,
+      "num_turns": 49,
+      "tokens": {
+        "input": 98,
+        "output": 53800,
+        "cache_read": 5202154,
+        "cache_creation": 161828
+      },
+      "tokens_main_thread": {
+        "input": 198,
+        "output": 851,
+        "cache_read": 10218235,
+        "cache_creation": 370693
+      },
+      "cost_usd": 18.501765149999986,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 1
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3046,
+          "total": 3046,
+          "reason": null
+        },
+        "original": {
+          "passed": 19,
+          "total": 49,
+          "reason": null,
+          "files": [
+            "components/quick-split/__tests__/ExpiredSplitState.test.tsx",
+            "components/quick-split/__tests__/QuickSplitConfirmation.test.tsx",
+            "components/quick-split/__tests__/QuickSplitFAB.test.tsx",
+            "components/quick-split/__tests__/QuickSplitShareView.test.tsx",
+            "components/quick-split/__tests__/SettlementRow.test.tsx",
+            "components/quick-split/__tests__/ShareActionsRow.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": null,
+          "source": null,
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption",
+      "run": 2,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-08T01:50:23Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 4.899,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-3-fee-sharing-pro-exemption.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 2378.375,
+      "num_turns": 78,
+      "tokens": {
+        "input": 156,
+        "output": 67273,
+        "cache_read": 10278764,
+        "cache_creation": 199645
+      },
+      "tokens_main_thread": {
+        "input": 286,
+        "output": 1433,
+        "cache_read": 18491338,
+        "cache_creation": 414717
+      },
+      "cost_usd": 18.843134050000003,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 4
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3065,
+          "total": 3065,
+          "reason": null
+        },
+        "original": {
+          "passed": 0,
+          "total": 0,
+          "reason": "suite failed to run (2 failed suites)",
+          "files": [
+            "app/__tests__/dashboard-fee-share-prompt.test.tsx",
+            "components/__tests__/FeeShareModal.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": "PROCEED",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard",
+      "run": 1,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-08T02:30:24Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 4.98,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-4-messaging-migration-quick-split-guard.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 2064.756,
+      "num_turns": 77,
+      "tokens": {
+        "input": 154,
+        "output": 67534,
+        "cache_read": 9707616,
+        "cache_creation": 202091
+      },
+      "tokens_main_thread": {
+        "input": 316,
+        "output": 1530,
+        "cache_read": 20398423,
+        "cache_creation": 459307
+      },
+      "cost_usd": 18.542693549999992,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 2
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3035,
+          "total": 3035,
+          "reason": null
+        },
+        "original": {
+          "passed": 47,
+          "total": 57,
+          "reason": null,
+          "files": [
+            "app/__tests__/dashboard-event-limit-error.test.tsx",
+            "components/__tests__/FeatureGateModal.test.tsx",
+            "components/__tests__/UpgradeModal.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": null,
+          "source": null,
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption",
+      "run": 1,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-08T13:51:55Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 5.852,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-3-fee-sharing-pro-exemption.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 2509.558,
+      "num_turns": 80,
+      "tokens": {
+        "input": 160,
+        "output": 73986,
+        "cache_read": 11272229,
+        "cache_creation": 216514
+      },
+      "tokens_main_thread": {
+        "input": 316,
+        "output": 1408,
+        "cache_read": 22205000,
+        "cache_creation": 465100
+      },
+      "cost_usd": 23.62930165000001,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 4
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3079,
+          "total": 3079,
+          "reason": null
+        },
+        "original": {
+          "passed": 0,
+          "total": 0,
+          "reason": "suite failed to run (2 failed suites)",
+          "files": [
+            "app/__tests__/dashboard-fee-share-prompt.test.tsx",
+            "components/__tests__/FeeShareModal.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": "CAUTION",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    },
+    {
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard",
+      "run": 2,
+      "status": "complete",
+      "reason": null,
+      "started_at": "2026-09-08T14:54:24Z",
+      "isolation": {
+        "reachable_commits": 1,
+        "expected": 1,
+        "asserted": true,
+        "answer_scrub_asserted": true
+      },
+      "writ": {
+        "source": "overlay",
+        "commit": "cbee12b7b47a92a0dfc8c758bb5d18bfcf474b61",
+        "dirty": true,
+        "checkout_manifest_version": "e1a3fd1",
+        "manifest_diff_count": 156
+      },
+      "inputs": "parent",
+      "deps": {
+        "seconds": 5.098,
+        "exit": 0
+      },
+      "invocation": {
+        "driver": "claude",
+        "argv": [
+          "claude",
+          "-p",
+          "/implement-story .writ/specs/2026-07-24-per-event-fee-revenue-model/user-stories/story-4-messaging-migration-quick-split-guard.md",
+          "--output-format",
+          "stream-json",
+          "--verbose",
+          "--model",
+          "claude-fable-5-1",
+          "--max-budget-usd",
+          "75",
+          "--dangerously-skip-permissions",
+          "--permission-prompts",
+          "none",
+          "--setting-sources",
+          "project",
+          "--strict-mcp-config",
+          "--no-session-persistence"
+        ],
+        "model": "claude-fable-5-1",
+        "model_resolved": "claude-fable-5-1",
+        "claude_version": "2.1.260",
+        "permission_mode": "bypass",
+        "api_key_source": "none"
+      },
+      "wall_clock_s": 2482.483,
+      "num_turns": 86,
+      "tokens": {
+        "input": 172,
+        "output": 80586,
+        "cache_read": 11605082,
+        "cache_creation": 218667
+      },
+      "tokens_main_thread": {
+        "input": 348,
+        "output": 1446,
+        "cache_read": 23407652,
+        "cache_creation": 515540
+      },
+      "cost_usd": 22.388581949999995,
+      "interrupts": {
+        "ask_user_question": 0,
+        "status_blocked": 4
+      },
+      "review_iterations": 0,
+      "tests": {
+        "suite": {
+          "passed": 3033,
+          "total": 3033,
+          "reason": null
+        },
+        "original": {
+          "passed": 32,
+          "total": 57,
+          "reason": null,
+          "files": [
+            "app/__tests__/dashboard-event-limit-error.test.tsx",
+            "components/__tests__/FeatureGateModal.test.tsx",
+            "components/__tests__/UpgradeModal.test.tsx"
+          ]
+        }
+      },
+      "gates": {
+        "gate0_arch": {
+          "verdict": "PROCEED",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate2_build": {
+          "verdict": null,
+          "source": null,
+          "rederived": "pass"
+        },
+        "gate3_review": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": null
+        },
+        "gate4_tests": {
+          "verdict": "PASS",
+          "source": "tool_result",
+          "rederived": "pass",
+          "integrity": "unverifiable"
+        },
+        "gate5_docs": {
+          "verdict": "YES",
+          "source": "tool_result",
+          "rederived": null
+        }
+      },
+      "rederivation": {
+        "build_smoke": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/build-smoke.py",
+            "check",
+            "--project",
+            "<checkout>",
+            "--timeout",
+            "300"
+          ],
+          "verdict": "pass",
+          "reason": null
+        },
+        "test_integrity": {
+          "argv": [
+            "python3",
+            "<writ_root>/scripts/test-integrity.py",
+            "coverage",
+            "--project",
+            "<checkout>",
+            "--report",
+            "<artifacts>/coverage/coverage-final.json"
+          ],
+          "verdict": "unverifiable",
+          "reason": "nothing_inspected"
+        }
+      },
+      "exit_criteria": {
+        "reported": "COMPLETE",
+        "rederived": "met",
+        "rederived_by": "implement-story success predicates"
+      },
+      "yuss_head_unchanged": true
+    }
+  ]
+}

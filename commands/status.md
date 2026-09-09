@@ -479,7 +479,7 @@ If spec files exist but cannot be parsed (malformed README, missing story files)
 | `/create-spec --from-issue` | Promotes issues to specs — clears the Needs Triage flag by writing `spec_ref` |
 | `/verify-spec` | Deep metadata diagnostic — use when `/status` flags spec inconsistencies |
 | `/ship` | Next step when active spec is complete |
-| `/status --archive` | Moves Complete + knowledge-evidenced specs to `.writ/specs/archive/` via `scripts/archive-sweep.py`; see `.writ/docs/spec-lifecycle.md` |
+| `/status --archive` | Moves complete-status specs (status alone) to `.writ/specs/archive/` via `scripts/archive-sweep.py`; see `.writ/docs/spec-lifecycle.md` |
 
 ## Completion
 

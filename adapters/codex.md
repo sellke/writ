@@ -29,7 +29,7 @@ Writ-authored agents for Codex live in the Writ repo at `codex/agents/*.toml` an
 
 ### Automated (recommended)
 
-After this platform ships in Writ core:
+`install.sh --platform codex` is supported today:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
@@ -114,7 +114,7 @@ Codex exposes `/experimental` to toggle optional capabilities ([docs](https://de
 
 ### Hooks (`codex_hooks`)
 
-Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false`. Hooks are noisy for first-time installs, so users opt in. Future specs may wire Codex hooks to Writ gates; until then, keep hooks off unless you own the automation surface.
+Writ’s `codex/config.toml.template` ships with `[features] codex_hooks = false`. Hooks are noisy for first-time installs, so users opt in. Writ ships no hook handlers — the seven TOMLs under `codex/agents/` are agent definitions, not hooks — and no Writ gate depends on one. *(unverified)*: whether Codex hooks can carry a Writ gate has not been observed on an install; keep hooks off unless you own the automation surface.
 
 ---
 
@@ -200,7 +200,9 @@ bash scripts/check-agent-parity.sh
 
 ## Workflow Patterns
 
-### implement-story (single story)
+### implement-story --full-pipeline (single story)
+
+Default `/implement-story` is `coding-agent` + `evaluator-agent` plus scripts. The six-agent hatch is `--full-pipeline`:
 
 1. Orchestrator reads `.writ/context.md`, story file, spec-lite, optional `.writ/knowledge/`.
 2. Spawn **architecture-check-agent** (`read-only`) → PROCEED / CAUTION / ABORT.
@@ -381,7 +383,7 @@ Consult the official slash popup; OpenAI adds commands over time.
 
 ## Quality gate cheat sheet (Codex)
 
-Use this when translating `/implement-story` gates without Cursor-specific tooling:
+Use this when translating `/implement-story --full-pipeline` gates without Cursor-specific tooling:
 
 | Gate | Codex enforcement idea |
 |------|------------------------|
@@ -435,3 +437,7 @@ Read-only agents (`sandbox_mode = "read-only"`) constrain lateral movement durin
 | `codex/AGENTS.md.template` | Merge template fragment |
 | `codex/config.toml.template` | Install-once baseline |
 | `.writ/decision-records/adr-009-command-agent-skill-boundary.md` | Skills boundary + Codex path amendment |
+
+## Model-specific
+
+Claude Fable 5.1 may serialize independent tool calls: issue independent reads, searches, and checks as one batched message, not one at a time (the only model-specific line this adapter carries — ADR-026; see ADR-024 for delegation).

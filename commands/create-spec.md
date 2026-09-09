@@ -27,6 +27,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 
 - `/create-spec` — discover and create a full contract-first spec package
 - `/create-spec --from-prototype` — formalize recent prototype work into a spec with Story 1 already complete
+- `/create-spec --from-issue <path>` — promote a `.writ/issues/` issue or Goal Card into a spec, pre-populating discovery from it (see § `--from-issue` Mode)
 - `/create-spec --recommend [idea]` — autonomously author and lock a complete spec package from evidence, then stop (does not implement)
 
 ## Recommended Mode (`--recommend`)
@@ -294,7 +295,7 @@ If user selects "Something else", follow up with a free-text question to get the
 
 - Scan existing `.writ/specs/` for related specifications
 - Analyze current codebase architecture and patterns using `codebase_search`
-- Load project context files (`tech-stack.md`, `code-style.md`, `objective.md`)
+- Load project context files (`.writ/docs/tech-stack.md`, `.writ/docs/code-style.md` — both written by `/initialize`; skip any that are absent)
 - **Output:** Context summary (no files created yet)
 
 #### Step 1.2: Switch to Plan Mode for Discovery
@@ -767,9 +768,9 @@ After **all** generators return, and before Step 2.6b (which reads each story's 
 1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder because no story is Completed yet (`untested_criterion` cannot fire) and a repo-wide test scan would misattribute other specs' `dangling_reference`s to these story numbers — `/verify-spec` keeps `--repo .` because it needs that scan.
 2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
 3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9 exactly as today. A passing story is never regenerated.
-4. Per regeneration emit `(no-op until ADR-025 Story 1) escalated(agent=user-story-generator, site=create-spec.2.6, origin=<model>/<effort>@<platform>)` — site is ADR-024's step label, not this heading; origin is the one captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here; `origin=unknown/unknown@<platform>` is valid.
+4. Per regeneration emit `(no-op until ADR-025 Story 1) escalated(agent=user-story-generator, site=create-spec.2.6, origin=<model>/<effort>@<platform>)` — site is ADR-024's step label, not this heading; origin is the one captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here; `origin=unknown/unknown@<platform>` is valid. The line has no sink today: ADR-025 Story 1 has not shipped the recorder it names, so the emit is a printed line nothing reads — do not look for a `scripts/signal.py` or a `/retro --friction` consumer.
 
-Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file is today's error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations` — there is no second regeneration.
+Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file is today's error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 
@@ -792,6 +793,34 @@ acceptance-criteria bullets are written untagged. This step adds the tags once t
 If a bullet cannot be confidently matched to any story criterion, leave it untagged and note
 the gap in Step 2.9's final package review. Do not guess.
 
+#### Step 2.6c: Spec analysis (advisory)
+
+After stories exist and Step 2.6a has validated IDs, run one analysis pass. This is
+**not** Step 2.6 (generation) and does **not** replace 2.6a (`ac-trace.py`). Goal
+Card Stage 3 said “Step 2.6”; the locked Stage 3 contract relocates the invoke to
+after stories exist. Run this step **once** per `/create-spec` — do not loop.
+
+1. **LLM pass (orchestrator, not the script).** Read the generated stories’
+   acceptance criteria. Look for contradiction, gap, and ambiguity, grounded in
+   exit-criteria grammar (observable, named outcomes). Write a JSON array of
+   finding objects to a per-run path under `.writ/state/` (gitignored), each
+   object `{code, story, summary, ac_ids?}` where `code` is `contradiction`,
+   `gap`, or `ambiguity`. If the model cannot judge, write `[]`. Do not add an
+   API key to `scripts/spec-analyze.py`. Do not create a new agent file. Do not
+   change how `/implement-story` spawns agents. If you skip the pass, omit
+   `--findings` below.
+2. **Verify the claim, don't trust it.**
+
+```bash
+python3 scripts/spec-analyze.py check --spec .writ/specs/<folder> [--findings .writ/state/spec-analyze-<run>.json]
+```
+
+3. **Surface as notes only.** Carry the verdict line and every `reason:` into
+   Step 2.9 as notes (`add_note`). Use `add_finding` only when the helper is
+   missing or exits 2. A script `fail` (including `malformed_findings`) or
+   `unverifiable` does **not** fail package creation, does **not** mark the spec
+   `DEGRADED`, and does **not** open an AskQuestion gate.
+
 #### Step 2.7: Create User Stories README
 
 After all subagents complete, create `user-stories/README.md` with: stories summary table (status, task counts, progress), dependency descriptions, and quick links to each story file.
@@ -809,6 +838,9 @@ Include when the spec touches: API routes, auth flows, payments, file operations
 #### Step 2.9: Final Package Review
 
 Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps.
+
+If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as
+**notes**. They never fail this review or block the package.
 
 ## Completion
 

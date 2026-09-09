@@ -363,5 +363,138 @@ class PreStory2CompatibilityTests(unittest.TestCase):
             self.assertEqual(written["terminalStatus"], "COMPLETE")
 
 
+class KnowledgeWritebackPayloadShapeTests(unittest.TestCase):
+    """2026-09-05-phase11-repair-and-baseline Story 1 (AC-1.3).
+
+    The phase-close writeback shredded ten ledger entries because a candidate
+    whose `evidence` arrived as a plain string was iterated character by
+    character: one `- <char>` bullet per character, and `related_artifacts`
+    full of `/` and `.` because `_looks_like_path` admitted single characters.
+    These tests pin the repaired shape."""
+
+    EVIDENCE = ("2026-08-11-loop-bounds re-verification (all citations shifted +6); "
+                ".writ/specs/archive/2026-08-11-component-contract/spec.md Story 1 AC")
+
+    def _candidate(self, **overrides: Any) -> dict:
+        cand = {
+            "id": "cand-1",
+            "title": "Cite anchor text, not line numbers",
+            "statement": "Anchor spec citations to text a sibling spec cannot shift.",
+            "generalizes": True,
+            "evidence": self.EVIDENCE,
+        }
+        cand.update(overrides)
+        return cand
+
+    def _write(self, tmp: str, cand: dict) -> tuple[dict, Path]:
+        knowledge = Path(tmp) / ".writ" / "knowledge"
+        (knowledge / "lessons").mkdir(parents=True)
+        result = ps.knowledge_writeback([cand], knowledge, set())
+        return result, knowledge
+
+    def test_string_evidence_becomes_one_full_bullet(self) -> None:
+        with TemporaryDirectory() as tmp:
+            result, knowledge = self._write(tmp, self._candidate())
+            self.assertEqual(len(result["written"]), 1, result)
+            entries = list((knowledge / "lessons").glob("*.md"))
+            self.assertEqual(len(entries), 1)
+            text = entries[0].read_text(encoding="utf-8")
+            self.assertIn(f"- {self.EVIDENCE}\n", text)
+            bullets = [ln for ln in text.splitlines() if ln.startswith("- ")]
+            for bullet in bullets:
+                self.assertGreater(len(bullet[2:].strip()), 1, f"single-character bullet: {bullet!r}")
+            self.assertIn("## TL;DR\n\nAnchor spec citations", text)
+
+    def test_string_evidence_yields_no_single_character_related_artifacts(self) -> None:
+        with TemporaryDirectory() as tmp:
+            _, knowledge = self._write(tmp, self._candidate())
+            text = next((knowledge / "lessons").glob("*.md")).read_text(encoding="utf-8")
+            frontmatter = text.split("---")[1]
+            for line in frontmatter.splitlines():
+                if line.startswith("  - "):
+                    self.assertGreater(len(line[4:].strip()), 1, f"single-character artifact: {line!r}")
+            # The path-like token inside the prose is not extracted from a
+            # string payload (the string is one evidence item, not a path);
+            # an explicit string `artifacts` is normalized the same way.
+            self.assertIn("related_artifacts: []", text)
+
+    def test_string_artifacts_is_normalized_to_a_list(self) -> None:
+        with TemporaryDirectory() as tmp:
+            cand = self._candidate(artifacts="commands/implement-story.md")
+            _, knowledge = self._write(tmp, cand)
+            text = next((knowledge / "lessons").glob("*.md")).read_text(encoding="utf-8")
+            self.assertIn("related_artifacts:\n  - commands/implement-story.md\n", text)
+            self.assertNotIn("  - c\n", text)
+
+    def test_list_evidence_keeps_only_multi_character_path_tokens(self) -> None:
+        with TemporaryDirectory() as tmp:
+            cand = self._candidate(evidence=["/", ".", "commands/ship.md", "transcript 7f3a"])
+            _, knowledge = self._write(tmp, cand)
+            text = next((knowledge / "lessons").glob("*.md")).read_text(encoding="utf-8")
+            self.assertIn("related_artifacts:\n  - commands/ship.md\n---", text)
+
+    def test_empty_statement_is_rejected_not_written(self) -> None:
+        with TemporaryDirectory() as tmp:
+            result, knowledge = self._write(tmp, self._candidate(statement=""))
+            self.assertEqual(result["written"], [])
+            self.assertEqual(len(result["rejected"]), 1)
+            self.assertIn("statement", result["rejected"][0]["reason"])
+            self.assertEqual(list((knowledge / "lessons").glob("*.md")), [])
+
+    def test_looks_like_path_rejects_single_characters(self) -> None:
+        for token in ("/", ".", " / ", ""):
+            self.assertFalse(ps._looks_like_path(token), token)
+        self.assertTrue(ps._looks_like_path("commands/ship.md"))
+        self.assertTrue(ps._looks_like_path("README.md"))
+
+    def test_as_list_normalizes_scalars_sequences_and_none(self) -> None:
+        self.assertEqual(ps._as_list(None), [])
+        self.assertEqual(ps._as_list("one string"), ["one string"])
+        self.assertEqual(ps._as_list(["a", None, "b"]), ["a", "b"])
+        self.assertEqual(ps._as_list(("a", "b")), ["a", "b"])
+
+    def test_rejection_gates_each_name_their_reason(self) -> None:
+        """Every D6 gate rejects with a reason a human can act on, and a rejected
+        candidate never reaches disk. `evidence` normalization feeds the
+        `unsupported` gate: None, an empty string, and a list of blanks are all
+        'no evidence', not one bullet of nothing."""
+        cases = [
+            ({"generalizes": False}, "one-off"),
+            ({"evidence": None}, "unsupported"),
+            ({"evidence": ""}, "unsupported"),
+            ({"evidence": ["", "   "]}, "unsupported"),
+            ({"adr_scale": True}, "adr-scale"),
+        ]
+        for overrides, expected in cases:
+            with self.subTest(**overrides), TemporaryDirectory() as tmp:
+                result, knowledge = self._write(tmp, self._candidate(**overrides))
+                self.assertEqual(result["written"], [])
+                self.assertEqual(len(result["rejected"]), 1, result)
+                self.assertEqual(result["rejected"][0]["id"], "cand-1")
+                self.assertIn(expected, result["rejected"][0]["reason"])
+                self.assertEqual(list((knowledge / "lessons").glob("*.md")), [])
+
+    def test_duplicate_of_an_existing_entry_is_rejected(self) -> None:
+        with TemporaryDirectory() as tmp:
+            knowledge = Path(tmp) / ".writ" / "knowledge"
+            (knowledge / "lessons").mkdir(parents=True)
+            existing = knowledge / "lessons" / "2026-01-01-already-here.md"
+            existing.write_text(self._candidate()["statement"], encoding="utf-8")
+            result = ps.knowledge_writeback([self._candidate(id="cand-2")], knowledge, set())
+            self.assertEqual(result["written"], [])
+            self.assertIn("duplicate", result["rejected"][0]["reason"])
+            self.assertEqual(list((knowledge / "lessons").glob("*.md")), [existing])
+
+    def test_already_written_id_is_skipped_silently(self) -> None:
+        """Resume-safe: a candidate whose id is in `already` is neither written
+        nor rejected — it was written on a prior run and stays that way."""
+        with TemporaryDirectory() as tmp:
+            knowledge = Path(tmp) / ".writ" / "knowledge"
+            (knowledge / "lessons").mkdir(parents=True)
+            result = ps.knowledge_writeback([self._candidate()], knowledge, {"cand-1"})
+            self.assertEqual(result, {"written": [], "rejected": []})
+            self.assertEqual(list((knowledge / "lessons").glob("*.md")), [])
+
+
 if __name__ == "__main__":
     unittest.main()

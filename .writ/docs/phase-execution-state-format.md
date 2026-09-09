@@ -296,6 +296,41 @@ never writes the same lesson twice. Rejected candidates are reported (with a ter
 reason) but never written. **No qualifying candidate is a valid no-op**: no knowledge
 file changes and an empty candidate set produces no report section.
 
+### Candidate schema
+
+`knowledge-writeback --candidates <file>` reads a JSON document of the shape
+`{"candidates": [ … ]}`. Each candidate carries:
+
+| Key | Type | Meaning |
+|---|---|---|
+| `id` | string | Stable candidate id; recorded in `knowledgeWritten` and used for the resume-safety skip. |
+| `statement` | string, **required non-empty** | The lesson itself. Written verbatim as the entry's `## TL;DR`. |
+| `evidence` | list of strings, or one string | Cited provenance (drift-log entry, failure record, transcript id, observation). A scalar is normalized to a one-item list; empty items are dropped. Rendered as **Cited evidence** bullets under `## Context`. |
+| `generalizes` | boolean | The candidate holds beyond one story or spec. |
+| `adr_scale` | boolean | The candidate is an architectural decision; `true` rejects it. |
+| `artifacts` | list of paths, or one path | Repo-relative paths for `related_artifacts`. A scalar is normalized to a one-item list. When absent, the path-like tokens of `evidence` are used instead. |
+| `title`, `tags` | string, list | Optional. `title` defaults to the first 60 characters of `statement`; `tags` defaults to `[phase-close]`. |
+
+Gates run in this order, and the first failure is the reported reason:
+
+| Reason | Trigger |
+|---|---|
+| `empty statement (nothing to record as the TL;DR)` | `statement` missing, `null`, or whitespace-only. |
+| `one-off (does not generalize beyond one spec)` | `generalizes` falsy. |
+| `unsupported (no cited artifact or repeated drift)` | `evidence` empty after normalization. |
+| `adr-scale (architectural decision belongs in an ADR)` | `adr_scale` truthy. |
+| `duplicate (substantively covered in the ledger)` | Token-overlap Jaccard ≥ 0.5 against any existing ledger entry. |
+
+`evidence` and `artifacts` go through `_as_list`, which treats a string as **one
+item, never a sequence of characters**. Iterating a scalar string directly is what
+shredded ten ledger entries into single-character bullets (Phase 11 Stage 1). Two
+rules follow from that repair: a candidate emitted with a scalar where a list was
+expected still produces a well-formed entry, and a token of one character or less
+is never treated as a path — `_looks_like_path` requires length > 1, no spaces, and
+a `/` or `.`. The same shape is enforced on the ledger side by
+`bash scripts/eval.sh --check=knowledge-integrity`, which blocks any single-character
+bullet or empty `## TL;DR` under `.writ/knowledge/`.
+
 ## Progress and Health (D7 — Story 6)
 
 Two read-only reducers turn recorded state and locally available evidence into an

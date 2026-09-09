@@ -1,0 +1,12 @@
+{
+  "label": "contradiction",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "contradiction",
+      "story": "story-2-event-creation-payment-flow.md",
+      "summary": "One criterion stores 33.33 times three while another requires the sum to equal 100.00 exactly."
+    }
+  ]
+}

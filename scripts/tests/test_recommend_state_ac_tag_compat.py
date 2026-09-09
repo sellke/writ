@@ -36,7 +36,7 @@ class RecommendStateAcTagCompatTests(unittest.TestCase):
         self.assertEqual(match.group(1), line[len("- [x] "):])
 
     def test_checked_multi_id_trailing_tag_matches_both_patterns(self) -> None:
-        line = "- [x] Given two IDs on one line, then both defined. `[AC-3.1, AC-3.6]`"
+        line = "- [x] Given two IDs on one line, then both defined. `[AC-3.1, AC-3.2]`"
         self.assertIsNotNone(LINE_378.match(line))
         self.assertIsNotNone(LINE_2981.search(line))
 

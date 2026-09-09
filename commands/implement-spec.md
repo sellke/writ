@@ -69,7 +69,7 @@ AskQuestion({
 
 1. **Read spec files:** `spec.md`, `spec-lite.md`, `user-stories/README.md`
 2. **Read all story files:** Parse status, dependencies, task counts
-3. **Identify already-completed stories** (skip them unless `--force`)
+3. **Identify already-completed stories** and skip them — a `Completed ✅` story is never re-run by this command; to redo one, use `/revert` on its completion commit first
 
 ### Phase 2: Dependency Resolution & Planning
 
@@ -207,15 +207,12 @@ After each `/implement-story` completes:
 
 After all stories complete, run a single integration check to catch cross-story breakage. Per-story tests already ran in each `/implement-story` Gate 4 — this step only verifies that the stories work together.
 
-```bash
-# 1. Typecheck — catches cross-story type conflicts (always fast)
-npx tsc --noEmit
+Detect the runners the way `/ship` Step 1 does — never hard-code a stack:
 
-# 2. Full test suite — catches integration breakage between stories
-npm test    # or equivalent (pytest, cargo test, go test ./...)
-```
+1. **Typecheck** (catches cross-story type conflicts; skip when the stack has none): `tsconfig.json` → `npx tsc --noEmit`; `pyproject.toml`/`mypy.ini` with mypy configured → `mypy`; `Cargo.toml` → `cargo check`; `go.mod` → `go vet ./...`.
+2. **Full test suite** (catches integration breakage between stories), in `/ship`'s detection order: `package.json` `scripts.test` → `npm test`; `Makefile` `test:` target → `make test`; `pytest.ini`/`setup.cfg`/`pyproject.toml` → `pytest`; `mix.exs` → `mix test`; `Cargo.toml` → `cargo test`; `go.mod` → `go test ./...`; none found → ask the user which command runs the tests.
 
-If integration failures: identify which story likely broke it, report to user.
+If integration fails: run `git log --oneline` over the stories' completion commits, name the story whose commit most plausibly introduced the failure, and present three options via AskQuestion — **Fix in place** (spawn `/implement-story {id} --review-only` against the failing suite so the same story owns the repair), **Revert** (`/revert` that story's completion commit, mark the story `Not Started`, and stop so the user decides whether to re-run it), or **Abort** (leave the tree as is, record `postRun.testSuite: fail`, and report). Never mark the spec `Complete` while the integration suite fails.
 
 > **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
 
@@ -266,9 +263,11 @@ Next steps:
 - **`impossible`** — same substitution, naming the fired trigger from the checker's `reason` (e.g. an unreadable state file or a criterion whose own inputs could not be read) rather than presenting `✅ Specification Complete`.
 
 **Spec header sync.** When the checker verdict is `met` and every story is
-`Completed ✅`, update `spec.md`'s own `> **Status:**` line to `Complete
-(<date>)` — the same completion status story files and `README.md` already
-receive at Step 3.3 / Step 4 of `implement-story.md`. This header is easy to
+`Completed ✅`, update `spec.md`'s own `> **Status:**` line to
+`> **Status:** Complete` — bold, unadorned, no date or emoji suffix: the
+canonical complete-family spelling `create-spec.md` Step 2.4 declares. Story
+files and `README.md` keep their own `Completed ✅` form from Step 3.3 / Step 4
+of `implement-story.md`. This header is easy to
 leave stale, since nothing else in this file writes it; `/verify-spec`
 Check 5b is otherwise the first thing to notice.
 

@@ -90,6 +90,11 @@ SEVERITY: dict[str, str] = {
 TEST_DIR_SEGMENTS = {"tests", "test", "spec", "__tests__"}
 TEST_BASENAME_GLOBS = ("test_*", "*_test.*", "*.test.*", "*.spec.*")
 
+# The checker's own unit file embeds AC-<n>.<m> tokens as isolated
+# temp-repo fixtures. Those strings are not citations of a live spec.
+# `.writ/docs/acceptance-criteria-ids.md` → Scan Bounds.
+CITATION_SCAN_SKIP = frozenset({"scripts/tests/test_ac_trace.py"})
+
 
 class UsageError(Exception):
     """Exit-2 conditions: a bad `--spec` path, a spec folder with no
@@ -477,6 +482,8 @@ def scan_repo_citations(repo: Path) -> dict[str, Any]:
         scanned_files += 1
 
         rel = path.relative_to(repo)
+        if str(rel).replace("\\", "/") in CITATION_SCAN_SKIP:
+            continue
         bucket = test_citations if _is_test_shaped(rel) else source_citations
         for line_no, line in enumerate(text.splitlines(), start=1):
             for token_match in BARE_ID.finditer(line):
@@ -529,10 +536,17 @@ def _coverage_findings(
             continue
         id_match = ID_RE.match(id_str)
         story_number = int(id_match.group(1)) if id_match else 0
+        in_tasks = id_str in task_citations
+        in_tests = id_str in test_citations
+        # A test token AC-N.* against a spec that has no story N is another
+        # spec's (or helper's) citation, not this spec's dangling reference.
+        # A task in *this* spec that cites a missing ID still always fires.
+        if in_tests and not in_tasks and story_number not in stories_by_number:
+            continue
         locations = list(task_citations.get(id_str, [])) + list(test_citations.get(id_str, []))
         first = _first_location(locations)
-        source_kind = "a task" if id_str in task_citations else "a test"
-        both = id_str in task_citations and id_str in test_citations
+        source_kind = "a task" if in_tasks else "a test"
+        both = in_tasks and in_tests
         findings.append(_finding(
             "dangling_reference", story=story_number, id_str=id_str,
             file=first["file"], line=first["line"],
