@@ -1,6 +1,7 @@
 # Story 1: Evaluator Agent — Fresh-Context Rubric File and Parity
 
 > **Status:** Completed ✅
+> **Commit:** cddc3e32ac4fdb56c157e55326e1358b424165be
 > **Priority:** High
 > **Dependencies:** None
 
