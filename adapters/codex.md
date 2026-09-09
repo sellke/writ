@@ -200,7 +200,9 @@ bash scripts/check-agent-parity.sh
 
 ## Workflow Patterns
 
-### implement-story (single story)
+### implement-story --full-pipeline (single story)
+
+Default `/implement-story` is `coding-agent` + `evaluator-agent` plus scripts. The six-agent hatch is `--full-pipeline`:
 
 1. Orchestrator reads `.writ/context.md`, story file, spec-lite, optional `.writ/knowledge/`.
 2. Spawn **architecture-check-agent** (`read-only`) → PROCEED / CAUTION / ABORT.
@@ -381,7 +383,7 @@ Consult the official slash popup; OpenAI adds commands over time.
 
 ## Quality gate cheat sheet (Codex)
 
-Use this when translating `/implement-story` gates without Cursor-specific tooling:
+Use this when translating `/implement-story --full-pipeline` gates without Cursor-specific tooling:
 
 | Gate | Codex enforcement idea |
 |------|------------------------|

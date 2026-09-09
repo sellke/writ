@@ -8,8 +8,8 @@
 |---|---|---|---|---|
 | [1. Evaluator Agent](story-1-evaluator-agent.md) | Completed ✅ | 5 | 7 | 7/7 |
 | [2. Default Path and Flags](story-2-default-path-and-flags.md) | Completed ✅ | 5 | 6 | 6/6 |
-| [3. Eval, Adapters, and Spawn-Cap Proof](story-3-eval-adapters-proof.md) | Not Started | 5 | 7 | 0/7 |
-| **Total** | | **15** | **20** | **13/20** |
+| [3. Eval, Adapters, and Spawn-Cap Proof](story-3-eval-adapters-proof.md) | Completed ✅ | 5 | 7 | 7/7 |
+| **Total** | | **15** | **20** | **20/20** |
 
 ## Dependencies
 

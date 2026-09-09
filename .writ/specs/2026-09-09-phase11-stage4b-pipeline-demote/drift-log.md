@@ -30,3 +30,22 @@
 - **Spec amendment:** spec-lite Error Handling lists `--review-only` FAIL ends the run.
 
 Prior spec-lite SHA-256: `c86f0cb5853de6bb795d873f2e65608be27f60966d5d32043dd46ec98c8f546b`
+
+---
+
+## Story 3: Eval, Adapters, and Spawn-Cap Proof — Drift Report
+
+> Run: 2026-09-09
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-003] Adapter knowledge-loading still names older default recipients
+- **Severity:** Small
+- **Spec said:** Rewrite only sentences that treat no-flag `/implement-story` as the full SDLC / five-agent / six-gate default; that path is `--full-pipeline`.
+- **Implementation did:** Relitigating headings and lead sentences now name `--full-pipeline`. Knowledge-loading paragraphs still mention architecture-check / review as `/implement-story` recipients.
+- **Reason:** Those sentences load context routing, not the no-flag spawn claim. AC-3.3 limited edits to relitigating sentences.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Implementation Approach and Files in Scope state that leftover knowledge-loading recipients stay unless they relitigate the no-flag default.
+
+Prior spec-lite SHA-256: `00122e19553be18c545c56bd53ea49c58ada728036de426d2e400ad04e604223`

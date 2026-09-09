@@ -14,6 +14,7 @@
 - Gate 0.5 (`boundary-map.py`) is inline on default implement-story; skipped for `--quick` / `--review-only` / `/prototype` — not `--full-pipeline`-only
 - Default Gate 4 fail → coding-agent; scripts stay; no new gate numbers
 - `spawn-cap.py` static scan; additive `eval.sh` check
+- Adapter knowledge-loading that names architecture-check / review as Step 2 recipients is not the no-flag default claim
 
 **Files in Scope:**
 - `agents/evaluator-agent.md` — new
@@ -21,7 +22,7 @@
 - `scripts/check-agent-parity.sh`, `.writ/manifest.yaml`
 - `commands/implement-story.md` — default spawn + flags
 - `scripts/spawn-cap.py`, `scripts/eval.sh`
-- `adapters/{cursor,claude-code,codex,openclaw}.md` — no-flag ≠ full SDLC
+- `adapters/{cursor,claude-code,codex,openclaw}.md` — no-flag ≠ full SDLC; leftover knowledge-loading recipients stay unless they relitigate that default
 
 **Error Handling:**
 - Evaluator FAIL → recode; second FAIL → `--full-pipeline` notice

@@ -260,7 +260,7 @@ For a new project, run these in order:
 /initialize              # Detects greenfield/brownfield, sets up .writ/
 /plan-product            # Define vision, mission, roadmap (optional)
 /create-spec "feature"   # Spec your first feature
-/implement-story         # Build it with the full SDLC pipeline
+/implement-story --full-pipeline  # Build it with the full SDLC pipeline
 ```
 
 For an existing project:

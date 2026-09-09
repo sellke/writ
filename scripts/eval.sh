@@ -78,6 +78,7 @@ CHECKS=(
   drift-format
   spec-analyze
   goal-emit
+  spawn-cap
 )
 
 TOTAL_FINDINGS=0
@@ -4329,6 +4330,32 @@ check_goal_emit() {
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     add_note "NOTE [goal-emit]: $line"
+  done <<< "$output"
+}
+
+check_spawn_cap() {
+  # Story 3 of 2026-09-09-phase11-stage4b-pipeline-demote: spawn-cap is advisory.
+  # Helper missing / exit 2 → add_finding. Scan pass/fail/unverifiable
+  # → add_note only (do not count-block on a documented --full-pipeline hatch).
+  local helper="$PROJECT_ROOT/scripts/spawn-cap.py"
+  local command output rc=0 line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/spawn-cap.py" "spawn-cap helper is missing." \
+      "Restore scripts/spawn-cap.py so check can run."
+    return
+  fi
+
+  command="$PROJECT_ROOT/commands/implement-story.md"
+  output="$(python3 "$helper" check --command "$command" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/spawn-cap.py" "spawn-cap.py check refused: ${output##*$'\n'}" \
+      "Fix the spawn-cap.py CLI so check --command PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [spawn-cap]: $line"
   done <<< "$output"
 }
 

@@ -286,7 +286,9 @@ For commands and agents that declare `required_skills:` in their frontmatter (se
 
 ## Workflow Patterns
 
-### implement-story Full Flow
+### implement-story --full-pipeline Full Flow
+
+Default `/implement-story` is coding + evaluator plus scripts. The six-agent hatch is `--full-pipeline`:
 
 ```
 // Phase 1: Context gathering (orchestrator does this directly)

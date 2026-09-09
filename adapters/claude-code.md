@@ -261,7 +261,9 @@ neutral reducer:
 
 ## Workflow Patterns
 
-### implement-story: Single Story
+### implement-story --full-pipeline: Single Story
+
+Default `/implement-story` is `writ-coder` + `writ-evaluator` plus scripts. The six-agent hatch is `--full-pipeline`:
 
 ```
 1. Orchestrator gathers context (reads story, spec, codebase)

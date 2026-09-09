@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T17:20:00Z
+> Last Updated: 2026-09-09T16:50:35Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-09-phase11-stage4b-pipeline-demote` — Phase 11 Stage 4b: Pipeline Demote
-- **Status:** In Progress (2/3 stories Completed ✅)
-- **Story:** 2 of 3 — Default Path and Flags (Completed ✅)
-- **Progress:** 13/20 tasks complete (65%)
+- **Status:** In Progress (3/3 stories Completed ✅)
+- **Story:** 3 of 3 — Eval, Adapters, and Spawn-Cap Proof (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 
@@ -25,6 +25,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **DEV-001** Small — Gate 0.5 leftover “full pipeline” wording
 - **DEV-002** Small — Control flow omits the `--review-only` FAIL exception
+- **DEV-003** Small — Adapter knowledge-loading still names older default recipients
 
 ## Open Issues
 
