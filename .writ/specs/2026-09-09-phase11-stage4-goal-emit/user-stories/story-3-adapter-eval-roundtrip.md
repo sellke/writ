@@ -1,6 +1,7 @@
 # Story 3: Adapter + Eval + Gold Round-Trip
 
 > **Status:** Completed ✅
+> **Commit:** 379401c1495ed2e62693149792b4341cbf7b248a
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
