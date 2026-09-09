@@ -11,7 +11,7 @@
 </pre>
 
 **AI-powered development workflow framework**<br>
-Contract-first specs · Multi-agent SDLC · Automated quality gates · Opinionated by default
+Contract-first specs · Two-agent default · Script-backed gates · Opinionated by default
 
 ⚡ *A writ is a written command by an authority--you. The framework executes them.*
 
@@ -38,7 +38,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 | Primitive | Grammar | What it is | Example |
 |---|---|---|---|
 | **Command** | Verb | A user-invoked workflow with phases and durable artifacts | `/create-spec`, `/implement-spec`, `/release` |
-| **Agent** | Noun | A role with inherent behavior, spawned by a command for a phase | `coding-agent`, `review-agent`, `architecture-check-agent` |
+| **Agent** | Noun | A role with inherent behavior, spawned by a command for a phase | `coding-agent`, `evaluator-agent`, `review-agent` |
 | **Skill** | Tool | A reusable capability — *how to do a specific thing well* | `conventional-commits`, `tdd-cycle`, `safe-refactor-loop` |
 
 > Workflow → command. Role → agent. Capability → skill.
@@ -48,8 +48,8 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 ## Key Features
 
 - **Contract-first specifications** — No code until requirements are agreed upon
-- **Multi-agent SDLC** — Dedicated agents for coding, review, testing, and documentation with feedback loops
-- **Automated quality gates** — Architecture pre-check, lint/typecheck, security review, coverage enforcement (≥80%). **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
+- **Two-agent default, six-agent escalation** — `/implement-story` ships with a coding agent and a fresh-context evaluator. Architecture-check, review, testing, visual QA, and documentation spawn only on `--full-pipeline` (or after two consecutive evaluator FAILs). `scripts/spawn-cap.py` keeps the default at two Task spawns.
+- **Script-backed quality gates** — Default `/implement-story` re-derives architecture, boundary, review-override, test-integrity, drift format, and docs verdicts from `scripts/*.py`. Gate 1 (coding) and Gate 4.5 (visual QA) stay `prose-only`. **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
 - **Machine-evaluable exit criteria** — `scripts/exit-criteria.py` is a read-only checker that re-derives `met`/`unmet`/`unknown`/`impossible` for each `/implement-phase` and `/implement-spec` exit criterion from state on disk, instead of trusting the run's own self-report (`/implement-story`'s criteria are out of scope — already disk-checkable from the story file itself). Its verdict governs completion reports and (on Claude Code) the `/goal` Stop hook.
 - **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, so integration code matches what was actually built, not just what was planned
@@ -73,16 +73,18 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
                Error mapping     Context budget    Parallel batches   Failure modes   Merge → Test
                Shadow paths      Decomposition     Dependency graph   Shadow paths    Split commits
                Edge cases        recommendations         │            Edge cases      Open PR
-                                                    Per story (/implement-story):
-                              ┌─ Arch check (pre-impl)
-                              ├─ Boundary map (Gate 0.5 — owned/readable scope)
-                              ├─ Coding agent (TDD) + loads `.writ/knowledge/` and "What Was Built" from deps
-                              ├─ Lint/typecheck gate
-                              ├─ Review agent (+ security + drift)
-                              ├─ Testing agent (+ coverage)
-                              ├─ Visual QA (optional)
-                              ├─ Documentation agent
-                              └─ "What Was Built" record appended to story file
+                                                    Per story (/implement-story) — default:
+                              ┌─ Arch-check script (no architecture-check agent)
+                              ├─ Boundary map (Gate 0.5)
+                              ├─ Coding agent (TDD) + loads `.writ/knowledge/` and "What Was Built"
+                              ├─ Lint / build-smoke
+                              ├─ Evaluator agent (fresh-context rubric) + review-override.py
+                              ├─ Drift (Small → auto-amend spec-lite)
+                              ├─ test-integrity.py (no testing agent)
+                              └─ docs-check.py (no documentation agent)
+                         --full-pipeline adds architecture-check, review, testing,
+                         visual QA, and documentation agents. Two consecutive
+                         evaluator FAILs escalate the rest of that story.
 
 Lightweight path (/prototype) — no spec required:
    Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
@@ -103,11 +105,11 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/plan-product` | Product planning with contract-first approach |
-| `/create-spec` | Feature specification with structured clarification. `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
+| `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory). `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
 | `/edit-spec` | Safely modify existing specifications |
 | `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
-| `/create-goal` | Goal Card for a recurring task: checkable finish line, stages, stop caps, or a recorded "don't loop this" verdict with a single prompt |
+| `/create-goal` | Goal Card for a recurring task: checkable finish line, stages, stop caps, or a recorded "don't loop this" verdict. A `loop: yes` save emits `GOAL.md` / `VERIFY.md` plus a printed Claude Code `/goal` invoke line (never registers the hook). |
 | `/create-issue` | Quick issue capture (<2 minutes) |
 | `/knowledge` | Capture durable project knowledge (decisions, conventions, glossary, lessons) into `.writ/knowledge/` |
 | `/research` | Systematic 4-phase research workflow |
@@ -118,7 +120,7 @@ Feedback loop (/retro + /refresh-command):
 | `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
 | `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. `--recommend` runs the phase end-to-end (auto-authoring missing specs via `/create-spec --recommend`), ending at the completion report with manual UAT handoff. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, validates the story dependency graph (blocking gate — cycles, missing/duplicate/self references), resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
-| `/implement-story` | **Per-story executor.** SDLC pipeline: arch-check → **boundary map (Gate 0.5)** → coding (TDD) → lint → review → drift → testing → visual QA (optional) → docs. `--quick` skips arch, boundary, review, drift, docs. |
+| `/implement-story` | **Per-story executor.** Default: arch-check script → boundary map → coding (TDD) → lint → evaluator → drift → test-integrity → docs-check (two Task spawns). `--full-pipeline` is the six-agent SDLC. `--quick` is coding only. `--review-only` is evaluator only. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
 | `/revert` | **Logical-unit revert.** Unwinds a story or spec via a layered commit resolver (recorded SHA → `/ship` footer → phase-state → confirmed ghost match), safe `git revert` by default (hard reset behind a second confirmation), then restores story status, WWB, drift-log, and `context.md`. |
 | `/status` | Comprehensive project status report, including a one-line production-grade health score |
@@ -133,7 +135,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
-| `/verify-spec` | Metadata diagnostic (checks 1–8): story/README integrity, completion, dependencies, deliverables, contract drift, spec-lite integrity, owner field — auto-fix by default; optional standalone pass |
+| `/verify-spec` | Metadata diagnostic (checks 1–8): story/README integrity, completion, dependencies, deliverables, contract drift, spec-lite integrity, owner field. Check 3g runs `spec-analyze.py` as notes. Auto-fix by default; optional standalone pass. |
 | `/create-uat-plan` | **UAT plan generation.** Reads completed stories and generates human-readable test scenarios from acceptance criteria, error maps, shadow paths, and edge cases. Enriches with "What Was Built" details. |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release. Also silently auto-archives the spec behind a just-merged PR, once resolved unambiguously. |
@@ -157,17 +159,18 @@ Feedback loop (/retro + /refresh-command):
 
 ## Agents
 
-The `/implement-story` command orchestrates these specialized agents. Each declares a `model_tier` (`anchor` or `floor`) in its Agent Configuration block, derived by two questions and resolved by the platform adapter at spawn — see [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention.
+Default `/implement-story` spawns two of these. The rest run on `--full-pipeline`. Each declares a `model_tier` (`anchor` or `floor`) in its Agent Configuration block, derived by two questions and resolved by the platform adapter at spawn — see [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention.
 
-| Agent | Role |
-|-------|------|
-| Architecture Check | Pre-implementation design review (PROCEED/CAUTION/ABORT) |
-| Coding Agent | TDD implementation — tests first, then code |
-| Review Agent | Code quality + security gate + spec drift analysis (PASS/FAIL/PAUSE, max 3 iterations) |
-| Testing Agent | Test execution + coverage enforcement (≥80% on new code) |
-| Documentation Agent | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) |
-| Visual QA | Optional UI validation — compares implementation screenshots against mockups |
-| User Story Generator | Parallel story file creation during `/create-spec` |
+| Agent | Role | Default spawn |
+|-------|------|---------------|
+| Coding Agent | TDD implementation — tests first, then code | yes |
+| Evaluator Agent | Fresh-context rubric over acceptance criteria and recorded test results (read-only) | yes |
+| Architecture Check | Pre-implementation design review (PROCEED/CAUTION/ABORT) | `--full-pipeline` |
+| Review Agent | Code quality + security gate + spec drift analysis (PASS/FAIL/PAUSE, max 3 iterations) | `--full-pipeline` |
+| Testing Agent | Test execution + coverage enforcement (≥80% on new code) | `--full-pipeline` |
+| Documentation Agent | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) | `--full-pipeline` |
+| Visual QA | Optional UI validation — compares implementation screenshots against mockups | `--full-pipeline` |
+| User Story Generator | Parallel story file creation during `/create-spec` | `/create-spec` |
 
 ## Skills
 
@@ -207,7 +210,7 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 30 commands, but you only need five to go from idea to PR:
+Writ ships 32 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
 |---------|--------------|

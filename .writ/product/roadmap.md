@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-08-15
+> Last Updated: 2026-09-09
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 **Current status (2026-08-12):** Phases 1–10 closed. **Phase 10 closed PARTIALLY COMPLETE (2026-08-12)** — the determinism half (component contract, loop bounds, gate classes, blocking governor checks) shipped and is enforced; progressive disclosure stopped on measured evidence; the byte goal withdrawn outright by [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md). **No phase is currently committed** — next candidates live in [Beyond Phase 10 (Parking Lot)](#beyond-phase-10-parking-lot), pulled forward on concrete signal.
@@ -14,6 +14,12 @@
 
 | Date | Change |
 |---|---|
+| 2026-09-09 | Recorded `2026-09-09-phase11-stage4b-pipeline-demote` as inter-phase infrastructure (v0.36.0). |
+| 2026-09-09 | Recorded `2026-09-09-phase11-stage4-goal-emit` as inter-phase infrastructure (v0.36.0). |
+| 2026-09-09 | Recorded `2026-09-08-phase11-stage3-spec-analysis` as inter-phase infrastructure (v0.36.0). |
+| 2026-09-09 | Recorded `2026-09-08-phase11-stage2b-mechanize-the-gates` as inter-phase infrastructure (v0.36.0). |
+| 2026-09-09 | Recorded `2026-09-07-phase11-stage2-prune-the-base` as inter-phase infrastructure (v0.36.0). |
+| 2026-09-09 | Recorded `2026-09-05-phase11-repair-and-baseline` as inter-phase infrastructure (v0.36.0). |
 | 2026-08-15 | Recorded `2026-08-14-script-backed-quality-gates` as inter-phase infrastructure (vv0.33.0). |
 | 2026-08-15 | Recorded `2026-08-13-acceptance-criteria-traceability-ids` as inter-phase infrastructure (vv0.32.0). |
 | 2026-08-13 | **Reconcile pass** after v0.31.0: two inter-phase infrastructure specs recorded in the condensed history (machine-evaluable exit criteria; implement-loop recalibration) — neither was a roadmap parking-lot candidate before it was built, matching the same "unrecorded direction" pattern the 2026-08-12 pass caught. No direction change — routine "shipped what was needed" bookkeeping, no new ADR. Derivatives (`mission.md` header, `mission-lite.md`) regenerated. |
@@ -46,6 +52,12 @@
 | **— Implement-loop recalibration** <!-- 2026-08-12-recalibrate-implement-loop --> | Fixes to real friction from running the exit-criteria spec end-to-end: `/implement-spec` spawn-mechanism clarity, required execution-state writes, `spec.md` header sync; two new skills (`subagent-result-completeness`, `subagent-worktree-integration`) closing gaps in how `/implement-story` gates handle mid-task stops and isolated worktrees | v0.31.0 |
 | **— Per-criterion AC traceability** <!-- 2026-08-13-acceptance-criteria-traceability-ids --> | Stable `[AC-N.M]` IDs assigned at story-generation time, with `scripts/ac-trace.py` detecting orphaned, untested, duplicate and dangling criteria; wired into `/verify-spec` as a blocking check and `/edit-spec` as a renumbering-churn guard | v0.32.0 |
 | **— Script-backed quality gates** <!-- 2026-08-14-script-backed-quality-gates --> | Coverage, test authenticity, build smoke and quality-config audit become read-only checkers whose verdicts override the agent self-report; wired into `/implement-story` Gate 2 and Gate 4 with no new gate number, plus `/initialize` baselining and a `/status` health line | v0.33.0 |
+| **— Phase 11 Stage 1 — Repair and baseline** <!-- 2026-09-05-phase11-repair-and-baseline --> | Repaired corpus plus a reproducible Fable 5.1 pipeline baseline over four yuss.app stories. | v0.36.0 |
+| **— Phase 11 Stage 2a — Prune the base** <!-- 2026-09-07-phase11-stage2-prune-the-base --> | Shared base cut to at most 10,000 bytes; every removed line in an append-only ledger; cut kept after an 8/8 baseline re-run. | v0.36.0 |
+| **— Phase 11 Stage 2b — Mechanize the gates** <!-- 2026-09-08-phase11-stage2b-mechanize-the-gates --> | Eight of ten implement-story gates re-derive their verdict from a script; Gate 1 and Gate 4.5 stay prose-only. | v0.36.0 |
+| **— Phase 11 Stage 3 — Spec analysis** <!-- 2026-09-08-phase11-stage3-spec-analysis --> | spec-analyze.py detects contradictory, missing, and ambiguous acceptance criteria; findings stay advisory. | v0.36.0 |
+| **— Phase 11 Stage 4a — Goal emit** <!-- 2026-09-09-phase11-stage4-goal-emit --> | A loop:yes Goal Card converts to GOAL.md + VERIFY.md plus a printed Claude Code /goal invoke line. | v0.36.0 |
+| **— Phase 11 Stage 4b — Pipeline demote** <!-- 2026-09-09-phase11-stage4b-pipeline-demote --> | Default implement-story spawns at most two subagents; the six-agent path is --full-pipeline. | v0.36.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 

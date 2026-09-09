@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.36.0] - 2026-09-09
+
+**Contract and Verifier** — Phase 11. The shared instruction base is under 10 KB, eight `/implement-story` gates re-derive their verdict from a script, and the default story path is two Task spawns: a coding agent and a fresh-context evaluator. The six-agent SDLC is `--full-pipeline`. Goal Cards emit paste-ready `GOAL.md` / `VERIFY.md` for Claude Code `/goal`. Spec analysis flags contradictory or missing criteria as notes at lock and verify.
+
+### Added
+- **`evaluator-agent`** — read-only fresh-context rubric over acceptance criteria and recorded test results. Claude Code `writ-evaluator` and Codex `evaluator-agent.toml` peers. ([Story 1: Evaluator Agent](.writ/specs/2026-09-09-phase11-stage4b-pipeline-demote/user-stories/story-1-evaluator-agent.md))
+- **`--full-pipeline`** on `/implement-story` — the previous six-agent path. Two consecutive evaluator FAILs escalate the rest of that story without asking. ([Story 2: Default Path and Flags](.writ/specs/2026-09-09-phase11-stage4b-pipeline-demote/user-stories/story-2-default-path-and-flags.md))
+- **`scripts/spawn-cap.py`** — static scan that the default command file names at most two spawn stems. Wired into `eval.sh`. ([Story 3: Eval, Adapters, and Spawn-Cap Proof](.writ/specs/2026-09-09-phase11-stage4b-pipeline-demote/user-stories/story-3-eval-adapters-proof.md))
+- **`scripts/spec-analyze.py`** — contradictory, missing, or ambiguous acceptance criteria after stories exist; advisory at `/create-spec` Step 2.6c and `/verify-spec` 3g. ([Stage 3](.writ/specs/2026-09-08-phase11-stage3-spec-analysis/spec.md))
+- **`scripts/goal-emit.py`** — a `loop: yes` Goal Card writes `GOAL.md` / `VERIFY.md` plus a printed `/goal` invoke line identical to the Claude Code adapter. `/create-goal` and `/implement-phase` hook it. Neither registers the hook. ([Stage 4a](.writ/specs/2026-09-09-phase11-stage4-goal-emit/spec.md))
+- **Gate scripts** — `review-override.py`, `arch-check.py`, `docs-check.py`, `boundary-map.py`, `change-surface.py`, `drift-format.py`. `verdict-provenance.py` becomes a finding the moment a third `prose-only` gate appears. ([Stage 2b](.writ/specs/2026-09-08-phase11-stage2b-mechanize-the-gates/spec.md))
+- **Pipeline baseline harness** — isolated replay, Anthropic-validated token counts, committed Fable 5.1 eight-run JSON, `eval.sh` `pipeline-baseline`. ([Stage 1](.writ/specs/2026-09-05-phase11-repair-and-baseline/spec.md))
+- **ADR-026** and `scripts/prune-ledger.py` — constraint-test pruning policy; append-only ledger of every removed base line. ([Stage 2a](.writ/specs/2026-09-07-phase11-stage2-prune-the-base/spec.md))
+
+### Changed
+- **Default `/implement-story`** is coding + evaluator. Architecture-check, review, testing, visual QA, and documentation agents run on `--full-pipeline` only. `--quick` is coding only; `--review-only` is evaluator only.
+- **Shared base** (`system-instructions.md` + `commands/_preamble.md`) cut to 9,704 bytes. Behavior-request tutorial removed; four docs sections moved to `.writ/docs/`. A Fable 5.1 baseline re-run held 8/8; the cut was kept.
+- **`/create-goal`** emits platform files after a `loop: yes` save. It still never registers a `/goal` hook.
+- **README** documents the two-agent default, evaluator, emit, and spec-analyze.
+
+### Fixed
+- **`ac-trace.py`** no longer treats helper-file fixture tokens or another spec's `AC-N.*` test citations as dangling references on a spec that has no story N. A task in the spec under check that cites a missing ID still fails.
+
+### Internal
+- `eval.sh` checks: `pruned-base`, `verdict-provenance`, `spec-analyze`, `goal-emit`, `spawn-cap`, plus Stage 2b gate-script checks.
+- `commands/implement-phase.md` trimmed so recorded command-byte overage stays 10200.
+- Six Phase 11 spec packages under `.writ/specs/2026-09-0{5,7,8,9}-phase11-*/`.
+
 ## [0.35.0] - 2026-09-04
 
 **Plain Prose** — Writ's instructional surfaces now lead with plain, direct language. A new Prime Directive `### Prose` section sets the voice; `system-instructions.md` and `cursor/writ.mdc` are byte-identical again; and a candidate `plain-prose` skill documents how to detect and rewrite mannered prose without dropping rules.
