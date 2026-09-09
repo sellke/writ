@@ -14,3 +14,4 @@
 2026-09-08 stage-2b: Story 4 — boundary-map.py compute + change-surface.py classify land; Gate 0.5/2.5 pass stdout; maps stay advisory.
 2026-09-08 stage-2b: Story 5 — drift-format.py; gates flipped to 8 script / 2 prose-only; --prose-only-blocking on; watch field; replay totals {54 agree / 42 note / 48 unverifiable}
 2026-09-08 stage-3: Story 1 — spec-analyze.py check: structural codes + findings-JSON schema; unverifiable when --spec missing or --findings omitted with no structural hit.
+2026-09-08 stage-3: Story 2 — create-spec Step 2.6c after 2.6b + verify-spec 3g; Goal Card “Step 2.6” relocated after stories exist; analysis notes never fail the package.

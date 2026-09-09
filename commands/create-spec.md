@@ -793,6 +793,34 @@ acceptance-criteria bullets are written untagged. This step adds the tags once t
 If a bullet cannot be confidently matched to any story criterion, leave it untagged and note
 the gap in Step 2.9's final package review. Do not guess.
 
+#### Step 2.6c: Spec analysis (advisory)
+
+After stories exist and Step 2.6a has validated IDs, run one analysis pass. This is
+**not** Step 2.6 (generation) and does **not** replace 2.6a (`ac-trace.py`). Goal
+Card Stage 3 said “Step 2.6”; the locked Stage 3 contract relocates the invoke to
+after stories exist. Run this step **once** per `/create-spec` — do not loop.
+
+1. **LLM pass (orchestrator, not the script).** Read the generated stories’
+   acceptance criteria. Look for contradiction, gap, and ambiguity, grounded in
+   exit-criteria grammar (observable, named outcomes). Write a JSON array of
+   finding objects to a per-run path under `.writ/state/` (gitignored), each
+   object `{code, story, summary, ac_ids?}` where `code` is `contradiction`,
+   `gap`, or `ambiguity`. If the model cannot judge, write `[]`. Do not add an
+   API key to `scripts/spec-analyze.py`. Do not create a new agent file. Do not
+   change how `/implement-story` spawns agents. If you skip the pass, omit
+   `--findings` below.
+2. **Verify the claim, don't trust it.**
+
+```bash
+python3 scripts/spec-analyze.py check --spec .writ/specs/<folder> [--findings .writ/state/spec-analyze-<run>.json]
+```
+
+3. **Surface as notes only.** Carry the verdict line and every `reason:` into
+   Step 2.9 as notes (`add_note`). Use `add_finding` only when the helper is
+   missing or exits 2. A script `fail` (including `malformed_findings`) or
+   `unverifiable` does **not** fail package creation, does **not** mark the spec
+   `DEGRADED`, and does **not** open an AskQuestion gate.
+
 #### Step 2.7: Create User Stories README
 
 After all subagents complete, create `user-stories/README.md` with: stories summary table (status, task counts, progress), dependency descriptions, and quick links to each story file.
@@ -810,6 +838,9 @@ Include when the spec touches: API routes, auth flows, payments, file operations
 #### Step 2.9: Final Package Review
 
 Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps.
+
+If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as
+**notes**. They never fail this review or block the package.
 
 ## Completion
 

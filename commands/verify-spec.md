@@ -263,6 +263,24 @@ invisible to the check while the story appears to participate.
 > would satisfy the check without a real trace link. Since nothing in 3e/3f is auto-fixed, every
 > 3e/3f finding belongs in **Outstanding Warnings** and never in **Issues Found & Resolved**.
 
+**3g. Spec analysis (advisory — not in the 3a–3f roll-up):**
+
+After stories exist, detect contradictory, missing, and ambiguous acceptance
+criteria. This is meaning, not ID coverage — do **not** reuse 3e/3f or
+`ac-trace.py`.
+
+```
+For the spec being verified:
+  Run python3 scripts/spec-analyze.py check --spec <folder> [--findings <json>]
+  Relay the verdict and every reason: line as notes.
+  A script fail (including malformed_findings) or unverifiable does not
+  fail this check, the 3a–3f status cell, or the verify report.
+  add_finding only if the helper is missing or exits 2.
+```
+
+Omit `--findings` when no orchestrator JSON exists for this run. Live specs
+without a findings file may print `unverifiable`; that is a note.
+
 ---
 
 #### Check 4: Dependency Validation

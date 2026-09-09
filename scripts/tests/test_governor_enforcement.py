@@ -523,11 +523,14 @@ class CommandBudgetTests(unittest.TestCase):
 # Updated 2026-09-08 Story 5: 8554 -> 9103 overage (file 34063 bytes) from
 # the Gate 3.5 drift-format verify block and gates: flip. Still a command
 # file, not under the Stage 2 base-byte cap. Acknowledged.
+# Updated 2026-09-08 Stage 3 Story 2: create-spec.md 25189 -> 26891
+# (file 51851) for Step 2.6c; verify-spec.md 9926 -> 10666 (file 35626)
+# for advisory 3g. Command files, not the Stage 2 base-byte cap.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
-    "commands/create-spec.md": 25189,
-    "commands/verify-spec.md": 9926,
+    "commands/create-spec.md": 26891,
+    "commands/verify-spec.md": 10666,
     "commands/implement-phase.md": 10208,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
