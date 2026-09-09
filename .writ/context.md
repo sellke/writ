@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T15:30:00Z
+> Last Updated: 2026-09-09T16:10:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-09-phase11-stage4-goal-emit` — Phase 11 Stage 4a: Goal Emit
-- **Status:** In Progress — Story 1 Completed ✅, Stories 2–3 Not Started
-- **Story:** 1 of 3 — CLI + Schema — goal-emit.py Emit and Check (Completed ✅)
-- **Progress:** 7/20 tasks complete (35%)
+- **Status:** In Progress — Stories 1–2 Completed ✅, Story 3 Not Started
+- **Story:** 2 of 3 — Hooks — create-goal After Save and implement-phase Origin Emit (Completed ✅)
+- **Progress:** 13/20 tasks complete (65%)
 
 ## Artifact Map
 

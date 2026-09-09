@@ -17,3 +17,4 @@
 2026-09-08 stage-3: Story 2 — create-spec Step 2.6c after 2.6b + verify-spec 3g; Goal Card “Step 2.6” relocated after stories exist; analysis notes never fail the package.
 2026-09-08 stage-3: spec-analyze.py advisory; hooks after 2.6a + verify-spec; precision {contradiction 1/0, gap 1/0, ambiguity 1/0, clean 1/0; overall 4/0}
 2026-09-09 stage-4a: Story 1 — goal-emit.py emit/check: GOAL.md + VERIFY.md + pinned /goal invoke after summary; unverifiable missing_card/loop_no; fail malformed_card/missing_boundary.
+2026-09-09 stage-4a: Story 2 — hooks only: create-goal emit after save; implement-phase emit when Origin:/spec_ref resolves; notes for pass/fail/unverifiable; finding for missing helper or exit 2.

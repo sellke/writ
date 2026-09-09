@@ -139,6 +139,21 @@ For each specced feature, determine its actual state so `--resume` and re-runs s
 
 Specs that are fully complete with a current UAT plan are skipped and reported as such.
 
+#### Step 1.4: Emit Goal files when origin is a Goal Card
+
+When a spec in this phase (or the phase itself) has a known Goal Card path — spec `Origin:` pointing at `.writ/issues/goals/*.md`, or an issue `spec_ref` that back-links to that card — emit paste-ready `/goal` files. Do not register a `/goal` hook. Do not AskQuestion on emit notes. Do not change how `/implement-story` spawns agents.
+
+1. Resolve the card path from spec `Origin:` or issue `spec_ref`. If no path exists, `add_note` `unverifiable` and continue the phase (not fail). Do not invent a card.
+2. If `scripts/goal-emit.py` is missing, `add_finding` and continue.
+3. Otherwise run:
+
+```bash
+python3 scripts/goal-emit.py emit --card <path>
+```
+
+4. Print the invoke line the helper prints after its summary on a `pass` emit.
+5. Relay the helper verdict: `pass` / `fail` / `unverifiable` → `add_note`; helper exit 2 → `add_finding`. Emit notes never fail the phase.
+
 ### Phase 2: Sequencing & The One Confirmation
 
 #### Step 2.1: Validate and Order the Specs
