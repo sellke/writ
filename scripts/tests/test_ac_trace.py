@@ -876,6 +876,73 @@ class CitationScanTests(unittest.TestCase):
             _, result = run_check(spec, repo)
             self.assertGreaterEqual(result["scanned_files"], 2)
 
+    def test_foreign_story_test_token_is_not_dangling(self) -> None:
+        """A helper test citing AC-4.1 is not this spec's dangling reference
+        when the spec has no story 4 (Check 3f / Stage 4b resume)."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = make_spec(repo)
+            write_story(
+                spec, 3,
+                marker_lines=["> **AC IDs assigned through:** AC-3.1"],
+                ac_lines=("- [ ] A real criterion. `[AC-3.1]`",),
+                task_lines=("- [ ] 3.1 Implement it. `[AC-3.1]`",),
+            )
+            tests = repo / "scripts" / "tests"
+            tests.mkdir(parents=True)
+            (tests / "test_boundary_map.py").write_text(
+                '"""AC-4.1 -- belongs to another spec."""\n', encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(findings_for(result, "dangling_reference"), [])
+
+    def test_checker_unit_file_fixture_tokens_are_not_citations(self) -> None:
+        """scripts/tests/test_ac_trace.py embeds AC-3.9 as a temp-repo
+        fixture string. That must not dangle against a live story 3."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = make_spec(repo)
+            write_story(
+                spec, 3,
+                marker_lines=["> **AC IDs assigned through:** AC-3.1"],
+                ac_lines=("- [ ] A real criterion. `[AC-3.1]`",),
+                task_lines=("- [ ] 3.1 Implement it. `[AC-3.1]`",),
+            )
+            helper = repo / "scripts" / "tests"
+            helper.mkdir(parents=True)
+            (helper / "test_ac_trace.py").write_text(
+                '"""AC-3.9 -- fixture for a deleted criterion."""\n',
+                encoding="utf-8",
+            )
+            (repo / "tests").mkdir()
+            (repo / "tests" / "test_app.py").write_text(
+                '"""AC-3.1 -- real coverage."""\n', encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(findings_for(result, "dangling_reference"), [])
+
+    def test_task_citing_missing_id_still_dangles(self) -> None:
+        """Story-scoped test-token filter must not wash a task citation."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = make_spec(repo)
+            write_story(
+                spec, 3,
+                marker_lines=["> **AC IDs assigned through:** AC-3.1"],
+                ac_lines=("- [ ] A real criterion. `[AC-3.1]`",),
+                task_lines=(
+                    "- [ ] 3.1 Implement it. `[AC-3.1]`",
+                    "- [ ] 3.2 Cites a deleted criterion. `[AC-3.9]`",
+                ),
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            found = findings_for(result, "dangling_reference")
+            self.assertEqual(len(found), 1)
+            self.assertEqual(found[0]["id"], "AC-3.9")
+
 
 # --- Story-file parsing edge cases -------------------------------------------
 
