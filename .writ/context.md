@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T16:50:35Z
+> Last Updated: 2026-09-09T16:52:00Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-09-phase11-stage4b-pipeline-demote` — Phase 11 Stage 4b: Pipeline Demote
-- **Status:** In Progress (3/3 stories Completed ✅)
+- **Status:** Complete (3/3 stories Completed ✅)
 - **Story:** 3 of 3 — Eval, Adapters, and Spawn-Cap Proof (Completed ✅)
 - **Progress:** 20/20 tasks complete (100%)
 
