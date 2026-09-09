@@ -15,3 +15,4 @@
 2026-09-08 stage-2b: Story 5 — drift-format.py; gates flipped to 8 script / 2 prose-only; --prose-only-blocking on; watch field; replay totals {54 agree / 42 note / 48 unverifiable}
 2026-09-08 stage-3: Story 1 — spec-analyze.py check: structural codes + findings-JSON schema; unverifiable when --spec missing or --findings omitted with no structural hit.
 2026-09-08 stage-3: Story 2 — create-spec Step 2.6c after 2.6b + verify-spec 3g; Goal Card “Step 2.6” relocated after stories exist; analysis notes never fail the package.
+2026-09-08 stage-3: spec-analyze.py advisory; hooks after 2.6a + verify-spec; precision {contradiction 1/0, gap 1/0, ambiguity 1/0, clean 1/0; overall 4/0}

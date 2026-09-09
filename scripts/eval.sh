@@ -76,6 +76,7 @@ CHECKS=(
   boundary-map
   change-surface
   drift-format
+  spec-analyze
 )
 
 TOTAL_FINDINGS=0
@@ -4254,6 +4255,42 @@ check_drift_format() {
         add_note "NOTE [drift-format]: $line"
         ;;
     esac
+  done <<< "$output"
+}
+
+check_spec_analyze() {
+  # Story 3 of 2026-09-08-phase11-stage3-spec-analysis: advisory analysis.
+  # Helper missing / exit 2 → add_finding. Analysis pass/fail/unverifiable
+  # on the live repo → add_note only (not count-blocking).
+  local helper="$PROJECT_ROOT/scripts/spec-analyze.py"
+  local spec output rc=0 line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/spec-analyze.py" "spec-analyze helper is missing." \
+      "Restore scripts/spec-analyze.py so check can run."
+    return
+  fi
+
+  spec=""
+  if [ -d "$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis" ]; then
+    spec="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis"
+  else
+    spec="$(ls -d "$PROJECT_ROOT/.writ/specs"/*/ 2>/dev/null | head -n 1 || true)"
+  fi
+  if [ -z "$spec" ] || [ ! -d "$spec" ]; then
+    add_note "NOTE [spec-analyze]: no spec folder; helper present."
+    return
+  fi
+
+  output="$(python3 "$helper" check --spec "$spec" --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/spec-analyze.py" "spec-analyze.py check refused: ${output##*$'\n'}" \
+      "Fix the spec-analyze.py CLI so check --spec PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [spec-analyze]: $line"
   done <<< "$output"
 }
 

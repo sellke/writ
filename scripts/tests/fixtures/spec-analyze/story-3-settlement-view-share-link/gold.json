@@ -1,0 +1,12 @@
+{
+  "label": "gap",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "gap",
+      "story": "story-3-settlement-view-share-link.md",
+      "summary": "No criterion covers a missing or revoked share link (nil token)."
+    }
+  ]
+}

@@ -8,9 +8,9 @@
 |---|---|---|---|---|---|---|---|
 | 1 | [CLI + Schema — spec-analyze.py Structural Findings and Findings-JSON Check](story-1-spec-analyze-cli.md) | Completed ✅ | High | — | 5 | 7 | 7/7 |
 | 2 | [Hooks — create-spec Step 2.6c and verify-spec Advisory Check](story-2-create-spec-and-verify-hooks.md) | Completed ✅ | High | 1 | 5 | 6 | 6/6 |
-| 3 | [Eval Check + Precision Record on Labeled Fixtures](story-3-eval-and-precision.md) | Not Started | High | 1, 2 | 5 | 7 | 0/7 |
+| 3 | [Eval Check + Precision Record on Labeled Fixtures](story-3-eval-and-precision.md) | Completed ✅ | High | 1, 2 | 5 | 7 | 7/7 |
 
-**Total:** 3 stories · 15 acceptance criteria · 20 tasks · 13/20 complete (65%)
+**Total:** 3 stories · 15 acceptance criteria · 20 tasks · 20/20 complete (100%)
 
 ## Dependency Graph
 

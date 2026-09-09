@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T00:24:00Z
+> Last Updated: 2026-09-09T00:26:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** `2026-09-08-phase11-stage3-spec-analysis` — Phase 11 Stage 3: Spec Analysis
 - **Status:** In Progress
-- **Story:** 2 of 3 — Hooks — create-spec Step 2.6c and verify-spec Advisory Check (Completed ✅)
-- **Progress:** 13/20 tasks complete (65%)
+- **Story:** 3 of 3 — Eval Check + Precision Record on Labeled Fixtures (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 
@@ -27,7 +27,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Verification State
 
-2026-09-08, Story 2 closeout:
+2026-09-08, Story 3 closeout:
 
-- `bash scripts/tests/test_spec_analyze_command_hooks.sh` green
+- Precision: contradiction 1/0, gap 1/0, ambiguity 1/0, clean 1/0; overall 4/0
+- `bash scripts/tests/test_eval_spec_analyze.sh` green
+- `bash scripts/eval.sh --check=spec-analyze` Findings 0 (live spec unverifiable / no_findings)
 - Typecheck: skipped, none configured
