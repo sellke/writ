@@ -1,6 +1,7 @@
 # Story 2: Hooks — create-goal After Save and implement-phase Origin Emit
 
 > **Status:** Completed ✅
+> **Commit:** d458f01ea7ab7badb8231499d954a2ecde5337f8
 > **Priority:** High
 > **Dependencies:** Story 1
 
