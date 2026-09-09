@@ -1,6 +1,7 @@
 # Story 2: Default Path and Flags — Two-Spawn implement-story
 
 > **Status:** Completed ✅
+> **Commit:** b99c4a37dabc86391ef6c0938fa6a4cd600b64ad
 > **Priority:** High
 > **Dependencies:** Story 1
 
