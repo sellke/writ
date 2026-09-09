@@ -1,6 +1,7 @@
 # Story 1: CLI + Schema — goal-emit.py Emit and Check
 
 > **Status:** Completed ✅
+> **Commit:** 0cbe9674663979a304a0b123cb56eb4841565925
 > **Priority:** High
 > **Dependencies:** None
 
