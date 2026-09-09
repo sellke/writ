@@ -102,3 +102,7 @@ None
 ### Next Story
 
 **Story 3:** Adapter paste sentence, `eval.sh` `goal-emit` check, and committed gold fixtures.
+
+### Repair (2026-09-09, `--review-only`)
+
+Spec-level pytest failed after Story 3: `implement-phase.md` was 940 bytes past the recorded overage (11148 vs 10208). Review FAIL → trim. File is now 35160 bytes (10200 over 24960). `KNOWN_OVER_BUDGET` lowered 10208 → 10200 (not raised). Step 1.4 contract tokens unchanged. Hook test + both ComplianceGate tests green. Review iteration 2: PASS, drift None.

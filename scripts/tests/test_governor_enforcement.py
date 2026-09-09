@@ -531,7 +531,8 @@ KNOWN_OVER_BUDGET = {
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
     "commands/create-spec.md": 26891,
     "commands/verify-spec.md": 10666,
-    "commands/implement-phase.md": 10208,
+    # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
+    "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
     "commands/implement-story.md": 9103,

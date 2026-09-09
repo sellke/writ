@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T16:20:00Z
+> Last Updated: 2026-09-09T14:45:00Z
 
 ## Product Mission
 
@@ -9,8 +9,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-09-phase11-stage4-goal-emit` — Phase 11 Stage 4a: Goal Emit
-- **Status:** In Progress — all 3 stories Completed ✅
-- **Story:** 3 of 3 — Adapter + Eval + Gold Round-Trip (Completed ✅)
+- **Status:** In Progress — all 3 stories Completed ✅; Story 2 review-only repair landed; awaiting post-run integration
+- **Story:** 2 of 3 — Hooks (Completed ✅, `--review-only` repair 2026-09-09)
 - **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map

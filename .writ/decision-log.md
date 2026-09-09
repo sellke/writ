@@ -18,4 +18,5 @@
 2026-09-08 stage-3: spec-analyze.py advisory; hooks after 2.6a + verify-spec; precision {contradiction 1/0, gap 1/0, ambiguity 1/0, clean 1/0; overall 4/0}
 2026-09-09 stage-4a: Story 1 — goal-emit.py emit/check: GOAL.md + VERIFY.md + pinned /goal invoke after summary; unverifiable missing_card/loop_no; fail malformed_card/missing_boundary.
 2026-09-09 stage-4a: Story 2 — hooks only: create-goal emit after save; implement-phase emit when Origin:/spec_ref resolves; notes for pass/fail/unverifiable; finding for missing helper or exit 2.
+2026-09-09 stage-4a: Story 2 repair — implement-phase.md trimmed to 35160 bytes (overage 10200); KNOWN_OVER_BUDGET lowered 10208 → 10200. Step 1.4 emit contract kept.
 2026-09-09 stage-4a: naming emit + hooks + gold — goal-emit.py + create-goal/implement-phase hooks + adapter paste-the-emit-line + eval.sh goal-emit + loop-yes/loop-no gold equality. Live /goal not run; gold files are the proof.
