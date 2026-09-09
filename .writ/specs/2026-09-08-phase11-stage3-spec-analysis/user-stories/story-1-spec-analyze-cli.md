@@ -1,6 +1,7 @@
 # Story 1: CLI + Schema — spec-analyze.py Structural Findings and Findings-JSON Check
 
 > **Status:** Completed ✅
+> **Commit:** 14f8d54ea406ada115993bbc21fbb74a486c4dc2
 > **Priority:** High
 > **Dependencies:** None
 
