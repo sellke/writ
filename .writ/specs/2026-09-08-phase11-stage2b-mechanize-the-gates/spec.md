@@ -1,12 +1,13 @@
 # Phase 11 Stage 2b: Mechanize the Gates
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-09-08
 > **Owner:** @unknown
 > **Dependencies:** [2026-09-07-phase11-stage2-prune-the-base, 2026-09-05-phase11-repair-and-baseline]
 > **Extends:** [2026-09-07-phase11-stage2-prune-the-base](../2026-09-07-phase11-stage2-prune-the-base/spec.md)
 > **Origin:** Promoted from Goal Card [`2026-09-05-writ-contract-and-verifier-layer.md`](../../issues/goals/2026-09-05-writ-contract-and-verifier-layer.md) — Stage 2b (mechanize). Stage 2a pruned the shared base and marked every `implement-story` gate's verdict source; this spec puts a script behind eight of the ten. Evidence: [`2026-09-05-goldilocks-assessment.md`](../../product/2026-09-05-goldilocks-assessment.md) §2.3, §3 Mechanism 2, §5 Step 3; [`2026-09-05-goldilocks-harness-research.md`](../../research/2026-09-05-goldilocks-harness-research.md) F5–F6; archived [`2026-08-14-script-backed-quality-gates`](../archive/2026-08-14-script-backed-quality-gates/spec.md) (the Gate 4 override pattern).
 > **Loop:** unit `story` · `max_iterations: 8` · `on_exhaustion: halt_reported` · stalled 3 turns: stop and report (carried from the Goal Card's STOP-CAPS)
+> **Superseded by:** [2026-09-09-phase11-stage4b-pipeline-demote](../2026-09-09-phase11-stage4b-pipeline-demote/spec.md)
 
 ## Specification Contract
 
