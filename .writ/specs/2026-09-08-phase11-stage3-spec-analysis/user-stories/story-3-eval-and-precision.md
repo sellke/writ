@@ -1,6 +1,7 @@
 # Story 3: Eval Check + Precision Record on Labeled Fixtures
 
 > **Status:** Completed ✅
+> **Commit:** d07ac944bb59940a7df194981de8f7a86887f01f
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
