@@ -1,6 +1,7 @@
 # Story 2: Hooks — create-spec Step 2.6c and verify-spec Advisory Check
 
 > **Status:** Completed ✅
+> **Commit:** 125782b72259da9c2ffaa7017c64da217d82da00
 > **Priority:** High
 > **Dependencies:** Story 1
 
