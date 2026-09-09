@@ -77,6 +77,7 @@ CHECKS=(
   change-surface
   drift-format
   spec-analyze
+  goal-emit
 )
 
 TOTAL_FINDINGS=0
@@ -4291,6 +4292,43 @@ check_spec_analyze() {
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     add_note "NOTE [spec-analyze]: $line"
+  done <<< "$output"
+}
+
+check_goal_emit() {
+  # Story 3 of 2026-09-09-phase11-stage4-goal-emit: emit is advisory.
+  # Helper missing / exit 2 → add_finding. Emit pass/fail/unverifiable
+  # → add_note only (not count-blocking). Writes only to a temp --out.
+  local helper="$PROJECT_ROOT/scripts/goal-emit.py"
+  local card out_dir output rc=0 line
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/goal-emit.py" "goal-emit helper is missing." \
+      "Restore scripts/goal-emit.py so emit can run."
+    return
+  fi
+
+  card=""
+  if [ -d "$PROJECT_ROOT/.writ/issues/goals" ]; then
+    card="$(ls "$PROJECT_ROOT/.writ/issues/goals"/*.md 2>/dev/null | head -n 1 || true)"
+  fi
+
+  out_dir="$(mktemp -d "${TMPDIR:-/tmp}/eval-goal-emit.XXXXXX")"
+  if [ -n "$card" ] && [ -f "$card" ]; then
+    output="$(python3 "$helper" emit --card "$card" --out "$out_dir" 2>&1)" || rc=$?
+  else
+    output="$(python3 "$helper" emit 2>&1)" || rc=$?
+  fi
+  rm -rf "$out_dir"
+
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/goal-emit.py" "goal-emit.py emit refused: ${output##*$'\n'}" \
+      "Fix the goal-emit.py CLI so emit --card PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [goal-emit]: $line"
   done <<< "$output"
 }
 

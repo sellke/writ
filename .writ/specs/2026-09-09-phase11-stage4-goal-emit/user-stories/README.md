@@ -8,9 +8,9 @@
 |---|---|---|---|---|---|---|---|
 | 1 | [CLI + Schema — goal-emit.py Emit and Check](story-1-emit-cli.md) | Completed ✅ | High | — | 5 | 7 | 7/7 |
 | 2 | [Hooks — create-goal After Save and implement-phase Origin Emit](story-2-command-hooks.md) | Completed ✅ | High | 1 | 5 | 6 | 6/6 |
-| 3 | [Adapter + Eval + Gold Round-Trip](story-3-adapter-eval-roundtrip.md) | Not Started | High | 1, 2 | 5 | 7 | 0/7 |
+| 3 | [Adapter + Eval + Gold Round-Trip](story-3-adapter-eval-roundtrip.md) | Completed ✅ | High | 1, 2 | 5 | 7 | 7/7 |
 
-**Total:** 3 stories · 15 acceptance criteria · 20 tasks · 13/20 complete (65%)
+**Total:** 3 stories · 15 acceptance criteria · 20 tasks · 20/20 complete (100%)
 
 ## Dependency Graph
 
