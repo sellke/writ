@@ -1,6 +1,7 @@
 # Story 3: Eval, Adapters, and Spawn-Cap Proof
 
 > **Status:** Completed ✅
+> **Commit:** 38dfdcf0e0c041a692f890edfb1644c82a2ea2d4
 > **Priority:** High
 > **Dependencies:** Story 2
 
