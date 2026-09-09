@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T00:26:00Z
+> Last Updated: 2026-09-09T15:30:00Z
 
 ## Product Mission
 
@@ -8,28 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-09-08-phase11-stage3-spec-analysis` — Phase 11 Stage 3: Spec Analysis
-- **Status:** In Progress
-- **Story:** 3 of 3 — Eval Check + Precision Record on Labeled Fixtures (Completed ✅)
-- **Progress:** 20/20 tasks complete (100%)
+- **Spec:** `2026-09-09-phase11-stage4-goal-emit` — Phase 11 Stage 4a: Goal Emit
+- **Status:** In Progress — Story 1 Completed ✅, Stories 2–3 Not Started
+- **Story:** 1 of 3 — CLI + Schema — goal-emit.py Emit and Check (Completed ✅)
+- **Progress:** 7/20 tasks complete (35%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md present
-- **Active spec:** .writ/specs/2026-09-08-phase11-stage3-spec-analysis/ — spec.md + spec-lite.md, user-stories/, sub-specs/
-- **Knowledge:** .writ/knowledge/ (5 entries)
+- **Active spec:** .writ/specs/2026-09-09-phase11-stage4-goal-emit/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (25 files)
 - **Integrity:** ✅ all required present
+
+## Recent Drift
+
+- **DEV-001** Small — VERIFY.md names exit-criteria.py when spec_ref exists
+- **DEV-002** Small — check maps missing emit files to missing_boundary
+- **DEV-003** Small — banned-token matcher uses word boundaries
 
 ## Open Issues
 
 7 files under `.writ/issues/` — 1 goal, 5 improvements, 1 feature.
-
-## Verification State
-
-2026-09-08, Story 3 closeout:
-
-- Precision: contradiction 1/0, gap 1/0, ambiguity 1/0, clean 1/0; overall 4/0
-- `bash scripts/tests/test_eval_spec_analyze.sh` green
-- `bash scripts/eval.sh --check=spec-analyze` Findings 0 (live spec unverifiable / no_findings)
-- Typecheck: skipped, none configured

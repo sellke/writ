@@ -61,3 +61,10 @@ finds no `import`/`from` statement naming project source and returns
 fails when its subject changes. Add to Expected Outcome: treat a `spec_from_file_location(...,
 <path under project>)` call (or any `Path(__file__)...` that resolves inside the project) as
 a project-source import. Every hyphenated script under `scripts/` can only be tested this way.
+
+**Third occurrence — Story 1 of `2026-09-09-phase11-stage4-goal-emit`.**
+`scripts/tests/test_goal_emit.py` drives `scripts/goal-emit.py` via subprocess CLI plus
+`importlib.util.spec_from_file_location` (hyphenated filename). Coverage re-derivation
+passed at 99.4%. Authenticity still returned `test_imports_no_source` / `blocking`.
+Carried to Completed on that coverage evidence; this is the same importlib-by-path
+gap already named above.
