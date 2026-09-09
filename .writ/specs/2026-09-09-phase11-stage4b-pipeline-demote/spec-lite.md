@@ -11,6 +11,7 @@
 - New `agents/evaluator-agent.md` (anchor, readonly); rubric = AC + tests
 - Platform counterparts + parity mapping + manifest; do not rewrite `review-agent`
 - `implement-story.md` invocation + pipeline + two-fail escalate
+- Gate 0.5 (`boundary-map.py`) is inline on default implement-story; skipped for `--quick` / `--review-only` / `/prototype` — not `--full-pipeline`-only
 - Default Gate 4 fail → coding-agent; scripts stay; no new gate numbers
 - `spawn-cap.py` static scan; additive `eval.sh` check
 
@@ -24,6 +25,7 @@
 
 **Error Handling:**
 - Evaluator FAIL → recode; second FAIL → `--full-pipeline` notice
+- `--review-only` FAIL ends the run; no recode; no silent `--full-pipeline`
 - Script `unverifiable` → continue, no `DEGRADED`
 - Helper missing / exit 2 → `add_finding`
 

@@ -1,13 +1,13 @@
 ---
 name: implement-story
-description: "Run a single user story through the full SDLC pipeline: architecture check, boundary map, TDD coding, lint, review, testing, documentation."
+description: "Default: coding-agent + evaluator-agent and Stage 2b scripts. --full-pipeline is the six-agent hatch."
 problem: "A story gets coded straight off its task list, so architecture fit, review, and coverage are skipped once the code looks right, and nothing records what was built for the stories downstream."
 outcome: "One story file is closed out - status flipped, tasks and acceptance criteria checked, a What Was Built record appended, and the implementing commit SHA written into its header."
 entry_level: high
 exit_criteria:
   - "the story file header reads Status: Completed and carries a > **Commit:** line holding the full SHA of the completion commit, written once rather than duplicated on re-runs"
   - "the story file ends with a ## What Was Built section naming files created, files modified, and test results, and user-stories/README.md progress counts match it"
-  - "Gate 4 recorded a 100 percent test pass rate with at least 80 percent line coverage on new files, and no gate was skipped without the story being marked DEGRADED instead of Completed"
+  - "Gate 4 recorded a 100 percent test pass rate with at least 80 percent line coverage on new files; designed default-path agent skips (arch, visual-qa, docs — scripts still run) are not DEGRADED; undesigned skips still are"
 loop:
   unit: "review_cycle"
   max_iterations: 3
@@ -51,7 +51,7 @@ gates:
 
 ## Overview
 
-Runs a single user story through the full SDLC pipeline — architecture check through documentation; the Pipeline table below is the stage list.
+Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -67,9 +67,10 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | Invocation | Behavior |
 |---|---|
 | `/implement-story` | Interactive — presents story selection |
-| `/implement-story story-3` | Runs story 3 through the full pipeline |
-| `/implement-story story-3 --quick` | Skips arch-check, review, and docs (prototyping) |
-| `/implement-story story-3 --review-only` | Runs review + test + docs on existing code (no coding phase) |
+| `/implement-story story-3` | Default: `coding-agent` + `evaluator-agent` + scripts |
+| `/implement-story story-3 --full-pipeline` | Six spawn sites: architecture-check, coding, review, testing, optional visual-qa, documentation |
+| `/implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
+| `/implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
 
 ## Pipeline
 
@@ -78,19 +79,19 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Stage | Name | Runs as | Skipped in | Skill |
 |---|---|---|---|---|
 | Step 2 | Load Context | inline | — | `story-context-assembly`; `dependency-context-loading` (dependency branch only) |
-| Gate 0 | Architecture Check | `architecture-check-agent` — read-only | `--quick`, `--review-only` | — |
+| Gate 0 | Architecture Check | `arch-check.py` on default; `architecture-check-agent` on `--full-pipeline` | `--quick`, `--review-only` (agent); default is script-only | — |
 | Gate 0.5 | Boundary Map | inline — data transformation | `--quick`, `--review-only`, `/prototype` | `boundary-map-computation` |
 | Gate 1 | Coding Agent | `coding-agent` — TDD | `--review-only` | `tdd-cycle` |
 | Gate 2 | Lint, Typecheck, Format & Build Smoke | inline — auto | — | — |
 | Gate 2.5 | Change Surface | inline | — | `change-surface-classification` |
-| Gate 3 | Review Agent | `review-agent` — read-only | `--quick` | — |
+| Gate 3 | Review Agent | `evaluator-agent` on default; `review-agent` on `--full-pipeline` | `--quick` | — |
 | Gate 3.5 | Drift Response & WWB Extraction | inline — auto | `--quick` | `drift-triage` (§ A) |
-| Gate 4 | Testing Agent | `testing-agent` — + coverage | — | — |
-| Gate 4.5 | Visual QA | `visual-qa-agent` — read-only, optional | `--quick`; no visual references | — |
-| Gate 5 | Documentation Agent | `documentation-agent` — adaptive | `--quick` | — |
+| Gate 4 | Testing Agent | `test-integrity.py` on default (no testing-agent spawn); `testing-agent` on `--full-pipeline` | — | — |
+| Gate 4.5 | Visual QA | `visual-qa-agent` on `--full-pipeline` only | `--quick`; no visual references; default (even with visual refs) | — |
+| Gate 5 | Documentation Agent | `docs-check.py` on default; `documentation-agent` on `--full-pipeline` | `--quick` | — |
 | Step 4 | Story Completion | inline | — | `project-context-snapshot` (item 3); `what-was-built-authoring` (item 4); `story-commit-provenance` (item 7) |
 
-**Control flow:** Gate 0 ABORT (confirmed at anchor) → ask user. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA).
+**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA). `evaluator_fail_count` starts at 0 per story; evaluator FAIL increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline` (current gate forward; do not restart Gate 0; do not AskQuestion); Reset the counter on evaluator PASS. `--quick` never escalates.
 
 ## Command Process
 
@@ -100,16 +101,16 @@ If no argument provided, present story selection from current spec (not-started 
 
 ### Step 2: Load Context
 
-1. **Read `.writ/context.md`** (if present) — product mission, active spec state, recent drift, open issues. This is the first context item loaded; it primes all subsequent steps.
+1. **Read `.writ/context.md`** (if present) — product mission, active spec state, recent drift, open issues. First context item; primes later steps.
 2. **Read the story file** — tasks, acceptance criteria, dependencies
 3. **Read spec-lite.md** — overall spec context
 4. **Parse context hints and fetch referenced content** — invoke the assembler below
-5. **Load knowledge context** — grep `.writ/knowledge/` for entries matching story keywords; assemble optional `knowledge_context` (≤2KB) for architecture-check, coding, and review agents
-6. **Extract agent-specific spec-lite sections** — parse spec-lite.md into per-role sections for targeted delivery
-7. **Scan codebase** — identify patterns, related files, tech stack
+5. **Load knowledge context** — grep `.writ/knowledge/` for story keywords; optional `knowledge_context` (≤2KB) for spawned agents
+6. **Extract agent-specific spec-lite sections** — parse spec-lite.md into per-role sections
+7. **Scan codebase** — patterns, related files, tech stack
 8. **Check dependencies** — warn if upstream stories aren't complete
 9. **Load "What Was Built" from dependencies** — only when the story declares dependencies
-10. **Load visual references** — if the story has a `## Visual References` section: read linked mockup images via vision model; read `mockups/component-inventory.md` for component specs; read `.writ/docs/design-system.md` for design tokens; pass visual context to the coding agent alongside the story tasks
+10. **Load visual references** — if `## Visual References`: read mockups, `mockups/component-inventory.md`, `.writ/docs/design-system.md`; pass to the coding agent
 
 If dependencies are incomplete:
 ```
@@ -143,49 +144,51 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 
 > **Context refresh:** `.writ/context.md` is regenerated once at Story Completion (Step 4), not between gates. Each write replaces the entire file — do not append, merge, or patch.
 
-> **File creation discipline:** Agents must only create files explicitly listed in the story's implementation tasks. Verification results, validation reports, acceptance-criteria checklists, test plans and other analysis artifacts belong in the agent's **structured output** — never as new files on disk. The orchestrator must not commit any file that isn't in the story's task list or a known pipeline output (drift-log, context.md, story status updates).
+> **File creation discipline:** Agents must only create files listed in the story's implementation tasks. Analysis artifacts stay in structured output. Do not commit files outside the task list or known pipeline outputs (drift-log, context.md, story status).
 
 > **Sub-agent completeness:** `Read skills/subagent-result-completeness/SKILL.md`
 > for how to tell a spawned gate agent's complete verdict from a mid-task
-> stop, and what to do about the latter. This note owns when every gate
-> below that spawns a sub-agent (Gate 0, 1, 3, 4, 4.5) checks for
-> completeness before advancing; the skill owns how to tell a complete
+> stop, and what to do about the latter. This note owns when every default
+> spawn (Gate 1 and Gate 3) checks for completeness before advancing;
+> `--full-pipeline` also Gate 0, 4, 4.5. The skill owns how to tell a complete
 > verdict from a partial one.
 
 > **Sub-agent worktree integration:** `Read skills/subagent-worktree-integration/SKILL.md`
 > for how to reconcile a spawned agent's isolated worktree with the
 > orchestrator's own checkout, including the stale-worktree failure mode.
-> This note owns when every gate below that spawns a sub-agent (Gate 0, 1,
-> 3, 4, 4.5) reconciles isolated output before trusting it; the skill owns
+> This note owns when every default spawn (Gate 1 and Gate 3) reconciles isolated
+> output before trusting it; `--full-pipeline` also Gate 0, 4, 4.5. The skill owns
 > how the diff → copy → re-verify → cleanup procedure runs.
 
 ---
 
 #### Gate 0: Architecture Check (Pre-Implementation)
 
-> **Agent:** `agents/architecture-check-agent.md`
-> **Skip in:** `--quick` mode, `--review-only` mode
+> **Skip in:** `--quick` mode, `--review-only` mode (agent). Default is script-only.
 
-Spawns a **read-only** sub-agent to review the planned approach before any code is written: approach viability, integration risk, complexity assessment, missing considerations (migrations, env changes, error handling).
+**Default:** do not spawn `architecture-check-agent`. Run the script only. If no `--planned` set from an architecture agent, pass story-task planned files or omit (script `unverifiable` continues; not DEGRADED).
 
-**Results:** **PROCEED** → continue to coding · **CAUTION** → continue, inject warnings into coding agent prompt · **ABORT** → present findings to user, ask whether to proceed/modify/skip
-
-**Anchor confirmation (ADR-024):** a `floor` **ABORT** is provisional. Before presenting anything, re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`. The anchor verdict stands: PROCEED/CAUTION continue as that verdict with no AskQuestion and no user-visible line; ABORT presents findings and asks proceed/modify/skip as above. A floor PROCEED/CAUTION is never re-run; `--quick`/`--review-only` skip Gate 0, so no escalation path exists there; a spawn error follows the existing **Agent crash** handling (§ Error Handling), not this branch — escalation fires only on a returned verdict. On the re-run emit `(no-op until ADR-025 Story 1) escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=<model>/<effort>@<platform>)`, stamping the origin captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here. The line has no sink today: ADR-025 Story 1 has not shipped the recorder it names, so the emit is a printed line nothing reads — do not look for a `scripts/signal.py` or a `/retro --friction` consumer. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`; Gate 0 runs before the `review_cycle` counter exists and does not consume an iteration.
-
-**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content`; if agent-specific sections are unavailable, pass full spec-lite. Also pass `fetched_context` when hints were parsed in Step 2, and `knowledge_context` when populated.
-
-**Verify the claim, don't trust it.** After the architecture-check agent returns PROCEED or CAUTION — never on ABORT; do not invoke this script on an ABORT-shaped result — run:
+**Verify the claim, don't trust it.** After an architecture-check agent returns PROCEED or CAUTION — never on ABORT; do not invoke this script on an ABORT-shaped result — and always on default, run:
 
 ```bash
 python3 scripts/arch-check.py check --story <story-file> --repo . --planned <planned files> [--boundary <map.json>]
 ```
 
-`--planned` is Gate 0's live pre-implementation set. `--changed` is replay / post-hoc only. The script never prints `abort`; the ABORT path and the ADR-024 floor→anchor re-run stay untouched.
+`--planned` is Gate 0's live pre-implementation set. `--changed` is replay / post-hoc only. The script never prints `abort`; the ABORT path and the ADR-024 floor→anchor re-run stay `--full-pipeline` only.
 
-- **`rederived: caution`** → inject the script `reason` into the coding-agent warnings the way the agent's CAUTION already does.
+- **`rederived: caution`** → inject the script `reason` into the coding-agent warnings.
 - **script `fail`** → apply the shared [BLOCKED escalation](#blocked-agent-escalation).
 - **`rederived: proceed`** → continue.
 - **any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
+
+**`--full-pipeline`:**
+> **Agent:** `agents/architecture-check-agent.md`
+
+Spawn a **read-only** sub-agent before code: viability, integration risk, complexity, gaps. **PROCEED** → code · **CAUTION** → inject warnings · **ABORT** → present findings, ask proceed/modify/skip.
+
+**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content`; if agent-specific sections are unavailable, pass full spec-lite. Also pass `fetched_context` when hints were parsed in Step 2, and `knowledge_context` when populated.
+
+**Anchor confirmation (ADR-024):** a `floor` **ABORT** is provisional. Before presenting anything, re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`. The anchor verdict stands: PROCEED/CAUTION continue as that verdict with no AskQuestion and no user-visible line; ABORT presents findings and asks proceed/modify/skip as above. A floor PROCEED/CAUTION is never re-run; `--quick`/`--review-only` skip Gate 0, so no escalation path exists there; a spawn error follows the existing **Agent crash** handling (§ Error Handling), not this branch — escalation fires only on a returned verdict. On the re-run emit `(no-op until ADR-025 Story 1) escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=<model>/<effort>@<platform>)`, stamping the origin captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here. The line has no sink today: ADR-025 Story 1 has not shipped the recorder it names, so the emit is a printed line nothing reads — do not look for a `scripts/signal.py` or a `/retro --friction` consumer. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`; Gate 0 runs before the `review_cycle` counter exists and does not consume an iteration.
 
 ---
 
@@ -194,7 +197,7 @@ python3 scripts/arch-check.py check --story <story-file> --repo . --planned <pla
 > **Agent:** None — **inline orchestration step** (data transformation, not a judgment call)
 > **Skip in:** `--quick` mode, `--review-only` mode, `/prototype` path
 
-Before Gate 1, compute a **`boundary_map`** so the coding and review agents have explicit **owned / readable / out-of-scope** scope. Boundaries are **advisory**: the coding agent **flags** cross-boundary edits in its output; the review agent **verifies** compliance (Gate 3). There is no hard file locking.
+Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **Advisory** — no hard file locking. Coding flags crossings; review verifies (Gate 3).
 
 **Not applicable — `/prototype`:** `commands/prototype.md` does not run `implement-story`; that path stays boundary-free. Gate 0.5 exists only on the full pipeline.
 
@@ -231,7 +234,7 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ski
 
 Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `prettier --check` · **Python:** `mypy`, `ruff`, `black --check` · **Rust:** `cargo check`, `cargo clippy`, `cargo fmt --check`.
 
-**On failure:** (1) auto-fix what's fixable (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); (2) re-run checks; (3) if typecheck still fails → send errors back to coding agent; (4) if still failing after auto-fix → flag for review agent.
+**On failure:** auto-fix (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); re-run; typecheck fail → coding agent; still failing → flag for review.
 
 **Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report. Typechecking cannot see framework-level structural errors — a route collision breaks every deployment and passes every unit test that imports handlers as plain functions.
 
@@ -244,7 +247,7 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 **Runs inline — no sub-agent needed.**
 
-After lint/typecheck passes, classify the files the coding agent created or modified as **style-only**, **single-component**, **cross-component** or **full-stack** and pass it to Gate 3 as `change_surface`, which guides review depth. Optionally cross-check those paths against **`boundary_map`** (Gate 0.5) when present — an unexpected **full-stack** result for a file listed as Readable warrants a stricter review posture.
+After lint/typecheck, classify changed files as **style-only**, **single-component**, **cross-component** or **full-stack** and pass Gate 3 `change_surface`. Optionally cross-check against **`boundary_map`** (Gate 0.5) — **full-stack** warrants stricter review here.
 
 `Read skills/change-surface-classification/SKILL.md` for how the four classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how the class is decided.
 
@@ -258,25 +261,30 @@ python3 scripts/change-surface.py classify --changed <files>
 
 #### Gate 3: Review Agent
 
+> **Agent:** `agents/evaluator-agent.md`
+> **Skip in:** `--quick` mode
+> **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
+
+Default spawn is `evaluator-agent` (AC + recorded tests). Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+
+**`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
 
-Spawns a **read-only** sub-agent for code review: acceptance criteria; code quality (patterns, errors, readability); security (injection, auth, secrets, vulnerable deps); test coverage (all AC covered? edge cases?); integration (breaking changes, circular deps, migrations); and **drift analysis** — implementation against the spec contract, classifying deviations.
+Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`.
 
-**Input:** all standard review inputs plus `spec_lite_for_review` as `spec_lite_content` (extracted in Step 2) for drift analysis, optional `knowledge_context`, and `change_surface` (Gate 2.5) to guide review depth. Also **`boundary_map`** (the same block as Gate 0.5) and, if present, a one-line **`boundary_overlap_summary`** distilled from Readable lines carrying `overlap` or `high-overlap`. If agent-specific sections are unavailable (legacy spec-lite), pass full spec-lite content.
-
-**Results:** **PASS** → continue to testing (may include Small or Medium drift) · **FAIL** → send feedback to coding agent for fixes · **PAUSE** → Large drift detected; this gate only emits the verdict — Gate 3.5 § A owns the pause and its options
+**Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
 **Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
 
-**Verify the claim, don't trust it.** After the review agent returns, run:
+**Verify the claim, don't trust it.** After the Gate 3 agent returns, run:
 
 ```bash
 python3 scripts/review-override.py check --spec <spec-folder> --repo . --story <story-file> [--new-files <story's new files>] [--tests <story's test files>]
 ```
 
-The review agent's PASS/FAIL is a field the agent types. The checker re-derives a mechanical verdict from `ac-trace.py` and (when those path flags are present) `test-integrity.py`, and show both the claim and the measurement in the story report.
+The agent's PASS/FAIL is a field the agent types. The checker re-derives a mechanical verdict from `ac-trace.py` and (when those path flags are present) `test-integrity.py`, and show both the claim and the measurement in the story report.
 
-This override is **FAIL-only**: a script `fail` takes the existing review-loop recode path (Gate 3 FAIL → recode). A script `pass` or `unverifiable` leaves the review-agent FAIL or PAUSE standing — a mechanical pass does not force PASS. Residual architecture, security, and taste stay with `review-agent`. Spawn behavior is unchanged.
+This override is **FAIL-only**: a script `fail` takes the existing review-loop recode path (Gate 3 FAIL → recode). A script `pass` or `unverifiable` leaves the evaluator FAIL or PAUSE standing — a mechanical pass does not force PASS and does not wash an evaluator FAIL. Residual architecture, security, and taste stay with `evaluator-agent` on default and `review-agent` on `--full-pipeline`.
 
 - **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the existing review-loop recode path.
 - **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
@@ -285,7 +293,7 @@ This override is **FAIL-only**: a script `fail` takes the existing review-loop r
 
 > **Format reference:** `.writ/docs/drift-report-format.md`, `.writ/docs/what-was-built-format.md`
 
-After the review agent returns, perform two operations:
+After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
@@ -304,7 +312,7 @@ python3 scripts/drift-format.py check --story <story-file> [--drift-log <spec>/d
 
 ##### B. "What Was Built" Data Extraction
 
-Extract implementation data from the review agent's output into `what_was_built_data` and hold it in orchestrator state, parsing defensively with a fallback for every field. **Do NOT append to the story file yet.**
+Extract implementation data from the Gate 3 agent's output into `what_was_built_data` and hold it in orchestrator state, parsing defensively with a fallback for every field. **Do NOT append to the story file yet.**
 
 Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_built_data.test_results`; **Step 4 item 4** formats and appends. The extraction sources, their mandatory/best-effort semantics and their fallback values live in `what-was-built-authoring`, loaded once at Step 4 item 4 alongside the formatting rules they feed.
 
@@ -312,6 +320,9 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 #### Gate 4: Testing Agent (with Coverage Enforcement)
 
+**Default:** do not spawn `testing-agent`. Run the scripts below.
+
+**`--full-pipeline`:**
 > **Agent:** `agents/testing-agent.md`
 
 **Context routing:** Pass `spec_lite_for_testing` as `spec_lite_content` — success criteria, shadow paths, and edge cases relevant to testing. If agent-specific sections not available, pass full spec-lite.
@@ -322,9 +333,9 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 **On failure:** Send test output back to coding agent. 2 fix iterations max (separate from the review loop's 3-iteration cap), then escalate.
 
-**On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `testing-agent`, restarting **Gate 4**; skip-with-warning continues to Gate 5 with the story marked `⚠️ DEGRADED`.
+**On `STATUS: BLOCKED` (`--full-pipeline`):** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `testing-agent`, restarting **Gate 4**; skip-with-warning continues to Gate 5 with the story marked `⚠️ DEGRADED`.
 
-**Verify the claim, don't trust it.** After the testing agent returns, run:
+**Verify the claim, don't trust it.** After scripts (and the testing agent on `--full-pipeline`) return, run:
 
 ```bash
 python3 scripts/test-integrity.py coverage --project . --new-files <story's new files>
@@ -333,19 +344,22 @@ python3 scripts/test-integrity.py authenticity --project . --tests <story's test
 
 `Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and where they disagree the checker wins — a run may report `TEST_RESULT: PASS` and still not close, as `scripts/exit-criteria.py` lets a run report COMPLETE and be published `unmet`. Show both the claim and the measurement in the story report.
 
-- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. The only exit is the shared [BLOCKED escalation](#blocked-agent-escalation) with its human decision; do not downgrade the story silently.
+- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. `test-integrity.py` `fail`: default uses [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; `--full-pipeline` keeps `testing-agent`, restarting **Gate 4**. Do not downgrade the story silently.
 - **Any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ---
 
 #### Gate 4.5: Visual QA (Optional)
 
+**Default:** skip — no `visual-qa-agent` spawn even with visual refs.
+
+**`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`
 > **Skip in:** `--quick` mode, when no visual references exist for this story
 
 **Auto-activates when:** the story has a `## Visual References` section, or the spec has a `mockups/` directory with files.
 
-Spawns a **read-only** sub-agent that captures the current UI via browser/Playwright, compares against mockups linked in the story, and reports structural, spacing and styling matches/mismatches.
+`--full-pipeline` spawn: read-only UI capture vs story mockups; report structural, spacing, styling mismatches.
 
 **Results:** **PASS** (no mismatches, or none the agent rates above low) → continue to docs · **SOFT PASS** (only cosmetic, medium-or-low mismatches) → continue, log issues · **FAIL** (any high-priority mismatch, or structural drift from the mockup) → send fixes back to coding agent
 
@@ -357,16 +371,18 @@ Failures count toward the shared review-loop cap declared at Gate 3.
 
 #### Gate 5: Documentation Agent
 
-> **Agent:** `agents/documentation-agent.md`
 > **Skip in:** `--quick` mode
 
-**Context routing:** Pass full spec-lite content as `spec_context` — documentation needs a cross-cutting view across all spec sections. Also pass `fetched_context` if available.
+**Default:** do not spawn `documentation-agent`. Run the script only.
 
-**Auto-detects the docs framework** (VitePress, Docusaurus, Nextra, MkDocs, Storybook, or plain README).
+**`--full-pipeline`:**
+> **Agent:** `agents/documentation-agent.md`
 
-**Updates:** inline docs (JSDoc/docstrings) for new public APIs; README if user-facing features added; CHANGELOG entry; framework docs pages if detected; Mermaid diagrams where appropriate.
+**Context routing:** Pass full spec-lite content as `spec_context`. Also pass `fetched_context` if available.
 
-**Verify the claim, don't trust it.** After the documentation agent returns, run:
+**Auto-detects the docs framework** (VitePress, Docusaurus, Nextra, MkDocs, Storybook, or plain README). Updates inline docs, README, CHANGELOG, framework pages, diagrams as needed.
+
+**Verify the claim, don't trust it.** After the documentation agent returns (or immediately on default), run:
 
 ```bash
 python3 scripts/docs-check.py check --repo . [--changed <story's changed files>]
@@ -430,12 +446,12 @@ AskQuestion({
 
 ## Quick Mode (`--quick`)
 
-**Skips:** Gate 0 (arch-check), **Gate 0.5 (boundary map)**, Gate 3 (review), Gate 3.5 (drift handling), Gate 5 (docs)
-**Keeps:** Gate 1 (coding/TDD), Gate 2 (lint + build smoke), Gate 4 (testing + coverage re-derivation)
+**Skips:** Gate 0 agent, **Gate 0.5 (boundary map)**, Gate 3 (evaluator), Gate 3.5 (drift handling), Gate 5 agent. `--quick` never escalates.
+**Keeps:** Gate 1 (`coding-agent` + scripts), Gate 2 (lint + build smoke), Gate 4 scripts, Gate 0/5 scripts
 
-Use for prototyping, spikes, internal tools. Run full pipeline later:
+Use for prototyping, spikes, internal tools. Hatch later via `--full-pipeline`:
 ```
-/implement-story story-3 --review-only
+/implement-story story-3 --full-pipeline
 ```
 
 ## Completion
