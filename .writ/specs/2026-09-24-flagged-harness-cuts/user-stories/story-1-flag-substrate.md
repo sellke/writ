@@ -1,6 +1,7 @@
 # Story 1: Flag substrate
 
 > **Status:** Completed ✅ (2026-09-25)
+> **Commit:** d647b18b795fee18185f0b09af7adffa430b18ee
 > **Priority:** High
 > **Dependencies:** None
 
