@@ -10,6 +10,7 @@
 **Implementation Approach:**
 - `WRIT_HARNESS_LEAN=1` selects `*.lean.md` siblings and spill. Unset loads today’s files.
 - Only the five in-scope siblings (`_preamble`, `create-spec`, `verify-spec`, `implement-phase`, `implement-story`) warn when missing under the flag; other commands load their default silently. Loader warnings name the file actually loaded.
+- The lean preamble drops the whole Plan Mode Integrity section. Rules it generalized that `system-instructions.md` does not carry live in the lean commands: "validate the invocation matrix before mutation" in `implement-phase.lean.md`, "never offer to code" in each Terminal constraint.
 - Do not embed both texts in the live command. `measure-invocation.py` must ignore lean siblings when the flag is unset.
 - Spill writes the full over-budget text under `.writ/state/` and returns path, size, and a short tail.
 - No line that tells the model to use fewer tokens.

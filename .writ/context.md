@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-25T00:00:00Z
+> Last Updated: 2026-09-25T00:30:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-24-flagged-harness-cuts` — Flagged harness cuts
-- **Status:** In Progress (1/5 stories Completed ✅)
-- **Story:** 1 of 5 — Flag substrate (Completed ✅)
-- **Progress:** 6/30 tasks complete (20%)
+- **Status:** In Progress (2/5 stories Completed ✅)
+- **Story:** 2 of 5 — Lean preamble (Completed ✅)
+- **Progress:** 12/30 tasks complete (40%)
 
 ## Artifact Map
 
@@ -23,8 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- **DEV-001** Small — Existing loader warnings name the file actually loaded
 - **DEV-002** Small — Missing-sibling warnings limited to the five in-scope siblings
+- **DEV-003** Small — One dropped preamble rule is a product rule, not a restatement
+- **DEV-004** Small — "Never offer to code" relies on per-command Terminal constraints
 
 ## Open Issues
 
