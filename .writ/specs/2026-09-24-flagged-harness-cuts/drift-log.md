@@ -119,3 +119,46 @@ Prior spec-lite SHA-256: `795d090336f31bf3b9cf1a391a06e42f5d09cc70fe4dd99a26255b
 - **Spec amendment:** spec-lite Files in Scope lists the two eval scripts.
 
 Prior spec-lite SHA-256: `197a465504cd15c2dd67db98ac38072dcf91aee6c3573db4fb3628406bcc67f5`
+
+---
+
+## Story 5: Keep or revert — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Large (user-approved)
+
+### Deviations
+
+#### [DEV-010] Story 5 sample reduced to one story × 2 per arm
+- **Severity:** Large
+- **Spec said:** Four stories × 2, flag on and flag off, on one current default frontier.
+- **Implementation did:** One story × 2 per arm. The decision check can report only null or quality miss on this sample; keep still needs the full sample. Null also stops `install.sh` / `update.sh` from shipping `*.lean.md`.
+- **Reason:** Static bound — the prefix cut is under 1% of a run's cache reads against a 59% spread, so the full run cannot show a prefix-driven keep. The reduced run tests the real risk (lean text still completing a story) at a quarter of the cost.
+- **Resolution:** Pipeline paused — spec modified by user
+- **Spec amendment:** User approved in the `/implement-spec` session on 2026-09-25 ("Do what you think is best"). `spec.md` carries an Amendment section; Story 5 ACs and tasks rewritten, AC IDs unchanged.
+
+#### [DEV-011] Story 5 scripts not listed in spec-lite Files in Scope
+- **Severity:** Small
+- **Spec said:** spec-lite Files in Scope did not name the baseline and install scripts.
+- **Implementation did:** Added `scripts/lean-decision.py`; changed `scripts/pipeline-baseline.py`, `scripts/install.sh`, `scripts/update.sh`.
+- **Reason:** Story 5's ACs and tasks name them.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Files in Scope lists them.
+
+#### [DEV-012] install/update skip lean siblings before the decision exists
+- **Severity:** Small
+- **Spec said:** AC-5.2 ties "not shipped" to a null outcome.
+- **Implementation did:** The skip lands before the runs.
+- **Reason:** The reduced sample can end only in null or quality miss; both leave the default unflipped. A future full-sample keep revisits it.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Covered by the same spec-lite Files in Scope line.
+
+#### [DEV-013] Control arm strips an inherited WRIT_HARNESS_LEAN
+- **Severity:** Small
+- **Spec said:** Task 5.2: the control arm is unchanged.
+- **Implementation did:** `driver_env` removes `WRIT_HARNESS_LEAN` from the control driver's env.
+- **Reason:** Keeps an operator's exported flag from turning the control into a lean arm.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed beyond the task wording.
+
+Prior spec-lite SHA-256: `8af542aa92f7d673c25d8c9a524048049ad7ceec877d0efee203ec1bb2519614`

@@ -27,7 +27,7 @@ Subcommands:
            [--excluded-cap N] [--live-test-scope story|file] [--force]
   run      --baseline PATH --yuss PATH [--model ID] [--runs N] [--story ID]
            [--cap S] [--budget-usd N] [--keep] [--force] [--tmp-root DIR]
-           [--writ-root DIR]
+           [--writ-root DIR] [--lean]
   ingest   --baseline PATH --yuss PATH --checkout DIR --transcript FILE
            [--story-id ID --run N] [--force] [--tmp-root DIR] [--writ-root DIR]
   validate FILE
@@ -716,7 +716,10 @@ GATE_NAMES = (
 )
 GATE_KEYS = ("verdict", "source", "rederived")      # gate4_tests also carries `integrity`
 ISOLATION_KEYS = ("reachable_commits", "expected", "asserted", "answer_scrub_asserted")
-WRIT_KEYS = ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count")
+# `harness_lean` (Story 5 of 2026-09-24-flagged-harness-cuts) names the arm:
+# true when `run --lean` swapped the lean siblings in. Additive — records
+# written before it lack the key, and `validate` does not require it.
+WRIT_KEYS = ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count", "harness_lean")
 TEST_BLOCK_KEYS = ("passed", "total", "reason")
 # Business Rule 5: Gate 2 and Gate 4 are re-derived by Writ's own scripts, run
 # from `--writ-root` against the produced checkout. Each block is
@@ -895,6 +898,20 @@ JEST_TIMEOUT_S = 1200
 COVERAGE_DIR = "coverage"
 COVERAGE_REPORT = "coverage-final.json"     # jest's default `json` reporter
 MANIFEST_REL = ".claude/.writ-manifest"
+# The lean arm. `commands/<stem>.lean.md` is the WRIT_HARNESS_LEAN=1 body for
+# `<stem>.md`; install.sh does not ship it while the default is unflipped, so
+# `run --lean` copies it in itself. Every other arm strips the flag from the
+# driver env, so an operator's exported value never reaches the control.
+LEAN_ENV = "WRIT_HARNESS_LEAN"
+LEAN_SUFFIX = ".lean.md"
+PLATFORM_COMMANDS_REL = {"claude": ".claude/commands", "cursor": ".cursor/commands", "codex": ".codex/commands"}
+# Frontmatter fields a swapped-in lean body takes back from its default, so
+# the lean arm lists the same commands, under the same names and
+# descriptions, as the control arm.
+RESTORED_FIELDS = ("name", "description")
+# The lean siblings that must exist for `run --lean` to mean anything.
+REQUIRED_LEAN = ("implement-story.lean.md", "_preamble.lean.md")
+LEAN_LINK = re.compile(r"\(([A-Za-z0-9_.-]+\.lean\.md)\)")
 MANIFEST_VERSION = re.compile(r"(?m)^# version: (\S+)")
 
 
@@ -1099,9 +1116,74 @@ def _parse_manifest(text: str) -> tuple:
     return (version.group(1) if version else None), entries
 
 
-def overlay_writ(checkout: Path, writ_root: Path, log: Path, platform: str = "claude") -> dict:
+def lean_siblings(writ_root: Path) -> list:
+    """`(lean, default)` source pairs: every `commands/<stem>.lean.md` whose
+    `<stem>.md` exists. A `.lean.md` with no default is an ordinary command."""
+    pairs = []
+    for lean in sorted((writ_root / "commands").glob("*" + LEAN_SUFFIX)):
+        default = lean.with_name(lean.name[:-len(LEAN_SUFFIX)] + ".md")
+        if default.is_file():
+            pairs.append((lean, default))
+    return pairs
+
+
+def _field_re(field: str):
+    return re.compile(r"(?m)\A(---\n(?:(?!---\n).*\n)*?)%s:[ \t]*(.*?)[ \t]*$" % re.escape(field))
+
+
+def frontmatter_field(text: str, field: str) -> Optional[str]:
+    match = _field_re(field).match(text)
+    return match.group(2) if match else None
+
+
+def restore_frontmatter(body: str, default_text: str) -> str:
+    """Set each RESTORED_FIELDS line of `body` to the default's value."""
+    for field in RESTORED_FIELDS:
+        value = frontmatter_field(default_text, field)
+        if value is not None and frontmatter_field(body, field) is not None:
+            body = _field_re(field).sub(lambda m, f=field, v=value: m.group(1) + f + ": " + v, body, count=1)
+    return body
+
+
+def apply_lean_siblings(checkout: Path, writ_root: Path, platform: str) -> list:
+    """Replace each installed default with its lean body, keeping the
+    default's `name:` and `description:` so the arm lists the same commands
+    as control and never advertises a lean variant. A lean file is also
+    written under its own `.lean.md` name only when a written body links it
+    (today `_preamble.lean.md`), so those links resolve and no other extra
+    command appears. Returns the installed paths written, relative to the
+    checkout."""
+    rel_dir = PLATFORM_COMMANDS_REL[platform]
+    commands = checkout / rel_dir
+    if not commands.is_dir():
+        raise RunError("lean_overlay_failed")
+    sources = {lean.name: (lean, default) for lean, default in lean_siblings(writ_root)}
+    written, bodies = [], []
+    for lean, default in sources.values():
+        body = restore_frontmatter(lean.read_text(encoding="utf-8"), default.read_text(encoding="utf-8"))
+        (commands / default.name).write_text(body, encoding="utf-8")
+        written.append(str(Path(rel_dir) / default.name))
+        bodies.append(body)
+    linked, queue = set(), list(bodies)
+    while queue:
+        for name in LEAN_LINK.findall(queue.pop()):
+            if name in linked or name not in sources:
+                continue
+            linked.add(name)
+            lean, default = sources[name]
+            body = restore_frontmatter(lean.read_text(encoding="utf-8"), default.read_text(encoding="utf-8"))
+            (commands / name).write_text(body, encoding="utf-8")
+            written.append(str(Path(rel_dir) / name))
+            queue.append(body)
+    return written
+
+
+def overlay_writ(checkout: Path, writ_root: Path, log: Path, platform: str = "claude",
+                 lean: bool = False) -> dict:
     """Install the current repo's Writ into the checkout (`install.sh` run
-    from `scripts/` uses the local repo as source). Records what it replaced."""
+    from `scripts/` uses the local repo as source). Records what it replaced.
+    With `lean`, the lean siblings then replace their installed defaults
+    (after the manifest diff, which describes install.sh alone)."""
     manifest = checkout / MANIFEST_REL
     before_version, before = _parse_manifest(manifest.read_text(encoding="utf-8", errors="replace")) \
         if manifest.is_file() else (None, {})
@@ -1117,8 +1199,12 @@ def overlay_writ(checkout: Path, writ_root: Path, log: Path, platform: str = "cl
     _, after = _parse_manifest(manifest.read_text(encoding="utf-8", errors="replace")) \
         if manifest.is_file() else (None, {})
     diff = sum(1 for rel in set(before) | set(after) if before.get(rel) != after.get(rel))
+    if lean:
+        written = apply_lean_siblings(checkout, writ_root, platform)
+        with open(str(log), "a", encoding="utf-8") as fh:
+            fh.write("".join("lean: wrote %s\n" % rel for rel in written))
     block = {"source": "overlay", "commit": commit, "dirty": dirty, "checkout_manifest_version": before_version,
-             "manifest_diff_count": diff}
+             "manifest_diff_count": diff, "harness_lean": bool(lean)}
     assert tuple(block) == WRIT_KEYS
     return block
 
@@ -1167,8 +1253,18 @@ def _kill_group(proc: "subprocess.Popen") -> None:
             pass
 
 
+def driver_env(nested_vars: frozenset, lean: bool, base: Optional[dict] = None) -> dict:
+    """The operator's env minus nested-session markers and minus any
+    inherited WRIT_HARNESS_LEAN; the lean arm then sets it to 1."""
+    base = os.environ if base is None else base
+    env = {k: v for k, v in base.items() if k not in nested_vars and k != LEAN_ENV}
+    if lean:
+        env[LEAN_ENV] = "1"
+    return env
+
+
 def invoke_headless(argv: list, checkout: Path, transcript: Path, stderr_log: Path, cap_s: int,
-                    nested_vars: Optional[frozenset] = None) -> tuple:
+                    nested_vars: Optional[frozenset] = None, lean: bool = False) -> tuple:
     """Stream stdout to `transcript` (never `capture_output` on a 90-minute
     run). Returns (timed_out, elapsed_s). On the cap the group is killed and
     the run is recorded as a timeout. `start_new_session=True` also detaches
@@ -1176,8 +1272,7 @@ def invoke_headless(argv: list, checkout: Path, transcript: Path, stderr_log: Pa
     other exception kills the group too, then propagates."""
     start = _utcnow()
     timed_out = False
-    strip = NESTED_SESSION_VARS if nested_vars is None else nested_vars
-    env = {k: v for k, v in os.environ.items() if k not in strip}
+    env = driver_env(NESTED_SESSION_VARS if nested_vars is None else nested_vars, lean)
     with open(str(transcript), "wb") as out, open(str(stderr_log), "wb") as err:
         proc = subprocess.Popen(argv, cwd=str(checkout), stdout=out, stderr=err, env=env, start_new_session=True)
         try:
@@ -1941,7 +2036,7 @@ def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, me
         meta["isolation"]["answer_scrub_asserted"] = True
         driver = DRIVERS[meta["invocation"]["driver"]]
         meta["writ"] = overlay_writ(checkout, Path(args.writ_root), run_dir / "install.log",
-                                   platform=driver.platform)
+                                   platform=driver.platform, lean=bool(getattr(args, "lean", False)))
         meta["deps"] = install_deps(checkout, run_dir / "pnpm-install.log")
         _write_sidecar(run_dir, meta)               # persisted before the long-running step
     except RunError as exc:
@@ -1955,7 +2050,7 @@ def _replay(git: Git, yuss: Path, entry: dict, run_dir: Path, story_rel: str, me
     stderr_log = run_dir / "stderr.log"
     meta["timed_out"], meta["elapsed_s"] = invoke_headless(
         meta["invocation"]["argv"], checkout, transcript, stderr_log, args.cap,
-        nested_vars=driver.nested_vars)
+        nested_vars=driver.nested_vars, lean=bool(getattr(args, "lean", False)))
     stderr_text = ""
     if stderr_log.is_file():
         stderr_text = stderr_log.read_text(encoding="utf-8", errors="replace")
@@ -1993,6 +2088,18 @@ def cmd_run(args: argparse.Namespace) -> None:
     if doc["runs_per_story"] is not None and doc["runs_per_story"] != args.runs and not args.force:
         _refuse("run", "runs_per_story is already %s; pass --force to change it to %d"
                 % (doc["runs_per_story"], args.runs))
+    if args.lean:
+        present = {lean.name for lean, _ in lean_siblings(Path(args.writ_root))}
+        missing = [n for n in REQUIRED_LEAN if n not in present]
+        if missing:
+            _refuse("run", "--lean: --writ-root %s lacks commands/%s (with its default); the lean arm needs %s"
+                    % (args.writ_root, ", commands/".join(missing), " and ".join(REQUIRED_LEAN)))
+    mixed = [r for r in doc["runs"] if isinstance(r, dict) and isinstance(r.get("writ"), dict)
+             and bool(r["writ"].get("harness_lean", False)) != args.lean]
+    if mixed:
+        # One arm per file: a record written before the lean arm existed is control.
+        _refuse("run", "--baseline already holds %s-arm records (%s run %s); one arm per file"
+                % ("control" if args.lean else "lean", mixed[0].get("story_id"), mixed[0].get("run")))
     entries = _select_entries("run", doc, args.story)
     git = Git(yuss)
     runs_per_story_changed = doc["runs_per_story"] != args.runs
@@ -2115,6 +2222,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--budget-usd", type=float, default=DEFAULT_BUDGET_USD,
                      help="passed to the driver as a dollar cap when it supports one (default: %(default)s)")
     run.add_argument("--keep", action="store_true", help="keep the run directory (checkout, transcript, sidecar)")
+    run.add_argument("--lean", action="store_true",
+                     help="lean arm: after the overlay, each commands/<stem>.lean.md replaces its installed "
+                          "default (and is kept under its own name), and the driver runs with %s=1. "
+                          "Without it the driver env never carries %s. One arm per baseline file" % (LEAN_ENV, LEAN_ENV))
     run.set_defaults(func=cmd_run)
 
     ingest = sub.add_parser("ingest", help="compute a run record from an existing checkout and transcript")

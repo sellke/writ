@@ -742,12 +742,29 @@ VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo
 
 echo ""
 
+# commands/<stem>.lean.md is the WRIT_HARNESS_LEAN=1 body for <stem>.md. It is
+# not shipped while the default exists (Story 5 of 2026-09-24-flagged-harness-cuts:
+# the default load path is unflipped); `pipeline-baseline.py run --lean` copies
+# it into a replay checkout itself. A .lean.md with no default ships as usual.
+# Mirrors eval.sh's lean-sibling exclusion.
+is_unshipped_lean_sibling() {
+  local src_dir="$1" fname="$2"
+  case "$fname" in
+    *.lean.md) [ -f "$src_dir/${fname%.lean.md}.md" ] ;;
+    *) return 1 ;;
+  esac
+}
+
 # ---------------------------------------------------------------------------
 # Inventory
 # ---------------------------------------------------------------------------
 
 CMD_COUNT=0
-for f in "$WRIT_SRC/commands"/*.md; do [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1)); done
+for f in "$WRIT_SRC/commands"/*.md; do
+  [ -f "$f" ] || continue
+  is_unshipped_lean_sibling "$WRIT_SRC/commands" "$(basename "$f")" && continue
+  CMD_COUNT=$((CMD_COUNT + 1))
+done
 AGENT_COUNT=0
 for f in "$WRIT_SRC/$AGENTS_SRC/"$AGENT_FILE_GLOB; do [ -f "$f" ] && AGENT_COUNT=$((AGENT_COUNT + 1)); done
 SKILL_COUNT=0
@@ -1006,6 +1023,7 @@ overlay_scan() {
   for src_file in "$src_dir"/$pattern; do
     [ -f "$src_file" ] || continue
     fname=$(basename "$src_file")
+    is_unshipped_lean_sibling "$src_dir" "$fname" && continue
     local_file="$local_dir/$fname"
     rel_path="${label}/${fname}"
     upstream_hash=$(hash_file "$src_file")

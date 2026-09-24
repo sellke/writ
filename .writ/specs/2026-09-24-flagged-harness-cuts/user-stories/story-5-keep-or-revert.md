@@ -1,6 +1,6 @@
 # Story 5: Keep or revert
 
-> **Status:** Not Started
+> **Status:** In Progress
 > **Priority:** High
 > **Dependencies:** Stories 2, 3, 4
 
@@ -14,19 +14,21 @@
 
 > **AC IDs assigned through:** AC-5.4
 
-- [ ] Given the four stories × 2 were run twice via `scripts/pipeline-baseline.py` on one current default frontier — Claude Opus 5.5, or GPT-6 Astra when that family is under test — once with `WRIT_HARNESS_LEAN=1` and once unset, when every exit-criteria row is 2/2 and flag-on driver `cost_usd` (priced by `scripts/harness-cost.py`, not the $10/$50/$0.25 formula) is lower than that same-model flag-off control, then the default load path becomes the lean siblings for models of that prowess or higher and `.writ/decision-log.md` records keep, the model, and those numbers. `[AC-5.1]`
-- [ ] Given the same same-model compare, when every exit-criteria row is 2/2 and flag-on `cost_usd` does not drop against the flag-off control, then the default load path is unchanged, `.writ/decision-log.md` records null with the model and the numbers, and this story and the spec complete successfully. `[AC-5.2]`
-- [ ] Given the same baseline compare, when any exit-criteria row is under 2/2, then the default load path is unchanged (any applied flip is reverted), the compare table is recorded, and the outcome is not treated as a completed keep. `[AC-5.3]`
+> **Amended 2026-09-25 (user-approved, see drift-log DEV-010):** the sample is reduced from four stories × 2 to one story × 2 per arm. A static bound (lean prefix saves ~1,170 tokens per turn, under 1% of a run's cache reads, against a 59% run-to-run spread) means no sample in this plan can separate a prefix-driven cost drop from noise. The reduced run tests the real risk — whether lean-loaded `/implement-story` still completes a real story — and can end only in null or quality miss. A keep still requires the original four stories × 2.
+
+- [ ] Given one story × 2 runs per arm via `scripts/pipeline-baseline.py` on one current default frontier (Claude Opus 5.5, or GPT-6 Astra when that family is under test) — one arm with the lean siblings actually loaded in the replay checkout and `WRIT_HARNESS_LEAN=1`, one arm unset — when the decision check reads the two baseline files, then it reports `keep` only if the sample is the full four stories × 2, every exit-criteria row is 2/2, and flag-on driver `cost_usd` (priced by `scripts/harness-cost.py`, not the $10/$50/$0.25 formula) is lower than the same-model control; on the reduced sample it never reports `keep`. `[AC-5.1]`
+- [ ] Given the same same-model compare, when every exit-criteria row is 2/2 and no keep is possible or `cost_usd` does not drop, then the default load path is unchanged, `*.lean.md` siblings are not shipped by `install.sh` / `update.sh`, `.writ/decision-log.md` records null with the model, the sample size, and the numbers, and this story and the spec complete successfully. `[AC-5.2]`
+- [ ] Given the same baseline compare, when any exit-criteria row is under 2/2, or the two files do not select the same stories, then the default load path is unchanged (any applied flip is reverted), the compare table is recorded, and the outcome is not treated as a keep. `[AC-5.3]`
 - [ ] Given Story 5 runs, when the keep-or-revert decision is applied, then model routing is unchanged and `system-instructions.md` is not edited. `[AC-5.4]`
 
 ## Implementation Tasks
 
-- [ ] 5.1 Write fixture checks for keep, null, and quality-miss paths against `scripts/pipeline-baseline.py compare` (including a mismatched story-id fixture that must not flip the default) and assert `scripts/harness-cost.py` treats `cost_usd` as the price of record. `[AC-5.1, AC-5.2, AC-5.3]`
-- [ ] 5.2 Run the four stories × 2 twice on the current default frontier (Opus 5.5, or GPT-6 Astra when that family is under test): once with `WRIT_HARNESS_LEAN=1` and once unset, using `scripts/pipeline-baseline.py`. Do not use the Fable 5.1 dollar total as the opponent. `[AC-5.1, AC-5.2, AC-5.3]`
-- [ ] 5.3 Compare the flag-on run to the same-model flag-off run via `scripts/pipeline-baseline.py compare` and price with `scripts/harness-cost.py baseline`. `[AC-5.1, AC-5.2, AC-5.3]`
-- [ ] 5.4 Apply the outcome: keep flips the default load path to the lean siblings; null leaves it unchanged; quality miss reverts any flip and records the compare table — append the matching keep or null line (with numbers) to `.writ/decision-log.md`, or record the quality-miss table without a keep. `[AC-5.1, AC-5.2, AC-5.3]`
-- [ ] 5.5 Confirm model routing and `system-instructions.md` are untouched by this story's outcome. `[AC-5.4]`
-- [ ] 5.6 Verify acceptance criteria: compare table and `cost_usd` numbers match the decision-log line; default load path matches keep vs null vs quality miss; fixture checks pass. `[AC-5.1, AC-5.2, AC-5.3, AC-5.4]`
+- [ ] 5.1 Write fixture tests for a decision check over two `pipeline-baseline-v1` files: keep (full sample, 2/2, cheaper), null (2/2, not cheaper; and reduced sample even when cheaper), quality miss (a row under 2/2), and compare error (mismatched story ids, missing file, empty `runs`) — none of the last three may report keep; `cost_usd` is the price of record `[AC-5.1, AC-5.2, AC-5.3]`
+- [ ] 5.2 Add a lean arm to `scripts/pipeline-baseline.py run`: after the Writ overlay, the lean siblings replace their defaults in the replay checkout, the driver gets `WRIT_HARNESS_LEAN=1`, and the run record says which arm it was; the control arm is unchanged `[AC-5.1, AC-5.3]`
+- [ ] 5.3 Run one story × 2 per arm on the current default frontier, compare with `scripts/pipeline-baseline.py compare`, price with `scripts/harness-cost.py baseline`, and run the decision check. Do not use the Fable 5.1 dollar total as the opponent. `[AC-5.1, AC-5.2, AC-5.3]`
+- [ ] 5.4 Apply the outcome: keep flips the default load path; null or quality miss leaves it unchanged and `install.sh` / `update.sh` skip `*.lean.md` siblings; append the keep or null line (model, sample, numbers) to `.writ/decision-log.md`, or record the quality-miss table without a keep `[AC-5.1, AC-5.2, AC-5.3]`
+- [ ] 5.5 Confirm model routing and `system-instructions.md` are untouched by this story's outcome `[AC-5.4]`
+- [ ] 5.6 Verify acceptance criteria: compare table and `cost_usd` numbers match the decision-log line; default load path and install behavior match the outcome; fixture tests pass `[AC-5.1, AC-5.2, AC-5.3, AC-5.4]`
 
 ## Notes
 

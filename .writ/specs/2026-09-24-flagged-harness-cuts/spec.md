@@ -101,3 +101,7 @@ Story 5 does not run inside spec authoring. It is an implementation story: the s
 3. `story-3-spill-to-file` — Spill-to-file behind the flag for story context and “What Was Built”. Dependencies: Story 1.
 4. `story-4-lean-commands` — Lean bodies for the four large commands. Dependencies: Story 1.
 5. `story-5-keep-or-revert` — Eight-run keep-or-revert. Flip the default, or record a null and leave it off. Dependencies: Stories 2, 3, and 4.
+
+## Amendment 2026-09-25 — Story 5 sample
+
+User-approved during `/implement-spec` (drift-log DEV-010). Story 5 runs one story × 2 per arm instead of four stories × 2. Reason: the lean `/implement-story` prefix is ~1,170 tokens (4,687 bytes) smaller; re-read on each of ~91 turns that is ~107k of ~13.6M cache-read tokens per run, under 1%, against a 59% run-to-run cache-read spread. No sample in this plan can separate a prefix-driven cost drop from noise. The reduced run tests whether lean-loaded `/implement-story` still completes a real story, and may end only in null or quality miss. A keep still requires the full four stories × 2. On null, `install.sh` / `update.sh` do not ship `*.lean.md` siblings.

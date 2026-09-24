@@ -23,6 +23,7 @@
 - `commands/{create-spec,verify-spec,implement-phase,implement-story}.md` plus `.lean.md` siblings
 - `skills/dependency-context-loading/SKILL.md` — unchanged; the What Was Built spill branch lives in `commands/implement-story.lean.md`
 - `scripts/eval.sh`, `scripts/eval-leanness.py` — skip a `*.lean.md` only when its default `<stem>.md` exists
+- `scripts/pipeline-baseline.py` (`run --lean`), `scripts/lean-decision.py` (keep/null/quality_miss/compare_error), `scripts/install.sh` / `scripts/update.sh` — do not ship lean siblings while the default is unflipped
 
 **Error Handling:**
 - Flag unset and over budget → today’s truncate-and-warn

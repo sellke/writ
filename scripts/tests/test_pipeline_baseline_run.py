@@ -537,7 +537,9 @@ class ContractTest(unittest.TestCase):
             "gate0_arch", "gate0_5_boundary", "gate2_build", "gate2_5_surface",
             "gate3_review", "gate3_5_drift", "gate4_tests", "gate5_docs",
         ])
-        self.assertEqual(pb.WRIT_KEYS, ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count"))
+        self.assertEqual(pb.WRIT_KEYS, ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count",
+                                        "harness_lean"))
+        self.assertEqual(pb.LEAN_ENV, "WRIT_HARNESS_LEAN")
         self.assertEqual(pb.REDERIVATION_KEYS, (
             "build_smoke", "test_integrity",
             "arch_check", "review_override", "docs_check",
@@ -1026,7 +1028,8 @@ class RunTest(Case):
         self.assertEqual(rec["isolation"], {"reachable_commits": 1, "expected": 1, "asserted": True,
                                             "answer_scrub_asserted": True})
         self.assertEqual(rec["writ"], {"source": "overlay", "commit": self.writ_head, "dirty": False,
-                                       "checkout_manifest_version": "e1a3fd1", "manifest_diff_count": 2})
+                                       "checkout_manifest_version": "e1a3fd1", "manifest_diff_count": 2,
+                                       "harness_lean": False})
         self.assertEqual(rec["inputs"], "parent")
         self.assertEqual(rec["deps"]["exit"], 0)
         self.assertIsInstance(rec["deps"]["seconds"], float)
@@ -1640,6 +1643,117 @@ class RunTest(Case):
 # ---------------------------------------------------------------------------
 # ingest (AC-4.5)
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Story 5 (flagged-harness-cuts): the lean arm
+# ---------------------------------------------------------------------------
+
+LEAN_STORY_BODY = ("---\nname: implement-story-lean\ndescription: \"Lean variant\"\n---\n\n# /implement-story (lean)\n\n"
+                   "- Standing instructions: [`commands/_preamble.lean.md`](_preamble.lean.md)\n")
+DEFAULT_STORY_BODY = "---\nname: implement-story\ndescription: \"Default\"\n---\n\n# /implement-story\n"
+LEAN_PREAMBLE = "---\nname: _preamble\ndisable-model-invocation: true\n---\n\n# Preamble (lean)\n"
+DEFAULT_PREAMBLE = "---\nname: _preamble\ndisable-model-invocation: true\n---\n\n# Preamble\n"
+
+
+class LeanArmTest(Case):
+    """`run --lean`: lean siblings replace their defaults in the checkout, the
+    driver gets WRIT_HARNESS_LEAN=1, and the record names the arm."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.writ.commit({
+            "commands/implement-story.md": DEFAULT_STORY_BODY,
+            "commands/implement-story.lean.md": LEAN_STORY_BODY,
+            "commands/_preamble.md": DEFAULT_PREAMBLE,
+            "commands/_preamble.lean.md": LEAN_PREAMBLE,
+            "commands/ship.md": "# /ship\n",
+            "commands/create-spec.md": "---\nname: create-spec\ndescription: \"Spec default\"\n---\n# spec\n",
+            "commands/create-spec.lean.md": "---\nname: create-spec-lean\ndescription: \"Lean variant of "
+                                            "/create-spec for WRIT_HARNESS_LEAN=1 baseline runs.\"\n---\n# spec lean\n",
+            # a .lean.md with no default is an ordinary command, not a sibling
+            "commands/orphan.lean.md": "# orphan\n",
+        }, "chore: commands")
+
+    def _checkout(self) -> Path:
+        return self.tmp_root / ("writ-baseline-%s-1" % STORY_STEM) / "checkout"
+
+    def test_lean_siblings_replace_defaults_with_the_default_frontmatter(self) -> None:
+        disp = self.disp(on_claude=complete_story)
+        code, _, err, _ = invoke(self.run_args("--lean", "--keep"), disp, env=self.env())
+        self.assertEqual(code, 0, err)
+        cmds = self._checkout() / ".claude" / "commands"
+        story = (cmds / "implement-story.md").read_text(encoding="utf-8")
+        self.assertIn("# /implement-story (lean)", story)
+        # name and description stay the default's: /implement-story resolves,
+        # and nothing advertises a "Lean variant ... baseline runs" to the model
+        self.assertIn("\nname: implement-story\n", story)
+        self.assertIn('\ndescription: "Default"\n', story)
+        self.assertNotIn("implement-story-lean", story)
+        self.assertNotIn("Lean variant", story)
+        spec = (cmds / "create-spec.md").read_text(encoding="utf-8")
+        self.assertEqual(spec, '---\nname: create-spec\ndescription: "Spec default"\n---\n# spec lean\n')
+        self.assertEqual((cmds / "_preamble.md").read_text(encoding="utf-8"), LEAN_PREAMBLE)
+        self.assertFalse((cmds / "orphan.md").exists())
+
+    def test_only_linked_lean_files_are_kept_under_their_own_names(self) -> None:
+        disp = self.disp(on_claude=complete_story)
+        code, _, err, _ = invoke(self.run_args("--lean", "--keep"), disp, env=self.env())
+        self.assertEqual(code, 0, err)
+        cmds = self._checkout() / ".claude" / "commands"
+        # implement-story links (_preamble.lean.md): it must resolve beside it
+        self.assertEqual((cmds / "_preamble.lean.md").read_text(encoding="utf-8"), LEAN_PREAMBLE)
+        # nothing links these: no extra command is listed
+        self.assertFalse((cmds / "implement-story.lean.md").exists())
+        self.assertFalse((cmds / "create-spec.lean.md").exists())
+
+    def test_lean_driver_env_carries_the_flag_and_the_record_names_the_arm(self) -> None:
+        disp = self.disp(on_claude=complete_story)
+        code, _, err, _ = invoke(self.run_args("--lean"), disp, env=self.env())
+        self.assertEqual(code, 0, err)
+        self.assertEqual(disp.popen_kwargs[0]["env"].get("WRIT_HARNESS_LEAN"), "1")
+        rec = load(self.baseline)["runs"][0]
+        self.assertIs(rec["writ"]["harness_lean"], True)
+        self.assertEqual(list(rec["writ"]), list(pb.WRIT_KEYS))
+
+    def test_control_strips_an_inherited_flag_and_leaves_defaults(self) -> None:
+        disp = self.disp(on_claude=complete_story)
+        env = dict(self.env(), WRIT_HARNESS_LEAN="1")      # operator exported it
+        code, _, err, _ = invoke(self.run_args("--keep"), disp, env=env)
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("WRIT_HARNESS_LEAN", disp.popen_kwargs[0]["env"])
+        cmds = self._checkout() / ".claude" / "commands"
+        self.assertEqual((cmds / "implement-story.md").read_text(encoding="utf-8"), "# /implement-story\n")
+        self.assertFalse((cmds / "implement-story.lean.md").exists())
+        self.assertIs(load(self.baseline)["runs"][0]["writ"]["harness_lean"], False)
+
+    def test_lean_without_the_required_siblings_is_refused_before_any_checkout(self) -> None:
+        for missing in ("implement-story.lean.md", "_preamble.lean.md"):
+            path = self.writ.root / "commands" / missing
+            body = path.read_text(encoding="utf-8")
+            path.unlink()
+            disp = self.disp(on_claude=complete_story)
+            code, _, err, _ = invoke(self.run_args("--lean"), disp, env=self.env())
+            self.assertEqual(code, 2, missing)
+            self.assertIn(missing, err)
+            self.assertEqual(self.run_dirs(), [])
+            self.assertEqual([c for c in disp.calls if c[0] != "git"], [], missing)
+            path.write_text(body, encoding="utf-8")
+
+    def test_mixing_arms_in_one_file_is_refused(self) -> None:
+        disp = self.disp(on_claude=complete_story)
+        code, _, err, _ = invoke(self.run_args(), disp, env=self.env())
+        self.assertEqual(code, 0, err)
+        code, _, err, _ = invoke(self.run_args("--lean", "--runs", "2", "--force"), disp, env=self.env())
+        self.assertEqual(code, 2)
+        self.assertIn("arm", err)
+        self.assertEqual(len(load(self.baseline)["runs"]), 1)
+
+    def test_help_lists_lean(self) -> None:
+        out = io.StringIO()
+        with self.assertRaises(SystemExit), contextlib.redirect_stdout(out):
+            pb.main(["run", "--help"])
+        self.assertIn("--lean", out.getvalue())
 
 
 class IngestTest(Case):
