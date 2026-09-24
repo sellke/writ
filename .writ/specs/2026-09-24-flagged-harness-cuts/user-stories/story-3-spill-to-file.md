@@ -1,6 +1,7 @@
 # Story 3: Spill to file
 
 > **Status:** Completed ✅ (2026-09-25)
+> **Commit:** b0c4138b28694befb9116917a13fa2d41cc92732
 > **Priority:** High
 > **Dependencies:** Story 1
 
