@@ -92,3 +92,30 @@ Prior spec-lite SHA-256: `a52cc84aad807358699f81b5492e697a88a66435547d9d0ae1280b
 - **Spec amendment:** spec-lite Implementation Approach mentions the override.
 
 Prior spec-lite SHA-256: `795d090336f31bf3b9cf1a391a06e42f5d09cc70fe4dd99a26255b51ca3dcd54`
+
+---
+
+## Story 4: Lean command bodies — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-008] What Was Built spill lives in the lean command, not a lean skill branch
+- **Severity:** Small
+- **Spec said:** The dependency-context skill's 1,000-line rule gets the same spill branch in its lean text.
+- **Implementation did:** `skills/dependency-context-loading/SKILL.md` is byte-identical; `commands/implement-story.lean.md` Step 2 writes `.writ/state/wwb-spill-<story>-<dep>.md` and passes path, size, and a ~20-line tail, with a truncate fallback.
+- **Reason:** Story 3's AC-3.4 already named the lean command as the surface. No lean skill sibling is needed.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Files in Scope names the lean command as the spill surface.
+
+#### [DEV-009] eval.sh and eval-leanness.py edited outside the story's listed files
+- **Severity:** Small
+- **Spec said:** Story 4 authors the four lean bodies plus tests.
+- **Implementation did:** `check_manifest`, `all_command_files`, and the MAX_COMMANDS count skip a `*.lean.md` when its default exists. Orphan lean files are still reported.
+- **Reason:** Without it the siblings fail the manifest and README checks and push the command count past 35. Default-path reporting is unchanged.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Files in Scope lists the two eval scripts.
+
+Prior spec-lite SHA-256: `197a465504cd15c2dd67db98ac38072dcf91aee6c3573db4fb3628406bcc67f5`

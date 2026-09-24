@@ -21,7 +21,8 @@
 - `scripts/story-context.py` — spill only when the flag is on
 - `commands/_preamble.md` and `commands/_preamble.lean.md`
 - `commands/{create-spec,verify-spec,implement-phase,implement-story}.md` plus `.lean.md` siblings
-- `skills/dependency-context-loading/SKILL.md` — lean spill branch only; default truncate stays
+- `skills/dependency-context-loading/SKILL.md` — unchanged; the What Was Built spill branch lives in `commands/implement-story.lean.md`
+- `scripts/eval.sh`, `scripts/eval-leanness.py` — skip a `*.lean.md` only when its default `<stem>.md` exists
 
 **Error Handling:**
 - Flag unset and over budget → today’s truncate-and-warn

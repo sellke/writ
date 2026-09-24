@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-25T01:00:00Z
+> Last Updated: 2026-09-25T01:45:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-24-flagged-harness-cuts` — Flagged harness cuts
-- **Status:** In Progress (3/5 stories Completed ✅)
-- **Story:** 3 of 5 — Spill to file (Completed ✅)
-- **Progress:** 18/30 tasks complete (60%)
+- **Status:** In Progress (4/5 stories Completed ✅)
+- **Story:** 4 of 5 — Lean command bodies (Completed ✅)
+- **Progress:** 24/30 tasks complete (80%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- **DEV-005** Small — Spill filename uses the story file stem
-- **DEV-006** Small — Inline total can exceed the budget by up to 500 bytes under spill
 - **DEV-007** Small — `--state-dir` CLI flag and `state_dir` parameter
+- **DEV-008** Small — What Was Built spill lives in the lean command, not a lean skill branch
+- **DEV-009** Small — eval.sh and eval-leanness.py edited outside the story's listed files
 
 ## Open Issues
 

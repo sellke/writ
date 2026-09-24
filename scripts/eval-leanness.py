@@ -1039,7 +1039,19 @@ def is_infra(name: str) -> bool:
 
 
 def all_command_files(root: str) -> list[str]:
-    return sorted(glob.glob(os.path.join(root, "commands", "*.md")))
+    """commands/*.md, minus `<stem>.lean.md` siblings: a lean sibling is the
+    WRIT_HARNESS_LEAN=1 alternate body for `<stem>`, never a command of its
+    own (no README row, no second contract or budget row), matching
+    measure-invocation.py's per-command accounting."""
+    return sorted(p for p in glob.glob(os.path.join(root, "commands", "*.md"))
+                  if not is_lean_sibling(p))
+
+
+def is_lean_sibling(path: str) -> bool:
+    """`<stem>.lean.md` with `<stem>.md` beside it. An orphan `.lean.md` has
+    no default to stand in for, so it is still treated as a command."""
+    return path.endswith(".lean.md") and \
+        os.path.isfile(path[:-len(".lean.md")] + ".md")
 
 
 def command_names(root: str) -> set[str]:
@@ -1166,7 +1178,11 @@ def compute_metrics(root: str) -> tuple[dict, list[dict]]:
     story_context_bytes = sum(story_context_components(root).values())
 
     metrics = {
-        "commands": len(surface_files(root, SURFACE_BY_NAME["commands"])),
+        # A `<stem>.lean.md` sibling (default present) is an alternate body,
+        # not a command; its bytes stay in per_surface, but it does not count
+        # toward MAX_COMMANDS.
+        "commands": len([p for p in surface_files(root, SURFACE_BY_NAME["commands"])
+                         if not is_lean_sibling(p)]),
         "agents": len(surface_files(root, SURFACE_BY_NAME["agents"])),
         "skills": len(surface_files(root, SURFACE_BY_NAME["skills"])),
         "command_lines": per_surface["commands"]["lines"],

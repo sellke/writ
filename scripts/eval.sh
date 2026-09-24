@@ -573,6 +573,10 @@ check_manifest() {
     rel="$(relpath "$file")"
     base="$(basename "$file")"
     [[ "$base" == _*.md ]] && continue
+    # commands/<stem>.lean.md is the WRIT_HARNESS_LEAN=1 body for <stem>, not
+    # a command of its own, so it has no manifest entry. An orphan (no
+    # commands/<stem>.md beside it) is still checked.
+    [[ "$base" == *.lean.md && -f "$(dirname "$file")/${base%.lean.md}.md" ]] && continue
     if ! path_in_file "$rel" "$command_list"; then
       add_finding "$rel" "command file exists but is not listed in .writ/manifest.yaml." "Add the command to the manifest or rename it as an infra file."
     fi
