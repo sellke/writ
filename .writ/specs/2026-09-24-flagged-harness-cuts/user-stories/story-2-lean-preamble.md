@@ -1,6 +1,7 @@
 # Story 2: Lean preamble
 
 > **Status:** Completed ✅ (2026-09-25)
+> **Commit:** 07671f0045a6e890837b154fc145fc3935537e54
 > **Priority:** High
 > **Dependencies:** Story 1
 
