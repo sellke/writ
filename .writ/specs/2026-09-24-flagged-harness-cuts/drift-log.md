@@ -57,3 +57,38 @@ Prior spec-lite SHA-256: `3601348474ec4c70b22faebac2dc71c60cd47a55846a3c74570036
 - **Spec amendment:** Same spec-lite line as DEV-003.
 
 Prior spec-lite SHA-256: `a52cc84aad807358699f81b5492e697a88a66435547d9d0ae1280bb1ef78a80e`
+
+---
+
+## Story 3: Spill to file — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] Spill filename uses the story file stem
+- **Severity:** Small
+- **Spec said:** `.writ/state/story-context-spill-<story-id>.md`
+- **Implementation did:** `story-context-spill-<story-file-stem>.md`, e.g. `story-context-spill-story-3-spill-to-file.md`.
+- **Reason:** Unique per story within a spec; two specs sharing a stem would overwrite ephemeral state only.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Implementation Approach names the stem.
+
+#### [DEV-006] Inline total can exceed the budget by up to 500 bytes under spill
+- **Severity:** Small
+- **Spec said:** The cut category carries a tail of at most 500 bytes.
+- **Implementation did:** The tail replaces the budget-fitted prefix, so `bytes.total` can exceed `budget_bytes` by at most 500, only with the flag on.
+- **Reason:** The tail ceiling stays hard; the overshoot is bounded and documented.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Implementation Approach states the bound.
+
+#### [DEV-007] `--state-dir` CLI flag and `state_dir` parameter
+- **Severity:** Small
+- **Spec said:** Spill goes under `.writ/state/`.
+- **Implementation did:** Default `<repo>/.writ/state`, anchored at the script's location; overridable for hermetic tests.
+- **Reason:** Additive; default behavior matches the spec.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Implementation Approach mentions the override.
+
+Prior spec-lite SHA-256: `795d090336f31bf3b9cf1a391a06e42f5d09cc70fe4dd99a26255b51ca3dcd54`

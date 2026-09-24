@@ -13,6 +13,7 @@
 - The lean preamble drops the whole Plan Mode Integrity section. Rules it generalized that `system-instructions.md` does not carry live in the lean commands: "validate the invocation matrix before mutation" in `implement-phase.lean.md`, "never offer to code" in each Terminal constraint.
 - Do not embed both texts in the live command. `measure-invocation.py` must ignore lean siblings when the flag is unset.
 - Spill writes the full over-budget text under `.writ/state/` and returns path, size, and a short tail.
+- Spill file is `story-context-spill-<story-file-stem>.md` holding every category's full text; the first cut category's inline value becomes its last ≤500 bytes, so the inline total may exceed the budget by up to 500 bytes under the flag. `--state-dir` / `state_dir` overrides the default `<repo>/.writ/state` for tests.
 - No line that tells the model to use fewer tokens.
 
 **Files in Scope:**
