@@ -1,6 +1,7 @@
 # Story 4: Lean command bodies
 
 > **Status:** Completed ✅ (2026-09-25)
+> **Commit:** 3541b7eec4207218e72f7eb291d49d9ea867f0e8
 > **Priority:** High
 > **Dependencies:** Story 1
 
