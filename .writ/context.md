@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-09T16:52:00Z
+> Last Updated: 2026-09-25T00:00:00Z
 
 ## Product Mission
 
@@ -8,24 +8,23 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-09-09-phase11-stage4b-pipeline-demote` — Phase 11 Stage 4b: Pipeline Demote
-- **Status:** Complete (3/3 stories Completed ✅)
-- **Story:** 3 of 3 — Eval, Adapters, and Spawn-Cap Proof (Completed ✅)
-- **Progress:** 20/20 tasks complete (100%)
+- **Spec:** `2026-09-24-flagged-harness-cuts` — Flagged harness cuts
+- **Status:** In Progress (1/5 stories Completed ✅)
+- **Story:** 1 of 5 — Flag substrate (Completed ✅)
+- **Progress:** 6/30 tasks complete (20%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md present
-- **Active spec:** .writ/specs/2026-09-09-phase11-stage4b-pipeline-demote/ — spec.md + spec-lite.md, user-stories/, sub-specs/
-- **Knowledge:** .writ/knowledge/ (21 entries)
+- **Active spec:** .writ/specs/2026-09-24-flagged-harness-cuts/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Knowledge:** .writ/knowledge/ (22 entries)
 - **Docs:** .writ/docs/ (25 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- **DEV-001** Small — Gate 0.5 leftover “full pipeline” wording
-- **DEV-002** Small — Control flow omits the `--review-only` FAIL exception
-- **DEV-003** Small — Adapter knowledge-loading still names older default recipients
+- **DEV-001** Small — Existing loader warnings name the file actually loaded
+- **DEV-002** Small — Missing-sibling warnings limited to the five in-scope siblings
 
 ## Open Issues
 
