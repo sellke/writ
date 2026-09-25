@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-25T18:36:15Z
+> Last Updated: 2026-09-25T18:52:07Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-25-jev-judgment-pilot` — Jev Judgment Pilot
-- **Status:** In Progress (5/6 stories Completed ✅)
-- **Story:** 4 of 6 — Calibration Fixtures and Thresholds (Completed ✅)
-- **Progress:** 34/40 tasks complete (85%)
+- **Status:** Complete (6/6 stories Completed ✅)
+- **Story:** 6 of 6 — Provider Setup Prompt (Completed ✅)
+- **Progress:** 40/40 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- **DEV-027** Small — Extra `calibrate` flags, reason codes, never-emit band, `writ_recording` metadata
-- **DEV-028** Small — Spec-findings state `criteria` keyed by AC ID instead of list position
 - **DEV-029** Small — Installers ship `jev-thresholds.json`; eval runs an offline calibrate
+- **DEV-030** Small — Gateway setup summary also names `VERCEL_OIDC_TOKEN`
+- **DEV-031** Small — Argparse redaction applies to every subcommand; duplicate lines collapse; an unreadable config exits 2
 
 ## Open Issues
 

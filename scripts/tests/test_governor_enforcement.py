@@ -536,10 +536,15 @@ class CommandBudgetTests(unittest.TestCase):
 # shadow line after the review-override bullets (which names the story's
 # targeted test run, not the full suite); a note only, no new gate.
 # Acknowledged, not exempted.
+# Updated 2026-09-25 (spec 2026-09-25-jev-judgment-pilot, Story 6): create-spec.md
+# 27419 -> 28123 (file 53083) for the 4-line one-time Jev setup sub-step in
+# Step 2.6c (AskQuestion only on no_config_line in interactive runs; notes
+# otherwise) and the item-3 exception naming it. No new step or gate.
+# Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
-    "commands/create-spec.md": 27419,
+    "commands/create-spec.md": 28123,
     "commands/verify-spec.md": 10902,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     "commands/implement-phase.md": 10200,

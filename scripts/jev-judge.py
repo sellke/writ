@@ -6,6 +6,13 @@ Decision record: `.writ/decision-records/adr-027-optional-judgment-provider.md`.
 Subcommands:
   status [--repo .]   Resolve the double opt-in. Reads `.writ/config.md` and
                       the environment; prints stdout only; sends nothing.
+  setup --provider {typesafe,vercel-gateway,none} [--repo .]
+                      Story 6. Insert or replace the one
+                      `- **Judgment Provider:** <name>` line under
+                      `## Conventions` in `.writ/config.md` (created if
+                      absent); every other byte is kept. Prints the env var
+                      to export. Never reads a key from the environment,
+                      stdin, or argv, and has no --key flag.
   probe --state-file F --questions-file Q [--repo .] [--backend B]
                       Send one judgment request through the transport and
                       report the outcome. Live only when `status` would pass;
@@ -180,6 +187,100 @@ def status(repo: Path, environ: Mapping[str, str]) -> int:
     return _emit(res.verdict, res.reasons,
                  "jev-judge: unverifiable (no_api_key) %s export=%s"
                  % (detail, res.backend.key_vars[0]))
+
+
+# --------------------------------------------------------------------------
+# Setup (Story 6) — writes the config line only; never touches a key
+# --------------------------------------------------------------------------
+
+SETUP_PROVIDERS = tuple(sorted(BACKENDS)) + (DISABLED_VALUE,)
+PROVIDER_PREFIX = "- **Judgment Provider:**"
+CONVENTIONS_HEADING = "## Conventions"
+
+
+def _line_end(line: str) -> str:
+    for end in ("\r\n", "\n", "\r"):
+        if line.endswith(end):
+            return end
+    return ""
+
+
+def set_provider_line(text: str, provider: str) -> str:
+    """Return `text` with exactly one Judgment Provider line naming `provider`.
+
+    An existing line is replaced in place (its line ending kept) and any later
+    duplicates are dropped. Otherwise the line goes after the last bullet of
+    `## Conventions` (or right after the heading when the section has none),
+    and a missing section is appended at the end. No other byte changes.
+    """
+    lines = text.splitlines(keepends=True)
+    eol = next((_line_end(ln) for ln in lines if _line_end(ln)), "\n")
+    body = "%s %s" % (PROVIDER_PREFIX, provider)
+    hits = [i for i, ln in enumerate(lines) if ln.startswith(PROVIDER_PREFIX)]
+    if hits:
+        first = hits[0]
+        lines[first] = body + (_line_end(lines[first]) or eol)
+        return "".join(ln for i, ln in enumerate(lines) if i not in hits[1:])
+    heading = next((i for i, ln in enumerate(lines)
+                    if ln.rstrip("\r\n").rstrip() == CONVENTIONS_HEADING), None)
+    if heading is None:
+        if text and not _line_end(text):
+            text += eol
+        if text and not text.endswith(eol * 2):
+            text += eol
+        return text + CONVENTIONS_HEADING + eol + eol + body + eol
+    end = next((i for i in range(heading + 1, len(lines)) if lines[i].startswith("#")),
+               len(lines))
+    bullets = [i for i in range(heading + 1, end) if lines[i].startswith("- ")]
+    if bullets:
+        at = bullets[-1]
+        if not _line_end(lines[at]):
+            lines[at] += eol
+        lines.insert(at + 1, body + eol)
+    else:
+        if not _line_end(lines[heading]):
+            lines[heading] += eol
+        at = heading + 1
+        if at < end and not lines[at].strip():
+            at += 1  # keep the heading's blank line above the new bullet
+            insert = [body + eol]
+        else:
+            insert = [eol, body + eol]
+        if at < len(lines) and lines[at].strip():
+            insert.append(eol)  # blank line before whatever follows
+        lines[at:at] = insert
+    return "".join(lines)
+
+
+def setup(repo: Path, provider: str) -> int:
+    """Write the config line and name the env var to export. Reads no key."""
+    config = repo / ".writ" / "config.md"
+    try:
+        with open(config, encoding="utf-8", newline="") as handle:
+            text = handle.read()
+    except FileNotFoundError:
+        text = ""
+    except (OSError, UnicodeDecodeError) as exc:
+        raise UsageError("cannot read %s: %s" % (config, type(exc).__name__))
+    updated = set_provider_line(text, provider)
+    if updated != text:
+        try:
+            config.parent.mkdir(parents=True, exist_ok=True)
+            with open(config, "w", encoding="utf-8", newline="") as handle:
+                handle.write(updated)
+        except OSError as exc:
+            raise UsageError("cannot write %s: %s" % (config, type(exc).__name__))
+    backend = BACKENDS.get(provider)
+    if backend is None:
+        return _emit("pass", ["configured"],
+                     "jev-judge: pass (configured) provider=none export=none "
+                     "(Jev disabled; nothing to export)")
+    var = backend.key_vars[0]
+    alt = " (or %s)" % ", ".join(backend.key_vars[1:]) if len(backend.key_vars) > 1 else ""
+    return _emit("pass", ["configured"],
+                 "jev-judge: pass (configured) provider=%s export=%s%s -- run "
+                 "`export %s=<your key>` in your shell or secret manager; never paste "
+                 "a key into chat" % (backend.name, var, alt, var))
 
 
 # --------------------------------------------------------------------------
@@ -1718,12 +1819,33 @@ def calibrate(args: argparse.Namespace, environ: Mapping[str, str],
     return _emit("pass", reasons, summary)
 
 
+class _Parser(argparse.ArgumentParser):
+    """argparse that redacts invalid-choice and unrecognized-argument values in its errors.
+
+    A user who types `setup --provider X --key sk-...` (there is no --key) or
+    passes a key as the provider must not see it repeated on stderr, where an
+    agent transcript would capture it.
+    """
+
+    def error(self, message: str):  # type: ignore[override]
+        if message.startswith("unrecognized arguments"):
+            message = "unrecognized arguments (values not echoed)"
+        message = re.sub(r"invalid choice: .*?\(choose from", "invalid choice (choose from",
+                         message)
+        self.print_usage(sys.stderr)
+        self.exit(2, "%s: error: %s\n" % (self.prog, message))
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = _Parser(description=__doc__,
+                     formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="action", required=True)
     p = sub.add_parser("status", help="report whether the judgment provider is enabled")
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p = sub.add_parser("setup",
+                       help="write the Judgment Provider config line (never a key)")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--provider", required=True, choices=SETUP_PROVIDERS)
     p = sub.add_parser("probe", help="send one judgment request and report the outcome")
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
     p.add_argument("--state-file", type=Path, required=True)
@@ -1786,6 +1908,8 @@ def main(argv: Optional[List[str]] = None,
             raise UsageError("--repo is not a directory: %s" % args.repo)
         if args.action == "status":
             return status(args.repo, env)
+        if args.action == "setup":
+            return setup(args.repo, args.provider)
         if args.action == "probe":
             return probe(args, env, transport, sleep or time.sleep)
         if args.action == "spec-findings":

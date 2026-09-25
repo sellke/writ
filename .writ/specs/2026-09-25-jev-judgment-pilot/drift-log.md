@@ -294,3 +294,26 @@
 - **Reason:** Closes DEV-006. The eval addition is additive and never touches the network.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None.
+
+## Story 6: Provider Setup Prompt — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-030] Gateway setup summary also names `VERCEL_OIDC_TOKEN`
+- **Severity:** Small
+- **Spec said:** The summary names the one env var to export (`AI_GATEWAY_API_KEY` for `vercel-gateway`).
+- **Implementation did:** Prints `export=AI_GATEWAY_API_KEY (or VERCEL_OIDC_TOKEN)`. The alternative is named, never given a value.
+- **Reason:** Matches Business Rule 1's key list. The export instruction stays single.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-031] Argparse redaction applies to every subcommand; duplicate lines collapse; an unreadable config exits 2
+- **Severity:** Small
+- **Spec said:** Silent on redaction scope and on unreadable configs. The line must never be duplicated.
+- **Implementation did:** `_Parser` redacts invalid-choice and unrecognized-argument values for all subcommands. Ambiguous-prefix errors and the bad `--repo` path message still echo the value the user typed; the orchestrator corrected the overstated docstring and decision-log claim. Duplicate provider lines collapse to the first. An unreadable config exits 2 and is left unchanged.
+- **Reason:** Keeps a key typed as an argument out of stderr in the common cases.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.

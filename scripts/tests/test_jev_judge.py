@@ -2332,3 +2332,320 @@ def test_shadow_report_reads_rows_ac_shadow_wrote(jev, capsys, tmp_path, no_netw
     fields = _summary_fields(out)
     assert code == 0
     assert fields["rows"] == "1" and fields["criteria"] == "3" and fields["skipped_rows"] == "0"
+
+
+# ==========================================================================
+# Story 6: `setup --provider` writes the config line only
+# [AC-6.1, AC-6.2, AC-6.5]
+#
+# `setup` never reads a key: it takes no environ, no stdin, and no --key flag.
+# Tests plant FAKE_KEY in every place a key could come from and check that it
+# reaches no output stream and no file.
+# ==========================================================================
+
+SETUP_EXPORT = {
+    "typesafe": "TYPESAFE_API_KEY",
+    "vercel-gateway": "AI_GATEWAY_API_KEY",
+}
+PROVIDER_LINE = "- **Judgment Provider:** %s\n"
+
+OTHER_CONFIG = (
+    "# Writ Project Config\n"
+    "\n"
+    "> Last Updated: 2026-09-04\n"
+    "\n"
+    "## Conventions\n"
+    "\n"
+    "- **Default Branch:** main\n"
+    "- **Test Runner:** uv run pytest\n"
+    "- **Version File:** VERSION\n"
+    "\n"
+    "## Paths\n"
+    "\n"
+    "- **Changelog:** CHANGELOG.md\n"
+)
+
+
+class _NoEnviron(dict):
+    """An environ mapping that fails the test on any read."""
+
+    def _boom(self, *_a, **_k):
+        raise AssertionError("setup read the environment")
+
+    __getitem__ = get = __contains__ = __iter__ = keys = items = values = _boom
+
+
+def _setup_repo(tmp_path: Path, text: Optional[str], writ_dir: bool = True) -> Path:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    if writ_dir:
+        (repo / ".writ").mkdir()
+    if text is not None:
+        (repo / ".writ" / "config.md").write_bytes(text.encode("utf-8"))
+    return repo
+
+
+def _config_bytes(repo: Path) -> bytes:
+    return (repo / ".writ" / "config.md").read_bytes()
+
+
+def _provider_lines(repo: Path) -> List[str]:
+    return [ln for ln in _config_bytes(repo).decode("utf-8").splitlines()
+            if ln.startswith("- **Judgment Provider:**")]
+
+
+def _setup_inproc(jev, capsys, repo: Path, provider: str) -> Tuple[int, str, str]:
+    code = jev.main(["setup", "--provider", provider, "--repo", str(repo)],
+                    environ=_NoEnviron())
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err
+
+
+@pytest.fixture
+def no_stdin(monkeypatch):
+    """Any stdin read fails the test."""
+
+    class _Stdin:
+        def _boom(self, *_a, **_k):
+            raise AssertionError("setup read stdin")
+
+        read = readline = readlines = __iter__ = fileno = _boom
+
+    monkeypatch.setattr(sys, "stdin", _Stdin())
+
+
+@pytest.mark.parametrize("provider", ["typesafe", "vercel-gateway", "none"])
+def test_setup_writes_one_line_and_names_export(tmp_path, jev, capsys, no_network,
+                                                no_stdin, provider):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    code, out, err = _setup_inproc(jev, capsys, repo, provider)
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "pass"
+    assert _reasons(out) == ["configured"]
+    assert _provider_lines(repo) == ["- **Judgment Provider:** %s" % provider]
+    summary = _summary(out)
+    assert "provider=%s" % provider in summary
+    exported = [v for v in ("TYPESAFE_API_KEY", "AI_GATEWAY_API_KEY") if v in summary]
+    if provider == "none":
+        assert exported == []
+        assert "export=none" in summary
+    else:
+        assert exported == [SETUP_EXPORT[provider]]
+        assert "export %s=" % SETUP_EXPORT[provider] in summary
+        assert "never paste" in summary
+    assert no_network == []
+
+
+def test_setup_gateway_may_name_oidc_alternative_by_name_only(tmp_path, jev, capsys,
+                                                              no_network):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    _code, out, _err = _setup_inproc(jev, capsys, repo, "vercel-gateway")
+    summary = _summary(out)
+    assert "export=AI_GATEWAY_API_KEY" in summary
+    assert "VERCEL_OIDC_TOKEN=" not in summary
+
+
+def test_setup_inserts_under_conventions_after_last_bullet(tmp_path, jev, capsys, no_network):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    _setup_inproc(jev, capsys, repo, "typesafe")
+    expected = OTHER_CONFIG.replace(
+        "- **Version File:** VERSION\n",
+        "- **Version File:** VERSION\n" + PROVIDER_LINE % "typesafe",
+    )
+    assert _config_bytes(repo) == expected.encode("utf-8")
+
+
+@pytest.mark.parametrize("provider", ["typesafe", "vercel-gateway", "none"])
+def test_setup_rerun_is_idempotent(tmp_path, jev, capsys, no_network, provider):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    _setup_inproc(jev, capsys, repo, provider)
+    first = _config_bytes(repo)
+    code, out, _err = _setup_inproc(jev, capsys, repo, provider)
+    assert code == 0 and _verdict(out) == "pass"
+    assert _config_bytes(repo) == first
+    assert len(_provider_lines(repo)) == 1
+
+
+@pytest.mark.parametrize("old,new", [
+    ("typesafe", "vercel-gateway"),
+    ("vercel-gateway", "none"),
+    ("none", "typesafe"),
+    ("BOGUS-or-pasted-value", "typesafe"),
+])
+def test_setup_replaces_a_different_value_in_place(tmp_path, jev, capsys, no_network, old, new):
+    before = OTHER_CONFIG.replace("- **Test Runner:**",
+                                  (PROVIDER_LINE % old) + "- **Test Runner:**")
+    repo = _setup_repo(tmp_path, before)
+    code, out, _err = _setup_inproc(jev, capsys, repo, new)
+    assert code == 0
+    assert _config_bytes(repo) == before.replace(PROVIDER_LINE % old,
+                                                 PROVIDER_LINE % new).encode("utf-8")
+    assert old not in out or old in new
+
+
+def test_setup_collapses_duplicate_lines_to_one(tmp_path, jev, capsys, no_network):
+    before = OTHER_CONFIG + PROVIDER_LINE % "typesafe" + PROVIDER_LINE % "none"
+    repo = _setup_repo(tmp_path, before)
+    _setup_inproc(jev, capsys, repo, "vercel-gateway")
+    assert _provider_lines(repo) == ["- **Judgment Provider:** vercel-gateway"]
+    assert _config_bytes(repo) == (OTHER_CONFIG + PROVIDER_LINE % "vercel-gateway").encode()
+
+
+def test_setup_preserves_crlf_and_other_bytes(tmp_path, jev, capsys, no_network):
+    crlf = OTHER_CONFIG.replace("\n", "\r\n")
+    repo = _setup_repo(tmp_path, crlf)
+    _setup_inproc(jev, capsys, repo, "none")
+    expected = crlf.replace("- **Version File:** VERSION\r\n",
+                            "- **Version File:** VERSION\r\n- **Judgment Provider:** none\r\n")
+    assert _config_bytes(repo) == expected.encode("utf-8")
+
+
+def test_setup_creates_missing_config_and_writ_dir(tmp_path, jev, capsys, no_network):
+    repo = _setup_repo(tmp_path, None, writ_dir=False)
+    code, out, _err = _setup_inproc(jev, capsys, repo, "typesafe")
+    assert code == 0 and _verdict(out) == "pass"
+    text = _config_bytes(repo).decode("utf-8")
+    assert "## Conventions\n" in text
+    assert _provider_lines(repo) == ["- **Judgment Provider:** typesafe"]
+    assert text.index("## Conventions") < text.index("- **Judgment Provider:**")
+
+
+@pytest.mark.parametrize("tail", ["", "\n", "\n\n"])
+def test_setup_appends_conventions_section_when_absent(tmp_path, jev, capsys, no_network, tail):
+    body = "# Config\n\n## Paths\n\n- **Changelog:** CHANGELOG.md"
+    repo = _setup_repo(tmp_path, body + tail)
+    _setup_inproc(jev, capsys, repo, "vercel-gateway")
+    after = _config_bytes(repo).decode("utf-8")
+    assert after.startswith(body + tail)  # every existing byte kept, in place
+    assert after.endswith("## Conventions\n\n- **Judgment Provider:** vercel-gateway\n")
+    assert "\n\n## Conventions" in after
+    assert _provider_lines(repo) == ["- **Judgment Provider:** vercel-gateway"]
+
+
+def test_setup_conventions_without_bullets_inserts_after_heading(tmp_path, jev, capsys,
+                                                                no_network):
+    before = "# Config\n\n## Conventions\n\n## Paths\n\n- **Changelog:** CHANGELOG.md\n"
+    repo = _setup_repo(tmp_path, before)
+    _setup_inproc(jev, capsys, repo, "none")
+    after = _config_bytes(repo).decode("utf-8")
+    assert after == ("# Config\n\n## Conventions\n\n- **Judgment Provider:** none\n\n"
+                     "## Paths\n\n- **Changelog:** CHANGELOG.md\n")
+
+
+def test_setup_ignores_bullets_in_other_sections(tmp_path, jev, capsys, no_network):
+    """The line goes under Conventions even when a later section has bullets."""
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    _setup_inproc(jev, capsys, repo, "typesafe")
+    text = _config_bytes(repo).decode("utf-8")
+    assert text.index("- **Judgment Provider:**") < text.index("## Paths")
+
+
+def test_setup_writes_nothing_but_config(tmp_path, jev, capsys, no_network):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    before = sorted(p.relative_to(repo) for p in repo.rglob("*"))
+    _setup_inproc(jev, capsys, repo, "typesafe")
+    assert sorted(p.relative_to(repo) for p in repo.rglob("*")) == before
+
+
+@pytest.mark.parametrize("argv", [
+    ["setup"],
+    ["setup", "--provider", "openai"],
+    ["setup", "--provider", "TYPESAFE"],
+    ["setup", "--provider", ""],
+    ["setup", "--provider", "typesafe", "extra"],
+])
+def test_setup_usage_errors_exit_2_and_write_nothing(tmp_path, argv):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    env = _clean_env()
+    code, out, _err = _run(argv + ["--repo", str(repo)], env)
+    assert code == 2
+    assert out == ""
+    assert _config_bytes(repo) == OTHER_CONFIG.encode("utf-8")
+
+
+def test_setup_has_no_key_flag(tmp_path, jev):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    env = _clean_env()
+    for flag in ("--key", "--api-key", "--k"):
+        code, out, err = _run(["setup", "--provider", "typesafe", "--repo", str(repo),
+                               flag, FAKE_KEY], env)
+        assert code == 2, flag
+        _assert_key_absent(repo, out, err)
+    assert _config_bytes(repo) == OTHER_CONFIG.encode("utf-8")
+    setup_parser = jev.build_parser()._subparsers._group_actions[0].choices["setup"]
+    flags = {opt for action in setup_parser._actions for opt in action.option_strings}
+    assert not any("key" in f for f in flags), flags
+
+
+def test_setup_key_passed_as_provider_is_not_echoed(tmp_path):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    code, out, err = _run(["setup", "--provider", FAKE_KEY, "--repo", str(repo)], _clean_env())
+    assert code == 2
+    _assert_key_absent(repo, out, err)
+
+
+@pytest.mark.parametrize("provider", ["typesafe", "vercel-gateway", "none"])
+def test_setup_subprocess_planted_key_never_appears(tmp_path, provider):
+    """Keys in the env and on stdin reach no output stream and no file."""
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    env = _clean_env({k: FAKE_KEY for k in KEY_VARS})
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "setup", "--provider", provider, "--repo", str(repo)],
+        input=FAKE_KEY + "\n", capture_output=True, text=True, env=env,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert _verdict(proc.stdout) == "pass"
+    _assert_key_absent(repo, proc.stdout, proc.stderr)
+
+
+def test_setup_repo_defaults_to_cwd(tmp_path):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    code, out, err = _run(["setup", "--provider", "none"], _clean_env(), cwd=repo)
+    assert code == 0, err
+    assert _provider_lines(repo) == ["- **Judgment Provider:** none"]
+
+
+def test_setup_unreadable_config_exits_2_untouched(tmp_path, jev, capsys, no_network):
+    repo = _setup_repo(tmp_path, None)
+    raw = b"## Conventions\n\n- **Default Branch:** \xff\xfe\n"
+    (repo / ".writ" / "config.md").write_bytes(raw)
+    code, out, err = _setup_inproc(jev, capsys, repo, "typesafe")
+    assert code == 2 and out == "" and "config.md" in err
+    assert _config_bytes(repo) == raw
+
+
+@pytest.mark.parametrize("provider,key_var", [
+    ("typesafe", "TYPESAFE_API_KEY"),
+    ("vercel-gateway", "AI_GATEWAY_API_KEY"),
+    ("vercel-gateway", "VERCEL_OIDC_TOKEN"),
+])
+def test_status_setup_status_round_trip(tmp_path, jev, capsys, no_network, provider, key_var):
+    """no_config_line -> setup -> status with a fake key passes. [AC-6.1, AC-6.3]"""
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    env = {key_var: FAKE_KEY}
+    code, out, _err = _status_inproc(jev, capsys, repo, env)
+    assert code == 0 and _reasons(out)[0] == "no_config_line"
+    code, out, _err = _setup_inproc(jev, capsys, repo, provider)
+    assert code == 0 and _verdict(out) == "pass"
+    code, out, err = _status_inproc(jev, capsys, repo, env)
+    assert code == 0 and _verdict(out) == "pass" and _reasons(out)[0] == "enabled"
+    assert "backend=%s" % provider in _summary(out)
+    _assert_key_absent(repo, out, err)
+    assert no_network == []
+
+
+def test_setup_then_status_without_key_names_same_export(tmp_path, jev, capsys, no_network):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    _code, setup_out, _err = _setup_inproc(jev, capsys, repo, "vercel-gateway")
+    _code, out, _err = _status_inproc(jev, capsys, repo, {})
+    assert _reasons(out)[0] == "no_api_key"
+    assert "export=AI_GATEWAY_API_KEY" in _summary(out)
+    assert "export=AI_GATEWAY_API_KEY" in _summary(setup_out)
+
+
+def test_setup_none_then_status_is_provider_disabled(tmp_path, jev, capsys, no_network):
+    repo = _setup_repo(tmp_path, OTHER_CONFIG)
+    _setup_inproc(jev, capsys, repo, "none")
+    _code, out, _err = _status_inproc(jev, capsys, repo, {k: FAKE_KEY for k in KEY_VARS})
+    assert _reasons(out) == ["provider_disabled"]

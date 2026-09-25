@@ -56,8 +56,11 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # baseline arm).
 # Repinned 2026-09-25 (Story 5): implement-story.md Gate 3 gained the opt-in
 # `ac-shadow` line; implement-story.lean.md is unchanged (no-Jev baseline arm).
+# Repinned 2026-09-25 (Story 6): create-spec.md Step 2.6c gained the 4-line
+# one-time Jev setup sub-step and the item-3 exception for it;
+# create-spec.lean.md is unchanged (no-Jev baseline arm).
 DEFAULT_SHA256 = {
-    "create-spec": "ea07703c724b0783a6d666b8c0949fb210b74546db7ed29e080d4a25f238471f",
+    "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "5272a3f0a50a2850c327691fa2edf99973ebb4641a5d7871850afc78b50b58c9",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
     "implement-story": "29026fb12f0ce8422a5e8108ee658f7a2e2e7f48f1e1aa2407bb94f2c92d1231",
