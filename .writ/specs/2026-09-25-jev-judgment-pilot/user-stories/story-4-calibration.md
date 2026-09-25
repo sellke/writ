@@ -1,6 +1,7 @@
 # Story 4: Calibration Fixtures and Thresholds
 
 > **Status:** Completed ✅
+> **Commit:** efec1a8ec81632ff9a1f444564018a26d057da09
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
