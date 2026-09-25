@@ -1,6 +1,7 @@
 # Story 6: Provider Setup Prompt
 
 > **Status:** Completed ✅
+> **Commit:** d37a66cf6f3a7b5a6f1fe79f84542cd6ad858643
 > **Priority:** High
 > **Dependencies:** Story 3
 
