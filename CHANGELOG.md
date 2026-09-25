@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.37.0] - 2026-09-25
+
+**Flagged harness cuts** — Lean preamble and command siblings load only when `WRIT_HARNESS_LEAN=1`. An Opus 5.5 baseline recorded null, so the default load path is unchanged and install/update do not ship the lean files. Price-weighted cost is reported beside driver `cost_usd`.
+
+### Added
+- **`WRIT_HARNESS_LEAN`** — selects `*.lean.md` siblings for the preamble and `create-spec`, `verify-spec`, `implement-phase`, and `implement-story`. Flag off, command bytes match the previous floor. ([Story 1: Flag substrate](.writ/specs/archive/2026-09-24-flagged-harness-cuts/user-stories/story-1-flag-substrate.md))
+- **Lean preamble** — drops Plan Mode and `--recommend` restatements. User Challenge, the production boundary, and stakes triage stay. ([Story 2: Lean preamble](.writ/specs/archive/2026-09-24-flagged-harness-cuts/user-stories/story-2-lean-preamble.md))
+- **Spill to file** — over-budget story context writes under `.writ/state/` and returns path, size, and a short tail. Flag off keeps truncate-and-warn. ([Story 3: Spill to file](.writ/specs/archive/2026-09-24-flagged-harness-cuts/user-stories/story-3-spill-to-file.md))
+- **Lean command bodies** for `create-spec`, `verify-spec`, `implement-phase`, and `implement-story`. Gates, exit criteria, and the production boundary stay. ([Story 4: Lean command bodies](.writ/specs/archive/2026-09-24-flagged-harness-cuts/user-stories/story-4-lean-commands.md))
+- **Keep-or-revert** — `lean-decision.py` records keep, null, or quality miss. This run recorded null on a reduced sample (one story × 2 per arm). The default did not flip. ([Story 5: Keep or revert](.writ/specs/archive/2026-09-24-flagged-harness-cuts/user-stories/story-5-keep-or-revert.md))
+- **Price-weighted harness cost** — `scripts/harness-cost.py` reports the published formula beside driver `cost_usd`.
+
+### Fixed
+- Default-path `measure-invocation` tests clear an inherited `WRIT_HARNESS_LEAN`.
+- README Commands table no longer lists a backticked `/goal` that is not a command.
+
+### Internal
+- Archived `2026-09-24-flagged-harness-cuts` after PR #52.
+
 ## [0.36.0] - 2026-09-09
 
 **Contract and Verifier** — Phase 11. The shared instruction base is under 10 KB, eight `/implement-story` gates re-derive their verdict from a script, and the default story path is two Task spawns: a coding agent and a fresh-context evaluator. The six-agent SDLC is `--full-pipeline`. Goal Cards emit paste-ready `GOAL.md` / `VERIFY.md` for Claude Code `/goal`. Spec analysis flags contradictory or missing criteria as notes at lock and verify.
