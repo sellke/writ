@@ -1,0 +1,61 @@
+---
+name: _preamble
+description: "Shared standing instructions referenced by every Writ command. Not directly invocable."
+disable-model-invocation: true
+---
+
+# Writ Command Preamble
+
+> Every command in `commands/` references this file. It holds the standing
+> instructions that apply to every command, so they are not duplicated per command.
+
+## User Challenge (Scope-Degradation Escalation)
+
+A **User Challenge** is a structured escalation used **only** when a proposed choice
+would weaken **roadmap scope, a locked spec contract, or exit criteria** — a narrow,
+semantic trigger, never a generic wrapper for uncertainty, progress, retries,
+ordinary failures, or decisions already answered by repository artifacts.
+
+Every qualifying challenge carries a `trigger` (`scope_degradation` or
+`exit_criteria_degradation`) and all **four required parts**: `roadmap_or_spec_said`,
+`recommendation`, `possibly_missing_context`, `cost_if_wrong`.
+
+Apply an **evidence-based select-or-pause** boundary (ADR-013): a defensible,
+low-risk, reversible choice may be selected automatically **with** a persisted audit
+trail; missing evidence, critical ambiguity, or material irreversible risk instead
+**pauses** and returns `challenge_required` with options for one explicit
+`AskQuestion`. Nested commands **return** an audited selection or
+`challenge_required`; only `/implement-phase` presents and persists the choice
+(validator: `scripts/phase-state.py validate-challenge`). A malformed challenge is a
+**contract error**, not a User Challenge.
+
+## Autonomy Gate Classes
+
+Extends ADR-013's select-or-pause boundary above; it does not replace it.
+
+| Class | Behavior |
+|---|---|
+| Product & spec direction | **Human gate** — contract lock is an explicit human action |
+| Production boundary (merge/PR/release/tag/publish) | **Human gate** — Prime Directive hard constraint |
+| Design & UX judgment | **Human gate** — taste is not evidence-decidable |
+| Destructive / irreversible | **Autonomous** only when the precondition below holds |
+| Everything else | **Autonomous** within ADR-013's boundary, with audit rationale |
+
+**Reversibility precondition.** A destructive-class operation runs unattended **only when both hold**: (1) its effect is provably git-revertable — confined to tracked files with a resolvable revert target; (2) the restore path is recorded **before** the mutation. If either fails, it **pauses** with a bounded `AskQuestion`.
+
+**Stakes triage (ADR-023).** Before spending diligence on any decision — a read, a gate, a question, a verification step — answer two questions from what you already know. **Does the answer change what happens?** If no, it is not a decision: drop it. **How bad if it's wrong?** Reversible and contained → decide, act, record, no verification step. Irreversible or wide blast radius → full rigor, and the gate class above applies. The triage must cost less than the decision it governs; if answering it needs investigation, that is the answer: escalate. Do not look for a universal ratio between a decision's stakes and its cost; none exists. **Safety gates are never capped by count.** A rare failure still justifies its gate. Each gate names the failure it catches and the cost of missing it; a gate that can name neither is the candidate for removal.
+
+## File Organization
+
+All work is organized into `.writ/`: `specs/` (contracts, stories), `product/`
+(roadmap, mission, strategy), `research/` (investigation outputs),
+`decision-records/` (ADRs), `knowledge/` (accumulating cross-cutting facts),
+`issues/` (fast-capture bugs/features), `state/` (ephemeral, gitignored).
+
+## Artifact Integrity
+
+Before doing work, verify declared **Required Artifacts** (*required* or *optional*) exist.
+- **Required missing** → HALT; offer a bounded repair via AskQuestion naming the creating command. Never auto-run a mutating repair without confirmation.
+- **Optional missing** → warn and continue in degraded mode.
+
+Creating commands: roadmap/`mission.md` → `/plan-product`; `.writ/docs/` → `/initialize`; a spec under `.writ/specs/` → `/create-spec`. This is adapter-neutral: pure existence checks, no platform hooks; never inspect `.writ/state/`.

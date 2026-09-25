@@ -664,6 +664,19 @@ append_manifest_writ_docs() {
   done
 }
 
+# commands/<stem>.lean.md is the WRIT_HARNESS_LEAN=1 body for <stem>.md. It is
+# not shipped while the default exists (Story 5 of 2026-09-24-flagged-harness-cuts:
+# the default load path is unflipped); `pipeline-baseline.py run --lean` copies
+# it into a replay checkout itself. A .lean.md with no default ships as usual.
+# Mirrors eval.sh's lean-sibling exclusion.
+is_unshipped_lean_sibling() {
+  local src_dir="$1" fname="$2"
+  case "$fname" in
+    *.lean.md) [ -f "$src_dir/${fname%.lean.md}.md" ] ;;
+    *) return 1 ;;
+  esac
+}
+
 overlay_scan() {
   local src_dir="$1" local_dir="$2" label="$3" mode="$4" pattern="${5:-*.md}"
   _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
@@ -673,6 +686,7 @@ overlay_scan() {
   for src_file in "$src_dir"/$pattern; do
     [ -f "$src_file" ] || continue
     fname=$(basename "$src_file")
+    is_unshipped_lean_sibling "$src_dir" "$fname" && continue
     local_file="$local_dir/$fname"
     rel_path="${label}/${fname}"
     upstream_hash=$(hash_file "$src_file")
@@ -819,7 +833,10 @@ detect_stale_files() {
       *)        continue ;;
     esac
 
-    if [ ! -f "$upstream_file" ]; then
+    # A lean sibling an earlier install shipped is stale while the default
+    # exists upstream: update.sh no longer ships it.
+    if [ ! -f "$upstream_file" ] || { [ "$category" = "commands" ] \
+        && is_unshipped_lean_sibling "$WRIT_SRC/commands" "$(basename "$manifest_path")"; }; then
       baseline_hash=$(manifest_hash_for "$manifest_path")
       local_hash=$(hash_file "$local_file")
 

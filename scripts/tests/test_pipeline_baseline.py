@@ -1230,6 +1230,19 @@ class ValidateTest(unittest.TestCase):
             self.assertEqual(code, 0, stdout + stderr)
             self.assertEqual(stdout.strip(), "")
 
+    def test_writ_block_with_or_without_harness_lean_validates(self) -> None:
+        # Story 5 of flagged-harness-cuts added `writ.harness_lean`; files
+        # written before it (the committed 09-06/09-07 baselines) lack it.
+        old = {"source": "overlay", "commit": _hex(9), "dirty": False,
+               "checkout_manifest_version": "e1a3fd1", "manifest_diff_count": 3}
+        for writ in (old, dict(old, harness_lean=True), dict(old, harness_lean=False)):
+            doc = clean_baseline()
+            for rec in doc["runs"]:
+                rec["writ"] = dict(writ)
+            with TemporaryDirectory() as tmp:
+                code, stdout, stderr, _, _ = self._validate(tmp, doc)
+                self.assertEqual(code, 0, stdout + stderr)
+
     def test_astra_filename_segment_is_not_tied_to_default_model(self) -> None:
         with TemporaryDirectory() as tmp:
             doc = clean_baseline(model="claude-opus-4-1")

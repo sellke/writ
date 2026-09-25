@@ -20,18 +20,46 @@ duplicate category-line merging, both reference forms).
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import io
 import json
+import os
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 MODULE_PATH = Path(__file__).resolve().parent.parent / "story-context.py"
 _spec = importlib.util.spec_from_file_location("story_context", MODULE_PATH)
 sc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(sc)  # type: ignore[union-attr]
+
+
+def _env_without_flag() -> dict[str, str]:
+    """os.environ minus WRIT_HARNESS_LEAN, for mock.patch.dict(clear=True)."""
+    return {k: v for k, v in os.environ.items() if k != "WRIT_HARNESS_LEAN"}
+
+
+class FlagClearedTestCase(unittest.TestCase):
+    """Base for default-path tests (Interaction Edge Case "Flag set in the
+    unit-test process by accident"): every test runs with WRIT_HARNESS_LEAN
+    removed from os.environ, and DEFAULT_STATE_DIR points at a temp dir, so
+    no test can spill into the real repo's .writ/state/."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        env = mock.patch.dict(os.environ)
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("WRIT_HARNESS_LEAN", None)
+        state = TemporaryDirectory()
+        self.addCleanup(state.cleanup)
+        state_dir = mock.patch.object(sc, "DEFAULT_STATE_DIR", Path(state.name))
+        state_dir.start()
+        self.addCleanup(state_dir.stop)
 
 
 def make_spec_tree(
@@ -104,7 +132,7 @@ DEFAULT_TECH_SPEC = (
 )
 
 
-class ExtractMarkdownSectionTests(unittest.TestCase):
+class ExtractMarkdownSectionTests(FlagClearedTestCase):
     def test_exact_match_after_strip(self) -> None:
         text = "## Foo\n\nBody.\n\n## Bar\n\nOther.\n"
         section = sc.extract_markdown_section(text, "## Foo")
@@ -128,7 +156,7 @@ class ExtractMarkdownSectionTests(unittest.TestCase):
         self.assertNotIn("One.", section)
 
 
-class ParseCategoryValueTests(unittest.TestCase):
+class ParseCategoryValueTests(FlagClearedTestCase):
     def test_bracket_form_splits_and_trims(self) -> None:
         self.assertEqual(
             sc.parse_category_value("[Create session,  Validate input ]"),
@@ -168,7 +196,7 @@ class ParseCategoryValueTests(unittest.TestCase):
         )
 
 
-class ParseHintLinesTests(unittest.TestCase):
+class ParseHintLinesTests(FlagClearedTestCase):
     def test_recognized_categories_parsed(self) -> None:
         section = (
             "## Context for Agents\n\n"
@@ -217,7 +245,7 @@ class ParseHintLinesTests(unittest.TestCase):
         self.assertEqual(len(duplicate_warnings), 1)
 
 
-class ResolveTableCategoryTests(unittest.TestCase):
+class ResolveTableCategoryTests(FlagClearedTestCase):
     """Finding 1 (duplicate Operation names -> concatenate all, table order,
     deduplicated, no warning) and Finding 2 (exact match, backticks preserved)."""
 
@@ -314,7 +342,7 @@ class ResolveTableCategoryTests(unittest.TestCase):
         self.assertEqual(len(warnings), 1)
 
 
-class ResolveBusinessRulesTests(unittest.TestCase):
+class ResolveBusinessRulesTests(FlagClearedTestCase):
     def test_matches_bold_phrase_ignoring_trailing_period(self) -> None:
         spec_text = (
             "## \U0001F4CB Business Rules\n\n"
@@ -339,7 +367,7 @@ class ResolveBusinessRulesTests(unittest.TestCase):
         self.assertEqual(len(warnings), 2)
 
 
-class ResolveExperienceTests(unittest.TestCase):
+class ResolveExperienceTests(FlagClearedTestCase):
     def test_matches_subsection_by_exact_name(self) -> None:
         spec_text = "## \U0001F3AF Experience Design\n\n### Entry Point\n\nNo new surface.\n"
         warnings: list[str] = []
@@ -355,7 +383,7 @@ class ResolveExperienceTests(unittest.TestCase):
         self.assertEqual(len(warnings), 1)
 
 
-class ResolveExtendedRefTests(unittest.TestCase):
+class ResolveExtendedRefTests(FlagClearedTestCase):
     def test_resolves_nested_section_chain(self) -> None:
         with TemporaryDirectory() as tmp:
             spec_folder = Path(tmp)
@@ -423,7 +451,7 @@ class ResolveExtendedRefTests(unittest.TestCase):
             self.assertIsNone(content)
 
 
-class AssembleTests(unittest.TestCase):
+class AssembleTests(FlagClearedTestCase):
     def test_happy_path_both_reference_forms_all_categories(self) -> None:
         with TemporaryDirectory() as tmp:
             hints = (
@@ -599,7 +627,7 @@ class AssembleTests(unittest.TestCase):
             self.assertEqual(len(payload["fetched_context"]["business_rules"].encode("utf-8")), 1)
 
 
-class DerivedBudgetConstantTests(unittest.TestCase):
+class DerivedBudgetConstantTests(FlagClearedTestCase):
     def test_constant_is_a_positive_int_above_the_measured_max(self) -> None:
         """Sanity check on FETCHED_CONTEXT_BUDGET_BYTES's derivation comment
         (Business Rule 4): the committed constant must exceed the observed
@@ -611,7 +639,7 @@ class DerivedBudgetConstantTests(unittest.TestCase):
         self.assertGreater(sc.FETCHED_CONTEXT_BUDGET_BYTES, 10251)
 
 
-class BudgetEnforcementTests(unittest.TestCase):
+class BudgetEnforcementTests(FlagClearedTestCase):
     """Story 3, AC2/AC3/AC5 + Architecture Check Findings 4 and 6.
 
     Every scenario first assembles WITHOUT a budget to learn the real,
@@ -797,12 +825,13 @@ class BudgetEnforcementTests(unittest.TestCase):
             self.assertFalse(payload["truncated"])
 
 
-class CliTests(unittest.TestCase):
+class CliTests(FlagClearedTestCase):
     def _run(self, *args: str) -> tuple[int, dict]:
         proc = subprocess.run(
             [sys.executable, str(MODULE_PATH), *args],
             capture_output=True,
             text=True,
+            env=_env_without_flag(),
         )
         try:
             payload = json.loads(proc.stdout or "{}")
@@ -861,6 +890,268 @@ class CliTests(unittest.TestCase):
             self.assertFalse(payload["truncated"])
             self.assertEqual(len(payload["warnings"]), 1)
             self.assertIn("story-context.py internal error", payload["warnings"][0])
+
+
+# --- Story 3 (flagged-harness-cuts): spill to file under WRIT_HARNESS_LEAN ---
+
+LEAN = {"WRIT_HARNESS_LEAN": "1"}
+
+
+def _four_category_story(tmp: str) -> Path:
+    hints = (
+        "- **Error map rows:** [Create session, Validate input]\n"
+        "- **Shadow paths:** [User registration flow]\n"
+        "- **Business rules:** [One implementation per contract]\n"
+        "- **Experience:** [Entry Point]\n"
+    )
+    return make_spec_tree(Path(tmp) / "tree", technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
+
+
+class SpillFlagOnTests(FlagClearedTestCase):
+    """AC-3.1: flag on and over budget writes the pre-truncation text to
+    <state-dir>/story-context-spill-<story-id>.md and reports it."""
+
+    def _assemble(self, story: Path, budget: int | None, state_dir: Path) -> dict:
+        with mock.patch.dict(os.environ, LEAN):
+            return sc.assemble(story, budget_bytes=budget, state_dir=state_dir)
+
+    def test_over_budget_writes_spill_file_with_full_text(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            full = sc.assemble(story)["fetched_context"]
+            budget = sum(len(v.encode("utf-8")) for v in full.values()) // 2
+
+            payload = self._assemble(story, budget, state)
+
+            spill_path = state / "story-context-spill-story-1-example.md"
+            self.assertTrue(spill_path.is_file())
+            text = spill_path.read_text(encoding="utf-8")
+            for content in full.values():
+                self.assertIn(content, text)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["spill"]["path"], str(spill_path))
+            self.assertEqual(payload["spill"]["bytes"], spill_path.stat().st_size)
+
+    def test_cut_category_carries_a_tail_of_at_most_500_bytes(self) -> None:
+        with TemporaryDirectory() as tmp:
+            hints = "- **Error map rows:** [Create session, Validate input]\n"
+            story = make_spec_tree(Path(tmp) / "tree", technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
+            # Multi-byte chars at the cut point exercise the UTF-8-safe tail.
+            big = "x" * 2000 + "\u00e9" * 300 + "END"
+            with mock.patch.object(sc, "resolve_category", return_value=big):
+                payload = self._assemble(story, 100, Path(tmp) / "state")
+            tail = payload["fetched_context"]["error_map_rows"]
+            self.assertLessEqual(len(tail.encode("utf-8")), 500)
+            self.assertGreater(len(tail), 0)
+            self.assertTrue(big.endswith(tail))
+            self.assertEqual(payload["bytes"]["error_map_rows"], len(tail.encode("utf-8")))
+            self.assertIn("spill", payload)
+
+    def test_higher_relevance_categories_survive_whole_and_later_ones_drop(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            full = sc.assemble(story)
+            budget = full["bytes"]["error_map_rows"] + 5  # cuts shadow_paths
+
+            payload = self._assemble(story, budget, Path(tmp) / "state")
+
+            fc = payload["fetched_context"]
+            self.assertEqual(fc["error_map_rows"], full["fetched_context"]["error_map_rows"])
+            self.assertTrue(full["fetched_context"]["shadow_paths"].endswith(fc["shadow_paths"]))
+            self.assertNotIn("business_rules", fc)
+            self.assertNotIn("experience", fc)
+            self.assertEqual(payload["bytes"]["total"], sum(len(v.encode("utf-8")) for v in fc.values()))
+
+    def test_under_budget_writes_no_spill_and_adds_no_key(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            total = sc.assemble(story)["bytes"]["total"]
+            payload = self._assemble(story, total, state)
+            self.assertFalse(payload["truncated"])
+            self.assertNotIn("spill", payload)
+            self.assertFalse(state.exists() and any(state.iterdir()))
+
+    def test_empty_category_over_zero_budget_is_no_false_spill(self) -> None:
+        """Shadow path "Empty input": a category that resolves to nothing is
+        not over budget, so no spill and no truncation warning."""
+        with TemporaryDirectory() as tmp:
+            hints = "- **Business rules:** []\n- **Experience:** [No such subsection]\n"
+            story = make_spec_tree(Path(tmp) / "tree", technical_spec_md=DEFAULT_TECH_SPEC, hints=hints)
+            state = Path(tmp) / "state"
+            payload = self._assemble(story, 0, state)
+            self.assertFalse(payload["truncated"])
+            self.assertNotIn("spill", payload)
+            self.assertFalse(any("truncated" in w for w in payload["warnings"]))
+            self.assertFalse(state.exists() and any(state.iterdir()))
+
+    def test_cli_state_dir_flag_spills_there(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            env = dict(_env_without_flag(), WRIT_HARNESS_LEAN="1")
+            proc = subprocess.run(
+                [sys.executable, str(MODULE_PATH), "assemble", "--story", str(story),
+                 "--budget-bytes", "50", "--state-dir", str(state)],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(proc.returncode, 0)
+            payload = json.loads(proc.stdout)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(Path(payload["spill"]["path"]).parent, state)
+            self.assertTrue(Path(payload["spill"]["path"]).is_file())
+
+
+class SpillFlagOffTests(FlagClearedTestCase):
+    """AC-3.2: flag unset (or any non-"1" value) truncates exactly as today."""
+
+    def _today(self, story: Path, budget: int) -> dict:
+        """Today's payload, rebuilt from enforce_budget directly."""
+        unbudgeted = sc.assemble(story)
+        fetched, counts, truncated = sc.enforce_budget(
+            unbudgeted["fetched_context"],
+            {k: v for k, v in unbudgeted["bytes"].items() if k != "total"},
+            budget,
+        )
+        return {"fetched_context": fetched, "bytes": dict(counts, total=sum(counts.values())),
+                "truncated": truncated, "total": unbudgeted["bytes"]["total"]}
+
+    def test_unset_over_budget_matches_enforce_budget_and_writes_nothing(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            with mock.patch.dict(os.environ, _env_without_flag(), clear=True):
+                expected = self._today(story, 60)
+                payload = sc.assemble(story, budget_bytes=60, state_dir=state)
+            self.assertEqual(set(payload), {"fetched_context", "warnings", "bytes", "truncated"})
+            self.assertEqual(payload["fetched_context"], expected["fetched_context"])
+            self.assertEqual(payload["bytes"], expected["bytes"])
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(
+                payload["warnings"],
+                [f"\u26a0\ufe0f fetched_context truncated ({expected['total']} of 60 bytes)"],
+            )
+            self.assertFalse(state.exists())
+
+    def test_non_one_value_behaves_as_unset_plus_one_warning(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            with mock.patch.dict(os.environ, _env_without_flag(), clear=True):
+                unset = sc.assemble(story, budget_bytes=60, state_dir=state)
+            with mock.patch.dict(os.environ, {"WRIT_HARNESS_LEAN": "yes"}):
+                payload = sc.assemble(story, budget_bytes=60, state_dir=state)
+            self.assertNotIn("spill", payload)
+            self.assertFalse(state.exists())
+            self.assertEqual(payload["fetched_context"], unset["fetched_context"])
+            self.assertEqual(payload["bytes"], unset["bytes"])
+            flag_warnings = [w for w in payload["warnings"] if "WRIT_HARNESS_LEAN" in w]
+            self.assertEqual(len(flag_warnings), 1)
+            self.assertIn("WRIT_HARNESS_LEAN='yes'", flag_warnings[0])
+            self.assertEqual([w for w in payload["warnings"] if w not in flag_warnings], unset["warnings"])
+
+    def test_empty_string_value_is_off_with_one_warning(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            with mock.patch.dict(os.environ, {"WRIT_HARNESS_LEAN": ""}):
+                payload = sc.assemble(story, budget_bytes=60, state_dir=Path(tmp) / "state")
+            self.assertNotIn("spill", payload)
+            self.assertEqual(sum("WRIT_HARNESS_LEAN=''" in w for w in payload["warnings"]), 1)
+
+    def test_unset_under_budget_adds_no_warning(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            with mock.patch.dict(os.environ, _env_without_flag(), clear=True):
+                payload = sc.assemble(story, budget_bytes=10**6, state_dir=Path(tmp) / "state")
+            self.assertEqual(payload["warnings"], [])
+
+
+class SpillRescueTests(FlagClearedTestCase):
+    """AC-3.3: a non-writable state dir warns, keeps today's truncated
+    payload, and leaves no spill file behind."""
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root ignores directory permissions")
+    def test_read_only_state_dir_warns_and_keeps_truncated_payload(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            state.mkdir()
+            with mock.patch.dict(os.environ, _env_without_flag(), clear=True):
+                today = sc.assemble(story, budget_bytes=60, state_dir=state)
+            state.chmod(0o500)
+            try:
+                with mock.patch.dict(os.environ, LEAN):
+                    payload = sc.assemble(story, budget_bytes=60, state_dir=state)
+                listing = list(state.iterdir())
+            finally:
+                state.chmod(0o700)
+            self.assertNotIn("spill", payload)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(payload["fetched_context"], today["fetched_context"])
+            self.assertEqual(payload["bytes"], today["bytes"])
+            self.assertEqual(listing, [])
+            spill_warnings = [w for w in payload["warnings"] if "not written" in w]
+            self.assertEqual(len(spill_warnings), 1)
+            self.assertIn("PermissionError", spill_warnings[0])
+            self.assertEqual([w for w in payload["warnings"] if w not in spill_warnings], today["warnings"])
+
+    def test_short_write_is_treated_as_failure(self) -> None:
+        """A write that lands fewer bytes than the text never claims success."""
+        with TemporaryDirectory() as tmp:
+            story = _four_category_story(tmp)
+            state = Path(tmp) / "state"
+            real_write = Path.write_bytes
+
+            def short_write(self: Path, data: bytes) -> int:
+                return real_write(self, data[: len(data) // 2])
+
+            with mock.patch.dict(os.environ, LEAN), mock.patch.object(Path, "write_bytes", short_write):
+                payload = sc.assemble(story, budget_bytes=60, state_dir=state)
+            self.assertNotIn("spill", payload)
+            self.assertTrue(payload["truncated"])
+            self.assertEqual(sum("not written" in w for w in payload["warnings"]), 1)
+            self.assertFalse(state.exists() and any(state.iterdir()))
+
+
+class DefaultSkillFrozenTests(unittest.TestCase):
+    """AC-3.4: the default dependency-context-loading skill keeps its
+    truncate-by-priority text. Pinned to its sha256 at the start of Story 3."""
+
+    SKILL = Path(__file__).resolve().parents[2] / "skills" / "dependency-context-loading" / "SKILL.md"
+    SHA256 = "7fe2b88694399071fa11d4c763dbb348667c62b0e67d96318635d9ecf0241abf"
+
+    def test_default_skill_is_byte_identical(self) -> None:
+        self.assertEqual(hashlib.sha256(self.SKILL.read_bytes()).hexdigest(), self.SHA256)
+
+
+class RealStateDirGuardTests(unittest.TestCase):
+    """Defense in depth: with WRIT_HARNESS_LEAN=1 exported, the pre-existing
+    default-path classes still pass and write no spill file into the real
+    DEFAULT_STATE_DIR."""
+
+    DEFAULT_PATH_CLASSES = (
+        "ExtractMarkdownSectionTests", "ParseCategoryValueTests", "ParseHintLinesTests",
+        "ResolveTableCategoryTests", "ResolveBusinessRulesTests", "ResolveExperienceTests",
+        "ResolveExtendedRefTests", "AssembleTests", "DerivedBudgetConstantTests",
+        "BudgetEnforcementTests", "CliTests",
+    )
+
+    def test_default_path_classes_pass_and_never_spill_with_flag_exported(self) -> None:
+        real_state = sc.DEFAULT_STATE_DIR
+        before = set(real_state.glob("story-context-spill-*"))
+        loader = unittest.TestLoader()
+        suite = unittest.TestSuite(
+            loader.loadTestsFromTestCase(globals()[name]) for name in self.DEFAULT_PATH_CLASSES
+        )
+        with mock.patch.dict(os.environ, LEAN):
+            result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0).run(suite)
+        after = set(real_state.glob("story-context-spill-*"))
+        for leaked in after - before:
+            leaked.unlink()
+        self.assertEqual(after - before, set())
+        self.assertTrue(result.wasSuccessful(), result.failures + result.errors)
+        self.assertGreater(result.testsRun, 50)
 
 
 if __name__ == "__main__":

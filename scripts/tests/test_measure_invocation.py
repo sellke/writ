@@ -68,6 +68,21 @@ def _load():
 
 mi = _load()
 
+# Every test here asserts the default load path, so an exported
+# WRIT_HARNESS_LEAN must not leak in — in-process or via CLI subprocesses,
+# which inherit os.environ. Lean behavior is tested in
+# test_measure_invocation_lean.py.
+_LEAN_PATCH = mock.patch.dict(os.environ)
+
+
+def setUpModule():
+    _LEAN_PATCH.start()
+    os.environ.pop(mi.LEAN_ENV, None)
+
+
+def tearDownModule():
+    _LEAN_PATCH.stop()
+
 
 def env_without_key():
     """os.environ with ANTHROPIC_API_KEY removed — nothing else disturbed."""
