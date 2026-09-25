@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-09-25 | Recorded `2026-09-25-jev-judgment-pilot` as inter-phase infrastructure (v0.38.0). |
 | 2026-09-25 | Recorded `2026-09-24-flagged-harness-cuts` as inter-phase infrastructure (v0.37.0). |
 | 2026-09-09 | Recorded `2026-09-09-phase11-stage4b-pipeline-demote` as inter-phase infrastructure (v0.36.0). |
 | 2026-09-09 | Recorded `2026-09-09-phase11-stage4-goal-emit` as inter-phase infrastructure (v0.36.0). |
@@ -60,6 +61,7 @@
 | **— Phase 11 Stage 4a — Goal emit** <!-- 2026-09-09-phase11-stage4-goal-emit --> | A loop:yes Goal Card converts to GOAL.md + VERIFY.md plus a printed Claude Code /goal invoke line. | v0.36.0 |
 | **— Phase 11 Stage 4b — Pipeline demote** <!-- 2026-09-09-phase11-stage4b-pipeline-demote --> | Default implement-story spawns at most two subagents; the six-agent path is --full-pipeline. | v0.36.0 |
 | **— Flagged harness cuts** <!-- 2026-09-24-flagged-harness-cuts --> | Three harness cuts ship default-off, and become the default only when a same-model baseline keeps every exit-criteria row at 2/2 and driver cost_usd drops against that model's own flag-off control. | v0.37.0 |
+| **— Jev Judgment Pilot** <!-- 2026-09-25-jev-judgment-pilot --> | Opt-in TypeSafe Jev judgment provider (TypeSafe direct or Vercel AI Gateway): ADR-027, stdlib client, Step 2.6c cascade, calibration, Gate 3 shadow, one-time setup prompt. | v0.38.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 

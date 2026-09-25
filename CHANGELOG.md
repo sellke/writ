@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.38.0] - 2026-09-26
+
+**Jev judgment pilot** — adds an optional provider for TypeSafe's Jev, a model that returns typed yes/no answers with probabilities. You can reach it through TypeSafe directly or through the Vercel AI Gateway. Jev pre-judges acceptance criteria before `/create-spec` runs its own LLM analysis pass. It also logs a shadow per-criterion judgment beside the Gate 3 evaluator, to build evidence for making the evaluator spawn conditional later. The provider is off by default; with it off, nothing changes.
+
+### Added
+- **ADR-027 and `jev-judge.py status`**
+  - The provider turns on only with both a `.writ/config.md` `Judgment Provider` line and that backend's key (`TYPESAFE_API_KEY`, or `AI_GATEWAY_API_KEY`). A key alone sends nothing.
+  - Keys are never printed.
+  - The ADR sets the promotion rule: at least 30 stories, 0 false passes, and at least 95% agreement before any spec may skip the evaluator. ([Story 1: ADR-027 and Opt-in Resolution](.writ/specs/archive/2026-09-25-jev-judgment-pilot/user-stories/story-1-adr-and-opt-in.md))
+- **Stdlib Jev client**
+  - The gateway backend routes only to `typesafe-ai`.
+  - Every failure reports a named `unverifiable` reason, and server output is sanitized.
+  - A replay transport keeps tests and `eval.sh` off the network.
+  - Adds the `probe` subcommand and the `eval.sh` `jev-judge` check. ([Story 2: Client Transport and eval Check](.writ/specs/archive/2026-09-25-jev-judgment-pilot/user-stories/story-2-client-transport.md))
+- **`jev-judge.py spec-findings`**
+  - Checks every story in a spec for contradiction, gap, and ambiguity in one request.
+  - `/create-spec` Step 2.6c and `/verify-spec` 3g run the orchestrator pass only over stories Jev was unsure about. Results stay notes. ([Story 3: Spec-Findings Producer and Step 2.6c Cascade](.writ/specs/archive/2026-09-25-jev-judgment-pilot/user-stories/story-3-spec-findings-cascade.md))
+- **`jev-judge.py calibrate`**
+  - Scores 24 labeled fixtures from live recordings, fitting on a 12-story dev split and holding out 12 for test.
+  - Test split: 0 false findings on clean stories and 0 silent misses. But 11 of 12 stories still go back to the orchestrator, so this saves little work yet. ([Story 4: Calibration Fixtures and Thresholds](.writ/specs/archive/2026-09-25-jev-judgment-pilot/user-stories/story-4-calibration.md))
+- **Gate 3 shadow (`ac-shadow`, `shadow-report`)**
+  - Logs Jev's per-criterion judgment beside the evaluator's tagged verdicts, and checks the promotion rule.
+  - Secret-path diff blocks are excluded; any secret path the parser cannot separate blocks the request entirely. The evaluator still spawns on every story. ([Story 5: Gate 3 Shadow Judgment and Agreement Report](.writ/specs/archive/2026-09-25-jev-judgment-pilot/user-stories/story-5-gate3-shadow.md))
+- **One-time setup prompt**
+  - `jev-judge.py setup --provider {typesafe,vercel-gateway,none}` writes the config line and names the variable to export.
+  - An interactive `/create-spec` asks once when the line is missing. The prompt never asks for the key. ([Story 6: Provider Setup Prompt](.writ/specs/archive/2026-09-25-jev-judgment-pilot/user-stories/story-6-setup-prompt.md))
+
+### Changed
+- Evaluator checklists (`agents/evaluator-agent.md` and `claude-code/agents/writ-evaluator.md`) now end every acceptance-criterion line with its `[AC-N.M]` tag.
+- `install.sh`, `update.sh`, and `unlink.sh` ship `scripts/jev-thresholds.json`, the only JSON file under `scripts/` they ship.
+
+### Internal
+- Command-size ratchets raised for `create-spec`, `verify-spec`, and `implement-story`, with disclosed comments. The lean siblings are unchanged.
+- Filed `.writ/issues/bugs/2026-09-26-ac-trace-scans-fixture-ac-tokens.md`.
+- Archived `2026-09-25-jev-judgment-pilot` after PR #53.
+
 ## [0.37.0] - 2026-09-25
 
 **Flagged harness cuts** — Lean preamble and command siblings load only when `WRIT_HARNESS_LEAN=1`. An Opus 5.5 baseline recorded null, so the default load path is unchanged and install/update do not ship the lean files. Price-weighted cost is reported beside driver `cost_usd`.
