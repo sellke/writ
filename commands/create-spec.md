@@ -800,6 +800,11 @@ After stories exist and Step 2.6a has validated IDs, run one analysis pass. This
 Card Stage 3 said “Step 2.6”; the locked Stage 3 contract relocates the invoke to
 after stories exist. Run this step **once** per `/create-spec` — do not loop.
 
+**Jev first (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, run
+`python3 scripts/jev-judge.py spec-findings --spec .writ/specs/<folder> --out .writ/state/spec-analyze-<run>.json`,
+then run item 1 only over the stories listed in `<out>.escalate.json` and merge into `<out>` (the
+`--findings` file). Otherwise, or if it exits 1 or 2, run item 1 over every story.
+
 1. **LLM pass (orchestrator, not the script).** Read the generated stories’
    acceptance criteria. Look for contradiction, gap, and ambiguity, grounded in
    exit-criteria grammar (observable, named outcomes). Write a JSON array of
@@ -817,7 +822,7 @@ python3 scripts/spec-analyze.py check --spec .writ/specs/<folder> [--findings .w
 
 3. **Surface as notes only.** Carry the verdict line and every `reason:` into
    Step 2.9 as notes (`add_note`). Use `add_finding` only when the helper is
-   missing or exits 2. A script `fail` (including `malformed_findings`) or
+   missing or exits 2. Any `jev-judge.py` or `spec-analyze.py` `fail` (including `malformed_findings`) or
    `unverifiable` does **not** fail package creation, does **not** mark the spec
    `DEGRADED`, and does **not** open an AskQuestion gate.
 
@@ -841,6 +846,7 @@ Present the complete package: file tree, story count and total task count, key i
 
 If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as
 **notes**. They never fail this review or block the package.
+Add one note: `jev: <J>/<T> stories judged, <M> escalated` from `spec-findings`, else `jev: <verdict> (<reason>)`.
 
 ## Completion
 

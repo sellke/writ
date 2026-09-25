@@ -12,6 +12,12 @@ Subcommands:
                       with WRIT_JEV_REPLAY set, reads a recorded response
                       instead and never opens a socket. `--backend` is
                       replay-only (live always uses the configured backend).
+  spec-findings --spec PATH --out FILE [--repo .] [--backend B]
+                      Judge every story of a spec in ONE request (Story 3).
+                      Writes FILE (a spec-analyze.py --findings array with
+                      extra keys `source` and `p`) and FILE.escalate.json (the
+                      story filenames the orchestrator must still judge).
+                      Same live/replay rule as probe.
 
 The provider is enabled only when `.writ/config.md` has a line
 `- **Judgment Provider:** <backend>` naming `typesafe` or `vercel-gateway`
@@ -529,9 +535,11 @@ def _primary(reasons: Sequence[str]) -> str:
     return "judged"
 
 
-def _judgment_summary(j: Judgment) -> str:
-    parts = ["jev-judge: %s (%s)" % (j.verdict, _primary(j.reasons)),
-             "backend=%s" % j.backend.name,
+def _judgment_summary(j: Judgment, counts: Optional[str] = None) -> str:
+    parts = ["jev-judge: %s (%s)" % (j.verdict, _primary(j.reasons))]
+    if counts:
+        parts.append(counts)
+    parts += ["backend=%s" % j.backend.name,
              "model=%s" % (j.model or j.backend.model)]
     if "model_mismatch" in j.reasons:
         parts.append("expected=%s" % j.backend.model)
@@ -547,34 +555,322 @@ def _judgment_summary(j: Judgment) -> str:
     return " ".join(parts)
 
 
+class Selection(NamedTuple):
+    backend: Optional[Backend]  # None: no request may be sent
+    reasons: List[str]  # why not, when backend is None
+    replay: bool
+    named: Optional[Backend]  # the configured backend, even when its key is missing
+
+
+def _select_backend(repo: Path, backend_arg: Optional[str],
+                    environ: Mapping[str, str]) -> Selection:
+    """Which backend a request goes to. Replay always wins and needs no key;
+    live needs both opt-in halves (Business Rule 1). `--backend` is replay-only."""
+    replay = bool(environ.get(REPLAY_ENV, ""))
+    if backend_arg and not replay:
+        raise UsageError("--backend is replay-only; the live backend comes from "
+                         ".writ/config.md (set %s to replay)" % REPLAY_ENV)
+    if replay and backend_arg:
+        return Selection(BACKENDS[backend_arg], [], True, BACKENDS[backend_arg])
+    if replay:
+        value = _config_value(repo)
+        if value is None:
+            return Selection(None, ["no_config_line"], True, None)
+        found = BACKENDS.get(value)
+        if found is None:
+            return Selection(None, ["provider_disabled"], True, None)
+        return Selection(found, [], True, found)
+    res = resolve(repo, environ)
+    if res.verdict != "pass":
+        return Selection(None, res.reasons, False, res.backend)
+    return Selection(res.backend, [], False, res.backend)
+
+
 def probe(args: argparse.Namespace, environ: Mapping[str, str],
           transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
     state = _read_json_object(args.state_file, "--state-file")
     questions = _read_questions(args.questions_file)
-    replay = bool(environ.get(REPLAY_ENV, ""))
-    if args.backend and not replay:
-        raise UsageError("--backend is replay-only; the live backend comes from "
-                         ".writ/config.md (set %s to replay)" % REPLAY_ENV)
-    if replay and args.backend:
-        backend = BACKENDS[args.backend]
-    elif replay:
-        value = _config_value(args.repo)
-        if value is None:
-            return _emit("unverifiable", ["no_config_line"],
-                         "jev-judge: unverifiable (no_config_line) backend=none")
-        found = BACKENDS.get(value)
-        if found is None:
-            return _emit("unverifiable", ["provider_disabled"],
-                         "jev-judge: unverifiable (provider_disabled) backend=none")
-        backend = found
-    else:
-        res = resolve(args.repo, environ)  # Business Rule 1: live needs both halves
-        if res.verdict != "pass":
+    sel = _select_backend(args.repo, args.backend, environ)
+    if sel.backend is None:
+        if not sel.replay:
             return status(args.repo, environ)
-        assert res.backend is not None
-        backend = res.backend
-    j = judge(state, questions, backend, environ, transport=transport, sleep=sleep)
+        return _emit("unverifiable", sel.reasons,
+                     "jev-judge: unverifiable (%s) backend=none" % sel.reasons[0])
+    j = judge(state, questions, sel.backend, environ, transport=transport, sleep=sleep)
     return _emit(j.verdict, j.reasons, _judgment_summary(j))
+
+
+# --------------------------------------------------------------------------
+# spec-findings subcommand (technical-spec §4, §5) — Story 3
+# --------------------------------------------------------------------------
+
+# Criterion parsing matches scripts/spec-analyze.py exactly (CRITERION, the
+# `Given` prefix rule, TAG_TAIL), so criterion positions and AC IDs agree with
+# the findings checker. Copied, not imported: verifier scripts stay decoupled.
+CRITERION = re.compile(r"^- \[[ xX]\]\s+(.*)$")
+TAG_TAIL = re.compile(r"\s*`\[AC-\d+\.\d+(?:,\s*AC-\d+\.\d+)*\]`\s*$")
+AC_ID = re.compile(r"AC-\d+\.\d+")
+SPEC_CODES = ("contradiction", "gap", "ambiguity")
+
+
+class Story(NamedTuple):
+    filename: str
+    user_story: str  # the `## User Story` block; "" when the story has none
+    criteria: List[str]  # Given/When/Then bodies, AC tag tail removed
+    ac_ids: List[List[str]]  # per criterion, from its tag tail; [] when untagged
+
+
+class Asked(NamedTuple):
+    """What a question ID means. Code-side only; never sent as state."""
+    code: str
+    story: str
+    criterion: Optional[int]  # 0-based index into criteria; None for story questions
+
+
+def _user_story_block(text: str) -> str:
+    out: List[str] = []
+    inside = False
+    for line in text.splitlines():
+        if line.startswith("## "):
+            if inside:
+                break
+            inside = line[3:].strip().lower() == "user story"
+            continue
+        if inside:
+            out.append(line)
+    return "\n".join(out).strip()
+
+
+def _parse_story(filename: str, text: str) -> Story:
+    criteria: List[str] = []
+    ac_ids: List[List[str]] = []
+    for line in text.splitlines():
+        match = CRITERION.match(line)
+        if not match:
+            continue
+        body = match.group(1).strip()
+        if not body.lower().startswith("given"):
+            continue
+        tail = TAG_TAIL.search(body)
+        ac_ids.append(AC_ID.findall(tail.group(0)) if tail else [])
+        criteria.append(TAG_TAIL.sub("", body).strip())
+    return Story(filename, _user_story_block(text), criteria, ac_ids)
+
+
+def load_stories(spec: Path) -> List[Story]:
+    """Stories under `<spec>/user-stories/story-*.md`, in spec-analyze order."""
+    folder = spec / "user-stories"
+    if not folder.is_dir():
+        return []
+    stories: List[Story] = []
+    for path in sorted(folder.glob("story-*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise UsageError("cannot read story %s (%s)" % (path, type(exc).__name__))
+        stories.append(_parse_story(path.name, text))
+    return stories
+
+
+def _noul(instructions: str, true: str, false: str) -> Dict[str, Any]:
+    return {"type": "noul", "instructions": instructions,
+            "criteria": {"true": true, "false": false}}
+
+
+def _story_questions(ref: str) -> Dict[str, Dict[str, Any]]:
+    """The two per-story Nouls. `ref` is the backticked-path prefix of the story.
+
+    jev-1.13 reads literally and is weak at counting and indirection, so each
+    question names the exact state path it reads and puts the boundary cases
+    in the criteria rather than leaving them to inference.
+    """
+    crit = "`%s.criteria`" % ref
+    story = "`%s.user_story`" % ref
+    return {
+        "contradiction": _noul(
+            "Do two criteria in %s require outcomes that cannot both hold?" % crit,
+            "Two criteria in %s require outcomes that cannot both be true at the same "
+            "time, so no implementation satisfies both. Example: one criterion fixes a "
+            "stored value and another requires a result that value makes impossible." % crit,
+            "One implementation can satisfy every criterion in %s at the same time. "
+            "Criteria about different inputs or different steps do not conflict, and a "
+            "list with zero or one criterion has no conflict." % crit),
+        "gap": _noul(
+            "Do %s or %s imply a nil, empty, or error case that no criterion in %s covers?"
+            % (story, crit, crit),
+            "%s or a criterion in %s names an input or state that can be missing, empty, "
+            "invalid, expired, revoked, or failing, and no criterion in %s states the "
+            "outcome for that case." % (story, crit, crit),
+            "Every missing, empty, invalid, or failing case that %s or %s implies has a "
+            "criterion in %s stating its outcome, or the story implies no such case."
+            % (story, crit, crit)),
+    }
+
+
+def _criterion_question(ref: str, index: int) -> Dict[str, Any]:
+    then = "the Then clause of `%s.criteria[%d]`" % (ref, index)
+    return _noul(
+        "Could two competent implementers satisfy %s with opposite behavior?" % then,
+        "The Then clause of `%s.criteria[%d]` does not decide the behavior its Given and "
+        "When set up: two opposite behaviors (for example, charging a fee and waiving it) "
+        "would both satisfy it." % (ref, index),
+        "The Then clause of `%s.criteria[%d]` names one observable outcome (a value, a "
+        "file, a message, or a count) that only one of two opposite behaviors produces."
+        % (ref, index))
+
+
+def spec_request(stories: Sequence[Story]) -> Tuple[Dict[str, Any], Dict[str, Any],
+                                                    Dict[str, Asked]]:
+    """State, questions, and the code-side meaning of each question ID."""
+    state: Dict[str, Any] = {"stories": {}}
+    questions: Dict[str, Any] = {}
+    index: Dict[str, Asked] = {}
+    for n, story in enumerate(stories, start=1):
+        state["stories"][story.filename] = {"user_story": story.user_story,
+                                            "criteria": list(story.criteria)}
+        ref = "stories[%s]" % json.dumps(story.filename)
+        for code, question in _story_questions(ref).items():
+            qid = "s%d_%s" % (n, code)
+            questions[qid] = question
+            index[qid] = Asked(code, story.filename, None)
+        for i in range(len(story.criteria)):
+            qid = "s%d_c%d_ambiguity" % (n, i + 1)
+            questions[qid] = _criterion_question(ref, i)
+            index[qid] = Asked("ambiguity", story.filename, i)
+    return state, questions, index
+
+
+def band(p: float, thresholds: Mapping[str, float]) -> str:
+    """p >= emit: finding. escalate <= p < emit: escalate. Below: clean."""
+    if p >= thresholds["emit"]:
+        return "finding"
+    if p >= thresholds["escalate"]:
+        return "escalate"
+    return "clean"
+
+
+def _finding_summary(asked: Asked) -> str:
+    """Built from the question's meaning only; server text never reaches it."""
+    if asked.code == "contradiction":
+        return "Two criteria in %s require outcomes that cannot both hold." % asked.story
+    if asked.code == "gap":
+        return ("%s implies a nil, empty, or error case that no criterion covers."
+                % asked.story)
+    return ("Criterion %d of %s has a Then clause two competent implementers could "
+            "satisfy with opposite behavior." % ((asked.criterion or 0) + 1, asked.story))
+
+
+def _unit_interval(value: Any) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and 0.0 <= value <= 1.0)  # NaN compares False
+
+
+def apply_thresholds(answers: Mapping[str, Any], index: Mapping[str, Asked],
+                     thresholds: Mapping[str, Any], stories: Sequence[Story],
+                     source: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+    """Findings rows (spec-analyze schema + `source`, `p`) and escalated stories."""
+    by_name = {s.filename: s for s in stories}
+    bands = thresholds["spec_findings"]
+    findings: List[Dict[str, Any]] = []
+    escalated = set()
+    for qid, asked in index.items():
+        p = float(answers[qid]["noul"])
+        outcome = band(p, bands[asked.code])
+        if outcome == "escalate":
+            escalated.add(asked.story)
+        elif outcome == "finding":
+            row: Dict[str, Any] = {"code": asked.code, "story": asked.story,
+                                   "summary": _finding_summary(asked)}
+            if asked.criterion is not None:
+                ids = by_name[asked.story].ac_ids[asked.criterion]
+                if ids:
+                    row["ac_ids"] = list(ids)
+            row["source"] = source
+            row["p"] = p
+            findings.append(row)
+    return findings, [s.filename for s in stories if s.filename in escalated]
+
+
+def _spec_thresholds(backend: Optional[Backend]) -> Tuple[Dict[str, Any], List[str]]:
+    """Loaded and validated before any request, so a broken file costs nothing."""
+    try:
+        data, reasons = load_thresholds(backend=backend.name if backend else None,
+                                        model=backend.model if backend else None)
+    except ThresholdsError as exc:
+        raise UsageError("thresholds: %s" % exc)
+    bands = data.get("spec_findings")
+    for code in SPEC_CODES:
+        entry = bands.get(code) if isinstance(bands, dict) else None
+        if not isinstance(entry, dict):
+            raise UsageError("thresholds: spec_findings.%s is missing" % code)
+        emit, esc = entry.get("emit"), entry.get("escalate")
+        if not (_unit_interval(emit) and _unit_interval(esc) and esc <= emit):
+            raise UsageError("thresholds: spec_findings.%s needs 0 <= escalate <= emit <= 1"
+                             % code)
+    if data.get("calibrated") is not True and "uncalibrated_thresholds" not in reasons:
+        reasons.append("uncalibrated_thresholds")
+    return data, reasons
+
+
+def _write_json(path: Path, data: Any) -> None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        raise UsageError("--out not writable: %s (%s)" % (path, type(exc).__name__))
+
+
+def _counts(stories: Sequence[Story], escalated: Sequence[str]) -> str:
+    return "%d judged, %d escalated" % (len(stories) - len(escalated), len(escalated))
+
+
+def spec_findings(args: argparse.Namespace, environ: Mapping[str, str],
+                  transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
+    """Any outcome other than a parsed judgment writes `[]` and escalates every
+    story, so the orchestrator runs its full pass (Business Rule 3)."""
+    if not args.spec.is_dir():
+        raise UsageError("--spec is not a directory: %s" % args.spec)
+    out: Path = args.out
+    sidecar = Path(str(out) + ".escalate.json")
+    sel = _select_backend(args.repo, args.backend, environ)
+    stories = load_stories(args.spec)
+    thresholds, info = _spec_thresholds(sel.backend or sel.named)
+    everyone = [s.filename for s in stories]
+
+    def fallback(verdict: str, reasons: List[str], summary_tail: str) -> int:
+        _write_json(out, [])
+        _write_json(sidecar, everyone)
+        head = "jev-judge: %s (%s) %s" % (verdict, _primary(reasons), _counts(stories, everyone))
+        return _emit(verdict, reasons + info, "%s %s" % (head, summary_tail))
+
+    if not stories:
+        name = (sel.backend or sel.named).name if (sel.backend or sel.named) else "none"
+        return fallback("unverifiable", ["no_stories"], "backend=%s" % name)
+    if sel.backend is None:
+        tail = "backend=%s" % (sel.named.name if sel.named else "none")
+        if "no_api_key" in sel.reasons and sel.named is not None:
+            tail += " export=%s" % sel.named.key_vars[0]
+        return fallback("unverifiable", list(sel.reasons), tail)
+
+    state, questions, index = spec_request(stories)
+    j = judge(state, questions, sel.backend, environ, transport=transport, sleep=sleep)
+    if j.verdict == "pass" and j.answers is not None and not all(
+            _unit_interval(j.answers[qid].get("noul")) for qid in index):
+        j = j._replace(verdict="fail", answers=None,
+                       reasons=["malformed_response"] + [r for r in j.reasons if r in INFORMATIONAL])
+    if j.verdict != "pass" or j.answers is None:
+        _write_json(out, [])
+        _write_json(sidecar, everyone)
+        return _emit(j.verdict, j.reasons + info,
+                     _judgment_summary(j, _counts(stories, everyone)))
+
+    source = j.model or sel.backend.model
+    findings, escalated = apply_thresholds(j.answers, index, thresholds, stories, source)
+    _write_json(out, findings)
+    _write_json(sidecar, escalated)
+    summary = "%s findings=%d" % (_judgment_summary(j, _counts(stories, escalated)),
+                                  len(findings))
+    return _emit(j.verdict, j.reasons + info, summary)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -587,6 +883,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
     p.add_argument("--state-file", type=Path, required=True)
     p.add_argument("--questions-file", type=Path, required=True)
+    p.add_argument("--backend", choices=sorted(BACKENDS),
+                   help="replay only: pick the backend whose request shape to replay")
+    p = sub.add_parser("spec-findings",
+                       help="judge a spec's stories in one request; write findings JSON")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--spec", type=Path, required=True)
+    p.add_argument("--out", type=Path, required=True)
     p.add_argument("--backend", choices=sorted(BACKENDS),
                    help="replay only: pick the backend whose request shape to replay")
     return parser
@@ -610,6 +913,8 @@ def main(argv: Optional[List[str]] = None,
             return status(args.repo, env)
         if args.action == "probe":
             return probe(args, env, transport, sleep or time.sleep)
+        if args.action == "spec-findings":
+            return spec_findings(args, env, transport, sleep or time.sleep)
     except UsageError as exc:
         print("error: %s" % exc, file=sys.stderr)
         return 2

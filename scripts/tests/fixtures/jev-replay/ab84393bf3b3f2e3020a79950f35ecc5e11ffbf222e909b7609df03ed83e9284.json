@@ -1,0 +1,35 @@
+{
+  "answers": {
+    "s1_c1_ambiguity": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "s1_c2_ambiguity": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "s1_c3_ambiguity": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "s1_contradiction": {
+      "noul": 0.94,
+      "type": "noul"
+    },
+    "s1_gap": {
+      "noul": 0.08,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "provider_metadata": {
+    "gateway": {
+      "cost": "0.00002413",
+      "routing": {}
+    }
+  },
+  "usage": {
+    "input_tokens": 612,
+    "output_tokens": 50
+  }
+}

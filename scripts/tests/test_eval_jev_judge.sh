@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Story 2 of 2026-09-25-jev-judgment-pilot: check_jev_judge registration,
-# note-vs-finding split, and the no-network / no-key wiring. [AC-2.4]
+# Stories 2-3 of 2026-09-25-jev-judgment-pilot: check_jev_judge registration,
+# note-vs-finding split, and the no-network / no-key wiring. Story 3 adds the
+# replay-mode spec-findings run on one fixture spec. [AC-2.4, AC-3.5]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -27,22 +28,30 @@ export TYPESAFE_API_KEY="$FAKE_KEY" AI_GATEWAY_API_KEY="$FAKE_KEY" VERCEL_OIDC_T
 # A live attempt would hit a dead proxy and fail, never connect.
 export HTTPS_PROXY="http://127.0.0.1:9" https_proxy="http://127.0.0.1:9"
 
+SPEC_REL="scripts/tests/fixtures/spec-analyze/story-2-event-creation-payment-flow"
+
 write_stub() {
   printf '%s\n' "$2" > "$1"
   chmod +x "$1"
 }
 
-# Stub guard: refuse (exit 2 -> add_finding) if a key reaches the helper, or
-# if probe runs without WRIT_JEV_REPLAY. A wiring regression fails the test.
+# Stub guard: refuse (exit 2 -> add_finding) if a key reaches the helper, if
+# probe or spec-findings runs without WRIT_JEV_REPLAY, or if spec-findings
+# writes inside the project root. A wiring regression fails the test.
 STUB_GUARD='import os, sys
 action = sys.argv[1] if len(sys.argv) > 1 else ""
 for var in ("TYPESAFE_API_KEY", "AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN"):
     if os.environ.get(var):
         print("stub: key var %s reached helper" % var)
         raise SystemExit(2)
-if action == "probe" and not os.environ.get("WRIT_JEV_REPLAY"):
-    print("stub: probe without WRIT_JEV_REPLAY")
-    raise SystemExit(2)'
+if action in ("probe", "spec-findings") and not os.environ.get("WRIT_JEV_REPLAY"):
+    print("stub: %s without WRIT_JEV_REPLAY" % action)
+    raise SystemExit(2)
+if action == "spec-findings":
+    out = os.path.realpath(sys.argv[sys.argv.index("--out") + 1])
+    if out.startswith(os.path.realpath(os.getcwd()) + os.sep):
+        print("stub: spec-findings --out inside project root")
+        raise SystemExit(2)'
 
 new_root() {
   local root mode="${1:-pass}"
@@ -50,6 +59,10 @@ new_root() {
   TMP_ROOTS+=("$root")
   mkdir -p "$root/scripts/tests/fixtures/jev-replay/inputs" "$root/commands" "$root/.writ"
   cp "$EVAL" "$root/scripts/eval.sh"
+  if [ "$mode" != "no-spec" ]; then
+    mkdir -p "$root/$SPEC_REL/user-stories"
+    cp "$REPO/$SPEC_REL/user-stories/"*.md "$root/$SPEC_REL/user-stories/"
+  fi
   printf '{}\n' > "$root/scripts/tests/fixtures/jev-replay/inputs/state.json"
   printf '{}\n' > "$root/scripts/tests/fixtures/jev-replay/inputs/questions.json"
   case "$mode" in
@@ -59,6 +72,19 @@ new_root() {
       write_stub "$root/scripts/jev-judge.py" "$(cat <<'PY'
 #!/usr/bin/env python3
 raise SystemExit(2)
+PY
+)"
+      ;;
+    findings-usage)
+      write_stub "$root/scripts/jev-judge.py" "$(cat <<PY
+#!/usr/bin/env python3
+$STUB_GUARD
+if action == "spec-findings":
+    print("error: bad spec-findings args")
+    raise SystemExit(2)
+print("unverifiable")
+print("reason: no_config_line")
+print("jev-judge: unverifiable (no_config_line) backend=none")
 PY
 )"
       ;;
@@ -88,6 +114,7 @@ PY
       ;;
     real)
       cp "$REPO/scripts/jev-judge.py" "$root/scripts/jev-judge.py"
+      cp "$REPO/scripts/jev-thresholds.json" "$root/scripts/jev-thresholds.json"
       cp "$REPO/scripts/tests/fixtures/jev-replay/"*.json "$root/scripts/tests/fixtures/jev-replay/"
       cp "$REPO/scripts/tests/fixtures/jev-replay/inputs/"*.json \
         "$root/scripts/tests/fixtures/jev-replay/inputs/"
@@ -126,9 +153,11 @@ grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) status' "$R
   || { cat "$ROOT/eval-report.md"; fail "pass: status verdict must be a note"; }
 grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) probe' "$ROOT/eval-report.md" \
   || { cat "$ROOT/eval-report.md"; fail "pass: probe verdict must be a note"; }
+grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) spec-findings' "$ROOT/eval-report.md" \
+  || { cat "$ROOT/eval-report.md"; fail "pass: spec-findings verdict must be a note"; }
 grep -Fq -- '- Findings: 0' "$ROOT/eval-report.md" || fail "pass: must report Findings 0"
 assert_no_key "$ROOT" pass
-ok "unverifiable stub -> exit 0, add_note; keys stripped; probe under replay"
+ok "unverifiable stub -> exit 0, add_note; keys stripped; probe and spec-findings under replay"
 
 ROOT="$(new_root fail)"
 rc="$(run_check "$ROOT")"
@@ -161,6 +190,20 @@ grep -Fq 'probe refused' "$ROOT/eval-report.md" \
   || fail "probe-usage: probe exit 2 must add_finding"
 ok "probe exit 2 -> exit 1, add_finding"
 
+ROOT="$(new_root findings-usage)"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || fail "findings-usage: expected exit 1, got $rc"
+grep -Fq 'spec-findings refused' "$ROOT/eval-report.md" \
+  || fail "findings-usage: spec-findings exit 2 must add_finding"
+ok "spec-findings exit 2 -> exit 1, add_finding"
+
+ROOT="$(new_root no-spec)"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 0 ] || { cat "$ROOT/eval-report.md"; fail "no-spec: expected exit 0, got $rc"; }
+grep -Fq 'NOTE [jev-judge]: no spec-analyze fixture; spec-findings skipped.' "$ROOT/eval-report.md" \
+  || { cat "$ROOT/eval-report.md"; fail "no-spec: missing fixture must be a note"; }
+ok "missing fixture spec -> note, spec-findings skipped"
+
 ROOT="$(new_root real)"
 rc="$(run_check "$ROOT")"
 [ "$rc" -eq 0 ] || { cat "$ROOT/eval-report.md"; fail "real: expected exit 0, got $rc"; }
@@ -169,9 +212,15 @@ grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) backend=non
 grep -Fq 'NOTE [jev-judge]: jev-judge: pass (judged) backend=typesafe model=jev-1.13.0 input_tokens=280 attempts=1' \
   "$ROOT/eval-report.md" \
   || { cat "$ROOT/eval-report.md"; fail "real: replayed probe must be a note"; }
+grep -Fq 'NOTE [jev-judge]: jev-judge: pass (judged) 1 judged, 0 escalated backend=typesafe model=jev-1.13.0' \
+  "$ROOT/eval-report.md" \
+  || { cat "$ROOT/eval-report.md"; fail "real: replayed spec-findings must be a note"; }
 grep -Fq -- '- Findings: 0' "$ROOT/eval-report.md" || fail "real: must report Findings 0"
+if find "$ROOT" -name '*.escalate.json' | grep -q .; then
+  fail "real: spec-findings must write only to a temp dir"
+fi
 assert_no_key "$ROOT" real
-ok "real helper, provider disabled -> Findings 0; probe served from replay"
+ok "real helper, provider disabled -> Findings 0; probe and spec-findings served from replay"
 
 awk '/^CHECKS=\(/{f=1} f && /^\)/{exit} f' "$EVAL" | grep -Fxq "  jev-judge" \
   || fail "jev-judge must be registered in CHECKS=(...)"

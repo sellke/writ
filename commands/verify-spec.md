@@ -271,6 +271,7 @@ criteria. This is meaning, not ID coverage — do **not** reuse 3e/3f or
 
 ```
 For the spec being verified:
+  If python3 scripts/jev-judge.py status prints pass, first run its spec-findings --spec <folder> --out <json>, judge only the stories in <json>.escalate.json yourself, and merge them into <json>; if it exits 1 or 2, judge every story.
   Run python3 scripts/spec-analyze.py check --spec <folder> [--findings <json>]
   Relay the verdict and every reason: line as notes.
   A script fail (including malformed_findings) or unverifiable does not

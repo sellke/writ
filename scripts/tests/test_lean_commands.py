@@ -50,9 +50,13 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # (identical to the HEAD blobs at commit 7b17152). AC-4.1: the lean work must
 # not touch a single byte of these. Story 5 is the only story allowed to
 # change the default load path; if it does, it updates these pins on purpose.
+# Repinned 2026-09-25 (2026-09-25-jev-judgment-pilot Story 3): create-spec.md
+# Step 2.6c/2.9 and verify-spec.md 3g gained the opt-in Jev conditional. The
+# lean siblings deliberately keep today's full pass (lean is the no-Jev
+# baseline arm).
 DEFAULT_SHA256 = {
-    "create-spec": "3251fd7baad9bc8d626b84810bbbfcf51a720daea84920ff89f92720e5232fa1",
-    "verify-spec": "72b8bb936392bf4fc842297382c83c4918572044dcc4d0357ef31f1182fd1f57",
+    "create-spec": "ea07703c724b0783a6d666b8c0949fb210b74546db7ed29e080d4a25f238471f",
+    "verify-spec": "5272a3f0a50a2850c327691fa2edf99973ebb4641a5d7871850afc78b50b58c9",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
     "implement-story": "7bf916964d0a34c4fd5b5f07e7ef4c66594a24625a5304b5d581575d521ae8ba",
 }

@@ -526,11 +526,16 @@ class CommandBudgetTests(unittest.TestCase):
 # Updated 2026-09-08 Stage 3 Story 2: create-spec.md 25189 -> 26891
 # (file 51851) for Step 2.6c; verify-spec.md 9926 -> 10666 (file 35626)
 # for advisory 3g. Command files, not the Stage 2 base-byte cap.
+# Updated 2026-09-25 (spec 2026-09-25-jev-judgment-pilot, Story 3): create-spec.md
+# 26891 -> 27419 (file 52379) for the opt-in Jev sub-step in Step 2.6c, the
+# notes-only rule naming jev-judge.py, and Step 2.9's `jev:` note line;
+# verify-spec.md 10666 -> 10902 (file 35862) for the same conditional in 3g, with its exit-1/2 fallback.
+# No new step or gate. Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
-    "commands/create-spec.md": 26891,
-    "commands/verify-spec.md": 10666,
+    "commands/create-spec.md": 27419,
+    "commands/verify-spec.md": 10902,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,

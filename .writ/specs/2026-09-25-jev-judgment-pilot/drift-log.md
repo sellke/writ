@@ -107,3 +107,79 @@
 - **Reason:** Makes a lost calibrated file visible (DEV-006).
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite Error Handling line added.
+
+## Story 3: Spec-Findings Producer and Step 2.6c Cascade — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-012] Replay-only `--backend` flag on `spec-findings`
+- **Severity:** Small
+- **Spec said:** §1 args `--spec PATH --out FILE [--repo .]`.
+- **Implementation did:** Added `--backend`, replay-only as on `probe` (DEV-007). Without replay it exits 2.
+- **Reason:** Lets eval replay without a config line. It cannot bypass Business Rule 1.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-013] Every non-pass outcome writes `[]` plus an escalate-all sidecar
+- **Severity:** Small
+- **Spec said:** §5: `state_too_large` escalates the story; a transport error runs the full orchestrator pass.
+- **Implementation did:** Any unverifiable or fail outcome escalates every story. With one request per spec, the whole spec is over budget.
+- **Reason:** The most conservative reading of Business Rule 3.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-014] A broken thresholds file exits 2 before any request
+- **Severity:** Small
+- **Spec said:** Unspecified (a missing file → defaults, DEV-011).
+- **Implementation did:** A malformed or out-of-range band exits 2. `create-spec` falls back to the full pass, and eval raises a finding.
+- **Reason:** A corrupt committed thresholds file must be visible.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-015] Summary adds `findings=` and `answers=` counts
+- **Severity:** Small
+- **Spec said:** Model, input tokens, and judged/escalated counts.
+- **Implementation did:** Adds integer counts. No server text.
+- **Reason:** Informational.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-016] Retry and transport scenarios use an injected fake HTTP, not replay
+- **Severity:** Small
+- **Spec said:** AC-3.5 says replay-mode runs cover retry and transport failure.
+- **Implementation did:** Happy, partial, and empty use replay. Retry and transport use a fake HTTP under the socket guard.
+- **Reason:** Replay serves 200 bodies only. The Test Strategy allows a fake handler for status codes.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-017] AC tag tails stripped from the text sent to Jev; one generic Step 2.9 note form
+- **Severity:** Small
+- **Spec said:** State holds each story's criteria; Step 2.9 carries a `jev:` note.
+- **Implementation did:** Strips the `` `[AC-N.M]` `` tails (IDs are kept code-side for `ac_ids`). Uses one note template with a `jev: <verdict> (<reason>)` fallback.
+- **Reason:** Intent preserved; less noise for the model.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-018] verify-spec 3g lacked create-spec's exit-1/2 fallback
+- **Severity:** Small
+- **Spec said:** AC-3.4: the same conditional as Step 2.6c.
+- **Implementation did:** The evaluator found the fallback clause missing. The orchestrator added "if it exits 1 or 2, judge every story" before commit, and re-pinned the verify-spec SHA and size ratchet (10863 → 10902).
+- **Reason:** Exit 2 writes no sidecar, so a stale sidecar could have shrunk the pass.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-019] Gap and ambiguity questions show no separation on live Jev; Story 4 may reword questions
+- **Severity:** Medium
+- **Spec said:** Story 3 fixes the request structure; Story 4 calibrates thresholds.
+- **Implementation did:** Raw live p values (vercel-gateway, one fixture per class) were:
+  - contradiction: 0.48 on contradiction-gold vs ≤0.12 elsewhere. This separates.
+  - gap: highest on clean-gold (0.61 vs 0.47). Inverted.
+  - ambiguity: lowest on ambiguity-gold (0.29). Inverted.
+
+  At the 0.85/0.35 thresholds every story escalates, so the cascade stays safe but saves nothing.
+- **Reason:** Thresholds cannot fix an inverted signal.
+- **Resolution:** Warned. Story 4 is authorized to reword the gap and ambiguity (and, if needed, contradiction) question instructions and criteria in `_story_questions` / `_criterion_question`, and to regenerate the synthetic replay recordings. Story 3's structural contract (one request, Noul per story and per criterion, schema, sidecar) stays fixed.
+- **Spec amendment:** None to spec.md. This is an autonomous scope decision; it is reversible.

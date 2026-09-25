@@ -4302,14 +4302,16 @@ check_spec_analyze() {
 }
 
 check_jev_judge() {
-  # Story 2 of 2026-09-25-jev-judgment-pilot: the Jev provider is advisory.
+  # Stories 2-3 of 2026-09-25-jev-judgment-pilot: the Jev provider is advisory.
   # Helper missing / exit 2 → add_finding. Any verdict → add_note only.
   # Never touches the network and never sees a key: key vars are stripped,
-  # `status` sends nothing, and `probe` runs with WRIT_JEV_REPLAY pointed at
-  # the committed fixtures (replay wins over live).
+  # `status` sends nothing, and `probe` and `spec-findings` run with
+  # WRIT_JEV_REPLAY pointed at the committed fixtures (replay wins over live).
+  # spec-findings writes only into a temp dir.
   local helper="$PROJECT_ROOT/scripts/jev-judge.py"
   local replay="$PROJECT_ROOT/scripts/tests/fixtures/jev-replay"
-  local output rc line
+  local spec="$PROJECT_ROOT/scripts/tests/fixtures/spec-analyze/story-2-event-creation-payment-flow"
+  local output rc line out_dir
   local -a keyless=(env -u TYPESAFE_API_KEY -u AI_GATEWAY_API_KEY -u VERCEL_OIDC_TOKEN)
 
   if [ ! -f "$helper" ]; then
@@ -4342,6 +4344,26 @@ check_jev_judge() {
   if [ "$rc" -eq 2 ]; then
     add_finding "scripts/jev-judge.py" "jev-judge.py probe refused: ${output##*$'\n'}" \
       "Fix the jev-judge.py CLI so probe --state-file F --questions-file Q parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [jev-judge]: $line"
+  done <<< "$output"
+
+  if [ ! -d "$spec/user-stories" ]; then
+    add_note "NOTE [jev-judge]: no spec-analyze fixture; spec-findings skipped."
+    return
+  fi
+  out_dir="$(mktemp -d)"
+  rc=0
+  output="$("${keyless[@]}" WRIT_JEV_REPLAY="$replay" python3 "$helper" spec-findings \
+    --backend typesafe --repo "$PROJECT_ROOT" --spec "$spec" \
+    --out "$out_dir/findings.json" 2>&1)" || rc=$?
+  rm -rf "$out_dir"
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/jev-judge.py" "jev-judge.py spec-findings refused: ${output##*$'\n'}" \
+      "Fix the jev-judge.py CLI so spec-findings --spec PATH --out FILE parses."
     return
   fi
   while IFS= read -r line; do
