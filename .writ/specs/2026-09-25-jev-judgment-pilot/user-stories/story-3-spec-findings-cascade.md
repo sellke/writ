@@ -1,6 +1,7 @@
 # Story 3: Spec-Findings Producer and Step 2.6c Cascade
 
 > **Status:** Completed ✅
+> **Commit:** 3d17776be3a3bc1239a4dc217e125127ea2c181d
 > **Priority:** High
 > **Dependencies:** Story 2
 
