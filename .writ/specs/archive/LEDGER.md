@@ -64,3 +64,4 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-09-04T13:06:29Z — `2026-08-14-script-backed-quality-gates` archived (evidence: no knowledge evidence yet)
 - 2026-09-04T13:06:29Z — `2026-09-03-model-delegation` archived (evidence: no knowledge evidence yet)
 - 2026-09-25T11:44:38Z — `2026-09-24-flagged-harness-cuts` archived (evidence: no knowledge evidence yet, via PR #52)
+- 2026-09-25T22:13:00Z — `2026-09-25-jev-judgment-pilot` archived (evidence: no knowledge evidence yet, via PR #53)
