@@ -1,6 +1,7 @@
 # Story 5: Gate 3 Shadow Judgment and Agreement Report
 
 > **Status:** Completed ✅
+> **Commit:** c8e42e7832834f26f48763b2e581a9d5b915a2be
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
