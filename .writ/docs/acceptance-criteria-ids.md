@@ -250,7 +250,8 @@ Named codes, mirroring the style Check 4d already uses (`malformed_dependencies`
 The citation pass (test and source citations) skips `.git/`, skips git-ignored paths, skips
 binaries, does not follow symlinks out of the repo, and skips the checker's own unit file
 `scripts/tests/test_ac_trace.py` (its `AC-<n>.<m>` tokens are isolated temp-repo fixtures, not
-citations of a live spec). A test citation of `AC-N.*` is not a `dangling_reference` against a
+citations of a live spec), and skips everything under `scripts/tests/fixtures/` (fixture stories
+carry their own `[AC-N.M]` tags as test data). A test citation of `AC-N.*` is not a `dangling_reference` against a
 spec that has no story N — that token belongs to another spec. A task in the spec under check
 that cites a missing ID still always fires.
 

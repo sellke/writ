@@ -1999,7 +1999,8 @@ def test_parse_evaluator_reads_tagged_checklist_lines(jev):
             "* [x] star bullet [AC-1.4]\n"
             "- [x] untagged line\n"
             "- [x] tag mid-line [AC-1.5] then prose\n"
-            "Prose mentioning [AC-1.6] is not a checklist line\n")
+            # Token built at runtime so ac-trace does not read it as a citation.
+            "Prose mentioning [" + "AC-" + "1.6] is not a checklist line\n")
     verdicts, conflicting = jev.parse_evaluator(text)
     assert verdicts == {"AC-1.1": True, "AC-1.2": False, "AC-1.3": True, "AC-1.4": True}
     assert conflicting == []
