@@ -1,6 +1,7 @@
 # Story 1: ADR-027 and Opt-in Resolution
 
 > **Status:** Completed ✅
+> **Commit:** a73a1fb30d4406156ba5faa6901bc57b68fd4327
 > **Priority:** High
 > **Dependencies:** None
 
