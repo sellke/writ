@@ -94,6 +94,9 @@ TEST_BASENAME_GLOBS = ("test_*", "*_test.*", "*.test.*", "*.spec.*")
 # temp-repo fixtures. Those strings are not citations of a live spec.
 # `.writ/docs/acceptance-criteria-ids.md` → Scan Bounds.
 CITATION_SCAN_SKIP = frozenset({"scripts/tests/test_ac_trace.py"})
+# Fixture stories carry their own [AC-N.M] tags as test data; nothing under
+# this tree is a citation of a live spec.
+CITATION_SCAN_SKIP_PREFIXES = ("scripts/tests/fixtures/",)
 
 
 class UsageError(Exception):
@@ -482,7 +485,8 @@ def scan_repo_citations(repo: Path) -> dict[str, Any]:
         scanned_files += 1
 
         rel = path.relative_to(repo)
-        if str(rel).replace("\\", "/") in CITATION_SCAN_SKIP:
+        rel_posix = str(rel).replace("\\", "/")
+        if rel_posix in CITATION_SCAN_SKIP or rel_posix.startswith(CITATION_SCAN_SKIP_PREFIXES):
             continue
         bucket = test_citations if _is_test_shaped(rel) else source_citations
         for line_no, line in enumerate(text.splitlines(), start=1):

@@ -30,3 +30,11 @@
 - `scripts/ac-trace.py` - `CITATION_SCAN_SKIP`, the citation walk
 - `.writ/docs/acceptance-criteria-ids.md` - Scan Bounds section to update
 - `scripts/tests/test_ac_trace.py` - add the fixture-prefix case
+
+## Resolution
+
+Fixed 2026-09-26 on `fix/ac-trace-fixture-scan`:
+- `CITATION_SCAN_SKIP_PREFIXES` skips `scripts/tests/fixtures/`.
+- The parser test string in `test_jev_judge.py` now builds its token at runtime.
+- Scan Bounds in `.writ/docs/acceptance-criteria-ids.md` is updated.
+- Regression test: `test_fixture_tree_tokens_are_not_citations`.

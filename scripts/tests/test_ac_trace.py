@@ -923,6 +923,32 @@ class CitationScanTests(unittest.TestCase):
             self.assertEqual(exit_code, 0, result)
             self.assertEqual(findings_for(result, "dangling_reference"), [])
 
+    def test_fixture_tree_tokens_are_not_citations(self) -> None:
+        """Stories under scripts/tests/fixtures/ carry their own [AC-N.M] tags.
+        They are test data, not citations of a live spec, so AC-3.9 there
+        must not dangle against a live story 3."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = make_spec(repo)
+            write_story(
+                spec, 3,
+                marker_lines=["> **AC IDs assigned through:** AC-3.1"],
+                ac_lines=("- [ ] A real criterion. `[AC-3.1]`",),
+                task_lines=("- [ ] 3.1 Implement it. `[AC-3.1]`",),
+            )
+            fixture = repo / "scripts" / "tests" / "fixtures" / "spec-x" / "user-stories"
+            fixture.mkdir(parents=True)
+            (fixture / "story-3-x.md").write_text(
+                "- [ ] Given a fixture, then it is data `[AC-3.9]`\n", encoding="utf-8",
+            )
+            (repo / "tests").mkdir()
+            (repo / "tests" / "test_app.py").write_text(
+                '"""AC-3.1 -- real coverage."""\n', encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(findings_for(result, "dangling_reference"), [])
+
     def test_task_citing_missing_id_still_dangles(self) -> None:
         """Story-scoped test-token filter must not wash a task citation."""
         with TemporaryDirectory() as tmp:
