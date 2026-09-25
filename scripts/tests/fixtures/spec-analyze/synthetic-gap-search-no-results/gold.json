@@ -1,0 +1,12 @@
+{
+  "label": "gap",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "gap",
+      "story": "story-2-product-search.md",
+      "summary": "No criterion covers a keyword that matches no products (the empty result case)."
+    }
+  ]
+}

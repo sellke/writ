@@ -1,0 +1,15 @@
+{
+  "label": "ambiguity",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "ambiguity",
+      "story": "story-3-guest-cart-login.md",
+      "summary": "\"The right cart\" allows opposite behaviors when both carts hold items: keep the guest cart, keep the account cart, or merge them.",
+      "ac_ids": [
+        "AC-3.2"
+      ]
+    }
+  ]
+}

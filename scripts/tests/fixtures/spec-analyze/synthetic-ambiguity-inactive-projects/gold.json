@@ -1,0 +1,15 @@
+{
+  "label": "ambiguity",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "ambiguity",
+      "story": "story-5-project-archiving.md",
+      "summary": "\"Inactive\" is undefined: no edits for 30 days, no logins, or no open tasks all qualify.",
+      "ac_ids": [
+        "AC-5.1"
+      ]
+    }
+  ]
+}

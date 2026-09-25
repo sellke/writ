@@ -1483,14 +1483,27 @@ SHIPPED_THRESHOLDS = {
 }
 
 
-def test_shipped_thresholds_match_technical_spec():
-    assert json.loads(THRESHOLDS.read_text(encoding="utf-8")) == SHIPPED_THRESHOLDS
+def test_defaults_match_technical_spec_starting_values(jev):
+    assert jev._default_thresholds() == SHIPPED_THRESHOLDS
 
 
-def test_loader_reads_shipped_file_with_no_reasons(jev):
-    values, reasons = jev.load_thresholds(backend="typesafe", model="jev-1.13.0")
-    assert values == SHIPPED_THRESHOLDS
+def test_shipped_thresholds_are_the_story_4_calibration():
+    """Story 4 replaced the §4 starting values; test_jev_calibrate.py pins that
+    the bands equal a fresh score of the committed recordings."""
+    shipped = json.loads(THRESHOLDS.read_text(encoding="utf-8"))
+    assert set(SHIPPED_THRESHOLDS) <= set(shipped)
+    assert shipped["calibrated"] is True
+    assert (shipped["backend"], shipped["model"]) == ("vercel-gateway", "typesafe-ai/jev")
+    assert shipped["ac_shadow"] == SHIPPED_THRESHOLDS["ac_shadow"]
+    assert set(shipped["spec_findings"]) == set(SHIPPED_THRESHOLDS["spec_findings"])
+
+
+def test_loader_reads_shipped_file(jev):
+    values, reasons = jev.load_thresholds(backend="vercel-gateway", model="typesafe-ai/jev")
+    assert values["calibrated"] is True
     assert reasons == []
+    _values, reasons = jev.load_thresholds(backend="typesafe", model="jev-1.13.0")
+    assert reasons == ["uncalibrated_thresholds"]  # calibrated against the other backend
 
 
 def test_loader_uncalibrated_file_never_reports_mismatch(jev, tmp_path):

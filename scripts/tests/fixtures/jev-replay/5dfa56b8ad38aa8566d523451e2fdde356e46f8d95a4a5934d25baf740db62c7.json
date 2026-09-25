@@ -17,7 +17,7 @@
       "type": "noul"
     },
     "s1_gap": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s2_c1_ambiguity": {
@@ -37,19 +37,19 @@
       "type": "noul"
     },
     "s2_gap": {
-      "noul": 0.12,
+      "noul": 0.09,
       "type": "noul"
     },
     "s3_c1_ambiguity": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s3_c2_ambiguity": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s3_c3_ambiguity": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s3_contradiction": {
@@ -61,15 +61,15 @@
       "type": "noul"
     },
     "s4_c1_ambiguity": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s4_c2_ambiguity": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s4_c3_ambiguity": {
-      "noul": 0.1,
+      "noul": 0.09,
       "type": "noul"
     },
     "s4_contradiction": {

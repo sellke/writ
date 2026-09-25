@@ -1,0 +1,15 @@
+{
+  "label": "ambiguity",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "ambiguity",
+      "story": "story-2-percentage-discounts.md",
+      "summary": "\"Rounded\" does not say up or down, or to what precision ($8.49 vs $8.50).",
+      "ac_ids": [
+        "AC-2.1"
+      ]
+    }
+  ]
+}

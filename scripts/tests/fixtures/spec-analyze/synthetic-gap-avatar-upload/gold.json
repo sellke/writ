@@ -1,0 +1,12 @@
+{
+  "label": "gap",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "gap",
+      "story": "story-3-avatar-upload.md",
+      "summary": "No criterion covers uploading a file that is not a PNG or JPEG (for example a PDF)."
+    }
+  ]
+}

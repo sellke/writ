@@ -251,10 +251,21 @@ def test_state_is_keyed_by_filename_with_user_story_and_criteria(jev, tmp_path):
     assert set(entry) == {"user_story", "criteria"}
     assert entry["user_story"].startswith("**As a** payer")
     assert entry["user_story"].endswith("**So that** I can settle up")
-    # AC tag tails are code-side metadata and are not sent.
-    assert entry["criteria"][0] == "Given a share, when it is saved, then the row is stored"
-    assert entry["criteria"][1] == "Given two shares, when summed, then the total is shown"
-    assert all("AC-" not in c for c in entry["criteria"])
+    # Criteria are keyed by AC ID (Story 4, DEV-019): a question names its
+    # criterion directly instead of by list position. An untagged criterion is
+    # keyed `C<n>`. The tag tails themselves are not sent.
+    assert entry["criteria"] == {
+        "AC-7.1": "Given a share, when it is saved, then the row is stored",
+        "AC-7.2": "Given two shares, when summed, then the total is shown",
+        "C3": "given a lowercase start, when parsed, then it still counts",
+    }
+    assert all("[AC-" not in c for c in entry["criteria"].values())
+
+
+def test_criterion_keys_use_first_unused_ac_id_else_position(jev):
+    story = jev.Story("s.md", "", ["a", "b", "c", "d"],
+                      [["AC-1.1"], ["AC-1.1", "AC-1.2"], ["AC-1.1"], []])
+    assert jev.criterion_keys(story) == ["AC-1.1", "AC-1.2", "C3", "C4"]
 
 
 def test_criteria_parsing_matches_spec_analyze(jev, analyzer, tmp_path):
@@ -314,17 +325,18 @@ def test_every_question_is_a_noul_with_both_criteria(jev, tmp_path):
         assert q["instructions"].rstrip().endswith("?")
 
 
-PATH_REF = re.compile(r'`(stories\["[^"`]+"\](?:\.(?:user_story|criteria)(?:\[\d+\])?)?)`')
+PATH_REF = re.compile(r'`(stories\["[^"`]+"\](?:\.(?:user_story|criteria)(?:\["[^"`]+"\])?)?)`')
 
 
 def _resolve(state: Dict[str, Any], ref: str) -> Any:
-    match = re.fullmatch(r'stories\["([^"]+)"\](?:\.(user_story|criteria)(?:\[(\d+)\])?)?', ref)
+    match = re.fullmatch(r'stories\["([^"]+)"\](?:\.(user_story|criteria)(?:\["([^"]+)"\])?)?',
+                         ref)
     assert match, ref
     node = state["stories"][match.group(1)]
     if match.group(2):
         node = node[match.group(2)]
     if match.group(3) is not None:
-        node = node[int(match.group(3))]
+        node = node[match.group(3)]
     return node
 
 
@@ -340,8 +352,9 @@ def test_instructions_reference_state_by_backticked_path(jev, tmp_path):
             _resolve(state, ref)  # every referenced path exists in state
             assert ('stories["%s"]' % entry.story) in ref
         if entry.code == "ambiguity":
-            want = 'stories["%s"].criteria[%d]' % (entry.story, entry.criterion)
+            want = 'stories["%s"].criteria["%s"]' % (entry.story, entry.key)
             assert ("`%s`" % want) in q["instructions"]
+            assert not re.search(r"criteria\[\d+\]", q["instructions"])  # never positional
         # Question IDs are code-side only: never shown to Jev as state paths.
         assert qid not in q["instructions"]
         # Criteria restate the boundary with the same path, so they read literally.
@@ -529,17 +542,22 @@ def test_replay_happy_matches_gold_label(jev, tmp_path, capsys, no_network):
 
 
 def test_replay_gateway_records_alias_and_unpinned(jev, analyzer, tmp_path, capsys, no_network):
+    """This request is also the calibration fixture's, so it replays the LIVE
+    Story 4 recording (p: contradiction 0.56, gap 0.86, ambiguity max 0.18).
+    At the calibrated bands it gives the gold contradiction finding plus a gap
+    finding, and escalates on the 0.18 ambiguity answer."""
     spec = _spec(tmp_path, CONTRADICTION)
     out = tmp_path / "f.json"
     code, stdout, _err = _run_inproc(
         jev, capsys, _findings_argv(spec, out, tmp_path, backend="vercel-gateway"), _replay_env())
     assert code == 0 and _verdict(stdout) == "pass", stdout
-    assert "model_unpinned" in _reasons(stdout)
+    assert _reasons(stdout) == ["model_unpinned"]  # calibrated against this backend
     assert "model=typesafe-ai/jev" in _summary(stdout)
     assert "cost=" in _summary(stdout)
     findings, escalate = _read(out)
-    assert escalate == []
-    assert [f["source"] for f in findings] == ["typesafe-ai/jev"]
+    assert sorted(f["code"] for f in findings) == ["contradiction", "gap"]
+    assert {f["source"] for f in findings} == {"typesafe-ai/jev"}
+    assert escalate == [CONTRADICTION + ".md"]
     rc, check_out = _check_findings(analyzer, capsys, spec, out)
     assert rc == 0, check_out
 
@@ -916,11 +934,16 @@ def test_spec_findings_fixtures_are_keyed_by_build_body(jev, tmp_path, backend, 
     assert body["model"] == jev.BACKENDS[backend].model
 
 
-def test_replay_readme_labels_every_recording_synthetic():
+def test_replay_readme_lists_every_recording_and_its_origin():
     readme = (REPLAY_DIR / "README.md").read_text(encoding="utf-8")
     assert "synthetic" in readme.lower()
     for path in REPLAY_DIR.glob("*.json"):
         assert path.stem in readme, path.name
+        body = json.loads(path.read_text(encoding="utf-8"))
+        line = next(ln for ln in readme.splitlines() if path.stem in ln)
+        live = isinstance(body.get("writ_recording"), dict)
+        # Only `calibrate --live` output (marked in the body) may be called live.
+        assert ("**Live**" in line) == live, line
 
 
 def test_unreadable_story_exits_2_before_any_request(jev, tmp_path, capsys, no_network):

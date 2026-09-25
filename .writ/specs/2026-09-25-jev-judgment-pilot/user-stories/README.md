@@ -7,11 +7,11 @@
 | 1 | [ADR-027 and Opt-in Resolution](story-1-adr-and-opt-in.md) | Completed ✅ | High | None | 5 | 6 | 6/6 |
 | 2 | [Client Transport and eval Check](story-2-client-transport.md) | Completed ✅ | High | Story 1 | 5 | 7 | 7/7 |
 | 3 | [Spec-Findings Producer and Step 2.6c Cascade](story-3-spec-findings-cascade.md) | Completed ✅ | High | Story 2 | 5 | 7 | 7/7 |
-| 4 | [Calibration Fixtures and Thresholds](story-4-calibration.md) | Not Started | Medium | Story 3 | 4 | 7 | 0/7 |
+| 4 | [Calibration Fixtures and Thresholds](story-4-calibration.md) | Completed ✅ | Medium | Story 3 | 4 | 7 | 7/7 |
 | 5 | [Gate 3 Shadow Judgment and Agreement Report](story-5-gate3-shadow.md) | Completed ✅ | Medium | Story 2 | 5 | 7 | 7/7 |
 | 6 | [Provider Setup Prompt](story-6-setup-prompt.md) | Not Started | High | Story 3 | 5 | 6 | 0/6 |
 
-**Total:** 6 stories · 29 criteria · 40 tasks · 68% complete
+**Total:** 6 stories · 29 criteria · 40 tasks · 85% complete
 
 ## Dependencies
 

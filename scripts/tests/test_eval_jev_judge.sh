@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Stories 2-3 of 2026-09-25-jev-judgment-pilot: check_jev_judge registration,
+# Stories 2-4 of 2026-09-25-jev-judgment-pilot: check_jev_judge registration,
 # note-vs-finding split, and the no-network / no-key wiring. Story 3 adds the
-# replay-mode spec-findings run on one fixture spec. [AC-2.4, AC-3.5]
+# replay-mode spec-findings run on one fixture spec; Story 4 adds the offline
+# calibrate run over the committed recordings. [AC-2.4, AC-3.5, AC-4.2]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -44,8 +45,11 @@ for var in ("TYPESAFE_API_KEY", "AI_GATEWAY_API_KEY", "VERCEL_OIDC_TOKEN"):
     if os.environ.get(var):
         print("stub: key var %s reached helper" % var)
         raise SystemExit(2)
-if action in ("probe", "spec-findings") and not os.environ.get("WRIT_JEV_REPLAY"):
+if action in ("probe", "spec-findings", "calibrate") and not os.environ.get("WRIT_JEV_REPLAY"):
     print("stub: %s without WRIT_JEV_REPLAY" % action)
+    raise SystemExit(2)
+if "--live" in sys.argv:
+    print("stub: calibrate --live would record over the network")
     raise SystemExit(2)
 if action == "spec-findings":
     out = os.path.realpath(sys.argv[sys.argv.index("--out") + 1])
@@ -88,6 +92,19 @@ print("jev-judge: unverifiable (no_config_line) backend=none")
 PY
 )"
       ;;
+    calibrate-usage)
+      write_stub "$root/scripts/jev-judge.py" "$(cat <<PY
+#!/usr/bin/env python3
+$STUB_GUARD
+if action == "calibrate":
+    print("error: bad calibrate args")
+    raise SystemExit(2)
+print("unverifiable")
+print("reason: no_config_line")
+print("jev-judge: unverifiable (no_config_line) backend=none")
+PY
+)"
+      ;;
     probe-usage)
       write_stub "$root/scripts/jev-judge.py" "$(cat <<PY
 #!/usr/bin/env python3
@@ -118,6 +135,7 @@ PY
       cp "$REPO/scripts/tests/fixtures/jev-replay/"*.json "$root/scripts/tests/fixtures/jev-replay/"
       cp "$REPO/scripts/tests/fixtures/jev-replay/inputs/"*.json \
         "$root/scripts/tests/fixtures/jev-replay/inputs/"
+      cp -R "$REPO/scripts/tests/fixtures/spec-analyze/." "$root/scripts/tests/fixtures/spec-analyze/"
       ;;
     *)
       write_stub "$root/scripts/jev-judge.py" "$(cat <<PY
@@ -155,9 +173,18 @@ grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) probe' "$RO
   || { cat "$ROOT/eval-report.md"; fail "pass: probe verdict must be a note"; }
 grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) spec-findings' "$ROOT/eval-report.md" \
   || { cat "$ROOT/eval-report.md"; fail "pass: spec-findings verdict must be a note"; }
+grep -Fq 'NOTE [jev-judge]: jev-judge: unverifiable (no_config_line) calibrate' "$ROOT/eval-report.md" \
+  || { cat "$ROOT/eval-report.md"; fail "pass: calibrate verdict must be a note"; }
 grep -Fq -- '- Findings: 0' "$ROOT/eval-report.md" || fail "pass: must report Findings 0"
 assert_no_key "$ROOT" pass
-ok "unverifiable stub -> exit 0, add_note; keys stripped; probe and spec-findings under replay"
+ok "unverifiable stub -> exit 0, add_note; keys stripped; probe, spec-findings, calibrate under replay"
+
+ROOT="$(new_root calibrate-usage)"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || fail "calibrate-usage: expected exit 1, got $rc"
+grep -Fq 'calibrate refused' "$ROOT/eval-report.md" \
+  || fail "calibrate-usage: calibrate exit 2 must add_finding"
+ok "calibrate exit 2 -> exit 1, add_finding"
 
 ROOT="$(new_root fail)"
 rc="$(run_check "$ROOT")"
@@ -215,6 +242,12 @@ grep -Fq 'NOTE [jev-judge]: jev-judge: pass (judged) backend=typesafe model=jev-
 grep -Fq 'NOTE [jev-judge]: jev-judge: pass (judged) 1 judged, 0 escalated backend=typesafe model=jev-1.13.0' \
   "$ROOT/eval-report.md" \
   || { cat "$ROOT/eval-report.md"; fail "real: replayed spec-findings must be a note"; }
+grep -Fq 'NOTE [jev-judge]: jev-judge: pass (scored) fixtures=24 fit=dev backend=vercel-gateway' \
+  "$ROOT/eval-report.md" \
+  || { cat "$ROOT/eval-report.md"; fail "real: offline calibrate must be a note"; }
+if grep -Fq 'NOTE [jev-judge]: calibrate:' "$ROOT/eval-report.md"; then
+  fail "real: the calibrate stderr table must not become notes"
+fi
 grep -Fq -- '- Findings: 0' "$ROOT/eval-report.md" || fail "real: must report Findings 0"
 if find "$ROOT" -name '*.escalate.json' | grep -q .; then
   fail "real: spec-findings must write only to a temp dir"

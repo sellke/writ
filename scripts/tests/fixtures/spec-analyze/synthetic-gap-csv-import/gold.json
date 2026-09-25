@@ -1,0 +1,12 @@
+{
+  "label": "gap",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "gap",
+      "story": "story-3-contact-csv-import.md",
+      "summary": "No criterion covers a row with a missing or malformed email, or a file without the required columns."
+    }
+  ]
+}

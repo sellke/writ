@@ -30,6 +30,17 @@ Subcommands:
   shadow-report [--log P] [--repo .]
                       Agreement, false passes, and the ADR-027 promotion rule
                       over the shadow log. Reads the log only; no network.
+  calibrate --fixtures DIR [--live] [--write-thresholds] [--backend B]
+            [--recordings DIR] [--repo .]
+                      Story 4. Score recorded spec-findings responses (one per
+                      labeled fixture, keyed by replay hash) against gold.json:
+                      TP/FP/FN per class on the dev and test splits, and the
+                      emit/escalate pair per class (SELECTION_RULE; table on
+                      stderr). No live recordings and no --live: `unverifiable
+                      no_live_run`, nothing written. --live records missing
+                      fixtures first (double opt-in; never with replay set).
+                      --write-thresholds writes jev-thresholds.json only after
+                      a scored run.
 
 The provider is enabled only when `.writ/config.md` has a line
 `- **Judgment Provider:** <backend>` naming `typesafe` or `vercel-gateway`
@@ -638,6 +649,7 @@ class Asked(NamedTuple):
     code: str
     story: str
     criterion: Optional[int]  # 0-based index into criteria; None for story questions
+    key: Optional[str] = None  # the criterion's state key (AC ID or `C<n>`)
 
 
 def _user_story_block(text: str) -> str:
@@ -696,9 +708,19 @@ def _story_questions(ref: str) -> Dict[str, Dict[str, Any]]:
     jev-1.13 reads literally and is weak at counting and indirection, so each
     question names the exact state path it reads and puts the boundary cases
     in the criteria rather than leaving them to inference.
+
+    Wording is calibrated (Story 4, DEV-019) against the dev split only; no
+    example word may come from a test-split fixture. `contradiction` keeps the
+    Story 3 text, which separated on live Jev. `gap` no longer lists six
+    failure kinds and no longer reads `user_story` (that version scored clean
+    stories above gap stories). It asks one literal condition: an input the
+    user supplies that has a valid-case criterion and no absent/invalid-case
+    criterion. Its examples (keyword, file, link, token, form field) come from
+    dev fixtures, and it excludes verification steps (tests pass, a build
+    succeeds), which are not inputs. Any change here changes every replay hash
+    and needs `calibrate --live` again (fixtures/jev-replay/README.md).
     """
     crit = "`%s.criteria`" % ref
-    story = "`%s.user_story`" % ref
     return {
         "contradiction": _noul(
             "Do two criteria in %s require outcomes that cannot both hold?" % crit,
@@ -709,47 +731,70 @@ def _story_questions(ref: str) -> Dict[str, Dict[str, Any]]:
             "Criteria about different inputs or different steps do not conflict, and a "
             "list with zero or one criterion has no conflict." % crit),
         "gap": _noul(
-            "Do %s or %s imply a nil, empty, or error case that no criterion in %s covers?"
-            % (story, crit, crit),
-            "%s or a criterion in %s names an input or state that can be missing, empty, "
-            "invalid, expired, revoked, or failing, and no criterion in %s states the "
-            "outcome for that case." % (story, crit, crit),
-            "Every missing, empty, invalid, or failing case that %s or %s implies has a "
-            "criterion in %s stating its outcome, or the story implies no such case."
-            % (story, crit, crit)),
+            "Does %s give an outcome for some input the user supplies when it is valid but "
+            "give no outcome for when it is absent, empty, unknown, or invalid?" % crit,
+            "Some input the user supplies in %s (for example a keyword, a file, a link, a "
+            "token, or a form field) has a criterion for its valid case and no criterion "
+            "in %s for its absent, empty, unknown, or invalid case." % (crit, crit),
+            "Every input the user supplies in %s that has a valid-case criterion also has "
+            "a criterion for its absent, empty, unknown, or invalid case, or %s names no "
+            "input the user supplies. Test runs, builds, and verdicts are not inputs the "
+            "user supplies." % (crit, crit)),
     }
 
 
-def _criterion_question(ref: str, index: int) -> Dict[str, Any]:
-    then = "the Then clause of `%s.criteria[%d]`" % (ref, index)
+def _criterion_question(ref: str, key: str) -> Dict[str, Any]:
+    """One Noul per criterion, addressed by its AC ID key (never by list
+    position: jev-1.13 is weak at indirection). Calibrated wording (Story 4,
+    dev split only): one question covering two ambiguity shapes, an undefined
+    judgment word, and a Then that states a side effect instead of the
+    decision its Given case needs. Its examples are generic or from dev
+    fixtures (the fee case)."""
+    c = "`%s.criteria[%s]`" % (ref, json.dumps(key))
     return _noul(
-        "Could two competent implementers satisfy %s with opposite behavior?" % then,
-        "The Then clause of `%s.criteria[%d]` does not decide the behavior its Given and "
-        "When set up: two opposite behaviors (for example, charging a fee and waiving it) "
-        "would both satisfy it." % (ref, index),
-        "The Then clause of `%s.criteria[%d]` names one observable outcome (a value, a "
-        "file, a message, or a count) that only one of two opposite behaviors produces."
-        % (ref, index))
+        "Does the Then clause of %s fail to decide the outcome it is about, so two "
+        "opposite behaviors would both satisfy it?" % c,
+        "Either the Then of %s rests on an undefined judgment word (such as "
+        "'properly', 'suitable', or 'best'), or its Given sets up a case that needs a "
+        "decision (for example whether a fee is assessed) and the Then states only a side "
+        "effect. Two developers could build opposite behaviors and both satisfy it." % c,
+        "The Then of %s states the decision itself as a concrete value, message, "
+        "status, file, count, or state that a test checks with one expected result." % c)
+
+
+def criterion_keys(story: Story) -> List[str]:
+    """State key per criterion: its first AC ID not already used, else `C<n>`
+    (1-based position) for an untagged criterion."""
+    keys: List[str] = []
+    for n, ids in enumerate(story.ac_ids, start=1):
+        key = next((ac for ac in ids if ac not in keys), None)
+        keys.append(key or "C%d" % n)
+    return keys
 
 
 def spec_request(stories: Sequence[Story]) -> Tuple[Dict[str, Any], Dict[str, Any],
                                                     Dict[str, Asked]]:
-    """State, questions, and the code-side meaning of each question ID."""
+    """State, questions, and the code-side meaning of each question ID.
+
+    Each story's `criteria` is an object keyed by AC ID (`criterion_keys`), so
+    a question names its criterion directly."""
     state: Dict[str, Any] = {"stories": {}}
     questions: Dict[str, Any] = {}
     index: Dict[str, Asked] = {}
     for n, story in enumerate(stories, start=1):
-        state["stories"][story.filename] = {"user_story": story.user_story,
-                                            "criteria": list(story.criteria)}
+        keys = criterion_keys(story)
+        state["stories"][story.filename] = {
+            "user_story": story.user_story,
+            "criteria": {key: text for key, text in zip(keys, story.criteria)}}
         ref = "stories[%s]" % json.dumps(story.filename)
         for code, question in _story_questions(ref).items():
             qid = "s%d_%s" % (n, code)
             questions[qid] = question
             index[qid] = Asked(code, story.filename, None)
-        for i in range(len(story.criteria)):
+        for i, key in enumerate(keys):
             qid = "s%d_c%d_ambiguity" % (n, i + 1)
-            questions[qid] = _criterion_question(ref, i)
-            index[qid] = Asked("ambiguity", story.filename, i)
+            questions[qid] = _criterion_question(ref, key)
+            index[qid] = Asked("ambiguity", story.filename, i, key)
     return state, questions, index
 
 
@@ -773,9 +818,17 @@ def _finding_summary(asked: Asked) -> str:
             "satisfy with opposite behavior." % ((asked.criterion or 0) + 1, asked.story))
 
 
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def _unit_interval(value: Any) -> bool:
-    return (isinstance(value, (int, float)) and not isinstance(value, bool)
-            and 0.0 <= value <= 1.0)  # NaN compares False
+    return _is_number(value) and 0.0 <= value <= 1.0  # NaN compares False
+
+
+# An emit threshold no Noul reaches: the class never becomes a finding and every
+# story escalates for it (Story 4: a class that did not separate on live Jev).
+NEVER_EMIT = 1.01
 
 
 def apply_thresholds(answers: Mapping[str, Any], index: Mapping[str, Asked],
@@ -817,9 +870,10 @@ def _spec_thresholds(backend: Optional[Backend]) -> Tuple[Dict[str, Any], List[s
         if not isinstance(entry, dict):
             raise UsageError("thresholds: spec_findings.%s is missing" % code)
         emit, esc = entry.get("emit"), entry.get("escalate")
-        if not (_unit_interval(emit) and _unit_interval(esc) and esc <= emit):
-            raise UsageError("thresholds: spec_findings.%s needs 0 <= escalate <= emit <= 1"
-                             % code)
+        emit_ok = _unit_interval(emit) or (_is_number(emit) and emit == NEVER_EMIT)
+        if not (emit_ok and _unit_interval(esc) and esc <= emit):
+            raise UsageError("thresholds: spec_findings.%s needs 0 <= escalate <= emit <= 1 "
+                             "(or emit = %.2f, never emit)" % (code, NEVER_EMIT))
     if data.get("calibrated") is not True and "uncalibrated_thresholds" not in reasons:
         reasons.append("uncalibrated_thresholds")
     return data, reasons
@@ -1258,6 +1312,412 @@ def shadow_report(args: argparse.Namespace) -> int:
     return _emit(verdict, [reason], summary)
 
 
+# --------------------------------------------------------------------------
+# calibrate subcommand (technical-spec §1, §4) — Story 4
+# --------------------------------------------------------------------------
+
+LABELS = ("contradiction", "gap", "ambiguity", "clean")
+SPLITS_FILE = "splits.json"
+DEFAULT_RECORDINGS = Path(__file__).resolve().parent / "tests" / "fixtures" / "jev-replay"
+RECORDING_KEY = "writ_recording"  # metadata `calibrate --live` adds to a recorded body
+CLEAN_MARGIN = 0.05
+DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+SELECTION_RULE = (
+    "per class, on the fit split: emit = the lowest gold-positive score at least 0.05 "
+    "above the highest clean score (zero clean false positives, then maximum recall); "
+    "escalate = min(highest clean score + 0.01, lowest gold-positive score); when no "
+    "gold-positive clears the margin, emit = 1.01 (never) and escalate = 0.0 (always)")
+
+
+class Fixture(NamedTuple):
+    slug: str
+    path: Path
+    label: str
+    split: str  # "dev", "test", or "all" when there is no splits file
+    stories: List[Story]
+
+
+class Scored(NamedTuple):
+    slug: str
+    label: str
+    split: str
+    scores: Dict[str, float]  # per code: the highest Noul p among that code's questions
+
+
+def _read_splits(root: Path, slugs: Sequence[str]) -> Dict[str, str]:
+    """`<fixtures>/splits.json`: {"dev": [slug...], "test": [slug...]}; every
+    fixture exactly once. No file: every fixture is in split "all"."""
+    path = root / SPLITS_FILE
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise UsageError("splits.json unreadable: %s (%s)" % (path, type(exc).__name__))
+    if not isinstance(data, dict) or set(data) != {"dev", "test"} or not all(
+            isinstance(v, list) and all(isinstance(x, str) for x in v) for v in data.values()):
+        raise UsageError("splits.json must map exactly \"dev\" and \"test\" to fixture names")
+    out: Dict[str, str] = {}
+    for split in ("dev", "test"):
+        for slug in data[split]:
+            if slug not in slugs:
+                raise UsageError("splits.json names an unknown fixture: %s" % slug)
+            if slug in out:
+                raise UsageError("splits.json assigns %s twice" % slug)
+            out[slug] = split
+    missing = [s for s in slugs if s not in out]
+    if missing:
+        raise UsageError("splits.json does not assign: %s" % ", ".join(missing))
+    return out
+
+
+def load_fixtures(root: Path) -> List[Fixture]:
+    """Every `<root>/*/gold.json` fixture: its label, split, and stories."""
+    if not root.is_dir():
+        raise UsageError("--fixtures is not a directory: %s" % root)
+    golds = sorted(root.glob("*/gold.json"))
+    if not golds:
+        raise UsageError("--fixtures has no */gold.json: %s" % root)
+    splits = _read_splits(root, [g.parent.name for g in golds])
+    out: List[Fixture] = []
+    for gold_path in golds:
+        slug = gold_path.parent.name
+        try:
+            gold = json.loads(gold_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            raise UsageError("gold.json unreadable: %s (%s)" % (gold_path, type(exc).__name__))
+        label = gold.get("label") if isinstance(gold, dict) else None
+        if label not in LABELS:
+            raise UsageError("%s: gold label must be one of %s" % (slug, ", ".join(LABELS)))
+        stories = load_stories(gold_path.parent)
+        if not stories:
+            raise UsageError("%s has no user-stories/story-*.md" % slug)
+        out.append(Fixture(slug, gold_path.parent, label, splits.get(slug, "all"), stories))
+    return out
+
+
+def _fixture_request(fixture: Fixture, backend: Backend) -> Tuple[Dict[str, Any],
+                                                                   Dict[str, Any],
+                                                                   Dict[str, Asked], str]:
+    """The exact spec-findings request for one fixture spec, and its replay hash."""
+    state, questions, index = spec_request(fixture.stories)
+    digest = request_hash(canonical_body(build_body(state, questions, backend)))
+    return state, questions, index, digest
+
+
+def _read_recording(directory: Path, digest: str) -> Tuple[str, Optional[Dict[str, Any]]]:
+    """("missing" | "synthetic" | "live" | "malformed", body). Only a body that
+    `calibrate --live` marked live is scored; hand-written replay fixtures are not."""
+    path = directory / ("%s.json" % digest)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return "missing", None
+    except (OSError, UnicodeDecodeError):
+        return "malformed", None
+    try:
+        body = json.loads(raw)
+    except ValueError:
+        return "malformed", None
+    if not isinstance(body, dict):
+        return "malformed", None
+    meta = body.get(RECORDING_KEY)
+    if not (isinstance(meta, dict) and meta.get("source") == "live"):
+        return "synthetic", body
+    return "live", body
+
+
+def _class_scores(answers: Any, index: Mapping[str, Asked]) -> Optional[Dict[str, float]]:
+    """Highest p per code, or None when any asked question lacks a valid Noul.
+    A story with no criteria has no ambiguity question and scores 0.0 there."""
+    scores = {code: 0.0 for code in SPEC_CODES}
+    for qid, asked in index.items():
+        answer = answers.get(qid) if isinstance(answers, dict) else None
+        p = answer.get("noul") if isinstance(answer, dict) else None
+        if not _unit_interval(p):
+            return None
+        scores[asked.code] = max(scores[asked.code], float(p))
+    return scores
+
+
+def _floor2(value: float) -> float:
+    return float(int(round(value * 100, 6))) / 100  # 0.29 stays 0.29
+
+
+def choose_band(records: Sequence[Scored], code: str) -> Dict[str, float]:
+    """Emit/escalate for one class from the fit records (see SELECTION_RULE).
+
+    Zero false positives on clean fixtures comes first: emit sits above every
+    clean score by CLEAN_MARGIN, because three or four clean fixtures cannot
+    pin the clean ceiling tighter than that. Maximum recall comes second: emit
+    is the lowest gold-positive score that clears the margin. Escalate starts
+    just above the highest clean score, so the band between the clean ceiling
+    and emit (where the fit data cannot tell classes apart) goes back to the
+    orchestrator; it drops lower when a gold positive scored under that, so no
+    fit positive is silently cleared."""
+    positives = [r.scores[code] for r in records if r.label == code]
+    cleans = [r.scores[code] for r in records if r.label == "clean"]
+    clean_max = max(cleans) if cleans else 0.0
+    floor = round(clean_max + CLEAN_MARGIN, 4)
+    above = [p for p in positives if round(p, 4) >= floor]
+    if not above:
+        return {"emit": NEVER_EMIT, "escalate": 0.0}
+    emit = round(min(above), 4)
+    escalate = min(round(clean_max + 0.01, 2), _floor2(min(positives)), emit)
+    return {"emit": emit, "escalate": escalate}
+
+
+def score_split(records: Sequence[Scored],
+                bands: Mapping[str, Mapping[str, float]]) -> Dict[str, Any]:
+    """TP/FP/FN per class at the given bands.
+
+    For contradiction, gap, and ambiguity a story is predicted positive when
+    its score reaches emit; `fp_clean` counts those false positives on clean
+    fixtures. For clean, a story is predicted clean when no class reaches its
+    escalate threshold (no finding and not escalated). A non-clean story
+    predicted clean is a silent miss: neither Jev nor the orchestrator sees it."""
+    out: Dict[str, Any] = {cls: {"tp": 0, "fp": 0, "fp_clean": 0, "fn": 0} for cls in LABELS}
+    escalated = silent = 0
+    for rec in records:
+        raised = in_band = False
+        for code in SPEC_CODES:
+            outcome = band(rec.scores[code], bands[code])
+            raised = raised or outcome != "clean"
+            in_band = in_band or outcome == "escalate"
+            if rec.label == code:
+                out[code]["tp" if outcome == "finding" else "fn"] += 1
+            elif outcome == "finding":
+                out[code]["fp"] += 1
+                if rec.label == "clean":
+                    out[code]["fp_clean"] += 1
+        if rec.label == "clean":
+            out["clean"]["fn" if raised else "tp"] += 1
+        elif not raised:
+            out["clean"]["fp"] += 1
+            silent += 1
+        escalated += int(in_band)
+    out.update(stories=len(records), escalated=escalated, silent_miss=silent)
+    return out
+
+
+def _scoring_backend(args: argparse.Namespace, fixtures: Sequence[Fixture],
+                     recordings: Path) -> Optional[Backend]:
+    """`--backend`, else the configured backend, else the one backend that has
+    live recordings for these fixtures (None when neither has any)."""
+    if args.backend:
+        return BACKENDS[args.backend]
+    configured = BACKENDS.get(_config_value(args.repo) or "")
+    if configured is not None:
+        return configured
+    found = []
+    for name in sorted(BACKENDS):
+        if any(_read_recording(recordings, _fixture_request(fx, BACKENDS[name])[3])[0] == "live"
+               for fx in fixtures):
+            found.append(BACKENDS[name])
+    if len(found) > 1:
+        raise UsageError("recordings exist for more than one backend; pass --backend")
+    return found[0] if found else None
+
+
+def _record_live(fixtures: Sequence[Fixture], backend: Backend, recordings: Path,
+                 environ: Mapping[str, str], transport: Optional[Transport],
+                 sleep: Callable[[float], None]) -> Tuple[int, int, List[str]]:
+    """One live spec-findings request per fixture without a live recording.
+    Writes the full response body plus RECORDING_KEY metadata to
+    `<recordings>/<hash>.json`. Returns (requested, reused, failure reasons)."""
+    key_var = _key_var(backend, environ)
+    secret = environ[key_var].strip() if key_var else None
+    send = transport or live_transport
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    requested = reused = 0
+    failures: List[str] = []
+    for fx in fixtures:
+        state, questions, index, digest = _fixture_request(fx, backend)
+        if _read_recording(recordings, digest)[0] == "live":
+            reused += 1
+            continue
+        captured: Dict[str, HttpResponse] = {}
+
+        def capture(url: str, headers: Dict[str, str], payload: bytes) -> HttpResponse:
+            resp = send(url, headers, payload)
+            captured["resp"] = resp
+            return resp
+
+        requested += 1
+        j = judge(state, questions, backend, environ, transport=capture, sleep=sleep)
+        if j.verdict != "pass" or j.answers is None or "resp" not in captured:
+            failures.append(_primary(j.reasons))
+            continue
+        if _class_scores(j.answers, index) is None:
+            failures.append("malformed_response")
+            continue
+        body = json.loads(captured["resp"].body.decode("utf-8"))
+        body[RECORDING_KEY] = {"source": "live", "backend": backend.name,
+                               "recorded_on": today, "fixture": fx.slug}
+        text = json.dumps(body, indent=2, sort_keys=True) + "\n"
+        if secret and secret in text:
+            failures.append("key_in_response")  # never written to disk
+            continue
+        try:
+            recordings.mkdir(parents=True, exist_ok=True)
+            (recordings / ("%s.json" % digest)).write_text(text, encoding="utf-8")
+        except OSError as exc:
+            raise UsageError("--recordings not writable: %s (%s)" % (recordings,
+                                                                      type(exc).__name__))
+    return requested, reused, sorted(set(failures), key=failures.index)
+
+
+def _write_calibrated(bands: Mapping[str, Any], backend: Backend, model: str,
+                      recorded_on: str, meta: Mapping[str, Any]) -> None:
+    """Rewrite THRESHOLDS_PATH with the chosen bands. Other keys (ac_shadow)
+    are kept."""
+    try:
+        data, _reasons = load_thresholds()
+    except ThresholdsError:
+        data = _default_thresholds()
+    data = dict(data)
+    data.update(backend=backend.name, model=model, calibrated=True,
+                calibrated_on=recorded_on, spec_findings=dict(bands), calibration=dict(meta))
+    tmp = THRESHOLDS_PATH.with_name(THRESHOLDS_PATH.name + ".tmp")
+    try:
+        tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        os.replace(str(tmp), str(THRESHOLDS_PATH))
+    except OSError as exc:
+        raise UsageError("thresholds not writable: %s (%s)" % (THRESHOLDS_PATH,
+                                                               type(exc).__name__))
+
+
+def _counts_line(split: str, cls: str, c: Mapping[str, int]) -> str:
+    return "calibrate: split=%s class=%s tp=%d fp=%d fp_clean=%d fn=%d" % (
+        split, cls, c["tp"], c["fp"], c["fp_clean"], c["fn"])
+
+
+def calibrate(args: argparse.Namespace, environ: Mapping[str, str],
+              transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
+    """Score recorded spec-findings responses against gold labels and choose
+    per-class emit/escalate (Story 4). Scoring reads recordings only; `--live`
+    first records every fixture that lacks one (double opt-in required)."""
+    fixtures = load_fixtures(args.fixtures)
+    replay = environ.get(REPLAY_ENV, "")
+    if args.live and replay:
+        raise UsageError("--live records real responses; unset %s first" % REPLAY_ENV)
+    if args.live and args.backend:
+        raise UsageError("--backend selects recordings to score; --live uses the backend "
+                         "named in .writ/config.md")
+    recordings: Path = args.recordings or (Path(replay) if replay else DEFAULT_RECORDINGS)
+    live_tail = ""
+    failures: List[str] = []
+    if args.live:
+        res = resolve(args.repo, environ)
+        if res.verdict != "pass":
+            tail = "backend=%s" % (res.backend.name if res.backend else "none")
+            if "no_api_key" in res.reasons and res.backend is not None:
+                tail += " export=%s" % res.backend.key_vars[0]
+            return _emit("unverifiable", res.reasons,
+                         "jev-judge: unverifiable (%s) %s" % (res.reasons[0], tail))
+        backend: Optional[Backend] = res.backend
+        requested, reused, failures = _record_live(fixtures, backend, recordings, environ,
+                                                   transport, sleep)
+        live_tail = " requested=%d reused=%d" % (requested, reused)
+    else:
+        backend = _scoring_backend(args, fixtures, recordings)
+    if backend is None:
+        return _emit("unverifiable", ["no_live_run"],
+                     "jev-judge: unverifiable (no_live_run) fixtures=%d recorded=0 "
+                     "thresholds_written=0" % len(fixtures))
+    info = [] if backend.pinned else ["model_unpinned"]
+
+    scored: List[Scored] = []
+    models, dates = set(), set()
+    missing = 0
+    for fx in fixtures:
+        _state, _questions, index, digest = _fixture_request(fx, backend)
+        kind, body = _read_recording(recordings, digest)
+        if kind in ("missing", "synthetic"):
+            missing += 1
+            continue
+        scores = _class_scores(body.get("answers"), index) if body is not None else None
+        if kind == "malformed" or scores is None:
+            return _emit("fail", ["malformed_response"] + info,
+                         "jev-judge: fail (malformed_response) fixture=%s backend=%s"
+                         % (_one_line(fx.slug, None), backend.name))
+        on = body[RECORDING_KEY].get("recorded_on")
+        if not (isinstance(on, str) and DATE.fullmatch(on)):
+            return _emit("fail", ["malformed_response"] + info,
+                         "jev-judge: fail (malformed_response) fixture=%s backend=%s"
+                         % (_one_line(fx.slug, None), backend.name))
+        models.add(_safe_token(body.get("model"), None))
+        dates.add(on)
+        scored.append(Scored(fx.slug, fx.label, fx.split, scores))
+
+    base = "fixtures=%d backend=%s" % (len(fixtures), backend.name)
+    if not scored and not args.live:
+        return _emit("unverifiable", ["no_live_run"] + info,
+                     "jev-judge: unverifiable (no_live_run) %s recorded=0 thresholds_written=0"
+                     % base)
+    if missing:
+        return _emit("unverifiable", ["recordings_incomplete"] + failures + info,
+                     "jev-judge: unverifiable (recordings_incomplete) %s recorded=%d missing=%d%s "
+                     "thresholds_written=0" % (base, len(scored), missing, live_tail))
+    if len(models) != 1 or INVALID in models:
+        return _emit("unverifiable", ["mixed_models"] + info,
+                     "jev-judge: unverifiable (mixed_models) %s models=%d thresholds_written=0"
+                     % (base, len(models)))
+    model = next(iter(models))
+    if backend.pinned and model != backend.model:
+        return _emit("unverifiable", ["model_mismatch"] + info,
+                     "jev-judge: unverifiable (model_mismatch) %s model=%s expected=%s"
+                     % (base, model, backend.model))
+
+    split_names = sorted({r.split for r in scored})
+    fit = "dev" if "dev" in split_names else "all"
+    fit_records = [r for r in scored if r.split == fit]
+    if not any(r.label == "clean" for r in fit_records):
+        raise UsageError("the %s split has no clean fixture; zero clean false positives "
+                         "cannot be checked" % fit)
+    bands = {code: choose_band(fit_records, code) for code in SPEC_CODES}
+    unseparated = [code for code in SPEC_CODES if bands[code]["emit"] == NEVER_EMIT]
+
+    per_split: Dict[str, Any] = {}
+    for rec in scored:
+        print("calibrate: fixture=%s split=%s label=%s %s" % (
+            _one_line(rec.slug, None), rec.split, rec.label,
+            " ".join("%s=%.2f" % (c, rec.scores[c]) for c in SPEC_CODES)), file=sys.stderr)
+    for split in split_names:
+        result = score_split([r for r in scored if r.split == split], bands)
+        per_split[split] = result
+        for cls in LABELS:
+            print(_counts_line(split, cls, result[cls]), file=sys.stderr)
+        print("calibrate: split=%s stories=%d escalated=%d silent_miss=%d" % (
+            split, result["stories"], result["escalated"], result["silent_miss"]),
+            file=sys.stderr)
+    for code in SPEC_CODES:
+        print("calibrate: class=%s emit=%.2f escalate=%.2f%s" % (
+            code, bands[code]["emit"], bands[code]["escalate"],
+            " unseparated" if code in unseparated else ""), file=sys.stderr)
+
+    written = 0
+    if args.write_thresholds:
+        meta = {"fixtures": len(scored), "fit_split": fit, "rule": SELECTION_RULE,
+                "unseparated": unseparated,
+                "splits": {name: {k: v for k, v in res.items()}
+                           for name, res in per_split.items()}}
+        _write_calibrated(bands, backend, model, max(dates), meta)
+        written = 1
+    reasons = ["scored"] + (["unseparated"] if unseparated else []) + info
+    summary = "jev-judge: pass (scored) fixtures=%d fit=%s backend=%s model=%s %s" % (
+        len(scored), fit, backend.name, model,
+        " ".join("%s=%.2f/%.2f" % (c, bands[c]["emit"], bands[c]["escalate"])
+                 for c in SPEC_CODES))
+    if unseparated:
+        summary += " unseparated=%s" % ",".join(unseparated)
+    headline = "test" if "test" in per_split else fit
+    summary += " %s_escalated=%d/%d%s thresholds_written=%d" % (
+        headline, per_split[headline]["escalated"], per_split[headline]["stories"], live_tail,
+        written)
+    return _emit("pass", reasons, summary)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -1288,6 +1748,20 @@ def build_parser() -> argparse.ArgumentParser:
                    help="shadow log (default <repo>/.writ/state/jev-shadow.jsonl)")
     p.add_argument("--backend", choices=sorted(BACKENDS),
                    help="replay only: pick the backend whose request shape to replay")
+    p = sub.add_parser("calibrate",
+                       help="score recorded spec-findings responses against gold labels")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--fixtures", type=Path, required=True,
+                   help="labeled fixtures: <dir>/*/gold.json plus optional splits.json")
+    p.add_argument("--live", action="store_true",
+                   help="first record every fixture without a live recording (double opt-in)")
+    p.add_argument("--write-thresholds", action="store_true",
+                   help="after a scored run, write the chosen bands to jev-thresholds.json")
+    p.add_argument("--backend", choices=sorted(BACKENDS),
+                   help="score this backend's recordings (not with --live)")
+    p.add_argument("--recordings", type=Path, default=None,
+                   help="recorded responses (default $WRIT_JEV_REPLAY, else "
+                        "scripts/tests/fixtures/jev-replay)")
     p = sub.add_parser("shadow-report",
                        help="agreement and the promotion rule over the shadow log (no network)")
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
@@ -1318,6 +1792,8 @@ def main(argv: Optional[List[str]] = None,
             return spec_findings(args, env, transport, sleep or time.sleep)
         if args.action == "ac-shadow":
             return ac_shadow(args, env, transport, sleep or time.sleep)
+        if args.action == "calibrate":
+            return calibrate(args, env, transport, sleep or time.sleep)
         if args.action == "shadow-report":
             return shadow_report(args)
     except UsageError as exc:

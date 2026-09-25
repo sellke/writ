@@ -1,0 +1,12 @@
+{
+  "label": "contradiction",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "contradiction",
+      "story": "story-2-workspace-invites.md",
+      "summary": "Invites expire after 7 days, yet a 10-day-old unused invite must still let the invitee join."
+    }
+  ]
+}

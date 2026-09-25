@@ -1,12 +1,89 @@
 {
-  "backend": null,
-  "model": null,
-  "calibrated": false,
-  "calibrated_on": null,
+  "backend": "vercel-gateway",
+  "model": "typesafe-ai/jev",
+  "calibrated": true,
+  "calibrated_on": "2026-09-25",
   "spec_findings": {
-    "contradiction": {"emit": 0.85, "escalate": 0.35},
-    "gap":           {"emit": 0.85, "escalate": 0.35},
-    "ambiguity":     {"emit": 0.85, "escalate": 0.35}
+    "contradiction": {
+      "emit": 0.22,
+      "escalate": 0.1
+    },
+    "gap": {
+      "emit": 0.72,
+      "escalate": 0.29
+    },
+    "ambiguity": {
+      "emit": 0.39,
+      "escalate": 0.1
+    }
   },
-  "ac_shadow": {"satisfied": 0.9}
+  "ac_shadow": {
+    "satisfied": 0.9
+  },
+  "calibration": {
+    "fixtures": 24,
+    "fit_split": "dev",
+    "rule": "per class, on the fit split: emit = the lowest gold-positive score at least 0.05 above the highest clean score (zero clean false positives, then maximum recall); escalate = min(highest clean score + 0.01, lowest gold-positive score); when no gold-positive clears the margin, emit = 1.01 (never) and escalate = 0.0 (always)",
+    "unseparated": [],
+    "splits": {
+      "dev": {
+        "contradiction": {
+          "tp": 3,
+          "fp": 0,
+          "fp_clean": 0,
+          "fn": 0
+        },
+        "gap": {
+          "tp": 3,
+          "fp": 3,
+          "fp_clean": 0,
+          "fn": 0
+        },
+        "ambiguity": {
+          "tp": 3,
+          "fp": 1,
+          "fp_clean": 0,
+          "fn": 0
+        },
+        "clean": {
+          "tp": 3,
+          "fp": 0,
+          "fp_clean": 0,
+          "fn": 0
+        },
+        "stories": 12,
+        "escalated": 6,
+        "silent_miss": 0
+      },
+      "test": {
+        "contradiction": {
+          "tp": 2,
+          "fp": 0,
+          "fp_clean": 0,
+          "fn": 1
+        },
+        "gap": {
+          "tp": 3,
+          "fp": 2,
+          "fp_clean": 0,
+          "fn": 0
+        },
+        "ambiguity": {
+          "tp": 2,
+          "fp": 0,
+          "fp_clean": 0,
+          "fn": 1
+        },
+        "clean": {
+          "tp": 0,
+          "fp": 0,
+          "fp_clean": 0,
+          "fn": 3
+        },
+        "stories": 12,
+        "escalated": 11,
+        "silent_miss": 0
+      }
+    }
+  }
 }

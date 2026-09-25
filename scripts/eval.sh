@@ -4302,11 +4302,12 @@ check_spec_analyze() {
 }
 
 check_jev_judge() {
-  # Stories 2-3 of 2026-09-25-jev-judgment-pilot: the Jev provider is advisory.
+  # Stories 2-4 of 2026-09-25-jev-judgment-pilot: the Jev provider is advisory.
   # Helper missing / exit 2 → add_finding. Any verdict → add_note only.
   # Never touches the network and never sees a key: key vars are stripped,
-  # `status` sends nothing, and `probe` and `spec-findings` run with
-  # WRIT_JEV_REPLAY pointed at the committed fixtures (replay wins over live).
+  # `status` sends nothing, `probe` and `spec-findings` run with
+  # WRIT_JEV_REPLAY pointed at the committed fixtures (replay wins over live),
+  # and `calibrate` scores committed recordings without --live.
   # spec-findings writes only into a temp dir.
   local helper="$PROJECT_ROOT/scripts/jev-judge.py"
   local replay="$PROJECT_ROOT/scripts/tests/fixtures/jev-replay"
@@ -4368,6 +4369,23 @@ check_jev_judge() {
   fi
   while IFS= read -r line; do
     [ -n "$line" ] || continue
+    add_note "NOTE [jev-judge]: $line"
+  done <<< "$output"
+
+  # Story 4: score the committed live recordings offline (never --live, so
+  # never networked). The per-fixture table on stderr is not copied into notes.
+  rc=0
+  output="$("${keyless[@]}" WRIT_JEV_REPLAY="$replay" python3 "$helper" calibrate \
+    --backend vercel-gateway --repo "$PROJECT_ROOT" \
+    --fixtures "${spec%/*}" --recordings "$replay" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/jev-judge.py" "jev-judge.py calibrate refused: ${output##*$'\n'}" \
+      "Fix the jev-judge.py CLI so calibrate --fixtures DIR parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in calibrate:*) continue ;; esac
     add_note "NOTE [jev-judge]: $line"
   done <<< "$output"
 }

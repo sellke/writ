@@ -1,0 +1,82 @@
+{
+  "answers": {
+    "s1_c1_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_c2_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_c3_ambiguity": {
+      "noul": 0.19,
+      "type": "noul"
+    },
+    "s1_c4_ambiguity": {
+      "noul": 0.16,
+      "type": "noul"
+    },
+    "s1_c5_ambiguity": {
+      "noul": 0.06,
+      "type": "noul"
+    },
+    "s1_contradiction": {
+      "noul": 0.11,
+      "type": "noul"
+    },
+    "s1_gap": {
+      "noul": 0.5,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "provider_metadata": {
+    "gateway": {
+      "cost": "0",
+      "gatewayCost": "0",
+      "generationId": "gen_01M3CWTDT5KXVKQXE40CSCZ5H4",
+      "marketCost": "0.000082026",
+      "routing": {
+        "canonicalSlug": "typesafe-ai/jev",
+        "fallbacksAvailable": [],
+        "finalProvider": "typesafe-ai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "typesafe-ai/jev",
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "credentialType": "system",
+                "endTime": 1790360500340,
+                "provider": "typesafe-ai",
+                "startTime": 1790360500075,
+                "statusCode": 200,
+                "success": true
+              }
+            ],
+            "success": true
+          }
+        ],
+        "originalModelId": "typesafe-ai/jev",
+        "planningReasoning": "Provider set restricted to: typesafe-ai. System credentials planned for: typesafe-ai. Total execution order: typesafe-ai(system)",
+        "resolvedProvider": "typesafe-ai",
+        "totalProviderAttemptCount": 1
+      },
+      "surchargeCost": "0"
+    },
+    "typesafe": {
+      "confidence": {}
+    }
+  },
+  "usage": {
+    "input_tokens": 1953,
+    "output_tokens": 158
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "synthetic-clean-dark-mode",
+    "recorded_on": "2026-09-25",
+    "source": "live"
+  }
+}

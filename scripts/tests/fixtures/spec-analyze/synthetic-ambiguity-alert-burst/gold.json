@@ -1,0 +1,15 @@
+{
+  "label": "ambiguity",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "ambiguity",
+      "story": "story-4-alert-bursts.md",
+      "summary": "\"Handled appropriately\" allows opposite behaviors: batching the burst into one notice, or dropping the extra alerts.",
+      "ac_ids": [
+        "AC-4.2"
+      ]
+    }
+  ]
+}

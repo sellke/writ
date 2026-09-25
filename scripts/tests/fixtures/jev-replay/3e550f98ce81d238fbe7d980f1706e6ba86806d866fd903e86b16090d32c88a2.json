@@ -1,0 +1,78 @@
+{
+  "answers": {
+    "s1_c1_ambiguity": {
+      "noul": 0.08,
+      "type": "noul"
+    },
+    "s1_c2_ambiguity": {
+      "noul": 0.12,
+      "type": "noul"
+    },
+    "s1_c3_ambiguity": {
+      "noul": 0.1,
+      "type": "noul"
+    },
+    "s1_c4_ambiguity": {
+      "noul": 0.14,
+      "type": "noul"
+    },
+    "s1_contradiction": {
+      "noul": 0.56,
+      "type": "noul"
+    },
+    "s1_gap": {
+      "noul": 0.72,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "provider_metadata": {
+    "gateway": {
+      "cost": "0",
+      "gatewayCost": "0",
+      "generationId": "gen_01M3CWTEY64TCBCSCG74KNR16N",
+      "marketCost": "0.00007035",
+      "routing": {
+        "canonicalSlug": "typesafe-ai/jev",
+        "fallbacksAvailable": [],
+        "finalProvider": "typesafe-ai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "typesafe-ai/jev",
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "credentialType": "system",
+                "endTime": 1790360501421,
+                "provider": "typesafe-ai",
+                "startTime": 1790360501230,
+                "statusCode": 200,
+                "success": true
+              }
+            ],
+            "success": true
+          }
+        ],
+        "originalModelId": "typesafe-ai/jev",
+        "planningReasoning": "Provider set restricted to: typesafe-ai. System credentials planned for: typesafe-ai. Total execution order: typesafe-ai(system)",
+        "resolvedProvider": "typesafe-ai",
+        "totalProviderAttemptCount": 1
+      },
+      "surchargeCost": "0"
+    },
+    "typesafe": {
+      "confidence": {}
+    }
+  },
+  "usage": {
+    "input_tokens": 1675,
+    "output_tokens": 135
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "synthetic-contradiction-account-deletion",
+    "recorded_on": "2026-09-25",
+    "source": "live"
+  }
+}

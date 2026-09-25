@@ -1,0 +1,30 @@
+{
+  "dev": [
+    "story-2-event-creation-payment-flow",
+    "story-3-fee-sharing-pro-exemption",
+    "story-3-settlement-view-share-link",
+    "story-4-messaging-migration-quick-split-guard",
+    "synthetic-ambiguity-alert-burst",
+    "synthetic-ambiguity-relevant-orders",
+    "synthetic-clean-api-rate-limit",
+    "synthetic-clean-workspace-rename",
+    "synthetic-contradiction-export-header",
+    "synthetic-contradiction-session-timeout",
+    "synthetic-gap-avatar-upload",
+    "synthetic-gap-search-no-results"
+  ],
+  "test": [
+    "synthetic-ambiguity-cart-merge",
+    "synthetic-ambiguity-discount-rounding",
+    "synthetic-ambiguity-inactive-projects",
+    "synthetic-clean-dark-mode",
+    "synthetic-clean-email-verification",
+    "synthetic-clean-task-due-dates",
+    "synthetic-contradiction-account-deletion",
+    "synthetic-contradiction-invite-expiry",
+    "synthetic-contradiction-webhook-retries",
+    "synthetic-gap-card-declined",
+    "synthetic-gap-csv-import",
+    "synthetic-gap-profile-endpoint"
+  ]
+}

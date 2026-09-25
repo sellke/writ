@@ -1,0 +1,12 @@
+{
+  "label": "gap",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "gap",
+      "story": "story-4-checkout-payment.md",
+      "summary": "No criterion covers a declined or failed card charge."
+    }
+  ]
+}

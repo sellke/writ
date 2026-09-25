@@ -1,0 +1,12 @@
+{
+  "label": "gap",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "gap",
+      "story": "story-2-user-profile-endpoint.md",
+      "summary": "No criterion covers a user id that does not exist (the not-found case)."
+    }
+  ]
+}

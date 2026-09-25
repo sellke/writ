@@ -1,0 +1,12 @@
+{
+  "label": "contradiction",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "contradiction",
+      "story": "story-5-account-deletion.md",
+      "summary": "Deletion removes every row containing the user_id, yet the audit log must still list login events with that user_id."
+    }
+  ]
+}
