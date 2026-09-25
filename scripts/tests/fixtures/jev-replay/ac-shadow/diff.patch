@@ -1,0 +1,33 @@
+diff --git a/src/greet.py b/src/greet.py
+new file mode 100644
+--- /dev/null
++++ b/src/greet.py
+@@ -0,0 +1,4 @@
++def greet(name: str) -> str:
++    if not name:
++        return "Hello, stranger!"
++    return "Hello, %s!" % name
+diff --git a/.env.local b/.env.local
+new file mode 100644
+--- /dev/null
++++ b/.env.local
+@@ -0,0 +1 @@
++SHADOW_FIXTURE_MARKER_ENV=not-a-real-value
+diff --git a/deploy/tls.key b/deploy/tls.key
+new file mode 100644
+--- /dev/null
++++ b/deploy/tls.key
+@@ -0,0 +1 @@
++SHADOW_FIXTURE_MARKER_KEY=not-a-real-value
+diff --git a/tests/test_greet.py b/tests/test_greet.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_greet.py
+@@ -0,0 +1,7 @@
++from src.greet import greet
++
++def test_greet_returns_hello_name():
++    assert greet("Ada") == "Hello, Ada!"
++
++def test_greet_empty_name_is_stranger():
++    assert greet("") == "Hello, stranger!"

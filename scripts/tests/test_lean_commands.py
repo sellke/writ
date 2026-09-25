@@ -54,11 +54,13 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # Step 2.6c/2.9 and verify-spec.md 3g gained the opt-in Jev conditional. The
 # lean siblings deliberately keep today's full pass (lean is the no-Jev
 # baseline arm).
+# Repinned 2026-09-25 (Story 5): implement-story.md Gate 3 gained the opt-in
+# `ac-shadow` line; implement-story.lean.md is unchanged (no-Jev baseline arm).
 DEFAULT_SHA256 = {
     "create-spec": "ea07703c724b0783a6d666b8c0949fb210b74546db7ed29e080d4a25f238471f",
     "verify-spec": "5272a3f0a50a2850c327691fa2edf99973ebb4641a5d7871850afc78b50b58c9",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
-    "implement-story": "7bf916964d0a34c4fd5b5f07e7ef4c66594a24625a5304b5d581575d521ae8ba",
+    "implement-story": "29026fb12f0ce8422a5e8108ee658f7a2e2e7f48f1e1aa2407bb94f2c92d1231",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

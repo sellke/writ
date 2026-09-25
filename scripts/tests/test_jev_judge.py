@@ -1554,3 +1554,768 @@ def test_transport_code_imports_only_stdlib():
         elif isinstance(node, ast.ImportFrom) and node.module:
             names.add(node.module.split(".")[0])
     assert not names & {"requests", "httpx", "typesafe_sdk", "typesafe", "aiohttp", "urllib3"}
+
+
+# ==========================================================================
+# Story 5: Gate 3 shadow judgment (`ac-shadow`) and `shadow-report`
+# [AC-5.1, AC-5.2, AC-5.4, AC-5.5]
+#
+# No test reaches the network. In-process tests run under `no_network` and
+# use either the replay transport over the synthetic ac-shadow recording or
+# an injected fake transport. `shadow-report` runs with no key and no replay.
+# ==========================================================================
+
+import re as _re
+
+SHADOW_DIR = REPLAY_DIR / "ac-shadow"
+SHADOW_STORY = SHADOW_DIR / "story.md"
+SHADOW_TESTS = SHADOW_DIR / "tests-output.txt"
+SHADOW_DIFF = SHADOW_DIR / "diff.patch"
+SHADOW_REVIEW = SHADOW_DIR / "review.md"
+SHADOW_IDS = ("AC-9.1", "AC-9.2", "AC-9.3")
+ROW_KEYS = {"ts", "story", "backend", "model", "criteria", "excluded_paths"}
+
+
+def _shadow_argv(log: Path, *, repo: Optional[Path] = None, story=SHADOW_STORY,
+                 tests=SHADOW_TESTS, diff=SHADOW_DIFF, review=SHADOW_REVIEW,
+                 backend: Optional[str] = "typesafe") -> List[str]:
+    argv = ["ac-shadow", "--story", str(story), "--tests-output", str(tests),
+            "--diff", str(diff), "--review-output", str(review), "--log", str(log)]
+    if repo is not None:
+        argv += ["--repo", str(repo)]
+    if backend is not None:
+        argv += ["--backend", backend]
+    return argv
+
+
+def _replay_env() -> Dict[str, str]:
+    return {"WRIT_JEV_REPLAY": str(REPLAY_DIR)}
+
+
+def _live_env() -> Dict[str, str]:
+    return {"TYPESAFE_API_KEY": FAKE_KEY}
+
+
+def _rows(log: Path) -> List[Dict[str, object]]:
+    if not log.exists():
+        return []
+    return [json.loads(ln) for ln in log.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+
+def _answer_by_ac(p_by_ac: Dict[str, float], model: str = "jev-1.13.0"):
+    """Fake-transport body builder: answers each question by the AC ID its
+    instructions name (read from the request, so it tracks the code)."""
+    def build(request: Dict[str, object]) -> Dict[str, object]:
+        answers = {}
+        for qid, q in request["questions"].items():  # type: ignore[union-attr]
+            ac = _re.search(r'criteria\["(AC-\d+\.\d+)"\]', q["instructions"]).group(1)
+            answers[qid] = {"type": "noul", "noul": p_by_ac[ac]}
+        return {"model": model, "answers": answers, "usage": {"input_tokens": 900}}
+    return build
+
+
+class _BuildHTTP:
+    """Injected transport that builds a 200 body from the decoded request."""
+
+    def __init__(self, jev, build):
+        self.jev, self.build = jev, build
+        self.calls: List[Dict[str, object]] = []
+
+    def __call__(self, _url, _headers, payload):
+        request = json.loads(payload.decode("utf-8"))
+        self.calls.append(request)
+        return self.jev.HttpResponse(200, {}, json.dumps(self.build(request)).encode("utf-8"))
+
+
+def _shadow_live(jev, capsys, tmp_path, review_text=None, p_by_ac=None, diff_text=None,
+                 tests_text=None, story_text=None, model="jev-1.13.0"):
+    repo = _repo(tmp_path, "typesafe")
+    review = SHADOW_REVIEW
+    if review_text is not None:
+        review = tmp_path / "review.md"
+        review.write_text(review_text, encoding="utf-8")
+    diff = SHADOW_DIFF
+    if diff_text is not None:
+        diff = tmp_path / "diff.patch"
+        diff.write_text(diff_text, encoding="utf-8")
+    tests = SHADOW_TESTS
+    if tests_text is not None:
+        tests = tmp_path / "tests.txt"
+        tests.write_text(tests_text, encoding="utf-8")
+    story = SHADOW_STORY
+    if story_text is not None:
+        story = tmp_path / "story-9-x.md"
+        story.write_text(story_text, encoding="utf-8")
+    fake = _BuildHTTP(jev, _answer_by_ac(p_by_ac or {"AC-9.1": 0.97, "AC-9.2": 0.95,
+                                                     "AC-9.3": 0.05}, model))
+    log = tmp_path / "state" / "jev-shadow.jsonl"
+    code = jev.main(_shadow_argv(log, repo=repo, story=story, tests=tests, diff=diff,
+                                 review=review, backend=None),
+                    environ=_live_env(), transport=fake, sleep=lambda _s: None)
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err, fake, log
+
+
+# --------------------------------------------------------------------------
+# ac-shadow: row written, request shape [AC-5.1]
+# --------------------------------------------------------------------------
+
+
+def test_ac_shadow_replay_writes_one_row(jev, capsys, tmp_path, no_network):
+    log = tmp_path / "state" / "jev-shadow.jsonl"  # parent missing: must be created
+    code, out, err = _probe_inproc(jev, capsys, _shadow_argv(log), _replay_env())
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "pass"
+    rows = _rows(log)
+    assert len(rows) == 1
+    row = rows[0]
+    assert set(row) == ROW_KEYS
+    assert row["story"] == "story.md"
+    assert row["backend"] == "typesafe"
+    assert row["model"] == "jev-1.13.0"
+    assert row["excluded_paths"] == 2
+    assert _re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", row["ts"])
+    assert set(row["criteria"]) == set(SHADOW_IDS)
+    for ac, cell in row["criteria"].items():
+        assert set(cell) == {"p", "jev", "evaluator", "agree"}
+        assert isinstance(cell["p"], float) and 0.0 <= cell["p"] <= 1.0
+        assert cell["jev"] is (cell["p"] >= 0.9)
+        assert cell["agree"] is (cell["jev"] == cell["evaluator"])
+    assert row["criteria"]["AC-9.1"]["evaluator"] is True
+    assert row["criteria"]["AC-9.3"]["evaluator"] is False
+    fields = _summary_fields(out)
+    assert fields["excluded_paths"] == "2"
+    assert fields["criteria"] == "3"
+    assert fields["model"] == "jev-1.13.0"
+
+
+def test_ac_shadow_appends_rows(jev, capsys, tmp_path, no_network):
+    log = tmp_path / "jev-shadow.jsonl"
+    log.write_text('{"existing": true}\n', encoding="utf-8")
+    for _ in range(2):
+        code, _out, err = _probe_inproc(jev, capsys, _shadow_argv(log), _replay_env())
+        assert code == 0, err
+    lines = log.read_text(encoding="utf-8").splitlines()
+    assert lines[0] == '{"existing": true}'
+    assert len(lines) == 3
+
+
+def test_ac_shadow_default_log_is_under_repo_state(jev, capsys, tmp_path, no_network):
+    repo = _repo(tmp_path, "typesafe")
+    argv = [a for a in _shadow_argv(tmp_path / "unused", repo=repo)]
+    i = argv.index("--log")
+    del argv[i:i + 2]
+    code, _out, err = _probe_inproc(jev, capsys, argv, _replay_env())
+    assert code == 0, err
+    assert len(_rows(repo / ".writ" / "state" / "jev-shadow.jsonl")) == 1
+
+
+def test_ac_shadow_one_request_one_noul_per_criterion_keyed_by_ac_id(jev, capsys, tmp_path,
+                                                                     no_network):
+    code, _out, err, fake, _log = _shadow_live(jev, capsys, tmp_path)
+    assert code == 0, err
+    assert len(fake.calls) == 1  # one request for every criterion
+    request = fake.calls[0]
+    state, questions = request["state"], request["questions"]
+    assert set(state) == {"criteria", "tests_output", "diff"}
+    assert sorted(state["criteria"]) == list(SHADOW_IDS)  # keyed by AC ID, not position
+    assert "`[AC-" not in json.dumps(state["criteria"])  # tag tails stripped
+    assert state["tests_output"] == SHADOW_TESTS.read_text(encoding="utf-8")
+    assert len(questions) == 3
+    named = set()
+    for q in questions.values():
+        assert q["type"] == "noul"
+        assert set(q["criteria"]) == {"true", "false"}
+        m = _re.search(r'`criteria\["(AC-\d+\.\d+)"\]`', q["instructions"])
+        assert m, q["instructions"]
+        named.add(m.group(1))
+        assert "`tests_output`" in q["instructions"] and "`diff`" in q["instructions"]
+    assert named == set(SHADOW_IDS)
+
+
+def test_ac_shadow_counts_disagreement(jev, capsys, tmp_path, no_network):
+    # AC-9.3: evaluator says not satisfied, Jev says satisfied -> false pass.
+    # AC-9.2: evaluator says satisfied, Jev says not -> false block.
+    code, out, err, _fake, log = _shadow_live(
+        jev, capsys, tmp_path, p_by_ac={"AC-9.1": 0.9, "AC-9.2": 0.89, "AC-9.3": 0.95})
+    assert code == 0, err
+    cells = _rows(log)[0]["criteria"]
+    assert cells["AC-9.1"] == {"p": 0.9, "jev": True, "evaluator": True, "agree": True}
+    assert cells["AC-9.2"]["agree"] is False and cells["AC-9.2"]["jev"] is False
+    assert cells["AC-9.3"]["agree"] is False and cells["AC-9.3"]["jev"] is True
+    fields = _summary_fields(out)
+    assert fields["agree"] == "1"
+    assert fields["false_pass"] == "1"
+    assert fields["false_block"] == "1"
+
+
+def test_ac_shadow_row_carries_no_server_text(jev, capsys, tmp_path, no_network):
+    def build(request):
+        body = _answer_by_ac({"AC-9.1": 0.97, "AC-9.2": 0.95, "AC-9.3": 0.05})(request)
+        for answer in body["answers"].values():
+            answer["explanation"] = "SERVER-TEXT-MARKER"
+        body["note"] = "SERVER-TEXT-MARKER"
+        return body
+    repo = _repo(tmp_path, "typesafe")
+    log = tmp_path / "log.jsonl"
+    code = jev.main(_shadow_argv(log, repo=repo, backend=None), environ=_live_env(),
+                    transport=_BuildHTTP(jev, build), sleep=lambda _s: None)
+    out, _err = capsys.readouterr()
+    assert code == 0
+    assert "SERVER-TEXT-MARKER" not in log.read_text(encoding="utf-8")
+    assert "SERVER-TEXT-MARKER" not in out
+
+
+def test_ac_shadow_threshold_comes_from_thresholds_file(jev, capsys, tmp_path, no_network,
+                                                       monkeypatch):
+    path = tmp_path / "t.json"
+    data = json.loads(THRESHOLDS.read_text(encoding="utf-8"))
+    data["ac_shadow"] = {"satisfied": 0.5}
+    path.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr(jev, "THRESHOLDS_PATH", path)
+    code, _out, err, _fake, log = _shadow_live(
+        jev, capsys, tmp_path, p_by_ac={"AC-9.1": 0.6, "AC-9.2": 0.6, "AC-9.3": 0.4})
+    assert code == 0, err
+    cells = _rows(log)[0]["criteria"]
+    assert cells["AC-9.1"]["jev"] is True and cells["AC-9.3"]["jev"] is False
+
+
+@pytest.mark.parametrize("satisfied", [1.5, -0.1, "high", None])
+def test_ac_shadow_bad_threshold_exits_2_before_request(jev, capsys, tmp_path, no_network,
+                                                       monkeypatch, satisfied):
+    path = tmp_path / "t.json"
+    data = json.loads(THRESHOLDS.read_text(encoding="utf-8"))
+    data["ac_shadow"] = {"satisfied": satisfied}
+    path.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr(jev, "THRESHOLDS_PATH", path)
+    code, _out, err, fake, log = _shadow_live(jev, capsys, tmp_path)
+    assert code == 2 and "ac_shadow.satisfied" in err
+    assert fake.calls == [] and not log.exists()
+
+
+def test_ac_shadow_replay_fixture_is_keyed_by_build_body(jev):
+    """The synthetic recording matches the code's request. Regenerate it (see
+    fixtures/jev-replay/README.md) after changing the question wording."""
+    story = jev._parse_story("story.md", SHADOW_STORY.read_text(encoding="utf-8"))
+    criteria = jev.story_criteria(story)
+    diff, excluded, _names = jev.slice_diff(SHADOW_DIFF.read_text(encoding="utf-8"))
+    assert excluded == 2
+    state, questions, index = jev.shadow_request(
+        criteria, SHADOW_TESTS.read_text(encoding="utf-8"), diff)
+    payload = jev.canonical_body(jev.build_body(state, questions, jev.BACKENDS["typesafe"]))
+    recorded = REPLAY_DIR / ("%s.json" % jev.request_hash(payload))
+    assert recorded.is_file(), "regenerate %s" % recorded.name
+    body = json.loads(recorded.read_text(encoding="utf-8"))
+    assert set(body["answers"]) == set(questions)
+    assert sorted(index.values()) == list(SHADOW_IDS)
+    readme = (REPLAY_DIR / "README.md").read_text(encoding="utf-8")
+    row = [ln for ln in readme.splitlines() if recorded.stem in ln]
+    assert row and "Synthetic" in row[0]
+
+
+# --------------------------------------------------------------------------
+# Secret-path exclusion [AC-5.1, Business Rule 7]
+# --------------------------------------------------------------------------
+
+
+def _block(path: str, body: str = "+x\n") -> str:
+    return ("diff --git a/{p} b/{p}\nindex 1..2 100644\n--- a/{p}\n+++ b/{p}\n@@ -1 +1 @@\n{b}"
+            .format(p=path, b=body))
+
+
+@pytest.mark.parametrize("path", [
+    ".env", ".env.local", "app/.env.production", "certs/server.pem", "deploy/tls.key",
+    "config/secrets.yaml", "src/secret_store.py", "ops/SECRETS/prod.txt",
+    "aws/credentials", "lib/credential_helper.go", "Config/DB_Credentials.json",
+])
+def test_slice_diff_excludes_secret_paths(jev, path):
+    text = _block("src/ok.py", "+kept\n") + _block(path, "+SECRET-BODY\n")
+    diff, excluded, names = jev.slice_diff(text)
+    assert excluded == 1
+    assert names == [path]
+    assert "SECRET-BODY" not in diff and path not in diff
+    assert "+kept" in diff
+
+
+@pytest.mark.parametrize("path", ["src/environment.py", "docs/keyboard.md", "src/pem_utils.py",
+                                  "README.md", "keys/README.md"])
+def test_slice_diff_keeps_ordinary_paths(jev, path):
+    diff, excluded, _names = jev.slice_diff(_block(path))
+    assert excluded == 0
+    assert path in diff
+
+
+def test_slice_diff_rename_to_secret_path_is_excluded(jev):
+    text = ("diff --git a/src/config.py b/src/secret_config.py\nsimilarity index 90%\n"
+            "rename from src/config.py\nrename to src/secret_config.py\n"
+            "--- a/src/config.py\n+++ b/src/secret_config.py\n@@ -1 +1 @@\n-a\n+RENAMED-BODY\n")
+    diff, excluded, _names = jev.slice_diff(text)
+    assert excluded == 1 and "RENAMED-BODY" not in diff
+
+
+def test_slice_diff_deleted_secret_file_is_excluded(jev):
+    text = ("diff --git a/.env b/.env\ndeleted file mode 100644\n--- a/.env\n+++ /dev/null\n"
+            "@@ -1 +0,0 @@\n-GONE-BODY\n")
+    diff, excluded, _names = jev.slice_diff(text)
+    assert excluded == 1 and "GONE-BODY" not in diff
+
+
+def test_slice_diff_plain_unified_diff_without_git_headers(jev):
+    text = ("--- a/src/ok.py\n+++ b/src/ok.py\n@@ -0,0 +1 @@\n+kept\n"
+            "--- a/server.pem\n+++ b/server.pem\n@@ -0,0 +1 @@\n+PEM-BODY\n")
+    diff, excluded, _names = jev.slice_diff(text)
+    assert excluded == 1 and "PEM-BODY" not in diff and "+kept" in diff
+
+
+GIT_OK_BLOCK = ("diff --git a/src/ok.py b/src/ok.py\nindex 1..2 100644\n--- a/src/ok.py\n"
+                "+++ b/src/ok.py\n@@ -1 +1 @@\n-old\n+kept\n")
+
+
+def test_slice_diff_combined_cc_block_is_excluded(jev):
+    """Reproduced leak: a `diff --cc` block used to fold into the block before it."""
+    text = GIT_OK_BLOCK + ("diff --cc .env.local\nindex 1,2..3\n--- a/.env.local\n"
+                           "+++ b/.env.local\n@@@ -1,1 -1,1 +1,2 @@@\n  A=1\n++CC-SECRET-BODY\n")
+    diff, excluded, names = jev.slice_diff(text)
+    assert excluded == 1 and names == [".env.local"]
+    assert "CC-SECRET-BODY" not in diff and ".env.local" not in diff
+    assert "+kept" in diff
+
+
+@pytest.mark.parametrize("header", ["diff --combined .env.local", "diff --cc config/secrets.yml"])
+def test_slice_diff_every_diff_header_form_starts_a_block(jev, header):
+    text = GIT_OK_BLOCK + header + "\n@@@ -1 -1 +1 @@@\n++HEADER-SECRET-BODY\n"
+    diff, excluded, _names = jev.slice_diff(text)
+    assert excluded == 1 and "HEADER-SECRET-BODY" not in diff and "+kept" in diff
+
+
+def test_slice_diff_headerless_block_after_git_output_is_excluded(jev):
+    """Reproduced leak: a `--- /dev/null` / `+++ .env.local` pair after git-format
+    output used to fold into the previous git block."""
+    text = GIT_OK_BLOCK + "--- /dev/null\n+++ .env.local\n@@ -0,0 +1 @@\n+HEADERLESS-SECRET\n"
+    diff, excluded, names = jev.slice_diff(text)
+    assert excluded == 1 and names == [".env.local"]
+    assert "HEADERLESS-SECRET" not in diff and "+kept" in diff
+
+
+def test_slice_diff_pair_inside_a_hunk_does_not_split(jev):
+    # Removed line "-- a" and added line "++ b" look like a header pair but sit
+    # inside the counted hunk of a secret file: the whole block stays excluded.
+    text = GIT_OK_BLOCK + ("diff --git a/.env b/.env\n--- a/.env\n+++ b/.env\n"
+                           "@@ -1,2 +1,2 @@\n--- a\n+++ b\n-IN-HUNK-SECRET\n+IN-HUNK-SECRET\n")
+    diff, excluded, _names = jev.slice_diff(text)
+    assert excluded == 1 and "IN-HUNK-SECRET" not in diff
+
+
+def test_slice_diff_guard_fires_on_unknown_shape(jev):
+    """A shape the splitter cannot follow (header-less pair after a combined
+    hunk it cannot count) must fail closed, not fold the secret into a block."""
+    text = ("diff --cc src/ok.py\n--- a/src/ok.py\n+++ b/src/ok.py\n"
+            "@@@ -1,1 -1,1 +1,2 @@@\n  a\n++b\n"
+            "--- /dev/null\n+++ deploy/tls.key\n@@ -0,0 +1 @@\n+UNKNOWN-SHAPE-SECRET\n")
+    with pytest.raises(jev.SecretPathUnparsed):
+        jev.slice_diff(text)
+
+
+@pytest.mark.parametrize("line", [
+    "Binary files a/certs/server.pem and b/certs/server.pem differ",
+    "rename to config/credentials.json",
+    "copy from .env.production",
+])
+def test_slice_diff_guard_checks_every_header_like_form(jev, line):
+    # Placed after hunk content the splitter treats as the ok block's tail.
+    text = ("--- a/src/ok.py\n+++ b/src/ok.py\n@@@ -1 -1 +1 @@@\n  a\n" + line + "\n")
+    with pytest.raises(jev.SecretPathUnparsed):
+        jev.slice_diff(text)
+
+
+def test_ac_shadow_unparsed_secret_sends_nothing_writes_no_row(jev, capsys, tmp_path,
+                                                               no_network):
+    text = ("diff --cc src/ok.py\n--- a/src/ok.py\n+++ b/src/ok.py\n"
+            "@@@ -1,1 -1,1 +1,2 @@@\n  a\n++b\n"
+            "--- /dev/null\n+++ .env.local\n@@ -0,0 +1 @@\n+UNKNOWN-SHAPE-SECRET\n")
+    code, out, err, fake, log = _shadow_live(jev, capsys, tmp_path, diff_text=text)
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "unverifiable" and _reasons(out)[0] == "secret_path_unparsed"
+    assert fake.calls == [] and not log.exists()
+    assert "UNKNOWN-SHAPE-SECRET" not in out + err
+
+
+def test_slice_diff_miscounted_hunk_fails_closed(jev):
+    # The hunk claims one removed line it lacks, so the next pair reads as hunk
+    # content. The guard sees `+++ b/server.pem` in the kept text and refuses.
+    text = ("--- a/src/ok.py\n+++ b/src/ok.py\n@@ -1 +1 @@\n+kept\n"
+            "--- a/server.pem\n+++ b/server.pem\n@@ -1 +1 @@\n+PEM-BODY\n")
+    with pytest.raises(jev.SecretPathUnparsed):
+        jev.slice_diff(text)
+
+
+def test_ac_shadow_secret_content_never_sent(jev, capsys, tmp_path, no_network):
+    code, out, err, fake, log = _shadow_live(jev, capsys, tmp_path)
+    assert code == 0, err
+    payload = json.dumps(fake.calls[0])
+    assert "SHADOW_FIXTURE_MARKER" not in payload
+    assert ".env.local" not in payload and "tls.key" not in payload
+    assert "src/greet.py" in fake.calls[0]["state"]["diff"]
+    assert _summary_fields(out)["excluded_paths"] == "2"
+    assert _rows(log)[0]["excluded_paths"] == 2
+
+
+def test_ac_shadow_over_budget_writes_no_row_and_does_not_truncate(jev, capsys, tmp_path,
+                                                                   no_network):
+    code, out, err, fake, log = _shadow_live(jev, capsys, tmp_path,
+                                             tests_text="x" * 130000)
+    assert code == 0, err
+    assert _verdict(out) == "unverifiable"
+    assert "state_too_large" in _reasons(out)
+    assert _summary(out).startswith("jev-judge: unverifiable (state_too_large) ")
+    assert fake.calls == [] and not log.exists()
+
+
+# --------------------------------------------------------------------------
+# Evaluator verdicts by tag; no tags -> no_evaluator_ids [AC-5.2]
+# --------------------------------------------------------------------------
+
+
+def test_parse_evaluator_reads_tagged_checklist_lines(jev):
+    text = ("#### Acceptance Criteria\n"
+            "- [x] first — supported [AC-1.1]\n"
+            "- [ ] second — not supported [AC-1.2]\n"
+            "- [X] third, tag in backticks `[AC-1.3]`\n"
+            "* [x] star bullet [AC-1.4]\n"
+            "- [x] untagged line\n"
+            "- [x] tag mid-line [AC-1.5] then prose\n"
+            "Prose mentioning [AC-1.6] is not a checklist line\n")
+    verdicts, conflicting = jev.parse_evaluator(text)
+    assert verdicts == {"AC-1.1": True, "AC-1.2": False, "AC-1.3": True, "AC-1.4": True}
+    assert conflicting == []
+
+
+def test_parse_evaluator_drops_ids_with_conflicting_verdicts(jev):
+    verdicts, conflicting = jev.parse_evaluator(
+        "- [x] a [AC-2.1]\n- [ ] a again [AC-2.1]\n- [x] b [AC-2.2]\n- [x] b again [AC-2.2]\n")
+    assert verdicts == {"AC-2.2": True}
+    assert conflicting == ["AC-2.1"]
+
+
+@pytest.mark.parametrize("review", [
+    "### EVALUATION_RESULT: PASS\n\n#### Acceptance Criteria\n- [x] Criterion 1\n- [x] Criterion 2\n",
+    "",
+    "- [x] other story [AC-4.1]\n",  # tags, but none for this story's criteria
+])
+def test_ac_shadow_no_evaluator_ids_sends_nothing_writes_nothing(jev, capsys, tmp_path,
+                                                                 no_network, review):
+    code, out, err, fake, log = _shadow_live(jev, capsys, tmp_path, review_text=review)
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "unverifiable"
+    assert _reasons(out)[0] == "no_evaluator_ids"
+    assert fake.calls == []
+    assert not log.exists()
+
+
+def test_ac_shadow_asks_only_about_ids_the_evaluator_tagged(jev, capsys, tmp_path, no_network):
+    review = "- [x] a [AC-9.1]\n- [ ] c [AC-9.3]\n"
+    code, out, err, fake, log = _shadow_live(jev, capsys, tmp_path, review_text=review)
+    assert code == 0, err
+    assert sorted(fake.calls[0]["state"]["criteria"]) == ["AC-9.1", "AC-9.3"]
+    assert set(_rows(log)[0]["criteria"]) == {"AC-9.1", "AC-9.3"}
+
+
+def test_ac_shadow_story_without_tagged_criteria_is_no_criteria(jev, capsys, tmp_path,
+                                                               no_network):
+    story = "# Story\n\n## Acceptance Criteria\n\n- [ ] Given a, when b, then c\n"
+    code, out, err, fake, log = _shadow_live(jev, capsys, tmp_path, story_text=story)
+    assert code == 0, err
+    assert _verdict(out) == "unverifiable" and _reasons(out)[0] == "no_criteria"
+    assert fake.calls == [] and not log.exists()
+
+
+def test_ac_shadow_story_key_names_spec_folder(jev, capsys, tmp_path, no_network):
+    stories = tmp_path / "2026-01-01-demo" / "user-stories"
+    stories.mkdir(parents=True)
+    story = stories / "story-9-greet.md"
+    story.write_text(SHADOW_STORY.read_text(encoding="utf-8"), encoding="utf-8")
+    repo = _repo(tmp_path, "typesafe")
+    log = tmp_path / "log.jsonl"
+    fake = _BuildHTTP(jev, _answer_by_ac({"AC-9.1": 0.97, "AC-9.2": 0.95, "AC-9.3": 0.05}))
+    code = jev.main(_shadow_argv(log, repo=repo, story=story, backend=None),
+                    environ=_live_env(), transport=fake, sleep=lambda _s: None)
+    capsys.readouterr()
+    assert code == 0
+    assert _rows(log)[0]["story"] == "2026-01-01-demo/story-9-greet.md"
+
+
+# --------------------------------------------------------------------------
+# Opt-in and judge() outcomes: no row unless the judgment passed [BR 1, BR 2]
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("provider,env,reason", [
+    (None, {"TYPESAFE_API_KEY": FAKE_KEY}, "no_config_line"),
+    ("none", {"TYPESAFE_API_KEY": FAKE_KEY}, "provider_disabled"),
+    ("typesafe", {}, "no_api_key"),
+])
+def test_ac_shadow_live_requires_double_opt_in(jev, capsys, tmp_path, no_network, provider,
+                                               env, reason):
+    repo = _repo(tmp_path, provider)
+    log = tmp_path / "log.jsonl"
+    fake = _BuildHTTP(jev, _answer_by_ac({}))
+    code = jev.main(_shadow_argv(log, repo=repo, backend=None), environ=env, transport=fake,
+                    sleep=lambda _s: None)
+    out, err = capsys.readouterr()
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "unverifiable" and _reasons(out)[0] == reason
+    assert fake.calls == [] and not log.exists()
+    assert FAKE_KEY not in out + err
+
+
+def test_ac_shadow_backend_flag_without_replay_is_usage(jev, capsys, tmp_path, no_network):
+    code, _out, err = _probe_inproc(jev, capsys, _shadow_argv(tmp_path / "l.jsonl"),
+                                    _live_env())
+    assert code == 2 and "replay-only" in err
+
+
+def test_ac_shadow_replay_wins_over_live(jev, capsys, tmp_path, no_network):
+    repo = _repo(tmp_path, "typesafe")
+    log = tmp_path / "log.jsonl"
+    fake = _BuildHTTP(jev, _answer_by_ac({}))
+    env = dict(_live_env(), **_replay_env())
+    code = jev.main(_shadow_argv(log, repo=repo, backend=None), environ=env, transport=fake,
+                    sleep=lambda _s: None)
+    capsys.readouterr()
+    assert code == 0
+    assert fake.calls == []  # served from the recording
+    assert len(_rows(log)) == 1
+
+
+@pytest.mark.parametrize("outcome,verdict,reason,code_expected", [
+    ((429, {}, {}), "unverifiable", "rate_limited", 0),
+    ((401, {}, {}), "unverifiable", "auth_error", 0),
+    ((500, {}, {}), "unverifiable", "transport_error", 0),
+    ((200, {}, {"model": "jev-1.14.0", "answers": {}}), "unverifiable", "model_mismatch", 0),
+    ((200, {}, {"model": "jev-1.13.0"}), "fail", "malformed_response", 1),
+])
+def test_ac_shadow_non_pass_judgment_writes_no_row(jev, capsys, tmp_path, no_network, outcome,
+                                                  verdict, reason, code_expected):
+    repo = _repo(tmp_path, "typesafe")
+    log = tmp_path / "log.jsonl"
+    fake = FakeHTTP(outcome, outcome, outcome)
+    fake.jev = jev
+    code = jev.main(_shadow_argv(log, repo=repo, backend=None), environ=_live_env(),
+                    transport=fake, sleep=lambda _s: None)
+    out, err = capsys.readouterr()
+    assert code == code_expected, err
+    _assert_shape(out)
+    assert _verdict(out) == verdict and reason in _reasons(out)
+    assert not log.exists()
+    assert FAKE_KEY not in out + err
+
+
+@pytest.mark.parametrize("p", [1.5, -0.2, "0.9", True, None])
+def test_ac_shadow_out_of_range_p_is_malformed_no_row(jev, capsys, tmp_path, no_network, p):
+    def build(request):
+        answers = {qid: {"type": "noul", "noul": 0.5} for qid in request["questions"]}
+        answers[sorted(answers)[0]]["noul"] = p
+        return {"model": "jev-1.13.0", "answers": answers}
+    repo = _repo(tmp_path, "typesafe")
+    log = tmp_path / "log.jsonl"
+    code = jev.main(_shadow_argv(log, repo=repo, backend=None), environ=_live_env(),
+                    transport=_BuildHTTP(jev, build), sleep=lambda _s: None)
+    out, _err = capsys.readouterr()
+    assert code == 1
+    assert _verdict(out) == "fail" and "malformed_response" in _reasons(out)
+    assert not log.exists()
+
+
+@pytest.mark.parametrize("missing", ["--story", "--tests-output", "--diff", "--review-output"])
+def test_ac_shadow_missing_input_file_exits_2(jev, capsys, tmp_path, no_network, missing):
+    argv = _shadow_argv(tmp_path / "log.jsonl")
+    argv[argv.index(missing) + 1] = str(tmp_path / "absent")
+    code, _out, err = _probe_inproc(jev, capsys, argv, _replay_env())
+    assert code == 2 and "error:" in err
+    assert not (tmp_path / "log.jsonl").exists()
+
+
+def test_ac_shadow_unwritable_log_exits_2(jev, capsys, tmp_path, no_network):
+    blocker = tmp_path / "file"
+    blocker.write_text("", encoding="utf-8")
+    code, _out, err = _probe_inproc(jev, capsys, _shadow_argv(blocker / "log.jsonl"),
+                                    _replay_env())
+    assert code == 2 and "--log" in err
+
+
+def test_subprocess_ac_shadow_replay_without_key(tmp_path):
+    log = tmp_path / "state" / "jev-shadow.jsonl"
+    env = _poisoned_env({"WRIT_JEV_REPLAY": str(REPLAY_DIR)})
+    code, out, err = _run(_shadow_argv(log), env, cwd=tmp_path)
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "pass"
+    assert len(_rows(log)) == 1
+
+
+# --------------------------------------------------------------------------
+# shadow-report and the promotion rule [AC-5.4, Business Rule 8]
+# --------------------------------------------------------------------------
+
+
+def _row(story: str, cells: Dict[str, Tuple[bool, bool]]) -> Dict[str, object]:
+    criteria = {ac: {"p": 0.95 if j else 0.1, "jev": j, "evaluator": e, "agree": j == e}
+                for ac, (j, e) in cells.items()}
+    return {"ts": "2026-09-25T00:00:00Z", "story": story, "backend": "typesafe",
+            "model": "jev-1.13.0", "criteria": criteria, "excluded_paths": 0}
+
+
+def _write_log(path: Path, rows: List[object], extra_lines: Sequence[str] = ()) -> Path:
+    lines = [json.dumps(r) for r in rows] + list(extra_lines)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def _agreeing_rows(n: int) -> List[Dict[str, object]]:
+    return [_row("spec/story-%d.md" % i, {"AC-%d.1" % i: (True, True),
+                                          "AC-%d.2" % i: (False, False)}) for i in range(n)]
+
+
+def _report(jev, capsys, log: Path, env: Optional[Dict[str, str]] = None):
+    code = jev.main(["shadow-report", "--log", str(log)], environ=env or {})
+    captured = capsys.readouterr()
+    return code, captured.out, captured.err
+
+
+def test_shadow_report_promotion_met(jev, capsys, tmp_path, no_network):
+    log = _write_log(tmp_path / "log.jsonl", _agreeing_rows(30))
+    code, out, err = _report(jev, capsys, log)
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "pass" and _reasons(out) == ["promotion_met"]
+    fields = _summary_fields(out)
+    assert fields["stories"] == "30"
+    assert fields["criteria"] == "60"
+    assert fields["agreement"] == "100.0%"
+    assert fields["false_pass"] == "0"
+    assert fields["false_block"] == "0"
+    assert fields["skipped_rows"] == "0"
+
+
+def test_shadow_report_29_stories_not_met(jev, capsys, tmp_path, no_network):
+    log = _write_log(tmp_path / "log.jsonl", _agreeing_rows(29))
+    code, out, _err = _report(jev, capsys, log)
+    assert code == 0
+    assert _verdict(out) == "unverifiable" and _reasons(out) == ["promotion_not_met"]
+    assert "stories" in _summary_fields(out)["unmet"].split(",")
+
+
+def test_shadow_report_repeat_rows_count_one_story(jev, capsys, tmp_path, no_network):
+    rows = _agreeing_rows(29) + _agreeing_rows(1)  # story-0 evaluated twice
+    code, out, _err = _report(jev, capsys, _write_log(tmp_path / "log.jsonl", rows))
+    fields = _summary_fields(out)
+    assert fields["rows"] == "30" and fields["stories"] == "29"
+    assert _verdict(out) == "unverifiable"
+
+
+def test_shadow_report_one_false_pass_blocks_promotion(jev, capsys, tmp_path, no_network):
+    rows = _agreeing_rows(40)
+    rows.append(_row("spec/story-x.md", {"AC-99.1": (True, False)}))  # Jev yes, evaluator no
+    code, out, _err = _report(jev, capsys, _write_log(tmp_path / "log.jsonl", rows))
+    fields = _summary_fields(out)
+    assert fields["false_pass"] == "1" and fields["false_block"] == "0"
+    assert float(fields["agreement"].rstrip("%")) > 95.0  # agreement alone would pass
+    assert _verdict(out) == "unverifiable" and _reasons(out) == ["promotion_not_met"]
+    assert fields["unmet"] == "false_pass"
+
+
+def test_shadow_report_agreement_boundary(jev, capsys, tmp_path, no_network):
+    # 30 stories x 2 criteria = 60 agreeing; add false blocks.
+    # 3 false blocks: 60/63 = 95.24% -> met. 4: 60/64 = 93.75% -> not met.
+    for blocks, verdict in ((3, "pass"), (4, "unverifiable")):
+        rows = _agreeing_rows(30) + [_row("spec/story-b%d.md" % i, {"AC-50.%d" % i: (False, True)})
+                                     for i in range(blocks)]
+        code, out, _err = _report(jev, capsys, _write_log(tmp_path / "log.jsonl", rows))
+        fields = _summary_fields(out)
+        assert fields["false_block"] == str(blocks)
+        assert _verdict(out) == verdict, out
+
+
+def test_shadow_report_exactly_95_percent_is_met(jev, capsys, tmp_path, no_network):
+    # 19 agreeing of 20 per block of stories: 30 stories, 57 agree of 60 = 95.0%.
+    rows = []
+    for i in range(30):
+        cells = {"AC-%d.1" % i: (True, True), "AC-%d.2" % i: (False, False)}
+        if i < 3:
+            cells["AC-%d.2" % i] = (False, True)  # false block
+        rows.append(_row("spec/story-%d.md" % i, cells))
+    code, out, _err = _report(jev, capsys, _write_log(tmp_path / "log.jsonl", rows))
+    fields = _summary_fields(out)
+    assert fields["agreement"] == "95.0%"
+    assert _verdict(out) == "pass"
+
+
+@pytest.mark.parametrize("content", [None, "", "\n\n"])
+def test_shadow_report_empty_or_missing_log(jev, capsys, tmp_path, no_network, content):
+    log = tmp_path / "log.jsonl"
+    if content is not None:
+        log.write_text(content, encoding="utf-8")
+    code, out, err = _report(jev, capsys, log)
+    assert code == 0, err
+    _assert_shape(out)
+    assert _verdict(out) == "unverifiable" and _reasons(out) == ["promotion_not_met"]
+    fields = _summary_fields(out)
+    assert fields["rows"] == "0" and fields["stories"] == "0" and fields["criteria"] == "0"
+    assert fields["false_pass"] == "0" and fields["skipped_rows"] == "0"
+    assert not log.exists() or content is not None  # report never creates the log
+
+
+def test_shadow_report_skips_malformed_rows(jev, capsys, tmp_path, no_network):
+    good = _agreeing_rows(2)
+    bad_cell = _row("spec/story-bad.md", {"AC-1.1": (True, True)})
+    bad_cell["criteria"]["AC-1.1"]["jev"] = "yes"
+    inconsistent = _row("spec/story-inc.md", {"AC-1.1": (True, False)})
+    inconsistent["criteria"]["AC-1.1"]["agree"] = True
+    log = _write_log(tmp_path / "log.jsonl", good + [bad_cell, inconsistent], extra_lines=[
+        "not json", "[1, 2]", '{"story": "s", "criteria": {}}', '{"criteria": {"AC-1.1": {}}}',
+        '{"story": "s", "criteria": {"AC-1.1": {"jev": true, "evaluator": 1}}}'])
+    with log.open("ab") as fh:
+        fh.write(b"\xff\xfe broken bytes\n")
+    code, out, err = _report(jev, capsys, log)
+    assert code == 0, err
+    fields = _summary_fields(out)
+    assert fields["rows"] == "2" and fields["stories"] == "2"
+    assert fields["skipped_rows"] == "8"
+
+
+def test_shadow_report_default_log_under_repo(jev, capsys, tmp_path, no_network):
+    repo = _repo(tmp_path, None)
+    (repo / ".writ" / "state").mkdir()
+    _write_log(repo / ".writ" / "state" / "jev-shadow.jsonl", _agreeing_rows(30))
+    code = jev.main(["shadow-report", "--repo", str(repo)], environ={})
+    out, _err = capsys.readouterr()
+    assert code == 0 and _verdict(out) == "pass"
+
+
+def test_shadow_report_needs_no_key_or_replay_and_sends_nothing(jev, capsys, tmp_path,
+                                                                no_network):
+    log = _write_log(tmp_path / "log.jsonl", _agreeing_rows(3))
+    fake = FakeHTTP()
+    fake.jev = jev
+    code = jev.main(["shadow-report", "--log", str(log)], environ={}, transport=fake)
+    out, _err = capsys.readouterr()
+    assert code == 0 and fake.calls == [] and no_network == []
+    assert "backend=" not in _summary(out)
+
+
+def test_shadow_report_log_is_directory_exits_2(jev, capsys, tmp_path, no_network):
+    code, _out, err = _report(jev, capsys, tmp_path)
+    assert code == 2 and "--log" in err
+
+
+def test_shadow_report_reads_rows_ac_shadow_wrote(jev, capsys, tmp_path, no_network):
+    log = tmp_path / "log.jsonl"
+    _probe_inproc(jev, capsys, _shadow_argv(log), _replay_env())
+    code, out, _err = _report(jev, capsys, log)
+    fields = _summary_fields(out)
+    assert code == 0
+    assert fields["rows"] == "1" and fields["criteria"] == "3" and fields["skipped_rows"] == "0"

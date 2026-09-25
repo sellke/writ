@@ -89,7 +89,7 @@ Scan only for residual architecture, security, and taste. Do not expand into a f
 ### Checklist Results
 
 #### Acceptance Criteria
-For each supplied criterion: satisfied / not satisfied, with the recorded test evidence that supports the verdict.
+One checklist line per supplied criterion: `- [x]` satisfied or `- [ ]` not satisfied, with the recorded test evidence that supports the verdict, ending with the criterion's `[AC-N.M]` tag.
 
 #### Recorded Test Results
 What the recorded results show relative to the criteria. Do not request a rewrite of tests here.
@@ -153,8 +153,8 @@ All acceptance criteria adjudicated and supported by recorded test results. Resi
 ### Checklist Results
 
 #### Acceptance Criteria
-- [x] Criterion 1 — supported by recorded test results
-- [x] Criterion 2 — supported by recorded test results
+- [x] Criterion 1 — supported by recorded test results [AC-1.1]
+- [x] Criterion 2 — supported by recorded test results [AC-1.2]
 
 #### Recorded Test Results
 Suite green; results map to the supplied criteria.
@@ -174,6 +174,12 @@ Suite green; results map to the supplied criteria.
 
 ### Summary
 One acceptance criterion is unmet. Recorded test results do not cover the claimed behavior.
+
+### Checklist Results
+
+#### Acceptance Criteria
+- [x] Criterion 1 — supported by recorded test results [AC-1.1]
+- [ ] Criterion 2 — not supported; no recorded test covers it [AC-1.2]
 
 ### Issues Found
 

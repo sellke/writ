@@ -18,6 +18,18 @@ Subcommands:
                       extra keys `source` and `p`) and FILE.escalate.json (the
                       story filenames the orchestrator must still judge).
                       Same live/replay rule as probe.
+  ac-shadow --story F --tests-output F --diff F --review-output F [--log P]
+            [--repo .] [--backend B]
+                      Gate 3 shadow (Story 5). One Noul per criterion, keyed
+                      by AC ID, in one request; appends one JSONL row (default
+                      <repo>/.writ/state/jev-shadow.jsonl) beside the
+                      evaluator's `[AC-N.M]`-tagged verdicts. Secret paths are
+                      dropped from the diff and counted; an unparsed secret
+                      header sends nothing (secret_path_unparsed). Advisory
+                      only. Same live/replay rule as probe.
+  shadow-report [--log P] [--repo .]
+                      Agreement, false passes, and the ADR-027 promotion rule
+                      over the shadow log. Reads the log only; no network.
 
 The provider is enabled only when `.writ/config.md` has a line
 `- **Judgment Provider:** <backend>` naming `typesafe` or `vercel-gateway`
@@ -39,6 +51,7 @@ anything written to stderr is redacted of it first.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import http.client
 import json
@@ -873,6 +886,378 @@ def spec_findings(args: argparse.Namespace, environ: Mapping[str, str],
     return _emit(j.verdict, j.reasons + info, summary)
 
 
+# --------------------------------------------------------------------------
+# ac-shadow and shadow-report subcommands (technical-spec §1, §5) — Story 5
+# --------------------------------------------------------------------------
+
+SHADOW_LOG = Path(".writ") / "state" / "jev-shadow.jsonl"
+# An evaluator Acceptance Criteria checklist line: `- [x]` or `- [ ]`, ending
+# with one `[AC-N.M]` tag (optionally backticked). agents/evaluator-agent.md.
+EVALUATOR_LINE = re.compile(r"^\s*[-*]\s+\[([ xX])\]\s+.*?`?\[(AC-\d+\.\d+)\]`?\s*$")
+# Business Rule 7. Matched case-insensitively against each path and its basename.
+SECRET_PATTERNS = (".env*", "*.pem", "*.key", "*secret*", "*credential*")
+PROMOTION_STORIES = 30
+PROMOTION_AGREEMENT_PCT = 95
+
+
+def _ac_order(ac: str) -> Tuple[int, ...]:
+    return tuple(int(n) for n in ac[3:].split("."))
+
+
+def story_criteria(story: Story) -> Dict[str, str]:
+    """Criterion text keyed by AC ID (first occurrence wins). Untagged criteria
+    cannot be matched to an evaluator verdict and are left out."""
+    out: Dict[str, str] = {}
+    for text, ids in zip(story.criteria, story.ac_ids):
+        for ac in ids:
+            out.setdefault(ac, text)
+    return out
+
+
+def parse_evaluator(text: str) -> Tuple[Dict[str, bool], List[str]]:
+    """Evaluator verdict per AC ID from tagged checklist lines. An ID given both
+    verdicts is dropped (never compared) and listed as conflicting."""
+    seen: Dict[str, set] = {}
+    for line in text.splitlines():
+        match = EVALUATOR_LINE.match(line)
+        if match:
+            seen.setdefault(match.group(2), set()).add(match.group(1) in "xX")
+    verdicts = {ac: next(iter(v)) for ac, v in seen.items() if len(v) == 1}
+    conflicting = sorted((ac for ac, v in seen.items() if len(v) > 1), key=_ac_order)
+    return verdicts, conflicting
+
+
+def _is_secret_path(path: str) -> bool:
+    lowered = path.lower()
+    base = lowered.rsplit("/", 1)[-1]
+    return any(fnmatch.fnmatchcase(name, pattern)
+               for pattern in SECRET_PATTERNS for name in (lowered, base))
+
+
+def _clean_path(raw: str) -> str:
+    path = raw.split("\t", 1)[0].strip().strip('"')
+    if path[:2] in ("a/", "b/"):
+        path = path[2:]
+    return path
+
+
+DIFF_HEADERS = ("diff --git ", "diff --cc ", "diff --combined ")
+HUNK_HEADER = re.compile(r"^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@")
+# Every line form that can name a file path in diff text (final guard).
+HEADER_LIKE = ("diff ", "--- ", "+++ ", "rename from ", "rename to ", "copy from ",
+               "copy to ", "Binary files ")
+
+
+class SecretPathUnparsed(Exception):
+    """The text left to send still has a header-like line naming a secret path:
+    a diff shape the splitter did not follow. Nothing is sent."""
+
+
+def _line_paths(text: str) -> List[str]:
+    """Candidate paths on one header-like line: the whole remainder plus every
+    space-separated token. Over-collecting is deliberate: a false match only
+    drops a block (or, in the guard, the whole request)."""
+    for prefix in HEADER_LIKE:
+        if text.startswith(prefix):
+            rest = text[len(prefix):]
+            paths = [_clean_path(rest)] + [_clean_path(tok) for tok in rest.split(" ")]
+            return [p for p in paths if p and p != "/dev/null"]
+    return []
+
+
+def _block_paths(block: Sequence[str]) -> List[str]:
+    """Paths the file header of a block names (lines before its first hunk)."""
+    paths: List[str] = []
+    for line in block:
+        text = line.rstrip("\r\n")
+        if text.startswith("@@"):
+            break  # hunk content from here on: its lines are not paths
+        paths += _line_paths(text)
+    return paths
+
+
+def _diff_blocks(text: str) -> List[List[str]]:
+    """Per-file blocks. A block starts at every `diff --git` / `--cc` /
+    `--combined` header, and at a `--- ` line directly followed by `+++ ` that
+    sits outside a hunk and is not the header pair of a `diff` line just seen.
+
+    Hunk lengths come from standard `@@ -a,b +c,d @@` headers. A hunk this
+    cannot count (combined `@@@`) runs to the next `diff` or `@@` line, and no
+    `---`/`+++` pair splits inside it; `slice_diff`'s guard catches what folds.
+    Text before the first header is its own block and names no path."""
+    lines = text.splitlines(keepends=True)
+    blocks: List[List[str]] = [[]]
+    old = new = 0  # lines left in a counted hunk
+    uncounted = False  # inside a hunk whose length is unknown
+    pending_pair = False  # a `diff` header was seen; its ---/+++ pair is header
+    for i, line in enumerate(lines):
+        text = line.rstrip("\r\n")
+        in_hunk = uncounted or old > 0 or new > 0
+        pair = (text.startswith("--- ") and i + 1 < len(lines)
+                and lines[i + 1].startswith("+++ "))
+        starts = text.startswith(DIFF_HEADERS) or (pair and not in_hunk and not pending_pair)
+        if starts:
+            old = new = 0
+            uncounted = False
+            pending_pair = text.startswith(DIFF_HEADERS)
+            if blocks[-1]:
+                blocks.append([])
+        elif text.startswith("@@"):
+            pending_pair = False
+            match = HUNK_HEADER.match(text)
+            if match:
+                old = int(match.group(1)) if match.group(1) is not None else 1
+                new = int(match.group(2)) if match.group(2) is not None else 1
+                uncounted = False
+            else:
+                old = new = 0
+                uncounted = True
+        elif old > 0 or new > 0:
+            if text.startswith("-"):
+                old -= 1
+            elif text.startswith("+"):
+                new -= 1
+            elif text.startswith(" ") or text == "":
+                old, new = old - 1, new - 1
+            elif not text.startswith("\\"):  # not "\ No newline at end of file"
+                old = new = 0  # malformed count: the hunk is over
+            old, new = max(old, 0), max(new, 0)
+        elif pair and pending_pair:
+            pending_pair = False  # the header pair of the diff line above
+        blocks[-1].append(line)
+    return [b for b in blocks if b]
+
+
+def slice_diff(text: str) -> Tuple[str, int, List[str]]:
+    """Drop every whole file block that names a secret path (Business Rule 7).
+    Returns the kept diff, the excluded-block count, and one name per block.
+
+    Fail closed: if any header-like line left in the kept text still names a
+    secret path, raise SecretPathUnparsed instead of returning it."""
+    kept: List[str] = []
+    names: List[str] = []
+    for block in _diff_blocks(text):
+        secret = [p for p in _block_paths(block) if _is_secret_path(p)]
+        if secret:
+            names.append(min(secret, key=len))
+            continue
+        kept.extend(block)
+    for line in kept:
+        if any(_is_secret_path(p) for p in _line_paths(line.rstrip("\r\n"))):
+            raise SecretPathUnparsed(len(names))
+    return "".join(kept), len(names), names
+
+
+def _satisfied_question(ac: str) -> Dict[str, Any]:
+    """jev-1.13 is weak at indirection, so the question names its criterion by
+    AC ID path (never by list position) and states both outcomes in full."""
+    ref = "`criteria[%s]`" % json.dumps(ac)
+    return _noul(
+        "Is the acceptance criterion in %s satisfied by the code change in `diff` and "
+        "the recorded test output in `tests_output`?" % ref,
+        "`diff` implements the outcome the Then clause of %s names, and `tests_output` "
+        "shows a passing test that exercises that outcome, with no failing test for it."
+        % ref,
+        "`diff` does not implement the outcome the Then clause of %s names, or "
+        "`tests_output` shows no passing test that exercises it, or `tests_output` shows "
+        "a failing test for it." % ref)
+
+
+def shadow_request(criteria: Mapping[str, str], tests_output: str,
+                   diff: str) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, str]]:
+    """State keyed by AC ID, one Noul per criterion, and question ID -> AC ID."""
+    state = {"criteria": dict(criteria), "tests_output": tests_output, "diff": diff}
+    questions: Dict[str, Any] = {}
+    index: Dict[str, str] = {}
+    for n, ac in enumerate(sorted(criteria, key=_ac_order), start=1):
+        qid = "c%d_satisfied" % n
+        questions[qid] = _satisfied_question(ac)
+        index[qid] = ac
+    return state, questions, index
+
+
+def _read_input(path: Path, label: str) -> str:
+    try:
+        return path.read_bytes().decode("utf-8", errors="replace")
+    except OSError as exc:
+        raise UsageError("%s unreadable: %s (%s)" % (label, path, type(exc).__name__))
+
+
+def _story_key(path: Path) -> str:
+    """`<spec folder>/<story file>` for a story under user-stories/, else the name."""
+    if path.parent.name == "user-stories" and path.parent.parent.name:
+        return "%s/%s" % (path.parent.parent.name, path.name)
+    return path.name
+
+
+def _shadow_threshold(backend: Optional[Backend]) -> Tuple[float, List[str]]:
+    """Loaded and validated before any request, so a broken file costs nothing."""
+    try:
+        data, reasons = load_thresholds(backend=backend.name if backend else None,
+                                        model=backend.model if backend else None)
+    except ThresholdsError as exc:
+        raise UsageError("thresholds: %s" % exc)
+    entry = data.get("ac_shadow")
+    value = entry.get("satisfied") if isinstance(entry, dict) else None
+    if not _unit_interval(value):
+        raise UsageError("thresholds: ac_shadow.satisfied must be a number in [0, 1]")
+    return float(value), reasons
+
+
+def _append_row(log: Path, row: Mapping[str, Any]) -> None:
+    try:
+        log.parent.mkdir(parents=True, exist_ok=True)
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, sort_keys=True) + "\n")
+    except OSError as exc:
+        raise UsageError("--log not writable: %s (%s)" % (log, type(exc).__name__))
+
+
+def ac_shadow(args: argparse.Namespace, environ: Mapping[str, str],
+              transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
+    """One shadow row per evaluated story. Advisory only (Business Rule 4):
+    nothing reads the result to change a gate. A non-pass outcome writes no row."""
+    story_text = _read_input(args.story, "--story")
+    tests_output = _read_input(args.tests_output, "--tests-output")
+    diff_text = _read_input(args.diff, "--diff")
+    review = _read_input(args.review_output, "--review-output")
+    log: Path = args.log if args.log is not None else args.repo / SHADOW_LOG
+    sel = _select_backend(args.repo, args.backend, environ)
+    satisfied, info = _shadow_threshold(sel.backend or sel.named)
+    try:
+        diff, excluded, names = slice_diff(diff_text)
+        unparsed = False
+    except SecretPathUnparsed as exc:
+        diff, excluded, names, unparsed = "", int(exc.args[0]), [], True
+    for name in names:
+        print("jev-judge: excluded %s" % _one_line(name, None), file=sys.stderr)
+    excluded_tail = "excluded_paths=%d" % excluded
+
+    def skipped(reasons: List[str], backend_tail: str) -> int:
+        return _emit("unverifiable", reasons + info, "jev-judge: unverifiable (%s) %s %s"
+                     % (_primary(reasons), excluded_tail, backend_tail))
+
+    if sel.backend is None:
+        backend_tail = "backend=%s" % (sel.named.name if sel.named else "none")
+        if "no_api_key" in sel.reasons and sel.named is not None:
+            backend_tail += " export=%s" % sel.named.key_vars[0]
+        return skipped(list(sel.reasons), backend_tail)
+    backend_tail = "backend=%s" % sel.backend.name
+    unpinned = [] if sel.backend.pinned else ["model_unpinned"]
+    if unparsed:
+        return skipped(["secret_path_unparsed"] + unpinned, backend_tail)
+    criteria = story_criteria(_parse_story(args.story.name, story_text))
+    if not criteria:
+        return skipped(["no_criteria"] + unpinned, backend_tail)
+    verdicts, conflicting = parse_evaluator(review)
+    compared = {ac: text for ac, text in criteria.items() if ac in verdicts}
+    if not compared:
+        return skipped(["no_evaluator_ids"] + unpinned, backend_tail)
+
+    state, questions, index = shadow_request(compared, tests_output, diff)
+    j = judge(state, questions, sel.backend, environ, transport=transport, sleep=sleep)
+    if j.verdict == "pass" and j.answers is not None and not all(
+            _unit_interval(j.answers[qid].get("noul")) for qid in index):
+        j = j._replace(verdict="fail", answers=None,
+                       reasons=["malformed_response"] + [r for r in j.reasons if r in INFORMATIONAL])
+    conflict_tail = " conflicting=%d" % len(conflicting) if conflicting else ""
+    if j.verdict != "pass" or j.answers is None:
+        counts = "criteria=%d %s%s" % (len(compared), excluded_tail, conflict_tail)
+        return _emit(j.verdict, j.reasons + info, _judgment_summary(j, counts))
+
+    cells: Dict[str, Dict[str, Any]] = {}
+    for qid, ac in index.items():
+        p = float(j.answers[qid]["noul"])  # typed numeric field only; no server text
+        jev = p >= satisfied
+        cells[ac] = {"p": p, "jev": jev, "evaluator": verdicts[ac],
+                     "agree": jev == verdicts[ac]}
+    _append_row(log, {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                      "story": _story_key(args.story), "backend": sel.backend.name,
+                      "model": j.model or sel.backend.model, "criteria": cells,
+                      "excluded_paths": excluded})
+    agree = sum(1 for c in cells.values() if c["agree"])
+    false_pass = sum(1 for c in cells.values() if c["jev"] and not c["evaluator"])
+    counts = "criteria=%d agree=%d false_pass=%d false_block=%d %s%s" % (
+        len(cells), agree, false_pass, len(cells) - agree - false_pass, excluded_tail,
+        conflict_tail)
+    return _emit(j.verdict, j.reasons + info, _judgment_summary(j, counts))
+
+
+def _valid_row(row: Any) -> bool:
+    if not isinstance(row, dict) or not isinstance(row.get("story"), str) or not row["story"]:
+        return False
+    cells = row.get("criteria")
+    if not isinstance(cells, dict) or not cells:
+        return False
+    for cell in cells.values():
+        if not isinstance(cell, dict) or not _unit_interval(cell.get("p")):
+            return False
+        jev, evaluator, agree = cell.get("jev"), cell.get("evaluator"), cell.get("agree")
+        if not all(isinstance(v, bool) for v in (jev, evaluator, agree)):
+            return False
+        if agree != (jev == evaluator):
+            return False
+    return True
+
+
+def read_shadow_log(log: Path) -> Tuple[List[Dict[str, Any]], int]:
+    """Valid rows plus the count of skipped (malformed) non-blank lines.
+    A missing log is empty; an unreadable one is a usage error."""
+    try:
+        raw = log.read_bytes()
+    except FileNotFoundError:
+        return [], 0
+    except OSError as exc:
+        raise UsageError("--log unreadable: %s (%s)" % (log, type(exc).__name__))
+    rows: List[Dict[str, Any]] = []
+    skipped = 0
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            row = None
+        if _valid_row(row):
+            rows.append(row)
+        else:
+            skipped += 1
+    return rows, skipped
+
+
+def shadow_report(args: argparse.Namespace) -> int:
+    """Business Rule 8 over the shadow log. Reads the log only; sends nothing."""
+    log: Path = args.log if args.log is not None else args.repo / SHADOW_LOG
+    rows, skipped = read_shadow_log(log)
+    stories = len({row["story"] for row in rows})
+    total = agree = false_pass = false_block = 0
+    for row in rows:
+        for cell in row["criteria"].values():
+            total += 1
+            if cell["jev"] == cell["evaluator"]:
+                agree += 1
+            elif cell["jev"]:
+                false_pass += 1  # Jev satisfied where the evaluator said not satisfied
+            else:
+                false_block += 1
+    unmet = []
+    if stories < PROMOTION_STORIES:
+        unmet.append("stories")
+    if false_pass:
+        unmet.append("false_pass")
+    if total == 0 or agree * 100 < PROMOTION_AGREEMENT_PCT * total:
+        unmet.append("agreement")
+    verdict, reason = ("unverifiable", "promotion_not_met") if unmet else ("pass", "promotion_met")
+    pct = 100.0 * agree / total if total else 0.0
+    summary = ("jev-judge: %s (%s) rows=%d stories=%d criteria=%d agree=%d agreement=%.1f%% "
+               "false_pass=%d false_block=%d skipped_rows=%d" % (
+                   verdict, reason, len(rows), stories, total, agree, pct, false_pass,
+                   false_block, skipped))
+    if unmet:
+        summary += " unmet=%s" % ",".join(unmet)
+    return _emit(verdict, [reason], summary)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -892,6 +1277,22 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--backend", choices=sorted(BACKENDS),
                    help="replay only: pick the backend whose request shape to replay")
+    p = sub.add_parser("ac-shadow",
+                       help="judge a story's criteria beside the evaluator; append a shadow row")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--story", type=Path, required=True)
+    p.add_argument("--tests-output", type=Path, required=True)
+    p.add_argument("--diff", type=Path, required=True)
+    p.add_argument("--review-output", type=Path, required=True)
+    p.add_argument("--log", type=Path, default=None,
+                   help="shadow log (default <repo>/.writ/state/jev-shadow.jsonl)")
+    p.add_argument("--backend", choices=sorted(BACKENDS),
+                   help="replay only: pick the backend whose request shape to replay")
+    p = sub.add_parser("shadow-report",
+                       help="agreement and the promotion rule over the shadow log (no network)")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--log", type=Path, default=None,
+                   help="shadow log (default <repo>/.writ/state/jev-shadow.jsonl)")
     return parser
 
 
@@ -915,6 +1316,10 @@ def main(argv: Optional[List[str]] = None,
             return probe(args, env, transport, sleep or time.sleep)
         if args.action == "spec-findings":
             return spec_findings(args, env, transport, sleep or time.sleep)
+        if args.action == "ac-shadow":
+            return ac_shadow(args, env, transport, sleep or time.sleep)
+        if args.action == "shadow-report":
+            return shadow_report(args)
     except UsageError as exc:
         print("error: %s" % exc, file=sys.stderr)
         return 2

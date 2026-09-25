@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-25T17:01:16Z
+> Last Updated: 2026-09-25T17:36:46Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-25-jev-judgment-pilot` — Jev Judgment Pilot
-- **Status:** In Progress (3/6 stories Completed ✅)
-- **Story:** 3 of 6 — Spec-Findings Producer and Step 2.6c Cascade (Completed ✅)
-- **Progress:** 20/40 tasks complete (50%)
+- **Status:** In Progress (4/6 stories Completed ✅)
+- **Story:** 5 of 6 — Gate 3 Shadow Judgment and Agreement Report (Completed ✅)
+- **Progress:** 27/40 tasks complete (68%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- **DEV-017** Small — AC tag tails stripped from the text sent to Jev; one generic Step 2.9 note form
-- **DEV-018** Small — verify-spec 3g lacked create-spec's exit-1/2 fallback
-- **DEV-019** Medium — Gap and ambiguity questions show no separation on live Jev; Story 4 may reword questions
+- **DEV-021** Small — New reasons `no_criteria` and `secret_path_unparsed`; `no_evaluator_ids` widened
+- **DEV-022** Small — Row and summary extras; the story key is `<spec-folder>/<file>`
+- **DEV-023** Small — Claude Code evaluator and the On FAIL example gain `[AC-N.M]` tags
 
 ## Open Issues
 

@@ -183,3 +183,49 @@
 - **Reason:** Thresholds cannot fix an inverted signal.
 - **Resolution:** Warned. Story 4 is authorized to reword the gap and ambiguity (and, if needed, contradiction) question instructions and criteria in `_story_questions` / `_criterion_question`, and to regenerate the synthetic replay recordings. Story 3's structural contract (one request, Noul per story and per criterion, schema, sidecar) stays fixed.
 - **Spec amendment:** None to spec.md. This is an autonomous scope decision; it is reversible.
+
+## Story 5: Gate 3 Shadow Judgment and Agreement Report — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-020] Hooks test named `test_jev_shadow_hooks.sh`, not `test_eval_jev_shadow.sh`
+- **Severity:** Small
+- **Spec said:** Task 5.6 named `test_eval_jev_shadow.sh`.
+- **Implementation did:** `scripts/tests/test_jev_shadow_hooks.sh`, with the same coverage. It is not an eval.sh check.
+- **Reason:** The name matches what it tests.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-021] New reasons `no_criteria` and `secret_path_unparsed`; `no_evaluator_ids` widened
+- **Severity:** Small
+- **Spec said:** The technical-spec §1 table lists `no_evaluator_ids` only.
+- **Implementation did:** Three reason changes:
+  - `no_criteria` fires when a story has no tagged criteria.
+  - `no_evaluator_ids` also fires when the evaluator's tags match none of the story's IDs.
+  - `secret_path_unparsed` fires when the fail-closed guard finds a secret-pattern path in any header-like line that survived slicing.
+  - All three send nothing and write no row.
+- **Reason:** Defensive. The secret guard was added after the Gate 3 evaluator reproduced leaks for `diff --cc` blocks and header-less `+++ .env.local` blocks.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-022] Row and summary extras; the story key is `<spec-folder>/<file>`
+- **Severity:** Small
+- **Spec said:** The row carries story, model, per-criterion `p`, evaluator verdict, and agreement.
+- **Implementation did:** Extra fields:
+  - Adds `ts`, `backend`, `excluded_paths`, and a per-cell `jev` to the row.
+  - Adds `false_block` and `conflicting` to the summary.
+  - Conflicting `[x]`/`[ ]` marks on one ID drop that ID.
+- **Reason:** Evidence for the promotion decision. No server text.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-023] Claude Code evaluator and the On FAIL example gain `[AC-N.M]` tags
+- **Severity:** Small
+- **Spec said:** AC-5.2 covers the `agents/evaluator-agent.md` checklist lines (Output Format and the On PASS/On FAIL examples).
+- **Implementation did:** The orchestrator also added the tag rule to `claude-code/agents/writ-evaluator.md`, Claude Code's loadable evaluator, and a tagged checklist to the On FAIL example. Both are pinned in the hooks test.
+- **Reason:** Without the rule, Claude Code runs would always report `no_evaluator_ids`. Without the FAIL example, the false-pass metric would be blind on failing stories.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.

@@ -531,6 +531,11 @@ class CommandBudgetTests(unittest.TestCase):
 # notes-only rule naming jev-judge.py, and Step 2.9's `jev:` note line;
 # verify-spec.md 10666 -> 10902 (file 35862) for the same conditional in 3g, with its exit-1/2 fallback.
 # No new step or gate. Acknowledged, not exempted.
+# Updated 2026-09-25 (spec 2026-09-25-jev-judgment-pilot, Story 5): implement-story.md
+# 9103 -> 9656 (file 34616) for the one opt-in Gate 3 `jev-judge.py ac-shadow`
+# shadow line after the review-override bullets (which names the story's
+# targeted test run, not the full suite); a note only, no new gate.
+# Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
@@ -540,7 +545,7 @@ KNOWN_OVER_BUDGET = {
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 9103,
+    "commands/implement-story.md": 9656,
 }
 
 
