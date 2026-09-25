@@ -1,6 +1,7 @@
 # Story 5: Keep or revert
 
 > **Status:** Completed ✅ (2026-09-25)
+> **Commit:** cdda6f4d54911048394f54a84d2ae4a4553b24cb
 > **Priority:** High
 > **Dependencies:** Stories 2, 3, 4
 
