@@ -1,0 +1,19 @@
+{
+  "model": "typesafe-ai/jev",
+  "answers": {
+    "q1": {
+      "type": "noul",
+      "noul": 0.01
+    }
+  },
+  "usage": {
+    "input_tokens": 280,
+    "output_tokens": 20
+  },
+  "provider_metadata": {
+    "gateway": {
+      "cost": "0.00001155",
+      "routing": {}
+    }
+  }
+}

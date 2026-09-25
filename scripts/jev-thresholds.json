@@ -1,0 +1,12 @@
+{
+  "backend": null,
+  "model": null,
+  "calibrated": false,
+  "calibrated_on": null,
+  "spec_findings": {
+    "contradiction": {"emit": 0.85, "escalate": 0.35},
+    "gap":           {"emit": 0.85, "escalate": 0.35},
+    "ambiguity":     {"emit": 0.85, "escalate": 0.35}
+  },
+  "ac_shadow": {"satisfied": 0.9}
+}

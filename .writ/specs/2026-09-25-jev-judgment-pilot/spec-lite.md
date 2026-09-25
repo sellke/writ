@@ -29,6 +29,7 @@
 **Error Handling:**
 - Disabled / transport / auth / 422 / rate-limit / over-budget / replay miss / model mismatch → `unverifiable`, today's path
 - Malformed response → `fail`, still a note only
+- Missing thresholds file → §4 defaults + informational `thresholds_missing` (DEV-011)
 - See technical-spec.md §5 Error & Rescue Map
 
 **Integration Points:** `spec-analyze.py --findings` (unchanged schema; extra keys `source`, `p`); `review-override.py` runs before shadow; `install.sh` copies `scripts/*`

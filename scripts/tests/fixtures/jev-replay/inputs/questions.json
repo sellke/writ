@@ -1,0 +1,10 @@
+{
+  "q1": {
+    "type": "noul",
+    "instructions": "Do two criteria in `story.criteria` require outcomes that cannot both hold?",
+    "criteria": {
+      "true": "Two criteria require outcomes that cannot both hold.",
+      "false": "All criteria can hold together."
+    }
+  }
+}

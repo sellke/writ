@@ -77,6 +77,7 @@ CHECKS=(
   change-surface
   drift-format
   spec-analyze
+  jev-judge
   goal-emit
   spawn-cap
 )
@@ -4297,6 +4298,55 @@ check_spec_analyze() {
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     add_note "NOTE [spec-analyze]: $line"
+  done <<< "$output"
+}
+
+check_jev_judge() {
+  # Story 2 of 2026-09-25-jev-judgment-pilot: the Jev provider is advisory.
+  # Helper missing / exit 2 → add_finding. Any verdict → add_note only.
+  # Never touches the network and never sees a key: key vars are stripped,
+  # `status` sends nothing, and `probe` runs with WRIT_JEV_REPLAY pointed at
+  # the committed fixtures (replay wins over live).
+  local helper="$PROJECT_ROOT/scripts/jev-judge.py"
+  local replay="$PROJECT_ROOT/scripts/tests/fixtures/jev-replay"
+  local output rc line
+  local -a keyless=(env -u TYPESAFE_API_KEY -u AI_GATEWAY_API_KEY -u VERCEL_OIDC_TOKEN)
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/jev-judge.py" "jev-judge helper is missing." \
+      "Restore scripts/jev-judge.py so check can run."
+    return
+  fi
+
+  rc=0
+  output="$("${keyless[@]}" python3 "$helper" status --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/jev-judge.py" "jev-judge.py status refused: ${output##*$'\n'}" \
+      "Fix the jev-judge.py CLI so status --repo PATH parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [jev-judge]: $line"
+  done <<< "$output"
+
+  if [ ! -f "$replay/inputs/state.json" ] || [ ! -f "$replay/inputs/questions.json" ]; then
+    add_note "NOTE [jev-judge]: no replay fixtures; probe skipped."
+    return
+  fi
+  rc=0
+  output="$("${keyless[@]}" WRIT_JEV_REPLAY="$replay" python3 "$helper" probe \
+    --backend typesafe --repo "$PROJECT_ROOT" \
+    --state-file "$replay/inputs/state.json" \
+    --questions-file "$replay/inputs/questions.json" 2>&1)" || rc=$?
+  if [ "$rc" -eq 2 ]; then
+    add_finding "scripts/jev-judge.py" "jev-judge.py probe refused: ${output##*$'\n'}" \
+      "Fix the jev-judge.py CLI so probe --state-file F --questions-file Q parses."
+    return
+  fi
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    add_note "NOTE [jev-judge]: $line"
   done <<< "$output"
 }
 

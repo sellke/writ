@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-25T16:10:43Z
+> Last Updated: 2026-09-25T16:33:10Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** `2026-09-25-jev-judgment-pilot` — Jev Judgment Pilot
-- **Status:** In Progress (1/6 stories Completed ✅)
-- **Story:** 1 of 6 — ADR-027 and Opt-in Resolution (Completed ✅)
-- **Progress:** 6/40 tasks complete (15%)
+- **Status:** In Progress (2/6 stories Completed ✅)
+- **Story:** 2 of 6 — Client Transport and eval Check (Completed ✅)
+- **Progress:** 13/40 tasks complete (32%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- **DEV-003** Small — Summary adds `key_env=<var>` and `export=<var>`
-- **DEV-004** Small — `--repo` pointing at a non-directory exits 2
-- **DEV-005** Small — No test pins the decision-log line
+- **DEV-009** Small — Retry schedule is 1 s then 2 s; `retry-after` capped at 30 s
+- **DEV-010** Small — `judge()` takes `backend`, `environ`, `transport`, `sleep` and returns a `Judgment`
+- **DEV-011** Small — New informational reason `thresholds_missing`
 
 ## Open Issues
 

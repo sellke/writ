@@ -52,3 +52,58 @@
 - **Reason:** The AC requires the line, not a test. It is a workspace artifact.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None.
+
+## Story 2: Client Transport and eval Check — Drift Report
+
+> Run: 2026-09-25
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-006] `jev-thresholds.json` not shipped by install.sh / update.sh
+- **Severity:** Small
+- **Spec said:** "`install.sh` copies `scripts/*`". The thresholds file "ships beside the script". Task 2.5: ship alongside `jev-judge.py`.
+- **Implementation did:** The file sits in `scripts/`, but `is_shippable_script` (install.sh:922–937, update.sh:569) ships only `*.py`/`*.sh`. The loader falls back to §4 defaults and adds `thresholds_missing`.
+- **Reason:** A false spec assumption. Installed behavior is correct while the defaults equal the shipped file. Story 4 adds the file to both installers' shipped set.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None to spec-lite. Carried to Story 4 as an installer task.
+
+#### [DEV-007] New `probe` subcommand not in technical-spec §1
+- **Severity:** Medium
+- **Spec said:** Subcommands are `status`, `setup`, `spec-findings`, `calibrate`, `ac-shadow`, and `shadow-report`. The eval check runs replay-mode `spec-findings`.
+- **Implementation did:** Added `probe --state-file --questions-file [--backend]`. It runs live only when the double opt-in holds, and replay always wins. The eval check uses `probe` under replay because `spec-findings` lands in Story 3.
+- **Reason:** Story 2 needed a CLI surface for the transport before Story 3 exists. Business Rule 1 is enforced on the live path.
+- **Resolution:** Warned
+- **Spec amendment:** None (spec.md is never auto-modified). Story 3 decides whether eval moves to `spec-findings`.
+
+#### [DEV-008] Error-status mapping wider than the spec
+- **Severity:** Small
+- **Spec said:** 401 → `auth_error`; 422 or gateway 404 → `request_invalid`; everything else → `transport_error`.
+- **Implementation did:** 403 → `auth_error`. Every other 4xx except 429 → `request_invalid`.
+- **Reason:** A 4xx is a client-side rejection. Every outcome stays `unverifiable`, exit 0.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-009] Retry schedule is 1 s then 2 s; `retry-after` capped at 30 s
+- **Severity:** Small
+- **Spec said:** 3 attempts; sleep `retry-after`, else 1, 2, 4.
+- **Implementation did:** Two sleeps (1 s, 2 s), which is all 3 attempts allow. `retry-after` is capped at 30 s. A non-numeric value falls back to the backoff.
+- **Reason:** A third sleep cannot happen with 3 attempts. The cap prevents a hung run.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-010] `judge()` takes `backend`, `environ`, `transport`, `sleep` and returns a `Judgment`
+- **Severity:** Small
+- **Spec said:** `judge(state, questions) -> response | Unverifiable(reason)`.
+- **Implementation did:** `judge(state, questions, backend, environ, transport=None, sleep=...) -> Judgment`. Server `model`/`cost` are sanitized once there (`_safe_token`); the raw model is used only for the pin check.
+- **Reason:** Injectable transport and sleep for tests. The Gate 3 iteration-1 security fix centralizes sanitizing.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-011] New informational reason `thresholds_missing`
+- **Severity:** Small
+- **Spec said:** Not in the technical-spec §1 table.
+- **Implementation did:** A missing thresholds file adds `thresholds_missing`. The verdict is unchanged.
+- **Reason:** Makes a lost calibrated file visible (DEV-006).
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite Error Handling line added.
