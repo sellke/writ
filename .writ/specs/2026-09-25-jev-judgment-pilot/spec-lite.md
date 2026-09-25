@@ -73,7 +73,7 @@
 
 **Shadow Paths to Verify:**
 - **Happy path:** all confident → findings, empty escalate list
-- **Nil input:** disabled → `unverifiable provider_disabled`, no request
+- **Nil input:** no config line → `unverifiable no_config_line` (key alone included, DEV-001); `none` → `provider_disabled`; no request
 - **Empty input:** zero stories → `unverifiable no_stories`, no request
 - **Upstream error:** 429 then 200 → one retry, `attempts=2`
 

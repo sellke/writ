@@ -95,7 +95,7 @@ Content-Type: application/json
 
 | Operation | What can go wrong | Handling | What the user sees |
 |---|---|---|---|
-| Resolve opt-in | Config line absent / key empty | `unverifiable provider_disabled` / `no_api_key` | `jev: disabled (<reason>)` note; today's path |
+| Resolve opt-in | Config line absent / `none` or unknown / key empty | `unverifiable no_config_line` / `provider_disabled` / `no_api_key` (DEV-001) | `jev: disabled (<reason>)` note; today's path; `no_config_line` in an interactive run triggers the Story 6 prompt |
 | Build request | State over budget | `unverifiable state_too_large`; story escalated | Note names the story; orchestrator pass covers it |
 | POST /v1/systemone | Timeout, DNS, 5xx | `unverifiable transport_error` | `jev: unverifiable (transport_error)` note; full orchestrator pass |
 | POST /v1/systemone | 401 | `unverifiable auth_error` | Same note with `auth_error`; hint names the backend's key var |
