@@ -1,6 +1,7 @@
 # Story 2: Client Transport and eval Check
 
 > **Status:** Completed ✅
+> **Commit:** e656698696b1319121e4500ffaefbe60fbce548c
 > **Priority:** High
 > **Dependencies:** Story 1
 
