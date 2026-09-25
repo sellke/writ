@@ -1,0 +1,86 @@
+{
+  "answers": {
+    "s1_c1_ambiguity": {
+      "noul": 0.1,
+      "type": "noul"
+    },
+    "s1_c2_ambiguity": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "s1_c3_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_c4_ambiguity": {
+      "noul": 0.07,
+      "type": "noul"
+    },
+    "s1_c5_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_c6_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_contradiction": {
+      "noul": 0.08,
+      "type": "noul"
+    },
+    "s1_gap": {
+      "noul": 0.42,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "provider_metadata": {
+    "gateway": {
+      "cost": "0",
+      "gatewayCost": "0",
+      "generationId": "gen_01M3CWTE78XKPXJFNPPDJ4GM7W",
+      "marketCost": "0.00009324",
+      "routing": {
+        "canonicalSlug": "typesafe-ai/jev",
+        "fallbacksAvailable": [],
+        "finalProvider": "typesafe-ai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "typesafe-ai/jev",
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "credentialType": "system",
+                "endTime": 1790360500688,
+                "provider": "typesafe-ai",
+                "startTime": 1790360500477,
+                "statusCode": 200,
+                "success": true
+              }
+            ],
+            "success": true
+          }
+        ],
+        "originalModelId": "typesafe-ai/jev",
+        "planningReasoning": "Provider set restricted to: typesafe-ai. System credentials planned for: typesafe-ai. Total execution order: typesafe-ai(system)",
+        "resolvedProvider": "typesafe-ai",
+        "totalProviderAttemptCount": 1
+      },
+      "surchargeCost": "0"
+    },
+    "typesafe": {
+      "confidence": {}
+    }
+  },
+  "usage": {
+    "input_tokens": 2220,
+    "output_tokens": 181
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "synthetic-clean-email-verification",
+    "recorded_on": "2026-09-25",
+    "source": "live"
+  }
+}

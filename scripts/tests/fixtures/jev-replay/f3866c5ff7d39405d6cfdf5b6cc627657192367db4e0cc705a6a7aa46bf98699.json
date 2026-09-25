@@ -1,0 +1,21 @@
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "c1_satisfied": {
+      "type": "noul",
+      "noul": 0.96
+    },
+    "c2_satisfied": {
+      "type": "noul",
+      "noul": 0.93
+    },
+    "c3_satisfied": {
+      "type": "noul",
+      "noul": 0.07
+    }
+  },
+  "usage": {
+    "input_tokens": 1200,
+    "output_tokens": 30
+  }
+}

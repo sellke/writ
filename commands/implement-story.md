@@ -289,6 +289,8 @@ This override is **FAIL-only**: a script `fail` takes the existing review-loop r
 - **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the existing review-loop recode path.
 - **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
+**Jev shadow (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, save the recorded test output (the story's targeted run, `recorded_test_results`, not the full suite), the story diff, and the Gate 3 agent's output under `.writ/state/` and run `python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests-output> --diff <diff> --review-output <review-output>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
+
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
 > **Format reference:** `.writ/docs/drift-report-format.md`, `.writ/docs/what-was-built-format.md`

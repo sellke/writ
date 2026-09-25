@@ -1,0 +1,12 @@
+{
+  "label": "contradiction",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "contradiction",
+      "story": "story-3-orders-csv-export.md",
+      "summary": "One criterion makes the first line of orders.csv the header row; another makes it the oldest order's data record."
+    }
+  ]
+}

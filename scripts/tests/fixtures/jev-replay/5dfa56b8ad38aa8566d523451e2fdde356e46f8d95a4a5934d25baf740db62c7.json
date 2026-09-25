@@ -1,0 +1,89 @@
+{
+  "answers": {
+    "s1_c1_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_c2_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_c3_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s1_contradiction": {
+      "noul": 0.93,
+      "type": "noul"
+    },
+    "s1_gap": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s2_c1_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s2_c2_ambiguity": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s2_c3_ambiguity": {
+      "noul": 0.91,
+      "type": "noul"
+    },
+    "s2_contradiction": {
+      "noul": 0.04,
+      "type": "noul"
+    },
+    "s2_gap": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s3_c1_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s3_c2_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s3_c3_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s3_contradiction": {
+      "noul": 0.03,
+      "type": "noul"
+    },
+    "s3_gap": {
+      "noul": 0.9,
+      "type": "noul"
+    },
+    "s4_c1_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s4_c2_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s4_c3_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s4_contradiction": {
+      "noul": 0.05,
+      "type": "noul"
+    },
+    "s4_gap": {
+      "noul": 0.5,
+      "type": "noul"
+    }
+  },
+  "model": "jev-1.13.0",
+  "usage": {
+    "input_tokens": 2148,
+    "output_tokens": 200
+  }
+}

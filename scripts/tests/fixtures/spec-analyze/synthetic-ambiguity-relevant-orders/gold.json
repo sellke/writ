@@ -1,0 +1,15 @@
+{
+  "label": "ambiguity",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "ambiguity",
+      "story": "story-3-orders-dashboard.md",
+      "summary": "\"Most relevant orders first\" does not say what relevance means (newest, largest, or open status first).",
+      "ac_ids": [
+        "AC-3.2"
+      ]
+    }
+  ]
+}

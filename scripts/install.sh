@@ -932,6 +932,9 @@ is_shippable_script() {
   case "$base" in
     *.py|*.sh)
       return 0 ;;
+    jev-thresholds.json)
+      # jev-judge.py's calibrated thresholds; the one data file that ships.
+      return 0 ;;
   esac
   return 1
 }
@@ -999,7 +1002,7 @@ overlay_scan_flat_dir() {
 
 append_manifest_shippable_scripts() {
   local target="$1" f base
-  for f in scripts/*.py scripts/*.sh; do
+  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
     [ -f "$f" ] || continue
     base=$(basename "$f")
     is_shippable_script "$base" || continue
@@ -1190,7 +1193,7 @@ if [ "$EXISTING_MODE" = "link" ]; then
   for f in "$PLATFORM_DIR"/agents/*.md "$PLATFORM_DIR"/agents/*.toml; do
     [ -L "$f" ] && rm -f "$f"
   done
-  for f in scripts/*.py scripts/*.sh; do
+  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
     [ -L "$f" ] && rm -f "$f"
   done
   for f in .writ/docs/*.md; do
@@ -1328,7 +1331,7 @@ fi
 
 if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
   f=""; base=""
-  for f in scripts/*.py scripts/*.sh; do
+  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
     [ -f "$f" ] || continue
     base=$(basename "$f")
     is_shippable_script "$base" && git add "$f" 2>/dev/null || true

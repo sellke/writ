@@ -1,0 +1,12 @@
+{
+  "label": "contradiction",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "contradiction",
+      "story": "story-4-webhook-retry-policy.md",
+      "summary": "One criterion caps retries at 3; another requires a fifth retry before the delivery is marked dead."
+    }
+  ]
+}

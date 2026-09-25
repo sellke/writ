@@ -1,0 +1,74 @@
+{
+  "answers": {
+    "s1_c1_ambiguity": {
+      "noul": 0.09,
+      "type": "noul"
+    },
+    "s1_c2_ambiguity": {
+      "noul": 0.57,
+      "type": "noul"
+    },
+    "s1_c3_ambiguity": {
+      "noul": 0.08,
+      "type": "noul"
+    },
+    "s1_contradiction": {
+      "noul": 0.12,
+      "type": "noul"
+    },
+    "s1_gap": {
+      "noul": 0.87,
+      "type": "noul"
+    }
+  },
+  "model": "typesafe-ai/jev",
+  "provider_metadata": {
+    "gateway": {
+      "cost": "0",
+      "gatewayCost": "0",
+      "generationId": "gen_01M3CWT0VRJBP6RRT4GVVN2ZSW",
+      "marketCost": "0.000057498",
+      "routing": {
+        "canonicalSlug": "typesafe-ai/jev",
+        "fallbacksAvailable": [],
+        "finalProvider": "typesafe-ai",
+        "modelAttemptCount": 1,
+        "modelAttempts": [
+          {
+            "canonicalSlug": "typesafe-ai/jev",
+            "providerAttemptCount": 1,
+            "providerAttempts": [
+              {
+                "credentialType": "system",
+                "endTime": 1790360486990,
+                "provider": "typesafe-ai",
+                "startTime": 1790360486798,
+                "statusCode": 200,
+                "success": true
+              }
+            ],
+            "success": true
+          }
+        ],
+        "originalModelId": "typesafe-ai/jev",
+        "planningReasoning": "Provider set restricted to: typesafe-ai. System credentials planned for: typesafe-ai. Total execution order: typesafe-ai(system)",
+        "resolvedProvider": "typesafe-ai",
+        "totalProviderAttemptCount": 1
+      },
+      "surchargeCost": "0"
+    },
+    "typesafe": {
+      "confidence": {}
+    }
+  },
+  "usage": {
+    "input_tokens": 1369,
+    "output_tokens": 112
+  },
+  "writ_recording": {
+    "backend": "vercel-gateway",
+    "fixture": "story-3-settlement-view-share-link",
+    "recorded_on": "2026-09-25",
+    "source": "live"
+  }
+}

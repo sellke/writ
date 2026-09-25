@@ -1,0 +1,4 @@
+$ uv run pytest tests/test_greet.py -v
+tests/test_greet.py::test_greet_returns_hello_name PASSED
+tests/test_greet.py::test_greet_empty_name_is_stranger PASSED
+2 passed in 0.02s

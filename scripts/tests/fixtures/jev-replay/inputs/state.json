@@ -1,0 +1,6 @@
+{
+  "story": {
+    "title": "Demo story",
+    "criteria": ["Given a, when b, then c"]
+  }
+}

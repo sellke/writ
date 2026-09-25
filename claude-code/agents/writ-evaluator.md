@@ -29,7 +29,7 @@ Adjudicate the story's acceptance criteria and recorded test results. Name resid
 [2-3 sentence verdict]
 
 ### Checklist Results
-Adjudicate each acceptance criterion against recorded test results.
+Adjudicate each acceptance criterion against recorded test results. One line per criterion: `- [x]` (satisfied) or `- [ ]` (not satisfied), the evidence, then its trailing `[AC-N.M]` tag.
 
 ### Residual (architecture / security / taste)
 [Findings or None]

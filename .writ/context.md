@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-25T03:30:00Z
+> Last Updated: 2026-09-25T18:56:30Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** `2026-09-24-flagged-harness-cuts` — Flagged harness cuts
-- **Status:** Complete (5/5 stories Completed ✅)
-- **Story:** 5 of 5 — Keep or revert (Completed ✅)
-- **Progress:** 30/30 tasks complete (100%)
+- **Spec:** `2026-09-25-jev-judgment-pilot` — Jev Judgment Pilot
+- **Status:** Complete (6/6 stories Completed ✅)
+- **Story:** 6 of 6 — Provider Setup Prompt (Completed ✅)
+- **Progress:** 40/40 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md, decisions.md present
-- **Active spec:** .writ/specs/2026-09-24-flagged-harness-cuts/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Active spec:** .writ/specs/2026-09-25-jev-judgment-pilot/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (22 entries)
 - **Docs:** .writ/docs/ (25 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- **DEV-010** Large (user-approved) — Story 5 sample reduced to one story × 2 per arm
-- **DEV-011** Small — Story 5 scripts not listed in spec-lite Files in Scope
-- **DEV-012** Small — install/update skip lean siblings before the decision exists
+- **DEV-029** Small — Installers ship `jev-thresholds.json`; eval runs an offline calibrate
+- **DEV-030** Small — Gateway setup summary also names `VERCEL_OIDC_TOKEN`
+- **DEV-031** Small — Argparse redaction applies to every subcommand; duplicate lines collapse; an unreadable config exits 2
 
 ## Open Issues
 
-7 files under `.writ/issues/` — 1 goal, 5 improvements, 1 feature.
+8 files under `.writ/issues/`.

@@ -1,0 +1,12 @@
+{
+  "label": "contradiction",
+  "expected_verdict": "pass",
+  "expected_reasons": [],
+  "findings": [
+    {
+      "code": "contradiction",
+      "story": "story-2-idle-session-timeout.md",
+      "summary": "One criterion ends every idle session at 15 minutes; another requires an idle draft session to still be active at 30 minutes."
+    }
+  ]
+}
