@@ -1,6 +1,7 @@
 # Story 1: Boundary Crossings Script
 
 > **Status:** Completed ✅
+> **Commit:** 7d1d263f389f48fcd87c4feff735d5fa6d54c856
 > **Priority:** High
 > **Dependencies:** None
 
