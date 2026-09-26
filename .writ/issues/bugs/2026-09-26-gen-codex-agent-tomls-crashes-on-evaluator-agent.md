@@ -27,3 +27,7 @@
 - `scripts/gen-codex-agent-tomls.py`
 - `scripts/tests/test_gen_codex_agent_tomls.py`
 - `codex/agents/*.toml`
+
+## Resolution
+
+2026-09-26, commit 60f10a9 (spec `2026-09-26-arch-lint-and-follow-ups`, Story 1). `evaluator-agent` is mapped, every stem is validated before any write, all 8 TOMLs were regenerated, and `gen-codex-agent-tomls.py --check` runs in `eval.sh` as `codex-tomls`.

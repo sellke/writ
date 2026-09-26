@@ -4,12 +4,12 @@
 
 | # | Story | Status | Priority | Dependencies | Criteria | Tasks | Progress |
 |---|---|---|---|---|---|---|---|
-| 1 | [Codex TOML Freshness](story-1-codex-toml-freshness.md) | Not Started | High | None | 5 | 7 | 0/7 |
-| 2 | [Issue-Closure Convention](story-2-issue-closure.md) | Not Started | Medium | None | 4 | 7 | 0/7 |
-| 3 | [Ruleset Detection and Gate 2 Wiring](story-3-ruleset-detection-gate2.md) | Not Started | High | None | 5 | 6 | 0/6 |
-| 4 | [Architecture-Lint Guide and ADR Hook](story-4-guidance-and-adr-hook.md) | Not Started | Medium | Story 3 | 4 | 6 | 0/6 |
+| 1 | [Codex TOML Freshness](story-1-codex-toml-freshness.md) | Completed ✅ | High | None | 5 | 7 | 7/7 |
+| 2 | [Issue-Closure Convention](story-2-issue-closure.md) | Completed ✅ | Medium | None | 4 | 7 | 7/7 |
+| 3 | [Ruleset Detection and Gate 2 Wiring](story-3-ruleset-detection-gate2.md) | Completed ✅ | High | None | 5 | 6 | 6/6 |
+| 4 | [Architecture-Lint Guide and ADR Hook](story-4-guidance-and-adr-hook.md) | Completed ✅ | Medium | Story 3 | 4 | 6 | 6/6 |
 
-**Total:** 4 stories · 18 criteria · 26 tasks · 0% complete
+**Total:** 4 stories · 18 criteria · 26 tasks · 100% complete
 
 ## Dependencies
 

@@ -1,6 +1,7 @@
 # Story 2: Issue-Closure Convention
 
 > **Status:** Completed ✅
+> **Commit:** f1f6f69ced676d96671c621ddcfdaa7c6f348a84
 > **Priority:** Medium
 > **Dependencies:** None
 

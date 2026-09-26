@@ -25,3 +25,7 @@ Gate 2 already runs a project's own linters. Import and layer rules written as l
 - `commands/implement-story.md` (Gate 2)
 - `commands/plan-product.md`, `commands/create-adr.md`
 - `.writ/docs/` (new guidance doc)
+
+## Resolution
+
+2026-09-26, commits cb1659c and 4edbe5b (spec `2026-09-26-arch-lint-and-follow-ups`, Stories 3 and 4). Gate 2 runs a detected dependency-cruiser or import-linter ruleset via `scripts/arch-lint.py detect` and reports `arch-lint:`; `.writ/docs/architecture-lint.md` ships one example per tool; `/create-adr` asks for an Enforcement note. A `/plan-product` hook was left out by the spec's scope decision. TypeScript dependency-cruiser configs are tracked in `improvements/2026-09-26-arch-lint-typescript-depcruise-configs.md`.

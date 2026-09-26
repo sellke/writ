@@ -68,3 +68,5 @@ a project-source import. Every hyphenated script under `scripts/` can only be te
 passed at 99.4%. Authenticity still returned `test_imports_no_source` / `blocking`.
 Carried to Completed on that coverage evidence; this is the same importlib-by-path
 gap already named above.
+
+**2026-09-26 (arch-lint-and-follow-ups):** the same verdict hits Python tests that only read markdown. `test_issue_closure_wiring.py` pins command prose and resolves no executed source, so it reads as `test_imports_no_source` although markdown is Writ's product source. Bash tests `test_eval_codex_tomls.sh` and `test_eval_drift_format.sh` were flagged the same way.
