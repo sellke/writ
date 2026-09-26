@@ -43,7 +43,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 16 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 17 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -59,6 +59,8 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` turns session friction into cited command diffs. Every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
 - **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
+- **Optional judgment provider** — TypeSafe's Jev model (direct or via the Vercel AI Gateway) can pre-judge acceptance criteria during `/create-spec` and `/verify-spec` spec analysis, and logs a shadow verdict beside the Gate 3 evaluator. It is off by default and requires a double opt-in: a `Judgment Provider` line in `.writ/config.md` *and* the backend's API key. Below its calibrated threshold, an answer falls back to the normal path; no Jev answer decides a gate or skips a spawn ([ADR-027](.writ/decision-records/adr-027-optional-judgment-provider.md)). Set it up with `python3 scripts/jev-judge.py setup`.
+- **Measured, not assumed** — `scripts/pipeline-baseline.py` replays stories in isolation with validated token counts and price-weighted cost (`scripts/harness-cost.py`), so harness changes are kept or reverted on evidence. The `WRIT_HARNESS_LEAN=1` flag loads leaner preamble and command bodies for experiments; its first baseline recorded null (no measurable win, on a reduced sample), so the default path is unchanged and install does not ship the lean files.
 - **Native-memory interop** — markdown stays canonical while adapters document how to ride each platform's native memory; external knowledge indexes (e.g., GBrain via MCP) are consumers, with brain-first retrieval via the `gbrain-interop` skill
 - **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI, plus an OpenClaw mapping guide
 
@@ -105,7 +107,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/plan-product` | Product planning with contract-first approach |
-| `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory). `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
+| `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory; Jev pre-judges first when enabled). `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
 | `/edit-spec` | Safely modify existing specifications |
 | `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
@@ -135,7 +137,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/assess-spec` | **Pre-implementation health check.** Flags oversized stories, deep dependency chains, context accumulation risks, and file-overlap conflicts. Recommends specific decomposition strategies. Also runs as a pre-flight check inside `/implement-spec`. |
-| `/verify-spec` | Metadata diagnostic (checks 1–8): story/README integrity, completion, dependencies, deliverables, contract drift, spec-lite integrity, owner field. Check 3g runs `spec-analyze.py` as notes. Auto-fix by default; optional standalone pass. |
+| `/verify-spec` | Metadata diagnostic (checks 1–8): story/README integrity, completion, dependencies, deliverables, contract drift, spec-lite integrity, owner field. Check 3g runs `spec-analyze.py` as notes (Jev first when enabled). Auto-fix by default; optional standalone pass. |
 | `/create-uat-plan` | **UAT plan generation.** Reads completed stories and generates human-readable test scenarios from acceptance criteria, error maps, shadow paths, and edge cases. Enriches with "What Was Built" details. |
 | `/security-audit` | Full security audit: dependencies, secrets, code analysis, infrastructure |
 | `/release` | Inline release gate (spec checks, build probes, conditional test suite) → changelog, version bump, git tag, GitHub release. Also silently auto-archives the spec behind a just-merged PR, once resolved unambiguously. |
@@ -194,6 +196,7 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`what-was-built-authoring`](skills/what-was-built-authoring/SKILL.md) | Extract implementation facts from agent output and format them into a What Was Built record |
 | [`subagent-result-completeness`](skills/subagent-result-completeness/SKILL.md) | Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early |
 | [`subagent-worktree-integration`](skills/subagent-worktree-integration/SKILL.md) | Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale |
+| [`plain-prose`](skills/plain-prose/SKILL.md) | Rewrite mannered prose in instructional markdown (commands, agents, skills, adapters) into plain, direct text that keeps every rule and literal |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 
@@ -312,7 +315,11 @@ When Writ runs, it creates a `.writ/` directory in your project:
 
 ```
 .writ/
+├── config.md                 # Project settings (version file, test runner, judgment provider)
+├── context.md                # Orientation snapshot, regenerated by /status
+├── quality-baseline.md       # Acknowledged quality findings (from /initialize)
 ├── specs/                    # Feature specifications
+│   ├── archive/              # Completed specs (moved by /status --archive or /release)
 │   └── YYYY-MM-DD-feature/
 │       ├── spec.md           # Main specification (from contract)
 │       ├── spec-lite.md      # Condensed for AI context
@@ -328,13 +335,14 @@ When Writ runs, it creates a `.writ/` directory in your project:
 ├── research/                 # Research outputs
 ├── retros/                   # Retrospective JSON snapshots
 ├── security/                 # Security audit reports
-├── issues/                   # Quick-captured issues
+├── issues/                   # Quick-captured issues (goals/ holds Goal Cards)
+├── goals/                    # GOAL.md / VERIFY.md emitted from loop: yes Goal Cards
 ├── knowledge/                # Cross-cutting accumulated knowledge
 │   ├── decisions/            # Small decisions that don't warrant a full ADR
 │   ├── conventions/          # Codebase patterns and conventions
 │   ├── glossary/             # Domain terminology
 │   └── lessons/              # Postmortem-style learnings
-├── eval/                     # Eval Tier 1 inputs (e.g., anti-sycophancy phrases)
+├── eval/                     # Eval inputs (anti-sycophancy phrases, pipeline baselines)
 ├── docs/                     # Project documentation
 │   ├── tech-stack.md
 │   ├── code-style.md
@@ -353,6 +361,20 @@ When Writ runs, it creates a `.writ/` directory in your project:
 6. **Self-improving** — Commands get better through use. `/refresh-command` + `/retro` close the feedback loop.
 7. **Platform-agnostic** — Markdown instructions work anywhere AI agents run.
 8. **Durable substrate** — Specs, decisions, and accumulated knowledge live as plain-text markdown in git. Survives projects, teams, and AI platform churn.
+
+## Developing Writ
+
+This repo uses Writ to build Writ. Product source lives in `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, and `cursor/`. `.cursor/`, `.claude/`, and `.codex/` are symlinks back to it, so edits are live immediately. Don't run `install.sh` on this repo. See [`.writ/docs/self-dogfooding.md`](.writ/docs/self-dogfooding.md).
+
+The product is markdown, but `scripts/` carries a Python and bash test suite plus the quality gate. The Python floor is 3.9.
+
+```bash
+uv run pytest                                                        # Python tests (uv run --python 3.9 pytest for the floor)
+for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done   # Bash tests
+bash scripts/eval.sh                                                 # Quality gate; --check=<name> for one check
+```
+
+`eval.sh` runs `git init` in a temp directory, so run it outside any sandbox. It also runs on every PR via GitHub Actions.
 
 ## Attribution
 
