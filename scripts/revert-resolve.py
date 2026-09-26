@@ -12,8 +12,13 @@ Resolution order (per commit source), highest confidence first:
   1. `recorded`     - the story file's `> **Commit:** <sha>` field
                       (written by `/implement-story` Step 4). Verified present
                       in history; if absent it becomes a `ghost` candidate.
-  2. `ref-footer`   - `git log --grep "Ref: .*<id>"` (shipped work carries the
-                      `/ship` `Ref:` footer).
+  2. `ref-footer`   - a `/ship` `Ref:` footer naming this spec's folder (and,
+                      for a story, that story file). A Ref naming another spec,
+                      or no spec, never matches on story number alone.
+  2b. `task-subject` - `Story N (N.x): ...` subjects between the spec-scaffold
+                      commit and the story's completion commit, excluding any
+                      commit whose Ref or `.writ/specs/` paths name only
+                      another spec.
   3. `phase-state`  - `.writ/state/phase-execution-*.json` `commit`/`mergeCommit`
                       tied to the spec (read-only lookup).
   4. `ghost`        - for any recorded SHA absent from history, the top
@@ -245,16 +250,41 @@ def _resolve_recorded(repo: Path, story_path: Path,
             )
 
 
-def _resolve_ref_footer(repo: Path, needle: str,
+REF_LINE = re.compile(r"^\s*Ref:\s*(.+?)\s*$", re.MULTILINE)
+SPEC_IN_REF = re.compile(r"\.writ/specs/([^/\s]+)")
+
+
+def _ref_values(body: str) -> list[str]:
+    return REF_LINE.findall(body)
+
+
+def _ref_matches(ref: str, spec_id: str, story_key: str | None) -> bool:
+    """True when a `Ref:` value names `spec_id` (and, for a story, that exact
+    story file). A Ref naming another spec, or no spec, never matches."""
+    specs = SPEC_IN_REF.findall(ref)
+    if spec_id not in specs:
+        return False
+    if story_key is None:
+        return True
+    pattern = re.compile(
+        re.escape(f"{spec_id}/user-stories/{story_key}") + r"(?:[-.]|$)")
+    return bool(pattern.search(ref))
+
+
+def _resolve_ref_footer(repo: Path, spec_id: str, story_key: str | None,
                         commits: dict[str, dict]) -> None:
+    """`/ship` `Ref:` footers scoped to the spec (and story, when given)."""
     out = _git(
-        repo, "log", f"--grep=Ref: .*{re.escape(needle)}",
-        "--extended-regexp", "--format=%H%x00%s", check=False,
+        repo, "log", f"--grep=Ref: .*{re.escape(spec_id)}",
+        "--extended-regexp", "--format=%H%x00%s%x00%B%x1e", check=False,
     ).stdout
-    for line in out.splitlines():
-        if "\x00" not in line:
+    for record in out.split("\x1e"):
+        record = record.strip("\n")
+        if record.count("\x00") < 2:
             continue
-        sha, subject = line.split("\x00", 1)
+        sha, subject, body = record.split("\x00", 2)
+        if not any(_ref_matches(r, spec_id, story_key) for r in _ref_values(body)):
+            continue
         if _commit_exists(repo, sha):
             commits.setdefault(sha, {
                 "sha": sha,
@@ -262,6 +292,67 @@ def _resolve_ref_footer(repo: Path, needle: str,
                 "source": "ref-footer",
                 "confidence": "exact",
             })
+
+
+def _scaffold_sha(repo: Path, spec_id: str) -> str | None:
+    rel = f".writ/specs/{spec_id}/spec.md"
+    out = _git(repo, "log", "--diff-filter=A", "--format=%H", "--", rel,
+               check=False).stdout.split()
+    return out[-1] if out else None
+
+
+def _story_upper_bound(repo: Path, story_path: Path) -> str | None:
+    """The story's completion commit (recorded SHA) or, failing that, the
+    latest commit that touched the story file."""
+    recorded = _read_commit_field(story_path)
+    if recorded and _commit_exists(repo, recorded):
+        return _full_sha(repo, recorded)
+    rel = story_path.relative_to(repo).as_posix()
+    out = _git(repo, "log", "-1", "--format=%H", "--", rel, check=False).stdout.strip()
+    return out or None
+
+
+def _foreign_only(repo: Path, sha: str, body: str, spec_id: str) -> bool:
+    """True when a commit belongs to another spec: its Ref footer names a
+    different spec, or it touches other specs' folders and not this one's."""
+    for ref in _ref_values(body):
+        named = SPEC_IN_REF.findall(ref)
+        if named and spec_id not in named:
+            return True
+    files = _git(repo, "show", "--name-only", "--format=", sha,
+                 check=False).stdout.split("\n")
+    touched = {m.group(1) for f in files
+               for m in [re.match(r"\.writ/specs/([^/]+)/", f)] if m}
+    return bool(touched) and spec_id not in touched
+
+
+def _resolve_task_subjects(repo: Path, spec_id: str, story_path: Path,
+                           commits: dict[str, dict]) -> None:
+    """Task-numbered subjects (`Story N (N.x): ...`) inside the spec's commit
+    range: after the spec-scaffold commit, up to the story's completion."""
+    scaffold = _scaffold_sha(repo, spec_id)
+    upper = _story_upper_bound(repo, story_path)
+    if not scaffold or not upper:
+        return
+    num = _normalize_story_key(story_path.stem).split("-", 1)[1]
+    subject_re = re.compile(rf"^Story\s+{num}\s*\(\s*{num}\.")
+    out = _git(repo, "log", "--format=%H%x00%s%x00%B%x1e",
+               upper, f"^{scaffold}", check=False).stdout
+    for record in out.split("\x1e"):
+        record = record.strip("\n")
+        if record.count("\x00") < 2:
+            continue
+        sha, subject, body = record.split("\x00", 2)
+        if not subject_re.match(subject):
+            continue
+        if _foreign_only(repo, sha, body, spec_id):
+            continue
+        commits.setdefault(sha, {
+            "sha": sha,
+            "subject": subject,
+            "source": "task-subject",
+            "confidence": "exact",
+        })
 
 
 def _phase_state_commits(repo: Path, spec_id: str) -> list[str]:
@@ -299,13 +390,8 @@ def _resolve_phase_state(repo: Path, spec_id: str,
 
 def _spec_scaffold_commit(repo: Path, spec_id: str,
                           commits: dict[str, dict]) -> None:
-    rel = f".writ/specs/{spec_id}/spec.md"
-    out = _git(repo, "log", "--diff-filter=A", "--format=%H", "--", rel,
-               check=False).stdout.split()
-    if not out:
-        return
-    sha = out[-1]  # earliest add
-    if _commit_exists(repo, sha):
+    sha = _scaffold_sha(repo, spec_id)
+    if sha and _commit_exists(repo, sha):
         commits.setdefault(sha, {
             "sha": sha,
             "subject": _subject(repo, sha),
@@ -382,7 +468,8 @@ def resolve_story(repo: Path, story_id: str, spec_id: str | None = None) -> dict
     warnings: list[str] = []
 
     _resolve_recorded(repo, story_path, commits, ghosts, warnings)
-    _resolve_ref_footer(repo, key, commits)
+    _resolve_ref_footer(repo, resolved_spec, key, commits)
+    _resolve_task_subjects(repo, resolved_spec, story_path, commits)
     _resolve_phase_state(repo, resolved_spec, commits)
 
     return _order_and_finalize(repo, "story", key, commits, ghosts, warnings)
@@ -402,7 +489,9 @@ def resolve_spec(repo: Path, spec_id: str) -> dict[str, Any]:
     for story_path in _story_files_for_spec(repo, spec_id):
         _resolve_recorded(repo, story_path, commits, ghosts, warnings)
 
-    _resolve_ref_footer(repo, spec_id, commits)
+    _resolve_ref_footer(repo, spec_id, None, commits)
+    for story_path in _story_files_for_spec(repo, spec_id):
+        _resolve_task_subjects(repo, spec_id, story_path, commits)
     _resolve_phase_state(repo, spec_id, commits)
     _spec_scaffold_commit(repo, spec_id, commits)
 

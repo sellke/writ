@@ -169,6 +169,11 @@ class NoNewGateNumberTests(unittest.TestCase):
         self.assertNotIn("Gate 2 spawns the coding agent", text)
 
 
+def between(text: str, start: str, end: str) -> str:
+    begin = text.index(start)
+    return text[begin:text.index(end, begin + len(start))]
+
+
 class InitializeBaselineTests(unittest.TestCase):
     """AC-6.1, AC-6.2 and AC-6.3 — record existing debt, write the coverage
     floor at the measured value, and never re-baseline automatically."""
@@ -274,6 +279,167 @@ class ClassificationDocBindingTests(unittest.TestCase):
             "timeout", "nothing_inspected",
         ):
             self.assertIn(reason, text, reason)
+
+
+class Gate3RiskRouteTests(unittest.TestCase):
+    """Spec `2026-09-26-drift-arch-guards` Story 2: Gate 2.5 computes a
+    deterministic Gate 3 route, and a routed story swaps its Gate 3 agent
+    rather than adding one."""
+
+    MAP = ".writ/state/boundary-<story-stem>.json"
+    CROSSINGS = (
+        "python3 scripts/boundary-map.py crossings --map " + MAP
+        + " --changed <files> --story <story-file> --surface <class>"
+    )
+    REPORT_LINE = 'gate3-route: <agent> (<reasons joined by "; ">)'
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.gate05 = between(self.text, "#### Gate 0.5:", "#### Gate 1:")
+        self.gate25 = between(self.text, "#### Gate 2.5:", "#### Gate 3:")
+        self.gate3 = between(self.text, "#### Gate 3:", "#### Gate 3.5:")
+
+    def test_gate_0_5_saves_the_map_under_state(self) -> None:
+        """AC-2.1"""
+        self.assertIn("boundary-map.py compute", self.gate05)
+        self.assertIn("mkdir -p .writ/state", self.gate05)
+        self.assertIn("| tee " + self.MAP, self.gate05)
+
+    def test_gate_2_5_runs_crossings_after_change_surface(self) -> None:
+        """AC-2.1, AC-2.5"""
+        self.assertIn(self.CROSSINGS, self.gate25)
+        self.assertLess(
+            self.gate25.index("change-surface.py classify"),
+            self.gate25.index(self.CROSSINGS),
+        )
+        self.assertIn("`gate3_route`", self.gate25)
+
+    def test_crossings_that_cannot_run_route_up(self) -> None:
+        """AC-2.2: an unreadable map or missing helper never falls back to
+        the evaluator (spec Business Rule 2)."""
+        self.assertIn("helper that cannot run", self.gate25)
+        self.assertIn("`unverifiable: <reason>`", self.gate25)
+
+    def test_gate_3_route_sentence(self) -> None:
+        """AC-2.2, AC-2.5"""
+        self.assertIn(
+            "when `gate3_route` names `review-agent`, spawn `review-agent` in its place",
+            self.gate3,
+        )
+        self.assertIn("`reason:` lines as `boundary_overlap_summary`", self.gate3)
+        self.assertIn("`--review-only` has no map, so the evaluator runs", self.gate3)
+        self.assertIn("`--full-pipeline` always runs `review-agent`", self.gate3)
+
+    def test_route_swaps_rather_than_adds_a_marker(self) -> None:
+        """AC-2.2, AC-2.4: the route is prose; Gate 3 keeps exactly its two
+        existing Agent markers (default + `--full-pipeline`)."""
+        self.assertEqual(self.gate3.count("> **Agent:**"), 2)
+        self.assertNotIn("Task(", self.gate3)
+
+    def test_story_report_carries_the_route_line(self) -> None:
+        """AC-2.3"""
+        self.assertIn(self.REPORT_LINE, self.gate3)
+        step4 = between(self.text, "### Step 4: Story Completion", "## Error Handling")
+        self.assertIn("`gate3-route:`", step4)
+
+    def test_fail_counter_is_agent_neutral(self) -> None:
+        """AC-2.3: two-fail escalation is unchanged (spec Business Rule 5)."""
+        control = between(self.text, "**Control flow:**", "## Command Process")
+        self.assertIn("Gate 3 FAIL (either agent) increments it", control)
+        self.assertIn("Reset the counter on Gate 3 PASS", control)
+        self.assertNotIn("evaluator FAIL increments it", control)
+
+    def test_pipeline_and_invocation_name_the_route(self) -> None:
+        """AC-2.2"""
+        g3 = next(ln for ln in self.text.splitlines() if ln.startswith("| Gate 3 |"))
+        self.assertIn("`review-agent` when Gate 2.5 routes it", g3)
+        row = next(
+            ln for ln in self.text.splitlines()
+            if ln.startswith("| `/implement-story story-3` |")
+        )
+        self.assertIn("`review-agent` when Gate 2.5 routes it", row)
+
+    def test_both_gate_3_spawns_receive_the_contract(self) -> None:
+        """Story 3 follow-up: the Gate 3 prose matches the routing rows."""
+        default = next(ln for ln in self.gate3.splitlines() if ln.startswith("Default spawn is"))
+        self.assertIn("`contract_content`", default)
+        same = next(ln for ln in self.gate3.splitlines() if "Same inputs:" in ln)
+        self.assertIn("`contract_content`", same)
+
+    def test_gate_3_5_medium_label_omits_integration(self) -> None:
+        """Story 3 follow-up: integration-point changes are Large now."""
+        drift = between(self.text, "##### A. Drift Response", "`Read skills/drift-triage")
+        medium = drift.split("**Medium**", 1)[1].split("**Large**", 1)[0]
+        self.assertNotIn("integration", medium)
+
+
+class Gate2ArchLintTests(unittest.TestCase):
+    """Spec `2026-09-26-arch-lint-and-follow-ups` Story 3: Gate 2 detects and
+    runs a project's architecture ruleset through its existing lint failure
+    path, and the story report carries one `arch-lint:` line."""
+
+    DETECT = "python3 scripts/arch-lint.py detect --repo ."
+    REPORT_FORMS = (
+        '`arch-lint: <names joined ", ">`',
+        "`(via eslint)`",
+        "`(via tests)`",
+        "`(not installed)`",
+        "`arch-lint: none — see .writ/docs/architecture-lint.md`",
+        "`arch-lint: unverifiable (<reason>)`",
+    )
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.gate2 = between(self.text, "#### Gate 2: Lint", "#### Gate 2.5:")
+
+    def test_gate_2_runs_detect_after_the_linters(self) -> None:
+        """AC-3.4"""
+        self.assertIn(self.DETECT, self.gate2)
+        self.assertLess(
+            self.gate2.index("Auto-detect and run project linters"),
+            self.gate2.index(self.DETECT),
+        )
+
+    def test_each_command_runs_through_the_lint_failure_path(self) -> None:
+        """AC-3.4 (spec Business Rule 2): no auto-fix, flag for review."""
+        self.assertIn("run each `command:` line from the repo root", self.gate2)
+        self.assertIn("a non-zero exit takes the **On failure** path", self.gate2)
+        self.assertIn("flag for review", self.gate2)
+
+    def test_missing_ruleset_never_blocks(self) -> None:
+        """AC-3.4 (spec Business Rule 1)"""
+        self.assertIn("A missing or not-installed ruleset never fails the gate", self.gate2)
+
+    def test_gate_2_names_every_report_form(self) -> None:
+        """AC-3.4"""
+        for form in self.REPORT_FORMS:
+            self.assertIn(form, self.gate2, form)
+
+    def test_step_4_item_8_reports_the_line(self) -> None:
+        """AC-3.4, AC-3.5"""
+        item8 = next(ln for ln in self.text.splitlines() if ln.startswith("8. **Report**"))
+        self.assertIn("`arch-lint:`", item8)
+
+    def test_detection_is_prose_not_a_spawn(self) -> None:
+        """AC-3.5: spawn-cap counts only Agent markers and Task( calls."""
+        self.assertNotIn("> **Agent:**", self.gate2)
+        self.assertNotIn("Task(", self.gate2)
+
+    def test_quick_keeps_gate_2_and_so_the_detection(self) -> None:
+        """AC-3.4"""
+        row = next(ln for ln in self.text.splitlines() if ln.startswith("| Gate 2 |"))
+        self.assertTrue(row.rstrip().endswith("| — | — |"), row)
+        self.assertNotIn("Skip in", self.gate2)
+        quick = between(self.text, "## Quick Mode (`--quick`)", "## Completion")
+        skips = next(ln for ln in quick.splitlines() if ln.startswith("**Skips:**"))
+        keeps = next(ln for ln in quick.splitlines() if ln.startswith("**Keeps:**"))
+        self.assertNotIn("Gate 2", skips)
+        self.assertIn("Gate 2 (lint + build smoke)", keeps)
+
+    def test_lean_sibling_is_untouched(self) -> None:
+        """AC-3.5 (spec Business Rule 7)"""
+        lean = read(REPO_ROOT / "commands" / "implement-story.lean.md")
+        self.assertNotIn("arch-lint", lean)
 
 
 if __name__ == "__main__":

@@ -59,7 +59,7 @@ The file is at `.writ/context.md` — project root, never inside a spec folder.
 
 ## Open Issues
 
-{Count of files in `.writ/issues/` subdirectories — omit section if `.writ/issues/` absent}
+{Count of files in `.writ/issues/` subdirectories without a line exactly `## Resolution` — omit section if `.writ/issues/` absent}
 ```
 
 ### Fallbacks when sources are missing

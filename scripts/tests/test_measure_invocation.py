@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tests for measure-invocation.py — per-invocation load measurement.
 
+AC tags in this file belong to spec 2026-09-05-phase11-repair-and-baseline.
+
 The tool exists because Phase 10's token success criterion reads
 "measured **per-invocation load**, not just file size" and nothing measured
 that. `eval-leanness.py` weighs the whole `commands/` directory; a command

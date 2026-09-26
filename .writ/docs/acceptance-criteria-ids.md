@@ -252,8 +252,13 @@ binaries, does not follow symlinks out of the repo, and skips the checker's own 
 `scripts/tests/test_ac_trace.py` (its `AC-<n>.<m>` tokens are isolated temp-repo fixtures, not
 citations of a live spec), and skips everything under `scripts/tests/fixtures/` (fixture stories
 carry their own `[AC-N.M]` tags as test data). A test citation of `AC-N.*` is not a `dangling_reference` against a
-spec that has no story N — that token belongs to another spec. A task in the spec under check
-that cites a missing ID still always fires.
+spec that has no story N — that token belongs to another spec. A test token also belongs to the
+spec folder name (active or archived) most recently named above it in the same file; tokens
+attributed to another spec neither dangle nor cover. Tokens with no spec named above them count
+for every spec, so name the spec (e.g. ``Story 3 of `2026-09-08-phase11-stage3-spec-analysis` ``)
+in the docstring or comment that carries the tags, and append new sections that name a different
+spec at the end of a shared test file. A task in the spec under check that cites a missing ID
+still always fires.
 
 ## Not This Document's Job
 

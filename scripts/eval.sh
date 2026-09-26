@@ -76,6 +76,7 @@ CHECKS=(
   boundary-map
   change-surface
   drift-format
+  codex-tomls
   spec-analyze
   jev-judge
   goal-emit
@@ -635,7 +636,7 @@ term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md 
 EOF
 }
 
-# Every backticked `*.md` token in commands/*.md is a claim that a file exists
+# Every backticked `*.md` token in commands/*.md and the shared base is a claim that a file exists
 # or will exist. The token grammar, chosen so the allowlist stays under ~30
 # rows and readable: a backticked run with no whitespace ending in `.md`;
 # skipped when it carries a placeholder or glob character (`* { } < > [ ] $`,
@@ -646,6 +647,19 @@ EOF
 # untracked file by that basename exists in the tree — the assessment's own
 # criterion for `objective.md` ("zero files by that name in the repo").
 # Anything left must be on the allowlist above, or it is a dead end.
+# Files check_referenced_paths scans: every command file plus the shared base
+# (system-instructions.md and commands/_preamble.md, which command_files
+# skips as an underscore file). The base carries pointer links to docs moved
+# out of it (Stage 2a, ADR-026), and those pointers must resolve too.
+referenced_paths_files() {
+  local file
+  command_files
+  for file in "$PROJECT_ROOT/system-instructions.md" "$PROJECT_ROOT/commands/_preamble.md"; do
+    [ -f "$file" ] && printf "%s\n" "$file"
+  done
+  return 0
+}
+
 check_referenced_paths() {
   local file rel line_no token base resolved basenames allow allowed_paths used
   local allow_path allow_cmd allow_reason
@@ -700,7 +714,7 @@ check_referenced_paths() {
         }
       }
     ' "$file")
-  done < <(command_files)
+  done < <(referenced_paths_files)
 
   # A row nothing references any more is stale: the reference it excused was
   # removed, so the row should go too (or it is hiding a typo in the path).
@@ -3936,8 +3950,13 @@ check_pruned_base() {
       *)
         code="${line%%: *}"
         detail="${line#*: }"
-        add_finding "pruned-base:$code" "$detail" \
-          "Add the ledger row for the removed line (or restore the line), or fix the malformed row; see ADR-026."
+        if [ "$code" = "over_cap" ]; then
+          add_finding "pruned-base:$code" "$detail" \
+            "Bring system-instructions.md + commands/_preamble.md under the cap: cut more lines (each with a ledger row) or move reference material out to a doc the base points to; see ADR-026."
+        else
+          add_finding "pruned-base:$code" "$detail" \
+            "Add the ledger row for the removed line (or restore the line), or fix the malformed row; see ADR-026."
+        fi
         ;;
     esac
   done <<< "$out"
@@ -3994,13 +4013,70 @@ check_verdict_provenance() {
   done <<< "$output"
 }
 
+# Story files of every active spec (.writ/specs/<spec>/user-stories/story-*.md,
+# archive excluded). The live Gate 3 / Gate 0 checks run once per story so
+# they judge this repo's real specs instead of printing a constant
+# `unverifiable` for a missing --spec / --story / file mode.
+active_story_files() {
+  local spec story
+  for spec in "$PROJECT_ROOT"/.writ/specs/*/; do
+    [ -d "$spec" ] || continue
+    [ "$(basename "$spec")" = "archive" ] && continue
+    [ -f "${spec}spec.md" ] || continue
+    for story in "${spec}"user-stories/story-*.md; do
+      [ -f "$story" ] && printf "%s\n" "$story"
+    done
+  done
+  return 0
+}
+
+# usage: relay_gate_helper <tag> <helper-rel> <rc> <output> <scope> <fail-hint> <reason-hint>
+# Shared relay for the Stage 2b gate helpers. `fail` and (on exit 1) its
+# `reason:` lines are findings; everything else is a note. With a <scope>
+# (a story path), non-blocking output collapses to one note per story so a
+# per-story sweep stays readable, and findings name the story.
+relay_gate_helper() {
+  local tag="$1" helper_rel="$2" rc="$3" output="$4" scope="$5" fail_hint="$6" reason_hint="$7"
+  local line where="$helper_rel" joined=""
+
+  [ -n "$scope" ] && where="$scope"
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      fail)
+        add_finding "$where" "$tag printed fail." "$fail_hint"
+        continue
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "$tag:${line#reason: }" "${scope:+$scope: }${line#reason: }" "$reason_hint"
+          continue
+        fi
+        ;;
+    esac
+    if [ -n "$scope" ]; then
+      joined="${joined:+$joined | }$line"
+    else
+      add_note "NOTE [$tag]: $line"
+    fi
+  done <<< "$output"
+  if [ -n "$scope" ] && [ -n "$joined" ]; then
+    add_note "NOTE [$tag] $scope: $joined"
+  fi
+  return 0
+}
+
 check_review_override() {
   # Story 1 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 3's
-  # mechanical override. Relays review-override.py findings via add_finding
-  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  # mechanical override. Runs once per active story with --spec and --story
+  # (ac-trace on that story; --tests is Gate 3's per-story input, not
+  # eval's). A `fail` is a finding; pass / unverifiable are notes. Not
+  # count-blocking. With no active spec (fixture trees) it runs bare.
   # --prose-only-blocking is owned by check_verdict_provenance (Story 5).
   local helper="$PROJECT_ROOT/scripts/review-override.py"
-  local output rc line
+  local output rc story spec stories
+  local fail_hint="Resolve the ac-trace or test-integrity finding the override reported."
+  local reason_hint="Resolve the helper finding; Gate 3 is FAIL-only (mechanical pass does not wash out an agent FAIL)."
 
   if [ ! -f "$helper" ]; then
     add_finding "scripts/review-override.py" "review-override helper is missing." \
@@ -4008,44 +4084,46 @@ check_review_override() {
     return
   fi
 
-  rc=0
-  output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
-  if [ "$rc" -eq 2 ]; then
-    add_finding "scripts/review-override.py" "review-override.py check refused: ${output##*$'\n'}" \
-      "Fix the review-override.py CLI so python3 scripts/review-override.py check --repo . parses."
+  stories="$(active_story_files)"
+  if [ -z "$stories" ]; then
+    rc=0
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+    if [ "$rc" -eq 2 ]; then
+      add_finding "scripts/review-override.py" "review-override.py check refused: ${output##*$'\n'}" \
+        "Fix the review-override.py CLI so python3 scripts/review-override.py check --repo . parses."
+      return
+    fi
+    relay_gate_helper review-override scripts/review-override.py "$rc" "$output" "" "$fail_hint" "$reason_hint"
     return
   fi
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    case "$line" in
-      fail)
-        add_finding "scripts/review-override.py" "review-override printed fail." \
-          "Resolve the ac-trace or test-integrity finding the override reported."
-        ;;
-      pass|unverifiable)
-        add_note "NOTE [review-override]: $line"
-        ;;
-      "reason: "*)
-        if [ "$rc" -eq 1 ]; then
-          add_finding "review-override:${line#reason: }" "${line#reason: }" \
-            "Resolve the helper finding; Gate 3 is FAIL-only (mechanical pass does not wash out an agent FAIL)."
-        else
-          add_note "NOTE [review-override]: $line"
-        fi
-        ;;
-      *)
-        add_note "NOTE [review-override]: $line"
-        ;;
-    esac
-  done <<< "$output"
+
+  while IFS= read -r story; do
+    spec="${story%/user-stories/*}"
+    rc=0
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" --spec "$spec" --story "$story" 2>&1)" || rc=$?
+    if [ "$rc" -eq 2 ]; then
+      add_finding "$(relpath "$story")" "review-override.py check refused: ${output##*$'\n'}" \
+        "Fix the review-override.py CLI so check --spec PATH --story PATH parses."
+      continue
+    fi
+    relay_gate_helper review-override scripts/review-override.py "$rc" "$output" "$(relpath "$story")" "$fail_hint" "$reason_hint"
+  done <<< "$stories"
 }
 
 check_arch_check() {
   # Story 2 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 0's
-  # mechanical re-derivation. Relays arch-check.py findings via add_finding
-  # and the summary / unverifiable reasons via add_note. Not count-blocking.
+  # mechanical re-derivation. Runs once per active story in --planned mode,
+  # the planned set being the owned paths boundary-map.py computes from the
+  # story's Implementation Tasks, with that map as --boundary (Gate 0's live
+  # pre-implementation inputs). A `fail` (story-deps blocker) is a finding;
+  # proceed / caution / unverifiable are notes. Not count-blocking. With no
+  # active spec or no boundary-map.py it runs bare (no file mode).
   local helper="$PROJECT_ROOT/scripts/arch-check.py"
-  local output rc line
+  local mapper="$PROJECT_ROOT/scripts/boundary-map.py"
+  local output rc brc story stories map path
+  local planned=()
+  local fail_hint="Resolve the story-deps graph finding the checker reported."
+  local reason_hint="Resolve the story-deps blocker; Gate 0 ABORT stays LLM-judged."
 
   if [ ! -f "$helper" ]; then
     add_finding "scripts/arch-check.py" "arch-check helper is missing." \
@@ -4053,46 +4131,69 @@ check_arch_check() {
     return
   fi
 
-  rc=0
-  output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
-  if [ "$rc" -eq 2 ]; then
-    add_finding "scripts/arch-check.py" "arch-check.py check refused: ${output##*$'\n'}" \
-      "Fix the arch-check.py CLI so python3 scripts/arch-check.py check --repo . parses."
+  stories="$(active_story_files)"
+  if [ -z "$stories" ] || [ ! -f "$mapper" ]; then
+    rc=0
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
+    if [ "$rc" -eq 2 ]; then
+      add_finding "scripts/arch-check.py" "arch-check.py check refused: ${output##*$'\n'}" \
+        "Fix the arch-check.py CLI so python3 scripts/arch-check.py check --repo . parses."
+      return
+    fi
+    relay_gate_helper arch-check scripts/arch-check.py "$rc" "$output" "" "$fail_hint" "$reason_hint"
     return
   fi
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    case "$line" in
-      fail)
-        add_finding "scripts/arch-check.py" "arch-check printed fail." \
-          "Resolve the story-deps graph finding the checker reported."
-        ;;
-      pass|unverifiable)
-        add_note "NOTE [arch-check]: $line"
-        ;;
-      "reason: "*)
-        if [ "$rc" -eq 1 ]; then
-          add_finding "arch-check:${line#reason: }" "${line#reason: }" \
-            "Resolve the story-deps blocker; Gate 0 ABORT stays LLM-judged."
-        else
-          add_note "NOTE [arch-check]: $line"
-        fi
-        ;;
-      *)
-        add_note "NOTE [arch-check]: $line"
-        ;;
-    esac
-  done <<< "$output"
+
+  map="$(mktemp)"
+  while IFS= read -r story; do
+    brc=0
+    python3 "$mapper" compute --story "$story" --repo "$PROJECT_ROOT" > "$map" 2>/dev/null || brc=$?
+    if [ "$brc" -ne 0 ]; then
+      add_note "NOTE [arch-check] $(relpath "$story"): unverifiable | boundary-map.py compute exited $brc; no planned set"
+      continue
+    fi
+    planned=()
+    while IFS= read -r path; do
+      [ -n "$path" ] && planned+=("$path")
+    done < <(python3 -c 'import json, sys; print("\n".join(json.load(open(sys.argv[1])).get("owned") or []))' "$map" 2>/dev/null)
+    rc=0
+    output="$(python3 "$helper" check --story "$story" --repo "$PROJECT_ROOT" --boundary "$map" \
+      --planned ${planned[@]+"${planned[@]}"} 2>&1)" || rc=$?
+    if [ "$rc" -eq 2 ]; then
+      add_finding "$(relpath "$story")" "arch-check.py check refused: ${output##*$'\n'}" \
+        "Fix the arch-check.py CLI so check --story PATH --planned FILE … --boundary PATH parses."
+      continue
+    fi
+    relay_gate_helper arch-check scripts/arch-check.py "$rc" "$output" "$(relpath "$story")" "$fail_hint" "$reason_hint"
+  done <<< "$stories"
+  rm -f "$map"
+}
+
+# Source files docs-check judges: every tracked or untracked Python / JS / TS
+# file, minus tests (fixture strings are not public API) and .writ/ (spec
+# workspace and archive backups). Repo-relative, one per line.
+docs_check_source_files() {
+  local list
+  list="$(git -C "$PROJECT_ROOT" ls-files -co --exclude-standard -- \
+    '*.py' '*.pyi' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' 2>/dev/null || true)"
+  if [ -z "$list" ]; then
+    list="$(cd "$PROJECT_ROOT" && find . -type f \( -name '*.py' -o -name '*.pyi' -o -name '*.js' -o -name '*.jsx' \
+      -o -name '*.mjs' -o -name '*.cjs' -o -name '*.ts' -o -name '*.tsx' \) -not -path './.git/*' 2>/dev/null \
+      | sed 's|^\./||' || true)"
+  fi
+  printf "%s\n" "$list" | grep -Ev '(^|/)tests?/|^\.writ/|(^|/)node_modules/' | grep -v '^$' || true
 }
 
 check_docs_check() {
   # Story 3 of 2026-09-08-phase11-stage2b-mechanize-the-gates: Gate 5's
-  # symbol-to-export diff. Relays docs-check.py findings via add_finding
-  # and the summary / unverifiable reasons via add_note. Not count-blocking.
-  # Live invoke pins --changed to README.md so this markdown repo stays
-  # unverifiable rather than inventing a fail from git diff.
+  # symbol-to-export diff. Live invoke passes this repo's real source files
+  # (docs_check_source_files) as --changed rather than a git diff, so a new
+  # undocumented `__all__` / `export` in shipped code is a finding while the
+  # markdown-only surface stays `unverifiable`. A `fail` is a finding;
+  # pass / unverifiable are notes. Not count-blocking.
   local helper="$PROJECT_ROOT/scripts/docs-check.py"
-  local output rc line
+  local output rc f
+  local changed=()
 
   if [ ! -f "$helper" ]; then
     add_finding "scripts/docs-check.py" "docs-check helper is missing." \
@@ -4100,8 +4201,14 @@ check_docs_check() {
     return
   fi
 
+  while IFS= read -r f; do
+    [ -n "$f" ] && changed+=("$PROJECT_ROOT/$f")
+  done < <(docs_check_source_files)
+
   rc=0
-  if [ -f "$PROJECT_ROOT/README.md" ]; then
+  if [ "${#changed[@]}" -gt 0 ]; then
+    output="$(python3 "$helper" check --repo "$PROJECT_ROOT" --changed "${changed[@]}" 2>&1)" || rc=$?
+  elif [ -f "$PROJECT_ROOT/README.md" ]; then
     output="$(python3 "$helper" check --repo "$PROJECT_ROOT" --changed "$PROJECT_ROOT/README.md" 2>&1)" || rc=$?
   else
     output="$(python3 "$helper" check --repo "$PROJECT_ROOT" 2>&1)" || rc=$?
@@ -4111,29 +4218,9 @@ check_docs_check() {
       "Fix the docs-check.py CLI so python3 scripts/docs-check.py check --repo . parses."
     return
   fi
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    case "$line" in
-      fail)
-        add_finding "scripts/docs-check.py" "docs-check printed fail." \
-          "Document the public export or stop exporting it."
-        ;;
-      pass|unverifiable)
-        add_note "NOTE [docs-check]: $line"
-        ;;
-      "reason: "*)
-        if [ "$rc" -eq 1 ]; then
-          add_finding "docs-check:${line#reason: }" "${line#reason: }" \
-            "Name the export in README / CHANGELOG / framework docs / a docstring."
-        else
-          add_note "NOTE [docs-check]: $line"
-        fi
-        ;;
-      *)
-        add_note "NOTE [docs-check]: $line"
-        ;;
-    esac
-  done <<< "$output"
+  relay_gate_helper docs-check scripts/docs-check.py "$rc" "$output" "" \
+    "Document the public export or stop exporting it." \
+    "Name the export in README / CHANGELOG / framework docs / a docstring."
 }
 
 check_boundary_map() {
@@ -4227,7 +4314,7 @@ check_drift_format() {
   if [ -f "$PROJECT_ROOT/story.md" ]; then
     story="$PROJECT_ROOT/story.md"
   else
-    story="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage2b-mechanize-the-gates/user-stories/story-5-drift-format-flip-and-watch.md"
+    story="$PROJECT_ROOT/.writ/specs/archive/2026-09-08-phase11-stage2b-mechanize-the-gates/user-stories/story-5-drift-format-flip-and-watch.md"
   fi
   if [ ! -f "$story" ]; then
     add_note "NOTE [drift-format]: no story file; helper present."
@@ -4265,6 +4352,55 @@ check_drift_format() {
   done <<< "$output"
 }
 
+check_codex_tomls() {
+  # Story 1 of 2026-09-26-arch-lint-and-follow-ups: codex/agents/*.toml must
+  # equal the generator's output. One add_finding per reason: line.
+  local helper="$PROJECT_ROOT/scripts/gen-codex-agent-tomls.py"
+  local remedy="python3 scripts/gen-codex-agent-tomls.py"
+  local output rc=0 line kind stem reasons=0
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/gen-codex-agent-tomls.py" "codex TOML generator is missing." \
+      "Restore scripts/gen-codex-agent-tomls.py, then run $remedy."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+    add_finding "scripts/gen-codex-agent-tomls.py" "--check exited $rc: ${output##*$'\n'}" \
+      "Fix the gen-codex-agent-tomls.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        reasons=$((reasons + 1))
+        read -r kind stem <<< "${line#reason: }"
+        case "$kind" in
+          unmapped)
+            add_finding "agents/$stem.md" "$kind $stem" \
+              "Add PURPOSES and SANDBOX entries in scripts/gen-codex-agent-tomls.py, then run $remedy."
+            ;;
+          orphan)
+            add_finding "codex/agents/$stem.toml" "$kind $stem" \
+              "Delete the orphan TOML or restore agents/$stem.md, then run $remedy."
+            ;;
+          *)
+            add_finding "codex/agents/$stem.toml" "$kind $stem" "Run $remedy."
+            ;;
+        esac
+        ;;
+      gen-codex-agent-tomls:*)
+        add_note "NOTE [codex-tomls]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$rc" -eq 1 ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-codex-agent-tomls.py" "--check failed without a reason line." \
+      "Run python3 scripts/gen-codex-agent-tomls.py --check and inspect its output."
+  fi
+}
+
 check_spec_analyze() {
   # Story 3 of 2026-09-08-phase11-stage3-spec-analysis: advisory analysis.
   # Helper missing / exit 2 → add_finding. Analysis pass/fail/unverifiable
@@ -4279,8 +4415,8 @@ check_spec_analyze() {
   fi
 
   spec=""
-  if [ -d "$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis" ]; then
-    spec="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis"
+  if [ -d "$PROJECT_ROOT/.writ/specs/archive/2026-09-08-phase11-stage3-spec-analysis" ]; then
+    spec="$PROJECT_ROOT/.writ/specs/archive/2026-09-08-phase11-stage3-spec-analysis"
   else
     spec="$(ls -d "$PROJECT_ROOT/.writ/specs"/*/ 2>/dev/null | head -n 1 || true)"
   fi
@@ -4428,9 +4564,12 @@ check_goal_emit() {
 }
 
 check_spawn_cap() {
-  # Story 3 of 2026-09-09-phase11-stage4b-pipeline-demote: spawn-cap is advisory.
-  # Helper missing / exit 2 → add_finding. Scan pass/fail/unverifiable
-  # → add_note only (do not count-block on a documented --full-pipeline hatch).
+  # Story 3 of 2026-09-09-phase11-stage4b-pipeline-demote. Helper missing /
+  # exit 2 → add_finding. A `fail` verdict (reason over_cap: a default spawn
+  # site beyond the cap) is a finding too, so a spawn-cap regression blocks
+  # eval rather than surfacing only in pytest. `pass` / `unverifiable` and
+  # the summary line stay notes. --full-pipeline-guarded sites are excluded
+  # by the helper, so the documented hatch never reaches this branch.
   local helper="$PROJECT_ROOT/scripts/spawn-cap.py"
   local command output rc=0 line
 
@@ -4449,7 +4588,23 @@ check_spawn_cap() {
   fi
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    add_note "NOTE [spawn-cap]: $line"
+    case "$line" in
+      fail)
+        add_finding "scripts/spawn-cap.py" "spawn-cap printed fail: $(relpath "$command") names more default-path spawn sites than the cap allows." \
+          "Guard the extra Agent marker with --full-pipeline or remove it; run python3 scripts/spawn-cap.py check --command $(relpath "$command")."
+        ;;
+      "reason: "*)
+        if [ "$rc" -eq 1 ]; then
+          add_finding "spawn-cap:${line#reason: }" "${line#reason: }" \
+            "Keep default-path spawns to coding-agent and evaluator-agent (cap 2)."
+        else
+          add_note "NOTE [spawn-cap]: $line"
+        fi
+        ;;
+      *)
+        add_note "NOTE [spawn-cap]: $line"
+        ;;
+    esac
   done <<< "$output"
 }
 

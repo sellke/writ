@@ -59,11 +59,21 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # Repinned 2026-09-25 (Story 6): create-spec.md Step 2.6c gained the 4-line
 # one-time Jev setup sub-step and the item-3 exception for it;
 # create-spec.lean.md is unchanged (no-Jev baseline arm).
+# Repinned 2026-09-26 (2026-09-26-drift-arch-guards Story 3): implement-story.md
+# Gate 3 routing rows gained `contract_content`; implement-story.lean.md is
+# unchanged (spec Business Rule 9).
+# Repinned 2026-09-26 (2026-09-26-drift-arch-guards Story 2): implement-story.md
+# gained the Gate 2.5 `crossings` route and Gate 3 risk-route sentence;
+# implement-story.lean.md is unchanged (spec Business Rule 9).
+# Repinned 2026-09-26 (2026-09-26-arch-lint-and-follow-ups Story 3):
+# implement-story.md Gate 2 gained the arch-lint.py detect-and-run prose and
+# Step 4 item 8 the `arch-lint:` line; implement-story.lean.md is unchanged
+# (spec Business Rule 7).
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
-    "verify-spec": "5272a3f0a50a2850c327691fa2edf99973ebb4641a5d7871850afc78b50b58c9",
+    "verify-spec": "f6311abbd2314727aa32c10dde3157e1bb130b2fc162e856bfd11ab786d73cfa",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
-    "implement-story": "29026fb12f0ce8422a5e8108ee658f7a2e2e7f48f1e1aa2407bb94f2c92d1231",
+    "implement-story": "a29e912bc81ca0b5d5f831a4c00c7479af568a176829741b2f39ff0e91918769",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

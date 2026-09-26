@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Precision of spec-analyze.py against committed gold labels (Story 3).
-[AC-3.4, AC-3.5]
+"""Precision of spec-analyze.py against committed gold labels (Story 3 of
+`2026-09-08-phase11-stage3-spec-analysis`). [AC-3.4, AC-3.5]
 
 Semantic gold is the labeled JSON, not a live LLM. Structural check plus
 schema-check must match expected_verdict / expected_reasons. A clean

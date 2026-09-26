@@ -115,6 +115,21 @@ if grep -Fq "tech-stack.md'" "$ROOT/eval-report.md"; then
 fi
 ok 'referenced-paths: bare `objective.md` with no file by that name -> blocking finding; existing basename passes'
 
+# The shared base is scanned too (DEV-008 of 2026-09-07-phase11-stage2-prune-
+# the-base): system-instructions.md and commands/_preamble.md carry pointer
+# links to docs moved out of the base, and a dangling pointer must block.
+ROOT="$(new_root)"
+printf '# Example\n' > "$ROOT/commands/example.md"
+printf '# Base\n\nSee `.writ/docs/moved-out.md`.\n' > "$ROOT/system-instructions.md"
+assert_blocking "$ROOT" referenced-paths '`system-instructions.md:3`' "referenced-paths red (base file)"
+printf '# Preamble\n\n\nRead `.writ/docs/gone.md`.\n' > "$ROOT/commands/_preamble.md"
+assert_blocking "$ROOT" referenced-paths '`commands/_preamble.md:4`' "referenced-paths red (preamble)"
+mkdir -p "$ROOT/.writ/docs"
+printf '# Moved\n' > "$ROOT/.writ/docs/moved-out.md"
+printf '# Gone\n' > "$ROOT/.writ/docs/gone.md"
+assert_green "$ROOT" referenced-paths "referenced-paths green (base pointers resolve)"
+ok 'referenced-paths: dangling pointer in system-instructions.md / commands/_preamble.md -> blocking finding; resolved pointers pass'
+
 # ---------------------------------------------------------------------------
 # referenced-paths, green: paths that exist (repo-root or commands/-relative),
 # placeholder tokens (`{name}`, `<slug>`, `*`, `YYYY-MM-DD`), and an

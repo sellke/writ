@@ -20,6 +20,17 @@ Adjudicate the story's acceptance criteria and recorded test results. Name resid
 ### 1. Acceptance criteria — verdict every supplied criterion
 ### 2. Recorded test results — evidence for or against those criteria
 ### 3. Residual — architecture, security, and taste only
+### 4. Drift — against the Locked Contract (drift reference)
+
+## Drift
+
+Judge drift against `contract_content`: the `## Specification Contract` section of `spec.md`, verbatim. It outranks `spec-lite.md` when they disagree (spec-lite may carry Small-drift auto-amendments); when empty, use spec-lite alone.
+
+**Medium** (PASS with warning): scope expansion, extra unrequested features, a different internal data structure with the same interface.
+
+**Large** (PAUSE): spec intent not met or a constraint violated; a new runtime dependency not named in the contract or spec-lite; a changed interface or data shape at an integration point another story or the contract names; a changed architectural approach (framework, protocol, layering, persistence model).
+
+When severity is ambiguous → default to Medium.
 
 ## Output Format
 
@@ -39,6 +50,9 @@ Adjudicate each acceptance criterion against recorded test results. One line per
 - **Location:** [file:line]
 - **Severity:** [Critical/Major/Minor]
 - **Suggested Fix:** [optional; never applied]
+
+### Drift Analysis
+**Overall Drift:** [None/Small/Medium/Large]
 
 PAUSE when Overall Drift is Large. Suggested Fix is optional and is never applied.
 

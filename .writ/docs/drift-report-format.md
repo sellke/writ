@@ -70,8 +70,10 @@ When `Overall Drift: None`, **do not write to drift-log.md**. The absence of an 
 | Value | Meaning |
 |-------|---------|
 | `Small` | Cosmetic or naming difference — spec intent fully preserved |
-| `Medium` | Scope or integration impact — spec intent met, but with notable changes |
-| `Large` | Fundamental deviation — spec intent NOT met or constraints violated |
+| `Medium` | Scope impact — spec intent met, but with notable changes (scope expansion, extra unrequested features, a different internal data structure with the same interface) |
+| `Large` | Fundamental deviation — spec intent NOT met or constraints violated; or architecture-class: a new runtime dependency not named in the contract or spec-lite, a changed interface or data shape at an integration point another story or the contract names, a changed architectural approach (framework, protocol, layering, persistence model) |
+
+Severity is judged against `spec.md`'s `## Specification Contract` first; it outranks `spec-lite.md` when they disagree.
 
 ### Resolution (determined by severity)
 
@@ -146,11 +148,11 @@ Used in:
 
 ### Deviations
 
-#### [DEV-003] Added zod dependency for transcript parsing
+#### [DEV-003] Added a `--since` filter to the transcript scan
 - **Severity:** Medium
-- **Spec said:** Parse transcripts using built-in string matching
-- **Implementation did:** Added `zod` for schema validation of parsed transcript data
-- **Reason:** Scope expansion — adds external dependency not anticipated by spec; improves reliability but changes dependency footprint
+- **Spec said:** Scan every transcript in the project folder
+- **Implementation did:** Added an optional `--since YYYY-MM-DD` flag that skips older transcripts; default behavior unchanged
+- **Reason:** Scope expansion — an unrequested option; keeps large histories fast without changing any interface another story uses
 - **Resolution:** Flagged for review
 - **Spec amendment:** N/A — flagged for post-implementation review
 ```

@@ -141,10 +141,51 @@ awk '/^CHECKS=\(/{f=1} f && /^\)/{exit} f' "$EVAL" | grep -Fxq "  review-overrid
   || fail "review-override must be registered in CHECKS=(...)"
 grep -q '^check_review_override()' "$EVAL" \
   || fail "check_review_override must be defined in scripts/eval.sh"
-awk '/^check_review_override\(\)/,/^}/' "$EVAL" | grep -q 'add_finding' \
+awk '/^check_review_override\(\)/,/^}/' "$EVAL" | grep -Eq 'add_finding|relay_gate_helper' \
   || fail "check_review_override must relay findings via add_finding"
-awk '/^check_review_override\(\)/,/^}/' "$EVAL" | grep -q 'add_note' \
+awk '/^check_review_override\(\)/,/^}/' "$EVAL" | grep -Eq 'add_note|relay_gate_helper' \
   || fail "check_review_override must relay the summary via add_note"
 ok "registration: review-override in CHECKS, findings/notes relayed"
+
+# usage: add_active_spec <root> -> one active spec with two stories, plus an
+# archived spec whose story must not be visited.
+add_active_spec() {
+  local root="$1"
+  mkdir -p "$root/.writ/specs/2026-01-01-demo/user-stories" "$root/.writ/specs/archive/2025-01-01-old/user-stories"
+  printf '# Demo spec\n' > "$root/.writ/specs/2026-01-01-demo/spec.md"
+  printf '# Story 1\n' > "$root/.writ/specs/2026-01-01-demo/user-stories/story-1-alpha.md"
+  printf '# Story 2\n' > "$root/.writ/specs/2026-01-01-demo/user-stories/story-2-beta.md"
+  printf '# Old\n' > "$root/.writ/specs/archive/2025-01-01-old/spec.md"
+  printf '# Old story\n' > "$root/.writ/specs/archive/2025-01-01-old/user-stories/story-1-old.md"
+}
+
+# ---------------------------------------------------------------------------
+# Live content: one run per active story with --spec and --story; archive
+# skipped; a fail on one story is a finding naming that story.
+# ---------------------------------------------------------------------------
+ROOT="$(new_root pass)"
+add_active_spec "$ROOT"
+write_stub "$ROOT/scripts/review-override.py" "$(cat <<'PY'
+#!/usr/bin/env python3
+import sys
+args = sys.argv[1:]
+story = args[args.index("--story") + 1] if "--story" in args else ""
+spec = args[args.index("--spec") + 1] if "--spec" in args else ""
+if "story-2-" in story:
+    print("fail"); print("reason: untraced_ac"); print("review-override: fail (fixture)")
+    raise SystemExit(1)
+print("pass"); print("spec=" + spec.split("/")[-1]); print("review-override: pass (fixture)")
+PY
+)"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || { report_of "$ROOT"; fail "per-story: story-2 fail must block, got $rc"; }
+grep -Fq 'story-1-alpha.md: pass | spec=2026-01-01-demo' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "per-story: story-1 must run with --spec <its spec> and be one note"; }
+grep -Fq 'story-2-beta.md' "$ROOT/eval-report.md" && grep -Fq 'untraced_ac' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "per-story: story-2 fail must be a finding naming the story and reason"; }
+if grep -Fq 'story-1-old.md' "$ROOT/eval-report.md"; then
+  report_of "$ROOT"; fail "per-story: archived specs must be skipped"
+fi
+ok "live: runs per active story with --spec/--story, archive skipped, fail names the story"
 
 printf '\nAll %d review-override check assertions passed.\n' "$pass_count"

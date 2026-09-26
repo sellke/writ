@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Story 3: check_spawn_cap registration and note-vs-finding split.
+# 2026-09-25: a spawn-cap `fail` (over_cap) is now a blocking finding.
 # [AC-3.2, AC-3.4]
 set -euo pipefail
 
@@ -91,13 +92,17 @@ ok "pass stub -> exit 0, add_note"
 
 ROOT="$(new_root fail)"
 rc="$(run_check "$ROOT")"
-[ "$rc" -eq 0 ] || { cat "$ROOT/eval-report.md"; fail "fail: spawn-cap fail must not fail the check, got $rc"; }
-grep -Fq 'NOTE [spawn-cap]: fail' "$ROOT/eval-report.md" \
-  || fail "fail: spawn-cap fail must be a note"
-if grep -q '^FAIL' "$ROOT/eval-report.md"; then
-  cat "$ROOT/eval-report.md"; fail "fail: must have zero findings"
+[ "$rc" -eq 1 ] || { cat "$ROOT/eval-report.md"; fail "fail: spawn-cap fail must fail the check, got $rc"; }
+grep -q '^FAIL' "$ROOT/eval-report.md" \
+  || { cat "$ROOT/eval-report.md"; fail "fail: spawn-cap fail must be a finding"; }
+grep -Fq 'spawn-cap printed fail' "$ROOT/eval-report.md" \
+  || fail "fail: finding must name the spawn-cap fail verdict"
+grep -Fq 'spawn-cap:over_cap' "$ROOT/eval-report.md" \
+  || fail "fail: over_cap reason must be a finding"
+if grep -Fq 'NOTE [spawn-cap]: fail' "$ROOT/eval-report.md"; then
+  cat "$ROOT/eval-report.md"; fail "fail: verdict must not be downgraded to a note"
 fi
-ok "spawn-cap fail stub -> exit 0, add_note only"
+ok "spawn-cap fail stub -> exit 1, add_finding"
 
 ROOT="$(new_root unverifiable)"
 rc="$(run_check "$ROOT")"

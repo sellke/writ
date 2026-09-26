@@ -159,10 +159,11 @@ find .writ/issues -name "*.md" -type f 2>/dev/null
 ```
 
 For each issue file found:
-1. **Extract the date** — from filename prefix `YYYY-MM-DD-` (preferred) or file mtime as fallback
-2. **Check age** — if the issue date is more than 7 days before today, it qualifies
-3. **Check spec_ref** — read the file; if `spec_ref:` line is absent, empty, or still reads `_(set automatically...)_`, the issue has no promotion link
-4. **Surface if both conditions met** (older than 7 days AND no spec_ref)
+1. **Skip closed** — a file with a line exactly `## Resolution` is closed; skip it
+2. **Extract the date** — from filename prefix `YYYY-MM-DD-` (preferred) or file mtime as fallback
+3. **Check age** — if the issue date is more than 7 days before today, it qualifies
+4. **Check spec_ref** — if the `spec_ref:` line is absent, empty, or still reads `_(set automatically...)_`, the issue has no promotion link
+5. **Surface if both conditions met** (older than 7 days AND no spec_ref)
 
 **Report format:**
 ```
@@ -223,7 +224,7 @@ After gathering all state (Steps 1–7), fully rewrite `.writ/context.md` using 
 - **Active Spec** — spec id, title, status, active story N of M, tasks X/Y complete (from Steps 3–4)
 - **Artifact Map** — product/active-spec/knowledge/docs resolve list + Integrity line (present-conditional, wholesale; per the canonical `## Artifact Map` schema)
 - **Recent Drift** — last 3 entries from `.writ/specs/{spec}/drift-log.md` (omit if absent)
-- **Open Issues** — count from `.writ/issues/` (omit if absent)
+- **Open Issues** — count of `.writ/issues/` files without a line exactly `## Resolution` (omit if absent)
 - **Last Updated** — current ISO 8601 timestamp
 
 ### Step 9: Suggest Next Actions

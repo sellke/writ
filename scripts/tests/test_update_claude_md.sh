@@ -5,7 +5,7 @@
 # using update.sh's naming convention (CLAUDE_MD_ACTION / CLAUDE_MD_NOTE) instead
 # of install.sh's (CLAUDE_MERGE_NOTE).
 #
-# AC coverage: AC-2.1 (absent-file restore), AC-2.2 (pre-fix-upgrade restore,
+# AC coverage (spec 2026-08-13-claude-md-install-merge): AC-2.1 (absent-file restore), AC-2.2 (pre-fix-upgrade restore,
 # see the crux-case comment below), AC-2.3 (malformed markers -> error),
 # AC-2.4 (baseline/force -> update), AC-2.5 (neither match -> preserved).
 set -euo pipefail

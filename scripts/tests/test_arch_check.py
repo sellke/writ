@@ -329,6 +329,47 @@ class ArchCheckCliTests(unittest.TestCase):
             self.assertEqual(_verdict_line(out), "pass")
             self.assertEqual(_rederived(out), "proceed")
 
+    def _dotted_boundary_run(self, planned: str) -> str:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = repo / "demo-spec"
+            story = _write_story(spec, 1)
+            script = _stub_tree(repo, _ok_payload())
+            boundary = repo / "boundary.json"
+            boundary.write_text(
+                json.dumps({
+                    "owned": [".writ/decision-log.md", ".github/workflows/"],
+                    "readable": [],
+                    "out_of_scope": [],
+                }),
+                encoding="utf-8",
+            )
+            code, out = _run(
+                script,
+                [
+                    "check",
+                    "--story", str(story),
+                    "--repo", str(repo),
+                    "--planned", planned,
+                    "--boundary", str(boundary),
+                ],
+            )
+            self.assertEqual(code, 0, out)
+            return out
+
+    def test_dotted_owned_path_matches_itself(self) -> None:
+        for planned in (".writ/decision-log.md", "./.writ/decision-log.md",
+                        ".github/workflows/ci.yml"):
+            out = self._dotted_boundary_run(planned)
+            self.assertEqual(_rederived(out), "proceed", (planned, out))
+
+    def test_leading_dot_is_not_stripped(self) -> None:
+        """Honest Note 4: `writ/...` is a different path from `.writ/...`."""
+        for planned in ("writ/decision-log.md", "github/workflows/ci.yml"):
+            out = self._dotted_boundary_run(planned)
+            self.assertEqual(_rederived(out), "caution", (planned, out))
+            self.assertIn("outside_boundary", _reasons(out))
+
     def test_usage_without_subcommand_is_exit_2(self) -> None:
         proc = subprocess.run(
             [sys.executable, str(SCRIPT)],

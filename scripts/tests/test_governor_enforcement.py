@@ -541,16 +541,33 @@ class CommandBudgetTests(unittest.TestCase):
 # Step 2.6c (AskQuestion only on no_config_line in interactive runs; notes
 # otherwise) and the item-3 exception naming it. No new step or gate.
 # Acknowledged, not exempted.
+# Updated 2026-09-25: verify-spec.md 10666 -> 10662, Check 7 maps the
+# agent-section spec-lite format (net -4 after trim).
+# Merged 2026-09-26: both edits above applied; values recomputed from the merged files.
+# Updated 2026-09-26 (spec 2026-09-26-drift-arch-guards, Story 3): implement-story.md
+# 9656 -> 9763 (file 34723) for `contract_content` in the two Gate 3 context-routing
+# rows. No new step or gate. Acknowledged, not exempted.
+# Updated 2026-09-26 (spec 2026-09-26-drift-arch-guards, Story 2): implement-story.md
+# 9763 -> 10556 (file 35516) for the Gate 0.5 map save, the Gate 2.5 `crossings`
+# line, the Gate 3 risk-route sentence (a swap, not a spawn) and the
+# `gate3-route:` report line; duplicate Gate 0.5/2.5 prose trimmed to offset.
+# No new step or gate. Acknowledged, not exempted.
+# Updated 2026-09-26 (spec 2026-09-26-arch-lint-and-follow-ups, Story 3):
+# implement-story.md 10556 -> 11110 (file 36070) for the Gate 2 "Architecture
+# ruleset" paragraph (arch-lint.py detect, run each `command:` line through the
+# On failure path, the `arch-lint:` report forms) and the Step 4 item 8
+# `arch-lint:` line; the build-smoke rationale sentence was trimmed to offset.
+# Inline prose, no new step, gate, or spawn. Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
     "commands/create-spec.md": 28123,
-    "commands/verify-spec.md": 10902,
+    "commands/verify-spec.md": 10898,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 9656,
+    "commands/implement-story.md": 11110,
 }
 
 

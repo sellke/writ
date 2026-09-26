@@ -452,14 +452,32 @@ def _walk_candidates(repo: Path) -> list[Path]:
     return candidates
 
 
-def scan_repo_citations(repo: Path) -> dict[str, Any]:
+def _spec_slug_pattern(repo: Path, own_slug: str) -> re.Pattern[str]:
+    """Match any spec folder name (active or archived) as a whole word."""
+    specs_root = repo / ".writ" / "specs"
+    names = {own_slug}
+    for parent in (specs_root, specs_root / "archive"):
+        if parent.is_dir():
+            names.update(p.name for p in parent.iterdir()
+                         if p.is_dir() and p.name != "archive")
+    alternatives = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    return re.compile(rf"(?<![\w-])(?:{alternatives})(?![\w-])")
+
+
+def scan_repo_citations(repo: Path, own_slug: str | None = None) -> dict[str, Any]:
     """Scan the repo outside `.writ/` for bare `AC-<n>.<m>` tokens,
     classifying each occurrence's containing file as test-shaped (a test
     citation, which satisfies coverage) or not (an informational source
     citation, which never does). Reports `scanned_files` and
     `ignore_filter` so a pathological or degraded scan is visible rather
-    than silently narrowed."""
+    than silently narrowed.
+
+    With `own_slug`, a test token belongs to the spec folder name most
+    recently named above it in the same file; tokens attributed to another
+    spec are skipped. Tokens with no preceding spec name stay unattributed
+    and count, as before."""
     repo = repo.resolve()
+    slug_re = _spec_slug_pattern(repo, own_slug) if own_slug else None
     candidates = _walk_candidates(repo)
 
     ignore_filter = _is_git_worktree(repo)
@@ -488,11 +506,20 @@ def scan_repo_citations(repo: Path) -> dict[str, Any]:
         rel_posix = str(rel).replace("\\", "/")
         if rel_posix in CITATION_SCAN_SKIP or rel_posix.startswith(CITATION_SCAN_SKIP_PREFIXES):
             continue
-        bucket = test_citations if _is_test_shaped(rel) else source_citations
+        is_test = _is_test_shaped(rel)
+        bucket = test_citations if is_test else source_citations
+        owner: str | None = None
         for line_no, line in enumerate(text.splitlines(), start=1):
+            slugs = list(slug_re.finditer(line)) if slug_re and is_test else []
             for token_match in BARE_ID.finditer(line):
+                while slugs and slugs[0].start() < token_match.start():
+                    owner = slugs.pop(0).group(0)
+                if owner is not None and owner != own_slug:
+                    continue
                 id_str = f"AC-{token_match.group(1)}.{token_match.group(2)}"
                 bucket.setdefault(id_str, []).append({"file": str(rel), "line": line_no})
+            if slugs:
+                owner = slugs[-1].group(0)
 
     return {
         "test_citations": test_citations,
@@ -599,7 +626,7 @@ def check(spec_dir: Path, repo: Path) -> tuple[int, dict[str, Any]]:
                 {"file": str(story["path"]), "line": line_no}
             )
 
-    scan = scan_repo_citations(repo)
+    scan = scan_repo_citations(repo, own_slug=spec_dir.resolve().name)
 
     _coverage_findings(definitions, task_citations, scan["test_citations"],
                         stories_by_number, findings)

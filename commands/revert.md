@@ -52,7 +52,7 @@ Invoke the resolver (read-only — it never mutates git or files):
 python3 scripts/revert-resolve.py <unit> <id> [--spec <spec-id>] --json
 ```
 
-The resolver returns the ordered commit list (newest → oldest), any `ghost` candidates, the `base` (parent of the earliest commit), and `warnings`. It layers four sources by confidence: recorded `> **Commit:**` SHA → `/ship` `Ref:` footer → phase-state JSON `commit`/`mergeCommit` → ghost-commit subject-similarity fallback.
+The resolver returns the ordered commit list (newest → oldest), any `ghost` candidates, the `base` (parent of the earliest commit), and `warnings`. It layers five sources by confidence: recorded `> **Commit:**` SHA → `/ship` `Ref:` footer (only footers naming this spec's folder, and for a story exactly `user-stories/story-N`) → `Story N (N.x):` task subjects between the spec scaffold and the story's completion commit → phase-state JSON `commit`/`mergeCommit` → ghost-commit subject-similarity fallback.
 
 **Ghost confirmation:** For every entry in the resolver's `ghost` array, present the recorded SHA, the candidate SHA + subject, and the similarity score, then **AskQuestion** to confirm each substitution individually. A ghost candidate is never auto-selected or silently promoted into the commit list. Decline → drop that commit from the plan and surface a warning that the unit may be only partially reverted.
 

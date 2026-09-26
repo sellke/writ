@@ -122,6 +122,8 @@ Quick scan of `.writ/issues/` with `Glob` for existing issues in the same area o
 - **Relevant Files** — max 3 files, omit if none identified
 - **spec_ref** — always include in the frontmatter block, empty by default; set to the spec path (e.g. `.writ/specs/2026-03-20-fix-login/spec.md`) when the issue is promoted via `/create-spec --from-issue`
 
+**Closing an issue:** append a line exactly `## Resolution`, then the date and what changed (commit or branch). Never delete or move the file; `/status` and `.writ/context.md` stop counting it as open.
+
 ### Step 6: Confirm
 
 ```

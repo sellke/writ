@@ -69,7 +69,7 @@ See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select
 
 ## Startup Update Awareness
 
-When first invoked in a session, run a quiet Writ update awareness check before session auto-orientation or any command-specific workflow. Preserve the user's original request as the main task; update discovery must never block, replace, or expand that task.
+When first invoked in a session, run a quiet Writ update awareness check before any command-specific workflow. Preserve the user's original request as the main task; update discovery must never block, replace, or expand that task.
 
 See `.writ/docs/startup-update-awareness.md` for the startup sequence, cache contract, detection rules, and notification text.
 

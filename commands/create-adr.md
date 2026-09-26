@@ -160,7 +160,8 @@ Present the evaluation and discuss trade-offs before committing to a recommendat
 1. Review against the quality bars above
 2. Set status to `Proposed` — becomes `Accepted` after stakeholder review
 3. Link to related ADRs (supersedes, influenced by, etc.)
-4. Present the completed ADR to the user
+4. If the decision constrains layering, import direction, or module dependencies, add an **Enforcement** note naming the lint rule that encodes it; see [`.writ/docs/architecture-lint.md`](../.writ/docs/architecture-lint.md)
+5. Present the completed ADR to the user
 
 ---
 
