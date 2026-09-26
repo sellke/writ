@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Story 2: create-spec Step 2.6c + verify-spec 3g name spec-analyze.py
+# Spec 2026-09-08-phase11-stage3-spec-analysis, Story 2: create-spec Step 2.6c + verify-spec 3g name spec-analyze.py
 # and treat script fail as notes, not a failed command contract. [AC-2.1, AC-2.3, AC-2.5]
 # Also pins the 2026-09-25-jev-judgment-pilot Story 3 Jev cascade wiring.
 set -euo pipefail

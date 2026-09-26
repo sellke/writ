@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Story 2: create-goal after save + implement-phase origin emit
+# Spec 2026-09-09-phase11-stage4-goal-emit, Story 2: create-goal after save + implement-phase origin emit
 # name goal-emit.py and treat emit verdicts as notes. [AC-2.1, AC-2.2, AC-2.3, AC-2.5]
 set -euo pipefail
 

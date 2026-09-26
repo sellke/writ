@@ -20,6 +20,9 @@ from __future__ import annotations
 
 import importlib.util
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -114,6 +117,211 @@ class FastModelConstantIsGone(unittest.TestCase):
 
     def test_no_fast_model_attribute(self) -> None:
         self.assertFalse(hasattr(gen, "FAST_MODEL"))
+
+
+# ---------------------------------------------------------------------------
+# Story 1 of `2026-09-26-arch-lint-and-follow-ups` — Codex TOML freshness.
+# [AC-1.1, AC-1.2, AC-1.3, AC-1.4]
+#
+# Every agent is mapped, write mode validates every stem before the first
+# write, and `--check` reports stale/missing/orphan/unmapped without writing.
+# ---------------------------------------------------------------------------
+
+REPO_ROOT = MODULE_PATH.parent.parent
+MANIFEST = REPO_ROOT / ".writ" / "manifest.yaml"
+SUMMARY_PREFIX = "gen-codex-agent-tomls: "
+
+
+def manifest_agent_purposes() -> dict[str, str]:
+    """`agents[].purpose` by name, read from the manifest without PyYAML."""
+    purposes: dict[str, str] = {}
+    in_agents = False
+    name = None
+    for line in MANIFEST.read_text(encoding="utf-8").splitlines():
+        if re.match(r"^\S", line):
+            in_agents = line.startswith("agents:")
+            continue
+        if not in_agents:
+            continue
+        m = re.match(r"^\s*-\s+name:\s*(\S+)\s*$", line)
+        if m:
+            name = m.group(1)
+            continue
+        m = re.match(r'^\s+purpose:\s*"(.*)"\s*$', line)
+        if m and name:
+            purposes[name] = m.group(1)
+    return purposes
+
+
+def run_cli(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(MODULE_PATH), *args],
+        capture_output=True,
+        text=True,
+    )
+
+
+def snapshot(directory: Path) -> dict[str, bytes]:
+    if not directory.exists():
+        return {}
+    return {p.name: p.read_bytes() for p in sorted(directory.iterdir())}
+
+
+class EveryAgentIsMapped(unittest.TestCase):
+    """AC-1.1: every `agents/*.md` stem has PURPOSES and SANDBOX entries, and
+    each purpose is the manifest purpose verbatim."""
+
+    def test_every_stem_has_purpose_and_sandbox(self) -> None:
+        for md in sorted((REPO_ROOT / "agents").glob("*.md")):
+            with self.subTest(stem=md.stem):
+                self.assertIn(md.stem, gen.PURPOSES)
+                self.assertIn(md.stem, gen.SANDBOX)
+
+    def test_purposes_match_manifest(self) -> None:
+        manifest = manifest_agent_purposes()
+        for md in sorted((REPO_ROOT / "agents").glob("*.md")):
+            with self.subTest(stem=md.stem):
+                self.assertIn(md.stem, manifest)
+                self.assertEqual(gen.PURPOSES.get(md.stem), manifest[md.stem])
+
+    def test_evaluator_agent_is_read_only(self) -> None:
+        self.assertEqual(gen.SANDBOX.get("evaluator-agent"), "read-only")
+        self.assertEqual(
+            gen.PURPOSES.get("evaluator-agent"),
+            manifest_agent_purposes()["evaluator-agent"],
+        )
+
+
+class FixtureDirs(unittest.TestCase):
+    """Temp `agents/` and `codex/agents/` dirs driven through the real CLI."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        root = Path(self._tmp.name)
+        self.agents = root / "agents"
+        self.out = root / "codex" / "agents"
+        self.agents.mkdir()
+        self.out.mkdir(parents=True)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def add_agent(self, stem: str) -> None:
+        (self.agents / f"{stem}.md").write_text(
+            f"---\nname: {stem}\n---\n# {stem}\n\nBody.\n", encoding="utf-8"
+        )
+
+    def cli(self, *args: str) -> subprocess.CompletedProcess:
+        return run_cli("--agents-dir", str(self.agents), "--out-dir", str(self.out), *args)
+
+    def generate(self) -> None:
+        result = self.cli()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class WriteModeValidatesBeforeWriting(FixtureDirs):
+    """AC-1.2: an unmapped stem aborts write mode before any file is written,
+    naming every unmapped stem."""
+
+    def test_unmapped_stems_abort_with_no_writes(self) -> None:
+        self.add_agent("coding-agent")
+        self.add_agent("alpha-unmapped")
+        self.add_agent("zeta-unmapped")
+        (self.out / "sentinel.txt").write_text("keep\n", encoding="utf-8")
+        before = snapshot(self.out)
+
+        result = self.cli()
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("alpha-unmapped", result.stderr)
+        self.assertIn("zeta-unmapped", result.stderr)
+        self.assertNotIn("coding-agent", result.stderr)
+        self.assertEqual(snapshot(self.out), before)
+
+    def test_expected_tomls_names_every_unmapped_stem(self) -> None:
+        self.add_agent("coding-agent")
+        self.add_agent("alpha-unmapped")
+        self.add_agent("zeta-unmapped")
+        with self.assertRaises(SystemExit) as ctx:
+            gen.expected_tomls(self.agents)
+        self.assertIn("alpha-unmapped", str(ctx.exception))
+        self.assertIn("zeta-unmapped", str(ctx.exception))
+
+    def test_expected_tomls_renders_every_mapped_stem(self) -> None:
+        self.add_agent("coding-agent")
+        self.add_agent("review-agent")
+        expected = gen.expected_tomls(self.agents)
+        self.assertEqual(sorted(expected), ["coding-agent", "review-agent"])
+        self.assertIn('name = "review-agent"', expected["review-agent"])
+
+
+class CheckModePass(FixtureDirs):
+    """AC-1.3: identical output prints `pass` and a zeroed summary last,
+    exits 0, and writes nothing; an unknown argument exits 2."""
+
+    def test_check_passes_on_fresh_output(self) -> None:
+        self.add_agent("coding-agent")
+        self.add_agent("review-agent")
+        self.generate()
+        before = snapshot(self.out)
+
+        result = self.cli("--check")
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        lines = result.stdout.strip().splitlines()
+        self.assertEqual(lines[0], "pass")
+        self.assertEqual(
+            lines[-1],
+            "gen-codex-agent-tomls: pass (0 stale, 0 missing, 0 orphan, 0 unmapped)",
+        )
+        self.assertEqual(snapshot(self.out), before)
+
+    def test_unknown_argument_exits_2(self) -> None:
+        self.assertEqual(run_cli("--bogus").returncode, 2)
+        self.assertEqual(run_cli("--che").returncode, 2)
+
+
+class CheckModeFail(FixtureDirs):
+    """AC-1.4: each problem is one `reason:` line in stem order, the counted
+    summary is last, exit is 1, and nothing is written."""
+
+    def test_every_reason_in_stem_order(self) -> None:
+        for stem in ("coding-agent", "review-agent", "testing-agent"):
+            self.add_agent(stem)
+        self.generate()
+        stale = self.out / "coding-agent.toml"
+        stale.write_text(stale.read_text(encoding="utf-8") + "# hand edit\n", encoding="utf-8")
+        (self.out / "review-agent.toml").unlink()
+        (self.out / "orphan-agent.toml").write_text('name = "orphan-agent"\n', encoding="utf-8")
+        self.add_agent("mmm-unmapped")
+        before = snapshot(self.out)
+
+        result = self.cli("--check")
+
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(
+            result.stdout.strip().splitlines(),
+            [
+                "fail",
+                "reason: stale coding-agent",
+                "reason: unmapped mmm-unmapped",
+                "reason: orphan orphan-agent",
+                "reason: missing review-agent",
+                "gen-codex-agent-tomls: fail (1 stale, 1 missing, 1 orphan, 1 unmapped)",
+            ],
+        )
+        self.assertEqual(snapshot(self.out), before)
+
+    def test_missing_output_dir_reports_missing_without_creating_it(self) -> None:
+        self.add_agent("coding-agent")
+        self.out.rmdir()
+
+        result = self.cli("--check")
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("reason: missing coding-agent", result.stdout)
+        self.assertTrue(result.stdout.strip().splitlines()[-1].startswith(SUMMARY_PREFIX))
+        self.assertFalse(self.out.exists())
 
 
 if __name__ == "__main__":

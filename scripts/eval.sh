@@ -76,6 +76,7 @@ CHECKS=(
   boundary-map
   change-surface
   drift-format
+  codex-tomls
   spec-analyze
   jev-judge
   goal-emit
@@ -4349,6 +4350,55 @@ check_drift_format() {
         ;;
     esac
   done <<< "$output"
+}
+
+check_codex_tomls() {
+  # Story 1 of 2026-09-26-arch-lint-and-follow-ups: codex/agents/*.toml must
+  # equal the generator's output. One add_finding per reason: line.
+  local helper="$PROJECT_ROOT/scripts/gen-codex-agent-tomls.py"
+  local remedy="python3 scripts/gen-codex-agent-tomls.py"
+  local output rc=0 line kind stem reasons=0
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/gen-codex-agent-tomls.py" "codex TOML generator is missing." \
+      "Restore scripts/gen-codex-agent-tomls.py, then run $remedy."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+    add_finding "scripts/gen-codex-agent-tomls.py" "--check exited $rc: ${output##*$'\n'}" \
+      "Fix the gen-codex-agent-tomls.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        reasons=$((reasons + 1))
+        read -r kind stem <<< "${line#reason: }"
+        case "$kind" in
+          unmapped)
+            add_finding "agents/$stem.md" "$kind $stem" \
+              "Add PURPOSES and SANDBOX entries in scripts/gen-codex-agent-tomls.py, then run $remedy."
+            ;;
+          orphan)
+            add_finding "codex/agents/$stem.toml" "$kind $stem" \
+              "Delete the orphan TOML or restore agents/$stem.md, then run $remedy."
+            ;;
+          *)
+            add_finding "codex/agents/$stem.toml" "$kind $stem" "Run $remedy."
+            ;;
+        esac
+        ;;
+      gen-codex-agent-tomls:*)
+        add_note "NOTE [codex-tomls]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$rc" -eq 1 ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-codex-agent-tomls.py" "--check failed without a reason line." \
+      "Run python3 scripts/gen-codex-agent-tomls.py --check and inspect its output."
+  fi
 }
 
 check_spec_analyze() {
