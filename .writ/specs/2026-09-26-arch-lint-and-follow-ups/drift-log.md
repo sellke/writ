@@ -110,3 +110,20 @@
 - **Reason:** The helper is the source of truth and follows the locked table; widening detection is out of scope here.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None; follow-up issue filed to add the three names to `arch-lint.py`.
+
+---
+
+## Story 2: Issue-Closure Convention — Drift Report
+
+> Run: 2026-09-26
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-011] `.writ/context.md` regeneration moved to spec end
+- **Severity:** Small
+- **Spec said:** Task 2.6 regenerates `.writ/context.md` in Story 2 so `## Open Issues` excludes the fixture-scan issue.
+- **Implementation did:** Story 2 lands the counting rule in both renderers; the regeneration runs once at spec end, after all four stories, applying the rule to the issue set at that time.
+- **Reason:** The Story 2 coding agent stalled before regenerating and the orchestrator finished the story; a mid-spec regeneration would be overwritten at spec end anyway.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; the spec-end regeneration satisfies AC-2.4.

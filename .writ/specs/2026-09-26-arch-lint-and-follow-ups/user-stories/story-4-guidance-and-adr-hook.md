@@ -1,6 +1,7 @@
 # Story 4: Architecture-Lint Guide and ADR Hook
 
 > **Status:** Completed ✅
+> **Commit:** 4edbe5beb73a0cab57c8f3a0ba706f3994762d4b
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
