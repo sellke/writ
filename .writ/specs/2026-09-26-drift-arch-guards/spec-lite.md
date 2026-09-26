@@ -21,7 +21,7 @@
 - `scripts/tests/test_governor_enforcement.py`, `scripts/tests/test_lean_commands.py` — disclosed re-pins
 
 **Error Handling:**
-- Map unreadable / helper missing → `unverifiable`, `route: review-agent`
+- Map unreadable (including non-list entries) / helper missing → `unverifiable`, `route: review-agent`
 - No `--changed` → exit 2 (usage)
 - Drift log missing → `summary` passes with zero counts
 

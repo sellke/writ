@@ -7,14 +7,24 @@ owned paths from a story's Implementation Tasks and, when an assess-spec
 Check 5 overlap table is supplied, merge shared paths. Overlap-absent
 degrades to owned = named paths, readable = [], out_of_scope = [].
 
-Subcommand:
+Subcommands:
   compute --story PATH --repo . [--overlap PATH]
+  crossings --map PATH --changed FILE... [--story PATH] [--surface CLASS] [--repo .]
 
-Prints JSON `{owned, readable, out_of_scope}` only. Writes nothing.
+compute prints JSON `{owned, readable, out_of_scope}` only. Writes nothing.
+Exit 0: well-formed map. Exit 1: malformed story. Exit 2: usage.
 
-Exit 0: well-formed map.
-Exit 1: malformed story.
-Exit 2: usage.
+crossings (Story 1 of `2026-09-26-drift-arch-guards`) classifies each
+changed file against a saved compute map and names the Gate 3 agent.
+Paths are normalized repo-relative; classification order is excluded
+(the story's spec folder, `.writ/context.md`, `.writ/state/`) → owned →
+out_of_scope → readable_modified → outside_boundary. Output is a verdict
+line (`pass` | `unverifiable`), `route: evaluator-agent|review-agent`,
+one `reason:` line per crossing in input order then `full_stack_surface`
+when `--surface full-stack`, and the summary line last. A missing,
+unreadable, or non-object map is `unverifiable` / `map_unreadable`.
+Crossings are a routing signal, never `fail`: exit 0 whenever it ran,
+exit 2 when `--changed` is omitted or empty.
 """
 
 from __future__ import annotations
@@ -294,6 +304,123 @@ def compute(story: Path, repo: Path, overlap: Optional[Path]) -> dict:
     }
 
 
+MAP_KEYS = ("owned", "readable", "out_of_scope")
+PIPELINE_OUTPUTS = (".writ/context.md", ".writ/state/")
+
+
+def repo_relative(value: str, repo: Path) -> str:
+    """Changed-file path as repo-relative posix; dot-directories kept.
+
+    `Path` collapses `./` without touching a leading-dot directory. File
+    names are taken verbatim (no `normalize_path` punctuation trimming):
+    they come from git, not prose.
+    """
+    raw = Path(value.strip())
+    if raw.is_absolute():
+        # Unresolved first so a symlinked path (`.cursor/commands/x.md`)
+        # keeps its own name; resolved second for `/var` → `/private/var`.
+        for base, path in ((repo.absolute(), raw), (repo.resolve(), raw.resolve())):
+            try:
+                return path.relative_to(base).as_posix()
+            except ValueError:
+                continue
+        return raw.as_posix()
+    text = raw.as_posix()
+    return "" if text == "." else text
+
+
+def covers(entry: str, path: str) -> bool:
+    """Entry equals the path, or is a directory (`dir` or `dir/`) above it."""
+    entry = entry.rstrip("/")
+    return bool(entry) and (path == entry or path.startswith(entry + "/"))
+
+
+def load_map(path: Path) -> Optional[dict]:
+    """Saved compute map, or None when missing / unreadable / malformed."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    lists = {}
+    for key in MAP_KEYS:
+        raw = payload.get(key, [])
+        if not isinstance(raw, list) or not all(isinstance(e, str) for e in raw):
+            return None
+        lists[key] = [normalize_path(e) for e in raw]
+    return lists
+
+
+def excluded_prefixes(story: Optional[Path], repo: Path) -> List[str]:
+    entries = list(PIPELINE_OUTPUTS)
+    if story is None:
+        return entries
+    spec = _spec_dir(_under_repo(repo, story))
+    if spec is not None:
+        try:
+            entries.append(spec.relative_to(repo.resolve()).as_posix() + "/")
+        except (OSError, ValueError):
+            pass
+    return entries
+
+
+def classify(path: str, boundary: dict, excluded: Sequence[str]) -> Optional[str]:
+    """Crossing class for one changed path; None when not reported."""
+    if any(covers(e, path) for e in excluded):
+        return None
+    if any(covers(e, path) for e in boundary["owned"]):
+        return None
+    if any(covers(e, path) for e in boundary["out_of_scope"]):
+        return "out_of_scope"
+    if any(covers(e, path) for e in boundary["readable"]):
+        return "readable_modified"
+    return "outside_boundary"
+
+
+def crossings(
+    map_path: Path,
+    changed: Sequence[str],
+    story: Optional[Path],
+    surface: Optional[str],
+    repo: Path,
+) -> List[str]:
+    """Report lines for `crossings`; raises UsageError on empty --changed."""
+    paths: List[str] = []
+    for value in changed:
+        path = repo_relative(value, repo) if value.strip() else ""
+        if path and path not in paths:
+            paths.append(path)
+    if not paths:
+        raise UsageError("--changed needs at least one file")
+    boundary = load_map(_under_repo(repo, map_path))
+    if boundary is None:
+        return [
+            "unverifiable",
+            "route: review-agent",
+            "reason: map_unreadable",
+            "boundary-map crossings: map unreadable (route review-agent)",
+        ]
+    excluded = excluded_prefixes(story, repo)
+    reasons = []
+    for path in paths:
+        kind = classify(path, boundary, excluded)
+        if kind is not None:
+            reasons.append("%s %s" % (kind, path))
+    count = len(reasons)
+    if surface == "full-stack":
+        reasons.append("full_stack_surface")
+    route = "review-agent" if reasons else "evaluator-agent"
+    return (
+        ["pass", "route: %s" % route]
+        + ["reason: %s" % r for r in reasons]
+        + [
+            "boundary-map crossings: %d crossing(s), surface %s (route %s)"
+            % (count, surface or "none", route)
+        ]
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
@@ -301,6 +428,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--story", type=Path, required=True)
     p.add_argument("--repo", type=Path, required=True)
     p.add_argument("--overlap", type=Path, default=None)
+    c = sub.add_parser("crossings", help="route Gate 3 from changed files vs a map")
+    c.add_argument("--map", type=Path, required=True)
+    c.add_argument("--changed", nargs="*", required=True)
+    c.add_argument("--story", type=Path, default=None)
+    c.add_argument("--surface", default=None)
+    c.add_argument("--repo", type=Path, default=Path("."))
     return parser
 
 
@@ -311,6 +444,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     except SystemExit as exc:
         code = exc.code
         return int(code) if isinstance(code, int) else 2
+    if args.action == "crossings":
+        try:
+            lines = crossings(args.map, args.changed, args.story, args.surface, args.repo)
+        except UsageError as exc:
+            print("error: %s" % exc, file=sys.stderr)
+            return 2
+        print("\n".join(lines))
+        return 0
     try:
         payload = compute(args.story, args.repo, args.overlap)
     except UsageError as exc:
