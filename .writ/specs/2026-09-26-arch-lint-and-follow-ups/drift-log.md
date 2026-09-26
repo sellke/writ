@@ -44,3 +44,44 @@
 - **Reason:** Unattributed `AC-2.x` tags were credited to this spec, so `AC-2.5` dangled and would block `eval.sh`; the attribution convention in `.writ/docs/acceptance-criteria-ids.md` is to name the spec next to AC tags.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed; ac-trace for this spec and the four owning specs reports no new findings.
+
+---
+
+## Story 3: Ruleset Detection and Gate 2 Wiring — Drift Report
+
+> Run: 2026-09-26
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] ArchUnit printed as lowercase `archunit`
+- **Severity:** Small
+- **Spec said:** The technical-spec §3 table names the tool "ArchUnit"; the State Catalog shows `archunit (via tests)`.
+- **Implementation did:** Prints `tool: archunit via-tests <file>`.
+- **Reason:** Matches the State Catalog and the other lowercase tool names; "ArchUnit" in the table is the product name.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; the State Catalog already uses the lowercase form.
+
+#### [DEV-006] A non-object package.json is `config_unreadable`
+- **Severity:** Small
+- **Spec said:** `config_unreadable <path>` when a config cannot be parsed.
+- **Implementation did:** A `package.json` that parses to an array or scalar also yields `reason: config_unreadable package.json` and `unverifiable`.
+- **Reason:** It cannot be read as a manifest; reporting `pass` would hide the problem.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here, pinned by `test_arch_lint.py`.
+
+#### [DEV-007] Unreadable package.json falls back to the npx command
+- **Severity:** Small
+- **Spec said:** Prefer an `npm run <name>` script that invokes depcruise, else `npx --no-install depcruise`; other detections still print on `config_unreadable`.
+- **Implementation did:** When `package.json` is unreadable, dependency-cruiser is still `run` with the `npx --no-install` command.
+- **Reason:** AC-3.3 keeps other detections; npx `--no-install` stays offline and the top-line `unverifiable` still flags the manifest.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
+
+#### [DEV-008] `npm run` script names are shell-quoted
+- **Severity:** Small
+- **Spec said:** `command: npm run <name>`.
+- **Implementation did:** Emits `npm run <shlex-quoted name>`, so `"deps check"` prints `npm run 'deps check'`; plain names are unchanged.
+- **Reason:** Gate 2 runs the line in a shell; an unquoted name with a space ran the wrong script (Gate 3 review Minor finding).
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here, pinned by `test_script_name_is_shell_quoted`.

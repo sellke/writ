@@ -236,7 +236,9 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 **On failure:** auto-fix (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); re-run; typecheck fail → coding agent; still failing → flag for review.
 
-**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report. Typechecking misses framework-level structural errors (e.g. route collisions).
+**Architecture ruleset.** After the linters, run `python3 scripts/arch-lint.py detect --repo .`, then run each `command:` line from the repo root; a non-zero exit takes the **On failure** path (no auto-fix exists, so flag for review). A missing or not-installed ruleset never fails the gate. Report `arch-lint: <names joined ", ">`, each name suffixed `(via eslint)`, `(via tests)` or `(not installed)` per its mode; no ruleset → `arch-lint: none — see .writ/docs/architecture-lint.md`; `unverifiable` → `arch-lint: unverifiable (<reason>)`.
+
+**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report; it catches framework-level structural errors typechecking misses.
 
 - **`build_failed_source`** → blocking. Apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 2**. No new control flow, no iteration cap.
 - **`build_failed_environment` or any `unverifiable` verdict** → the pipeline continues. Surface the reason verbatim; the story is **not** marked `⚠️ DEGRADED` on that basis. An unverifiable check is not a failed gate — DEGRADED means a gate could not be cleared, `unverifiable` means a check could not be run here.
@@ -411,7 +413,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` line, and next action (`/ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` and `arch-lint:` lines, and next action (`/ship`)
 
 **Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 

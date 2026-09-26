@@ -1,6 +1,7 @@
 # Story 1: Codex TOML Freshness
 
 > **Status:** Completed ✅
+> **Commit:** 60f10a957c71141cb3888e76291ab470b9e85280
 > **Priority:** High
 > **Dependencies:** None
 

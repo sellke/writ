@@ -373,5 +373,74 @@ class Gate3RiskRouteTests(unittest.TestCase):
         self.assertNotIn("integration", medium)
 
 
+class Gate2ArchLintTests(unittest.TestCase):
+    """Spec `2026-09-26-arch-lint-and-follow-ups` Story 3: Gate 2 detects and
+    runs a project's architecture ruleset through its existing lint failure
+    path, and the story report carries one `arch-lint:` line."""
+
+    DETECT = "python3 scripts/arch-lint.py detect --repo ."
+    REPORT_FORMS = (
+        '`arch-lint: <names joined ", ">`',
+        "`(via eslint)`",
+        "`(via tests)`",
+        "`(not installed)`",
+        "`arch-lint: none — see .writ/docs/architecture-lint.md`",
+        "`arch-lint: unverifiable (<reason>)`",
+    )
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.gate2 = between(self.text, "#### Gate 2: Lint", "#### Gate 2.5:")
+
+    def test_gate_2_runs_detect_after_the_linters(self) -> None:
+        """AC-3.4"""
+        self.assertIn(self.DETECT, self.gate2)
+        self.assertLess(
+            self.gate2.index("Auto-detect and run project linters"),
+            self.gate2.index(self.DETECT),
+        )
+
+    def test_each_command_runs_through_the_lint_failure_path(self) -> None:
+        """AC-3.4 (spec Business Rule 2): no auto-fix, flag for review."""
+        self.assertIn("run each `command:` line from the repo root", self.gate2)
+        self.assertIn("a non-zero exit takes the **On failure** path", self.gate2)
+        self.assertIn("flag for review", self.gate2)
+
+    def test_missing_ruleset_never_blocks(self) -> None:
+        """AC-3.4 (spec Business Rule 1)"""
+        self.assertIn("A missing or not-installed ruleset never fails the gate", self.gate2)
+
+    def test_gate_2_names_every_report_form(self) -> None:
+        """AC-3.4"""
+        for form in self.REPORT_FORMS:
+            self.assertIn(form, self.gate2, form)
+
+    def test_step_4_item_8_reports_the_line(self) -> None:
+        """AC-3.4, AC-3.5"""
+        item8 = next(ln for ln in self.text.splitlines() if ln.startswith("8. **Report**"))
+        self.assertIn("`arch-lint:`", item8)
+
+    def test_detection_is_prose_not_a_spawn(self) -> None:
+        """AC-3.5: spawn-cap counts only Agent markers and Task( calls."""
+        self.assertNotIn("> **Agent:**", self.gate2)
+        self.assertNotIn("Task(", self.gate2)
+
+    def test_quick_keeps_gate_2_and_so_the_detection(self) -> None:
+        """AC-3.4"""
+        row = next(ln for ln in self.text.splitlines() if ln.startswith("| Gate 2 |"))
+        self.assertTrue(row.rstrip().endswith("| — | — |"), row)
+        self.assertNotIn("Skip in", self.gate2)
+        quick = between(self.text, "## Quick Mode (`--quick`)", "## Completion")
+        skips = next(ln for ln in quick.splitlines() if ln.startswith("**Skips:**"))
+        keeps = next(ln for ln in quick.splitlines() if ln.startswith("**Keeps:**"))
+        self.assertNotIn("Gate 2", skips)
+        self.assertIn("Gate 2 (lint + build smoke)", keeps)
+
+    def test_lean_sibling_is_untouched(self) -> None:
+        """AC-3.5 (spec Business Rule 7)"""
+        lean = read(REPO_ROOT / "commands" / "implement-story.lean.md")
+        self.assertNotIn("arch-lint", lean)
+
+
 if __name__ == "__main__":
     unittest.main()
