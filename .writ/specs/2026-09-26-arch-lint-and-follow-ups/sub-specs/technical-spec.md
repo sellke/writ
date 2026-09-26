@@ -73,7 +73,7 @@ arch-lint detect: 2 ruleset(s), 1 runnable
 
 **Files:** `.writ/docs/architecture-lint.md` (new), `commands/create-adr.md`, `scripts/tests/test_architecture_lint_doc.py` (new).
 
-- Doc sections: why (mechanical over judgment); how Gate 2 finds and runs rulesets (the §3 table, linked); one minimal, valid example each for dependency-cruiser (`forbidden` rule), import-linter (`layers` contract), eslint-plugin-boundaries (`element-types`), ArchUnit (`layeredArchitecture()`); relation to ADRs.
+- Doc sections: why (mechanical over judgment); how Gate 2 finds and runs rulesets (the §3 table, linked); one minimal, valid example each for dependency-cruiser (`forbidden` rule), import-linter (`layers` contract), eslint-plugin-boundaries (`dependencies`, formerly `element-types`), ArchUnit (`layeredArchitecture()`); relation to ADRs.
 - `create-adr.md` Step 4 "After writing": one numbered step — when the decision constrains layering, import direction, or module dependencies, add an **Enforcement** note naming the lint rule that encodes it and linking `.writ/docs/architecture-lint.md`.
 - Test: doc names all four tools and each tool's detection file from §3; `create-adr.md` links the doc. `install.sh --dry-run` lists the new doc (docs ship via the `.writ/docs/*.md` overlay).
 

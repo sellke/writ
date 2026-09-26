@@ -85,3 +85,28 @@
 - **Reason:** Gate 2 runs the line in a shell; an unquoted name with a space ran the wrong script (Gate 3 review Minor finding).
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed; recorded here, pinned by `test_script_name_is_shell_quoted`.
+
+---
+
+## Story 4: Architecture-Lint Guide and ADR Hook — Drift Report
+
+> Run: 2026-09-26
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-009] eslint-plugin-boundaries example uses `dependencies`, not `element-types`
+- **Severity:** Small
+- **Spec said:** AC-4.2 asks for an eslint-plugin-boundaries `element-types` rule.
+- **Implementation did:** The example uses `boundaries/dependencies` with the v7 `policies` option; `element-types` stays in the heading and a comment.
+- **Reason:** v6 made `element-types` a deprecated alias of `dependencies` (identical options) and v7 renamed `rules` to `policies`; the story note requires examples valid for current tool versions. Verified against upstream docs and a real eslint 10.11 run.
+- **Resolution:** Auto-amended
+- **Spec amendment:** story-4 AC-4.2 now reads "an eslint-plugin-boundaries `dependencies` rule (formerly `element-types`)".
+
+#### [DEV-010] dependency-cruiser `.ts`/`.cts`/`.mts` configs are not detected
+- **Severity:** Small
+- **Spec said:** Technical-spec §3 detects `.dependency-cruiser.{js,cjs,mjs,json}`.
+- **Implementation did:** The guide states that dependency-cruiser also reads `.ts`, `.cts` and `.mts` configs but Gate 2 does not detect them.
+- **Reason:** The helper is the source of truth and follows the locked table; widening detection is out of scope here.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None; follow-up issue filed to add the three names to `arch-lint.py`.

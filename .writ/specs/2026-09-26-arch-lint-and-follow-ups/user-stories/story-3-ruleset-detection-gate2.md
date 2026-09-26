@@ -1,6 +1,7 @@
 # Story 3: Ruleset Detection and Gate 2 Wiring
 
 > **Status:** Completed ✅
+> **Commit:** cb1659c1c2e5b35f20d428ce712d67625c320e03
 > **Priority:** High
 > **Dependencies:** None
 
