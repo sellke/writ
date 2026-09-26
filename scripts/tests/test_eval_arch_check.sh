@@ -240,4 +240,57 @@ else
   ok "registration: skipped until parent wires arch-check in real eval.sh"
 fi
 
+# usage: add_active_spec <root> -> one active spec with two stories, plus an
+# archived spec whose story must not be visited.
+add_active_spec() {
+  local root="$1"
+  mkdir -p "$root/.writ/specs/2026-01-01-demo/user-stories" "$root/.writ/specs/archive/2025-01-01-old/user-stories"
+  printf '# Demo spec\n' > "$root/.writ/specs/2026-01-01-demo/spec.md"
+  printf '# Story 1\n' > "$root/.writ/specs/2026-01-01-demo/user-stories/story-1-alpha.md"
+  printf '# Story 2\n' > "$root/.writ/specs/2026-01-01-demo/user-stories/story-2-beta.md"
+  printf '# Old\n' > "$root/.writ/specs/archive/2025-01-01-old/spec.md"
+  printf '# Old story\n' > "$root/.writ/specs/archive/2025-01-01-old/user-stories/story-1-old.md"
+}
+
+# ---------------------------------------------------------------------------
+# Live content: one run per active story in --planned mode, the planned set
+# and --boundary coming from boundary-map.py compute.
+# ---------------------------------------------------------------------------
+ROOT="$(new_root pass)"
+add_active_spec "$ROOT"
+write_stub "$ROOT/scripts/boundary-map.py" "$(cat <<'PY'
+#!/usr/bin/env python3
+import json
+print(json.dumps({"owned": ["scripts/a.py", ".writ/b.md"], "readable": [], "out_of_scope": []}))
+PY
+)"
+write_stub "$ROOT/scripts/arch-check.py" "$(cat <<'PY'
+#!/usr/bin/env python3
+import sys
+args = sys.argv[1:]
+story = args[args.index("--story") + 1]
+planned = []
+if "--planned" in args:
+    for a in args[args.index("--planned") + 1:]:
+        if a.startswith("--"):
+            break
+        planned.append(a)
+if "story-2-" in story:
+    print("fail"); print("reason: dependency_cycle"); print("arch-check: fail (fixture)")
+    raise SystemExit(1)
+print("pass"); print("planned=" + ",".join(planned) + " boundary=" + str("--boundary" in args))
+print("arch-check: pass (fixture)")
+PY
+)"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || { report_of "$ROOT"; fail "per-story: story-2 fail must block, got $rc"; }
+grep -Fq 'story-1-alpha.md: pass | planned=scripts/a.py,.writ/b.md boundary=True' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "per-story: story-1 must run with --planned <owned> --boundary <map>"; }
+grep -Fq 'story-2-beta.md' "$ROOT/eval-report.md" && grep -Fq 'dependency_cycle' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "per-story: story-2 fail must be a finding naming the story"; }
+if grep -Fq 'story-1-old.md' "$ROOT/eval-report.md"; then
+  report_of "$ROOT"; fail "per-story: archived specs must be skipped"
+fi
+ok "live: runs per active story with boundary-map owned paths as --planned and the map as --boundary"
+
 printf '\nAll %d arch-check check assertions passed.\n' "$pass_count"

@@ -72,8 +72,9 @@
 
 1. **`scripts/drift-format.py`** (165 lines)
    - `check --story PATH [--drift-log] [--review-output]`. Required DEV-NNN fields from `.writ/docs/drift-report-format.md`. Large-drift heading requires `PAUSE` in the story or `--review-output`. Never prints accept / reject / modify-spec as a verdict. [AC-5.1]
+   - Corrected 2026-09-25: Large is detected from `Overall Drift: Large` (plain `> Overall Drift: Large` per the format doc, or bold `**Overall Drift:** Large` as the review/evaluator agents print it) or a `- **Severity:** Large` entry field, in the drift log, story, or review output. A DEV heading title no longer counts. PAUSE must be a verdict line (`REVIEW_RESULT: PAUSE` / `EVALUATION_RESULT: PAUSE`, optionally `###` or bold); the word PAUSE in prose or the `[PASS/FAIL/PAUSE]` template does not satisfy the check.
 2. **`scripts/tests/test_drift_format.py`** (164 lines) — pass / malformed / large-without-pause / pause-in-review-output / unverifiable / exit 2 / Gate 3.5 wiring / visual-qa 85/70 gone. [AC-5.1, AC-5.2, AC-5.3]
-3. **`scripts/tests/test_gate_replay.py`** (203 lines) — 16 committed baseline records, SHA-stable, disagreement is a note, `nothing_inspected` → unverifiable expected; watch-field + stderr drop count. [AC-5.4, AC-5.5]
+3. **`scripts/tests/test_gate_replay.py`** — 16 committed baseline records, SHA-stable, disagreement is a note, `nothing_inspected` → unverifiable expected; watch-field + stderr drop count. Corrected 2026-09-25: replays only Gate 2.5 from record data and marks the other five gates `not_replayable` (see Replay table). [AC-5.4, AC-5.5]
 4. **`scripts/tests/test_eval_drift_format.sh`** (85 lines) — `drift-format` in CHECKS; `check_verdict_provenance` passes `--prose-only-blocking`. [AC-5.2]
 
 ### Files Modified
@@ -90,34 +91,40 @@
 2. **`--prose-only-blocking` on.** Eight script sources, two prose-only. A third honor-system gate is now an eval finding.
 3. **Watch field is additive.** New run records carry `background_tasks_outstanding` after the stable `RUN_KEYS` prefix so the 16 committed records stay byte-stable.
 4. **Replay disagreement is a note.** No eight-run re-run, no keep-or-revert, no `/revert`. Spawn behavior unchanged.
-5. **Gate 0 replay prints `pass` for proceed/caution.** Agent CAUTION/PROCEED vs script `pass` is a vocabulary note, not a defect.
+5. **Gate 0 replay prints `pass` for proceed/caution.** Agent CAUTION/PROCEED vs script `pass` is a vocabulary note, not a defect. (2026-09-25: Gate 0 is no longer replayed; the record's spec is not in this repo.)
 
 ### Replay table (16 records × 6 new gates)
 
-Totals: **54 agree / 42 note / 48 unverifiable**. Historical `test_integrity: nothing_inspected` on all 16 records. Cells with no agent verdict and a measured map/class are counted in agree when they do not disagree.
+> **Correction (2026-09-25).** The table first recorded here (totals 54 agree / 42 note / 48 unverifiable) did not measure the records. `test_gate_replay.py` passed record data only to `arch-check.py` and `change-surface.py`. `review-override.py` ran with no `--spec`, `docs-check.py` with `--changed README.md`, and `boundary-map.py` / `drift-format.py` / `arch-check.py --story` on this spec's Story 5 file, so those columns were the same on every row. `arch-check.py`'s verdict comes from `story-deps.py` on the `--story` spec, so its column was also a constant. The three totals summed to 144 over 96 cells. The test now replays a gate only from inputs the record carries and marks the rest `not_replayable`. The numbers below are from `uv run --python 3.9 pytest -q -s scripts/tests/test_gate_replay.py` on 2026-09-25.
 
-`s2` = fee-revenue story-2; `s3f` = fee-revenue story-3; `s3q` = quick-split story-3; `s4` = fee-revenue story-4. Agent → rederived.
+**What a record carries.** `story_id` (a path in the benchmarked repo, not in this repo) and `tests.original.files` (the original story's test files). Nothing else the six scripts read.
+
+**Totals:** `REPLAY_TABLE rows=16 cells=96 replayed=16 not_replayable=80 compared=0 agree=0 disagree=0 expected_integrity_notes=16`.
+
+- **Replayed (16 cells):** Gate 2.5 only. `change-surface.py classify --changed <record test files>` prints `cross-component` on all 16 records. The records hold no agent Gate 2.5 verdict, so nothing is compared.
+- **Not replayable (80 cells):** Gate 0 and Gate 3 (`record_spec_absent`: need the record's spec for `story-deps.py` / `ac-trace`), Gate 5 (`record_checkout_absent`: needs the record's changed source files and that repo's docs), Gates 0.5 and 3.5 (`record_story_absent`: need the record's story file, drift log, and review output).
+- **Agent vs re-derived:** 0 comparisons. The replay cannot confirm or contradict any recorded agent verdict. Historical `test_integrity: nothing_inspected` is on all 16 records.
+
+`s2` = fee-revenue story-2; `s3f` = fee-revenue story-3; `s3q` = quick-split story-3; `s4` = fee-revenue story-4. Agent → re-derived; `n/r` = not replayable from the record.
 
 | baseline | rec | g0_arch | g3_review | g5_docs | g0.5 | g2.5 | g3.5 |
 |---|---|---|---|---|---|---|---|
-| 2026-09-06 | s2 r1 | CAUTION→pass | PASS→unverifiable | —→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s2 r2 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s3q r1 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s3q r2 | —→pass | —→unverifiable | —→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s3f r1 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s3f r2 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s4 r1 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-06 | s4 r2 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s2 r1 | PROCEED→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s2 r2 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s3q r1 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s3q r2 | —→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s3f r2 | PROCEED→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s4 r1 | —→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s3f r1 | CAUTION→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-| 2026-09-07 | s4 r2 | PROCEED→pass | PASS→unverifiable | YES→unverifiable | —→map | —→cross-component | —→unverifiable |
-
-Notes (not reverts): Gate 0 vocabulary (`CAUTION`/`PROCEED` vs script `pass`); Gate 3/5/3.5 historical `unverifiable` (inherited helper honesty, including `nothing_inspected`).
+| 2026-09-06 | s2 r1 | CAUTION→n/r | PASS→n/r | —→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s2 r2 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s3q r1 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s3q r2 | —→n/r | —→n/r | —→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s3f r1 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s3f r2 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s4 r1 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-06 | s4 r2 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s2 r1 | PROCEED→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s2 r2 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s3q r1 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s3q r2 | —→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s3f r2 | PROCEED→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s4 r1 | —→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s3f r1 | CAUTION→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
+| 2026-09-07 | s4 r2 | PROCEED→n/r | PASS→n/r | YES→n/r | —→n/r | —→cross-component | —→n/r |
 
 ### Test Results
 

@@ -79,7 +79,7 @@ Python 3.9 stdlib. Count **default-path spawn sites**: a line that (a) sits in a
 
 One verdict line, optional `reason:`, summary last. Never print accept / reject / modify-spec.
 
-`eval.sh` `CHECKS` += `spawn-cap`. Missing helper / exit 2 → `add_finding`. Other verdicts → `add_note`.
+`eval.sh` `CHECKS` += `spawn-cap`. Missing helper / exit 2 → `add_finding`. `fail` (exit 1) → `add_finding` per `reason:` line. `pass` / `unverifiable` → `add_note`. *(Amended 2026-09-25: `fail` was a note, so a third default spawn did not block eval.)*
 
 ## 4. Adapter wording (Story 3)
 

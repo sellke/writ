@@ -1181,5 +1181,111 @@ import { a } from '@/lib/a'
         self.assertIsInstance(ti.strip_js_comments("const a = 1 /* never closed"), str)
 
 
+class PythonScriptInvocationTests(unittest.TestCase):
+    """UAT Scenario 7 / Honest Note 6: a Python test that runs a project
+    script by path (subprocess, a SCRIPT constant, importlib by path) or
+    imports a project module exercises source. A Python test that touches
+    no project source is still flagged."""
+
+    def setUp(self) -> None:
+        self.fx = ProjectFixture()
+        self.addCleanup(self.fx.cleanup)
+        self.fx.write("scripts/tool.py", "print('ok')\n")
+        self.fx.write("scripts/tests/fixtures/helper.py", "print('fixture')\n")
+
+    def _flagged(self, name: str, text: str) -> set:
+        path = self.fx.write("scripts/tests/" + name, text)
+        _, result = ti.authenticity(self.fx.root, tests=[path])
+        self.assertEqual(result["inspected"]["files"], 1)
+        return flagged_files(result)
+
+    def test_subprocess_of_script_constant_is_source(self) -> None:
+        text = (
+            "import subprocess, sys\n"
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "SCRIPT = ROOT / \"scripts\" / \"tool.py\"\n"
+            "def test_it():\n"
+            "    subprocess.run([sys.executable, str(SCRIPT)], check=True)\n"
+        )
+        self.assertEqual(self._flagged("test_const.py", text), set())
+
+    def test_subprocess_of_literal_repo_path_is_source(self) -> None:
+        text = (
+            "import subprocess, sys\n"
+            "def test_it():\n"
+            "    subprocess.run([sys.executable, 'scripts/tool.py'], check=True)\n"
+        )
+        self.assertEqual(self._flagged("test_literal.py", text), set())
+
+    def test_importlib_by_path_is_source(self) -> None:
+        text = (
+            "import importlib.util\n"
+            "from pathlib import Path\n"
+            "MODULE_PATH = Path(__file__).resolve().parent.parent / \"tool.py\"\n"
+            "spec = importlib.util.spec_from_file_location('tool', MODULE_PATH)\n"
+        )
+        self.assertEqual(self._flagged("test_importlib.py", text), set())
+
+    def test_python_import_of_project_module_is_source(self) -> None:
+        text = (
+            "import sys\n"
+            "from pathlib import Path\n"
+            "sys.path.insert(0, str(Path(__file__).resolve().parent.parent))\n"
+            "import tool\n"
+        )
+        self.assertEqual(self._flagged("test_import.py", text), set())
+
+    def test_python_test_touching_no_source_is_flagged(self) -> None:
+        text = "import json\n\ndef test_it():\n    assert json.loads('1') == 1\n"
+        self.assertEqual(
+            self._flagged("test_none.py", text), {"scripts/tests/test_none.py"}
+        )
+
+    def test_path_mentioned_without_execution_is_flagged(self) -> None:
+        text = (
+            "NAME = 'scripts/tool.py'\n"
+            "def test_it():\n"
+            "    assert NAME.endswith('.py')\n"
+        )
+        self.assertEqual(
+            self._flagged("test_mention.py", text), {"scripts/tests/test_mention.py"}
+        )
+
+    def test_subprocess_of_missing_script_is_flagged(self) -> None:
+        text = (
+            "import subprocess, sys\n"
+            "def test_it():\n"
+            "    subprocess.run([sys.executable, 'scripts/missing.py'])\n"
+        )
+        self.assertEqual(
+            self._flagged("test_missing.py", text), {"scripts/tests/test_missing.py"}
+        )
+
+    def test_subprocess_of_test_fixture_only_is_flagged(self) -> None:
+        text = (
+            "import subprocess, sys\n"
+            "def test_it():\n"
+            "    subprocess.run([sys.executable, 'scripts/tests/fixtures/helper.py'])\n"
+        )
+        self.assertEqual(
+            self._flagged("test_fixture.py", text), {"scripts/tests/test_fixture.py"}
+        )
+
+    def test_writ_subprocess_style_tests_are_not_flagged(self) -> None:
+        repo = HELPER_PATH.parent.parent
+        tests = [
+            repo / "scripts" / "tests" / name
+            for name in (
+                "test_review_override.py", "test_arch_check.py",
+                "test_docs_check.py", "test_drift_format.py", "test_ac_trace.py",
+            )
+        ]
+        code, result = ti.authenticity(repo, tests=tests)
+        self.assertEqual(flagged_files(result), set())
+        self.assertEqual(result["inspected"]["files"], 5)
+        self.assertEqual(code, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

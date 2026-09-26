@@ -8,6 +8,7 @@
 - **Default Branch:** main
 - **Test Runner:** uv run pytest (Python >= 3.9; see pyproject.toml — bash tests: `for t in scripts/tests/test_*.sh; do bash "$t"; done`)
 - **Version File:** VERSION
+- **Judgment Provider:** vercel-gateway
 
 ## Paths
 

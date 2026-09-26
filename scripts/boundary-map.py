@@ -20,6 +20,7 @@ Exit 2: usage.
 from __future__ import annotations
 
 import argparse
+import subprocess
 import json
 import re
 import sys
@@ -44,26 +45,64 @@ class StoryError(Exception):
     """Exit-1: story file exists but is not a well-formed story."""
 
 
+# Surrounding punctuation stripped from a token. The leading side never
+# strips `.` so dot-directories (`.writ/`, `.github/`) survive intact.
+_EDGE_PUNCT = ",;:()[]{}\"'"
+LINE_SUFFIX = re.compile(r":\d+(?:\s*[-\u2013\u2014]\s*\d+)?$")
+BAD_CHARS = re.compile(r"[<>{}|=$*?!@#%^&+,;\\\u2026]")
+NUMERIC_SEGMENT = re.compile(r"^\d+$")
+
+
+def normalize_path(token: str) -> str:
+    """Trim punctuation, `:line` / `:a-b` suffixes, and `./` prefixes.
+
+    Leading dots that belong to the path (`.writ/`, `.github/`) are kept.
+    """
+    token = token.strip().lstrip(_EDGE_PUNCT).rstrip(_EDGE_PUNCT + ".")
+    token = LINE_SUFFIX.sub("", token)
+    if "::" in token:  # `path::symbol` names a symbol in that file
+        token = token.split("::", 1)[0]
+    while token.startswith("./"):
+        token = token[2:]
+    return token
+
+
 def looks_like_path(token: str) -> bool:
-    token = token.strip().strip(".,;:()[]{}\"'")
+    """True when the token is a plausible repo-relative path.
+
+    Rejects URLs, AC ids, slash commands / absolute paths, tokens with
+    whitespace or template/shell characters, and slash tokens whose
+    segments are numbers (`70/219/231`).
+    """
+    token = normalize_path(token)
     if not token or any(ch.isspace() for ch in token):
         return False
-    if token.startswith("http://") or token.startswith("https://"):
+    if "://" in token:
         return False
     if AC_ID.fullmatch(token):
         return False
+    if token.startswith("/") or token.startswith("~") or token.startswith("-"):
+        return False
+    if BAD_CHARS.search(token) or ".." in token.split("/"):
+        return False
     if "/" in token:
+        segments = [seg for seg in token.split("/") if seg]
+        if not segments:
+            return False
+        if any(NUMERIC_SEGMENT.fullmatch(seg) for seg in segments):
+            return False
         return True
     if FILENAME.fullmatch(token) and not NUMERIC.fullmatch(token):
         return True
     return False
 
 
-def normalize_path(token: str) -> str:
-    return token.strip().strip(".,;:()[]{}\"'")
-
-
 def extract_paths(text: str) -> List[str]:
+    """Backticked plausible paths, in order, deduplicated.
+
+    A bare filename is dropped when a fuller path with the same basename
+    was also named (`test_x.py` beside `scripts/tests/test_x.py`).
+    """
     found: List[str] = []
     seen: Set[str] = set()
     for match in BACKTICK.finditer(text):
@@ -71,7 +110,8 @@ def extract_paths(text: str) -> List[str]:
         if looks_like_path(raw) and raw not in seen:
             seen.add(raw)
             found.append(raw)
-    return found
+    basenames = {p.rstrip("/").rsplit("/", 1)[-1] for p in found if "/" in p}
+    return [p for p in found if "/" in p or p not in basenames]
 
 
 def implementation_tasks(text: str) -> Optional[str]:
@@ -180,6 +220,55 @@ def _under_repo(repo: Path, path: Path) -> Path:
     return repo / path
 
 
+def _spec_dir(story: Path) -> Optional[Path]:
+    for folder in story.resolve().parents:
+        if (folder / "user-stories").is_dir():
+            return folder
+    return None
+
+
+def _tracked_files(repo: Path) -> List[str]:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo), "ls-files"],
+            capture_output=True, text=True,
+        )
+    except OSError:
+        return []
+    return proc.stdout.splitlines() if proc.returncode == 0 else []
+
+
+def resolve_spec_relative(paths: Sequence[str], story: Path, repo: Path) -> List[str]:
+    """Rewrite spec-relative paths (`sub-specs/x.md`) to repo-relative.
+
+    Only when the path is missing under the repo but present under the
+    story's spec folder. New files the story will create stay as named.
+    """
+    spec = _spec_dir(story)
+    if spec is None:
+        return list(paths)
+    try:
+        repo_r = repo.resolve()
+        spec_rel = spec.relative_to(repo_r)
+    except (OSError, ValueError):
+        return list(paths)
+    tracked: Optional[List[str]] = None
+    out: List[str] = []
+    for path in paths:
+        if not (repo_r / path).exists() and (spec / path).exists():
+            path = (spec_rel / path).as_posix()
+        elif "/" not in path and not (repo_r / path).exists():
+            # A bare filename resolves when exactly one tracked file has it.
+            if tracked is None:
+                tracked = _tracked_files(repo_r)
+            hits = [t for t in tracked if t.rsplit("/", 1)[-1] == path]
+            if len(hits) == 1:
+                path = hits[0]
+        if path not in out:
+            out.append(path)
+    return out
+
+
 def compute(story: Path, repo: Path, overlap: Optional[Path]) -> dict:
     if repo is None:
         raise UsageError("missing --repo")
@@ -187,15 +276,15 @@ def compute(story: Path, repo: Path, overlap: Optional[Path]) -> dict:
     if overlap is not None:
         overlap = _under_repo(repo, overlap)
     text = load_story(story)
-    owned = owned_from_story(text)
+    owned = resolve_spec_relative(owned_from_story(text), story, repo)
     readable: List[str] = []
     if overlap is not None:
         if not overlap.is_file():
-            raise UsageError("overlap file is not readable")
+            raise UsageError("overlap file is not readable: %s" % overlap)
         try:
             overlap_text = overlap.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
-            raise UsageError("overlap file is not readable") from exc
+            raise UsageError("overlap file is not readable: %s" % overlap) from exc
         readable_merged = merge_overlap(owned, parse_overlap(overlap_text))[1]
         readable = readable_merged
     return {
@@ -224,7 +313,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return int(code) if isinstance(code, int) else 2
     try:
         payload = compute(args.story, args.repo, args.overlap)
-    except UsageError:
+    except UsageError as exc:
+        print("error: %s" % exc, file=sys.stderr)
         return 2
     except StoryError:
         return 1

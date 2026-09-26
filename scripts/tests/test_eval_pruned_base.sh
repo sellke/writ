@@ -141,6 +141,8 @@ rc="$(run_check "$ROOT")"
 [ "$rc" -eq 1 ] || { report_of "$ROOT"; fail "over cap, marker: expected exit 1, got $rc"; }
 grep -q '^FAIL (1 finding' "$ROOT/eval-report.md" || { report_of "$ROOT"; fail "over cap, marker: expected exactly one finding"; }
 grep -Fq 'over_cap' "$ROOT/eval-report.md" || { report_of "$ROOT"; fail "over cap, marker: over_cap finding expected"; }
+grep -Fq 'under the cap: cut more lines' "$ROOT/eval-report.md" || { report_of "$ROOT"; fail "over cap, marker: over_cap remediation must describe the cap"; }
+if grep -Fq 'Add the ledger row' "$ROOT/eval-report.md"; then report_of "$ROOT"; fail "over cap, marker: generic ledger remediation must not appear"; fi
 ok "over cap with <!-- cap: blocking --> marker -> finding, exit 1"
 
 # ---------------------------------------------------------------------------

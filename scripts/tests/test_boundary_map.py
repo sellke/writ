@@ -162,6 +162,24 @@ class BoundaryMapTests(unittest.TestCase):
         code, _out, _err = _run([])
         self.assertEqual(code, 2)
 
+    def test_missing_overlap_file_exits_2_with_error_naming_path(self):
+        """UAT Scenario 22: a bad --overlap is a usage error, not silent."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            story = root / "story.md"
+            story.write_text(WELL_FORMED_STORY, encoding="utf-8")
+            missing = root / "no-such-overlap.md"
+            code, out, err = _run(
+                [
+                    "compute", "--story", str(story), "--repo", str(root),
+                    "--overlap", str(missing),
+                ],
+            )
+            self.assertEqual(code, 2)
+            self.assertEqual(out, "")
+            self.assertIn("error: overlap file is not readable", err)
+            self.assertIn(str(missing), err)
+
     def test_writes_nothing(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -174,6 +192,134 @@ class BoundaryMapTests(unittest.TestCase):
             self.assertEqual(code, 0)
             after = {p.relative_to(root) for p in root.rglob("*")}
             self.assertEqual(before, after)
+
+
+DOTTED_STORY = """# Story 1: Dots
+
+> **Status:** Not Started
+
+## Implementation Tasks
+
+- [ ] 1.1 Append to `.writ/decision-log.md`
+- [ ] 1.2 Edit `scripts/eval.sh` lines `70/219/231`
+- [ ] 1.3 Update `.github/workflows/ci.yml`
+- [ ] 1.4 Do not change how `/implement-story` or `/revert` spawn agents
+- [ ] 1.5 Drop the lines at `adapters/cursor.md:50\u201355` and `agents/x.md:12`
+- [ ] 1.6 Write `scripts/tests/test_gate_replay.py`; run `test_gate_replay.py` later
+- [ ] 1.7 Ignore `85/70`, `{date} stage-2b: x`, `/abs/tool`, and `a/b|c`
+- [ ] 1.8 Also `./src/app.py` and a lone `README.md`
+"""
+
+
+class PathPlausibilityTests(unittest.TestCase):
+    """UAT Scenario 26 / Honest Note 4: the map names real-looking repo paths."""
+
+    def _owned(self, text):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            story = root / "story.md"
+            story.write_text(text, encoding="utf-8")
+            code, out, err = _run(
+                ["compute", "--story", str(story), "--repo", str(root)],
+            )
+            self.assertEqual(code, 0, err)
+            return _payload(out)["owned"]
+
+    def test_leading_dots_are_kept(self):
+        owned = self._owned(DOTTED_STORY)
+        self.assertIn(".writ/decision-log.md", owned)
+        self.assertIn(".github/workflows/ci.yml", owned)
+        self.assertNotIn("writ/decision-log.md", owned)
+        self.assertNotIn("github/workflows/ci.yml", owned)
+
+    def test_non_path_tokens_are_dropped(self):
+        owned = self._owned(DOTTED_STORY)
+        for bad in ("70/219/231", "85/70", "/implement-story", "/revert", "/abs/tool", "a/b|c"):
+            self.assertNotIn(bad, owned)
+        self.assertFalse(any("{" in p or " " in p for p in owned), owned)
+
+    def test_line_suffixes_are_stripped(self):
+        owned = self._owned(DOTTED_STORY)
+        self.assertIn("adapters/cursor.md", owned)
+        self.assertIn("agents/x.md", owned)
+        self.assertFalse(any(":" in p for p in owned), owned)
+
+    def test_bare_filename_duplicating_a_full_path_is_dropped(self):
+        owned = self._owned(DOTTED_STORY)
+        self.assertIn("scripts/tests/test_gate_replay.py", owned)
+        self.assertNotIn("test_gate_replay.py", owned)
+        self.assertIn("README.md", owned)
+
+    def test_dot_slash_prefix_is_normalized(self):
+        owned = self._owned(DOTTED_STORY)
+        self.assertIn("src/app.py", owned)
+        self.assertNotIn("./src/app.py", owned)
+
+    def test_spec_relative_path_resolves_to_repo_path(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec = root / ".writ" / "specs" / "demo"
+            (spec / "sub-specs").mkdir(parents=True)
+            (spec / "user-stories").mkdir()
+            (spec / "sub-specs" / "technical-spec.md").write_text("x", encoding="utf-8")
+            story = spec / "user-stories" / "story-1.md"
+            story.write_text(
+                "# Story 1\n\n## Implementation Tasks\n\n"
+                "- [ ] 1.1 Follow `sub-specs/technical-spec.md` and edit `src/new.py`\n",
+                encoding="utf-8",
+            )
+            code, out, err = _run(
+                ["compute", "--story", str(story), "--repo", str(root)],
+            )
+            self.assertEqual(code, 0, err)
+            self.assertEqual(
+                _payload(out)["owned"],
+                [".writ/specs/demo/sub-specs/technical-spec.md", "src/new.py"],
+            )
+
+    def test_symbol_suffix_and_unique_bare_filename_resolve(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec = root / ".writ" / "specs" / "demo"
+            (spec / "user-stories").mkdir(parents=True)
+            (root / "scripts" / "tests").mkdir(parents=True)
+            for rel in ("scripts/phase-state.py", "scripts/tests/test_eval_x.sh",
+                        "a/dup.md", "b/dup.md"):
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text("x", encoding="utf-8")
+            subprocess.run(["git", "init", "-q", str(root)], check=True)
+            subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+            story = spec / "user-stories" / "story-1.md"
+            story.write_text(
+                "# Story 1\n\n## Implementation Tasks\n\n"
+                "- [ ] 1.1 Edit `scripts/phase-state.py::knowledge_writeback`, "
+                "mirror `test_eval_x.sh`, read `dup.md`, create `brand_new.py`\n",
+                encoding="utf-8",
+            )
+            code, out, err = _run(
+                ["compute", "--story", str(story), "--repo", str(root)],
+            )
+            self.assertEqual(code, 0, err)
+            self.assertEqual(
+                _payload(out)["owned"],
+                ["scripts/phase-state.py", "scripts/tests/test_eval_x.sh",
+                 "dup.md", "brand_new.py"],
+            )
+
+    def test_exact_owned_list(self):
+        self.assertEqual(
+            self._owned(DOTTED_STORY),
+            [
+                ".writ/decision-log.md",
+                "scripts/eval.sh",
+                ".github/workflows/ci.yml",
+                "adapters/cursor.md",
+                "agents/x.md",
+                "scripts/tests/test_gate_replay.py",
+                "src/app.py",
+                "README.md",
+            ],
+        )
 
 
 class Gate05WiringTests(unittest.TestCase):

@@ -101,7 +101,10 @@ def _norm_path(value: str, repo: Path) -> str:
             return raw.resolve().relative_to(repo.resolve()).as_posix()
         except (OSError, ValueError):
             return raw.as_posix()
-    return raw.as_posix().lstrip("./")
+    # Path() already collapses a `./` prefix; never strip the leading dot
+    # of a dot-directory (`.writ/`, `.github/`) — boundary-map keeps it.
+    text = raw.as_posix()
+    return "" if text == "." else text
 
 
 def _covers(entry: str, path: str) -> bool:

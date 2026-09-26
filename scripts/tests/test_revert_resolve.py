@@ -209,6 +209,133 @@ class SpecUnionTests(ResolverFixture):
         self.assertEqual(len(shas), len(set(shas)))
 
 
+OTHER_SPEC = "2026-07-19-other-spec"
+
+
+class SpecScopingTests(unittest.TestCase):
+    """Footer and subject matching must stay inside the requested spec.
+
+    Reproduces the stage2-prune-the-base defect: `story 2 --spec X` pulled in
+    commits whose `Ref:` footer named Story 2 of *other* specs, and missed the
+    `Story 2 (2.N): ...` task commits that implemented X's Story 2.
+    """
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        git(self.repo, "init", "-q")
+        git(self.repo, "config", "commit.gpgsign", "false")
+        stories = self.repo / ".writ" / "specs" / SPEC_ID / "user-stories"
+        other = self.repo / ".writ" / "specs" / OTHER_SPEC / "user-stories"
+
+        write(self.repo / "README", "root\n")
+        commit_all(self.repo, "chore: root")
+
+        # Before the spec exists: a same-numbered task subject (other work).
+        write(self.repo / "src" / "early.txt", "early\n")
+        self.sha_pre = commit_all(self.repo, "Story 2 (2.1): unrelated earlier work")
+
+        write(self.repo / ".writ" / "specs" / SPEC_ID / "spec.md", "# Spec\n")
+        self.sha_scaffold = commit_all(self.repo, "spec: scaffold sample spec")
+
+        # Foreign-spec Ref footer for story-2 (must be excluded).
+        write(self.repo / "src" / "foreign.txt", "foreign\n")
+        self.sha_foreign_ref = commit_all(
+            self.repo,
+            "feat(other): foreign story two\n\n"
+            f"Ref: .writ/specs/{OTHER_SPEC}/user-stories/story-2-foreign.md",
+        )
+        # Ref footer naming no spec at all (must be excluded).
+        write(self.repo / "src" / "bare.txt", "bare\n")
+        self.sha_bare_ref = commit_all(
+            self.repo, "feat: bare footer\n\nRef: story-2-something.md")
+        # story-20 of the same spec (must not match story-2).
+        write(self.repo / "src" / "twenty.txt", "twenty\n")
+        self.sha_story20 = commit_all(
+            self.repo,
+            "feat(sample): story twenty\n\n"
+            f"Ref: .writ/specs/{SPEC_ID}/user-stories/story-20-twenty.md",
+        )
+
+        # The spec's own task commits for Story 2.
+        write(self.repo / "src" / "t22.txt", "t22\n")
+        self.sha_t22 = commit_all(self.repo, "Story 2 (2.2): move section A")
+        # Interleaved task commit from another spec's Story 2 (touches only
+        # the other spec's folder) — must be excluded.
+        write(other / "story-2-foreign.md", "# Story 2: Foreign\n")
+        self.sha_other_task = commit_all(self.repo, "Story 2 (2.1): other spec task")
+        write(self.repo / "src" / "t23.txt", "t23\n")
+        self.sha_t23 = commit_all(self.repo, "Story 2 (2.3): move section B")
+        # Same-spec Ref footer for story-2 (must be included).
+        write(self.repo / "src" / "own.txt", "own\n")
+        self.sha_own_ref = commit_all(
+            self.repo,
+            "fix(sample): follow-up\n\n"
+            f"Ref: .writ/specs/{SPEC_ID}/user-stories/story-2-two.md",
+        )
+        # Story 3 task commit (different story, must be excluded from story 2).
+        write(self.repo / "src" / "t31.txt", "t31\n")
+        self.sha_t31 = commit_all(self.repo, "Story 3 (3.1): cut section C")
+
+        # Story 2 completion commit, recorded in the story file.
+        write(stories / "story-2-two.md", story_file(SPEC_ID, 2, "Two", None))
+        self.sha_done = commit_all(self.repo, "Story 2: Two — complete")
+        write(stories / "story-2-two.md", story_file(SPEC_ID, 2, "Two", self.sha_done))
+        commit_all(self.repo, "Story 2: record completion commit SHA")
+
+        # After completion: a later task subject with the same number.
+        write(self.repo / "src" / "late.txt", "late\n")
+        self.sha_late = commit_all(self.repo, "Story 2 (2.9): later unrelated work")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _shas(self, result: dict) -> list:
+        return [c["sha"] for c in result["commits"]]
+
+    def test_foreign_spec_ref_footer_excluded(self) -> None:
+        shas = self._shas(rr.resolve_story(self.repo, "story-2", SPEC_ID))
+        self.assertNotIn(self.sha_foreign_ref, shas)
+        self.assertNotIn(self.sha_bare_ref, shas)
+        self.assertNotIn(self.sha_story20, shas)
+
+    def test_same_spec_ref_footer_included(self) -> None:
+        result = rr.resolve_story(self.repo, "story-2", SPEC_ID)
+        own = [c for c in result["commits"] if c["sha"] == self.sha_own_ref]
+        self.assertEqual(len(own), 1)
+        self.assertEqual(own[0]["source"], "ref-footer")
+
+    def test_task_subjects_in_spec_range_included(self) -> None:
+        result = rr.resolve_story(self.repo, "story-2", SPEC_ID)
+        by_sha = {c["sha"]: c for c in result["commits"]}
+        for sha in (self.sha_t22, self.sha_t23):
+            self.assertIn(sha, by_sha)
+            self.assertEqual(by_sha[sha]["source"], "task-subject")
+
+    def test_task_subjects_outside_spec_excluded(self) -> None:
+        shas = self._shas(rr.resolve_story(self.repo, "story-2", SPEC_ID))
+        self.assertNotIn(self.sha_pre, shas)         # before the scaffold
+        self.assertNotIn(self.sha_late, shas)        # after the completion
+        self.assertNotIn(self.sha_other_task, shas)  # another spec's folder
+        self.assertNotIn(self.sha_t31, shas)         # another story number
+
+    def test_story_resolves_exactly_its_commits(self) -> None:
+        result = rr.resolve_story(self.repo, "story-2", SPEC_ID)
+        self.assertEqual(
+            self._shas(result),
+            [self.sha_done, self.sha_own_ref, self.sha_t23, self.sha_t22],
+        )
+        # Base is the parent of the earliest task commit.
+        self.assertEqual(result["base"], self.sha_story20)
+
+    def test_spec_ref_footer_scoped_to_spec(self) -> None:
+        shas = self._shas(rr.resolve_spec(self.repo, SPEC_ID))
+        self.assertNotIn(self.sha_foreign_ref, shas)
+        self.assertIn(self.sha_story20, shas)
+        self.assertIn(self.sha_t22, shas)
+        self.assertIn(self.sha_t23, shas)
+
+
 class PhaseStateLayerTests(ResolverFixture):
     def test_phase_state_commit_resolved(self) -> None:
         state = {

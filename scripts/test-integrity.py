@@ -15,7 +15,9 @@ Two claims Writ has always stated and never verified:
 
   authenticity  Flags a test file that resolves zero module specifiers into
                 project source — a test that cannot fail when the code it
-                claims to cover changes.
+                claims to cover changes. A Python test also counts as
+                exercising source when it imports a project module or runs a
+                project script by path (subprocess, importlib, runpy).
 
 **The specifier extractor is the whole story, and a line-oriented regex is
 the wrong implementation.** Measured against 147 real unit-test files:
@@ -273,6 +275,110 @@ def imports_project_source(text: str, test_file: Path, project: Path,
             continue  # an alias escaping the project is not project source
         if not is_test_shaped(relative):
             return True
+    return False
+
+
+# --- Python tests: script invocation by path --------------------------------
+
+# A Python test often exercises a script without importing it: it runs it as a
+# subprocess (`subprocess.run([sys.executable, str(SCRIPT)])` with
+# `SCRIPT = ROOT / "scripts" / "x.py"`) or loads it by path through importlib.
+# Neither leaves a JS-style module specifier, so without this pass every such
+# test reads as `test_imports_no_source`. A path literal counts only when the
+# file also executes something (subprocess / importlib / runpy / os.system)
+# and the literal resolves to an existing, non-test file inside the project;
+# a test that merely mentions a path, or runs only fixtures, is still flagged.
+
+SCRIPT_SUFFIXES = (".py", ".sh", ".bash") + SOURCE_SUFFIXES
+PY_STRING_RE = re.compile(r"""[rbuRBU]{0,2}(['"])([^'"\\\n]+)\1""")
+PY_PATH_CHAIN_RE = re.compile(
+    r"""['"][^'"\s]+['"](?:\s*/\s*['"][^'"\s]+['"])+"""
+)
+PY_EXEC_RE = re.compile(
+    r"\b(?:subprocess|importlib|runpy|os\.system|os\.exec\w*|os\.spawn\w*"
+    r"|exec_module|spec_from_file_location)\b"
+)
+PY_IMPORT_RE = re.compile(
+    r"^[ \t]*(?:from[ \t]+([\w.]+)[ \t]+import\b|import[ \t]+([\w.]+(?:[ \t]*,[ \t]*[\w.]+)*))",
+    re.MULTILINE,
+)
+
+
+def _strip_py_comments(text: str) -> str:
+    """Drop whole-line `#` comments. Trailing comments are left alone: a `#`
+    inside a string literal cannot be told apart cheaply, and a missed strip
+    only risks a missed flag."""
+    return re.sub(r"(?m)^[ \t]*#.*$", "", text)
+
+
+def _py_search_roots(test_file: Path, project: Path, literals: list[str]) -> list[Path]:
+    """Directories a path literal may be relative to: the project root, the
+    test's own folder and its ancestors inside the project, and any folder a
+    bare literal names (`ROOT / "scripts"` makes `scripts/` a root)."""
+    base: list[Path] = [project]
+    folder = test_file.parent
+    while True:
+        try:
+            folder.relative_to(project)
+        except ValueError:
+            break
+        if folder not in base:
+            base.append(folder)
+        if folder == project:
+            break
+        folder = folder.parent
+    roots = list(base)
+    for literal in literals:
+        if any(ch.isspace() for ch in literal) or literal.startswith("/"):
+            continue
+        for root in base:
+            candidate = root / literal
+            if candidate not in roots and candidate.is_dir():
+                roots.append(candidate)
+    return roots
+
+
+def _project_source(candidate: Path, project: Path) -> bool:
+    if not candidate.is_file():
+        return False
+    try:
+        relative = candidate.resolve().relative_to(project)
+    except (OSError, ValueError):
+        return False
+    return not is_test_shaped(relative)
+
+
+def python_exercises_source(text: str, test_file: Path, project: Path) -> bool:
+    """True when a Python test imports a project module or runs a project
+    script by path. `project` must already be resolved."""
+    code = _strip_py_comments(text)
+    literals = [m.group(2) for m in PY_STRING_RE.finditer(code)]
+    for chain in PY_PATH_CHAIN_RE.finditer(code):
+        parts = re.findall(r"""['"]([^'"\s]+)['"]""", chain.group(0))
+        literals.append("/".join(parts))
+    roots = _py_search_roots(test_file, project, literals)
+
+    for match in PY_IMPORT_RE.finditer(code):
+        names = match.group(1) or match.group(2) or ""
+        for name in re.split(r"[ \t]*,[ \t]*", names):
+            if not name or name.startswith("."):
+                continue
+            rel = Path(*name.split("."))
+            for root in roots:
+                if (_project_source(root / rel.with_suffix(".py"), project)
+                        or _project_source(root / rel / "__init__.py", project)):
+                    return True
+
+    if not PY_EXEC_RE.search(code):
+        return False
+    for literal in literals:
+        if any(ch.isspace() for ch in literal) or not literal.endswith(SCRIPT_SUFFIXES):
+            continue
+        if Path(literal).is_absolute():
+            continue
+        for root in roots:
+            if _project_source(root / literal, project):
+                return True
     return False
 
 
@@ -659,6 +765,8 @@ def authenticity(project: Path, tests: list[Path] | None) -> tuple[int, dict[str
 
         examined += 1
         if imports_project_source(text, test_file, project, aliases):
+            continue
+        if test_file.suffix == ".py" and python_exercises_source(text, test_file, project):
             continue
         findings.append(_finding(
             "test_imports_no_source", file=relative, line=None,

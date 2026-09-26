@@ -14,7 +14,8 @@ Subcommand:
   `--project` is accepted as an alias of `--repo`.
 
 Prints one verdict line (`pass` / `fail` / `unverifiable`), optional
-`reason: <code>` lines, then a summary line last.
+`reason: <code>` lines, on `fail` one `symbol: <name>` line per
+undocumented export, then a summary line last.
 
 Exit 0: ran, no blocking verdict (`pass` or `unverifiable`).
 Exit 1: `fail`.
@@ -24,6 +25,7 @@ Exit 2: usage.
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import subprocess
 import sys
@@ -88,10 +90,13 @@ class UsageError(Exception):
     """Exit-2 conditions."""
 
 
-def _emit(verdict: str, reasons: Sequence[str], summary: str) -> int:
+def _emit(verdict: str, reasons: Sequence[str], summary: str,
+          symbols: Sequence[str] = ()) -> int:
     print(verdict)
     for reason in reasons:
         print("reason: %s" % reason)
+    for symbol in symbols:
+        print("symbol: %s" % symbol)
     print(summary)
     if verdict == "fail":
         return 1
@@ -134,9 +139,30 @@ def _resolve_changed(repo: Path, changed: Optional[Sequence[str]]) -> Optional[L
 
 
 def _python_all(text: str) -> List[str]:
-    names: List[str] = []
-    for match in RE_ALL.finditer(text):
-        names.extend(RE_QUOTED.findall(match.group(1)))
+    # Module-level `__all__` only; `__all__` inside a string literal (a test
+    # fixture, say) is not an export. Regex fallback for unparseable source.
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        names: List[str] = []
+        for match in RE_ALL.finditer(text):
+            names.extend(RE_QUOTED.findall(match.group(1)))
+        return names
+    names = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign)) and node.value is not None:
+            targets, value = [node.target], node.value
+        else:
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == "__all__" for t in targets):
+            continue
+        if isinstance(value, (ast.List, ast.Tuple)):
+            names.extend(
+                e.value for e in value.elts
+                if isinstance(e, ast.Constant) and isinstance(e.value, str)
+            )
     return names
 
 
@@ -384,14 +410,12 @@ def check(repo: Path, changed: Optional[Sequence[str]]) -> int:
             missing.append(name)
 
     if missing:
-        reasons = ["undocumented_export"]
-        for name in missing:
-            reasons.append(name)
         return _emit(
             "fail",
-            reasons,
+            ["undocumented_export"],
             "docs-check: fail (%s has no matching documented symbol)"
             % ", ".join(missing),
+            symbols=missing,
         )
 
     return _emit(

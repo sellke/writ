@@ -34,7 +34,7 @@ exit_criteria:
 | `story_file_path` | Full path to the story file |
 | `full_story_content` | Complete story markdown content |
 | `acceptance_criteria_with_checkboxes` | The story's acceptance criteria to adjudicate |
-| `recorded_test_results` | Recorded test results from the implementation run |
+| `recorded_test_results` | The orchestrator's own run of the story's test files before Gate 3 (command, exit code, output tail) — not the coding agent's self-report |
 | `spec_lite_content` | Spec-lite (acceptance criteria, business rules, experience). Falls back to full spec-lite if agent-specific sections are missing. |
 | `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries. Empty string when none match. |
 | `boundary_map` | **Optional.** Gate 0.5 ownership block. If empty/omitted, skip boundary lines. |

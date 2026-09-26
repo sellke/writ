@@ -51,8 +51,24 @@ def _assert_shape(test: unittest.TestCase, stdout: str, verdict: str) -> None:
     test.assertEqual(lines[0], verdict, stdout)
     test.assertFalse(lines[-1].startswith("reason: "), stdout)
     test.assertNotIn(lines[-1], ("pass", "fail", "unverifiable"), stdout)
+    # Middle lines: `reason: <code>` then optional `symbol: <name>` detail
+    # lines (like arch-check's `rederived:` field lines). Reason values are
+    # codes only; symbol names never appear on a `reason:` line.
     for line in lines[1:-1]:
-        test.assertTrue(line.startswith("reason: "), stdout)
+        test.assertTrue(line.startswith(("reason: ", "symbol: ")), stdout)
+    for code in _reasons(stdout):
+        test.assertIn(code, REASON_CODES, stdout)
+
+
+REASON_CODES = (
+    "undocumented_export",
+    "no_public_exports",
+    "changed_set_unresolved",
+)
+
+
+def _symbols(stdout: str) -> list[str]:
+    return [ln[8:] for ln in stdout.splitlines() if ln.startswith("symbol: ")]
 
 
 class DocsCheckFixtures(unittest.TestCase):
@@ -99,7 +115,8 @@ class DocsCheckFixtures(unittest.TestCase):
             )
             self.assertEqual(code, 1, out)
             self.assertEqual(_verdict_line(out), "fail")
-            self.assertIn("undocumented_export", _reasons(out))
+            self.assertEqual(_reasons(out), ["undocumented_export"])
+            self.assertEqual(_symbols(out), ["create_user"])
             _assert_shape(self, out, "fail")
 
     def test_markdown_only_is_unverifiable(self) -> None:
@@ -218,6 +235,23 @@ class DocsCheckFixtures(unittest.TestCase):
             self.assertEqual(code, 0, out)
             self.assertEqual(_verdict_line(out), "unverifiable")
             self.assertIn("no_public_exports", _reasons(out))
+
+    def test_all_inside_a_string_literal_is_not_an_export(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            src = repo / "src" / "fixture.py"
+            src.parent.mkdir(parents=True)
+            src.write_text(
+                "SAMPLE = '''\n__all__ = [\"create_user\"]\n'''\n",
+                encoding="utf-8",
+            )
+            (repo / "README.md").write_text("# Demo\n", encoding="utf-8")
+            code, out = _run(
+                repo,
+                ["check", "--repo", str(repo), "--changed", "src/fixture.py"],
+            )
+            self.assertEqual(code, 0, out)
+            self.assertEqual(_verdict_line(out), "unverifiable")
 
     def test_bare_python_defs_are_not_exports(self) -> None:
         with TemporaryDirectory() as tmp:

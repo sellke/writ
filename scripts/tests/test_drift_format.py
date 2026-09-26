@@ -44,7 +44,66 @@ STORY = """# Story 1
 
 > **Status:** In Progress
 
-PAUSE
+REVIEW_RESULT: PAUSE
+"""
+
+# Documented format (.writ/docs/drift-report-format.md): plain `> Overall
+# Drift:` line, `- **Severity:** Large`, and a title without the word.
+DOCUMENTED_LARGE = """# Drift Log
+
+## Story 1: Fixture — Drift Report
+
+> Run: 2026-09-08
+> Overall Drift: Large
+
+### Deviations
+
+#### [DEV-001] Replaced the payment provider
+- **Severity:** Large
+- **Spec said:** Use Stripe
+- **Implementation did:** Used a different provider
+- **Reason:** Test fixture
+- **Resolution:** Pipeline paused — accepted by user
+- **Spec amendment:** N/A — deviation accepted as-is
+"""
+
+# Title mentions "large" but the entry is Small: not a Large drift.
+SMALL_TITLED_LARGE = """# Drift Log
+
+## Story 1: Fixture — Drift Report
+
+> Run: 2026-09-08
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-001] Large-file handling renamed
+- **Severity:** Small
+- **Spec said:** readLarge
+- **Implementation did:** readBig
+- **Reason:** Naming
+- **Resolution:** Auto-amended
+- **Spec amendment:** Rename readLarge to readBig
+"""
+
+# Story prose that mentions PAUSE without carrying a verdict token.
+STORY_PAUSE_PROSE = """# Story 1
+
+> **Status:** In Progress
+
+## Acceptance Criteria
+
+- [ ] Given Large drift, when Gate 3 runs, then it emits PAUSE rather than FAIL.
+- [ ] The PAUSE is owned by Gate 3.5.
+
+### REVIEW_RESULT: [PASS/FAIL/PAUSE]
+"""
+
+STORY_EVAL_PAUSE = """# Story 1
+
+> **Status:** In Progress
+
+### EVALUATION_RESULT: PAUSE
 """
 
 STORY_NO_PAUSE = """# Story 1
@@ -128,6 +187,82 @@ class DriftFormatTests(unittest.TestCase):
             ])
             self.assertEqual(code, 0, out)
             self.assertEqual(_verdict(out), "pass")
+
+    def _check(self, story_text: str, log_text: "str | None" = None,
+               review_text: "str | None" = None) -> tuple[int, str]:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            story = root / "story.md"
+            story.write_text(story_text, encoding="utf-8")
+            args = ["check", "--story", str(story)]
+            if log_text is not None:
+                log = root / "drift-log.md"
+                log.write_text(log_text, encoding="utf-8")
+                args += ["--drift-log", str(log)]
+            if review_text is not None:
+                review = root / "review.txt"
+                review.write_text(review_text, encoding="utf-8")
+                args += ["--review-output", str(review)]
+            return _run(args)
+
+    def test_fail_documented_large_format_without_pause(self) -> None:
+        code, out = self._check(STORY_NO_PAUSE, DOCUMENTED_LARGE)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_fail_severity_large_alone_without_pause(self) -> None:
+        log = DOCUMENTED_LARGE.replace("> Overall Drift: Large\n", "")
+        code, out = self._check(STORY_NO_PAUSE, log)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_fail_bold_overall_drift_large_without_pause(self) -> None:
+        log = DOCUMENTED_LARGE.replace(
+            "> Overall Drift: Large", "> **Overall Drift:** Large")
+        code, out = self._check(STORY_NO_PAUSE, log)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_fail_large_in_review_output_without_pause(self) -> None:
+        review = "### Drift Analysis\n\n**Overall Drift:** Large\n"
+        code, out = self._check(STORY_NO_PAUSE, None, review)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_pass_small_entry_with_large_in_title(self) -> None:
+        code, out = self._check(STORY_NO_PAUSE, SMALL_TITLED_LARGE)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(_verdict(out), "pass")
+
+    def test_fail_pause_in_prose_is_not_a_verdict(self) -> None:
+        code, out = self._check(STORY_PAUSE_PROSE, DOCUMENTED_LARGE)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_fail_pause_in_prose_review_output(self) -> None:
+        code, out = self._check(STORY_NO_PAUSE, DOCUMENTED_LARGE,
+                                "The pipeline will PAUSE for human decision.\n")
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_pass_evaluation_result_pause_heading(self) -> None:
+        code, out = self._check(STORY_EVAL_PAUSE, DOCUMENTED_LARGE)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(_verdict(out), "pass")
+
+    def test_pass_bold_review_result_pause(self) -> None:
+        code, out = self._check(STORY_NO_PAUSE, DOCUMENTED_LARGE,
+                                "**REVIEW_RESULT:** PAUSE\n")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(_verdict(out), "pass")
+
+    def test_fail_against_real_story_prose(self) -> None:
+        story = (REPO_ROOT / ".writ" / "specs"
+                 / "2026-09-08-phase11-stage2b-mechanize-the-gates"
+                 / "user-stories" / "story-1-gate3-review-override.md")
+        code, out = self._check(story.read_text(encoding="utf-8"), DOCUMENTED_LARGE)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
 
     def test_unverifiable_no_log_no_large(self) -> None:
         with TemporaryDirectory() as tmp:

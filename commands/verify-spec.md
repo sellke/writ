@@ -379,14 +379,14 @@ For each "Excluded" item:
 
 **Skip** if `spec-lite.md` does not exist (not all specs have one — no flag, just skip).
 
-**Section mapping — compare these pairs:**
+**Section mapping.** Bold labels are `/create-spec`'s `## For … Agents` format; either matches.
 
-| spec-lite.md section | spec.md section |
+| spec-lite.md | spec.md |
 |---|---|
-| `## What We're Building` (or `## What`) | `## Contract Summary` (or equivalent top-level summary) |
-| Key Constraints (inline bullets or `## Key Constraints`) | `## Business Rules` + constraint bullets in contract |
-| Success Criteria (`## Success Criteria`) | `## Success Criteria (Phase A)` or `## Success Criteria` |
-| Files in Scope (`## Files in Scope`) | `## Scope Boundaries` → Included list |
+| `## What We're Building` or `**Deliverable:**` | Contract summary / `**Deliverable:**` |
+| Key Constraints or `**Business Rules:**` | `## Business Rules` + contract constraints |
+| `## Success Criteria`, or `**Acceptance Criteria:**` + `**Success Criteria:**` | Success Criteria |
+| `## Files in Scope` or `**Files in Scope:**` | Scope Boundaries → Included |
 
 **Heading normalization:** If headings differ slightly (e.g. "What We're Building" vs "What"), match by semantic intent, not exact string. If no clear match exists, skip that pair and note it in the report.
 

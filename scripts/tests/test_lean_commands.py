@@ -61,9 +61,9 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # create-spec.lean.md is unchanged (no-Jev baseline arm).
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
-    "verify-spec": "5272a3f0a50a2850c327691fa2edf99973ebb4641a5d7871850afc78b50b58c9",
+    "verify-spec": "f6311abbd2314727aa32c10dde3157e1bb130b2fc162e856bfd11ab786d73cfa",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
-    "implement-story": "29026fb12f0ce8422a5e8108ee658f7a2e2e7f48f1e1aa2407bb94f2c92d1231",
+    "implement-story": "9b8a0c3092d83b4326918e1a7730b8a19e0433e20692a7c99111c307f6cc0a73",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

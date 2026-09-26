@@ -541,11 +541,14 @@ class CommandBudgetTests(unittest.TestCase):
 # Step 2.6c (AskQuestion only on no_config_line in interactive runs; notes
 # otherwise) and the item-3 exception naming it. No new step or gate.
 # Acknowledged, not exempted.
+# Updated 2026-09-25: verify-spec.md 10666 -> 10662, Check 7 maps the
+# agent-section spec-lite format (net -4 after trim).
+# Merged 2026-09-26: both edits above applied; values recomputed from the merged files.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
     "commands/create-spec.md": 28123,
-    "commands/verify-spec.md": 10902,
+    "commands/verify-spec.md": 10898,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,

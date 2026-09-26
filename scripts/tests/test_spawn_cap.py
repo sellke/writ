@@ -78,6 +78,33 @@ Task(subagent_type="testing-agent")
 """
 
 
+# UAT Scenario 29: a sentence mentioning the flag is not a full-pipeline scope.
+MENTION_NOT_SCOPE = PASS_FIXTURE + """
+See --full-pipeline for more.
+> **Agent:** `agents/testing-agent.md`
+"""
+
+# Flag on the marker line itself is not a scope either.
+INLINE_FLAG_NOT_SCOPE = PASS_FIXTURE + """
+> **Agent:** `agents/testing-agent.md` (--full-pipeline)
+"""
+
+# Scope is the contiguous blockquote after the label; a blank line ends it.
+SCOPE_ENDS_AT_BLANK = PASS_FIXTURE + """
+**`--full-pipeline`:**
+> **Agent:** `agents/review-agent.md`
+
+> **Agent:** `agents/testing-agent.md`
+"""
+
+# Multi-line scope: extra blockquote lines under the label stay excluded.
+SCOPE_MULTILINE = PASS_FIXTURE + """
+**`--full-pipeline`:**
+> **Agent:** `agents/visual-qa-agent.md`
+> **Skip in:** `--quick` mode
+"""
+
+
 def _run(args: list[str]) -> tuple[int, str, str]:
     """In-process so coverage.py traces spawn-cap.py (subprocess is invisible)."""
     stdout = io.StringIO()
@@ -177,6 +204,42 @@ class SpawnCapTests(unittest.TestCase):
             self.assertEqual(code, 1)
             self.assertIn("over_cap", _reasons(out))
             _assert_shape(out, "fail")
+
+    def _check_text(self, text: str) -> tuple[int, str]:
+        with TemporaryDirectory() as tmp:
+            cmd = _write_cmd(Path(tmp), text)
+            code, out, _err = _run(["check", "--command", str(cmd)])
+        return code, out
+
+    def test_fail_marker_after_sentence_mentioning_flag(self) -> None:
+        code, out = self._check_text(MENTION_NOT_SCOPE)
+        self.assertEqual(_verdict(out), "fail", out)
+        self.assertEqual(code, 1)
+        self.assertIn("over_cap", _reasons(out))
+        _assert_shape(out, "fail")
+
+    def test_fail_flag_on_marker_line_is_not_scope(self) -> None:
+        code, out = self._check_text(INLINE_FLAG_NOT_SCOPE)
+        self.assertEqual(_verdict(out), "fail", out)
+        self.assertEqual(code, 1)
+
+    def test_fail_scope_ends_at_blank_line(self) -> None:
+        code, out = self._check_text(SCOPE_ENDS_AT_BLANK)
+        self.assertEqual(_verdict(out), "fail", out)
+        self.assertEqual(code, 1)
+
+    def test_pass_multiline_scope_excluded(self) -> None:
+        code, out = self._check_text(SCOPE_MULTILINE)
+        self.assertEqual(_verdict(out), "pass", out)
+        self.assertEqual(code, 0)
+
+    def test_fail_real_command_plus_scenario_29_marker(self) -> None:
+        text = REAL_COMMAND.read_text(encoding="utf-8")
+        text += "\nSee --full-pipeline for more.\n> **Agent:** `agents/testing-agent.md`\n"
+        code, out = self._check_text(text)
+        self.assertEqual(_verdict(out), "fail", out)
+        self.assertEqual(code, 1)
+        self.assertIn("over_cap", _reasons(out))
 
     def test_unverifiable_missing_command_flag(self) -> None:
         code, out, _err = _run(["check"])

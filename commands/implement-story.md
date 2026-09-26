@@ -72,6 +72,8 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
 | `/implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
 
+`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive: on a conflict, stop with a usage error; pick no winner.
+
 ## Pipeline
 
 One row per stage. The **Skill** column names what a stage loads; the `Read` is issued inside that stage, never here.
@@ -91,7 +93,7 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Gate 5 | Documentation Agent | `docs-check.py` on default; `documentation-agent` on `--full-pipeline` | `--quick` | — |
 | Step 4 | Story Completion | inline | — | `project-context-snapshot` (item 3); `what-was-built-authoring` (item 4); `story-commit-provenance` (item 7) |
 
-**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA). `evaluator_fail_count` starts at 0 per story; evaluator FAIL increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline` (current gate forward; do not restart Gate 0; do not AskQuestion); Reset the counter on evaluator PASS. `--quick` never escalates.
+**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA). `evaluator_fail_count` starts at 0 per story; evaluator FAIL increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline`, then Gate 1 recode as for any FAIL; the next Gate 3 spawns `review-agent` (do not restart Gate 0; do not AskQuestion); Reset the counter on evaluator PASS. `--quick` never escalates.
 
 ## Command Process
 
@@ -132,6 +134,7 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 |---|---|---|
 | Architecture Check (Gate 0) | `spec_lite_for_coding` | `fetched_context` (all categories) + `knowledge_context` |
 | Coding Agent (Gate 1) | `spec_lite_for_coding` | `fetched_context` (error maps, business rules) + `knowledge_context` + dependency WWB records |
+| Evaluator Agent (Gate 3, default) | `spec_lite_for_review` | `knowledge_context` + AC + `recorded_test_results` |
 | Review Agent (Gate 3) | `spec_lite_for_review` | `fetched_context` (business rules, experience) + `knowledge_context` |
 | Testing Agent (Gate 4) | `spec_lite_for_testing` | `fetched_context` (shadow paths, edge cases) |
 | Documentation Agent (Gate 5) | Full spec-lite content | `fetched_context` (all categories) |
@@ -147,18 +150,15 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 > **File creation discipline:** Agents must only create files listed in the story's implementation tasks. Analysis artifacts stay in structured output. Do not commit files outside the task list or known pipeline outputs (drift-log, context.md, story status).
 
 > **Sub-agent completeness:** `Read skills/subagent-result-completeness/SKILL.md`
-> for how to tell a spawned gate agent's complete verdict from a mid-task
-> stop, and what to do about the latter. This note owns when every default
-> spawn (Gate 1 and Gate 3) checks for completeness before advancing;
-> `--full-pipeline` also Gate 0, 4, 4.5. The skill owns how to tell a complete
-> verdict from a partial one.
+> for how to tell a complete verdict from a mid-task stop. This note owns when:
+> every spawn (Gate 1 and Gate 3; `--full-pipeline` also Gate 0, 4, 4.5) checks
+> completeness before advancing.
 
 > **Sub-agent worktree integration:** `Read skills/subagent-worktree-integration/SKILL.md`
-> for how to reconcile a spawned agent's isolated worktree with the
-> orchestrator's own checkout, including the stale-worktree failure mode.
-> This note owns when every default spawn (Gate 1 and Gate 3) reconciles isolated
-> output before trusting it; `--full-pipeline` also Gate 0, 4, 4.5. The skill owns
-> how the diff → copy → re-verify → cleanup procedure runs.
+> for how to reconcile a spawned agent's isolated worktree (diff → copy →
+> re-verify → cleanup, stale-worktree failure mode). This note owns when: every
+> spawn (Gate 1 and Gate 3; `--full-pipeline` also Gate 0, 4, 4.5) reconciles
+> before its output is trusted.
 
 ---
 
@@ -199,7 +199,7 @@ Spawn a **read-only** sub-agent before code: viability, integration risk, comple
 
 Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **Advisory** — no hard file locking. Coding flags crossings; review verifies (Gate 3).
 
-**Not applicable — `/prototype`:** `commands/prototype.md` does not run `implement-story`; that path stays boundary-free. Gate 0.5 exists only on the full pipeline.
+**Not applicable — `/prototype`:** `commands/prototype.md` does not run `implement-story`; Gate 0.5 runs inline on default and `--full-pipeline`.
 
 `Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
 
@@ -236,7 +236,7 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 **On failure:** auto-fix (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); re-run; typecheck fail → coding agent; still failing → flag for review.
 
-**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report. Typechecking cannot see framework-level structural errors — a route collision breaks every deployment and passes every unit test that imports handlers as plain functions.
+**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report. Typechecking misses framework-level structural errors (e.g. route collisions).
 
 - **`build_failed_source`** → blocking. Apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 2**. No new control flow, no iteration cap.
 - **`build_failed_environment` or any `unverifiable` verdict** → the pipeline continues. Surface the reason verbatim; the story is **not** marked `⚠️ DEGRADED` on that basis. An unverifiable check is not a failed gate — DEGRADED means a gate could not be cleared, `unverifiable` means a check could not be run here.
@@ -265,7 +265,7 @@ python3 scripts/change-surface.py classify --changed <files>
 > **Skip in:** `--quick` mode
 > **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
 
-Default spawn is `evaluator-agent` (AC + recorded tests). Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+Default spawn is `evaluator-agent` (AC + recorded tests). `recorded_test_results` = the orchestrator's own run of the story's tests (command, exit code, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
@@ -365,7 +365,7 @@ python3 scripts/test-integrity.py authenticity --project . --tests <story's test
 
 **Results:** **PASS** (no mismatches, or none the agent rates above low) → continue to docs · **SOFT PASS** (only cosmetic, medium-or-low mismatches) → continue, log issues · **FAIL** (any high-priority mismatch, or structural drift from the mockup) → send fixes back to coding agent
 
-The former match-percentage thresholds are gone: no pixel or DOM diff produced the number, so the verdict rests on the agent's per-aspect mismatch list, and the `gates:` frontmatter records this gate as `prose-only`.
+No pixel or DOM diff exists: the verdict rests on the agent's per-aspect mismatch list; `gates:` records this gate as `prose-only`.
 
 Failures count toward the shared review-loop cap declared at Gate 3.
 

@@ -2,8 +2,10 @@
 """Default-path spawn-cap scan (Story 3 of
 `2026-09-09-phase11-stage4b-pipeline-demote`).
 
-Counts default-path spawn sites in a command file. Does not spawn
-Tasks. Does not decide accept / reject / modify-spec.
+Counts default-path spawn sites in a command file. A spawn marker is
+excluded only inside an explicit `--full-pipeline` scope: the label line
+``**`--full-pipeline`:**`` plus the blockquote directly under it. Does not
+spawn Tasks. Does not decide accept / reject / modify-spec.
 
 Subcommand:
   check --command PATH [--repo .]
@@ -28,6 +30,7 @@ from typing import List, Optional, Sequence, Set
 ALLOWED_STEMS = frozenset(("coding-agent", "evaluator-agent"))
 STEM = re.compile(r"([a-z0-9-]+-agent)")
 TASK_SPAWN = re.compile(r"(?:Task\s*\(|sessions_spawn\s*\()")
+FULL_PIPELINE_LABEL = "**`--full-pipeline`:**"
 
 
 class UsageError(Exception):
@@ -60,18 +63,23 @@ def _is_spawn_marker(line: str) -> bool:
 
 
 def _default_agent_markers(text: str) -> List[str]:
-    """Spawn markers not immediately guarded by `--full-pipeline`."""
-    last_nonempty = ""
+    """Spawn markers outside an explicit `--full-pipeline` scope.
+
+    A scope opens on a line that is exactly the label
+    ``**`--full-pipeline`:**`` and covers the contiguous blockquote
+    (``>``) lines directly under it. Any other line ends the scope. A
+    sentence that merely mentions the flag opens nothing.
+    """
     out: List[str] = []
+    in_scope = False
     for line in text.splitlines():
-        if _is_spawn_marker(line):
-            guarded = (
-                "--full-pipeline" in last_nonempty or "--full-pipeline" in line
-            )
-            if not guarded:
-                out.append(line)
-        if line.strip():
-            last_nonempty = line
+        if line.strip() == FULL_PIPELINE_LABEL:
+            in_scope = True
+            continue
+        if in_scope and not line.startswith(">"):
+            in_scope = False
+        if _is_spawn_marker(line) and not in_scope:
+            out.append(line)
     return out
 
 

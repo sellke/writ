@@ -214,10 +214,37 @@ awk '/^CHECKS=\(/{f=1} f && /^\)/{exit} f' "$EVAL" | grep -Fxq "  docs-check" \
   || fail "docs-check must be registered in CHECKS=(...)"
 grep -q '^check_docs_check()' "$EVAL" \
   || fail "check_docs_check must be defined in scripts/eval.sh"
-awk '/^check_docs_check\(\)/,/^}/' "$EVAL" | grep -q 'add_finding' \
+awk '/^check_docs_check\(\)/,/^}/' "$EVAL" | grep -Eq 'add_finding|relay_gate_helper' \
   || fail "check_docs_check must relay findings via add_finding"
-awk '/^check_docs_check\(\)/,/^}/' "$EVAL" | grep -q 'add_note' \
+awk '/^check_docs_check\(\)/,/^}/' "$EVAL" | grep -Eq 'add_note|relay_gate_helper' \
   || fail "check_docs_check must relay the summary via add_note"
 ok "registration: docs-check in CHECKS, findings/notes relayed"
+
+# ---------------------------------------------------------------------------
+# Live content: --changed carries the tree's real source files, minus tests
+# and .writ/.
+# ---------------------------------------------------------------------------
+ROOT="$(new_root pass)"
+mkdir -p "$ROOT/src" "$ROOT/scripts/tests" "$ROOT/.writ/specs"
+printf '__all__ = ["run"]\n' > "$ROOT/src/app.py"
+printf 'export function x() {}\n' > "$ROOT/src/ui.ts"
+printf 'X = "__all__"\n' > "$ROOT/scripts/tests/test_app.py"
+printf 'pass\n' > "$ROOT/.writ/specs/backup.py"
+write_stub "$ROOT/scripts/docs-check.py" "$(cat <<'PY'
+#!/usr/bin/env python3
+import sys
+args = sys.argv[1:]
+changed = sorted(a.split("/")[-2] + "/" + a.split("/")[-1] for a in args[args.index("--changed") + 1:])
+print("pass"); print("changed=" + ",".join(changed)); print("docs-check: pass (fixture)")
+PY
+)"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 0 ] || { report_of "$ROOT"; fail "live: expected exit 0, got $rc"; }
+grep -Fq 'src/app.py' "$ROOT/eval-report.md" && grep -Fq 'src/ui.ts' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "live: --changed must carry the tree's source files"; }
+if grep -Eq 'test_app.py|backup.py' "$ROOT/eval-report.md"; then
+  report_of "$ROOT"; fail "live: tests and .writ/ must be excluded from --changed"
+fi
+ok "live: --changed is the tree's source files, tests and .writ/ excluded"
 
 printf '\nAll %d docs-check check assertions passed.\n' "$pass_count"

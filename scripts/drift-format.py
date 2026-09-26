@@ -4,8 +4,9 @@
 
 Checks that every `DEV-NNN` entry matches
 `.writ/docs/drift-report-format.md` required fields, and that a
-Large-drift heading implies a PAUSE token in the story or
-`--review-output`. Does not decide accept / reject / modify-spec.
+Large-drift signal (`Overall Drift: Large` or `- **Severity:** Large`)
+implies a PAUSE verdict line (`REVIEW_RESULT: PAUSE` /
+`EVALUATION_RESULT: PAUSE`) in the story or `--review-output`. Does not decide accept / reject / modify-spec.
 
 Subcommand:
   check --story PATH [--drift-log PATH] [--review-output PATH]
@@ -40,10 +41,24 @@ FIELD_LINE = re.compile(
     r"^- \*\*(%s):\*\* .+\S" % "|".join(re.escape(f) for f in REQUIRED_FIELDS),
     re.MULTILINE,
 )
-LARGE_HEADING = re.compile(
-    r"(?im)^(> \*\*Overall Drift:\*\* Large|\*\*Severity:\*\* Large|#### \[DEV-\d{3}\].*Large)"
+# Large drift, per `.writ/docs/drift-report-format.md` and the
+# review/evaluator `### Drift Analysis` block: an `Overall Drift:` line
+# (plain `> Overall Drift: Large` or bold `**Overall Drift:** Large`, with or
+# without the `> ` quote) or a per-entry `- **Severity:** Large` field.
+# A DEV heading title is free text and is not a severity signal.
+LARGE_SIGNAL = re.compile(
+    r"(?m)^(?:> )?(?:\*\*Overall Drift:\*\*|Overall Drift:)[ \t]*Large\b"
+    r"|^- \*\*Severity:\*\*[ \t]*Large\b"
 )
-PAUSE_TOKEN = re.compile(r"\bPAUSE\b")
+# A PAUSE verdict is the gate-decision line the review / evaluator agent
+# emits (`agents/review-agent.md` `### REVIEW_RESULT: PAUSE`,
+# `agents/evaluator-agent.md` `### EVALUATION_RESULT: PAUSE`), optionally
+# bolded or without the heading marks. The word PAUSE in prose, or the
+# `[PASS/FAIL/PAUSE]` template, is not a verdict.
+PAUSE_VERDICT = re.compile(
+    r"(?m)^(?:#{1,6}[ \t]+)?(?:\*\*)?(?:REVIEW_RESULT|EVALUATION_RESULT)"
+    r"(?::\*\*|\*\*:|:)[ \t]*(?:\*\*)?PAUSE(?:\*\*)?[ \t]*$"
+)
 
 
 class UsageError(Exception):
@@ -102,11 +117,10 @@ def check(story: Optional[Path], drift_log: Optional[Path],
     review_text = _read(review_output) if review_output is not None else ""
     pause_haystack = "%s\n%s" % (story_text, review_text or "")
 
-    large = False
-    if log_text:
-        large = bool(LARGE_HEADING.search(log_text))
-    large = large or bool(re.search(r"(?im)^> \*\*Overall Drift:\*\* Large", story_text))
-    large = large or bool(re.search(r"(?im)^### Drift Analysis[\s\S]*Large", story_text))
+    large = any(
+        LARGE_SIGNAL.search(text)
+        for text in (log_text or "", story_text, review_text or "")
+    )
 
     if not log_text and not large:
         return _emit(
@@ -126,7 +140,7 @@ def check(story: Optional[Path], drift_log: Optional[Path],
                 reasons.append("malformed_entry")
                 break
 
-    if large and not PAUSE_TOKEN.search(pause_haystack):
+    if large and not PAUSE_VERDICT.search(pause_haystack):
         reasons.append("large_drift_without_pause")
 
     if reasons:
