@@ -4,12 +4,12 @@
 
 | # | Story | Status | Priority | Dependencies | Criteria | Tasks | Progress |
 |---|---|---|---|---|---|---|---|
-| 1 | [Boundary Crossings Script](story-1-boundary-crossings.md) | Not Started | High | None | 4 | 5 | 0/5 |
-| 2 | [Gate 3 Risk Route](story-2-gate3-risk-route.md) | Not Started | High | Story 1 | 5 | 6 | 0/6 |
-| 3 | [Contract-Anchored Drift and Architecture-Class Severity](story-3-contract-anchored-drift.md) | Not Started | High | None | 4 | 6 | 0/6 |
-| 4 | [Drift Roll-up at Spec End](story-4-drift-rollup.md) | Not Started | Medium | None | 4 | 5 | 0/5 |
+| 1 | [Boundary Crossings Script](story-1-boundary-crossings.md) | Completed ✅ | High | None | 4 | 5 | 5/5 |
+| 2 | [Gate 3 Risk Route](story-2-gate3-risk-route.md) | Completed ✅ | High | Story 1 | 5 | 6 | 6/6 |
+| 3 | [Contract-Anchored Drift and Architecture-Class Severity](story-3-contract-anchored-drift.md) | Completed ✅ | High | None | 4 | 6 | 6/6 |
+| 4 | [Drift Roll-up at Spec End](story-4-drift-rollup.md) | Completed ✅ | Medium | None | 4 | 5 | 5/5 |
 
-**Total:** 4 stories · 17 criteria · 22 tasks · 0% complete
+**Total:** 4 stories · 17 criteria · 22 tasks · 100% complete
 
 ## Dependencies
 
