@@ -62,11 +62,14 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # Repinned 2026-09-26 (2026-09-26-drift-arch-guards Story 3): implement-story.md
 # Gate 3 routing rows gained `contract_content`; implement-story.lean.md is
 # unchanged (spec Business Rule 9).
+# Repinned 2026-09-26 (2026-09-26-drift-arch-guards Story 2): implement-story.md
+# gained the Gate 2.5 `crossings` route and Gate 3 risk-route sentence;
+# implement-story.lean.md is unchanged (spec Business Rule 9).
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "f6311abbd2314727aa32c10dde3157e1bb130b2fc162e856bfd11ab786d73cfa",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
-    "implement-story": "8771f8d26184fc77cd09e5b8e0880ef822390189660e5cee31d034d735443d77",
+    "implement-story": "d3004dcf14882ba510cf1e44e12bd7bd601854c773fc07c2b28f909323a1a7fd",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

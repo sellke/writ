@@ -547,6 +547,11 @@ class CommandBudgetTests(unittest.TestCase):
 # Updated 2026-09-26 (spec 2026-09-26-drift-arch-guards, Story 3): implement-story.md
 # 9656 -> 9763 (file 34723) for `contract_content` in the two Gate 3 context-routing
 # rows. No new step or gate. Acknowledged, not exempted.
+# Updated 2026-09-26 (spec 2026-09-26-drift-arch-guards, Story 2): implement-story.md
+# 9763 -> 10556 (file 35516) for the Gate 0.5 map save, the Gate 2.5 `crossings`
+# line, the Gate 3 risk-route sentence (a swap, not a spawn) and the
+# `gate3-route:` report line; duplicate Gate 0.5/2.5 prose trimmed to offset.
+# No new step or gate. Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
@@ -556,7 +561,7 @@ KNOWN_OVER_BUDGET = {
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 9763,
+    "commands/implement-story.md": 10556,
 }
 
 

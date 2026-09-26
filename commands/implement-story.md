@@ -67,7 +67,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | Invocation | Behavior |
 |---|---|
 | `/implement-story` | Interactive — presents story selection |
-| `/implement-story story-3` | Default: `coding-agent` + `evaluator-agent` + scripts |
+| `/implement-story story-3` | Default: `coding-agent` + `evaluator-agent` (or `review-agent` when Gate 2.5 routes it) + scripts |
 | `/implement-story story-3 --full-pipeline` | Six spawn sites: architecture-check, coding, review, testing, optional visual-qa, documentation |
 | `/implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
 | `/implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
@@ -86,14 +86,14 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Gate 1 | Coding Agent | `coding-agent` — TDD | `--review-only` | `tdd-cycle` |
 | Gate 2 | Lint, Typecheck, Format & Build Smoke | inline — auto | — | — |
 | Gate 2.5 | Change Surface | inline | — | `change-surface-classification` |
-| Gate 3 | Review Agent | `evaluator-agent` on default; `review-agent` on `--full-pipeline` | `--quick` | — |
+| Gate 3 | Review Agent | `evaluator-agent` on default, or `review-agent` when Gate 2.5 routes it; `review-agent` on `--full-pipeline` | `--quick` | — |
 | Gate 3.5 | Drift Response & WWB Extraction | inline — auto | `--quick` | `drift-triage` (§ A) |
 | Gate 4 | Testing Agent | `test-integrity.py` on default (no testing-agent spawn); `testing-agent` on `--full-pipeline` | — | — |
 | Gate 4.5 | Visual QA | `visual-qa-agent` on `--full-pipeline` only | `--quick`; no visual references; default (even with visual refs) | — |
 | Gate 5 | Documentation Agent | `docs-check.py` on default; `documentation-agent` on `--full-pipeline` | `--quick` | — |
 | Step 4 | Story Completion | inline | — | `project-context-snapshot` (item 3); `what-was-built-authoring` (item 4); `story-commit-provenance` (item 7) |
 
-**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA). `evaluator_fail_count` starts at 0 per story; evaluator FAIL increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline`, then Gate 1 recode as for any FAIL; the next Gate 3 spawns `review-agent` (do not restart Gate 0; do not AskQuestion); Reset the counter on evaluator PASS. `--quick` never escalates.
+**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA). `evaluator_fail_count` starts at 0 per story; Gate 3 FAIL (either agent) increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline`, then Gate 1 recode as for any FAIL; the next Gate 3 spawns `review-agent` (do not restart Gate 0; do not AskQuestion); Reset the counter on Gate 3 PASS. `--quick` never escalates.
 
 ## Command Process
 
@@ -203,10 +203,10 @@ Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **A
 
 `Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
 
-Run the checkable artifact and pass stdout onward — maps stay **advisory** (no hard file locking):
+Run the script; pass stdout onward and save it for Gate 2.5:
 
 ```bash
-python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>]
+mkdir -p .writ/state && python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>] | tee .writ/state/boundary-<story-stem>.json
 ```
 
 ---
@@ -247,15 +247,18 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 **Runs inline — no sub-agent needed.**
 
-After lint/typecheck, classify changed files as **style-only**, **single-component**, **cross-component** or **full-stack** and pass Gate 3 `change_surface`. Optionally cross-check against **`boundary_map`** (Gate 0.5) — **full-stack** warrants stricter review here.
+After lint/typecheck, classify changed files as **style-only**, **single-component**, **cross-component** or **full-stack** and pass Gate 3 `change_surface`.
 
 `Read skills/change-surface-classification/SKILL.md` for how the four classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how the class is decided.
 
-Run the path-heuristic classifier and pass stdout to Gate 3 as `change_surface`:
+Run the classifier (stdout is `change_surface`), then, unless Gate 0.5 was skipped, the crossings check (stdout is `gate3_route`):
 
 ```bash
 python3 scripts/change-surface.py classify --changed <files>
+python3 scripts/boundary-map.py crossings --map .writ/state/boundary-<story-stem>.json --changed <files> --story <story-file> --surface <class>
 ```
+
+An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` with reason `unverifiable: <reason>`.
 
 ---
 
@@ -265,12 +268,14 @@ python3 scripts/change-surface.py classify --changed <files>
 > **Skip in:** `--quick` mode
 > **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
 
-Default spawn is `evaluator-agent` (AC + recorded tests). `recorded_test_results` = the orchestrator's own run of the story's tests (command, exit code, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's own run of the story's tests (command, exit code, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+
+**Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reason:` lines as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
 
-Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`.
+Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`.
 
 **Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
@@ -299,7 +304,7 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
@@ -406,7 +411,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` line, and next action (`/ship`)
 
 **Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 

@@ -110,3 +110,44 @@
 - **Reason:** Same generator logic, pinned by a byte-match test; the CLI gap is a follow-up issue.
 - **Resolution:** Auto-amended
 - **Spec amendment:** Task 3.4 regeneration used the generator functions directly; recorded here.
+
+---
+
+## Story 2: Gate 3 Risk Route — Drift Report
+
+> Run: 2026-09-26
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-011] Gate 3 prose aligned with Story 3
+- **Severity:** Small
+- **Spec said:** Story 2 edits Gates 0.5, 2.5, 3, the Pipeline and invocation rows, control flow, Step 4, and the ratchets.
+- **Implementation did:** Also added `contract_content` to the Gate 3 default-spawn and "Same inputs" sentences and changed the Gate 3.5 Medium label to "scope impact".
+- **Reason:** Story 3 review follow-ups in the same file; no behavior added.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Gate 3 spawn prose names `contract_content`; Gate 3.5 Medium is "scope impact"; recorded here.
+
+#### [DEV-012] Clean route line has no parentheses
+- **Severity:** Small
+- **Spec said:** Technical-spec §2: `gate3-route: <agent> (<reasons joined by "; ">)`.
+- **Implementation did:** Prints `gate3-route: evaluator-agent` with no parentheses when there are no reasons.
+- **Reason:** The contract State Catalog shows that form, and the contract outranks the technical spec.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Parentheses appear only when reasons exist; recorded here.
+
+#### [DEV-013] Helper failure routes review-agent
+- **Severity:** Small
+- **Spec said:** Gate 3 spawns the agent on the `route:` line.
+- **Implementation did:** When `crossings` cannot run, Gate 2.5 routes `review-agent` with `unverifiable: <reason>`.
+- **Reason:** Business Rule 2 (route UP on doubt); not a new trigger.
+- **Resolution:** Auto-amended
+- **Spec amendment:** A crossings helper failure routes `review-agent`; recorded here.
+
+#### [DEV-014] Gate 0.5 map save creates the state directory and tees
+- **Severity:** Small
+- **Spec said:** Save the `compute` JSON under `.writ/state/`.
+- **Implementation did:** `mkdir -p .writ/state && … | tee .writ/state/boundary-<story-stem>.json`, so stdout still reaches Gate 1.
+- **Reason:** Evaluator Minor issues: `>` failed without the directory and swallowed the stdout the gate passes onward.
+- **Resolution:** Auto-amended
+- **Spec amendment:** The map save uses `mkdir -p` and `tee`; recorded here.

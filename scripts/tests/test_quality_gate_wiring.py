@@ -169,6 +169,103 @@ class NoNewGateNumberTests(unittest.TestCase):
         self.assertNotIn("Gate 2 spawns the coding agent", text)
 
 
+def between(text: str, start: str, end: str) -> str:
+    begin = text.index(start)
+    return text[begin:text.index(end, begin + len(start))]
+
+
+class Gate3RiskRouteTests(unittest.TestCase):
+    """Spec `2026-09-26-drift-arch-guards` Story 2: Gate 2.5 computes a
+    deterministic Gate 3 route, and a routed story swaps its Gate 3 agent
+    rather than adding one."""
+
+    MAP = ".writ/state/boundary-<story-stem>.json"
+    CROSSINGS = (
+        "python3 scripts/boundary-map.py crossings --map " + MAP
+        + " --changed <files> --story <story-file> --surface <class>"
+    )
+    REPORT_LINE = 'gate3-route: <agent> (<reasons joined by "; ">)'
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.gate05 = between(self.text, "#### Gate 0.5:", "#### Gate 1:")
+        self.gate25 = between(self.text, "#### Gate 2.5:", "#### Gate 3:")
+        self.gate3 = between(self.text, "#### Gate 3:", "#### Gate 3.5:")
+
+    def test_gate_0_5_saves_the_map_under_state(self) -> None:
+        """AC-2.1"""
+        self.assertIn("boundary-map.py compute", self.gate05)
+        self.assertIn("mkdir -p .writ/state", self.gate05)
+        self.assertIn("| tee " + self.MAP, self.gate05)
+
+    def test_gate_2_5_runs_crossings_after_change_surface(self) -> None:
+        """AC-2.1, AC-2.5"""
+        self.assertIn(self.CROSSINGS, self.gate25)
+        self.assertLess(
+            self.gate25.index("change-surface.py classify"),
+            self.gate25.index(self.CROSSINGS),
+        )
+        self.assertIn("`gate3_route`", self.gate25)
+
+    def test_crossings_that_cannot_run_route_up(self) -> None:
+        """AC-2.2: an unreadable map or missing helper never falls back to
+        the evaluator (spec Business Rule 2)."""
+        self.assertIn("helper that cannot run", self.gate25)
+        self.assertIn("`unverifiable: <reason>`", self.gate25)
+
+    def test_gate_3_route_sentence(self) -> None:
+        """AC-2.2, AC-2.5"""
+        self.assertIn(
+            "when `gate3_route` names `review-agent`, spawn `review-agent` in its place",
+            self.gate3,
+        )
+        self.assertIn("`reason:` lines as `boundary_overlap_summary`", self.gate3)
+        self.assertIn("`--review-only` has no map, so the evaluator runs", self.gate3)
+        self.assertIn("`--full-pipeline` always runs `review-agent`", self.gate3)
+
+    def test_route_swaps_rather_than_adds_a_marker(self) -> None:
+        """AC-2.2, AC-2.4: the route is prose; Gate 3 keeps exactly its two
+        existing Agent markers (default + `--full-pipeline`)."""
+        self.assertEqual(self.gate3.count("> **Agent:**"), 2)
+        self.assertNotIn("Task(", self.gate3)
+
+    def test_story_report_carries_the_route_line(self) -> None:
+        """AC-2.3"""
+        self.assertIn(self.REPORT_LINE, self.gate3)
+        step4 = between(self.text, "### Step 4: Story Completion", "## Error Handling")
+        self.assertIn("`gate3-route:`", step4)
+
+    def test_fail_counter_is_agent_neutral(self) -> None:
+        """AC-2.3: two-fail escalation is unchanged (spec Business Rule 5)."""
+        control = between(self.text, "**Control flow:**", "## Command Process")
+        self.assertIn("Gate 3 FAIL (either agent) increments it", control)
+        self.assertIn("Reset the counter on Gate 3 PASS", control)
+        self.assertNotIn("evaluator FAIL increments it", control)
+
+    def test_pipeline_and_invocation_name_the_route(self) -> None:
+        """AC-2.2"""
+        g3 = next(ln for ln in self.text.splitlines() if ln.startswith("| Gate 3 |"))
+        self.assertIn("`review-agent` when Gate 2.5 routes it", g3)
+        row = next(
+            ln for ln in self.text.splitlines()
+            if ln.startswith("| `/implement-story story-3` |")
+        )
+        self.assertIn("`review-agent` when Gate 2.5 routes it", row)
+
+    def test_both_gate_3_spawns_receive_the_contract(self) -> None:
+        """Story 3 follow-up: the Gate 3 prose matches the routing rows."""
+        default = next(ln for ln in self.gate3.splitlines() if ln.startswith("Default spawn is"))
+        self.assertIn("`contract_content`", default)
+        same = next(ln for ln in self.gate3.splitlines() if "Same inputs:" in ln)
+        self.assertIn("`contract_content`", same)
+
+    def test_gate_3_5_medium_label_omits_integration(self) -> None:
+        """Story 3 follow-up: integration-point changes are Large now."""
+        drift = between(self.text, "##### A. Drift Response", "`Read skills/drift-triage")
+        medium = drift.split("**Medium**", 1)[1].split("**Large**", 1)[0]
+        self.assertNotIn("integration", medium)
+
+
 class InitializeBaselineTests(unittest.TestCase):
     """AC-6.1, AC-6.2 and AC-6.3 — record existing debt, write the coverage
     floor at the measured value, and never re-baseline automatically."""
