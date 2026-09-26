@@ -4313,7 +4313,7 @@ check_drift_format() {
   if [ -f "$PROJECT_ROOT/story.md" ]; then
     story="$PROJECT_ROOT/story.md"
   else
-    story="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage2b-mechanize-the-gates/user-stories/story-5-drift-format-flip-and-watch.md"
+    story="$PROJECT_ROOT/.writ/specs/archive/2026-09-08-phase11-stage2b-mechanize-the-gates/user-stories/story-5-drift-format-flip-and-watch.md"
   fi
   if [ ! -f "$story" ]; then
     add_note "NOTE [drift-format]: no story file; helper present."
@@ -4365,8 +4365,8 @@ check_spec_analyze() {
   fi
 
   spec=""
-  if [ -d "$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis" ]; then
-    spec="$PROJECT_ROOT/.writ/specs/2026-09-08-phase11-stage3-spec-analysis"
+  if [ -d "$PROJECT_ROOT/.writ/specs/archive/2026-09-08-phase11-stage3-spec-analysis" ]; then
+    spec="$PROJECT_ROOT/.writ/specs/archive/2026-09-08-phase11-stage3-spec-analysis"
   else
     spec="$(ls -d "$PROJECT_ROOT/.writ/specs"/*/ 2>/dev/null | head -n 1 || true)"
   fi

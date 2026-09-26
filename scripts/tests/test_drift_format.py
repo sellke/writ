@@ -257,7 +257,7 @@ class DriftFormatTests(unittest.TestCase):
         self.assertEqual(_verdict(out), "pass")
 
     def test_fail_against_real_story_prose(self) -> None:
-        story = (REPO_ROOT / ".writ" / "specs"
+        story = (REPO_ROOT / ".writ" / "specs" / "archive"
                  / "2026-09-08-phase11-stage2b-mechanize-the-gates"
                  / "user-stories" / "story-1-gate3-review-override.md")
         code, out = self._check(story.read_text(encoding="utf-8"), DOCUMENTED_LARGE)
