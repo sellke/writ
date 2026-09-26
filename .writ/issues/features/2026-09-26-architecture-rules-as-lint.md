@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-09-26
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/2026-09-26-arch-lint-and-follow-ups/spec.md
 
 ## TL;DR
 
