@@ -151,3 +151,20 @@
 - **Reason:** Evaluator Minor issues: `>` failed without the directory and swallowed the stdout the gate passes onward.
 - **Resolution:** Auto-amended
 - **Spec amendment:** The map save uses `mkdir -p` and `tee`; recorded here.
+
+---
+
+## Story 2: Gate 3 Risk Route — Spec-End Addendum
+
+> Run: 2026-09-26
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-015] ac-trace attributes test tokens to the nearest named spec
+- **Severity:** Medium
+- **Spec said:** The contract has no change to `scripts/ac-trace.py`; spec end requires `eval.sh` Findings 0.
+- **Implementation did:** A test token now belongs to the spec folder name most recently named above it in its file; tokens attributed to another spec neither dangle nor cover. Four old test docstrings gained their spec slug, the Story 2 test class moved to the end of `test_quality_gate_wiring.py`, and the AC-ID convention doc records the rule. User-approved at spec end.
+- **Reason:** Scope expansion. Repo-wide scanning made foreign tokens dangle against Stories 1, 3 and 4 (eval.sh Findings 6). Across 66 specs, 280 false `dangling_reference` findings clear; 12 criteria in six archived specs are now `untested_criterion` because their only coverage came from other specs' tokens.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review

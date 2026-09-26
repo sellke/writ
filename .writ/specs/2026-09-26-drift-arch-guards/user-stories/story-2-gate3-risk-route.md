@@ -1,6 +1,7 @@
 # Story 2: Gate 3 Risk Route
 
 > **Status:** Completed ✅
+> **Commit:** 0b558be7d94c558f951913b973a894e3611bbd5b
 > **Priority:** High
 > **Dependencies:** Story 1
 

@@ -897,6 +897,69 @@ class CitationScanTests(unittest.TestCase):
             self.assertEqual(exit_code, 0, result)
             self.assertEqual(findings_for(result, "dangling_reference"), [])
 
+    def _attribution_repo(self, repo: Path, *, status: str = "Not Started") -> Path:
+        spec = make_spec(repo, "2026-09-26-this-spec")
+        make_spec(repo, "archive/2026-01-01-older-spec")
+        write_story(
+            spec, 4, status=status,
+            marker_lines=["> **AC IDs assigned through:** AC-4.1"],
+            ac_lines=("- [ ] A real criterion. `[AC-4.1]`",),
+            task_lines=("- [ ] 4.1 Implement it. `[AC-4.1]`",),
+        )
+        (repo / "tests").mkdir()
+        return spec
+
+    def test_token_attributed_to_another_spec_is_not_dangling(self) -> None:
+        """A test token under another spec's slug belongs to that spec, even
+        when this spec has a story with the same number (drift-arch-guards)."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = self._attribution_repo(repo)
+            (repo / "tests" / "test_x.py").write_text(
+                '"""Story 4 of `2026-01-01-older-spec`. [AC-4.5]"""\n', encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(findings_for(result, "dangling_reference"), [])
+
+    def test_token_attributed_to_another_spec_does_not_cover(self) -> None:
+        """Another spec's AC-4.1 must not satisfy this spec's AC-4.1."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = self._attribution_repo(repo, status="Completed ✅")
+            (repo / "tests" / "test_x.py").write_text(
+                '"""Spec 2026-01-01-older-spec, AC-4.1."""\n', encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            self.assertEqual(len(findings_for(result, "untested_criterion")), 1)
+
+    def test_nearest_preceding_slug_wins(self) -> None:
+        """Attribution follows the most recent slug above the token; naming
+        this spec again reclaims later tokens."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = self._attribution_repo(repo, status="Completed ✅")
+            (repo / "tests" / "test_x.py").write_text(
+                '"""Story 4 of `2026-01-01-older-spec`. [AC-4.5]\n\n'
+                'Story 4 of `2026-09-26-this-spec`. [AC-4.1]\n"""\n',
+                encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+
+    def test_unknown_slug_does_not_change_attribution(self) -> None:
+        """A date-shaped name that is no spec folder leaves tokens with this spec."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = self._attribution_repo(repo)
+            (repo / "tests" / "test_x.py").write_text(
+                '"""See 2026-05-05-not-a-spec. [AC-4.9]"""\n', encoding="utf-8",
+            )
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            self.assertEqual(len(findings_for(result, "dangling_reference")), 1)
+
     def test_checker_unit_file_fixture_tokens_are_not_citations(self) -> None:
         """scripts/tests/test_ac_trace.py embeds AC-3.9 as a temp-repo
         fixture string. That must not dangle against a live story 3."""

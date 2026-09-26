@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Gold round-trip for scripts/goal-emit.py (Story 3). [AC-3.4, AC-3.5]
+"""Gold round-trip for scripts/goal-emit.py (Story 3 of
+`2026-09-09-phase11-stage4-goal-emit`). [AC-3.4, AC-3.5]
 """
 
 from __future__ import annotations

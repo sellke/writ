@@ -570,7 +570,8 @@ class CrossingsTests(unittest.TestCase):
 
 
 class Gate05WiringTests(unittest.TestCase):
-    """AC-4.4 / AC-4.5 — Gate 0.5 runs the script; maps stay advisory."""
+    """`2026-09-08-phase11-stage2b-mechanize-the-gates` AC-4.4 / AC-4.5 — Gate 0.5
+    runs the script; maps stay advisory."""
 
     def test_gate_0_5_invokes_compute_and_stays_advisory(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")

@@ -57,7 +57,7 @@ run() {
 
 run
 
-# AC coverage: AC-1.1 (case 1), AC-1.2 (case 2), AC-1.3 (case 4), AC-1.4
+# AC coverage (spec 2026-08-13-claude-md-install-merge): AC-1.1 (case 1), AC-1.2 (case 2), AC-1.3 (case 4), AC-1.4
 # (cases 5, 5b), AC-1.5 (cases 3, 3b — manifest baseline round-trip).
 
 # ----- Case 1: file absent -----
