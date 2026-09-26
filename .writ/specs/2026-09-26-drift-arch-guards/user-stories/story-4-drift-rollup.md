@@ -1,6 +1,7 @@
 # Story 4: Drift Roll-up at Spec End
 
 > **Status:** Completed ✅
+> **Commit:** 01133fee9aa9fc85d11532d6e8c350a9e5926c08
 > **Priority:** Medium
 > **Dependencies:** None
 

@@ -1,6 +1,7 @@
 # Story 3: Contract-Anchored Drift and Architecture-Class Severity
 
 > **Status:** Completed ✅
+> **Commit:** f07e143de67826ab758116a97949e3808a349668
 > **Priority:** High
 > **Dependencies:** None
 
