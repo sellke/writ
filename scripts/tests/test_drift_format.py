@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Tests for scripts/drift-format.py (Story 5 of
 `2026-09-08-phase11-stage2b-mechanize-the-gates`). [AC-5.1, AC-5.2]
+
+`summary` roll-up: Story 4 of `2026-09-26-drift-arch-guards`.
+[AC-4.1, AC-4.2, AC-4.3, AC-4.4]
 """
 
 from __future__ import annotations
@@ -293,6 +296,156 @@ class DriftFormatTests(unittest.TestCase):
         self.assertNotIn("70", text)
         for word in ("PASS", "SOFT PASS", "FAIL"):
             self.assertIn(word, text)
+
+
+def _dev(num: str, title: str, severity: str) -> str:
+    return (
+        "#### [DEV-%s] %s\n"
+        "- **Severity:** %s\n"
+        "- **Spec said:** X\n"
+        "- **Implementation did:** Y\n"
+        "- **Reason:** Z\n"
+        "- **Resolution:** R\n"
+        "- **Spec amendment:** A\n" % (num, title, severity)
+    )
+
+
+ROLLUP_LOG = (
+    "# Drift Log\n\n> Spec: .writ/specs/x/\n> Created: 2026-09-20\n\n---\n\n"
+    "## Story 1: Old Story — Drift Report\n\n> Run: 2026-09-20\n"
+    "> Overall Drift: Medium\n\n### Deviations\n\n"
+    + _dev("001", "Old medium change", "Medium")
+    + "\n---\n\n"
+    "## Story 2: Retry Story — Drift Report\n\n> Run: 2026-09-26\n"
+    "> Overall Drift: Medium\n\n### Deviations\n\n"
+    + _dev("002", "Renamed helper", "Small")
+    + "\n"
+    + _dev("003", "Added retry wrapper", "Medium")
+    + "\n---\n\n"
+    "## Story 3: API Story — Drift Report\n\n> Run: 2026-09-27\n"
+    "> Overall Drift: Large\n\n### Deviations\n\n"
+    + _dev("004", "GraphQL instead of REST", "Large")
+    + "\n"
+    + _dev("005", "Second medium", "Medium")
+)
+
+UNDATED_LOG = (
+    "# Drift Log\n\n---\n\n"
+    "## Story 7: Undated — Drift Report\n\n> Overall Drift: Medium\n\n"
+    "### Deviations\n\n" + _dev("001", "Undated medium", "Medium")
+)
+
+
+class DriftSummaryTests(unittest.TestCase):
+    """`summary` roll-up (Story 4 of `2026-09-26-drift-arch-guards`).
+    [AC-4.1, AC-4.2]"""
+
+    def _summary(self, log_text: "str | None", *extra: str) -> tuple[int, str]:
+        with TemporaryDirectory() as tmp:
+            log = Path(tmp) / "drift-log.md"
+            if log_text is not None:
+                log.write_text(log_text, encoding="utf-8")
+            return _run(["summary", "--drift-log", str(log), *extra])
+
+    def test_counts_and_headlines_in_file_order(self) -> None:
+        code, out = self._summary(ROLLUP_LOG)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines(), [
+            "pass",
+            "medium: DEV-001 Old medium change (Story 1)",
+            "medium: DEV-003 Added retry wrapper (Story 2)",
+            "large: DEV-004 GraphQL instead of REST (Story 3)",
+            "medium: DEV-005 Second medium (Story 3)",
+            "drift-format summary: 1 small, 3 medium, 1 large",
+        ])
+
+    def test_since_keeps_sections_on_or_after_date(self) -> None:
+        code, out = self._summary(ROLLUP_LOG, "--since", "2026-09-26")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines(), [
+            "pass",
+            "medium: DEV-003 Added retry wrapper (Story 2)",
+            "large: DEV-004 GraphQL instead of REST (Story 3)",
+            "medium: DEV-005 Second medium (Story 3)",
+            "drift-format summary: 1 small, 2 medium, 1 large since 2026-09-26",
+        ])
+
+    def test_since_after_every_run_counts_zero(self) -> None:
+        code, out = self._summary(ROLLUP_LOG, "--since", "2026-10-01")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines(), [
+            "pass",
+            "drift-format summary: 0 small, 0 medium, 0 large since 2026-10-01",
+        ])
+
+    def test_section_without_run_date_kept_without_since(self) -> None:
+        code, out = self._summary(UNDATED_LOG)
+        self.assertEqual(code, 0, out)
+        self.assertIn("medium: DEV-001 Undated medium (Story 7)", out.splitlines())
+        self.assertEqual(out.splitlines()[-1],
+                         "drift-format summary: 0 small, 1 medium, 0 large")
+
+    def test_section_without_run_date_dropped_with_since(self) -> None:
+        code, out = self._summary(UNDATED_LOG, "--since", "2026-01-01")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines(), [
+            "pass",
+            "drift-format summary: 0 small, 0 medium, 0 large since 2026-01-01",
+        ])
+
+    def test_missing_log_passes_with_zero_counts(self) -> None:
+        code, out = self._summary(None, "--since", "2026-09-26")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines(), [
+            "pass",
+            "drift-format summary: 0 small, 0 medium, 0 large since 2026-09-26",
+        ])
+
+    def test_unreadable_log_directory_is_unverifiable(self) -> None:
+        with TemporaryDirectory() as tmp:
+            code, out = _run(["summary", "--drift-log", tmp])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines()[0], "unverifiable")
+        self.assertIn("drift_log_unreadable", _reasons(out))
+        self.assertTrue(out.splitlines()[-1].startswith("drift-format summary:"))
+
+    def test_undecodable_log_is_unverifiable(self) -> None:
+        with TemporaryDirectory() as tmp:
+            log = Path(tmp) / "drift-log.md"
+            log.write_bytes(b"\xff\xfe\x00bad")
+            code, out = _run(["summary", "--drift-log", str(log)])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines()[0], "unverifiable")
+        self.assertIn("drift_log_unreadable", _reasons(out))
+
+    def test_malformed_since_is_exit_2(self) -> None:
+        for bad in ("2026-9-26", "yesterday", "2026-13-01"):
+            code, _out = self._summary(ROLLUP_LOG, "--since", bad)
+            self.assertEqual(code, 2, bad)
+
+    def test_summary_never_fails(self) -> None:
+        code, out = self._summary(MALFORMED)
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("fail", out.splitlines())
+
+
+class DriftSummaryWiringTests(unittest.TestCase):
+    """implement-spec Step 4.2 roll-up wiring. [AC-4.3, AC-4.4]"""
+
+    def test_step_4_2_runs_summary_since_start_and_is_report_only(self) -> None:
+        text = (REPO_ROOT / "commands" / "implement-spec.md").read_text(encoding="utf-8")
+        start = text.index("#### Step 4.2:")
+        end = text.index("\n---\n", start)
+        step = text[start:end]
+        self.assertIn("scripts/drift-format.py summary --drift-log", step)
+        self.assertIn("--since", step)
+        self.assertIn("startedAt", step)
+        self.assertGreaterEqual(step.count("Drift this run:"), 2,
+                                "instruction and example report both carry the line")
+        self.assertIn(
+            "never changes the checker verdict, the banner, or any story status",
+            step,
+        )
 
 
 if __name__ == "__main__":

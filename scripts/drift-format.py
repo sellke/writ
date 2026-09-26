@@ -8,20 +8,30 @@ Large-drift signal (`Overall Drift: Large` or `- **Severity:** Large`)
 implies a PAUSE verdict line (`REVIEW_RESULT: PAUSE` /
 `EVALUATION_RESULT: PAUSE`) in the story or `--review-output`. Does not decide accept / reject / modify-spec.
 
-Subcommand:
+`summary` (Story 4 of `2026-09-26-drift-arch-guards`) rolls a drift log up
+for the `/implement-spec` Step 4.2 report: it counts DEV entries by
+`- **Severity:**` across `## Story N:` sections (with `--since`, only
+sections whose `> Run:` date is on or after the date; undated sections are
+then dropped), lists each Medium / Large entry as
+`medium:` / `large: DEV-NNN <title> (Story N)` in file order, and never
+emits `fail` — the roll-up is report-only.
+
+Subcommands:
   check --story PATH [--drift-log PATH] [--review-output PATH]
+  summary --drift-log PATH [--since YYYY-MM-DD]
 
 Prints one verdict line (`pass` / `fail` / `unverifiable`), optional
-`reason:` lines, then a summary line last.
+`reason:` (or `summary` headline) lines, then a summary line last.
 
 Exit 0: ran, no blocking verdict (`pass` or `unverifiable`).
-Exit 1: `fail`.
-Exit 2: usage.
+Exit 1: `fail` (`check` only).
+Exit 2: usage, including a `--since` that is not a YYYY-MM-DD date.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime
 import re
 import sys
 from pathlib import Path
@@ -59,6 +69,12 @@ PAUSE_VERDICT = re.compile(
     r"(?m)^(?:#{1,6}[ \t]+)?(?:\*\*)?(?:REVIEW_RESULT|EVALUATION_RESULT)"
     r"(?::\*\*|\*\*:|:)[ \t]*(?:\*\*)?PAUSE(?:\*\*)?[ \t]*$"
 )
+STORY_HEADING = re.compile(r"^## Story (\d+):", re.MULTILINE)
+RUN_DATE = re.compile(r"^> Run:[ \t]*(\d{4}-\d{2}-\d{2})\b", re.MULTILINE)
+DEV_TITLE = re.compile(r"^#### \[DEV-\d{3}\][ \t]+(.+?)[ \t]*$", re.MULTILINE)
+SEVERITY = re.compile(r"^- \*\*Severity:\*\*[ \t]*(Small|Medium|Large)\b",
+                      re.MULTILINE)
+SINCE_FORMAT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 class UsageError(Exception):
@@ -149,6 +165,65 @@ def check(story: Optional[Path], drift_log: Optional[Path],
     return _emit("pass", [], "drift-format: pass (entries well-formed)")
 
 
+def _story_sections(text: str) -> List[Tuple[str, str]]:
+    """(story number, section text) per `## Story N:` heading, each section
+    ending at the next story heading or `---` rule."""
+    matches = list(STORY_HEADING.finditer(text))
+    out: List[Tuple[str, str]] = []
+    for i, match in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        section = re.split(r"(?m)^---[ \t]*$", text[match.start():end], maxsplit=1)[0]
+        out.append((match.group(1), section))
+    return out
+
+
+def summary(drift_log: Path, since: Optional[str]) -> int:
+    suffix = " since %s" % since if since else ""
+    if not drift_log.exists():
+        text = ""
+    else:
+        text = _read(drift_log)
+        if text is None:
+            return _emit("unverifiable", ["drift_log_unreadable"],
+                         "drift-format summary: unverifiable (drift log unreadable)")
+
+    counts = {"Small": 0, "Medium": 0, "Large": 0}
+    headlines: List[str] = []
+    for story, section in _story_sections(text):
+        run = RUN_DATE.search(section)
+        if since and (run is None or run.group(1) < since):
+            continue
+        for num, block in _entries(section):
+            severity = SEVERITY.search(block)
+            if severity is None:
+                continue
+            level = severity.group(1)
+            counts[level] += 1
+            if level != "Small":
+                title = DEV_TITLE.search(block)
+                headlines.append("%s: DEV-%s %s (Story %s)" % (
+                    level.lower(), num, title.group(1) if title else "", story))
+
+    print("pass")
+    for line in headlines:
+        print(line)
+    print("drift-format summary: %d small, %d medium, %d large%s" % (
+        counts["Small"], counts["Medium"], counts["Large"], suffix))
+    return 0
+
+
+def _valid_since(value: Optional[str]) -> bool:
+    if value is None:
+        return True
+    if not SINCE_FORMAT.match(value):
+        return False
+    try:
+        datetime.date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
@@ -156,6 +231,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--story", type=Path, required=True)
     p.add_argument("--drift-log", type=Path, default=None)
     p.add_argument("--review-output", type=Path, default=None)
+    s = sub.add_parser("summary", help="roll up drift counts and Medium/Large headlines")
+    s.add_argument("--drift-log", type=Path, required=True)
+    s.add_argument("--since", default=None, metavar="YYYY-MM-DD")
     return parser
 
 
@@ -166,6 +244,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     except SystemExit as exc:
         code = exc.code
         return int(code) if isinstance(code, int) else 2
+    if args.action == "summary":
+        if not _valid_since(args.since):
+            print("error: --since must be a YYYY-MM-DD date", file=sys.stderr)
+            return 2
+        return summary(args.drift_log, args.since)
     if args.action != "check":
         return 2
     rc = check(args.story, args.drift_log, args.review_output)

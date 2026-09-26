@@ -228,6 +228,8 @@ Carry its overall verdict and each criterion's evidence into the Step 4.2 report
 
 #### Step 4.2: Summary Report
 
+Roll up this run's drift: `python3 scripts/drift-format.py summary --drift-log <spec-dir>/drift-log.md --since <YYYY-MM-DD of execution state startedAt>`. Add its counts as a `Drift this run: S small, M medium, L large` line and list its `medium:` headlines under it (`large:` ones were already decided at Gate 3.5). The roll-up is report-only: it never changes the checker verdict, the banner, or any story status.
+
 ```
 ✅ Specification Complete: feature-name
 
@@ -244,6 +246,8 @@ Execution Stats:
 - Average coverage: 91%
 - Review iterations: 4 total (1.3 avg)
 - Integration tests: ✅ passing
+- Drift this run: 1 small, 1 medium, 0 large
+  - medium: DEV-004 Added retry wrapper (Story 4)
 
 Checker verdict: met
   ✅ implement-spec.c1 — met — story graph validated ok at 2026-02-22T17:40:00Z, before batch 1

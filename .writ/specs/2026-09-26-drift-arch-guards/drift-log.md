@@ -52,3 +52,20 @@
 - **Reason:** Preserves input order; all-blank is empty.
 - **Resolution:** Auto-amended
 - **Spec amendment:** Crossings are de-duplicated in first-seen order; recorded here.
+
+---
+
+## Story 4: Drift Roll-up at Spec End — Drift Report
+
+> Run: 2026-09-26
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-006] Entries without a recognized severity are skipped
+- **Severity:** Small
+- **Spec said:** Count each DEV entry's `- **Severity:**` inside `## Story N:` sections; unrecognized severities unspecified.
+- **Implementation did:** Entries with a missing or non-canonical severity, or outside a story section, are skipped silently; the roll-up still prints `pass`.
+- **Reason:** Format validation belongs to `drift-format.py check`; Business Rule 8 keeps the roll-up report-only.
+- **Resolution:** Auto-amended
+- **Spec amendment:** The roll-up counts only canonical `Small`/`Medium`/`Large` entries inside story sections; recorded here.
