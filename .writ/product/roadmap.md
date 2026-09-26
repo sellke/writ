@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-09-25
+> Last Updated: 2026-09-26
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 **Current status (2026-08-12):** Phases 1–10 closed. **Phase 10 closed PARTIALLY COMPLETE (2026-08-12)** — the determinism half (component contract, loop bounds, gate classes, blocking governor checks) shipped and is enforced; progressive disclosure stopped on measured evidence; the byte goal withdrawn outright by [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md). **No phase is currently committed** — next candidates live in [Beyond Phase 10 (Parking Lot)](#beyond-phase-10-parking-lot), pulled forward on concrete signal.
@@ -14,6 +14,8 @@
 
 | Date | Change |
 |---|---|
+| 2026-09-26 | Recorded `2026-09-26-arch-lint-and-follow-ups` as inter-phase infrastructure (v0.39.0). |
+| 2026-09-26 | Recorded `2026-09-26-drift-arch-guards` as inter-phase infrastructure (v0.39.0). |
 | 2026-09-25 | Recorded `2026-09-25-jev-judgment-pilot` as inter-phase infrastructure (v0.38.0). |
 | 2026-09-25 | Recorded `2026-09-24-flagged-harness-cuts` as inter-phase infrastructure (v0.37.0). |
 | 2026-09-09 | Recorded `2026-09-09-phase11-stage4b-pipeline-demote` as inter-phase infrastructure (v0.36.0). |
@@ -62,6 +64,8 @@
 | **— Phase 11 Stage 4b — Pipeline demote** <!-- 2026-09-09-phase11-stage4b-pipeline-demote --> | Default implement-story spawns at most two subagents; the six-agent path is --full-pipeline. | v0.36.0 |
 | **— Flagged harness cuts** <!-- 2026-09-24-flagged-harness-cuts --> | Three harness cuts ship default-off, and become the default only when a same-model baseline keeps every exit-criteria row at 2/2 and driver cost_usd drops against that model's own flag-off control. | v0.37.0 |
 | **— Jev Judgment Pilot** <!-- 2026-09-25-jev-judgment-pilot --> | Opt-in TypeSafe Jev judgment provider (TypeSafe direct or Vercel AI Gateway): ADR-027, stdlib client, Step 2.6c cascade, calibration, Gate 3 shadow, one-time setup prompt. | v0.38.0 |
+| **— Drift and Architecture Guards** <!-- 2026-09-26-drift-arch-guards --> | Boundary crossings route Gate 3 to review-agent; drift judged against the locked contract; spec-end drift roll-up. | v0.39.0 |
+| **— Architecture Lint and Drift-Guard Follow-ups** <!-- 2026-09-26-arch-lint-and-follow-ups --> | Gate 2 architecture-ruleset detection with a shipped guide and ADR hook; Codex TOML freshness check; issue closure via ## Resolution. | v0.39.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 

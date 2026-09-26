@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.39.0] - 2026-09-26
+
+**Drift and architecture guards** — the default story path now catches architectural drift mechanically instead of relying on the evaluator to notice it. A story whose changes cross its boundary map is reviewed by the full review agent, drift is judged against the locked contract, and Gate 2 runs a project's architecture ruleset when one exists. Codex agent files can no longer drift silently from their sources, and an issue is closed by adding a `## Resolution` line.
+
+### Added
+- **Boundary crossings route Gate 3 to the review agent.** `boundary-map.py crossings` compares a story's changed files with the map saved at Gate 0.5. A crossing, or a helper that can't decide, swaps the evaluator for `review-agent`, and the report carries a `gate3-route:` line. The default path still spawns two agents. ([Story 1](.writ/specs/2026-09-26-drift-arch-guards/user-stories/story-1-boundary-crossings.md), [Story 2](.writ/specs/2026-09-26-drift-arch-guards/user-stories/story-2-gate3-risk-route.md))
+- **Drift roll-up at spec end.** `drift-format.py summary --since` counts Small, Medium and Large entries, and `/implement-spec` reports the line. ([Story 4](.writ/specs/2026-09-26-drift-arch-guards/user-stories/story-4-drift-rollup.md))
+- **Architecture lint in Gate 2.** `scripts/arch-lint.py detect` finds dependency-cruiser, import-linter, eslint-plugin-boundaries and ArchUnit rulesets without running anything or touching the network. Gate 2 runs the two standalone checkers through its existing lint failure path; a missing or uninstalled ruleset never fails the gate. ([Story 3](.writ/specs/2026-09-26-arch-lint-and-follow-ups/user-stories/story-3-ruleset-detection-gate2.md))
+- **Architecture-lint guide and ADR hook.** `.writ/docs/architecture-lint.md` ships one minimal, tested ruleset per tool, and `/create-adr` asks for an Enforcement note naming the rule that encodes a layering decision. ([Story 4](.writ/specs/2026-09-26-arch-lint-and-follow-ups/user-stories/story-4-guidance-and-adr-hook.md))
+- **Codex TOML freshness check.** `gen-codex-agent-tomls.py --check` reports stale, missing, orphan and unmapped agent files, and `eval.sh` runs it as `codex-tomls`. ([Story 1](.writ/specs/2026-09-26-arch-lint-and-follow-ups/user-stories/story-1-codex-toml-freshness.md))
+
+### Changed
+- **Drift severity is anchored to the locked contract.** Architecture-class deviations (new dependencies across boundaries, layering changes) are Large and pause the run. ([Story 3](.writ/specs/2026-09-26-drift-arch-guards/user-stories/story-3-contract-anchored-drift.md))
+- **Closed issues stop counting as open.** A line exactly `## Resolution` closes an issue: `/status` skips it in triage and both Open Issues counts leave it out. `/create-issue` explains how to close one. ([Story 2](.writ/specs/2026-09-26-arch-lint-and-follow-ups/user-stories/story-2-issue-closure.md))
+
+### Fixed
+- **`gen-codex-agent-tomls.py` no longer crashes on `evaluator-agent`** and validates every agent before writing any file. Six Codex TOMLs that had drifted from `agents/*.md` were regenerated.
+- **ac-trace attributes test AC tags to the spec named above them**, so tags from another spec neither dangle nor count as coverage. This surfaced 12 untested criteria in archived specs, now tracked as an issue.
+
+### Internal
+- README refreshed for v0.37–v0.38 and for the new review route; Phase 11 verification fixes and spec archival; eval fixtures repointed to archived specs.
+
 ## [0.38.0] - 2026-09-26
 
 **Jev judgment pilot** — adds an optional provider for TypeSafe's Jev, a model that returns typed yes/no answers with probabilities. You can reach it through TypeSafe directly or through the Vercel AI Gateway. Jev pre-judges acceptance criteria before `/create-spec` runs its own LLM analysis pass. It also logs a shadow per-criterion judgment beside the Gate 3 evaluator, to build evidence for making the evaluator spawn conditional later. The provider is off by default; with it off, nothing changes.

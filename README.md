@@ -48,8 +48,8 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 ## Key Features
 
 - **Contract-first specifications** — No code until requirements are agreed upon
-- **Two-agent default, six-agent escalation** — `/implement-story` ships with a coding agent and a fresh-context evaluator. Architecture-check, review, testing, visual QA, and documentation spawn only on `--full-pipeline` (or after two consecutive evaluator FAILs). `scripts/spawn-cap.py` keeps the default at two Task spawns.
-- **Script-backed quality gates** — Default `/implement-story` re-derives architecture, boundary, review-override, test-integrity, drift format, and docs verdicts from `scripts/*.py`. Gate 1 (coding) and Gate 4.5 (visual QA) stay `prose-only`. **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
+- **Two-agent default, six-agent escalation** — `/implement-story` ships with a coding agent and a fresh-context evaluator. Architecture-check, review, testing, visual QA, and documentation spawn only on `--full-pipeline` (or after two consecutive evaluator FAILs); a story that crosses its boundary map gets the review agent instead of the evaluator. `scripts/spawn-cap.py` keeps the default at two Task spawns.
+- **Script-backed quality gates** — Default `/implement-story` re-derives architecture, boundary, architecture-lint, review-override, test-integrity, drift format, and docs verdicts from `scripts/*.py`. Gate 1 (coding) and Gate 4.5 (visual QA) stay `prose-only`. **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
 - **Machine-evaluable exit criteria** — `scripts/exit-criteria.py` is a read-only checker that re-derives `met`/`unmet`/`unknown`/`impossible` for each `/implement-phase` and `/implement-spec` exit criterion from state on disk, instead of trusting the run's own self-report (`/implement-story`'s criteria are out of scope — already disk-checkable from the story file itself). Its verdict governs completion reports and (on Claude Code) the `/goal` Stop hook.
 - **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, so integration code matches what was actually built, not just what was planned
@@ -168,7 +168,7 @@ Default `/implement-story` spawns two of these. The rest run on `--full-pipeline
 | Coding Agent | TDD implementation — tests first, then code | yes |
 | Evaluator Agent | Fresh-context rubric over acceptance criteria and recorded test results (read-only) | yes |
 | Architecture Check | Pre-implementation design review (PROCEED/CAUTION/ABORT) | `--full-pipeline` |
-| Review Agent | Code quality + security gate + spec drift analysis (PASS/FAIL/PAUSE, max 3 iterations) | `--full-pipeline` |
+| Review Agent | Code quality + security gate + spec drift analysis (PASS/FAIL/PAUSE, max 3 iterations) | `--full-pipeline`, or in place of the evaluator when a story crosses its boundary map |
 | Testing Agent | Test execution + coverage enforcement (≥80% on new code) | `--full-pipeline` |
 | Documentation Agent | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) | `--full-pipeline` |
 | Visual QA | Optional UI validation — compares implementation screenshots against mockups | `--full-pipeline` |
