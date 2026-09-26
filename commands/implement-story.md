@@ -134,8 +134,8 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 |---|---|---|
 | Architecture Check (Gate 0) | `spec_lite_for_coding` | `fetched_context` (all categories) + `knowledge_context` |
 | Coding Agent (Gate 1) | `spec_lite_for_coding` | `fetched_context` (error maps, business rules) + `knowledge_context` + dependency WWB records |
-| Evaluator Agent (Gate 3, default) | `spec_lite_for_review` | `knowledge_context` + AC + `recorded_test_results` |
-| Review Agent (Gate 3) | `spec_lite_for_review` | `fetched_context` (business rules, experience) + `knowledge_context` |
+| Evaluator Agent (Gate 3, default) | `spec_lite_for_review` + `contract_content` (`spec.md` `## Specification Contract` verbatim; `""` if absent) | `knowledge_context` + AC + `recorded_test_results` |
+| Review Agent (Gate 3) | `spec_lite_for_review` + `contract_content` | `fetched_context` (business rules, experience) + `knowledge_context` |
 | Testing Agent (Gate 4) | `spec_lite_for_testing` | `fetched_context` (shadow paths, edge cases) |
 | Documentation Agent (Gate 5) | Full spec-lite content | `fetched_context` (all categories) |
 

@@ -544,6 +544,9 @@ class CommandBudgetTests(unittest.TestCase):
 # Updated 2026-09-25: verify-spec.md 10666 -> 10662, Check 7 maps the
 # agent-section spec-lite format (net -4 after trim).
 # Merged 2026-09-26: both edits above applied; values recomputed from the merged files.
+# Updated 2026-09-26 (spec 2026-09-26-drift-arch-guards, Story 3): implement-story.md
+# 9656 -> 9763 (file 34723) for `contract_content` in the two Gate 3 context-routing
+# rows. No new step or gate. Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
@@ -553,7 +556,7 @@ KNOWN_OVER_BUDGET = {
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 9656,
+    "commands/implement-story.md": 9763,
 }
 
 

@@ -44,13 +44,21 @@ Inspect the `### Drift Analysis` section and handle each deviation by severity.
 - Continue **PASS**.
 - **Always** include the spec-lite changes in the run summary.
 
-### Medium — scope or integration impact; contract intent met with notable changes
+### Medium — scope impact; contract intent met with notable changes
+
+Scope expansion, extra unrequested features, or a different internal data
+structure with the same interface.
 
 - Flag with a ⚠️ warning in the run output.
 - Log to `drift-log.md`.
 - Continue **PASS**.
 
 ### Large — fundamental deviation; contract intent NOT met, or constraints violated
+
+Also every architecture-class deviation: a new runtime dependency not named in
+the contract or spec-lite; a changed interface or data shape at an integration
+point another story or the contract names; a changed architectural approach
+(framework, protocol, layering, persistence model).
 
 - **PAUSE.**
 - Present to the human with options: accept the deviation, reject it (send the
@@ -63,7 +71,8 @@ Inspect the `### Drift Analysis` section and handle each deviation by severity.
   Large deviation while still auto-amending the Small ones.** Pausing does not
   suspend the Small-drift procedure; the two run together.
 - Only `spec-lite.md` is auto-modified. The full `spec.md` is **never**
-  auto-modified — it remains the human-approved contract.
+  auto-modified — it remains the human-approved contract, and its
+  `## Specification Contract` outranks `spec-lite.md` when judging severity.
 - Log all drift to `.writ/specs/[spec-folder]/drift-log.md` — **append-only,
   never modify existing entries.** Continue DEV-ID numbering from the highest
   existing entry.

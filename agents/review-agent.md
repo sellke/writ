@@ -26,7 +26,7 @@ exit_criteria:
 3. **Security review** — Check for common vulnerabilities and security anti-patterns
 4. **Validate test coverage** — Ensure tests cover requirements and edge cases
 5. **Check integration** — Verify no breaking changes or dependency issues
-6. **Analyze spec drift** — Compare implementation against spec contract, classify deviations by severity
+6. **Analyze spec drift** — Compare implementation against the locked contract, then spec-lite; classify deviations by severity
 7. **Gate decision** — PASS or FAIL with clear, actionable reasoning
 
 ## Input Requirements
@@ -40,6 +40,7 @@ exit_criteria:
 | `lint_results` | Output from lint/typecheck gate (if available) |
 | `acceptance_criteria_with_checkboxes` | Formatted criteria for verification |
 | `spec_lite_content` | Agent-specific spec-lite section ("For Review Agents" — acceptance criteria, business rules, experience design). Used for drift analysis. Falls back to full spec-lite if agent-specific sections not available. May include supplementary content fetched via context hints. |
+| `contract_content` | The `## Specification Contract` section of `spec.md`, heading through the line before the next `## ` heading, verbatim. The drift reference: outranks `spec-lite.md` when they disagree. Empty string when absent; then use `spec_lite_content` alone. |
 | `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries selected by `/implement-story` Step 2, biased toward lessons and decisions for review. Empty string when no relevant entries match. |
 | `change_surface` | Classification from Gate 2.5: `style-only`, `single-component`, `cross-component`, or `full-stack`. Determines review depth allocation per category. |
 | `boundary_map` | **Optional.** Same Gate 0.5 markdown block passed to the coding agent. If empty/omitted, skip boundary compliance scrutiny (legacy behavior). |
@@ -67,7 +68,12 @@ Review the implementation completed by the Coding Agent and determine if it meet
 **Story file path:** {story_file_path}
 **Story content:** {full_story_content}
 
-## Spec Contract (for Drift Analysis)
+## Locked Contract (drift reference)
+{contract_content}
+
+The human-approved contract. It outranks spec-lite when they disagree — spec-lite may carry auto-amendments from Small drift. If empty, judge drift against spec-lite alone.
+
+## Spec-Lite (for Drift Analysis)
 {spec_lite_content}
 
 ## Loaded Knowledge Entries
@@ -140,26 +146,26 @@ Do not auto-FAIL solely for a justified deviation. FAIL (or flag Major) for unju
 
 ### 7. Drift Analysis (Spec Healing)
 
-Compare the implementation against the Spec Contract above. For each acceptance criterion and key spec requirement:
+Compare the implementation against the Locked Contract above, then Spec-Lite; the contract outranks spec-lite when they disagree. For each acceptance criterion and key spec requirement:
 
 1. Check if satisfied AS WRITTEN in the spec, or via a different approach
 2. For any deviation, classify severity:
 
 **Small** (cosmetic, naming, implementation details — spec intent preserved):
 - Different function/variable/file name than spec suggested
-- Minor API shape change (same behavior, different signature)
+- Minor API shape change (same behavior, different signature) not at a named integration point
 - Implementation detail differs but behavior matches spec intent
 - Parameter ordering or naming conventions differ
 
-**Medium** (scope or integration impact — spec intent met but with notable changes):
+**Medium** (scope impact — spec intent met but with notable changes):
 - Scope expansion beyond what spec described
-- New dependency not mentioned in spec
-- Approach variation that affects integration points
-- Different data structure that achieves same goal
+- Different internal data structure with the same interface
 - Additional features not in spec (scope creep)
 
-**Large** (fundamental deviation — spec intent NOT met or constraints violated):
-- Wrong architectural approach (e.g., spec says REST, impl uses GraphQL)
+**Large** (fundamental deviation — spec intent NOT met, constraints violated, or architecture-class):
+- New runtime dependency not named in the contract or spec-lite
+- Changed interface or data shape at an integration point another story or the contract names
+- Changed architectural approach — framework, protocol, layering, persistence model (e.g., spec says REST, impl uses GraphQL)
 - Constraint violation (e.g., spec says no external deps, impl adds three)
 - Security model change (e.g., spec says session auth, impl uses none)
 - Incompatible data model (breaks assumptions other stories depend on)
@@ -242,23 +248,23 @@ _If no `boundary_map` was provided, write a single line: **Not applicable** (no 
 
 ## Drift Analysis
 
-The review agent performs **spec drift detection** — comparing the implementation against the spec contract (`spec_lite_content`) to identify deviations. This is additive: all existing review duties (acceptance criteria, code quality, security, test coverage, integration) are performed regardless of drift findings.
+The review agent performs **spec drift detection** — comparing the implementation against the locked contract (`contract_content`, falling back to `spec_lite_content` when empty) to identify deviations. This is additive: all existing review duties (acceptance criteria, code quality, security, test coverage, integration) are performed regardless of drift findings.
 
 ### Severity Classification
 
 | Tier | Signal | Examples | Pipeline Response |
 |------|--------|----------|-------------------|
-| **Small** | Implementation detail changed, spec intent preserved | Different function/variable name; minor API shape change; parameter ordering differs; cosmetic implementation detail | Auto-amend proposed. Log to `drift-log.md`. Continue PASS. |
-| **Medium** | Scope or integration impact, spec intent met with notable changes | Scope expansion beyond spec; new dependency not in spec; approach variation affecting integration; additional unrequested features | Flag with ⚠️. Continue PASS with warning. Review post-implementation. |
-| **Large** | Fundamental deviation, spec intent NOT met or constraints violated | Wrong architectural approach; constraint violation; security model change; incompatible data model; missing core requirement | PAUSE pipeline. Surface conflict to human. Include all review sections in output. |
+| **Small** | Implementation detail changed, spec intent preserved | Different function/variable name; minor internal API shape change; parameter ordering differs; cosmetic implementation detail | Auto-amend proposed. Log to `drift-log.md`. Continue PASS. |
+| **Medium** | Scope impact, spec intent met with notable changes | Scope expansion beyond spec; additional unrequested features; different internal data structure with the same interface | Flag with ⚠️. Continue PASS with warning. Review post-implementation. |
+| **Large** | Fundamental deviation, spec intent NOT met, constraints violated, or architecture-class | New runtime dependency not named in the contract or spec-lite; changed interface or data shape at an integration point another story or the contract names; changed architectural approach (framework, protocol, layering, persistence model); constraint violation; security model change; incompatible data model; missing core requirement | PAUSE pipeline. Surface conflict to human. Include all review sections in output. |
 
 **⚠️ When severity is ambiguous → default to Medium.** Under-classifying a Large deviation as Small is worse than over-classifying a Small deviation as Medium.
 
 ### Classification Principles
 
-- **Compare against spec contract** — not against your own design preferences
+- **Compare against the locked contract** — `contract_content` outranks spec-lite when they disagree; not against your own design preferences
 - **Intent matters more than letter** — if the spec says "validate input" and the impl uses a different validation library, that's Small (intent preserved)
-- **Integration impact escalates severity** — if other stories depend on a specific interface shape and it changed, that's at least Medium
+- **Architecture-class drift is Large** — a new runtime dependency not named in the contract or spec-lite, a changed interface or data shape at an integration point another story or the contract names, or a changed architectural approach
 - **Security and constraint violations are always Large** — no exceptions
 - **Accumulation matters** — many Small deviations may indicate a Medium-level pattern
 

@@ -24,7 +24,7 @@ exit_criteria:
 1. **Adjudicate acceptance criteria** — Verdict every supplied criterion against the implementation and the recorded test results
 2. **Read recorded test results** — Treat passing or failing tests as evidence, not as a substitute for the criteria
 3. **Name residual risk** — Architecture, security, and taste only; not a general quality tour
-4. **Classify drift** — Overall Drift None / Small / Medium / Large against spec-lite
+4. **Classify drift** — Overall Drift None / Small / Medium / Large against the locked contract, then spec-lite
 5. **Gate decision** — PASS, FAIL, or PAUSE; report what is wrong; do not apply a patch
 
 ## Input Requirements
@@ -36,6 +36,7 @@ exit_criteria:
 | `acceptance_criteria_with_checkboxes` | The story's acceptance criteria to adjudicate |
 | `recorded_test_results` | The orchestrator's own run of the story's test files before Gate 3 (command, exit code, output tail) — not the coding agent's self-report |
 | `spec_lite_content` | Spec-lite (acceptance criteria, business rules, experience). Falls back to full spec-lite if agent-specific sections are missing. |
+| `contract_content` | The `## Specification Contract` section of `spec.md`, heading through the line before the next `## ` heading, verbatim. The drift reference: outranks `spec-lite.md` when they disagree. Empty string when absent; then use `spec_lite_content` alone. |
 | `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries. Empty string when none match. |
 | `boundary_map` | **Optional.** Gate 0.5 ownership block. If empty/omitted, skip boundary lines. |
 
@@ -55,7 +56,12 @@ Adjudicate the story's acceptance criteria and recorded test results. Name resid
 **Story file path:** {story_file_path}
 **Story content:** {full_story_content}
 
-## Spec Contract (for Drift Analysis)
+## Locked Contract (drift reference)
+{contract_content}
+
+The human-approved contract. It outranks spec-lite when they disagree — spec-lite may carry auto-amendments from Small drift. If empty, judge drift against spec-lite alone.
+
+## Spec-Lite (for Drift Analysis)
 {spec_lite_content}
 
 ## Loaded Knowledge Entries
@@ -130,13 +136,13 @@ Every FAIL issue carries Location and Severity. Suggested Fix is optional and is
 
 ## Drift Analysis
 
-Compare the implementation to spec-lite. **Overall Drift** is the highest severity among deviations, or `None`.
+Compare the implementation to the locked contract (`contract_content`), then spec-lite; the contract outranks spec-lite when they disagree. **Overall Drift** is the highest severity among deviations, or `None`.
 
 | Tier | Signal | Pipeline Response |
 |------|--------|-------------------|
 | **Small** | Detail changed, spec intent preserved | PASS |
-| **Medium** | Notable change, spec intent still met | PASS with warning |
-| **Large** | Spec intent not met or a constraint violated | PAUSE rather than FAIL |
+| **Medium** | Notable change, spec intent still met: scope expansion, extra unrequested features, a different internal data structure with the same interface | PASS with warning |
+| **Large** | Spec intent not met or a constraint violated; or architecture-class: a new runtime dependency not named in the contract or spec-lite, a changed interface or data shape at an integration point another story or the contract names, a changed architectural approach (framework, protocol, layering, persistence model) | PAUSE rather than FAIL |
 
 **When severity is ambiguous → default to Medium.**
 
