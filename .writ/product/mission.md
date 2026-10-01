@@ -143,8 +143,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 ### Phase 12 — Behavioral Verification (📋 committed)
 
-- **Project verification skill:** `/initialize` generates a `verify-<app>` skill and feature map that drive the running app through the project's own harness or the platform's native tools.
-- **Evidence-bound UAT:** UAT scenarios cite feature-map entries; Gate 4.5 records driven evidence and leaves `prose-only`.
+- **Behavioral verification:** a per-project recipe (`.writ/docs/app-verification.md`, drafted by `/create-uat-plan`) names the project's own checks; UAT scenarios cite its feature IDs; Gate 4.5 runs the checks against the running app, records evidence, and leaves `prose-only`. An exit code decides, never an agent.
 - **Cross-family review panel:** opt-in, high-stakes only; findings raised by two or more vendors block. Kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
 
 ### Next Horizon

@@ -544,21 +544,20 @@ is still a human handoff at the end of every spec and phase.
 
 ### Success Criteria
 
-- At least one yuss.app story's UAT scenarios pass with machine-captured evidence and no human step
+- A fixture app's UAT scenarios pass end to end with machine-captured evidence and no human step (real-project trials, yuss.app or any other, happen outside the phase at the developer's discretion)
 - Gate 4.5 leaves `verification: prose-only`; the count in `implement-story.md` drops from 2 to 1
 - `exit-criteria.py` reports `unmet` for a UAT scenario whose cited evidence file is missing (proven by mutation)
 - The cross-family panel raises at least one valid finding the single-vendor evaluator missed on the Phase 11 baseline set, or its promotion step closes `Closed — Not Implemented` and the path is removed
 
 ### Features
 
-- [ ] **Project verification skill** `Effort: M` — `/initialize` generates a project-local `verify-<app>` skill (launch, doctor, drive, evidence, cleanup) and a feature map of the top user-facing features, then runs it end to end once before handoff. Drives through the project's own harness or the platform's native browser and terminal tools; Writ ships no runtime. Install path per adapter.
-- [ ] **Evidence-bound UAT** `Effort: M` — `/create-uat-plan` scenarios cite feature-map entries; Gate 4.5 runs the verify skill for the story's mapped features and writes evidence under the spec folder; `exit-criteria.py` checks the evidence exists. Scenarios the skill cannot drive stay human scenarios and say why.
+- [ ] **Behavioral verification** `Effort: M-L` — a per-project recipe at `.writ/docs/app-verification.md` (launch, safety, login, feature map, evidence, cleanup) names the project's own checks; `/create-uat-plan` drafts it once and binds scenarios to feature IDs; Gate 4.5 runs the checks for the features a story touched through `scripts/app-verify.py` and writes evidence under the spec folder; `exit-criteria.py` checks the cited evidence exists and passed. A machine verdict (exit code) decides; features no check can decide stay human scenarios and say why. Writ ships no runtime. (Merged from the former "Project verification skill" and "Evidence-bound UAT" features at contract lock, 2026-10-01: the recipe's only consumers are the UAT binding and Gate 4.5.)
 - [ ] **Cross-family review panel** `Effort: S-M` — opt-in per project, high-stakes stories only (ADR-023 triage): Gate 3 adds reviewers from other vendors with the same prompt; findings raised by two or more vendors block, single-vendor findings are advisory. Cursor-only today; every other platform falls back to the current Gate 3.
 
 ### Dependencies
 
-- Phase 11 baseline story set (yuss.app) and the Gate 3 evaluator
-- Feature 2 depends on Feature 1; Feature 3 is independent and can run in parallel
+- The Gate 3 evaluator, and the Phase 11 baseline story set (yuss.app) for the panel's removal measurement
+- The two features are independent and can run in parallel
 
 ### Deliberately out of scope
 

@@ -8,6 +8,7 @@ exit_criteria:
   - "uat-plan.md exists in .writ/specs/<spec-folder>/ and every story it covers is marked Completed"
   - "each scenario traces to an acceptance criterion, error map row, shadow path, or edge case"
   - "with zero completed stories, uat-plan.md is a stub declaring that state rather than a missing file"
+  - "every scenario in a populated uat-plan.md carries a **Feature:** line and a **Verification:** line"
 ---
 
 # Create UAT Plan Command (create-uat-plan)
@@ -85,6 +86,39 @@ pending_stories = stories where status is NOT "Completed ✅"
    Completed: Story 1, Story 3, Story 4
    Pending: Story 2, Story 5
 ```
+
+#### Step 1.3: Verification Recipe
+
+The recipe at `.writ/docs/app-verification.md` (grammar: `.writ/docs/app-verification-format.md`) lets the project's own checks decide scenarios. A feature without a check stays `human-only: no check yet` (see the Terminal constraint).
+
+**Recipe exists:** no draft and no question; validate it.
+
+**No recipe:** draft one in that format from four sources: the test harness (Playwright, Cypress, pytest, `package.json` test scripts), the dev or start command, the readiness URL or port, and environment files that name a database (the Safety variable). Each feature with an existing check gets a backticked `Check` command; every other feature gets `human-only: no check yet`. No harness detected → every feature is `human-only: no check yet`. Show the draft, then ask once:
+
+```
+AskQuestion({
+  title: "Verification Recipe",
+  questions: [{
+    id: "recipe",
+    prompt: "Save this recipe to .writ/docs/app-verification.md?",
+    options: [
+      { id: "save", label: "Save (Recommended)" },
+      { id: "edit", label: "Edit the draft first" },
+      { id: "skip", label: "Skip — every scenario stays human" }
+    ]
+  }]
+})
+```
+
+Exactly one option carries `(Recommended)`: `save` when a launch command was detected, otherwise move it to `skip`. **skip** writes no recipe and continues to today's all-human plan. `--check` shows the draft but asks nothing, saves nothing and runs nothing.
+
+**Validate** an existing recipe as below. Validate a draft before saving by writing it to `.writ/state/app-verification-draft.md` and passing that path as `--recipe`:
+
+```bash
+python3 scripts/app-verify.py validate --recipe .writ/docs/app-verification.md
+```
+
+A non-zero exit prints `app-verify: recipe invalid — <first finding>`. A failing draft is never saved; return to **edit**. A failing existing recipe is left untouched: every scenario reads `**Feature:** none` and `**Verification:** human — recipe invalid`, and the Step 5.3 report says to fix the recipe and re-run.
 
 ---
 
@@ -179,6 +213,8 @@ For each extracted item, produce a scenario following this template:
 ### Scenario N: [Descriptive title]
 
 **Source:** [Acceptance Criteria | Error Map | Shadow Path | Edge Case | Experience Design] — Story N
+**Feature:** <id>
+**Verification:** machine — evidence: evidence/uat/<id>/result.json | human — <reason>
 
 **Preconditions:**
 - [Setup requirement 1]
@@ -207,7 +243,7 @@ Each scenario must satisfy these clarity criteria:
 1. **Self-contained** — A human can execute it without reading other scenarios or source code
 2. **Observable outcomes** — Expected results describe what the tester can see/verify, not internal state
 3. **Concrete steps** — "Click the Submit button" not "Submit the form"; "Navigate to `/settings`" not "Go to settings"
-4. **No implementation jargon** — Avoid function names, class names, or internal architecture terms in steps and expected results (these belong only in the "What Was Built" enhancement notes, not in tester-facing content)
+4. **No implementation jargon** — Avoid function names, class names, or internal architecture terms in steps and expected results (these belong only in the "What Was Built" enhancement notes, not in tester-facing content). The `**Feature:**` and `**Verification:**` lines are metadata, not tester steps
 5. **Numbered steps** — Always use ordered steps, even for single-step scenarios
 
 #### Step 3.3: Group and Order Scenarios
@@ -264,6 +300,34 @@ For each scenario, cross-reference with the relevant story's WWB record:
 - If a story has no WWB record, scenarios are generated without enhancement (no degradation)
 - Keep implementation references brief — file paths and key decisions only, not full WWB content
 - Implementation references are for tester context ("where to look if this fails"), not for test execution
+
+#### Step 4.3: Bind Scenarios to Features
+
+With a valid recipe, run once per completed story:
+
+```bash
+python3 scripts/app-verify.py touched --recipe .writ/docs/app-verification.md --changed <the story's What Was Built files>
+```
+
+`touched` prints only features with a `Check`; also read the recipe's `human-only` Feature Map rows whose `Paths` match the story's files. Bind each scenario to one of these IDs. When several match, bind the one whose `Feature` text describes the scenario's behavior, and give every other matched ID at least one scenario of its own; choosing is authoring, and the verdict still comes from the script. Write two lines directly under `**Source:**`:
+
+- Feature with a `Check` → `**Feature:** <id>` and `**Verification:** machine — evidence: evidence/uat/<id>/result.json`
+- Feature whose `Check` is `human-only: <reason>` → `**Feature:** <id>` and `**Verification:** human — <reason>` with that reason
+- No touched feature → `**Feature:** none` and `**Verification:** human — no mapped feature`
+- No recipe (skipped) → `**Feature:** none` and `**Verification:** human — no recipe`; invalid recipe → `**Feature:** none` and `**Verification:** human — recipe invalid`
+
+#### Step 4.4: Run Machine Checks
+
+If any scenario is machine, run the checks once with every distinct machine ID (one app launch; `--check` skips this):
+
+```bash
+python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec .writ/specs/<spec-folder> --run-label uat --features <id,…>
+```
+
+- Tick a machine scenario `[x] Pass` only when its `evidence/uat/<id>/result.json` verdict is `pass`; otherwise tick `[x] Fail`.
+- Exit 1 from a launch failure or `not_ready` → every machine scenario Fail, with Notes citing `evidence/uat/_launch/`.
+- Exit 2 → those scenarios become `**Verification:** human — refused` (or `human — <reason>` for another unverifiable reason), Status unticked.
+- The verdict comes only from the exit code and `result.json`, never from agent judgment. Never rewrite a failed scenario as human.
 
 ---
 
@@ -337,9 +401,11 @@ If a `uat-plan.md` already exists, **overwrite** it — UAT plans are regenerate
    - From shadow paths: C
    - From edge cases: D
    - From experience design: E
+🔬 Verification: M machine (P pass, F fail), H human
+   app-verify: <the run's summary line, or the reason every scenario is human>
 
-💡 Next: Execute the plan manually. Mark each scenario Pass/Fail.
-   When all pass, the feature is human-validated.
+💡 Next: Execute the human scenarios manually and mark each Pass/Fail;
+   machine scenarios are already decided. When all pass, the feature is validated.
 ```
 
 **`--check` mode:** Show the report but do not write the file. Useful for previewing before generation.
@@ -381,6 +447,12 @@ Continue with other stories. Log the skip in the plan's notes section.
 ```
 Not an error — Phase 4 enhancement is best-effort. Scenarios are still valid.
 
+**No test harness detected:** `ℹ️ No test harness found` — the draft marks every feature `human-only: no check yet`; scenarios stay human.
+
+**Recipe invalid:** `⚠️ app-verify: recipe invalid — <first finding>` — the recipe is not rewritten; every scenario stays human (`recipe invalid`).
+
+**Safety refused:** `⚠️ app-verify: refused (<reason>)` — no app launched; machine scenarios become human (`refused`).
+
 ---
 
 ## Integration with Writ
@@ -408,7 +480,7 @@ This command succeeds when:
 
 **Suggested next step:** Execute the UAT plan manually or with test tooling.
 
-**Terminal constraint:** This command produces a UAT plan (`.writ/specs/{spec-folder}/uat-plan.md`). Do not offer to implement, build, or execute what was planned. For manual or automated execution, the user should follow the plan's instructions. For quick prototyping, use `/prototype`.
+**Terminal constraint:** This command produces a UAT plan (`.writ/specs/{spec-folder}/uat-plan.md`) and, after confirmation, the recipe. Do not offer to implement or build what was planned; checks run only through `scripts/app-verify.py` (Step 4.4). This command never writes test code or check scripts: features without a check stay `human-only: no check yet`, and authoring checks is the coding agent's job. For manual or automated execution, the user should follow the plan's instructions. For quick prototyping, use `/prototype`.
 
 ---
 

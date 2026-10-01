@@ -12,7 +12,7 @@ loop:
   unit: "review_cycle"
   max_iterations: 3
   on_exhaustion: escalate
-  calibrated_against: "One shared counter across four increment sites - Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, Gate 4.5 FAIL - not four separate budgets. Transcribes the existing prose cap in this file: 'Review loop: Max 3 iterations across review and visual QA gates'. 42 'Iteration count' records across archived story What Was Built sections in .writ/specs/archive/: 39 at 1 iteration, 3 at 2, maximum ever observed = 2. A bound of 2 would sit at the observed maximum with zero headroom; 3 keeps one iteration and is the number already honored today. Evidence: strong - 42 real records."
+  calibrated_against: "One shared counter across four increment sites - Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, Gate 4.5 script fail - not four separate budgets. Transcribes the existing prose cap in this file: 'Review loop: Max 3 iterations across review and Gate 4.5'. 42 'Iteration count' records across archived story What Was Built sections in .writ/specs/archive/: 39 at 1 iteration, 3 at 2, maximum ever observed = 2. A bound of 2 would sit at the observed maximum with zero headroom; 3 keeps one iteration and is the number already honored today. Evidence: strong - 42 real records."
   nested:
     - unit: "testing_cycle"
       max_iterations: 2
@@ -41,8 +41,8 @@ gates:
     script: scripts/drift-format.py
   - id: gate4_tests
     script: scripts/test-integrity.py
-  - id: gate4_5_visual
-    verification: prose-only
+  - id: gate4_5_behavior
+    script: scripts/app-verify.py
   - id: gate5_docs
     script: scripts/docs-check.py
 ---
@@ -89,11 +89,11 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Gate 3 | Review Agent | `evaluator-agent` on default, or `review-agent` when Gate 2.5 routes it; `review-agent` on `--full-pipeline` | `--quick` | — |
 | Gate 3.5 | Drift Response & WWB Extraction | inline — auto | `--quick` | `drift-triage` (§ A) |
 | Gate 4 | Testing Agent | `test-integrity.py` on default (no testing-agent spawn); `testing-agent` on `--full-pipeline` | — | — |
-| Gate 4.5 | Visual QA | `visual-qa-agent` on `--full-pipeline` only | `--quick`; no visual references; default (even with visual refs) | — |
+| Gate 4.5 | Behavioral Verification | `app-verify.py` (no spawn); `--full-pipeline` adds notes-only `visual-qa-agent` on visual refs | `--quick` | — |
 | Gate 5 | Documentation Agent | `docs-check.py` on default; `documentation-agent` on `--full-pipeline` | `--quick` | — |
 | Step 4 | Story Completion | inline | — | `project-context-snapshot` (item 3); `what-was-built-authoring` (item 4); `story-commit-provenance` (item 7) |
 
-**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + visual QA). `evaluator_fail_count` starts at 0 per story; Gate 3 FAIL (either agent) increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline`, then Gate 1 recode as for any FAIL; the next Gate 3 spawns `review-agent` (do not restart Gate 0; do not AskQuestion); Reset the counter on Gate 3 PASS. `--quick` never escalates.
+**Control flow:** Gate 0 ABORT ask-user is `--full-pipeline` only (confirmed at anchor). Default Gate 0 is script-only. Gate 3 emits **PAUSE** on Large drift; Gate 3.5 § A owns that pause and its three options (accept / reject / modify-spec) — stated once there. Gate 3, Gate 4 and Gate 4.5 FAIL → back to Gate 1 (max 3 iterations total across review + Gate 4.5). `evaluator_fail_count` starts at 0 per story; Gate 3 FAIL (either agent) increments it; first FAIL → Gate 1 recode (counts toward review_cycle); second consecutive FAIL → print one notice that the remainder of this story runs as `--full-pipeline`, then Gate 1 recode as for any FAIL; the next Gate 3 spawns `review-agent` (do not restart Gate 0; do not AskQuestion); Reset the counter on Gate 3 PASS. `--quick` never escalates.
 
 ## Command Process
 
@@ -281,7 +281,7 @@ Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_
 
 **Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
-**Review loop:** Max 3 iterations across review and visual QA gates (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 FAIL → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
+**Review loop:** Max 3 iterations across review and Gate 4.5 (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 script fail → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
 
 **Verify the claim, don't trust it.** After the Gate 3 agent returns, run:
 
@@ -351,30 +351,30 @@ python3 scripts/test-integrity.py coverage --project . --new-files <story's new 
 python3 scripts/test-integrity.py authenticity --project . --tests <story's test files>
 ```
 
-`Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and where they disagree the checker wins — a run may report `TEST_RESULT: PASS` and still not close, as `scripts/exit-criteria.py` lets a run report COMPLETE and be published `unmet`. Show both the claim and the measurement in the story report.
+`Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and where they disagree the checker wins — a run may report `TEST_RESULT: PASS` and still not close. Show both the claim and the measurement in the story report.
 
 - **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. `test-integrity.py` `fail`: default uses [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; `--full-pipeline` keeps `testing-agent`, restarting **Gate 4**. Do not downgrade the story silently.
 - **Any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ---
 
-#### Gate 4.5: Visual QA (Optional)
+#### Gate 4.5: Behavioral Verification
 
-**Default:** skip — no `visual-qa-agent` spawn even with visual refs.
+> **Skip in:** `--quick`. Under `--review-only` a fail ends the run, no recode. Gate 4.5 never asks a question; a script decides, no Task spawn:
+
+```bash
+python3 scripts/app-verify.py touched --recipe .writ/docs/app-verification.md --changed <story's changed files>
+python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec <spec-folder> --run-label story-N --features <touched ids, comma-joined>
+```
+
+- **exit 0** → continue.
+- **exit 1** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
+- **exit 2** (no recipe, invalid recipe, refused), or `touched` printed no IDs (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`
-> **Skip in:** `--quick` mode, when no visual references exist for this story
 
-**Auto-activates when:** the story has a `## Visual References` section, or the spec has a `mockups/` directory with files.
-
-`--full-pipeline` spawn: read-only UI capture vs story mockups; report structural, spacing, styling mismatches.
-
-**Results:** **PASS** (no mismatches, or none the agent rates above low) → continue to docs · **SOFT PASS** (only cosmetic, medium-or-low mismatches) → continue, log issues · **FAIL** (any high-priority mismatch, or structural drift from the mockup) → send fixes back to coding agent
-
-No pixel or DOM diff exists: the verdict rests on the agent's per-aspect mismatch list; `gates:` records this gate as `prose-only`.
-
-Failures count toward the shared review-loop cap declared at Gate 3.
+With `## Visual References` or spec `mockups/`, spawn it after the script; its mismatches are story-report notes that never fail the gate or count toward the review loop.
 
 ---
 

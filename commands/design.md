@@ -210,7 +210,7 @@ The coding agent (Gate 1) loads visual references when present:
 
 ### How visual QA validates
 
-See: `agents/visual-qa-agent.md` — optional Gate 4.5 in the implement-story pipeline. Auto-activates when a story has visual references. Uses the same mockup files and comparison table format as Mode D.
+See: `agents/visual-qa-agent.md` — advisory notes at Gate 4.5 under `/implement-story --full-pipeline` when a story has visual references. Uses the same mockup files and comparison table format as Mode D.
 
 ## Completion
 
@@ -235,7 +235,7 @@ If the mode cannot complete (e.g., no running dev server for capture, no mockups
 | Command | Relationship |
 |---------|-------------|
 | `/create-spec` | Generates specs that `/design` adds visuals to |
-| `/implement-story` | Gate 1 loads mockups; Gate 4.5 runs visual QA |
+| `/implement-story` | Gate 1 loads mockups; `--full-pipeline` Gate 4.5 adds visual QA notes |
 | `/assess-spec` | Visual complexity adds to story sizing signals |
 
 ---

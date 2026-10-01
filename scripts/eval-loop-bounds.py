@@ -483,7 +483,7 @@ def scenario_transcription_drift() -> None:
     sources = {
         "review_cycle": (
             first_int(r"Max (\d+) iterations across review", story_body),
-            "commands/implement-story.md's 'Max N iterations across review and visual QA gates'"),
+            "commands/implement-story.md's 'Max N iterations across review and Gate 4.5'"),
         "testing_cycle": (
             first_int(r"(\d+) fix iterations max", story_body),
             "commands/implement-story.md's 'N fix iterations max' at Gate 4"),

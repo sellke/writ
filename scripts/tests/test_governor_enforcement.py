@@ -567,7 +567,10 @@ KNOWN_OVER_BUDGET = {
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,
     "commands/ship.md": 4030,
-    "commands/implement-story.md": 11110,
+    # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
+    # Gate 4.5 rewritten as behavioral verification, old Results ladder and an
+    # adjacent Gate 4 clause trimmed to offset (-7 bytes net).
+    "commands/implement-story.md": 11103,
 }
 
 
