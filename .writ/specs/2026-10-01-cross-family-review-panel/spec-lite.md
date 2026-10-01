@@ -22,6 +22,7 @@
 
 **Error Handling:**
 - No config line → nothing runs; Gate 3 identical to today
+- Config key matched case-insensitively (config-format.md Rules); an existing but unreadable `config.md` or repo exits 2 (DEV-001, DEV-002)
 - Unknown session vendor / all dropped / Claude Code or Codex → `review-panel: skipped — <reason>`
 - Rejected slug, empty return, malformed output → that reviewer dropped, one line
 - Malformed primary → exit 2; today's malformed-agent handling applies
