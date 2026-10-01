@@ -1,6 +1,7 @@
 # Story 3: Gate 3 Wiring, `--panel`, and Eval Pins
 
 > **Status:** Completed ✅
+> **Commit:** df6bda018e15a6a91543296faa582ef10f4454cc
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
