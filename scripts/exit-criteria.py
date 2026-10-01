@@ -751,7 +751,12 @@ def _predicate_spec_c3(state: dict[str, Any]) -> dict[str, Any]:
     required_fields = ("typecheck", "testSuite", "contextRewritten", "at")
     if not isinstance(post, dict) or any(field not in post for field in required_fields):
         return _entry("implement-spec.c3", "unknown", reason=PRE_STORY_2_REASON)
-    if post.get("typecheck") != "pass" or post.get("testSuite") != "pass" or post.get("contextRewritten") is not True:
+    # A stack with no typechecker records "skipped"; it counts only with a stated reason.
+    skip_reason = post.get("typecheckReason")
+    skip_reason = skip_reason.strip() if isinstance(skip_reason, str) else ""
+    typecheck_ok = post.get("typecheck") == "pass" or (
+        post.get("typecheck") == "skipped" and bool(skip_reason))
+    if not typecheck_ok or post.get("testSuite") != "pass" or post.get("contextRewritten") is not True:
         return _entry(
             "implement-spec.c3", "unmet",
             reason=(
@@ -759,6 +764,12 @@ def _predicate_spec_c3(state: dict[str, Any]) -> dict[str, Any]:
                 f"testSuite={post.get('testSuite')!r} "
                 f"contextRewritten={post.get('contextRewritten')!r}"
             ),
+        )
+    if post.get("typecheck") == "skipped":
+        return _entry(
+            "implement-spec.c3", "met",
+            evidence=(f"typecheck skipped ({skip_reason}); test suite ran after the final "
+                      f"story at {post['at']}; context.md rewritten"),
         )
     return _entry(
         "implement-spec.c3", "met",

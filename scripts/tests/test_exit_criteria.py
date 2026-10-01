@@ -804,6 +804,33 @@ class SpecCheckTests(unittest.TestCase):
         c3 = next(c for c in payload["criteria"] if c["id"] == "implement-spec.c3")
         self.assertEqual(c3["verdict"], "unmet")
 
+    def _c3_for(self, post_run: dict) -> dict:
+        write_spec_state(self.state_path, postRun=dict(
+            {"testSuite": "pass", "contextRewritten": True, "at": "2026-01-01T01:00:00Z"},
+            **post_run))
+        _, payload = run_cli(
+            "check", "--command", "implement-spec",
+            "--spec", str(self.spec_dir), "--state", str(self.state_path),
+            "--repo", str(self.repo), "--classification", str(REAL_CLASSIFICATION_PATH),
+        )
+        return next(c for c in payload["criteria"] if c["id"] == "implement-spec.c3")
+
+    def test_c3_typecheck_skipped_with_reason_is_met_and_says_so(self) -> None:
+        c3 = self._c3_for({"typecheck": "skipped",
+                           "typecheckReason": "no typechecker configured"})
+        self.assertEqual(c3["verdict"], "met")
+        self.assertIn("typecheck skipped (no typechecker configured)", c3["evidence"])
+
+    def test_c3_typecheck_skipped_without_reason_is_unmet(self) -> None:
+        for post_run in ({"typecheck": "skipped"},
+                         {"typecheck": "skipped", "typecheckReason": "  "}):
+            with self.subTest(post_run=post_run):
+                self.assertEqual(self._c3_for(post_run)["verdict"], "unmet")
+
+    def test_c3_typecheck_fail_stays_unmet_even_with_reason(self) -> None:
+        c3 = self._c3_for({"typecheck": "fail", "typecheckReason": "mypy errors"})
+        self.assertEqual(c3["verdict"], "unmet")
+
     def test_all_three_criteria_met_gives_overall_met_and_exit_0(self) -> None:
         write_spec_state(
             self.state_path,

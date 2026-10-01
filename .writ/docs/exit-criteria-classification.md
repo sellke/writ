@@ -263,7 +263,8 @@ moment. `.writ/context.md`'s rewritten story counts are likewise a point-in-time
 claim, not a standing invariant a filesystem read can date on its own.
 
 **Field:** `postRun.typecheck`, `postRun.testSuite`, `postRun.contextRewritten`,
-and `postRun.at`.
+and `postRun.at`. `typecheck: "skipped"` counts only with a non-empty
+`postRun.typecheckReason` (a stack with no typechecker); `fail` always blocks.
 
 **File:** `.writ/state/execution-<timestamp>.json`, written by `/implement-spec`
 "after the final story's batch" (technical-spec.md § Data Contracts).
@@ -349,7 +350,7 @@ Story 2 adds exactly these fields (technical-spec.md § Data Contracts):
 | `terminalStatus` | `.writ/state/phase-execution-*.json` | Rollup/`impossible`-trigger support — not a criterion directly (see `implement-phase.c4` entry above) |
 | `haltReported` | `.writ/state/phase-execution-*.json` | `impossible`-trigger ("Loop bound tripped") — not a criterion directly |
 | `preflight.storyDepsValidated` / `.at` | `.writ/state/execution-<timestamp>.json` | `implement-spec.c1` |
-| `postRun.typecheck` / `.testSuite` / `.contextRewritten` / `.at` | `.writ/state/execution-<timestamp>.json` | `implement-spec.c3` |
+| `postRun.typecheck` / `.typecheckReason` / `.testSuite` / `.contextRewritten` / `.at` | `.writ/state/execution-<timestamp>.json` | `implement-spec.c3` |
 
 Every field Story 2 adds is accounted for — either mapped to exactly one
 needs-run-record entry above (`implement-phase.c3`, `implement-spec.c1`,
