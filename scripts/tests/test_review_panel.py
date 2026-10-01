@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -339,7 +340,7 @@ class ProductAmendmentTests(unittest.TestCase):
     def test_roadmap_feature_3_points_to_spec(self):
         roadmap = _read(".writ/product/roadmap.md")
         feature = [l for l in roadmap.splitlines()
-                   if l.startswith("- [ ] **Cross-family review panel**")]
+                   if re.match(r"- \[[ x]\] \*\*Cross-family review panel\*\*", l)]
         self.assertEqual(len(feature), 1)
         self.assertIn("2026-10-01-cross-family-review-panel/spec.md", feature[0])
 

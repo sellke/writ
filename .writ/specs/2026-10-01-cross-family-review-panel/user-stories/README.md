@@ -10,7 +10,7 @@
 | 2 | [Tally, Matching Rule, and Tagged Reviewer Output](story-2-tally-and-tagged-output.md) | Completed ✅ | 7 | 7/7 | Story 1 |
 | 3 | [Gate 3 Wiring, `--panel`, and Eval Pins](story-3-gate-3-wiring.md) | Completed ✅ | 7 | 7/7 | Stories 1, 2 |
 | 4 | [Retrospective Trial Harness and Report](story-4-trial-harness.md) | Completed ✅ | 7 | 7/7 | Story 2 |
-| 5 | [Run the Trial and Act on the Verdict](story-5-run-trial-and-act.md) | Not Started | 7 | 0/7 | Stories 3, 4 |
+| 5 | [Run the Trial and Act on the Verdict](story-5-run-trial-and-act.md) | Completed ✅ | 7 | 7/7 | Stories 3, 4 |
 
 **Total:** 5 stories, 35 tasks, 25 acceptance criteria. Progress: 28/35.
 
