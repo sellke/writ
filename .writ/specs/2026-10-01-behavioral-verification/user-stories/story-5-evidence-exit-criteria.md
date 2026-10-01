@@ -1,6 +1,7 @@
 # Story 5: exit-criteria.py Evidence Check, Mutation Test, and Eval Check
 
 > **Status:** Completed ✅
+> **Commit:** 55f16c6
 > **Priority:** High
 > **Dependencies:** Story 2
 
