@@ -114,6 +114,7 @@ Every FAIL issue carries Location and Severity. Suggested Fix is optional and is
 - **Issue:** [what is wrong]
 - **Location:** [file path and line if applicable]
 - **Severity:** [Critical/Major/Minor]
+- **Category:** [criterion/security/architecture/taste]
 - **Suggested Fix:** [optional; report-only; never applied]
 
 ### Drift Analysis
@@ -197,6 +198,7 @@ One acceptance criterion is unmet. Recorded test results do not cover the claime
 - **Issue:** Acceptance criterion X is not satisfied
 - **Location:** `path/to/file:12`
 - **Severity:** Critical
+- **Category:** criterion
 ```
 
 ### On PAUSE (Large Drift)

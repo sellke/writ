@@ -49,6 +49,7 @@ Adjudicate each acceptance criterion against recorded test results. One line per
 - **Issue:** [what is wrong]
 - **Location:** [file:line]
 - **Severity:** [Critical/Major/Minor]
+- **Category:** [criterion/security/architecture/taste]
 - **Suggested Fix:** [optional; never applied]
 
 ### Drift Analysis

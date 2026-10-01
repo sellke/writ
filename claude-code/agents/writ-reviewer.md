@@ -41,6 +41,9 @@ When severity is ambiguous → default to Medium.
 ### Summary
 [2-3 sentence review summary]
 
+### Checklist Results
+One line per acceptance criterion: `- [x]` (satisfied) or `- [ ]` (not satisfied), the evidence, then its trailing `[AC-N.M]` tag.
+
 ### Security Assessment
 **Risk Level:** [Clean/Low/Medium/High]
 
@@ -48,6 +51,7 @@ When severity is ambiguous → default to Medium.
 - **Issue:** [description]
 - **Location:** [file:line]
 - **Severity:** [Critical/Major/Minor]
+- **Category:** [criterion/security/architecture/taste]
 - **Suggested Fix:** [concrete steps]
 
 ### Drift Analysis

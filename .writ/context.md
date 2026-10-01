@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-01-cross-family-review-panel — Cross-Family Review Panel (Phase 12)
 - **Status:** In Progress
-- **Story:** 1 of 5 — Panel Config, Vendor Table, Status, and Amendments (Completed ✅)
-- **Progress:** 7/35 tasks complete (20%)
+- **Story:** 2 of 5 — Tally, Matching Rule, and Tagged Reviewer Output (Completed ✅)
+- **Progress:** 14/35 tasks complete (40%)
 
 ## Artifact Map
 
@@ -23,6 +23,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-004 (Small) unmet AC keys report Critical; session-vendor reviewers never count as panel reviewers — Story 2
+- DEV-003 (Small) Location → first backticked span; `N/A`-style placeholders never keyed — Story 2
 - DEV-002 (Small) unreadable `config.md` or repo exits 2 instead of reading as no line — Story 1
 - DEV-001 (Small) Review Panel config key read case-insensitively per config-format.md Rules — Story 1
 
