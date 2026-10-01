@@ -526,7 +526,8 @@ def _story_slug(story_id: str) -> str:
 def _plural(count: int, word: str) -> str:
     if count == 1:
         return "1 %s" % word
-    return "%d %s" % (count, word[:-1] + "ies" if word.endswith("y") else word + "s")
+    consonant_y = word.endswith("y") and word[-2:-1] not in ("a", "e", "i", "o", "u")
+    return "%d %s" % (count, word[:-1] + "ies" if consonant_y else word + "s")
 
 
 def _write_json_atomic(path: Path, doc: dict) -> None:

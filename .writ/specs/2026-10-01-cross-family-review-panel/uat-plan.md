@@ -1028,12 +1028,12 @@ exit 0
 
 **Expected Result:**
 - Step 2: `recorded`, `review-panel: recorded 2026-01-01-alpha/story-1-api panel — 1 key, 1 panel-only finding`.
-- Steps 1 and 3 print `recorded` and `review-panel: recorded <id> <arm> — 0 keies, 0 panel-only findings` (observed). **This is a defect:** the plural should read "0 keys".
+- Steps 1 and 3 print `recorded` and `review-panel: recorded <id> <arm> — 0 keys, 0 panel-only findings`.
 - Step 4: three raw files per story under `.writ/state/panel-trial/<spec>--<story>/` (`evaluator-primary.md`, `panel-primary.md`, `panel-gpt-5.6-sol-medium.md`). The grep prints `0`: no diff markers or reviewer prose in the trial JSON.
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:** The "keies" output was observed on 2026-10-01 (`_plural` in `scripts/review-panel.py` turns any word ending in "y" into "-ies"). It's cosmetic; tests don't cover the wording. File it or accept it as a known limitation.
+**Notes:** Fixed 2026-10-01: `_plural` printed "0 keies" until it learned that only a consonant before "y" takes "-ies". Pinned by `test_plural_only_turns_consonant_y_into_ies` and `test_record_summary_reads_zero_keys`.
 
 ---
 
@@ -1223,7 +1223,7 @@ exit 0
 3. Run `python3 scripts/review-panel.py trial-record --trial .writ/eval/panel-trial/<date>-panel-trial.json --story <id> --arm evaluator --origin "<session model>" --primary .writ/state/panel-trial-inbox/<story-slug>-evaluator.md`
 
 **Expected Result:**
-- `recorded` and `review-panel: recorded <id> evaluator — N key(s), M panel-only finding(s)`. Zero keys currently prints "keies" (see Scenario 38).
+- `recorded` and `review-panel: recorded <id> evaluator — N key(s), M panel-only finding(s)`.
 
 **Status:** [ ] Pass  [ ] Fail
 

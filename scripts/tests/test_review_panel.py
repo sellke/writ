@@ -1253,6 +1253,19 @@ class TrialRecordTests(unittest.TestCase):
         self.assertEqual({k["key"] for k in panel["keys"]}, {AC23, SEC_PAY})
         self.assertEqual(story["arms"]["evaluator"]["keys"], [])
 
+    def test_plural_only_turns_consonant_y_into_ies(self):
+        rp = _load_module()
+        self.assertEqual(rp._plural(0, "key"), "0 keys")
+        self.assertEqual(rp._plural(2, "key"), "2 keys")
+        self.assertEqual(rp._plural(1, "key"), "1 key")
+        self.assertEqual(rp._plural(4, "story"), "4 stories")
+        self.assertEqual(rp._plural(3, "panel-only finding"), "3 panel-only findings")
+
+    def test_record_summary_reads_zero_keys(self):
+        code, out, err = _record(self.root, self.trial, S1, "evaluator", "primary-pass.md")
+        self.assertEqual(code, 0, (out, err))
+        self.assertIn("— 0 keys, 0 panel-only findings", out[-1])
+
     def test_a_key_the_evaluator_also_raised_is_not_panel_only(self):
         self._both_arms(evaluator_primary="primary-fail-ac23.md")
         story = _story(_trial(self.trial), S1)
