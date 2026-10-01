@@ -9,7 +9,7 @@
 
 **Implementation Approach:**
 - `scripts/app-verify.py` (stdlib, Py ≥3.9): `validate`, `touched`, `run`; exit 0 pass / 1 fail / 2 unverifiable; one `app-verify:` line, JSON under `--json`.
-- Recipe = six `##` sections, `- **Key:** value` settings, feature table `ID | Feature | Paths | Check`.
+- Recipe = six `##` sections, `- **Key:** value` settings, feature table `ID | Feature | Paths | Check`. `Allowed`/`Never` take comma-separated globs; `Ready when` is a URL or `port N`; `Ready timeout` is `30s`/`30`, default 120 s (DEV-001).
 - Gate 4.5 picks features by matching `Paths` globs against the story's changed files (UAT plans come later).
 - Prove on a stdlib fixture app under `scripts/tests/fixtures/app-verify/`, 127.0.0.1 only. No yuss, no browser.
 

@@ -34,7 +34,7 @@ Code and methodology that score well on six production-grade criteria — audita
 
 **Phases 1–11:** Shipped and released (through v0.39.0). Phase 10 closed partially complete — the determinism half enforced, the byte goal withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). Phase 11 (Contract-and-Verifier Layer, v0.36.0) pruned the shared base under 10 KB, put scripts behind eight of ten `/implement-story` gates, and made the two-agent pipeline the default with `--full-pipeline` as the escalation. Inter-phase work since: model delegation (v0.34.0), flagged harness cuts, the opt-in Jev judgment pilot, drift and architecture guards (v0.37.0–v0.39.0).
 
-**Phase 12 — Behavioral Verification (📋 committed, not started):** a generated project `verify-<app>` skill and feature map that drive the running app; UAT scenarios bound to captured evidence so Gate 4.5 leaves `prose-only`; an opt-in cross-family review panel for high-stakes stories, kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
+**Phase 12 — Behavioral Verification (📋 committed, not started):** a per-project verification recipe, drafted by `/create-uat-plan`, whose feature map names the project's own checks against the running app; UAT scenarios bound to captured evidence so Gate 4.5 leaves `prose-only`; an opt-in cross-family review panel for high-stakes stories, kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
 
 ## What Writ Is Not Building
 

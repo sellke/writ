@@ -13,13 +13,15 @@
 
 **Writ adds a verifier that proves the user's feature works by driving the running app, and lets high-stakes stories be reviewed by a panel of models from different vendors.** Both are verdict sources. Neither changes who decides a gate, and neither adds autonomy past ADR-013's boundary.
 
-1. **A project verification skill is a Writ-owned verifier.** `/initialize` generates a project-local `verify-<app>` skill with five sections (launch, doctor, drive, evidence, cleanup) and a feature map of user-facing features. The skill drives the app through the project's own harness (Playwright, a PTY, HTTP) or the platform's native browser and terminal tools. Writ ships no runtime, daemon, or browser of its own. The generated skill must be run end to end once before it counts as delivered.
+1. **A per-project verification recipe is the verifier's input.** *(Amended 2026-10-01 by [`2026-10-01-behavioral-verification`](../specs/2026-10-01-behavioral-verification/spec.md).)* `/create-uat-plan` drafts `.writ/docs/app-verification.md` from the project's test harness, start command, and environment files, and the developer confirms it once. The recipe has six sections (Launch, Safety, Login, Feature Map, Evidence, Cleanup); each feature-map row names the source paths it covers and either a check command from the project's own harness or `human-only: <reason>`. `scripts/app-verify.py` validates the recipe, starts the app, runs the checks, records evidence, and stops what it started. A check's exit code is the verdict; an agent never grades a result. Safety refuses by default: the recipe names the allowed targets, and anything else runs nothing. *Superseded wording:* the original decision had `/initialize` generate a project-local `verify-<app>` skill. Discovery replaced it because `/initialize` runs before any feature exists, and it gathers perspective for `/plan-product`, not test commands.
 
-2. **UAT scenarios bind to evidence.** `/create-uat-plan` scenarios cite feature-map entries. Gate 4.5 runs the verify skill for the story's mapped features and writes evidence under the spec folder. `exit-criteria.py` checks that the evidence exists. A scenario the skill cannot drive stays a human UAT scenario and says why.
+2. **UAT scenarios and Gate 4.5 bind to evidence.** *(Amended 2026-10-01; Features 1 and 2 merged into one spec, because the recipe's only consumers are the UAT binding and Gate 4.5, and a recipe nothing reads is dead weight.)* `/create-uat-plan` scenarios cite feature IDs and run their checks through `app-verify.py`. Gate 4.5 runs the checks for every feature whose paths intersect the story's changed files and writes evidence under the spec folder. `exit-criteria.py` checks that each cited evidence file exists and records a pass. A feature no check can decide stays a human UAT scenario and says why.
+
+**Runtime boundary.** A script that launches only the commands a project's recipe names, keeps no state between runs, and runs no daemon is not a Writ runtime. `app-verify.py` holds the same posture as `eval.sh` and `build-smoke.py`: it starts the project's own processes, records the result, and stops the process group it started.
 
 3. **Cross-family review is a panel, not a tier.** For stories that ADR-023 triage rates high-stakes, Gate 3 may add reviewers from other vendors. Each gets the same prompt and the story's acceptance criteria. A finding raised independently by two or more vendors blocks; a finding raised by one is advisory. The panel is opt-in per project and off by default.
 
-4. **Every failure falls back to today's path.** No verify skill, an undrivable scenario, a panel model the platform rejects, or a platform that cannot spawn cross-vendor models: each leaves the gate exactly as it runs now and prints one line saying so.
+4. **Every failure falls back to today's path.** No recipe, an undrivable feature, a refused safety check, a panel model the platform rejects, or a platform that cannot spawn cross-vendor models: each leaves the gate exactly as it runs now and prints one line saying so.
 
 ## Context
 
@@ -41,7 +43,7 @@ pstack (cursor/plugins, v0.15.5) ships both mechanisms in working form: `create-
 
 **"Cross-AI parallel coordination" (roadmap, Dropped).** That entry dropped multiple AI tools coordinating work in parallel. A panel coordinates nothing: reviewers run read-only on one finished diff and return findings. The entry stays dropped.
 
-**"Not a browser daemon" (mission, What Writ Is Not Building).** The verify skill uses the project's harness or the platform's native tools through adapters. Writ adds a generated markdown skill and evidence files, not a process.
+**"Not a browser daemon" (mission, What Writ Is Not Building).** The recipe names the project's own harness. Writ adds a recipe format, a run script that exits when its run ends, and evidence files, not a long-lived process (see Runtime boundary above).
 
 **ADR-013 and ADR-010.** No merge, PR, or release authority changes. This ADR names the evidence ADR-010 trigger (a) asks for. Revisiting the ceiling requires a separate ADR that cites Phase 12's measured results.
 
@@ -96,7 +98,7 @@ The panel is kept after Phase 12 only if, on the Phase 11 baseline story set, it
 | Codex CLI | Unavailable by default; falls back | Subagents run the configured provider's models, OpenAI unless the user configures another |
 | OpenClaw | Per adapter | Depends on the configured providers |
 
-The verify skill is available on every platform; only its install path differs per adapter.
+The recipe and `app-verify.py` are available on every platform; they need only a shell and Python 3.9.
 
 ### Positive
 
@@ -106,18 +108,17 @@ The verify skill is available on every platform; only its install path differs p
 
 ### Negative
 
-- **Generated skills drift as the app changes.** *Mitigation:* the feature map is the maintained source; `/create-uat-plan` reports scenarios whose mapped feature no longer drives.
-- **Driving an app can touch real state.** *Mitigation:* the skill's doctor step refuses a shared instance; cleanup kills only what it started and keeps evidence.
+- **Recipes drift as the app changes.** *Mitigation:* the feature map is the maintained source; a failing check fails Gate 4.5, and the coding agent adds a check and row for new user-facing behavior.
+- **Driving an app can touch real state.** *Mitigation:* safety refuses unless the target matches an allowed pattern, and refuses an already-running instance; cleanup kills only what it started and keeps evidence.
 - **The panel sends the diff to other vendors.** *Mitigation:* opt-in per project in `.writ/config.md`; same path exclusions as ADR-027's diff slices.
 - **Cursor-only panel.** *Mitigation:* stated in each adapter; fallback is today's path.
 
 ## Implementation Plan
 
-Phase 12 in [`roadmap.md`](../product/roadmap.md), one spec per feature:
+Phase 12 in [`roadmap.md`](../product/roadmap.md), one spec per feature (two features after the 2026-10-01 merge):
 
-1. Project verification skill (`/initialize` generation, feature map, first live pass).
-2. Evidence-bound UAT (`/create-uat-plan` binding, Gate 4.5 rewrite, `exit-criteria.py` evidence check).
-3. Cross-family review panel (Gate 3 high-stakes path, consensus rule, config line, removal measurement).
+1. Behavioral verification — Features 1 and 2 merged at contract lock (recipe format and validator, `/create-uat-plan` drafting and binding, `app-verify.py` run script, Gate 4.5 rewrite, `exit-criteria.py` evidence check, proven on a fixture app). Spec: [`2026-10-01-behavioral-verification`](../specs/2026-10-01-behavioral-verification/spec.md). The original item 1 (`/initialize`-generated skill) is superseded.
+2. Cross-family review panel (Gate 3 high-stakes path, consensus rule, config line, removal measurement).
 
 ## References
 
