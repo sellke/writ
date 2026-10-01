@@ -81,6 +81,7 @@ CHECKS=(
   jev-judge
   goal-emit
   spawn-cap
+  app-verify
 )
 
 TOTAL_FINDINGS=0
@@ -633,6 +634,8 @@ ADR-003-monetization.md|/plan-product|Product-level ADR /plan-product seeds in .
 ADR-004-mvp-scope.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
 term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md category table); no braces, so the grammar cannot tell it from a real name.
 .writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
+.writ/docs/app-verification.md|/create-uat-plan|Project verification recipe /create-uat-plan Step 1.3 writes after confirmation; never shipped, absent in the Writ repo by design.
+.writ/state/app-verification-draft.md|/create-uat-plan|Scratch copy /create-uat-plan Step 1.3 validates before saving a drafted recipe.
 EOF
 }
 
@@ -4561,6 +4564,117 @@ check_goal_emit() {
     [ -n "$line" ] || continue
     add_note "NOTE [goal-emit]: $line"
   done <<< "$output"
+}
+
+check_app_verify() {
+  # Story 5 of 2026-10-01-behavioral-verification: end-to-end proof on the
+  # Story 3 fixture. In a temp spec folder on a free 127.0.0.1 port:
+  # recipe-pass exits 0 with a pass result.json, recipe-fail exits 1,
+  # recipe-safety-refused exits 2 (refused, no _launch/). A fixture uat-plan.md
+  # citing the pass evidence makes check-uat exit 0; deleting the cited
+  # result.json makes it exit 1. Any deviation, or a surviving fixture
+  # process, is a finding. Spawns local processes: run outside the sandbox.
+  local helper="$PROJECT_ROOT/scripts/app-verify.py"
+  local checker="$PROJECT_ROOT/scripts/exit-criteria.py"
+  local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/app-verify"
+  local tmp spec port variant name label expected rc output pidfile pid evidence path
+
+  require_literal "$PROJECT_ROOT/.writ/docs/exit-criteria-classification.md" "check-uat" \
+    "exit-criteria-classification.md must record the check-uat entry point for the c2 evidence half."
+  require_literal "$checker" "legacy plan" \
+    "exit-criteria.py must note plans without Verification lines as legacy plan."
+
+  for path in "$helper" "$checker" "$fixtures/recipe-pass.md" "$fixtures/recipe-fail.md" \
+              "$fixtures/recipe-safety-refused.md"; do
+    if [ ! -f "$path" ]; then
+      add_finding "$(relpath "$path")" "app-verify end-to-end input is missing." \
+        "Restore $(relpath "$path") so the fixture run can prove the behavioral-verification path."
+      return
+    fi
+  done
+
+  tmp="$(mktemp -d)"
+  spec="$tmp/spec"
+  mkdir -p "$spec"
+  port="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+
+  for variant in "pass:uat:0" "fail:fail-run:1" "safety-refused:refused-run:2"; do
+    IFS=: read -r name label expected <<< "$variant"
+    sed "s/8765/$port/g" "$fixtures/recipe-$name.md" > "$tmp/recipe-$name.md"
+    pidfile="$tmp/$label.pid"
+    rc=0
+    output="$(cd "$PROJECT_ROOT" && env -u APP_VERIFY_FIXTURE_DB APP_VERIFY_FIXTURE_PIDFILE="$pidfile" \
+      python3 "$helper" run --recipe "$tmp/recipe-$name.md" --spec "$spec" --run-label "$label" 2>&1)" || rc=$?
+    if [ "$rc" -ne "$expected" ]; then
+      add_finding "app-verify:recipe-$name" "app-verify.py run exited $rc, expected $expected: ${output%%$'\n'*}" \
+        "Run python3 scripts/app-verify.py run against scripts/tests/fixtures/app-verify/recipe-$name.md and fix the run contract."
+    fi
+    if [ -f "$pidfile" ]; then
+      pid="$(cat "$pidfile")"
+      if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid" 2>/dev/null || true
+        add_finding "app-verify:recipe-$name" "fixture process $pid survived the run." \
+          "app-verify.py must stop the launched process group on every exit path."
+      fi
+    fi
+    case "$name" in
+      pass)
+        evidence="$spec/evidence/uat/home/result.json"
+        if ! python3 -c 'import json, sys; sys.exit(0 if json.load(open(sys.argv[1])).get("verdict") == "pass" else 1)' "$evidence" 2>/dev/null; then
+          add_finding "app-verify:recipe-pass" "evidence/uat/home/result.json is missing or not verdict pass." \
+            "A passing check must write result.json with verdict pass under evidence/<label>/<id>/."
+        fi
+        ;;
+      safety-refused)
+        case "$output" in
+          *refused*) ;;
+          *) add_finding "app-verify:recipe-safety-refused" "summary line does not say refused: ${output%%$'\n'*}" \
+               "A Never-pattern match must print app-verify: refused (<reason>)." ;;
+        esac
+        if [ -d "$spec/evidence/$label/_launch" ]; then
+          add_finding "app-verify:recipe-safety-refused" "a refused run created _launch/ (the app was launched)." \
+            "Safety refusal must happen before launch."
+        fi
+        ;;
+    esac
+  done
+
+  cat > "$spec/uat-plan.md" <<'PLAN'
+# UAT Plan: app-verify fixture
+
+## How to Use This Plan
+
+1. Machine scenarios are decided by app-verify.py; no human step remains.
+
+## Story 1: Fixture
+
+### Scenario 1: Home page renders
+
+**Source:** Acceptance Criteria — Story 1
+**Feature:** home
+**Verification:** machine — evidence: evidence/uat/home/result.json
+
+**Steps:**
+1. Open the home page.
+
+**Status:** [x] Pass  [ ] Fail
+PLAN
+
+  rc=0
+  output="$(python3 "$checker" check-uat --spec "$spec" 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    add_finding "app-verify:check-uat" "check-uat exited $rc on passing fixture evidence: ${output:0:200}" \
+      "Fix exit-criteria.py check-uat so a machine scenario citing a pass result.json is met."
+  fi
+  rm -f "$spec/evidence/uat/home/result.json"
+  rc=0
+  output="$(python3 "$checker" check-uat --spec "$spec" 2>&1)" || rc=$?
+  if [ "$rc" -ne 1 ]; then
+    add_finding "app-verify:check-uat" "check-uat exited $rc after the cited result.json was deleted (expected 1 unmet)." \
+      "The missing-evidence mutation must report unmet (Business Rule 6)."
+  fi
+  add_note "NOTE [app-verify]: fixture pass/fail/refused runs and the missing-evidence mutation checked on port $port."
+  rm -rf "$tmp"
 }
 
 check_spawn_cap() {

@@ -10,9 +10,9 @@
 | 2 | [/create-uat-plan drafts the recipe and binds scenarios](story-2-uat-plan-recipe-and-binding.md) | Completed ✅ | 7 | 7/7 | Story 1, Story 3 |
 | 3 | [Run script and fixture app](story-3-run-script-and-fixture.md) | Completed ✅ | 7 | 7/7 | Story 1 |
 | 4 | [Gate 4.5 becomes behavioral verification](story-4-gate-4-5-behavioral-verification.md) | Completed ✅ | 7 | 7/7 | Story 3 |
-| 5 | [exit-criteria.py evidence check and eval check](story-5-evidence-exit-criteria.md) | Not Started | 7 | 0/7 | Story 2 |
+| 5 | [exit-criteria.py evidence check and eval check](story-5-evidence-exit-criteria.md) | Completed ✅ | 7 | 7/7 | Story 2 |
 
-**Total:** 5 stories, 35 tasks, 80% complete.
+**Total:** 5 stories, 35 tasks, 100% complete.
 
 ## Dependencies
 

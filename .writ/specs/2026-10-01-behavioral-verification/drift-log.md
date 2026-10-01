@@ -111,3 +111,36 @@
 - **Reason:** `validate` needs a file path, and AC-2.2 forbids saving a failing draft; the other changes cover cases the spec left open, failing to the human fallback.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed; recorded here.
+
+---
+
+## Story 5: exit-criteria.py Evidence Check, Mutation Test, and Eval Check — Drift Report
+
+> Run: 2026-10-01
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-010] One reason prefix per unmet outcome; impossible output omits scenarios
+- **Severity:** Small
+- **Spec said:** AC-5.1 gives `evidence missing: <spec-id> / Scenario 3 (<path>)` as the example reason; AC-5.3 lists `scenarios` in the `check-uat` output.
+- **Implementation did:** Reasons use `evidence missing`, `evidence not pass`, `evidence unreadable`, `evidence outside spec folder`, and `evidence path absent`, all as `<prefix>: <spec-id> / Scenario N (<path>[: detail])`. The `check-uat` impossible output carries `schema`, `verdict`, `spec`, and `reason`; `scenarios` appears on met and unmet only, since no plan was read.
+- **Reason:** Each outcome stays distinguishable while keeping the AC's shape.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
+
+#### [DEV-011] Parser tolerates bulleted, indented, or capitalized Verification lines
+- **Severity:** Small
+- **Spec said:** UAT scenario lines are exactly `**Verification:** machine — evidence: <path>` or `**Verification:** human — <reason>`.
+- **Implementation did:** The evidence half also reads `- **Verification:** …`, indented lines, and `Machine`, and takes the spec id from the resolved folder name.
+- **Reason:** Without it a hand-edited variant silently read as `legacy plan` and c2 was met (Gate 3 iteration 1 finding); tolerance fails closed.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
+
+#### [DEV-012] Referenced-paths allowlist rows for the recipe files (Story 2 follow-up)
+- **Severity:** Small
+- **Spec said:** AC-5.5 requires the full `eval.sh` to report Findings 0.
+- **Implementation did:** Added `referenced_paths_allowlist` rows in `scripts/eval.sh` for `.writ/docs/app-verification.md` and `.writ/state/app-verification-draft.md`, both created by `/create-uat-plan`. Story 2's commit had left the full eval at Findings 2 (its verification ran targeted checks only).
+- **Reason:** The paths are runtime artifacts of a named command, exactly what the allowlist records.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
