@@ -16,6 +16,9 @@
 - `ac:` keys report severity Critical; a session-vendor reviewer is never a usable panel reviewer and its lone keys are primary-only (DEV-004)
 - Gate 3 panel paragraph runs only with the config line; trigger = Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, two-fail escalation) or `--panel` (DEV-005)
 - Lean twin: paragraph in the Risk-route slot (after default spawn); its `--panel` row states the `--quick` usage error (DEV-006)
+- `trial-report`: any unlabeled finding or missing arm → `unverifiable`, even beside a `valid` one (DEV-007)
+- Trial inputs: hex SHAs and safe paths only; story/spec read at the active spec path, archive fallback; no contract → exit 2; evaluator arm takes no reviewer (DEV-008)
+- Trial keys: a non-path-shaped Location is stored as `<category>:#<sha256[:12]>`; `trial-record` runs from the repo root (DEV-009)
 
 **Files in Scope:**
 - `scripts/review-panel.py`, `scripts/tests/test_review_panel.py`, `scripts/tests/fixtures/review-panel/` — new

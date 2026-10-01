@@ -78,3 +78,36 @@
 - **Reason:** Adding the Risk route to the lean arm would widen this story past its scope; the slot and the rule are the same.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md "Implementation Approach" records the lean placement.
+
+---
+
+## Story 4: Retrospective Trial Harness and Report — Drift Report
+
+> Run: 2026-10-01
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-007] An incomplete trial is unverifiable even with a valid finding
+- **Severity:** Small
+- **Spec said:** `keep` when ≥1 panel-only finding is labeled `valid`; `unverifiable` when any finding is unlabeled or any story lacks an arm (Business Rule 12 does not order the two).
+- **Implementation did:** `unverifiable` wins: any unlabeled finding or missing arm prints `unverifiable` (`review-panel: unverifiable — N unlabeled[; M stories missing an arm]`) even when another finding is already `valid`.
+- **Reason:** Story 5 treats `unverifiable` as "the trial is incomplete; not a verdict". Letting one early label close the trial would decide the panel's fate before the four stories are scored.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "Implementation Approach" records the precedence.
+
+#### [DEV-008] Trial inputs are validated and located defensively
+- **Severity:** Small
+- **Spec said:** `trial-init` copies the five identity fields; `trial-prepare` writes the story and the spec's `## Specification Contract`; `trial-record` takes `--arm evaluator|panel` with optional reviewers.
+- **Implementation did:** `trial-init` refuses non-hex SHAs and unsafe paths (a SHA starting `--` would reach `git` as an option). `trial-prepare` reads the story and spec at the active `.writ/specs/<spec_folder>/` path first (the baseline's `story_path` is the archived path at yuss HEAD), falls back to the archived path, and exits 2 when the spec has no contract section. `trial-record` refuses `--reviewer` on the evaluator arm and requires one on the panel arm. Raw outputs and run dirs use `<spec>--<story>` as the folder name.
+- **Reason:** Same isolation as `pipeline-baseline.py`; refusing early keeps "writes nothing" true for every failure.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "Implementation Approach" records the input rules.
+
+#### [DEV-009] Non-path Locations stored as digests; trial-record runs from the repo root
+- **Severity:** Small
+- **Spec said:** "Keys are already path-or-ID shaped"; raw outputs are copied to `.writ/state/panel-trial/<story>/`.
+- **Implementation did:** A `<category>:<location>` key whose location is not path-shaped (a reviewer quoting code, say) is stored as `<category>:#<sha256[:12]>`, which still matches the same Location across arms. `trial-record` exits 2 unless run where `.writ/` exists, so raw outputs always land under the gitignored `.writ/state/`. `trial-*` refuse a trial file without exactly four stories.
+- **Reason:** Gate 3 evaluator finding: the Location text is reviewer-typed, so "path-shaped" was an assumption, not a guarantee; Business Rule 11 forbids source text in the committed file.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "Implementation Approach" records the digest rule.

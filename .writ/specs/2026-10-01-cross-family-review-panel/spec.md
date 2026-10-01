@@ -1,6 +1,6 @@
 # Cross-Family Review Panel
 
-> **Status:** In Progress
+> **Status:** In Progress (Stories 1-4 complete; Story 5 pending maintainer trial)
 > **Created:** 2026-10-01
 > **Owner:** @unknown
 > **Dependencies:** []
