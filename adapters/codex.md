@@ -208,9 +208,9 @@ Default `/implement-story` is `coding-agent` + `evaluator-agent` plus scripts. T
 2. Spawn **architecture-check-agent** (`read-only`) → PROCEED / CAUTION / ABORT.
 3. Spawn **coding-agent** (`workspace-write`) → implements with TDD discipline.
 4. Run lint / typecheck inline in orchestrator (per command).
-5. Spawn **review-agent** (`read-only`) → PASS / FAIL (≤ 3 review loops combined with visual QA per command contract).
+5. Spawn **review-agent** (`read-only`) → PASS / FAIL (≤ 3 review loops combined with Gate 4.5 script fails per command contract).
 6. Spawn **testing-agent** (`workspace-write`).
-7. Optionally spawn **visual-qa-agent** when story lists visual references.
+7. Run `scripts/app-verify.py` (Gate 4.5); on `--full-pipeline`, optionally spawn **visual-qa-agent** (notes only) when story lists visual references.
 8. Spawn **documentation-agent** (`workspace-write`).
 9. Update story checkboxes / status; commit if policy allows.
 

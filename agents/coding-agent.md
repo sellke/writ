@@ -118,6 +118,7 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 3. **Small commits**: Make logical, incremental changes. When authoring each commit message, `Read skills/conventional-commits/SKILL.md` so coding-agent commits match the format `/ship` will use downstream.
 4. **Document as you go**: Add inline comments for complex logic
 5. **Only create files listed in the tasks**: Do NOT create supplementary files (verification guides, validation reports, acceptance-criteria checklists, integration test plans, etc.) that aren't specified in the implementation tasks. Your findings, verification results, and analysis belong in your **output summary**, not in new files on disk.
+6. **Behavioral checks**: When `.writ/docs/app-verification.md` exists and the story adds user-facing behavior that no Feature Map row covers, write a check in the project's own test harness and add a matching Feature Map row (ID, feature, paths, check). Gate 4.5 runs it through `scripts/app-verify.py`: the check's exit code is the verdict, and you never grade the result.
 
 ## Self-Verification (before reporting output)
 

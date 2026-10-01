@@ -10,7 +10,7 @@ reports where they drift apart, so the count of honor-system gates is a
 checked number rather than an impression.
 
 Subcommand:
-  check --command PATH [--repo .] [--max-prose-only 2] [--prose-only-blocking]
+  check --command PATH [--repo .] [--max-prose-only 1] [--prose-only-blocking]
 
 Output, one line each: findings as `<code>: <detail>`; the prose-only count
 as `note: prose_only_count: <n> (cap <max>)`, or as the finding
@@ -48,12 +48,12 @@ HEADING_TO_ID: Dict[str, str] = {
     "3": "gate3_review",
     "3.5": "gate3_5_drift",
     "4": "gate4_tests",
-    "4.5": "gate4_5_visual",
+    "4.5": "gate4_5_behavior",
     "5": "gate5_docs",
 }
 
 PROSE_ONLY = "prose-only"
-DEFAULT_MAX_PROSE_ONLY = 2
+DEFAULT_MAX_PROSE_ONLY = 1
 
 FINDING_CODES = (
     "heading_without_entry",

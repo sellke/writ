@@ -69,11 +69,15 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # implement-story.md Gate 2 gained the arch-lint.py detect-and-run prose and
 # Step 4 item 8 the `arch-lint:` line; implement-story.lean.md is unchanged
 # (spec Business Rule 7).
+# Repinned 2026-10-01 (2026-10-01-behavioral-verification Story 4): Gate 4.5
+# became behavioral verification (app-verify.py; visual-qa notes-only), the
+# gates: entry is gate4_5_behavior, review-loop prose renamed the recode site
+# (-7 bytes net); implement-story.lean.md carries the same contract change.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "f6311abbd2314727aa32c10dde3157e1bb130b2fc162e856bfd11ab786d73cfa",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
-    "implement-story": "a29e912bc81ca0b5d5f831a4c00c7479af568a176829741b2f39ff0e91918769",
+    "implement-story": "042e8c75db18993f89d0563379e70e4ddac37dd4abebffbf2517a7134cf07e3b",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from
@@ -96,7 +100,7 @@ KEPT_HEADINGS = {
         "A. Drift Response",
         "B. \"What Was Built\" Data Extraction",
         "Gate 4: Testing Agent",
-        "Gate 4.5: Visual QA",
+        "Gate 4.5: Behavioral Verification",
         "Gate 5: Documentation Agent",
         "Step 4: Story Completion",
         "BLOCKED Agent Escalation",
@@ -200,7 +204,7 @@ KEPT_SCRIPTS = {
                         "scripts/boundary-map.py", "scripts/build-smoke.py",
                         "scripts/change-surface.py", "scripts/review-override.py",
                         "scripts/drift-format.py", "scripts/test-integrity.py",
-                        "scripts/docs-check.py"],
+                        "scripts/docs-check.py", "scripts/app-verify.py"],
     "create-spec": ["scripts/spec-status.py", "scripts/supersession-writeback.py",
                     "scripts/ac-trace.py", "scripts/spec-analyze.py"],
     "verify-spec": ["scripts/ac-trace.py", "scripts/spec-analyze.py",

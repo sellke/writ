@@ -3968,7 +3968,7 @@ check_verdict_provenance() {
   # entry naming its verdict source (script: path or verification:
   # prose-only). Drift lines from `verdict-provenance.py check` are relayed
   # as findings. Story 5 of 2026-09-08-phase11-stage2b-mechanize-the-gates
-  # passes --prose-only-blocking so a third prose-only gate is a finding.
+  # passes --prose-only-blocking so a second prose-only gate is a finding.
   # Sits beside check_pruned_base (Story 1) and check_pipeline_baseline.
   local helper="$PROJECT_ROOT/scripts/verdict-provenance.py"
   local command="$PROJECT_ROOT/commands/implement-story.md"

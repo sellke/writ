@@ -61,3 +61,28 @@
 - **Reason:** Matches AC-3.5 ("any run that launched the app") and the never-leave-a-process-behind rule.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed; recorded here.
+
+---
+
+## Story 4: Gate 4.5 Becomes Behavioral Verification — Drift Report
+
+> Run: 2026-10-01
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-006] Consistency edits outside the Story 4 file list
+- **Severity:** Small
+- **Spec said:** technical-spec Files in Scope lists the two implement-story bodies, `verdict-provenance.py`, `eval.sh`, `agents/coding-agent.md`, and the tests for Story 4.
+- **Implementation did:** Also edited `agents/visual-qa-agent.md` (integration section and FAIL action now notes-only), regenerated `codex/agents/*.toml`, relabeled the quoted prose in `scripts/eval-loop-bounds.py`, and fixed stale visual-QA-recodes wording in `adapters/codex.md` and `commands/design.md`.
+- **Reason:** Each file restated the old contract (visual QA FAIL recodes and counts toward the cap) that AC-4.2 removes; boundary-map reported the crossings and Gate 3 judged them justified.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
+
+#### [DEV-007] Check-authoring rule lives in the coding agent, not the command body; byte offset
+- **Severity:** Small
+- **Spec said:** technical-spec Files in Scope names a "coding-agent check-authoring line" in the implement-story row; AC-4.4 places the rule in `agents/coding-agent.md`.
+- **Implementation did:** The single rule is rule 6 in `agents/coding-agent.md` (loaded at Gate 1), with no restatement in the command body. To stay net-tight, one Gate 4 analogy clause ("as `scripts/exit-criteria.py` lets a run report COMPLETE and be published `unmet`") was trimmed; `commands/implement-story.md` is 7 bytes smaller than before. The gate passes `--features` comma-joined, which `run` requires.
+- **Reason:** AC-4.4 is the binding contract; a second copy in the over-budget command would only spend bytes.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
