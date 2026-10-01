@@ -86,3 +86,28 @@
 - **Reason:** AC-4.4 is the binding contract; a second copy in the over-budget command would only spend bytes.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed; recorded here.
+
+---
+
+## Story 2: /create-uat-plan Drafts the Recipe and Binds Scenarios — Drift Report
+
+> Run: 2026-10-01
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-008] Human-only features are matched from the recipe, not through `touched`
+- **Severity:** Small
+- **Spec said:** AC-2.3 binds scenarios to the IDs `touched` prints and binds a `human-only: <reason>` feature as human with that reason; AC-3.1 has `touched` never print human-only rows.
+- **Implementation did:** Step 4.3 also reads the recipe's `human-only` Feature Map rows whose `Paths` match the story's files, and binds among all matched IDs. Story 3's `touched` interface is unchanged.
+- **Reason:** Without it the AC-2.3 human-only rule could never fire (Gate 3 iteration 1 found this as Medium drift; fixed in iteration 2). The match only chooses a binding; verdicts still come from the script.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
+
+#### [DEV-009] Draft validated via a scratch file; other unverifiable reasons; sentence placement
+- **Severity:** Small
+- **Spec said:** Validate the saved or existing recipe; exit 2 with `refused` → `human — refused`; the never-writes-test-code sentence sits next to the Terminal constraint.
+- **Implementation did:** A draft is written to `.writ/state/app-verification-draft.md` and validated there, so a failing draft is never saved to `.writ/docs/`. Exit 2 for any other unverifiable reason writes `human — <reason>`. The sentence sits in the Terminal constraint, which now also says checks run only through `scripts/app-verify.py`; `--check` asks nothing as well as saving and running nothing.
+- **Reason:** `validate` needs a file path, and AC-2.2 forbids saving a failing draft; the other changes cover cases the spec left open, failing to the human fallback.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; recorded here.
