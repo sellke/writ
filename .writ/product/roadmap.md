@@ -1,10 +1,10 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-09-26
+> Last Updated: 2026-10-01
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-08-12):** Phases 1–10 closed. **Phase 10 closed PARTIALLY COMPLETE (2026-08-12)** — the determinism half (component contract, loop bounds, gate classes, blocking governor checks) shipped and is enforced; progressive disclosure stopped on measured evidence; the byte goal withdrawn outright by [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md). **No phase is currently committed** — next candidates live in [Beyond Phase 10 (Parking Lot)](#beyond-phase-10-parking-lot), pulled forward on concrete signal.
+**Current status (2026-10-01):** Phases 1–11 closed. **Phase 11 (Contract-and-Verifier Layer) completed 2026-09-09 in v0.36.0** — base under 10 KB, eight of ten gates script-backed, two-agent default pipeline, Goal Card to `/goal` emit. **Phase 12 (Behavioral Verification) is committed, not started** — a verifier that proves the user's feature works by driving the running app, plus an opt-in cross-family review panel ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). Other candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
 
@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-10-01 | **Reconcile pass** (`/plan-product --reconcile`): Phase 11 promoted from six inter-phase rows to a closed phase with its caveats (single-model baseline; spec analysis advisory); model delegation recorded as shipped (v0.34.0) and removed from the parking lot; friction signals marked unblocked. **Direction change:** Phase 12 (Behavioral Verification) committed with [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md). Parking lot renamed *Beyond Phase 10* → *Beyond Phase 12*; Cursor plugin distribution and the empirical-fork rule added as candidates. Derivatives regenerated. |
 | 2026-09-26 | Recorded `2026-09-26-arch-lint-and-follow-ups` as inter-phase infrastructure (v0.39.0). |
 | 2026-09-26 | Recorded `2026-09-26-drift-arch-guards` as inter-phase infrastructure (v0.39.0). |
 | 2026-09-25 | Recorded `2026-09-25-jev-judgment-pilot` as inter-phase infrastructure (v0.38.0). |
@@ -56,12 +57,8 @@
 | **— Implement-loop recalibration** <!-- 2026-08-12-recalibrate-implement-loop --> | Fixes to real friction from running the exit-criteria spec end-to-end: `/implement-spec` spawn-mechanism clarity, required execution-state writes, `spec.md` header sync; two new skills (`subagent-result-completeness`, `subagent-worktree-integration`) closing gaps in how `/implement-story` gates handle mid-task stops and isolated worktrees | v0.31.0 |
 | **— Per-criterion AC traceability** <!-- 2026-08-13-acceptance-criteria-traceability-ids --> | Stable `[AC-N.M]` IDs assigned at story-generation time, with `scripts/ac-trace.py` detecting orphaned, untested, duplicate and dangling criteria; wired into `/verify-spec` as a blocking check and `/edit-spec` as a renumbering-churn guard | v0.32.0 |
 | **— Script-backed quality gates** <!-- 2026-08-14-script-backed-quality-gates --> | Coverage, test authenticity, build smoke and quality-config audit become read-only checkers whose verdicts override the agent self-report; wired into `/implement-story` Gate 2 and Gate 4 with no new gate number, plus `/initialize` baselining and a `/status` health line | v0.33.0 |
-| **— Phase 11 Stage 1 — Repair and baseline** <!-- 2026-09-05-phase11-repair-and-baseline --> | Repaired corpus plus a reproducible Fable 5.1 pipeline baseline over four yuss.app stories. | v0.36.0 |
-| **— Phase 11 Stage 2a — Prune the base** <!-- 2026-09-07-phase11-stage2-prune-the-base --> | Shared base cut to at most 10,000 bytes; every removed line in an append-only ledger; cut kept after an 8/8 baseline re-run. | v0.36.0 |
-| **— Phase 11 Stage 2b — Mechanize the gates** <!-- 2026-09-08-phase11-stage2b-mechanize-the-gates --> | Eight of ten implement-story gates re-derive their verdict from a script; Gate 1 and Gate 4.5 stay prose-only. | v0.36.0 |
-| **— Phase 11 Stage 3 — Spec analysis** <!-- 2026-09-08-phase11-stage3-spec-analysis --> | spec-analyze.py detects contradictory, missing, and ambiguous acceptance criteria; findings stay advisory. | v0.36.0 |
-| **— Phase 11 Stage 4a — Goal emit** <!-- 2026-09-09-phase11-stage4-goal-emit --> | A loop:yes Goal Card converts to GOAL.md + VERIFY.md plus a printed Claude Code /goal invoke line. | v0.36.0 |
-| **— Phase 11 Stage 4b — Pipeline demote** <!-- 2026-09-09-phase11-stage4b-pipeline-demote --> | Default implement-story spawns at most two subagents; the six-agent path is --full-pipeline. | v0.36.0 |
+| **— Model delegation** <!-- 2026-09-03-model-delegation --> | Anchor/floor tiers with a family-locked floor, origin capture at command entry, escalate-once on a failed floor check, and `entry_level` on every command ([ADR-024](../decision-records/adr-024-model-delegation.md)) | v0.34.0 |
+| **11 — Contract-and-Verifier Layer** <!-- 2026-09-05-phase11-repair-and-baseline 2026-09-07-phase11-stage2-prune-the-base 2026-09-08-phase11-stage2b-mechanize-the-gates 2026-09-08-phase11-stage3-spec-analysis 2026-09-09-phase11-stage4-goal-emit 2026-09-09-phase11-stage4b-pipeline-demote --> | Six stages, one spec each: repair and Fable 5.1 baseline; base pruned under 10 KB with a ledger; eight of ten gates script-backed; advisory `spec-analyze.py`; Goal Card to `/goal` emit; two-agent default pipeline. Closure record in the Phase 11 section below | v0.36.0 |
 | **— Flagged harness cuts** <!-- 2026-09-24-flagged-harness-cuts --> | Three harness cuts ship default-off, and become the default only when a same-model baseline keeps every exit-criteria row at 2/2 and driver cost_usd drops against that model's own flag-off control. | v0.37.0 |
 | **— Jev Judgment Pilot** <!-- 2026-09-25-jev-judgment-pilot --> | Opt-in TypeSafe Jev judgment provider (TypeSafe direct or Vercel AI Gateway): ADR-027, stdlib client, Step 2.6c cascade, calibration, Gate 3 shadow, one-time setup prompt. | v0.38.0 |
 | **— Drift and Architecture Guards** <!-- 2026-09-26-drift-arch-guards --> | Boundary crossings route Gate 3 to review-agent; drift judged against the locked contract; spec-end drift roll-up. | v0.39.0 |
@@ -493,11 +490,90 @@ date. That is a deliberate cost, not an oversight: an unenforceable true rule wa
 judged better than an enforceable wrong one. Reviewed 2026-11-11 alongside ADR-021
 and the `required_skills:` trigger.
 
-## Beyond Phase 10 (Parking Lot)
+---
+
+## Phase 11: Contract-and-Verifier Layer — ✅ Complete (2026-09-09)
+
+**Goal:** Rebalance Writ for Fable 5.1-class models: remove behavior instruction
+the models no longer need, and put a script behind every quality guarantee that
+was prose. Planned in [`2026-09-05-goldilocks-assessment.md`](2026-09-05-goldilocks-assessment.md)
+and run as one loop-able Goal Card
+([`writ-contract-and-verifier-layer`](../issues/goals/2026-09-05-writ-contract-and-verifier-layer.md)),
+one spec per stage. *Promoted to a phase in the 2026-10-01 reconcile pass; it
+shipped as six inter-phase rows because the promotion step the assessment named
+was never run.*
+
+**Closure status:** All six stage specs Complete and archived; released in
+**v0.36.0**.
+
+### Success Criteria
+
+- Dead ends closed and a Fable 5.1 pipeline baseline committed — ✅ two baselines in `.writ/eval/baselines/` over the four-story yuss.app set
+- `system-instructions.md` + `_preamble.md` at most 10,000 bytes, every cut in the pruning ledger — ✅ 9,676 bytes; [`pruned-instructions-ledger.md`](../decision-records/pruned-instructions-ledger.md) per [ADR-026](../decision-records/adr-026-constraint-test-pruning.md)
+- At most two `implement-story` gates `verification: prose-only` — ✅ exactly two (Gate 1 self-check, Gate 4.5 visual QA)
+- `spec-analyze.py` runs at `create-spec` Step 2.6 with an eval check — ✅ advisory
+- Default `implement-story` spawns at most two subagents; a `loop: yes` Goal Card converts to a `/goal` invocation with no manual edits — ✅ `--full-pipeline` is the explicit six-agent path
+
+**Honest caveats:** (1) the baseline is single-model; GPT-6 Astra was never
+runnable from this workspace, and the Goal Card's own constraint says so.
+(2) Spec-analysis findings remain advisory; no precision figure has promoted
+them to blocking. (3) The two `prose-only` gates are the input to Phase 12.
+
+### Features
+
+- [x] **Repair and baseline** — `2026-09-05-phase11-repair-and-baseline`
+- [x] **Prune the base** — `2026-09-07-phase11-stage2-prune-the-base`
+- [x] **Mechanize the gates** — `2026-09-08-phase11-stage2b-mechanize-the-gates`
+- [x] **Spec analysis** — `2026-09-08-phase11-stage3-spec-analysis`
+- [x] **Goal emit** — `2026-09-09-phase11-stage4-goal-emit`
+- [x] **Pipeline demote** — `2026-09-09-phase11-stage4b-pipeline-demote`
+
+---
+
+## Phase 12: Behavioral Verification (3-5 weeks) — 📋 Committed
+
+**Goal:** A Writ verifier proves the user's feature works by driving the running
+app, not only that Writ's own artifacts are well formed. This is the evidence
+[ADR-010](../decision-records/adr-010-supervised-autonomy-ceiling.md) review
+trigger (a) asks for ("trustworthy machine-verifiable UAT"). Per
+[ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md).
+
+**Why now:** the 2026-09-05 assessment measured zero checks that assert a user's
+feature works, and Phase 11 left Gate 4.5 (visual QA) as agent self-report. UAT
+is still a human handoff at the end of every spec and phase.
+
+### Success Criteria
+
+- At least one yuss.app story's UAT scenarios pass with machine-captured evidence and no human step
+- Gate 4.5 leaves `verification: prose-only`; the count in `implement-story.md` drops from 2 to 1
+- `exit-criteria.py` reports `unmet` for a UAT scenario whose cited evidence file is missing (proven by mutation)
+- The cross-family panel raises at least one valid finding the single-vendor evaluator missed on the Phase 11 baseline set, or its promotion step closes `Closed — Not Implemented` and the path is removed
+
+### Features
+
+- [ ] **Project verification skill** `Effort: M` — `/initialize` generates a project-local `verify-<app>` skill (launch, doctor, drive, evidence, cleanup) and a feature map of the top user-facing features, then runs it end to end once before handoff. Drives through the project's own harness or the platform's native browser and terminal tools; Writ ships no runtime. Install path per adapter.
+- [ ] **Evidence-bound UAT** `Effort: M` — `/create-uat-plan` scenarios cite feature-map entries; Gate 4.5 runs the verify skill for the story's mapped features and writes evidence under the spec folder; `exit-criteria.py` checks the evidence exists. Scenarios the skill cannot drive stay human scenarios and say why.
+- [ ] **Cross-family review panel** `Effort: S-M` — opt-in per project, high-stakes stories only (ADR-023 triage): Gate 3 adds reviewers from other vendors with the same prompt; findings raised by two or more vendors block, single-vendor findings are advisory. Cursor-only today; every other platform falls back to the current Gate 3.
+
+### Dependencies
+
+- Phase 11 baseline story set (yuss.app) and the Gate 3 evaluator
+- Feature 2 depends on Feature 1; Feature 3 is independent and can run in parallel
+
+### Deliberately out of scope
+
+Raising the autonomy ceiling (needs its own ADR citing this phase's results),
+autonomous merge or PR creation, a Writ-owned browser or test runner, per-role
+model configuration for agents.
+
+---
+
+## Beyond Phase 12 (Parking Lot)
 
 **Kept as candidates:**
-- **Model delegation — anchor/floor with escalation** `Effort: S-M` — supersedes ADR-016 with a two-question tier rule (judges and orchestrators anchor; bounded, checked executors floor), a family-locked floor, and one dynamic rule: a floor result that fails its check or would interrupt the human is re-run once at anchor. Retires `"fast"` on Cursor (probably unresolvable today) and the advisory `model_tier` on commands/skills. Single spec, four stories. See [ADR-024](../decision-records/adr-024-model-delegation.md) and [`2026-09-03-family-relative-model-routing-research.md`](../research/2026-09-03-family-relative-model-routing-research.md).
-- **Friction signals & Improvement Requests** `Effort: M` — the minimal self-improvement loop: six closed signal kinds appended to one gitignored JSONL at sites that already exist, a once-a-day one-line nudge in `/status` at ≥3 unreviewed, a `/retro --friction` review that refreshes locally / files an Improvement Request on `sellke/writ` via `gh` (human-confirmed, spec names redacted) / dismisses, and `Signal:` as a `/refresh-command` evidence type so the loop works off-Cursor. Closes the DEV-004 gap from the 2026-08-14 dogfooding research. Single spec, five stories. See [ADR-025](../decision-records/adr-025-friction-signals.md). *Ships after or alongside ADR-024 — its review depends on the `escalated` signal.*
+- **Cursor plugin distribution** `Effort: S-M` — publish Writ through Cursor's plugin marketplace (`/add-plugin`). The plugin schema accepts `commands`, `agents`, `skills`, `rules`, and `hooks`, so the surface maps directly. The open constraint: a plugin cannot scaffold `.writ/` or ship `scripts/` into a project, so it still needs a bootstrap step (`/initialize` or `install.sh`). Claude Code's plugin format is the sibling question.
+- **Empirical-fork rule** `Effort: XS` — one line in `recommendation-semantics.md`: a fork answerable by running something routes to `/prototype` instead of AskQuestion; AskQuestion is reserved for product, preference, and taste calls.
+- **Friction signals & Improvement Requests** `Effort: M` — the minimal self-improvement loop: six closed signal kinds appended to one gitignored JSONL at sites that already exist, a once-a-day one-line nudge in `/status` at ≥3 unreviewed, a `/retro --friction` review that refreshes locally / files an Improvement Request on `sellke/writ` via `gh` (human-confirmed, spec names redacted) / dismisses, and `Signal:` as a `/refresh-command` evidence type so the loop works off-Cursor. Closes the DEV-004 gap from the 2026-08-14 dogfooding research. Single spec, five stories. See [ADR-025](../decision-records/adr-025-friction-signals.md). *Unblocked: ADR-024 shipped in v0.34.0, so the `escalated` signal its review depends on now has a source. Not started — `scripts/signal.py` and `/retro --friction` do not exist yet.*
 - **Cross-project learning corpus** — extension of the knowledge ledger once consolidation is proven
 - **`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools via `/refresh-command`
 - **Eval Tier 2 expansion** — beyond the Phase 7 lightweight check, if it demonstrates value
