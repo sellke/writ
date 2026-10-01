@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import unittest
@@ -671,6 +672,302 @@ class TallyMutationTests(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("review-panel: dropped %s — malformed_output" % OPENAI, out)
         self.assertIn("review-panel: advisory — AC-2.3 unmet (xai)", out)
+
+
+# --------------------------------------------------------------------------
+# Story 3 of `2026-10-01-cross-family-review-panel`: the Gate 3 panel
+# paragraph, the `--panel` row, the `review-panel:` report entry, the
+# `check_review_panel` eval pins (each shown to bite), and the ratchet
+# disclosure.
+# --------------------------------------------------------------------------
+
+STORY_CMD = "commands/implement-story.md"
+LEAN_CMD = "commands/implement-story.lean.md"
+PANEL_OPENER = "**Review panel (opt-in).**"
+
+
+def _paragraphs(text: str) -> List[str]:
+    return [p.strip() for p in text.split("\n\n")]
+
+
+def _panel_paragraph(rel: str) -> str:
+    found = [p for p in _paragraphs(_read(rel)) if p.startswith(PANEL_OPENER)]
+    assert len(found) == 1, "%s: expected one panel paragraph, got %d" % (rel, len(found))
+    return found[0]
+
+
+def _gate3(rel: str) -> str:
+    text = _read(rel)
+    start = text.index("#### Gate 3: Review Agent")
+    return text[start:text.index("#### Gate 3.5:", start)]
+
+
+class Gate3PanelPlacementTests(unittest.TestCase):
+    """One inline paragraph, placed in Gate 3, no heading or spawn marker. [AC-3.1]"""
+
+    def test_each_command_carries_exactly_one_opener(self):
+        for rel in (STORY_CMD, LEAN_CMD):
+            self.assertEqual(_read(rel).count(PANEL_OPENER), 1, rel)
+
+    def test_default_paragraph_directly_follows_the_risk_route(self):
+        paras = _paragraphs(_gate3(STORY_CMD))
+        at = next(i for i, p in enumerate(paras) if p.startswith(PANEL_OPENER))
+        self.assertTrue(paras[at - 1].startswith("**Risk route:**"))
+        self.assertTrue(paras[at + 1].startswith("**`--full-pipeline`:**"))
+
+    def test_lean_paragraph_sits_at_the_matching_position(self):
+        # The lean twin carries no Risk route paragraph; the panel takes its
+        # slot between the default-spawn line and the --full-pipeline hatch.
+        paras = _paragraphs(_gate3(LEAN_CMD))
+        at = next(i for i, p in enumerate(paras) if p.startswith(PANEL_OPENER))
+        self.assertTrue(paras[at - 1].startswith("Default spawn is `evaluator-agent`"))
+        self.assertTrue(paras[at + 1].startswith("**`--full-pipeline`:**"))
+
+    def test_both_commands_carry_the_same_paragraph(self):
+        self.assertEqual(_panel_paragraph(STORY_CMD), _panel_paragraph(LEAN_CMD))
+
+    def test_paragraph_wording_follows_the_technical_spec(self):
+        para = _panel_paragraph(STORY_CMD)
+        for phrase in (
+            "review-panel.py status --repo . --origin \"<origin>\" --platform <origin platform>",
+            "prints `pass`", "Gate 3 spawns `review-agent`", "`--panel` is set",
+            "beside the Gate 3 agent in the same message", "same prompt and inputs",
+            "`readonly`", "`model: <slug>`",
+            "`.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*`",
+            "one `review-panel: dropped` line",
+            "After `review-override.py`, run `python3 scripts/review-panel.py tally",
+        ):
+            self.assertIn(phrase, para)
+
+    def test_no_heading_spawn_marker_or_gates_entry_is_added(self):
+        for rel in (STORY_CMD, LEAN_CMD):
+            para = _panel_paragraph(rel)
+            self.assertNotIn("\n", para)
+            self.assertNotIn("Task(", para)
+            frontmatter = _read(rel).split("\n---\n", 1)[0]
+            self.assertNotIn("panel", frontmatter.lower(), rel)
+
+    def test_spawn_cap_still_passes(self):
+        for rel in (STORY_CMD, LEAN_CMD):
+            proc = subprocess.run(
+                [sys.executable, str(REPO_ROOT / "scripts" / "spawn-cap.py"), "check",
+                 "--command", str(REPO_ROOT / rel), "--repo", str(REPO_ROOT)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout)
+            self.assertEqual(proc.stdout.splitlines()[0], "pass")
+
+
+class Gate3PanelCombinationTests(unittest.TestCase):
+    """How a tally verdict combines with the Gate 3 agent's. [AC-3.2]"""
+
+    def test_block_is_one_gate3_fail(self):
+        para = _panel_paragraph(STORY_CMD)
+        self.assertIn("`block` is a Gate 3 FAIL", para)
+        self.assertIn("one loop increment even if the agent also failed", para)
+        self.assertIn("on PAUSE, Gate 3.5 lists the block lines and accept still recodes", para)
+        self.assertIn("under `--review-only` it ends the run", para)
+        for rel in (STORY_CMD, LEAN_CMD):
+            gate35 = _read(rel).split("#### Gate 3.5:", 1)[1].split("#### Gate 4:", 1)[0]
+            self.assertIn("with a Gate 3 panel `block`, list its lines, and accept still recodes",
+                          gate35, rel)
+
+    def test_every_other_verdict_prints_and_continues(self):
+        self.assertIn(
+            "`advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue",
+            _panel_paragraph(STORY_CMD),
+        )
+
+    def test_panel_never_overrides_or_degrades(self):
+        para = _panel_paragraph(STORY_CMD)
+        self.assertIn("The panel can only add blocks", para)
+        self.assertIn("never changes the Gate 3 agent's verdict", para)
+        self.assertIn("never marks a story `⚠️ DEGRADED`", para)
+
+    def test_two_fail_escalation_counts_a_block(self):
+        # A block is a Gate 3 FAIL, and the control flow counts a Gate 3 FAIL
+        # from either agent, so escalation needs no extra sentence.
+        self.assertIn("Gate 3 FAIL (either agent) increments it", _read(STORY_CMD))
+        self.assertIn("two-fail escalation", _panel_paragraph(STORY_CMD))
+
+    def test_tally_fixtures_match_the_combination_rule(self):
+        code, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"))
+        self.assertEqual((code, out[0]), (1, "block"))
+        code, out = _tally("primary-pass.md", (OPENAI, "panel-ac23.md"))
+        self.assertEqual((code, out[0]), (0, "pass"))
+
+
+class InvocationAndReportTests(unittest.TestCase):
+    """The `--panel` row, the `--quick` conflict, item 8, the no-config path. [AC-3.3]"""
+
+    def test_panel_row_in_both_tables(self):
+        for rel in (STORY_CMD, LEAN_CMD):
+            rows = [ln for ln in _read(rel).splitlines()
+                    if ln.startswith("| `/implement-story story-3 --panel` |")]
+            self.assertEqual(len(rows), 1, rel)
+            self.assertIn("regardless of route (needs the config line)", rows[0])
+
+    def test_quick_conflict_is_a_usage_error_before_any_gate(self):
+        self.assertIn(
+            "`--panel` conflicts with `--quick`: on a conflict, stop with a usage "
+            "error before any gate", _read(STORY_CMD),
+        )
+        self.assertIn("with `--quick`, a usage error before any gate", _read(LEAN_CMD))
+
+    def test_report_names_the_panel_lines(self):
+        self.assertIn("the `gate3-route:`, `review-panel:`, and `arch-lint:` lines",
+                      _read(STORY_CMD))
+        self.assertIn("drift summary, the `review-panel:` lines", _read(LEAN_CMD))
+
+    def test_no_config_line_runs_no_new_step(self):
+        for rel in (STORY_CMD, LEAN_CMD):
+            para = _panel_paragraph(rel)
+            self.assertTrue(para.startswith(
+                PANEL_OPENER + " Only with a `- **Review Panel:**` line in `.writ/config.md`:"
+            ))
+            gate3 = _gate3(rel)
+            self.assertEqual(gate3.count("review-panel.py"), para.count("review-panel.py"))
+        with TemporaryDirectory() as tmp:
+            code, out = _run("status", "--repo", str(_repo(Path(tmp), None)),
+                             "--origin", ORIGIN, "--platform", "cursor")
+        self.assertEqual(code, 0)
+        self.assertEqual(out[-1], "review-panel: off — no_config_line")
+
+
+EVAL = REPO_ROOT / "scripts" / "eval.sh"
+ADAPTERS = ("cursor", "claude-code", "codex", "openclaw")
+
+
+class EvalPinMutationTests(unittest.TestCase):
+    """check_review_panel passes on the real files, and one mutation per pin
+    or probe turns it into exactly one finding. [AC-3.4]"""
+
+    def _root(self, tmp: str) -> Path:
+        root = Path(tmp)
+        for rel in ("scripts/eval.sh", "scripts/review-panel.py", STORY_CMD, LEAN_CMD,
+                    *("adapters/%s.md" % name for name in ADAPTERS)):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(REPO_ROOT / rel, root / rel)
+        shutil.copytree(FIXTURES, root / "scripts/tests/fixtures/review-panel")
+        (root / ".writ").mkdir()
+        return root
+
+    def _check(self, root: Path) -> Tuple[int, str]:
+        proc = subprocess.run(
+            ["bash", str(root / "scripts" / "eval.sh"), "--check=review-panel",
+             "--report=eval-report.md"],
+            cwd=root, capture_output=True, text=True,
+        )
+        return proc.returncode, (root / "eval-report.md").read_text(encoding="utf-8")
+
+    def _cut(self, path: Path, literal: str) -> None:
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(literal, text, "the mutation must hit the pinned text")
+        path.write_text(text.replace(literal, "", 1), encoding="utf-8")
+
+    def _assert_bites(self, mutate, message: str) -> None:
+        with TemporaryDirectory() as tmp:
+            root = self._root(tmp)
+            mutate(root)
+            code, report = self._check(root)
+        self.assertEqual(code, 1, report)
+        self.assertIn(message, report)
+        self.assertIn("- Findings: 1", report)
+
+    def test_registered_in_checks(self):
+        self.assertRegex(EVAL.read_text(encoding="utf-8"), r"(?m)^  review-panel$")
+
+    def test_real_files_pass_with_status_as_a_note(self):
+        with TemporaryDirectory() as tmp:
+            code, report = self._check(self._root(tmp))
+        self.assertEqual(code, 0, report)
+        self.assertIn("- Findings: 0", report)
+        self.assertIn("NOTE [review-panel]: review-panel: off — no_config_line", report)
+
+    def test_missing_helper_bites(self):
+        self._assert_bites(lambda root: (root / "scripts/review-panel.py").unlink(),
+                           "review-panel helper is missing.")
+
+    def test_status_usage_error_bites(self):
+        stub = ('import sys\nif sys.argv[1] == "status":\n'
+                '    print("error: bad status args")\n    raise SystemExit(2)\n'
+                'raise SystemExit(1 if "primary-fail" in " ".join(sys.argv) else 0)\n')
+        self._assert_bites(
+            lambda root: (root / "scripts/review-panel.py").write_text(stub, encoding="utf-8"),
+            "review-panel.py status exited 2: error: bad status args")
+
+    def test_status_crash_bites(self):
+        # `status` only ever exits 0 or 2; a traceback (exit 1) must not pass as a note.
+        stub = ('import sys\nif sys.argv[1] == "status":\n'
+                '    raise RuntimeError("boom")\n'
+                'raise SystemExit(1 if "primary-fail" in " ".join(sys.argv) else 0)\n')
+        self._assert_bites(
+            lambda root: (root / "scripts/review-panel.py").write_text(stub, encoding="utf-8"),
+            "review-panel.py status exited 1: RuntimeError: boom")
+
+    def test_consensus_probe_bites(self):
+        fx = "scripts/tests/fixtures/review-panel/"
+        self._assert_bites(
+            lambda root: shutil.copy2(root / (fx + "primary-pass.md"),
+                                      root / (fx + "primary-fail-ac23.md")),
+            "two-vendor AC-2.3 fixture exited 0, not 1")
+
+    def test_single_vendor_probe_bites(self):
+        fx = "scripts/tests/fixtures/review-panel/"
+        self._assert_bites(
+            lambda root: shutil.copy2(root / (fx + "primary-fail-ac23.md"),
+                                      root / (fx + "primary-pass.md")),
+            "one-vendor AC-2.3 fixture exited 1, not 0")
+
+    def test_command_pins_bite(self):
+        pins = (
+            (PANEL_OPENER, "%s Gate 3 must carry the opt-in review panel paragraph."),
+            ("`block` is a Gate 3 FAIL", "%s must make a panel block a Gate 3 FAIL."),
+            ("| `/implement-story story-3 --panel` |",
+             "%s Invocation table must carry the --panel row."),
+        )
+        for rel in (STORY_CMD, LEAN_CMD):
+            for literal, message in pins:
+                with self.subTest(file=rel, pin=literal):
+                    self._assert_bites(lambda root: self._cut(root / rel, literal),
+                                       message % rel)
+
+    def test_report_entry_pins_bite(self):
+        for rel, literal, message in (
+            (STORY_CMD, " `review-panel:`,",
+             "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."),
+            (LEAN_CMD, " the `review-panel:` lines,",
+             "implement-story.lean.md Step 4 report must name the review-panel: lines."),
+        ):
+            with self.subTest(file=rel):
+                self._assert_bites(lambda root: self._cut(root / rel, literal), message)
+
+    def test_adapter_row_pins_bite(self):
+        for name, label, message in (
+            ("cursor", "available.", "must state the review panel is available."),
+            ("claude-code", "unavailable.", "must state the review panel is unavailable."),
+            ("codex", "unavailable by default.",
+             "must state the review panel is unavailable by default."),
+            ("openclaw", "*(unverified)*.", "must mark the review panel unverified."),
+        ):
+            rel = "adapters/%s.md" % name
+            with self.subTest(adapter=name):
+                self._assert_bites(
+                    lambda root: self._cut(root / rel, "**Review panel (ADR-028): %s**" % label),
+                    "%s %s" % (rel, message))
+
+
+class RatchetDisclosureTests(unittest.TestCase):
+    """The implement-story.md re-pin is disclosed, not exempted. [AC-3.5]"""
+
+    def test_disclosure_names_the_story_and_the_rebase(self):
+        text = _read("scripts/tests/test_governor_enforcement.py")
+        start = text.index("(spec 2026-10-01-cross-family-review-panel, Story 3)")
+        block = text[start:text.index("KNOWN_OVER_BUDGET = {", start)]
+        self.assertIn("rebased on", block)
+        self.assertIn("2026-10-01-behavioral-verification Story 4's 11103", block)
+        self.assertIn("Inline prose, no new step, gate, or spawn site. "
+                      "Acknowledged, not exempted.", block)
 
 
 if __name__ == "__main__":

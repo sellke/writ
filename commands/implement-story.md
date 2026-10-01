@@ -51,7 +51,7 @@ gates:
 
 ## Overview
 
-Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
+Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -71,8 +71,9 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/implement-story story-3 --full-pipeline` | Six spawn sites: architecture-check, coding, review, testing, optional visual-qa, documentation |
 | `/implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
 | `/implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
+| `/implement-story story-3 --panel` | Convene the review panel at Gate 3 regardless of route (needs the config line) |
 
-`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive: on a conflict, stop with a usage error; pick no winner.
+`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive, and `--panel` conflicts with `--quick`: on a conflict, stop with a usage error before any gate; pick no winner.
 
 ## Pipeline
 
@@ -274,6 +275,8 @@ Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `re
 
 **Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reason:` lines as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
+**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `block` is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
 
@@ -281,7 +284,7 @@ Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_
 
 **Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
-**Review loop:** Max 3 iterations across review and Gate 4.5 (Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, Gate 4.5 script fail → recode all count). Those four sites share one counter — they are not four independent budgets. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it — the floor attempt and its anchor re-run are one attempt. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user. Both caps are declared as `loop.max_iterations` and the nested `testing_cycle` entry in this file's frontmatter, with `on_exhaustion: escalate`: the existing `AskQuestion` escalations are the implementation, and no cap may be silently continued past.
+**Review loop:** Max 3 iterations across review and Gate 4.5. Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, and Gate 4.5 script fail → recode share one counter. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user via the existing `AskQuestion` escalations; no cap may be silently continued past (`loop.max_iterations`, nested `testing_cycle`, `on_exhaustion: escalate`).
 
 **Verify the claim, don't trust it.** After the Gate 3 agent returns, run:
 
@@ -289,11 +292,9 @@ Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_
 python3 scripts/review-override.py check --spec <spec-folder> --repo . --story <story-file> [--new-files <story's new files>] [--tests <story's test files>]
 ```
 
-The agent's PASS/FAIL is a field the agent types. The checker re-derives a mechanical verdict from `ac-trace.py` and (when those path flags are present) `test-integrity.py`, and show both the claim and the measurement in the story report.
+Show both the agent's claim and the script's measurement in the story report. The override is **FAIL-only**: a script `pass` or `unverifiable` does not force PASS and does not wash an evaluator FAIL. Architecture, security, and taste stay with `evaluator-agent` on default and `review-agent` on `--full-pipeline`.
 
-This override is **FAIL-only**: a script `fail` takes the existing review-loop recode path (Gate 3 FAIL → recode). A script `pass` or `unverifiable` leaves the evaluator FAIL or PAUSE standing — a mechanical pass does not force PASS and does not wash an evaluator FAIL. Residual architecture, security, and taste stay with `evaluator-agent` on default and `review-agent` on `--full-pipeline`.
-
-- **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the existing review-loop recode path.
+- **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the review-loop recode path.
 - **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 **Jev shadow (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, save the recorded test output (the story's targeted run, `recorded_test_results`, not the full suite), the story diff, and the Gate 3 agent's output under `.writ/state/` and run `python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests-output> --diff <diff> --review-output <review-output>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
@@ -306,7 +307,7 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
@@ -413,7 +414,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` and `arch-lint:` lines, and next action (`/ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:`, `review-panel:`, and `arch-lint:` lines, and next action (`/ship`)
 
 **Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 

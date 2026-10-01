@@ -73,11 +73,15 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # became behavioral verification (app-verify.py; visual-qa notes-only), the
 # gates: entry is gate4_5_behavior, review-loop prose renamed the recode site
 # (-7 bytes net); implement-story.lean.md carries the same contract change.
+# Repinned 2026-10-01 (2026-10-01-cross-family-review-panel Story 3): Gate 3
+# gained the opt-in review panel paragraph, the `--panel` row, and the
+# `review-panel:` report entry (Overview and Gate 3.5 note it in a clause);
+# implement-story.lean.md carries the same change.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "f6311abbd2314727aa32c10dde3157e1bb130b2fc162e856bfd11ab786d73cfa",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
-    "implement-story": "042e8c75db18993f89d0563379e70e4ddac37dd4abebffbf2517a7134cf07e3b",
+    "implement-story": "985e2bd95dfbef722ad333fb43f394e8c52002ad304778eb850757a3257c0263",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

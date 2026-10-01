@@ -53,3 +53,28 @@
 - **Reason:** Keeps Business Rule 8's definitions exact when `tally` is called without `status` filtering first.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md "Implementation Approach" records both rules.
+
+---
+
+## Story 3: Gate 3 Wiring, `--panel`, and Eval Pins — Drift Report
+
+> Run: 2026-10-01
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] Panel paragraph gated on the config line and on the spawned Gate 3 agent
+- **Severity:** Small
+- **Spec said:** The paragraph opens "When `review-panel.py status …` prints `pass` and `gate3_route` names `review-agent` or `--panel` is set"; the Nil-input shadow path says no config line → nothing printed, no new step.
+- **Implementation did:** The paragraph opens "Only with a `- **Review Panel:**` line in `.writ/config.md`:" before the `status` call, and the trigger reads "Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set"; under `--review-only` a block "ends the run".
+- **Reason:** Without the leading clause the `status` call itself is a new step on every project, contradicting AC-3.3's "no new step executes". `gate3_route` alone misses the Interaction Edge Cases rows (`--full-pipeline` always runs `review-agent`; after two-fail escalation the panel still runs); naming the spawned agent covers all three. The `--review-only` clause is AC-3.2's stated rule.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "Implementation Approach" records the trigger wording.
+
+#### [DEV-006] Lean twin placement and `--quick` conflict wording
+- **Severity:** Small
+- **Spec said:** Place the paragraph "directly after the `**Risk route:**` paragraph" in both command files; state the `--panel --quick` conflict by extending the mutual-exclusion sentence.
+- **Implementation did:** `implement-story.lean.md` has neither a Risk route paragraph nor a mutual-exclusion sentence (earlier specs kept both out of the lean arm), so the paragraph takes the same slot (after the default-spawn line, before `**`--full-pipeline`:**`) and the lean `--panel` row itself states the usage error. The default file's duplicated Gate 3 verify-claim and review-loop prose was replaced with the lean twin's shorter wording to offset bytes (+1024 → +803); the pinned phrases stay.
+- **Reason:** Adding the Risk route to the lean arm would widen this story past its scope; the slot and the rule are the same.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "Implementation Approach" records the lean placement.

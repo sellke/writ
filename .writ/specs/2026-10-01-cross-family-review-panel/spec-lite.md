@@ -14,6 +14,8 @@
 - Matching keys: `ac:AC-N.M` (unchecked tagged line) or `<security|architecture>:<path>` (Critical/Major issue)
 - Location → path: first backticked span (else first token), strip trailing `,;`, `./`, `:line[-line]`; `N/A`/`none`/`-`/`—` = no Location (DEV-003)
 - `ac:` keys report severity Critical; a session-vendor reviewer is never a usable panel reviewer and its lone keys are primary-only (DEV-004)
+- Gate 3 panel paragraph runs only with the config line; trigger = Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, two-fail escalation) or `--panel` (DEV-005)
+- Lean twin: paragraph in the Risk-route slot (after default spawn); its `--panel` row states the `--quick` usage error (DEV-006)
 
 **Files in Scope:**
 - `scripts/review-panel.py`, `scripts/tests/test_review_panel.py`, `scripts/tests/fixtures/review-panel/` — new
