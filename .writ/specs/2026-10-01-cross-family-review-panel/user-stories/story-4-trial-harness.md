@@ -1,6 +1,7 @@
 # Story 4: Retrospective Trial Harness and Report
 
 > **Status:** Completed ✅
+> **Commit:** 1df2344b03513c1a7fc5f30c7770a06c83dc6320
 > **Priority:** Medium
 > **Dependencies:** Story 2 (tally parser)
 
