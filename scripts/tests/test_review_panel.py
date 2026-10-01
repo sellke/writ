@@ -1220,6 +1220,31 @@ class TrialPrepareTests(unittest.TestCase):
         self.assertIn("nope/story-9", err)
 
 
+class ExtractContractTests(unittest.TestCase):
+    """Baseline specs predate the `## Specification Contract` heading. [AC-4.2]"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rp = _load_module()
+
+    def test_current_heading_is_extracted_up_to_the_next_h2(self):
+        text = "# A\n\n## Specification Contract\n\nDeliverable: x\n\n## Details\n\nno\n"
+        self.assertEqual(self.rp.extract_contract(text),
+                         "## Specification Contract\n\nDeliverable: x\n")
+
+    def test_legacy_contract_summary_heading_is_the_fallback(self):
+        text = "# A\n\n## Contract Summary\n\nDeliverable: y\n\n## 🎯 Experience Design\n\nno\n"
+        self.assertEqual(self.rp.extract_contract(text),
+                         "## Contract Summary\n\nDeliverable: y\n")
+
+    def test_current_heading_wins_when_both_exist(self):
+        text = "## Contract Summary\n\nold\n\n## Specification Contract\n\nnew\n"
+        self.assertEqual(self.rp.extract_contract(text), "## Specification Contract\n\nnew\n")
+
+    def test_no_contract_section_is_none(self):
+        self.assertIsNone(self.rp.extract_contract("# A\n\n## Details\n\nno\n"))
+
+
 class TrialRecordTests(unittest.TestCase):
     """`trial-record` stores keys, vendors, and severities, never text. [AC-4.3]"""
 

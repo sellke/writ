@@ -508,6 +508,8 @@ SAFE_REL = re.compile(r"^[A-Za-z0-9._][A-Za-z0-9._/-]*$")
 RAW_ROOT = Path(".writ/state/panel-trial")
 PATH_SHAPED = re.compile(r"^[A-Za-z0-9._@+/\[\]()-]+$")
 CONTRACT_HEADING = re.compile(r"^## Specification Contract\b.*$", re.MULTILINE)
+# Specs written before the heading was renamed (e.g. the 2026-07-24 baseline spec).
+LEGACY_CONTRACT_HEADING = re.compile(r"^## Contract Summary\b.*$", re.MULTILINE)
 NEXT_H2 = re.compile(r"^## ", re.MULTILINE)
 TRIAL_CAVEAT = "sample: 4 stories; one valid miss keeps the panel — a low bar, not a cost case"
 # Inherited repository redirects would point `git -C` somewhere else.
@@ -628,7 +630,7 @@ def _show_first(checkout: Path, commit: str, paths: Sequence[str]) -> Optional[s
 
 
 def extract_contract(spec_text: str) -> Optional[str]:
-    match = CONTRACT_HEADING.search(spec_text)
+    match = CONTRACT_HEADING.search(spec_text) or LEGACY_CONTRACT_HEADING.search(spec_text)
     if match is None:
         return None
     rest = spec_text[match.end():]
@@ -671,7 +673,8 @@ def _prepare_run(yuss: Path, story: dict, run: Path) -> Dict[str, Path]:
     spec_text = _show_first(checkout, commit, ("%s/spec.md" % active, "%s/spec.md" % archived))
     contract = extract_contract(spec_text) if spec_text is not None else None
     if contract is None:
-        raise PrepareError("no ## Specification Contract in the spec at %s" % commit[:12])
+        raise PrepareError("no ## Specification Contract (or ## Contract Summary) in the spec at %s"
+                           % commit[:12])
     paths = {"checkout": checkout, "diff": run / "diff.patch",
              "story": run / "story.md", "contract": run / "contract.md"}
     paths["diff"].write_text(diff, encoding="utf-8")

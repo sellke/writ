@@ -111,3 +111,20 @@
 - **Reason:** Gate 3 evaluator finding: the Location text is reviewer-typed, so "path-shaped" was an assumption, not a guarantee; Business Rule 11 forbids source text in the committed file.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md "Implementation Approach" records the digest rule.
+
+---
+
+## Story 5: Run the Trial and Act on the Verdict — Drift Report
+
+> Run: 2026-10-02
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-010] `trial-prepare` accepts the legacy `## Contract Summary` heading
+- **Severity:** Small
+- **Spec said:** `trial-prepare` writes the spec's `## Specification Contract` and exits 2 when the spec has none (DEV-008).
+- **Implementation did:** When `## Specification Contract` is absent, `trial-prepare` falls back to `## Contract Summary`, the heading specs used before the rename; the current heading wins when both exist. The exit-2 message names both headings.
+- **Reason:** Found running the trial: the 2026-07-24 baseline spec predates the rename, so three of the four baseline stories could not be prepared. The two headings mark the same locked contract.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None. The contract is the same section under its earlier name.
