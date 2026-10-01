@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-26T20:55:20+02:00
+> Last Updated: 2026-10-01T20:03:00+02:00
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-09-26-arch-lint-and-follow-ups — Architecture Lint and Drift-Guard Follow-ups
+- **Spec:** 2026-10-01-behavioral-verification — Behavioral Verification (Phase 12)
 - **Status:** Complete ✅
-- **Story:** 4 of 4 — Architecture-Lint Guide and ADR Hook (Completed ✅)
-- **Progress:** 26/26 tasks complete (100%)
+- **Story:** 5 of 5 — exit-criteria.py Evidence Check, Mutation Test, and Eval Check (Completed ✅)
+- **Progress:** 35/35 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-09-26-arch-lint-and-follow-ups/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Active spec:** .writ/specs/2026-10-01-behavioral-verification/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (22 entries)
-- **Docs:** .writ/docs/ (26 files)
+- **Docs:** .writ/docs/ (27 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-009 (Small) eslint-plugin-boundaries example uses `dependencies`, not `element-types` — Story 4
-- DEV-010 (Small) dependency-cruiser `.ts`/`.cts`/`.mts` configs are not detected — Story 4
-- DEV-011 (Small) `.writ/context.md` regeneration moved to spec end — Story 2
+- DEV-012 (Small) referenced-paths allowlist rows for the recipe files `/create-uat-plan` creates — Story 5
+- DEV-011 (Small) evidence parser tolerates bulleted, indented, or capitalized Verification lines — Story 5
+- DEV-008 (Small) human-only features matched from the recipe, since `touched` never prints them — Story 2
 
 ## Open Issues
 
-11 open issues
+16 issue files in .writ/issues/ (open count not recomputed this run)
