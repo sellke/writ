@@ -200,6 +200,8 @@ The review agent specifies `readonly: true`. Cursor enforces this at the tool le
 
 Cursor supports up to 4 concurrent `Task()` sub-agents in a single message. More than 4 stories are batched (first 4, then next 4) by the `create-spec` command's Step 2.6.
 
+**Review panel (ADR-028): available.** The `Task` tool's `model` accepts the listed slugs across vendors, so each reviewer `review-panel.py status` keeps spawns at its own slug beside the Gate 3 agent; panel plus primary stays within 4 concurrent Tasks. A slug missing from the run-time list is dropped `slug_rejected`.
+
 ## Command Workflow Integrity
 
 When a Writ command uses Plan Mode for discovery (e.g., `/create-spec` Phase 1, `/plan-product` discovery), Plan Mode is a phase within the command, not a replacement for it.

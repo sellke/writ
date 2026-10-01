@@ -60,6 +60,7 @@
 | `Changelog` | release | Path to the changelog file |
 | `Writ Specs` | status | Path to spec folder (default: `.writ/specs/`) |
 | `Writ Issues` | status | Path to issues folder (default: `.writ/issues/`) |
+| `Review Panel` | implement-story (Gate 3) | Opt-in cross-vendor reviewer slugs; see [Review Panel](#review-panel) |
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
 > itself; supervised multi-spec execution runs through `/implement-phase` and needs
@@ -106,6 +107,26 @@
 
 Detected values may be used and recorded in the current execution capability
 snapshot, but are never silently saved to `.writ/config.md`.
+
+## Review Panel
+
+```markdown
+- **Review Panel:** gpt-5.6-sol-medium, cursor-grok-4.6-medium-fast
+```
+
+`- **Review Panel:** <slug>[, <slug>…]` names Cursor model slugs from vendors
+other than the session's. It is never detected or offered for saving: the
+line is also the consent to send story content to those vendors, so only the
+developer writes it. The first matching line wins; `none`
+(case-insensitive), or no line, means the panel is off and Gate 3 runs
+exactly as before. Slugs keep their order; a repeated slug is dropped
+(`duplicate_slug`), and slugs after the third kept reviewer are dropped
+(`over_cap`). Slugs from the session's vendor (`same_vendor`) or with a prefix
+the vendor table does not know (`unknown_vendor`) are dropped too.
+`python3 scripts/review-panel.py status --repo . --origin "<session model>"`
+prints which reviewers are active, which were dropped, and why. See
+[ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)
+Decision 3.
 
 ## Rules
 

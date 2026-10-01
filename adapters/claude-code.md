@@ -137,6 +137,8 @@ The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `wri
 
 `sonnet` is gone from `writ-tester` and `writ-documenter`: both are `anchor`, and a fixed `sonnet` would exceed a `haiku` origin. `inherit` is the only anchor value that respects the ceiling.
 
+**Review panel (ADR-028): unavailable.** Subagent `model` accepts Anthropic aliases, full Anthropic IDs, or `inherit`, so no other vendor can be spawned. Gate 3 runs as today; `review-panel.py status --platform claude-code` prints the skip.
+
 ### Permission Modes
 
 | Agent | Mode | Why |

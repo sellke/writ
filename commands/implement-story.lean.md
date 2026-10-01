@@ -51,7 +51,7 @@ gates:
 
 ## Overview
 
-Per-story execution engine. Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts; `--full-pipeline` is the six-agent hatch. For a whole spec, use `/implement-spec`.
+Per-story execution engine. Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts (and opt-in Gate 3 panel reviewers); `--full-pipeline` is the six-agent hatch. For a whole spec, use `/implement-spec`.
 
 ## Required Artifacts
 
@@ -69,6 +69,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/implement-story story-3 --full-pipeline` | Six spawn sites: architecture-check, coding, review, testing, optional visual-qa, documentation |
 | `/implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
 | `/implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
+| `/implement-story story-3 --panel` | Convene the review panel at Gate 3 regardless of route (needs the config line); with `--quick`, a usage error before any gate |
 
 ## Pipeline
 
@@ -237,6 +238,8 @@ python3 scripts/change-surface.py classify --changed <files>
 
 Default spawn is `evaluator-agent` (AC + recorded tests). Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
+**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `block` is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
 
@@ -263,7 +266,7 @@ Show both the agent's claim and the script's measurement in the story report. Th
 
 ##### A. Drift Response
 
-Handle the `### Drift Analysis` section by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec and wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified. `Read skills/drift-triage/SKILL.md` for the mixed-severity rule and the append-only `drift-log.md` rules.
+Handle the `### Drift Analysis` section by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope/integration impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec and wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified. `Read skills/drift-triage/SKILL.md` for the mixed-severity rule and the append-only `drift-log.md` rules.
 
 **Verify the claim, don't trust it.** After the drift step, format-check only — this script never decides accept / reject / modify-spec:
 
@@ -364,7 +367,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, and next action (`/ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, the `review-panel:` lines, and next action (`/ship`)
 
 **Item 3:** `Read skills/project-context-snapshot/SKILL.md` — regenerated once, here, never between gates. **Item 4:** `Read skills/what-was-built-authoring/SKILL.md`; a `--quick` run has no `what_was_built_data` and still writes the minimal record. **Item 7:** `Read skills/story-commit-provenance/SKILL.md` — captured after item 6's commit, placed idempotently, never by amending the commit it names.
 

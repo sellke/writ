@@ -1,0 +1,46 @@
+{
+  "schema": "pipeline-baseline-v1",
+  "model": "fixture",
+  "selection": [
+    {
+      "story_path": ".writ/specs/archive/2026-01-01-alpha/user-stories/story-1-api.md",
+      "spec_folder": "2026-01-01-alpha",
+      "story_id": "2026-01-01-alpha/story-1-api",
+      "story_commit": "1111111111111111111111111111111111111111",
+      "parent_sha": "1111111111111111111111111111111111111110",
+      "parent_is_merge": false,
+      "surface_class": "api_route",
+      "test_files": ["app/__tests__/api.test.ts"]
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-01-02-beta/user-stories/story-2-ui.md",
+      "spec_folder": "2026-01-02-beta",
+      "story_id": "2026-01-02-beta/story-2-ui",
+      "story_commit": "2222222222222222222222222222222222222222",
+      "parent_sha": "2222222222222222222222222222222222222220",
+      "parent_is_merge": false,
+      "surface_class": "ui",
+      "test_files": ["components/__tests__/ui.test.tsx"]
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-01-03-gamma/user-stories/story-3-db.md",
+      "spec_folder": "2026-01-03-gamma",
+      "story_id": "2026-01-03-gamma/story-3-db",
+      "story_commit": "3333333333333333333333333333333333333333",
+      "parent_sha": "3333333333333333333333333333333333333330",
+      "parent_is_merge": false,
+      "surface_class": "data",
+      "test_files": ["lib/__tests__/db.test.ts"]
+    },
+    {
+      "story_path": ".writ/specs/archive/2026-01-04-delta/user-stories/story-4-lib.md",
+      "spec_folder": "2026-01-04-delta",
+      "story_id": "2026-01-04-delta/story-4-lib",
+      "story_commit": "4444444444444444444444444444444444444444",
+      "parent_sha": "4444444444444444444444444444444444444440",
+      "parent_is_merge": false,
+      "surface_class": "lib",
+      "test_files": ["lib/__tests__/lib.test.ts"]
+    }
+  ]
+}

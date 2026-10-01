@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-01T20:03:00+02:00
+> Last Updated: 2026-10-01T22:30:00+02:00
 
 ## Product Mission
 
@@ -8,24 +8,26 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-01-behavioral-verification — Behavioral Verification (Phase 12)
-- **Status:** Complete ✅
-- **Story:** 5 of 5 — exit-criteria.py Evidence Check, Mutation Test, and Eval Check (Completed ✅)
-- **Progress:** 35/35 tasks complete (100%)
+- **Spec:** 2026-10-01-cross-family-review-panel — Cross-Family Review Panel (Phase 12)
+- **Status:** In Progress
+- **Story:** 4 of 5 — Retrospective Trial Harness and Report (Completed ✅); Story 5 pending the maintainer-run trial
+- **Progress:** 28/35 tasks complete (80%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-01-behavioral-verification/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-01-cross-family-review-panel/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (22 entries)
 - **Docs:** .writ/docs/ (27 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-012 (Small) referenced-paths allowlist rows for the recipe files `/create-uat-plan` creates — Story 5
-- DEV-011 (Small) evidence parser tolerates bulleted, indented, or capitalized Verification lines — Story 5
-- DEV-008 (Small) human-only features matched from the recipe, since `touched` never prints them — Story 2
+- DEV-009 (Small) non-path Locations stored as digests in the trial file; trial-record runs from the repo root — Story 4
+- DEV-008 (Small) trial inputs validated (hex SHAs, safe paths); story/spec read at the active spec path — Story 4
+- DEV-007 (Small) an incomplete trial is `unverifiable` even beside a `valid` finding — Story 4
+- DEV-006 (Small) lean twin: panel paragraph in the Risk-route slot; `--panel` row states the `--quick` usage error — Story 3
+- DEV-005 (Small) panel runs only with the config line; trigger = Gate 3 spawns `review-agent` or `--panel` — Story 3
 
 ## Open Issues
 

@@ -558,6 +558,14 @@ class CommandBudgetTests(unittest.TestCase):
 # On failure path, the `arch-lint:` report forms) and the Step 4 item 8
 # `arch-lint:` line; the build-smoke rationale sentence was trimmed to offset.
 # Inline prose, no new step, gate, or spawn. Acknowledged, not exempted.
+# Updated 2026-10-01 (spec 2026-10-01-cross-family-review-panel, Story 3):
+# implement-story.md 11103 -> 12013 (file 36973), rebased on
+# 2026-10-01-behavioral-verification Story 4's 11103, for the Gate 3 "Review
+# panel (opt-in)" paragraph, the `--panel` Invocation row and usage-error clause,
+# the Step 4 item 8 `review-panel:` entry, and one-clause panel notes in the
+# Overview and Gate 3.5; the duplicated Gate 3 verify-claim and review-loop
+# prose was trimmed to offset (+1131 -> +910).
+# Inline prose, no new step, gate, or spawn site. Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
@@ -570,7 +578,9 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
     # Gate 4.5 rewritten as behavioral verification, old Results ladder and an
     # adjacent Gate 4 clause trimmed to offset (-7 bytes net).
-    "commands/implement-story.md": 11103,
+    # 2026-10-01 (2026-10-01-cross-family-review-panel Story 3): 11103 -> 12013;
+    # opt-in Gate 3 review panel, duplicated Gate 3 prose trimmed to offset.
+    "commands/implement-story.md": 12013,
 }
 
 

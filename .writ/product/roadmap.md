@@ -552,7 +552,7 @@ is still a human handoff at the end of every spec and phase.
 ### Features
 
 - [ ] **Behavioral verification** `Effort: M-L` — a per-project recipe at `.writ/docs/app-verification.md` (launch, safety, login, feature map, evidence, cleanup) names the project's own checks; `/create-uat-plan` drafts it once and binds scenarios to feature IDs; Gate 4.5 runs the checks for the features a story touched through `scripts/app-verify.py` and writes evidence under the spec folder; `exit-criteria.py` checks the cited evidence exists and passed. A machine verdict (exit code) decides; features no check can decide stay human scenarios and say why. Writ ships no runtime. (Merged from the former "Project verification skill" and "Evidence-bound UAT" features at contract lock, 2026-10-01: the recipe's only consumers are the UAT binding and Gate 4.5.)
-- [ ] **Cross-family review panel** `Effort: S-M` — opt-in per project, high-stakes stories only (ADR-023 triage): Gate 3 adds reviewers from other vendors with the same prompt; findings raised by two or more vendors block, single-vendor findings are advisory. Cursor-only today; every other platform falls back to the current Gate 3.
+- [ ] **Cross-family review panel** `Effort: S-M` — opt-in per project, high-stakes stories only (ADR-023 triage): Gate 3 adds reviewers from other vendors with the same prompt; findings raised by two or more vendors block, single-vendor findings are advisory. Cursor-only today; every other platform falls back to the current Gate 3. Spec: [`2026-10-01-cross-family-review-panel`](../specs/2026-10-01-cross-family-review-panel/spec.md) (additive: the panel only adds blocks; `gate3_route` or `--panel` is the stakes signal).
 
 ### Dependencies
 

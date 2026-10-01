@@ -195,7 +195,7 @@ You MUST output your review in this exact format:
 [2-3 sentence summary of the review]
 
 ### Checklist Results
-[Complete all checklists with findings]
+[Complete all checklists with findings. Acceptance Criteria: one line per criterion, `- [x]` satisfied or `- [ ]` not, the evidence, then its trailing `[AC-N.M]` tag.]
 
 ### Security Assessment
 **Risk Level:** [Clean/Low/Medium/High]
@@ -206,6 +206,7 @@ For each issue:
 - **Issue:** [Clear, specific description]
 - **Location:** [File path and line number if applicable]
 - **Severity:** [Critical/Major/Minor]
+- **Category:** [criterion/security/architecture/taste]
 - **Suggested Fix:** [Concrete steps to resolve — not vague guidance]
 
 ### Boundary Compliance
@@ -283,8 +284,8 @@ All acceptance criteria satisfied. Code follows existing patterns, all criteria 
 ### Checklist Results
 
 #### Acceptance Criteria
-- [x] Given a new user, when they submit the registration form, then an account is created — Verified in `auth.test.ts`
-- [x] Given invalid email, when submitted, then validation error is shown — Verified in `auth.test.ts`
+- [x] Given a new user, when they submit the registration form, then an account is created — Verified in `auth.test.ts` `[AC-1.1]`
+- [x] Given invalid email, when submitted, then validation error is shown — Verified in `auth.test.ts` `[AC-1.2]`
 
 #### Code Quality
 Clean. Follows existing patterns, proper error handling, no debug artifacts.
@@ -324,11 +325,13 @@ Two critical issues: acceptance criterion not satisfied (duplicate email rejecti
 - **Issue:** Acceptance criterion "duplicate email rejection" not implemented
 - **Location:** `src/routes/auth.ts:45` — no uniqueness check before insert
 - **Severity:** Critical
+- **Category:** criterion
 - **Suggested Fix:** Add `SELECT count(*) FROM users WHERE email = $1` check before INSERT, return 409 Conflict. Add test case.
 
 - **Issue:** SQL injection in search endpoint
 - **Location:** `src/routes/search.ts:34` — `db.query(\`SELECT * FROM items WHERE name LIKE '%${query}%'\`)`
 - **Severity:** Critical
+- **Category:** security
 - **Suggested Fix:** Use parameterized query: `db.query('SELECT * FROM items WHERE name LIKE $1', [\`%${query}%\`])`. Add test with malicious input.
 
 ### Security Assessment

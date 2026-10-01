@@ -65,6 +65,8 @@ All run concurrently. Each auto-announces completion back to the requester chat.
 
 **Degradation:** an unrecognized `model_tier` warns and runs as `anchor`; when no cheaper same-vendor model is configured, `floor` runs with `model` omitted (the parent's model) and emits one `degraded` line. Never hard-fail the spawn.
 
+**Review panel (ADR-028): *(unverified)*.** Spawn each reviewer `review-panel.py status --platform openclaw` keeps through `sessions_spawn` with `model: <slug>`; a rejected model drops that reviewer `slug_rejected`, and the rest still count. `status` adds `reason: unverified_platform`.
+
 ### 2. Resuming / Steering Agents (`resume` → `subagents steer`)
 
 **Cursor:**
