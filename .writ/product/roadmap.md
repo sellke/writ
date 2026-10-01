@@ -4,7 +4,7 @@
 > Last Updated: 2026-10-01
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-10-01):** Phases 1–11 closed. **Phase 11 (Contract-and-Verifier Layer) completed 2026-09-09 in v0.36.0** — base under 10 KB, eight of ten gates script-backed, two-agent default pipeline, Goal Card to `/goal` emit. **Phase 12 (Behavioral Verification) is committed, not started** — a verifier that proves the user's feature works by driving the running app, plus an opt-in cross-family review panel ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). Other candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
+**Current status (2026-10-01):** Phases 1–11 closed. **Phase 11 (Contract-and-Verifier Layer) completed 2026-09-09 in v0.36.0** — base under 10 KB, eight of ten gates script-backed, two-agent default pipeline, Goal Card to `/goal` emit. **Phase 12 (Behavioral Verification) is implemented, pending human validation (2026-10-01)**: behavioral verification is complete; the cross-family panel is built, and its keep-or-remove trial (Story 5) waits on the maintainer. It adds a verifier that proves the user's feature works by driving the running app, plus an opt-in cross-family review panel ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). Other candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
 
@@ -530,7 +530,7 @@ them to blocking. (3) The two `prose-only` gates are the input to Phase 12.
 
 ---
 
-## Phase 12: Behavioral Verification (3-5 weeks) — 📋 Committed
+## Phase 12: Behavioral Verification (3-5 weeks) — ◐ Implemented, pending panel trial (2026-10-01)
 
 **Goal:** A Writ verifier proves the user's feature works by driving the running
 app, not only that Writ's own artifacts are well formed. This is the evidence
@@ -551,7 +551,7 @@ is still a human handoff at the end of every spec and phase.
 
 ### Features
 
-- [ ] **Behavioral verification** `Effort: M-L` — a per-project recipe at `.writ/docs/app-verification.md` (launch, safety, login, feature map, evidence, cleanup) names the project's own checks; `/create-uat-plan` drafts it once and binds scenarios to feature IDs; Gate 4.5 runs the checks for the features a story touched through `scripts/app-verify.py` and writes evidence under the spec folder; `exit-criteria.py` checks the cited evidence exists and passed. A machine verdict (exit code) decides; features no check can decide stay human scenarios and say why. Writ ships no runtime. (Merged from the former "Project verification skill" and "Evidence-bound UAT" features at contract lock, 2026-10-01: the recipe's only consumers are the UAT binding and Gate 4.5.)
+- [x] **Behavioral verification** `Effort: M-L` — a per-project recipe at `.writ/docs/app-verification.md` (launch, safety, login, feature map, evidence, cleanup) names the project's own checks; `/create-uat-plan` drafts it once and binds scenarios to feature IDs; Gate 4.5 runs the checks for the features a story touched through `scripts/app-verify.py` and writes evidence under the spec folder; `exit-criteria.py` checks the cited evidence exists and passed. A machine verdict (exit code) decides; features no check can decide stay human scenarios and say why. Writ ships no runtime. (Merged from the former "Project verification skill" and "Evidence-bound UAT" features at contract lock, 2026-10-01: the recipe's only consumers are the UAT binding and Gate 4.5.)
 - [ ] **Cross-family review panel** `Effort: S-M` — opt-in per project, high-stakes stories only (ADR-023 triage): Gate 3 adds reviewers from other vendors with the same prompt; findings raised by two or more vendors block, single-vendor findings are advisory. Cursor-only today; every other platform falls back to the current Gate 3. Spec: [`2026-10-01-cross-family-review-panel`](../specs/2026-10-01-cross-family-review-panel/spec.md) (additive: the panel only adds blocks; `gate3_route` or `--panel` is the stakes signal).
 
 ### Dependencies
