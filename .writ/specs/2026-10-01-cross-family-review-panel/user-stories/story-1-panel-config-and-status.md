@@ -1,6 +1,7 @@
 # Story 1: Panel Config, Vendor Table, Status, and Amendments
 
 > **Status:** Completed ✅
+> **Commit:** 88a38c0eff95c6648e136c2a4862f611c7557978
 > **Priority:** High
 > **Dependencies:** None
 
