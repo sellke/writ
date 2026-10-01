@@ -1,6 +1,7 @@
 # Story 3: Run Script and Fixture App (Safety, Launch, Check, Evidence, Cleanup)
 
 > **Status:** Completed ✅
+> **Commit:** 67ecea44301e361c153ccc4a985ae31b59139eec
 > **Priority:** High
 > **Dependencies:** Story 1
 
