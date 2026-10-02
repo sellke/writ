@@ -1,7 +1,7 @@
 # Story 4: Gate 4.5 becomes behavioral verification; mockup comparison becomes advisory
 
 > **Status:** Completed ✅
-> **Commit:** 258244c
+> **Commit:** b0d8e77
 > **Priority:** High
 > **Dependencies:** Story 3
 

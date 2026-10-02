@@ -1,7 +1,7 @@
 # Story 1: Recipe Format, Validator, and Product Amendments
 
 > **Status:** Completed ✅
-> **Commit:** a50a6ed94a39d1b179cf47facae5dc40c6c970d3
+> **Commit:** 16901b6e46e7c5682e83cc12e13b22f9d3c4cfc3
 > **Priority:** High
 > **Dependencies:** None
 

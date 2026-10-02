@@ -1,7 +1,7 @@
 # Story 2: /create-uat-plan Drafts the Recipe and Binds Scenarios to Feature IDs
 
 > **Status:** Completed ✅
-> **Commit:** d7076ff
+> **Commit:** 84262a1
 > **Priority:** High
 > **Dependencies:** Story 1, Story 3
 

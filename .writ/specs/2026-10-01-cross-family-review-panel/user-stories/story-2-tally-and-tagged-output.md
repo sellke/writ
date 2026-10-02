@@ -1,7 +1,7 @@
 # Story 2: Tally, Matching Rule, and Tagged Reviewer Output
 
 > **Status:** Completed ✅
-> **Commit:** a4e200cd2a19f81068521ed3a66a24d69259167e
+> **Commit:** 351b90f272c939d89164e557acecd9c61e7fc29b
 > **Priority:** High
 > **Dependencies:** Story 1
 
