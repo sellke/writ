@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-01T22:30:00+02:00
+> Last Updated: 2026-10-02T02:45:00+02:00
 
 ## Product Mission
 
@@ -8,26 +8,26 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-01-cross-family-review-panel — Cross-Family Review Panel (Phase 12)
+- **Spec:** 2026-10-01-product-check-direction — Product Check Direction: Verification Feeds Realignment
 - **Status:** In Progress
-- **Story:** 4 of 5 — Retrospective Trial Harness and Report (Completed ✅); Story 5 pending the maintainer-run trial
-- **Progress:** 28/35 tasks complete (80%)
+- **Story:** 1 of 2 — Reframe the Boundary (Completed ✅); Story 2 next
+- **Progress:** 7/14 tasks complete (50%)
+- **Also:** 2026-10-01-cross-family-review-panel is Complete (35/35, trial verdict `keep`)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-01-cross-family-review-panel/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-01-product-check-direction/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (22 entries)
 - **Docs:** .writ/docs/ (27 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-009 (Small) non-path Locations stored as digests in the trial file; trial-record runs from the repo root — Story 4
-- DEV-008 (Small) trial inputs validated (hex SHAs, safe paths); story/spec read at the active spec path — Story 4
-- DEV-007 (Small) an incomplete trial is `unverifiable` even beside a `valid` finding — Story 4
-- DEV-006 (Small) lean twin: panel paragraph in the Risk-route slot; `--panel` row states the `--quick` usage error — Story 3
-- DEV-005 (Small) panel runs only with the config line; trigger = Gate 3 spawns `review-agent` or `--panel` — Story 3
+- DEV-002 (Medium) verify-spec.md ratchet re-pinned down 10898 -> 10818 instead of left unchanged — product-check-direction Story 1
+- DEV-005 (Small) lean description mirrored; extra `lints (before` forbid pin — product-check-direction Story 1
+- DEV-004 (Small) eval check run as `product-check-direction`, not the underscore name — product-check-direction Story 1
+- DEV-010 (Small) `trial-prepare` accepts the legacy `## Contract Summary` heading — cross-family-review-panel Story 5
 
 ## Open Issues
 

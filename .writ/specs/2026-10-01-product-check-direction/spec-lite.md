@@ -11,14 +11,16 @@
 - Markdown edits only, plus eval pins and two ratchet re-pins
 - One direction sentence, reused verbatim in three files: "Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does."
 - Lint behavior (P1–P4, dispositions, report path) unchanged
+- Forbid pins on both verify-spec files: "a lint you run before deciding anything", "consistency lint (before)", "lints (before" (DEV-005)
 
 **Files in Scope:**
-- `commands/verify-spec.md` — description, `--product` Modes row, line 37 callout, Boundary paragraph (625–631); net bytes ≤ 0
-- `commands/verify-spec.lean.md` — mirror lines 33–35, 295; headings unchanged
+- `commands/verify-spec.md` — description, `--product` Modes row, line 37 callout, Boundary paragraph (625–631), Integration row for `--reconcile` (DEV-001); net bytes ≤ 0
+- `commands/verify-spec.lean.md` — mirror description, lines 33–35, 295; headings unchanged
+- `scripts/tests/test_lean_commands.py` — re-pin `DEFAULT_SHA256` for each edited default command (DEV-003)
 - `commands/plan-product.md` — Reconcile Boundary (37–45); Step R4 closing (106) → suggest `/create-spec`
 - `commands/implement-phase.md` — one conditional line in Step 4.2 template
 - `commands/release.md` — Phase 5 `Roadmap:` line (518), lines 397, 399
-- `scripts/eval.sh` — `check_product_check_direction` pins
+- `scripts/eval.sh` — `check_product_check_direction` pins, run as `--check=product-check-direction` (DEV-004)
 - `scripts/tests/test_governor_enforcement.py` — re-pin implement-phase (10200) and release (7576) with dated disclosure
 
 **Error Handling:**
@@ -37,7 +39,7 @@
 2. No command file frames `--product` as "before" a decision or reconcile as its "after" `[AC-1.1, AC-1.2]`
 3. Step R4 suggests `/create-spec`, not `/verify-spec --product`; Step R2 still consumes findings `[AC-1.3]`
 4. `implement-phase` Step 4.2 and `release` Phase 5 each carry one conditional `/verify-spec --product` line; release's reconcile pointer replaced, not stacked `[AC-2.1, AC-2.2, AC-2.3]`
-5. `verify-spec.md` does not grow; implement-phase and release ratchet entries re-pinned with disclosure `[AC-1.5, AC-2.4]`
+5. `verify-spec.md` does not grow (its ratchet entry re-pinned down if it shrinks, DEV-002); implement-phase and release ratchet entries re-pinned with disclosure `[AC-1.5, AC-2.4]`
 
 **Business Rules:**
 - One direction: verification → realignment → delivery

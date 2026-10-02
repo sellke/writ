@@ -1,6 +1,6 @@
 ---
 name: verify-spec
-description: "Metadata linter for a spec - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
+description: "Metadata linter for a spec, or with --product the product docs, after implementation - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
 problem: "Spec bookkeeping drifts from the story files that are its source of truth — README statuses, task counts, deliverable checkboxes and spec-lite all rot silently."
 outcome: "The spec's derived metadata is realigned where realignment is safe, and every finding that needs human judgement is recorded against the check that raised it."
 entry_level: standard
@@ -32,9 +32,9 @@ This command is **not a pipeline gate** — run it when you suspect spec drift, 
 | `/verify-spec --fix` | Fix spec-lite | Run Check 7; if divergence found, fully regenerate `spec-lite.md` from `spec.md` |
 | `/verify-spec --spec [path]` | Targeted | Verify the spec at path (folder under `.writ/specs/` or path to `spec.md`) |
 | `/verify-spec --all` | All specs | Run the full diagnostic for every spec under `.writ/specs/` |
-| `/verify-spec --product` | Product docs | Run the **Product Consistency** check set (its own ~4 checks — **not** spec checks 1–8) over `.writ/product/` + `.writ/context.md`; hybrid auto-fix (regenerate derivatives) / report-only (authoritative divergence) |
+| `/verify-spec --product` | Product docs | After specs ship, run the **Product Consistency** check set (its own ~4 checks — **not** spec checks 1–8) over `.writ/product/` + `.writ/context.md`; hybrid auto-fix (regenerate derivatives) / report-only (authoritative divergence) |
 
-> **`--product` is a distinct check set, not spec checks pointed at product docs.** Default `/verify-spec` (checks 1–8) answers "is this spec internally consistent?"; `--product` answers "is the product layer internally consistent and true to reality?" The two do not share checks. See [Product Consistency Checks](#product-consistency-checks---product) below. `--product` is the consistency lint (before); its revision counterpart is `/plan-product --reconcile` (after).
+> **`--product` is a distinct check set, not spec checks pointed at product docs.** Default `/verify-spec` (checks 1–8) answers "is this spec internally consistent?"; `--product` answers "is the product layer internally consistent and true to reality?" The two do not share checks. See [Product Consistency Checks](#product-consistency-checks---product) below. Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.
 
 ## Command Process
 
@@ -623,12 +623,10 @@ docs — they are their own ~4 checks with their own dispositions, report, and
 output file. Do not mirror the eight spec checks onto product docs.
 
 **Boundary (critical):** `--product` answers "is the product layer internally
-consistent and true to reality?" — a lint you run before deciding anything.
-Its revision counterpart is [`/plan-product --reconcile`](plan-product.md), which
-answers "is it still the right plan? revise it," run after you decide to
-change. Run `--product` first to see what drifted; run `--reconcile` to decide
-what to do. The same before/after split separates `/assess-spec` (before) from
-default `/verify-spec` (after).
+consistent and true to reality?" and proposes no direction changes.
+Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.
+[`--reconcile`](plan-product.md) answers "is it still the right plan?" and
+acts on these findings.
 
 ### Inputs
 
@@ -779,7 +777,7 @@ See report: .writ/product/verification-YYYY-MM-DD.md
 | Command | Relationship |
 |---------|-------------|
 | `/implement-spec` | May leave spec metadata noisy after bulk story work — `/verify-spec` cleans it up |
-| `/plan-product --reconcile` | The revision counterpart to `--product`: `--product` lints (before), `--reconcile` revises (after) |
+| `/plan-product --reconcile` | Acts on `--product` findings: realigns the baseline when verification shows drift |
 | `/ship` | Optionally runs a **subset** of these checks (1–3) inline when opening a PR |
 | `/release` | Runs checks **1–6** inline as part of its **internal** release gate (Step 1.3a) — same logic, different entry point; Check 4/8 judgment findings warn there, never block |
 | `/security-audit` | Complementary — verify-spec checks spec structure; security-audit checks safety |

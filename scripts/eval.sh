@@ -83,6 +83,7 @@ CHECKS=(
   spawn-cap
   app-verify
   review-panel
+  product-check-direction
 )
 
 TOTAL_FINDINGS=0
@@ -4776,6 +4777,27 @@ check_review_panel() {
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
   require_literal "$PROJECT_ROOT/adapters/openclaw.md" '**Review panel (ADR-028): *(unverified)*.**' "adapters/openclaw.md must mark the review panel unverified."
+}
+
+check_product_check_direction() {
+  # Spec 2026-10-01-product-check-direction. One direction of flow: product
+  # verification surfaces drift after implementation, /plan-product --reconcile
+  # realigns, and no planning step points back to a verification step.
+  local verify="$PROJECT_ROOT/commands/verify-spec.md"
+  local verify_lean="$PROJECT_ROOT/commands/verify-spec.lean.md"
+  local plan="$PROJECT_ROOT/commands/plan-product.md"
+  local direction='Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.'
+  local file
+
+  for file in "$verify" "$verify_lean" "$plan"; do
+    require_literal "$file" "$direction" "$(relpath "$file") must state the product-check direction sentence verbatim."
+  done
+  for file in "$verify" "$verify_lean"; do
+    forbid_literal "$file" 'a lint you run before deciding anything' "$(relpath "$file") must not frame --product as a pre-decision lint."
+    forbid_literal "$file" 'consistency lint (before)' "$(relpath "$file") must not frame --product as running before --reconcile."
+    forbid_literal "$file" 'lints (before' "$(relpath "$file") must not frame --product as linting before --reconcile revises."
+  done
+  forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
 }
 
 run_check() {

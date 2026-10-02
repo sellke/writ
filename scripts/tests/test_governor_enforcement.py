@@ -566,11 +566,15 @@ class CommandBudgetTests(unittest.TestCase):
 # Overview and Gate 3.5; the duplicated Gate 3 verify-claim and review-loop
 # prose was trimmed to offset (+1131 -> +910).
 # Inline prose, no new step, gate, or spawn site. Acknowledged, not exempted.
+# Updated 2026-10-02 (spec 2026-10-01-product-check-direction, Story 1):
+# verify-spec.md 10898 -> 10818 (file 35778), a shrink: the --product
+# before/after framing and the /assess-spec analogy became one direction
+# sentence. Re-pinned down because total_overage is asserted exactly.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
     "commands/create-spec.md": 28123,
-    "commands/verify-spec.md": 10898,
+    "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     "commands/implement-phase.md": 10200,
     "commands/release.md": 7576,

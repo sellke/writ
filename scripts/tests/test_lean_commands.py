@@ -77,9 +77,13 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # gained the opt-in review panel paragraph, the `--panel` row, and the
 # `review-panel:` report entry (Overview and Gate 3.5 note it in a clause);
 # implement-story.lean.md carries the same change.
+# Repinned 2026-10-02 (2026-10-01-product-check-direction Story 1): the
+# --product description, Modes row, callout, Boundary paragraph, and
+# Integration row now state one direction (verification, then reconcile);
+# verify-spec.lean.md carries the same wording, headings unchanged.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
-    "verify-spec": "f6311abbd2314727aa32c10dde3157e1bb130b2fc162e856bfd11ab786d73cfa",
+    "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
     "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
     "implement-story": "985e2bd95dfbef722ad333fb43f394e8c52002ad304778eb850757a3257c0263",
 }
