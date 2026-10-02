@@ -12,7 +12,7 @@
 | 4 | [Retrospective Trial Harness and Report](story-4-trial-harness.md) | Completed ✅ | 7 | 7/7 | Story 2 |
 | 5 | [Run the Trial and Act on the Verdict](story-5-run-trial-and-act.md) | Completed ✅ | 7 | 7/7 | Stories 3, 4 |
 
-**Total:** 5 stories, 35 tasks, 25 acceptance criteria. Progress: 28/35.
+**Total:** 5 stories, 35 tasks, 25 acceptance criteria. Progress: 35/35.
 
 ## Dependencies
 
