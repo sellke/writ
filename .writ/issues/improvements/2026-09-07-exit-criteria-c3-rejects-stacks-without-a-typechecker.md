@@ -33,3 +33,12 @@ Accept `typecheck: "skipped"` when `postRun.typecheckReason` is non-empty, and h
 evidence line say "typecheck skipped (reason)". Keep `fail` blocking. Alternatively, let
 `/implement-spec` Step 4.1 write `typecheck: "pass"` with a `typecheckCommand: null` note —
 but that hides the skip, which is worse than the current false negative.
+
+## Resolution
+
+2026-10-01, on `phase/12-behavioral-verification`: took the proposed fix. `implement-spec.c3` is
+met for `typecheck: "skipped"` with a non-empty `postRun.typecheckReason`, and its evidence reads
+"typecheck skipped (<reason>)". A bare skip and `fail` stay unmet. `commands/implement-spec.md`
+Step 4.1 and `.writ/docs/exit-criteria-classification.md` name the field. Prompted by Phase 12,
+where one lane recorded `compileall` as a stand-in `pass` and the other an honest skip that c3
+rejected.

@@ -1,0 +1,341 @@
+{
+  "baseline": ".writ/eval/baselines/2026-09-07-claude-fable-5-1.json",
+  "schema": "panel-trial-v1",
+  "stories": [
+    {
+      "arms": {
+        "evaluator": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic"
+              ]
+            },
+            {
+              "key": "architecture:app/api/events/route.ts",
+              "severity": "Major",
+              "vendors": [
+                "anthropic"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [],
+          "session_vendor": "anthropic"
+        },
+        "panel": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "ac:AC-2.1",
+              "severity": "Critical",
+              "vendors": [
+                "openai"
+              ]
+            },
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic",
+                "openai"
+              ]
+            },
+            {
+              "key": "ac:AC-2.4",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic"
+              ]
+            },
+            {
+              "key": "security:app/api/events/route.ts",
+              "severity": "Major",
+              "vendors": [
+                "anthropic"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [
+            "gpt-5.6-sol-medium",
+            "cursor-grok-4.6-medium-fast",
+            "gemini-3.8-flash-high"
+          ],
+          "session_vendor": "anthropic"
+        }
+      },
+      "panel_only": [
+        {
+          "key": "ac:AC-2.1",
+          "label": "valid",
+          "note": "Lifetime-free claim is read before the transaction and set unconditionally; concurrent submits can both create a free event.",
+          "severity": "Critical",
+          "vendors": [
+            "openai"
+          ]
+        }
+      ],
+      "parent_sha": "ae9e47e6a45fe95e44dcf3c44d597e2d9100f376",
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_commit": "79d79ae4a2fb18ba1b5318823f6dc2479f73fa7e",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow",
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-2-event-creation-payment-flow.md"
+    },
+    {
+      "arms": {
+        "evaluator": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "ac:AC-3.2",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [],
+          "session_vendor": "anthropic"
+        },
+        "panel": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "ac:AC-3.1",
+              "severity": "Critical",
+              "vendors": [
+                "openai"
+              ]
+            },
+            {
+              "key": "ac:AC-3.2",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic",
+                "openai"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [
+            "gpt-5.6-sol-medium",
+            "cursor-grok-4.6-medium-fast",
+            "gemini-3.8-flash-high"
+          ],
+          "session_vendor": "anthropic"
+        }
+      },
+      "panel_only": [
+        {
+          "key": "ac:AC-3.1",
+          "label": "invalid",
+          "note": "Venmo moved to per-participant rows by documented design; the view still offers Venmo at the correct per-person amount.",
+          "severity": "Critical",
+          "vendors": [
+            "openai"
+          ]
+        }
+      ],
+      "parent_sha": "81ed2e4ed0693fedf566b279c97f913483bd6891",
+      "spec_folder": "2026-07-23-quick-split-single-transaction",
+      "story_commit": "8d97930a73bf2d7fd6c29323d5c395402c31095c",
+      "story_id": "2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link",
+      "story_path": ".writ/specs/archive/2026-07-23-quick-split-single-transaction/user-stories/story-3-settlement-view-share-link.md"
+    },
+    {
+      "arms": {
+        "evaluator": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "architecture:app/api/events/[id]/fee-share/route.ts",
+              "severity": "Major",
+              "vendors": [
+                "anthropic"
+              ]
+            },
+            {
+              "key": "security:app/api/expenses/[id]/route.ts",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [],
+          "session_vendor": "anthropic"
+        },
+        "panel": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "ac:AC-3.3",
+              "severity": "Critical",
+              "vendors": [
+                "google"
+              ]
+            },
+            {
+              "key": "architecture:app/api/events/[id]/fee-share/route.ts",
+              "severity": "Major",
+              "vendors": [
+                "anthropic"
+              ]
+            },
+            {
+              "key": "architecture:components/__tests__/FeeShareModal.test.tsx",
+              "severity": "Major",
+              "vendors": [
+                "google"
+              ]
+            },
+            {
+              "key": "security:app/api/events/[id]/fee-share/route.ts",
+              "severity": "Critical",
+              "vendors": [
+                "openai"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [
+            "gpt-5.6-sol-medium",
+            "cursor-grok-4.6-medium-fast",
+            "gemini-3.8-flash-high"
+          ],
+          "session_vendor": "anthropic"
+        }
+      },
+      "panel_only": [
+        {
+          "key": "ac:AC-3.3",
+          "label": "valid",
+          "note": "Organizer is auto-added as a non-Pro participant and the modal never excludes them, so the all-Pro zero-split path is unreachable from the UI.",
+          "severity": "Critical",
+          "vendors": [
+            "google"
+          ]
+        },
+        {
+          "key": "architecture:components/__tests__/FeeShareModal.test.tsx",
+          "label": "valid",
+          "note": "Test fixture omits the organizer participant, which masked the AC-3.3 defect.",
+          "severity": "Major",
+          "vendors": [
+            "google"
+          ]
+        },
+        {
+          "key": "security:app/api/events/[id]/fee-share/route.ts",
+          "label": "valid",
+          "note": "Per-entry percentages are unbounded (only the sum is checked); owner-scoped, so severity is lower than Critical, but a real validation gap.",
+          "severity": "Critical",
+          "vendors": [
+            "openai"
+          ]
+        }
+      ],
+      "parent_sha": "f840c3fcc2d00ee7c797b8e5aaa015b4a54d0387",
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_commit": "c9350fca11ca673fab2000066e0118e369faffab",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption",
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-3-fee-sharing-pro-exemption.md"
+    },
+    {
+      "arms": {
+        "evaluator": {
+          "dropped": [],
+          "keys": [],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "PASS",
+          "reviewers": [],
+          "session_vendor": "anthropic"
+        },
+        "panel": {
+          "dropped": [],
+          "keys": [
+            {
+              "key": "ac:AC-4.1",
+              "severity": "Critical",
+              "vendors": [
+                "openai"
+              ]
+            },
+            {
+              "key": "ac:AC-4.2",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic",
+                "openai",
+                "google"
+              ]
+            },
+            {
+              "key": "ac:AC-4.3",
+              "severity": "Critical",
+              "vendors": [
+                "anthropic",
+                "google"
+              ]
+            }
+          ],
+          "origin": "Claude Opus 5.5",
+          "primary_verdict": "FAIL",
+          "reviewers": [
+            "gpt-5.6-sol-medium",
+            "cursor-grok-4.6-medium-fast",
+            "gemini-3.8-flash-high"
+          ],
+          "session_vendor": "anthropic"
+        }
+      },
+      "panel_only": [
+        {
+          "key": "ac:AC-4.1",
+          "label": "invalid",
+          "note": "No production path opens the event_limit trigger or the Unlimited Events gate, so no user encounters the subscribe-only CTAs.",
+          "severity": "Critical",
+          "vendors": [
+            "openai"
+          ]
+        },
+        {
+          "key": "ac:AC-4.2",
+          "label": "valid",
+          "note": "Stale hard-wall benefit copy survives in the Unlimited Events gate and the updated test asserts it. Confound: the panel arm's same-vendor primary also raised it.",
+          "severity": "Critical",
+          "vendors": [
+            "openai",
+            "google"
+          ]
+        },
+        {
+          "key": "ac:AC-4.3",
+          "label": "valid",
+          "note": "Product doc still describes deleting an event to make room. Confound: the panel arm's same-vendor primary also raised it.",
+          "severity": "Critical",
+          "vendors": [
+            "google"
+          ]
+        }
+      ],
+      "parent_sha": "5dceffa6efcb8f585b6c282b81271d370e5105b6",
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_commit": "12eea11e766c9a9b282ce84fd55fc885fa6fdb40",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard",
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-4-messaging-migration-quick-split-guard.md"
+    }
+  ]
+}

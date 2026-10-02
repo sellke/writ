@@ -1,12 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## What This Project Is
 
-Writ is an AI-powered development workflow framework — markdown command files and agent definitions that run on any AI coding platform (Cursor, Claude Code, OpenClaw). There is no application code, no build step, no test suite, and no dependencies. The deliverables are markdown files.
-
-**Version:** See `VERSION` file. Current release process: `/release` command.
+Writ is an AI-powered development workflow framework — markdown command files and agent definitions that run on any AI coding platform (Cursor, Claude Code, OpenClaw). There is no application code, no build step, and no dependencies. The deliverables are markdown files.
 
 ## Repository Structure (Self-Dogfooding)
 
@@ -35,19 +31,6 @@ for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
 bash scripts/eval.sh                 # --check=<name> for one check
 ```
 
-Validation of the methodology itself is via Writ commands:
-
-```bash
-# Check spec integrity
-/verify-spec
-
-# Full project status
-/status
-
-# Release (changelog + version bump + git tag)
-/release
-```
-
 The install/update scripts can be tested:
 ```bash
 bash scripts/install.sh --dry-run    # Preview install into a target project
@@ -63,9 +46,6 @@ Commands are self-contained — each is read and followed top to bottom; they re
 ## Key Design Decisions
 
 - **Contract-first**: Specs are agreed upon before any files are created. Commands use Plan Mode for discovery, AskQuestion for bounded choices (see ADR-001 in `.writ/decision-records/`).
-- **Platform-agnostic tool references**: Commands use generic tool names. Adapters translate to platform-specific APIs.
-- **Symlinks for dogfooding**: `.cursor/` symlinks to product source so edits are immediately live and `/refresh-command` improves the product directly.
-- **`.writ/state/` is gitignored**: Ephemeral workflow state only.
 
 ## When Editing Commands or Agents
 

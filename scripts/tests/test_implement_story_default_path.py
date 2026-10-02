@@ -128,9 +128,10 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("testing-agent", g4)
         self.assertIn("--full-pipeline", g4)
         g45 = next(ln for ln in pipe.splitlines() if ln.startswith("| Gate 4.5 |"))
+        self.assertIn("app-verify.py", g45)
         self.assertIn("--full-pipeline", g45)
         self.assertIn("visual-qa", g45)
-        self.assertIn("default", g45.lower())
+        self.assertIn("--quick", g45)
         g5 = next(ln for ln in pipe.splitlines() if ln.startswith("| Gate 5 |"))
         self.assertIn("docs-check.py", g5)
         self.assertIn("documentation-agent", g5)
@@ -233,17 +234,34 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("`--full-pipeline`", gate0)
         self.assertIn("planned", gate0)
 
-        gate45 = _section(self.text, "#### Gate 4.5: Visual QA (Optional)", "#### Gate 5:")
+        # 2026-10-01-behavioral-verification Story 4 (AC-4.1, AC-4.2): a
+        # script decides Gate 4.5; visual-qa is notes-only under --full-pipeline.
+        gate45 = _section(self.text, "#### Gate 4.5: Behavioral Verification", "#### Gate 5:")
         self.assertNotIn("%", gate45)
         self.assertNotIn(" percent", gate45)
-        for word in ("PASS", "SOFT PASS", "FAIL"):
-            self.assertIn(word, gate45)
-        self.assertIn("`--full-pipeline`", gate45)
-        self.assertTrue(
-            "default" in gate45.lower() and "skip" in gate45.lower(),
-            "Gate 4.5 must skip on default even with visual refs",
-        )
+        self.assertIn("python3 scripts/app-verify.py touched", gate45)
+        self.assertIn("run --recipe .writ/docs/app-verification.md", gate45)
+        self.assertIn("--run-label story-N", gate45)
+        self.assertIn("Gate 1", gate45)
+        self.assertIn("shared review-loop cap", gate45)
+        self.assertIn("**not** marked `⚠️ DEGRADED`", gate45)
+        self.assertIn("no mapped features", gate45)
+        self.assertIn("`--review-only`", gate45)
+        self.assertIn("`--quick`", gate45)
+        self.assertIn("never asks a question", gate45)
+        self.assertNotIn("Task(", gate45)
         self.assertEqual(_default_agent_markers(gate45), [])
+        full = _section(gate45, "**`--full-pipeline`:**")
+        self.assertIn("agents/visual-qa-agent.md", full)
+        self.assertIn("notes", full)
+        self.assertIn("never fail", full)
+        self.assertIn("count toward the review loop", full)
+        self.assertIn("--features <touched ids, comma-joined>", gate45)
+        flow = _section(self.text, "**Control flow:**", "## Command Process")
+        self.assertNotIn("visual QA", flow)
+        loop = _section(self.text, "**Review loop:**", "**Verify the claim")
+        self.assertNotIn("visual QA", loop)
+        self.assertIn("Gate 4.5 script fail", loop)
 
         gate5 = _section(self.text, "#### Gate 5: Documentation Agent")
         self.assertIn("scripts/docs-check.py check", gate5)
@@ -283,6 +301,29 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         desc = self.text.split("description:", 1)[1].split("\n", 1)[0]
         self.assertNotIn("full SDLC pipeline", desc)
 
+
+
+class BehavioralVerificationContractTests(unittest.TestCase):
+    """2026-10-01-behavioral-verification Story 4."""
+
+    def test_lean_gate_4_5_matches_default(self) -> None:
+        """AC-4.5: the lean twin carries the same Gate 4.5 behavior."""
+        default = COMMAND_PATH.read_text(encoding="utf-8")
+        lean = (REPO_ROOT / "commands" / "implement-story.lean.md").read_text(encoding="utf-8")
+        heading = "#### Gate 4.5: Behavioral Verification"
+        self.assertEqual(_section(lean, heading, "#### Gate 5:"),
+                         _section(default, heading, "#### Gate 5:"))
+        self.assertIn("  - id: gate4_5_behavior\n    script: scripts/app-verify.py\n", lean)
+
+    def test_coding_agent_writes_checks_it_never_grades(self) -> None:
+        """AC-4.4: one rule; the check's exit code is the verdict."""
+        text = (REPO_ROOT / "agents" / "coding-agent.md").read_text(encoding="utf-8")
+        rules = [ln for ln in text.splitlines() if ".writ/docs/app-verification.md" in ln]
+        self.assertEqual(len(rules), 1, rules)
+        rule = rules[0]
+        for phrase in ("Feature Map row", "(ID, feature, paths, check)",
+                       "test harness", "exit code is the verdict", "never grade"):
+            self.assertIn(phrase, rule)
 
 if __name__ == "__main__":
     unittest.main()

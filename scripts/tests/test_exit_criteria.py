@@ -804,6 +804,33 @@ class SpecCheckTests(unittest.TestCase):
         c3 = next(c for c in payload["criteria"] if c["id"] == "implement-spec.c3")
         self.assertEqual(c3["verdict"], "unmet")
 
+    def _c3_for(self, post_run: dict) -> dict:
+        write_spec_state(self.state_path, postRun=dict(
+            {"testSuite": "pass", "contextRewritten": True, "at": "2026-01-01T01:00:00Z"},
+            **post_run))
+        _, payload = run_cli(
+            "check", "--command", "implement-spec",
+            "--spec", str(self.spec_dir), "--state", str(self.state_path),
+            "--repo", str(self.repo), "--classification", str(REAL_CLASSIFICATION_PATH),
+        )
+        return next(c for c in payload["criteria"] if c["id"] == "implement-spec.c3")
+
+    def test_c3_typecheck_skipped_with_reason_is_met_and_says_so(self) -> None:
+        c3 = self._c3_for({"typecheck": "skipped",
+                           "typecheckReason": "no typechecker configured"})
+        self.assertEqual(c3["verdict"], "met")
+        self.assertIn("typecheck skipped (no typechecker configured)", c3["evidence"])
+
+    def test_c3_typecheck_skipped_without_reason_is_unmet(self) -> None:
+        for post_run in ({"typecheck": "skipped"},
+                         {"typecheck": "skipped", "typecheckReason": "  "}):
+            with self.subTest(post_run=post_run):
+                self.assertEqual(self._c3_for(post_run)["verdict"], "unmet")
+
+    def test_c3_typecheck_fail_stays_unmet_even_with_reason(self) -> None:
+        c3 = self._c3_for({"typecheck": "fail", "typecheckReason": "mypy errors"})
+        self.assertEqual(c3["verdict"], "unmet")
+
     def test_all_three_criteria_met_gives_overall_met_and_exit_0(self) -> None:
         write_spec_state(
             self.state_path,
@@ -854,6 +881,293 @@ class OutputShapeTests(PhaseGitFixture):
             if c["verdict"] in {"unmet", "unknown"}:
                 self.assertIn("reason", c)
 
+
+
+# --- 2026-10-01-behavioral-verification Story 5: the c2 evidence half -------
+
+def uat_plan_with_scenarios(title: str, *scenarios: tuple[str, str]) -> str:
+    """A populated plan whose `### Scenario N:` blocks carry the given
+    `**Verification:**` values (pass "" to omit the line)."""
+    out = [f"# UAT Plan: {title}\n", "## How to Use This Plan\n", "1. Work through scenarios.\n",
+           "## Story 1: Fixture\n"]
+    for n, (feature, verification) in enumerate(scenarios, start=1):
+        out.append(f"### Scenario {n}: scenario {n}\n")
+        out.append("**Source:** Acceptance Criteria — Story 1")
+        out.append(f"**Feature:** {feature}")
+        if verification:
+            out.append(f"**Verification:** {verification}")
+        out.append("\n**Steps:**\n1. Open the page.\n\n**Status:** [ ] Pass  [ ] Fail\n\n---\n")
+    return "\n".join(out) + "\n"
+
+
+MACHINE_HOME = ("home", "machine — evidence: evidence/uat/home/result.json")
+HOME_PATH = "evidence/uat/home/result.json"
+
+
+def write_result(spec_dir: Path, rel: str, verdict: str = "pass", *, raw: str | None = None) -> Path:
+    path = spec_dir / rel
+    body = raw if raw is not None else json.dumps(
+        {"schema": "app-verify-result-v1", "feature": "home", "verdict": verdict})
+    write(path, body)
+    return path
+
+
+class PhaseC2EvidenceTests(PhaseGitFixture):
+    """2026-10-01-behavioral-verification Story 5 (AC-5.1, AC-5.2, AC-5.4):
+    machine-verified scenarios must cite evidence that exists inside the
+    spec folder and records verdict `pass`."""
+
+    _make_merged_spec = PhaseC2Tests._make_merged_spec
+    _spec_record = PhaseC2Tests._spec_record
+
+    def _c2(self, plan: str, *, evidence: dict[str, Any] | None = None) -> dict[str, Any]:
+        spec_dir = self.repo / ".writ" / "specs" / "spec-a"
+        for rel, verdict in (evidence or {}).items():
+            write_result(spec_dir, rel, verdict)
+        sha = self._make_merged_spec("spec-a", plan_text=plan, plan_commit_first=False)
+        write_phase_state(self.state_path, specs={"spec-a": self._spec_record(sha)})
+        return self._run_c2()
+
+    def _run_c2(self) -> dict[str, Any]:
+        _, payload = run_cli(
+            "check", "--command", "implement-phase",
+            "--state", str(self.state_path), "--repo", str(self.repo),
+            "--classification", str(REAL_CLASSIFICATION_PATH),
+        )
+        return next(c for c in payload["criteria"] if c["id"] == "implement-phase.c2")
+
+    def test_passing_evidence_is_met(self) -> None:
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", MACHINE_HOME), evidence={HOME_PATH: "pass"})
+        self.assertEqual(c2["verdict"], "met", c2)
+
+    def test_missing_evidence_file_is_unmet_naming_spec_and_scenario(self) -> None:
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", MACHINE_HOME))
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("evidence missing: spec-a / Scenario 1 (evidence/uat/home/result.json)", c2["reason"])
+
+    def test_fail_verdict_is_unmet(self) -> None:
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", MACHINE_HOME), evidence={HOME_PATH: "fail"})
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("evidence not pass: spec-a / Scenario 1", c2["reason"])
+
+    def test_timeout_verdict_is_unmet(self) -> None:
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", MACHINE_HOME), evidence={HOME_PATH: "fail (timeout)"})
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("fail (timeout)", c2["reason"])
+
+    def test_non_json_result_is_unmet(self) -> None:
+        spec_dir = self.repo / ".writ" / "specs" / "spec-a"
+        write_result(spec_dir, HOME_PATH, raw="not json {")
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", MACHINE_HOME))
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("evidence unreadable: spec-a / Scenario 1", c2["reason"])
+
+    def test_path_outside_spec_folder_is_unmet(self) -> None:
+        write_result(self.repo, "outside/result.json", "pass")
+        plan = uat_plan_with_scenarios(
+            "spec-a", ("home", "machine — evidence: ../../../outside/result.json"))
+        c2 = self._c2(plan)
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("evidence outside spec folder: spec-a / Scenario 1", c2["reason"])
+
+    def test_machine_line_without_path_is_unmet(self) -> None:
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", ("home", "machine")))
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("evidence path absent: spec-a / Scenario 1", c2["reason"])
+
+    def test_human_scenarios_are_ignored(self) -> None:
+        plan = uat_plan_with_scenarios(
+            "spec-a", MACHINE_HOME, ("oauth", "human — needs a real Google account"),
+            ("none", "human — no mapped feature"))
+        c2 = self._c2(plan, evidence={HOME_PATH: "pass"})
+        self.assertEqual(c2["verdict"], "met", c2)
+
+    def test_legacy_plan_without_verification_lines_is_met_and_noted(self) -> None:
+        c2 = self._c2(uat_plan_populated("spec-a"))
+        self.assertEqual(c2["verdict"], "met", c2)
+        self.assertIn("legacy plan: spec-a", c2["evidence"])
+
+    def test_plan_with_only_human_scenarios_is_met_and_noted(self) -> None:
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", ("none", "human — no recipe")))
+        self.assertEqual(c2["verdict"], "met", c2)
+        self.assertIn("no machine scenarios: spec-a", c2["evidence"])
+
+    def test_deleting_result_json_flips_met_to_unmet(self) -> None:
+        """AC-5.4: the missing-evidence mutation (Business Rule 6)."""
+        c2 = self._c2(uat_plan_with_scenarios("spec-a", MACHINE_HOME), evidence={HOME_PATH: "pass"})
+        self.assertEqual(c2["verdict"], "met", c2)
+        (self.repo / ".writ" / "specs" / "spec-a" / HOME_PATH).unlink()
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("evidence missing: spec-a / Scenario 1", c2["reason"])
+
+    def test_ordering_half_still_runs_alongside_evidence(self) -> None:
+        spec_dir = self.repo / ".writ" / "specs" / "spec-a"
+        write_result(spec_dir, HOME_PATH, "pass")
+        sha = self._make_merged_spec(
+            "spec-a", plan_text=uat_plan_with_scenarios("spec-a", MACHINE_HOME), plan_commit_first=True)
+        write_phase_state(self.state_path, specs={"spec-a": self._spec_record(sha)})
+        c2 = self._run_c2()
+        self.assertEqual(c2["verdict"], "unmet")
+        self.assertIn("ordering violation", c2["reason"])
+
+    def test_criterion_text_is_byte_identical_to_the_command(self) -> None:
+        """AC-5.2: the evidence half changes the mechanism, not the prose."""
+        text = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+        frontmatter = text.split("---\n", 2)[1]
+        line = f'  - "{ec.CRITERION_TEXT["implement-phase.c2"]}"'
+        self.assertIn(line, frontmatter.splitlines())
+
+    def test_classification_records_the_evidence_half(self) -> None:
+        """AC-5.2: recorded under ## implement-phase.c2, row still evaluable-now."""
+        doc = REAL_CLASSIFICATION_PATH.read_text(encoding="utf-8")
+        section = doc[doc.index("## `implement-phase.c2`"):doc.index("## `implement-phase.c3`")]
+        self.assertIn("**Evidence — evidence half:**", section)
+        self.assertIn("check-uat", section)
+        self.assertIn("legacy plan", section)
+        self.assertEqual(ec.load_classification(REAL_CLASSIFICATION_PATH)["implement-phase.c2"],
+                         "evaluable-now")
+
+
+class CheckUatTests(unittest.TestCase):
+    """2026-10-01-behavioral-verification Story 5 (AC-5.3, AC-5.4):
+    `check-uat --spec DIR` evaluates only the evidence half for one spec."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.spec = Path(self._tmp.name) / "spec-a"
+        self.spec.mkdir()
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _run(self) -> tuple[int, dict]:
+        return run_cli("check-uat", "--spec", str(self.spec))
+
+    def _snapshot(self) -> dict[str, tuple[int, int]]:
+        return {str(p): (p.stat().st_size, p.stat().st_mtime_ns)
+                for p in Path(self._tmp.name).rglob("*")}
+
+    def test_passing_evidence_exits_0_with_scenarios(self) -> None:
+        write(self.spec / "uat-plan.md", uat_plan_with_scenarios("spec-a", MACHINE_HOME))
+        write_result(self.spec, HOME_PATH, "pass")
+        before = self._snapshot()
+        code, payload = self._run()
+        self.assertEqual(code, 0, payload)
+        self.assertEqual(payload["schema"], "exit-criteria-check-v1")
+        self.assertEqual(payload["verdict"], "met")
+        self.assertEqual(payload["spec"], str(self.spec))
+        self.assertEqual(payload["scenarios"],
+                         [{"scenario": "Scenario 1", "path": HOME_PATH, "outcome": "pass"}])
+        self.assertIn("evidence", payload)
+        self.assertEqual(self._snapshot(), before, "check-uat must not write files")
+
+    def test_missing_evidence_exits_1_with_reason(self) -> None:
+        write(self.spec / "uat-plan.md", uat_plan_with_scenarios("spec-a", MACHINE_HOME))
+        code, payload = self._run()
+        self.assertEqual(code, 1, payload)
+        self.assertEqual(payload["verdict"], "unmet")
+        self.assertIn("evidence missing: spec-a / Scenario 1 (evidence/uat/home/result.json)",
+                      payload["reason"])
+        self.assertEqual(payload["scenarios"][0]["outcome"], "missing")
+
+    def test_deleting_result_json_flips_exit_0_to_1(self) -> None:
+        """AC-5.4: the missing-evidence mutation through check-uat."""
+        write(self.spec / "uat-plan.md", uat_plan_with_scenarios("spec-a", MACHINE_HOME))
+        result = write_result(self.spec, HOME_PATH, "pass")
+        self.assertEqual(self._run()[0], 0)
+        result.unlink()
+        code, payload = self._run()
+        self.assertEqual(code, 1)
+        self.assertIn("evidence missing: spec-a / Scenario 1", payload["reason"])
+
+    def test_legacy_plan_exits_0_with_note(self) -> None:
+        write(self.spec / "uat-plan.md", uat_plan_populated("spec-a"))
+        code, payload = self._run()
+        self.assertEqual(code, 0, payload)
+        self.assertIn("legacy plan: spec-a", payload["evidence"])
+        self.assertEqual(payload["scenarios"], [])
+
+    def test_missing_spec_dir_is_impossible_exit_2(self) -> None:
+        self.spec.rmdir()
+        code, payload = self._run()
+        self.assertEqual(code, 2)
+        self.assertEqual(payload["verdict"], "impossible")
+        self.assertEqual(payload["spec"], str(self.spec))
+        self.assertNotIn("command", payload)
+
+    def test_missing_uat_plan_is_impossible_exit_2(self) -> None:
+        code, payload = self._run()
+        self.assertEqual(code, 2)
+        self.assertIn("uat-plan.md", payload["reason"])
+
+    def _plan(self, *scenarios: tuple[str, str]) -> None:
+        write(self.spec / "uat-plan.md", uat_plan_with_scenarios("spec-a", *scenarios))
+
+    def test_absolute_path_is_outside_spec_folder(self) -> None:
+        outside = write_result(Path(self._tmp.name), "outside.json", "pass")
+        self._plan(("home", f"machine — evidence: {outside}"))
+        code, payload = self._run()
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["scenarios"][0]["outcome"], "outside_spec")
+
+    def test_symlink_escaping_spec_folder_is_outside(self) -> None:
+        outside = write_result(Path(self._tmp.name), "outside/result.json", "pass")
+        link = self.spec / "evidence" / "uat" / "home"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(outside.parent, target_is_directory=True)
+        self._plan(MACHINE_HOME)
+        code, payload = self._run()
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["scenarios"][0]["outcome"], "outside_spec")
+
+    def test_backticked_path_resolves(self) -> None:
+        write_result(self.spec, HOME_PATH, "pass")
+        self._plan(("home", f"machine — evidence: `{HOME_PATH}`"))
+        code, payload = self._run()
+        self.assertEqual(code, 0, payload)
+        self.assertEqual(payload["scenarios"][0]["path"], HOME_PATH)
+
+    def test_non_object_json_and_non_string_verdict_are_unmet(self) -> None:
+        write_result(self.spec, "evidence/uat/a/result.json", raw='["pass"]')
+        write_result(self.spec, "evidence/uat/b/result.json", raw='{"verdict": true}')
+        self._plan(("a", "machine — evidence: evidence/uat/a/result.json"),
+                   ("b", "machine — evidence: evidence/uat/b/result.json"))
+        code, payload = self._run()
+        self.assertEqual(code, 1)
+        self.assertEqual([s["outcome"] for s in payload["scenarios"]], ["unreadable", "not_pass"])
+
+    def test_verification_line_is_attributed_to_its_own_scenario(self) -> None:
+        self._plan(("home", ""), MACHINE_HOME)
+        code, payload = self._run()
+        self.assertEqual(code, 1)
+        self.assertEqual(payload["scenarios"], [
+            {"scenario": "Scenario 2", "path": HOME_PATH, "outcome": "missing"}])
+
+    def test_bulleted_or_capitalized_machine_line_is_still_checked(self) -> None:
+        text = uat_plan_with_scenarios("spec-a", MACHINE_HOME).replace(
+            "**Verification:** machine", "- **Verification:** Machine")
+        write(self.spec / "uat-plan.md", text)
+        code, payload = self._run()
+        self.assertEqual(code, 1, payload)
+        self.assertEqual(payload["scenarios"][0]["outcome"], "missing")
+
+    def test_dot_spec_argument_still_names_the_spec(self) -> None:
+        self._plan(MACHINE_HOME)
+        cwd = os.getcwd()
+        os.chdir(self.spec)
+        try:
+            code, payload = run_cli("check-uat", "--spec", ".")
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(code, 1)
+        self.assertIn("evidence missing: spec-a / Scenario 1", payload["reason"])
+
+    def test_unreadable_uat_plan_is_impossible_exit_2(self) -> None:
+        (self.spec / "uat-plan.md").write_bytes(b"\xff\xfe not utf-8 \xff")
+        code, payload = self._run()
+        self.assertEqual(code, 2)
+        self.assertEqual(payload["verdict"], "impossible")
 
 if __name__ == "__main__":
     unittest.main()

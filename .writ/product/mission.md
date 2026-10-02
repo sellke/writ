@@ -1,10 +1,10 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-08-13
+> Last Updated: 2026-10-01
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Revision: 2026-08-13 — reconcile pass after v0.31.0: two inter-phase infrastructure specs (machine-evaluable exit criteria, implement-loop recalibration) recorded in `roadmap.md`'s condensed history. Routine bookkeeping, no direction change, no new ADR.
+> Last Revision: 2026-10-01 — reconcile pass after v0.39.0: Phase 11 recorded as closed; the default `implement-story` pipeline described as shipped in Stage 4b; **direction change** — Phase 12 (Behavioral Verification) committed per [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md).
 
 ## Pitch
 
@@ -72,7 +72,7 @@ Unlike frameworks that ship daemons, browsers, or databases, Writ is markdown, g
 
 ### Observable Autonomy, Deliberately Bounded
 
-Normal `/implement-phase` runs an entire roadmap phase after one confirmation — fresh context per spec, quarantine branching on failure, User Challenge framing, and an honest completion report with UAT plans. Separately, `--recommend` adds evidence-backed autonomy on two commands: `/create-spec --recommend` authors and locks a spec package from evidence and then stops, and `/implement-phase --recommend` runs the phase as an end-to-end loop that also authors any missing specs. Both end at their normal terminal scope — neither merges, opens PRs, nor releases. Opaque unbounded loops remain out of scope: accountability, not volume, is the product. ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md))
+Normal `/implement-phase` runs an entire roadmap phase after one confirmation — fresh context per spec, quarantine branching on failure, User Challenge framing, and an honest completion report with UAT plans. Separately, `--recommend` adds evidence-backed autonomy on two commands: `/create-spec --recommend` authors and locks a spec package from evidence and then stops, and `/implement-phase --recommend` runs the phase as an end-to-end loop that also authors any missing specs. Both end at their normal terminal scope — neither merges, opens PRs, nor releases. Opaque unbounded loops remain out of scope: accountability, not volume, is the product. ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md)) The ceiling moves only on evidence: machine-verified UAT is the named precondition, and Phase 12 builds the verifier that would produce it ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
 
 ### Self-Improvement With Evidence
 
@@ -99,7 +99,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 ### The Proven Core (shipped, load-bearing)
 
 - **Contract-first specs (`/create-spec`):** Plan Mode discovery, negotiated contract, story decomposition — the expensive thinking happens before code.
-- **Gated implementation (`/implement-story`, `/implement-spec`):** Architecture check, coding, review, testing, docs — with tiered spec-healing when reality diverges from plan.
+- **Gated implementation (`/implement-story`, `/implement-spec`):** By default one coding agent and a fresh-context evaluator, with script-backed gates (build, tests, coverage, boundary crossings, drift) re-deriving the verdicts; the six-agent pipeline is the explicit `--full-pipeline` path. Tiered spec-healing when reality diverges from plan.
 - **Issue capture (`/create-issue`), shipping (`/ship`), verification (`/verify-spec`), disciplined refactoring (`/refactor`):** The workflow from idea to merged PR with no manual gaps.
 - **System instructions + Prime Directive:** The behavioral contract that sets every session on the right foot — identity, anti-sycophancy hard constraints, auto-orientation.
 
@@ -134,8 +134,20 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Progressive disclosure (✗ stopped on evidence):** One command converted (`implement-story`, floor −35.9%); the pilot measured ~1,017 B irreducible overhead per skill and a +9.7% worst-path regression, and `required_skills:` turned out to pre-load eagerly rather than on demand. Five sibling specs closed unimplemented, contracts kept as design records.
 - **The byte budget (✗ withdrawn, not deferred):** The absolute budget shipped non-blocking, then [ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md) voided it — bytes measure file size, not the stated aim of step economy. No number replaces it.
 
+### Phase 11 — Contract-and-Verifier Layer (✅ shipped, v0.36.0)
+
+- **Pruned base:** `system-instructions.md` + `_preamble.md` under 10 KB; every cut recorded in an append-only ledger and kept only after a baseline re-run ([ADR-026](../decision-records/adr-026-constraint-test-pruning.md)).
+- **Mechanized gates:** eight of ten `/implement-story` gates re-derive their verdict from a script; Gate 1 and Gate 4.5 stay `prose-only`.
+- **Spec analysis:** `spec-analyze.py` flags contradictory, missing, and ambiguous acceptance criteria at lock; advisory.
+- **Escalation, not default:** two-agent default pipeline; Goal Cards emit platform-runnable `/goal` contracts.
+
+### Phase 12 — Behavioral Verification (📋 committed)
+
+- **Behavioral verification:** a per-project recipe (`.writ/docs/app-verification.md`, drafted by `/create-uat-plan`) names the project's own checks; UAT scenarios cite its feature IDs; Gate 4.5 runs the checks against the running app, records evidence, and leaves `prose-only`. An exit code decides, never an agent.
+- **Cross-family review panel:** opt-in, high-stakes only; findings raised by two or more vendors block. Kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
+
 ### Next Horizon
 
-Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native. **Phase 10 closed partially complete (2026-08-12):** the determinism half shipped in full and is enforced; the byte half was measured, falsified, and withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). **No phase is currently committed.** Next work is pulled from the roadmap parking lot only on concrete signal.
+Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is committed:** Writ's verifiers so far check Writ's own artifacts, and Phase 12 makes one check the user's feature.
 
-> **Parking lot (kept as candidates):** Cross-project learning corpus, `/design` Mode A modernization, eval Tier 2 expansion. **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 10* section for the authoritative list.
+> **Parking lot (kept as candidates):** Cursor plugin distribution, empirical-fork rule, friction signals (unblocked), cross-project learning corpus, `/design` Mode A modernization, eval Tier 2 expansion. **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 12* section for the authoritative list.

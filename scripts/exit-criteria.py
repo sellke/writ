@@ -16,9 +16,10 @@ This module is READ-ONLY. It never writes a file, and every git call it makes
 is one of the read-only subcommand families (`rev-parse`, `branch`, `log`,
 `merge-base`) — never anything that mutates the working tree or refs.
 
-Subcommand:
+Subcommands:
   check --command {implement-phase,implement-spec} [--state PATH] [--spec DIR]
         [--repo .] [--classification PATH]
+  check-uat --spec DIR    only the implement-phase.c2 evidence half, one spec
 
 Prints one JSON object to stdout. Exit codes: 0 met, 1 unmet, 2 impossible.
 """
@@ -445,6 +446,83 @@ def _is_populated_uat_plan(text: str) -> bool:
     return has_subsection and len(lines) >= 5
 
 
+_SCENARIO_HEADING = re.compile(r"^###\s+(Scenario\s+\d+)\s*:", re.MULTILINE)
+_VERIFICATION_LINE = re.compile(r"^[ \t]*(?:[-*][ \t]+)?\*\*Verification:\*\*[ \t]*(.*)$", re.MULTILINE)
+_EVIDENCE_PATH = re.compile(r"evidence:\s*`?([^`\s]+)`?")
+
+_EVIDENCE_REASONS = {
+    "missing": "evidence missing",
+    "not_pass": "evidence not pass",
+    "unreadable": "evidence unreadable",
+    "outside_spec": "evidence outside spec folder",
+    "no_path": "evidence path absent",
+}
+
+
+def _uat_evidence_half(spec_dir: Path, text: str) -> dict[str, Any]:
+    """The c2 evidence half for one spec folder (2026-10-01-behavioral-verification
+    Story 5). Every `### Scenario N:` block whose `**Verification:**` line
+    reads `machine` must cite `evidence: <path>` resolving inside `spec_dir`
+    to a JSON object with `"verdict": "pass"`. Human scenarios are ignored.
+    Read-only: opens `result.json` files and nothing else.
+
+    Returns {"scenarios": [{scenario, path, outcome}], "problems": [...],
+    "note": "legacy plan: <id>" | "no machine scenarios: <id>" | None}."""
+    root = spec_dir.resolve()
+    spec_id = root.name
+    scenarios: list[dict[str, Any]] = []
+    problems: list[str] = []
+    headings = list(_SCENARIO_HEADING.finditer(text))
+    saw_verification = False
+
+    for i, heading in enumerate(headings):
+        end = headings[i + 1].start() if i + 1 < len(headings) else len(text)
+        line = _VERIFICATION_LINE.search(text, heading.end(), end)
+        if line is None:
+            continue
+        saw_verification = True
+        value = line.group(1).strip()
+        if not re.match(r"machine\b", value, re.IGNORECASE):
+            continue
+        label = heading.group(1)
+        match = _EVIDENCE_PATH.search(value)
+        rel = match.group(1) if match else None
+        outcome, detail = _evidence_outcome(root, rel)
+        scenarios.append({"scenario": label, "path": rel, "outcome": outcome})
+        if outcome != "pass":
+            cite = rel if detail is None else f"{rel}: {detail}"
+            problems.append(f"{_EVIDENCE_REASONS[outcome]}: {spec_id} / {label} ({cite})")
+
+    note = None
+    if not saw_verification:
+        note = f"legacy plan: {spec_id}"
+    elif not scenarios:
+        note = f"no machine scenarios: {spec_id}"
+    return {"scenarios": scenarios, "problems": problems, "note": note}
+
+
+def _evidence_outcome(root: Path, rel: str | None) -> tuple[str, str | None]:
+    if not rel:
+        return "no_path", "machine line has no evidence: path"
+    target = (root / rel).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return "outside_spec", None
+    if not target.is_file():
+        return "missing", None
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        return "unreadable", type(exc).__name__
+    if not isinstance(payload, dict):
+        return "unreadable", "not a JSON object"
+    verdict = payload.get("verdict")
+    if verdict != "pass":
+        return "not_pass", f"verdict {verdict!r}"
+    return "pass", None
+
+
 def _resolve_spec_dir(repo: Path, spec_id: str) -> Path | None:
     """A spec folder lives under `.writ/specs/<id>` while active, or
     `.writ/specs/archive/<id>` once archived. Either satisfies the criterion."""
@@ -461,9 +539,9 @@ def _predicate_phase_c2(state: dict[str, Any], repo: Path) -> dict[str, Any]:
     """implement-phase.c2: "each merged spec folder contains a populated
     uat-plan.md generated after that spec was implemented"
 
-    Recorded in the classification as a split entry (presence half +
-    ordering half); both resolve to evaluable-now but by different
-    mechanisms, so a failure in either is named rather than letting the
+    Recorded in the classification as a split entry (presence, ordering,
+    and evidence halves); all resolve to evaluable-now but by different
+    mechanisms, so a failure in any is named rather than letting the
     presence half stand in for the whole criterion.
     """
     specs = state.get("specs", {})
@@ -476,6 +554,8 @@ def _predicate_phase_c2(state: dict[str, Any], repo: Path) -> dict[str, Any]:
     missing: list[str] = []
     stub: list[str] = []
     unordered: list[str] = []
+    evidence: list[str] = []
+    notes: list[str] = []
 
     for spec_id in merged:
         spec_dir = _resolve_spec_dir(repo, spec_id)
@@ -500,6 +580,11 @@ def _predicate_phase_c2(state: dict[str, Any], repo: Path) -> dict[str, Any]:
         if not _is_populated_uat_plan(text):
             stub.append(spec_id)
             continue
+
+        half = _uat_evidence_half(spec_dir, text)
+        evidence.extend(half["problems"])
+        if half["note"]:
+            notes.append(half["note"])
 
         merge_commit = specs[spec_id].get("mergeCommit")
         if not merge_commit:
@@ -527,13 +612,14 @@ def _predicate_phase_c2(state: dict[str, Any], repo: Path) -> dict[str, Any]:
         problems.append(f"uat-plan.md is a stub: {', '.join(stub)}")
     if unordered:
         problems.append(f"uat-plan.md ordering violation: {', '.join(unordered)}")
+    problems.extend(evidence)
     if problems:
         return _entry("implement-phase.c2", "unmet", reason="; ".join(problems))
 
-    return _entry(
-        "implement-phase.c2", "met",
-        evidence=f"{len(merged)}/{len(merged)} merged specs carry a populated, correctly ordered uat-plan.md",
-    )
+    summary = f"{len(merged)}/{len(merged)} merged specs carry a populated, correctly ordered uat-plan.md"
+    if notes:
+        summary += f" ({'; '.join(notes)})"
+    return _entry("implement-phase.c2", "met", evidence=summary)
 
 
 def _predicate_phase_c3(state: dict[str, Any]) -> dict[str, Any]:
@@ -665,7 +751,12 @@ def _predicate_spec_c3(state: dict[str, Any]) -> dict[str, Any]:
     required_fields = ("typecheck", "testSuite", "contextRewritten", "at")
     if not isinstance(post, dict) or any(field not in post for field in required_fields):
         return _entry("implement-spec.c3", "unknown", reason=PRE_STORY_2_REASON)
-    if post.get("typecheck") != "pass" or post.get("testSuite") != "pass" or post.get("contextRewritten") is not True:
+    # A stack with no typechecker records "skipped"; it counts only with a stated reason.
+    skip_reason = post.get("typecheckReason")
+    skip_reason = skip_reason.strip() if isinstance(skip_reason, str) else ""
+    typecheck_ok = post.get("typecheck") == "pass" or (
+        post.get("typecheck") == "skipped" and bool(skip_reason))
+    if not typecheck_ok or post.get("testSuite") != "pass" or post.get("contextRewritten") is not True:
         return _entry(
             "implement-spec.c3", "unmet",
             reason=(
@@ -673,6 +764,12 @@ def _predicate_spec_c3(state: dict[str, Any]) -> dict[str, Any]:
                 f"testSuite={post.get('testSuite')!r} "
                 f"contextRewritten={post.get('contextRewritten')!r}"
             ),
+        )
+    if post.get("typecheck") == "skipped":
+        return _entry(
+            "implement-spec.c3", "met",
+            evidence=(f"typecheck skipped ({skip_reason}); test suite ran after the final "
+                      f"story at {post['at']}; context.md rewritten"),
         )
     return _entry(
         "implement-spec.c3", "met",
@@ -801,6 +898,28 @@ def run_check(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     return _check_spec(args, classification, repo)
 
 
+def run_check_uat(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
+    """`check-uat --spec DIR`: the c2 evidence half for one spec folder.
+    Impossible only when the folder or its uat-plan.md cannot be read."""
+    spec_dir = Path(args.spec)
+    if not spec_dir.is_dir():
+        raise Impossible(f"spec folder not found: {spec_dir}")
+    plan_path = spec_dir / "uat-plan.md"
+    try:
+        text = plan_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise Impossible(f"uat-plan.md unreadable in {spec_dir}: {type(exc).__name__}") from exc
+
+    half = _uat_evidence_half(spec_dir, text)
+    result: dict[str, Any] = {"schema": SCHEMA, "spec": str(spec_dir), "scenarios": half["scenarios"]}
+    if half["problems"]:
+        result.update(verdict="unmet", reason="; ".join(half["problems"]))
+    else:
+        passed = len(half["scenarios"])
+        result.update(verdict="met", evidence=half["note"] or f"{passed}/{passed} machine scenarios cite passing evidence")
+    return EXIT_CODES[result["verdict"]], result
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
@@ -814,6 +933,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="override the classification doc path (primarily for tests)")
     p.set_defaults(func=run_check)
 
+    u = sub.add_parser("check-uat", help="check one spec's uat-plan.md machine scenarios cite passing evidence")
+    u.add_argument("--spec", required=True)
+    u.set_defaults(func=run_check_uat)
+
     return parser
 
 
@@ -823,7 +946,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         exit_code, result = args.func(args)
     except Impossible as exc:
-        result = {"verdict": "impossible", "command": args.command, "reason": str(exc)}
+        if args.action == "check-uat":
+            result = {"schema": SCHEMA, "verdict": "impossible", "spec": args.spec, "reason": str(exc)}
+        else:
+            result = {"verdict": "impossible", "command": args.command, "reason": str(exc)}
         exit_code = 2
     print(json.dumps(result))
     return exit_code

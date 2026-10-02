@@ -34,15 +34,12 @@ An alternate entry point that **replaces greenfield Phase 1 discovery** with a
 scan → diff → propose flow, then reuses Phase 2's writing mechanics **only for the
 files that change**. The greenfield flow below is unchanged.
 
-**Boundary (critical):** `--reconcile` **revises** the product plan — it runs
-after you've decided something needs to change. Its consistency counterpart is
-[`/verify-spec --product`](verify-spec.md#product-consistency-checks---product),
-which only **checks** whether the product layer is internally consistent and true
-to reality (before). Run `--product` first to see what drifted; then run
-`--reconcile` to decide what to do about it. The same before/after split applies to
-`/assess-spec` (before) and `/verify-spec` (after). `--product` proposes no
-direction changes; `--reconcile` makes no consistency claims it has not first
-re-derived.
+**Boundary (critical):** `--reconcile` **revises** the product plan after
+[product verification](verify-spec.md#product-consistency-checks---product) shows
+it has drifted from what shipped, or a direction change makes it the wrong plan.
+Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.
+Verification proposes no direction changes; `--reconcile` makes no consistency
+claims it has not first re-derived, and hands back to delivery when done.
 
 ### Step R1: Scan Existing (no file creation)
 
@@ -103,9 +100,9 @@ discussing in Plan Mode.
   `.writ/context.md`). Record any new ADRs.
 - **Edit / More questions →** as in Step 1.4b.
 
-After applying, suggest `/verify-spec --product` to confirm the layer is now
-consistent, and note the revision in `roadmap.md` if it represents a direction
-change worth a roadmap entry.
+After applying, suggest `/create-spec` for the next roadmap item, and note the
+revision in `roadmap.md` if it represents a direction change worth a roadmap
+entry.
 
 ## Command Process
 

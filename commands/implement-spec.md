@@ -216,7 +216,7 @@ If integration fails: run `git log --oneline` over the stories' completion commi
 
 > **Why not proportional?** Each story's Gate 4 already ran targeted tests and coverage. At the spec level, multiple stories have landed — the risk of cross-story breakage justifies one full-suite run regardless of individual change surfaces.
 
-Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`, `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
+Record the result on `.writ/state/execution-{timestamp}.json` as `postRun: {typecheck, testSuite, contextRewritten, at}` — `typecheck` and `testSuite` hold `pass`/`fail`; a stack with no typechecker records `typecheck: "skipped"` plus a non-empty `typecheckReason`, never a stand-in `pass`. `contextRewritten` is a boolean confirming Step 3.3's rewrite ran with the final story counts. This closes `implement-spec.c3`'s "after the final story" criterion, which a post-hoc filesystem read cannot otherwise recover.
 
 **Only after `postRun` is written**, run the exit-criteria checker against the now-current state file — sequencing matters because `implement-spec.c1` and `.c3` read `preflight`/`postRun` directly, so a checker run before `postRun` exists would report `unknown` instead of the true verdict:
 

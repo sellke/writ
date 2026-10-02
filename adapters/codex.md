@@ -152,6 +152,8 @@ Each agent's `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-del
 |---|---|---|---|
 | `.codex/config.toml` (project, else `~/.codex/config.toml`) → `model` and `model_reasoning_effort`; `unknown` when the keys are absent (`codex/config.toml.template` sets neither); `anchor.platform = codex` | omit `model` (parent's model and effort) | omit `model`, `model_reasoning_effort = "low"` | omit `model`, parent effort |
 
+**Review panel (ADR-028): unavailable by default.** Subagents run the configured provider's models, OpenAI unless the user configures another, so Gate 3 runs as today; `review-panel.py status --platform codex` prints the skip.
+
 **Degradation:** an unrecognized `model_tier` warns and is emitted as `anchor` (both keys omitted). A parent already at `low` effort means `floor` collapses to `anchor`, said once, no `degraded`. If a Codex version rejects `model_reasoning_effort` on a subagent, drop the key and run at `anchor` with one `degraded` line. Never hard-fail the spawn.
 
 | Agent (`agents/*.md`) | `.codex/agents/*.toml` | `sandbox_mode` | `model_tier` | Emitted header |
@@ -208,9 +210,9 @@ Default `/implement-story` is `coding-agent` + `evaluator-agent` plus scripts. T
 2. Spawn **architecture-check-agent** (`read-only`) → PROCEED / CAUTION / ABORT.
 3. Spawn **coding-agent** (`workspace-write`) → implements with TDD discipline.
 4. Run lint / typecheck inline in orchestrator (per command).
-5. Spawn **review-agent** (`read-only`) → PASS / FAIL (≤ 3 review loops combined with visual QA per command contract).
+5. Spawn **review-agent** (`read-only`) → PASS / FAIL (≤ 3 review loops combined with Gate 4.5 script fails per command contract).
 6. Spawn **testing-agent** (`workspace-write`).
-7. Optionally spawn **visual-qa-agent** when story lists visual references.
+7. Run `scripts/app-verify.py` (Gate 4.5); on `--full-pipeline`, optionally spawn **visual-qa-agent** (notes only) when story lists visual references.
 8. Spawn **documentation-agent** (`workspace-write`).
 9. Update story checkboxes / status; commit if policy allows.
 

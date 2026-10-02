@@ -37,7 +37,7 @@ excluded` rather than omitted, per Acceptance Criterion 3.
 | Criterion ID | Command | Bucket | One-line reason |
 |---|---|---|---|
 | `implement-phase.c1` | implement-phase | evaluable-now | Spec statuses and quarantine-branch reachability are both readable today from phase state + git |
-| `implement-phase.c2` | implement-phase | evaluable-now (split: presence + ordering) | Presence is a direct file read; ordering ("generated after") is recoverable via git log timestamp comparison, not a temporal gap |
+| `implement-phase.c2` | implement-phase | evaluable-now (split: presence + ordering + evidence) | Presence is a direct file read; ordering ("generated after") is recoverable via git log timestamp comparison, not a temporal gap; evidence is a direct read of each machine scenario's cited `result.json` |
 | `implement-phase.c3` | implement-phase | needs-run-record | "Recorded pass or fail" only exists once `/implement-phase` writes `exitCriteria[]` — nothing to read before that |
 | `implement-phase.c4` | implement-phase | structurally-unobservable (report-only) | The report's terminal line is transcript content, not a structured field; asserting one of three closed strings appeared is judging prose, not state |
 | `implement-spec.c1` | implement-spec | needs-run-record | The claim is "before the first story ran" — a before/after clause a post-hoc read cannot recover without a timestamped record |
@@ -92,7 +92,7 @@ discovery — both are exactly what `cmd_progress` and `reconcile` already do
 > "each merged spec folder contains a populated uat-plan.md generated after
 > that spec was implemented"
 
-**Bucket:** evaluable-now (recorded as a **split** entry — the two halves need
+**Bucket:** evaluable-now (recorded as a **split** entry — the halves need
 different evidence and neither should be rounded away)
 
 This criterion bundles a presence check with an ordering claim. Both resolve to
@@ -124,6 +124,23 @@ half is met; if the plan predates completion, it is unmet, naming the spec.
 `implement-phase.c4` — the report-only reasoning there doesn't apply here
 because git-log timestamps are structured, machine-readable state, not
 transcript prose.
+
+**Evidence — evidence half:** (added by `2026-10-01-behavioral-verification`
+Story 5) "populated" means populated with a true result. In each populated
+plan, every `### Scenario N:` block whose `**Verification:**` line reads
+`machine — evidence: <path>` must cite a `<path>` that resolves inside that
+spec folder to a file parsing as a JSON object with `"verdict": "pass"`. A
+missing file, any other verdict (including `fail (timeout)`), unreadable or
+non-JSON content, a path outside the spec folder, or a `machine` line with no
+path is `unmet`, naming the spec and scenario — a defect in that plan, never
+`impossible`. `**Verification:** human — <reason>` scenarios are ignored. A
+plan with no `**Verification:**` lines (pre-Phase-12, or rendered by
+`recommend-state.py`) is met and noted `legacy plan: <spec-id>`; a plan whose
+scenarios are all human is met and noted `no machine scenarios: <spec-id>`.
+The check reads paths only, never the recipe, so a renamed feature's stale
+path is `unmet`. `exit-criteria.py check-uat --spec DIR` runs this half alone
+for one spec folder (exit 0 met, 1 unmet, 2 when the folder or its
+`uat-plan.md` cannot be read). The criterion text is unchanged.
 
 ---
 
@@ -246,7 +263,8 @@ moment. `.writ/context.md`'s rewritten story counts are likewise a point-in-time
 claim, not a standing invariant a filesystem read can date on its own.
 
 **Field:** `postRun.typecheck`, `postRun.testSuite`, `postRun.contextRewritten`,
-and `postRun.at`.
+and `postRun.at`. `typecheck: "skipped"` counts only with a non-empty
+`postRun.typecheckReason` (a stack with no typechecker); `fail` always blocks.
 
 **File:** `.writ/state/execution-<timestamp>.json`, written by `/implement-spec`
 "after the final story's batch" (technical-spec.md § Data Contracts).
@@ -332,7 +350,7 @@ Story 2 adds exactly these fields (technical-spec.md § Data Contracts):
 | `terminalStatus` | `.writ/state/phase-execution-*.json` | Rollup/`impossible`-trigger support — not a criterion directly (see `implement-phase.c4` entry above) |
 | `haltReported` | `.writ/state/phase-execution-*.json` | `impossible`-trigger ("Loop bound tripped") — not a criterion directly |
 | `preflight.storyDepsValidated` / `.at` | `.writ/state/execution-<timestamp>.json` | `implement-spec.c1` |
-| `postRun.typecheck` / `.testSuite` / `.contextRewritten` / `.at` | `.writ/state/execution-<timestamp>.json` | `implement-spec.c3` |
+| `postRun.typecheck` / `.typecheckReason` / `.testSuite` / `.contextRewritten` / `.at` | `.writ/state/execution-<timestamp>.json` | `implement-spec.c3` |
 
 Every field Story 2 adds is accounted for — either mapped to exactly one
 needs-run-record entry above (`implement-phase.c3`, `implement-spec.c1`,

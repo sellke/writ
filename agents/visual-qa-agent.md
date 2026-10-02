@@ -131,9 +131,9 @@ For each screen/component with a mockup reference:
 
 - **PASS** — no mismatches, or none the agent rates above low
 - **SOFT PASS** — only cosmetic, medium-or-low mismatches → continue, log issues
-- **FAIL** — any high-priority mismatch, or structural drift from the mockup → send fixes back to coding agent
+- **FAIL** — any high-priority mismatch, or structural drift from the mockup → record as story-report notes (advisory; Gate 4.5's verdict is the script's)
 
-On FAIL, structure feedback for the coding agent:
+On FAIL, structure the notes:
 ```
 Visual QA found {N} issues to fix:
 
@@ -146,16 +146,7 @@ Design system: .writ/docs/design-system.md
 
 ## Integration with implement-story
 
-The visual QA gate runs as **Gate 4.5**, after tests pass and before docs:
-
-```
-arch-check → code → lint → review → test → VISUAL QA → docs
-               ▲                                 │
-               │              FAIL               │
-               └─────────────────────────────────┘
-```
-
-Failures route back to the coding agent (same as review failures). Counts toward the shared 3-iteration cap.
+**Gate 4.5** is behavioral verification, decided by `scripts/app-verify.py`. Under `--full-pipeline`, when visual references exist, this agent runs after that script. Its mismatches are written to the story report as notes: they never fail the gate, never route back to the coding agent, and never count toward the review-loop cap.
 
 ## Notes
 

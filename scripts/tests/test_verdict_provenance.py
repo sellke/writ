@@ -32,7 +32,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 ALL_IDS = (
     "gate0_arch", "gate0_5_boundary", "gate1_coding", "gate2_build",
     "gate2_5_surface", "gate3_review", "gate3_5_drift", "gate4_tests",
-    "gate4_5_visual", "gate5_docs",
+    "gate4_5_behavior", "gate5_docs",
 )
 HEADINGS = (
     "#### Gate 0: Architecture Check (Pre-Implementation)",
@@ -43,7 +43,7 @@ HEADINGS = (
     "#### Gate 3: Review Agent",
     "#### Gate 3.5: Drift Response Handling & \"What Was Built\" Extraction",
     "#### Gate 4: Testing Agent (with Coverage Enforcement)",
-    "#### Gate 4.5: Visual QA (Optional)",
+    "#### Gate 4.5: Behavioral Verification",
     "#### Gate 5: Documentation Agent",
 )
 SCRIPTS = {"gate2_build": "scripts/build-smoke.py", "gate4_tests": "scripts/test-integrity.py"}
@@ -124,7 +124,11 @@ class ParserTests(unittest.TestCase):
     def test_heading_table_is_the_fixed_ten(self) -> None:
         self.assertEqual(tuple(vp.HEADING_TO_ID.values()), ALL_IDS)
         self.assertEqual(vp.HEADING_TO_ID["0.5"], "gate0_5_boundary")
-        self.assertEqual(vp.HEADING_TO_ID["4.5"], "gate4_5_visual")
+        self.assertEqual(vp.HEADING_TO_ID["4.5"], "gate4_5_behavior")
+
+    def test_default_prose_only_cap_is_one(self) -> None:
+        """AC-4.3 (2026-10-01-behavioral-verification): Gate 4.5 left prose-only."""
+        self.assertEqual(vp.DEFAULT_MAX_PROSE_ONLY, 1)
 
     def test_ids_shared_with_pipeline_baseline_gate_names(self) -> None:
         for shared in ("gate0_arch", "gate2_build", "gate3_review", "gate4_tests", "gate5_docs"):
@@ -165,7 +169,7 @@ class CheckTests(unittest.TestCase):
         code, out, _ = run_check(self.fx)
         self.assertEqual(code, 0, out)
         self.assertEqual(finding_lines(out), [])
-        self.assertIn("note: prose_only_count: 8 (cap 2)", out)
+        self.assertIn("note: prose_only_count: 8 (cap 1)", out)
 
     # AC-4.2
     def test_heading_without_entry(self) -> None:
@@ -272,7 +276,7 @@ class CheckTests(unittest.TestCase):
         self.fx.write(command_text(complete_entries()))
         code, out, _ = run_check(self.fx)
         self.assertEqual(code, 0, out)
-        self.assertIn("note: prose_only_count: 8 (cap 2)", out)
+        self.assertIn("note: prose_only_count: 8 (cap 1)", out)
         self.assertEqual(finding_lines(out), [])
 
     def test_prose_only_over_cap_is_finding_when_blocking(self) -> None:
@@ -280,7 +284,7 @@ class CheckTests(unittest.TestCase):
         code, out, _ = run_check(self.fx, "--prose-only-blocking")
         self.assertEqual(code, 1, out)
         self.assertNotIn("note: prose_only_count", out)
-        self.assertEqual(finding_lines(out), ["prose_only_count: 8 (cap 2)"])
+        self.assertEqual(finding_lines(out), ["prose_only_count: 8 (cap 1)"])
 
     def test_prose_only_at_or_under_cap_is_never_a_finding(self) -> None:
         self.fx.write(command_text(complete_entries()))
@@ -336,9 +340,8 @@ class RealCommandTests(unittest.TestCase):
         text = out.getvalue()
         self.assertEqual(code, 0, text)
         self.assertEqual(finding_lines(text), [])
-        # Stage 2b lands scripts one gate at a time; the count is truthful,
-        # not frozen at Stage 2a's 8. Cap stays 2 until Story 5 flips blocking.
-        self.assertRegex(text, r"note: prose_only_count: \d+ \(cap 2\)")
+        # 2026-10-01-behavioral-verification AC-4.3: only Gate 1 stays prose-only.
+        self.assertIn("note: prose_only_count: 1 (cap 1)", text)
 
     def test_real_command_gates_block_names_all_ten_truthfully(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
@@ -353,8 +356,10 @@ class RealCommandTests(unittest.TestCase):
         self.assertEqual(by_id["gate5_docs"], {"id": "gate5_docs", "script": "scripts/docs-check.py"})
         shipped_scripts = set(SCRIPTS) | {
             "gate0_arch", "gate0_5_boundary", "gate2_5_surface",
-            "gate3_review", "gate3_5_drift", "gate5_docs",
+            "gate3_review", "gate3_5_drift", "gate5_docs", "gate4_5_behavior",
         }
+        self.assertEqual(by_id["gate4_5_behavior"],
+                         {"id": "gate4_5_behavior", "script": "scripts/app-verify.py"})
         self.assertEqual(by_id["gate3_5_drift"], {"id": "gate3_5_drift", "script": "scripts/drift-format.py"})
         for gate_id in ALL_IDS:
             if gate_id in shipped_scripts:
@@ -363,13 +368,12 @@ class RealCommandTests(unittest.TestCase):
 
     def test_real_gate_4_5_body_has_no_percentage(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
-        start = text.index("#### Gate 4.5: Visual QA (Optional)")
+        start = text.index("#### Gate 4.5: Behavioral Verification")
         end = text.index("#### Gate 5:", start)
         section = text[start:end]
         self.assertNotIn("%", section)
         self.assertNotIn(" percent", section)
-        for word in ("PASS", "SOFT PASS", "FAIL"):
-            self.assertIn(word, section)
+        self.assertIn("scripts/app-verify.py run", section)
 
 
 if __name__ == "__main__":

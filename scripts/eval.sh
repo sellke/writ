@@ -81,6 +81,9 @@ CHECKS=(
   jev-judge
   goal-emit
   spawn-cap
+  app-verify
+  review-panel
+  product-check-direction
 )
 
 TOTAL_FINDINGS=0
@@ -633,6 +636,8 @@ ADR-003-monetization.md|/plan-product|Product-level ADR /plan-product seeds in .
 ADR-004-mvp-scope.md|/plan-product|Product-level ADR /plan-product seeds in .writ/decision-records/ during discovery.
 term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md category table); no braces, so the grammar cannot tell it from a real name.
 .writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
+.writ/docs/app-verification.md|/create-uat-plan|Project verification recipe /create-uat-plan Step 1.3 writes after confirmation; never shipped, absent in the Writ repo by design.
+.writ/state/app-verification-draft.md|/create-uat-plan|Scratch copy /create-uat-plan Step 1.3 validates before saving a drafted recipe.
 EOF
 }
 
@@ -3968,7 +3973,7 @@ check_verdict_provenance() {
   # entry naming its verdict source (script: path or verification:
   # prose-only). Drift lines from `verdict-provenance.py check` are relayed
   # as findings. Story 5 of 2026-09-08-phase11-stage2b-mechanize-the-gates
-  # passes --prose-only-blocking so a third prose-only gate is a finding.
+  # passes --prose-only-blocking so a second prose-only gate is a finding.
   # Sits beside check_pruned_base (Story 1) and check_pipeline_baseline.
   local helper="$PROJECT_ROOT/scripts/verdict-provenance.py"
   local command="$PROJECT_ROOT/commands/implement-story.md"
@@ -4563,6 +4568,117 @@ check_goal_emit() {
   done <<< "$output"
 }
 
+check_app_verify() {
+  # Story 5 of 2026-10-01-behavioral-verification: end-to-end proof on the
+  # Story 3 fixture. In a temp spec folder on a free 127.0.0.1 port:
+  # recipe-pass exits 0 with a pass result.json, recipe-fail exits 1,
+  # recipe-safety-refused exits 2 (refused, no _launch/). A fixture uat-plan.md
+  # citing the pass evidence makes check-uat exit 0; deleting the cited
+  # result.json makes it exit 1. Any deviation, or a surviving fixture
+  # process, is a finding. Spawns local processes: run outside the sandbox.
+  local helper="$PROJECT_ROOT/scripts/app-verify.py"
+  local checker="$PROJECT_ROOT/scripts/exit-criteria.py"
+  local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/app-verify"
+  local tmp spec port variant name label expected rc output pidfile pid evidence path
+
+  require_literal "$PROJECT_ROOT/.writ/docs/exit-criteria-classification.md" "check-uat" \
+    "exit-criteria-classification.md must record the check-uat entry point for the c2 evidence half."
+  require_literal "$checker" "legacy plan" \
+    "exit-criteria.py must note plans without Verification lines as legacy plan."
+
+  for path in "$helper" "$checker" "$fixtures/recipe-pass.md" "$fixtures/recipe-fail.md" \
+              "$fixtures/recipe-safety-refused.md"; do
+    if [ ! -f "$path" ]; then
+      add_finding "$(relpath "$path")" "app-verify end-to-end input is missing." \
+        "Restore $(relpath "$path") so the fixture run can prove the behavioral-verification path."
+      return
+    fi
+  done
+
+  tmp="$(mktemp -d)"
+  spec="$tmp/spec"
+  mkdir -p "$spec"
+  port="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
+
+  for variant in "pass:uat:0" "fail:fail-run:1" "safety-refused:refused-run:2"; do
+    IFS=: read -r name label expected <<< "$variant"
+    sed "s/8765/$port/g" "$fixtures/recipe-$name.md" > "$tmp/recipe-$name.md"
+    pidfile="$tmp/$label.pid"
+    rc=0
+    output="$(cd "$PROJECT_ROOT" && env -u APP_VERIFY_FIXTURE_DB APP_VERIFY_FIXTURE_PIDFILE="$pidfile" \
+      python3 "$helper" run --recipe "$tmp/recipe-$name.md" --spec "$spec" --run-label "$label" 2>&1)" || rc=$?
+    if [ "$rc" -ne "$expected" ]; then
+      add_finding "app-verify:recipe-$name" "app-verify.py run exited $rc, expected $expected: ${output%%$'\n'*}" \
+        "Run python3 scripts/app-verify.py run against scripts/tests/fixtures/app-verify/recipe-$name.md and fix the run contract."
+    fi
+    if [ -f "$pidfile" ]; then
+      pid="$(cat "$pidfile")"
+      if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+        kill -9 "$pid" 2>/dev/null || true
+        add_finding "app-verify:recipe-$name" "fixture process $pid survived the run." \
+          "app-verify.py must stop the launched process group on every exit path."
+      fi
+    fi
+    case "$name" in
+      pass)
+        evidence="$spec/evidence/uat/home/result.json"
+        if ! python3 -c 'import json, sys; sys.exit(0 if json.load(open(sys.argv[1])).get("verdict") == "pass" else 1)' "$evidence" 2>/dev/null; then
+          add_finding "app-verify:recipe-pass" "evidence/uat/home/result.json is missing or not verdict pass." \
+            "A passing check must write result.json with verdict pass under evidence/<label>/<id>/."
+        fi
+        ;;
+      safety-refused)
+        case "$output" in
+          *refused*) ;;
+          *) add_finding "app-verify:recipe-safety-refused" "summary line does not say refused: ${output%%$'\n'*}" \
+               "A Never-pattern match must print app-verify: refused (<reason>)." ;;
+        esac
+        if [ -d "$spec/evidence/$label/_launch" ]; then
+          add_finding "app-verify:recipe-safety-refused" "a refused run created _launch/ (the app was launched)." \
+            "Safety refusal must happen before launch."
+        fi
+        ;;
+    esac
+  done
+
+  cat > "$spec/uat-plan.md" <<'PLAN'
+# UAT Plan: app-verify fixture
+
+## How to Use This Plan
+
+1. Machine scenarios are decided by app-verify.py; no human step remains.
+
+## Story 1: Fixture
+
+### Scenario 1: Home page renders
+
+**Source:** Acceptance Criteria — Story 1
+**Feature:** home
+**Verification:** machine — evidence: evidence/uat/home/result.json
+
+**Steps:**
+1. Open the home page.
+
+**Status:** [x] Pass  [ ] Fail
+PLAN
+
+  rc=0
+  output="$(python3 "$checker" check-uat --spec "$spec" 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    add_finding "app-verify:check-uat" "check-uat exited $rc on passing fixture evidence: ${output:0:200}" \
+      "Fix exit-criteria.py check-uat so a machine scenario citing a pass result.json is met."
+  fi
+  rm -f "$spec/evidence/uat/home/result.json"
+  rc=0
+  output="$(python3 "$checker" check-uat --spec "$spec" 2>&1)" || rc=$?
+  if [ "$rc" -ne 1 ]; then
+    add_finding "app-verify:check-uat" "check-uat exited $rc after the cited result.json was deleted (expected 1 unmet)." \
+      "The missing-evidence mutation must report unmet (Business Rule 6)."
+  fi
+  add_note "NOTE [app-verify]: fixture pass/fail/refused runs and the missing-evidence mutation checked on port $port."
+  rm -rf "$tmp"
+}
+
 check_spawn_cap() {
   # Story 3 of 2026-09-09-phase11-stage4b-pipeline-demote. Helper missing /
   # exit 2 → add_finding. A `fail` verdict (reason over_cap: a default spawn
@@ -4606,6 +4722,88 @@ check_spawn_cap() {
         ;;
     esac
   done <<< "$output"
+}
+
+check_review_panel() {
+  # Spec 2026-10-01-cross-family-review-panel Story 3. Helper missing, a
+  # `status` that does not parse, or a tally fixture with the wrong exit is a
+  # finding; the status summary stays a note (the panel is opt-in, so `off`
+  # is the expected verdict in this repo). The pins hold the Gate 3 wiring and
+  # each adapter's panel row.
+  local helper="$PROJECT_ROOT/scripts/review-panel.py"
+  local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/review-panel"
+  local story="$PROJECT_ROOT/commands/implement-story.md"
+  local lean="$PROJECT_ROOT/commands/implement-story.lean.md"
+  local output rc=0 file
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/review-panel.py" "review-panel helper is missing." \
+      "Restore scripts/review-panel.py so status and tally can run."
+    return
+  fi
+
+  output="$(python3 "$helper" status --repo "$PROJECT_ROOT" --origin "Claude Opus" 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    add_finding "scripts/review-panel.py" "review-panel.py status exited $rc: ${output##*$'\n'}" \
+      "Fix the review-panel.py CLI so status --repo . --origin NAME parses."
+  else
+    add_note "NOTE [review-panel]: ${output##*$'\n'}"
+  fi
+
+  rc=0
+  python3 "$helper" tally --origin "Claude Opus" --primary "$fixtures/primary-fail-ac23.md" \
+    --reviewer "gpt-5.6-sol-medium=$fixtures/panel-ac23.md" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -ne 1 ]; then
+    add_finding "scripts/review-panel.py" "tally on the two-vendor AC-2.3 fixture exited $rc, not 1 (block)." \
+      "A finding raised by two vendors must block: restore tally's consensus rule."
+  fi
+
+  rc=0
+  python3 "$helper" tally --origin "Claude Opus" --primary "$fixtures/primary-pass.md" \
+    --reviewer "gpt-5.6-sol-medium=$fixtures/panel-ac23.md" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    add_finding "scripts/review-panel.py" "tally on the one-vendor AC-2.3 fixture exited $rc, not 0 (advisory)." \
+      "A finding raised by one vendor is advisory: restore tally's consensus rule."
+  fi
+
+  for file in "$story" "$lean"; do
+    require_literal "$file" '**Review panel (opt-in).**' "$(relpath "$file") Gate 3 must carry the opt-in review panel paragraph."
+    require_literal "$file" '`block` is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
+    require_literal "$file" '| `/implement-story story-3 --panel` |' "$(relpath "$file") Invocation table must carry the --panel row."
+  done
+  require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."
+  require_literal "$lean" 'drift summary, the `review-panel:` lines' "implement-story.lean.md Step 4 report must name the review-panel: lines."
+  require_literal "$PROJECT_ROOT/adapters/cursor.md" '**Review panel (ADR-028): available.**' "adapters/cursor.md must state the review panel is available."
+  require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
+  require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
+  require_literal "$PROJECT_ROOT/adapters/openclaw.md" '**Review panel (ADR-028): *(unverified)*.**' "adapters/openclaw.md must mark the review panel unverified."
+}
+
+check_product_check_direction() {
+  # Spec 2026-10-01-product-check-direction. One direction of flow: product
+  # verification surfaces drift after implementation, /plan-product --reconcile
+  # realigns, and no planning step points back to a verification step.
+  local verify="$PROJECT_ROOT/commands/verify-spec.md"
+  local verify_lean="$PROJECT_ROOT/commands/verify-spec.lean.md"
+  local plan="$PROJECT_ROOT/commands/plan-product.md"
+  local direction='Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.'
+  local file
+
+  for file in "$verify" "$verify_lean" "$plan"; do
+    require_literal "$file" "$direction" "$(relpath "$file") must state the product-check direction sentence verbatim."
+  done
+  for file in "$verify" "$verify_lean"; do
+    forbid_literal "$file" 'a lint you run before deciding anything' "$(relpath "$file") must not frame --product as a pre-decision lint."
+    forbid_literal "$file" 'consistency lint (before)' "$(relpath "$file") must not frame --product as running before --reconcile."
+    forbid_literal "$file" 'lints (before' "$(relpath "$file") must not frame --product as linting before --reconcile revises."
+  done
+  forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
+
+  local phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local release="$PROJECT_ROOT/commands/release.md"
+  require_literal "$phase" 'run /verify-spec --product' "implement-phase.md Step 4.2 report must suggest /verify-spec --product where product docs fall behind."
+  require_literal "$release" 'run /verify-spec --product to check product docs against what shipped' "release.md Phase 5 Roadmap line must point to /verify-spec --product."
+  forbid_literal "$release" 'consider `/plan-product --reconcile` if `mission-lite.md` needs a matching update' "release.md Phase 5 must replace the reconcile pointer, not stack a second product line."
 }
 
 run_check() {

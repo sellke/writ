@@ -1,6 +1,6 @@
 ---
 name: verify-spec-lean
-description: "Lean variant of /verify-spec for WRIT_HARNESS_LEAN=1 baseline runs. Metadata linter for a spec - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
+description: "Lean variant of /verify-spec for WRIT_HARNESS_LEAN=1 baseline runs. Metadata linter for a spec, or with --product the product docs, after implementation - story files, statuses, deliverables, dependencies, contract alignment. Auto-fixes what it safely can."
 problem: "Spec bookkeeping drifts from the story files that are its source of truth — README statuses, task counts, deliverable checkboxes and spec-lite all rot silently."
 outcome: "The spec's derived metadata is realigned where realignment is safe, and every finding that needs human judgement is recorded against the check that raised it."
 entry_level: standard
@@ -30,9 +30,9 @@ loop:
 | `/verify-spec --fix` | Fix spec-lite | Run Check 7; if divergence found, fully regenerate `spec-lite.md` from `spec.md` |
 | `/verify-spec --spec [path]` | Targeted | Verify the spec at path (folder under `.writ/specs/` or path to `spec.md`) |
 | `/verify-spec --all` | All specs | Run the full diagnostic for every spec under `.writ/specs/` |
-| `/verify-spec --product` | Product docs | Run the **Product Consistency** check set (P1–P4, **not** spec checks 1–8) over `.writ/product/` + `.writ/context.md`; hybrid auto-fix (regenerate derivatives) / report-only (authoritative divergence) |
+| `/verify-spec --product` | Product docs | After specs ship, run the **Product Consistency** check set (P1–P4, **not** spec checks 1–8) over `.writ/product/` + `.writ/context.md`; hybrid auto-fix (regenerate derivatives) / report-only (authoritative divergence) |
 
-`--product` is its own check set, not spec checks pointed at product docs. Its revision counterpart is `/plan-product --reconcile`.
+`--product` is its own check set, not spec checks pointed at product docs. Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.
 
 ## Command Process
 
@@ -292,7 +292,7 @@ Diagnostic only. Use `/release` when you are ready to publish; it runs build che
 
 ## Product Consistency Checks (`--product`)
 
-A separate, self-contained check set run only under `/verify-spec --product`, with its own dispositions, report, and output file. Do not mirror the eight spec checks onto product docs. `--product` lints (before a decision); `/plan-product --reconcile` revises (after).
+A separate, self-contained check set run only under `/verify-spec --product`, with its own dispositions, report, and output file. Do not mirror the eight spec checks onto product docs. Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.
 
 | File | Role |
 |---|---|

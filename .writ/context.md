@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-09-26T20:55:20+02:00
+> Last Updated: 2026-10-02T03:20:00+02:00
 
 ## Product Mission
 
@@ -8,25 +8,27 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-09-26-arch-lint-and-follow-ups — Architecture Lint and Drift-Guard Follow-ups
-- **Status:** Complete ✅
-- **Story:** 4 of 4 — Architecture-Lint Guide and ADR Hook (Completed ✅)
-- **Progress:** 26/26 tasks complete (100%)
+- **Spec:** 2026-10-01-product-check-direction — Product Check Direction: Verification Feeds Realignment
+- **Status:** Complete
+- **Story:** 2 of 2 — Suggest the Check Where Drift Appears (Completed ✅)
+- **Progress:** 14/14 tasks complete (100%)
+- **Also:** 2026-10-01-cross-family-review-panel is Complete (35/35, trial verdict `keep`)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-09-26-arch-lint-and-follow-ups/ — spec.md + spec-lite.md, user-stories/, sub-specs/
+- **Active spec:** .writ/specs/2026-10-01-product-check-direction/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (22 entries)
-- **Docs:** .writ/docs/ (26 files)
+- **Docs:** .writ/docs/ (27 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-009 (Small) eslint-plugin-boundaries example uses `dependencies`, not `element-types` — Story 4
-- DEV-010 (Small) dependency-cruiser `.ts`/`.cts`/`.mts` configs are not detected — Story 4
-- DEV-011 (Small) `.writ/context.md` regeneration moved to spec end — Story 2
+- DEV-006 (Medium) spec-attributed test module `test_product_check_direction.py` added — product-check-direction Story 2
+- DEV-008 (Small) release `Roadmap:` line omitted without `.writ/product/` (Business Rule 4) — product-check-direction Story 2
+- DEV-002 (Medium) verify-spec.md ratchet re-pinned down 10898 -> 10818 instead of left unchanged — product-check-direction Story 1
+- DEV-010 (Small) `trial-prepare` accepts the legacy `## Contract Summary` heading — cross-family-review-panel Story 5
 
 ## Open Issues
 
-11 open issues
+16 issue files in .writ/issues/ (15 open; 2026-10-01-product-lint-misread-as-verify-spec resolved)

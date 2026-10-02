@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Tests check_verdict_provenance in scripts/eval.sh (spec
 # 2026-09-07-phase11-stage2-prune-the-base, Story 4, AC-4.3 / AC-4.4).
+# Updated for 2026-10-01-behavioral-verification Story 4 (AC-4.3): Gate 4.5 is
+# script-backed, the clean fixture is 9 script + 1 prose-only at cap 1, and a
+# second prose-only gate is a blocking finding.
 #
 # Harness: copy eval.sh and verdict-provenance.py into a temp scripts/ so
 # PROJECT_ROOT is the fixture tree, then write a commands/implement-story.md
@@ -40,7 +43,8 @@ new_root() {
   cp "$EVAL" "$root/scripts/eval.sh"
   cp "$HELPER" "$root/scripts/verdict-provenance.py"
   for stub in arch-check.py boundary-map.py build-smoke.py change-surface.py \
-              review-override.py drift-format.py test-integrity.py docs-check.py; do
+              review-override.py drift-format.py test-integrity.py docs-check.py \
+              app-verify.py; do
     printf '# stub\n' > "$root/scripts/$stub"
   done
   printf "%s" "$root"
@@ -57,7 +61,8 @@ report_of() {
 }
 
 # Write a ten-gate fixture command file. $2 selects a mutation:
-#   ""            clean: 8 script entries, 2 prose-only (Stage 2b truthful)
+#   ""            clean: 9 script entries, 1 prose-only (Gate 1)
+#   two-prose     gate4_5_behavior verification: prose-only -> prose_only_count finding
 #   drop-entry    gate2_5_surface entry removed  -> heading_without_entry
 #   drop-heading  Gate 3.5 heading removed       -> entry_without_heading
 #   bad-value     gate5_docs verification: manual -> unknown_verification_value
@@ -71,7 +76,7 @@ dest = Path(sys.argv[1])
 mutate = sys.argv[2]
 ids = ["gate0_arch", "gate0_5_boundary", "gate1_coding", "gate2_build",
        "gate2_5_surface", "gate3_review", "gate3_5_drift", "gate4_tests",
-       "gate4_5_visual", "gate5_docs"]
+       "gate4_5_behavior", "gate5_docs"]
 scripts = {
     "gate0_arch": "scripts/arch-check.py",
     "gate0_5_boundary": "scripts/boundary-map.py",
@@ -80,6 +85,7 @@ scripts = {
     "gate3_review": "scripts/review-override.py",
     "gate3_5_drift": "scripts/drift-format.py",
     "gate4_tests": "scripts/test-integrity.py",
+    "gate4_5_behavior": "scripts/app-verify.py",
     "gate5_docs": "scripts/docs-check.py",
 }
 numbers = ["0", "0.5", "1", "2", "2.5", "3", "3.5", "4", "4.5", "5"]
@@ -91,6 +97,8 @@ for gid in ids:
     fm.append("  - id: %s" % gid)
     if mutate == "bad-value" and gid == "gate5_docs":
         fm.append("    verification: manual")
+    elif mutate == "two-prose" and gid == "gate4_5_behavior":
+        fm.append("    verification: prose-only")
     elif gid in scripts:
         fm.append("    script: %s" % scripts[gid])
     else:
@@ -120,8 +128,8 @@ if grep -q '^FAIL' "$ROOT/eval-report.md"; then
 fi
 note_count="$(grep -c '^\- NOTE' "$ROOT/eval-report.md" || true)"
 [ "$note_count" -eq 1 ] || { report_of "$ROOT"; fail "clean: expected exactly one add_note, got $note_count"; }
-grep -Fq 'prose_only_count: 2 (cap 2)' "$ROOT/eval-report.md" \
-  || { report_of "$ROOT"; fail "clean: note must carry prose_only_count: 2 (cap 2)"; }
+grep -Fq 'prose_only_count: 1 (cap 1)' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "clean: note must carry prose_only_count: 1 (cap 1)"; }
 ok "clean ten-gate fixture -> PASS, exit 0, prose_only_count relayed as a note"
 
 # ---------------------------------------------------------------------------
@@ -146,6 +154,16 @@ check_drift() {
 check_drift drop-entry heading_without_entry gate2_5_surface
 check_drift drop-heading entry_without_heading gate3_5_drift
 check_drift bad-value unknown_verification_value gate5_docs
+
+ROOT="$(new_root)"
+write_fixture "$ROOT/commands/implement-story.md" two-prose
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || { report_of "$ROOT"; fail "two-prose: expected exit 1, got $rc"; }
+grep -q '^FAIL (1 finding' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "two-prose: expected exactly one finding"; }
+grep -Fq 'prose_only_count`: 2 (cap 1)' "$ROOT/eval-report.md" \
+  || { report_of "$ROOT"; fail "two-prose: finding must carry prose_only_count: 2 (cap 1)"; }
+ok "two prose-only gates -> exit 1, prose_only_count: 2 (cap 1) is a finding"
 
 # ---------------------------------------------------------------------------
 # Missing command file / missing helper -> one finding, not a crash

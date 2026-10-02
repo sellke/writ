@@ -1,0 +1,66 @@
+# Story 5: Run the Trial and Act on the Verdict
+
+> **Status:** Completed ✅
+> **Priority:** Medium
+> **Dependencies:** Story 3, Story 4
+
+## User Story
+
+**As a** Writ maintainer
+**I want to** run the retrospective trial in Cursor over the four Phase 11 baseline stories (single evaluator vs evaluator plus the configured panel, identical inputs), label every panel-only finding, commit the trial record and `trial-report`, and then carry out whatever the report decides
+**So that** the panel either earns its place with at least one valid finding the single evaluator missed, or is removed cleanly with the spec closed `Closed — Not Implemented`, and in both cases the repo state, spec status, ADR-028, and roadmap Phase 12 criterion 4 agree with a committed, text-free record
+
+## Acceptance Criteria
+
+> **AC IDs assigned through:** AC-5.5
+
+- [x] Given the four stories in `.writ/eval/baselines/2026-09-07-claude-fable-5-1.json`'s `selection`, when the trial completes, then `.writ/eval/panel-trial/<date>-panel-trial.json` is committed and validates as `panel-trial-v1` with exactly those four stories, both an `evaluator` and a `panel` arm recorded for each (same `recorded_test_results` source, the story's historical What Was Built test results labeled "historical, not re-run"), every panel-only finding labeled `valid` or `invalid` with a note of ≤200 characters, and no source, diff, reviewer, or story text (no `@@`/`+++` diff markers, no multi-line strings); raw reviewer outputs exist only under gitignored `.writ/state/panel-trial/`, and `git -C ~/Projects/yuss status --porcelain` and its HEAD are unchanged from before the run `[AC-5.1]`
+- [x] Given the committed trial file, when `python3 scripts/review-panel.py trial-report --trial <file>` runs, then its output is committed verbatim as `.writ/specs/2026-10-01-cross-family-review-panel/trial-report.md` in a commit that precedes any removal commit, it carries the caveat line `sample: 4 stories; one valid miss keeps the panel — a low bar, not a cost case`, and its verdict is `keep` or `remove` (an `unverifiable` report is not acted on: the spec stays open, `> **Status:**` names the blocking reason from the report's `reason:` lines, and no wiring is added or removed) `[AC-5.2]`
+- [x] Given a `keep` verdict, when Story 5 closes, then the Gate 3 `**Review panel (opt-in).**` paragraph, the `--panel` row, the `review-panel:` report entry, the config-format entry, the four adapter rows, `check_review_panel`, `status`/`tally`, and their tests and `require_literal` pins all remain; ADR-028's Decision 3 amendment records the trial result (date, the four story IDs, the count and keys of valid panel-only findings, the small-sample caveat); `.writ/product/roadmap.md` Phase 12 success criterion 4 ("The cross-family panel raises at least one valid finding…") is marked met with a link to `trial-report.md`; and `spec.md` reads `> **Status:** Complete` `[AC-5.3]`
+- [x] Given a `remove` verdict, when Story 5 closes, then the Gate 3 panel paragraph, the `--panel` Invocation row, and the `review-panel:` report entry are gone from `commands/implement-story.md` and `commands/implement-story.lean.md`; the `Review Panel` entry is gone from `.writ/docs/config-format.md`; the panel rows are gone from `adapters/{cursor,claude-code,codex,openclaw}.md`; `check_review_panel` and its `CHECKS` registration are gone from `scripts/eval.sh`; `scripts/review-panel.py` with its tests and fixtures is deleted (the committed trial JSON and `trial-report.md` are the record); `rg -n 'review-panel|Review Panel|--panel' commands adapters scripts .writ/docs` returns no wiring hits; the agents' `[AC-N.M]` tags and `- **Category:**` lines in `agents/`, `claude-code/agents/`, and `codex/agents/*.toml` remain (`jev-judge.py ac-shadow` consumes them); the `"commands/implement-story.md"` ratchet in `scripts/tests/test_governor_enforcement.py` is re-pinned downward with a dated disclosure naming this spec and Story 5; ADR-028 records the removal; roadmap criterion 4 is marked met by its second branch; and `spec.md` reads `> **Status:** Closed — Not Implemented` `[AC-5.4]`
+- [x] Given either acted-on verdict, when `uv run pytest scripts/tests/test_panel_trial_outcome.py` runs, then it passes only when the committed trial file validates, the `trial-report.md` verdict line matches `spec.md`'s status (`keep` ↔ `Complete`, `remove` ↔ `Closed — Not Implemented`, `unverifiable` ↔ neither), and the presence of the `**Review panel (opt-in).**` paragraph in both command files matches the verdict (present for `keep`, absent for `remove`); and `uv run pytest`, `uv run --python 3.9 pytest`, the bash tests, and `bash scripts/eval.sh` (outside the sandbox) all pass with Findings 0 `[AC-5.5]`
+
+## Implementation Tasks
+
+- [x] 5.1 Write the outcome tests first in `scripts/tests/test_panel_trial_outcome.py` (stdlib JSON + regex, no import of `review-panel.py` so the test survives a `remove`): skip with a clear reason while no `.writ/eval/panel-trial/*-panel-trial.json` is committed; otherwise assert `schema == "panel-trial-v1"`, four stories matching the baseline `selection`, two arms each, every panel-only finding labeled, notes ≤200 chars with no newline or backtick block, and no diff markers or story prose in any string; parse the verdict line of `{spec}/trial-report.md` and assert it matches `spec.md`'s `> **Status:**` and the presence or absence of `**Review panel (opt-in).**` in both command files; for `remove`, also assert `jev-judge.py`'s consumed `[AC-N.M]` and `- **Category:**` lines still exist in `agents/review-agent.md` and `agents/evaluator-agent.md` `[AC-5.1, AC-5.2, AC-5.5]`
+- [x] 5.2 Set up and run the trial in Cursor: snapshot yuss (`git -C ~/Projects/yuss rev-parse HEAD`, `status --porcelain`, `show-ref`); add the `- **Review Panel:** <slugs>` line for the session and confirm `review-panel.py status --repo . --origin "<session model>" --platform cursor` prints `pass`; `trial-init` from the baseline; for each of the four stories run `trial-prepare`, spawn the evaluator prompt alone (arm `evaluator`) and evaluator + panel reviewers in one message (arm `panel`) over the identical prepared inputs with `recorded_test_results` = the story's historical What Was Built test results labeled "historical, not re-run", then `trial-record` both arms; re-check the yuss snapshot is unchanged `[AC-5.1]`
+- [x] 5.3 Label every panel-only finding with `trial-label` (`valid` only when the finding names a real unmet AC or a real Critical/Major security/architecture defect at that commit, judged against the story's acceptance criteria; ≤200-char note, no source quoted); run `trial-report`, write its output verbatim to `{spec}/trial-report.md`, and commit the trial JSON and `trial-report.md` together before touching any wiring `[AC-5.1, AC-5.2]`
+- [x] 5.4 On `keep`: amend ADR-028 Decision 3's amendment note with the trial result and caveat, mark roadmap Phase 12 criterion 4 met with a link to `trial-report.md`, set `spec.md` status `Complete`, and leave all wiring and pins in place — targeted `StrReplace` edits only on `.writ/product/roadmap.md` and the ADR (both carry uncommitted edits) `[AC-5.3]`
+- [x] 5.5 On `remove`: delete the Gate 3 paragraph, `--panel` row, and `review-panel:` report entry from `commands/implement-story.md` and `.lean.md`; the config-format entry; the four adapter rows; `check_review_panel` and its `CHECKS` entry; `status`/`tally`, their tests, and fixtures; keep the agents' AC and Category tags; re-pin the `"commands/implement-story.md"` ratchet downward with a dated disclosure (`Updated 2026-10-NN (spec 2026-10-01-cross-family-review-panel, Story 5): panel path removed per trial-report …`); record the removal in ADR-028; mark roadmap criterion 4 met by its second branch; set `spec.md` status `Closed — Not Implemented` — targeted `StrReplace` edits on the roadmap and ADR. On `unverifiable`: set the spec status to name the blocking reason and stop `[AC-5.2, AC-5.4]`
+- [x] 5.6 Verify acceptance criteria: re-run `trial-report` against the committed file (before removal, or from the committed `trial-report.md` after) and confirm the verdict matches the spec status; `git log` shows the trial commit precedes any removal commit; for `remove`, run `rg -n 'review-panel|Review Panel|--panel' commands adapters scripts .writ/docs` and confirm no wiring hits; for `keep`, confirm `bash scripts/eval.sh --check=review-panel` is clean and the pins still bite `[AC-5.1, AC-5.2, AC-5.3, AC-5.4]`
+- [x] 5.7 Verify all tests pass: `uv run pytest`, `uv run --python 3.9 pytest`, `for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done`, and `bash scripts/eval.sh` (outside the sandbox) with Findings 0 `[AC-5.5]`
+
+## Notes
+
+- **Real model spend, Cursor only.** The panel arm spawns other-vendor models through Cursor's `Task` tool; Claude Code and Codex cannot run it. The session needs the `- **Review Panel:**` config line set for the run (≤3 reviewers, none from the session's vendor). Whether that line stays in `.writ/config.md` afterward follows the verdict: remove it on `remove`.
+- **Small sample.** Four stories is a weak sample, and one valid miss is enough to keep the panel. That is a low bar for keeping it, not a cost case. The ADR entry and the report both have to say so, so a `keep` verdict isn't later quoted as proof the panel is worth its cost.
+- **Identical inputs.** The two arms must differ only in the presence of panel reviewers: same prepared diff, story file, contract, and the same historical test results (labeled "historical, not re-run"). Tests are not re-run against yuss.
+- **Labeling honesty.** Label against the story's acceptance criteria at that commit, not against later fixes. If the evaluator-alone arm would have caught the same issue under a different key, the panel finding is still panel-only by Business Rule 12, but say so in the note.
+- **yuss is read-only.** Only Story 4's harness touches it, and only to read and fetch from it. Snapshot before, check after.
+- **Commit order is load-bearing.** On `remove`, `trial-*` goes away with the script, so the trial JSON and `trial-report.md` must already be committed when the deletion starts. They are the permanent record.
+- **Keep the agent tags on `remove`.** The review-agent `[AC-N.M]` checklist tags and the `- **Category:**` lines from Story 2 have a live consumer (`jev-judge.py ac-shadow`). Do not revert them, and keep the regenerated `codex/agents/*.toml` in sync (`codex-tomls` eval check).
+- **Uncommitted edits.** `.writ/product/roadmap.md` and the ADR-028 file have uncommitted work in progress. Make targeted `StrReplace` edits only, and never rewrite whole files.
+- **Cross-spec ratchet.** If `2026-10-01-behavioral-verification` has re-pinned `"commands/implement-story.md"` since Story 3, re-pin downward from its value and cite it in the disclosure.
+
+## Definition of Done
+
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
+
+## Context for Agents
+
+- **Error map rows:** [Trial prepare (yuss path missing / commit unreachable), Trial report (unlabeled finding or missing arm → unverifiable)]
+- **Shadow paths:** []
+- **Business rules:** spec.md → ## 📋 Business Rules (8 Removal rule — keep on ≥1 valid panel-only finding, else close and remove); spec.md → ## 📋 Business Rules (Expanded) (11 Trial integrity — no text in the trial file, raw outputs gitignored, yuss read-only; 12 Trial verdict — panel-only definition and keep/remove/unverifiable)
+- **Experience:** [User Journey step 6 (Trial), Interaction Patterns → every line starts with `review-panel:`]
+- **Technical:** sub-specs/technical-spec.md → ## Trial Harness (Story 4) (Arms, `trial-record`, `trial-label`, `trial-report`); ## Trial Execution and Verdict (Story 5) (keep / remove / unverifiable); ## Files in Scope (Story 5 rows: ADR-028, ratchet, trial record, roadmap); spec.md → ⚠️ Technical Concerns (The trial is small); spec.md → Success Criteria (trial report committed and acted on); `.writ/product/roadmap.md` → Phase 12 → Success Criteria (criterion 4)
+
+## What Was Built
+
+- **Trial:** both arms over the four baseline stories, recorded in `.writ/eval/panel-trial/2026-10-02-panel-trial.json`; yuss HEAD and status unchanged.
+- **Verdict:** `keep`. The maintainer labeled 6 of 8 panel-only findings valid; see [`trial-report.md`](../trial-report.md). Two valid keys (AC-4.2, AC-4.3) were also raised by the panel arm's same-vendor primary.
+- **Harness fix:** `trial-prepare` reads the legacy `## Contract Summary` heading (drift DEV-010).
+- **Outcome guard:** `scripts/tests/test_panel_trial_outcome.py` ties the trial record, report verdict, spec status, and Gate 3 panel wiring together.

@@ -394,9 +394,9 @@ python3 scripts/roadmap-sync.py append-row --roadmap .writ/product/roadmap.md \
 
 `append-row` is idempotent. A spec already recorded (by full folder name, its date-stripped slug, or a prior run's embedded marker) is a no-op.
 
-**Boundary (critical):** this step only ever writes to `roadmap.md`'s condensed-history table, its Revision Log, and its `Last Updated` line. It **never** touches `mission.md`'s prose, never creates an ADR, and never classifies whether a spec represents a direction change; those remain `/plan-product --reconcile`'s and `/verify-spec --product`'s P1/P4 checks, run periodically by a human. This step only ensures a shipped spec is recorded before that judgment pass happens.
+**Boundary (critical):** this step only ever writes to `roadmap.md`'s condensed-history table, its Revision Log, and its `Last Updated` line. It **never** touches `mission.md`'s prose, never creates an ADR, and never classifies whether a spec represents a direction change; those remain `/verify-spec --product`'s P1/P4 checks, then `/plan-product --reconcile`, run periodically by a human. This step only ensures a shipped spec is recorded before that judgment pass happens.
 
-**Derivative note:** if any row was appended, `mission-lite.md`'s "Current Phase" section may now be stale (it names inter-phase infrastructure). Regenerate it now if convenient, or flag in the completion report that `/plan-product --reconcile` would catch it. Do not leave the two disagreeing without a flag.
+**Derivative note:** if any row was appended, `mission-lite.md`'s "Current Phase" section may now be stale (it names inter-phase infrastructure). Regenerate it now if convenient, or flag in the completion report that `/verify-spec --product` regenerates it (Check P3). Do not leave the two disagreeing without a flag.
 
 #### Step 3.2: Commit Release
 
@@ -515,7 +515,7 @@ Add a confirmation line to the release summary:
 - **Tag:** v${VERSION} pushed to origin
 - **GitHub Release:** ✅ Created / ⏭️ Skipped
 - **Audit rollup:** 📝 Attached to <tag-target-sha> (refs/notes/writ) / ⏭️ Skipped (writ.auditNotes=false)
-- **Roadmap:** ✅ Current / 📋 N inter-phase spec(s) recorded (`roadmap.md`) — consider `/plan-product --reconcile` if `mission-lite.md` needs a matching update
+- **Roadmap:** ✅ Current / 📋 N inter-phase spec(s) recorded (`roadmap.md`) — run /verify-spec --product to check product docs against what shipped
 
 ## Changes Released
 ${changelog_summary}
@@ -525,6 +525,8 @@ ${changelog_summary}
 - Monitor deployment if auto-deploy is configured
 - Update any external documentation or announcements
 ```
+
+The `Roadmap:` line appears only when `.writ/product/` exists; omit it otherwise.
 
 ---
 
