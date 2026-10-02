@@ -5,9 +5,9 @@
 | Story | Title | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Reframe the Boundary](story-1-reframe-the-boundary.md) | Completed ✅ | 7 | 7/7 | None |
-| 2 | [Suggest the Check Where Drift Appears](story-2-suggest-where-drift-appears.md) | Not Started | 7 | 0/7 | Story 1 |
+| 2 | [Suggest the Check Where Drift Appears](story-2-suggest-where-drift-appears.md) | Completed ✅ | 7 | 7/7 | Story 1 |
 
-**Total:** 2 stories, 14 tasks, 50% complete.
+**Total:** 2 stories, 14 tasks, 100% complete.
 
 ## Dependencies
 

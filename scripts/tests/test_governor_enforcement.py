@@ -570,14 +570,26 @@ class CommandBudgetTests(unittest.TestCase):
 # verify-spec.md 10898 -> 10818 (file 35778), a shrink: the --product
 # before/after framing and the /assess-spec analogy became one direction
 # sentence. Re-pinned down because total_overage is asserted exactly.
+# Updated 2026-10-02 (spec 2026-10-01-product-check-direction, Story 2):
+# implement-phase.md 10200 -> 10361 (file 35321), a disclosed increase for the
+# Step 4.2 `Product docs may lag what shipped — run /verify-spec --product.`
+# report line and the sentence making it conditional on `.writ/product/`.
+# release.md 7576 -> 7655 (file 32615), a disclosed increase: the Phase 5
+# Roadmap pointer names /verify-spec --product in place of the reconcile
+# pointer, one sentence after the summary omits that line without
+# `.writ/product/` (spec Business Rule 4), and the Step 3.1b
+# Boundary/Derivative sentences put verification first. No new step or gate.
+# Acknowledged, not exempted.
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
     "commands/create-spec.md": 28123,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
-    "commands/implement-phase.md": 10200,
-    "commands/release.md": 7576,
+    # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
+    # for the conditional /verify-spec --product line in the Step 4.2 report.
+    "commands/implement-phase.md": 10361,
+    "commands/release.md": 7655,
     "commands/ship.md": 4030,
     # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
     # Gate 4.5 rewritten as behavioral verification, old Results ladder and an

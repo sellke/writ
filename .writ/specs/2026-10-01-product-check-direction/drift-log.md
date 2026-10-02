@@ -52,3 +52,36 @@
 - **Reason:** The lean twin's actual old wording was "`--product` lints (before a decision)", which neither specified pin could ever have caught (the review found the gap).
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md "Implementation Approach" lists the third forbid pin.
+
+---
+
+## Story 2: Suggest the Check Where Drift Appears — Drift Report
+
+> Run: 2026-10-02
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-006] Spec-attributed test module added
+- **Severity:** Medium
+- **Spec said:** Story 2's files are the eval pins, `implement-phase.md`, `release.md`, the governor re-pins, and the source issue; no new test module.
+- **Implementation did:** Added `scripts/tests/test_product_check_direction.py` (10 tests naming this spec, AC-1.1–AC-2.5), including temp-tree runs of the eval check for every pin mutation.
+- **Reason:** Once Story 1 read `Completed ✅`, `ac-trace` reported `untested_criterion` for AC-1.5 and the full eval failed; AC-1.1–1.4 were only matched by other specs' unattributed tokens. Scope expansion confined to this spec's own verification.
+- **Resolution:** Flagged for review
+- **Spec amendment:** spec-lite.md "Files in Scope" names the module.
+
+#### [DEV-007] implement-phase.md sha256 pin re-pinned
+- **Severity:** Small
+- **Spec said:** Re-pin the `implement-phase.md` byte ratchet; the `DEFAULT_SHA256` pin is not mentioned.
+- **Implementation did:** Re-pinned `DEFAULT_SHA256["implement-phase"]` with a dated comment; `implement-phase.lean.md` left unchanged.
+- **Reason:** The pin hashes the whole default file. The spec names only the default file, and lean bodies are a measurement baseline.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None (spec-lite already names the sha256 re-pin, DEV-003).
+
+#### [DEV-008] Release summary line made conditional by a sentence after the template
+- **Severity:** Small
+- **Spec said:** AC-2.2 replaces the Roadmap pointer in place; Business Rule 4 says each new completion line appears only when `.writ/product/` exists.
+- **Implementation did:** One sentence after the Phase 5 template omits the `Roadmap:` line without `.writ/product/`, matching the implement-phase pattern; `release.md` re-pinned 7576 -> 7655.
+- **Reason:** Three of four Gate 3 reviewers found the pointer unconditional against Business Rule 4; the contract outranks the AC's silence. Without `.writ/product/` there is no roadmap for the line to report.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "Error Handling" names both conditional lines.

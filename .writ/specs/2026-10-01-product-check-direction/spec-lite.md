@@ -17,6 +17,7 @@
 - `commands/verify-spec.md` — description, `--product` Modes row, line 37 callout, Boundary paragraph (625–631), Integration row for `--reconcile` (DEV-001); net bytes ≤ 0
 - `commands/verify-spec.lean.md` — mirror description, lines 33–35, 295; headings unchanged
 - `scripts/tests/test_lean_commands.py` — re-pin `DEFAULT_SHA256` for each edited default command (DEV-003)
+- `scripts/tests/test_product_check_direction.py` — spec-attributed tests for AC-1.1–AC-2.5, incl. pin mutations (DEV-006)
 - `commands/plan-product.md` — Reconcile Boundary (37–45); Step R4 closing (106) → suggest `/create-spec`
 - `commands/implement-phase.md` — one conditional line in Step 4.2 template
 - `commands/release.md` — Phase 5 `Roadmap:` line (518), lines 397, 399
@@ -24,7 +25,7 @@
 - `scripts/tests/test_governor_enforcement.py` — re-pin implement-phase (10200) and release (7576) with dated disclosure
 
 **Error Handling:**
-- No `.writ/product/` → new completion lines omitted; lint skips silently (unchanged)
+- No `.writ/product/` → new completion lines omitted (implement-phase Step 4.2 line; release Phase 5 `Roadmap:` line, DEV-008); lint skips silently (unchanged)
 
 **Integration Points:**
 - `retro.md:170` already correct (verify then reconcile); unchanged, model wording

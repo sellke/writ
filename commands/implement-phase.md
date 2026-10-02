@@ -305,7 +305,10 @@ Checker verdict: unmet
   ⚑ implement-phase.c4 — unknown — declared unobservable: report is transcript-only
 
 Phase status: IMPLEMENTED — pending human validation
+Product docs may lag what shipped — run /verify-spec --product.
 ```
+
+The `Product docs may lag` line appears only when `.writ/product/` exists; omit it otherwise.
 
 **The command never declares a phase "complete" when human-judgment criteria remain.** The terminal status is `IMPLEMENTED — pending human validation`, with the UAT plans as the handoff. If every exit criterion is machine-checkable and passing, the status may be `COMPLETE`.
 

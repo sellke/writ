@@ -34,3 +34,7 @@ The product-docs consistency lint lives under `/verify-spec`, the command users 
 - Also referenced by `commands/release.md`, `commands/retro.md` (product-drift nudge), `scripts/tests/test_lean_commands.py`, and `scripts/roadmap-sync.py`'s docstring; check `scripts/eval.sh` for `require_literal` pins on the flag before renaming.
 - Cheaper alternative if the move is judged not worth the churn: keep the flag, retitle the mode "Product lint (not a spec check)" in the invocation table, and fix the before/after wording. That leaves the naming trap in place.
 - Historical mentions in `CHANGELOG.md` and `.writ/product/verification-*.md` stay as written.
+
+## Resolution
+
+2026-10-02, spec `2026-10-01-product-check-direction`: Story 1 commit e651e95. The lint stays at `/verify-spec --product`; discovery rejected the move to `/plan-product`. Every file that names both commands now states one direction: "Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does." `--reconcile` Step R4 hands back to `/create-spec`, and `/implement-phase` and `/release` each suggest `/verify-spec --product` in one completion line. The eval check `product-check-direction` and `scripts/tests/test_product_check_direction.py` pin the wording.

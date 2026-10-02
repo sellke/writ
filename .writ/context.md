@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-02T02:45:00+02:00
+> Last Updated: 2026-10-02T03:20:00+02:00
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-01-product-check-direction — Product Check Direction: Verification Feeds Realignment
-- **Status:** In Progress
-- **Story:** 1 of 2 — Reframe the Boundary (Completed ✅); Story 2 next
-- **Progress:** 7/14 tasks complete (50%)
+- **Status:** Complete
+- **Story:** 2 of 2 — Suggest the Check Where Drift Appears (Completed ✅)
+- **Progress:** 14/14 tasks complete (100%)
 - **Also:** 2026-10-01-cross-family-review-panel is Complete (35/35, trial verdict `keep`)
 
 ## Artifact Map
@@ -24,11 +24,11 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-006 (Medium) spec-attributed test module `test_product_check_direction.py` added — product-check-direction Story 2
+- DEV-008 (Small) release `Roadmap:` line omitted without `.writ/product/` (Business Rule 4) — product-check-direction Story 2
 - DEV-002 (Medium) verify-spec.md ratchet re-pinned down 10898 -> 10818 instead of left unchanged — product-check-direction Story 1
-- DEV-005 (Small) lean description mirrored; extra `lints (before` forbid pin — product-check-direction Story 1
-- DEV-004 (Small) eval check run as `product-check-direction`, not the underscore name — product-check-direction Story 1
 - DEV-010 (Small) `trial-prepare` accepts the legacy `## Contract Summary` heading — cross-family-review-panel Story 5
 
 ## Open Issues
 
-16 issue files in .writ/issues/ (open count not recomputed this run)
+16 issue files in .writ/issues/ (15 open; 2026-10-01-product-lint-misread-as-verify-spec resolved)

@@ -81,10 +81,14 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # --product description, Modes row, callout, Boundary paragraph, and
 # Integration row now state one direction (verification, then reconcile);
 # verify-spec.lean.md carries the same wording, headings unchanged.
+# Repinned 2026-10-02 (2026-10-01-product-check-direction Story 2):
+# implement-phase.md Step 4.2's report gained the conditional
+# `run /verify-spec --product` line; implement-phase.lean.md is unchanged
+# (the spec names only the default file).
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
-    "implement-phase": "f1a4d735259af57f7f763b3b50a11cf1a3f074ece68ea451d530d5ef33c23423",
+    "implement-phase": "f5441d08df2c763e1283375a00833d335436d28f0af7382c8401c40600b499c9",
     "implement-story": "985e2bd95dfbef722ad333fb43f394e8c52002ad304778eb850757a3257c0263",
 }
 

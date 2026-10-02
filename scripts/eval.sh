@@ -4798,6 +4798,12 @@ check_product_check_direction() {
     forbid_literal "$file" 'lints (before' "$(relpath "$file") must not frame --product as linting before --reconcile revises."
   done
   forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
+
+  local phase="$PROJECT_ROOT/commands/implement-phase.md"
+  local release="$PROJECT_ROOT/commands/release.md"
+  require_literal "$phase" 'run /verify-spec --product' "implement-phase.md Step 4.2 report must suggest /verify-spec --product where product docs fall behind."
+  require_literal "$release" 'run /verify-spec --product to check product docs against what shipped' "release.md Phase 5 Roadmap line must point to /verify-spec --product."
+  forbid_literal "$release" 'consider `/plan-product --reconcile` if `mission-lite.md` needs a matching update' "release.md Phase 5 must replace the reconcile pointer, not stack a second product line."
 }
 
 run_check() {
