@@ -1,6 +1,7 @@
 # Story 1: Reframe the Boundary
 
 > **Status:** Completed ✅
+> **Commit:** e651e95f878333e2f476e0c2b2f4abe4b4d190d4
 > **Priority:** High
 > **Dependencies:** None
 
