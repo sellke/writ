@@ -1,6 +1,7 @@
 # Story 2: Suggest the Check Where Drift Appears
 
 > **Status:** Completed ✅
+> **Commit:** 5eb4470132342ee08f90db838ceed4719afcfcfe
 > **Priority:** Medium
 > **Dependencies:** Story 1
 
