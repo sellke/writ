@@ -71,3 +71,8 @@ Committed, append-only audit trail for `/status --archive`. One line per archive
 - 2026-09-26T10:40:37Z — `2026-09-08-phase11-stage3-spec-analysis` archived (evidence: no knowledge evidence yet)
 - 2026-09-26T10:40:37Z — `2026-09-09-phase11-stage4-goal-emit` archived (evidence: no knowledge evidence yet)
 - 2026-09-26T10:40:37Z — `2026-09-09-phase11-stage4b-pipeline-demote` archived (evidence: no knowledge evidence yet)
+- 2026-10-02T02:30:38Z — `2026-09-26-arch-lint-and-follow-ups` archived (evidence: no knowledge evidence yet)
+- 2026-10-02T02:30:38Z — `2026-09-26-drift-arch-guards` archived (evidence: no knowledge evidence yet)
+- 2026-10-02T02:30:38Z — `2026-10-01-behavioral-verification` archived (evidence: no knowledge evidence yet)
+- 2026-10-02T02:30:38Z — `2026-10-01-cross-family-review-panel` archived (evidence: no knowledge evidence yet)
+- 2026-10-02T02:30:38Z — `2026-10-01-product-check-direction` archived (evidence: no knowledge evidence yet)

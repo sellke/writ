@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-09-26
-> **spec_ref:** .writ/specs/2026-09-26-arch-lint-and-follow-ups/spec.md
+> **spec_ref:** .writ/specs/archive/2026-09-26-arch-lint-and-follow-ups/spec.md
 
 ## TL;DR
 

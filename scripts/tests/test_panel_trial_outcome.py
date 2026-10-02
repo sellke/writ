@@ -15,7 +15,10 @@ from pathlib import Path
 from typing import List
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SPEC_DIR = REPO_ROOT / ".writ" / "specs" / "2026-10-01-cross-family-review-panel"
+SPECS = REPO_ROOT / ".writ" / "specs"
+SPEC_NAME = "2026-10-01-cross-family-review-panel"
+# `/status --archive` moves a Complete spec under archive/; the guard must follow it.
+SPEC_DIR = next((d for d in (SPECS / SPEC_NAME, SPECS / "archive" / SPEC_NAME) if d.is_dir()), SPECS / SPEC_NAME)
 TRIAL_DIR = REPO_ROOT / ".writ" / "eval" / "panel-trial"
 REPORT = SPEC_DIR / "trial-report.md"
 COMMAND_FILES = (

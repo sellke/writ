@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Small
 > **Created:** 2026-10-01
-> **spec_ref:** .writ/specs/2026-10-01-product-check-direction/spec.md
+> **spec_ref:** .writ/specs/archive/2026-10-01-product-check-direction/spec.md
 
 ## TL;DR
 
