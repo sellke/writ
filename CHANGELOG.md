@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.40.0] - 2026-10-02
+
+**Behavioral verification (Phase 12).** Writ can now prove that a story's feature works by running the project's own checks against the running app, and it saves the evidence. On risky stories, an opt-in cross-family review panel adds reviewers from other vendors, and a finding raised by two or more vendors blocks the story. Product-doc verification is reframed as a post-implementation check whose findings feed realignment.
+
+### Added
+- **App verification recipe.** A per-project `.writ/docs/app-verification.md` says how to launch the app, which checks drive each feature, and what is off limits. `scripts/app-verify.py validate` rejects recipes with pasted secrets, credentialed URLs, or malformed feature IDs. ([Story 1](.writ/specs/2026-10-01-behavioral-verification/user-stories/story-1-recipe-format-and-validator.md))
+- **`app-verify.py touched` and `run`.** These pick the features a story touched, launch the app, run each check, save evidence, and clean up, even on interrupt. A stdlib fixture app exercises the full loop. ([Story 3](.writ/specs/2026-10-01-behavioral-verification/user-stories/story-3-run-script-and-fixture.md))
+- **`/create-uat-plan` drafts the recipe** and binds each UAT scenario to a feature ID. ([Story 2](.writ/specs/2026-10-01-behavioral-verification/user-stories/story-2-uat-plan-recipe-and-binding.md))
+- **Evidence check in `exit-criteria.py`.** The c2 criterion now requires the cited evidence to exist. `check-uat` validates UAT bindings, and `eval.sh` gains an `app-verify` check. ([Story 5](.writ/specs/2026-10-01-behavioral-verification/user-stories/story-5-evidence-exit-criteria.md))
+- **Cross-family review panel (opt-in).** Set a `Review Panel:` line in `.writ/config.md` and Gate 3 adds one to three other-vendor reviewers on stories Gate 2.5 routes as risky, or on any story run with `--panel`. `scripts/review-panel.py tally` matches findings across vendors: two or more vendors block the story, and a single vendor's finding is a note. ([Story 1](.writ/specs/2026-10-01-cross-family-review-panel/user-stories/story-1-panel-config-and-status.md), [Story 2](.writ/specs/2026-10-01-cross-family-review-panel/user-stories/story-2-tally-and-tagged-output.md), [Story 3](.writ/specs/2026-10-01-cross-family-review-panel/user-stories/story-3-gate-3-wiring.md))
+- **Panel trial harness, and the verdict: keep.** A retrospective trial on four Phase 11 baseline stories found 6 valid findings, out of 8 raised only by the panel, that the evaluator alone missed. ([Story 4](.writ/specs/2026-10-01-cross-family-review-panel/user-stories/story-4-trial-harness.md), [Story 5](.writ/specs/2026-10-01-cross-family-review-panel/user-stories/story-5-run-trial-and-act.md), [trial report](.writ/specs/2026-10-01-cross-family-review-panel/trial-report.md))
+
+### Changed
+- **Gate 4.5 is now behavioral verification.** `/implement-story` runs `app-verify.py` instead of a visual mockup comparison. Mockup comparison by `visual-qa-agent` becomes advisory under `--full-pipeline`, and the default path still spawns two agents. ([Story 4](.writ/specs/2026-10-01-behavioral-verification/user-stories/story-4-gate-4-5-behavioral-verification.md))
+- **Product checks feed realignment.** Every mention of `/verify-spec --product` and `/plan-product --reconcile` now gives one direction: verification surfaces drift after implementation, and reconcile realigns the baseline, then hands back to `/create-spec`. ([Story 1](.writ/specs/2026-10-01-product-check-direction/user-stories/story-1-reframe-the-boundary.md))
+- **`/implement-phase` and `/release` suggest `/verify-spec --product`** in one completion line, at the two points where product docs fall behind. ([Story 2](.writ/specs/2026-10-01-product-check-direction/user-stories/story-2-suggest-where-drift-appears.md))
+
+### Fixed
+- `trial-prepare` reads the legacy Contract Summary heading.
+- Panel key counts pluralize as "keys", not "keies".
+- `exit-criteria.py` c3 accepts a reasoned typecheck skip.
+
+### Internal
+- Writ's own repo opts into the review panel. UAT plans were added for both Phase 12 specs, the roadmap was updated, and `CLAUDE.md` was trimmed. A fake Stripe-shaped test fixture was replaced so that GitHub push protection accepts the history.
+
 ## [0.39.0] - 2026-09-26
 
 **Drift and architecture guards** — the default story path now catches architectural drift mechanically instead of relying on the evaluator to notice it. A story whose changes cross its boundary map is reviewed by the full review agent, drift is judged against the locked contract, and Gate 2 runs a project's architecture ruleset when one exists. Codex agent files can no longer drift silently from their sources, and an issue is closed by adding a `## Resolution` line.

@@ -1,7 +1,7 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-10-01
+> Last Updated: 2026-10-02
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
 **Current status (2026-10-01):** Phases 1–11 closed. **Phase 11 (Contract-and-Verifier Layer) completed 2026-09-09 in v0.36.0** — base under 10 KB, eight of ten gates script-backed, two-agent default pipeline, Goal Card to `/goal` emit. **Phase 12 (Behavioral Verification) is implemented, pending human UAT (2026-10-02)**: behavioral verification is complete, and the cross-family panel's trial returned `keep` (6 of 8 panel-only findings valid on four stories). It adds a verifier that proves the user's feature works by driving the running app, plus an opt-in cross-family review panel ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). Other candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-10-02 | Recorded `2026-10-01-product-check-direction` as inter-phase infrastructure (v0.40.0). |
 | 2026-10-01 | **Reconcile pass** (`/plan-product --reconcile`): Phase 11 promoted from six inter-phase rows to a closed phase with its caveats (single-model baseline; spec analysis advisory); model delegation recorded as shipped (v0.34.0) and removed from the parking lot; friction signals marked unblocked. **Direction change:** Phase 12 (Behavioral Verification) committed with [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md). Parking lot renamed *Beyond Phase 10* → *Beyond Phase 12*; Cursor plugin distribution and the empirical-fork rule added as candidates. Derivatives regenerated. |
 | 2026-09-26 | Recorded `2026-09-26-arch-lint-and-follow-ups` as inter-phase infrastructure (v0.39.0). |
 | 2026-09-26 | Recorded `2026-09-26-drift-arch-guards` as inter-phase infrastructure (v0.39.0). |
@@ -63,6 +64,7 @@
 | **— Jev Judgment Pilot** <!-- 2026-09-25-jev-judgment-pilot --> | Opt-in TypeSafe Jev judgment provider (TypeSafe direct or Vercel AI Gateway): ADR-027, stdlib client, Step 2.6c cascade, calibration, Gate 3 shadow, one-time setup prompt. | v0.38.0 |
 | **— Drift and Architecture Guards** <!-- 2026-09-26-drift-arch-guards --> | Boundary crossings route Gate 3 to review-agent; drift judged against the locked contract; spec-end drift roll-up. | v0.39.0 |
 | **— Architecture Lint and Drift-Guard Follow-ups** <!-- 2026-09-26-arch-lint-and-follow-ups --> | Gate 2 architecture-ruleset detection with a shipped guide and ADR hook; Codex TOML freshness check; issue closure via ## Resolution. | v0.39.0 |
+| **— Product Check Direction** <!-- 2026-10-01-product-check-direction --> | Product-doc verification reads as a post-implementation check whose findings feed realignment; /implement-phase and /release each suggest /verify-spec --product in one line. | v0.40.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 
