@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-10-01
+> Regenerated from mission.md on 2026-10-02
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-10-01
+> Last Updated: 2026-10-02
 
 ## Core Value
 
@@ -32,9 +32,9 @@ Code and methodology that score well on six production-grade criteria — audita
 
 ## Current Phase
 
-**Phases 1–11:** Shipped and released (through v0.39.0). Phase 10 closed partially complete — the determinism half enforced, the byte goal withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). Phase 11 (Contract-and-Verifier Layer, v0.36.0) pruned the shared base under 10 KB, put scripts behind eight of ten `/implement-story` gates, and made the two-agent pipeline the default with `--full-pipeline` as the escalation. Inter-phase work since: model delegation (v0.34.0), flagged harness cuts, the opt-in Jev judgment pilot, drift and architecture guards (v0.37.0–v0.39.0).
+**Phases 1–11:** Shipped and released (through v0.39.0). Phase 10 closed partially complete — the determinism half enforced, the byte goal withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). Phase 11 (Contract-and-Verifier Layer, v0.36.0) pruned the shared base under 10 KB, put scripts behind eight of ten `/implement-story` gates, and made the two-agent pipeline the default with `--full-pipeline` as the escalation. Inter-phase work since: model delegation (v0.34.0), flagged harness cuts, the opt-in Jev judgment pilot, drift and architecture guards (v0.37.0–v0.39.0), and product-check direction (v0.40.0).
 
-**Phase 12 — Behavioral Verification (📋 committed, not started):** a per-project verification recipe, drafted by `/create-uat-plan`, whose feature map names the project's own checks against the running app; UAT scenarios bound to captured evidence so Gate 4.5 leaves `prose-only`; an opt-in cross-family review panel for high-stakes stories, kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
+**Phase 12 — Behavioral Verification (◐ implemented and released in v0.40.0, pending human UAT):** a per-project verification recipe (`.writ/docs/app-verification.md`), drafted by `/create-uat-plan`, names the project's own checks against the running app; Gate 4.5 runs them through `scripts/app-verify.py` and records evidence, and `exit-criteria.py` checks that the cited evidence exists. The opt-in cross-family review panel stays: its trial found 6 valid of 8 panel-only findings on the Phase 11 baseline set ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
 
 ## What Writ Is Not Building
 
