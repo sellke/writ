@@ -229,5 +229,16 @@ class AdrAmendmentTests(unittest.TestCase):
             self.assertIn(needle, block)
 
 
+class SelfCitationTests(unittest.TestCase):
+    def test_every_test_names_its_ac_id(self) -> None:
+        """AC-1.5 — every test in this file names a Story 1 AC ID in its docstring."""
+        for case in (SectionTests, ClassificationTests, AdrAmendmentTests, SelfCitationTests):
+            for name in dir(case):
+                if not name.startswith("test_"):
+                    continue
+                doc = getattr(case, name).__doc__ or ""
+                self.assertRegex(doc, r"\bAC-1\.[1-5]\b", "%s.%s" % (case.__name__, name))
+
+
 if __name__ == "__main__":
     unittest.main()

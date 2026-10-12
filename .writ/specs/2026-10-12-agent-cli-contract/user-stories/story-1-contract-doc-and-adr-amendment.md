@@ -92,7 +92,7 @@
 ### Files Created
 
 1. **`.writ/docs/agent-cli-contract.md`** (148 lines) — the agent CLI contract. Ten sections: Scope, Data shape, Check shape, Usage errors, Never spawn or wait unbounded, Network, State, Runtime, Adding a script, Classification. The table has 34 rows (19 data, 15 check), one per shipped script. `jev-judge.py` and `app-verify.py` carry `network: opt-in, bounded-wait`. A note below the table lists `jev-thresholds.json` and the six dev-only scripts. A `### Notes` list records what each non-conforming script prints today, and says the Callers column is not complete. [AC-1.1, AC-1.2, AC-1.3]
-2. **`scripts/tests/test_agent_cli_contract_doc.py`** (233 lines) — 13 tests. They read the shipped set from the real `is_shippable_script` in `scripts/install.sh`, and pin ADR-029 rules 1–7 with a SHA-256 of the pre-change text. [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
+2. **`scripts/tests/test_agent_cli_contract_doc.py`** (244 lines) — 14 tests, one of which checks that every test docstring names its AC ID (added after Gate 3 when `ac-trace.py` found AC-1.5 uncited). They read the shipped set from the real `is_shippable_script` in `scripts/install.sh`, and pin ADR-029 rules 1–7 with a SHA-256 of the pre-change text. [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
 
 ### Files Modified
 
