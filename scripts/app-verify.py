@@ -15,16 +15,22 @@ Subcommands:
   touched  --recipe PATH --changed FILE... [--json]
   run      --recipe PATH --spec DIR --run-label LABEL [--features id,...] [--json]
 
-Without `--json`, stdout is exactly one `app-verify:` summary line (`touched`
-prints matching feature IDs instead, one per line, when any match). With
-`--json`, one JSON object (schema `app-verify-v1`) follows.
+Every subcommand prints the agent CLI contract's check shape
+(`.writ/docs/agent-cli-contract.md`): line 1 is the bare verdict `pass`,
+`fail`, or `unverifiable`; then `reason:` lines (`touched` prints one
+`feature: <id>` line per matched feature instead); then one `app-verify:`
+summary line. With `--json`, one JSON object (schema `app-verify-v1`)
+follows the summary.
 
-Exit codes:
-  validate: 0 valid, 1 findings, 2 recipe missing or unreadable.
-  touched:  0 (matches or none), 2 no recipe or invalid recipe.
-  run:      0 every check passed, 1 any check, launch, or readiness failed,
-            2 nothing ran (no recipe, invalid recipe, refused, unsupported
-            platform, no runnable feature).
+Verdicts and exit codes (0 when the check ran, 1 on fail, 2 on usage):
+  validate: pass (valid, 0), fail (findings, 1), unverifiable (recipe
+            missing or unreadable, 0).
+  touched:  pass (matches or none, 0), unverifiable (no recipe or invalid
+            recipe, 0).
+  run:      pass (every check passed, 0), fail (any check, launch, or
+            readiness failed, 1), unverifiable (nothing ran: no recipe,
+            invalid recipe, refused, unsupported platform, no runnable
+            feature, 0). A refusal keeps `refused` in the summary and JSON.
 
 `run` writes `{spec}/evidence/<label>/<feature>/result.json` (schema
 `app-verify-result-v1`) plus truncated `stdout.log`/`stderr.log`, and launch
@@ -83,7 +89,8 @@ _BACKTICK_SPAN = re.compile(r"`[^`]*`")
 
 
 class RecipeUnavailable(Exception):
-    """Exit-2 conditions: the recipe file is missing or cannot be decoded."""
+    """`unverifiable` conditions: the recipe file is missing, cannot be
+    decoded, or (outside `validate`) fails the grammar."""
 
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
@@ -584,21 +591,21 @@ def run_verification(recipe_path: Path, spec_dir: Path, label: str,
         return code, summary, payload
 
     if not _is_posix():
-        return stop(2, "unverifiable", "app-verify: unverifiable (unsupported_platform)",
+        return stop(0, "unverifiable", "app-verify: unverifiable (unsupported_platform)",
                     "unsupported_platform")
     try:
         recipe, text = _load_valid(recipe_path)
     except RecipeUnavailable as exc:
-        return stop(2, "unverifiable", f"app-verify: unverifiable ({exc.reason})", exc.reason)
+        return stop(0, "unverifiable", f"app-verify: unverifiable ({exc.reason})", exc.reason)
     if not spec_dir.is_dir():
-        return stop(2, "unverifiable", "app-verify: unverifiable (no_spec_dir)", "no_spec_dir")
+        return stop(0, "unverifiable", "app-verify: unverifiable (no_spec_dir)", "no_spec_dir")
 
     by_id = {f.id: f for f in recipe.features}
     wanted = features if features else [f.id for f in recipe.features]
     unknown = [fid for fid in wanted if fid not in by_id]
     if unknown:
         reason = f"unknown_feature: {', '.join(unknown)}"
-        return stop(2, "unverifiable", f"app-verify: unverifiable ({reason})", reason)
+        return stop(0, "unverifiable", f"app-verify: unverifiable ({reason})", reason)
     selected = [by_id[fid] for fid in wanted if by_id[fid].check]
     payload["human_only"] = [{"feature": fid, "reason": by_id[fid].human_only}
                              for fid in wanted if by_id[fid].human_only]
@@ -607,16 +614,16 @@ def run_verification(recipe_path: Path, spec_dir: Path, label: str,
     if not selected:
         summary = f"app-verify: {human}" if human else \
             "app-verify: unverifiable (no_runnable_features)"
-        return stop(2, "unverifiable", summary, "no_runnable_features")
+        return stop(0, "unverifiable", summary, "no_runnable_features")
     human = f"; {human}" if human else ""
 
     refusal = safety_refusal(recipe, env, cwd)
     if refusal:
-        return stop(2, "refused", f"app-verify: refused ({refusal})", refusal)
+        return stop(0, "refused", f"app-verify: refused ({refusal})", refusal)
     ready_target = recipe.ready_when or ""
     already_up = probe_ready(ready_target)
     if already_up and not recipe.reuse_running:
-        return stop(2, "refused", "app-verify: refused (instance_already_running)",
+        return stop(0, "refused", "app-verify: refused (instance_already_running)",
                     "instance_already_running")
 
     run_dir = spec_dir / "evidence" / label
@@ -692,7 +699,7 @@ def run_validate(args: argparse.Namespace) -> tuple[int, str, dict[str, Any]]:
         text = load_recipe(args.recipe)
     except RecipeUnavailable as exc:
         payload.update(verdict="unverifiable", reason=exc.reason, findings=[])
-        return 2, f"app-verify: unverifiable ({exc.reason})", payload
+        return 0, f"app-verify: unverifiable ({exc.reason})", payload
     recipe, findings = _parse(text)
     payload["findings"] = findings
     if findings:
@@ -716,10 +723,40 @@ def run_touched(args: argparse.Namespace) -> tuple[int, str, dict[str, Any]]:
         recipe, _ = _load_valid(args.recipe)
     except RecipeUnavailable as exc:
         payload.update(verdict="unverifiable", reason=exc.reason, features=[])
-        return 2, f"app-verify: unverifiable ({exc.reason})", payload
+        return 0, f"app-verify: unverifiable ({exc.reason})", payload
     ids = touched_features(recipe, args.changed)
     payload.update(verdict="ok", features=ids)
-    return 0, ("\n".join(ids) if ids else NO_TOUCHED), payload
+    if not ids:
+        return 0, NO_TOUCHED, payload
+    noun = "feature" if len(ids) == 1 else "features"
+    return 0, f"app-verify: {len(ids)} mapped {noun} touched by this story", payload
+
+
+# Line 1 of stdout for each payload verdict.
+LINE1 = {"pass": "pass", "valid": "pass", "ok": "pass",
+         "fail": "fail", "invalid": "fail",
+         "unverifiable": "unverifiable", "refused": "unverifiable"}
+
+
+def render_lines(summary: str, payload: dict[str, Any]) -> list[str]:
+    """The check shape: verdict, `reason:` / `feature:` lines, summary last."""
+    lines = [LINE1[payload["verdict"]]]
+    reason = payload.get("reason")
+    if reason:
+        lines.append(f"reason: refused ({reason})" if payload["verdict"] == "refused"
+                     else f"reason: {reason}")
+    action = payload.get("action")
+    if action == "validate":
+        lines += [f"reason: {describe_finding(f)}" for f in payload.get("findings", [])]
+    elif action == "touched":
+        lines += [f"feature: {fid}" for fid in payload.get("features", [])]
+    elif action == "run":
+        for f in payload.get("features", []):
+            if f["verdict"] != "pass":
+                why = "timeout" if f["exit_code"] is None else f"exit {f['exit_code']}"
+                lines.append(f"reason: {f['feature']} fail ({why}) — {f['result']}")
+    lines.append(summary)
+    return lines
 
 
 def _exit_on_sigterm(signum: int, frame: Any) -> None:
@@ -743,7 +780,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=run_validate)
 
-    t = sub.add_parser("touched", help="print feature IDs whose Paths match changed files")
+    t = sub.add_parser("touched", help="print a feature: line per feature whose Paths match")
     t.add_argument("--recipe", required=True, type=Path)
     t.add_argument("--changed", nargs="*", default=[])
     t.add_argument("--json", action="store_true")
@@ -764,7 +801,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     exit_code, summary, payload = args.func(args)
     payload["summary"] = summary
-    print(summary)
+    print("\n".join(render_lines(summary, payload)))
     if args.json:
         print(json.dumps(payload, sort_keys=True))
     return exit_code

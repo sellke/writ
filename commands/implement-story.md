@@ -219,9 +219,9 @@ mkdir -p .writ/state && python3 scripts/boundary-map.py compute --story <story-f
 
 Spawns the coding agent to run the red → green → refactor loop via `Read skills/tdd-cycle/SKILL.md`, with full story context, optional `knowledge_context`, any arch-check warnings, and **`boundary_map`** from Gate 0.5. This gate owns when coding runs, the context it routes below, and `STATUS: BLOCKED` handling; the skill owns how the test-first cycle runs.
 
-**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules). Pass `knowledge_context` after spec context and before dependency records when populated. If dependencies have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` — positioned after knowledge context, before implementation tasks.
+**Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content` and relevant `fetched_context` (error maps, business rules). Pass `knowledge_context` after spec context and before dependency records when populated. If dependencies have completed "What Was Built" records (loaded in Step 2), pass aggregated `dependency_wwb_context` after knowledge context, before implementation tasks.
 
-**When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking” (see `agents/coding-agent.md`).
+**When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking”.
 
 **Report:** files changed, tests written, deviations from plan, concerns.
 
@@ -254,7 +254,7 @@ After lint/typecheck, classify changed files as **style-only**, **single-compone
 
 `Read skills/change-surface-classification/SKILL.md` for how the classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how.
 
-Run the classifier (JSON `class` = `change_surface`), then, unless Gate 0.5 was skipped, the crossings check (`route` = `gate3_route`):
+Run the classifier (JSON `class` = `change_surface`; pass it as `--surface`), then, unless Gate 0.5 was skipped, the crossings check (`route` = `gate3_route`):
 
 ```bash
 python3 scripts/change-surface.py classify --changed <files>
@@ -368,9 +368,9 @@ python3 scripts/app-verify.py touched --recipe .writ/docs/app-verification.md --
 python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec <spec-folder> --run-label story-N --features <touched ids, comma-joined>
 ```
 
-- **exit 0** → continue.
-- **exit 1** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
-- **exit 2** (no recipe, invalid recipe, refused), or `touched` printed no IDs (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
+- Line 1 **`pass`** → continue.
+- **`fail`** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
+- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` lines (skip `run`; it says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`

@@ -69,7 +69,7 @@ Safety refuses by default. Before anything launches, `app-verify.py run` resolve
 
 ## Validator Findings
 
-`python3 scripts/app-verify.py validate --recipe .writ/docs/app-verification.md` exits 0 when the recipe is valid, 1 with findings, and 2 when the file is missing or not UTF-8. Every finding has one code:
+`python3 scripts/app-verify.py validate --recipe .writ/docs/app-verification.md` prints `pass` on line 1 when the recipe is valid (exit 0), `fail` with one `reason:` line per finding (exit 1), and `unverifiable` when the file is missing or not UTF-8 (exit 0). An `app-verify:` summary is last. Every finding has one code:
 
 | Code | Meaning |
 |---|---|

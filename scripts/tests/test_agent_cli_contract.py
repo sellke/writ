@@ -45,8 +45,8 @@ Story 5's shell fixes are enforced.
 KNOWN_VIOLATIONS is strict debt (Business Rule 10): each `(script, rule)`
 entry makes that case `xfail(strict=True)`; for a smoke run in a further
 mode, the key is `<script> <mode>`. When the script is fixed the
-case XPASSes, and strict mode fails it until the entry is removed. Story 4
-and Story 5 empty the dict.
+case XPASSes, and strict mode fails it until the entry is removed. Stories 4
+and 5 emptied the dict; the fixture tests below keep the mechanism proven.
 
 Run: uv run pytest scripts/tests/test_agent_cli_contract.py
 """
@@ -460,12 +460,9 @@ SHIPPED = shipped_scripts(_read(INSTALL_SH), [p.name for p in SCRIPTS.iterdir() 
 TABLE = parse_classification(_read(DOC))
 PY_SHIPPED = [s for s in SHIPPED if set(STATIC_RULES) <= set(rules_for(s))]
 
-# (script, rule) -> reason. Strict debt: must be {} when the spec closes.
-KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
-    # Story 5: shell scripts and app-verify.py.
-    ("app-verify.py", "shape"):
-        "line 1 is the summary `app-verify: <verdict> ...`, not the bare verdict (Story 5)",
-}
+# (script, rule) -> reason. Strict debt: empty since Story 5 of this spec; a
+# new entry needs a reason and a story that removes it.
+KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {}
 
 
 def _spec_dir() -> Path:
@@ -601,6 +598,9 @@ SMOKE_INVOCATIONS: List[Smoke] = [
                                 "scripts/tests/test_agent_cli_contract_doc.py"], {}),
     # check
     Smoke("app-verify.py", ["validate", "--recipe", "{tmp}/missing-recipe.md"], {}),
+    Smoke("app-verify.py", ["touched", "--recipe", "{repo}/scripts/tests/fixtures/app-verify/"
+                            "recipe-pass.md", "--changed", "scripts/tests/fixtures/app-verify/"
+                            "app.py"], {}, "touched"),
     Smoke("arch-check.py", ["check", "--story", STORY, "--repo", "{repo}"], {}),
     Smoke("arch-lint.py", ["detect", "--repo", "{tmp}/proj"], {"proj/package.json": "{"}),
     Smoke("docs-check.py", ["check", "--repo", "{repo}", "--changed",
@@ -785,6 +785,41 @@ def test_known_violations_are_well_formed():
         }.get(rule, key == script and script.endswith(".py"))
         assert runs, ("%s: (%r, %r) matches no test case; fix: remove it from "
                       "KNOWN_VIOLATIONS" % (key, key, rule))
+
+
+STORY5_SCRIPTS = ("app-verify.py", "check-agent-parity.sh", "gen-skill.sh", "lint-skill.sh")
+
+# Pre-contract output that Story 5 removed: a caller still quoting it would
+# misread the check shape. (file, literal) pairs, one per retired phrasing.
+STORY5_STALE_CALLER_TEXT = (
+    ("commands/new-skill.md", "exited 0 on the captured description"),
+    ("commands/new-skill.md", "reports no delta"),
+    ("commands/refresh-command.md", "always exit 0"),
+    ("commands/refresh-command.md", "parity OK line"),
+    ("commands/refresh-command.md", "exits `0` (all clean)"),
+    ("commands/implement-story.md", "printed no IDs"),
+    ("commands/implement-story.lean.md", "printed no IDs"),
+    ("commands/implement-story.md", "- **exit 2** (no recipe"),
+    ("commands/implement-story.lean.md", "- **exit 2** (no recipe"),
+    ("commands/create-uat-plan.md", "- Exit 2 →"),
+    (".writ/docs/app-verification-format.md", "and 2 when the file is missing"),
+    ("adapters/codex.md", "warnings must be intentional"),
+)
+
+
+def test_story5_scripts_carry_no_known_violation():
+    """AC-5.5 — the shell scripts and app-verify.py pass every rule with no strict-xfail entry."""
+    listed = sorted({key_script(key) for key, _ in KNOWN_VIOLATIONS} & set(STORY5_SCRIPTS))
+    assert listed == [], ("%s: listed in KNOWN_VIOLATIONS; fix: make the script conform "
+                          "instead of exempting it" % ", ".join(listed))
+
+
+def test_story5_callers_quote_no_old_output():
+    """AC-5.4 — callers of the Story 5 scripts read line 1, not the retired output."""
+    stale = ["%s still says %r" % (rel, text) for rel, text in STORY5_STALE_CALLER_TEXT
+             if text in _read(REPO_ROOT / rel)]
+    assert not stale, ("callers quote pre-contract output; fix: branch on the line-1 "
+                       "verdict\n" + "\n".join(stale))
 
 
 # --------------------------------------------------------------------------
@@ -1046,7 +1081,7 @@ def test_known_violation_xfail_and_strict_xpass(tmp_path):
 
 
 def test_every_test_names_its_ac_id():
-    """AC-3.4 — every test in this file names a Story 3 AC ID in its docstring."""
+    """AC-3.4 — every test in this file names a Story 3 or Story 5 AC ID in its docstring."""
     for name, obj in sorted(globals().items()):
         if name.startswith("test_") and callable(obj):
-            assert re.search(r"\bAC-3\.[1-5]\b", obj.__doc__ or ""), name
+            assert re.search(r"\bAC-[35]\.[1-5]\b", obj.__doc__ or ""), name

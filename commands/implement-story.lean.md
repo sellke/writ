@@ -327,9 +327,9 @@ python3 scripts/app-verify.py touched --recipe .writ/docs/app-verification.md --
 python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec <spec-folder> --run-label story-N --features <touched ids, comma-joined>
 ```
 
-- **exit 0** → continue.
-- **exit 1** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
-- **exit 2** (no recipe, invalid recipe, refused), or `touched` printed no IDs (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
+- Line 1 **`pass`** → continue.
+- **`fail`** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
+- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` lines (skip `run`; it says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`
