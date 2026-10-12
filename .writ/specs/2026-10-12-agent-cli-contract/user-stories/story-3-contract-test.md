@@ -1,6 +1,7 @@
 # Story 3: Agent CLI Contract Test
 
 > **Status:** Completed ✅
+> **Commit:** eb36b49465618ce78cfcdf431feae9a3017128b0
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
