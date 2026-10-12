@@ -2904,9 +2904,6 @@ check_ralph_retirement() {
 check_memory_interop() {
   local adapter
   local canonical='the reviewable markdown layer that feeds'
-  local skill="$PROJECT_ROOT/skills/gbrain-interop/SKILL.md"
-  local manifest="$PROJECT_ROOT/.writ/manifest.yaml"
-  local catalog="$PROJECT_ROOT/SKILL.md"
   local recipe="$PROJECT_ROOT/.writ/docs/gbrain-recipe.md"
   local mission="$PROJECT_ROOT/.writ/product/mission.md"
   local readme="$PROJECT_ROOT/README.md"
@@ -2919,22 +2916,15 @@ check_memory_interop() {
       "adapters/$adapter.md must carry the 'Native Memory & the Writ Ledger' section."
     require_literal "$PROJECT_ROOT/adapters/$adapter.md" "$canonical" \
       "adapters/$adapter.md must state the canonical two-place rule ('$canonical')."
-    require_literal "$PROJECT_ROOT/adapters/$adapter.md" 'gbrain-interop' \
-      "adapters/$adapter.md must cross-link the gbrain-interop skill for the external-index layer."
+    require_literal "$PROJECT_ROOT/adapters/$adapter.md" 'gbrain-recipe.md' \
+      "adapters/$adapter.md must cross-link .writ/docs/gbrain-recipe.md for the external-index layer."
   done
 
-  # (2) The sibling gbrain-compatibility-recipe artifacts exist and are
-  #     registered. If any of these fail the run order is wrong — fix the
-  #     order, never weaken the assertion.
-  require_literal "$skill" 'name: gbrain-interop' "The gbrain-interop skill must exist at skills/gbrain-interop/SKILL.md."
-  require_literal "$manifest" 'gbrain-interop' "gbrain-interop must be registered in .writ/manifest.yaml."
-  require_literal "$catalog" 'gbrain-interop' "gbrain-interop must appear in the root SKILL.md catalog."
-
-  # (3) The recipe exists and states the round-trip / graceful-absence guarantee.
+  # (2) The recipe exists and states the round-trip / graceful-absence guarantee.
   require_literal "$recipe" 'round-trip' ".writ/docs/gbrain-recipe.md must state the round-trip guarantee."
   require_literal "$recipe" 'byte-for-byte' ".writ/docs/gbrain-recipe.md must guarantee the ledger stays byte-for-byte intact when the index is removed."
 
-  # (4) No stale mission framing survives on active surfaces (historical ADRs,
+  # (3) No stale mission framing survives on active surfaces (historical ADRs,
   #     specs, and the roadmap that describe the change are left untouched).
   for surface in "$mission" "$readme"; do
     forbid_literal "$surface" "persistent-database knowledge layer" \

@@ -410,7 +410,7 @@ On OpenClaw there is no ambient persistent memory store. Native context is **ses
 
 **Anti-pattern:** negotiated decisions that live only in native memory are unreviewable and are lost on a reinstall, a new machine, or a teammate who never had your store. Write the decision, the convention, or the lesson to the ledger, and let native memory keep only the ephemeral trivia.
 
-**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). The [`gbrain-interop` skill](../skills/gbrain-interop/SKILL.md) and [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md) cover the external-index layer. Removing that index loses nothing; the ledger is the only copy.
+**Three layers, one system of record:** native memory (session prefs/trivia, per platform) → the Writ ledger (canonical, reviewable markdown in git) → an optional external index (GBrain, disposable). [`.writ/docs/gbrain-recipe.md`](../.writ/docs/gbrain-recipe.md) covers the external-index layer. Removing that index loses nothing; the ledger is the only copy.
 
 ---
 
