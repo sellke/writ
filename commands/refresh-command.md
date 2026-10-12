@@ -338,11 +338,11 @@ No skills found. Run /new-skill to create one.
 bash scripts/lint-skill.sh skills/*/SKILL.md
 ```
 
-The script processes every file and exits `0` (all clean), `1` (one or more violations), or `2` (usage error). Capture stdout — the script prints a per-file `✅` or `❌ <category> — <remediation>` line plus a summary tally.
+The script processes every file. Capture stdout and branch on line 1: `pass` (all clean, exit 0), `fail` (one or more violations, exit 1), or `unverifiable` (a file was not found, exit 0). One `reason:` line per file or finding follows (`reason: ✅ <file>: clean` or `reason: ❌ <file>: <category> — …` with a `Remediation:` line), and a `lint-skill:` summary is last. Exit 2 is a usage error with usage on stderr.
 
 ### Step 5.3: Present Results
 
-**If exit `0`:**
+**If line 1 is `pass`:**
 
 ```
 ✅ All skills clean ({N} files checked)
@@ -352,7 +352,7 @@ The script processes every file and exits `0` (all clean), `1` (one or more viol
   ...
 ```
 
-**If exit `1`:** Surface the script's output verbatim — the user needs the exact line numbers, categories, and remediations. Then group by file and add a one-line summary:
+**If line 1 is `fail`:** Surface the script's output verbatim — the user needs the exact line numbers, categories, and remediations. Then group by file and add a one-line summary:
 
 ```
 ❌ {V} violation(s) across {F} file(s)
@@ -363,6 +363,8 @@ For deep boundary questions, see ADR-009.
 ```
 
 Do not auto-rewrite skill files. The lint surfaces problems; the human (and `/new-skill` for net-new skills) owns the fix.
+
+**If line 1 is `unverifiable`:** Surface the `reason:` lines naming the missing files and re-run on the files that exist.
 
 **If exit `2`:** Surface the script's stderr and abort.
 

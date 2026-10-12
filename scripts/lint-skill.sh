@@ -18,32 +18,67 @@ set -euo pipefail
 #   bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]
 #   bash scripts/lint-skill.sh skills/*/SKILL.md
 #   bash scripts/lint-skill.sh commands/*.md          # entry_level values only
+#   bash scripts/lint-skill.sh --help
 #
-# Exit codes:
-#   0  All files passed lint
-#   1  One or more files have violations
-#   2  Usage error (no files, file not found)
+# Output (the agent CLI contract's check shape, .writ/docs/agent-cli-contract.md):
+#   line 1   pass | fail | unverifiable
+#   then     one `reason:` line per finding, warning, missing file, or clean
+#            file (indented `Line:` / `Description:` / `Remediation:` detail
+#            lines follow a finding)
+#   last     lint-skill: <verdict> (<counts>)
+#
+# Verdict and exit code:
+#   pass          0  every file linted clean (alias warnings allowed)
+#   unverifiable  0  no violations, but one or more files were not found
+#   fail          1  one or more violations
+#   (usage)       2  no files or an unknown flag; usage on stderr, stdout empty
 
-usage() {
-  echo "Usage: bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]" >&2
-  echo "       bash scripts/lint-skill.sh commands/*.md" >&2
-  echo "" >&2
-  echo "Lints SKILL.md files against the ADR-009 role convention:" >&2
-  echo "  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)" >&2
-  echo "  - Body must not invoke commands, skills, subagents, or slash commands" >&2
-  echo "  - Any declared model_tier value (agent config block) must be 'anchor'" >&2
-  echo "    or 'floor'; 'orchestration'/'capability' warn as aliases — see ADR-024" >&2
-  echo "  - Any declared entry_level value (command frontmatter) must be 'high'," >&2
-  echo "    'standard' or 'any'" >&2
-  echo "" >&2
-  echo "Paths under a commands/ directory (basename not SKILL.md) receive the" >&2
-  echo "ADR-024 value checks only — no boundary or lifecycle checks." >&2
+usage_text() {
+  cat <<'USAGE'
+Usage: bash scripts/lint-skill.sh <path-to-SKILL.md> [<path>...]
+       bash scripts/lint-skill.sh commands/*.md
+
+Lints SKILL.md files against the ADR-009 role convention:
+  - Description must be a verb-phrase (not 'Acts as', 'Run the full', ...)
+  - Body must not invoke commands, skills, subagents, or slash commands
+  - Any declared model_tier value (agent config block) must be 'anchor'
+    or 'floor'; 'orchestration'/'capability' warn as aliases — see ADR-024
+  - Any declared entry_level value (command frontmatter) must be 'high',
+    'standard' or 'any'
+
+Paths under a commands/ directory (basename not SKILL.md) receive the
+ADR-024 value checks only — no boundary or lifecycle checks.
+
+Prints pass, fail, or unverifiable on line 1, a reason: line per result,
+and a lint-skill: summary last. Exit 0 pass or unverifiable (a file was
+not found), 1 fail, 2 usage error.
+USAGE
+}
+
+usage_error() {
+  [ -n "${1:-}" ] && echo "lint-skill: $1" >&2
+  usage_text >&2
   exit 2
 }
 
-if [ $# -eq 0 ]; then
-  usage
+FILES=()
+for arg in "$@"; do
+  case "$arg" in
+    --help|-h) usage_text; exit 0 ;;
+    -*) usage_error "unknown option: $arg" ;;
+    *) FILES+=("$arg") ;;
+  esac
+done
+
+if [ ${#FILES[@]} -eq 0 ]; then
+  usage_error "no files to lint"
 fi
+
+# Results are buffered so the verdict can print first.
+REPORT=""
+emit() {
+  REPORT="${REPORT}$1"$'\n'
+}
 
 # ---------- Description-shape rejection grammar ----------
 # Format per row: "PATTERN_PREFIX<TAB>category<TAB>remediation"
@@ -66,6 +101,7 @@ BODY_PATTERNS=(
 )
 
 TOTAL_VIOLATIONS=0
+NOT_FOUND=0
 
 # ---------- Lifecycle vocabulary (ADR-014) ----------
 # status: is a closed three-state vocabulary. Evidence entry `type:` is a
@@ -115,8 +151,8 @@ _lc_is_type() {
 # Emit a lifecycle finding in the shared finding format and count it.
 _lc_finding() {
   local file="$1" category="$2" detail="$3" remediation="$4"
-  echo "❌ $file: $category — $detail"
-  echo "   Remediation: $remediation"
+  emit "reason: ❌ $file: $category — $detail"
+  emit "   Remediation: $remediation"
   LIFECYCLE_VIOLATIONS=$((LIFECYCLE_VIOLATIONS + 1))
 }
 
@@ -292,17 +328,17 @@ lint_model_tier() {
       case "$value" in
         anchor|floor) ;;
         orchestration)
-          echo "⚠️ $file:$line_num: model_tier 'orchestration' is a deprecated alias — use 'anchor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
+          emit "reason: ⚠️ $file:$line_num: model_tier 'orchestration' is a deprecated alias — use 'anchor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
         capability)
-          echo "⚠️ $file:$line_num: model_tier 'capability' is a deprecated alias — use 'floor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
+          emit "reason: ⚠️ $file:$line_num: model_tier 'capability' is a deprecated alias — use 'floor' (rejected in $MODEL_TIER_ALIAS_REJECT_RELEASE)." ;;
         *)
-          echo "❌ $file:$line_num: model_tier '$value' is invalid. Use 'anchor' or 'floor'."
+          emit "reason: ❌ $file:$line_num: model_tier '$value' is invalid. Use 'anchor' or 'floor'."
           MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1)) ;;
       esac
     elif [[ "$line" =~ ^entry_level:[[:space:]]*([A-Za-z0-9-]+) ]]; then
       value="${BASH_REMATCH[1]}"
       if ! [[ "$value" =~ ^(high|standard|any)$ ]]; then
-        echo "❌ $file:$line_num: entry_level '$value' is invalid. Use 'high', 'standard' or 'any'."
+        emit "reason: ❌ $file:$line_num: entry_level '$value' is invalid. Use 'high', 'standard' or 'any'."
         MODEL_TIER_VIOLATIONS=$((MODEL_TIER_VIOLATIONS + 1))
       fi
     fi
@@ -317,13 +353,14 @@ lint_file() {
   local line_num in_codeblock paragraph_chars line trimmed
 
   if [ ! -f "$file" ]; then
-    echo "❌ $file: file not found" >&2
-    return 2
+    emit "reason: $file: file not found (not linted)"
+    NOT_FOUND=$((NOT_FOUND + 1))
+    return 0
   fi
 
   description=$(extract_description "$file")
   if [ -z "$description" ]; then
-    echo "❌ $file: missing or empty 'description:' frontmatter field"
+    emit "reason: ❌ $file: missing or empty 'description:' frontmatter field"
     violations=$((violations + 1))
   else
     for entry in "${DESC_PATTERNS[@]}"; do
@@ -332,9 +369,9 @@ lint_file() {
       category=${rest%%$'\t'*}
       remediation=${rest#*$'\t'}
       if [[ "$description" =~ ^$prefix ]]; then
-        echo "❌ $file:description: $category — pattern \"$prefix\""
-        echo "   Description: \"$description\""
-        echo "   Remediation: $remediation"
+        emit "reason: ❌ $file:description: $category — pattern \"$prefix\""
+        emit "   Description: \"$description\""
+        emit "   Remediation: $remediation"
         violations=$((violations + 1))
       fi
     done
@@ -383,9 +420,9 @@ lint_file() {
       category=${rest%%$'\t'*}
       remediation=${rest#*$'\t'}
       if [[ "$line" =~ $pattern ]]; then
-        echo "❌ $file:$line_num: $category — pattern \"$pattern\""
-        echo "   Line: $line"
-        echo "   Remediation: $remediation"
+        emit "reason: ❌ $file:$line_num: $category — pattern \"$pattern\""
+        emit "   Line: $line"
+        emit "   Remediation: $remediation"
         violations=$((violations + 1))
       fi
     done
@@ -398,7 +435,7 @@ lint_file() {
   violations=$((violations + LIFECYCLE_VIOLATIONS))
 
   if [ $violations -eq 0 ]; then
-    echo "✅ $file: clean"
+    emit "reason: ✅ $file: clean"
   fi
 
   TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + violations))
@@ -414,14 +451,15 @@ lint_command_file() {
   local file="$1"
 
   if [ ! -f "$file" ]; then
-    echo "❌ $file: file not found" >&2
-    return 2
+    emit "reason: $file: file not found (not linted)"
+    NOT_FOUND=$((NOT_FOUND + 1))
+    return 0
   fi
 
   lint_model_tier "$file"
 
   if [ "$MODEL_TIER_VIOLATIONS" -eq 0 ]; then
-    echo "✅ $file: clean (value checks only)"
+    emit "reason: ✅ $file: clean (value checks only)"
   fi
 
   TOTAL_VIOLATIONS=$((TOTAL_VIOLATIONS + MODEL_TIER_VIOLATIONS))
@@ -432,7 +470,7 @@ lint_command_file() {
 # a directory named commands/. Anything else under a commands/ directory is a
 # command. Everything else (agents, manifests, ad-hoc temp files such as
 # /new-skill's /tmp/new-skill-lint-$$.md) keeps the full skill lint.
-for arg in "$@"; do
+for arg in "${FILES[@]}"; do
   case "$(basename "$arg")" in
     SKILL.md) lint_file "$arg" ;;
     *)
@@ -444,9 +482,23 @@ for arg in "$@"; do
   esac
 done
 
-if [ $TOTAL_VIOLATIONS -gt 0 ]; then
-  echo ""
-  echo "❌ $TOTAL_VIOLATIONS lint violation(s) found across input files"
-  exit 1
+FILE_COUNT=${#FILES[@]}
+if [ "$TOTAL_VIOLATIONS" -gt 0 ]; then
+  VERDICT="fail"
+  SUMMARY="$TOTAL_VIOLATIONS violation(s) across $FILE_COUNT file(s)"
+elif [ "$NOT_FOUND" -gt 0 ]; then
+  VERDICT="unverifiable"
+  SUMMARY="$NOT_FOUND of $FILE_COUNT file(s) not found"
+else
+  VERDICT="pass"
+  SUMMARY="$FILE_COUNT file(s) clean"
 fi
+if [ "$VERDICT" = "fail" ] && [ "$NOT_FOUND" -gt 0 ]; then
+  SUMMARY="$SUMMARY; $NOT_FOUND not found"
+fi
+
+echo "$VERDICT"
+printf '%s' "$REPORT"
+echo "lint-skill: $VERDICT ($SUMMARY)"
+[ "$VERDICT" = "fail" ] && exit 1
 exit 0

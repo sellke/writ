@@ -136,5 +136,4 @@ The Callers column names the main callers and is not complete. Before you change
 - `check-agent-parity.sh` — check. Today it prints warning lines with no verdict line and always exits 0. The contract shape prints the verdict first and exits 1 on drift.
 - `gen-skill.sh` — check. Today `--check` prints a diff with no verdict line and exits 1 on drift. Write mode reports on stderr only. A missing `SKILL.md` exits 3.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
-- `lint-skill.sh` — check. Exit codes conform (0 pass, 1 violations, 2 usage). Today it prints one line per file with no verdict line first.
 - `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.

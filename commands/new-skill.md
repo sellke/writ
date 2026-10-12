@@ -6,7 +6,7 @@ outcome: "A lint-clean skills/<name>/SKILL.md scaffold exists, registered in .wr
 entry_level: standard
 exit_criteria:
   - "skills/<name>/SKILL.md exists carrying disable-model-invocation: true and status: candidate in its frontmatter"
-  - "scripts/lint-skill.sh exited 0 on the captured description before any file was written"
+  - "scripts/lint-skill.sh printed pass on line 1 for the captured description before any file was written"
   - ".writ/manifest.yaml gained one alphabetically placed skills: entry for <name> and bash scripts/gen-skill.sh --check reports no delta"
 ---
 
@@ -134,11 +134,12 @@ the lifecycle lint unchanged.
 bash scripts/lint-skill.sh /tmp/new-skill-lint-$$.md
 ```
 
-**Exit codes:**
+**Read line 1 of stdout:**
 
-- `0` → description passes the role convention. Proceed to Phase 3.
-- `1` → one or more violations. The script prints the offending phrase, category, and remediation. **Re-prompt for the description** (preserving name and tags) and re-lint. Loop until clean or the user aborts.
-- `2` → usage error. Surface the script's stderr verbatim and abort.
+- `pass` (exit 0) → description passes the role convention. Proceed to Phase 3.
+- `fail` (exit 1) → one or more violations. The `reason:` lines give the offending phrase and category, each followed by a `Remediation:` line. **Re-prompt for the description** (preserving name and tags) and re-lint. Loop until clean or the user aborts.
+- `unverifiable` (exit 0) → the temp file was not found. Rewrite it and re-lint; never proceed on `unverifiable`.
+- Exit `2` → usage error. Surface the script's stderr verbatim and abort.
 
 Always remove the temp file after the run (`rm -f /tmp/new-skill-lint-$$.md`).
 
@@ -263,7 +264,7 @@ Next steps:
 This command succeeds when:
 
 1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
-2. **Lint passed** — `scripts/lint-skill.sh` returned exit `0` against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
+2. **Lint passed** — `scripts/lint-skill.sh` printed `pass` on line 1 against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
 3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed
 4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (verified via `bash scripts/gen-skill.sh --check`)
 5. **No name collisions** — the skill name is unique across commands, agents, and existing skills

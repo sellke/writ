@@ -473,11 +473,6 @@ KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
         "(Story 5)",
     ("gen-skill.sh", "shape"):
         "--check prints a diff (or nothing when clean) with no verdict line (Story 5)",
-    ("lint-skill.sh", "help"):
-        "has no --help: it treats `--help` as a file path and fails `file not found` "
-        "(Story 5)",
-    ("lint-skill.sh", "shape"):
-        "prints one line per file with no verdict line first (Story 5)",
 }
 
 
