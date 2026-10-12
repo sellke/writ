@@ -461,9 +461,6 @@ PY_SHIPPED = [s for s in SHIPPED if set(STATIC_RULES) <= set(rules_for(s))]
 # (script, rule) -> reason. Strict debt: must be {} when the spec closes.
 KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     # Story 4: Python data and check scripts.
-    ("test-integrity.py", "bounded_wait"):
-        "`while True` in _py_search_roots walks parent folders; it waits on nothing, so "
-        "Story 4 rewrites it with the bound in the loop (no bounded-wait allowance)",
     ("boundary-map.py", "shape"):
         "compute exits 1 with empty stdout on a story error instead of a JSON blocker "
         "(Story 4)",

@@ -145,5 +145,4 @@ The Callers column names the main callers and is not complete. Before you change
 - `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.
 - `revert-resolve.py` — data. Failures already print a `blocker`. Today the default success output is a text summary and `--json` opts into JSON.
 - `review-panel.py` — check. `status` and `tally` conform. Today `trial-init` and `trial-prepare` print `initialized` or `prepared` on line 1 instead of a verdict.
-- `test-integrity.py` — data, no allowance. Its `while True` in `_py_search_roots` walks parent folders up to the project root. It waits on nothing, so `bounded-wait` does not apply; the loop should be rewritten with its bound in the loop.
 - `verdict-provenance.py` — check. Exit codes conform. Today it prints findings, then notes, then the summary, with no verdict line first.
