@@ -1,6 +1,7 @@
 # Story 4: Bring Data Tools and Python Check Tools into Conformance
 
 > **Status:** Completed ✅
+> **Commit:** 46d7e278940b9c47a8c351e30bcd9ab031258839
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
