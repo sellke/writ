@@ -109,15 +109,20 @@
   5. Shape smoke: for scripts with a no-side-effect invocation in this repo (listed in the test), run it and assert the declared shape.
 - `KNOWN_VIOLATIONS` filled from the first red run, each entry with a reason. Runs on Python 3.9.
 
-### Story 4: Make violators conform
-- Fix each `KNOWN_VIOLATIONS` entry, one script per commit, with callers. Expected at minimum: `revert-resolve.py` (JSON default, `--pretty`, `--json` kept as no-op; update `/revert`), `knowledge-consolidate.py` (JSON default with `--pretty` for the markdown report; `/knowledge` keeps showing the same report).
-- The list ends empty.
-- Append `## Resolution` to the origin issue. File `.writ/issues/improvements/2026-10-12-script-install-location.md` (ADR-029 step 6).
+### Story 4: Data tools and Python check tools conform
+- Fix each Python `KNOWN_VIOLATIONS` entry except `app-verify.py`, one script per commit, with callers: `revert-resolve.py` (JSON default, `--pretty`, `--json` kept as no-op; update `/revert`), `knowledge-consolidate.py` (JSON default with `--pretty` for the markdown report; `/knowledge` keeps showing the same report), and the scripts Story 1's audit flagged (change-surface, boundary-map, arch-lint, goal-emit, verdict-provenance, review-panel, gen-codex-agent-tomls, test-integrity).
+- `roadmap-sync.py` and `goal-emit.py` write atomically.
+
+### Story 5: Shell scripts and app-verify conform
+- *Added 2026-10-12 (drift-log DEV-001, DEV-002): the maintainer kept the check rule strict, every mode included, and split the conformance work.*
+- `lint-skill.sh`, `gen-skill.sh`, `check-agent-parity.sh`: verdict line first, summary last, exit 0/1/2. `/refresh-command` keeps treating parity drift as a warning.
+- `app-verify.py`: bare verdict on line 1, `feature: <id>` lines from `touched`, summary last; every Gate 4.5 caller and the codex TOML copies move with it.
+- The list ends empty. Append `## Resolution` to the origin issue. File `.writ/issues/improvements/2026-10-12-script-install-location.md` (ADR-029 step 6).
 
 ## Implementation Approach
 
 - **No new runtime code shared across scripts.** Each fix stays inside its script.
 - **Test reads the real ship filter.** It runs a bash one-liner that sources the `is_shippable_script` function out of `install.sh`, the way `test_update_claude_md.sh` stubs helpers, and feeds it each file name. This avoids a second copy of the list.
 - **Table parsing is plain markdown.** It parses the first table under `## Classification` in the contract doc, with the same parsing style as existing doc-reading tests (`test_architecture_lint_doc.py`).
-- **Ordering:** Stories 1 and 2 are independent. Story 3 needs both (table and final ship set). Story 4 needs 3.
+- **Ordering:** Stories 1 and 2 are independent. Story 3 needs both (table and final ship set). Story 4 needs 3. Story 5 needs 4.
 - **Verification:** `uv run pytest`, `uv run --python 3.9 pytest`, bash tests, `bash scripts/eval.sh` (outside the sandbox), `install.sh --dry-run` and `update.sh --dry-run` into a temp project.

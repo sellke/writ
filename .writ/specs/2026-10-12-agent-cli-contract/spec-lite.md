@@ -21,7 +21,8 @@
 - `scripts/install.sh`, `scripts/update.sh` — six-name exclusion arm, kept identical (S2)
 - `commands/update-writ.md`, `.writ/docs/skills.md` — prose (S2)
 - `scripts/tests/test_agent_cli_contract.py` — new (S3)
-- `scripts/revert-resolve.py`, `scripts/knowledge-consolidate.py`, `commands/revert.md`, `commands/knowledge.md` — conformance (S4)
+- `scripts/revert-resolve.py`, `scripts/knowledge-consolidate.py`, `commands/revert.md`, `commands/knowledge.md`, other flagged Python scripts + callers — conformance (S4)
+- `scripts/lint-skill.sh`, `gen-skill.sh`, `check-agent-parity.sh`, `app-verify.py` + callers, codex TOMLs — conformance (S5)
 
 **Error Handling:**
 - Ship filter can't be sourced → test setup error naming `is_shippable_script`.
@@ -44,9 +45,10 @@ See spec.md → ## Implementation Approach and sub-specs/technical-spec.md.
 3. Neither install nor update ships the six. Update removes unmodified copies and warns on modified ones `[AC-2.1, AC-2.2, AC-2.3, AC-2.4]`
 4. No shipped doc or command points at the six by path `[AC-2.5]`
 5. The contract test fails with script + rule + fix for each violation type, and strict xfail tracks known debt `[AC-3.1, AC-3.2, AC-3.3]`
-6. `KNOWN_VIOLATIONS` is empty, and the suite is green on 3.9 and later `[AC-3.4, AC-4.3]`
+6. `KNOWN_VIOLATIONS` shrinks to Story 5's entries, then to empty; the suite is green on 3.9 and later `[AC-3.4, AC-4.3, AC-5.5]`
 7. `revert-resolve` and `knowledge-consolidate` default to JSON. `--pretty` reproduces the old output byte for byte, and callers are updated `[AC-4.1, AC-4.2, AC-4.4]`
-8. The origin issue is resolved, and the script-location issue is filed `[AC-4.5]`
+8. Python check tools print the verdict first in every mode; shell scripts and app-verify follow; atomic writes; callers updated `[AC-4.5, AC-5.1, AC-5.2, AC-5.3, AC-5.4]`
+9. The origin issue is resolved, and the script-location issue is filed `[AC-5.5]`
 
 **Business Rules:**
 - Scope = what `install.sh` ships. Each script has exactly one table row (data or check).

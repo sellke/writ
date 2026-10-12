@@ -1,4 +1,4 @@
-# Story 4: Bring Violating Scripts into Conformance
+# Story 4: Bring Data Tools and Python Check Tools into Conformance
 
 > **Status:** Not Started
 > **Priority:** Medium
@@ -7,8 +7,8 @@
 ## User Story
 
 **As a** agent running Writ commands in an installed project, and the Writ maintainer
-**I want to** get one JSON document from every data script by default, and a verdict line from every check script, with `KNOWN_VIOLATIONS` emptied
-**So that** agents parse script output without guessing, and the contract test enforces the contract with no open debt
+**I want to** get one JSON document from every Python data script by default, and a verdict line first from every Python check script, in every mode
+**So that** agents parse script output without guessing, and only the Story 5 entries (shell scripts and `app-verify.py`) remain in `KNOWN_VIOLATIONS`
 
 ## Acceptance Criteria
 
@@ -16,23 +16,23 @@
 
 - [ ] Given `scripts/revert-resolve.py` with no output flag, when it resolves a story in a fixture repo, then stdout is one JSON document equal to the object `--json` printed before this story, exit is 0, `--json` still exits 0 with the same document, and `--pretty` prints the former human summary `[AC-4.1]`
 - [ ] Given a fixture knowledge ledger and the markdown report captured from the unmodified `scripts/knowledge-consolidate.py` before any change, when the script runs with `--pretty` in `--dry-run` and in `--apply` on a temp copy, then stdout is byte-identical to the capture for each mode, after replacing run-dependent values (dates, temp paths) with fixed placeholders on both sides; if the report has no such values, the comparison is raw `[AC-4.2]`
-- [ ] Given `scripts/tests/test_agent_cli_contract.py`, when `uv run pytest scripts/tests/test_agent_cli_contract.py` runs, then `KNOWN_VIOLATIONS` is `{}`, every shipped script passes, and no `xfail` mark remains `[AC-4.3]`
+- [ ] Given `scripts/tests/test_agent_cli_contract.py`, when `uv run pytest scripts/tests/test_agent_cli_contract.py` runs, then the only `KNOWN_VIOLATIONS` entries left name `lint-skill.sh`, `gen-skill.sh`, `check-agent-parity.sh`, or `app-verify.py` (Story 5), and every Python script other than `app-verify.py` passes every rule in every mode the contract test exercises `[AC-4.3]`
 - [ ] Given a grep for `revert-resolve.py` and `knowledge-consolidate.py` across `commands/` (including `*.lean.md`), `agents/`, `skills/`, `adapters/`, and `.writ/docs/`, when each hit is read, then no caller passes `--json` to `revert-resolve.py`, every caller that shows `knowledge-consolidate.py` output to a user passes `--pretty`, and every caller of a fixed script relies on its new default `[AC-4.4]`
-- [ ] Given `.writ/issues/features/2026-10-12-agent-facing-writ-cli.md`, when a reader opens it, then it ends with a `## Resolution` section giving the date, what changed, and the spec path, and `.writ/issues/improvements/2026-10-12-script-install-location.md` exists in the `create-issue` template with `Type: Improvement` `[AC-4.5]`
+- [ ] Given `.writ/docs/agent-cli-contract.md` `### Notes` and its State section, when a reader opens them after this story, then no note describes a Story 4 script's old output, and `roadmap-sync.py` and `goal-emit.py` write their files through a temp file and rename (a test asserts no partial file is left when the write is interrupted) `[AC-4.5]`
 
 ## Implementation Tasks
 
 - [ ] 4.1 Write failing tests first. In `scripts/tests/test_revert_resolve.py`, add cases for JSON default, `--pretty` text, and `--json` as a no-op. Before editing `scripts/knowledge-consolidate.py`, capture its current markdown report for a fixture ledger into `scripts/tests/fixtures/`. Add `scripts/tests/test_knowledge_consolidate.py` (no test file exists today) that asserts `--pretty` matches that capture `[AC-4.1, AC-4.2]`
 - [ ] 4.2 Fix `scripts/revert-resolve.py`: JSON default, `--pretty` calls `_render_human`, `--json` kept with `help=argparse.SUPPRESS` and no effect. Update the module docstring CLI block. Drop `--json` from `commands/revert.md` line 52. Remove the script's `KNOWN_VIOLATIONS` entries. Commit script, tests, caller, and delisting together `[AC-4.1, AC-4.4]`
 - [ ] 4.3 Fix `scripts/knowledge-consolidate.py`: JSON default, `--pretty` calls `render_markdown`, `--json` kept as a no-op. Change `commands/knowledge.md` lines 74 and 92 to `--pretty`. Confirm `commands/retro.md` line 152 (`--json`) still works without an edit. Remove the script's `KNOWN_VIOLATIONS` entries. Commit as one unit `[AC-4.2, AC-4.4]`
-- [ ] 4.4 For each remaining entry in `KNOWN_VIOLATIONS`, one script per commit with its callers. Data tools get JSON default plus `--pretty` and a no-op `--json`. Check tools get the verdict-line shape from Business Rule 4. Update each script's tests, then delist it. Read the dict first; its contents come from Story 3 `[AC-4.3, AC-4.4]`
-- [ ] 4.5 Write the `## Resolution` section on `.writ/issues/features/2026-10-12-agent-facing-writ-cli.md`. Create `.writ/issues/improvements/2026-10-12-script-install-location.md` using the `create-issue` template `[AC-4.5]`
-- [ ] 4.6 Verify the contract. Run the contract test with `KNOWN_VIOLATIONS` empty, then run the caller grep from AC-4.4 across every listed path, including `*.lean.md` `[AC-4.3, AC-4.4]`
+- [ ] 4.4 Fix the remaining Python entries in `KNOWN_VIOLATIONS`, one script per commit with its callers, following each script's note in `.writ/docs/agent-cli-contract.md`: `change-surface.py`, `boundary-map.py` (`crossings` and the `compute` story-error blocker), `arch-lint.py` (exit 2 on `unverifiable`), `goal-emit.py` (summary last), `verdict-provenance.py` (verdict first), `review-panel.py` (`trial-init`/`trial-prepare`), `gen-codex-agent-tomls.py` (write mode), and `test-integrity.py` (replace the `while True` parent walk with a loop bounded by the filesystem root). Data tools get JSON default plus `--pretty` and a no-op `--json`; check tools get the verdict-line shape. `change-surface.py` and `boundary-map.py crossings` are read by `commands/implement-story.md` Gate 2.5 and its `.lean` twin, so update those callers in the same commit `[AC-4.3, AC-4.4]`
+- [ ] 4.5 Make `roadmap-sync.py` and `goal-emit.py` write atomically (temp file in the same directory, then `os.replace`), with a test each. Delete or rewrite the contract doc's note for every script fixed in this story, and the State section's in-place-writer sentence `[AC-4.5]`
+- [ ] 4.6 Verify the contract. Run the contract test with only Story 5 entries left in `KNOWN_VIOLATIONS`, then run the caller grep from AC-4.4 across every listed path, including `*.lean.md` `[AC-4.3, AC-4.4]`
 - [ ] 4.7 Verify all tests pass. Run `uv run pytest`, `uv run --python 3.9 pytest`, the bash test loop from the project CLAUDE.md, and `bash scripts/eval.sh` outside the sandbox. Confirm `git status` shows no unrelated files staged `[AC-4.1, AC-4.2, AC-4.3, AC-4.5]`
 
 ## Notes
 
-- **Blocked on Story 3.** The contract test and its `KNOWN_VIOLATIONS` dict do not exist yet. This story's scope for everything beyond the two named scripts is whatever Story 3 records. Technical-spec names four check tools (`app-verify`, `change-surface`, `arch-lint`, `boundary-map` `crossings`), but Story 1's table decides their shape. Do not classify scripts by name.
+- **Scope split (2026-10-12).** The maintainer kept the check rule strict and split conformance in two. This story fixes the Python data tools and Python check tools. Story 5 fixes `lint-skill.sh`, `gen-skill.sh`, `check-agent-parity.sh`, and `app-verify.py`'s line-1 format, and closes the origin issue. Story 1's table (`.writ/docs/agent-cli-contract.md`) is the authority on each script's shape. If Story 3 records a Python entry not listed in task 4.4, fix it here too.
 - **Preserve each script's JSON formatting.** `revert-resolve.py` indents JSON by 2. `knowledge-consolidate.py` `--json` prints compact JSON. Keep each as it is so existing eval checks and parsers see no change.
 - **Golden capture comes first.** Task 4.1 must record the `knowledge-consolidate.py` markdown before any edit. Without that capture, AC-4.2 cannot be tested.
 - **Installed-project window.** `--json` as a no-op protects callers that pass `--json`. It does not protect a caller that relies on the default text output. An installed project running old `commands/knowledge.md` against the new script gets JSON where it expected markdown. `update.sh` copies commands and scripts together, so the window exists only for an interrupted or partial update. Raise this with the maintainer before merge.
