@@ -88,11 +88,15 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # Repinned 2026-10-12 (2026-10-12-agent-cli-contract Story 4): Gate 2.5 reads
 # `change_surface` from the `class` field of change-surface.py's JSON;
 # implement-story.lean.md carries the same caller change.
+# Repinned 2026-10-12 (same spec, Story 4): Gate 2.5 reads `gate3_route` from
+# boundary-map.py crossings' JSON (`route`, `reasons`) and Gate 0.5 treats a
+# compute `blocker` as an empty map (byte-neutral); implement-story.lean.md
+# carries the Gate 0.5 sentence (it has no crossings step).
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
     "implement-phase": "f5441d08df2c763e1283375a00833d335436d28f0af7382c8401c40600b499c9",
-    "implement-story": "41eea8cd754dfe36de2b04a13c93a8cc862bd66cdacaaa6d9b8b28bd48ee1acc",
+    "implement-story": "d54b7db107fed722503a01b476ca9f2ceb5fc7684a8383ba1bb3dff6c5e635bf",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

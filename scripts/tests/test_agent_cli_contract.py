@@ -461,9 +461,6 @@ PY_SHIPPED = [s for s in SHIPPED if set(STATIC_RULES) <= set(rules_for(s))]
 # (script, rule) -> reason. Strict debt: must be {} when the spec closes.
 KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     # Story 4: Python data and check scripts.
-    ("boundary-map.py", "shape"):
-        "compute exits 1 with empty stdout on a story error instead of a JSON blocker "
-        "(Story 4)",
     ("gen-codex-agent-tomls.py", "shape"):
         "write mode prints `wrote <path>` lines with no verdict line (Story 4)",
     ("verdict-provenance.py", "shape"):
@@ -501,14 +498,26 @@ SPEC_DIR = _spec_dir()
 SPEC = "{repo}/" + SPEC_DIR.relative_to(REPO_ROOT).as_posix()
 STORY = SPEC + "/user-stories/story-1-contract-doc-and-adr-amendment.md"
 
-Smoke = collections.namedtuple("Smoke", "script args files")
+Smoke = collections.namedtuple("Smoke", "script args files mode", defaults=("",))
+
+
+def smoke_key(smoke: Smoke) -> str:
+    """Case id and KNOWN_VIOLATIONS key: the script, plus the mode when one is set."""
+    return "%s %s" % (smoke.script, smoke.mode) if smoke.mode else smoke.script
+
+
+def key_script(key: str) -> str:
+    """The script a smoke key names (`boundary-map.py crossings` -> `boundary-map.py`)."""
+    return key.split(" ", 1)[0]
+
 
 # Read-only invocations. `{repo}` is this repo, `{tmp}` a fresh temp dir that
 # is also the cwd; `files` are written under `{tmp}` first. Nothing here may
 # launch an app, touch the network, or write outside `{tmp}` — the smoke
-# asserts the repo's git status is unchanged. One invocation per script, so a
-# KNOWN_VIOLATIONS (script, shape|exit_code) entry maps to exactly one case;
-# a script with a known non-conforming mode is smoked in that mode.
+# asserts the repo's git status is unchanged. Each script has one default
+# invocation keyed by its name; a further mode of the same script sets `mode`
+# and is keyed `<script> <mode>`. A KNOWN_VIOLATIONS (key, shape|exit_code)
+# entry maps to exactly one case.
 SMOKE_INVOCATIONS: List[Smoke] = [
     # data
     Smoke("ac-trace.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
@@ -516,6 +525,10 @@ SMOKE_INVOCATIONS: List[Smoke] = [
                                "--knowledge-dir", "{repo}/.writ/knowledge"], {}),
     Smoke("boundary-map.py", ["compute", "--story", "{tmp}/missing-story.md",
                               "--repo", "{repo}"], {}),
+    Smoke("boundary-map.py", ["crossings", "--map", "{tmp}/map.json", "--changed",
+                              "src/a.py", "--repo", "{tmp}"],
+          {"map.json": '{"owned": ["src/"], "readable": [], "out_of_scope": []}'},
+          "crossings"),
     Smoke("build-smoke.py", ["check", "--project", "{tmp}/empty"], {"empty/.keep": ""}),
     Smoke("change-surface.py", ["classify", "--changed", "scripts/spec-status.py"], {}),
     Smoke("exit-criteria.py", ["check-uat", "--spec", SPEC], {}),
@@ -557,9 +570,10 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("gen-skill.sh", ["--check"], {}),
     Smoke("lint-skill.sh", ["{repo}/skills/tdd-cycle/SKILL.md"], {}),
 ]
-SMOKE_BY_SCRIPT = {s.script: s for s in SMOKE_INVOCATIONS}
-CHECK_SMOKES = [s.script for s in SMOKE_INVOCATIONS if TABLE.get(s.script, NO_ALLOWANCES).shape
-                == "check"]
+SMOKE_BY_KEY = {smoke_key(s): s for s in SMOKE_INVOCATIONS}
+SMOKE_KEYS = [smoke_key(s) for s in SMOKE_INVOCATIONS]
+CHECK_SMOKES = [k for k in SMOKE_KEYS
+                if TABLE.get(key_script(k), NO_ALLOWANCES).shape == "check"]
 
 
 def repo_snapshot() -> str:
@@ -577,9 +591,9 @@ def smoke_run(tmp_path_factory):
     """Run each smoke invocation once; cache (shown args, result, repo before, after)."""
     cache: Dict[str, tuple] = {}
 
-    def run(script: str) -> tuple:
-        if script not in cache:
-            inv = SMOKE_BY_SCRIPT[script]
+    def run(key: str) -> tuple:
+        if key not in cache:
+            inv = SMOKE_BY_KEY[key]
             tmp = tmp_path_factory.mktemp("smoke")
             for rel, text in inv.files.items():
                 (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -587,9 +601,9 @@ def smoke_run(tmp_path_factory):
             args = [a.replace("{repo}", str(REPO_ROOT)).replace("{tmp}", str(tmp))
                     for a in inv.args]
             before = repo_snapshot()
-            result = run_script(SCRIPTS / script, args, tmp)
-            cache[script] = (inv.args, result, before, repo_snapshot())
-        return cache[script]
+            result = run_script(SCRIPTS / inv.script, args, tmp)
+            cache[key] = (inv.args, result, before, repo_snapshot())
+        return cache[key]
 
     return run
 
@@ -644,58 +658,73 @@ def test_bounded_wait_marked(script):
         pytest.fail(msg, pytrace=False)
 
 
-@pytest.mark.parametrize("script", [s.script for s in SMOKE_INVOCATIONS])
-def test_smoke_leaves_repo_unchanged(script, smoke_run):
+@pytest.mark.parametrize("key", SMOKE_KEYS)
+def test_smoke_leaves_repo_unchanged(key, smoke_run):
     """AC-3.5 — a smoke invocation run from a temp cwd leaves the repo's git status unchanged."""
-    args, _, before, after = smoke_run(script)
+    args, _, before, after = smoke_run(key)
     assert before == after, ("%s: `%s` changed the repo; fix: remove it from "
-                             "SMOKE_INVOCATIONS" % (script, " ".join(args)))
+                             "SMOKE_INVOCATIONS" % (key, " ".join(args)))
 
 
-@pytest.mark.parametrize("script", cases("shape", [s.script for s in SMOKE_INVOCATIONS]))
-def test_shape_smoke(script, smoke_run):
+@pytest.mark.parametrize("key", cases("shape", SMOKE_KEYS))
+def test_shape_smoke(key, smoke_run):
     """AC-3.5 — data stdout is one JSON value; check line 1 is the verdict, summary last."""
-    args, result, _, _ = smoke_run(script)
+    args, result, _, _ = smoke_run(key)
+    script = key_script(key)
     msg = check_shape(script, TABLE[script].shape, args, result)
     if msg:
         pytest.fail(msg, pytrace=False)
 
 
-@pytest.mark.parametrize("script", cases("exit_code", CHECK_SMOKES))
-def test_exit_code_smoke(script, smoke_run):
+@pytest.mark.parametrize("key", cases("exit_code", CHECK_SMOKES))
+def test_exit_code_smoke(key, smoke_run):
     """AC-3.5 — a check run's exit code matches its verdict (0/1/2)."""
-    args, result, _, _ = smoke_run(script)
-    msg = check_exit_code(script, args, result)
+    args, result, _, _ = smoke_run(key)
+    msg = check_exit_code(key_script(key), args, result)
     if msg:
         pytest.fail(msg, pytrace=False)
 
 
 def test_smoke_covers_each_shape_and_shell():
-    """AC-3.5 — SMOKE_INVOCATIONS hold shipped scripts once each, both shapes, and a shell script."""
+    """AC-3.5 — SMOKE_INVOCATIONS hold shipped scripts, one default per script, both shapes, and a shell script."""
+    assert len(SMOKE_KEYS) == len(set(SMOKE_KEYS)), "one smoke invocation per key"
+    defaults = [s.script for s in SMOKE_INVOCATIONS if not s.mode]
+    assert len(defaults) == len(set(defaults)), "one default smoke invocation per script"
     scripts = [s.script for s in SMOKE_INVOCATIONS]
-    assert len(scripts) == len(set(scripts)), "one smoke invocation per script"
+    assert set(scripts) == set(defaults), "every moded smoke has a default for its script"
     assert set(scripts) <= set(SHIPPED), sorted(set(scripts) - set(SHIPPED))
     shapes = {TABLE[s].shape for s in scripts}
     assert shapes == set(SHAPES)
     assert any(s.endswith(".sh") for s in scripts)
 
 
+def test_smoke_key_names_mode_and_maps_to_script():
+    """AC-3.5 — a moded smoke is keyed `<script> <mode>` and its xfail entry marks only that case."""
+    default = Smoke("x.py", ["status"], {})
+    moded = Smoke("x.py", ["write"], {}, "write")
+    assert (smoke_key(default), smoke_key(moded)) == ("x.py", "x.py write")
+    assert key_script("x.py write") == "x.py"
+    params = cases("shape", ["x.py", "x.py write"], {("x.py write", "shape"): "fixture"})
+    assert [bool(p.marks) for p in params] == [False, True]
+
+
 def test_known_violations_are_well_formed():
     """AC-3.4 — each KNOWN_VIOLATIONS entry has a reason and maps to a case that runs."""
-    smoked = set(SMOKE_BY_SCRIPT)
-    for (script, rule), reason in KNOWN_VIOLATIONS.items():
-        assert isinstance(reason, str) and reason.strip(), "%s/%s: empty reason" % (script, rule)
+    smoked = set(SMOKE_KEYS)
+    for (key, rule), reason in KNOWN_VIOLATIONS.items():
+        script = key_script(key)
+        assert isinstance(reason, str) and reason.strip(), "%s/%s: empty reason" % (key, rule)
         assert script in SHIPPED, "%s: not shipped; fix: remove it from KNOWN_VIOLATIONS" % script
         assert rule in RULE_REFS, "%s: unknown rule %r" % (script, rule)
         runs = {
             "table": False,
-            "help": True,
-            "bad_flag": True,
-            "shape": script in smoked,
-            "exit_code": script in CHECK_SMOKES,
-        }.get(rule, script.endswith(".py"))
+            "help": key == script,
+            "bad_flag": key == script,
+            "shape": key in smoked,
+            "exit_code": key in CHECK_SMOKES,
+        }.get(rule, key == script and script.endswith(".py"))
         assert runs, ("%s: (%r, %r) matches no test case; fix: remove it from "
-                      "KNOWN_VIOLATIONS" % (script, script, rule))
+                      "KNOWN_VIOLATIONS" % (key, key, rule))
 
 
 # --------------------------------------------------------------------------

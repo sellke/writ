@@ -188,6 +188,8 @@ Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **A
 python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>]
 ```
 
+On exit 1 (malformed story) stdout is a JSON `blocker`; pass an empty `boundary_map`.
+
 ---
 
 #### Gate 1: Coding Agent (TDD Implementation)

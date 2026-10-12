@@ -326,7 +326,7 @@ class Gate3RiskRouteTests(unittest.TestCase):
             "when `gate3_route` names `review-agent`, spawn `review-agent` in its place",
             self.gate3,
         )
-        self.assertIn("`reason:` lines as `boundary_overlap_summary`", self.gate3)
+        self.assertIn("the `reasons` as `boundary_overlap_summary`", self.gate3)
         self.assertIn("`--review-only` has no map, so the evaluator runs", self.gate3)
         self.assertIn("`--full-pipeline` always runs `review-agent`", self.gate3)
 
