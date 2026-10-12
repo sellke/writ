@@ -111,7 +111,7 @@ and unlink manage this file alongside its reducer.
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/retro` | `commands/retro.md` | Turn git history into actionable retrospective insight and trend snapshots. |
+| `/retro` | `commands/retro.md` | Review agent transcripts from a run and propose ranked fixes to the agent environment, never the code. |
 
 ## Available Agents
 

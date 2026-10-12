@@ -122,3 +122,27 @@
 
 **Scope:** Local only
 **Target file:** commands/implement-phase.md
+
+## 2026-10-12 — /retro refreshed (rewrite, human override)
+
+**Signals found:** 0 from a `/retro` run; source was issue `.writ/issues/features/2026-10-12-transcript-retro-environment-fixes.md`
+**Amendments applied:** 1 of 1 proposed (full rewrite)
+
+**Override:** The maintainer chose to apply an unevidenced change. No `/retro` run transcript exists; the change is a redesign from a feature issue, not friction observed in a run. The Evidence Gate would reject it with `no evidence`. The maintainer applied it anyway, reasoning that the command being revised no longer fits its purpose.
+
+**Changes:**
+- Rewrite `/retro` from git-metrics report to transcript review (Confidence: Medium)
+  - Reads Claude Code, Cursor, and Codex transcripts scoped to a story, spec, phase, session, or `--since` window
+  - Detects nine struggle signals, ranks by severity, proposes environment changes with transcript-cited evidence
+  - Routes command and agent changes to `/refresh-command`; never edits source or tests; does not commit
+  - Persists `.writ/retros/YYYY-MM-DD-<scope>.md`; catches repeat findings and fixes that did not hold
+  - Removes git metrics, sessions, streaks, Ship of the Week, tweetable, `trends.json`
+  - Keeps the read-only knowledge-consolidation and product-drift nudges
+- Related: ADR-025 amended 2026-10-12 to allow cited transcript findings; `SKILL.md`, `.writ/manifest.yaml`, and `codex/AGENTS.md.template` descriptions updated
+
+**Rejected:** none
+
+**Eval gate:** `bash scripts/eval.sh --check=refresh-evidence` PASS; `--check=knowledge-consolidate` PASS
+
+**Scope:** Product (ships to all Writ users)
+**Target file:** commands/retro.md
