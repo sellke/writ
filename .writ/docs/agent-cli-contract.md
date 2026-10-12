@@ -143,6 +143,5 @@ The Callers column names the main callers and is not complete. Before you change
 - `knowledge-consolidate.py` — data. Today the default output is a markdown report and `--json` opts into JSON. The contract shape is JSON by default with `--pretty` for the report.
 - `lint-skill.sh` — check. Exit codes conform (0 pass, 1 violations, 2 usage). Today it prints one line per file with no verdict line first.
 - `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.
-- `revert-resolve.py` — data. Failures already print a `blocker`. Today the default success output is a text summary and `--json` opts into JSON.
 - `review-panel.py` — check. `status` and `tally` conform. Today `trial-init` and `trial-prepare` print `initialized` or `prepared` on line 1 instead of a verdict.
 - `verdict-provenance.py` — check. Exit codes conform. Today it prints findings, then notes, then the summary, with no verdict line first.
