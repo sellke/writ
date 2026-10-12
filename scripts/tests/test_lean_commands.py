@@ -92,10 +92,13 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # boundary-map.py crossings' JSON (`route`, `reasons`) and Gate 0.5 treats a
 # compute `blocker` as an empty map (byte-neutral); implement-story.lean.md
 # carries the Gate 0.5 sentence (it has no crossings step).
+# Repinned 2026-10-12 (same spec, Story 4): implement-phase.md Step 1.4 says
+# goal-emit.py prints the invoke text above its summary (byte-neutral);
+# implement-phase.lean.md carries the same word change.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
-    "implement-phase": "f5441d08df2c763e1283375a00833d335436d28f0af7382c8401c40600b499c9",
+    "implement-phase": "269f05a2d8dc0e0d9cdf23f1a7def9692c37f66e997627b1e28babff01875487",
     "implement-story": "d54b7db107fed722503a01b476ca9f2ceb5fc7684a8383ba1bb3dff6c5e635bf",
 }
 

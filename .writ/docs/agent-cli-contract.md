@@ -65,7 +65,7 @@ A default run makes no network call.
 ## State
 
 - Plain files under `.writ/` are the system of record: markdown, JSON, or TSV. A person or agent can read and repair them without the script.
-- Each state file has one writer. Write atomically: write a temp file, then rename it over the target. Today `roadmap-sync.py` and `goal-emit.py` write in place.
+- Each state file has one writer. Write atomically: write a temp file, then rename it over the target. Today `roadmap-sync.py` writes in place.
 - Scripts keep nothing in memory between runs and run no daemon.
 
 ## Runtime
@@ -136,7 +136,6 @@ The Callers column names the main callers and is not complete. Before you change
 - `check-agent-parity.sh` — check. Today it prints warning lines with no verdict line and always exits 0. The contract shape prints the verdict first and exits 1 on drift.
 - `gen-codex-agent-tomls.py` — check. `--check` conforms. Today write mode prints `wrote <path>` lines with no verdict line.
 - `gen-skill.sh` — check. Today `--check` prints a diff with no verdict line and exits 1 on drift. Write mode reports on stderr only. A missing `SKILL.md` exits 3.
-- `goal-emit.py` — check. Today a `pass` run prints the `/goal` invocation text after the summary line, so the summary is not last.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
 - `lint-skill.sh` — check. Exit codes conform (0 pass, 1 violations, 2 usage). Today it prints one line per file with no verdict line first.
 - `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.

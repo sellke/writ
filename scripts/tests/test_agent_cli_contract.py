@@ -500,6 +500,9 @@ STORY = SPEC + "/user-stories/story-1-contract-doc-and-adr-amendment.md"
 
 Smoke = collections.namedtuple("Smoke", "script args files mode", defaults=("",))
 
+GOAL_CARD = ("# Smoke Goal\n\n> **loop:** yes\n\n## OBJECTIVE\n\nEmit goal files.\n\n"
+             "## DONE WHEN\n\n- GOAL.md exists\n\n## STOP-CAPS\n\n- loop.max_iterations: 2\n")
+
 
 def smoke_key(smoke: Smoke) -> str:
     """Case id and KNOWN_VIOLATIONS key: the script, plus the mode when one is set."""
@@ -559,6 +562,8 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("gen-codex-agent-tomls.py", ["--agents-dir", "{repo}/agents", "--out-dir",
                                        "{tmp}/codex-agents"], {}),
     Smoke("goal-emit.py", ["check", "--card", "{tmp}/missing-card.md", "--repo", "{tmp}"], {}),
+    Smoke("goal-emit.py", ["emit", "--card", "{tmp}/card.md", "--out", "{tmp}/out",
+                           "--repo", "{tmp}"], {"card.md": GOAL_CARD}, "emit"),
     Smoke("jev-judge.py", ["status", "--repo", "{tmp}"], {}),
     Smoke("review-override.py", ["check", "--spec", SPEC, "--repo", "{repo}",
                                  "--story", STORY], {}),

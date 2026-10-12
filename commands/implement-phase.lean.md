@@ -141,7 +141,7 @@ When a spec `Origin:` or issue `spec_ref` resolves to a Goal Card, emit paste-re
 python3 scripts/goal-emit.py emit --card <path>
 ```
 
-4. On `pass`, print the invoke line after the helper summary.
+4. On `pass`, print the invoke line above the helper summary.
 5. `pass` / `fail` / `unverifiable` → `add_note`; helper exit 2 → `add_finding`. Notes never fail the phase.
 
 ### Phase 2: Sequencing & The One Confirmation
