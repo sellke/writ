@@ -1,6 +1,7 @@
 # Story 1: Contract Doc and ADR-029 Amendment
 
 > **Status:** Completed ✅
+> **Commit:** 2936b43b824e0566e55c08e4a9f2d08edc3e75fc
 > **Priority:** High
 > **Dependencies:** None
 
