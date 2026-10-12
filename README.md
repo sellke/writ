@@ -43,7 +43,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 17 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 16 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -98,7 +98,7 @@ Phase path (/implement-phase — roadmap-driven, supervised, Cursor-native):
                           fresh isolated lane per spec, quarantine on failure, resume-safe
 
 Feedback loop (/retro + /refresh-command):
-   Git metrics → Patterns → Trends    |    Transcript scan → Friction → Command diffs
+   Run transcripts → Struggle findings → Environment fixes    |    Friction → Command diffs
 ```
 
 ## Commands
@@ -145,7 +145,7 @@ Feedback loop (/retro + /refresh-command):
 ### Feedback & Learning
 | Command | Purpose |
 |---------|---------|
-| `/retro` | **Git-based retrospective.** Commits, LOC, test ratio, session detection, streaks, Ship of the Week, trend comparison. Persistent JSON snapshots for long-term analysis. |
+| `/retro` | **Transcript review.** Reads agent transcripts from a story, spec, phase, or session; ranks struggle findings by severity, each cited to a transcript; proposes fixes to the agent environment (steering files, rules, skills, docs), never the code. Routes command changes to `/refresh-command`. |
 | `/refresh-command` | **Learning loop.** Turns session friction into cited command diffs — each refinement cites transcript evidence and passes an eval gate before it merges; unevidenced proposals are visibly rejected. Commands get better through use. |
 
 ### Setup & Lifecycle
@@ -332,7 +332,7 @@ When Writ runs, it creates a `.writ/` directory in your project:
 ├── product/                  # Product planning docs
 ├── decision-records/         # Architecture Decision Records
 ├── research/                 # Research outputs
-├── retros/                   # Retrospective JSON snapshots
+├── retros/                   # Transcript retro findings and dispositions
 ├── security/                 # Security audit reports
 ├── issues/                   # Quick-captured issues (goals/ holds Goal Cards)
 ├── goals/                    # GOAL.md / VERIFY.md emitted from loop: yes Goal Cards

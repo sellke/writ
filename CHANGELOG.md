@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.41.0] - 2026-10-12
+
+**`/retro` reviews transcripts.** `/retro` now reads the agent transcripts from a run and proposes fixes to the agent's environment instead of reporting git metrics. The unused `gbrain-interop` skill is removed.
+
+### Changed
+- **`/retro` is a transcript review.** It reads Claude Code, Cursor, and Codex transcripts for a story, spec, phase, session, or `--since` window. It finds where the agent struggled, ranks findings by severity, and cites each to a transcript path. It proposes changes to steering files, rules, skills, and docs, never to source or tests, and routes command and agent changes to `/refresh-command`. Results go to `.writ/retros/YYYY-MM-DD-<scope>.md`, which the next run reads to catch repeat findings and fixes that did not hold. ([commands/retro.md](commands/retro.md))
+- **ADR-025 amended.** `/retro` may report inferred findings when each one cites a transcript path and an observable signal. Signal emission keeps its closed six-kind vocabulary. ([ADR-025](.writ/decision-records/adr-025-friction-signals.md))
+
+### Removed
+- **Git-metrics `/retro`.** The `--period`, `--compare`, and `--all-branches` flags, sessions, streaks, Ship of the Week, the tweetable summary, and `.writ/retros/trends.json` are gone. Old JSON snapshots in `.writ/retros/` are no longer read.
+- **`gbrain-interop` skill.** It had no consumers. The adapters now link [`.writ/docs/gbrain-recipe.md`](.writ/docs/gbrain-recipe.md) for the optional external-index layer. A provider-neutral replacement is tracked in [`2026-10-03-generalize-second-brain-retrieval`](.writ/issues/improvements/2026-10-03-generalize-second-brain-retrieval.md).
+
+### Internal
+- **ADR-029:** Writ exposes agent-facing scripts as a CLI contract over per-workflow tools, not as a Writ CLI product. ([ADR-029](.writ/decision-records/adr-029-agent-cli-contract.md))
+- The `memory-interop` eval check asserts the adapters link the GBrain recipe instead of the removed skill.
+- Five completed specs archived; product docs re-checked after v0.40.0.
+- New issues: transcript retro, merging customized commands on update, generalized second-brain retrieval.
+
 ## [0.40.0] - 2026-10-02
 
 **Behavioral verification (Phase 12).** Writ can now prove that a story's feature works by running the project's own checks against the running app, and it saves the evidence. On risky stories, an opt-in cross-family review panel adds reviewers from other vendors, and a finding raised by two or more vendors blocks the story. Product-doc verification is reframed as a post-implementation check whose findings feed realignment.
