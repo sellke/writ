@@ -38,3 +38,14 @@ Build a CLI that lets agents use and contribute to Writ anywhere it is available
 - **This conflicts with a recorded decision.** `.writ/product/decisions.md` lists "CLI Tool (npm install -g writ)" as a rejected alternative: "Platforms will always have better native tooling." Before writing a spec, write an ADR that either supersedes that decision or narrows this CLI to a runtime/action layer under the methodology. The second option is closer to the existing "tooling extends reach" rationale.
 - Scope risk: "fully use and contribute to" covers a lot. Split it into (1) a read-only state/query surface, (2) wrappers around existing deterministic scripts, (3) the upstream contribution flow.
 - Contributing upstream sends content to a public repo, so it needs an explicit consent and approval step.
+
+## Resolution
+
+2026-10-12, branch `feature/agent-cli-contract` (spec `.writ/specs/2026-10-12-agent-cli-contract/spec.md`, Stories 1-5). ADR-029 chose a contract over a `writ` CLI product, so the change is a contract every shipped script follows:
+
+- `.writ/docs/agent-cli-contract.md` states the contract (data and check shapes, usage errors, no spawning or unbounded waits, network opt-in, state, runtime) and classifies every shipped script. ADR-029 carries a dated amendment.
+- The six dev-only scripts (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `lean-decision.py`, `prune-ledger.py`, `spawn-cap.py`) no longer ship. `scripts/update.sh` removes unmodified copies an older install left and warns on modified ones.
+- `scripts/tests/test_agent_cli_contract.py` checks every shipped script against the contract.
+- Every shipped script conforms: data tools print one JSON document by default, and check tools print `pass`, `fail`, or `unverifiable` on line 1 in every mode. `KNOWN_VIOLATIONS` is empty.
+
+Where shipped scripts install is tracked in `improvements/2026-10-12-script-install-location.md`.
