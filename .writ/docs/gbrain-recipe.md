@@ -8,10 +8,6 @@
 > **Governing policy:** [ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md)
 > — markdown in git is canonical; every index is a welcome-but-disposable
 > consumer of it.
->
-> **Companion skill:** [`skills/gbrain-interop/SKILL.md`](../../skills/gbrain-interop/SKILL.md)
-> teaches an agent how to *route* retrieval brain-first when a brain is present.
-> This doc is the *human setup* half.
 
 ## When to use this
 
@@ -55,8 +51,8 @@ gbrain doctor --json
 # → {"status": "ok" | "warnings" | "error", "health_score": <n>, "checks": [...]}
 ```
 
-`ok` or `warnings` means healthy enough to use; `error` means fix it first (the
-`gbrain-interop` skill treats an `error` brain as absent and falls back to grep).
+`ok` or `warnings` means healthy enough to use; `error` means fix it first. Treat
+an `error` brain as absent and fall back to grep.
 
 ## Step 1 — Register `.writ/` as a source
 
@@ -118,13 +114,12 @@ claude mcp add gbrain -- gbrain serve
 ```
 
 Other hosts (**Cursor**, **Codex**) register `gbrain serve` manually through
-their own MCP configuration. Once registered, the `gbrain-interop` skill's
-brain-first routing can use the MCP `search` tool instead of the CLI.
+their own MCP configuration. Once registered, an agent can use the MCP `search`
+tool instead of the CLI.
 
 ## Retrieval expectations
 
-With a healthy brain registered, an agent following the `gbrain-interop` skill
-will:
+With a healthy brain registered, an agent should:
 
 - **Detect** the brain via `gbrain doctor --json` (health, not a bare PATH hit).
 - **Prefer** `gbrain search "…"` (or `mcp__gbrain__search`) for semantic
@@ -154,9 +149,8 @@ rm -f .gbrain-source
 # 4. (Optional) uninstall the GBrain CLI via however you installed it
 ```
 
-After this, `gbrain doctor --json` no longer reports a healthy brain, the
-`gbrain-interop` skill detects "absent" and routes retrieval to grep, and nothing
-in your Writ workflow changes. Your specs, ADRs, and knowledge entries are
+After this, `gbrain doctor --json` no longer reports a healthy brain, an agent
+falls back to grep, and nothing in your Writ workflow changes. Your specs, ADRs, and knowledge entries are
 untouched — they were the only copy that ever mattered.
 
 > **Verify the removal step yourself:** `git status` after removal should show no
@@ -181,5 +175,5 @@ the **stable, documented touchpoints** — `gbrain sources add`, `gbrain sync`,
 `gbrain serve` — and marks version-sensitive details (engine init flags,
 embedding-provider env keys, sync strategy flags, the exact `sources remove`
 subcommand and local-state paths) as **"verify against current GBrain docs."**
-Per ADR-011, the blast radius of a moving GBrain API is exactly this file plus
-the `gbrain-interop` skill — nothing else in Writ.
+Per ADR-011, the blast radius of a moving GBrain API is exactly this file.
+Nothing else in Writ depends on it.

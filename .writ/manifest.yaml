@@ -144,8 +144,8 @@ commands:
   - name: retro
     file: commands/retro.md
     category: learning
-    purpose: "Turn git history into actionable retrospective insight and trend snapshots."
-    tags: [learning, retrospective, git]
+    purpose: "Review agent transcripts from a run and propose ranked fixes to the agent environment, never the code."
+    tags: [learning, retrospective, transcripts, environment]
   - name: revert
     file: commands/revert.md
     category: implementation
@@ -279,11 +279,6 @@ skills:
     description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."
     status: candidate
     tags: [spec, error-handling, review]
-  - name: gbrain-interop
-    file: skills/gbrain-interop/SKILL.md
-    description: "Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy."
-    status: candidate
-    tags: [memory, retrieval, interop]
   - name: plain-prose
     file: skills/plain-prose/SKILL.md
     description: "Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries."

@@ -75,7 +75,7 @@ Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/retro` | `.codex/commands/retro.md` | Turn git history into actionable retrospective insight and trend snapsho… |
+| `/retro` | `.codex/commands/retro.md` | Review agent transcripts and propose ranked environment fixes, never code. |
 
 
 ## Available Agents

@@ -111,7 +111,7 @@ and unlink manage this file alongside its reducer.
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/retro` | `commands/retro.md` | Turn git history into actionable retrospective insight and trend snapshots. |
+| `/retro` | `commands/retro.md` | Review agent transcripts from a run and propose ranked fixes to the agent environment, never the code. |
 
 ## Available Agents
 
@@ -137,7 +137,6 @@ and unlink manage this file alongside its reducer.
 | `dependency-context-loading` | `candidate` | `skills/dependency-context-loading/SKILL.md` | Load, filter, and truncate upstream stories' implementation records into dependency context. |
 | `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
-| `gbrain-interop` | `candidate` | `skills/gbrain-interop/SKILL.md` | Route knowledge retrieval brain-first when a healthy GBrain index is detected — cite the canonical markdown path, keep writes markdown-first, and fall back to grep when a brain is absent or unhealthy. |
 | `plain-prose` | `candidate` | `skills/plain-prose/SKILL.md` | Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries. |
 | `project-context-snapshot` | `candidate` | `skills/project-context-snapshot/SKILL.md` | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |

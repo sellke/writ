@@ -1,7 +1,7 @@
 # ADR-025: Friction Signals — Record Locally, Nudge Quietly, Let the Human Send It Upstream
 
 > **Date:** 2026-09-03
-> **Status:** Accepted
+> **Status:** Accepted (amended 2026-10-12 — see Amendments)
 > **Category:** Framework Architecture
 > **Extends:** [ADR-022](adr-022-autonomy-gate-classes.md) (nothing leaves the machine or changes a command without a human gate), [ADR-014](adr-014-skill-lifecycle.md) (three occurrences make a pattern), Phase 7's evidence-bound `/refresh-command`
 > **Constrains:** [ADR-017](adr-017-git-notes-audit-channel.md) — not extended; friction is not commit-shaped
@@ -178,6 +178,27 @@ Single spec, five stories. **Prerequisite:** none. ADR-024 Story 4 calls `signal
 - **The maintainer used the word *telemetry*.** This ADR draws the line at the machine's edge and says so, because the mission does. If the maintainer intended an automatic channel, that is a mission change and belongs in its own record, not in a footnote here.
 - **The strongest case against this ADR** is the one ADR-023 already made about itself: an unenforced convention is indistinguishable from no convention, and emission is prose. The answer is the same as for every gate in `/implement-story` — `require_literal` pins and a review date that treats silence as a finding. It is not a mechanical guarantee, and this ADR does not claim one.
 
+## Amendments
+
+### 2026-10-12 — `/retro` reviews transcripts; findings may be inferred if they are cited
+
+**Correction:** Three statements in this ADR no longer hold. (1) Decision 2's rationale says *"Nothing is inferred, classified, or scored"*, and the "Why these six kinds" section excludes `slow` and `token-heavy` because the agent has no timing source or token counts. (2) Decision 4 places the review in a new `/retro` Step 5.7 beside the git-metrics report. (3) Decision 6 and Context say transcripts exist only on Cursor.
+
+`/retro` is rewritten as a transcript review. It reads session transcripts for a story, spec, phase, or session after the fact, detects struggle patterns (silent patch, stale guidance, repeated mistake, user correction, dead end, navigation churn, duplicated work, token sink, Writ friction), ranks them by severity, and proposes environment changes for human approval. The git-metrics report, sessions, streaks, and `trends.json` are removed.
+
+**What changes in this ADR:**
+
+- **Inference is allowed in `/retro`, under the evidence rule.** A transcript finding is inferred, but it is reported only with a transcript path and a short observable signal, the same Evidence block `/refresh-command` requires. A finding without a citation is not reported. The closed six-kind vocabulary still governs `signals.jsonl` emission; transcript findings are not written there.
+- **Timing and token cost are measurable after the fact.** Claude Code transcripts carry per-line timestamps and `message.usage` token counts; Codex rollouts carry timestamps. In-harness emission still has neither, so `slow` and `token-heavy` stay out of the signal vocabulary. They appear only as transcript findings.
+- **Transcripts exist beyond Cursor.** Claude Code (`~/.claude/projects/`) and Codex (`~/.codex/sessions/`) both store them. The `Signal:` evidence bridge (Decision 6) is still needed for OpenClaw and for signals emitted where no transcript is kept.
+- **Story 4's home moves.** Friction signals are reviewed in the same ranked list as transcript findings, not in a separate Step 5.7. `/retro --friction` (signals only) remains the planned entry point once `scripts/signal.py` ships. Decision 4's per-cluster options and `(Recommended)` mapping carry over unchanged; the transcript review uses the same options plus `knowledge`.
+
+**What does not change:** nothing is applied or sent without a human gate (ADR-022); transcript bodies and chain-of-thought never enter the repo; Decision 5's Improvement Request path and redaction; the nudge in Decision 3; the 2026-12-02 review date.
+
+**Rationale:** The maintainer asked for `/retro` to learn from every implementation run and fix the agent's environment, not the code (issue [`2026-10-12-transcript-retro-environment-fixes`](../issues/features/2026-10-12-transcript-retro-environment-fixes.md)). Signals catch moments where Writ knows it is struggling. Most waste, such as a stale doc, twenty reads before the right file, or a mistake fixed three times, is invisible to the agent at the time and only visible afterwards in the transcript. The 2026-07-18 leanness audit found no usage evidence that the git-metrics report justified the command.
+
+**Originating work:** `/refresh-command retro`, 2026-10-12, applied as a human override of the evidence gate (logged in `.writ/refresh-log.md`).
+
 ## References
 
 - [ADR-024](adr-024-model-delegation.md) — the `escalated` and `degraded` producers, and the consumer of their counts
@@ -187,6 +208,6 @@ Single spec, five stories. **Prerequisite:** none. ADR-024 Story 4 calls `signal
 - [ADR-014](adr-014-skill-lifecycle.md) — the three-occurrence bar the nudge threshold reuses
 - [`2026-08-14-writ-dogfooding-quality-assessment-research.md`](../research/2026-08-14-writ-dogfooding-quality-assessment-research.md) — Finding 2, DEV-004, "never propagated to the framework"
 - `commands/refresh-command.md` Phases 3–4 — the Evidence block and Evidence Gate this ADR extends
-- `commands/retro.md` Steps 5.5–5.6 — the nudge pattern Step 5.7 joins
+- `commands/retro.md` — Step 7 read-only nudges (formerly Steps 5.5–5.6); Steps 2–6 the transcript review signals join (see Amendments)
 - `system-instructions.md` § Startup Update Awareness — the daily-cache pattern the nudge reuses
 - `.writ/docs/leanness-audit-2026-07-18.md` — `/retro`'s "existence-justification unclear" finding
