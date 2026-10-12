@@ -1,6 +1,6 @@
 # Story 1: Contract Doc and ADR-029 Amendment
 
-> **Status:** Not Started
+> **Status:** Completed ✅
 > **Priority:** High
 > **Dependencies:** None
 
@@ -14,20 +14,20 @@
 
 > **AC IDs assigned through:** AC-1.5
 
-- [ ] Given the repo after this story, when a reader opens `.writ/docs/agent-cli-contract.md`, then it has headed sections for Scope, Data shape, Check shape, Usage errors, Never spawn or wait unbounded, Network, State, Runtime, Adding a script, and Classification `[AC-1.1]`
-- [ ] Given the Classification table, when a reader parses its rows, then every `*.py` and `*.sh` that `is_shippable_script` in `scripts/install.sh` accepts appears exactly once, except the six dev-only scripts, which appear only in a note below the table. Each row has Shape `data` or `check`, and Allowances empty or drawn from `network: opt-in` and `bounded-wait` `[AC-1.2]`
-- [ ] Given the Classification table, when a reader checks the allowances, then `jev-judge.py` and `app-verify.py` each carry `network: opt-in, bounded-wait`, and no other row carries `network: opt-in` `[AC-1.3]`
-- [ ] Given ADR-029 section "The agent CLI contract", when a reader opens it, then a dated block `*Amended 2026-10-12 by [2026-10-12-agent-cli-contract]*` follows rule 7 and records the two shapes, `error` accepted beside `blocker`, the usage-error rule matching pstack `orch`, the bounded-wait clarification, and the dev-only exclusion; and the text of rules 1 through 7 is byte-identical to the pre-change file `[AC-1.4]`
-- [ ] Given `scripts/tests/test_agent_cli_contract_doc.py`, when `uv run --python 3.9 pytest scripts/tests/test_agent_cli_contract_doc.py` runs, then it fails before the doc and amendment exist, and passes after this story. Each test names its AC ID in its docstring `[AC-1.5]`
+- [x] Given the repo after this story, when a reader opens `.writ/docs/agent-cli-contract.md`, then it has headed sections for Scope, Data shape, Check shape, Usage errors, Never spawn or wait unbounded, Network, State, Runtime, Adding a script, and Classification `[AC-1.1]`
+- [x] Given the Classification table, when a reader parses its rows, then every `*.py` and `*.sh` that `is_shippable_script` in `scripts/install.sh` accepts appears exactly once, except the six dev-only scripts, which appear only in a note below the table. Each row has Shape `data` or `check`, and Allowances empty or drawn from `network: opt-in` and `bounded-wait` `[AC-1.2]`
+- [x] Given the Classification table, when a reader checks the allowances, then `jev-judge.py` and `app-verify.py` each carry `network: opt-in, bounded-wait`, and no other row carries `network: opt-in` `[AC-1.3]`
+- [x] Given ADR-029 section "The agent CLI contract", when a reader opens it, then a dated block `*Amended 2026-10-12 by [2026-10-12-agent-cli-contract]*` follows rule 7 and records the two shapes, `error` accepted beside `blocker`, the usage-error rule matching pstack `orch`, the bounded-wait clarification, and the dev-only exclusion; and the text of rules 1 through 7 is byte-identical to the pre-change file `[AC-1.4]`
+- [x] Given `scripts/tests/test_agent_cli_contract_doc.py`, when `uv run --python 3.9 pytest scripts/tests/test_agent_cli_contract_doc.py` runs, then it fails before the doc and amendment exist, and passes after this story. Each test names its AC ID in its docstring `[AC-1.5]`
 
 ## Implementation Tasks
 
-- [ ] 1.1 Write failing doc-content tests in `scripts/tests/test_agent_cli_contract_doc.py` for the required sections, the table rules, the allowances, and the ADR amendment. Run them and confirm they fail `[AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]`
-- [ ] 1.2 Write the nine prose sections of `.writ/docs/agent-cli-contract.md` from the spec's business rules. State each rule in the doc's own words; do not copy spec text `[AC-1.1]`
-- [ ] 1.3 Write the `## Classification` table with the rows and rulings in Notes, using columns `Script | Shape | Allowances | Callers`. Add the six-script note below the table `[AC-1.2, AC-1.3]`
-- [ ] 1.4 Add the dated amendment to `.writ/decision-records/adr-029-agent-cli-contract.md` after rule 7 of "The agent CLI contract", using targeted edits only. Do not rewrite rules 1 through 7 `[AC-1.4]`
-- [ ] 1.5 Check whether `/new-skill` already discusses adding scripts. If it does, add a one-line pointer to the contract doc. If it does not, make no command edit `[AC-1.1]`
-- [ ] 1.6 Verify the criteria: run the doc-content tests on Python 3.9, run `uv run pytest`, run the bash tests, run `bash scripts/eval.sh` outside the sandbox, and run `bash scripts/install.sh --dry-run` into a temp project to confirm the doc is listed `[AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]`
+- [x] 1.1 Write failing doc-content tests in `scripts/tests/test_agent_cli_contract_doc.py` for the required sections, the table rules, the allowances, and the ADR amendment. Run them and confirm they fail `[AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]`
+- [x] 1.2 Write the nine prose sections of `.writ/docs/agent-cli-contract.md` from the spec's business rules. State each rule in the doc's own words; do not copy spec text `[AC-1.1]`
+- [x] 1.3 Write the `## Classification` table with the rows and rulings in Notes, using columns `Script | Shape | Allowances | Callers`. Add the six-script note below the table `[AC-1.2, AC-1.3]`
+- [x] 1.4 Add the dated amendment to `.writ/decision-records/adr-029-agent-cli-contract.md` after rule 7 of "The agent CLI contract", using targeted edits only. Do not rewrite rules 1 through 7 `[AC-1.4]`
+- [x] 1.5 Check whether `/new-skill` already discusses adding scripts. If it does, add a one-line pointer to the contract doc. If it does not, make no command edit `[AC-1.1]`
+- [x] 1.6 Verify the criteria: run the doc-content tests on Python 3.9, run `uv run pytest`, run the bash tests, run `bash scripts/eval.sh` outside the sandbox, and run `bash scripts/install.sh --dry-run` into a temp project to confirm the doc is listed `[AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]`
 
 ## Notes
 
@@ -66,11 +66,11 @@
 
 ## Definition of Done
 
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
+- [x] All tasks completed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
+- [x] Documentation updated
 
 ## Context for Agents
 
@@ -83,3 +83,28 @@
 - **Audit and preliminary shapes:** sub-specs/technical-spec.md → "Current State (audit, 2026-10-12)"
 - **ADR text to amend:** `.writ/decision-records/adr-029-agent-cli-contract.md` → "The agent CLI contract", rules 1 through 7. Implementation Notes step 4 names the contract doc
 - **Out of scope for this story:** sub-specs/technical-spec.md → "Ship Filter (Story 2)", "Contract Test (Story 3)", "Conformance Fixes (Story 4)"
+
+## What Was Built
+
+**Implementation Date:** 2026-10-12
+
+### Files Created
+
+1. **`.writ/docs/agent-cli-contract.md`** (148 lines) — the agent CLI contract. Ten sections: Scope, Data shape, Check shape, Usage errors, Never spawn or wait unbounded, Network, State, Runtime, Adding a script, Classification. The table has 34 rows (19 data, 15 check), one per shipped script. `jev-judge.py` and `app-verify.py` carry `network: opt-in, bounded-wait`. A note below the table lists `jev-thresholds.json` and the six dev-only scripts. A `### Notes` list records what each non-conforming script prints today, and says the Callers column is not complete. [AC-1.1, AC-1.2, AC-1.3]
+2. **`scripts/tests/test_agent_cli_contract_doc.py`** (233 lines) — 13 tests. They read the shipped set from the real `is_shippable_script` in `scripts/install.sh`, and pin ADR-029 rules 1–7 with a SHA-256 of the pre-change text. [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
+
+### Files Modified
+
+1. **`.writ/decision-records/adr-029-agent-cli-contract.md`** — dated amendment after rule 7: two output shapes, `error` accepted beside `blocker`, the usage-error rule (pstack `orch`), the bounded-wait clarification, and dev-only scripts leaving the shipped set. +9 lines, rules 1–7 unchanged. [AC-1.4]
+
+`commands/new-skill.md` was not edited: it never discusses adding a script (task 1.5).
+
+### Verification
+
+- `uv run --python 3.9 pytest scripts/tests/test_agent_cli_contract_doc.py` → 13 passed. Red run before the doc existed: 12 failed, 1 passed (the rules-unchanged hash guard).
+- Full suite: `uv run pytest` and `uv run --python 3.9 pytest` → 2288 passed, 2 skipped.
+- Gate 0 arch-check: pass (proceed). Gate 2: arch-lint 0 rulesets; build-smoke unverifiable (unsupported stack). Gate 2.5: cross-component, 0 crossings, route evaluator-agent.
+- Gate 3 evaluator: PASS, iteration 1. 11 classification rows spot-checked against script code. review-override: unverifiable (no coverage report).
+- Gate 3.5 drift-format: pass. Drift: DEV-001 Medium, DEV-002 Medium, DEV-003 Small. The maintainer chose to keep the check rule strict and add Story 5.
+- Gate 4 test-integrity: coverage unverifiable (no coverage report, no new source); authenticity pass. Gate 4.5: app-verify unverifiable (no recipe). Gate 5: docs-check unverifiable (no public exports).
+- Iteration count: 1

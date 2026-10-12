@@ -4,7 +4,7 @@
 
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
-| 1 | [Contract Doc and ADR-029 Amendment](story-1-contract-doc-and-adr-amendment.md) | Not Started | High | None | 6 | 0/6 |
+| 1 | [Contract Doc and ADR-029 Amendment](story-1-contract-doc-and-adr-amendment.md) | Completed ✅ | High | None | 6 | 6/6 |
 | 2 | [Stop Shipping Dev-Only Scripts](story-2-stop-shipping-dev-scripts.md) | Not Started | High | None | 7 | 0/7 |
 | 3 | [Agent CLI Contract Test](story-3-contract-test.md) | Not Started | High | Story 1, Story 2 | 7 | 0/7 |
 | 4 | [Bring Violating Scripts into Conformance](story-4-conformance-fixes.md) | Not Started | Medium | Story 3 | 7 | 0/7 |

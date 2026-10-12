@@ -28,6 +28,15 @@ Every script that a command, agent, or skill tells an agent to run (`scripts/*.p
 6. **Make no network call unless opted in.** Any network path needs the double opt-in from ADR-027.
 7. **Document subcommands in `--help` and carry tests.** The existing pytest suite and `eval.sh` cover this.
 
+*Amended 2026-10-12 by [2026-10-12-agent-cli-contract](../specs/2026-10-12-agent-cli-contract/spec.md):*
+
+- **Rule 1 allows two shapes.** A data tool prints one JSON document. A check tool prints `pass`, `fail`, or `unverifiable` on line 1, optional `reason:` lines, and a summary last, and exits 0, 1, or 2. Commands already parse both shapes. Data tools may report failure under `error` beside `blocker`, because existing tools and eval checks read `error`. New scripts use `blocker`.
+- **Usage errors.** Bad arguments exit non-zero, print usage on stderr, and leave stdout empty. A JSON blocker on stdout is also accepted. This matches pstack `orch`.
+- **Rule 2 allows a bounded wait.** A script may wait on a process it started or a call it made, with a timeout, and its classification row says so. Starting an agent or model CLI is never allowed.
+- **Dev-only scripts stop shipping.** The contract covers only the scripts `install.sh` ships. Measurement and eval helpers stay in the Writ source repo.
+
+The full contract and the per-script classification table are in [`.writ/docs/agent-cli-contract.md`](../docs/agent-cli-contract.md).
+
 ### Contribution
 
 - No script has a `contribute`, `report`, or `submit` subcommand. No tool files issues, opens PRs, or posts to `sellke/writ`.
