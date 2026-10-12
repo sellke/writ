@@ -7,7 +7,7 @@ entry_level: standard
 exit_criteria:
   - "skills/<name>/SKILL.md exists carrying disable-model-invocation: true and status: candidate in its frontmatter"
   - "scripts/lint-skill.sh printed pass on line 1 for the captured description before any file was written"
-  - ".writ/manifest.yaml gained one alphabetically placed skills: entry for <name> and bash scripts/gen-skill.sh --check reports no delta"
+  - ".writ/manifest.yaml gained one alphabetically placed skills: entry for <name> and bash scripts/gen-skill.sh --check printed pass on line 1"
 ---
 
 # New Skill Creator (new-skill)
@@ -216,7 +216,7 @@ If the manifest currently has `skills: []`, replace the inline empty list with a
 
 #### Step 3.3: Verify with `gen-skill.sh`
 
-Run `bash scripts/gen-skill.sh --check` to confirm the manifest is well-formed and the new skill renders into the root `SKILL.md` table. If `--check` reports a regeneration delta, run `bash scripts/gen-skill.sh` to refresh the catalog.
+Run `bash scripts/gen-skill.sh --check` to confirm the manifest is well-formed and the new skill renders into the root `SKILL.md` table. Read line 1: `pass` means the catalog is current. `fail` with a `reason: SKILL.md drifts` line means run `bash scripts/gen-skill.sh` to refresh the catalog. `fail` with a `reason: YAML error` line means fix the manifest entry and re-run.
 
 #### Step 3.4: Final Output
 
@@ -266,7 +266,7 @@ This command succeeds when:
 1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
 2. **Lint passed** — `scripts/lint-skill.sh` printed `pass` on line 1 against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
 3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed
-4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (verified via `bash scripts/gen-skill.sh --check`)
+4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (`bash scripts/gen-skill.sh --check` prints `pass`)
 5. **No name collisions** — the skill name is unique across commands, agents, and existing skills
 6. **Summary presented** — the user received the file path, manifest confirmation, and next-step guidance
 

@@ -12,7 +12,7 @@
 # Each script runs on a passing, a failing, and an unusable input. Fixtures live
 # in a temp dir; nothing here writes inside the repo.
 #
-# lint-skill.sh [AC-5.1]
+# lint-skill.sh, gen-skill.sh (--check, write, --dry-run) [AC-5.1]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -139,6 +139,111 @@ ok
 
 run bash "$LINT" --help
 assert_help "lint-skill --help" lint-skill.sh
+ok
+
+
+# ---------------------------------------------------------------------------
+# gen-skill.sh — runs from a temp copy: it reads and writes relative to its
+# own location, so a minimal manifest tree stands in for the repo.
+# ---------------------------------------------------------------------------
+make_gen_tree() {  # $1 root
+  mkdir -p "$1/scripts" "$1/.writ/docs" "$1/commands" "$1/agents"
+  cp "$REPO/scripts/gen-skill.sh" "$1/scripts/gen-skill.sh"
+  printf '# Contract\n' > "$1/.writ/docs/contract.md"
+  printf '# Hello\n' > "$1/commands/hello.md"
+  printf '# Helper\n' > "$1/agents/helper.md"
+  cat > "$1/.writ/manifest.yaml" <<'YAML'
+version: 1
+metadata:
+  name: fixture
+  version: 0.0.1
+  description: "Fixture catalog."
+  runtime_contract: ".writ/docs/contract.md"
+
+categories:
+  - id: core
+    label: "Core"
+
+commands:
+  - name: hello
+    file: commands/hello.md
+    category: core
+    purpose: "Say hello."
+
+agents:
+  - name: helper
+    file: agents/helper.md
+    purpose: "Help."
+    model_tier: floor
+
+skills: []
+YAML
+  printf '%s\n' '---' 'name: fixture' '---' > "$1/SKILL.md"
+}
+
+GEN_ROOT="$WORK/gen"
+make_gen_tree "$GEN_ROOT"
+GEN="$GEN_ROOT/scripts/gen-skill.sh"
+
+run bash "$GEN"
+assert_shape "gen-skill write" gen-skill pass 0
+grep -qF '| `/hello` | `commands/hello.md` | Say hello. |' "$GEN_ROOT/SKILL.md" \
+  || fail "gen-skill write: SKILL.md must carry the generated command row"
+ok
+
+run bash "$GEN" --check
+assert_shape "gen-skill --check clean" gen-skill pass 0
+ok
+
+run bash "$GEN" --dry-run
+assert_shape "gen-skill --dry-run" gen-skill pass 0
+printf '%s\n' "$OUT" | grep -qF '| `/hello` | `commands/hello.md` | Say hello. |' \
+  || fail "gen-skill --dry-run: the generated catalog must print between verdict and summary:
+$OUT"
+ok
+
+printf 'hand edit\n' >> "$GEN_ROOT/SKILL.md"
+run bash "$GEN" --check
+assert_shape "gen-skill --check drift" gen-skill fail 1
+printf '%s\n' "$OUT" | grep -q '^reason: SKILL.md' \
+  || fail "gen-skill --check drift: expected a reason: line naming SKILL.md:
+$OUT"
+ok
+
+sed 's/^  description: "Fixture catalog."$//' "$GEN_ROOT/.writ/manifest.yaml" > "$WORK/bad-manifest.yaml"
+cp "$GEN_ROOT/.writ/manifest.yaml" "$WORK/good-manifest.yaml"
+cp "$WORK/bad-manifest.yaml" "$GEN_ROOT/.writ/manifest.yaml"
+cp "$GEN_ROOT/SKILL.md" "$WORK/skill-before.md"
+run bash "$GEN"
+assert_shape "gen-skill write, invalid manifest" gen-skill fail 1
+printf '%s\n' "$OUT" | grep -q "^reason: .*description" \
+  || fail "gen-skill invalid manifest: expected a reason: line naming the missing field:
+$OUT"
+cmp -s "$GEN_ROOT/SKILL.md" "$WORK/skill-before.md" \
+  || fail "gen-skill invalid manifest: write mode must leave SKILL.md untouched"
+run bash "$GEN" --check
+assert_shape "gen-skill --check, invalid manifest" gen-skill fail 1
+ok
+cp "$WORK/good-manifest.yaml" "$GEN_ROOT/.writ/manifest.yaml"
+
+rm "$GEN_ROOT/SKILL.md"
+run bash "$GEN" --check
+assert_shape "gen-skill --check, missing SKILL.md" gen-skill unverifiable 0
+run bash "$GEN"
+assert_shape "gen-skill write, missing SKILL.md" gen-skill unverifiable 0
+ok
+
+rm "$GEN_ROOT/.writ/manifest.yaml"
+run bash "$GEN" --check
+assert_shape "gen-skill --check, missing manifest" gen-skill unverifiable 0
+ok
+
+run bash "$GEN" --bogus
+assert_usage_error "gen-skill unknown flag" gen-skill.sh
+ok
+
+run bash "$GEN" --help
+assert_help "gen-skill --help" gen-skill.sh
 ok
 
 printf 'OK %d shell check-shape assertions\n' "$pass_count"

@@ -7,6 +7,18 @@ set -euo pipefail
 #   bash scripts/gen-skill.sh            # write SKILL.md
 #   bash scripts/gen-skill.sh --dry-run  # print generated SKILL.md
 #   bash scripts/gen-skill.sh --check    # fail if SKILL.md is stale
+#
+# Every mode prints the agent CLI contract's check shape
+# (.writ/docs/agent-cli-contract.md): line 1 is pass, fail, or unverifiable,
+# then `reason:` and detail lines (the --check diff, the --dry-run catalog),
+# and a `gen-skill: <verdict> (...)` summary last.
+#
+#   pass          0  --check: SKILL.md matches; write: SKILL.md written;
+#                    --dry-run: catalog printed
+#   fail          1  --check: SKILL.md drifts; any mode: the manifest fails
+#                    validation (write mode leaves SKILL.md untouched)
+#   unverifiable  0  .writ/manifest.yaml or SKILL.md is missing or unreadable
+#   (usage)       2  unknown option; usage on stderr, stdout empty
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -48,8 +60,11 @@ usage() {
   echo "Usage: bash scripts/gen-skill.sh [--dry-run] [--check]"
   echo ""
   echo "Default:   Regenerate SKILL.md from .writ/manifest.yaml"
-  echo "--dry-run: Print generated SKILL.md to stdout"
+  echo "--dry-run: Print generated SKILL.md between the verdict and the summary"
   echo "--check:   Diff generated SKILL.md against committed SKILL.md"
+  echo ""
+  echo "Line 1 is pass, fail, or unverifiable; a gen-skill: summary is last."
+  echo "Exit 0 pass or unverifiable (manifest or SKILL.md missing), 1 fail, 2 usage."
 }
 
 while [ $# -gt 0 ]; do
@@ -61,22 +76,42 @@ while [ $# -gt 0 ]; do
       exit 0
       ;;
     *)
-      echo "Unknown option: $1 (try --help)" >&2
-      exit 1
+      echo "gen-skill: unknown option: $1" >&2
+      usage >&2
+      exit 2
       ;;
   esac
   shift
 done
 
+# report <verdict> <summary> [reason...]: print the check shape and exit.
+report() {
+  local verdict="$1" summary="$2" reason
+  shift 2
+  echo "$verdict"
+  for reason in "$@"; do
+    echo "reason: $reason"
+  done
+  echo "gen-skill: $verdict ($summary)"
+  if [ "$verdict" = "fail" ]; then
+    exit 1
+  fi
+  exit 0
+}
+
 if [ ! -f "$MANIFEST_FILE" ]; then
-  echo "Missing manifest: .writ/manifest.yaml" >&2
-  exit 2
+  report unverifiable "missing manifest" ".writ/manifest.yaml is missing"
 fi
 
 if [ ! -r "$SKILL_FILE" ]; then
-  echo "Missing or unreadable SKILL.md" >&2
-  exit 3
+  report unverifiable "missing SKILL.md" \
+    "SKILL.md is missing or unreadable; its frontmatter seeds the generated file"
 fi
+
+# manifest_error <message>: a manifest that fails validation fails every mode.
+manifest_error() {
+  report fail "manifest invalid" "YAML error in .writ/manifest.yaml: $1"
+}
 
 trim() {
   local value="$1"
@@ -417,117 +452,94 @@ validate_manifest() {
   local i path
 
   if [ -z "$METADATA_NAME" ]; then
-    echo "YAML error: metadata missing required field 'name'" >&2
-    exit 1
+    manifest_error "metadata missing required field 'name'"
   fi
   if [ -z "$METADATA_VERSION" ]; then
-    echo "YAML error: metadata missing required field 'version'" >&2
-    exit 1
+    manifest_error "metadata missing required field 'version'"
   fi
   if [ -z "$METADATA_DESCRIPTION" ]; then
-    echo "YAML error: metadata missing required field 'description'" >&2
-    exit 1
+    manifest_error "metadata missing required field 'description'"
   fi
   if [ -z "$METADATA_RUNTIME_CONTRACT" ] || [ ! -f "$PROJECT_ROOT/$METADATA_RUNTIME_CONTRACT" ]; then
-    echo "YAML error: metadata runtime_contract is missing or references a missing file" >&2
-    exit 1
+    manifest_error "metadata runtime_contract is missing or references a missing file"
   fi
 
   for ((i = 0; i < ${#CATEGORY_IDS[@]}; i++)); do
     if [ -z "${CATEGORY_IDS[$i]}" ] || [ -z "${CATEGORY_LABELS[$i]}" ]; then
-      echo "YAML error: categories[$i] missing required field 'id' or 'label'" >&2
-      exit 1
+      manifest_error "categories[$i] missing required field 'id' or 'label'"
     fi
   done
 
   for ((i = 0; i < ${#COMMAND_NAMES[@]}; i++)); do
     if [ -z "${COMMAND_NAMES[$i]}" ]; then
-      echo "YAML error: commands[$i] missing required field 'name'" >&2
-      exit 1
+      manifest_error "commands[$i] missing required field 'name'"
     fi
     if [ -z "${COMMAND_FILES[$i]}" ]; then
-      echo "YAML error: commands[$i] (${COMMAND_NAMES[$i]}) missing required field 'file'" >&2
-      exit 1
+      manifest_error "commands[$i] (${COMMAND_NAMES[$i]}) missing required field 'file'"
     fi
     if [ -z "${COMMAND_CATEGORIES[$i]}" ]; then
-      echo "YAML error: commands[$i] (${COMMAND_NAMES[$i]}) missing required field 'category'" >&2
-      exit 1
+      manifest_error "commands[$i] (${COMMAND_NAMES[$i]}) missing required field 'category'"
     fi
     if [ -z "${COMMAND_PURPOSES[$i]}" ]; then
-      echo "YAML error: commands[$i] (${COMMAND_NAMES[$i]}) missing required field 'purpose'" >&2
-      exit 1
+      manifest_error "commands[$i] (${COMMAND_NAMES[$i]}) missing required field 'purpose'"
     fi
     if ! category_exists "${COMMAND_CATEGORIES[$i]}"; then
-      echo "YAML error: commands[$i] (${COMMAND_NAMES[$i]}) references unknown category '${COMMAND_CATEGORIES[$i]}'" >&2
-      exit 1
+      manifest_error "commands[$i] (${COMMAND_NAMES[$i]}) references unknown category '${COMMAND_CATEGORIES[$i]}'"
     fi
     path="$PROJECT_ROOT/${COMMAND_FILES[$i]}"
     if [ ! -f "$path" ]; then
-      echo "YAML error: commands[$i] (${COMMAND_NAMES[$i]}) references missing file '${COMMAND_FILES[$i]}'" >&2
-      exit 1
+      manifest_error "commands[$i] (${COMMAND_NAMES[$i]}) references missing file '${COMMAND_FILES[$i]}'"
     fi
   done
 
   for ((i = 0; i < ${#AGENT_NAMES[@]}; i++)); do
     if [ -z "${AGENT_NAMES[$i]}" ]; then
-      echo "YAML error: agents[$i] missing required field 'name'" >&2
-      exit 1
+      manifest_error "agents[$i] missing required field 'name'"
     fi
     if [ -z "${AGENT_FILES[$i]}" ]; then
-      echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) missing required field 'file'" >&2
-      exit 1
+      manifest_error "agents[$i] (${AGENT_NAMES[$i]}) missing required field 'file'"
     fi
     if [ -z "${AGENT_PURPOSES[$i]}" ]; then
-      echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) missing required field 'purpose'" >&2
-      exit 1
+      manifest_error "agents[$i] (${AGENT_NAMES[$i]}) missing required field 'purpose'"
     fi
     if [ -z "${AGENT_TIERS[$i]}" ]; then
-      echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) missing required field 'model_tier'" >&2
-      exit 1
+      manifest_error "agents[$i] (${AGENT_NAMES[$i]}) missing required field 'model_tier'"
     fi
     path="$PROJECT_ROOT/${AGENT_FILES[$i]}"
     if [ ! -f "$path" ]; then
-      echo "YAML error: agents[$i] (${AGENT_NAMES[$i]}) references missing file '${AGENT_FILES[$i]}'" >&2
-      exit 1
+      manifest_error "agents[$i] (${AGENT_NAMES[$i]}) references missing file '${AGENT_FILES[$i]}'"
     fi
   done
 
   for ((i = 0; i < ${#SKILL_NAMES[@]}; i++)); do
     if [ -z "${SKILL_NAMES[$i]}" ]; then
-      echo "YAML error: skills[$i] missing required field 'name'" >&2
-      exit 1
+      manifest_error "skills[$i] missing required field 'name'"
     fi
     if [ -z "${SKILL_FILES[$i]}" ]; then
-      echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) missing required field 'file'" >&2
-      exit 1
+      manifest_error "skills[$i] (${SKILL_NAMES[$i]}) missing required field 'file'"
     fi
     if [ -z "${SKILL_DESCRIPTIONS[$i]}" ]; then
-      echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) missing required field 'description'" >&2
-      exit 1
+      manifest_error "skills[$i] (${SKILL_NAMES[$i]}) missing required field 'description'"
     fi
     path="$PROJECT_ROOT/${SKILL_FILES[$i]}"
     if [ ! -f "$path" ]; then
-      echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) references missing file '${SKILL_FILES[$i]}'" >&2
-      exit 1
+      manifest_error "skills[$i] (${SKILL_NAMES[$i]}) references missing file '${SKILL_FILES[$i]}'"
     fi
 
     local j
     for ((j = 0; j < ${#COMMAND_NAMES[@]}; j++)); do
       if [ "${SKILL_NAMES[$i]}" = "${COMMAND_NAMES[$j]}" ]; then
-        echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) name conflicts with existing command" >&2
-        exit 1
+        manifest_error "skills[$i] (${SKILL_NAMES[$i]}) name conflicts with existing command"
       fi
     done
     for ((j = 0; j < ${#AGENT_NAMES[@]}; j++)); do
       if [ "${SKILL_NAMES[$i]}" = "${AGENT_NAMES[$j]}" ]; then
-        echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) name conflicts with existing agent" >&2
-        exit 1
+        manifest_error "skills[$i] (${SKILL_NAMES[$i]}) name conflicts with existing agent"
       fi
     done
     for ((j = 0; j < i; j++)); do
       if [ "${SKILL_NAMES[$i]}" = "${SKILL_NAMES[$j]}" ]; then
-        echo "YAML error: skills[$i] (${SKILL_NAMES[$i]}) duplicate skill name" >&2
-        exit 1
+        manifest_error "skills[$i] (${SKILL_NAMES[$i]}) duplicate skill name"
       fi
     done
   done
@@ -537,8 +549,7 @@ load_manifest() {
   if detect_yq; then
     PARSER_MODE="yq"
     if ! parse_with_yq; then
-      echo "YAML error: failed to parse .writ/manifest.yaml with yq" >&2
-      exit 1
+      manifest_error "failed to parse .writ/manifest.yaml with yq"
     fi
   else
     PARSER_MODE="pure-bash fallback"
@@ -732,24 +743,33 @@ main() {
 
   case "$MODE" in
     dry-run)
+      echo "pass"
       generate_skill
+      echo "gen-skill: pass (dry run; SKILL.md not written)"
       ;;
     check)
       expected_file="$(mktemp)"
       generate_skill > "$expected_file"
-      if diff -u "$SKILL_FILE" "$expected_file"; then
+      if diff_out="$(diff -u "$SKILL_FILE" "$expected_file")"; then
         rm -f "$expected_file"
-        exit 0
+        report pass "SKILL.md matches .writ/manifest.yaml"
       fi
       rm -f "$expected_file"
-      echo "SKILL.md drift detected. Run: bash scripts/gen-skill.sh" >&2
+      echo "fail"
+      echo "reason: SKILL.md drifts from .writ/manifest.yaml; run bash scripts/gen-skill.sh"
+      printf '%s\n' "$diff_out"
+      echo "gen-skill: fail (SKILL.md drift)"
       exit 1
       ;;
     write)
-      expected_file="$(mktemp)"
+      # Temp file beside SKILL.md, carrying its mode, then renamed over it.
+      expected_file="$(mktemp "$PROJECT_ROOT/.SKILL.md.XXXXXX")"
+      trap 'rm -f "$expected_file"' EXIT
+      cp -p "$SKILL_FILE" "$expected_file"
       generate_skill > "$expected_file"
-      mv "$expected_file" "$SKILL_FILE"
-      echo "Generated SKILL.md from .writ/manifest.yaml" >&2
+      mv -f "$expected_file" "$SKILL_FILE"
+      trap - EXIT
+      report pass "wrote SKILL.md from .writ/manifest.yaml"
       ;;
   esac
 }

@@ -58,6 +58,7 @@ import collections
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -471,8 +472,6 @@ KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     ("check-agent-parity.sh", "shape"):
         "prints warning or `parity OK` lines with no verdict line and always exits 0 "
         "(Story 5)",
-    ("gen-skill.sh", "shape"):
-        "--check prints a diff (or nothing when clean) with no verdict line (Story 5)",
 }
 
 
@@ -511,6 +510,32 @@ def _git_in(cwd: Path, *args: str) -> str:
                           + list(args), capture_output=True, text=True, check=True).stdout.strip()
 
 
+GEN_SKILL_TREE = {
+    ".writ/manifest.yaml": (
+        'version: 1\nmetadata:\n  name: fixture\n  version: 0.0.1\n'
+        '  description: "Fixture catalog."\n  runtime_contract: ".writ/docs/contract.md"\n\n'
+        'categories:\n  - id: core\n    label: "Core"\n\n'
+        'commands:\n  - name: hello\n    file: commands/hello.md\n    category: core\n'
+        '    purpose: "Say hello."\n\n'
+        'agents:\n  - name: helper\n    file: agents/helper.md\n    purpose: "Help."\n'
+        '    model_tier: floor\n\nskills: []\n'),
+    ".writ/docs/contract.md": "# Contract\n",
+    "commands/hello.md": "# Hello\n",
+    "agents/helper.md": "# Helper\n",
+    "SKILL.md": "---\nname: fixture\n---\n",
+}
+
+
+def gen_skill_copy(tmp: Path) -> Path:
+    """gen-skill.sh reads and writes relative to its own folder, so its write
+    mode runs from a copy inside the `GEN_SKILL_TREE` fixture in `{tmp}` and
+    regenerates `{tmp}/SKILL.md`, never the repo's."""
+    copy = tmp / "scripts" / "gen-skill.sh"
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(str(SCRIPTS / "gen-skill.sh"), str(copy))
+    return copy
+
+
 def panel_trial_setup(tmp: Path) -> None:
     """A throwaway yuss repo (parent + story commit) and a trial file naming it,
     so `review-panel.py trial-prepare` runs its success path inside `{tmp}`."""
@@ -543,7 +568,8 @@ def panel_trial_setup(tmp: Path) -> None:
 
 # Read-only invocations. `{repo}` is this repo, `{tmp}` a fresh temp dir that
 # is also the cwd; `files` are written under `{tmp}` first, then `setup(tmp)`
-# runs when set. Nothing here may
+# runs when set. A setup that returns a path runs that copy of the script in
+# place of `scripts/<script>`. Nothing here may
 # launch an app, touch the network, or write outside `{tmp}` — the smoke
 # asserts the repo's git status is unchanged. Each script has one default
 # invocation keyed by its name; a further mode of the same script sets `mode`
@@ -607,6 +633,7 @@ SMOKE_INVOCATIONS: List[Smoke] = [
                                     "--repo", "{repo}"], {}),
     Smoke("check-agent-parity.sh", [], {}),
     Smoke("gen-skill.sh", ["--check"], {}),
+    Smoke("gen-skill.sh", [], GEN_SKILL_TREE, "write", gen_skill_copy),
     Smoke("lint-skill.sh", ["{repo}/skills/tdd-cycle/SKILL.md"], {}),
 ]
 SMOKE_BY_KEY = {smoke_key(s): s for s in SMOKE_INVOCATIONS}
@@ -637,12 +664,11 @@ def smoke_run(tmp_path_factory):
             for rel, text in inv.files.items():
                 (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
                 (tmp / rel).write_text(text, encoding="utf-8")
-            if inv.setup is not None:
-                inv.setup(tmp)
+            copy = inv.setup(tmp) if inv.setup is not None else None
             args = [a.replace("{repo}", str(REPO_ROOT)).replace("{tmp}", str(tmp))
                     for a in inv.args]
             before = repo_snapshot()
-            result = run_script(SCRIPTS / inv.script, args, tmp)
+            result = run_script(copy or SCRIPTS / inv.script, args, tmp)
             cache[key] = (inv.args, result, before, repo_snapshot())
         return cache[key]
 
