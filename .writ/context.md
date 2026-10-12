@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-12T21:20:10Z
+> Last Updated: 2026-10-12T22:48:33Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-12-agent-cli-contract — Agent CLI Contract
 - **Status:** In Progress
-- **Story:** 4 of 5 — Bring Data Tools and Python Check Tools into Conformance (Not Started); Stories 1–3 Completed ✅
-- **Progress:** 20/34 tasks complete (59%)
+- **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Not Started); Stories 1–4 Completed ✅
+- **Progress:** 27/34 tasks complete (79%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Medium) check-tool exit-code rule amended to match the scripts — agent-cli-contract Story 3
-- DEV-003 (Medium) stricter shell `--help` rule adds Story 5 usage debt — agent-cli-contract Story 3
-- DEV-005 (Medium) one smoke per script; Stories 4–5 add smokes for the modes they fix — agent-cli-contract Story 3
+- DEV-002 (Small) saved compute blocker reads as an unreadable map — agent-cli-contract Story 4
+- DEV-003 (Small) atomic writes keep normal permissions — agent-cli-contract Story 4
+- DEV-004 (Small) review-panel tally/trial-report verdict words moved to Story 5 — agent-cli-contract Story 4
 
 ## Open Issues
 

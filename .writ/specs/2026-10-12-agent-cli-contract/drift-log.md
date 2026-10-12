@@ -118,3 +118,44 @@
 - **Reason:** One case per `(script, rule)` key keeps xfail mapping simple.
 - **Resolution:** Accepted. Stories 4 and 5 add a smoke case for each mode they fix before fixing it.
 - **Spec amendment:** Story 4 task 4.4, Story 5 task 5.5.
+
+---
+
+## Story 4: Bring Data Tools and Python Check Tools into Conformance — Drift Report
+
+> Run: 2026-10-12
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-001] review-panel trial-record and trial-label also fixed
+- **Severity:** Small
+- **Spec said:** Task 4.4 named `trial-init` and `trial-prepare`.
+- **Implementation did:** All four trial subcommands that write a file print `pass` on line 1.
+- **Reason:** The contract applies the check shape to every mode. No caller parses these words.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None (covered by the contract's every-mode rule).
+
+#### [DEV-002] A saved compute blocker reads as an unreadable map
+- **Severity:** Small
+- **Spec said:** `compute` prints a blocker on a story error; silent on how `crossings` reads it.
+- **Implementation did:** `boundary-map.py` `load_map` treats a dict holding `blocker` as unreadable, so `crossings` routes `unverifiable` / `map_unreadable` to review-agent, as an empty file did before.
+- **Reason:** Gate 0.5 saves `compute` output; without this, a saved blocker would read as an empty map and flag every file.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-003] Atomic writes keep normal permissions
+- **Severity:** Small
+- **Spec said:** Temp file in the same directory, then `os.replace`.
+- **Implementation did:** `goal-emit.py` sets the mode a plain write would give (`mkstemp` creates 0600); `roadmap-sync.py` keeps the target's existing mode.
+- **Reason:** Without it, emitted files would become 0600.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-004] review-panel tally and trial-report verdict words moved to Story 5
+- **Severity:** Small
+- **Spec said:** Every check-tool mode prints `pass`/`fail`/`unverifiable` on line 1.
+- **Implementation did:** Not changed in Story 4: `tally` prints `block` and `trial-report` prints `keep`/`remove`. The contract test does not smoke either mode. Found by Gate 3.
+- **Reason:** `tally` feeds Gate 3's panel paragraph in `implement-story.md`, which Story 5 already edits under the same byte pin.
+- **Resolution:** Accepted. Story 5 task 5.5 now fixes both modes and adds smokes; task 5.4 also clarifies Gate 2.5's `--surface <class>` wording.
+- **Spec amendment:** Story 5 tasks 5.4 and 5.5.
