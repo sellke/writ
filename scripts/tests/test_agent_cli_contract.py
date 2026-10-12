@@ -465,13 +465,6 @@ KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     # Story 5: shell scripts and app-verify.py.
     ("app-verify.py", "shape"):
         "line 1 is the summary `app-verify: <verdict> ...`, not the bare verdict (Story 5)",
-    ("check-agent-parity.sh", "help"):
-        "takes no arguments: --help runs the parity check and prints no usage (Story 5)",
-    ("check-agent-parity.sh", "bad_flag"):
-        "ignores arguments: an unknown flag runs the check and exits 0 (Story 5)",
-    ("check-agent-parity.sh", "shape"):
-        "prints warning or `parity OK` lines with no verdict line and always exits 0 "
-        "(Story 5)",
 }
 
 

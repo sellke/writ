@@ -402,7 +402,7 @@ Codex does not replay failures across gates; the orchestrator command markdown (
 ### Maintainer checklist (ship / upgrade)
 
 1. Regenerate `codex/agents/*.toml` after touching `agents/*.md`.
-2. Run `bash scripts/check-agent-parity.sh`; warnings must be intentional.
+2. Run `bash scripts/check-agent-parity.sh`; on `fail`, each `reason:` line names a missing counterpart, and each must be intentional.
 3. Re-measure `wc -c codex/AGENTS.md.template` after manifest command churn (stay ≤ 8192 bytes).
 4. Re-read OpenAI Codex release notes when bumping pinned CLI assumptions; adjust the slash collision table if new built-ins overlap Writ names.
 5. Verify dry-run install output lists seven agents and correct `SKILLS_DIR` (`.agents/skills/`).

@@ -13,6 +13,7 @@
 # in a temp dir; nothing here writes inside the repo.
 #
 # lint-skill.sh, gen-skill.sh (--check, write, --dry-run) [AC-5.1]
+# check-agent-parity.sh [AC-5.2]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -244,6 +245,54 @@ ok
 
 run bash "$GEN" --help
 assert_help "gen-skill --help" gen-skill.sh
+ok
+
+
+# ---------------------------------------------------------------------------
+# check-agent-parity.sh — runs from a temp copy: it reads the agents folders
+# beside its own scripts/ folder. [AC-5.2]
+# ---------------------------------------------------------------------------
+PAR_ROOT="$WORK/parity"
+mkdir -p "$PAR_ROOT/scripts" "$PAR_ROOT/agents" "$PAR_ROOT/claude-code/agents" "$PAR_ROOT/codex/agents"
+cp "$REPO/scripts/check-agent-parity.sh" "$PAR_ROOT/scripts/check-agent-parity.sh"
+PARITY="$PAR_ROOT/scripts/check-agent-parity.sh"
+printf '# Coding\n' > "$PAR_ROOT/agents/coding-agent.md"
+printf '# Coder\n' > "$PAR_ROOT/claude-code/agents/writ-coder.md"
+printf 'name = "coding-agent"\n' > "$PAR_ROOT/codex/agents/coding-agent.toml"
+# visual-qa-agent is exempt from the claude-code/ check, not from codex/.
+printf '# Visual QA\n' > "$PAR_ROOT/agents/visual-qa-agent.md"
+printf 'name = "visual-qa-agent"\n' > "$PAR_ROOT/codex/agents/visual-qa-agent.toml"
+
+run bash "$PARITY"
+assert_shape "parity aligned" check-agent-parity pass 0
+ok
+
+rm "$PAR_ROOT/codex/agents/coding-agent.toml" "$PAR_ROOT/claude-code/agents/writ-coder.md"
+run bash "$PARITY"
+assert_shape "parity drift" check-agent-parity fail 1
+[ "$(printf '%s\n' "$OUT" | grep -c '^reason: agents/coding-agent.md has no counterpart')" -eq 2 ] \
+  || fail "parity drift: expected one reason: line per missing counterpart:
+$OUT"
+ok
+
+mv "$PAR_ROOT/agents" "$PAR_ROOT/agents.off"
+run bash "$PARITY"
+assert_shape "parity without agents/" check-agent-parity unverifiable 0
+mv "$PAR_ROOT/agents.off" "$PAR_ROOT/agents"
+ok
+
+run bash "$PARITY" --bogus
+assert_usage_error "parity unknown flag" check-agent-parity.sh
+run bash "$PARITY" extra
+assert_usage_error "parity positional argument" check-agent-parity.sh
+ok
+
+run bash "$PARITY" --help
+assert_help "parity --help" check-agent-parity.sh
+ok
+
+run bash "$REPO/scripts/check-agent-parity.sh"
+assert_shape "parity on this repo" check-agent-parity pass 0
 ok
 
 printf 'OK %d shell check-shape assertions\n' "$pass_count"

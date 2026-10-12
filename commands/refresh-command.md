@@ -413,7 +413,7 @@ Logged to .writ/refresh-log.md
 
 > **Triggered when:** the user picks `parity` from the Phase 1 menu, or invokes `/refresh-command --check-parity`.
 
-Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart. Warnings only; exit code is always 0 when the script completes.
+Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart. Drift is a warning here, never a block: the script prints `fail` on line 1 and exits 1, and this phase reports it and stops.
 
 ### Exclusions
 
@@ -433,11 +433,11 @@ From the repository root:
 bash scripts/check-agent-parity.sh
 ```
 
-Capture stdout verbatim.
+Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `reason:` line per missing counterpart), or `unverifiable` (exit 0, no `agents/` folder). A `check-agent-parity:` summary is last.
 
 ### Step 6.2: Present results
 
-**If output ends with the parity OK line and no `⚠️` lines appeared:**
+**If line 1 is `pass`:**
 
 ```
 ✅ Agent parity check complete — parity OK
@@ -445,20 +445,22 @@ Capture stdout verbatim.
 agents/, claude-code/agents/, and codex/agents/ are aligned (subject to documented exclusions).
 ```
 
-**If one or more `⚠️` lines appeared:**
+**If line 1 is `fail`:**
 
 Print the script output verbatim, then summarize:
 
 ```
 ⚠️ Agent parity check complete — missing counterpart(s) reported above.
 
-These are warnings only (exit 0). Restore or author the missing platform file,
+These are warnings only; parity drift never blocks. Restore or author the missing platform file,
 or add a documented exclusion in Phase 6 if the omission is intentional.
 
 Regenerate Codex TOMLs after editing canonical agents:
 
 python3 scripts/gen-codex-agent-tomls.py
 ```
+
+**If line 1 is `unverifiable`:** print the `reason:` line; there is no `agents/` folder to compare.
 
 Do not auto-create agent files; this phase only surfaces drift.
 
@@ -485,7 +487,7 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome.
 | `skills/*/SKILL.md` | Lint targets in `--lint-skills` mode |
 | `agents/*.md`, `claude-code/agents/*.md`, `codex/agents/*.toml` | Parity targets in `--check-parity` mode |
 | `scripts/lint-skill.sh` | Boundary lint grammar — shared with `/new-skill` |
-| `scripts/check-agent-parity.sh` | Agent parity warnings (always exit 0) |
+| `scripts/check-agent-parity.sh` | Agent parity check (`fail` on drift; a warning here, never a block) |
 | `scripts/gen-codex-agent-tomls.py` | Regenerate `codex/agents/*.toml` from canonical `agents/*.md` |
 | `.writ/refresh-log.md` | Append-only improvement history (commands and skill lint runs) |
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |
