@@ -108,7 +108,7 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
 
 **Apply same logic to runtime scripts** (project-root `scripts/`; mirror `scripts/install.sh` / `scripts/update.sh`):
 
-Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
+Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `lean-decision.py`, `prune-ledger.py`, `spawn-cap.py`; ADR-029), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
 
 **Apply same logic to Writ reference docs** (project-root `.writ/docs/*.md`):
 
@@ -121,7 +121,7 @@ Ship every upstream markdown doc under `.writ/docs/`. User-authored docs that ex
 
 **Skills overlay:** folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).
 
-**Detect stale files:** files present in the manifest but removed upstream. Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
+**Detect stale files:** files present in the manifest but removed upstream, plus manifest-listed scripts the ship filter now excludes (such as the dev-only helpers above). Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
 
 ### Step 4: Present Summary
 

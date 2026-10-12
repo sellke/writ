@@ -36,3 +36,36 @@
 - **Reason:** True once Story 2 lands. Both stories ship on the same branch.
 - **Resolution:** Auto-amended (no change needed)
 - **Spec amendment:** None.
+
+---
+
+## Story 2: Stop Shipping Dev-Only Scripts — Drift Report
+
+> Run: 2026-10-12
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-001] update.sh stale handling extended beyond the filter arm
+- **Severity:** Medium
+- **Spec said:** technical-spec.md "Ship Filter (Story 2)": the existing stale-file logic already removes dev-only copies; the change is the six-name arm only.
+- **Implementation did:** `scripts/update.sh` `detect_stale_files` resolves `scripts/` manifest paths at the project root, treats a manifest-listed script the filter rejects as stale, and warns when a kept stale script is locally modified. `write_copy_manifest` carries that script's old baseline forward (`STALE_KEPT_ENTRIES`) so later updates warn again. Side effect: an unmodified installed script deleted upstream is now removed; before, it was skipped.
+- **Reason:** The spec's premise was false; AC-2.3 and AC-2.4 could not pass without it. The maintainer approved the patch at the BLOCKED escalation. After Gate 3, the orchestrator limited the warning to `scripts/`, where "kept" holds across runs.
+- **Resolution:** Accepted (Medium — warn and continue). Two pre-existing bugs found on the way were filed: `.writ/issues/bugs/2026-10-12-update-deletes-modified-stale-files.md`, `.writ/issues/bugs/2026-10-12-codex-config-baseline-dropped-on-update.md`.
+- **Spec amendment:** technical-spec.md "Ship Filter (Story 2)" carries a dated amendment; its Error & Rescue Map row now describes the new behavior.
+
+#### [DEV-002] unlink.sh carries the six-name arm
+- **Severity:** Small
+- **Spec said:** Change `install.sh` and `update.sh`.
+- **Implementation did:** Added the same arm to `scripts/unlink.sh`, which has a byte-identical `is_shippable_script`; the test compares all three bodies.
+- **Reason:** Leaving it out would let the three copies diverge.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-003] update-writ.md "Detect stale files" reworded
+- **Severity:** Small
+- **Spec said:** Reword the Step 3 exclusion list.
+- **Implementation did:** Also says that scripts the filter rejects count as stale.
+- **Reason:** Matches DEV-001's behavior.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.

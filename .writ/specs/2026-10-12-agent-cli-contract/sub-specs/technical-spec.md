@@ -66,6 +66,8 @@ In both `install.sh` and `update.sh`, add a case arm before the `*.py|*.sh` acce
 
 Keep the two functions byte-identical in that region; a test compares them. Update `commands/update-writ.md` Step 3 prose to list "dev-only measurement and eval helpers (…)". The stale-file logic (manifest entry present, upstream absent, local hash == baseline → remove) already covers removal from installed projects. Story 2 adds a test proving it for one of the six.
 
+*Amended 2026-10-12 (drift-log Story 2 DEV-001): the sentence above was wrong. `update.sh` resolved `scripts/` manifest paths under the platform folder and skipped them, never treated a script that is still upstream but filtered as stale, and printed nothing for a kept modified stale file. With the maintainer's approval Story 2 fixed all three: `scripts/` paths resolve at the project root, a manifest-listed script the filter rejects is stale, and a kept modified stale script prints a warning and keeps its old baseline in the manifest so later updates warn again. The warning is limited to `scripts/`; other categories re-baseline a kept file from its local copy and delete it on the next run, a pre-existing bug filed as `.writ/issues/bugs/2026-10-12-update-deletes-modified-stale-files.md`.*
+
 ## Contract Test (Story 3)
 
 File: `scripts/tests/test_agent_cli_contract.py`.
@@ -120,7 +122,7 @@ For check tools that need a ruling (app-verify, change-surface, arch-lint, bound
 | Parse classification table | Table missing or malformed | Parser finds no table under `## Classification` | Fail every parametrized test with one clear setup error | `no classification table in .writ/docs/agent-cli-contract.md` |
 | Run a script's `--help` | Script crashes on import (e.g. 3.10-only syntax) | Non-zero exit with traceback | Test fails with stderr excerpt | Traceback tail plus script name |
 | Shape smoke | Invocation writes state | Run in temp cwd; repo `git status` unchanged | Remove the invocation from `SMOKE_INVOCATIONS` | N/A — prevented by design |
-| Update removes dev-only script | User modified it | Local hash ≠ baseline | Existing behavior: flag as stale, keep the file | `/update-writ` stale warning |
+| Update removes dev-only script | User modified it | Local hash ≠ baseline | Keep the file, carry its old baseline forward (Story 2) | `⚠️  Stale (no longer shipped, locally modified — kept): scripts/<name>` on every update |
 | Default output change | Caller still parses old text | Grep for callers during the fix | Same-commit caller edit; `--json` kept as no-op | No change for installed command files that still pass `--json` |
 
 ## Files in Scope
