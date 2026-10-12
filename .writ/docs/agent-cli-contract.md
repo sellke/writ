@@ -139,4 +139,3 @@ The Callers column names the main callers and is not complete. Before you change
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
 - `lint-skill.sh` — check. Exit codes conform (0 pass, 1 violations, 2 usage). Today it prints one line per file with no verdict line first.
 - `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.
-- `review-panel.py` — check. `status` and `tally` conform. Today `trial-init` and `trial-prepare` print `initialized` or `prepared` on line 1 instead of a verdict.

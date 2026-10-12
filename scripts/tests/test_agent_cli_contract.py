@@ -496,7 +496,7 @@ SPEC_DIR = _spec_dir()
 SPEC = "{repo}/" + SPEC_DIR.relative_to(REPO_ROOT).as_posix()
 STORY = SPEC + "/user-stories/story-1-contract-doc-and-adr-amendment.md"
 
-Smoke = collections.namedtuple("Smoke", "script args files mode", defaults=("",))
+Smoke = collections.namedtuple("Smoke", "script args files mode setup", defaults=("", None))
 
 GOAL_CARD = ("# Smoke Goal\n\n> **loop:** yes\n\n## OBJECTIVE\n\nEmit goal files.\n\n"
              "## DONE WHEN\n\n- GOAL.md exists\n\n## STOP-CAPS\n\n- loop.max_iterations: 2\n")
@@ -512,8 +512,45 @@ def key_script(key: str) -> str:
     return key.split(" ", 1)[0]
 
 
+def _git_in(cwd: Path, *args: str) -> str:
+    return subprocess.run(["git", "-C", str(cwd), "-c", "user.name=t", "-c",
+                           "user.email=t@example.com", "-c", "commit.gpgsign=false"]
+                          + list(args), capture_output=True, text=True, check=True).stdout.strip()
+
+
+def panel_trial_setup(tmp: Path) -> None:
+    """A throwaway yuss repo (parent + story commit) and a trial file naming it,
+    so `review-panel.py trial-prepare` runs its success path inside `{tmp}`."""
+    yuss = tmp / "yuss"
+    spec = yuss / ".writ" / "specs" / "s"
+    (spec / "user-stories").mkdir(parents=True)
+    _git_in(yuss, "init", "-q")
+    (spec / "spec.md").write_text("# S\n\n## Specification Contract\n\nA route.\n",
+                                  encoding="utf-8")
+    story = spec / "user-stories" / "story-1.md"
+    story.write_text("# Story 1: Route\n", encoding="utf-8")
+    _git_in(yuss, "add", "-A")
+    _git_in(yuss, "commit", "-q", "-m", "parent")
+    parent = _git_in(yuss, "rev-parse", "HEAD")
+    (yuss / "app.py").write_text("print('route')\n", encoding="utf-8")
+    _git_in(yuss, "add", "-A")
+    _git_in(yuss, "commit", "-q", "-m", "story 1")
+    stories = [{"story_id": "s/story-1", "story_path": ".writ/specs/s/user-stories/story-1.md",
+                "spec_folder": "s", "story_commit": _git_in(yuss, "rev-parse", "HEAD"),
+                "parent_sha": parent, "arms": {}, "panel_only": []}]
+    for n in (2, 3, 4):
+        stories.append({"story_id": "s/story-%d" % n, "spec_folder": "s",
+                        "story_path": ".writ/specs/s/user-stories/story-%d.md" % n,
+                        "story_commit": str(n) * 40, "parent_sha": str(n) * 39 + "0",
+                        "arms": {}, "panel_only": []})
+    (tmp / "trial.json").write_text(json.dumps({"schema": "panel-trial-v1", "baseline": "x",
+                                                "stories": stories}), encoding="utf-8")
+    (tmp / "runs").mkdir()
+
+
 # Read-only invocations. `{repo}` is this repo, `{tmp}` a fresh temp dir that
-# is also the cwd; `files` are written under `{tmp}` first. Nothing here may
+# is also the cwd; `files` are written under `{tmp}` first, then `setup(tmp)`
+# runs when set. Nothing here may
 # launch an app, touch the network, or write outside `{tmp}` — the smoke
 # asserts the repo's git status is unchanged. Each script has one default
 # invocation keyed by its name; a further mode of the same script sets `mode`
@@ -566,6 +603,12 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("review-override.py", ["check", "--spec", SPEC, "--repo", "{repo}",
                                  "--story", STORY], {}),
     Smoke("review-panel.py", ["status", "--repo", "{tmp}", "--origin", "claude"], {}),
+    Smoke("review-panel.py", ["trial-init", "--baseline", "{repo}/scripts/tests/fixtures/"
+                              "review-panel/trial/mini-baseline.json", "--out",
+                              "{tmp}/trial.json"], {}, "trial-init"),
+    Smoke("review-panel.py", ["trial-prepare", "--trial", "{tmp}/trial.json", "--yuss",
+                              "{tmp}/yuss", "--story", "s/story-1", "--tmp-root",
+                              "{tmp}/runs"], {}, "trial-prepare", panel_trial_setup),
     Smoke("spec-analyze.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),
@@ -601,6 +644,8 @@ def smoke_run(tmp_path_factory):
             for rel, text in inv.files.items():
                 (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
                 (tmp / rel).write_text(text, encoding="utf-8")
+            if inv.setup is not None:
+                inv.setup(tmp)
             args = [a.replace("{repo}", str(REPO_ROOT)).replace("{tmp}", str(tmp))
                     for a in inv.args]
             before = repo_snapshot()

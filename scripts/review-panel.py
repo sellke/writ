@@ -40,7 +40,9 @@ vendors, severities, and labels, never reviewer, diff, or story text):
 Prints one verdict line first (`pass` / `block` / `unverifiable`), then
 `reason:` lines (`status` adds `reviewer:` and `dropped:` lines; `tally` adds
 `review-panel: dropped|advisory|block` lines), and a `review-panel:` summary
-line last. `--json` prints one object instead.
+line last. `--json` prints one object instead. `trial-init`,
+`trial-prepare`, `trial-record`, and `trial-label` print `pass` first when
+they did their job, then their detail lines and summary; a refusal exits 2.
 
 Exit 0: ran, no blocking verdict (`pass` or `unverifiable`).
 Exit 1: `tally` found a consensus finding (`block`).
@@ -599,7 +601,7 @@ def cmd_trial_init(args: argparse.Namespace) -> int:
         raise UsageError("refusing to overwrite %s without --force" % out)
     doc = trial_skeleton(_load_json(Path(args.baseline), "baseline"), args.baseline)
     _write_json_atomic(out, doc)
-    print("initialized")
+    print("pass")
     for story in doc["stories"]:
         print("story: %s %s" % (story["story_id"], story["story_commit"][:12]))
     print("review-panel: trial initialized — %s, no arms recorded" %
@@ -702,7 +704,7 @@ def cmd_trial_prepare(args: argparse.Namespace) -> int:
     except (PrepareError, OSError) as exc:
         shutil.rmtree(str(run), ignore_errors=True)
         raise UsageError("%s: %s" % (sid, exc))
-    print("prepared")
+    print("pass")
     print("checkout: %s" % paths["checkout"])
     print("diff: %s" % paths["diff"])
     print("story: %s" % paths["story"])
@@ -813,7 +815,7 @@ def cmd_trial_record(args: argparse.Namespace) -> int:
     story["panel_only"] = panel_only_findings(story)
     _write_json_atomic(trial_path, doc)
 
-    print("recorded")
+    print("pass")
     for entry in dropped:
         print("review-panel: dropped %s — %s" % (entry["slug"], entry["reason"]))
     print("review-panel: recorded %s %s — %s, %s" % (
@@ -837,7 +839,7 @@ def cmd_trial_label(args: argparse.Namespace) -> int:
         raise UsageError("%s is not a panel-only finding for %s" % (args.key, args.story))
     finding["label"], finding["note"] = args.label, note
     _write_json_atomic(trial_path, doc)
-    print("labeled")
+    print("pass")
     print("review-panel: labeled %s %s %s" % (args.story, args.key, args.label))
     return 0
 

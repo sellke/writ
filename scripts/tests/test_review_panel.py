@@ -1051,6 +1051,17 @@ class TrialInitTests(unittest.TestCase):
             self.assertEqual(story["panel_only"], [])
             self.assertNotIn("test_files", story)
 
+    def test_init_prints_pass_first_and_summary_last(self):
+        """Agent CLI contract (check shape). [AC-4.1]"""
+        with TemporaryDirectory() as tmp:
+            out = Path(tmp) / "trial.json"
+            code, lines, err = _run_in(Path(tmp), "trial-init", "--baseline",
+                                       str(MINI_BASELINE), "--out", str(out))
+        self.assertEqual(code, 0, err)
+        self.assertEqual(lines[0], "pass")
+        self.assertEqual(lines[1], "story: %s %s" % (S1, "1" * 12))
+        self.assertEqual(lines[-1], "review-panel: trial initialized — 4 stories, no arms recorded")
+
     def test_real_phase11_baseline_has_four_stories(self):
         baseline = REPO_ROOT / ".writ/eval/baselines/2026-09-07-claude-fable-5-1.json"
         with TemporaryDirectory() as tmp:
@@ -1194,7 +1205,7 @@ class TrialPrepareTests(unittest.TestCase):
         contract = (run / "contract.md").read_text(encoding="utf-8")
         self.assertIn("Deliverable: an API route.", contract)
         self.assertNotIn("not part of the contract", contract)
-        self.assertEqual(out[0], "prepared")
+        self.assertEqual(out[0], "pass")  # agent CLI contract: verdict on line 1
         for name in ("checkout", "diff.patch", "story.md", "contract.md"):
             self.assertTrue(any(line.endswith(str(run / name)) for line in out), name)
         self.assertTrue(out[-1].startswith("review-panel: prepared %s" % S1))
@@ -1290,6 +1301,7 @@ class TrialRecordTests(unittest.TestCase):
     def test_record_summary_reads_zero_keys(self):
         code, out, err = _record(self.root, self.trial, S1, "evaluator", "primary-pass.md")
         self.assertEqual(code, 0, (out, err))
+        self.assertEqual(out[0], "pass")  # agent CLI contract: verdict on line 1
         self.assertIn("— 0 keys, 0 panel-only findings", out[-1])
 
     def test_a_key_the_evaluator_also_raised_is_not_panel_only(self):
@@ -1300,10 +1312,12 @@ class TrialRecordTests(unittest.TestCase):
     def test_recording_order_does_not_change_the_set_and_keeps_labels(self):
         _record(self.root, self.trial, S1, "panel", "primary-pass.md",
                 (OPENAI, "panel-ac23.md"), (XAI, "panel-security-pay.md"))
-        code, _, _ = _run_in(self.root, "trial-label", "--trial", str(self.trial),
-                             "--story", S1, "--key", SEC_PAY, "--label", "valid",
-                             "--note", "real missing auth check")
+        code, out, _ = _run_in(self.root, "trial-label", "--trial", str(self.trial),
+                               "--story", S1, "--key", SEC_PAY, "--label", "valid",
+                               "--note", "real missing auth check")
         self.assertEqual(code, 0)
+        self.assertEqual(out[0], "pass")  # agent CLI contract: verdict on line 1
+        self.assertTrue(out[-1].startswith("review-panel: labeled "), out)
         _run_in(self.root, "trial-label", "--trial", str(self.trial), "--story", S1,
                 "--key", AC23, "--label", "invalid", "--note", "criterion was met")
         _record(self.root, self.trial, S1, "evaluator", "primary-fail-ac23.md")
