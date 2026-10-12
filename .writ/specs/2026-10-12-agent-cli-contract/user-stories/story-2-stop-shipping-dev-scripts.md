@@ -1,6 +1,7 @@
 # Story 2: Stop Shipping Dev-Only Scripts
 
 > **Status:** Completed ✅
+> **Commit:** ead25cbb9bd73ff0412a404504308559016f69aa
 > **Priority:** High
 > **Dependencies:** None
 
