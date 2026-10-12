@@ -461,8 +461,6 @@ PY_SHIPPED = [s for s in SHIPPED if set(STATIC_RULES) <= set(rules_for(s))]
 # (script, rule) -> reason. Strict debt: must be {} when the spec closes.
 KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     # Story 4: Python data and check scripts.
-    ("gen-codex-agent-tomls.py", "shape"):
-        "write mode prints `wrote <path>` lines with no verdict line (Story 4)",
     # Story 5: shell scripts and app-verify.py.
     ("app-verify.py", "shape"):
         "line 1 is the summary `app-verify: <verdict> ...`, not the bare verdict (Story 5)",

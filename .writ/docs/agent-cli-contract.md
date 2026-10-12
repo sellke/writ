@@ -134,7 +134,6 @@ The Callers column names the main callers and is not complete. Before you change
 - `app-verify.py` — check. Today line 1 is the summary `app-verify: <verdict> …`, not the bare verdict. `touched` prints bare feature IDs. `unverifiable` exits 2 instead of 0. With `--json`, the JSON object follows the summary line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
 - `arch-lint.py` — check. `detect` prints the verdict first and conforms.
 - `check-agent-parity.sh` — check. Today it prints warning lines with no verdict line and always exits 0. The contract shape prints the verdict first and exits 1 on drift.
-- `gen-codex-agent-tomls.py` — check. `--check` conforms. Today write mode prints `wrote <path>` lines with no verdict line.
 - `gen-skill.sh` — check. Today `--check` prints a diff with no verdict line and exits 1 on drift. Write mode reports on stderr only. A missing `SKILL.md` exits 3.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
 - `lint-skill.sh` — check. Exit codes conform (0 pass, 1 violations, 2 usage). Today it prints one line per file with no verdict line first.
