@@ -71,10 +71,10 @@ Consolidation is a **gated write** mode. Its default behavior is read-only (dry-
 1. **Dry-run.** Run the reducer in its default non-destructive mode:
 
    ```bash
-   python3 scripts/knowledge-consolidate.py --dry-run
+   python3 scripts/knowledge-consolidate.py --dry-run --pretty
    ```
 
-   Use `--json` when you need the machine-readable proposal to drive presentation. The reducer scans all four categories, reusing the substrate's `_tokens` + Jaccard duplicate detection. Dry-run writes no file.
+   `--pretty` prints the markdown report; drop it when you need the proposal as one JSON document to drive presentation. The reducer scans all four categories, reusing the substrate's `_tokens` + Jaccard duplicate detection. Dry-run writes no file.
 
 2. **Present the proposal.** Show each finding with the evidence that triggered it:
    - **Merges** — the canonical (surviving) entry, the entries it would replace, and the duplicate signal (token overlap). Preview the unified diff.
@@ -89,7 +89,7 @@ Consolidation is a **gated write** mode. Its default behavior is read-only (dry-
 4. **Apply approved merges.** On approval, run:
 
    ```bash
-   python3 scripts/knowledge-consolidate.py --apply
+   python3 scripts/knowledge-consolidate.py --apply --pretty
    ```
 
    This writes the canonical entry with `replaces: [...]` and rewrites each merged-away entry into a tombstone carrying `superseded_by: <canonical-slug>` (glossary terms are always tombstoned, never deleted). Report the exact files changed and the lineage recorded. The command does not commit — it leaves a reviewable working-tree diff for the human to inspect and PR.

@@ -467,9 +467,6 @@ KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     ("change-surface.py", "shape"):
         "classify prints one bare class word, not a JSON object such as {\"class\": ...} "
         "(Story 4)",
-    ("knowledge-consolidate.py", "shape"):
-        "default output is a markdown report and --json opts into JSON; Story 4 makes JSON "
-        "the default with --pretty for the report",
     ("gen-codex-agent-tomls.py", "shape"):
         "write mode prints `wrote <path>` lines with no verdict line (Story 4)",
     ("verdict-provenance.py", "shape"):
