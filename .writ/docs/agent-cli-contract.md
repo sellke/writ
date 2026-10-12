@@ -127,11 +127,11 @@ These steps apply in the Writ source repo.
 
 ### Notes
 
-The Shape column records the shape each script must have. Where a script's current output differs, the note below says what it prints today. Read the script's `--help` before you rely on the current output. Spec `2026-10-12-agent-cli-contract` tracks each fix.
+The Shape column records the shape each script prints. Every shipped script conforms, and `scripts/tests/test_agent_cli_contract.py` enforces it; its `KNOWN_VIOLATIONS` list names any temporary exception. The notes below record script-specific details an agent needs to parse the output.
 
 The Callers column names the main callers and is not complete. Before you change a script's output, grep `commands/`, `agents/`, `skills/`, `adapters/`, and `.writ/docs/` for its name, including `*.lean.md` files.
 
 - `app-verify.py` — check. `touched` prints one `feature: <id>` line per matched feature between the verdict and the summary. A refused run prints `unverifiable` on line 1 and keeps `refused` in its summary and JSON. With `--json`, the verdict lines print as usual and one JSON object follows the summary as the last line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
-- `arch-lint.py` — check. `detect` prints the verdict first and conforms.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
+- `review-panel.py` — check. A panel word that is not a verdict is the first `reason:` line: `tally` prints `fail` then `reason: block` on a consensus finding (exit 1), and `trial-report` prints `pass` then `reason: keep` or `reason: remove`. With `--json`, the object's `verdict` holds the panel word.
 - `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.

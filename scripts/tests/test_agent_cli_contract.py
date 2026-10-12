@@ -556,6 +556,22 @@ def panel_trial_setup(tmp: Path) -> None:
     (tmp / "runs").mkdir()
 
 
+PANEL_FX = "{repo}/scripts/tests/fixtures/review-panel/"
+
+
+def _trial_story(n: int, panel_only: list) -> dict:
+    return {"story_id": "s/story-%d" % n, "spec_folder": "s",
+            "story_path": ".writ/specs/s/user-stories/story-%d.md" % n,
+            "story_commit": str(n) * 40, "parent_sha": str(n) * 39 + "0",
+            "arms": {"evaluator": {}, "panel": {}}, "panel_only": panel_only}
+
+
+# A finished trial: both arms on all four stories, one valid panel-only miss.
+PANEL_TRIAL_KEEP = json.dumps({"schema": "panel-trial-v1", "baseline": "x", "stories": [
+    _trial_story(1, [{"key": "ac:AC-1.1", "label": "valid", "note": "n"}])]
+    + [_trial_story(n, []) for n in (2, 3, 4)]})
+
+
 # Read-only invocations. `{repo}` is this repo, `{tmp}` a fresh temp dir that
 # is also the cwd; `files` are written under `{tmp}` first, then `setup(tmp)`
 # runs when set. A setup that returns a path runs that copy of the script in
@@ -621,6 +637,11 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("review-panel.py", ["trial-prepare", "--trial", "{tmp}/trial.json", "--yuss",
                               "{tmp}/yuss", "--story", "s/story-1", "--tmp-root",
                               "{tmp}/runs"], {}, "trial-prepare", panel_trial_setup),
+    Smoke("review-panel.py", ["tally", "--origin", "Claude Fable 5.1", "--primary",
+                              PANEL_FX + "primary-fail-ac23.md", "--reviewer",
+                              "gpt-5.6-sol-medium=" + PANEL_FX + "panel-ac23.md"], {}, "tally"),
+    Smoke("review-panel.py", ["trial-report", "--trial", "{tmp}/trial.json"],
+          {"trial.json": PANEL_TRIAL_KEEP}, "trial-report"),
     Smoke("spec-analyze.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),
@@ -789,8 +810,9 @@ def test_known_violations_are_well_formed():
 
 STORY5_SCRIPTS = ("app-verify.py", "check-agent-parity.sh", "gen-skill.sh", "lint-skill.sh")
 
-# Pre-contract output that Story 5 removed: a caller still quoting it would
-# misread the check shape. (file, literal) pairs, one per retired phrasing.
+# Pre-contract output that Story 5 removed (including review-panel tally's
+# bare `block`): a caller still quoting it would misread the check shape.
+# (file, literal) pairs, one per retired phrasing.
 STORY5_STALE_CALLER_TEXT = (
     ("commands/new-skill.md", "exited 0 on the captured description"),
     ("commands/new-skill.md", "reports no delta"),
@@ -804,6 +826,8 @@ STORY5_STALE_CALLER_TEXT = (
     ("commands/create-uat-plan.md", "- Exit 2 →"),
     (".writ/docs/app-verification-format.md", "and 2 when the file is missing"),
     ("adapters/codex.md", "warnings must be intentional"),
+    ("commands/implement-story.md", "`block` is a Gate 3 FAIL"),
+    ("commands/implement-story.lean.md", "`block` is a Gate 3 FAIL"),
 )
 
 

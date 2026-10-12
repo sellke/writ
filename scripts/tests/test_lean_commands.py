@@ -100,11 +100,15 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # "printed no IDs") and Gate 2.5 says to pass `class` as `--surface`, with two
 # Gate 1 clauses tightened to stay byte-neutral; implement-story.lean.md
 # carries the Gate 4.5 change (it has no crossings step).
+# Repinned 2026-10-12 (same spec, Story 5): Gate 3's review-panel paragraph
+# reads tally's `fail` (`reason: block`) where it read `block`, with a Gate 0.5
+# path and a Gate 2 adjective trimmed to stay byte-neutral;
+# implement-story.lean.md carries the same panel sentence.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
     "implement-phase": "269f05a2d8dc0e0d9cdf23f1a7def9692c37f66e997627b1e28babff01875487",
-    "implement-story": "d67285367c1c7d42014d48871bae0730ac0df79a6094a82d10bc7b2dd3e42c46",
+    "implement-story": "e47dd5cd55eb39ef884b7f0341f56fbe07154abdb765ac3deaff16de81929e35",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

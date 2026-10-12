@@ -497,7 +497,9 @@ class TallyVerdictTests(unittest.TestCase):
     def test_primary_and_one_panel_vendor_on_same_ac_blocks(self):
         rc, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"))
         self.assertEqual(rc, 1)
-        self.assertEqual(out[0], "block")
+        # Agent CLI contract check shape: `fail` on line 1, the panel word on
+        # the first `reason:` line.
+        self.assertEqual(out[:2], ["fail", "reason: block"])
         self.assertIn("review-panel: block — AC-2.3 unmet (anthropic, openai)", out)
         self.assertTrue(out[-1].startswith("review-panel: block — 2 vendors, 1 consensus"),
                         out[-1])
@@ -764,7 +766,7 @@ class Gate3PanelCombinationTests(unittest.TestCase):
 
     def test_block_is_one_gate3_fail(self):
         para = _panel_paragraph(STORY_CMD)
-        self.assertIn("`block` is a Gate 3 FAIL", para)
+        self.assertIn("`fail` (`reason: block`) is a Gate 3 FAIL", para)
         self.assertIn("one loop increment even if the agent also failed", para)
         self.assertIn("on PAUSE, Gate 3.5 lists the block lines and accept still recodes", para)
         self.assertIn("under `--review-only` it ends the run", para)
@@ -793,7 +795,7 @@ class Gate3PanelCombinationTests(unittest.TestCase):
 
     def test_tally_fixtures_match_the_combination_rule(self):
         code, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"))
-        self.assertEqual((code, out[0]), (1, "block"))
+        self.assertEqual((code, out[:2]), (1, ["fail", "reason: block"]))
         code, out = _tally("primary-pass.md", (OPENAI, "panel-ac23.md"))
         self.assertEqual((code, out[0]), (0, "pass"))
 
@@ -923,7 +925,8 @@ class EvalPinMutationTests(unittest.TestCase):
     def test_command_pins_bite(self):
         pins = (
             (PANEL_OPENER, "%s Gate 3 must carry the opt-in review panel paragraph."),
-            ("`block` is a Gate 3 FAIL", "%s must make a panel block a Gate 3 FAIL."),
+            ("`fail` (`reason: block`) is a Gate 3 FAIL",
+             "%s must make a panel block a Gate 3 FAIL."),
             ("| `/implement-story story-3 --panel` |",
              "%s Invocation table must carry the --panel row."),
         )
@@ -1492,7 +1495,7 @@ class TrialReportTests(unittest.TestCase):
         self._label(SEC_PAY, "invalid")
         code, out = self._report()
         self.assertEqual(code, 0)
-        self.assertEqual(out[0], "keep")
+        self.assertEqual(out[:2], ["pass", "reason: keep"])
         self.assertIn(CAVEAT, out)
         self.assertIn("story: %s arms=evaluator,panel panel_only=2 valid=1 invalid=1 "
                       "unlabeled=0" % S1, out)
@@ -1502,13 +1505,13 @@ class TrialReportTests(unittest.TestCase):
         self._complete()
         self._label(AC23, "invalid")
         code, out = self._report()
-        self.assertEqual((code, out[0]), (0, "remove"))
+        self.assertEqual((code, out[:2]), (0, ["pass", "reason: remove"]))
         self.assertEqual(out[-1], "review-panel: remove — 0 valid of 1 panel-only finding, 4 stories")
 
     def test_no_panel_only_findings_removes(self):
         self._complete(((OPENAI, "panel-minor-security-pay.md"),))
         code, out = self._report()
-        self.assertEqual((code, out[0]), (0, "remove"))
+        self.assertEqual((code, out[:2]), (0, ["pass", "reason: remove"]))
 
     def test_unlabeled_findings_are_unverifiable(self):
         self._complete(((OPENAI, "panel-ac23.md"), (XAI, "panel-security-pay.md")))

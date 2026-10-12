@@ -4763,7 +4763,7 @@ check_review_panel() {
 
   for file in "$story" "$lean"; do
     require_literal "$file" '**Review panel (opt-in).**' "$(relpath "$file") Gate 3 must carry the opt-in review panel paragraph."
-    require_literal "$file" '`block` is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
+    require_literal "$file" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
     require_literal "$file" '| `/implement-story story-3 --panel` |' "$(relpath "$file") Invocation table must carry the --panel row."
   done
   require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."

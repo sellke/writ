@@ -200,7 +200,7 @@ Spawn a **read-only** sub-agent before code: viability, integration risk, comple
 
 Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **Advisory** — no hard file locking. Coding flags crossings; review verifies (Gate 3).
 
-**Not applicable — `/prototype`:** `commands/prototype.md` does not run `implement-story`; Gate 0.5 runs inline on default and `--full-pipeline`.
+**Not applicable — `/prototype`:** `/prototype` does not run `implement-story`; Gate 0.5 runs inline on default and `--full-pipeline`.
 
 `Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
 
@@ -239,7 +239,7 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 **Architecture ruleset.** After the linters, run `python3 scripts/arch-lint.py detect --repo .`, then run each `command:` line from the repo root; a non-zero exit takes the **On failure** path (no auto-fix exists, so flag for review). A missing or not-installed ruleset never fails the gate. Report `arch-lint: <names joined ", ">`, each name suffixed `(via eslint)`, `(via tests)` or `(not installed)` per its mode; no ruleset → `arch-lint: none — see .writ/docs/architecture-lint.md`; `unverifiable` → `arch-lint: unverifiable (<reason>)`.
 
-**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report; it catches framework-level structural errors typechecking misses.
+**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report; it catches framework-level errors typechecking misses.
 
 - **`build_failed_source`** → blocking. Apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 2**. No new control flow, no iteration cap.
 - **`build_failed_environment` or any `unverifiable` verdict** → the pipeline continues. Surface the reason verbatim; the story is **not** marked `⚠️ DEGRADED` on that basis. An unverifiable check is not a failed gate — DEGRADED means a gate could not be cleared, `unverifiable` means a check could not be run here.
@@ -275,7 +275,7 @@ Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `re
 
 **Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reasons` as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
-**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `block` is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `fail` (`reason: block`) is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
@@ -370,7 +370,7 @@ python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec
 
 - Line 1 **`pass`** → continue.
 - **`fail`** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
-- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` lines (skip `run`; it says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
+- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` line (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`

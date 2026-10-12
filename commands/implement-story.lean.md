@@ -242,7 +242,7 @@ The `class` field of its JSON is `change_surface`.
 
 Default spawn is `evaluator-agent` (AC + recorded tests). Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
-**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `block` is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `fail` (`reason: block`) is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
@@ -329,7 +329,7 @@ python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec
 
 - Line 1 **`pass`** → continue.
 - **`fail`** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
-- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` lines (skip `run`; it says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
+- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` line (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`
