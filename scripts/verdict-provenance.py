@@ -12,10 +12,13 @@ checked number rather than an impression.
 Subcommand:
   check --command PATH [--repo .] [--max-prose-only 1] [--prose-only-blocking]
 
-Output, one line each: findings as `<code>: <detail>`; the prose-only count
-as `note: prose_only_count: <n> (cap <max>)`, or as the finding
-`prose_only_count: <n> (cap <max>)` when `--prose-only-blocking` is passed
-and the count exceeds the cap; then the summary line, always last.
+Output, one line each (agent CLI contract, check shape): the verdict
+`pass` or `fail` alone on line 1; findings as `<code>: <detail>`; the
+prose-only count as `note: prose_only_count: <n> (cap <max>)`, or as the
+finding `prose_only_count: <n> (cap <max>)` when `--prose-only-blocking` is
+passed and the count exceeds the cap; then the summary line, always last:
+`verdict-provenance: <verdict> (gates: <n> entries, headings: <n>,
+script: <n>, prose-only: <n>, findings: <n>)`.
 
 Finding codes: heading_without_entry, entry_without_heading,
 entry_without_source, entry_both_sources, script_missing,
@@ -212,8 +215,10 @@ def run_check(command: Path, repo: Path, max_prose_only: int,
     else:
         notes.append("note: " + count_line)
 
-    summary = ("gates: %d entries, headings: %d, script: %d, prose-only: %d, findings: %d"
-               % (len(gates), len(headings), script_count, prose_count, len(findings)))
+    summary = ("verdict-provenance: %s (gates: %d entries, headings: %d, script: %d, "
+               "prose-only: %d, findings: %d)"
+               % ("fail" if findings else "pass", len(gates), len(headings), script_count,
+                  prose_count, len(findings)))
     return findings, notes, summary
 
 
@@ -234,6 +239,7 @@ def cmd_check(args: argparse.Namespace) -> None:
     except ParseError as exc:
         _fail("%s: %s" % (label, exc))
         return
+    print("fail" if findings else "pass")
     for line in findings:
         print(line)
     for line in notes:

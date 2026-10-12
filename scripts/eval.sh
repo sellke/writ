@@ -3992,11 +3992,15 @@ check_verdict_provenance() {
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     case "$line" in
+      pass|fail)
+        # Line 1 verdict (agent CLI contract); the exit code already carries it.
+        ;;
       "note: "*)
         add_note "NOTE [$rel]: ${line#note: }"
         ;;
-      "gates: "*)
-        add_note "Metrics: $line"
+      "verdict-provenance: "*)
+        line="${line#*(}"
+        add_note "Metrics: ${line%)}"
         ;;
       *)
         field="${line%%: *}"

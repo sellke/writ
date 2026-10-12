@@ -463,8 +463,6 @@ KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     # Story 4: Python data and check scripts.
     ("gen-codex-agent-tomls.py", "shape"):
         "write mode prints `wrote <path>` lines with no verdict line (Story 4)",
-    ("verdict-provenance.py", "shape"):
-        "prints findings, then notes, then the summary, with no verdict line first (Story 4)",
     # Story 5: shell scripts and app-verify.py.
     ("app-verify.py", "shape"):
         "line 1 is the summary `app-verify: <verdict> ...`, not the bare verdict (Story 5)",
