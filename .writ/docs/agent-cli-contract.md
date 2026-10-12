@@ -65,7 +65,7 @@ A default run makes no network call.
 ## State
 
 - Plain files under `.writ/` are the system of record: markdown, JSON, or TSV. A person or agent can read and repair them without the script.
-- Each state file has one writer. Write atomically: write a temp file, then rename it over the target. Today `roadmap-sync.py` writes in place.
+- Each state file has one writer. Write atomically: write a temp file, then rename it over the target.
 - Scripts keep nothing in memory between runs and run no daemon.
 
 ## Runtime

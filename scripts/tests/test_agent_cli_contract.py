@@ -43,7 +43,8 @@ scans are Python-only); they also appear in the shape smoke, which is how
 Story 5's shell fixes are enforced.
 
 KNOWN_VIOLATIONS is strict debt (Business Rule 10): each `(script, rule)`
-entry makes that case `xfail(strict=True)`. When the script is fixed the
+entry makes that case `xfail(strict=True)`; for a smoke run in a further
+mode, the key is `<script> <mode>`. When the script is fixed the
 case XPASSes, and strict mode fails it until the entry is removed. Story 4
 and Story 5 empty the dict.
 
@@ -460,7 +461,6 @@ PY_SHIPPED = [s for s in SHIPPED if set(STATIC_RULES) <= set(rules_for(s))]
 
 # (script, rule) -> reason. Strict debt: must be {} when the spec closes.
 KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
-    # Story 4: Python data and check scripts.
     # Story 5: shell scripts and app-verify.py.
     ("app-verify.py", "shape"):
         "line 1 is the summary `app-verify: <verdict> ...`, not the bare verdict (Story 5)",
