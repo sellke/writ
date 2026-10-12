@@ -347,6 +347,8 @@ def test_cli_never_raises_on_nonexistent_roadmap(tmp_path: Path) -> None:
 
 
 # ---------- atomic write (agent CLI contract, State) ----------
+# Story 4 of 2026-10-12-agent-cli-contract: an interrupted write leaves no
+# partial roadmap and no temp file [AC-4.5].
 
 def test_append_row_interrupted_write_keeps_roadmap_and_leaves_no_temp(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
