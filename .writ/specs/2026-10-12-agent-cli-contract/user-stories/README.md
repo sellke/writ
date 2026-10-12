@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | 1 | [Contract Doc and ADR-029 Amendment](story-1-contract-doc-and-adr-amendment.md) | Completed ✅ | High | None | 6 | 6/6 |
 | 2 | [Stop Shipping Dev-Only Scripts](story-2-stop-shipping-dev-scripts.md) | Completed ✅ | High | None | 7 | 7/7 |
-| 3 | [Agent CLI Contract Test](story-3-contract-test.md) | Not Started | High | Story 1, Story 2 | 7 | 0/7 |
+| 3 | [Agent CLI Contract Test](story-3-contract-test.md) | Completed ✅ | High | Story 1, Story 2 | 7 | 7/7 |
 | 4 | [Bring Data Tools and Python Check Tools into Conformance](story-4-conformance-fixes.md) | Not Started | Medium | Story 3 | 7 | 0/7 |
 | 5 | [Bring Shell Scripts and app-verify into Conformance](story-5-shell-and-app-verify-conformance.md) | Not Started | Medium | Story 4 | 7 | 0/7 |
 

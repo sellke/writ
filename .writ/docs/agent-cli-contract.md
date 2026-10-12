@@ -18,7 +18,8 @@ The contract covers every shipped script. A shipped script is a `*.py` or `*.sh`
 A data tool answers a question with structured data.
 
 - On success it prints exactly one JSON document on stdout and exits 0.
-- On failure it prints one JSON object on stdout and exits non-zero. The object has a top-level `blocker` key holding `{"code": …, "summary": …}`. Older tools put the failure under a top-level `error` key instead. The contract accepts both. New scripts use `blocker`.
+- When the tool cannot do its job, it prints one JSON object on stdout and exits non-zero. The object has a top-level `blocker` key holding `{"code": …, "summary": …}`. Older tools put the failure under a top-level `error` key instead. The contract accepts both. New scripts use `blocker`.
+- A tool whose result is itself a verdict may exit non-zero with its normal JSON document, for example `ac-trace.py` exits 1 when it reports findings. Read the document, not just the exit code.
 - Human-readable output appears only behind `--pretty`. JSON is never behind a flag.
 - A tool that used to need `--json` still accepts it as a no-op, so old command files keep working.
 
@@ -29,7 +30,7 @@ A check tool answers "does this pass?".
 - Line 1 of stdout is exactly `pass`, `fail`, or `unverifiable`, with nothing else on the line.
 - `reason: …` lines and other detail lines may follow.
 - The last line is a one-line summary, usually `<tool>: <verdict> (…)`.
-- The exit code matches the verdict: 0 for `pass`, 1 for `fail`, 2 for `unverifiable`.
+- The exit code says whether the check ran: 0 when it ran (line 1 says `pass` or `unverifiable`), 1 for `fail`, 2 for a usage error or a check that could not start. Branch on line 1, not on exit 0 alone.
 - A check tool may offer `--json` to print one JSON object instead of the verdict lines. The exit code rule still applies.
 - Every subcommand and mode of a check tool prints in this shape, including modes that write files.
 
@@ -130,8 +131,8 @@ The Shape column records the shape each script must have. Where a script's curre
 
 The Callers column names the main callers and is not complete. Before you change a script's output, grep `commands/`, `agents/`, `skills/`, `adapters/`, and `.writ/docs/` for its name, including `*.lean.md` files.
 
-- `app-verify.py` — check. Line 1 today is the summary `app-verify: <verdict> …`, not the bare verdict, and `touched` prints matching feature IDs. With `--json`, the JSON object follows the summary line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
-- `arch-lint.py` — check. `detect` prints the verdict first. Today it exits 0 when the verdict is `unverifiable`; it should exit 2.
+- `app-verify.py` — check. Today line 1 is the summary `app-verify: <verdict> …`, not the bare verdict. `touched` prints bare feature IDs. `unverifiable` exits 2 instead of 0. With `--json`, the JSON object follows the summary line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
+- `arch-lint.py` — check. `detect` prints the verdict first and conforms.
 - `boundary-map.py` — data. `compute` prints JSON. Today `crossings` prints text lines, and `compute` exits 1 with empty stdout on a story error instead of printing a blocker.
 - `change-surface.py` — data. Today `classify` prints one bare class word; the contract shape is a JSON object such as `{"class": …}`.
 - `check-agent-parity.sh` — check. Today it prints warning lines with no verdict line and always exits 0. The contract shape prints the verdict first and exits 1 on drift.

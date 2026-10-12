@@ -30,7 +30,7 @@ Every script that a command, agent, or skill tells an agent to run (`scripts/*.p
 
 *Amended 2026-10-12 by [2026-10-12-agent-cli-contract](../specs/2026-10-12-agent-cli-contract/spec.md):*
 
-- **Rule 1 allows two shapes.** A data tool prints one JSON document. A check tool prints `pass`, `fail`, or `unverifiable` on line 1, optional `reason:` lines, and a summary last, and exits 0, 1, or 2. Commands already parse both shapes. Data tools may report failure under `error` beside `blocker`, because existing tools and eval checks read `error`. New scripts use `blocker`.
+- **Rule 1 allows two shapes.** A data tool prints one JSON document. A check tool prints `pass`, `fail`, or `unverifiable` on line 1, optional `reason:` lines, and a summary last. Exit 0 means the check ran (`pass` or `unverifiable`), 1 means `fail`, and 2 means a usage error or a check that could not start. This matches how Writ's check scripts and gates already behave. Commands already parse both shapes. Data tools may report failure under `error` beside `blocker`, because existing tools and eval checks read `error`. New scripts use `blocker`.
 - **Usage errors.** Bad arguments exit non-zero, print usage on stderr, and leave stdout empty. A JSON blocker on stdout is also accepted. This matches pstack `orch`.
 - **Rule 2 allows a bounded wait.** A script may wait on a process it started or a call it made, with a timeout, and its classification row says so. Starting an agent or model CLI is never allowed.
 - **Dev-only scripts stop shipping.** The contract covers only the scripts `install.sh` ships. Measurement and eval helpers stay in the Writ source repo.

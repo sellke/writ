@@ -8,7 +8,7 @@
 **Deliverable:** Every script Writ ships follows one documented, test-enforced agent contract; six dev-only scripts stop shipping.
 
 **Implementation Approach:**
-- Two output shapes. Data tools: one JSON document; failure is JSON with `blocker` (or legacy `error`) and a non-zero exit. Check tools: first line `pass`/`fail`/`unverifiable`, `reason:` lines, summary last, exit 0/1/2.
+- Two output shapes. Data tools: one JSON document; failure is JSON with `blocker` (or legacy `error`) and a non-zero exit. Check tools: first line `pass`/`fail`/`unverifiable`, `reason:` lines, summary last; exit 0 when the check ran (pass or unverifiable), 1 on fail, 2 on usage or could-not-start.
 - Usage errors: argparse default (exit 2, usage on stderr, empty stdout). A JSON blocker on stdout also passes.
 - The contract test reads the shipped set by sourcing `is_shippable_script` from `scripts/install.sh`. Never keep a second list.
 - Classification table in `.writ/docs/agent-cli-contract.md`: `Script | Shape | Allowances | Callers`.

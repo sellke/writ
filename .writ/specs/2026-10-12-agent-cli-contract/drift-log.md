@@ -69,3 +69,52 @@
 - **Reason:** Matches DEV-001's behavior.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None.
+
+---
+
+## Story 3: Agent CLI Contract Test — Drift Report
+
+> Run: 2026-10-12
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-001] Check-tool exit-code rule amended
+- **Severity:** Medium
+- **Spec said:** Business Rule 4: exit 0 pass, 1 fail, 2 unverifiable.
+- **Implementation did:** Exit 0 when the check ran (`pass` or `unverifiable`), 1 on `fail`, 2 on usage or could-not-start. Data tools may exit non-zero with their normal verdict document; `blocker` is required only when the tool cannot do its job.
+- **Reason:** The first test run flagged 8 check scripts whose `--help` documents exit 0 for `unverifiable`; `.writ/docs/quality-signal-classification.md` says "`unverifiable` never exits 2", and gate callers treat exit 2 as a helper failure. The maintainer chose to match the scripts. Only `app-verify.py` exits 2 on `unverifiable`; Story 5 fixes it.
+- **Resolution:** Accepted (Medium — maintainer decision).
+- **Spec amendment:** spec.md Business Rules 3–4 and State Catalog, spec-lite.md, ADR-029 amendment, `.writ/docs/agent-cli-contract.md` Data and Check shape, Stories 4 and 5.
+
+#### [DEV-002] Separate `exit_code` rule key
+- **Severity:** Small
+- **Spec said:** The test checks shape; no exit-code test is named.
+- **Implementation did:** `test_exit_code_smoke` checks the exit code of each check smoke whose line 1 is a verdict, with a fixture for both outcomes.
+- **Reason:** Enforces Business Rule 4 as amended. No current entry needs it; `app-verify.py`'s exit 2 surfaces once Story 5 fixes its line 1.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-003] Stricter shell `--help` rule
+- **Severity:** Medium
+- **Spec said:** technical-spec.md: shell `--help` exits 0 or prints usage.
+- **Implementation did:** Requires a `usage:` line naming the script.
+- **Reason:** The looser rule passes `check-agent-parity.sh`, which runs the check on `--help` and exits 0. New Story 5 debt (`check-agent-parity.sh` help and bad flag, `lint-skill.sh` help).
+- **Resolution:** Accepted. Story 5 tasks 5.2 and 5.3 now cover usage handling.
+- **Spec amendment:** Story 5 tasks 5.2, 5.3; spec.md Story 5 requirements.
+
+#### [DEV-004] Shell scripts in the shape smoke
+- **Severity:** Small
+- **Spec said:** Shell scripts get table, help, and bad-flag checks only.
+- **Implementation did:** The three shell scripts are also smoked for shape.
+- **Reason:** "Only" applies to the static scans; AC-3.5 covers every check script, and Story 5 needs the enforcement.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-005] One smoke invocation per script
+- **Severity:** Medium
+- **Spec said:** `KNOWN_VIOLATIONS` lists the remaining debt.
+- **Implementation did:** Each script is smoked in one mode. Non-conforming modes not smoked (goal-emit pass path, review-panel trial-*, boundary-map crossings, app-verify touched, gen-skill write mode) are not in `KNOWN_VIOLATIONS`; the contract doc's `### Notes` remain the full debt list.
+- **Reason:** One case per `(script, rule)` key keeps xfail mapping simple.
+- **Resolution:** Accepted. Stories 4 and 5 add a smoke case for each mode they fix before fixing it.
+- **Spec amendment:** Story 4 task 4.4, Story 5 task 5.5.

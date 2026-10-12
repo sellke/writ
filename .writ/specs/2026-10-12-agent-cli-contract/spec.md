@@ -26,7 +26,7 @@
 - Contract scope is every script `install.sh` ships. After Story 2, that set is exactly the agent-facing scripts.
 - Each shipped script has one row in the classification table in `.writ/docs/agent-cli-contract.md`: `data` or `check`, plus any allowances (`network: opt-in`, `bounded-wait`). A shipped script without a row fails the test.
 - A data tool prints one JSON document on stdout. On failure it prints a JSON object carrying `blocker` (preferred) or `error` (legacy, accepted) and exits non-zero.
-- A check tool prints `pass`, `fail`, or `unverifiable` as the first stdout line, then optional `reason:` and detail lines, then a summary line. It exits 0 pass, 1 fail, 2 unverifiable or usage.
+- A check tool prints `pass`, `fail`, or `unverifiable` as the first stdout line, then optional `reason:` and detail lines, then a summary line. It exits 0 when the check ran (`pass` or `unverifiable`), 1 on `fail`, and 2 on a usage error or a check that could not start. *(Amended 2026-10-12, drift-log Story 3 DEV-001: matches the existing check scripts and gates.)*
 - Bad arguments: non-zero exit, usage on stderr, and stdout either empty or a JSON blocker. Nothing structured is required.
 - A script never starts an agent or model CLI and never waits without a bound. A bounded wait on a process the script started, or on a call it made, is allowed when it has a timeout and is marked `bounded-wait`.
 - No network import outside rows marked `network: opt-in`.
@@ -60,7 +60,7 @@
 | State | What the agent or maintainer sees |
 |---|---|
 | Conforming script, success | Data: one JSON document, exit 0. Check: `pass` first line, summary last, exit 0. |
-| Conforming script, runtime failure | Data: JSON with `blocker` or `error`, exit non-zero. Check: `fail` (exit 1) or `unverifiable` with `reason:` (exit 2). |
+| Conforming script, runtime failure | Data: JSON with `blocker` or `error`, exit non-zero. Check: `fail` (exit 1) or `unverifiable` with `reason:` (exit 0). |
 | Bad arguments | Usage on stderr, empty stdout, exit non-zero. |
 | New script, no table row | Contract test fails: `<script> is shipped but has no row in .writ/docs/agent-cli-contract.md`. |
 | Script imports a network module without `network: opt-in` | Contract test fails, naming the module and the row to change. |
@@ -78,8 +78,8 @@
 
 1. **Scope follows the ship filter.** The test reads the shipped set by running `is_shippable_script` from `scripts/install.sh` over `scripts/*`. It never keeps its own list, so the filter and the test can't drift.
 2. **Classification table format.** It is a markdown table in `.writ/docs/agent-cli-contract.md` with columns `Script | Shape | Allowances | Callers`. `Shape` is `data` or `check`. `Allowances` is empty or a comma list from `network: opt-in`, `bounded-wait`. The test parses it.
-3. **Data shape.** stdout holds exactly one JSON value on success. Failure: a JSON object with a top-level `blocker` (`{code, summary}`) or `error` key, and a non-zero exit. Human-readable output only behind `--pretty`.
-4. **Check shape.** stdout line 1 is exactly `pass`, `fail`, or `unverifiable`. The last line is a summary. Exit code matches the verdict (0/1/2). An optional `--json` may print a JSON object instead.
+3. **Data shape.** stdout holds exactly one JSON value on success. When the tool cannot do its job: a JSON object with a top-level `blocker` (`{code, summary}`) or `error` key, and a non-zero exit. A tool whose result is a verdict may exit non-zero with its normal document (`ac-trace.py`, `exit-criteria.py`). Human-readable output only behind `--pretty`.
+4. **Check shape.** stdout line 1 is exactly `pass`, `fail`, or `unverifiable`. The last line is a summary. Exit 0 when the check ran (`pass` or `unverifiable`), 1 on `fail`, 2 on usage or could-not-start. An optional `--json` may print a JSON object instead. *(Amended 2026-10-12: was 0/1/2 for pass/fail/unverifiable.)*
 5. **Usage errors.** argparse's default (exit 2, usage on stderr, empty stdout) conforms. A JSON blocker on stdout, as `recommend-state.py` prints, also conforms. Shell scripts: non-zero exit with usage on stderr.
 6. **No agent spawning.** No shipped script passes `claude`, `codex`, `cursor-agent`, `gemini`, or `openclaw` as a process to launch.
 7. **Bounded waits only.** `time.sleep` or `while True` is allowed only in rows marked `bounded-wait`, and that script must enforce a timeout.
@@ -115,7 +115,7 @@
 
 ### Story 5: Shell scripts and app-verify conform
 - *Added 2026-10-12 (drift-log DEV-001, DEV-002): the maintainer kept the check rule strict, every mode included, and split the conformance work.*
-- `lint-skill.sh`, `gen-skill.sh`, `check-agent-parity.sh`: verdict line first, summary last, exit 0/1/2. `/refresh-command` keeps treating parity drift as a warning.
+- `lint-skill.sh`, `gen-skill.sh`, `check-agent-parity.sh`: verdict line first, summary last, exit 0 when the check ran, 1 on `fail`, 2 on usage; `--help` prints usage and an unknown flag is a usage error. `/refresh-command` keeps treating parity drift as a warning.
 - `app-verify.py`: bare verdict on line 1, `feature: <id>` lines from `touched`, summary last; every Gate 4.5 caller and the codex TOML copies move with it.
 - The list ends empty. Append `## Resolution` to the origin issue. File `.writ/issues/improvements/2026-10-12-script-install-location.md` (ADR-029 step 6).
 
