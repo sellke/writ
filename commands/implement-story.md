@@ -252,9 +252,9 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 After lint/typecheck, classify changed files as **style-only**, **single-component**, **cross-component** or **full-stack** and pass Gate 3 `change_surface`.
 
-`Read skills/change-surface-classification/SKILL.md` for how the four classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how the class is decided.
+`Read skills/change-surface-classification/SKILL.md` for how the classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how the class is decided.
 
-Run the classifier (stdout is `change_surface`), then, unless Gate 0.5 was skipped, the crossings check (stdout is `gate3_route`):
+Run the classifier (JSON `class` = `change_surface`), then, unless Gate 0.5 was skipped, the crossings check (stdout is `gate3_route`):
 
 ```bash
 python3 scripts/change-surface.py classify --changed <files>

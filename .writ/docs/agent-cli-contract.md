@@ -134,7 +134,6 @@ The Callers column names the main callers and is not complete. Before you change
 - `app-verify.py` — check. Today line 1 is the summary `app-verify: <verdict> …`, not the bare verdict. `touched` prints bare feature IDs. `unverifiable` exits 2 instead of 0. With `--json`, the JSON object follows the summary line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
 - `arch-lint.py` — check. `detect` prints the verdict first and conforms.
 - `boundary-map.py` — data. `compute` prints JSON. Today `crossings` prints text lines, and `compute` exits 1 with empty stdout on a story error instead of printing a blocker.
-- `change-surface.py` — data. Today `classify` prints one bare class word; the contract shape is a JSON object such as `{"class": …}`.
 - `check-agent-parity.sh` — check. Today it prints warning lines with no verdict line and always exits 0. The contract shape prints the verdict first and exits 1 on drift.
 - `gen-codex-agent-tomls.py` — check. `--check` conforms. Today write mode prints `wrote <path>` lines with no verdict line.
 - `gen-skill.sh` — check. Today `--check` prints a diff with no verdict line and exits 1 on drift. Write mode reports on stderr only. A missing `SKILL.md` exits 3.

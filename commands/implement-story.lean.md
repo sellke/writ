@@ -228,6 +228,8 @@ Spawn the coding agent to run the red → green → refactor loop via `Read skil
 python3 scripts/change-surface.py classify --changed <files>
 ```
 
+The `class` field of its JSON is `change_surface`.
+
 ---
 
 #### Gate 3: Review Agent

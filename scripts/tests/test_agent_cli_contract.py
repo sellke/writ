@@ -464,9 +464,6 @@ KNOWN_VIOLATIONS: Dict[Tuple[str, str], str] = {
     ("boundary-map.py", "shape"):
         "compute exits 1 with empty stdout on a story error instead of a JSON blocker "
         "(Story 4)",
-    ("change-surface.py", "shape"):
-        "classify prints one bare class word, not a JSON object such as {\"class\": ...} "
-        "(Story 4)",
     ("gen-codex-agent-tomls.py", "shape"):
         "write mode prints `wrote <path>` lines with no verdict line (Story 4)",
     ("verdict-provenance.py", "shape"):

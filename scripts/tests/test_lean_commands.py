@@ -85,11 +85,14 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # implement-phase.md Step 4.2's report gained the conditional
 # `run /verify-spec --product` line; implement-phase.lean.md is unchanged
 # (the spec names only the default file).
+# Repinned 2026-10-12 (2026-10-12-agent-cli-contract Story 4): Gate 2.5 reads
+# `change_surface` from the `class` field of change-surface.py's JSON;
+# implement-story.lean.md carries the same caller change.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
     "implement-phase": "f5441d08df2c763e1283375a00833d335436d28f0af7382c8401c40600b499c9",
-    "implement-story": "985e2bd95dfbef722ad333fb43f394e8c52002ad304778eb850757a3257c0263",
+    "implement-story": "41eea8cd754dfe36de2b04a13c93a8cc862bd66cdacaaa6d9b8b28bd48ee1acc",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from
