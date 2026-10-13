@@ -1,6 +1,6 @@
 # Agent CLI Contract
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-10-12
 > **Owner:** @AdamSellke
 > **Dependencies:** []

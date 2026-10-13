@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-12-agent-cli-contract — Agent CLI Contract
-- **Status:** In Progress (all stories complete; spec-level verification pending)
+- **Status:** Complete (checker verdict met; integration suite passed)
 - **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Completed ✅)
 - **Progress:** 34/34 tasks complete (100%)
 
