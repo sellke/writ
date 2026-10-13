@@ -64,7 +64,28 @@ grep -Fq 'app-verify:recipe-safety-refused' "$ROOT/eval-report.md" \
   || { report_of "$ROOT"; fail "stub: the refused recipe exiting 0 must be a finding"; }
 ok "stub app-verify.py that always exits 0 -> add_finding, exit 1"
 
-# A stub honouring the exit-code contract but breaking one safety rule each.
+# Right exit codes but the summary on line 1 (the pre-contract shape): each
+# run is a finding, because callers branch on line 1. [2026-10-12-agent-cli-contract AC-5.3]
+cat > "$ROOT/scripts/app-verify.py" <<'PY'
+#!/usr/bin/env python3
+import sys
+recipe = sys.argv[sys.argv.index("--recipe") + 1]
+if "recipe-fail" in recipe:
+    print("app-verify: 1/2 fail"); sys.exit(1)
+if "recipe-safety-refused" in recipe:
+    print("app-verify: refused (APP_VERIFY_FIXTURE_DB matches a Never pattern)"); sys.exit(0)
+print("app-verify: 1/1 pass"); sys.exit(0)
+PY
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || { report_of "$ROOT"; fail "summary-first stub: expected exit 1, got $rc"; }
+for name in pass fail safety-refused; do
+  grep -F "app-verify:recipe-$name" "$ROOT/eval-report.md" | grep -Fq "line 1" \
+    || { report_of "$ROOT"; fail "summary-first stub: recipe-$name must be a line-1 finding"; }
+done
+ok "stub with the summary on line 1 -> a line-1 finding per recipe"
+
+# A stub honouring the output contract (line 1 verdict, exit code) but
+# breaking one safety rule each.
 write_contract_stub() {
   cat > "$ROOT/scripts/app-verify.py" <<PY
 #!/usr/bin/env python3
@@ -82,12 +103,13 @@ if "recipe-pass" in recipe:
     if mode == "orphan":
         child = subprocess.Popen(["sleep", "30"], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         Path(os.environ["APP_VERIFY_FIXTURE_PIDFILE"]).write_text(str(child.pid))
-    print("app-verify: 1/1 pass"); sys.exit(0)
+    print("pass"); print("app-verify: 1/1 pass"); sys.exit(0)
 if "recipe-fail" in recipe:
-    print("app-verify: 1/2 fail"); sys.exit(1)
+    print("fail"); print("app-verify: 1/2 fail"); sys.exit(1)
 if mode == "launch":
     (spec / "evidence" / label / "_launch").mkdir(parents=True, exist_ok=True)
-print("app-verify: refused (APP_VERIFY_FIXTURE_DB matches a Never pattern)"); sys.exit(2)
+print("unverifiable"); print("reason: refused (APP_VERIFY_FIXTURE_DB matches a Never pattern)")
+print("app-verify: refused (APP_VERIFY_FIXTURE_DB matches a Never pattern)"); sys.exit(0)
 PY
 }
 

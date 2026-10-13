@@ -141,8 +141,8 @@ printf '%s\n' "$dry" | grep -qF '| Agent | File | Tier | Purpose |' \
 if printf '%s\n' "$dry" | grep -qF '| Model |'; then
   fail "(f) SKILL.md Available Agents table must not render a Model column"
 fi
-bash scripts/gen-skill.sh --check >/dev/null 2>&1 \
-  || fail "(f) gen-skill.sh --check must exit 0 against the regenerated SKILL.md"
+[ "$(bash scripts/gen-skill.sh --check 2>/dev/null | sed -n '1p')" = pass ] \
+  || fail "(f) gen-skill.sh --check must print pass against the regenerated SKILL.md"
 
 if [ "$FAILURES" -gt 0 ]; then
   printf '%d assertion(s) failed\n' "$FAILURES" >&2

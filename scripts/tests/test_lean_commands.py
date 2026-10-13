@@ -85,11 +85,30 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # implement-phase.md Step 4.2's report gained the conditional
 # `run /verify-spec --product` line; implement-phase.lean.md is unchanged
 # (the spec names only the default file).
+# Repinned 2026-10-12 (2026-10-12-agent-cli-contract Story 4): Gate 2.5 reads
+# `change_surface` from the `class` field of change-surface.py's JSON;
+# implement-story.lean.md carries the same caller change.
+# Repinned 2026-10-12 (same spec, Story 4): Gate 2.5 reads `gate3_route` from
+# boundary-map.py crossings' JSON (`route`, `reasons`) and Gate 0.5 treats a
+# compute `blocker` as an empty map (byte-neutral); implement-story.lean.md
+# carries the Gate 0.5 sentence (it has no crossings step).
+# Repinned 2026-10-12 (same spec, Story 4): implement-phase.md Step 1.4 says
+# goal-emit.py prints the invoke text above its summary (byte-neutral);
+# implement-phase.lean.md carries the same word change.
+# Repinned 2026-10-12 (same spec, Story 5): Gate 4.5 branches on app-verify.py's
+# line-1 verdict (`unverifiable` replaces exit 2; no `feature:` lines replaces
+# "printed no IDs") and Gate 2.5 says to pass `class` as `--surface`, with two
+# Gate 1 clauses tightened to stay byte-neutral; implement-story.lean.md
+# carries the Gate 4.5 change (it has no crossings step).
+# Repinned 2026-10-12 (same spec, Story 5): Gate 3's review-panel paragraph
+# reads tally's `fail` (`reason: block`) where it read `block`, with a Gate 0.5
+# path and a Gate 2 adjective trimmed to stay byte-neutral;
+# implement-story.lean.md carries the same panel sentence.
 DEFAULT_SHA256 = {
     "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
-    "implement-phase": "f5441d08df2c763e1283375a00833d335436d28f0af7382c8401c40600b499c9",
-    "implement-story": "985e2bd95dfbef722ad333fb43f394e8c52002ad304778eb850757a3257c0263",
+    "implement-phase": "269f05a2d8dc0e0d9cdf23f1a7def9692c37f66e997627b1e28babff01875487",
+    "implement-story": "e47dd5cd55eb39ef884b7f0341f56fbe07154abdb765ac3deaff16de81929e35",
 }
 
 # Headings that name a gate, check, or procedural step. Built by hand from

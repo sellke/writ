@@ -272,7 +272,7 @@ class GoalEmitTests(unittest.TestCase):
             _run(["emit", "--card", str(card), "--out", str(out_dir)])
             self.assertFalse(out_dir.exists())
 
-    def test_pass_emit_writes_files_and_prints_invoke_after_summary(self) -> None:
+    def test_pass_emit_writes_files_and_prints_invoke_before_summary(self) -> None:
         with TemporaryDirectory() as tmp:
             card = _write(Path(tmp) / "fixture-loop-yes.md", LOOP_YES)
             out_dir = Path(tmp) / "emit-out"
@@ -293,11 +293,12 @@ class GoalEmitTests(unittest.TestCase):
             self.assertIn("Fixture quality line for verify copy.", verify)
             self.assertIn(DONE_WHEN_CHECK, verify)
             self.assertIn(ADR_PLAIN.replace("`", ""), verify.replace("`", ""))
-            summary = _summary_line(out)
-            self.assertTrue(summary.startswith("goal-emit: pass"))
-            summary_at = out.index(summary)
-            invoke_at = out.index(INVOKE)
-            self.assertGreater(invoke_at, summary_at)
+            # Agent CLI contract (check shape): verdict first, summary last,
+            # so the invoke text sits between them.
+            lines = out.splitlines()
+            self.assertEqual(lines[0], "pass")
+            self.assertTrue(lines[-1].startswith("goal-emit: pass"), lines[-1])
+            self.assertEqual("\n".join(lines[1:-1]), INVOKE)
             _assert_no_banned(out)
 
     def test_default_out_stem_under_repo(self) -> None:
@@ -749,6 +750,57 @@ class GoalEmitTests(unittest.TestCase):
         finally:
             mod.build_parser = original
         self.assertEqual(code, 2)
+
+
+
+class AtomicWriteTests(unittest.TestCase):
+    """Agent CLI contract (State): GOAL.md and VERIFY.md are written to a temp
+    file in the same folder and renamed over the target, so an interrupted
+    write leaves the old file whole and no partial or temp file behind.
+    Story 4 of 2026-10-12-agent-cli-contract [AC-4.5]."""
+
+    def _interrupted_emit(self, mod, card: Path, out_dir: Path) -> None:
+        from unittest import mock
+
+        def interrupted(src, dst):
+            raise OSError("interrupted before rename")
+
+        with mock.patch("os.replace", side_effect=interrupted):
+            with self.assertRaises(OSError):
+                _run_main(mod, ["emit", "--card", str(card), "--out", str(out_dir)])
+
+    def test_interrupted_rewrite_keeps_old_files(self) -> None:
+        mod = _load_mod()
+        with TemporaryDirectory() as tmp:
+            card = _write(Path(tmp) / "card.md", LOOP_YES)
+            out_dir = Path(tmp) / "emit-out"
+            self.assertEqual(_run_main(mod, ["emit", "--card", str(card),
+                                             "--out", str(out_dir)])[0], 0)
+            before = {p.name: p.read_bytes() for p in out_dir.iterdir()}
+            _write(card, LOOP_YES.replace("Fixture Loop Yes Card", "Changed Title"))
+            self._interrupted_emit(mod, card, out_dir)
+            after = {p.name: p.read_bytes() for p in out_dir.iterdir()}
+            self.assertEqual(after, before)
+
+    def test_written_files_get_umask_permissions(self) -> None:
+        import os
+        mod = _load_mod()
+        with TemporaryDirectory() as tmp:
+            card = _write(Path(tmp) / "card.md", LOOP_YES)
+            out_dir = Path(tmp) / "emit-out"
+            _run_main(mod, ["emit", "--card", str(card), "--out", str(out_dir)])
+            umask = os.umask(0)
+            os.umask(umask)
+            for name in ("GOAL.md", "VERIFY.md"):
+                self.assertEqual((out_dir / name).stat().st_mode & 0o777, 0o666 & ~umask)
+
+    def test_interrupted_first_write_leaves_no_file(self) -> None:
+        mod = _load_mod()
+        with TemporaryDirectory() as tmp:
+            card = _write(Path(tmp) / "card.md", LOOP_YES)
+            out_dir = Path(tmp) / "emit-out"
+            self._interrupted_emit(mod, card, out_dir)
+            self.assertEqual(sorted(p.name for p in out_dir.iterdir()), [])
 
 
 if __name__ == "__main__":

@@ -2,8 +2,9 @@
 """Unit tests for scripts/app-verify.py (spec `2026-10-01-behavioral-verification`).
 
 Story 1 covers the recipe grammar and the `validate` subcommand: a valid
-recipe exits 0, each defect yields exactly its finding code with exit 1, and
-a missing or undecodable recipe exits 2. It also guards the install overlay:
+recipe prints `pass` (exit 0), each defect yields exactly its finding code
+with `fail` (exit 1), and a missing or undecodable recipe prints
+`unverifiable` (exit 0, amended by the agent CLI contract). It also guards the install overlay:
 Writ must never ship `.writ/docs/app-verification.md`, because that path
 belongs to the project-authored recipe.
 
@@ -90,6 +91,11 @@ def _codes(text: str) -> list[str]:
     return sorted({f["code"] for f in av.validate_text(text)})
 
 
+def _feature_lines(stdout: str) -> list[str]:
+    return [line[len("feature: "):] for line in stdout.splitlines()
+            if line.startswith("feature: ")]
+
+
 class ValidateCliTests(unittest.TestCase):
     """AC-1.2, AC-1.3 — the CLI contract."""
 
@@ -99,40 +105,47 @@ class ValidateCliTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.fx.cleanup()
 
-    def test_valid_recipe_exits_zero_with_one_summary_line(self) -> None:
+    def test_valid_recipe_prints_pass_then_one_summary_line(self) -> None:
         path = self.fx.write(VALID_RECIPE)
         proc = run_cli("validate", "--recipe", str(path))
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         lines = proc.stdout.strip().splitlines()
-        self.assertEqual(len(lines), 1)
-        self.assertTrue(lines[0].startswith("app-verify: "))
+        self.assertEqual(lines, ["pass", "app-verify: recipe valid — 2 features "
+                                         "(1 check, 1 human-only)"])
 
     def test_valid_recipe_json_has_verdict_and_empty_findings(self) -> None:
         path = self.fx.write(VALID_RECIPE)
         proc = run_cli("validate", "--recipe", str(path), "--json")
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         lines = proc.stdout.strip().splitlines()
-        self.assertTrue(lines[0].startswith("app-verify: "))
+        self.assertEqual(lines[0], "pass")
+        self.assertTrue(lines[-2].startswith("app-verify: "))
         payload = json.loads(lines[-1])
         self.assertEqual(payload["verdict"], "valid")
         self.assertEqual(payload["findings"], [])
 
-    def test_invalid_recipe_exits_one_with_first_finding(self) -> None:
+    def test_invalid_recipe_fails_with_first_finding(self) -> None:
         path = self.fx.write(VALID_RECIPE.replace("## Cleanup\n- **After:** none\n", ""))
         proc = run_cli("validate", "--recipe", str(path))
         self.assertEqual(proc.returncode, 1)
-        self.assertIn("app-verify: recipe invalid — missing_section", proc.stdout)
+        lines = proc.stdout.strip().splitlines()
+        self.assertEqual(lines[0], "fail")
+        self.assertTrue(lines[1].startswith("reason: missing_section"), lines)
+        self.assertTrue(lines[-1].startswith("app-verify: recipe invalid — missing_section"))
 
-    def test_missing_recipe_exits_two(self) -> None:
+    def test_missing_recipe_is_unverifiable(self) -> None:
         proc = run_cli("validate", "--recipe", str(self.fx.root / "nope.md"))
-        self.assertEqual(proc.returncode, 2)
-        self.assertIn("unverifiable (no_recipe)", proc.stdout)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.strip().splitlines(),
+                         ["unverifiable", "reason: no_recipe",
+                          "app-verify: unverifiable (no_recipe)"])
 
-    def test_undecodable_recipe_exits_two(self) -> None:
+    def test_undecodable_recipe_is_unverifiable(self) -> None:
         path = self.fx.root / "binary.md"
         path.write_bytes(b"\xff\xfe\x00\x81 not utf-8")
         proc = run_cli("validate", "--recipe", str(path))
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.splitlines()[0], "unverifiable")
         self.assertIn("unverifiable (recipe_unreadable", proc.stdout)
 
 
@@ -472,12 +485,14 @@ class TouchedTests(unittest.TestCase):
         proc = run_cli("touched", "--recipe", str(self.recipe), "--changed",
                        "src/lib/events.ts", "app.py")
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(proc.stdout.split(), ["home", "events"])
+        self.assertEqual(proc.stdout.strip().splitlines(),
+                         ["pass", "feature: home", "feature: events",
+                          "app-verify: 2 mapped features touched by this story"])
 
     def test_multiple_globs_and_dot_slash(self) -> None:
         proc = run_cli("touched", "--recipe", str(self.recipe), "--changed",
                        "./templates/a/b.html")
-        self.assertEqual(proc.stdout.split(), ["home"])
+        self.assertEqual(_feature_lines(proc.stdout), ["home"])
 
     def test_human_only_rows_never_print(self) -> None:
         proc = run_cli("touched", "--recipe", str(self.recipe), "--changed", "app/auth/login.py")
@@ -488,23 +503,29 @@ class TouchedTests(unittest.TestCase):
     def test_no_match(self) -> None:
         proc = run_cli("touched", "--recipe", str(self.recipe), "--changed", "README.md")
         self.assertEqual(proc.returncode, 0)
-        self.assertEqual(proc.stdout.strip(),
-                         "app-verify: no mapped features touched by this story")
+        self.assertEqual(proc.stdout.strip().splitlines(),
+                         ["pass", "app-verify: no mapped features touched by this story"])
 
     def test_no_recipe(self) -> None:
         proc = run_cli("touched", "--recipe", str(self.fx.root / "nope.md"), "--changed", "a")
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.splitlines()[0], "unverifiable")
+        self.assertEqual(_feature_lines(proc.stdout), [])
         self.assertIn("unverifiable (no_recipe)", proc.stdout)
 
     def test_invalid_recipe(self) -> None:
         bad = self.fx.write(VALID_RECIPE.replace("## Login\n", ""), "bad.md")
         proc = run_cli("touched", "--recipe", str(bad), "--changed", "a")
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.splitlines()[0], "unverifiable")
         self.assertIn("unverifiable (recipe_invalid: missing_section", proc.stdout)
 
     def test_json_lists_ids(self) -> None:
         proc = run_cli("touched", "--recipe", str(self.recipe), "--changed", "app.py", "--json")
-        self.assertEqual(json.loads(proc.stdout.strip().splitlines()[-1])["features"], ["home"])
+        lines = proc.stdout.strip().splitlines()
+        self.assertEqual(lines[:2], ["pass", "feature: home"])
+        self.assertTrue(lines[-2].startswith("app-verify: "))
+        self.assertEqual(json.loads(lines[-1])["features"], ["home"])
 
 
 class SafetyTests(unittest.TestCase):
@@ -524,7 +545,7 @@ class SafetyTests(unittest.TestCase):
 
     def assert_refused(self, fx: RunFixture, fragment: str) -> None:
         code, summary, payload = fx.run()
-        self.assertEqual(code, 2, summary)
+        self.assertEqual(code, 0, summary)
         self.assertTrue(summary.startswith("app-verify: refused ("), summary)
         self.assertIn(fragment, summary)
         self.assertEqual(payload["verdict"], "refused")
@@ -551,7 +572,7 @@ class SafetyTests(unittest.TestCase):
         fx.recipe.write_text(fx.recipe.read_text().replace("{root}", str(fx.root)))
         fx.env.pop("APP_DB", None)
         code, summary, payload = fx.run()
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertNotIn("secret-prod", summary + json.dumps(payload))
 
     def test_env_file_value_allows(self) -> None:
@@ -573,7 +594,7 @@ class SafetyTests(unittest.TestCase):
         self.addCleanup(fx.cleanup)
         with mock.patch.object(av, "_is_posix", return_value=False):
             code, summary, _ = fx.run()
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertEqual(summary, "app-verify: unverifiable (unsupported_platform)")
 
 
@@ -605,7 +626,7 @@ class PreLaunchProbeTests(unittest.TestCase):
 
     def test_running_instance_refused(self) -> None:
         code, summary, _ = self.fx.run()
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertEqual(summary, "app-verify: refused (instance_already_running)")
         self.assertEqual(self.fx.pids(), [])
 
@@ -668,13 +689,13 @@ class RunTests(unittest.TestCase):
     def test_unknown_feature_is_unverifiable(self) -> None:
         fx = self.make("recipe-pass.md")
         code, summary, _ = fx.run(features=["nope"])
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertIn("unknown_feature: nope", summary)
 
     def test_only_human_only_selected_runs_nothing(self) -> None:
         fx = self.make("recipe-pass.md")
         code, summary, payload = fx.run(features=["oauth"])
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertEqual(summary, "app-verify: human-only — oauth (third-party consent screen)")
         self.assertEqual(payload["reason"], "no_runnable_features")
         self.assertEqual(fx.pids(), [])
@@ -789,18 +810,18 @@ class RunTests(unittest.TestCase):
         fx = self.make("recipe-pass.md")
         code, summary, _ = av.run_verification(fx.recipe, fx.root / "nope", "uat",
                                                env=fx.env, cwd=REPO_ROOT)
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertIn("no_spec_dir", summary)
 
     def test_invalid_recipe_is_unverifiable(self) -> None:
         fx = self.make(text=VALID_RECIPE.replace("## Login\n", ""))
         code, summary, _ = fx.run()
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
         self.assertIn("unverifiable (recipe_invalid: missing_section", summary)
 
 
 class RunCliTests(unittest.TestCase):
-    """AC-3.5 — exactly one summary line; JSON under --json; exit codes."""
+    """AC-3.5 — verdict, then one summary line; JSON under --json; exit codes."""
 
     def test_cli_pass_json(self) -> None:
         fx = RunFixture("recipe-pass.md")
@@ -811,9 +832,9 @@ class RunCliTests(unittest.TestCase):
             capture_output=True, text=True, cwd=str(REPO_ROOT), env=fx.env, timeout=60)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         lines = proc.stdout.strip().splitlines()
-        self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0], "app-verify: 1/1 pass — evidence/uat/")
-        payload = json.loads(lines[1])
+        self.assertEqual(len(lines), 3)
+        self.assertEqual(lines[:2], ["pass", "app-verify: 1/1 pass — evidence/uat/"])
+        payload = json.loads(lines[2])
         self.assertEqual(payload["verdict"], "pass")
         self.assertTrue((fx.spec / "evidence/uat/home/result.json").exists())
         for pid in fx.pids():
@@ -841,7 +862,87 @@ class RunCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             code = av.main(["run", "--recipe", f"{tmp}/none.md", "--spec", tmp,
                             "--run-label", "uat"])
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 0)
+
+
+# ---------------------------------------------------------------------------
+# Story 5 of `2026-10-12-agent-cli-contract` [AC-5.3]: every subcommand prints
+# the check shape. Line 1 is the bare verdict (pass, fail, unverifiable), then
+# `reason:` lines (`feature:` lines for `touched`), then the `app-verify:`
+# summary; `--json` adds one object after the summary. Exit 0 when the check
+# ran (pass or unverifiable), 1 on fail.
+
+
+def _lines(proc: subprocess.CompletedProcess) -> list[str]:
+    return proc.stdout.strip().splitlines()
+
+
+class CheckShapeTests(unittest.TestCase):
+    """AC-5.3 — line 1 is the bare verdict and the summary is last in every subcommand."""
+
+    def setUp(self) -> None:
+        self.fx = RecipeFixture()
+        self.addCleanup(self.fx.cleanup)
+
+    def test_validate_verdicts(self) -> None:
+        valid = self.fx.write(VALID_RECIPE)
+        invalid = self.fx.write(VALID_RECIPE.replace("## Login\n", ""), "bad.md")
+        for path, verdict, code in ((valid, "pass", 0), (invalid, "fail", 1),
+                                    (self.fx.root / "nope.md", "unverifiable", 0)):
+            proc = run_cli("validate", "--recipe", str(path))
+            lines = _lines(proc)
+            self.assertEqual((lines[0], proc.returncode), (verdict, code), lines)
+            self.assertTrue(lines[-1].startswith("app-verify: "), lines)
+
+    def test_touched_prints_feature_lines_between_verdict_and_summary(self) -> None:
+        recipe = self.fx.write(VALID_RECIPE)
+        lines = _lines(run_cli("touched", "--recipe", str(recipe), "--changed", "app.py"))
+        self.assertEqual(lines, ["pass", "feature: home",
+                                 "app-verify: 1 mapped feature touched by this story"])
+
+    def test_touched_unverifiable_exits_zero_with_no_feature_lines(self) -> None:
+        proc = run_cli("touched", "--recipe", str(self.fx.root / "nope.md"), "--changed", "a")
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(_lines(proc), ["unverifiable", "reason: no_recipe",
+                                        "app-verify: unverifiable (no_recipe)"])
+
+    def test_run_unverifiable_exits_zero(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = run_cli("run", "--recipe", f"{tmp}/none.md", "--spec", tmp,
+                           "--run-label", "uat")
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(_lines(proc), ["unverifiable", "reason: no_recipe",
+                                        "app-verify: unverifiable (no_recipe)"])
+
+    def test_run_refused_is_unverifiable_with_the_refusal_as_reason(self) -> None:
+        fx = RunFixture("recipe-safety-refused.md")
+        self.addCleanup(fx.cleanup)
+        fx.env["APP_VERIFY_FIXTURE_DB"] = "postgres://prod-db/app"
+        proc = subprocess.run(
+            [sys.executable, str(HELPER_PATH), "run", "--recipe", str(fx.recipe),
+             "--spec", str(fx.spec), "--run-label", "uat", "--json"],
+            capture_output=True, text=True, cwd=str(REPO_ROOT), env=fx.env, timeout=60)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        lines = _lines(proc)
+        self.assertEqual(lines[0], "unverifiable")
+        self.assertTrue(lines[1].startswith("reason: refused ("), lines)
+        self.assertTrue(lines[-2].startswith("app-verify: refused ("), lines)
+        self.assertEqual(json.loads(lines[-1])["verdict"], "refused")
+        self.assertEqual(fx.pids(), [])
+
+    def test_run_fail_names_each_failed_feature(self) -> None:
+        payload = {"action": "run", "verdict": "fail", "features": [
+            {"feature": "home", "verdict": "pass", "exit_code": 0,
+             "result": "evidence/uat/home/result.json"},
+            {"feature": "broken", "verdict": "fail", "exit_code": 1,
+             "result": "evidence/uat/broken/result.json"},
+            {"feature": "slow", "verdict": "fail", "exit_code": None,
+             "result": "evidence/uat/slow/result.json"}]}
+        self.assertEqual(av.render_lines("app-verify: 2/3 fail — broken (exit 1)", payload), [
+            "fail",
+            "reason: broken fail (exit 1) — evidence/uat/broken/result.json",
+            "reason: slow fail (timeout) — evidence/uat/slow/result.json",
+            "app-verify: 2/3 fail — broken (exit 1)"])
 
 
 if __name__ == "__main__":

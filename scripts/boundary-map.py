@@ -11,20 +11,27 @@ Subcommands:
   compute --story PATH --repo . [--overlap PATH]
   crossings --map PATH --changed FILE... [--story PATH] [--surface CLASS] [--repo .]
 
+Both subcommands print one JSON document (agent CLI contract, data shape).
+
 compute prints JSON `{owned, readable, out_of_scope}` only. Writes nothing.
-Exit 0: well-formed map. Exit 1: malformed story. Exit 2: usage.
+Exit 0: well-formed map. Exit 1: malformed story, with a JSON
+`{"blocker": {"code": "malformed_story", "summary": …}}` on stdout.
+Exit 2: usage.
 
 crossings (Story 1 of `2026-09-26-drift-arch-guards`) classifies each
 changed file against a saved compute map and names the Gate 3 agent.
 Paths are normalized repo-relative; classification order is excluded
 (the story's spec folder, `.writ/context.md`, `.writ/state/`) → owned →
-out_of_scope → readable_modified → outside_boundary. Output is a verdict
-line (`pass` | `unverifiable`), `route: evaluator-agent|review-agent`,
-one `reason:` line per crossing in input order then `full_stack_surface`
-when `--surface full-stack`, and the summary line last. A missing,
-unreadable, or non-object map is `unverifiable` / `map_unreadable`.
-Crossings are a routing signal, never `fail`: exit 0 whenever it ran,
-exit 2 when `--changed` is omitted or empty.
+out_of_scope → readable_modified → outside_boundary. Output is one JSON
+object: `verdict` (`pass` | `unverifiable`), `route`
+(`evaluator-agent` | `review-agent`), `reasons` (one `<class> <path>` per
+crossing in input order, then `full_stack_surface` when
+`--surface full-stack`), and a one-line `summary`. `--pretty` prints the
+same as text: the verdict line, `route: …`, one `reason: …` line each,
+and the summary last. A missing, unreadable, or non-object map, or a
+saved compute blocker, is `unverifiable` / `map_unreadable`. Crossings
+are a routing signal, never `fail`: exit 0 whenever it ran, exit 2 when
+`--changed` is omitted or empty. `--json` is accepted as a no-op.
 """
 
 from __future__ import annotations
@@ -341,7 +348,7 @@ def load_map(path: Path) -> Optional[dict]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, ValueError):
         return None
-    if not isinstance(payload, dict):
+    if not isinstance(payload, dict) or "blocker" in payload:
         return None
     lists = {}
     for key in MAP_KEYS:
@@ -384,8 +391,8 @@ def crossings(
     story: Optional[Path],
     surface: Optional[str],
     repo: Path,
-) -> List[str]:
-    """Report lines for `crossings`; raises UsageError on empty --changed."""
+) -> dict:
+    """The `crossings` document; raises UsageError on empty --changed."""
     paths: List[str] = []
     for value in changed:
         path = repo_relative(value, repo) if value.strip() else ""
@@ -395,12 +402,12 @@ def crossings(
         raise UsageError("--changed needs at least one file")
     boundary = load_map(_under_repo(repo, map_path))
     if boundary is None:
-        return [
-            "unverifiable",
-            "route: review-agent",
-            "reason: map_unreadable",
-            "boundary-map crossings: map unreadable (route review-agent)",
-        ]
+        return {
+            "verdict": "unverifiable",
+            "route": "review-agent",
+            "reasons": ["map_unreadable"],
+            "summary": "boundary-map crossings: map unreadable (route review-agent)",
+        }
     excluded = excluded_prefixes(story, repo)
     reasons = []
     for path in paths:
@@ -411,14 +418,21 @@ def crossings(
     if surface == "full-stack":
         reasons.append("full_stack_surface")
     route = "review-agent" if reasons else "evaluator-agent"
-    return (
-        ["pass", "route: %s" % route]
-        + ["reason: %s" % r for r in reasons]
-        + [
-            "boundary-map crossings: %d crossing(s), surface %s (route %s)"
-            % (count, surface or "none", route)
-        ]
-    )
+    return {
+        "verdict": "pass",
+        "route": route,
+        "reasons": reasons,
+        "summary": "boundary-map crossings: %d crossing(s), surface %s (route %s)"
+        % (count, surface or "none", route),
+    }
+
+
+def render_crossings(doc: dict) -> str:
+    """`--pretty`: verdict line, `route:`, one `reason:` line each, summary last."""
+    lines = [doc["verdict"], "route: %s" % doc["route"]]
+    lines += ["reason: %s" % r for r in doc["reasons"]]
+    lines.append(doc["summary"])
+    return "\n".join(lines)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -434,6 +448,9 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--story", type=Path, default=None)
     c.add_argument("--surface", default=None)
     c.add_argument("--repo", type=Path, default=Path("."))
+    c.add_argument("--pretty", action="store_true",
+                   help="print verdict, route:, reason:, and summary lines instead of JSON")
+    c.add_argument("--json", action="store_true", help=argparse.SUPPRESS)
     return parser
 
 
@@ -446,18 +463,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         return int(code) if isinstance(code, int) else 2
     if args.action == "crossings":
         try:
-            lines = crossings(args.map, args.changed, args.story, args.surface, args.repo)
+            doc = crossings(args.map, args.changed, args.story, args.surface, args.repo)
         except UsageError as exc:
             print("error: %s" % exc, file=sys.stderr)
             return 2
-        print("\n".join(lines))
+        print(render_crossings(doc) if args.pretty else json.dumps(doc, ensure_ascii=True))
         return 0
     try:
         payload = compute(args.story, args.repo, args.overlap)
     except UsageError as exc:
         print("error: %s" % exc, file=sys.stderr)
         return 2
-    except StoryError:
+    except StoryError as exc:
+        blocker = {"code": "malformed_story", "summary": str(exc)}
+        print(json.dumps({"blocker": blocker}, ensure_ascii=True))
         return 1
     print(json.dumps(payload, ensure_ascii=True))
     return 0

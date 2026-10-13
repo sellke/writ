@@ -551,7 +551,7 @@ check_manifest() {
     return
   fi
 
-  if ! bash "$PROJECT_ROOT/scripts/gen-skill.sh" --dry-run >/dev/null 2>&1; then
+  if [ "$(bash "$PROJECT_ROOT/scripts/gen-skill.sh" --dry-run 2>/dev/null | sed -n '1p')" != "pass" ]; then
     add_finding ".writ/manifest.yaml" "manifest failed generator validation." "Run bash scripts/gen-skill.sh --dry-run for the parser error, then fix the manifest."
   fi
 
@@ -3992,11 +3992,15 @@ check_verdict_provenance() {
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     case "$line" in
+      pass|fail)
+        # Line 1 verdict (agent CLI contract); the exit code already carries it.
+        ;;
       "note: "*)
         add_note "NOTE [$rel]: ${line#note: }"
         ;;
-      "gates: "*)
-        add_note "Metrics: $line"
+      "verdict-provenance: "*)
+        line="${line#*(}"
+        add_note "Metrics: ${line%)}"
         ;;
       *)
         field="${line%%: *}"
@@ -4561,8 +4565,9 @@ check_goal_emit() {
 check_app_verify() {
   # Story 5 of 2026-10-01-behavioral-verification: end-to-end proof on the
   # Story 3 fixture. In a temp spec folder on a free 127.0.0.1 port:
-  # recipe-pass exits 0 with a pass result.json, recipe-fail exits 1,
-  # recipe-safety-refused exits 2 (refused, no _launch/). A fixture uat-plan.md
+  # recipe-pass prints pass (exit 0) with a pass result.json, recipe-fail
+  # prints fail (exit 1), recipe-safety-refused prints unverifiable (exit 0;
+  # refused, no _launch/), per the agent CLI contract. A fixture uat-plan.md
   # citing the pass evidence makes check-uat exit 0; deleting the cited
   # result.json makes it exit 1. Any deviation, or a surviving fixture
   # process, is a finding. Spawns local processes: run outside the sandbox.
@@ -4590,15 +4595,15 @@ check_app_verify() {
   mkdir -p "$spec"
   port="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')"
 
-  for variant in "pass:uat:0" "fail:fail-run:1" "safety-refused:refused-run:2"; do
-    IFS=: read -r name label expected <<< "$variant"
+  for variant in "pass:uat:0:pass" "fail:fail-run:1:fail" "safety-refused:refused-run:0:unverifiable"; do
+    IFS=: read -r name label expected verdict <<< "$variant"
     sed "s/8765/$port/g" "$fixtures/recipe-$name.md" > "$tmp/recipe-$name.md"
     pidfile="$tmp/$label.pid"
     rc=0
     output="$(cd "$PROJECT_ROOT" && env -u APP_VERIFY_FIXTURE_DB APP_VERIFY_FIXTURE_PIDFILE="$pidfile" \
-      python3 "$helper" run --recipe "$tmp/recipe-$name.md" --spec "$spec" --run-label "$label" 2>&1)" || rc=$?
-    if [ "$rc" -ne "$expected" ]; then
-      add_finding "app-verify:recipe-$name" "app-verify.py run exited $rc, expected $expected: ${output%%$'\n'*}" \
+      python3 "$helper" run --recipe "$tmp/recipe-$name.md" --spec "$spec" --run-label "$label" 2>/dev/null)" || rc=$?
+    if [ "$rc" -ne "$expected" ] || [ "${output%%$'\n'*}" != "$verdict" ]; then
+      add_finding "app-verify:recipe-$name" "app-verify.py run exited $rc with line 1 '${output%%$'\n'*}', expected exit $expected and line 1 $verdict." \
         "Run python3 scripts/app-verify.py run against scripts/tests/fixtures/app-verify/recipe-$name.md and fix the run contract."
     fi
     if [ -f "$pidfile" ]; then
@@ -4620,7 +4625,7 @@ check_app_verify() {
       safety-refused)
         case "$output" in
           *refused*) ;;
-          *) add_finding "app-verify:recipe-safety-refused" "summary line does not say refused: ${output%%$'\n'*}" \
+          *) add_finding "app-verify:recipe-safety-refused" "output does not say refused: ${output##*$'\n'}" \
                "A Never-pattern match must print app-verify: refused (<reason>)." ;;
         esac
         if [ -d "$spec/evidence/$label/_launch" ]; then
@@ -4758,7 +4763,7 @@ check_review_panel() {
 
   for file in "$story" "$lean"; do
     require_literal "$file" '**Review panel (opt-in).**' "$(relpath "$file") Gate 3 must carry the opt-in review panel paragraph."
-    require_literal "$file" '`block` is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
+    require_literal "$file" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
     require_literal "$file" '| `/implement-story story-3 --panel` |' "$(relpath "$file") Invocation table must carry the --panel row."
   done
   require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."

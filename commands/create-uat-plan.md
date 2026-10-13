@@ -118,7 +118,7 @@ Exactly one option carries `(Recommended)`: `save` when a launch command was det
 python3 scripts/app-verify.py validate --recipe .writ/docs/app-verification.md
 ```
 
-A non-zero exit prints `app-verify: recipe invalid — <first finding>`. A failing draft is never saved; return to **edit**. A failing existing recipe is left untouched: every scenario reads `**Feature:** none` and `**Verification:** human — recipe invalid`, and the Step 5.3 report says to fix the recipe and re-run.
+Line 1 `fail` (exit 1) means findings; the summary reads `app-verify: recipe invalid — <first finding>`. Line 1 `unverifiable` (missing or unreadable recipe) is handled the same way. A failing draft is never saved; return to **edit**. A failing existing recipe is left untouched: every scenario reads `**Feature:** none` and `**Verification:** human — recipe invalid`, and the Step 5.3 report says to fix the recipe and re-run.
 
 ---
 
@@ -309,7 +309,7 @@ With a valid recipe, run once per completed story:
 python3 scripts/app-verify.py touched --recipe .writ/docs/app-verification.md --changed <the story's What Was Built files>
 ```
 
-`touched` prints only features with a `Check`; also read the recipe's `human-only` Feature Map rows whose `Paths` match the story's files. Bind each scenario to one of these IDs. When several match, bind the one whose `Feature` text describes the scenario's behavior, and give every other matched ID at least one scenario of its own; choosing is authoring, and the verdict still comes from the script. Write two lines directly under `**Source:**`:
+`touched` prints only features with a `Check`, one `feature: <id>` line each between line 1 `pass` and its summary (line 1 `unverifiable` means no recipe or an invalid one); also read the recipe's `human-only` Feature Map rows whose `Paths` match the story's files. Bind each scenario to one of these IDs. When several match, bind the one whose `Feature` text describes the scenario's behavior, and give every other matched ID at least one scenario of its own; choosing is authoring, and the verdict still comes from the script. Write two lines directly under `**Source:**`:
 
 - Feature with a `Check` → `**Feature:** <id>` and `**Verification:** machine — evidence: evidence/uat/<id>/result.json`
 - Feature whose `Check` is `human-only: <reason>` → `**Feature:** <id>` and `**Verification:** human — <reason>` with that reason
@@ -325,9 +325,9 @@ python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec
 ```
 
 - Tick a machine scenario `[x] Pass` only when its `evidence/uat/<id>/result.json` verdict is `pass`; otherwise tick `[x] Fail`.
-- Exit 1 from a launch failure or `not_ready` → every machine scenario Fail, with Notes citing `evidence/uat/_launch/`.
-- Exit 2 → those scenarios become `**Verification:** human — refused` (or `human — <reason>` for another unverifiable reason), Status unticked.
-- The verdict comes only from the exit code and `result.json`, never from agent judgment. Never rewrite a failed scenario as human.
+- Line 1 `fail` (exit 1) from a launch failure or `not_ready` → every machine scenario Fail, with Notes citing `evidence/uat/_launch/`.
+- Line 1 `unverifiable` (exit 0) → those scenarios become `**Verification:** human — refused` (or `human — <reason>` for another unverifiable reason), Status unticked.
+- The verdict comes only from line 1 and `result.json`, never from agent judgment. Never rewrite a failed scenario as human.
 
 ---
 

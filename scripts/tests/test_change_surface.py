@@ -8,6 +8,7 @@ One fixture per surface class; empty / omitted `--changed` → exit 2.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import unittest
@@ -35,20 +36,24 @@ def _run(args):
     return proc.returncode, proc.stdout.strip(), proc.stderr
 
 
+def _class(out):
+    return json.loads(out)["class"]
+
+
 class ChangeSurfaceTests(unittest.TestCase):
     def test_style_only(self):
         code, out, err = _run(
             ["classify", "--changed", "src/styles/theme.css", "src/app.module.css"],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "style-only")
+        self.assertEqual(_class(out), "style-only")
 
     def test_style_only_tailwind_config(self):
         code, out, err = _run(
             ["classify", "--changed", "tailwind.config.ts"],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "style-only")
+        self.assertEqual(_class(out), "style-only")
 
     def test_single_component_plus_test(self):
         code, out, err = _run(
@@ -60,21 +65,21 @@ class ChangeSurfaceTests(unittest.TestCase):
             ],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "single-component")
+        self.assertEqual(_class(out), "single-component")
 
     def test_cross_component_shared_hook(self):
         code, out, err = _run(
             ["classify", "--changed", "src/hooks/useAuth.ts"],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "cross-component")
+        self.assertEqual(_class(out), "cross-component")
 
     def test_full_stack_schema(self):
         code, out, err = _run(
             ["classify", "--changed", "prisma/schema.prisma"],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "full-stack")
+        self.assertEqual(_class(out), "full-stack")
 
     def test_style_plus_migration_classifies_up_to_full_stack(self):
         code, out, err = _run(
@@ -86,7 +91,7 @@ class ChangeSurfaceTests(unittest.TestCase):
             ],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "full-stack")
+        self.assertEqual(_class(out), "full-stack")
 
     def test_two_components_classifies_up_to_cross_component(self):
         code, out, err = _run(
@@ -98,7 +103,7 @@ class ChangeSurfaceTests(unittest.TestCase):
             ],
         )
         self.assertEqual(code, 0, err)
-        self.assertEqual(out, "cross-component")
+        self.assertEqual(_class(out), "cross-component")
 
     def test_empty_changed_exits_2(self):
         code, out, _err = _run(["classify", "--changed"])
@@ -110,12 +115,22 @@ class ChangeSurfaceTests(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertEqual(out, "")
 
-    def test_prints_exactly_one_class_token(self):
+    def test_prints_one_json_object_with_class(self):
+        """Agent CLI contract (data shape): stdout is one JSON object."""
         code, out, err = _run(["classify", "--changed", "src/lib/utils.ts"])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(out), {"class": "cross-component"})
+        self.assertEqual(len(out.splitlines()), 1)
+
+    def test_pretty_prints_bare_class_token(self):
+        code, out, err = _run(["classify", "--changed", "src/lib/utils.ts", "--pretty"])
         self.assertEqual(code, 0, err)
         self.assertEqual(out, "cross-component")
         self.assertIn(out, CLASSES)
-        self.assertEqual(len(out.splitlines()), 1)
+
+    def test_json_flag_is_a_no_op(self):
+        args = ["classify", "--changed", "src/lib/utils.ts"]
+        self.assertEqual(_run(args + ["--json"])[:2], _run(args)[:2])
 
 
 class Gate25WiringTests(unittest.TestCase):

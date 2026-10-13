@@ -232,10 +232,15 @@ class WriteModeValidatesBeforeWriting(FixtureDirs):
 
         result = self.cli()
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("alpha-unmapped", result.stderr)
-        self.assertIn("zeta-unmapped", result.stderr)
-        self.assertNotIn("coding-agent", result.stderr)
+        # Agent CLI contract (check shape): `fail` first, one reason per
+        # unmapped stem, summary last, exit 1.
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip().splitlines(), [
+            "fail",
+            "reason: unmapped alpha-unmapped",
+            "reason: unmapped zeta-unmapped",
+            "gen-codex-agent-tomls: fail (0 written, 2 unmapped)",
+        ])
         self.assertEqual(snapshot(self.out), before)
 
     def test_expected_tomls_names_every_unmapped_stem(self) -> None:
@@ -253,6 +258,23 @@ class WriteModeValidatesBeforeWriting(FixtureDirs):
         expected = gen.expected_tomls(self.agents)
         self.assertEqual(sorted(expected), ["coding-agent", "review-agent"])
         self.assertIn('name = "review-agent"', expected["review-agent"])
+
+
+class WriteModeShape(FixtureDirs):
+    """Agent CLI contract (check shape): write mode prints `pass` first, one
+    `wrote` line per TOML, and the summary last."""
+
+    def test_write_prints_pass_wrote_lines_and_summary(self) -> None:
+        self.add_agent("review-agent")
+        self.add_agent("coding-agent")
+        result = self.cli()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip().splitlines(), [
+            "pass",
+            "wrote %s" % (self.out / "coding-agent.toml"),
+            "wrote %s" % (self.out / "review-agent.toml"),
+            "gen-codex-agent-tomls: pass (2 written, 0 unmapped)",
+        ])
 
 
 class CheckModePass(FixtureDirs):

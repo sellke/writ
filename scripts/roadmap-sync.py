@@ -54,8 +54,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -157,6 +159,25 @@ def _insert_revision_log_row(text: str, row: str) -> str:
     return "".join(lines)
 
 
+def _write_atomic(path: Path, text: str) -> None:
+    """Write via a temp file in the same folder, then rename over `path`, so an
+    interrupted write leaves the old roadmap whole. Keeps the file's mode."""
+    mode = os.stat(path).st_mode & 0o7777
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".%s." % path.name,
+                               suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.chmod(tmp, mode)
+        os.replace(tmp, str(path))
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def append_row(
     roadmap_path: Path,
     spec_name: str,
@@ -200,7 +221,7 @@ def append_row(
     if LAST_UPDATED_RE.search(updated):
         updated = LAST_UPDATED_RE.sub(rf"\g<1>{today}", updated, count=1)
 
-    roadmap_path.write_text(updated, encoding="utf-8")
+    _write_atomic(roadmap_path, updated)
 
     return {
         "schema": SCHEMA_APPEND,
