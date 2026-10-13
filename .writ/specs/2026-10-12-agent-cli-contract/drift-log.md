@@ -159,3 +159,52 @@
 - **Reason:** `tally` feeds Gate 3's panel paragraph in `implement-story.md`, which Story 5 already edits under the same byte pin.
 - **Resolution:** Accepted. Story 5 task 5.5 now fixes both modes and adds smokes; task 5.4 also clarifies Gate 2.5's `--surface <class>` wording.
 - **Spec amendment:** Story 5 tasks 5.4 and 5.5.
+
+---
+
+## Story 5: Bring Shell Scripts and app-verify into Conformance — Drift Report
+
+> Run: 2026-10-12
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-001] `--json` may follow the summary
+- **Severity:** Small
+- **Spec said:** Business Rule 4 and the contract doc: `--json` prints one JSON object instead of the verdict lines.
+- **Implementation did:** AC-5.3 keeps app-verify's object after the summary, as the last line.
+- **Reason:** Gate 4.5 and the eval check already read the object there.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec.md Business Rule 4 and the contract doc's Check shape allow the object either instead of the verdict lines or after the summary.
+
+#### [DEV-002] Live-repo parity test held to shape, not zero drift
+- **Severity:** Medium
+- **Spec said:** AC-5.2 tests fixture trees; `/refresh-command` treats parity drift as a warning.
+- **Implementation did:** The coding agent asserted `pass` on the live repo, which made intentional drift fail the bash suite. After Gate 3 the orchestrator relaxed it: line 1 `pass` exits 0, `fail` exits 1.
+- **Reason:** Parity drift warns and never blocks.
+- **Resolution:** Accepted (fixed in 615865f).
+- **Spec amendment:** None.
+
+#### [DEV-003] Story 4 citation gap closed in Story 5
+- **Severity:** Medium
+- **Spec said:** Story 4 completes with every criterion test-cited.
+- **Implementation did:** After Story 4 was marked Completed, `eval.sh`'s review-override reported AC-4.5 untested; the orchestrator had not re-run `eval.sh` after the status flip. Story 5 added citations (d29bf3d, then 615865f: goal-emit atomic-write tests and a doc-notes test).
+- **Reason:** Completing a story turns `untasked`/`untested` checks on; eval must run after the flip.
+- **Resolution:** Accepted. The orchestrator now runs `eval.sh` after each status flip.
+- **Spec amendment:** None.
+
+#### [DEV-004] Extra conformance beyond the named modes
+- **Severity:** Small
+- **Spec said:** gen-skill `--check` and write mode; check-agent-parity verdict and exit 1.
+- **Implementation did:** gen-skill `--dry-run` also conforms; write mode writes its temp beside SKILL.md, keeps the mode, and reports `fail` on a read-only SKILL.md; an invalid manifest is `fail`; check-agent-parity reports `unverifiable` with no `agents/` folder; `.github/workflows/eval.yml` requires gen-skill line 1 `pass`; `eval.sh` reads gen-skill `--dry-run` line 1.
+- **Reason:** The every-mode rule, plus callers that branched on exit codes.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None.
+
+#### [DEV-005] Gate 4.5 has no branch for empty stdout
+- **Severity:** Small
+- **Spec said:** Gate 4.5 reads app-verify's line 1.
+- **Implementation did:** Not changed: a crash or usage error (no verdict line) has no explicit branch in `commands/implement-story.md` Gate 4.5. The file's exact byte pin makes every addition a trade.
+- **Reason:** Low risk; app-verify catches its own errors and prints `unverifiable`.
+- **Resolution:** Accepted.
+- **Spec amendment:** None.

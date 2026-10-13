@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-12T22:48:33Z
+> Last Updated: 2026-10-13T00:16:14Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-12-agent-cli-contract — Agent CLI Contract
-- **Status:** In Progress
-- **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Not Started); Stories 1–4 Completed ✅
-- **Progress:** 27/34 tasks complete (79%)
+- **Status:** In Progress (all stories complete; spec-level verification pending)
+- **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Completed ✅)
+- **Progress:** 34/34 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,10 +23,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-002 (Small) saved compute blocker reads as an unreadable map — agent-cli-contract Story 4
-- DEV-003 (Small) atomic writes keep normal permissions — agent-cli-contract Story 4
-- DEV-004 (Small) review-panel tally/trial-report verdict words moved to Story 5 — agent-cli-contract Story 4
+- DEV-002 (Medium) live-repo parity test held to shape, not zero drift — agent-cli-contract Story 5
+- DEV-003 (Medium) Story 4 citation gap closed in Story 5; eval now runs after each status flip — agent-cli-contract Story 5
+- DEV-005 (Small) Gate 4.5 has no branch for empty stdout (byte pin) — agent-cli-contract Story 5
 
 ## Open Issues
 
-17 open issue files in .writ/issues/ (23 total; 6 closed with `## Resolution`)
+17 open issue files in .writ/issues/ (24 total; 7 closed with `## Resolution`)
