@@ -229,10 +229,26 @@ class AdrAmendmentTests(unittest.TestCase):
             self.assertIn(needle, block)
 
 
+STORY4_SCRIPTS = ("test-integrity.py", "revert-resolve.py", "knowledge-consolidate.py",
+                  "change-surface.py", "boundary-map.py", "goal-emit.py",
+                  "verdict-provenance.py", "gen-codex-agent-tomls.py", "roadmap-sync.py")
+
+
+class ConformanceNoteTests(unittest.TestCase):
+    def test_no_note_describes_old_output_or_in_place_writes(self) -> None:
+        """AC-1.1, AC-4.5 — State names no in-place writer; no note says what a Story 4 script prints "today"."""
+        text = read(DOC)
+        self.assertNotRegex(section(text, "State"), r"(?i)in place")
+        notes = text.split("### Notes", 1)[1] if "### Notes" in text else ""
+        for line in notes.splitlines():
+            if any("`%s`" % name in line for name in STORY4_SCRIPTS):
+                self.assertNotRegex(line, r"(?i)\btoday\b", line)
+
+
 class SelfCitationTests(unittest.TestCase):
     def test_every_test_names_its_ac_id(self) -> None:
         """AC-1.5 — every test in this file names a Story 1 AC ID in its docstring."""
-        for case in (SectionTests, ClassificationTests, AdrAmendmentTests, SelfCitationTests):
+        for case in (SectionTests, ClassificationTests, AdrAmendmentTests, ConformanceNoteTests, SelfCitationTests):
             for name in dir(case):
                 if not name.startswith("test_"):
                     continue

@@ -291,8 +291,27 @@ run bash "$PARITY" --help
 assert_help "parity --help" check-agent-parity.sh
 ok
 
+# Parity drift warns and never blocks (/refresh-command), so the live repo is
+# held to the shape, not to zero drift: pass exits 0, fail exits 1.
 run bash "$REPO/scripts/check-agent-parity.sh"
-assert_shape "parity on this repo" check-agent-parity pass 0
+case "$(printf '%s\n' "$OUT" | sed -n '1p')" in
+  pass) assert_shape "parity on this repo" check-agent-parity pass 0 ;;
+  fail) assert_shape "parity on this repo" check-agent-parity fail 1 ;;
+  *) fail "parity on this repo: line 1 is not pass or fail:
+$OUT" ;;
+esac
+ok
+
+# gen-skill write mode on a read-only SKILL.md still prints the check shape.
+RO="$WORK/ro"
+mkdir -p "$RO/scripts" "$RO/.writ"
+cp "$REPO/scripts/gen-skill.sh" "$RO/scripts/"
+cp "$REPO/.writ/manifest.yaml" "$RO/.writ/"
+cp "$REPO/SKILL.md" "$RO/SKILL.md"
+chmod 444 "$RO/SKILL.md"
+run bash "$RO/scripts/gen-skill.sh"
+chmod 644 "$RO/SKILL.md"
+assert_shape "gen-skill write, read-only SKILL.md" gen-skill fail 1
 ok
 
 printf 'OK %d shell check-shape assertions\n' "$pass_count"

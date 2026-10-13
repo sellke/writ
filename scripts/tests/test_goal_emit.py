@@ -756,7 +756,8 @@ class GoalEmitTests(unittest.TestCase):
 class AtomicWriteTests(unittest.TestCase):
     """Agent CLI contract (State): GOAL.md and VERIFY.md are written to a temp
     file in the same folder and renamed over the target, so an interrupted
-    write leaves the old file whole and no partial or temp file behind."""
+    write leaves the old file whole and no partial or temp file behind.
+    Story 4 of 2026-10-12-agent-cli-contract [AC-4.5]."""
 
     def _interrupted_emit(self, mod, card: Path, out_dir: Path) -> None:
         from unittest import mock

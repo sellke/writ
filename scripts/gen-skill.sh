@@ -762,6 +762,9 @@ main() {
       exit 1
       ;;
     write)
+      if [ -e "$SKILL_FILE" ] && [ ! -w "$SKILL_FILE" ]; then
+        report fail "SKILL.md not writable" "SKILL.md is not writable; fix its permissions and re-run"
+      fi
       # Temp file beside SKILL.md, carrying its mode, then renamed over it.
       expected_file="$(mktemp "$PROJECT_ROOT/.SKILL.md.XXXXXX")"
       trap 'rm -f "$expected_file"' EXIT

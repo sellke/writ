@@ -118,7 +118,7 @@ Exactly one option carries `(Recommended)`: `save` when a launch command was det
 python3 scripts/app-verify.py validate --recipe .writ/docs/app-verification.md
 ```
 
-Line 1 `fail` (exit 1) means findings; the summary reads `app-verify: recipe invalid — <first finding>`. A failing draft is never saved; return to **edit**. A failing existing recipe is left untouched: every scenario reads `**Feature:** none` and `**Verification:** human — recipe invalid`, and the Step 5.3 report says to fix the recipe and re-run.
+Line 1 `fail` (exit 1) means findings; the summary reads `app-verify: recipe invalid — <first finding>`. Line 1 `unverifiable` (missing or unreadable recipe) is handled the same way. A failing draft is never saved; return to **edit**. A failing existing recipe is left untouched: every scenario reads `**Feature:** none` and `**Verification:** human — recipe invalid`, and the Step 5.3 report says to fix the recipe and re-run.
 
 ---
 

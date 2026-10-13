@@ -31,7 +31,7 @@ A check tool answers "does this pass?".
 - `reason: …` lines and other detail lines may follow.
 - The last line is a one-line summary, usually `<tool>: <verdict> (…)`.
 - The exit code says whether the check ran: 0 when it ran (line 1 says `pass` or `unverifiable`), 1 for `fail`, 2 for a usage error or a check that could not start. Branch on line 1, not on exit 0 alone.
-- A check tool may offer `--json` to print one JSON object instead of the verdict lines. The exit code rule still applies.
+- A check tool may offer `--json` to print one JSON object, either instead of the verdict lines or after the summary as the last line (`app-verify.py`). The exit code rule still applies.
 - Every subcommand and mode of a check tool prints in this shape, including modes that write files.
 
 ## Usage errors

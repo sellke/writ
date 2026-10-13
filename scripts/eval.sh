@@ -551,7 +551,7 @@ check_manifest() {
     return
   fi
 
-  if ! bash "$PROJECT_ROOT/scripts/gen-skill.sh" --dry-run >/dev/null 2>&1; then
+  if [ "$(bash "$PROJECT_ROOT/scripts/gen-skill.sh" --dry-run 2>/dev/null | sed -n '1p')" != "pass" ]; then
     add_finding ".writ/manifest.yaml" "manifest failed generator validation." "Run bash scripts/gen-skill.sh --dry-run for the parser error, then fix the manifest."
   fi
 
