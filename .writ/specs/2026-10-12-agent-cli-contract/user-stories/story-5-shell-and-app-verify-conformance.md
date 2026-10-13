@@ -1,6 +1,7 @@
 # Story 5: Bring Shell Scripts and app-verify into Conformance
 
 > **Status:** Completed ✅
+> **Commit:** 1c1bebfa53d0162c8e3abce330b27d6cfcf0315f
 > **Priority:** Medium
 > **Dependencies:** Story 4
 
