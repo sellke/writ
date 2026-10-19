@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-10-02
+> Regenerated from mission.md on 2026-10-19
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-10-02
+> Last Updated: 2026-10-19
 
 ## Core Value
 
@@ -20,9 +20,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Key Differentiators
 
 1. **Non-degrading by construction** — Plain-text + git + adapter abstraction; the knowledge ledger consolidates (merge, never append) so context stays sharp ([ADR-006](../decision-records/adr-006-non-degrading-destination.md), [ADR-008](../decision-records/adr-008-spec-as-team-contract-moat.md))
-2. **The contract layer, not another harness** — Rides on native memory/skills/subagents; interoperates with external brains (GBrain via MCP); markdown canonical, indexes disposable ([ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md))
+2. **The contract layer, not another harness** — Rides on native memory/skills/subagents; interoperates with external second brains (GBrain via MCP is the worked example, being generalized to engine detection); markdown canonical, indexes disposable ([ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md))
 3. **Observable autonomy, deliberately bounded** — Normal `/implement-phase` uses one confirmation, fresh context per spec, quarantine on failure, and an honest report. `--recommend` adds evidence-backed autonomy on two commands — `/create-spec` authors and locks a spec package then stops, and `/implement-phase` runs the phase as an end-to-end loop — both ending short of merge/PR/release; opaque unbounded loops and autonomous production delivery remain excluded ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md)). The ceiling moves only on evidence; machine-verified UAT is the named precondition ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md))
-4. **Self-improvement with evidence** — `/refresh-command` refinements cite transcripts and pass evals; skills carry a candidate → proven → promoted lifecycle
+4. **Self-improvement with evidence** — `/refresh-command` refinements cite transcripts and pass evals; `/retro` reads a run's agent transcripts and proposes environment fixes, never code changes, each cited to a transcript path (v0.41.0); skills carry a candidate → proven → promoted lifecycle
 5. **Adaptive ceremony** — Right-sized process: `/prototype` for spikes, gated pipeline for features, phase orchestration for roadmap chunks
 6. **Opinionated guidance** — Lead with the recommendation, challenge premises, push for the best version. Judgment, not menus.
 
@@ -32,9 +32,13 @@ Code and methodology that score well on six production-grade criteria — audita
 
 ## Current Phase
 
-**Phases 1–11:** Shipped and released (through v0.39.0). Phase 10 closed partially complete — the determinism half enforced, the byte goal withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). Phase 11 (Contract-and-Verifier Layer, v0.36.0) pruned the shared base under 10 KB, put scripts behind eight of ten `/implement-story` gates, and made the two-agent pipeline the default with `--full-pipeline` as the escalation. Inter-phase work since: model delegation (v0.34.0), flagged harness cuts, the opt-in Jev judgment pilot, drift and architecture guards (v0.37.0–v0.39.0), and product-check direction (v0.40.0).
+**Phases 1–11:** Shipped and released. Phase 10 closed partially complete — the determinism half enforced, the byte goal withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). Phase 11 (Contract-and-Verifier Layer, v0.36.0) pruned the shared base under 10 KB, put scripts behind eight of ten `/implement-story` gates, and made the two-agent pipeline the default with `--full-pipeline` as the escalation.
 
-**Phase 12 — Behavioral Verification (◐ implemented and released in v0.40.0, pending human UAT):** a per-project verification recipe (`.writ/docs/app-verification.md`), drafted by `/create-uat-plan`, names the project's own checks against the running app; Gate 4.5 runs them through `scripts/app-verify.py` and records evidence, and `exit-criteria.py` checks that the cited evidence exists. The opt-in cross-family review panel stays: its trial found 6 valid of 8 panel-only findings on the Phase 11 baseline set ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
+**Phase 12 — Behavioral Verification (◐ implemented and released in v0.40.0, human UAT open):** a per-project verification recipe (`.writ/docs/app-verification.md`), drafted by `/create-uat-plan`, names the project's own checks against the running app; Gate 4.5 runs them through `scripts/app-verify.py` and records evidence, and `exit-criteria.py` checks that the cited evidence exists. The opt-in cross-family review panel stays: its trial found 6 valid of 8 panel-only findings on the Phase 11 baseline set ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). All four success criteria are met; the phase's own UAT plan is unticked, so human UAT is the open item.
+
+**Inter-phase work:** model delegation (v0.34.0), flagged harness cuts, the opt-in Jev judgment pilot, drift and architecture guards (v0.37.0–v0.39.0), product-check direction (v0.40.0), `/retro` as a transcript review plus the `gbrain-interop` removal (v0.41.0). The agent CLI contract — one documented, test-enforced output contract across every shipped script ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) — is Complete on `feature/agent-cli-contract` and unreleased.
+
+**No phase after 12 is committed.** Candidates are in the roadmap's *Beyond Phase 12* section.
 
 ## What Writ Is Not Building
 

@@ -1,10 +1,10 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-10-02
+> Last Updated: 2026-10-19
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-10-01):** Phases 1–11 closed. **Phase 11 (Contract-and-Verifier Layer) completed 2026-09-09 in v0.36.0** — base under 10 KB, eight of ten gates script-backed, two-agent default pipeline, Goal Card to `/goal` emit. **Phase 12 (Behavioral Verification) is implemented, pending human UAT (2026-10-02)**: behavioral verification is complete, and the cross-family panel's trial returned `keep` (6 of 8 panel-only findings valid on four stories). It adds a verifier that proves the user's feature works by driving the running app, plus an opt-in cross-family review panel ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). Other candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
+**Current status (2026-10-19):** Phases 1–11 closed. **Phase 12 (Behavioral Verification) is implemented and released in v0.40.0 (2026-10-02), pending human UAT**: all four success criteria are met — a fixture app exercises the full loop with machine-captured evidence, Gate 4.5's `prose-only` count dropped 2 → 1, the missing-evidence mutation reports `unmet`, and the cross-family panel's trial returned `keep` (6 of 8 panel-only findings valid on four stories). The phase's own UAT plan is unticked, so the open item is human UAT, not more building. **v0.41.0 (2026-10-12)** shipped inter-phase: `/retro` rewritten as a transcript review, and the consumer-less `gbrain-interop` skill removed. The **agent CLI contract** ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) is Complete on `feature/agent-cli-contract` and not yet released. **No phase after 12 is committed** — candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
 
@@ -14,6 +14,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-10-19 | **Reconcile pass** (`/plan-product --reconcile`) after v0.41.0: the four P1/P4 items the 2026-10-02 product check handed over are closed — `mission.md` Phase 12 status realigned to the roadmap, the Phase 11 gate bullet given a forward note, Phase 12 success criteria 1–3 marked met against re-derived evidence, and the header dated. New: v0.41.0 recorded in the condensed history (`/retro` as a transcript review; `gbrain-interop` removed); the agent CLI contract recorded as Complete-but-unreleased; `mission.md`'s self-improvement differentiator credits `/retro` as a second evidence channel; GBrain demoted from *the* integration to *an* example. Friction-signals parking-lot entry narrowed to what `/retro` did not absorb. **No direction change, no new ADR** — the ADR-025 amendment and ADR-029 already covered both shifts. Derivatives regenerated. |
 | 2026-10-02 | Recorded `2026-10-01-product-check-direction` as inter-phase infrastructure (v0.40.0). |
 | 2026-10-01 | **Reconcile pass** (`/plan-product --reconcile`): Phase 11 promoted from six inter-phase rows to a closed phase with its caveats (single-model baseline; spec analysis advisory); model delegation recorded as shipped (v0.34.0) and removed from the parking lot; friction signals marked unblocked. **Direction change:** Phase 12 (Behavioral Verification) committed with [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md). Parking lot renamed *Beyond Phase 10* → *Beyond Phase 12*; Cursor plugin distribution and the empirical-fork rule added as candidates. Derivatives regenerated. |
 | 2026-09-26 | Recorded `2026-09-26-arch-lint-and-follow-ups` as inter-phase infrastructure (v0.39.0). |
@@ -65,6 +66,8 @@
 | **— Drift and Architecture Guards** <!-- 2026-09-26-drift-arch-guards --> | Boundary crossings route Gate 3 to review-agent; drift judged against the locked contract; spec-end drift roll-up. | v0.39.0 |
 | **— Architecture Lint and Drift-Guard Follow-ups** <!-- 2026-09-26-arch-lint-and-follow-ups --> | Gate 2 architecture-ruleset detection with a shipped guide and ADR hook; Codex TOML freshness check; issue closure via ## Resolution. | v0.39.0 |
 | **— Product Check Direction** <!-- 2026-10-01-product-check-direction --> | Product-doc verification reads as a post-implementation check whose findings feed realignment; /implement-phase and /release each suggest /verify-spec --product in one line. | v0.40.0 |
+| **— Transcript `/retro`** | `/retro` reads Claude Code, Cursor and Codex transcripts for a story, spec, phase or `--since` window, ranks where the agent struggled, and proposes fixes to the *environment* — steering files, navigation hints, lint rules, skills, docs — never to source or tests. Each finding cites a transcript path and an observable signal; command and agent changes route to `/refresh-command`. Replaces the git-metrics retro ([ADR-025](../decision-records/adr-025-friction-signals.md) amended). Shipped alongside the removal of the consumer-less `gbrain-interop` skill (the recipe doc stays; the adapters link it). | v0.41.0 |
+| **— Agent CLI Contract** <!-- 2026-10-12-agent-cli-contract --> | Every shipped script follows one documented, test-enforced agent contract — data tools emit one JSON document, check tools lead with `pass`/`fail`/`unverifiable` — with the contract test reading the shipped set from `install.sh` so no second list can drift. Six dev-only scripts stop shipping ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)). | *unreleased — `feature/agent-cli-contract`* |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 
@@ -91,7 +94,7 @@
 
 **Goal:** Harden normal multi-spec `/implement-phase` as a session-bound, single-confirmation orchestrator and retire Ralph. Recommended delivery is governed by [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md), which supersedes ADR-010's conflicting contract-level gate. As revised 2026-07-17, `--recommend` extends to `/implement-phase` as the end-to-end loop; autonomous production delivery stays deferred.
 
-**Closure status:** All seven features shipped and verified by eval Tier 1 (`spec-dependencies`, `phase-lanes`, `phase-challenges`, `phase-quarantine`, `phase-knowledge`, `phase-health`, `ralph-retirement`), a disposable multi-spec sandbox UAT, and one real-use User Challenge — see [`acceptance-evidence.md`](../specs/2026-07-09-phase6-autonomy-ceiling/acceptance-evidence.md). Ralph is archived under `archive/ralph/`. **One honest caveat:** the "3+ spec phase runs end-to-end in real use" criterion is proven *mechanically* (sandbox) only — an umbrella spec cannot self-prove it; the first genuine multi-spec `/implement-phase` run (Phase 7 onward) will exercise it live. Released in **v0.19.0** (2026-07-11, jointly with Phase 7).
+**Closure status:** All seven features shipped and verified by eval Tier 1 (`spec-dependencies`, `phase-lanes`, `phase-challenges`, `phase-quarantine`, `phase-knowledge`, `phase-health`, `ralph-retirement`), a disposable multi-spec sandbox UAT, and one real-use User Challenge — see [`acceptance-evidence.md`](../specs/archive/2026-07-09-phase6-autonomy-ceiling/acceptance-evidence.md). Ralph is archived under `archive/ralph/`. **One honest caveat:** the "3+ spec phase runs end-to-end in real use" criterion is proven *mechanically* (sandbox) only — an umbrella spec cannot self-prove it; the first genuine multi-spec `/implement-phase` run (Phase 7 onward) will exercise it live. Released in **v0.19.0** (2026-07-11, jointly with Phase 7).
 
 ### Dependencies
 
@@ -169,7 +172,7 @@ drift silently across the four files that describe strategy (the live example th
 prompted this: roadmap marked Phases 6–7 complete while mission still framed
 Phase 6 as "next"). Adds the missing before/after pair plus a nudge, as **mode
 additions to existing commands** — no new command files. Per
-[`2026-07-11-product-reconciliation`](../specs/2026-07-11-product-reconciliation/spec.md).
+[`2026-07-11-product-reconciliation`](../specs/archive/2026-07-11-product-reconciliation/spec.md).
 
 - [x] **`/verify-spec --product`** `Effort: S` — a consistency lint (the *before*)
   with its **own** ~4-check set (P1–P4: phase-status parity, ADR reference
@@ -297,14 +300,14 @@ reconcile pass — this block and four closure-status sentences above had claime
 ### Features
 
 - [x] **Git-notes audit channel** `Effort: M` — Spec
-  [`2026-07-18-git-notes-audit-channel`](../specs/2026-07-18-git-notes-audit-channel/spec.md).
+  [`2026-07-18-git-notes-audit-channel`](../specs/archive/2026-07-18-git-notes-audit-channel/spec.md).
   `/ship` attaches a spec-level audit digest (composed from "What Was Built"
   records) to the landed commit under a dedicated `refs/notes/writ` ref; `/release`
   attaches a version rollup; sync via configured refspecs; default-on, clean
   opt-out; `/status` read line. (Conductor's git-notes idea, adapted to Writ's
   squash-merge `/ship` — attach post-land so notes aren't orphaned.)
 - [x] **Logical-unit revert (`/revert`)** `Effort: M` — Spec
-  [`2026-07-18-logical-unit-revert`](../specs/2026-07-18-logical-unit-revert/spec.md).
+  [`2026-07-18-logical-unit-revert`](../specs/archive/2026-07-18-logical-unit-revert/spec.md).
   Single `/revert <unit>` (story|spec) with a layered commit resolver
   (`scripts/revert-resolve.py`: recorded SHA → `/ship` `Ref:` footer → phase-state
   → confirmed ghost-commit fuzzy match), safe/hard strategies, dirty-tree guard,
@@ -312,7 +315,7 @@ reconcile pass — this block and four closure-status sentences above had claime
   story's commit SHA. (Conductor's `conductor-revert` model; ghost-commit
   reconciliation is the borrowed robustness trick.)
 - [x] **Artifact integrity + handshake (robustness rider)** `Effort: S` — Spec
-  [`2026-07-18-artifact-integrity-handshake`](../specs/2026-07-18-artifact-integrity-handshake/spec.md).
+  [`2026-07-18-artifact-integrity-handshake`](../specs/archive/2026-07-18-artifact-integrity-handshake/spec.md).
   An "Artifact Integrity" standing rule in `_preamble.md` (verify Required
   Artifacts before work; required-missing → HALT + bounded repair; optional →
   warn+degrade) plus an "Artifact Map" section in the regenerated `context.md`.
@@ -532,7 +535,7 @@ them to blocking. (3) The two `prose-only` gates are the input to Phase 12.
 
 ---
 
-## Phase 12: Behavioral Verification (3-5 weeks) — ◐ Implemented, pending human UAT (2026-10-02)
+## Phase 12: Behavioral Verification — ◐ Implemented and released, v0.40.0 (2026-10-02) — human UAT open
 
 **Goal:** A Writ verifier proves the user's feature works by driving the running
 app, not only that Writ's own artifacts are well formed. This is the evidence
@@ -546,9 +549,9 @@ is still a human handoff at the end of every spec and phase.
 
 ### Success Criteria
 
-- A fixture app's UAT scenarios pass end to end with machine-captured evidence and no human step (real-project trials, yuss.app or any other, happen outside the phase at the developer's discretion)
-- Gate 4.5 leaves `verification: prose-only`; the count in `implement-story.md` drops from 2 to 1
-- `exit-criteria.py` reports `unmet` for a UAT scenario whose cited evidence file is missing (proven by mutation)
+- A fixture app's UAT scenarios pass end to end with machine-captured evidence and no human step (real-project trials, yuss.app or any other, happen outside the phase at the developer's discretion) — ✅ met, re-derived 2026-10-19: `scripts/tests/fixtures/app-verify/` holds a stdlib app plus pass / fail / not-ready / safety-refused recipes, driven end to end by `scripts/tests/test_app_verify.py`
+- Gate 4.5 leaves `verification: prose-only`; the count in `implement-story.md` drops from 2 to 1 — ✅ met, re-derived 2026-10-19: one `verification: prose-only` declaration in `commands/implement-story.md` and one in the `.lean` twin
+- `exit-criteria.py` reports `unmet` for a UAT scenario whose cited evidence file is missing (proven by mutation) — ✅ met, re-derived 2026-10-19: `scripts/tests/test_exit_criteria.py::test_missing_evidence_file_is_unmet_naming_spec_and_scenario`
 - The cross-family panel raises at least one valid finding the single-vendor evaluator missed on the Phase 11 baseline set, or its promotion step closes `Closed — Not Implemented` and the path is removed — ✅ met 2026-10-02: verdict `keep`, 6 of 8 panel-only findings valid, 4 of them caught by another vendor only ([trial-report](../specs/archive/2026-10-01-cross-family-review-panel/trial-report.md); small sample, not a cost case)
 
 ### Features
@@ -574,7 +577,7 @@ model configuration for agents.
 **Kept as candidates:**
 - **Cursor plugin distribution** `Effort: S-M` — publish Writ through Cursor's plugin marketplace (`/add-plugin`). The plugin schema accepts `commands`, `agents`, `skills`, `rules`, and `hooks`, so the surface maps directly. The open constraint: a plugin cannot scaffold `.writ/` or ship `scripts/` into a project, so it still needs a bootstrap step (`/initialize` or `install.sh`). Claude Code's plugin format is the sibling question.
 - **Empirical-fork rule** `Effort: XS` — one line in `recommendation-semantics.md`: a fork answerable by running something routes to `/prototype` instead of AskQuestion; AskQuestion is reserved for product, preference, and taste calls.
-- **Friction signals & Improvement Requests** `Effort: M` — the minimal self-improvement loop: six closed signal kinds appended to one gitignored JSONL at sites that already exist, a once-a-day one-line nudge in `/status` at ≥3 unreviewed, a `/retro --friction` review that refreshes locally / files an Improvement Request on `sellke/writ` via `gh` (human-confirmed, spec names redacted) / dismisses, and `Signal:` as a `/refresh-command` evidence type so the loop works off-Cursor. Closes the DEV-004 gap from the 2026-08-14 dogfooding research. Single spec, five stories. See [ADR-025](../decision-records/adr-025-friction-signals.md). *Unblocked: ADR-024 shipped in v0.34.0, so the `escalated` signal its review depends on now has a source. Not started — `scripts/signal.py` and `/retro --friction` do not exist yet.*
+- **Friction signals & Improvement Requests** `Effort: S-M` *(was M — v0.41.0 absorbed part of it)* — the minimal self-improvement loop: six closed signal kinds appended to one gitignored JSONL at sites that already exist, a once-a-day one-line nudge in `/status` at ≥3 unreviewed, and `Signal:` as a `/refresh-command` evidence type so the loop works off-Cursor. Closes the DEV-004 gap from the 2026-08-14 dogfooding research. See [ADR-025](../decision-records/adr-025-friction-signals.md). *Scope narrowed 2026-10-19: the transcript `/retro` (v0.41.0) already supplies the review-and-disposition half — ranked findings, each cited to a transcript path, dispositioned as applied / refreshed / issue / dismissed / deferred — so a separate `/retro --friction` review is no longer part of this item. What remains is signal **emission** and its consumers. Unblocked (ADR-024 shipped in v0.34.0 gives the `escalated` signal a source); not started — `scripts/signal.py` does not exist.*
 - **Cross-project learning corpus** — extension of the knowledge ledger once consolidation is proven
 - **`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools via `/refresh-command`
 - **Eval Tier 2 expansion** — beyond the Phase 7 lightweight check, if it demonstrates value

@@ -1,10 +1,10 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-10-01
+> Last Updated: 2026-10-19
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Revision: 2026-10-01 — reconcile pass after v0.39.0: Phase 11 recorded as closed; the default `implement-story` pipeline described as shipped in Stage 4b; **direction change** — Phase 12 (Behavioral Verification) committed per [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md).
+> Last Revision: 2026-10-19 — reconcile pass after v0.41.0: Phase 12 recorded as implemented and released (v0.40.0) with its machinery criteria met and human UAT still open; the Phase 11 gate bullet given a forward note; `/retro` recorded as a second evidence channel for the learning loop (ADR-025 amendment, v0.41.0); GBrain generalized from *the* integration to *an* example after the `gbrain-interop` skill was removed; the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) recorded. No direction change — every change already had ADR coverage.
 
 ## Pitch
 
@@ -68,7 +68,7 @@ Plain-text artifacts in git mean specs, decisions, and lessons are reviewable fo
 
 ### The Contract Layer, Not Another Harness
 
-Unlike frameworks that ship daemons, browsers, or databases, Writ is markdown, git, and thin scripts. It rides *on top of* native harness capabilities — native memory, native skills, native subagents — and interoperates with external brains (GBrain via MCP) rather than re-implementing them. Markdown is the canonical system of record; every index over it is optional and disposable. ([ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md))
+Unlike frameworks that ship daemons, browsers, or databases, Writ is markdown, git, and thin scripts. It rides *on top of* native harness capabilities — native memory, native skills, native subagents — and interoperates with external second brains (GBrain via MCP is the worked example) rather than re-implementing them. Markdown is the canonical system of record; every index over it is optional and disposable. ([ADR-011](../decision-records/adr-011-memory-interop-markdown-canonical.md)) The interop is being generalized from one vendor to engine detection — tracked in [`2026-10-03-generalize-second-brain-retrieval`](../issues/improvements/2026-10-03-generalize-second-brain-retrieval.md).
 
 ### Observable Autonomy, Deliberately Bounded
 
@@ -76,7 +76,7 @@ Normal `/implement-phase` runs an entire roadmap phase after one confirmation �
 
 ### Self-Improvement With Evidence
 
-The learning loop is falsifiable, not anecdotal. `/refresh-command` refinements must cite transcript evidence and pass eval checks before merging. Skills carry a lifecycle — candidate → proven → promoted — with the evidence recorded. Drift logs feed the knowledge ledger. The methodology improves the way the code does: through gates.
+The learning loop is falsifiable, not anecdotal. `/refresh-command` refinements must cite transcript evidence and pass eval checks before merging. `/retro` reads the agent transcripts of a run and proposes fixes to the *environment* — steering files, navigation hints, lint rules, docs — never to the code, with every finding cited to a transcript path and an observable signal (v0.41.0; [ADR-025](../decision-records/adr-025-friction-signals.md) amendment). Skills carry a lifecycle — candidate → proven → promoted — with the evidence recorded. Drift logs feed the knowledge ledger. The methodology improves the way the code does: through gates.
 
 ### Adaptive Ceremony
 
@@ -117,7 +117,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 ### Phase 8 — Memory Interop (✅ shipped, v0.20.0)
 
-- **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed.
+- **GBrain compatibility recipe:** Register `.writ/` as a GBrain source; map knowledge, specs, and ADRs to page types; brain-first retrieval guidance when a brain is detected. Zero new Writ infrastructure; graceful absence when GBrain isn't installed. *(v0.41.0: the `gbrain-interop` skill was removed — it had no consumers. `.writ/docs/gbrain-recipe.md` remains and the adapters link it; a provider-neutral replacement is an open issue.)*
 - **Native-memory guidance per adapter:** How Writ's ledger relates to Cursor memories, Claude Code memdir, and other native layers — the ledger is the reviewable layer that feeds them.
 
 ### Phase 9 — Git-Native Provenance & Recovery (✅ shipped, v0.23.0)
@@ -137,17 +137,17 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 ### Phase 11 — Contract-and-Verifier Layer (✅ shipped, v0.36.0)
 
 - **Pruned base:** `system-instructions.md` + `_preamble.md` under 10 KB; every cut recorded in an append-only ledger and kept only after a baseline re-run ([ADR-026](../decision-records/adr-026-constraint-test-pruning.md)).
-- **Mechanized gates:** eight of ten `/implement-story` gates re-derive their verdict from a script; Gate 1 and Gate 4.5 stay `prose-only`.
+- **Mechanized gates:** eight of ten `/implement-story` gates re-derive their verdict from a script; Gate 1 and Gate 4.5 stay `prose-only`. *(Historical, true at Phase 11 close. Phase 12 made Gate 4.5 behavioral verification: it still declares `prose-only`, but the verdict now comes from `scripts/app-verify.py`, and `implement-story.md` carries one `prose-only` declaration, not two.)*
 - **Spec analysis:** `spec-analyze.py` flags contradictory, missing, and ambiguous acceptance criteria at lock; advisory.
 - **Escalation, not default:** two-agent default pipeline; Goal Cards emit platform-runnable `/goal` contracts.
 
-### Phase 12 — Behavioral Verification (📋 committed)
+### Phase 12 — Behavioral Verification (◐ implemented and released, v0.40.0 — human UAT open)
 
 - **Behavioral verification:** a per-project recipe (`.writ/docs/app-verification.md`, drafted by `/create-uat-plan`) names the project's own checks; UAT scenarios cite its feature IDs; Gate 4.5 runs the checks against the running app, records evidence, and leaves `prose-only`. An exit code decides, never an agent.
 - **Cross-family review panel:** opt-in, high-stakes only; findings raised by two or more vendors block. Kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
 
 ### Next Horizon
 
-Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is committed:** Writ's verifiers so far check Writ's own artifacts, and Phase 12 makes one check the user's feature.
+Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is implemented and released in v0.40.0:** Writ's verifiers so far checked Writ's own artifacts, and Phase 12 made one check the user's feature. Its three machinery criteria are met and the panel trial returned `keep`; the phase's own UAT plan is unticked, so human UAT is the open item, not more building. Inter-phase work since: `/retro` as a transcript review and the `gbrain-interop` removal (v0.41.0), and the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)), Complete on `feature/agent-cli-contract` and not yet released. **No phase after 12 is committed** — the candidates are in the roadmap's *Beyond Phase 12* section.
 
 > **Parking lot (kept as candidates):** Cursor plugin distribution, empirical-fork rule, friction signals (unblocked), cross-project learning corpus, `/design` Mode A modernization, eval Tier 2 expansion. **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 12* section for the authoritative list.
