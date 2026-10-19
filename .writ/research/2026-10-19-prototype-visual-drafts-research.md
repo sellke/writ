@@ -1,10 +1,30 @@
-# Multiple Visual Drafts Before Spec: Where It Belongs in Writ
+# Multiple Visual Drafts Before Spec: Reframing `/prototype` as Exploration
 
 **Date:** 2026-10-19
-**Status:** Complete
+**Status:** Complete — **revised 2026-10-19 after maintainer review (see Revision below)**
 **Trigger:** "How might we make `/prototype` more robust at creating multiple looks (visual mock-ups) and drafts of an idea or a concept *before* we engage in full specification and implementation."
 **Depth:** Standard 4-phase. Moderate stakes, reversible — this is a surface-placement decision inside an existing pipeline, not an architecture commitment.
-**Writ version:** 0.41.0 + `feature/agent-cli-contract` at `d6584c7`
+**Writ version:** 0.41.0, docs branch off v0.41.0
+
+---
+
+## Revision — 2026-10-19
+
+**The first draft recommended against hosting exploration in `/prototype`. That conclusion was wrong and is withdrawn.**
+
+The original F1 argued from `/prototype`'s frontmatter — `outcome` says "the repository gained no planning artifact describing it," the terminal constraint forbids spec artifacts — to the conclusion that exploration does not belong there. That is circular. A contract line is a decision someone made and can amend; it is not evidence about where a capability belongs. The draft treated an amendable sentence as a boundary.
+
+The maintainer's position, adopted here: **`/prototype` should be reframed as the early, preliminary exploration workflow** — one that invokes design and other skills to produce a broad but genuinely real sense of the end in mind, and stops before deep specification or planning. Three things support it that the first draft under-weighted:
+
+1. `/prototype`'s own *When to Use* table already reads "Exploring an approach before committing to it | `/prototype` (then escalate if it works out)." The exploration intent is already declared; the implementation does not deliver it.
+2. It already has the escalation hatch (`/create-spec --from-prototype`) and already has a visual step. It is the pre-spec front door in position, just not in capability.
+3. "End in mind" is a stronger ask than mockups. A rendered mockup shows a look; a rough running thing shows whether the idea survives contact with the codebase. The original recommendation (`/design --explore`) produced only pictures, and was the weaker product for it.
+
+The reframe is also *leaner* than the first draft's proposal: it needs no new `/design` mode, because `/prototype` loads the divergence skill directly. One fewer surface.
+
+**What survives unchanged:** F3, F4, F5 and F6. The divergence evidence is about how models generate alternatives and is independent of which command hosts them. F6's defects get more urgent under the reframe, not less, because a reframed `/prototype` leans harder on the visual step.
+
+**What changed:** F1, F2, the options analysis, and the recommendations. Sections below are revised in place; the superseded reasoning is summarized here rather than preserved line by line. The one concern the reframe does not dissolve is carried forward as the first row of Risks & Mitigation: a command that both explores and ships needs a single `outcome`, and ADR-020 will not let that be fudged.
 
 ---
 
@@ -20,43 +40,49 @@
 
 ## Executive Summary
 
-**Do not build this into `/prototype`.** The premise that Writ needs pre-spec visual exploration is correct and backed by good evidence. The premise that `/prototype` should host it is wrong on Writ's own terms: `/prototype`'s stated outcome is that "the repository gained no planning artifact describing it," and its terminal constraint forbids writing spec artifacts. Pre-spec concept exploration is a planning artifact by definition. `/prototype` is a shipping command — Context Scan → Code → Lint → Summary — and its Step 2.5 Visual Preview exists to steer a coding agent that is about to run, not to explore a concept that may never be built. Hosting exploration there drags a TDD pipeline behind every sketch.
+**Reframe `/prototype` as Writ's early exploration workflow, and give it an evidence-backed divergence skill rather than a variant generator.**
 
-The gap belongs to `/design`, which already has it listed as unfinished work: the roadmap parking lot carries "`/design` Mode A modernization — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools." `/design` cannot serve pre-spec exploration today because its exit criteria require output under `.writ/specs/<spec-name>/mockups/` — it structurally requires a spec that does not exist yet.
+Writ has no pre-spec divergence step anywhere in its 32 commands. `/design` cannot provide one — every mode routes output into `.writ/specs/<spec-name>/mockups/`, so it structurally requires a spec that does not exist yet. `/prototype` is already positioned as the pre-spec front door: its own usage table names "exploring an approach before committing to it" as its job, it already has a visual step, and it already has an escalation hatch into `/create-spec --from-prototype`. What it lacks is the capability, and a contract that admits to it.
 
-**The more consequential finding is that the obvious implementation does not work.** Dow et al. (2010) measured that parallel prototyping beats serial prototyping, but that was human designers, and the mechanism was *withholding feedback until several alternatives exist*, not *making more artifacts* — both conditions built five prototypes. The LLM evidence says AI variants do not inherit the benefit. Models exhibit fixation where early outputs constrain later ones, repeated samples from one prompt converge, and independently trained models converge on each other. A CHI 2024 experiment (N=60) found designers using an AI image generator produced *fewer* ideas with *less* variety and *lower* originality than the no-AI baseline, with fixation displaced from the brief onto the AI's own outputs. Asking one agent for "a few options" is three samples from one mode, not parallel prototyping.
+**The consequential finding is that the obvious implementation does not work, wherever it lives.** Dow et al. (2010) measured parallel prototyping beating serial prototyping, but both conditions built five prototypes — the variable was *withholding feedback until several alternatives exist*, not producing more artifacts. That benefit does not transfer to AI variants. Models fixate on their own early outputs, repeated samples from one prompt converge, and independently trained models converge on each other. A CHI 2024 experiment (N=60) found designers using an AI image generator produced *fewer* ideas with *less* variety and *lower* originality than the no-AI baseline, with fixation displaced from the brief onto the AI's outputs. Asking one agent for "a few options" yields three samples from one mode, not parallel prototyping.
 
-**Recommendation: ship a `design-divergence` skill, not a command, and delegate rendering to the platform.** Writ should own the *brief* — pre-declared orthogonal divergence axes, independent generation contexts, and a decision record naming what was rejected and why — and delegate pixels to whatever the harness provides (Claude Code's native `/design` artboards, Cursor canvas, plain HTML fallback). The brief is the part that does not happen unprompted, which is exactly Writ's own test for justified surface. This adds zero commands, satisfies ADR-009 and ADR-015, and closes a parking-lot item instead of opening a new one.
+Divergence has to be constructed: orthogonal axes declared before generation, independent contexts so drafts cannot anchor each other, chain-of-thought before rendering, and ordinary rather than genius personas. That combination is the one measured to beat human diversity — and it is precisely output a model does not produce unprompted, which is Writ's own test for justified surface.
 
-Two concrete defects surfaced along the way and should be fixed regardless of which option is chosen: `/prototype` hard-codes a Cursor-only tool name that no adapter translates, and Writ's `/design` now collides with a native Claude Code command of the same name.
+**Division of labour:** Writ owns the brief and the decision record, including why each rejected draft lost. The platform owns rendering — Claude Code shipped a native `/design` producing artboards before code in August 2026, so building a generator would violate Design Principle 4. The reframe adds zero commands: one skill, one amended command contract.
+
+Two verified defects should be fixed regardless: `/prototype` hard-codes a Cursor-only tool name that no adapter translates, and Writ's `/design` now collides with a native Claude Code command of the same name.
 
 ---
 
 ## Key Findings
 
-### F1. `/prototype`'s contract forbids what is being asked of it
+### F1. `/prototype` is already the pre-spec front door in position, not in capability
 
-`commands/prototype.md` frontmatter:
+`commands/prototype.md` *When to Use* table, last row before the spec options:
 
-- `outcome`: "The change sits in the working tree with tests written first and lint plus typecheck run, and **the repository gained no planning artifact describing it**."
-- `exit_criteria[0]`: "no spec folder, story file, or task list was created under `.writ/specs/` for this change"
+> | Exploring an approach before committing | `/prototype` (then escalate if it works out) |
+
+The command already claims the job. What it delivers is narrower: Step 2.5 Visual Preview produces **one** canvas mockup, binary approve / adjust / skip, nothing retained — its own guardrail says "It gathers layout feedback before coding; it is not a design deliverable." And it runs *after* Context Scan has detected the stack, located target files, and decided which files to modify, so it steers a change already scoped rather than helping choose a direction.
+
+The frontmatter contradicts the reframe as written:
+
+- `outcome`: "…and **the repository gained no planning artifact describing it**."
+- `exit_criteria[0]`: "no spec folder, story file, or task list was created under `.writ/specs/`"
 - Terminal constraint: "Do not open a PR, **write spec artifacts**, or escalate to the story pipeline without an explicit yes."
 
-Step 2.5 Visual Preview is consistent with that contract precisely because it is ephemeral and singular: one canvas, approve / adjust / skip, nothing saved. Its own guardrail says so — "It gathers layout feedback before coding; it is not a design deliverable."
+**This is a contract to amend, not a reason to refuse.** The distinction the current text misses is between a *spec artifact* — spec folder, stories, task list — and an *exploration record*. `exit_criteria[0]` already draws that line correctly by naming `.writ/specs/` specifically; `outcome`'s broader "no planning artifact" is the sentence that needs rewriting. Retaining three rejected looks and the reason each lost is not a spec, and the pipeline it must not start is still `/implement-story`.
 
-Making `/prototype` produce several retained drafts of a concept that may never be built requires contradicting all three lines. The pipeline is also wrong-shaped for it: Visual Preview sits *after* Context Scan has already detected the tech stack, located target files, and decided which files to modify. That is a step for a change already scoped to a codebase, not a concept still being chosen.
+**Implication.** The work is a contract amendment plus a capability, not a relocation.
 
-**Implication.** This is a placement error, not a capability gap in `/prototype`.
+### F2. `/design` cannot serve pre-spec exploration, and should not be stretched to
 
-### F2. `/design` already owns this and already knows it is behind
+`commands/design.md` `exit_criteria[0]` requires "the selected mode's artifacts are under `.writ/specs/<spec-name>/mockups/`", and all five modes route output into a spec folder. There is no path for "I have a concept, no spec, and want three takes on it."
 
-`commands/design.md` Mode A generates Excalidraw wireframes, including per-state variants (`{component}-{state}.excalidraw`). But its `exit_criteria[0]` requires "the selected mode's artifacts are under `.writ/specs/<spec-name>/mockups/`", and every mode routes output into a spec folder. There is no path for "I have a concept, no spec, and want to see three takes on it."
+Mode A also generates *states* — default, loading, empty, error, named `{component}-{state}.excalidraw` — which is state coverage of one design, not alternative designs. Writ has no divergence step anywhere.
 
-The roadmap parking lot (`.writ/product/roadmap.md`, *Beyond Phase 12*) already carries the modernization item: "**`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools via `/refresh-command`."
+The roadmap parking lot (`.writ/product/roadmap.md`, *Beyond Phase 12*) carries "**`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools via `/refresh-command`." That item is real and still worth doing, but it is about modernizing how `/design` renders wireframes *for a spec that exists*. It is not the pre-spec exploration gap.
 
-Mode A also generates *states* (default, loading, empty, error), which is state coverage of one design, not alternative designs. Writ has no divergence step anywhere in its 32 commands.
-
-**Implication.** The work the user is asking for is an already-identified, already-prioritized `/design` item. Routing it to `/prototype` would build it in the wrong place while the right place stays stale.
+**Implication.** `/design` keeps its post-spec job. Adding an `--explore` mode would give Writ two commands that both do pre-spec divergence, which is the duplication ADR-015 exists to prevent. The skill both could load is the shared part.
 
 ### F3. Parallel prototyping is real, and the mechanism is not "make more things"
 
@@ -111,99 +137,110 @@ Reported limitations: it does not auto-detect an existing design system — you 
 
 ## Options Analysis
 
-### Option A — Add multi-variant preview to `/prototype` Step 2.5
+### Option A — Reframe `/prototype` as the exploration workflow *(recommended)*
 
-Generate N canvas mockups instead of one; let the user pick before coding.
+Amend `/prototype`'s contract so exploration is its outcome. It loads a `design-divergence` skill, produces several structurally distinct looks, and — where cheap — a rough running thing that shows whether the idea survives contact with the codebase. It stops before spec and planning, and keeps its existing escalation into `/create-spec --from-prototype`.
 
-- **Pros:** Smallest diff. Uses a step that already exists. Matches the literal request.
-- **Cons:** Contradicts `/prototype`'s `outcome` and `exit_criteria[0]` (F1). Exploration still happens inside a shipping pipeline, after Context Scan has scoped files. Nothing is retained, so the comparison that makes parallel prototyping work (F3) leaves no trace for the spec. Does nothing for the real pre-spec case where no code change is intended yet. Leaves `/design` Mode A stale.
-- **Effort:** XS
-- **Risk:** Medium — ships a contract violation into the command whose whole job is staying small.
-
-### Option B — New `/explore` (or `/concept`) command
-
-A dedicated pre-spec divergence command: brief in, N drafts out, selection recorded, hand off to `/create-spec`.
-
-- **Pros:** Clean conceptual home. Honest about being a planning step. Easy to give its own exit criteria.
-- **Cons:** A 33rd command. ADR-015 exists specifically to resist this, and its Tier B ritual re-applies "does the harness do this natively now?" — to which F5 answers yes. Overlaps `/design` almost entirely. Writ's own history (Ralph, `/audit`, `/lessons`, `/explain-code`) is a record of retiring commands like this.
+- **Pros:** Delivers the job the command already advertises (F1). No new command — one skill plus a contract amendment, which is leaner than every alternative here. Carries the divergence evidence (F4) where the user already goes first. "End in mind" needs the code-adjacent realness only `/prototype` has; a mockup-only path cannot provide it. Keeps `/design` focused on its post-spec job.
+- **Cons:** The contract amendment is load-bearing and must be done carefully — see the two-outcomes tension below. Writ's component contract (ADR-020) requires a single `outcome` per command, so "explore" and "ship a small change" cannot both be the outcome; one has to become a terminal state of the other. Raises the ceremony of a command whose selling point is having none, unless divergence is opt-in or stakes-gated.
 - **Effort:** M
-- **Risk:** High — most likely of the four to be deleted within two quarters.
+- **Risk:** Low-Medium. The risk is scope, not direction.
 
-### Option C — Extend `/design` with a pre-spec mode, backed by a `design-divergence` skill *(recommended)*
+### Option B — Add multi-variant preview to `/prototype` Step 2.5 only
 
-Add a mode to `/design` that runs before a spec exists, and factor the divergence discipline into a skill that `/design`, `/create-spec`, and `/prototype` can all load.
+Generate N canvas mockups instead of one, keep everything else.
 
-- **Pros:** Closes a parking-lot item rather than opening a new one (F2). No new command — satisfies ADR-015 and ADR-009's "reusable capability multiple commands need" test for a skill. The skill carries the evidence-backed divergence mechanics from F4, which is the part that does not happen unprompted. Rendering delegates to the platform per Principle 4 (F5). The retained decision record is what makes the comparison durable, which is Writ's actual product.
-- **Cons:** Requires resolving where pre-spec artifacts live (`/design`'s current exit criteria assume a spec). Requires an adapter row per platform for the render step — real work, but work F6 shows is already overdue. Must resolve the `/design` name collision.
-- **Effort:** M
-- **Risk:** Low-Medium — the uncertainty is the platform capability matrix, not the design.
-
-### Option D — Do nothing structural; fix F6 only
-
-Repair the `cursor-ide-browser` reference and the name collision, and leave exploration to the harness's own `/design`.
-
-- **Pros:** Cheapest honest answer. If Claude Code's artboards are good enough, Writ adding anything is re-implementation. Subtraction before addition is Writ's own Design Principle 1.
-- **Cons:** Loses the divergence brief (F4), which the harness does *not* do — it generates "a few options" from one context, which is the failure mode. Loses the decision record. Cursor, Codex, and OpenClaw users get nothing. Leaves pre-spec exploration undefined in a contract-first methodology.
+- **Pros:** Smallest diff. No contract change.
+- **Cons:** Still runs after Context Scan has scoped files, so it decorates a decided change rather than helping choose. Nothing is retained, so the comparison that makes parallel prototyping work (F3) leaves no trace for the spec. Does nothing for the case where no code change is intended yet.
 - **Effort:** XS
-- **Risk:** Low, but it declines the one part of the problem where Writ has something to add.
+- **Risk:** Medium — looks like the ask, misses the mechanism.
+
+### Option C — New `/explore` command
+
+A dedicated pre-spec divergence command.
+
+- **Pros:** Clean conceptual home; easy to give its own exit criteria.
+- **Cons:** A 33rd command for something `/prototype` already advertises. ADR-015 exists to resist this, and its Tier B ritual asks "does the harness do this natively now?" — to which F5 answers partly yes. Writ's history (Ralph, `/audit`, `/lessons`, `/explain-code`) is a record of retiring commands like this.
+- **Effort:** M
+- **Risk:** High.
+
+### Option D — Extend `/design` with a pre-spec `--explore` mode
+
+*(This was the first draft's recommendation; see Revision.)*
+
+- **Pros:** Closes the parking-lot item in the same pass.
+- **Cons:** Produces pictures, not an end-in-mind. Leaves `/prototype` advertising exploration it does not do. Gives Writ two pre-spec divergence surfaces. The parking-lot item it closes is actually about rendering wireframes for an existing spec (F2) — a different problem.
+- **Effort:** M
+- **Risk:** Medium.
+
+### Option E — Fix F6 only; let the harness explore
+
+- **Pros:** Cheapest honest answer; subtraction before addition is Design Principle 1.
+- **Cons:** The harness generates "a few options" from one context, which is the F4 failure mode. No decision record. Cursor, Codex and OpenClaw users get nothing.
+- **Effort:** XS
+- **Risk:** Low, but declines the part where Writ has something to add.
 
 ---
 
 ## Recommendations
 
-### Primary: Option C
+### Primary: Option A
 
-**1. Write a `skills/design-divergence/SKILL.md`.** It owns *how to get genuinely different drafts*, and nothing else. Contents, each traceable to F4:
+**1. Amend `/prototype`'s contract.** This is the gating work; the capability is straightforward once the contract is right.
 
-- **Declare axes before generating.** Name two or three orthogonal dimensions the drafts must differ on — information density, navigation model, primary action placement — and assign each draft a distinct combination. This is the morphological-analysis intervention, and it is what converts "three samples" into "three alternatives."
-- **Generate in independent contexts.** One subagent per draft, no shared scratch, no draft seeing another. Shared context is the fixation vector (Deng et al.).
-- **Reason before rendering.** Each generator states its axis commitment and the trade-off it accepts before producing anything — chain-of-thought is the measured fixation reducer.
+- `outcome` becomes exploration-shaped. Replace "the repository gained no planning artifact describing it" with a line that forbids *spec* artifacts specifically, matching what `exit_criteria[0]` already says correctly. An exploration record is not a spec.
+- Resolve the two-outcomes tension explicitly. ADR-020 allows one `outcome` per command. Recommended resolution: the outcome is **"the user can see several real takes on the idea and has chosen one, with the rejected takes and their reasons recorded"** — and shipped code becomes one terminal state of that, not the definition of done. A `/prototype` run that ends with three looks, a choice, and no code is a success, not an abandoned run.
+- Keep the terminal constraint against starting `/implement-story`. That boundary is still right.
+
+**2. Write `skills/design-divergence/SKILL.md`.** It owns *how to get genuinely different alternatives*, and is loadable by `/prototype`, `/design`, and `/create-spec`. Each rule traces to F4:
+
+- **Declare axes before generating.** Two or three orthogonal dimensions the drafts must differ on — information density, navigation model, primary action placement — with each draft assigned a distinct combination. This is the morphological-analysis intervention and it is what converts "three samples" into "three alternatives."
+- **Generate in independent contexts.** One subagent per draft, no shared scratch, no draft seeing another. Shared context is the fixation vector.
+- **Reason before rendering.** Each generator states its axis commitment and the trade-off it accepts before producing anything.
 - **Use ordinary personas.** "A developer who reads this screen forty times a day," not "a visionary designer." Genius framing measurably reduced diversity.
-- **Cross-family where available.** Reuse the Phase 12 cross-family panel's vendor plumbing (ADR-028) when a project opts in. Inter-model convergence is real but weaker than intra-model.
-- **State the anti-pattern explicitly:** asking one agent for N options in one call is not divergence, and the skill should say why.
+- **Cross-family where available**, reusing the Phase 12 panel's vendor plumbing (ADR-028) when a project opts in.
+- **State the anti-pattern:** one agent, one call, "give me three options" is not divergence — and say why.
+- **Keep it medium-agnostic.** Writ's persona is a solo builder, and not every concept is a screen. The same axes discipline applies to API shapes and data models; pstack's `architect` (two structurally distinct sketches from different models) is the non-visual precedent.
 
-**2. Add `/design --explore` (pre-spec mode).** Takes a concept description or an issue file. Runs the skill, renders through the platform, presents the drafts side by side, and records the selection. It is the only `/design` mode that does not require an existing spec.
+**3. Make divergence proportional, not default.** Per ADR-023, a one-line bug fix should not trigger three looks. Gate it on the same UI-surface detection Step 2 already does, plus an explicit flag, and default to **3** drafts rather than 5 — F5 reports artboards are token-heavy.
 
-**3. Resolve the artifact home.** Pre-spec drafts cannot go in `.writ/specs/<name>/mockups/`. Recommend `.writ/design/<date>-<concept>/` holding:
-- `exploration.md` — the axes, one row per draft, the selection, and **why each rejected draft was rejected**
-- whatever renderable files the platform produced (HTML, SVG, artboard links)
+**4. Retain the record, not the pixels.** `.writ/prototypes/<date>-<concept>/exploration.md`: the axes, one row per draft, the selection, and **why each rejected draft was rejected**. Hosted canvas URLs are perishable and are never the system of record (ADR-005). `/create-spec --from-prototype` already exists — extend it to carry `exploration.md`'s rationale into the spec contract, where the rejected alternatives become the "what else did we consider" that Writ's ADRs demand everywhere else.
 
-Then `/create-spec --from-exploration` graduates the selected draft into the spec's `mockups/` and carries `exploration.md`'s rationale into the contract. The rejected alternatives are the durable asset: they are the "what else did we consider" that Writ's ADRs already demand everywhere else, and the thing a reader six months out cannot reconstruct. **Persist the reasoning even when the artboard links rot** — treat hosted canvas URLs as perishable and never as the system of record (ADR-005).
+**5. Delegate rendering.** Claude Code's native `/design` artboards, Cursor canvas, self-contained HTML as the floor, Excalidraw below that. One adapter row per platform, with explicit degradation.
 
-**4. Fix F6 in the same change.** Replace `cursor-ide-browser` in `prototype.md` with a platform-agnostic capability name, add the translating row to all four adapters, and resolve the `/design` collision — rename Writ's to `/writ-design`, or make it detect and delegate to the native skill. Adapter rows should degrade explicitly: artboards where available, plain self-contained HTML where not, Excalidraw only as the floor.
+**6. Fix F6 in the same change**, because the reframe depends on it. Replace `cursor-ide-browser` with a platform-agnostic capability name and add translating rows to all four adapters; resolve the `/design` collision by renaming Writ's command or having it detect and delegate.
 
-**5. Leave `/prototype` Step 2.5 alone**, except for the tool-name fix. One preview to steer one coding agent is the right scope for a shipping command. Add one line pointing at `/design --explore` for the case where the user has not chosen a direction yet.
+### Build order
 
-### Alternative if Option C is too much
-
-Option D plus item 1 only: ship the `design-divergence` skill and let the native `/design` consume it. Gets the evidence-backed part for XS effort and defers the artifact-home question. Weaker, because nothing retains the rejected alternatives.
+Item 1 before item 2 — the contract decides what the skill is allowed to produce. Items 5 and 6 are the same work and should land together. Item 4's consumer (`--from-prototype` carrying rationale) ships in the same spec as its producer, per Writ's live-consumer rule.
 
 ### Explicitly not recommended
 
-Option B. Writ does not need a 33rd command for something the harness ships natively and `/design` already half-owns.
-
----
+Option C. Writ does not need a 33rd command for something `/prototype` already advertises in its own usage table.
 
 ## Risks & Mitigation
 
 | Risk | Mitigation |
 |---|---|
+| **The contract amendment makes `/prototype` two commands in a trench coat** — this is the main risk of the reframe | Resolve it in the frontmatter, not in prose: one `outcome` (exploration with a recorded choice), with shipped code as a terminal state rather than the definition of done. If the amended `exit_criteria` cannot be written as a short checkable list, the reframe is too big and Option B is the fallback. |
+| **Ceremony creep in the command whose selling point is having none** | Divergence is stakes-gated and opt-in, never automatic (ADR-023). A one-line bug fix must still run exactly as it does today, and a regression test should pin that. |
 | Claude Code's `/design` is a research preview and will change shape (F5) | Writ owns the brief and the record, not the renderer. Put the platform coupling in one adapter row per platform, so a breaking change is a four-line fix. Verify against first-party docs before locking a spec. |
-| Divergence mechanics produce no measurable benefit | Make it falsifiable before building it out: run one concept through declared-axes generation and through a naive "give me three options" prompt, and have a human rate structural distinctness blind. If the axes version does not win, build Option D instead. This mirrors the Phase 12 panel trial, which was kept only on its measured verdict. |
-| Token cost — several artboards on a live session is expensive (F5) | Default to 3 drafts, not 5. Make the count a flag. Gate on stakes per ADR-023 rather than running it on every change. |
-| `.writ/design/` becomes dead weight nobody reads | Writ's live-consumer rule applies: if `/create-spec --from-exploration` is not built, do not create the directory. The consumer ships in the same spec as the producer. |
-| Another `/design` Mode A — a format nothing reads | The existing Excalidraw path is the precedent. Require that the selected draft be loadable by the coding agent at Gate 1 before the mode is considered done. |
-| Scope creep into a design tool | Hard boundary: Writ renders nothing itself and ships no runtime, consistent with ADR-028 and ADR-029. If the platform cannot render, `/design --explore` degrades to a written description of each option and says so. |
+| Divergence mechanics produce no measurable benefit | Make it falsifiable before building it out: run one concept through declared-axes generation and through a naive "give me three options" prompt, and have a human rate structural distinctness blind. If the axes version does not win, drop to Option E. This mirrors the Phase 12 panel trial, which was kept only on its measured verdict. |
+| Token cost — several artboards on a live session is expensive (F5) | Default to 3 drafts, not 5. Make the count a flag. Gate on stakes rather than running it on every change. |
+| `.writ/prototypes/` becomes dead weight nobody reads | Writ's live-consumer rule applies: if `/create-spec --from-prototype` is not extended to read `exploration.md`, do not create the directory. The consumer ships in the same spec as the producer. |
+| Another Excalidraw — a format nothing reads | Require that the selected draft be loadable by the coding agent at Gate 1 before the capability is considered done. |
+| Scope creep into a design tool | Hard boundary: Writ renders nothing itself and ships no runtime, consistent with ADR-028 and ADR-029. Where the platform cannot render, `/prototype` degrades to a written description of each option and says so. |
 
 ---
 
 ## Further Research
 
-1. **First-party verification of Claude Code `/design`.** All of F5 is secondary reporting. Its exact output format, where artboards persist, and whether they can be pointed at a design system determine how item 4 is written. This is the highest-value open item.
-2. **Does the `/design` collision shadow or conflict?** This session's listing is suggestive, not conclusive. Needs a clean-room install into a fresh project on 2.1.233+.
-3. **Does declared-axis divergence beat naive multi-prompt in practice?** The supporting study did not report a sample size. Writ should produce its own measurement rather than cite a weak one.
-4. **Cursor, Codex, and OpenClaw capability matrix.** F5 covers Claude Code only; searches returned nothing usable on Cursor canvas. Option C's adapter rows cannot be written without this.
-5. **Whether visual exploration is even the common case.** Writ's primary persona is a solo builder shipping real products; the question assumes UI work. Non-visual concept drafts — API shapes, data models — may be the larger need, and pstack's `architect` (two structurally distinct sketches from different models) is the closer model for those. The skill should be written so it is not UI-only.
+1. **First-party verification of Claude Code `/design`.** All of F5 is secondary reporting. Its exact output format, where artboards persist, and whether they can be pointed at a design system determine how the delegation is written. Highest-value open item.
+2. **Does the `/design` collision shadow or conflict?** This session's listing is suggestive, not conclusive. Needs a clean-room install into a fresh project on 2.1.233+. Filed as [2026-10-19-design-command-name-collision](../issues/bugs/2026-10-19-design-command-name-collision.md).
+3. **Does declared-axis divergence beat naive multi-prompt in practice?** The supporting morphological-analysis study did not report a sample size. Writ should produce its own measurement rather than cite a weak one — and the Phase 12 panel trial is the template for how.
+4. **Cursor, Codex, and OpenClaw capability matrix.** F5 covers Claude Code only; searches returned nothing usable on Cursor canvas. The adapter rows cannot be written without this. Filed as [2026-10-19-prototype-visual-preview-cursor-only](../issues/bugs/2026-10-19-prototype-visual-preview-cursor-only.md).
+5. **How much realness does "end in mind" require?** The reframe's distinctive claim is that a rough running thing beats a mockup for judging an idea. That is untested here. Worth settling early, because it sets whether exploration drafts are rendered-only, or code-backed and therefore much more expensive.
+6. **Whether visual exploration is even the common case.** Writ's primary persona is a solo builder shipping real products; the question assumes UI work. Non-visual drafts — API shapes, data models — may be the larger need, and pstack's `architect` is the closer model. The skill should be written so it is not UI-only.
 
 ---
 
