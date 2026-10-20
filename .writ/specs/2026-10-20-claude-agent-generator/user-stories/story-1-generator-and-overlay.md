@@ -1,6 +1,7 @@
 # Story 1: Generator and Overlay
 
 > **Status:** Completed ✅ (2026-10-20)
+> **Commit:** 6352c97297f6fa6ff12d57b374491ff78877acdc
 > **Priority:** High
 > **Dependencies:** None
 
