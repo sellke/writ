@@ -1,10 +1,12 @@
 # Writ — Product Roadmap
 
-> Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013)
-> Last Updated: 2026-10-19
+> Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013) and 2026-10-20 (pstack comparison — see [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
+> Last Updated: 2026-10-20
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-10-19):** Phases 1–11 closed. **Phase 12 (Behavioral Verification) is implemented and released in v0.40.0 (2026-10-02), pending human UAT**: all four success criteria are met — a fixture app exercises the full loop with machine-captured evidence, Gate 4.5's `prose-only` count dropped 2 → 1, the missing-evidence mutation reports `unmet`, and the cross-family panel's trial returned `keep` (6 of 8 panel-only findings valid on four stories). The phase's own UAT plan is unticked, so the open item is human UAT, not more building. **v0.41.0 (2026-10-12)** shipped inter-phase: `/retro` rewritten as a transcript review, and the consumer-less `gbrain-interop` skill removed. The **agent CLI contract** ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) is Complete on `feature/agent-cli-contract` and not yet released. **No phase after 12 is committed** — candidates live in [Beyond Phase 12 (Parking Lot)](#beyond-phase-12-parking-lot).
+**Current status (2026-10-20):** Phases 1–11 closed. **Phase 12 (Behavioral Verification) is implemented and released in v0.40.0 (2026-10-02), pending human UAT**: all four success criteria are met — a fixture app exercises the full loop with machine-captured evidence, Gate 4.5's `prose-only` count dropped 2 → 1, the missing-evidence mutation reports `unmet`, and the cross-family panel's trial returned `keep` (6 of 8 panel-only findings valid on four stories). The phase's own UAT plan is unticked, so the open item is human UAT, not more building. **v0.41.0 (2026-10-12)** shipped inter-phase: `/retro` rewritten as a transcript review, and the consumer-less `gbrain-interop` skill removed. **v0.42.0 (2026-10-20)** shipped the **agent CLI contract** ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and **`/prototype` as the exploration workflow** (PR #59). **Phases 13–16 are committed (2026-10-20, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):** Subtract and Repair, Front Door and Distribution, Code-Level Rigor, and Verified Landing, the last gated on Phase 12's human UAT. Candidates live in [Beyond Phase 16 (Parking Lot)](#beyond-phase-16-parking-lot).
+
+**Strategic frame (2026-10-20 refresh):** The first full pstack comparison ([research](../research/2026-10-19-writ-vs-pstack-research.md)) found Writ ahead on durable intent and on enforcement in code. It found Writ behind on four things: entry (32 commands), the last mile after a PR opens, rigor about the code itself, and Claude Code parity. Writ's surface was also past its own justified ceilings. The posture is now: **Writ owns the contract, the verifier, and the boundary, reached through one front door. It subtracts before it adds.**
 
 **Strategic frame (2026-07-09 refresh):** Harnesses natively absorbed much of what Writ's early phases built scaffolding for (memory, skills, subagents, planning modes, context management). Writ's posture going forward: **keep the harness light, own the contracts, delegate the mechanics** — prune what platforms do natively, expand where Writ compounds (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop).
 
@@ -14,6 +16,7 @@
 
 | Date | Change |
 |---|---|
+| 2026-10-20 | **Strategic refresh** (`/plan-product --reconcile`) after the first full pstack comparison ([research](../research/2026-10-19-writ-vs-pstack-research.md)) and the `/prototype` exploration research. **Direction change**, recorded in [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md):<br>• Writ owns the contract, the verifier, and the boundary, reached through one front door.<br>• Phases 13–16 committed: Subtract and Repair, Front Door and Distribution, Code-Level Rigor, and Verified Landing, the last gated on Phase 12's UAT.<br>• Phase 13 covers every defect both research documents found.<br>• `/prototype` as exploration (PR #59) recorded in the condensed history.<br>• Parking lot: plugin distribution and the empirical-fork rule promoted to Phase 14; friction signals retired (ADR-025 Decisions 1, 3, 6 superseded; ADR-029 review trigger amended); four candidates added.<br>• Parking lot renamed *Beyond Phase 12* → *Beyond Phase 16*.<br>• Design Principle 7 added.<br>• Derivatives regenerated. |
 | 2026-10-19 | **Reconcile pass** (`/plan-product --reconcile`) after v0.41.0: the four P1/P4 items the 2026-10-02 product check handed over are closed — `mission.md` Phase 12 status realigned to the roadmap, the Phase 11 gate bullet given a forward note, Phase 12 success criteria 1–3 marked met against re-derived evidence, and the header dated. New: v0.41.0 recorded in the condensed history (`/retro` as a transcript review; `gbrain-interop` removed); the agent CLI contract recorded as Complete-but-unreleased; `mission.md`'s self-improvement differentiator credits `/retro` as a second evidence channel; GBrain demoted from *the* integration to *an* example. Friction-signals parking-lot entry narrowed to what `/retro` did not absorb. **No direction change, no new ADR** — the ADR-025 amendment and ADR-029 already covered both shifts. Derivatives regenerated. |
 | 2026-10-02 | Recorded `2026-10-01-product-check-direction` as inter-phase infrastructure (v0.40.0). |
 | 2026-10-01 | **Reconcile pass** (`/plan-product --reconcile`): Phase 11 promoted from six inter-phase rows to a closed phase with its caveats (single-model baseline; spec analysis advisory); model delegation recorded as shipped (v0.34.0) and removed from the parking lot; friction signals marked unblocked. **Direction change:** Phase 12 (Behavioral Verification) committed with [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md). Parking lot renamed *Beyond Phase 10* → *Beyond Phase 12*; Cursor plugin distribution and the empirical-fork rule added as candidates. Derivatives regenerated. |
@@ -67,7 +70,8 @@
 | **— Architecture Lint and Drift-Guard Follow-ups** <!-- 2026-09-26-arch-lint-and-follow-ups --> | Gate 2 architecture-ruleset detection with a shipped guide and ADR hook; Codex TOML freshness check; issue closure via ## Resolution. | v0.39.0 |
 | **— Product Check Direction** <!-- 2026-10-01-product-check-direction --> | Product-doc verification reads as a post-implementation check whose findings feed realignment; /implement-phase and /release each suggest /verify-spec --product in one line. | v0.40.0 |
 | **— Transcript `/retro`** | `/retro` reads Claude Code, Cursor and Codex transcripts for a story, spec, phase or `--since` window, ranks where the agent struggled, and proposes fixes to the *environment* — steering files, navigation hints, lint rules, skills, docs — never to source or tests. Each finding cites a transcript path and an observable signal; command and agent changes route to `/refresh-command`. Replaces the git-metrics retro ([ADR-025](../decision-records/adr-025-friction-signals.md) amended). Shipped alongside the removal of the consumer-less `gbrain-interop` skill (the recipe doc stays; the adapters link it). | v0.41.0 |
-| **— Agent CLI Contract** <!-- 2026-10-12-agent-cli-contract --> | Every shipped script follows one documented, test-enforced agent contract — data tools emit one JSON document, check tools lead with `pass`/`fail`/`unverifiable` — with the contract test reading the shipped set from `install.sh` so no second list can drift. Six dev-only scripts stop shipping ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)). | *unreleased — `feature/agent-cli-contract`* |
+| **— Agent CLI Contract** <!-- 2026-10-12-agent-cli-contract --> | Every shipped script follows one documented, test-enforced agent contract — data tools emit one JSON document, check tools lead with `pass`/`fail`/`unverifiable` — with the contract test reading the shipped set from `install.sh` so no second list can drift. Six dev-only scripts stop shipping ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)). | v0.42.0 |
+| **— `/prototype` as Exploration** | `/prototype` becomes the early exploration workflow. It declares axes, generates up to three code-portable drafts in independent contexts, and records the choice and why each rejected draft lost in `.writ/prototypes/<date>-<slug>/exploration.md`. A recorded choice with no code is a complete run. `/create-spec --from-prototype` reads the record (Directions Considered; Story 1 status from the source matrix). Merged in PR #59, [research](../research/2026-10-19-prototype-visual-drafts-research.md). | v0.42.0 |
 
 > Rows below the phase rows are inter-phase infrastructure — shipped through the normal spec pipeline between roadmap phases, recorded here so no Complete spec lacks a roadmap home (added 2026-08-12 reconcile pass).
 
@@ -572,15 +576,229 @@ model configuration for agents.
 
 ---
 
-## Beyond Phase 12 (Parking Lot)
+## Phase 13: Subtract and Repair (1-2 weeks) — 📋 Committed (2026-10-20)
+
+**Goal:** Writ ships only what it uses and installs the same root contract on every platform. It fixes every defect the 2026-10-19 research found before anything new lands. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
+
+**Why now:**
+- The pstack comparison ([research](../research/2026-10-19-writ-vs-pstack-research.md), F6, F7, and the defect table) and the prototype research ([F6](../research/2026-10-19-prototype-visual-drafts-research.md)) found ten defects.
+- `eval-leanness.py` reports every surface past its own justified ceiling: commands 13,335 lines against 11,081, and scripts 87,066 against 46,748.
+- Dormant code still ships: `recommend-state.py` is 3,807 lines and no command calls it.
+- Design Principle 7 applies: subtract before you add.
+
+### Success Criteria
+
+- A fresh Claude Code install carries the Prime Directive. Its `CLAUDE.md` block is generated from the command registry, and an eval check fails when a registered command is missing from it.
+- CI runs `pytest` on the 3.9 floor and the bash tests on every PR, alongside `eval.sh`.
+- `update.sh` keeps a locally modified stale file on every run and keeps the Codex config baseline. Each is proven by a test that fails on today's script.
+- No shipped command names a tool that no adapter translates; `cursor-ide-browser` is replaced. Writ's `/design` no longer collides with Claude Code's native `/design`, verified by a clean-room install.
+- `adapters/claude-code.md` documents only commands and flags that exist, and its worktree guidance agrees with `skills/subagent-worktree-integration`.
+- None of the following is left in what `install.sh` ships:
+  - a `*.lean.md` file or a `WRIT_HARNESS_LEAN` branch
+  - a `(no-op until ADR-025 Story 1)` line
+  - `recommend-state.py`'s dormant staging path
+- Shipped commands link none of Writ's own development artifacts: archived specs, research documents, Writ's ADR files, or `calibrated_against` citations of Writ's calibration state. An eval check enforces it. Runtime paths such as `.writ/state/` are legitimate and stay.
+- `create-spec.md` gets the reduction pass PR #59 deferred. Its recorded overage falls instead of being repinned upward. The figure is drift signal per ADR-023, not a design target.
+- The phase-close leanness audit (Tier B) runs and is dated. None has run since July.
+
+### Features
+
+- [ ] **Claude Code parity** `Effort: S`
+  - Install the Prime Directive and base rules.
+  - Generate the `CLAUDE.md` block from `.writ/manifest.yaml`.
+  - Correct `adapters/claude-code.md`: remove the nonexistent `/implement-story --all` and agent teams, and align its worktree text with the worktree skill.
+- [ ] **CI runs every suite** `Effort: XS`: `pytest` (3.9 floor) and `scripts/tests/test_*.sh` join `eval.sh` in `.github/workflows/eval.yml`.
+- [ ] **Update-path bugs** `Effort: S`
+  - [`2026-10-12-update-deletes-modified-stale-files`](../issues/bugs/2026-10-12-update-deletes-modified-stale-files.md)
+  - [`2026-10-12-codex-config-baseline-dropped-on-update`](../issues/bugs/2026-10-12-codex-config-baseline-dropped-on-update.md)
+- [ ] **Platform-neutral names** `Effort: S`
+  - [`2026-10-19-prototype-visual-preview-cursor-only`](../issues/bugs/2026-10-19-prototype-visual-preview-cursor-only.md)
+  - [`2026-10-19-design-command-name-collision`](../issues/bugs/2026-10-19-design-command-name-collision.md): rename Writ's `/design`, or detect and delegate.
+- [ ] **Cuts** `Effort: S-M`
+  - Delete the five lean siblings and the flag. The null result stays in `.writ/decision-log.md`.
+  - Move `recommend-state.py`'s staging reducers and the state-format doc out of the shipped set. The design stays preserved in ADR-013 and the source repo. One live caller exists: `skills/drift-triage` calls `record-spec-lite-amendment` in recommended mode. The spec decides whether that branch goes too.
+  - Remove the ADR-025 no-op lines and their `check_model_escalation` pins.
+  - Strip Writ-internal references from shipped commands.
+  - Correct `/ship`'s description, which says "merged PR" while its exit criteria stop at an open PR.
+  - Replace the highest-churn `require_literal` pins with structural checks.
+- [ ] **`create-spec` reduction pass** `Effort: S`
+
+### Dependencies
+
+- None. The agent CLI contract (v0.42.0) already settled which scripts ship. The cuts start from that list.
+
+### Deliberately out of scope
+
+New capability of any kind, and any change to gate behavior. Every item here removes, corrects, or aligns.
+
+---
+
+## Phase 14: Front Door and Distribution (3-4 weeks) — 📋 Committed (2026-10-20)
+
+**Goal:** A new user goes from install to a correctly routed first task with one command, on Cursor or Claude Code, from one generated source. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
+
+**Why now:**
+- Writ ships 32 commands, and `README.md` says five are enough.
+- The mission's Adaptive Ceremony differentiator claims Writ suggests the right level of process, but no command does.
+- pstack's quickstart is two steps and one router (research F1).
+- `/prototype` is now the exploration workflow (PR #59, v0.42.0). The front door routes to it and does not duplicate it.
+
+### Success Criteria
+
+- A front-door command exists with one outcome: the request is restated in Writ's own words and routed to the existing command whose ceremony fits. It writes nothing beyond what the routed command writes.
+- It routes as follows:
+  - an unsettled idea goes to `/prototype`
+  - a bug or a small change goes to `/prototype --no-diverge`
+  - a feature goes to `/create-spec`
+  - roadmap work goes to `/implement-phase`
+  - a "why" or "how" question goes to `/why` (Phase 15), or to `/research` until `/why` exists
+  - a fork that running something could answer goes to `/prototype`, not to a question
+- The routed command's phases appear in the todo list, and a skipped phase shows as `skip: <reason>`.
+- Writ installs as a plugin in Cursor and in Claude Code. Scripts run from the plugin directory, and `/initialize` scaffolds `.writ/`. `install.sh` stays until both plugin installs pass the same smoke test.
+- Per-platform trees are generated from one source. CI fails when a command uses a platform term its adapter does not map, and when a generated tree is stale.
+- The README's start section is the front door, not the command table.
+
+### Features
+
+- [ ] **Front door** `Effort: M`
+  - Absorbs [`2026-10-13-in-your-own-words`](../issues/features/2026-10-13-in-your-own-words.md) as its restate step.
+  - Absorbs the empirical-fork rule (promoted from the parking lot) as a routing rule.
+- [ ] **Plugin distribution** `Effort: M`
+  - Promoted from the parking lot.
+  - Resolves [`2026-10-12-script-install-location`](../issues/improvements/2026-10-12-script-install-location.md).
+  - Verify Claude Code's plugin format first (pstack research, Further Research 1).
+- [ ] **Generated trees and adapter coverage check** `Effort: S-M`: pstack's `generate-pstack-harness-trees.mjs` is the reference. This check is the structural fix for the `cursor-ide-browser` class of defect.
+- [ ] **Rendering-delegation rows** `Effort: S`
+  - Cursor, Codex, and OpenClaw rows for `/prototype`'s draft rendering.
+  - First-party verification of Claude Code's native `/design` (prototype research, Further Research 1 and 4).
+- [ ] **Prompting guide** `Effort: XS`: what a request should carry (goal, done check, proof), recipes, and pitfalls.
+
+### Dependencies
+
+- Phase 13. Parity and the cuts make the generated trees correct and smaller.
+
+### Deliberately out of scope
+
+Model routing, new verification, and any rewrite of the commands the front door routes to.
+
+**Review at phase close (ADR-030):** if work still starts from direct commands, remove the front door.
+
+---
+
+## Phase 15: Code-Level Rigor (2 weeks) — 📋 Committed (2026-10-20)
+
+**Goal:** Writ's verifier reaches the design and the fix on high-stakes routes, and Writ answers "why is this like this?" from its own ledger. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
+
+**Why now:**
+- Writ's gates check that artifacts are well formed and that tests pass.
+- pstack's `architect`, `interrogate`, `blast-radius`, and bug-fix playbook ask whether the design and the fix are right (research F3).
+- Writ owns the best evidence for "why", but has no command that reads it (F4).
+- `/prototype`'s divergence rules are inline until a second caller exists. Gate 0 is that caller (prototype research, Recommendation 2).
+
+### Success Criteria
+
+- **`/why`:**
+  - Reads Writ's ledger first (ADRs, drift logs, specs, What Was Built records, git notes), then git history, then available MCPs.
+  - Gives every claim a confidence tier.
+  - When a change follows, ends with Preserve / Change / Avoid / Risk, and `/create-spec` discovery reads that list.
+- **Design divergence:**
+  - `skills/design-divergence/SKILL.md` has two live callers: `/prototype` Step 2.5, and Gate 0 on the boundary-crossing route.
+  - The Gate 0 route writes the caller's usage first, then produces two independent sketches on declared axes.
+  - The skill covers API shapes and data models as well as UI.
+- **Divergence trial:** declared-axes generation against a naive "give me three options" prompt, rated blind for structural distinctness. The trial also records whether render-only drafts were enough. The skill stays only if declared axes win.
+- **Gate 2.5:** on the review-agent route, it names the one fact the change is safe because of and the evidence rung that fact reached.
+- **`tdd-cycle` for bugs:** a failing repro on the surface where the bug shows, committed before the fix, with failing-then-passing output in the report.
+- **Reviewer prompts** carry lead-judgment filters:
+  - all nits means the code is fine
+  - trace the call site before accepting a hypothetical
+  - be slow to dismiss security findings
+- **`/retro` output:**
+  - Orders fixes as architecture, then types, then a lint, then a test, then docs.
+  - Proves each new check fails on a real past mistake.
+  - Keeps a rule-to-enforcer table.
+- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed.
+
+### Features
+
+- [ ] **`/why`** `Effort: M`: ledger first, confidence tiers, a Preserve / Change / Avoid / Risk handoff.
+- [ ] **`design-divergence` skill and the usage-first Gate 0** `Effort: M`: includes the blind trial.
+- [ ] **Blast-radius safety fact at Gate 2.5** `Effort: S`
+- [ ] **Repro-first bug fixing in `tdd-cycle`** `Effort: S`: reaches both `/prototype` and `/implement-story`.
+- [ ] **Reviewer lead-judgment filters** `Effort: XS`
+- [ ] **`/retro` fix ladder and rule-to-enforcer table** `Effort: S`: replaces the retired friction-signal design. `/refresh-command` gains two of `reflect`'s synthesizer criteria:
+  - findings that existing guidance already covers count as execution failures, not missing rules
+  - findings may only edit skills the transcript actually used
+
+### Dependencies
+
+- PR #59 (v0.42.0). Phase 14's front door routes to `/why`, but `/why` can ship first.
+
+### Deliberately out of scope
+
+Always-on multi-model panels, cross-vendor routing (ADR-024 stands), and formal verification.
+
+---
+
+## Phase 16: Verified Landing (2 weeks) — 📋 Committed, gated (2026-10-20)
+
+**Goal:** A PR Writ opened can be driven to merge-ready, with every verdict bound to the head it judged. Merge stays a human act unless this phase's ADR moves it. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
+
+**Gate:** starts only after Phase 12's human UAT passes and one real-project `app-verify.py` run is recorded. Until then the phase stays committed and unstarted.
+
+**Why:**
+- `/ship` stops when the PR opens. Nothing triages CI, works review threads, or records which head was verified (research F2).
+- pstack lands PRs unattended, but its merge gating is prose.
+- ADR-013's dormant design already binds approval to the reviewed head SHA.
+
+### Success Criteria
+
+- `pr-ready.py` is read-only and uses the ADR-029 check shape. It reports typed blockers with distinct exit codes: conflicts, unresolved threads, failing checks, and merge gates. The harness loop calls it, and the script never polls.
+- A verification ledger is keyed by PR, head SHA, and patch-id. A new head reads `NOT VERIFIED` unless its patch-id matches a verified one. A mutation test proves this.
+- `/ship --watch` works in a fixed order and stops at merge-ready. It never merges.
+  1. Conflicts.
+  2. Review threads, with comments treated as untrusted data.
+  3. CI: a suspected flake gets one fresh build, an identical second failure is real, and a failure in untouched code triggers a stale-base check.
+- An ADR decides whether autonomous PR open belongs inside `--recommend`, citing Phase 12's UAT result. Until that ADR is accepted, ADR-013 stands: recommended flows never merge, open PRs, or release.
+
+### Features
+
+- [ ] **`pr-ready.py`** `Effort: S`
+- [ ] **Verification ledger** `Effort: S`
+- [ ] **`/ship --watch`** `Effort: M`
+- [ ] **Ceiling ADR** `Effort: XS`
+
+### Dependencies
+
+- Phase 12's human UAT.
+- The agent CLI contract (ADR-029) for both scripts.
+
+### Deliberately out of scope
+
+Autonomous merge, deploys, and release.
+
+---
+
+## Beyond Phase 16 (Parking Lot)
 
 **Kept as candidates:**
-- **Cursor plugin distribution** `Effort: S-M` — publish Writ through Cursor's plugin marketplace (`/add-plugin`). The plugin schema accepts `commands`, `agents`, `skills`, `rules`, and `hooks`, so the surface maps directly. The open constraint: a plugin cannot scaffold `.writ/` or ship `scripts/` into a project, so it still needs a bootstrap step (`/initialize` or `install.sh`). Claude Code's plugin format is the sibling question.
-- **Empirical-fork rule** `Effort: XS` — one line in `recommendation-semantics.md`: a fork answerable by running something routes to `/prototype` instead of AskQuestion; AskQuestion is reserved for product, preference, and taste calls.
-- **Friction signals & Improvement Requests** `Effort: S-M` *(was M — v0.41.0 absorbed part of it)* — the minimal self-improvement loop: six closed signal kinds appended to one gitignored JSONL at sites that already exist, a once-a-day one-line nudge in `/status` at ≥3 unreviewed, and `Signal:` as a `/refresh-command` evidence type so the loop works off-Cursor. Closes the DEV-004 gap from the 2026-08-14 dogfooding research. See [ADR-025](../decision-records/adr-025-friction-signals.md). *Scope narrowed 2026-10-19: the transcript `/retro` (v0.41.0) already supplies the review-and-disposition half — ranked findings, each cited to a transcript path, dispositioned as applied / refreshed / issue / dismissed / deferred — so a separate `/retro --friction` review is no longer part of this item. What remains is signal **emission** and its consumers. Unblocked (ADR-024 shipped in v0.34.0 gives the `escalated` signal a source); not started — `scripts/signal.py` does not exist.*
 - **Cross-project learning corpus** — extension of the knowledge ledger once consolidation is proven
-- **`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique; revisit with AI image mockups or native design tools via `/refresh-command`
+- **`/design` Mode A modernization** — Excalidraw hand-authoring is a 2024 technique. Revisit it with AI image mockups or native design tools via `/refresh-command`. This is post-spec rendering, separate from `/prototype`'s pre-spec exploration.
 - **Eval Tier 2 expansion** — beyond the Phase 7 lightweight check, if it demonstrates value
+- **Orchestration hygiene** `Effort: S` — adds three things from pstack's `orchestrate` playbook (research F8) to `/implement-spec` and `/implement-phase`:
+  - a pilot story run end to end before fan-out
+  - a standing-orders register that grows when the orchestrator repeats an instruction
+  - a brief template whose missing fields block a spawn
+- **Decision-trail review** `Effort: XS-S` — `/implement-phase`'s completion report gains an Attention section. The section comes from a review of `recommendation-log.md` by the opt-in panel, when one is configured.
+- **Measured-performance workflow** `Effort: S-M` — for perf work:
+  - a baseline
+  - the limiter named before any claim
+  - at least five alternating runs
+  - a verdict of faster, slower, no difference, or inconclusive
+
+  pstack's `benchmark-checklist` and `hillclimb` are the reference. It applies to Writ's own eval baselines too.
+- **Formal verification** *(watch)* — pstack added it on 2026-10-18. Revisit in November 2026.
+
+**Promoted 2026-10-20:** Cursor plugin distribution and the empirical-fork rule, both into Phase 14.
 
 **Deferred until concrete signal:**
 - **Team affordances** (cross-dev drift reconciliation, `/review-spec`, multi-repo orchestration) — trigger: a second human on a shared Writ project. See [ADR-007](../decision-records/adr-007-team-audience-sequencing.md).
@@ -589,6 +807,7 @@ model configuration for agents.
 **Dropped:**
 - **Opaque, unbounded autonomous loops (Ralph successor)** — deliberate non-goal per [ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md); recommended autonomy is confined to evidence-backed spec authoring (`/create-spec --recommend`) and the bounded end-to-end phase loop (`/implement-phase --recommend`), which ends at the completion report and never merges, opens PRs, or releases
 - **`/audit`, `/lessons`, per-story scorecards** — cancelled at Phase 5 closure
+- **Friction signals & Improvement Requests** — retired 2026-10-20 by [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md), never started. `/retro`'s transcript review (v0.41.0) covers the purpose, and Phase 15 gives it a fix ladder. `scripts/signal.py`, `signals.jsonl`, the `/status` nudge, and `Signal:` evidence will not be built. The no-op emit lines come out in Phase 13.
 - **Notification integrations, cross-AI parallel coordination, browser daemon** — carried over from prior refresh; still out of scope
 
 ---
@@ -609,6 +828,8 @@ Phases 6-8 total roughly 4-7 weeks of focused work at solo-maintainer pace. Each
 
 Phase 10 is 3-5 weeks, and its long pole (progressive disclosure) decomposes into **one spec per command file** for exactly this reason — six independently shippable units rather than one bundled rewrite. The phase's own sequencing note (governor checks land as warnings before blocking) is the same discipline applied to enforcement.
 
+Phases 13–16 total about 8–10 weeks at the estimates above. Phase 11's six specs shipped in five days and Phase 12 in about two weeks, so the real pace may be faster. Each phase ships on its own, and each phase's features decompose into one spec per feature. Phase 16 waits on Phase 12's human UAT, not on Phase 15. If the UAT lands early, Phase 16 can run beside Phase 15.
+
 ---
 
 ## Design Principles (Apply to Every Phase)
@@ -619,3 +840,4 @@ Phase 10 is 3-5 weeks, and its long pole (progressive disclosure) decomposes int
 4. **Delegate mechanics, own contracts** — If the harness does it natively, adapt to it; never re-implement it. New surface must pass the test: *does this drive output the model wouldn't produce unprompted?*
 5. **Aplomb** — Agents should handle complexity with grace, not grind through checklists.
 6. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.
+7. **Subtract before you add** — Each phase opens by removing what no longer earns its place: dormant code, null-result experiments, and references users cannot resolve. A phase that only adds says why nothing could be removed. *(Added 2026-10-20, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).)*
