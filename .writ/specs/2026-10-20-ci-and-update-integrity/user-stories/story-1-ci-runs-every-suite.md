@@ -1,6 +1,7 @@
 # Story 1: CI Runs Every Suite
 
 > **Status:** Completed ✅
+> **Commit:** 0eb7561b6bdc39b462b7f75908fca93f2ff449fc
 > **Priority:** High
 > **Dependencies:** None
 
