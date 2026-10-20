@@ -1,12 +1,13 @@
 ---
 name: prototype
-description: "Ship a small-to-medium code change with TDD and lint, without spec files or multi-gate ceremony. Use when writing a spec costs more than the change is worth."
-problem: "A change too small to spec gets either the whole story pipeline it cannot justify or no discipline at all, and when it quietly outgrows a prototype nobody notices until it is merged."
-outcome: "The change sits in the working tree with tests written first and lint plus typecheck run, and the repository gained no planning artifact describing it."
+description: "Explore an idea as a few code-portable drafts, then ship the chosen direction with TDD and lint. No spec files, no multi-gate ceremony."
+problem: "An idea that needs looking at before it needs specifying gets a full spec it cannot justify, or one unexamined take nobody compared anything against - and when the work quietly outgrows a prototype, nobody notices until it is merged."
+outcome: "The idea sits in front of the user as something real - code-portable drafts to choose between, working code, or both - with any rejected direction and the reason it lost recorded, and no spec artifact written for it."
 entry_level: high
 exit_criteria:
   - "no spec folder, story file, or task list was created under .writ/specs/ for this change"
-  - "tests covering the changed behavior and its error, empty, and loading paths exist, and the linter and typechecker ran with any remaining errors itemized in the summary"
+  - "when drafts were generated: each names the axis combination it commits to and is built from the project's own components, framework, and tokens, and exploration.md records the chosen draft plus why each rejected one lost"
+  - "when code was written: tests covering the changed behavior and its error, empty, and loading paths exist, and the linter and typechecker ran with any remaining errors itemized in the summary"
   - "every scope-escalation signal that fired - over 5 files, schema change, new dependency, core architecture, low existing coverage - is named in the summary next to the /create-spec --from-prototype offer"
 ---
 
@@ -14,9 +15,18 @@ exit_criteria:
 
 ## Overview
 
-Lightweight execution for small-to-medium code changes that don't warrant a full spec. Describe the change and ship code with TDD and lint verification. No spec files, no multi-gate ceremony, no pre-flight questions.
+The early workflow for an idea that needs **looking at** before it needs specifying. Describe it, see a few genuinely different takes, pick one, and ship it with TDD and lint verification. No spec files, no multi-gate ceremony, no pre-flight questions.
 
-Use `/prototype` when the cost of creating a specification exceeds the value of the change itself. For anything that touches core architecture, requires cross-team coordination, or spans many files, use `/create-spec` + `/implement-story` instead.
+Two things end a `/prototype` run, and both are success:
+
+- **A direction chosen.** Several code-portable drafts existed, one won, and the reasons the others lost are recorded. No code need be written.
+- **A change shipped.** The work was small enough to just build, with tests and lint.
+
+Most runs end in both. A run that produces three drafts, a decision, and no code is finished, not abandoned.
+
+Use `/prototype` when the cost of a specification exceeds the value of the change, or when the direction is not settled enough to specify. For anything that touches core architecture, needs cross-team coordination, or spans many files, use `/create-spec` + `/implement-story` instead.
+
+**What this command will not do:** deep specification, story decomposition, task lists, or planning artifacts. It gets you a real sense of the end in mind and stops there. `/create-spec --from-prototype` is the door to the rest.
 
 **How it differs from `--quick` mode on `/implement-story`:**
 
@@ -24,8 +34,8 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 |---|---|---|
 | **Spec required?** | No — operates without any spec | Yes — requires an existing story file |
 | **Input** | Description (inline, attached file, or conversation context) | Story file with tasks and acceptance criteria |
-| **Pipeline** | Scan → [Visual Preview] → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
-| **Best for** | Ad-hoc changes, bug fixes, small features | Prototyping a specific story within a larger spec |
+| **Pipeline** | Scan → [Diverge → Choose] → Code → Lint → Done | Code → Lint → Test (skips arch-check, review, docs) |
+| **Best for** | Unsettled ideas, ad-hoc changes, bug fixes, small features | Prototyping a specific story within a larger spec |
 
 ## Invocation
 
@@ -34,6 +44,8 @@ Use `/prototype` when the cost of creating a specification exceeds the value of 
 | `/prototype` | Uses conversation context — attached files, preceding messages, or user's description |
 | `/prototype "description"` | Explicit inline description |
 | `/prototype @issue-file.md` | Reads the attached issue/file as the change description |
+| `/prototype --diverge "..."` | Forces Step 2.5 on — draft the idea before building anything |
+| `/prototype --no-diverge "..."` | Forces Step 2.5 off — build the obvious shape |
 
 All invocations go straight to Context Scan with no interactive questions. If the input is ambiguous, ask a single clarifying question in natural language rather than presenting a menu.
 
@@ -41,14 +53,16 @@ All invocations go straight to Context Scan with no interactive questions. If th
 
 ```
 ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-│  CONTEXT      │──▶│  VISUAL       │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
-│  SCAN         │   │  PREVIEW      │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
-│ (auto)        │   │  (UI only)    │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
+│  CONTEXT      │──▶│  DIVERGE      │──▶│  CODING       │──▶│  LINT &       │──▶│  SUMMARY      │
+│  SCAN         │   │  + CHOOSE     │   │  AGENT        │   │  TYPECHECK    │   │  + ESCALATION │
+│ (auto)        │   │  (gated)      │   │  (TDD)        │   │  (auto)       │   │  (if needed)  │
 └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
                           │                   │
-                    skip if no UI        complexity detected?
-                                              ▼
-                                       ESCALATE → suggest /create-spec
+                 skip unless gated      complexity detected?
+                          │                   ▼
+                          │            ESCALATE → suggest /create-spec
+                          ▼
+                 user may stop here — a chosen direction is a finished run
 ```
 
 **Error recovery** (apply at any pipeline step):
@@ -79,7 +93,7 @@ Gather lightweight context before coding:
 4. **Check test conventions** — test file locations and naming patterns
 5. **Discover scope** — which files need modification
 6. **Sniff nearby rules** — scan for permission checks, validation logic, state machines, or business rules the change must respect. Pass discovered rules to the coding agent.
-7. **Detect UI surface** — classify as UI-touching (triggers Visual Preview)
+7. **Detect UI surface** — classify as UI-touching (one of the two Step 2.5 gates)
 
 **UI detection heuristic:** UI-touching if any of:
 - Files match frontend patterns: `*.tsx`, `*.jsx`, `*.vue`, `*.svelte`, `*.html`
@@ -99,42 +113,91 @@ Context:
 - Files to modify: [list]
 - Nearby rules: [e.g., "requireAuth middleware on this route", or "none found"]
 - UI change: true
+- Direction settled: false — description names a goal, not a change
 - Design tokens: .writ/docs/design-system.md (loaded)
+- Component vocabulary: [names the drafts and the coding agent must both use]
 ```
 
-### Step 2.5: Visual Preview (UI Changes Only)
+### Step 2.5: Diverge & Choose
 
-**Skip entirely if no UI change.** For backend, utility, or non-visual changes, go directly to Step 3.
+**Gated — most runs skip this.** Run it when the change touches UI (Step 2's
+detection) **or** when the direction is unsettled: the description names a goal
+rather than a change, the input is an issue file with an open "Expected Outcome",
+or the user asked for options. A bug fix with one obvious shape skips straight
+to Step 3, exactly as it does today. `--diverge` forces it on; `--no-diverge`
+forces it off.
 
-When a change touches user-facing UI, generate a quick visual preview before production code.
+#### What a draft is
 
-**How it works:**
+A **rendered, self-contained page** built from the project's own component names,
+CSS framework, and design tokens. Structurally accurate, not pixel-polished.
+Placeholder copy is fine; invented components are not.
 
-1. **Generate a canvas-based HTML mockup** using the `cursor-ide-browser` canvas tool: live, interactive, approximating the intended UI. Use the project's CSS framework and design tokens from Step 2.
-2. **Keep low-fidelity but structurally accurate.** Show layout, hierarchy, and flow with placeholder content, approximate colors, and real component names as labels. Skip pixel-level polish.
-3. **Present to the user** with a brief description and key design decisions:
+A draft is **not** a screenshot, **not** an abstract wireframe, and **not**
+running application code. Drafts are render-only — the point is to look at the
+idea cheaply, not to build it three times.
+
+> **The portability test:** a coding agent reading the draft can name the
+> components to create or change without guessing. If it cannot, the draft is a
+> picture, and a picture is not worth keeping. Label every region with the
+> component it maps to.
+
+#### Getting drafts that actually differ
+
+Asking one agent for "a few options" produces one idea three times. Models fixate
+on their own early output, and repeated samples from one prompt converge. Force
+the divergence instead:
+
+1. **Declare the axes first.** Name two or three *orthogonal* dimensions the
+   drafts must differ on — information density, navigation model, primary action
+   placement, progressive disclosure vs. everything-visible. Assign each draft a
+   distinct combination, and state it before generating anything.
+2. **Generate independently.** One subagent per draft. No shared scratch, no
+   draft seeing another. Shared context is how drafts collapse into each other.
+3. **Commit before rendering.** Each generator states its axis combination and
+   the trade-off it accepts, then renders.
+4. **Use ordinary personas, not visionary ones.** "A support rep who opens this
+   forty times a shift" beats "a world-class designer" — genius framing measurably
+   narrows output.
+5. **Three drafts, not five.** Rendering is not free. More than three rarely adds
+   a distinct option, and the user has to read all of them.
+
+#### Render through the platform
+
+Writ ships no renderer. Use what the platform provides, best available first:
+
+| Available | Use |
+|---|---|
+| Native artboard/design surface | Platform's own canvas; point it at the project's components so it does not re-draw what exists |
+| Artifact / canvas / preview pane | A self-contained HTML page per draft, project framework and tokens |
+| Neither | A written structural description per draft — say plainly that drafts were not rendered |
+
+See the adapter for the platform's capability name. Never degrade silently.
+
+#### Present and choose
+
+Show the drafts together with their axis commitments, not one at a time —
+comparison is the whole point. Then:
 
 ```
-🎨 Visual Preview — [change description]
-[Canvas opens — live HTML preview]
+🎨 Three takes on [idea]
+  A — [axis combination] · [the trade-off it accepts]
+  B — [axis combination] · [the trade-off it accepts]
+  C — [axis combination] · [the trade-off it accepts]
 
-Key decisions: [layout choice] · [component structure] · [interaction pattern]
-Adjust the layout or interaction pattern before I write production code?
+Pick one to build, ask for a fourth on a different axis, or stop here with the decision recorded.
 ```
 
-4. **Wait for response:** approval → proceed with visual as reference; adjustment → regenerate canvas; skip ("just build it") → proceed without reference.
+**Record the decision.** Write `.writ/prototypes/<date>-<slug>/exploration.md`: the
+axes, one row per draft, the chosen draft, and **why each rejected draft lost**.
+Keep the rendered drafts beside it. The rejected alternatives are the durable
+part — they are the "what else did we consider" that `/create-spec --from-prototype`
+carries into the spec contract, and the thing nobody can reconstruct six months on.
 
-**Canvas guidelines:**
-- Use the project's actual component library names and CSS framework
-- Reference design tokens from `design-system.md` if available
-- Include responsive behavior if relevant to the project
-- Show multiple states if relevant (empty, loading, error, populated)
-- Keep to a single focused screen
+This is an exploration record, not a spec. It creates nothing under `.writ/specs/`.
 
-**Canvas limits:**
-- It gathers layout feedback before coding; it is not a design deliverable
-- The coding agent builds the real implementation
-- The user can skip it
+**If the user stops here, the run is complete.** Report the decision and offer
+`/create-spec --from-prototype` for later. Do not build unasked.
 
 ### Step 3: Spawn Coding Agent
 
@@ -145,7 +208,7 @@ Spawn the coding agent with extracted intent and codebase context.
 **Required context to include in prompt:**
 - Change description and watch-outs
 - Full context scan output (tech stack, patterns, nearby rules, files to modify)
-- Visual reference path if preview was approved (instruct agent to match its layout)
+- The chosen draft and its axis commitment if Step 2.5 ran — the agent builds that direction, not a fresh interpretation
 - Design tokens reference if available
 
 **Principles to instruct:**
@@ -155,7 +218,7 @@ Spawn the coding agent with extracted intent and codebase context.
 3. **Respect nearby rules** — don't bypass auth, skip validation, or ignore state transitions.
 4. **Don't ship only the happy path** — handle error, empty, and loading states.
 5. **Keep focused** — prototype scope, not full feature build
-6. **Match visual reference** — if a preview was approved, match its layout and component hierarchy
+6. **Build the chosen draft** — if Step 2.5 ran, match its layout and component hierarchy, and reuse the component names it labelled. The draft was built to port; port it.
 
 **Scope escalation signals:** instruct the agent to flag if any are true:
 
@@ -180,9 +243,18 @@ Auto-detect and run project linters and typecheckers. The AI infers tool selecti
 
 ```
 ✅ Prototype Complete — [description]
+Drafts: [3 — chose B / skipped: direction settled]
 Files: [created/modified list] · Tests: [N] passing · Lint: ✅ · Typecheck: ✅
-Visual preview: [approved / skipped — no UI changes]
 Ready to commit.
+```
+
+**On a direction chosen with no code** — a complete run, not a partial one:
+
+```
+✅ Direction Chosen — [idea]
+Drafts: 3 · Chose: [B — axis combination] · Record: .writ/prototypes/[date]-[slug]/exploration.md
+Rejected: [A — why it lost] · [C — why it lost]
+Nothing built. /create-spec --from-prototype when you want the rest.
 ```
 
 **On scope escalation:** Same as above, plus a ⚠️ block listing the specific flags that triggered, followed by the AskQuestion escalation offer below. Present the following:
@@ -236,18 +308,25 @@ Options: fix manually · retry · discard
 | Add a utility function | `/prototype "add string truncation helper"` |
 | Small UI tweak | `/prototype "add loading spinner to save button"` |
 | Bug with issue file | `/prototype @issue-file.md` |
+| Unsettled idea — want to see a few takes first | `/prototype "a way to review flagged items in bulk"` |
+| Exploring an approach before committing | `/prototype` (then escalate if it works out) |
 | Multi-file feature with dependencies | `/create-spec` + `/implement-story` |
 | Refactoring a specific file | `/refactor` |
-| Exploring an approach before committing | `/prototype` (then escalate if it works out) |
+| Mockups for a spec that already exists | `/design` |
 | Change within an existing spec | `/implement-story --quick` |
 
 ## Completion
 
-This command succeeds when the change sits in the working tree with tests written first, the linter and typechecker run, and no spec folder or story file created for it.
+This command succeeds when the idea is in front of the user as something real, and no spec artifact was written for it. That is either:
 
-A scope-escalation signal firing is a valid outcome, not a failure. It is named in the summary alongside the `/create-spec --from-prototype` offer, and the decision belongs to the user.
+- **A direction chosen** — code-portable drafts existed, one won, and `exploration.md` records the choice and why each rejected draft lost. No code is required.
+- **A change shipped** — it sits in the working tree with tests written first and the linter and typechecker run.
 
-**Terminal constraint:** This command ships a small change. Do not open a PR, write spec artifacts, or escalate to the story pipeline without an explicit yes.
+Most runs are both. A run that ends at a chosen direction is complete, and must be reported as complete rather than as work left over.
+
+A scope-escalation signal firing is also a valid outcome, not a failure. It is named in the summary alongside the `/create-spec --from-prototype` offer, and the decision belongs to the user.
+
+**Terminal constraint:** This command explores an idea and ships small changes. Do not write spec artifacts, decompose stories, open a PR, or escalate to the story pipeline without an explicit yes. Deep specification is `/create-spec`; drafts for a spec that already exists are `/design`.
 
 ---
 
