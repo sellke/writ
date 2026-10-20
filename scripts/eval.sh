@@ -620,6 +620,7 @@ tech-stack.md|/initialize|Bare form of .writ/docs/tech-stack.md used when the en
 code-style.md|/initialize|Bare form of .writ/docs/code-style.md used when the enclosing sentence already names .writ/docs/.
 .writ/quality-baseline.md|/initialize|Written by /initialize Step 4 (quality-signal classification); /status reads it when present.
 .writ/docs/design-system.md|/design|Written by /design when a design system is generated; optional in every project.
+exploration.md|/prototype|Written by /prototype Step 2.5 under .writ/prototypes/<date>-<slug>/ when drafts are generated; absent on runs that skip divergence.
 design-system.md|/design|Bare form of .writ/docs/design-system.md.
 component-inventory.md|/design|Written by /design under the spec's mockups/ folder.
 mockups/README.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
