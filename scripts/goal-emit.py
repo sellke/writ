@@ -13,7 +13,10 @@ Subcommands:
 
 Prints one verdict line (`pass` / `fail` / `unverifiable`), optional
 `reason:` lines, then a summary line last. Successful emit prints
-the pinned /goal invoke text after the summary.
+the pinned /goal invoke text between the verdict line and the summary.
+GOAL.md and VERIFY.md are each written to a temp file in the emit
+directory and renamed over the target, so an interrupted write never
+leaves a partial file.
 
 Exit 0: ran, no blocking helper defect (`pass` or `unverifiable`).
 Exit 1: `fail`.
@@ -23,8 +26,10 @@ Exit 2: usage.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
@@ -59,14 +64,36 @@ class UsageError(Exception):
     """Exit-2 conditions."""
 
 
-def _emit(verdict: str, reasons: Sequence[str], summary: str) -> int:
+def _emit(verdict: str, reasons: Sequence[str], summary: str,
+          detail: Optional[str] = None) -> int:
     print(verdict)
     for reason in reasons:
         print("reason: %s" % reason)
+    if detail is not None:
+        print(detail)
     print(summary)
     if verdict == "fail":
         return 1
     return 0
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    """Write via a temp file in the same folder, then rename over `path`."""
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".%s." % path.name,
+                               suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        umask = os.umask(0)
+        os.umask(umask)
+        os.chmod(tmp, 0o666 & ~umask)  # mkstemp makes 0600; match a plain write
+        os.replace(tmp, str(path))
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def _has_adr(text: str) -> bool:
@@ -199,11 +226,9 @@ def emit_cmd(card: Optional[Path], out: Optional[Path], repo: Path) -> int:
                      "goal-emit: unverifiable (loop_no)")
     dest = _out_dir(out, repo, path)
     dest.mkdir(parents=True, exist_ok=True)
-    (dest / "GOAL.md").write_text(_goal_md(raw), encoding="utf-8")
-    (dest / "VERIFY.md").write_text(_verify_md(raw, repo), encoding="utf-8")
-    code = _emit("pass", [], "goal-emit: pass (GOAL.md and VERIFY.md)")
-    print(INVOKE)
-    return code
+    _write_atomic(dest / "GOAL.md", _goal_md(raw))
+    _write_atomic(dest / "VERIFY.md", _verify_md(raw, repo))
+    return _emit("pass", [], "goal-emit: pass (GOAL.md and VERIFY.md)", INVOKE)
 
 
 def check_cmd(card: Optional[Path], out: Optional[Path], repo: Path) -> int:

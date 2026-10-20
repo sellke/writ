@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.42.0] - 2026-10-20
+
+**Shipped scripts follow one agent contract.** Every script an installed project receives prints either one JSON document or a `pass` / `fail` / `unverifiable` line, and a test fails when a script breaks that contract. `/prototype` now explores a few drafts before it builds.
+
+### Added
+- **Agent CLI contract.** `.writ/docs/agent-cli-contract.md` classifies every shipped script, and `scripts/tests/test_agent_cli_contract.py` checks the classification, `--help`, bad flags, and the output shape. ADR-029 records the two shapes, usage errors, and bounded waits. ([Story 1](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-1-contract-doc-and-adr-amendment.md), [Story 3](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-3-contract-test.md))
+- **`/prototype` opens with divergence.** An unsettled idea gets a few code-portable drafts, a recorded choice, and then the chosen direction. A run that ends at a chosen direction with no code is complete. No spec artifact is written. ([commands/prototype.md](commands/prototype.md))
+- **`/create-spec --from-prototype` reads the exploration record.** The chosen draft becomes the Deliverable, rejected drafts land in Directions Considered, and Story 1 is marked Complete only when code was written. ([commands/create-spec.md](commands/create-spec.md))
+
+### Changed
+- **Data tools default to JSON.** `revert-resolve`, `knowledge-consolidate`, and `change-surface` print JSON unless you pass `--pretty`. `--json` still works and changes nothing. `boundary-map crossings` prints JSON. ([Story 4](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-4-conformance-fixes.md))
+- **Check tools print the verdict first.** `goal-emit`, `verdict-provenance`, `review-panel`, `gen-codex-agent-tomls`, `app-verify`, `lint-skill`, `gen-skill`, and `check-agent-parity` print `pass`, `fail`, or `unverifiable` on line 1 and a summary last. A check that ran exits 0, including `unverifiable`; `fail` exits 1; usage errors exit 2. ([Story 4](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-4-conformance-fixes.md), [Story 5](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-5-shell-and-app-verify-conformance.md))
+- **`update.sh` removes scripts that stop shipping.** `scripts/` manifest paths resolve at the project root. A locally modified stale script is kept, warned about, and remembered so the next update warns again. ([Story 2](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-2-stop-shipping-dev-scripts.md))
+
+### Removed
+- **Six dev-only scripts no longer install.** `pipeline-baseline`, `measure-invocation`, `harness-cost`, `lean-decision`, `prune-ledger`, and `spawn-cap` stay in the source tree for `eval.sh` and leave installed projects. ([Story 2](.writ/specs/2026-10-12-agent-cli-contract/user-stories/story-2-stop-shipping-dev-scripts.md))
+
+### Internal
+- `roadmap-sync` and `goal-emit` write through a temp file and rename.
+- `test-integrity` bounds its parent-folder walk.
+- Accepted medium drift on the agent CLI contract: the check shape covers write modes, `update.sh` stale handling goes beyond the filter arm, and `unverifiable` exits 0.
+
 ## [0.41.0] - 2026-10-12
 
 **`/retro` reviews transcripts.** `/retro` now reads the agent transcripts from a run and proposes fixes to the agent's environment instead of reporting git metrics. The unused `gbrain-interop` skill is removed.

@@ -1289,3 +1289,21 @@ class PythonScriptInvocationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SearchRootsWalkTests(unittest.TestCase):
+    """The parent walk in `_py_search_roots` stops at the project root and
+    never runs past the filesystem root (agent CLI contract, Business Rule 7)."""
+
+    def test_nested_test_file_walks_up_to_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp).resolve()
+            test_file = project / "a" / "b" / "test_x.py"
+            roots = ti._py_search_roots(test_file, project, [])
+            self.assertEqual(roots, [project, project / "a" / "b", project / "a"])
+
+    def test_test_file_outside_project_keeps_only_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as other:
+            project = Path(tmp).resolve()
+            test_file = Path(other).resolve() / "test_x.py"
+            self.assertEqual(ti._py_search_roots(test_file, project, []), [project])

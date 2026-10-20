@@ -13,7 +13,10 @@ jobs:
           fetch-depth: 0
 
       - name: Verify SKILL.md is up to date with manifest
-        run: bash scripts/gen-skill.sh --check
+        run: |
+          out="$(bash scripts/gen-skill.sh --check)" || true
+          printf '%s\n' "$out"
+          [ "$(printf '%s\n' "$out" | sed -n '1p')" = pass ]
 
       - name: Run Writ Eval Tier 1
         run: bash scripts/eval.sh --report=eval-report.md

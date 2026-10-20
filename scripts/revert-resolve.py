@@ -30,11 +30,12 @@ commit (the commit that first added `.writ/specs/<id>/spec.md`) plus any
 phase-state commit for the spec.
 
 CLI:
-  revert-resolve.py <unit> <id> [--repo PATH] [--spec SPEC_ID] [--json]
+  revert-resolve.py <unit> <id> [--repo PATH] [--spec SPEC_ID] [--pretty]
 
-`unit` in {story, spec}. Success prints the resolution object (JSON with
-`--json`, otherwise a human summary) and exits 0. A contract violation prints
-a JSON `blocker` object and exits non-zero.
+`unit` in {story, spec}. Success prints the resolution object as JSON and
+exits 0; `--pretty` prints a human summary instead. `--json` is accepted as a
+no-op for older callers. A contract violation prints a JSON `blocker` object
+and exits non-zero.
 """
 
 from __future__ import annotations
@@ -543,8 +544,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", default=".", type=Path)
     parser.add_argument("--spec", default=None,
                         help="disambiguate a story that exists in multiple specs")
-    parser.add_argument("--json", action="store_true",
-                        help="emit the machine-readable resolution object")
+    parser.add_argument("--pretty", action="store_true",
+                        help="print a human summary instead of the JSON object")
+    # Accepted no-op: JSON is the default (agent CLI contract, data shape).
+    parser.add_argument("--json", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
     try:
@@ -553,10 +556,10 @@ def main(argv: list[str] | None = None) -> int:
         _fail(err)
         return 1  # unreachable; _fail raises
 
-    if args.json:
-        print(json.dumps(result, indent=2))
-    else:
+    if args.pretty:
         print(_render_human(result))
+    else:
+        print(json.dumps(result, indent=2))
     return 0
 
 

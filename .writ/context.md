@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-02T04:41:00+02:00
+> Last Updated: 2026-10-13T00:16:14Z
 
 ## Product Mission
 
@@ -8,23 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none active. Every spec is Complete and archived under `.writ/specs/archive/`.
-- **Last shipped:** v0.40.0, Phase 12 (Behavioral Verification): `2026-10-01-behavioral-verification`, `2026-10-01-cross-family-review-panel`, `2026-10-01-product-check-direction`. Implemented and released; human UAT pending.
+- **Spec:** 2026-10-12-agent-cli-contract — Agent CLI Contract
+- **Status:** Complete (checker verdict met; integration suite passed)
+- **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Completed ✅)
+- **Progress:** 34/34 tasks complete (100%)
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md, verification-2026-10-02.md
-- **Active spec:** none
-- **Knowledge:** .writ/knowledge/ (22 entries)
-- **Docs:** .writ/docs/ (27 files)
+- **Product:** roadmap.md, mission.md, mission-lite.md
+- **Active spec:** .writ/specs/2026-10-12-agent-cli-contract/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Knowledge:** .writ/knowledge/ (21 entries)
+- **Docs:** .writ/docs/ (28 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-006 (Medium) spec-attributed test module `test_product_check_direction.py` added — product-check-direction Story 2
-- DEV-008 (Small) release `Roadmap:` line omitted without `.writ/product/` (Business Rule 4) — product-check-direction Story 2
-- DEV-002 (Medium) verify-spec.md ratchet re-pinned down 10898 -> 10818 instead of left unchanged — product-check-direction Story 1
+- DEV-002 (Medium) live-repo parity test held to shape, not zero drift — agent-cli-contract Story 5
+- DEV-003 (Medium) Story 4 citation gap closed in Story 5; eval now runs after each status flip — agent-cli-contract Story 5
+- DEV-005 (Small) Gate 4.5 has no branch for empty stdout (byte pin) — agent-cli-contract Story 5
 
 ## Open Issues
 
-11 open issue files in .writ/issues/ (16 total; 5 closed with `## Resolution`)
+17 open issue files in .writ/issues/ (24 total; 7 closed with `## Resolution`)

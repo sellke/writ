@@ -49,7 +49,7 @@ Follow `_preamble.md` interaction conventions — this is a bounded choice, so A
 Invoke the resolver (read-only — it never mutates git or files):
 
 ```
-python3 scripts/revert-resolve.py <unit> <id> [--spec <spec-id>] --json
+python3 scripts/revert-resolve.py <unit> <id> [--spec <spec-id>]
 ```
 
 The resolver returns the ordered commit list (newest → oldest), any `ghost` candidates, the `base` (parent of the earliest commit), and `warnings`. It layers five sources by confidence: recorded `> **Commit:**` SHA → `/ship` `Ref:` footer (only footers naming this spec's folder, and for a story exactly `user-stories/story-N`) → `Story N (N.x):` task subjects between the spec scaffold and the story's completion commit → phase-state JSON `commit`/`mergeCommit` → ghost-commit subject-similarity fallback.

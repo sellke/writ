@@ -415,26 +415,42 @@ class ErrorPathTests(ResolverFixture):
 
 
 class CliTests(ResolverFixture):
-    def test_main_json_output(self) -> None:
+    def _main(self, argv: list) -> tuple:
         import contextlib
         import io
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            code = rr.main(["story", "story-1", "--repo", str(self.repo),
-                            "--spec", SPEC_ID, "--json"])
+            code = rr.main(argv)
+        return code, buf.getvalue()
+
+    def test_main_json_output(self) -> None:
+        code, out = self._main(["story", "story-1", "--repo", str(self.repo),
+                                "--spec", SPEC_ID, "--json"])
         self.assertEqual(code, 0)
-        payload = json.loads(buf.getvalue())
+        payload = json.loads(out)
         self.assertEqual(payload["unit"], "story")
         self.assertEqual(payload["schema"], rr.RESULT_SCHEMA)
 
-    def test_main_human_output(self) -> None:
-        import contextlib
-        import io
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            code = rr.main(["spec", SPEC_ID, "--repo", str(self.repo)])
+    def test_main_default_is_json(self) -> None:
+        """AC-4.1 — no output flag prints the indent-2 JSON document --json printed."""
+        code, out = self._main(["story", "story-1", "--repo", str(self.repo),
+                                "--spec", SPEC_ID])
         self.assertEqual(code, 0)
-        self.assertIn("Revert plan", buf.getvalue())
+        expected = rr.resolve(self.repo, "story", "story-1", SPEC_ID)
+        self.assertEqual(out, json.dumps(expected, indent=2) + "\n")
+
+    def test_main_json_flag_is_a_no_op(self) -> None:
+        """AC-4.1 — --json still exits 0 and prints the same document as the default."""
+        argv = ["spec", SPEC_ID, "--repo", str(self.repo)]
+        self.assertEqual(self._main(argv + ["--json"]), self._main(argv))
+
+    def test_main_pretty_output(self) -> None:
+        """AC-4.1 — --pretty prints the former human summary."""
+        code, out = self._main(["spec", SPEC_ID, "--repo", str(self.repo), "--pretty"])
+        self.assertEqual(code, 0)
+        self.assertIn("Revert plan", out)
+        expected = rr._render_human(rr.resolve(self.repo, "spec", SPEC_ID, None))
+        self.assertEqual(out, expected + "\n")
 
     def test_main_contract_error_exits_nonzero(self) -> None:
         import contextlib

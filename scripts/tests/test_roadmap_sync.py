@@ -344,3 +344,37 @@ def test_cli_never_raises_on_nonexistent_roadmap(tmp_path: Path) -> None:
     )
     assert proc.returncode == 0
     assert '"already_recorded": false' in proc.stdout
+
+
+# ---------- atomic write (agent CLI contract, State) ----------
+# Story 4 of 2026-10-12-agent-cli-contract: an interrupted write leaves no
+# partial roadmap and no temp file [AC-4.5].
+
+def test_append_row_interrupted_write_keeps_roadmap_and_leaves_no_temp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roadmap = write_fixture(tmp_path)
+
+    def interrupted(src, dst):
+        raise OSError("interrupted before rename")
+
+    monkeypatch.setattr("os.replace", interrupted)
+    with pytest.raises(OSError):
+        append_row(roadmap, spec_name="2026-08-13-brand-new-spec", title="Brand New Spec",
+                   description="Fixed a real bug.", version="0.31.1")
+
+    assert roadmap.read_text(encoding="utf-8") == FIXTURE_ROADMAP
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["roadmap.md"]
+
+
+def test_append_row_keeps_the_roadmap_file_mode(tmp_path: Path) -> None:
+    roadmap = write_fixture(tmp_path)
+    roadmap.chmod(0o640)
+
+    result = append_row(roadmap, spec_name="2026-08-13-brand-new-spec",
+                        title="Brand New Spec", description="Fixed a real bug.",
+                        version="0.31.1")
+
+    assert result["status"] == "appended"
+    assert roadmap.stat().st_mode & 0o777 == 0o640
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["roadmap.md"]

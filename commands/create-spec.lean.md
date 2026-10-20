@@ -108,15 +108,25 @@ deliverable.
 
 #### Step 0: Read Prototype Context
 
-1. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged): files changed, lines added/removed, new dependencies.
-2. **Read the coding agent implementation summary** from the conversation if available.
-3. **Build a pre-populated contract draft:** Deliverable (from diff + summary), Files in Scope (every file created or modified), Implementation Approach (summary, else diff analysis), and `Story 1: [Prototype: description of what was built] — Status: Completed ✅`.
+1. **Read the exploration record** — the most recent `.writ/prototypes/<date>-<slug>/exploration.md`, or the one named in the invocation: declared axes, chosen draft, and why each rejected draft lost. Skip when none exists.
+2. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged): files changed, lines added/removed, new dependencies.
+3. **Read the coding agent implementation summary** from the conversation if available.
+4. **Build a pre-populated contract draft:** Deliverable (chosen draft, else diff + summary), Directions Considered (one line per rejected draft and why it lost, from `exploration.md`; omit when there was no exploration — never invent alternatives), Files in Scope (every file created or modified), Implementation Approach (summary, else diff analysis), and Story 1 per the matrix below.
 
-If no git diff exists (clean working tree), warn: *"No changes detected in working tree. `--from-prototype` requires an uncommitted or staged diff to read context from."* and offer: proceed with manual description, or cancel.
+**Source states.** A `/prototype` run can end at a chosen direction with nothing built, so a diff is no longer required:
+
+| `exploration.md` | git diff | Story 1 | Discovery opens on |
+|---|---|---|---|
+| present | present | `Completed ✅` | what the prototype left out |
+| present | absent | `Not Started` — direction chosen, nothing built | building the chosen draft |
+| absent | present | `Completed ✅` | what the prototype left out |
+| absent | absent | — | warn: *"No prototype work found: no exploration record under `.writ/prototypes/` and no uncommitted or staged diff."* then offer manual description, or cancel |
+
+**Never mark Story 1 complete on an exploration record alone.** A chosen draft is a decision, not an implementation.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
-Switch to Plan Mode. The prototype is done; do not re-litigate what was built. Open with: *"The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"* Cover the gap to shippable, what Story 2 unlocks, skipped error/edge/production concerns, and integration points to productionize. Skip what the diff already answers. Expect 3–5 exchanges.
+Switch to Plan Mode. Do not re-litigate what the prototype settled. Open per the source matrix — built: *"The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"*; chosen only: *"The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"* Cover the gap to shippable, what Story 2 unlocks, skipped error/edge/production concerns, and integration points to productionize. Skip what the diff already answers. Expect 3–5 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
 
@@ -125,10 +135,12 @@ Build on the Step 0 draft plus discovery answers; present in Plan Mode. The cont
 ```
 ## Specification Contract
 
-**Deliverable:** [inferred from diff + discovery]
-**Origin:** Formalized from prototype (Story 1 already complete)
+**Deliverable:** [chosen draft, or inferred from diff + discovery]
+**Origin:** Formalized from prototype [+ exploration record path, when one exists]
 
-**Story 1 (Complete):** [description of prototype work — what was built]
+**Directions Considered:** [one line per rejected draft and why it lost — from exploration.md; omit when there was no exploration]
+
+**Story 1:** [prototype work, marked per the Step 0 source matrix]
 **Story 2+:** [what the discovery conversation revealed comes next]
 
 **Files in Scope:** [from git diff — already in the codebase]
@@ -136,9 +148,9 @@ Build on the Step 0 draft plus discovery answers; present in Plan Mode. The cont
 [standard contract sections: Constraints, Success Criteria, Scope Boundaries]
 ```
 
-#### Step 3: Phase 2 with Story 1 Pre-Marked Complete
+#### Step 3: Phase 2 with Story 1 Marked per the Source Matrix
 
-When the user locks the contract, run Phase 2 with one change: **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work, files touched, and that it was done via `/prototype`, and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`. `user-stories/README.md` progress shows Story 1 complete.
+When the user locks the contract, run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work, files touched, and that it was done via `/prototype`, and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`. `user-stories/README.md` progress shows Story 1 complete.
 
 ---
 

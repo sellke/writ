@@ -132,22 +132,28 @@ class BoundaryMapTests(unittest.TestCase):
                 ["compute", "--story", str(story), "--repo", str(root)],
             )
             self.assertEqual(code, 1)
-            self.assertEqual(out.strip(), "")
+            self.assertEqual(
+                _payload(out),
+                {"blocker": {"code": "malformed_story",
+                             "summary": "missing Implementation Tasks"}},
+            )
 
     def test_malformed_empty_story_exits_1(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             story = root / "story.md"
             story.write_text("", encoding="utf-8")
-            code, _out, _err = _run(
+            code, out, _err = _run(
                 ["compute", "--story", str(story), "--repo", str(root)],
             )
             self.assertEqual(code, 1)
+            self.assertEqual(_payload(out)["blocker"]["summary"], "story is empty")
 
     def test_missing_story_file_exits_1(self):
+        """Agent CLI contract (data shape): a story error prints a JSON blocker."""
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            code, _out, _err = _run(
+            code, out, _err = _run(
                 [
                     "compute",
                     "--story",
@@ -157,6 +163,11 @@ class BoundaryMapTests(unittest.TestCase):
                 ],
             )
             self.assertEqual(code, 1)
+            self.assertEqual(
+                _payload(out),
+                {"blocker": {"code": "malformed_story",
+                             "summary": "story is not a readable file"}},
+            )
 
     def test_usage_missing_flags_exits_2(self):
         code, _out, _err = _run(["compute"])
@@ -333,12 +344,15 @@ MAP = {
 }
 
 
-def _lines(stdout):
-    return stdout.strip().splitlines()
+def _doc(stdout):
+    """`crossings` prints one JSON object: verdict, route, reasons, summary."""
+    doc = json.loads(stdout)
+    assert set(doc) == {"verdict", "route", "reasons", "summary"}, doc
+    return doc
 
 
 def _reasons(stdout):
-    return [line[len("reason: "):] for line in _lines(stdout) if line.startswith("reason: ")]
+    return _doc(stdout)["reasons"]
 
 
 class CrossingsTests(unittest.TestCase):
@@ -365,12 +379,12 @@ class CrossingsTests(unittest.TestCase):
             ["scripts/boundary-map.py", "src/auth/login.ts", "src/lib/utils.ts"],
         )
         self.assertEqual(code, 0, err)
-        lines = _lines(out)
-        self.assertEqual(lines[0], "pass")
-        self.assertEqual(lines[1], "route: evaluator-agent")
+        doc = _doc(out)
+        self.assertEqual(doc["verdict"], "pass")
+        self.assertEqual(doc["route"], "evaluator-agent")
         self.assertEqual(_reasons(out), [])
-        self.assertTrue(lines[-1].startswith("boundary-map crossings: 0 crossing(s)"), lines[-1])
-        self.assertIn("(route evaluator-agent)", lines[-1])
+        self.assertTrue(doc["summary"].startswith("boundary-map crossings: 0 crossing(s)"), doc["summary"])
+        self.assertIn("(route evaluator-agent)", doc["summary"])
 
     def test_directory_entry_covers_nested_but_not_sibling_prefix(self):
         code, out, _err = self._crossings(["src/lib/deep/x.py", "src/library.py"])
@@ -389,9 +403,9 @@ class CrossingsTests(unittest.TestCase):
             ],
         )
         self.assertEqual(code, 0, err)
-        lines = _lines(out)
-        self.assertEqual(lines[0], "pass")
-        self.assertEqual(lines[1], "route: review-agent")
+        doc = _doc(out)
+        self.assertEqual(doc["verdict"], "pass")
+        self.assertEqual(doc["route"], "review-agent")
         self.assertEqual(
             _reasons(out),
             [
@@ -400,8 +414,8 @@ class CrossingsTests(unittest.TestCase):
                 "out_of_scope src/legacy/old.py",
             ],
         )
-        self.assertTrue(lines[-1].startswith("boundary-map crossings: 3 crossing(s)"), lines[-1])
-        self.assertIn("(route review-agent)", lines[-1])
+        self.assertTrue(doc["summary"].startswith("boundary-map crossings: 3 crossing(s)"), doc["summary"])
+        self.assertIn("(route review-agent)", doc["summary"])
 
     def test_out_of_scope_outranks_readable(self):
         payload = {"owned": [], "readable": ["src/"], "out_of_scope": ["src/legacy"]}
@@ -480,12 +494,12 @@ class CrossingsTests(unittest.TestCase):
             ["scripts/x.py", "src/auth/login.ts"], extra=["--surface", "full-stack"],
         )
         self.assertEqual(code, 0, err)
-        lines = _lines(out)
-        self.assertEqual(lines[0], "pass")
-        self.assertEqual(lines[1], "route: review-agent")
+        doc = _doc(out)
+        self.assertEqual(doc["verdict"], "pass")
+        self.assertEqual(doc["route"], "review-agent")
         self.assertEqual(_reasons(out), ["outside_boundary scripts/x.py", "full_stack_surface"])
         self.assertEqual(
-            lines[-1],
+            doc["summary"],
             "boundary-map crossings: 1 crossing(s), surface full-stack (route review-agent)",
         )
 
@@ -494,7 +508,7 @@ class CrossingsTests(unittest.TestCase):
             ["src/auth/login.ts"], extra=["--surface", "full-stack"],
         )
         self.assertEqual(code, 0)
-        self.assertEqual(_lines(out)[1], "route: review-agent")
+        self.assertEqual(_doc(out)["route"], "review-agent")
         self.assertEqual(_reasons(out), ["full_stack_surface"])
 
     def test_other_surface_does_not_route_review(self):
@@ -502,9 +516,9 @@ class CrossingsTests(unittest.TestCase):
             ["src/auth/login.ts"], extra=["--surface", "cross-component"],
         )
         self.assertEqual(code, 0)
-        self.assertEqual(_lines(out)[1], "route: evaluator-agent")
+        self.assertEqual(_doc(out)["route"], "evaluator-agent")
         self.assertEqual(
-            _lines(out)[-1],
+            _doc(out)["summary"],
             "boundary-map crossings: 0 crossing(s), surface cross-component (route evaluator-agent)",
         )
 
@@ -512,11 +526,11 @@ class CrossingsTests(unittest.TestCase):
 
     def _assert_unverifiable(self, code, out, err):
         self.assertEqual(code, 0, err)
-        lines = _lines(out)
-        self.assertEqual(lines[0], "unverifiable")
-        self.assertEqual(lines[1], "route: review-agent")
+        doc = _doc(out)
+        self.assertEqual(doc["verdict"], "unverifiable")
+        self.assertEqual(doc["route"], "review-agent")
         self.assertEqual(_reasons(out), ["map_unreadable"])
-        self.assertTrue(lines[-1].startswith("boundary-map crossings:"), lines[-1])
+        self.assertTrue(doc["summary"].startswith("boundary-map crossings:"), doc["summary"])
 
     def test_missing_map_is_unverifiable(self):
         with TemporaryDirectory() as tmp:
@@ -541,6 +555,39 @@ class CrossingsTests(unittest.TestCase):
 
     def test_non_list_entry_is_unverifiable(self):
         self._assert_unverifiable(*self._crossings(["a.py"], map_text='{"owned": "a.py"}'))
+
+    def test_compute_blocker_saved_as_map_is_unverifiable(self):
+        """Gate 0.5 tees compute stdout to the map; a story-error blocker saved
+        there must not read as an empty map that routes on every file."""
+        blocker = {"blocker": {"code": "malformed_story", "summary": "story is empty"}}
+        self._assert_unverifiable(*self._crossings(["a.py"], map_text=json.dumps(blocker)))
+
+    # Agent CLI contract (data shape): JSON default, --pretty, --json no-op.
+
+    def test_pretty_prints_the_verdict_lines(self):
+        code, out, err = self._crossings(
+            ["scripts/x.py", "src/auth/login.ts"], extra=["--surface", "full-stack", "--pretty"],
+        )
+        self.assertEqual(code, 0, err)
+        self.assertEqual(
+            out,
+            "pass\nroute: review-agent\nreason: outside_boundary scripts/x.py\n"
+            "reason: full_stack_surface\n"
+            "boundary-map crossings: 1 crossing(s), surface full-stack (route review-agent)\n",
+        )
+
+    def test_pretty_unreadable_map(self):
+        code, out, err = self._crossings(["a.py"], map_text="{not json", extra=["--pretty"])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(
+            out,
+            "unverifiable\nroute: review-agent\nreason: map_unreadable\n"
+            "boundary-map crossings: map unreadable (route review-agent)\n",
+        )
+
+    def test_json_flag_is_a_no_op(self):
+        changed = ["scripts/x.py", "src/auth/login.ts"]
+        self.assertEqual(self._crossings(changed, extra=["--json"]), self._crossings(changed))
 
     def test_changed_omitted_exits_2(self):
         code, out, _err = self._crossings(None)

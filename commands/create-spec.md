@@ -112,31 +112,36 @@ Used when a `/prototype` run triggered scope escalation signals and you want to 
 
 #### Step 0: Read Prototype Context
 
-1. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged). Extract: files changed, lines added/removed, new dependencies added.
-2. **Read the coding agent implementation summary** from the conversation thread if available — it describes what was built and how.
-3. **Build a pre-populated contract draft:**
-   - **Deliverable:** Inferred from diff file names and implementation summary (e.g., "Adds [feature] to [area]")
+1. **Read the exploration record** — the most recent `.writ/prototypes/<date>-<slug>/exploration.md`, or the one named in the invocation. It carries the declared axes, the chosen draft, and why each rejected draft lost. Skip when none exists.
+2. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged). Extract: files changed, lines added/removed, new dependencies added.
+3. **Read the coding agent implementation summary** from the conversation thread if available — it describes what was built and how.
+4. **Build a pre-populated contract draft:**
+   - **Deliverable:** From the chosen draft when an exploration record exists; otherwise inferred from diff file names and implementation summary
+   - **Directions Considered:** One line per rejected draft and the reason it lost, carried from `exploration.md`. Omit the section when there was no exploration — never invent alternatives that were not generated.
    - **Files in Scope:** Directly from the diff — list every file created or modified
    - **Implementation Approach:** From the coding agent summary where available; fall back to diff analysis
-   - **Story 1:** `[Prototype: description of what was built] — Status: Completed ✅`
+   - **Story 1:** per the source matrix below
 
-If no git diff exists (clean working tree), warn: *"No changes detected in working tree. `--from-prototype` requires an uncommitted or staged diff to read context from."* and offer: proceed with manual description, or cancel.
+**Source states.** A `/prototype` run can end at a chosen direction with nothing built, so a diff is no longer required:
+
+| `exploration.md` | git diff | Story 1 | Discovery opens on |
+|---|---|---|---|
+| present | present | `Completed ✅` — the prototype built the chosen draft | what the prototype left out |
+| present | absent | `Not Started` — the direction is chosen, nothing is built | building the chosen draft |
+| absent | present | `Completed ✅` | what the prototype left out |
+| absent | absent | — | warn: *"No prototype work found: no exploration record under `.writ/prototypes/` and no uncommitted or staged diff."* then offer manual description, or cancel |
+
+**Never mark Story 1 complete on an exploration record alone.** A chosen draft is a decision, not an implementation, and a spec that claims otherwise sends `/implement-spec` past work nobody wrote.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
 Switch to Plan Mode. The prototype is done; do not re-litigate what was built. Discovery covers only what comes next.
 
-**Opening framing:**
-> "The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"
+**Opening framing** — pick the one the source matrix selected:
+> Built: "The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"
+> Chosen only: "The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"
 
-**Discovery anchor questions:**
-- What's the gap between this prototype and something you'd ship?
-- What does Story 2 unlock that the prototype didn't have?
-- Are there error states, edge cases, or production concerns the prototype skipped?
-- What's the first thing you'd add after this?
-- Are there integration points or shared components the prototype touched that need productionizing?
-
-Skip questions the diff already answers (files in scope, approach used, features built). The discovery conversation should take 3–5 exchanges.
+Cover the gap to shippable: what Story 2 unlocks, the error, edge and production cases the prototype skipped, and the integration points it touched that need productionizing. Skip what the diff or exploration record already answers. Expect 3–5 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
 
@@ -146,10 +151,12 @@ Use the pre-populated contract draft from Step 0 as the base. Augment with disco
 ```
 ## Specification Contract
 
-**Deliverable:** [inferred from diff + discovery]
-**Origin:** Formalized from prototype (Story 1 already complete)
+**Deliverable:** [chosen draft, or inferred from diff + discovery]
+**Origin:** Formalized from prototype [+ exploration record path, when one exists]
 
-**Story 1 (Complete):** [description of prototype work — what was built]
+**Directions Considered:** [one line per rejected draft and why it lost — from exploration.md; omit when there was no exploration]
+
+**Story 1:** [prototype work, marked per the Step 0 source matrix]
 **Story 2+:** [what the discovery conversation revealed comes next]
 
 **Files in Scope:** [from git diff — already in the codebase]
@@ -157,18 +164,13 @@ Use the pre-populated contract draft from Step 0 as the base. Augment with disco
 [standard contract sections: Constraints, Success Criteria, Scope Boundaries]
 ```
 
-#### Step 3: Phase 2 with Story 1 Pre-Marked Complete
+#### Step 3: Phase 2 with Story 1 Marked per the Source Matrix
 
-When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one modification:
+When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one modification. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft, and none of the bullets below apply.** Otherwise:
 
-- **Story 1** is generated with `Status: Completed ✅` immediately — do not mark it Not Started
-- Story 1's description captures the prototype work: what was implemented, files touched, and that it was done via `/prototype`
-- Story 1's Implementation Tasks are all checked: `- [x] [task]`
-- Story 1's Definition of Done is all checked
-- All subsequent stories start at `Status: Not Started`
-- The `user-stories/README.md` progress reflects Story 1 as already complete
+**Story 1** is generated with `Status: Completed ✅`, describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
 
-**Why Story 1 is auto-complete:** The prototype work already exists in the codebase. Marking it Not Started would misrepresent project state and cause `/implement-spec` to re-implement existing work.
+**Why:** the work already exists in the codebase. Marking it Not Started would misrepresent project state and send `/implement-spec` to re-implement it.
 
 ---
 

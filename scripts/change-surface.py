@@ -6,10 +6,12 @@ Path heuristic for `skills/change-surface-classification/SKILL.md` — not
 an LLM. Six steps in order; classify UP when ambiguous.
 
 Subcommand:
-  classify --changed FILE …
+  classify --changed FILE … [--pretty]
 
-Prints exactly one of:
+Prints one JSON object `{"class": CLASS}`, where CLASS is one of:
   style-only | single-component | cross-component | full-stack
+`--pretty` prints the bare class word instead. `--json` is accepted as a
+no-op (agent CLI contract, data shape).
 
 Exit 0: printed a class.
 Exit 2: `--changed` empty or omitted, or other usage.
@@ -18,6 +20,7 @@ Exit 2: `--changed` empty or omitted, or other usage.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import List, Optional, Sequence
@@ -166,8 +169,11 @@ def classify(changed: Sequence[str]) -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
-    p = sub.add_parser("classify", help="print one change-surface class")
+    p = sub.add_parser("classify", help='print {"class": CLASS} as JSON')
     p.add_argument("--changed", nargs="*", default=None)
+    p.add_argument("--pretty", action="store_true",
+                   help="print the bare class word instead of JSON")
+    p.add_argument("--json", action="store_true", help=argparse.SUPPRESS)
     return parser
 
 
@@ -181,9 +187,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.action != "classify" or not args.changed:
         return 2
     try:
-        print(classify(args.changed))
+        surface = classify(args.changed)
     except UsageError:
         return 2
+    print(surface if args.pretty else json.dumps({"class": surface}))
     return 0
 
 

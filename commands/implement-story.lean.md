@@ -188,6 +188,8 @@ Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **A
 python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>]
 ```
 
+On exit 1 (malformed story) stdout is a JSON `blocker`; pass an empty `boundary_map`.
+
 ---
 
 #### Gate 1: Coding Agent (TDD Implementation)
@@ -228,6 +230,8 @@ Spawn the coding agent to run the red → green → refactor loop via `Read skil
 python3 scripts/change-surface.py classify --changed <files>
 ```
 
+The `class` field of its JSON is `change_surface`.
+
 ---
 
 #### Gate 3: Review Agent
@@ -238,7 +242,7 @@ python3 scripts/change-surface.py classify --changed <files>
 
 Default spawn is `evaluator-agent` (AC + recorded tests). Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
-**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `block` is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `fail` (`reason: block`) is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
@@ -323,9 +327,9 @@ python3 scripts/app-verify.py touched --recipe .writ/docs/app-verification.md --
 python3 scripts/app-verify.py run --recipe .writ/docs/app-verification.md --spec <spec-folder> --run-label story-N --features <touched ids, comma-joined>
 ```
 
-- **exit 0** → continue.
-- **exit 1** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
-- **exit 2** (no recipe, invalid recipe, refused), or `touched` printed no IDs (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
+- Line 1 **`pass`** → continue.
+- **`fail`** (check, launch, or readiness failed) → Gate 1 recode on the shared review-loop cap (Gate 3).
+- **`unverifiable`** (no recipe, invalid recipe, refused), or `touched` printed no `feature:` line (skip `run`; its line says `no mapped features`) → relay the `app-verify:` line and continue; **not** marked `⚠️ DEGRADED`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/visual-qa-agent.md`

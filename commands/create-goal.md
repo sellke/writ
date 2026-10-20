@@ -111,7 +111,7 @@ For `loop: no`, the second line reads `{Title} (loop: no — {missing ingredient
 python3 scripts/goal-emit.py emit --card .writ/issues/goals/<YYYY-MM-DD>-<slug>.md
 ```
 
-3. Print the invoke line the helper prints after its summary on a `pass` emit.
+3. Print the invoke line the helper prints above its summary on a `pass` emit.
 4. Relay the helper verdict:
    - `pass`, `fail`, or `unverifiable` (including `loop_no` when the saved card is `loop: no`) → `add_note`. The helper writes no emit dir on `loop: no`; do not create one yourself.
    - helper exit 2 → `add_finding`.

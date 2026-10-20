@@ -40,12 +40,11 @@ count_of() {  # $1 needle, $2 haystack -> number of lines containing needle
   printf '%s' "$n"
 }
 
-# ❌ FINDING lines only — the lint also prints a trailing
-# "❌ N lint violation(s) found across input files" summary, which is not a
-# finding and must not be counted as one.
+# ❌ FINDING lines only. The `lint-skill: fail (N violation(s) ...)` summary
+# carries no ❌, so every ❌ line is a `reason:` finding.
 finding_count() {  # $1 haystack
   local n
-  n=$(printf '%s\n' "$1" | grep -F -- '❌' | grep -vcF 'lint violation(s) found' || true)
+  n=$(printf '%s\n' "$1" | grep -cF -- '❌' || true)
   printf '%s' "$n"
 }
 

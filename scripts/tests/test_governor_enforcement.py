@@ -583,7 +583,18 @@ class CommandBudgetTests(unittest.TestCase):
 KNOWN_OVER_BUDGET = {
     # 2026-09-04: +141 over the plain-prose floor for the --from-issue Goal Card
     # branch (create-goal consumer); two adjacent sentences were trimmed to offset.
-    "commands/create-spec.md": 28123,
+    # 2026-10-20 (prototype exploration reframe): 28123 -> 29304, a disclosed
+    # increase. --from-prototype Step 0 now reads exploration.md and carries a
+    # source matrix, because a /prototype run can end at a chosen direction with
+    # no diff — Story 1 is no longer unconditionally Complete, and a spec that
+    # says otherwise sends /implement-spec past work nobody wrote. Also adds
+    # Directions Considered to the contract shape and a conditional opening
+    # framing. Offset 448 bytes by collapsing the five Step 1 anchor questions
+    # to one sentence and Step 3's six bullets to the prose the lean twin
+    # already proves is sufficient; the residual is the matrix itself.
+    # Acknowledged, not exempted: this file is the tree's worst violator and
+    # wants a real reduction pass, which is not this change.
+    "commands/create-spec.md": 29304,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

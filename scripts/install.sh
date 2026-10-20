@@ -928,6 +928,9 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|lean-decision.py|prune-ledger.py|spawn-cap.py)
+      # Dev-only tooling (eval.sh, measurement); not agent-facing. ADR-029.
+      return 1 ;;
   esac
   case "$base" in
     *.py|*.sh)

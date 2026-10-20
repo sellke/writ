@@ -115,9 +115,9 @@ def run_check(fx: Fixture, *extra: str) -> Tuple[int, str, str]:
 
 
 def finding_lines(stdout: str) -> List[str]:
-    """Every line that is neither the note nor the trailing summary."""
+    """Every line between the verdict line and the trailing summary that is not a note."""
     lines = [ln for ln in stdout.splitlines() if ln.strip()]
-    return [ln for ln in lines[:-1] if not ln.startswith("note:")]
+    return [ln for ln in lines[1:-1] if not ln.startswith("note:")]
 
 
 class ParserTests(unittest.TestCase):
@@ -269,7 +269,21 @@ class CheckTests(unittest.TestCase):
         self.assertEqual(code, 1, out)
         codes = sorted(ln.split(":")[0] for ln in finding_lines(out))
         self.assertEqual(codes, ["entry_without_heading", "unknown_verification_value"])
-        self.assertTrue(out.splitlines()[-1].startswith("gates: "), out)
+        self.assertEqual(out.splitlines()[0], "fail", out)
+        self.assertTrue(out.splitlines()[-1].startswith("verdict-provenance: fail (gates: "),
+                        out)
+
+    def test_clean_run_prints_pass_first_and_summary_last(self) -> None:
+        """Agent CLI contract (check shape): verdict alone on line 1, summary last."""
+        self.fx.write(command_text(complete_entries()))
+        code, out, _ = run_check(self.fx)
+        self.assertEqual(code, 0, out)
+        lines = out.splitlines()
+        self.assertEqual(lines[0], "pass", out)
+        self.assertEqual(lines[1], "note: prose_only_count: 8 (cap 1)", out)
+        self.assertRegex(lines[-1], r"^verdict-provenance: pass \(gates: \d+ entries, "
+                                    r"headings: \d+, script: \d+, prose-only: 8, findings: 0\)$")
+        self.assertEqual(len(lines), 3, out)
 
     # AC-4.3
     def test_prose_only_over_cap_is_note_by_default(self) -> None:
