@@ -1,6 +1,7 @@
 # Story 2: Keep the Codex Config Baseline on Update
 
 > **Status:** Completed ✅
+> **Commit:** a74c2999c28e46ed64aaede182965fdb1b772b2c
 > **Priority:** Medium
 > **Dependencies:** None
 
