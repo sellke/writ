@@ -1,6 +1,7 @@
 # Story 2: Regenerate Claude Agents
 
 > **Status:** Completed ✅ (2026-10-20)
+> **Commit:** ae3b591ad2859481d62a2067de931258567b71f3
 > **Priority:** High
 > **Dependencies:** Story 1
 
