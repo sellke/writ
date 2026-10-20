@@ -592,7 +592,7 @@ model configuration for agents.
 - A fresh Claude Code install carries the Prime Directive. Its `CLAUDE.md` block is generated from the command registry, and an eval check fails when a registered command is missing from it.
 - CI runs `pytest` on the 3.9 floor and the bash tests on every PR, alongside `eval.sh`.
 - `update.sh` keeps a locally modified stale file on every run and keeps the Codex config baseline. Each is proven by a test that fails on today's script.
-- No shipped command names a tool that no adapter translates; `cursor-ide-browser` is replaced. Writ's `/design` no longer collides with Claude Code's native `/design`, verified by a clean-room install.
+- No shipped command names a tool that no adapter translates; `cursor-ide-browser` is replaced. Writ's `/design` no longer collides with Claude Code's native `/design`: it is renamed `/writ-design` (maintainer decision, 2026-10-20), which removes the collision on every platform without depending on how Claude Code resolves the name.
 - `adapters/claude-code.md` documents only commands and flags that exist, and its worktree guidance agrees with `skills/subagent-worktree-integration`.
 - None of the following is left in what `install.sh` ships:
   - a `*.lean.md` file or a `WRIT_HARNESS_LEAN` branch
