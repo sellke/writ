@@ -8,8 +8,8 @@ frontmatter and retired `model: "fast"` lines removed), then an optional
 suffix, with exactly one trailing newline. The module filename contains a
 hyphen, so it is imported by path.
 
-Fixture runs use temp dirs: until Story 2 regenerates the committed tree,
-`--check` against `claude-code/agents/` reports drift by design.
+Fixture runs use temp dirs. The Story 2 tests at the bottom run `--check`
+against the committed `agents/` and `claude-code/agents/` trees.
 """
 
 from __future__ import annotations
@@ -478,3 +478,44 @@ def test_script_does_not_import_the_codex_generator() -> None:
     assert "gen_codex" not in source
     assert hasattr(gen, "strip_optional_yaml_frontmatter")
     assert hasattr(gen, "RETIRED_FAST_LINE")
+
+
+# --------------------------------------------------------------------------
+# Story 2 — the committed tree is generated (AC-2.1, AC-2.3, AC-2.5)
+# --------------------------------------------------------------------------
+
+def test_committed_tree_passes_check() -> None:
+    """AC-2.1, AC-2.5 — `--check` against the real `agents/` and `claude-code/agents/`
+    passes with zero drift. Absolute paths, so the test works from any cwd."""
+    result = run_cli("--agents-dir", str(CANONICAL_DIR), "--out-dir", str(COMMITTED_DIR), "--check")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[0] == "pass"
+    assert result.stdout.splitlines()[-1] == (
+        "gen-claude-agents: pass (0 stale, 0 missing, 0 orphan, 0 unmapped)"
+    )
+
+
+def test_committed_tree_holds_eight_generated_agents() -> None:
+    """AC-2.1 — one `writ-*.md` per canonical stem, `writ-visual-qa.md` included."""
+    assert sorted(p.name for p in COMMITTED_DIR.glob("writ-*.md")) == sorted(FILE_MAP.values())
+
+
+def test_committed_coder_carries_the_canonical_prompt_contract() -> None:
+    """AC-2.3 — the regenerated coder has the iteration cap and the boundary_map rules."""
+    text = (COMMITTED_DIR / "writ-coder.md").read_text(encoding="utf-8")
+    assert "MAX_SELF_FIX_ITERATIONS = 3" in text
+    assert "**When `boundary_map` is non-empty (Gate 0.5 ran):**" in text
+    assert "File Ownership Boundaries" in text
+
+
+def test_committed_visual_qa_is_read_only_plan_mode() -> None:
+    """AC-2.1 — `writ-visual-qa.md`: inherit model, plan mode, Write/Edit disallowed,
+    generated header after the frontmatter."""
+    text = (COMMITTED_DIR / "writ-visual-qa.md").read_text(encoding="utf-8")
+    fm = frontmatter_block(text)
+    assert "\nmodel: inherit\n" in fm
+    assert "\npermissionMode: plan\n" in fm
+    assert "\ndisallowedTools: Write, Edit\n" in fm
+    assert text[len(fm):].startswith(
+        "\n" + HEADER_TEMPLATE.format(stem="visual-qa-agent") + "\n"
+    )

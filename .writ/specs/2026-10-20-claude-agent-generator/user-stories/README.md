@@ -5,7 +5,7 @@
 | # | Story | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
 | 1 | [Generator and Overlay](story-1-generator-and-overlay.md) | Completed ✅ | 7 | 7/7 | None |
-| 2 | [Regenerate Claude Agents](story-2-regenerate-claude-agents.md) | Not Started | 7 | 0/7 | Story 1 |
+| 2 | [Regenerate Claude Agents](story-2-regenerate-claude-agents.md) | Completed ✅ | 7 | 7/7 | Story 1 |
 | 3 | [Parity Check, Eval Check, and Docs](story-3-parity-eval-and-docs.md) | Not Started | 7 | 0/7 | Story 1, Story 2 |
 
 **Total:** 3 stories, 21 tasks, 15 acceptance criteria.

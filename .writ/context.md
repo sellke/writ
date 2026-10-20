@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-20T22:43:28Z
+> Last Updated: 2026-10-20T23:05:32Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-claude-agent-generator — Claude Agent Generator
 - **Status:** In Progress
-- **Story:** 1 of 3 — Generator and Overlay (Completed ✅)
-- **Progress:** 7/21 tasks complete (33%)
+- **Story:** 2 of 3 — Regenerate Claude Agents (Completed ✅)
+- **Progress:** 14/21 tasks complete (67%)
 
 ## Artifact Map
 
