@@ -164,6 +164,14 @@ manifest_files() {
 write_copy_manifest() {
   local version="$1" target="$2"
 
+  # Read the Codex config baseline before the truncation below: it cannot be
+  # recomputed from disk (the config is install-once and may be edited), and
+  # after `cat >` the manifest is empty. Same order as unlink.sh.
+  local config_baseline=""
+  if [ "$PLATFORM" = "codex" ]; then
+    config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
+  fi
+
   cat > "$target" << EOF
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
@@ -223,11 +231,10 @@ EOF
   fi
 
   if [ "$PLATFORM" = "codex" ]; then
-    local iw config_baseline
+    local iw
     if [ -f "AGENTS.md" ] && iw="$(writ_compute_writ_block_inner_hash "AGENTS.md")"; then
       echo "$iw  AGENTS.md.writ-block" >> "$target"
     fi
-    config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
     if [ -n "$config_baseline" ]; then
       echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
     fi

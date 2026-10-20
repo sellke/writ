@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-20T21:21:20Z
+> Last Updated: 2026-10-20T21:42:53Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-ci-and-update-integrity — CI and Update Integrity
 - **Status:** In Progress
-- **Story:** 1 of 5 — CI Runs Every Suite (Completed ✅)
-- **Progress:** 6/31 tasks complete (19%)
+- **Story:** 2 of 5 — Keep the Codex Config Baseline on Update (Completed ✅)
+- **Progress:** 12/31 tasks complete (39%)
 
 ## Artifact Map
 
@@ -27,4 +27,4 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Open Issues
 
-23 open issue files in .writ/issues/ (30 total; 7 closed with `## Resolution`)
+22 open issue files in .writ/issues/ (30 total; 8 closed with `## Resolution`)
