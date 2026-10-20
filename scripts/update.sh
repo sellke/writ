@@ -152,29 +152,79 @@ manifest_mode() {
   fi
 }
 
+# Baselines this run trusts, one "<hash>  <path>" line each. load_baselines
+# fills it after the clone; until then lookups read the manifest itself.
+BASELINES_FILE=""
+
+# load_baselines — the one place that decides which baselines this run trusts.
+# Today that is every "<hash>  <path>" line of the manifest (none without a
+# manifest). write_copy_manifest truncates the manifest, so lookups read this
+# copy instead.
+load_baselines() {
+  BASELINES_FILE=$(mktemp)
+  if [ -f "$MANIFEST_FILE" ]; then
+    awk '!/^#/ && NF' "$MANIFEST_FILE" > "$BASELINES_FILE"
+  fi
+}
+
+baselines_source() {
+  if [ -n "${BASELINES_FILE:-}" ]; then
+    printf '%s\n' "$BASELINES_FILE"
+  else
+    printf '%s\n' "$MANIFEST_FILE"
+  fi
+}
+
+# The recorded hash for one path. Exact match on the path field; first line wins.
 manifest_hash_for() {
-  local path="$1"
-  [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
+  local path="$1" source
+  source=$(baselines_source)
+  [ -f "$source" ] || return 0
+  awk -v p="$path" '!/^#/ && $2 == p { print $1; exit }' "$source"
 }
 
 manifest_files() {
-  [ -f "$MANIFEST_FILE" ] && grep -v '^#' "$MANIFEST_FILE" | grep -v '^$' | awk '{print $2}' || true
+  local source
+  source=$(baselines_source)
+  [ -f "$source" ] || return 0
+  awk '!/^#/ && NF { print $2 }' "$source"
+}
+
+# record_file_baseline — append the manifest line for one shipped file
+# (Business Rule 3). Local copy equals upstream: the upstream hash. Local copy
+# differs (the overlay preserved it): its previous baseline, or no line when it
+# had none, so a later upstream change is still a preserve. No local copy, or
+# nothing upstream: no line. Never writes an empty hash.
+record_file_baseline() {
+  local target="$1" path="$2" upstream_file="$3" local_file="$4" hash
+  [ -f "$local_file" ] && [ -f "$upstream_file" ] || return 0
+  if cmp -s "$local_file" "$upstream_file"; then
+    hash=$(hash_file "$upstream_file")
+  else
+    hash=$(manifest_hash_for "$path")
+  fi
+  [ -n "$hash" ] || return 0
+  printf '%s  %s\n' "$hash" "$path" >> "$target"
 }
 
 write_copy_manifest() {
   local version="$1" target="$2"
 
-  # Read the Codex config baseline before the truncation below: it cannot be
-  # recomputed from disk (the config is install-once and may be edited), and
-  # after `cat >` the manifest is empty. Same order as unlink.sh.
+  # The Codex config is install-once and may be edited, so its baseline cannot
+  # be recomputed from disk: carry the recorded one. Read it before the
+  # truncation below, in case lookups still read the manifest itself (no
+  # load_baselines yet). Same order as unlink.sh.
   local config_baseline=""
   if [ "$PLATFORM" = "codex" ]; then
     config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
   fi
 
+  # `# baselines: shipped` marks a manifest that records only shipped paths
+  # (Business Rule 2). A manifest without it was written by an older script.
   cat > "$target" << EOF
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
+# baselines: shipped
 # mode: copy
 # platform: $PLATFORM
 # version: $version
@@ -182,62 +232,67 @@ write_copy_manifest() {
 # source: $WRIT_REPO
 EOF
 
-  local f rel line path
+  # Walk the shipped set in $WRIT_SRC with the overlay scans' own filters,
+  # never the project's folders (Business Rule 1): a user's own file in a
+  # tracked folder gets no line, so it is never stale and never removed.
+  # AGENTS_SRC and AGENT_FILE_GLOB default to empty because
+  # test_update_claude_md.sh runs this function by itself without them.
+  local f name agents_dir skill_folder skill_name line path
   append_manifest_shippable_scripts "$target"
   append_manifest_writ_docs "$target"
-  for f in "$PLATFORM_DIR"/commands/*.md; do
+  for f in "$WRIT_SRC"/commands/*.md; do
     [ -f "$f" ] || continue
-    rel="${f#"$PLATFORM_DIR"/}"
-    echo "$(hash_file "$f")  $rel" >> "$target"
+    name=$(basename "$f")
+    is_unshipped_lean_sibling "$WRIT_SRC/commands" "$name" && continue
+    record_file_baseline "$target" "commands/$name" "$f" "$PLATFORM_DIR/commands/$name"
+  done
+  agents_dir="$WRIT_SRC/${AGENTS_SRC:-}"
+  for f in "$agents_dir"/${AGENT_FILE_GLOB:-}; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f")
+    is_unshipped_lean_sibling "$agents_dir" "$name" && continue
+    record_file_baseline "$target" "agents/$name" "$f" "$PLATFORM_DIR/agents/$name"
   done
 
-  if [ "$PLATFORM" = "codex" ]; then
-    for f in "$PLATFORM_DIR"/agents/*.toml; do
-      [ -f "$f" ] || continue
-      rel="${f#"$PLATFORM_DIR"/}"
-      echo "$(hash_file "$f")  $rel" >> "$target"
-    done
-  else
-    for f in "$PLATFORM_DIR"/agents/*.md; do
-      [ -f "$f" ] || continue
-      rel="${f#"$PLATFORM_DIR"/}"
-      echo "$(hash_file "$f")  $rel" >> "$target"
-    done
-  fi
+  for skill_folder in "$WRIT_SRC"/skills/*/; do
+    [ -f "${skill_folder}SKILL.md" ] || continue
+    skill_name=$(basename "$skill_folder")
+    record_file_baseline "$target" "skills/$skill_name/SKILL.md" \
+      "${skill_folder}SKILL.md" "$SKILLS_DIR/$skill_name/SKILL.md"
+  done
 
-  local skill_folder skill_name src_skill
-  if [ -d "$SKILLS_DIR" ]; then
-    for skill_folder in "$SKILLS_DIR"/*/; do
-      [ -d "$skill_folder" ] || continue
-      skill_name=$(basename "$skill_folder")
-      src_skill="${skill_folder}SKILL.md"
-      [ -f "$src_skill" ] || continue
-      rel="skills/$skill_name/SKILL.md"
-      echo "$(hash_file "$src_skill")  $rel" >> "$target"
-    done
-  fi
-
+  # Platform files copied whole.
   if [ "$PLATFORM" = "cursor" ]; then
-    for f in "$PLATFORM_DIR"/rules/writ.mdc "$PLATFORM_DIR"/system-instructions.md; do
-      [ -f "$f" ] || continue
-      rel="${f#"$PLATFORM_DIR"/}"
-      echo "$(hash_file "$f")  $rel" >> "$target"
-    done
-  elif [ "$PLATFORM" = "claude" ]; then
-    local iw=""
-    if [ -f "CLAUDE.md" ] && iw="$(writ_compute_writ_block_inner_hash "CLAUDE.md")"; then
-      echo "$iw  CLAUDE.md.writ-block" >> "$target"
+    record_file_baseline "$target" "rules/writ.mdc" \
+      "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
+    record_file_baseline "$target" "system-instructions.md" \
+      "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
+  fi
+
+  # Writ block: the inner hash when it equals the template hash the merge
+  # functions compare against. Otherwise the block was preserved: keep its
+  # previous baseline, or write no line. The same rule as
+  # record_file_baseline, kept inline because test_update_claude_md.sh runs
+  # this function without the other helpers.
+  local block="" template="" inner="" block_hash=""
+  case "$PLATFORM" in
+    claude) block="CLAUDE.md"; template="$WRIT_SRC/claude-code/CLAUDE.md" ;;
+    codex)  block="AGENTS.md"; template="$WRIT_SRC/codex/AGENTS.md.template" ;;
+  esac
+  if [ -n "$block" ] && [ -f "$block" ] && [ -f "$template" ]; then
+    inner=$(writ_compute_writ_block_inner_hash "$block") || inner=""
+    if [ -n "$inner" ] && [ "$inner" = "$(hash_file "$template")" ]; then
+      block_hash="$inner"
+    else
+      block_hash=$(manifest_hash_for "$block.writ-block")
+    fi
+    if [ -n "$block_hash" ]; then
+      echo "$block_hash  $block.writ-block" >> "$target"
     fi
   fi
 
-  if [ "$PLATFORM" = "codex" ]; then
-    local iw
-    if [ -f "AGENTS.md" ] && iw="$(writ_compute_writ_block_inner_hash "AGENTS.md")"; then
-      echo "$iw  AGENTS.md.writ-block" >> "$target"
-    fi
-    if [ -n "$config_baseline" ]; then
-      echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
-    fi
+  if [ "$PLATFORM" = "codex" ] && [ -n "$config_baseline" ]; then
+    echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
   fi
 
   # Keep the old baseline of a kept, locally modified stale file so the next
@@ -560,8 +615,12 @@ if ! git clone --depth 1 "$WRIT_REPO" "$WRIT_SRC" 2>&1 | tail -1; then
   rm -rf "$WRIT_SRC"
   exit 1
 fi
-cleanup() { rm -rf "$WRIT_SRC"; }
+cleanup() {
+  rm -rf "$WRIT_SRC"
+  if [ -n "${BASELINES_FILE:-}" ]; then rm -f "$BASELINES_FILE"; fi
+}
 trap cleanup EXIT
+load_baselines
 
 NEW_VERSION=$(cd "$WRIT_SRC" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
 NEW_VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
@@ -671,21 +730,26 @@ overlay_scan_flat_dir() {
   done
 }
 
+# Manifest lines for the top-level scripts upstream ships (the overlay's
+# "script" filter). Called only by write_copy_manifest.
 append_manifest_shippable_scripts() {
   local target="$1" f base
-  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
+  for f in "$WRIT_SRC"/scripts/*; do
     [ -f "$f" ] || continue
     base=$(basename "$f")
     is_shippable_script "$base" || continue
-    echo "$(hash_file "$f")  $f" >> "$target"
+    record_file_baseline "$target" "scripts/$base" "$f" "scripts/$base"
   done
 }
 
+# Manifest lines for the .writ/docs/*.md upstream ships. Called only by
+# write_copy_manifest.
 append_manifest_writ_docs() {
-  local target="$1" f
-  for f in .writ/docs/*.md; do
+  local target="$1" f base
+  for f in "$WRIT_SRC"/.writ/docs/*.md; do
     [ -f "$f" ] || continue
-    echo "$(hash_file "$f")  $f" >> "$target"
+    base=$(basename "$f")
+    record_file_baseline "$target" ".writ/docs/$base" "$f" ".writ/docs/$base"
   done
 }
 
