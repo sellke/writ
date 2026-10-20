@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-13T00:16:14Z
+> Last Updated: 2026-10-20T22:43:28Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-12-agent-cli-contract — Agent CLI Contract
-- **Status:** Complete (checker verdict met; integration suite passed)
-- **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Completed ✅)
-- **Progress:** 34/34 tasks complete (100%)
+- **Spec:** 2026-10-20-claude-agent-generator — Claude Agent Generator
+- **Status:** In Progress
+- **Story:** 1 of 3 — Generator and Overlay (Completed ✅)
+- **Progress:** 7/21 tasks complete (33%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-12-agent-cli-contract/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
-- **Knowledge:** .writ/knowledge/ (21 entries)
+- **Active spec:** .writ/specs/2026-10-20-claude-agent-generator/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Knowledge:** .writ/knowledge/ (22 entries)
 - **Docs:** .writ/docs/ (28 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-002 (Medium) live-repo parity test held to shape, not zero drift — agent-cli-contract Story 5
-- DEV-003 (Medium) Story 4 citation gap closed in Story 5; eval now runs after each status flip — agent-cli-contract Story 5
-- DEV-005 (Small) Gate 4.5 has no branch for empty stdout (byte pin) — agent-cli-contract Story 5
+- DEV-001 (Small) Orphan means no current canonical stem generates the file — claude-agent-generator Story 1
+- DEV-002 (Small) Reasons sorted by reported name — claude-agent-generator Story 1
+- DEV-003 (Small) Suffixes hold memory lines only — claude-agent-generator Story 1
 
 ## Open Issues
 
-17 open issue files in .writ/issues/ (24 total; 7 closed with `## Resolution`)
+23 open issue files in .writ/issues/ (30 total; 7 closed with `## Resolution`)

@@ -100,6 +100,7 @@ These steps apply in the Writ source repo.
 | `docs-check.py` | check |  | commands/implement-story.md |
 | `drift-format.py` | check |  | commands/implement-story.md, commands/implement-spec.md |
 | `exit-criteria.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, adapters/claude-code.md |
+| `gen-claude-agents.py` | check |  | commands/refresh-command.md, adapters/claude-code.md |
 | `gen-codex-agent-tomls.py` | check |  | commands/refresh-command.md, adapters/codex.md |
 | `gen-skill.sh` | check |  | commands/new-skill.md, commands/update-writ.md |
 | `goal-emit.py` | check |  | commands/create-goal.md, commands/implement-phase.md, adapters/claude-code.md |

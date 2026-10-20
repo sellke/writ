@@ -24,7 +24,7 @@
 
 **Error Handling:**
 - Unmapped stem → `reason: unmapped <stem>`, write nothing, exit 1
-- Stale/missing/orphan → one `reason:` each, sorted by stem, exit 1
+- Stale/missing/orphan → one `reason:` each, sorted by reported name, exit 1; orphan = a `writ-*.md` no current canonical stem generates
 - Generator absent beside parity script → skip content check, note it in summary
 - Generator `--check` rc ≥ 2 → parity drift reason
 
