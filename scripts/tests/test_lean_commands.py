@@ -104,8 +104,14 @@ STEMS = ("create-spec", "verify-spec", "implement-phase", "implement-story")
 # reads tally's `fail` (`reason: block`) where it read `block`, with a Gate 0.5
 # path and a Gate 2 adjective trimmed to stay byte-neutral;
 # implement-story.lean.md carries the same panel sentence.
+# Repinned 2026-10-20 (prototype exploration reframe): create-spec.md
+# --from-prototype Step 0 reads .writ/prototypes/<date>-<slug>/exploration.md,
+# gained a source matrix (a /prototype run can now end at a chosen direction
+# with no diff, so Story 1 is no longer unconditionally complete), and the
+# contract shape gained Directions Considered; create-spec.lean.md carries the
+# same contract change — this is a core flow correction, not an opt-in arm.
 DEFAULT_SHA256 = {
-    "create-spec": "79c649a937ae932dac5b97a5fd0455a492cbd27909de3f457b8d0780db7d448e",
+    "create-spec": "4b8baf9adb4372cc9abad4a7fcb0bcb54eeee192ed5a605b77ae0c72c9552dd1",
     "verify-spec": "170645f21c0a54d01ead39d228ab7c8e59ee2e2aca235ab86acaec012454a841",
     "implement-phase": "269f05a2d8dc0e0d9cdf23f1a7def9692c37f66e997627b1e28babff01875487",
     "implement-story": "e47dd5cd55eb39ef884b7f0341f56fbe07154abdb765ac3deaff16de81929e35",
@@ -146,7 +152,7 @@ KEPT_HEADINGS = {
         "`--from-issue` Mode",
         "Step 0: Read Prototype Context",
         "Step 0: Read Issue Context",
-        "Step 3: Phase 2 with Story 1 Pre-Marked Complete",
+        "Step 3: Phase 2 with Story 1 Marked per the Source Matrix",
         "Step 3: Phase 2 with `spec_ref` Writeback",
         "Phase 1: Contract Establishment",
         "Step 1.0: Feature Selection",
