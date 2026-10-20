@@ -519,3 +519,25 @@ def test_committed_visual_qa_is_read_only_plan_mode() -> None:
     assert text[len(fm):].startswith(
         "\n" + HEADER_TEMPLATE.format(stem="visual-qa-agent") + "\n"
     )
+
+
+# ---------------------------------------------------------------------------
+# Docs name every generated agent and the regenerate command. [AC-3.5]
+# ---------------------------------------------------------------------------
+
+
+def test_claude_adapter_maps_every_canonical_stem_to_its_agent_file():
+    adapter = (REPO_ROOT / "adapters" / "claude-code.md").read_text(encoding="utf-8")
+    for stem, entry in gen.OVERLAY.items():
+        row = "| `agents/%s.md` | `.claude/agents/%s` |" % (stem, entry["file"])
+        assert row in adapter, row
+    for name in ("writ-evaluator", "writ-visual-qa"):
+        assert name in adapter, name
+    assert "do not infer a seventh" not in adapter
+
+
+def test_refresh_command_names_the_regenerate_command_and_no_exclusions():
+    text = (REPO_ROOT / "commands" / "refresh-command.md").read_text(encoding="utf-8")
+    assert "python3 scripts/gen-claude-agents.py" in text
+    assert "there are no exclusions" in text
+    assert "No `claude-code/agents/` file today" not in text

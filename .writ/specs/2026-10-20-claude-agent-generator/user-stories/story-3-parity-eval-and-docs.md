@@ -89,6 +89,7 @@
 ### Test Results
 
 **Verification:** `test_shell_check_shape.sh` 29 assertions passed; `test_eval_claude_agents.sh` 7 passed; `check-agent-parity.sh` pass on the committed tree. Reviewer re-ran: all bash suites, `uv run pytest` 2672 passed / 2 skipped, contract tests 318 passed, `eval.sh` rc 0.
+- ✅ AC-3.5: `test_claude_adapter_maps_every_canonical_stem_to_its_agent_file`, `test_refresh_command_names_the_regenerate_command_and_no_exclusions` (52 passed in the module, also on 3.9)
 - ✅ Manual drift in a temp worktree: parity `fail` with `reason: gen-claude-agents.py: stale coding-agent`; eval finding names the regenerate command
 - ⚠️ `test-integrity.py authenticity` → `test_imports_no_source` on both bash tests. Known checker false positive for shell tests (same verdict on the existing `test_eval_codex_tomls.sh`). Carried on mutation evidence: disabling the reason fold, the crash branch, or the eval remedy text each makes its test fail.
 
@@ -96,7 +97,7 @@
 
 **Result:** PASS
 
-- **Iteration count:** 1 iteration(s)
+- **Iteration count:** 2 iteration(s) — the integration `eval.sh` run found `untested_criterion` AC-3.5 after the story closed; recoded with two docs tests in `scripts/tests/test_gen_claude_agents.py` (mutation-checked) in a follow-up commit
 - **Drift:** Small
 - **Security:** Clean
 - **Boundary Compliance:** One permitted crossing (`scripts/tests/test_eval_claude_agents.sh`)
