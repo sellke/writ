@@ -1,6 +1,7 @@
 # Story 3: Record Baselines Only for Shipped Paths; Customized Files Keep Their Baseline
 
 > **Status:** Completed ✅
+> **Commit:** a1c900ce42131be1cae4cc3b912566a54d4d055a
 > **Priority:** High
 > **Dependencies:** Story 2
 
@@ -66,7 +67,7 @@
 
 ### Files Created
 
-1. **`scripts/tests/test_manifest_shipped_baselines.sh`** (~5 installs, 6 updates, about 65 s) — committed source copy, `WRIT_REPO=$SRC`. Each update follows an upstream change to `commands/create-issue.md`, and `check_rewritten` proves the manifest was rewritten. Covers install over four pre-existing user files and re-install over a header-less manifest (AC-3.1); three updates with user files added after install (AC-3.2); a customized `status.md` and CLAUDE.md Writ block, and a Cursor `rules/writ.mdc`, across an upstream change to each (AC-3.3); and `check_complete`, which compares the sorted manifest to a shipped set computed independently from the source on claude, cursor, and codex, and rejects any line that is not `<64-hex>  <path>` (AC-3.4). The Codex project also holds byte-equal copies of an unshipped lean sibling and `scripts/harness-cost.py` to exercise the filters. [AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-3.5]
+1. **`scripts/tests/test_manifest_shipped_baselines.sh`** (445 lines; 5 installs, 6 updates, about 65 s) — committed source copy, `WRIT_REPO=$SRC`. Each update follows an upstream change to `commands/create-issue.md`, and `check_rewritten` proves the manifest was rewritten. Covers install over four pre-existing user files and re-install over a header-less manifest (AC-3.1); three updates with user files added after install (AC-3.2); a customized `status.md` and CLAUDE.md Writ block, and a Cursor `rules/writ.mdc`, across an upstream change to each (AC-3.3); and `check_complete`, which compares the sorted manifest to a shipped set computed independently from the source on claude, cursor, and codex, and rejects any line that is not `<64-hex>  <path>` (AC-3.4). The Codex project also holds byte-equal copies of an unshipped lean sibling and `scripts/harness-cost.py` to exercise the filters. [AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-3.5]
 
 ### Files Modified
 
