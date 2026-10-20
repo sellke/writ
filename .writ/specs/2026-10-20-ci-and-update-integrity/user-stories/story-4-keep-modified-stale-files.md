@@ -1,6 +1,7 @@
 # Story 4: Keep Modified Stale Files in Every Category
 
 > **Status:** Completed ✅
+> **Commit:** 3960d723a092dd54b2d055a09e13c3ccbcfcde1c
 > **Priority:** High
 > **Dependencies:** Story 3
 
