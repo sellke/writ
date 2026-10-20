@@ -368,7 +368,7 @@ Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop ho
 
 Register one goal at the outermost running command (`/implement-phase` or `/implement-spec`), with a condition that is satisfiable by pausing as well as by finishing (spec.md Business Rule 1: "Reaching a retained pause satisfies the gate"). A condition that only accepts a clean checker pass pushes the model past a human gate; spec.md's "What `/goal` showed" section documents `/goal`'s own injected prompt ("do not pause to ask the user what to do") causing this.
 
-**Paste the emitter's printed invoke line unchanged.** After `/create-goal` saves a `loop: yes` card, or `/implement-phase` resolves a Goal Card origin, `python3 scripts/goal-emit.py emit --card PATH` prints the `/goal` line after its summary. Paste that printed text as-is. It must match the three-way template below; do not rewrite clauses (a)/(b)/(c).
+**Paste the emitter's printed invoke line unchanged.** After `/create-goal` saves a `loop: yes` card, or `/implement-phase` resolves a Goal Card origin, `python3 scripts/goal-emit.py emit --card PATH` prints the `/goal` text between its `pass` line and its summary. Paste that printed text as-is. It must match the three-way template below; do not rewrite clauses (a)/(b)/(c).
 
 Word the condition as an explicit three-way disjunction:
 

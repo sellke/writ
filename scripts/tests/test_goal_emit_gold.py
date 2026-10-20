@@ -64,8 +64,11 @@ class GoalEmitGoldTests(unittest.TestCase):
             emitted_verify = (out_dir / "VERIFY.md").read_text(encoding="utf-8")
             self.assertEqual(emitted_goal, gold_goal)
             self.assertEqual(emitted_verify, gold_verify)
-            printed = out.split("goal-emit:", 1)[1]
-            printed = printed.split("\n", 1)[1]
+            # Verdict line first, summary last; the invoke text is between.
+            lines = out.splitlines()
+            self.assertEqual(lines[0], "pass")
+            self.assertTrue(lines[-1].startswith("goal-emit: pass"), lines[-1])
+            printed = "\n".join(lines[1:-1])
             self.assertEqual(printed.rstrip("\n"), gold_invoke.rstrip("\n"))
             self.assertEqual(printed.rstrip("\n"), adapter_invoke)
 

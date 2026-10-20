@@ -20,8 +20,9 @@ Subcommands:
                       tagged checklist lines; `<security|architecture>:<path>`
                       from Critical/Major Issues Found entries) and count
                       distinct vendors per key, the primary counted as one.
-                      ≥2 vendors → `block`; one panel vendor → advisory note;
-                      primary-only keys are not reprinted.
+                      ≥2 vendors → `fail` with `reason: block`; one panel
+                      vendor → advisory note; primary-only keys are not
+                      reprinted.
 
 Retrospective trial (Business Rules 11-12; the trial file holds keys,
 vendors, severities, and labels, never reviewer, diff, or story text):
@@ -35,15 +36,20 @@ vendors, severities, and labels, never reviewer, diff, or story text):
                       Raw outputs go to .writ/state/panel-trial/<story>/.
   trial-label   --trial FILE --story ID --key KEY --label valid|invalid --note TEXT
   trial-report  --trial FILE [--json]
-                      `keep` / `remove` / `unverifiable`; always exit 0.
+                      `pass` with `reason: keep` or `reason: remove`, or
+                      `unverifiable`; always exit 0.
 
-Prints one verdict line first (`pass` / `block` / `unverifiable`), then
+Prints one verdict line first (`pass` / `fail` / `unverifiable`), then
 `reason:` lines (`status` adds `reviewer:` and `dropped:` lines; `tally` adds
 `review-panel: dropped|advisory|block` lines), and a `review-panel:` summary
-line last. `--json` prints one object instead.
+line last. A panel word that is not a verdict (`block`, `keep`, `remove`)
+is the first `reason:` line. `--json` prints one object instead, with the
+panel word as its `verdict`. `trial-init`,
+`trial-prepare`, `trial-record`, and `trial-label` print `pass` first when
+they did their job, then their detail lines and summary; a refusal exits 2.
 
 Exit 0: ran, no blocking verdict (`pass` or `unverifiable`).
-Exit 1: `tally` found a consensus finding (`block`).
+Exit 1: `tally` found a consensus finding (`fail`, `reason: block`).
 Exit 2: usage (missing `--origin`, unreadable repo or config, unknown
         platform, malformed `--reviewer`, primary output missing or without a
         verdict line).
@@ -431,6 +437,18 @@ def load_tally(origin: str, primary: Path, reviewer_args: Sequence[str]) -> Tall
     return tally(origin, primary_text, [(slug, _read_output(path)) for slug, path in reviewers])
 
 
+# The check-shape line 1 for a panel word that is not itself a verdict; the
+# word follows as the first `reason:` line.
+PANEL_WORD_VERDICT = {"block": "fail", "keep": "pass", "remove": "pass"}
+
+
+def _print_verdict(word: str) -> None:
+    verdict = PANEL_WORD_VERDICT.get(word, word)
+    print(verdict)
+    if verdict != word:
+        print("reason: %s" % word)
+
+
 def cmd_tally(args: argparse.Namespace) -> int:
     result = load_tally(args.origin, Path(args.primary), args.reviewer or [])
     code = 1 if result.verdict == "block" else 0
@@ -449,7 +467,7 @@ def cmd_tally(args: argparse.Namespace) -> int:
             "summary": result.summary,
         }, sort_keys=True))
         return code
-    print(result.verdict)
+    _print_verdict(result.verdict)
     for reason in result.reasons:
         print("reason: %s" % reason)
     for slug, reason in result.dropped:
@@ -599,7 +617,7 @@ def cmd_trial_init(args: argparse.Namespace) -> int:
         raise UsageError("refusing to overwrite %s without --force" % out)
     doc = trial_skeleton(_load_json(Path(args.baseline), "baseline"), args.baseline)
     _write_json_atomic(out, doc)
-    print("initialized")
+    print("pass")
     for story in doc["stories"]:
         print("story: %s %s" % (story["story_id"], story["story_commit"][:12]))
     print("review-panel: trial initialized — %s, no arms recorded" %
@@ -702,7 +720,7 @@ def cmd_trial_prepare(args: argparse.Namespace) -> int:
     except (PrepareError, OSError) as exc:
         shutil.rmtree(str(run), ignore_errors=True)
         raise UsageError("%s: %s" % (sid, exc))
-    print("prepared")
+    print("pass")
     print("checkout: %s" % paths["checkout"])
     print("diff: %s" % paths["diff"])
     print("story: %s" % paths["story"])
@@ -813,7 +831,7 @@ def cmd_trial_record(args: argparse.Namespace) -> int:
     story["panel_only"] = panel_only_findings(story)
     _write_json_atomic(trial_path, doc)
 
-    print("recorded")
+    print("pass")
     for entry in dropped:
         print("review-panel: dropped %s — %s" % (entry["slug"], entry["reason"]))
     print("review-panel: recorded %s %s — %s, %s" % (
@@ -837,7 +855,7 @@ def cmd_trial_label(args: argparse.Namespace) -> int:
         raise UsageError("%s is not a panel-only finding for %s" % (args.key, args.story))
     finding["label"], finding["note"] = args.label, note
     _write_json_atomic(trial_path, doc)
-    print("labeled")
+    print("pass")
     print("review-panel: labeled %s %s %s" % (args.story, args.key, args.label))
     return 0
 
@@ -884,7 +902,7 @@ def cmd_trial_report(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(report, sort_keys=True))
         return 0
-    print(report["verdict"])
+    _print_verdict(report["verdict"])
     for reason in report["reasons"]:
         print("reason: %s" % reason)
     for row in report["stories"]:
@@ -947,7 +965,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--note", required=True)
     p.set_defaults(func=cmd_trial_label)
 
-    p = sub.add_parser("trial-report", help="score the trial (keep / remove / unverifiable)")
+    p = sub.add_parser("trial-report", help="score the trial (pass with keep or remove, "
+                                            "or unverifiable)")
     p.add_argument("--trial", required=True)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_trial_report)

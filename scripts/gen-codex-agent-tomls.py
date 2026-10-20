@@ -10,6 +10,12 @@ purpose must equal its .writ/manifest.yaml agents[].purpose. Write mode
 validates every stem before the first write, so an unmapped stem never leaves a
 half-written set behind.
 
+Both modes print the check shape (agent CLI contract). Write mode prints
+`pass`, one `wrote <path>` line per TOML, then `gen-codex-agent-tomls: pass
+(<n> written, 0 unmapped)`; with an unmapped stem it writes nothing and prints
+`fail`, one `reason: unmapped <stem>` line each, and `gen-codex-agent-tomls:
+fail (0 written, <u> unmapped)`, exit 1.
+
 --check prints `pass` or `fail`, one `reason: stale|missing|orphan|unmapped
 <stem>` line per problem in stem order, then the summary
 `gen-codex-agent-tomls: <verdict> (<n> stale, <m> missing, <o> orphan,
@@ -156,12 +162,21 @@ def display(path: pathlib.Path) -> str:
 
 
 def write(agents_dir: pathlib.Path, out_dir: pathlib.Path) -> int:
+    unmapped = unmapped_stems(source_stems(agents_dir))
+    if unmapped:
+        print("fail")
+        for stem in unmapped:
+            print(f"reason: unmapped {stem}")
+        print(f"gen-codex-agent-tomls: fail (0 written, {len(unmapped)} unmapped)")
+        return 1
     expected = expected_tomls(agents_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    print("pass")
     for stem, text in expected.items():
         out = out_dir / f"{stem}.toml"
         out.write_text(text, encoding="utf-8")
         print("wrote", display(out))
+    print(f"gen-codex-agent-tomls: pass ({len(expected)} written, 0 unmapped)")
     return 0
 
 

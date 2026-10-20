@@ -316,8 +316,8 @@ def _py_search_roots(test_file: Path, project: Path, literals: list[str]) -> lis
     test's own folder and its ancestors inside the project, and any folder a
     bare literal names (`ROOT / "scripts"` makes `scripts/` a root)."""
     base: list[Path] = [project]
-    folder = test_file.parent
-    while True:
+    # Bounded by the filesystem root: `parents` ends there.
+    for folder in (test_file.parent, *test_file.parent.parents):
         try:
             folder.relative_to(project)
         except ValueError:
@@ -326,7 +326,6 @@ def _py_search_roots(test_file: Path, project: Path, literals: list[str]) -> lis
             base.append(folder)
         if folder == project:
             break
-        folder = folder.parent
     roots = list(base)
     for literal in literals:
         if any(ch.isspace() for ch in literal) or literal.startswith("/"):

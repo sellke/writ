@@ -174,7 +174,7 @@ write_copy_manifest() {
 # source: $WRIT_REPO
 EOF
 
-  local f rel
+  local f rel line path
   append_manifest_shippable_scripts "$target"
   append_manifest_writ_docs "$target"
   for f in "$PLATFORM_DIR"/commands/*.md; do
@@ -231,6 +231,18 @@ EOF
     if [ -n "$config_baseline" ]; then
       echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
     fi
+  fi
+
+  # Keep the old baseline of a kept, locally modified stale file so the next
+  # update warns again instead of silently dropping it (skip paths already
+  # recorded above).
+  if [ -n "${STALE_KEPT_ENTRIES:-}" ]; then
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      path="${line#*  }"
+      awk -v p="$path" '$2 == p { found = 1 } END { exit !found }' "$target" && continue
+      echo "$line" >> "$target"
+    done <<< "$(printf "%b" "$STALE_KEPT_ENTRIES")"
   fi
 }
 
@@ -575,6 +587,9 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|lean-decision.py|prune-ledger.py|spawn-cap.py)
+      # Dev-only tooling (eval.sh, measurement); not agent-facing. ADR-029.
+      return 1 ;;
   esac
   case "$base" in
     *.py|*.sh)
@@ -800,6 +815,8 @@ overlay_scan_skills() {
 
 STALE_FILES=""
 STALE_COUNT=0
+# "<baseline>  <path>" lines for locally modified stale files that were kept.
+STALE_KEPT_ENTRIES=""
 
 detect_stale_files() {
   local manifest_path local_file upstream_file baseline_hash local_hash category
@@ -813,7 +830,7 @@ detect_stale_files() {
       local_file="$SKILLS_DIR/${manifest_path#skills/}"
     elif [ "$manifest_path" = "AGENTS.md.writ-block" ] || [ "$manifest_path" = "CLAUDE.md.writ-block" ] || [ "$manifest_path" = ".codex/config.toml.baseline" ]; then
       continue
-    elif [ "${manifest_path%%/*}" = ".writ" ]; then
+    elif [ "${manifest_path%%/*}" = ".writ" ] || [ "${manifest_path%%/*}" = "scripts" ]; then
       local_file="$manifest_path"
     else
       local_file="$PLATFORM_DIR/$manifest_path"
@@ -837,15 +854,23 @@ detect_stale_files() {
     esac
 
     # A lean sibling an earlier install shipped is stale while the default
-    # exists upstream: update.sh no longer ships it.
+    # exists upstream: update.sh no longer ships it. Likewise a script the
+    # ship filter now rejects (e.g. the ADR-029 dev-only helpers).
     if [ ! -f "$upstream_file" ] || { [ "$category" = "commands" ] \
-        && is_unshipped_lean_sibling "$WRIT_SRC/commands" "$(basename "$manifest_path")"; }; then
+        && is_unshipped_lean_sibling "$WRIT_SRC/commands" "$(basename "$manifest_path")"; } \
+        || { [ "$category" = "scripts" ] && ! is_shippable_script "$(basename "$manifest_path")"; }; then
       baseline_hash=$(manifest_hash_for "$manifest_path")
       local_hash=$(hash_file "$local_file")
 
       if [ "$local_hash" = "$baseline_hash" ]; then
         STALE_FILES="${STALE_FILES}${manifest_path}\n"
         STALE_COUNT=$((STALE_COUNT + 1))
+      elif [ "$category" = "scripts" ]; then
+        # Only scripts/ keeps its old baseline across runs (write_copy_manifest);
+        # other categories are re-baselined from the local copy, so promising
+        # "kept" there would be false on the next update.
+        echo "  ⚠️  Stale (no longer shipped, locally modified — kept): $manifest_path"
+        STALE_KEPT_ENTRIES="${STALE_KEPT_ENTRIES}${baseline_hash}  ${manifest_path}\n"
       fi
     fi
   done <<< "$(manifest_files)"

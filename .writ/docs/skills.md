@@ -327,7 +327,7 @@ extracted:
   every run passes through is an *eager* load wearing conditional syntax — it
   costs the same as declaring the skill and hides that fact in the body. A phase
   list may **name** the skill against its step; it must not read it.
-  `scripts/measure-invocation.py` reports such reads under `hoisted_skills`.
+  Writ's dev-only invocation measurement reports such reads under `hoisted_skills`.
 - **Never both mechanisms for one skill.** `required_skills:` is an
   unconditional pre-load resolved once per *command*, so declaring a skill *and*
   inline-reading it buys no conditionality — the declaration wins and the read is

@@ -338,11 +338,11 @@ No skills found. Run /new-skill to create one.
 bash scripts/lint-skill.sh skills/*/SKILL.md
 ```
 
-The script processes every file and exits `0` (all clean), `1` (one or more violations), or `2` (usage error). Capture stdout — the script prints a per-file `✅` or `❌ <category> — <remediation>` line plus a summary tally.
+The script processes every file. Capture stdout and branch on line 1: `pass` (all clean, exit 0), `fail` (one or more violations, exit 1), or `unverifiable` (a file was not found, exit 0). One `reason:` line per file or finding follows (`reason: ✅ <file>: clean` or `reason: ❌ <file>: <category> — …` with a `Remediation:` line), and a `lint-skill:` summary is last. Exit 2 is a usage error with usage on stderr.
 
 ### Step 5.3: Present Results
 
-**If exit `0`:**
+**If line 1 is `pass`:**
 
 ```
 ✅ All skills clean ({N} files checked)
@@ -352,7 +352,7 @@ The script processes every file and exits `0` (all clean), `1` (one or more viol
   ...
 ```
 
-**If exit `1`:** Surface the script's output verbatim — the user needs the exact line numbers, categories, and remediations. Then group by file and add a one-line summary:
+**If line 1 is `fail`:** Surface the script's output verbatim — the user needs the exact line numbers, categories, and remediations. Then group by file and add a one-line summary:
 
 ```
 ❌ {V} violation(s) across {F} file(s)
@@ -363,6 +363,8 @@ For deep boundary questions, see ADR-009.
 ```
 
 Do not auto-rewrite skill files. The lint surfaces problems; the human (and `/new-skill` for net-new skills) owns the fix.
+
+**If line 1 is `unverifiable`:** Surface the `reason:` lines naming the missing files and re-run on the files that exist.
 
 **If exit `2`:** Surface the script's stderr and abort.
 
@@ -411,7 +413,7 @@ Logged to .writ/refresh-log.md
 
 > **Triggered when:** the user picks `parity` from the Phase 1 menu, or invokes `/refresh-command --check-parity`.
 
-Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart. Warnings only; exit code is always 0 when the script completes.
+Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart. Drift is a warning here, never a block: the script prints `fail` on line 1 and exits 1, and this phase reports it and stops.
 
 ### Exclusions
 
@@ -431,11 +433,11 @@ From the repository root:
 bash scripts/check-agent-parity.sh
 ```
 
-Capture stdout verbatim.
+Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `reason:` line per missing counterpart), or `unverifiable` (exit 0, no `agents/` folder). A `check-agent-parity:` summary is last.
 
 ### Step 6.2: Present results
 
-**If output ends with the parity OK line and no `⚠️` lines appeared:**
+**If line 1 is `pass`:**
 
 ```
 ✅ Agent parity check complete — parity OK
@@ -443,20 +445,22 @@ Capture stdout verbatim.
 agents/, claude-code/agents/, and codex/agents/ are aligned (subject to documented exclusions).
 ```
 
-**If one or more `⚠️` lines appeared:**
+**If line 1 is `fail`:**
 
 Print the script output verbatim, then summarize:
 
 ```
 ⚠️ Agent parity check complete — missing counterpart(s) reported above.
 
-These are warnings only (exit 0). Restore or author the missing platform file,
+These are warnings only; parity drift never blocks. Restore or author the missing platform file,
 or add a documented exclusion in Phase 6 if the omission is intentional.
 
 Regenerate Codex TOMLs after editing canonical agents:
 
 python3 scripts/gen-codex-agent-tomls.py
 ```
+
+**If line 1 is `unverifiable`:** print the `reason:` line; there is no `agents/` folder to compare.
 
 Do not auto-create agent files; this phase only surfaces drift.
 
@@ -483,7 +487,7 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome.
 | `skills/*/SKILL.md` | Lint targets in `--lint-skills` mode |
 | `agents/*.md`, `claude-code/agents/*.md`, `codex/agents/*.toml` | Parity targets in `--check-parity` mode |
 | `scripts/lint-skill.sh` | Boundary lint grammar — shared with `/new-skill` |
-| `scripts/check-agent-parity.sh` | Agent parity warnings (always exit 0) |
+| `scripts/check-agent-parity.sh` | Agent parity check (`fail` on drift; a warning here, never a block) |
 | `scripts/gen-codex-agent-tomls.py` | Regenerate `codex/agents/*.toml` from canonical `agents/*.md` |
 | `.writ/refresh-log.md` | Append-only improvement history (commands and skill lint runs) |
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |

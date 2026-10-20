@@ -27,10 +27,13 @@ Design (see .writ/specs/2026-07-10-knowledge-consolidation/):
 
 Usage:
   python3 scripts/knowledge-consolidate.py --dry-run          # default; preview only
-  python3 scripts/knowledge-consolidate.py --json             # machine-readable proposal
+  python3 scripts/knowledge-consolidate.py --pretty           # markdown report
   python3 scripts/knowledge-consolidate.py --apply            # write approved merges
   python3 scripts/knowledge-consolidate.py \
-      --knowledge-dir path/to/knowledge --repo-root path/to/repo --json
+      --knowledge-dir path/to/knowledge --repo-root path/to/repo
+
+Output is one compact JSON document by default; `--pretty` prints the markdown
+report instead. `--json` is accepted as a no-op for older callers.
 """
 
 from __future__ import annotations
@@ -631,8 +634,11 @@ def main(argv: Optional[list] = None) -> int:
                        help="Preview proposals and diff, write nothing (default)")
     group.add_argument("--apply", action="store_true", default=False,
                        help="Write human-approved merges (canonical + tombstones)")
+    parser.add_argument("--pretty", action="store_true", default=False,
+                        help="Print the markdown report instead of JSON")
+    # Accepted no-op: JSON is the default (agent CLI contract, data shape).
     parser.add_argument("--json", action="store_true", default=False,
-                        help="Emit machine-readable JSON instead of markdown")
+                        help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
     knowledge_dir = Path(args.knowledge_dir)
@@ -640,10 +646,10 @@ def main(argv: Optional[list] = None) -> int:
 
     result = consolidate(knowledge_dir, repo_root, apply=args.apply)
 
-    if args.json:
-        print(json.dumps(result))
-    else:
+    if args.pretty:
         print(render_markdown(result))
+    else:
+        print(json.dumps(result))
     return 0
 
 

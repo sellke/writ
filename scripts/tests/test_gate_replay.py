@@ -98,10 +98,12 @@ def _run(argv: List[str]) -> tuple[int, str]:
 
 
 def _surface(stdout: str) -> str:
-    for line in stdout.splitlines():
-        if line in SURFACE_CLASSES:
-            return line
-    return "unverifiable"
+    """change-surface.py prints one JSON object `{"class": CLASS}`."""
+    try:
+        value = json.loads(stdout).get("class")
+    except (ValueError, AttributeError):
+        return "unverifiable"
+    return value if value in SURFACE_CLASSES else "unverifiable"
 
 
 def _load_records() -> List[dict]:
