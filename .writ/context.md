@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-20T23:05:32Z
+> Last Updated: 2026-10-20T23:32:09Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-claude-agent-generator — Claude Agent Generator
-- **Status:** In Progress
-- **Story:** 2 of 3 — Regenerate Claude Agents (Completed ✅)
-- **Progress:** 14/21 tasks complete (67%)
+- **Status:** Complete
+- **Story:** 3 of 3 — Parity Check, Eval Check, and Docs (Completed ✅)
+- **Progress:** 21/21 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Small) Orphan means no current canonical stem generates the file — claude-agent-generator Story 1
-- DEV-002 (Small) Reasons sorted by reported name — claude-agent-generator Story 1
-- DEV-003 (Small) Suffixes hold memory lines only — claude-agent-generator Story 1
+- DEV-004 (Small) Fail summary splits presence and content counts — claude-agent-generator Story 3
+- DEV-005 (Small) eval stale and missing findings point at the canonical file — claude-agent-generator Story 3
+- DEV-006 (Small) Generator exits 1 with no `reason:` line — claude-agent-generator Story 3
 
 ## Open Issues
 

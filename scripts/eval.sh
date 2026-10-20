@@ -77,6 +77,7 @@ CHECKS=(
   change-surface
   drift-format
   codex-tomls
+  claude-agents
   spec-analyze
   jev-judge
   goal-emit
@@ -4398,6 +4399,56 @@ check_codex_tomls() {
   if [ "$rc" -eq 1 ] && [ "$reasons" -eq 0 ]; then
     add_finding "scripts/gen-codex-agent-tomls.py" "--check failed without a reason line." \
       "Run python3 scripts/gen-codex-agent-tomls.py --check and inspect its output."
+  fi
+}
+
+check_claude_agents() {
+  # Story 3 of 2026-10-20-claude-agent-generator: claude-code/agents/writ-*.md
+  # must equal the generator's output. One add_finding per reason: line.
+  local helper="$PROJECT_ROOT/scripts/gen-claude-agents.py"
+  local remedy="python3 scripts/gen-claude-agents.py"
+  local output rc=0 line kind stem reasons=0
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/gen-claude-agents.py" "Claude agent generator is missing." \
+      "Restore scripts/gen-claude-agents.py, then run $remedy."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+    add_finding "scripts/gen-claude-agents.py" "--check exited $rc: ${output##*$'\n'}" \
+      "Fix the gen-claude-agents.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        reasons=$((reasons + 1))
+        read -r kind stem <<< "${line#reason: }"
+        case "$kind" in
+          unmapped)
+            add_finding "agents/$stem.md" "$kind $stem" \
+              "Add an OVERLAY entry for $stem in scripts/gen-claude-agents.py, then run $remedy."
+            ;;
+          orphan)
+            add_finding "claude-code/agents/$stem.md" "$kind $stem" \
+              "Delete the orphan file, or restore its agents/<stem>.md source and OVERLAY entry, then run $remedy."
+            ;;
+          *)
+            add_finding "agents/$stem.md" "$kind $stem" \
+              "Run $remedy. Do not hand-edit claude-code/agents/ files."
+            ;;
+        esac
+        ;;
+      gen-claude-agents:*)
+        add_note "NOTE [claude-agents]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$rc" -eq 1 ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-claude-agents.py" "--check failed without a reason line." \
+      "Run python3 scripts/gen-claude-agents.py --check and inspect its output."
   fi
 }
 

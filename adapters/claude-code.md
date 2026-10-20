@@ -33,7 +33,7 @@ cp path/to/writ/claude-code/agents/*.md .claude/agents/
 cp path/to/writ/claude-code/CLAUDE.md ./CLAUDE.md
 ```
 
-Agent source files live in `claude-code/agents/` in the Writ repo. They carry YAML frontmatter (`name`, `tools`, `model`, `permissionMode`, `isolation`, `maxTurns`, `memory`).
+Agent source files live in `claude-code/agents/` in the Writ repo. They carry YAML frontmatter (`name`, `tools`, `model`, `permissionMode`, `isolation`, `maxTurns`, `memory`). `scripts/gen-claude-agents.py` generates every one of them from the canonical `agents/*.md` file plus a Claude frontmatter overlay; do not hand-edit them. After changing `agents/<stem>.md`, run `python3 scripts/gen-claude-agents.py`. `bash scripts/eval.sh` and `bash scripts/check-agent-parity.sh` fail when a generated file is stale, missing, orphaned, or has no overlay entry.
 
 #### Step 2: Project Context (Optional)
 
@@ -71,7 +71,9 @@ your-project/
 │   │   ├── writ-reviewer.md          # read-only, persistent memory
 │   │   ├── writ-tester.md            # acceptEdits
 │   │   ├── writ-documenter.md        # inherit, acceptEdits
-│   │   └── writ-story-gen.md         # haiku model, worktree
+│   │   ├── writ-evaluator.md         # read-only, persistent memory
+│   │   ├── writ-story-gen.md         # haiku model, worktree
+│   │   └── writ-visual-qa.md         # read-only
 │   ├── commands/                      # Writ command workflows
 │   │   ├── create-spec.md
 │   │   ├── implement-story.md
@@ -79,6 +81,7 @@ your-project/
 │   └── agent-memory/                  # Persistent agent memory (auto-created)
 │       ├── writ-architect/
 │       ├── writ-coder/
+│       ├── writ-evaluator/
 │       └── writ-reviewer/
 └── .writ/                             # Runtime artifacts
     ├── specs/
@@ -118,7 +121,7 @@ Agents learn across sessions. The review agent remembers patterns it's seen, the
 
 ### Model Selection
 
-The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen`) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value. There is no `visual-qa` equivalent here yet; do not infer a seventh. The table resolves the tiers:
+The eight Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-evaluator`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen`, `writ-visual-qa`) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value, set in the `scripts/gen-claude-agents.py` overlay. The table resolves the tiers:
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
@@ -131,9 +134,11 @@ The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `wri
 | writ-architect | `floor` | `haiku` |
 | writ-story-gen | `floor` | `haiku` |
 | writ-coder | `anchor` | `inherit` |
+| writ-evaluator | `anchor` | `inherit` |
 | writ-reviewer | `anchor` | `inherit` |
 | writ-tester | `anchor` | `inherit` |
 | writ-documenter | `anchor` | `inherit` |
+| writ-visual-qa | `anchor` | `inherit` |
 
 `sonnet` is gone from `writ-tester` and `writ-documenter`: both are `anchor`, and a fixed `sonnet` would exceed a `haiku` origin. `inherit` is the only anchor value that respects the ceiling.
 
@@ -145,10 +150,12 @@ The six Claude-native agents under `claude-code/agents/` (`writ-architect`, `wri
 |-------|------|-----|
 | writ-architect | `plan` | Read-only analysis, no modifications |
 | writ-coder | `acceptEdits` | Auto-accept file changes (TDD flow) |
+| writ-evaluator | `plan` | Read-only evaluation, cannot modify |
 | writ-reviewer | `plan` | Read-only review, cannot modify |
 | writ-tester | `acceptEdits` | May need to fix tests |
 | writ-documenter | `acceptEdits` | Creates/updates doc files |
 | writ-story-gen | `acceptEdits` | Creates story files |
+| writ-visual-qa | `plan` | Read-only visual checks, cannot modify |
 
 ---
 
@@ -179,6 +186,23 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Direct equivalent |
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |
+
+### Agent Paths
+
+Commands name agents by canonical path, as in `> **Agent:** agents/coding-agent.md`. On Claude Code, each path resolves to the generated subagent file:
+
+| Command reference | Claude Code agent file |
+|---|---|
+| `agents/architecture-check-agent.md` | `.claude/agents/writ-architect.md` |
+| `agents/coding-agent.md` | `.claude/agents/writ-coder.md` |
+| `agents/documentation-agent.md` | `.claude/agents/writ-documenter.md` |
+| `agents/evaluator-agent.md` | `.claude/agents/writ-evaluator.md` |
+| `agents/review-agent.md` | `.claude/agents/writ-reviewer.md` |
+| `agents/testing-agent.md` | `.claude/agents/writ-tester.md` |
+| `agents/user-story-generator.md` | `.claude/agents/writ-story-gen.md` |
+| `agents/visual-qa-agent.md` | `.claude/agents/writ-visual-qa.md` |
+
+Spawn the `writ-*` agent by name. Its body is the canonical file's body, so the instructions match.
 
 ### Triggering Agents
 

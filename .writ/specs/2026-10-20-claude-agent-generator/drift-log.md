@@ -38,3 +38,36 @@
 - **Spec amendment:** None.
 
 ---
+
+## Story 3: Parity Check, Eval Check, and Docs — Drift Report
+
+> Run: 2026-10-20
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-004] Fail summary splits presence and content counts
+- **Severity:** Small
+- **Spec said:** Business Rule 6: output shape and exit codes stay the same. Old summary: `fail (<n> missing counterpart(s) across <a> agents)`.
+- **Implementation did:** `fail (<m> missing counterpart(s), <c> content drift reason(s) across <a> agents[; content not checked: <gens>])`.
+- **Reason:** The old wording would count content drift as missing counterparts. Shape is unchanged; no caller quotes the summary text.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md "For Review Agents" criterion 5 (pre-edit SHA-256 5164c8767a293157c2cb2cbbe71d7b45fbda670049773fa741d1681d3895f240).
+
+#### [DEV-005] eval stale and missing findings point at the canonical file
+- **Severity:** Small
+- **Spec said:** `check_claude_agents` structured like `check_codex_tomls`, which points findings at the generated file.
+- **Implementation did:** Stale and missing findings point at `agents/<stem>.md`; orphan findings point at `claude-code/agents/writ-<x>.md`.
+- **Reason:** The generator reports stale and missing by stem; naming the `writ-*.md` file would need a third copy of the stem map. The remedy names the regenerate command.
+- **Resolution:** Auto-amended (no change needed)
+- **Spec amendment:** None. technical-spec.md is not auto-modified.
+
+#### [DEV-006] Generator exits 1 with no `reason:` line
+- **Severity:** Small
+- **Spec said:** rc 1 folds reasons; rc ≥ 2 becomes `<gen> --check exited <rc>`.
+- **Implementation did:** rc 1 with no reason line adds `reason: <gen> --check failed without a reason line`.
+- **Reason:** Prevents a broken generator from exiting 1 and still yielding `pass`. Matches `eval.sh` handling.
+- **Resolution:** Auto-amended (no change needed)
+- **Spec amendment:** None. technical-spec.md is not auto-modified.
+
+---

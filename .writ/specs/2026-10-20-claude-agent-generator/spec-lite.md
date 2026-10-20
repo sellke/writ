@@ -43,7 +43,7 @@
 2. Unmapped stem in write mode leaves the output dir unchanged `[AC-1.3]`
 3. `writ-coder.md` contains `MAX_SELF_FIX_ITERATIONS = 3` and the `boundary_map` rules; frontmatter matches today's values `[AC-2.2, AC-2.3]`
 4. `writ-visual-qa.md` exists, read-only; parity script has no visual-qa exemption `[AC-2.1, AC-3.1]`
-5. `check-agent-parity.sh` reports content drift as `reason:` lines; shape and exit codes unchanged `[AC-3.2, AC-3.3]`
+5. `check-agent-parity.sh` reports content drift as `reason:` lines; shape and exit codes unchanged; the fail summary reports `<m> missing counterpart(s), <c> content drift reason(s)` `[AC-3.2, AC-3.3]`
 6. `eval.sh` reports a finding with a regenerate remedy when a Claude agent is stale `[AC-3.4]`
 
 **Business Rules:**
