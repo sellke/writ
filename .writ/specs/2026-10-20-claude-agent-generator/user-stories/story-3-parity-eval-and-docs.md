@@ -1,6 +1,7 @@
 # Story 3: Parity Check, Eval Check, and Docs
 
 > **Status:** Completed ✅ (2026-10-20)
+> **Commit:** 718c06c1f1779171ed0bae5643b6084969387f4c
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
