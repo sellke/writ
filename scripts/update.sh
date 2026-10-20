@@ -295,9 +295,10 @@ EOF
     echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
   fi
 
-  # Keep the old baseline of a kept, locally modified stale file so the next
-  # update warns again instead of silently dropping it (skip paths already
-  # recorded above).
+  # Keep the old baseline of each kept, locally modified stale file, in every
+  # category, so the next update warns again instead of dropping it. A stale
+  # path is never in the shipped set walked above, so the check below only
+  # skips a path the old manifest listed twice.
   if [ -n "${STALE_KEPT_ENTRIES:-}" ]; then
     while IFS= read -r line; do
       [ -n "$line" ] || continue
@@ -936,10 +937,11 @@ detect_stale_files() {
       if [ "$local_hash" = "$baseline_hash" ]; then
         STALE_FILES="${STALE_FILES}${manifest_path}\n"
         STALE_COUNT=$((STALE_COUNT + 1))
-      elif [ "$category" = "scripts" ]; then
-        # Only scripts/ keeps its old baseline across runs (write_copy_manifest);
-        # other categories are re-baselined from the local copy, so promising
-        # "kept" there would be false on the next update.
+      else
+        # Locally modified: keep it in every category. write_copy_manifest
+        # carries this old baseline forward (a stale path is not in the shipped
+        # set, so nothing else records it), and the next update warns again
+        # until the user deletes the file.
         echo "  ⚠️  Stale (no longer shipped, locally modified — kept): $manifest_path"
         STALE_KEPT_ENTRIES="${STALE_KEPT_ENTRIES}${baseline_hash}  ${manifest_path}\n"
       fi

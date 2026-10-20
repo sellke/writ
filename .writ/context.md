@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-20T22:41:14Z
+> Last Updated: 2026-10-20T23:19:13Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-ci-and-update-integrity — CI and Update Integrity
 - **Status:** In Progress
-- **Story:** 3 of 5 — Record Baselines Only for Shipped Paths; Customized Files Keep Their Baseline (Completed ✅)
-- **Progress:** 18/31 tasks complete (58%)
+- **Story:** 4 of 5 — Keep Modified Stale Files in Every Category (Completed ✅)
+- **Progress:** 25/31 tasks complete (81%)
 
 ## Artifact Map
 
@@ -23,10 +23,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Small) Bash step skips an unmatched glob — ci-and-update-integrity Story 1
-- DEV-002 (Small) Baseline rule applied by a post-run comparison, not the action variables — ci-and-update-integrity Story 3
 - DEV-003 (Small) install.sh gained helpers called only by write_copy_manifest — ci-and-update-integrity Story 3
+- DEV-004 (Small) Pre-fix failure names a missing warning, not a removal — ci-and-update-integrity Story 4
+- DEV-005 (Small) Steps 3 and 6 state two of the three doc claims — ci-and-update-integrity Story 4
 
 ## Open Issues
 
-22 open issue files in .writ/issues/ (30 total; 8 closed with `## Resolution`)
+21 open issue files in .writ/issues/ (30 total; 9 closed with `## Resolution`)

@@ -45,3 +45,28 @@
 - **Reason:** Keeps the scope boundary (no other install path changes) while sharing one baseline rule between the walk loops.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md "Files in Scope" install.sh line names the new helpers.
+
+---
+
+## Story 4: Keep Modified Stale Files in Every Category — Drift Report
+
+> Run: 2026-10-20
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-004] Pre-fix failure names a missing warning, not a removal
+- **Severity:** Small
+- **Spec said:** AC-4.4: on the pre-fix `update.sh` the test "fails, naming a kept file the update removed".
+- **Implementation did:** On both `ce2f049` (after Story 3) and `953f47e` (before the spec) the test fails at update 1 with `no stale warning for the kept commands/zz-kept.md`. After Story 3 the pre-fix script no longer removes the kept file; it drops the file's manifest line, so the file goes untracked. On `953f47e` the removal happens at update 2, and the test's existence check catches it when the warning check is skipped (evaluator variant: `FAIL: update 2: update removed the kept commands/zz-kept.md`).
+- **Reason:** Story 3 changed how the bug shows, as the spec's Technical Concerns predicted. The test still fails on the pre-fix scripts, names a kept file, and passes after the fix.
+- **Resolution:** Accepted (Small). AC wording is out of date; behavior is covered.
+- **Spec amendment:** None.
+
+#### [DEV-005] Steps 3 and 6 state two of the three doc claims
+- **Severity:** Small
+- **Spec said:** The technical spec says each edited section of `commands/update-writ.md` states all three claims (shipped-only baselines; kept customized or stale files keep their previous baseline; modified stale files flagged every run).
+- **Implementation did:** The frontmatter `outcome`, the exit criterion, Step 7, and Completion state all three. Step 3 "Detect stale files" and Step 6 item 6 are about stale files and state the shipped-only and stale claims, not the customized-file claim.
+- **Reason:** No section misdescribes the fixed behavior. The customized-file rule appears in four of the six places.
+- **Resolution:** Accepted (Small).
+- **Spec amendment:** None.
