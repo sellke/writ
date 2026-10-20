@@ -8,7 +8,7 @@
 **Deliverable:** CI runs every suite on every PR. `install.sh` and `update.sh` stop losing user files, user edits, and the Codex config baseline (contract amended 2026-10-20).
 
 **Implementation Approach:**
-- S1 CI: setup-uv (pinned), `uv run --python 3.9 pytest`, and a bash step that counts failures and exits non-zero. Runner `ubuntu-latest` unless evidence says otherwise.
+- S1 CI: setup-uv (pinned), `uv run --python 3.9 pytest`, and a bash step that counts failures, skips an unmatched glob, and exits non-zero on any failure. Runner `ubuntu-latest` unless evidence says otherwise.
 - S2: read `.codex/config.toml.baseline` before `cat > "$target"`, as `unlink.sh:199-204` does.
 - S3: per-run baseline file read by `manifest_hash_for`/`manifest_files`. `write_copy_manifest` (update and install) iterates the shipped set from `$WRIT_SRC`: upstream hash if local = upstream, else the previous baseline or none. Header `# baselines: shipped`.
 - S4: `detect_stale_files` warns and carries the old baseline in every category.

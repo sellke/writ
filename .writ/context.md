@@ -1,32 +1,30 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-13T00:16:14Z
+> Last Updated: 2026-10-20T21:21:20Z
 
 ## Product Mission
 
-Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns the durable contracts — specs, drift logs, decisions, knowledge, phase state — in plain markdown on git, and delegates mechanics to the platform underneath. As harnesses absorb mechanics natively, Writ sheds them and concentrates on the negotiated contract layer no harness provides.
+Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns the durable contracts — specs, drift logs, decisions, knowledge, phase state — in plain markdown on git, and delegates mechanics (context management, subagents, browsing, retrieval) to the platform underneath. As harnesses absorb mechanics natively, Writ sheds them and concentrates on what compounds: the negotiated contract layer no harness provides.
 
 ## Active Spec
 
-- **Spec:** 2026-10-12-agent-cli-contract — Agent CLI Contract
-- **Status:** Complete (checker verdict met; integration suite passed)
-- **Story:** 5 of 5 — Bring Shell Scripts and app-verify into Conformance (Completed ✅)
-- **Progress:** 34/34 tasks complete (100%)
+- **Spec:** 2026-10-20-ci-and-update-integrity — CI and Update Integrity
+- **Status:** In Progress
+- **Story:** 1 of 5 — CI Runs Every Suite (Completed ✅)
+- **Progress:** 6/31 tasks complete (19%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-12-agent-cli-contract/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-20-ci-and-update-integrity/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (28 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-002 (Medium) live-repo parity test held to shape, not zero drift — agent-cli-contract Story 5
-- DEV-003 (Medium) Story 4 citation gap closed in Story 5; eval now runs after each status flip — agent-cli-contract Story 5
-- DEV-005 (Small) Gate 4.5 has no branch for empty stdout (byte pin) — agent-cli-contract Story 5
+- DEV-001 (Small) Bash step skips an unmatched glob — ci-and-update-integrity Story 1
 
 ## Open Issues
 
-17 open issue files in .writ/issues/ (24 total; 7 closed with `## Resolution`)
+23 open issue files in .writ/issues/ (30 total; 7 closed with `## Resolution`)
