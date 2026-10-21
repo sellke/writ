@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-20T23:19:13Z
+> Last Updated: 2026-10-21T00:47:27Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-ci-and-update-integrity — CI and Update Integrity
 - **Status:** In Progress
-- **Story:** 4 of 5 — Keep Modified Stale Files in Every Category (Completed ✅)
-- **Progress:** 25/31 tasks complete (81%)
+- **Story:** 5 of 5 — Repair Legacy Manifests and Remove Stale Files From Their Real Path (Completed ✅)
+- **Progress:** 31/31 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-003 (Small) install.sh gained helpers called only by write_copy_manifest — ci-and-update-integrity Story 3
-- DEV-004 (Small) Pre-fix failure names a missing warning, not a removal — ci-and-update-integrity Story 4
-- DEV-005 (Small) Steps 3 and 6 state two of the three doc claims — ci-and-update-integrity Story 4
+- DEV-007 (Medium) Cursor units on an unresolved legacy manifest — ci-and-update-integrity Story 5
+- DEV-008 (Small) A legacy run that ends "Already up to date" writes no header manifest — ci-and-update-integrity Story 5
+- DEV-009 (Small) The recorded version must be 4-40 lowercase hex — ci-and-update-integrity Story 5
 
 ## Open Issues
 

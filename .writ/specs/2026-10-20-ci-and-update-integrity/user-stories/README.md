@@ -8,7 +8,7 @@
 | 2 | [Keep the Codex Config Baseline on Update](story-2-keep-codex-config-baseline.md) | Completed ✅ | Medium | None | 6 | 6/6 |
 | 3 | [Record Baselines Only for Shipped Paths; Customized Files Keep Their Baseline](story-3-baselines-for-shipped-paths-only.md) | Completed ✅ | High | Story 2 | 6 | 6/6 |
 | 4 | [Keep Modified Stale Files in Every Category](story-4-keep-modified-stale-files.md) | Completed ✅ | High | Story 3 | 7 | 7/7 |
-| 5 | [Repair Legacy Manifests and Remove Stale Files From Their Real Path](story-5-legacy-manifests-and-stale-removal.md) | Not Started | High | Story 4 | 6 | 0/6 |
+| 5 | [Repair Legacy Manifests and Remove Stale Files From Their Real Path](story-5-legacy-manifests-and-stale-removal.md) | Completed ✅ | High | Story 4 | 6 | 6/6 |
 
 **Total:** 5 stories, 31 tasks, 23 acceptance criteria.
 

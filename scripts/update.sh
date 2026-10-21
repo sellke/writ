@@ -155,16 +155,86 @@ manifest_mode() {
 # Baselines this run trusts, one "<hash>  <path>" line each. load_baselines
 # fills it after the clone; until then lookups read the manifest itself.
 BASELINES_FILE=""
+# Set by load_legacy_baselines when a legacy manifest's version cannot be
+# used: the reason, for the notice printed after the version lines.
+LEGACY_FALLBACK_REASON=""
 
 # load_baselines — the one place that decides which baselines this run trusts.
-# Today that is every "<hash>  <path>" line of the manifest (none without a
-# manifest). write_copy_manifest truncates the manifest, so lookups read this
-# copy instead.
+# A manifest with `# baselines: shipped`: its "<hash>  <path>" lines. A legacy
+# manifest: baselines rebuilt by load_legacy_baselines. No manifest: none.
+# write_copy_manifest truncates the manifest, so lookups read this copy
+# instead.
 load_baselines() {
   BASELINES_FILE=$(mktemp)
-  if [ -f "$MANIFEST_FILE" ]; then
+  [ -f "$MANIFEST_FILE" ] || return 0
+  if grep -qx '# baselines: shipped' "$MANIFEST_FILE"; then
     awk '!/^#/ && NF' "$MANIFEST_FILE" > "$BASELINES_FILE"
+  else
+    load_legacy_baselines
   fi
+}
+
+# The upstream source path of a manifest path. Fails for a path Writ does not
+# ship under that name, such as an old whole-file CLAUDE.md line.
+legacy_source_path() {
+  case "$1" in
+    commands/*|skills/*/SKILL.md|scripts/*|.writ/docs/*|system-instructions.md)
+      printf '%s\n' "$1" ;;
+    agents/*)             printf '%s/%s\n' "$AGENTS_SRC" "${1#agents/}" ;;
+    rules/writ.mdc)       printf 'cursor/writ.mdc\n' ;;
+    CLAUDE.md.writ-block) printf 'claude-code/CLAUDE.md\n' ;;
+    AGENTS.md.writ-block) printf 'codex/AGENTS.md.template\n' ;;
+    *) return 1 ;;
+  esac
+}
+
+# Print the full commit id of a manifest version in the upstream clone. The
+# version comes from a file in the project, so accept only a hex id: it can
+# never be read as a git option. A shallow clone lacks older commits, so fetch
+# the full history once and look again. Every failure returns 1.
+legacy_resolve_commit() {
+  local v="$1"
+  case "$v" in
+    *[!0123456789abcdef]*) return 1 ;;
+  esac
+  [ "${#v}" -ge 4 ] && [ "${#v}" -le 40 ] || return 1
+  git -C "$WRIT_SRC" rev-parse -q --verify "$v^{commit}" 2>/dev/null && return 0
+  [ "$(git -C "$WRIT_SRC" rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] || return 1
+  git -C "$WRIT_SRC" fetch --quiet --unshallow >/dev/null 2>&1 || return 1
+  git -C "$WRIT_SRC" rev-parse -q --verify "$v^{commit}" 2>/dev/null
+}
+
+# A manifest without `# baselines: shipped` was written by a pre-fix script
+# (Business Rule 9). It can record user files, and customizations re-baselined
+# to their local hash. Rebuild its baselines from upstream at its `# version:`:
+# each path gets the hash of its source file at that commit, and a path
+# upstream did not have then is a user file and gets no line, so it is never
+# stale. The Codex config line is kept as recorded. When the version cannot be
+# found, keep only that line: every file that differs from upstream then has
+# no baseline and is preserved, and nothing is stale, as with no manifest.
+load_legacy_baselines() {
+  local v commit path src blob
+  awk '!/^#/ && $2 == ".codex/config.toml.baseline" { print; exit }' "$MANIFEST_FILE" > "$BASELINES_FILE"
+  v=$(manifest_version | sed -n '1p')
+  if [ -z "$v" ] || [ "$v" = "unknown" ]; then
+    LEGACY_FALLBACK_REASON="its version is unknown"
+    return 0
+  fi
+  if ! commit=$(legacy_resolve_commit "$v"); then
+    LEGACY_FALLBACK_REASON="version $v was not found upstream"
+    return 0
+  fi
+  # Hash a temp copy of each blob with hash_file, so it matches the hashes
+  # the overlay computes from the clone's files. For a Writ block that is the
+  # template's hash, which the merge functions compare the inner hash with.
+  blob=$(mktemp)
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    src=$(legacy_source_path "$path") || continue
+    git -C "$WRIT_SRC" cat-file blob "$commit:$src" > "$blob" 2>/dev/null || continue
+    printf '%s  %s\n' "$(hash_file "$blob")" "$path" >> "$BASELINES_FILE"
+  done <<< "$(awk '!/^#/ && NF && $2 != ".codex/config.toml.baseline" && !seen[$2]++ { print $2 }' "$MANIFEST_FILE")"
+  rm -f "$blob"
 }
 
 baselines_source() {
@@ -631,7 +701,10 @@ echo "   Installed: ${CURRENT_VERSION:-unknown (no manifest)}"
 echo "   Latest:    $NEW_VERSION_LONG"
 echo ""
 
-if [ -z "$CURRENT_VERSION" ]; then
+if [ -n "$LEGACY_FALLBACK_REASON" ]; then
+  echo "  ⚠️  Manifest predates shipped-only baselines and $LEGACY_FALLBACK_REASON; files that differ from upstream are preserved this run."
+  echo ""
+elif [ -z "$CURRENT_VERSION" ]; then
   echo "  ⚠️  No manifest found — this is an older installation."
   echo "     Files that differ from upstream will be treated conservatively"
   echo "     (assumed locally modified). A manifest will be created after update."
@@ -887,7 +960,8 @@ overlay_scan_skills() {
 
 STALE_FILES=""
 STALE_COUNT=0
-# "<baseline>  <path>" lines for locally modified stale files that were kept.
+# "<baseline>  <path>" lines for stale files still on disk after this run:
+# locally modified ones that were kept, and ones rm could not remove.
 STALE_KEPT_ENTRIES=""
 
 detect_stale_files() {
@@ -1014,12 +1088,16 @@ if [ "$PLATFORM" = "cursor" ]; then
       if [ "$FORCE" = true ]; then
         RULE_ACTION="update"
         echo "    🔄 Update:    rules/writ.mdc (forced)"
-      elif [ -z "$rule_baseline" ] || [ "$rule_local" = "$rule_baseline" ]; then
+      elif [ "$rule_local" = "$rule_baseline" ] || { [ -z "$rule_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
         RULE_ACTION="update"
         echo "    🔄 Update:    rules/writ.mdc"
       else
         RULE_ACTION="preserved"
-        echo "    ⚡ Preserved: rules/writ.mdc (local modifications)"
+        if [ -z "$rule_baseline" ]; then
+          echo "    ⚡ Preserved: rules/writ.mdc (no baseline, assuming modified)"
+        else
+          echo "    ⚡ Preserved: rules/writ.mdc (local modifications)"
+        fi
         TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
         ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    rules/writ.mdc\n"
       fi
@@ -1039,12 +1117,16 @@ if [ "$PLATFORM" = "cursor" ]; then
       if [ "$FORCE" = true ]; then
         SYSINST_ACTION="update"
         echo "    🔄 Update:    system-instructions.md (forced)"
-      elif [ -z "$si_baseline" ] || [ "$si_local" = "$si_baseline" ]; then
+      elif [ "$si_local" = "$si_baseline" ] || { [ -z "$si_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
         SYSINST_ACTION="update"
         echo "    🔄 Update:    system-instructions.md"
       else
         SYSINST_ACTION="preserved"
-        echo "    ⚡ Preserved: system-instructions.md (local modifications)"
+        if [ -z "$si_baseline" ]; then
+          echo "    ⚡ Preserved: system-instructions.md (no baseline, assuming modified)"
+        else
+          echo "    ⚡ Preserved: system-instructions.md (local modifications)"
+        fi
         TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
         ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    system-instructions.md\n"
       fi
@@ -1184,21 +1266,29 @@ elif [ "$PLATFORM" = "codex" ]; then
   fi
 fi
 
-# Remove stale files
+# Remove stale files. Skills live in $SKILLS_DIR, which on Codex is
+# .agents/skills, not under $PLATFORM_DIR. A path is reported and counted only
+# when it is gone after rm. One that rm could not remove keeps its manifest
+# line, so the next update tries again. The loop reads a here-string, not a
+# pipe, so the count and the kept lines reach this shell.
 STALE_REMOVED=0
 if [ "$STALE_COUNT" -gt 0 ]; then
-  printf "%b" "$STALE_FILES" | while IFS= read -r sf; do
-    [ -z "$sf" ] && continue
-    if [ "$sf" = "CLAUDE.md" ]; then
-      rm -f "CLAUDE.md"
-    elif [ "${sf%%/*}" = "scripts" ] || [ "${sf%%/*}" = ".writ" ]; then
-      rm -f "$sf"
-    else
-      rm -f "$PLATFORM_DIR/$sf"
+  while IFS= read -r sf; do
+    [ -n "$sf" ] || continue
+    case "$sf" in
+      CLAUDE.md)         stale_local="CLAUDE.md" ;;
+      skills/*)          stale_local="$SKILLS_DIR/${sf#skills/}" ;;
+      scripts/*|.writ/*) stale_local="$sf" ;;
+      *)                 stale_local="$PLATFORM_DIR/$sf" ;;
+    esac
+    rm -f "$stale_local" || true
+    if [ -e "$stale_local" ] || [ -L "$stale_local" ]; then
+      STALE_KEPT_ENTRIES="${STALE_KEPT_ENTRIES}$(manifest_hash_for "$sf")  ${sf}\n"
+      continue
     fi
     echo "  🗑  Removed: $sf"
-  done
-  STALE_REMOVED=$STALE_COUNT
+    STALE_REMOVED=$((STALE_REMOVED + 1))
+  done <<< "$(printf "%b" "$STALE_FILES")"
 fi
 
 # Regenerate manifest with new baselines

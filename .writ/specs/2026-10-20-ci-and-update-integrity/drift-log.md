@@ -70,3 +70,44 @@
 - **Reason:** No section misdescribes the fixed behavior. The customized-file rule appears in four of the six places.
 - **Resolution:** Accepted (Small).
 - **Spec amendment:** None.
+
+---
+
+## Story 5: Repair Legacy Manifests and Remove Stale Files From Their Real Path — Drift Report
+
+> Run: 2026-10-20
+> Overall Drift: Medium (iteration 1 was Large; resolved by recode)
+
+### Deviations
+
+#### [DEV-006] A path rm cannot remove keeps its manifest line
+- **Severity:** Small
+- **Spec said:** A failed `rm` gets no Removed line and is not counted (Error & Rescue Map; story Notes).
+- **Implementation did:** Also appends the path to `STALE_KEPT_ENTRIES` so its line survives and the next update retries. `rm -f … || true` no longer aborts the run under `set -e`.
+- **Reason:** Without it the file would leave the manifest and stay on disk untracked. A file still on disk is a kept stale entry under Business Rule 2.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md S5 line.
+
+#### [DEV-007] Cursor units on an unresolved legacy manifest
+- **Severity:** Medium (Large at iteration 1)
+- **Spec said:** Business Rule 9 and task 5.3: on an unresolved version, keep only the `.codex/config.toml.baseline` line and behave as if there were no manifest. The same rule, the State Catalog, AC-5.3, and the notice say differing files are preserved and nothing that differs is overwritten. The contract's Included list does not name update.sh's Cursor scan blocks.
+- **Implementation did:** Iteration 1 followed the mechanism. On Cursor, "no baseline" meant Update, so a customized `rules/writ.mdc` and `system-instructions.md` were overwritten while the notice said they were preserved (evaluator PAUSE, Large). The orchestrator resolved it against the contract's stated outcome (AC-5.3, Rule 9, State Catalog, and `update-writ.md` Step 6 item 7, "same three-way logic as commands/agents"): the deviation was rejected and recoded. The Cursor blocks now update a unit with no baseline only when no manifest file exists. With a manifest (header or legacy), a differing unit with no baseline is preserved as "no baseline, assuming modified". `--force` still updates. The test gained Cursor unresolved, second-update, and resolved cases.
+- **Reason:** The contract states the outcome; the mechanism in Rule 9 assumed "no baseline" means "preserved", which was false for the two Cursor units. The fix touches a site outside the Included list (not in the Excluded list) and also changes header manifests that lack a Cursor line (now preserved instead of updated). No-manifest behavior is unchanged.
+- **Resolution:** Rejected at iteration 1, recoded; accepted at iteration 2 as Medium (warn and continue). No User Challenge: the choice keeps the locked contract rather than weakening it.
+- **Spec amendment:** None.
+
+#### [DEV-008] A legacy run that ends "Already up to date" writes no header manifest
+- **Severity:** Small
+- **Spec said:** AC-5.3 says the run writes a manifest with the header. The contract's Technical Concerns and Error & Rescue Map accept the early exit without a rewrite.
+- **Implementation did:** The early exit is unchanged, so the repair and any fallback notice repeat until a run rewrites the manifest.
+- **Reason:** Idempotent and safe; the only cost is a repeated notice.
+- **Resolution:** Accepted (Small).
+- **Spec amendment:** None.
+
+#### [DEV-009] The recorded version must be 4-40 lowercase hex
+- **Severity:** Small
+- **Spec said:** Resolve `# version:` with `git cat-file -e "$v^{commit}"`.
+- **Implementation did:** Rejects anything else before calling git (`HEAD`, `main`, uppercase hex, `--help`) and reports "version X was not found upstream".
+- **Reason:** The version comes from a project file; this keeps it from being read as a git option. The scripts only ever wrote `%h` or `unknown`.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md S5 line.

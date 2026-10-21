@@ -123,6 +123,8 @@ Ship every upstream markdown doc under `.writ/docs/`. User-authored docs that ex
 
 **Detect stale files:** files present in the manifest but removed upstream, plus manifest-listed scripts the ship filter now excludes (such as the dev-only helpers above). Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, in any category, flag it and keep it. It keeps its previous baseline (Step 7), so every later update flags it again until the user deletes it. Only shipped paths get new baselines, so a file the user wrote is never in the manifest and never stale.
 
+**Legacy manifests:** when the manifest has no `# baselines: shipped` line, rebuild its baselines from upstream at its `# version:` commit, fetching full history once if the shallow clone lacks that commit, and drop every path upstream did not have at that commit; if the commit cannot be found, keep only the `.codex/config.toml.baseline` line, so files that differ from upstream are preserved and nothing is removed that run.
+
 ### Step 4: Present Summary
 
 Display the scan results grouped by action:

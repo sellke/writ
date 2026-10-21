@@ -12,7 +12,7 @@
 - S2: read `.codex/config.toml.baseline` before `cat > "$target"`, as `unlink.sh:199-204` does.
 - S3: per-run baseline file read by `manifest_hash_for`/`manifest_files`. `write_copy_manifest` (update and install) iterates the shipped set from `$WRIT_SRC`: upstream hash if local = upstream after the run, else the previous baseline or none; Writ blocks and Cursor units use the same post-run comparison. Header `# baselines: shipped`.
 - S4: `detect_stale_files` warns and carries the old baseline in every category.
-- S5: a header-less manifest is legacy. Rebuild baselines from upstream at `# version:` (`--unshallow` once if needed). Unresolvable → no-manifest behavior plus a notice. Remove Codex skills from `$SKILLS_DIR`. Print "Removed" only when the file is gone.
+- S5: a header-less manifest is legacy. Rebuild baselines from upstream at `# version:` (`--unshallow` once if needed). Unresolvable → no-manifest behavior plus a notice. A version that is not 4-40 lowercase hex is unresolved. Remove Codex skills from `$SKILLS_DIR`. Print "Removed" only when the file is gone; a path `rm` could not remove keeps its manifest line.
 - Tests first; each fails on the unchanged scripts.
 
 **Files in Scope:**
