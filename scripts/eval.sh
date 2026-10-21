@@ -3296,8 +3296,8 @@ check_revert() {
   # uncommitted work it did not create.
   # The guard is pinned as a numbered step, not as prose: it has to sit between
   # every scope-resolution branch and Step 1.2, so no "proceed to Step 1.2" jump
-  # can route a reader past it.
-  require_literal "$refactor_cmd" '#### Step 1.1b: Dirty-Tree Guard' "refactor.md must carry the dirty-tree guard as its own step ahead of Step 1.2."
+  # can route a reader past it. The step heading is a heading row in
+  # scripts/eval-command-structure.py, which fails if it turns into prose.
   require_literal "$refactor_cmd" 'git status --porcelain' "refactor.md must reference the dirty-tree guard command."
   # Presence-only pins would stay green if the halt were inverted to a warning,
   # so pin the halt and the remedy themselves (AC1).
