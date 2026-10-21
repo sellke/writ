@@ -56,11 +56,6 @@ commands:
     category: implementation
     purpose: "Generate deterministic implementation-derived UAT plans."
     tags: [implementation, uat, verification]
-  - name: design
-    file: commands/design.md
-    category: planning
-    purpose: "Create and compare visual references for Writ specifications."
-    tags: [planning, design, visual]
   - name: edit-spec
     file: commands/edit-spec.md
     category: planning
@@ -186,6 +181,11 @@ commands:
     category: planning
     purpose: "Validate spec integrity, status sync, completion evidence, and contract drift."
     tags: [planning, verification, spec]
+  - name: writ-design
+    file: commands/writ-design.md
+    category: planning
+    purpose: "Create and compare visual references for Writ specifications."
+    tags: [planning, design, visual]
 
 agents:
   - name: architecture-check-agent

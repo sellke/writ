@@ -37,7 +37,6 @@ your-project/
 │   │   ├── create-issue.md        # /create-issue
 │   │   ├── create-spec.md         # /create-spec
 │   │   ├── create-uat-plan.md     # /create-uat-plan
-│   │   ├── design.md              # /design
 │   │   ├── edit-spec.md           # /edit-spec
 │   │   ├── implement-phase.md     # /implement-phase
 │   │   ├── implement-spec.md      # /implement-spec
@@ -62,7 +61,8 @@ your-project/
 │   │   ├── status.md              # /status
 │   │   ├── uninstall-writ.md      # /uninstall-writ
 │   │   ├── update-writ.md         # /update-writ
-│   │   └── verify-spec.md         # /verify-spec
+│   │   ├── verify-spec.md         # /verify-spec
+│   │   └── writ-design.md         # /writ-design
 │   ├── agents/                    # one file per `agents:` entry in .writ/manifest.yaml (7)
 │   │   ├── architecture-check-agent.md  # Pre-implementation gate
 │   │   ├── coding-agent.md              # TDD implementation

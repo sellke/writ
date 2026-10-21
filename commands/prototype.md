@@ -312,7 +312,7 @@ Options: fix manually · retry · discard
 | Exploring an approach before committing | `/prototype` (then escalate if it works out) |
 | Multi-file feature with dependencies | `/create-spec` + `/implement-story` |
 | Refactoring a specific file | `/refactor` |
-| Mockups for a spec that already exists | `/design` |
+| Mockups for a spec that already exists | `/writ-design` |
 | Change within an existing spec | `/implement-story --quick` |
 
 ## Completion
@@ -326,7 +326,7 @@ Most runs are both. A run that ends at a chosen direction is complete, and must 
 
 A scope-escalation signal firing is also a valid outcome, not a failure. It is named in the summary alongside the `/create-spec --from-prototype` offer, and the decision belongs to the user.
 
-**Terminal constraint:** This command explores an idea and ships small changes. Do not write spec artifacts, decompose stories, open a PR, or escalate to the story pipeline without an explicit yes. Deep specification is `/create-spec`; drafts for a spec that already exists are `/design`.
+**Terminal constraint:** This command explores an idea and ships small changes. Do not write spec artifacts, decompose stories, open a PR, or escalate to the story pipeline without an explicit yes. Deep specification is `/create-spec`; drafts for a spec that already exists are `/writ-design`.
 
 ---
 

@@ -617,12 +617,12 @@ referenced_paths_allowlist() {
 tech-stack.md|/initialize|Bare form of .writ/docs/tech-stack.md used when the enclosing sentence already names .writ/docs/.
 code-style.md|/initialize|Bare form of .writ/docs/code-style.md used when the enclosing sentence already names .writ/docs/.
 .writ/quality-baseline.md|/initialize|Written by /initialize Step 4 (quality-signal classification); /status reads it when present.
-.writ/docs/design-system.md|/design|Written by /design when a design system is generated; optional in every project.
+.writ/docs/design-system.md|/writ-design|Written by /writ-design when a design system is generated; optional in every project.
 exploration.md|/prototype|Written by /prototype Step 2.5 under .writ/prototypes/<date>-<slug>/ when drafts are generated; absent on runs that skip divergence.
-design-system.md|/design|Bare form of .writ/docs/design-system.md.
-component-inventory.md|/design|Written by /design under the spec's mockups/ folder.
-mockups/README.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
-mockups/component-inventory.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
+design-system.md|/writ-design|Bare form of .writ/docs/design-system.md.
+component-inventory.md|/writ-design|Written by /writ-design under the spec's mockups/ folder.
+mockups/README.md|/writ-design|Written by /writ-design under the spec's mockups/ folder; spec-relative.
+mockups/component-inventory.md|/writ-design|Written by /writ-design under the spec's mockups/ folder; spec-relative.
 user-stories/README.md|/create-spec|Written by /create-spec Step 2.6 for every spec; spec-relative.
 sub-specs/technical-spec.md|/create-spec|Written by /create-spec Step 2.5 for every spec; spec-relative.
 database-schema.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs a schema.

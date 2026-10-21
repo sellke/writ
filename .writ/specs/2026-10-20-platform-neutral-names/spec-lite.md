@@ -17,7 +17,7 @@
 
 **Files in Scope:**
 - `commands/prototype.md`, `adapters/{cursor,claude-code,codex,openclaw}.md` — capability (S1)
-- `commands/writ-design.md`, `.writ/manifest.yaml`, `SKILL.md`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, `adapters/cursor.md` tree, `commands/{create-spec,create-adr,research,status,prototype}.md`, `create-spec.lean.md` if present, `.writ/docs/model-tiers.md`, `scripts/eval.sh` allowlist — rename (S2)
+- `commands/writ-design.md`, `.writ/manifest.yaml`, `SKILL.md`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, `adapters/cursor.md` tree, `commands/{create-spec,create-adr,research,status,prototype}.md`, `create-spec.lean.md` if present, `.writ/docs/model-tiers.md`, `scripts/eval.sh` allowlist, both `status.md` command lists, the `create-spec.md` byte ledger in `scripts/tests/test_governor_enforcement.py` — rename (S2)
 - `scripts/tests/test_platform_neutral_names.py` (S1–S3), `scripts/tests/test_install_update_writ_design.sh` (S3), both origin issues (S3)
 
 **Error Handling:**

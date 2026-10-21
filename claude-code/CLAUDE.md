@@ -18,7 +18,6 @@ Run Writ commands by reading the command file and following its workflow:
 | `/create-issue` | `.claude/commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
 | `/create-spec` | `.claude/commands/create-spec.md` | Create contract-first specifications; --recommend autonomously authors and locks one package from evidence, then stops (does not implement). |
 | `/create-uat-plan` | `.claude/commands/create-uat-plan.md` | Generate deterministic implementation-derived UAT plans. |
-| `/design` | `.claude/commands/design.md` | Create and compare visual references for Writ specifications. |
 | `/edit-spec` | `.claude/commands/edit-spec.md` | Safely modify existing specifications while preserving contract integrity. |
 | `/implement-phase` | `.claude/commands/implement-phase.md` | Execute all specs in a roadmap phase — resolves features to specs, sequences by dependency, loops /implement-spec → /create-uat-plan per spec, and verifies exit criteria; --recommend runs it as an end-to-end loop that also autonomously authors missing specs. |
 | `/implement-spec` | `.claude/commands/implement-spec.md` | Execute dependency-aware story batches through the per-story pipeline; explicit execute command with no confirmation gate. |
@@ -44,6 +43,7 @@ Run Writ commands by reading the command file and following its workflow:
 | `/uninstall-writ` | `.claude/commands/uninstall-writ.md` | Remove Writ platform files while preserving `.writ/` project artifacts. |
 | `/update-writ` | `.claude/commands/update-writ.md` | Update Writ from upstream with per-file control over local customizations. |
 | `/verify-spec` | `.claude/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/writ-design` | `.claude/commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ## Agents
 

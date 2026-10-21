@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T11:45:17Z
+> Last Updated: 2026-10-21T12:47:17Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-platform-neutral-names — Platform-Neutral Names
-- **Status:** In Progress (1 of 3 stories complete)
-- **Story:** 1 of 3 — Canvas-Preview Capability in `/prototype` and the Four Adapters (Completed ✅)
-- **Progress:** 7/20 tasks complete (35%)
+- **Status:** In Progress (2 of 3 stories complete)
+- **Story:** 2 of 3 — Rename `/design` to `/writ-design` Across Every Reference (Completed ✅)
+- **Progress:** 14/20 tasks complete (70%)
 
 ## Artifact Map
 
@@ -24,6 +24,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Recent Drift
 
 - DEV-001 (Small) OpenClaw row says "HTML file" where the technical spec's row text says "file" — platform-neutral-names Story 1
+- DEV-002 (Small) Governor ledger re-pinned for the create-spec Step 1.5 rename — platform-neutral-names Story 2
+- DEV-003 (Small) Inventory missed the bare `design` in the `/status` Maintainer Note allowlist — platform-neutral-names Story 2
 
 ## Open Issues
 

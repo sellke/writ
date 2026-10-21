@@ -109,7 +109,7 @@ Feedback loop (/retro + /refresh-command):
 | `/plan-product` | Product planning with contract-first approach |
 | `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory; Jev pre-judges first when enabled). `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
 | `/edit-spec` | Safely modify existing specifications |
-| `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
+| `/writ-design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
 | `/create-goal` | Goal Card for a recurring task: checkable finish line, stages, stop caps, or a recorded "don't loop this" verdict. A `loop: yes` save emits `GOAL.md` / `VERIFY.md` plus a printed Claude Code goal-mode invoke line (never registers the hook). |
 | `/create-issue` | Quick issue capture (<2 minutes) |

@@ -1,5 +1,5 @@
 ---
-name: design
+name: writ-design
 description: "Produce wireframes and store screenshots or mockups as visual references the coding agent uses during implementation. Standalone or inside the spec pipeline."
 problem: "The coding agent builds UI from prose, inventing layout, states, and spacing that were already decided but never put anywhere the agent reads."
 outcome: "The target spec's mockups/ directory holds the selected mode's artifacts — wireframes, catalogued images, or screenshots — that /implement-story Gate 1 loads."
@@ -10,7 +10,7 @@ exit_criteria:
   - "a mode that cannot run leaves mockups/ unchanged rather than writing partial output"
 ---
 
-# Design Command (design)
+# Design Command (writ-design)
 
 ## Overview
 
@@ -22,11 +22,11 @@ Works standalone or integrated into the `/create-spec` → `/implement-story` pi
 
 | Invocation | Behavior |
 |---|---|
-| `/design` | Interactive — select a spec or start fresh |
-| `/design 2026-03-01-dashboard` | Add visuals to existing spec |
-| `/design --wireframe "login page"` | Generate Excalidraw wireframe from description |
-| `/design --screenshot` | Capture current UI state for reference |
-| `/design --compare` | Side-by-side mockup vs implementation |
+| `/writ-design` | Interactive — select a spec or start fresh |
+| `/writ-design 2026-03-01-dashboard` | Add visuals to existing spec |
+| `/writ-design --wireframe "login page"` | Generate Excalidraw wireframe from description |
+| `/writ-design --screenshot` | Capture current UI state for reference |
+| `/writ-design --compare` | Side-by-side mockup vs implementation |
 
 ## Command Process
 
@@ -191,7 +191,7 @@ Tag it as auto-extracted so developers know to refine it. Both the coding agent 
 
 ### How specs reference mockups
 
-Story files include a `## Visual References` section (added by `/design` or `/create-spec`):
+Story files include a `## Visual References` section (added by `/writ-design` or `/create-spec`):
 
 ```markdown
 ## Visual References
@@ -234,7 +234,7 @@ If the mode cannot complete (e.g., no running dev server for capture, no mockups
 
 | Command | Relationship |
 |---------|-------------|
-| `/create-spec` | Generates specs that `/design` adds visuals to |
+| `/create-spec` | Generates specs that `/writ-design` adds visuals to |
 | `/implement-story` | Gate 1 loads mockups; `--full-pipeline` Gate 4.5 adds visual QA notes |
 | `/assess-spec` | Visual complexity adds to story sizing signals |
 
