@@ -1,6 +1,7 @@
 # Story 1: Canvas-Preview Capability in `/prototype` and the Four Adapters
 
 > **Status:** Completed ✅
+> **Commit:** 81c63c1612bf18e0c1c7ef815a8bd8695b6db2ec
 > **Priority:** High
 > **Dependencies:** None
 
