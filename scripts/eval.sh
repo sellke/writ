@@ -637,6 +637,7 @@ term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md 
 .writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
 .writ/docs/app-verification.md|/create-uat-plan|Project verification recipe /create-uat-plan Step 1.3 writes after confirmation; never shipped, absent in the Writ repo by design.
 .writ/state/app-verification-draft.md|/create-uat-plan|Scratch copy /create-uat-plan Step 1.3 validates before saving a drafted recipe.
+.claude/system-instructions.md|/update-writ|Copied into Claude Code projects by install.sh and /update-writ Step 3; this repo's .claude/ is a symlink tree without it.
 EOF
 }
 

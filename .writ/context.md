@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T08:35:58Z
+> Last Updated: 2026-10-21T09:46:38Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-claude-code-parity — Claude Code Parity
 - **Status:** In Progress
-- **Story:** 3 of 4 — Correct the Claude Code Adapter (Completed ✅); Stories 1 and 3 complete
-- **Progress:** 14/28 tasks complete (50%)
+- **Story:** 2 of 4 — Install the System Instructions and Import Line on Claude Code (Completed ✅); Stories 1, 2, 3 complete
+- **Progress:** 21/28 tasks complete (75%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-005 (Small) Manual Step 1 prose corrects the technical spec's claim — claude-code-parity Story 3
-- DEV-006 (Small) Gotcha 1 names both causes of a stale worktree — claude-code-parity Story 3
 - DEV-008 (Small) Adapter test checks more than task 3.1 lists — claude-code-parity Story 3
+- DEV-009 (Small) Business Rule 5's no-baseline rule is not Cursor's actual rule — claude-code-parity Story 2
+- DEV-010 (Small) Two files changed outside the Story 2 task list — claude-code-parity Story 2
 
 ## Open Issues
 

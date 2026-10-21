@@ -85,3 +85,28 @@
 - **Reason:** Stricter checks serve Business Rules 13 and 16. No behavior changes.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md S3 line.
+
+---
+
+## Story 2: Install the System Instructions and Import Line on Claude Code — Drift Report
+
+> Run: 2026-10-21
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-009] Business Rule 5's "no baseline → update" is not Cursor's actual rule
+- **Severity:** Small
+- **Spec said:** Business Rule 5 and the story Notes: `--force`, no baseline, or local equals baseline → update.
+- **Implementation did:** Claude reuses Cursor's `SYSINST_ACTION` scan unchanged. A missing baseline leads to an update only when the manifest file is also absent; with a manifest that lacks the `system-instructions.md` line and a local file that differs from upstream, the result is `⚡ Preserved: system-instructions.md (no baseline, assuming modified)`.
+- **Reason:** The contract says update.sh keeps the Claude copy current "the same way it keeps the Cursor copy current", and the story Notes say "Match Cursor, do not improve it". The contract outranks the rule text. The branch matters only for a file a user copied by hand into an installed project; a pre-parity install has no local file and gets `new`.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S2 line states the rule as Cursor implements it: no baseline updates only when there is no manifest.
+
+#### [DEV-010] Two files changed outside the Story 2 task list
+- **Severity:** Small
+- **Spec said:** Tasks 2.1–2.7 name the three lifecycle scripts, the three command docs, the new parity test, and the two bundle tests.
+- **Implementation did:** One line in `scripts/tests/test_manifest_shipped_baselines.sh` adds `system-instructions.md` to the Claude expected shipped set. One `referenced_paths_allowlist` row in `scripts/eval.sh` names `.claude/system-instructions.md` with creating command `/update-writ`.
+- **Reason:** The shipped-set test failed once install recorded the file (Business Rule 4). The `referenced-paths` check raised 4 findings because this repo's `.claude/` is a symlink tree without that file; the allowlist is the check's remedy for paths a command creates in target projects.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S2 line names both files.

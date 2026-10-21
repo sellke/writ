@@ -63,7 +63,7 @@ cat .codex/.writ-manifest 2>/dev/null
 | Platform | Platform dir | Commands src | Agents src | Extra files |
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
-| `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` (project root) |
+| `claude` | `.claude` | `commands` | `claude-code/agents` | `.claude/system-instructions.md`, `CLAUDE.md` (project root) |
 | `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` baseline hash, `.agents/skills/` |
 
 ### Step 2: Fetch Latest Upstream
@@ -116,7 +116,7 @@ Ship every upstream markdown doc under `.writ/docs/` except `recommended-deliver
 
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
-- Claude Code: `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
+- Claude Code: `.claude/system-instructions.md` (upstream source: `system-instructions.md`), `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
 - Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
 **Skills overlay:** folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).

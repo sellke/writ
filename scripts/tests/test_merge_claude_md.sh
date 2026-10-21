@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Tests merge_claude_md() bundled from scripts/install.sh (see writ-merge markers).
+# Cases 8-11 test the preserved-block warning and writ_block_inner_has_line.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -191,5 +192,98 @@ RC=$?
 set -e
 [ "$RC" -eq 12 ] || fail "case7: expected exit code 12 for missing upstream template, got $RC"
 [ ! -e CLAUDE.md ] || fail 'case7: CLAUDE.md should not be created when upstream template is missing'
+
+# ===== Story 2 of 2026-10-20-claude-code-parity =====
+# AC-2.4: a preserved block without the import line prints a warning that names
+# the line and --force, in preview and apply, and CLAUDE.md stays byte-identical.
+# A preserved block with the line prints no warning. AC-2.2: on the replace and
+# --force paths the bytes outside the markers stay, CRLF lines included.
+IMPORT_LINE='@.claude/system-instructions.md'
+INSTALL_WARNING='⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run install.sh --force to replace the block.'
+WARNING_TEXT='has no @.claude/system-instructions.md line'
+
+# ----- Case 8: writ_block_inner_has_line reads only the lines between the markers -----
+run
+printf '%s\r\n' '# user top' '<!-- writ:start -->' 'custom' "$IMPORT_LINE" '<!-- writ:end -->' >CLAUDE.md
+writ_block_inner_has_line CLAUDE.md "$IMPORT_LINE" || fail 'case8: CRLF import line inside the markers not found'
+printf '%s\n' "$IMPORT_LINE" '<!-- writ:start -->' 'custom' '<!-- writ:end -->' "$IMPORT_LINE" >CLAUDE.md
+if writ_block_inner_has_line CLAUDE.md "$IMPORT_LINE"; then
+  fail 'case8: an import line outside the markers counted as inside'
+fi
+printf '%s\n' '<!-- writ:start -->' "  $IMPORT_LINE" "\`$IMPORT_LINE\`" '<!-- writ:end -->' >CLAUDE.md
+if writ_block_inner_has_line CLAUDE.md "$IMPORT_LINE"; then
+  fail 'case8: a line that only contains the import text counted as the import line'
+fi
+
+# ----- Case 9: preserved block without the import line -> warning, file unchanged -----
+# The user wrote the import line above the block; the block itself lacks it.
+run
+MANIFEST_FILE="$WORK/warn.manifest"
+printf '%s\n' "$(hash_file "$WRIT_SRC/claude-code/CLAUDE.md")  CLAUDE.md.writ-block" >"$MANIFEST_FILE"
+{
+  printf '# user top\r\n%s\r\n' "$IMPORT_LINE"
+  printf '%s\n' '<!-- writ:start -->' 'CUSTOM_LOCAL_INNER' '<!-- writ:end -->'
+  printf 'user bottom, no final newline'
+} >CLAUDE.md
+cp CLAUDE.md "$WORK/warn.before"
+FORCE=false
+merge_claude_md preview >"$WORK/warn.preview" 2>&1
+grep -qxF "$INSTALL_WARNING" "$WORK/warn.preview" || fail "case9(preview): no warning: $(cat "$WORK/warn.preview")"
+cmp -s "$WORK/warn.before" CLAUDE.md || fail 'case9(preview): CLAUDE.md changed'
+merge_claude_md apply >"$WORK/warn.apply" 2>&1
+[ "$CLAUDE_MERGE_NOTE" = 'CLAUDE.md: Writ block preserved (local modifications)' ] \
+  || fail "case9(apply): expected the preserved note, got $CLAUDE_MERGE_NOTE"
+grep -qxF "$INSTALL_WARNING" "$WORK/warn.apply" || fail "case9(apply): no warning: $(cat "$WORK/warn.apply")"
+cmp -s "$WORK/warn.before" CLAUDE.md || fail 'case9(apply): CLAUDE.md changed'
+
+# ----- Case 10: preserved block with the import line (CRLF) -> no warning -----
+run
+MANIFEST_FILE="$WORK/has-line.manifest"
+printf '%s\n' "$(hash_file "$WRIT_SRC/claude-code/CLAUDE.md")  CLAUDE.md.writ-block" >"$MANIFEST_FILE"
+printf '%s\r\n' '# user top' '<!-- writ:start -->' 'CUSTOM_LOCAL_INNER' "$IMPORT_LINE" '<!-- writ:end -->' >CLAUDE.md
+cp CLAUDE.md "$WORK/has-line.before"
+FORCE=false
+merge_claude_md preview >"$WORK/has-line.preview" 2>&1
+grep -qF 'Would preserve Writ block' "$WORK/has-line.preview" || fail 'case10(preview): block not preserved'
+grep -qF "$WARNING_TEXT" "$WORK/has-line.preview" && fail 'case10(preview): warned about a block that has the line'
+merge_claude_md apply >"$WORK/has-line.apply" 2>&1
+[ "$CLAUDE_MERGE_NOTE" = 'CLAUDE.md: Writ block preserved (local modifications)' ] \
+  || fail "case10(apply): expected the preserved note, got $CLAUDE_MERGE_NOTE"
+grep -qF "$WARNING_TEXT" "$WORK/has-line.apply" && fail 'case10(apply): warned about a block that has the line'
+cmp -s "$WORK/has-line.before" CLAUDE.md || fail 'case10: CLAUDE.md changed'
+
+# ----- Case 11: CRLF user content outside the markers on the replace and --force paths -----
+run
+MANIFEST_FILE="$WORK/crlf.manifest"
+printf '# user top\r\ntrailing spaces   \r\nnon-ASCII: café, 東京\n@notes.md\n' >"$WORK/crlf.prefix"
+printf 'user bottom\r\n@notes.md\nno final newline   ' >"$WORK/crlf.suffix"
+{
+  cat "$WORK/crlf.prefix"
+  printf '%s\n' '<!-- writ:start -->' 'OLD_INNER_BODY' '<!-- writ:end -->'
+  cat "$WORK/crlf.suffix"
+} >CLAUDE.md
+{
+  cat "$WORK/crlf.prefix"
+  printf '%s\n' '<!-- writ:start -->' 'UPSTREAM_STUB_CLAUDE_MD_BODY' '<!-- writ:end -->'
+  cat "$WORK/crlf.suffix"
+} >"$WORK/crlf.expected"
+OLD_INNER_HASH="$(writ_compute_writ_block_inner_hash "CLAUDE.md")" || fail 'case11: inner hash computation failed'
+printf '%s\n' "$OLD_INNER_HASH"'  CLAUDE.md.writ-block' >"$MANIFEST_FILE"
+FORCE=false
+merge_claude_md apply >"$WORK/crlf.apply" 2>&1
+[ "$CLAUDE_MERGE_NOTE" = 'CLAUDE.md: Writ block updated' ] || fail "case11: expected an update, got $CLAUDE_MERGE_NOTE"
+cmp "$WORK/crlf.expected" CLAUDE.md || fail 'case11: bytes outside the markers changed on the replace path'
+grep -qF "$WARNING_TEXT" "$WORK/crlf.apply" && fail 'case11: warned on the replace path'
+{
+  cat "$WORK/crlf.prefix"
+  printf '%s\n' '<!-- writ:start -->' 'CUSTOM_LOCAL_INNER' '<!-- writ:end -->'
+  cat "$WORK/crlf.suffix"
+} >CLAUDE.md
+FORCE=true
+merge_claude_md apply >"$WORK/crlf.force" 2>&1
+[ "$CLAUDE_MERGE_NOTE" = 'CLAUDE.md: Writ block updated (--force)' ] || fail "case11: expected a forced update, got $CLAUDE_MERGE_NOTE"
+cmp "$WORK/crlf.expected" CLAUDE.md || fail 'case11: bytes outside the markers changed on the --force path'
+grep -qF "$WARNING_TEXT" "$WORK/crlf.force" && fail 'case11: warned on the --force path'
+FORCE=false
 
 printf 'OK merge_claude_md fixtures\n'

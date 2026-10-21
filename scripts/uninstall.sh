@@ -260,6 +260,7 @@ if [ "$PLATFORM" = "cursor" ]; then
   [ -f "$PLATFORM_DIR/rules/writ.mdc" ] && EXTRA_FILES+=("$PLATFORM_DIR/rules/writ.mdc")
   [ -f "$PLATFORM_DIR/system-instructions.md" ] && EXTRA_FILES+=("$PLATFORM_DIR/system-instructions.md")
 elif [ "$PLATFORM" = "claude" ]; then
+  [ -f "$PLATFORM_DIR/system-instructions.md" ] && EXTRA_FILES+=("$PLATFORM_DIR/system-instructions.md")
   [ -f "CLAUDE.md" ] && EXTRA_FILES+=("CLAUDE.md")
 elif [ "$PLATFORM" = "codex" ]; then
   if [ -f "AGENTS.md" ]; then

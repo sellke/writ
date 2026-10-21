@@ -68,7 +68,7 @@ AskQuestion({
 | Platform | Platform dir | Commands src | Agents src | Extra files |
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
-| `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` (project root) |
+| `claude` | `.claude` | `commands` | `claude-code/agents` | `.claude/system-instructions.md`, `CLAUDE.md` (project root) |
 | `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` install-once prompt, `.agents/skills/` |
 
 ### Step 2: Confirm Destructive Operation
@@ -113,7 +113,7 @@ Delete all Writ-managed files from the platform directory.
 - `.codex/agents/*.toml` — Codex CLI agent files
 - Platform-specific extras:
   - Cursor: `[platform_dir]/rules/writ.mdc`, `[platform_dir]/system-instructions.md`
-  - Claude Code: `CLAUDE.md` (project root)
+  - Claude Code: `.claude/system-instructions.md`, `CLAUDE.md` (project root)
   - Codex CLI: `AGENTS.md` Writ block removed by `uninstall.sh --platform codex`; `.codex/config.toml` removal is prompted separately by `uninstall.sh` because the file is install-once and user-owned
 - `[platform_dir]/.writ-manifest`
 
@@ -139,7 +139,7 @@ git clone --depth 1 https://github.com/sellke/writ.git "$WRIT_SRC"
 3. Copy all agents: `cp $WRIT_SRC/[agents_src]/*.md [platform_dir]/agents/` (Cursor/Claude Code) or `cp $WRIT_SRC/codex/agents/*.toml .codex/agents/` (Codex CLI)
 4. Copy platform-specific files:
    - Cursor: `cp $WRIT_SRC/cursor/writ.mdc [platform_dir]/rules/` and `cp $WRIT_SRC/system-instructions.md [platform_dir]/`
-   - Claude Code: `cp $WRIT_SRC/claude-code/CLAUDE.md ./CLAUDE.md`
+   - Claude Code: `cp $WRIT_SRC/system-instructions.md .claude/system-instructions.md` and `cp $WRIT_SRC/claude-code/CLAUDE.md ./CLAUDE.md`
    - Codex CLI: merge the Writ block into `AGENTS.md`, seed `.codex/config.toml` only if absent, and install skills to `.agents/skills/`
 5. Write fresh manifest with baselines for every installed file
 

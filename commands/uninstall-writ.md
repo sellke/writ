@@ -96,7 +96,7 @@ Delete Writ-managed files. Run per-platform if "all" was selected.
 2. **Agents:** `rm [platform_dir]/agents/*.md` for Cursor/Claude Code, or `rm .codex/agents/*.toml` for Codex CLI
 3. **Platform-specific files:**
    - Cursor: `rm [platform_dir]/rules/writ.mdc [platform_dir]/system-instructions.md`
-   - Claude Code: `rm CLAUDE.md`
+   - Claude Code: `rm .claude/system-instructions.md` and `rm CLAUDE.md`
    - Codex CLI: remove only the marker-bounded Writ block from `AGENTS.md`; prompt before removing `.codex/config.toml`; remove Writ-installed skills from `.agents/skills/`
 4. **Manifest:** `rm [platform_dir]/.writ-manifest`
 
