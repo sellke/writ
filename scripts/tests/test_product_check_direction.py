@@ -3,10 +3,9 @@
 
 Product-doc verification reads as a post-implementation check whose findings
 feed `/plan-product --reconcile`, and reconcile hands back to delivery. These
-tests assert the wording directly. eval.sh no longer pins it: spec
-`2026-10-20-shipped-command-hygiene` Story 2 removed the
-`product-check-direction` check because the wording carries no safety
-contract (see that spec's pin-map.md).
+tests assert the wording directly. eval.sh no longer pins it: Story 2 of the
+shipped-command-hygiene spec removed the `product-check-direction` check
+because the wording carries no safety contract (see that spec's pin-map.md).
 """
 
 from __future__ import annotations
