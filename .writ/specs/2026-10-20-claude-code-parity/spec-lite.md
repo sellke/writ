@@ -25,6 +25,7 @@
 - `adapters/claude-code.md`: claims, install section, `SubagentStop` hook (D6), seven agents (S3)
 - S3 as built (DEV-005–008): eight agents read from frontmatter; manual Step 1 says a manual install has no manifest baseline, so later runs keep a differing block, and `--force` also overwrites other differing Writ files; Gotcha 1 names both stale-worktree causes; the no-copy regex also catches bare `CLAUDE.md`.
 - `scripts/uninstall.sh` block removal; Claude bullets of `uninstall-writ.md`, `reinstall-writ.md` (S4)
+- S4 as built (DEV-011–013): the reinstall doc names `.claude/system-instructions.md` (Story 2's test pins it); Step 4 spells out the newline guard and the malformed-marker stop; tests add edge cases and an end-to-end malformed-marker project.
 - Tests: `test_gen_claude_md.py`, `test_eval_claude_md.sh`, `test_gen_claude_md_not_shipped.sh`, `test_install_update_claude_parity.sh`, `test_claude_code_adapter_claims.py`, `test_remove_claude_md_block.sh`, `test_uninstall_claude_md.sh`, `test_lifecycle_commands_claude_md.py`; new cases in `test_merge_claude_md.sh`, `test_update_claude_md.sh`
 
 **Error Handling:**

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T09:46:38Z
+> Last Updated: 2026-10-21T10:49:21Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-claude-code-parity — Claude Code Parity
-- **Status:** In Progress
-- **Story:** 2 of 4 — Install the System Instructions and Import Line on Claude Code (Completed ✅); Stories 1, 2, 3 complete
-- **Progress:** 21/28 tasks complete (75%)
+- **Status:** In Progress (integration verification pending)
+- **Story:** 4 of 4 — Keep CLAUDE.md User-Owned on Uninstall and Reinstall (Completed ✅); all stories complete
+- **Progress:** 28/28 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-008 (Small) Adapter test checks more than task 3.1 lists — claude-code-parity Story 3
-- DEV-009 (Small) Business Rule 5's no-baseline rule is not Cursor's actual rule — claude-code-parity Story 2
-- DEV-010 (Small) Two files changed outside the Story 2 task list — claude-code-parity Story 2
+- DEV-011 (Small) The reinstall doc names .claude/system-instructions.md — claude-code-parity Story 4
+- DEV-012 (Small) Reinstall Step 4 spells out the merge in full — claude-code-parity Story 4
+- DEV-013 (Small) Story 4 tests go beyond the listed cases — claude-code-parity Story 4
 
 ## Open Issues
 

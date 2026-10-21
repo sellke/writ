@@ -222,6 +222,81 @@ remove_agents_md_block() {
 }
 # <<< writ-remove-agents-md-bundled-end >>>
 
+# <<< writ-remove-claude-md-bundled-begin (used by scripts/tests/test_remove_claude_md_block.sh — keep synced) >>>
+# Copy of writ_agents_md_marker_counts, so the test can load this region alone.
+writ_claude_md_marker_counts() {
+  local file="$1"
+  awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") starts++
+      if (line == "<!-- writ:end -->") ends++
+    }
+    END { print starts + 0, ends + 0 }' "$file"
+}
+
+# Removes the start-marker line through the end-marker line from CLAUDE.md and
+# keeps every other byte: no blank-line trimming, no final-newline change, same
+# file mode. Deletes the file only when zero bytes remain. Unlike
+# remove_agents_md_block, it does not rewrite what is left.
+remove_claude_md_block() {
+  local file="${1:-CLAUDE.md}"
+  REMOVE_CLAUDE_MD_NOTE=""
+
+  if [ ! -f "$file" ]; then
+    REMOVE_CLAUDE_MD_NOTE="✓ CLAUDE.md (no file present)"
+    return 0
+  fi
+
+  local counts start_count end_count
+  counts=$(writ_claude_md_marker_counts "$file")
+  read -r start_count end_count <<<"$counts"
+
+  if [ "${start_count:-0}" -eq 0 ] && [ "${end_count:-0}" -eq 0 ]; then
+    REMOVE_CLAUDE_MD_NOTE="✓ CLAUDE.md (no Writ block present)"
+    return 0
+  fi
+
+  if [ "${start_count:-0}" -ne 1 ] || [ "${end_count:-0}" -ne 1 ]; then
+    REMOVE_CLAUDE_MD_NOTE="CLAUDE.md block error: malformed markers"
+    printf '%s\n' "❌ $REMOVE_CLAUDE_MD_NOTE (expected exactly one <!-- writ:start --> and one <!-- writ:end -->)." >&2
+    return 13
+  fi
+
+  local start_line end_line
+  read -r start_line end_line <<<"$(awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") printf "%d ", NR
+      if (line == "<!-- writ:end -->") print NR
+    }' "$file")"
+
+  if [ -z "${start_line:-}" ] || [ -z "${end_line:-}" ] || [ "${start_line:-0}" -ge "${end_line:-0}" ]; then
+    REMOVE_CLAUDE_MD_NOTE="CLAUDE.md block error: malformed markers"
+    printf '%s\n' "❌ $REMOVE_CLAUDE_MD_NOTE (invalid marker order)." >&2
+    return 13
+  fi
+
+  local tmp
+  tmp=$(mktemp)
+  # head and tail copy bytes as they are: CR characters and a missing final
+  # newline included. head -n 0 is not portable, hence the guard.
+  { [ "$start_line" -gt 1 ] && head -n $((start_line - 1)) "$file"; tail -n +$((end_line + 1)) "$file"; } >"$tmp"
+
+  if [ ! -s "$tmp" ]; then
+    rm -f "$tmp" "$file"
+    REMOVE_CLAUDE_MD_NOTE="🗑  Removed: CLAUDE.md (empty after Writ block removal)"
+    return 0
+  fi
+
+  # cat into the existing file, not mv, so the file keeps its mode.
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
+  REMOVE_CLAUDE_MD_NOTE="🗑  Removed: CLAUDE.md Writ block"
+  return 0
+}
+# <<< writ-remove-claude-md-bundled-end >>>
+
 manifest_files() {
   [ -f "$PLATFORM_DIR/.writ-manifest" ] && grep -v '^#' "$PLATFORM_DIR/.writ-manifest" | grep -v '^$' | awk '{print $2}' || true
 }
@@ -236,6 +311,8 @@ SKILL_COUNT=0
 EXTRA_FILES=()
 CODEX_EXTRA_COUNT=0
 CODEX_EXTRA_DESC=""
+CLAUDE_EXTRA_COUNT=0
+CLAUDE_EXTRA_DESC=""
 
 for f in "$PLATFORM_DIR"/commands/*.md; do
   [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1))
@@ -261,7 +338,11 @@ if [ "$PLATFORM" = "cursor" ]; then
   [ -f "$PLATFORM_DIR/system-instructions.md" ] && EXTRA_FILES+=("$PLATFORM_DIR/system-instructions.md")
 elif [ "$PLATFORM" = "claude" ]; then
   [ -f "$PLATFORM_DIR/system-instructions.md" ] && EXTRA_FILES+=("$PLATFORM_DIR/system-instructions.md")
-  [ -f "CLAUDE.md" ] && EXTRA_FILES+=("CLAUDE.md")
+  # CLAUDE.md is user-owned: uninstall removes only its Writ block.
+  if [ -f "CLAUDE.md" ]; then
+    CLAUDE_EXTRA_COUNT=1
+    CLAUDE_EXTRA_DESC="CLAUDE.md Writ block "
+  fi
 elif [ "$PLATFORM" = "codex" ]; then
   if [ -f "AGENTS.md" ]; then
     CODEX_EXTRA_COUNT=$((CODEX_EXTRA_COUNT + 1))
@@ -280,7 +361,11 @@ echo "  Files to remove:"
 echo "    📋 Commands:  $CMD_COUNT"
 echo "    🤖 Agents:    $AGENT_COUNT"
 echo "    📜 Skills:    $SKILL_COUNT"
-echo "    📄 Extras:    $((${#EXTRA_FILES[@]} + CODEX_EXTRA_COUNT)) (${EXTRA_FILES[*]:-${CODEX_EXTRA_DESC:-none}})"
+EXTRAS_DESC="${EXTRA_FILES[*]:-${CODEX_EXTRA_DESC:-}}"
+if [ -n "$CLAUDE_EXTRA_DESC" ]; then
+  EXTRAS_DESC="${EXTRAS_DESC:+$EXTRAS_DESC }${CLAUDE_EXTRA_DESC% }"
+fi
+echo "    📄 Extras:    $((${#EXTRA_FILES[@]} + CODEX_EXTRA_COUNT + CLAUDE_EXTRA_COUNT)) (${EXTRAS_DESC:-none})"
 [ "$HAS_MANIFEST" = true ] && echo "    📌 Manifest:  1"
 echo ""
 
@@ -291,7 +376,7 @@ if [ "$INCLUDE_WRIT" = true ] && [ -d ".writ" ]; then
   echo ""
 fi
 
-TOTAL=$((CMD_COUNT + AGENT_COUNT + SKILL_COUNT + ${#EXTRA_FILES[@]} + CODEX_EXTRA_COUNT))
+TOTAL=$((CMD_COUNT + AGENT_COUNT + SKILL_COUNT + ${#EXTRA_FILES[@]} + CODEX_EXTRA_COUNT + CLAUDE_EXTRA_COUNT))
 [ "$HAS_MANIFEST" = true ] && TOTAL=$((TOTAL + 1))
 
 if [ "$TOTAL" -eq 0 ]; then
@@ -325,6 +410,9 @@ if [ "$DRY_RUN" = true ]; then
   for f in ${EXTRA_FILES[@]+"${EXTRA_FILES[@]}"}; do
     echo "  🗑  $f"
   done
+  if [ "$PLATFORM" = "claude" ]; then
+    [ -f "CLAUDE.md" ] && echo "  🗑  CLAUDE.md Writ block"
+  fi
   if [ "$PLATFORM" = "codex" ]; then
     [ -f "AGENTS.md" ] && echo "  🗑  AGENTS.md Writ block"
     [ -f "$PLATFORM_DIR/config.toml" ] && echo "  Would prompt: remove .codex/config.toml?"
@@ -385,6 +473,16 @@ for f in ${EXTRA_FILES[@]+"${EXTRA_FILES[@]}"}; do
   rm -f "$f"
   REMOVED=$((REMOVED + 1))
 done
+
+if [ "$PLATFORM" = "claude" ]; then
+  if [ -f "CLAUDE.md" ]; then
+    remove_claude_md_block "CLAUDE.md"
+    echo "  $REMOVE_CLAUDE_MD_NOTE"
+    case "$REMOVE_CLAUDE_MD_NOTE" in
+      🗑*) REMOVED=$((REMOVED + 1)) ;;
+    esac
+  fi
+fi
 
 if [ "$PLATFORM" = "codex" ]; then
   if [ -f "AGENTS.md" ]; then

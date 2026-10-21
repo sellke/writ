@@ -110,3 +110,36 @@
 - **Reason:** The shipped-set test failed once install recorded the file (Business Rule 4). The `referenced-paths` check raised 4 findings because this repo's `.claude/` is a symlink tree without that file; the allowlist is the check's remedy for paths a command creates in target projects.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md S2 line names both files.
+
+---
+
+## Story 4: Keep CLAUDE.md User-Owned on Uninstall and Reinstall — Drift Report
+
+> Run: 2026-10-21
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-011] The reinstall doc names `.claude/system-instructions.md`
+- **Severity:** Small
+- **Spec said:** technical-spec.md → Lifecycle command docs: `system-instructions.md` in the platform table and `[platform_dir]/system-instructions.md` in Steps 3 and 4.
+- **Implementation did:** The table row and the Step 3 and Step 4 bullets say `.claude/system-instructions.md`.
+- **Reason:** Story 2's committed AC-2.5 check in `scripts/tests/test_install_update_claude_parity.sh` requires the `.claude/` path in those rows. Same file, same intent.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S4 line.
+
+#### [DEV-012] Reinstall Step 4 spells out the merge in full
+- **Severity:** Small
+- **Spec said:** Create the file with the block, append the block, or replace only the lines between the markers, the way `install.sh --platform claude --force` does.
+- **Implementation did:** Also says to add a `\n` before appending when the file does not end with one, to stop without editing on malformed markers, and never to copy the template over the file.
+- **Reason:** Each addition matches `merge_claude_md` in `scripts/install.sh`. It clarifies; it adds no behavior.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S4 line.
+
+#### [DEV-013] Story 4 tests go beyond the listed cases
+- **Severity:** Small
+- **Spec said:** The AC-4.1 fixture and four AC-4.2 inputs; three end-to-end projects; the docs regex `cp\s+\S*claude-code/CLAUDE\.md\s+\./CLAUDE\.md`.
+- **Implementation did:** Adds a block on line 1, a block last with no final newline, a whitespace-only remainder, end before start, start without end, the default argument, temp-file leak checks, and an end-to-end malformed-marker project (exit 13, file untouched). The `rm` and `cp` regexes also catch bare `CLAUDE.md`, flags, quotes, and multi-argument `rm`.
+- **Reason:** More coverage; no behavior or interface change.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S4 line.
