@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import sys
 import unittest
+from collections import Counter
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Dict, List, Tuple
@@ -351,6 +352,108 @@ class EvalWiringTests(unittest.TestCase):
         block = block[:block.index("\n)\n")]
         names = [line.strip() for line in block.splitlines()[1:]]
         self.assertEqual(names[names.index("shipped-refs") + 1], "command-structure")
+
+
+SPEC_NAME = "2026-10-20-shipped-command-hygiene"
+SAFETY = {"prime-directive", "recommend-boundary", "gate-class", "loop-bound",
+          "script-invocation", "verdict-provenance", "parsed-format"}
+ALLOWED = {category: {"keep", "convert"} for category in SAFETY}
+ALLOWED.update({"structure": {"keep", "convert", "remove"},
+                "wording": {"keep", "remove"},
+                "retired-text": {"keep", "remove"}})
+HEADER = re.compile(
+    r"^> Before: (\d+) instances at (\d+) call sites · After: (\d+) instances at (\d+) call sites$"
+    r".*^> Dispositions: keep (\d+) · convert (\d+) · remove (\d+) · (\d+) \+ (\d+) \+ (\d+) = (\d+)$",
+    re.MULTILINE | re.DOTALL)
+
+
+def read_pin_map() -> Tuple[Tuple[int, ...], List[List[str]]]:
+    """The header numbers and the table rows of the spec's pin-map.md, active
+    or archived."""
+    for parent in (".writ/specs", ".writ/specs/archive"):
+        path = REPO_ROOT / parent / SPEC_NAME / "pin-map.md"
+        if path.is_file():
+            break
+    else:
+        raise AssertionError(f"no pin-map.md for {SPEC_NAME}")
+    text = path.read_text(encoding="utf-8")
+    header = HEADER.search(text)
+    if header is None:
+        raise AssertionError("pin-map.md header does not match the technical-spec format")
+    rows = [[cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
+            for line in text.splitlines() if re.match(r"^\| \d+ \|", line)]
+    return tuple(int(n) for n in header.groups()), rows
+
+
+class PinMapTests(unittest.TestCase):
+    """The pin map is internally consistent, keeps every safety row, and every
+    convert row has its structural row."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.header, cls.rows = read_pin_map()
+
+    def test_one_row_per_instance_with_every_column(self):
+        """[AC-2.1] Rows run 1..N, N is the header's before count, and each row
+        has function, line, target, kind, literal, category, disposition, reason."""
+        before = self.header[0]
+        self.assertEqual([int(row[0]) for row in self.rows], list(range(1, before + 1)))
+        for row in self.rows:
+            with self.subTest(row=row[0]):
+                self.assertEqual(len(row), 9)
+                number, function, line, target, kind, literal, _, _, reason = row
+                self.assertRegex(function, r"^check_[a-z_]+$")
+                self.assertRegex(line, r"^\d+$")
+                self.assertRegex(target, r"^commands/[\w.-]+\.md$")
+                self.assertIn(kind, ("require", "forbid", "forbid-ci"))
+                self.assertTrue(literal and reason)
+
+    def test_no_safety_row_is_removed(self):
+        """[AC-2.2] Every disposition is one its category allows; the seven
+        safety categories take only keep or convert."""
+        for row in self.rows:
+            category, disposition = row[6], row[7]
+            with self.subTest(row=row[0]):
+                self.assertIn(category, ALLOWED)
+                self.assertIn(disposition, ALLOWED[category])
+                if category in SAFETY:
+                    self.assertNotEqual(disposition, "remove")
+
+    def test_header_totals_match_the_rows_and_the_count_fell(self):
+        """[AC-2.4] keep + convert + remove = N; the after count is the keep
+        count, so the drop equals convert + remove and the count fell."""
+        before, _, after, _, keep, convert, remove, k, c, r, n = self.header
+        counts = Counter(row[7] for row in self.rows)
+        self.assertEqual((counts["keep"], counts["convert"], counts["remove"]),
+                         (keep, convert, remove))
+        self.assertEqual((k, c, r, n), (keep, convert, remove, before))
+        self.assertEqual(keep + convert + remove, before)
+        self.assertEqual(after, keep)
+        self.assertEqual(before - after, convert + remove)
+        self.assertLess(after, before)
+
+    def test_every_convert_row_has_its_structural_row(self):
+        """[AC-2.3] [AC-2.4] Each convert row's target and check function is
+        a row in scripts/eval-command-structure.py."""
+        module = load_helper_module()
+        converted = Counter((row[3], row[1]) for row in self.rows if row[7] == "convert")
+        table = Counter((row.file, row.was) for row in module.ROWS)
+        self.assertEqual(converted - table, Counter())
+
+
+class RegistryTests(unittest.TestCase):
+    """[AC-2.5] A check function deleted with its last pin leaves no CHECKS
+    entry behind, and every entry still names a function."""
+
+    def test_every_checks_entry_names_a_function_and_back(self):
+        text = EVAL_SH.read_text(encoding="utf-8")
+        block = text[text.index("CHECKS=(\n"):]
+        block = block[:block.index("\n)\n")]
+        registered = {"check_" + line.strip().replace("-", "_")
+                      for line in block.splitlines()[1:]}
+        defined = set(re.findall(r"(?m)^(check_[a-z_]+)\(\) \{", text)) - {"check_exists"}
+        self.assertEqual(registered - defined, set(), "CHECKS entries with no function")
+        self.assertEqual(defined - registered, set(), "check functions missing from CHECKS")
 
 
 if __name__ == "__main__":
