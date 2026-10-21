@@ -17,6 +17,7 @@
 - This breaks the convention `CLAUDE.md` states outright: "commands use platform-agnostic tool names — each adapter translates them to one platform's APIs."
 - On Claude Code, Codex, and OpenClaw the agent reaching Step 2.5 is told to call a tool that does not exist. The step's own skip path only covers "no UI change", not "no canvas tool", so there is no defined degradation.
 - Related gap in the same area: `adapters/claude-code.md:121` notes "There is no `visual-qa` equivalent here yet."
+  - *(Update 2026-10-20:)* That gap is closed. Spec `2026-10-20-claude-agent-generator` added `claude-code/agents/writ-visual-qa.md`, generated from `agents/visual-qa-agent.md`, and the adapter line is gone. The Step 2.5 canvas-tool problem above is unchanged.
 
 ## Expected Outcome
 
@@ -27,7 +28,7 @@
 ## Relevant Files
 
 - `commands/prototype.md` — lines 89 and 113, the two `cursor-ide-browser` references
-- `adapters/claude-code.md` — no visual/canvas capability row; already flags the `visual-qa` gap at line 121
+- `adapters/claude-code.md` — no visual/canvas capability row (the `visual-qa` gap it once flagged is closed; see above)
 - `adapters/cursor.md` — the only platform where the current text works
 
 ## Related Issues

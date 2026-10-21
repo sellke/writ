@@ -24,7 +24,7 @@
 | `commands/reinstall-writ.md`, `commands/uninstall-writ.md` | 2 | Claude rows |
 | `scripts/tests/test_install_update_claude_parity.sh` | 2 | New |
 | `scripts/tests/test_merge_claude_md.sh`, `scripts/tests/test_update_claude_md.sh` | 2 | New cases |
-| `adapters/claude-code.md` | 3 | Claims, Installation section, hook example, the seven agents |
+| `adapters/claude-code.md` | 3 | Claims, Installation section, hook example, the eight agents |
 | `scripts/tests/test_claude_code_adapter_claims.py` | 3 | New |
 | `scripts/uninstall.sh` | 4 | New `remove_claude_md_block` bundle; `CLAUDE.md` leaves `EXTRA_FILES`; inventory, dry run, removal |
 | `commands/uninstall-writ.md`, `commands/reinstall-writ.md` | 4 | Claude bullets: block removal, merge between markers, "Do NOT remove" lists |
@@ -138,7 +138,7 @@ Writ uses Claude Code's native subagent system. Agents are defined in `.claude/a
 | any | manifest or `claude-code/agents/` missing or unreadable | `unverifiable` | `manifest missing: .writ/manifest.yaml` or `agents missing: claude-code/agents` | 0 |
 | any | bad flag | (empty) | usage on stderr | 2 |
 
-The last stdout line is `gen-claude-md: <verdict> (<detail>)`, for example `gen-claude-md: pass (32 commands, 7 agents)` or `gen-claude-md: fail (1 missing, 0 extra)`. `--check` parses committed rows with ``^\| `/([a-z0-9-]+)` \|``. A row-set difference suppresses the `stale` line so one removed row yields exactly one reason.
+The last stdout line is `gen-claude-md: <verdict> (<detail>)`, for example `gen-claude-md: pass (32 commands, 8 agents)` or `gen-claude-md: fail (1 missing, 0 extra)`. `--check` parses committed rows with ``^\| `/([a-z0-9-]+)` \|``. A row-set difference suppresses the `stale` line so one removed row yields exactly one reason.
 
 Write mode writes a temp file in `claude-code/` and `os.replace`s it over `CLAUDE.md`. It writes nothing when any `fail` reason exists.
 
@@ -221,8 +221,8 @@ The user content mixes CRLF lines, trailing spaces, a non-ASCII line, a line `@n
 | Manual Step 1, `cp path/to/writ/claude-code/CLAUDE.md ./CLAUDE.md` | Overwrites the user's file | Append the template between markers (block below). Say that later installs and updates replace only the block, and that `install.sh --platform claude` does all of this. |
 | `### Quality Gates with Hooks` example | `"SubagentCompleted"` event and `cd $WORKTREE` | `SubagentStop` example below. Cite `https://code.claude.com/docs/en/hooks` (§ SubagentStart, § SubagentStop). |
 | `/goal` section, "the `SubagentCompleted` example above" | Points at the removed event | "the `SubagentStop` example above". Nothing else in that section changes. |
-| Model Selection intro | "The six Claude-native agents … do not infer a seventh" | Seven agents, listing `writ-evaluator`; keep "There is no `visual-qa` equivalent here yet". |
-| Model Selection tier table, Permission Modes table, Final Structure tree | No `writ-evaluator` | Add it: `anchor`, `model: inherit`, `permissionMode: plan` (its frontmatter). |
+| Model Selection intro | "The six Claude-native agents … do not infer a seventh" *(already replaced by spec 2026-10-20-claude-agent-generator)* | Eight agents, listing `writ-evaluator` and `writ-visual-qa`; no "no `visual-qa` equivalent" wording. |
+| Model Selection tier table, Permission Modes table, Final Structure tree | No `writ-evaluator` *(both present since spec 2026-10-20-claude-agent-generator, with `writ-visual-qa`)* | Confirm it is there: `anchor`, `model: inherit`, `permissionMode: plan` (its frontmatter). |
 
 Manual Step 1 target text (first install only):
 

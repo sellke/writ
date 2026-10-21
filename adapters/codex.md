@@ -403,7 +403,7 @@ Codex does not replay failures across gates; the orchestrator command markdown (
 ### Maintainer checklist (ship / upgrade)
 
 1. Regenerate `codex/agents/*.toml` after touching `agents/*.md`.
-2. Run `bash scripts/check-agent-parity.sh`; on `fail`, each `reason:` line names a missing counterpart, and each must be intentional.
+2. Run `bash scripts/check-agent-parity.sh`; on `fail`, each `reason:` line names a missing counterpart (`agents/<stem>.md has no counterpart in <dir>/`) or content drift from a generator's `--check` (`<gen>: <kind> <stem>`, `<gen> --check exited <rc>`, or `<gen> --check failed without a reason line`). No drift is intentional: regenerate with `python3 scripts/gen-codex-agent-tomls.py` and `python3 scripts/gen-claude-agents.py`, or add the stem's overlay entry to the generator first.
 3. Re-measure `wc -c codex/AGENTS.md.template` after manifest command churn (stay ≤ 8192 bytes).
 4. Re-read OpenAI Codex release notes when bumping pinned CLI assumptions; adjust the slash collision table if new built-ins overlap Writ names.
 5. Verify dry-run install output lists seven agents and correct `SKILLS_DIR` (`.agents/skills/`).

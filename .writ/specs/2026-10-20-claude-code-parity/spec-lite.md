@@ -22,7 +22,7 @@
 - S1 as built (DEV-001–004): `claude-md` follows `claude-agents` in `CHECKS`; the agent list comes from `claude-code/agents/*.md` (eight today); the CLI contract note keeps "Six dev-only scripts" and adds a sentence for `gen-claude-md.py`.
 - `scripts/install.sh`, `update.sh`, `uninstall.sh`; Claude rows of `update-writ.md`, `reinstall-writ.md`, `uninstall-writ.md` (S2)
 - S2 as built (DEV-009–010): update uses Cursor's `SYSINST_ACTION` as written (no baseline updates only when there is no manifest); `test_manifest_shipped_baselines.sh` lists `system-instructions.md` for Claude; `eval.sh` allowlists `.claude/system-instructions.md` in `referenced-paths`.
-- `adapters/claude-code.md`: claims, install section, `SubagentStop` hook (D6), seven agents (S3)
+- `adapters/claude-code.md`: claims, install section, `SubagentStop` hook (D6), eight agents (S3)
 - S3 as built (DEV-005–008): eight agents read from frontmatter; manual Step 1 says a manual install has no manifest baseline, so later runs keep a differing block, and `--force` also overwrites other differing Writ files; Gotcha 1 names both stale-worktree causes; the no-copy regex also catches bare `CLAUDE.md`.
 - `scripts/uninstall.sh` block removal; Claude bullets of `uninstall-writ.md`, `reinstall-writ.md` (S4). As built (DEV-011–013): the reinstall doc names `.claude/system-instructions.md` (Story 2's test pins it); Step 4 spells out the newline guard and the malformed-marker stop; tests add edge cases and an end-to-end malformed-marker project.
 - Tests: `test_gen_claude_md.py`, `test_eval_claude_md.sh`, `test_gen_claude_md_not_shipped.sh`, `test_install_update_claude_parity.sh`, `test_claude_code_adapter_claims.py`, `test_remove_claude_md_block.sh`, `test_uninstall_claude_md.sh`, `test_lifecycle_commands_claude_md.py`; new cases in `test_merge_claude_md.sh`, `test_update_claude_md.sh`
@@ -42,7 +42,7 @@ See technical-spec.md → Generator, Install/Update/Uninstall, CLAUDE.md Ownersh
 ## For Review Agents
 
 **Acceptance Criteria:**
-1. Generated template: 32 command rows, 7 agents, pipeline, import line outside code; deterministic, LF, one final newline `[AC-1.1]`
+1. Generated template: 32 command rows, 8 agents, pipeline, import line outside code; deterministic, LF, one final newline `[AC-1.1]`
 2. `--check` passes on the committed file; a removed row gives exactly one `missing` reason and exit 1 `[AC-1.2]`
 3. Error paths: unverifiable, usage (exit 2), named `fail` reasons; no write on failure `[AC-1.3]`
 4. Generator never ships; filter bodies identical in three scripts; docs name it dev-only `[AC-1.4]`
@@ -55,7 +55,7 @@ See technical-spec.md → Generator, Install/Update/Uninstall, CLAUDE.md Ownersh
 11. Adapter: no `--all`, no agent teams, no merge-back claims `[AC-3.1]`
 12. Worktree text matches the docs and links the skill; gotchas and parallel text corrected `[AC-3.2, AC-3.3]`
 13. Installation section covers the copy, the import, and a marker merge instead of `cp` `[AC-3.4]`
-14. No `SubagentCompleted` or `$WORKTREE`; `SubagentStop` example; all seven agents named `[AC-3.5]`
+14. No `SubagentCompleted` or `$WORKTREE`; `SubagentStop` example; all eight agents named `[AC-3.5]`
 15. Uninstall removes only the block, byte-exact; block-only file deleted; error cases untouched `[AC-4.1, AC-4.2]`
 16. Install → uninstall round trip returns the user's file; dry run changes nothing `[AC-4.3]`
 17. `/uninstall-writ` and `/reinstall-writ` never delete or overwrite `CLAUDE.md` `[AC-4.4]`

@@ -103,6 +103,15 @@ rc="$(run_check "$ROOT")"
 grep -Fq -- '--check exited 2' "$ROOT/eval-report.md" || fail "crashing generator: finding must report the exit code"
 ok "generator --check exit 2 -> finding"
 
+ROOT="$(new_root)"
+printf 'import sys\nprint("fail")\nsys.exit(1)\n' > "$ROOT/scripts/gen-claude-agents.py"
+rc="$(run_check "$ROOT")"
+[ "$rc" -eq 1 ] || fail "silent failure: expected exit 1, got $rc"
+grep -Fq 'FAIL (1 finding(s))' "$ROOT/eval-report.md" || fail "silent failure: expected exactly one finding"
+grep -Fq -- '--check failed without a reason line.' "$ROOT/eval-report.md" \
+  || fail "silent failure: finding must say --check failed without a reason line"
+ok "generator --check exit 1 with no reason line -> one finding"
+
 registry="$(awk '/^CHECKS=\(/{f=1} f && /^\)/{exit} f' "$EVAL")"
 printf '%s\n' "$registry" | grep -Fxq "  claude-agents" \
   || fail "claude-agents must be registered in CHECKS=(...)"

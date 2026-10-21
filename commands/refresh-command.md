@@ -425,7 +425,7 @@ bash scripts/check-agent-parity.sh
 
 Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `reason:` line per problem), or `unverifiable` (exit 0, no `agents/` folder). A `check-agent-parity:` summary is last.
 
-A missing counterpart reads `reason: agents/<stem>.md has no counterpart in <dir>/`. Content drift reads `reason: <gen>: <kind> <name>`, folded from the generator's `--check` (`stale`, `missing`, `unmapped`, or `orphan`), or `reason: <gen> --check exited <rc>` when a generator crashes. If a generator is absent beside the script, the content check for it is skipped and the summary ends with `; content not checked: <gens>`.
+A missing counterpart reads `reason: agents/<stem>.md has no counterpart in <dir>/`. Content drift reads `reason: <gen>: <kind> <name>`, folded from the generator's `--check` (`stale`, `missing`, `unmapped`, or `orphan`), `reason: <gen> --check exited <rc>` when a generator crashes, or `reason: <gen> --check failed without a reason line` when it exits 1 without naming the drift. If a generator is absent beside the script, the content check for it is skipped and the summary ends with `; content not checked: <gens>`.
 
 ### Step 6.2: Present results
 
