@@ -40,7 +40,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
+from typing import List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO_ROOT / "scripts" / "eval-leanness.py"
@@ -973,74 +973,18 @@ CREATE_SPEC_OVERAGE_CEILING = 29304
 CREATE_SPEC_OVERAGE_AT_STORY_3_START = 28652
 STORY_3_START = "37e097e"
 
-# What the cut must not touch, as it read at STORY_3_START.
-CREATE_SPEC_FRONTMATTER_AT_START = (
-    '---\n'
-    'name: create-spec\n'
-    'description: "Generate a full feature specification contract-first - discovery'
-    ' conversation, then user stories, sub-specs, and acceptance criteria. The entry'
-    ' point for any feature large enough to need a spec."\n'
-    'problem: "Implementation starts from a feature idea nobody wrote down, so scope,'
-    ' story boundaries, and acceptance criteria get invented mid-build and argued about'
-    ' afterwards."\n'
-    'outcome: "A new .writ/specs/<date>-<name>/ package exists — spec, spec-lite,'
-    ' per-story files, and sub-specs — matching a contract the user locked before'
-    ' any file was written."\n'
-    'entry_level: high\n'
-    'exit_criteria:\n'
-    '  - "spec.md carries a Status line and a Dependencies line listing exact'
-    ' spec-folder IDs, or [] when there are none"\n'
-    '  - "every user-stories/story-*.md file has 3-5 Given/When/Then acceptance'
-    ' criteria and no more than 7 implementation tasks"\n'
-    '  - "spec-lite.md is under 100 lines"\n'
-    '---\n'
-)
-CREATE_SPEC_STEPS_AT_START = (
-    "#### Step 0: Read Prototype Context",
-    "#### Step 1: Shortened Discovery Conversation (Plan Mode)",
-    "#### Step 2: Contract Proposal (Plan Mode)",
-    "#### Step 3: Phase 2 with Story 1 Marked per the Source Matrix",
-    "#### Step 0: Read Issue Context",
-    "#### Step 1: Shortened Discovery Conversation (Plan Mode)",
-    "#### Step 2: Contract Proposal (Plan Mode)",
-    "#### Step 3: Phase 2 with `spec_ref` Writeback",
-    "#### Step 1.0: Feature Selection (if not provided)",
-    "#### Step 1.1: Initial Context Scan",
-    "#### Step 1.2: Switch to Plan Mode for Discovery",
-    "#### Step 1.3: Discovery Conversation (Plan Mode)",
-    "#### Step 1.3b: Cross-Spec Overlap Check (Automatic)",
-    "#### Step 1.4: Contract Proposal (Still in Plan Mode)",
-    "#### Step 1.4b: Contract Decision (Agent Mode)",
-    "#### Step 1.5: Visual References (Optional)",
-    "#### Step 2.1: Initialize Tracking",
-    "#### Step 2.2: Determine Current Date",
-    "#### Step 2.3: Create Directory Structure",
-    "#### Step 2.4: Generate Core Documents",
-    "#### Step 2.4b: Supersession Write-back (`Amends:`/`Extends:`)",
-    "#### Step 2.5: Plan User Stories",
-    "#### Step 2.6: Generate User Stories in Parallel",
-    "#### Step 2.6a: Validate Generated Stories",
-    "#### Step 2.6b: Tag spec-lite.md Review Criteria with IDs",
-    "#### Step 2.6c: Spec analysis (advisory)",
-    "#### Step 2.7: Create User Stories README",
-    "#### Step 2.8: Generate Technical Sub-Specs",
-    "#### Step 2.9: Final Package Review",
-)
-CREATE_SPEC_ASKQUESTIONS_AT_START = (
-    'title: "Feature Specification - What would you like to build?"',
-    'title: "Contract Decision"',
-    'title: "Visual References"',
-    'ask one AskQuestion titled "Jev judgment provider"',
-)
-CREATE_SPEC_INVOCATIONS_AT_START = (
-    "python3 scripts/spec-status.py is-complete --file <path>",
-    "python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md",
-    "python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}",
-    "python3 scripts/jev-judge.py status",
-    "python3 scripts/jev-judge.py spec-findings --spec .writ/specs/<folder> --out .writ/state/spec-analyze-<run>.json",
-    "python3 scripts/jev-judge.py setup --provider",
-    "python3 scripts/spec-analyze.py check --spec .writ/specs/<folder> [--findings .writ/state/spec-analyze-<run>.json]",
-)
+# The invariant checks below compare create-spec.md at the story's start and
+# end commits (named in cut-log.md), never the live file, so a later rewording
+# of the command needs no edit here. The counts are of the start commit, which
+# never changes; they keep a broken extractor from passing on nothing.
+START_STEP_HEADINGS = 29
+START_ASKQUESTION_BLOCKS = 3
+START_SCRIPT_CALLS = 7
+STEP_HEADING = re.compile(r"^#### Step .*$", re.MULTILINE)
+ASKQUESTION_BLOCK = re.compile(r"AskQuestion\(\{.*?\n\}\)", re.DOTALL)
+ASKQUESTION_TITLED = re.compile(r'AskQuestion titled "[^"]+"')
+SCRIPT_CALL = re.compile(r"python3 scripts/[\w-]+\.py [\w-]+[^`\n]*")
+
 # The technical spec declines these twin changes by name; each needs a Declined row.
 NAMED_DECLINES = ("phase/source metadata", "iteration sentence", "Jev first",
                   "`jev:` note", "Production boundary", "lean preamble")
@@ -1050,7 +994,8 @@ CUT_LOG_HEADER = re.compile(
     re.MULTILINE)
 BYTE_WORDS = re.compile(r"\b(?:bytes?|kb|kib|kilobytes?)\b", re.IGNORECASE)
 HUNK_MAP_DIFF = re.compile(r"`git diff (\w+) (\w+) -- commands/create-spec\.md`")
-EVAL_COMMAND_STRUCTURE = REPO_ROOT / "scripts" / "eval-command-structure.py"
+PIN_MAP = ".writ/specs/%s/pin-map.md" % HYGIENE_SPEC
+COMMAND_STRUCTURE = "scripts/eval-command-structure.py"
 
 
 def spec_file(name: str) -> Path:
@@ -1090,6 +1035,91 @@ def git_has(*revisions: str) -> bool:
                for rev in revisions)
 
 
+def git_show(revision: str, rel: str) -> str:
+    return subprocess.run(["git", "show", "%s:%s" % (revision, rel)], cwd=REPO_ROOT,
+                          capture_output=True, text=True, check=True).stdout
+
+
+def story_commits(log: str) -> Tuple[str, str]:
+    """The start and end commits the cut log's hunk map names."""
+    named = HUNK_MAP_DIFF.search(log)
+    if named is None:
+        raise AssertionError("cut-log.md does not name the story's diff")
+    return named.group(1), named.group(2)
+
+
+def frontmatter(text: str) -> str:
+    if not text.startswith("---\n"):
+        return ""
+    close = text.find("\n---\n", 4)
+    return text[:close + 5] if close != -1 else ""
+
+
+def invariant_problems(before: str, after: str, log: str) -> List[str]:
+    """What the cut changed that it must not: the frontmatter, a step number,
+    an AskQuestion block, or a script call. Empty when the cut kept them."""
+    problems = []
+    if not frontmatter(before) or frontmatter(after) != frontmatter(before):
+        problems.append("frontmatter changed")
+    old_steps = STEP_HEADING.findall(before)
+    new_steps = STEP_HEADING.findall(after)
+    for heading in dict.fromkeys(old_steps):
+        if heading in new_steps:
+            continue
+        number = re.match(r"#### (Step [\d.]+[a-z]?):", heading).group(1)
+        if "| %s (heading removed) |" % number not in log:
+            problems.append("%s removed but not logged" % heading)
+        if [h for h in new_steps if h.startswith("#### %s:" % number)]:
+            problems.append("%s reused by another heading" % number)
+    if [h for h in old_steps if h in new_steps] != [h for h in new_steps if h in old_steps]:
+        problems.append("kept steps changed order")
+    if ASKQUESTION_BLOCK.findall(after) != ASKQUESTION_BLOCK.findall(before):
+        problems.append("an AskQuestion block changed")
+    if ASKQUESTION_TITLED.findall(after) != ASKQUESTION_TITLED.findall(before):
+        problems.append("an inline AskQuestion prompt changed")
+    for call in SCRIPT_CALL.findall(before):
+        if call not in after:
+            problems.append("script call gone: " + call)
+    return problems
+
+
+def keep_pin_problems(text: str, pin_map: str, eval_sh: str) -> Tuple[int, List[str]]:
+    """Check every pin-map keep row on create-spec.md against `text`: a
+    require literal must be present, a forbid literal absent."""
+    rows = [[cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
+            for line in pin_map.splitlines() if re.match(r"^\| \d+ \|", line)]
+    keep = [row for row in rows if row[3] == CREATE_SPEC and row[7] == "keep"]
+    problems = []
+    for row in keep:
+        literal = row[5].replace("\\|", "|")
+        literal = literal[3:-3] if literal.startswith("`` ") else literal[1:-1]
+        if literal.startswith("$"):
+            literal = re.search(r"local %s='([^']*)'" % literal[1:], eval_sh).group(1)
+        if (literal in text) != (row[4] == "require"):
+            problems.append("pin-map row %s: %s %r" % (row[0], row[4], literal))
+    return len(keep), problems
+
+
+def structure_problems(text: str, helper_source: str) -> Tuple[int, List[str]]:
+    """Run the command-structure rows on create-spec.md against `text`."""
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        helper_path = root / "eval_command_structure_story3.py"
+        helper_path.write_text(helper_source, encoding="utf-8")
+        (root / "commands").mkdir()
+        (root / CREATE_SPEC).write_text(text, encoding="utf-8")
+        spec = importlib.util.spec_from_file_location("eval_command_structure_story3", helper_path)
+        helper = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = helper
+        try:
+            spec.loader.exec_module(helper)
+            rows = [row for row in helper.ROWS if row.file == CREATE_SPEC]
+            failed = [row.value for row in rows if not helper.check_row(root, row)[0]]
+        finally:
+            sys.modules.pop(spec.name, None)
+    return len(rows), failed
+
+
 class CreateSpecRepinTests(unittest.TestCase):
     """2026-10-20-shipped-command-hygiene Story 3: the reduction lowers the
     recorded overage and never raises it."""
@@ -1104,8 +1134,9 @@ class CreateSpecRepinTests(unittest.TestCase):
         self.assertEqual(recorded, size - lean.COMMAND_BYTE_BUDGET)
 
     def test_dated_comment_names_the_coaching_cut(self):
-        """AC-3.4: the comment above the entry has a dated Story 3 line from
-        the start value, says the cuts removed coaching, and sets no byte goal."""
+        """AC-3.4: the comment above the entry keeps a dated Story 3 line that
+        starts at 28,652 and ends below it and 29,304, says the cuts removed
+        coaching, and sets no byte goal. A later dated repin adds its own line."""
         lines = Path(__file__).read_text(encoding="utf-8").splitlines()
         index = next(i for i, line in enumerate(lines)
                      if re.match(r'^\s*"commands/create-spec\.md": \d+,$', line))
@@ -1117,7 +1148,8 @@ class CreateSpecRepinTests(unittest.TestCase):
         story_line = re.search(r"2026-10-21 \(%s Story 3\): (\d+) -> (\d+);" % HYGIENE_SPEC, block)
         self.assertIsNotNone(story_line, block)
         self.assertEqual(int(story_line.group(1)), CREATE_SPEC_OVERAGE_AT_STORY_3_START)
-        self.assertEqual(int(story_line.group(2)), KNOWN_OVER_BUDGET[CREATE_SPEC])
+        self.assertLess(int(story_line.group(2)), CREATE_SPEC_OVERAGE_AT_STORY_3_START)
+        self.assertLess(int(story_line.group(2)), CREATE_SPEC_OVERAGE_CEILING)
         story_text = block[story_line.start():]
         for named in ("coaching", "Example Usage", "pushback phrasing", "not a byte goal"):
             self.assertIn(named, story_text)
@@ -1181,9 +1213,7 @@ class CreateSpecCutLogTests(unittest.TestCase):
     def test_hunk_map_is_the_story_diff(self):
         """AC-3.5: with full history, the hunk map lists exactly the hunks of
         the story's diff, and the end bytes are the end commit's file size."""
-        named = HUNK_MAP_DIFF.search(self.text)
-        self.assertIsNotNone(named, "the hunk map does not name its diff")
-        start, end = named.groups()
+        start, end = story_commits(self.text)
         self.assertEqual(start, STORY_3_START)
         if not git_has(start, end):
             self.skipTest("needs full git history holding %s and %s" % (start, end))
@@ -1197,73 +1227,65 @@ class CreateSpecCutLogTests(unittest.TestCase):
         self.assertEqual(int(CUT_LOG_HEADER.search(self.text).group(4)), len(shown))
 
 
-class CreateSpecInvariantTests(unittest.TestCase):
-    """2026-10-20-shipped-command-hygiene Story 3: the reduced file keeps its
-    contract, its step numbers, its AskQuestion blocks, its script calls, and
-    every pin and structural row on it."""
+class CreateSpecBeforeAfterTests(unittest.TestCase):
+    """2026-10-20-shipped-command-hygiene Story 3: between the story's start
+    and end commits, create-spec.md kept its contract, its step numbers, its
+    AskQuestion blocks, its script calls, and every pin and structural row on
+    it. One-time checks over fixed commits: they read no live command text."""
 
     @classmethod
     def setUpClass(cls):
-        cls.text = (REPO_ROOT / CREATE_SPEC).read_text(encoding="utf-8")
+        cls.log = cut_log()[0]
+        cls.start, cls.end = story_commits(cls.log)
+        cls.history = git_has(cls.start, cls.end)
+        if cls.history:
+            cls.before = git_show(cls.start, CREATE_SPEC)
+            cls.after = git_show(cls.end, CREATE_SPEC)
 
-    def test_frontmatter_is_byte_identical(self):
+    def setUp(self):
+        if not self.history:
+            self.skipTest("needs full git history holding %s and %s" % (self.start, self.end))
+
+    def test_frontmatter_steps_askquestions_and_calls_are_kept(self):
         """AC-3.3: the frontmatter, including the three exit_criteria lines,
-        reads exactly as it did at Story 3 start."""
-        self.assertTrue(self.text.startswith(CREATE_SPEC_FRONTMATTER_AT_START))
+        is byte-identical; every kept step keeps its number and order, and
+        each removed heading is logged and its number not reused; every
+        AskQuestion block and every script call is still present."""
+        self.assertEqual(len(STEP_HEADING.findall(self.before)), START_STEP_HEADINGS)
+        self.assertEqual(len(ASKQUESTION_BLOCK.findall(self.before)), START_ASKQUESTION_BLOCKS)
+        self.assertEqual(len(SCRIPT_CALL.findall(self.before)), START_SCRIPT_CALLS)
+        self.assertEqual(frontmatter(self.before).count("\n  - \""), 3)
+        self.assertEqual(invariant_problems(self.before, self.after, self.log), [])
 
-    def test_steps_keep_their_numbers_and_removed_ones_are_logged(self):
-        """AC-3.3: each start heading is still present, or the cut log lists
-        it as removed and no remaining heading reuses its number."""
-        headings = re.findall(r"^#### Step .*$", self.text, re.MULTILINE)
-        log = cut_log()[0]
-        for heading in dict.fromkeys(CREATE_SPEC_STEPS_AT_START):
-            with self.subTest(heading=heading):
-                if heading in headings:
-                    continue
-                number = re.match(r"#### (Step [\d.]+[a-z]?):", heading).group(1)
-                self.assertIn("| %s (heading removed) |" % number, log)
-                self.assertFalse([h for h in headings if h.startswith("#### %s:" % number)])
-        remaining = [h for h in headings if h in CREATE_SPEC_STEPS_AT_START]
-        self.assertEqual(remaining, [h for h in CREATE_SPEC_STEPS_AT_START if h in headings])
+    def test_the_invariant_check_catches_each_kind_of_drift(self):
+        """AC-3.3: the check fails on a changed frontmatter line, a renumbered
+        step, an edited AskQuestion block, and a dropped script call."""
+        call = SCRIPT_CALL.findall(self.after)[0]
+        mutations = {
+            "frontmatter": self.after.replace("entry_level: high", "entry_level: low", 1),
+            "renumbered step": self.after.replace("#### Step 2.7:", "#### Step 2.6d:", 1),
+            "askquestion": self.after.replace('title: "Contract Decision"', 'title: "Contract"', 1),
+            "script call": self.after.replace(call, call.replace("python3 ", "run "), 1),
+        }
+        for name, mutated in mutations.items():
+            with self.subTest(mutation=name):
+                self.assertNotEqual(mutated, self.after)
+                self.assertNotEqual(invariant_problems(self.before, mutated, self.log), [])
 
-    def test_every_askquestion_block_and_script_call_remains(self):
-        """AC-3.3: all four AskQuestion prompts and all seven script calls
-        from the start state are still in the file."""
-        for needle in CREATE_SPEC_ASKQUESTIONS_AT_START + CREATE_SPEC_INVOCATIONS_AT_START:
-            with self.subTest(needle=needle):
-                self.assertIn(needle, self.text)
-        self.assertEqual(self.text.count("AskQuestion({"), 3)
-
-    def test_keep_pins_and_structural_rows_hold(self):
-        """AC-3.2: every pin-map keep row on create-spec.md still holds (a
-        require literal present, a forbid literal absent) and every
-        command-structure row on it passes."""
-        eval_sh = EVAL_SH.read_text(encoding="utf-8")
-        pin_map = spec_file("pin-map.md").read_text(encoding="utf-8")
-        rows = [[cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
-                for line in pin_map.splitlines() if re.match(r"^\| \d+ \|", line)]
-        keep = [row for row in rows if row[3] == CREATE_SPEC and row[7] == "keep"]
-        self.assertEqual(len(keep), 17)
-        for row in keep:
-            with self.subTest(row=row[0]):
-                literal = row[5].replace("\\|", "|")
-                literal = (literal[3:-3] if literal.startswith("`` ") else literal[1:-1])
-                if literal.startswith("$"):
-                    literal = re.search(r"local %s='([^']*)'" % literal[1:], eval_sh).group(1)
-                if row[4] == "require":
-                    self.assertIn(literal, self.text)
-                else:
-                    self.assertNotIn(literal, self.text)
-        spec = importlib.util.spec_from_file_location("eval_command_structure_ge",
-                                                      EVAL_COMMAND_STRUCTURE)
-        helper = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(helper)
-        structural = [row for row in helper.ROWS if row.file == CREATE_SPEC]
-        self.assertEqual(len(structural), 4)
-        for row in structural:
-            with self.subTest(row=row.value):
-                ok, detail = helper.check_row(REPO_ROOT, row)
-                self.assertTrue(ok, detail)
+    def test_keep_pins_and_structural_rows_hold_at_the_end_commit(self):
+        """AC-3.2: at the end commit, every pin-map keep row on create-spec.md
+        holds and every command-structure row on it passes, read from that
+        commit's pin map, eval.sh, and helper; a dropped keep literal fails."""
+        pin_map = git_show(self.end, PIN_MAP)
+        eval_sh = git_show(self.end, "scripts/eval.sh")
+        kept, problems = keep_pin_problems(self.after, pin_map, eval_sh)
+        self.assertGreater(kept, 0)
+        self.assertEqual(problems, [])
+        checked, failed = structure_problems(self.after, git_show(self.end, COMMAND_STRUCTURE))
+        self.assertGreater(checked, 0)
+        self.assertEqual(failed, [])
+        dropped = self.after.replace("multiple source modes", "several source modes")
+        self.assertNotEqual(keep_pin_problems(dropped, pin_map, eval_sh)[1], [])
 
 
 if __name__ == "__main__":
