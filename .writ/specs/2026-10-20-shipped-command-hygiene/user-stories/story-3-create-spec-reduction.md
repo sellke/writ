@@ -1,6 +1,7 @@
 # Story 3: `create-spec.md` Reduction Pass
 
 > **Status:** Completed ✅
+> **Commit:** d8a08bfd4d04311869b6f7c6a816b8f2f3f46b7f
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
