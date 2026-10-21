@@ -139,5 +139,8 @@
 - If you never edited `commands/design.md`, the update removes it and prints `🗑  Removed: commands/design.md`.
 - If you edited it, the update keeps your copy and prints `⚠️  Stale (no longer shipped, locally modified — kept): commands/design.md` on every run. Until you delete it, `/design` in that project still opens your old copy, including on Claude Code. Move your edits into `writ-design.md`, then delete `design.md`.
 - Notes, scripts, or custom commands of your own that say `/design` or `commands/design.md` need the new name. Writ does not rewrite files it does not own.
+- Two cases leave an unmodified `commands/design.md` in place without a message, and `/design` then still opens Writ's old copy. Delete the file by hand in either case.
+  - **The manifest never tracked the file,** for example after a hand copy.
+  - **The install predates shipped-only baselines and its recorded version is not in upstream history.** The update prints `Manifest predates shipped-only baselines … preserved this run` and keeps every file. *(Added 2026-10-21 from UAT Scenarios 33 and 41.)*
 
 *Before release, Story 3 Task 3.5 checks the removal and warning lines above against the output `update.sh` actually prints.*

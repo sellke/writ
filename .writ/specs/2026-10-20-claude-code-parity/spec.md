@@ -15,7 +15,7 @@
 
 1. `install.sh --platform claude` copies `system-instructions.md` to `.claude/system-instructions.md`. That makes the `../system-instructions.md` links in installed commands resolve. The Writ block that `merge_claude_md` writes into the project's `CLAUDE.md` contains an import line `@.claude/system-instructions.md`, so the Prime Directive loads every session. `update.sh` keeps `.claude/system-instructions.md` current the same way it keeps the Cursor copy current, and keeps the import line in the block. `uninstall.sh` removes the file if it removes other platform files (check its current behavior and match it).
 2. A generator (Python 3.9 stdlib, follows the agent CLI contract in `.writ/docs/agent-cli-contract.md`, dev-only like `gen-skill.sh` — exclude it from shipping if it lives in `scripts/`) builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`: the commands table (name, file, purpose), the agents list, and the pipeline line, plus the import line. A `--check` mode exits 1 when the committed template differs from what the manifest produces. An `eval.sh` check (running in CI) fails when the template is stale or a manifest command is missing from it, proven by a mutation test.
-3. `adapters/claude-code.md`: remove the `/implement-story --all` text and the "implement-story --all: Agent Teams (Experimental)" section, and every claim that worktree changes "merge back automatically"; worktree guidance agrees with `skills/subagent-worktree-integration`. *(Amended 2026-10-20:)* replace the nonexistent `SubagentCompleted` hook example with a documented Claude Code hook event, drop the undocumented `$WORKTREE` variable, and name all seven Claude-native agents, `writ-evaluator` included.
+3. `adapters/claude-code.md`: remove the `/implement-story --all` text and the "implement-story --all: Agent Teams (Experimental)" section, and every claim that worktree changes "merge back automatically"; worktree guidance agrees with `skills/subagent-worktree-integration`. *(Amended 2026-10-20:)* replace the nonexistent `SubagentCompleted` hook example with a documented Claude Code hook event, drop the undocumented `$WORKTREE` variable, and name all eight Claude-native agents, `writ-evaluator` and `writ-visual-qa` included.
 4. *(Added 2026-10-20.)* `uninstall.sh --platform claude` removes only the Writ block (the start-marker line through the end-marker line) from `CLAUDE.md` and leaves every other byte. A `CLAUDE.md` that held only the Writ block is removed only if it is then empty. The function follows the shape of Codex's `remove_agents_md_block` for `AGENTS.md`. `commands/uninstall-writ.md` stops saying `rm CLAUDE.md`.
 5. *(Added 2026-10-20.)* `commands/reinstall-writ.md` Step 4 and the adapter's manual install step stop overwriting the user's `CLAUDE.md` with `cp claude-code/CLAUDE.md ./CLAUDE.md`. They merge between the markers, the same path `install.sh` uses.
 
@@ -32,7 +32,7 @@
 - `adapters/claude-code.md` contains no `--all` and no "Agent Teams" section.
 - *(Added 2026-10-20.)* After `uninstall.sh --platform claude`, the bytes of `CLAUDE.md` outside the Writ block are unchanged, and a `CLAUDE.md` that held only the block is deleted. Proven by a test that fails on today's `uninstall.sh`.
 - *(Added 2026-10-20.)* `commands/uninstall-writ.md` contains no `rm CLAUDE.md`. `commands/reinstall-writ.md` and `adapters/claude-code.md` contain no copy of `claude-code/CLAUDE.md` onto `./CLAUDE.md`. Proven by a grep test that fails on today's files.
-- *(Added 2026-10-20.)* `adapters/claude-code.md` contains no `SubagentCompleted` and no `$WORKTREE`, and names all seven files in `claude-code/agents/`. The generated template lists `writ-evaluator.md` (Story 1 already requires it). Proven by a grep test that fails on today's adapter.
+- *(Added 2026-10-20.)* `adapters/claude-code.md` contains no `SubagentCompleted` and no `$WORKTREE`, and names all eight files in `claude-code/agents/`. The generated template lists `writ-evaluator.md` (Story 1 already requires it). Proven by a grep test that fails on today's adapter.
 - Full `eval.sh` reports 0 findings. pytest and the bash tests pass.
 
 **Scope Boundaries:**
@@ -50,7 +50,7 @@ The maintainer widened the contract with grounding concerns 1–4 from the first
 | 1 | `uninstall.sh --platform claude` puts `CLAUDE.md` in `EXTRA_FILES` and deletes the whole file. `commands/uninstall-writ.md` Step 3 says `rm CLAUDE.md`. | Remove only the Writ block; delete the file only if nothing is left. Must Include 4. | 4 |
 | 2 | `commands/reinstall-writ.md` Step 4 and the adapter's manual Step 1 run `cp .../claude-code/CLAUDE.md ./CLAUDE.md`, with no markers. | Merge between the markers as `install.sh` does. Must Include 5. | 4 (reinstall), 3 (adapter) |
 | 3 | The adapter's hook example uses `SubagentCompleted`, which is not a Claude Code hook event, and `$WORKTREE`, which the hooks docs do not define. | Use `SubagentStop`, read `cwd` from the hook's input JSON, cite the hooks docs. Must Include 3. | 3 |
-| 4 | The adapter says "six Claude-native agents… do not infer a seventh". `claude-code/agents/` has seven; `writ-evaluator` is missing from its tables and tree. | Name all seven. The generated template already lists `writ-evaluator.md` (AC-1.1). Must Include 3. | 3 |
+| 4 | The adapter says "six Claude-native agents… do not infer a seventh". `claude-code/agents/` had seven; `writ-evaluator` was missing from its tables and tree. *(Updated 2026-10-20: spec 2026-10-20-claude-agent-generator added `writ-visual-qa`, so there are eight, and rewrote the adapter's agent tables and tree to name all eight.)* | Name all eight. Confirm the adapter still does. The generated template already lists `writ-evaluator.md` (AC-1.1). Must Include 3. | 3 |
 
 Each change is proven by a test that fails before the fix: uninstall byte preservation (Story 4), a grep of the two lifecycle command docs (Story 4), and a grep of the adapter (Story 3). Grounding concern 5 (the `writ-story-gen` worktree base) stays out of scope.
 
@@ -58,7 +58,7 @@ Each change is proven by a test that fails before the fix: uninstall byte preser
 
 Facts read from the tree on 2026-10-20. They set the numbers the tests use.
 
-- `claude-code/CLAUDE.md` is 59 lines. It lists 25 of the 32 commands in `.writ/manifest.yaml`. Missing: `implement-phase`, `knowledge`, `new-skill`, `reinstall-writ`, `revert`, `uninstall-writ`, `update-writ`. It lists 6 of the 7 files in `claude-code/agents/`; `writ-evaluator.md`, the default Gate 3 agent, is missing. It calls `/retro` "Git-based retrospective", which v0.41.0 replaced.
+- `claude-code/CLAUDE.md` is 59 lines. It lists 25 of the 32 commands in `.writ/manifest.yaml`. Missing: `implement-phase`, `knowledge`, `new-skill`, `reinstall-writ`, `revert`, `uninstall-writ`, `update-writ`. It lists 6 of the 8 files in `claude-code/agents/`; `writ-evaluator.md`, the default Gate 3 agent, and `writ-visual-qa.md` are missing. It calls `/retro` "Git-based retrospective", which v0.41.0 replaced.
 - 37 lines in 36 shipped command files link `../system-instructions.md`; 55 lines in `commands/` mention the file. The research doc's "49" counted differently. Either way, every one of those links is broken on a Claude Code install today, because `install.sh` prints `(skipped — no system-instructions for Claude Code)` in its platform step block.
 - On Cursor, `install.sh` copies `system-instructions.md` unconditionally ("always updated"). `update.sh` runs a three-way check (`SYSINST_ACTION`) and records the manifest key `system-instructions.md`. `uninstall.sh` lists `$PLATFORM_DIR/system-instructions.md` in `EXTRA_FILES`. Claude Code gets the same three behaviors.
 - `merge_claude_md` exists twice, once in each script's `writ-merge-bundled` region (`install.sh`, `update.sh`). Both write the block from the template's bytes and touch nothing outside the markers, except that an append adds one `\n` when the user's file has no final newline. `scripts/tests/test_merge_claude_md.sh` and `test_update_claude_md.sh` extract and test each copy.
@@ -134,7 +134,7 @@ These fill gaps the contract leaves open. None changes its scope.
 ### Story 1: Generate the CLAUDE.md template from the manifest
 
 - New `scripts/gen-claude-md.py` (stdlib, Python 3.9). Write mode by default, `--check`, `--help`. Reads `.writ/manifest.yaml` and `claude-code/agents/*.md` under the repo root it resolves from its own path.
-- Regenerate and commit `claude-code/CLAUDE.md`: header, import line, 32 command rows, 7 agents, pipeline, principles.
+- Regenerate and commit `claude-code/CLAUDE.md`: header, import line, 32 command rows, 8 agents, pipeline, principles.
 - Add `gen-claude-md.py` to the dev-only arm of `is_shippable_script` in `install.sh`, `update.sh`, `unlink.sh`. Name it in the agent CLI contract doc's Classification note, in `test_agent_cli_contract_doc.py`'s `DEV_ONLY`, and in `commands/update-writ.md` Step 3's dev-only list.
 - New eval check `claude-md` (`check_claude_md`), modeled on `check_codex_tomls`.
 - Tests: `scripts/tests/test_gen_claude_md.py`, `scripts/tests/test_eval_claude_md.sh` (mutation), `scripts/tests/test_gen_claude_md_not_shipped.sh`.
@@ -153,7 +153,7 @@ These fill gaps the contract leaves open. None changes its scope.
 - Remove the `/implement-story --all` paragraph, the `### implement-story --all: Agent Teams (Experimental)` section, the "agent teams" mention in the intro, and Gotcha 2.
 - Rewrite the worktree steps, the `create-spec` example comments, and Gotcha 1 to match the worktree docs and `skills/subagent-worktree-integration/SKILL.md`.
 - Installation section: add the `system-instructions.md` copy, the tree entry, and one sentence on the import. Manual Step 1 appends the template between markers instead of copying it over `CLAUDE.md`.
-- *(Amended 2026-10-20.)* Replace the `SubagentCompleted` example with a `SubagentStop` example that reads `cwd` from the hook input (D6), and fix the `/goal` section's pointer to it. Name all seven agents in the Model Selection text and tier table, the Permission Modes table, and the Final Structure tree.
+- *(Amended 2026-10-20.)* Replace the `SubagentCompleted` example with a `SubagentStop` example that reads `cwd` from the hook input (D6), and fix the `/goal` section's pointer to it. Name all eight agents in the Model Selection text and tier table, the Permission Modes table, and the Final Structure tree.
 - Test: new `scripts/tests/test_claude_code_adapter_claims.py`.
 
 ### Story 4: Keep CLAUDE.md user-owned on uninstall and reinstall

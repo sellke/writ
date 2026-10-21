@@ -351,6 +351,16 @@ $OUT"
 cp "$WORK/gen-codex.orig" "$CON_ROOT/scripts/gen-codex-agent-tomls.py"
 ok
 
+# A generator whose --check exits 1 without a reason: line is still drift.
+printf 'import sys\nprint("fail")\nsys.exit(1)\n' > "$CON_ROOT/scripts/gen-codex-agent-tomls.py"
+run bash "$CPARITY"
+assert_shape "parity generator fails silently" check-agent-parity fail 1
+printf '%s\n' "$OUT" | grep -Fxq 'reason: gen-codex-agent-tomls.py --check failed without a reason line' \
+  || fail "parity generator fails silently: expected 'reason: gen-codex-agent-tomls.py --check failed without a reason line':
+$OUT"
+cp "$WORK/gen-codex.orig" "$CON_ROOT/scripts/gen-codex-agent-tomls.py"
+ok
+
 # One generator absent: the other still runs; the summary names the skipped one
 # and the verdict comes from the remaining reasons only. [AC-3.3]
 rm "$CON_ROOT/scripts/gen-claude-agents.py"
