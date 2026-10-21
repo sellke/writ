@@ -24,6 +24,7 @@ CHECKS=(
   length
   manifest
   referenced-paths
+  shipped-refs
   skill-manifest-parity
   knowledge-integrity
   preamble
@@ -734,6 +735,50 @@ check_referenced_paths() {
   done < <(referenced_paths_allowlist)
 
   rm -f "$basenames" "$allowed_paths" "$used"
+}
+
+# A shipped command must not link to Writ's own development history (ADR
+# files, archived specs, research documents, calibration records): none of it
+# exists in an installed project. scripts/eval-shipped-refs.py owns the rules
+# and their self-test scenarios; this function turns its TSV into findings.
+# Exit 2 from the helper (nothing to scan) or a run with no tree verdict is a
+# run error, never a pass.
+check_shipped_refs() {
+  local helper="$PROJECT_ROOT/scripts/eval-shipped-refs.py"
+  local scenario_output scenario_status scenario_name scenario_reason helper_status=0
+  local hint="Remove the link to Writ's development history. If an installed user needs the reason, state it in one plain sentence."
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-shipped-refs.py" "shipped-refs helper is missing." "Restore scripts/eval-shipped-refs.py (shipped-command-hygiene spec, Story 1)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  python3 "$helper" --root "$PROJECT_ROOT" > "$scenario_output" || helper_status=$?
+  if [ "$helper_status" -gt 1 ] || ! grep -Eq $'^(PASS\tshipped-refs-tree|FAIL\tshipped-refs:)' "$scenario_output"; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-shipped-refs.py" "shipped-refs helper failed to run (exit $helper_status)." "Run python3 scripts/eval-shipped-refs.py for the error."
+    rm -f "$scenario_output"
+    return
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        if [[ "$scenario_name" == shipped-refs-rule-* ]]; then
+          add_finding "$scenario_name" "$scenario_reason" "Fix the rule's pattern in scripts/eval-shipped-refs.py."
+        else
+          add_finding "$scenario_name" "$scenario_reason" "$hint"
+        fi
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
 }
 
 # skills/<name>/SKILL.md on disk and the `skills:` section of the manifest must
