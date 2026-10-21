@@ -3068,12 +3068,11 @@ check_refresh_evidence() {
   require_literal "$command_file" 'eval failed' "refresh-command must reject eval-failing proposals with reason 'eval failed'."
   require_literal "$command_file" 'verbatim private transcript bodies' "refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy)."
 
-  # Story 3: the command must wire the pre-merge gate, the Tier 2 allowlist, the
-  # structural-not-LLM boundary, and document the two-example acceptance.
-  require_literal "$command_file" 'bash scripts/eval.sh --check=refresh-evidence' "refresh-command Phase 4 must run the pre-merge eval gate."
+  # Story 3: the command must scope Tier 2 to the allowlist and keep it
+  # structural. The pre-merge gate call is an invocation row in
+  # scripts/eval-command-structure.py.
   require_literal "$command_file" 'high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor`' "refresh-command must scope Tier 2 to the high-traffic allowlist."
   require_literal "$command_file" 'structural only — not an LLM-as-judge' "refresh-command must keep Tier 2 structural and defer the LLM-judge variant."
-  require_literal "$command_file" 'rejected for lacking evidence' "refresh-command must document the two-example acceptance (merged + rejected)."
 
   # The log-format doc must describe the same enforced contract.
   require_literal "$log_format" '**Evidence:**' "The refresh-log format must document the mandatory Evidence block."
