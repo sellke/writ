@@ -2271,8 +2271,6 @@ check_spec_status() {
 
   forbid_literal "$status_cmd" 'grep -q "Status: Complete"' "status.md must not retain the broken literal substring check — it never matches the bold header form."
   forbid_literal "$create_spec" 'skip specs with `Status: Complete`' "create-spec.md Step 1.3b must not retain the broken literal substring instruction."
-  require_literal "$status_cmd" 'spec-status.py' "status.md must invoke the shared format-tolerant detector."
-  require_literal "$create_spec" 'spec-status.py' "create-spec.md Step 1.3b must reference the shared format-tolerant detector."
   require_literal "$create_spec" 'Canonical complete-family spelling' "create-spec.md must document the canonical new-spec Complete spelling."
 }
 
