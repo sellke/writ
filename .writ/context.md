@@ -23,7 +23,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Small) `shipped-refs` scans every `commands/*.md`, including any `*.lean.md` — shipped-command-hygiene Story 1
+- DEV-001 (Small) `shipped-refs` scans every `commands/*.md` with no name skipped — shipped-command-hygiene Story 1
 - DEV-002 (Small) No `commands/*.md` under `--root` is a run error, not a PASS — shipped-command-hygiene Story 1
 - DEV-003 (Small) Story 1 repins `KNOWN_OVER_BUDGET` for five commands — shipped-command-hygiene Story 1
 
