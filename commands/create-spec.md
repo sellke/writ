@@ -14,7 +14,7 @@ exit_criteria:
 
 ## Overview
 
-Generate feature specifications contract-first: developer and AI agree on a contract before any supporting file is created. This command uses **Plan Mode for open-ended discovery** and **AskQuestion for bounded decisions**.
+Contract-first: developer and AI agree on a contract before any supporting file is created. Discovery runs in Plan Mode; bounded decisions use AskQuestion.
 
 ## Required Artifacts
 
@@ -104,23 +104,14 @@ deliverable.
 
 ### `--from-prototype` Mode
 
-**Invocation:** `/create-spec --from-prototype`
-
-Used when a `/prototype` run triggered scope escalation signals and you want to formalize the prototype work as Story 1 (already complete) and plan Story 2+ onward.
-
-**This mode replaces Phase 1 (discovery) with a shorter, prototype-anchored flow:**
+**Invocation:** `/create-spec --from-prototype`. Formalizes `/prototype` work (typically after scope-escalation signals) as Story 1, already complete, and plans Story 2+. **Replaces Phase 1 with a prototype-anchored flow:**
 
 #### Step 0: Read Prototype Context
 
-1. **Read the exploration record** — the most recent `.writ/prototypes/<date>-<slug>/exploration.md`, or the one named in the invocation. It carries the declared axes, the chosen draft, and why each rejected draft lost. Skip when none exists.
-2. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged). Extract: files changed, lines added/removed, new dependencies added.
-3. **Read the coding agent implementation summary** from the conversation thread if available — it describes what was built and how.
-4. **Build a pre-populated contract draft:**
-   - **Deliverable:** From the chosen draft when an exploration record exists; otherwise inferred from diff file names and implementation summary
-   - **Directions Considered:** One line per rejected draft and the reason it lost, carried from `exploration.md`. Omit the section when there was no exploration — never invent alternatives that were not generated.
-   - **Files in Scope:** Directly from the diff — list every file created or modified
-   - **Implementation Approach:** From the coding agent summary where available; fall back to diff analysis
-   - **Story 1:** per the source matrix below
+1. **Read the exploration record** — the most recent `.writ/prototypes/<date>-<slug>/exploration.md`, or the one named in the invocation: declared axes, chosen draft, and why each rejected draft lost. Skip when none exists.
+2. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged): files changed, lines added/removed, new dependencies.
+3. **Read the coding agent implementation summary** from the conversation if available.
+4. **Build a pre-populated contract draft:** Deliverable (chosen draft, else diff + summary), Directions Considered (one line per rejected draft and why it lost, from `exploration.md`; omit when there was no exploration — never invent alternatives), Files in Scope (every file the diff creates or modifies), Implementation Approach (summary, else diff analysis), and Story 1 per the matrix below.
 
 **Source states.** A `/prototype` run can end at a chosen direction with nothing built, so a diff is no longer required:
 
@@ -131,23 +122,16 @@ Used when a `/prototype` run triggered scope escalation signals and you want to 
 | absent | present | `Completed ✅` | what the prototype left out |
 | absent | absent | — | warn: *"No prototype work found: no exploration record under `.writ/prototypes/` and no uncommitted or staged diff."* then offer manual description, or cancel |
 
-**Never mark Story 1 complete on an exploration record alone.** A chosen draft is a decision, not an implementation, and a spec that claims otherwise sends `/implement-spec` past work nobody wrote.
+**Never mark Story 1 complete on an exploration record alone.** A chosen draft is a decision, not an implementation.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
-Switch to Plan Mode. The prototype is done; do not re-litigate what was built. Discovery covers only what comes next.
-
-**Opening framing** — pick the one the source matrix selected:
-> Built: "The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"
-> Chosen only: "The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"
-
-Cover the gap to shippable: what Story 2 unlocks, the error, edge and production cases the prototype skipped, and the integration points it touched that need productionizing. Skip what the diff or exploration record already answers. Expect 3–5 exchanges.
+Switch to Plan Mode. Do not re-litigate what the prototype settled; discovery covers only what comes next. Open per the source matrix — built: *"The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"*; chosen only: *"The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"* Cover the gap to shippable: what Story 2 unlocks, the error, edge and production cases the prototype skipped, and the integration points it touched that need productionizing. Skip what the diff or exploration record already answers. Expect 3–5 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
 
-Use the pre-populated contract draft from Step 0 as the base. Augment with discovery answers. Present in Plan Mode for review. The contract covers both what is built (Story 1) and what comes next.
+Build on the Step 0 draft plus discovery answers; present in Plan Mode. The contract covers what is built (Story 1) and what comes next:
 
-**Key contract shape for `--from-prototype`:**
 ```
 ## Specification Contract
 
@@ -166,25 +150,17 @@ Use the pre-populated contract draft from Step 0 as the base. Augment with disco
 
 #### Step 3: Phase 2 with Story 1 Marked per the Source Matrix
 
-When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one modification. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft, and none of the bullets below apply.** Otherwise:
-
-**Story 1** is generated with `Status: Completed ✅`, describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
-
-**Why:** the work already exists in the codebase. Marking it Not Started would misrepresent project state and send `/implement-spec` to re-implement it.
+When the user locks the contract, run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
 
 ---
 
 ### `--from-issue` Mode
 
-**Invocation:** `/create-spec --from-issue [path]`
-
-Promotes a captured issue or Goal Card under `.writ/issues/` into a specification, pre-populating the contract from the file.
-
-**This mode replaces Phase 1 with a shorter, issue-anchored flow:**
+**Invocation:** `/create-spec --from-issue [path]`. Promotes an issue or Goal Card under `.writ/issues/` into a spec. **Replaces Phase 1 with an issue-anchored flow:**
 
 #### Step 0: Read Issue Context
 
-1. **Validate the path** — confirm the file exists under `.writ/issues/{bugs,features,improvements,goals}/`. If the path is invalid or the file is missing:
+1. **Validate the path** — the file must exist under `.writ/issues/{bugs,features,improvements,goals}/`. Otherwise:
    ```
    ⚠️ Issue file not found: [path]
    Expected under .writ/issues/{bugs,features,improvements,goals}/YYYY-MM-DD-{slug}.md
@@ -192,45 +168,20 @@ Promotes a captured issue or Goal Card under `.writ/issues/` into a specificatio
    ```
    Do not modify the issue file on error.
 
-2. **Parse the issue file** — extract these fields:
-   - `Type` (from frontmatter line `**Type:**`)
-   - `Priority` (from `**Priority:**`)
-   - `Effort` (from `**Effort:**`)
-   - `TL;DR` section → one-sentence summary
-   - `Current State` section → what's broken/missing
-   - `Expected Outcome` section → what success looks like
-   - `Relevant Files` section → affected files list
+2. **Parse the issue file** — `Type` (`**Type:**`), `Priority` (`**Priority:**`), `Effort` (`**Effort:**`), and the `TL;DR`, `Current State`, `Expected Outcome`, and `Relevant Files` sections.
 
    **Goal Cards** (`**Type:** Goal`, written by `/create-goal`): if the header reads `**loop:** no`, stop with `⚠️ This Goal Card is marked loop: no; use its SINGLE PROMPT section instead.` and leave the file unchanged. Otherwise map OBJECTIVE → Deliverable, OUTPUT and CONTEXT → Files in Scope, DONE WHEN lines → Success Criteria verbatim, STAGES → story seed, STOP-CAPS → the spec's `loop` block, QUALITY and CONSTRAINTS → Constraints.
 
-3. **Build a pre-populated contract draft:**
-   - **Deliverable:** Inferred from issue TL;DR and type (e.g., "Fix [bug summary]" or "Add [feature summary]")
-   - **Origin:** `Promoted from issue: [path]`
-   - **Files in Scope:** From the issue's Relevant Files section
-   - **Priority signal:** From issue Priority field
-   - **Effort signal:** From issue Effort field
+3. **Build a pre-populated contract draft:** Deliverable (from TL;DR and type), `Origin: Promoted from issue: [path]`, Files in Scope (Relevant Files), and Priority / Effort signals.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
-Switch to Plan Mode. Do not re-ask what the issue already documents. Discovery focuses on shaping the solution into stories.
-
-**Opening framing:**
-> "This issue captures [TL;DR from issue]. What does the fix/feature need to accomplish beyond what the issue describes?"
-
-**Discovery anchor questions (forward-looking, gap-filling):**
-- What story decomposition makes sense — single story or multiple?
-- Are there edge cases or error states the issue didn't capture?
-- What acceptance criteria would confirm this is fully resolved?
-- Any integration points or dependencies not mentioned in the issue?
-- Are there constraints (performance, backward-compat, scope limits) the issue omits?
-
-Skip questions the issue already answers. The discovery conversation should take 2–4 exchanges.
+Switch to Plan Mode. Do not re-ask what the issue documents; shape the solution into stories. Open with: *"This issue captures [TL;DR from issue]. What does the fix/feature need to accomplish beyond what the issue describes?"* Cover story decomposition, uncaptured edge cases and error states, confirming acceptance criteria, unmentioned integration points, and omitted constraints. Expect 2–4 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
 
-Use the pre-populated contract draft from Step 0 as the base. Augment with discovery answers. Present for review.
+Build on the Step 0 draft plus discovery answers; present for review:
 
-**Key contract shape for `--from-issue`:**
 ```
 ## Specification Contract
 
@@ -246,26 +197,19 @@ Use the pre-populated contract draft from Step 0 as the base. Augment with disco
 
 #### Step 3: Phase 2 with `spec_ref` Writeback
 
-When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one addition:
+When the user locks the contract, run Phase 2. **After `spec.md` is written**, update the source issue: replace its `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with
 
-**After the spec directory is created** (after `spec.md` is written), update the source issue file with the spec reference:
+```
+> **spec_ref:** .writ/specs/[date]-[name]/spec.md
+```
 
-1. Read the issue file
-2. Replace the `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with the actual spec path:
-   ```
-   > **spec_ref:** .writ/specs/[date]-[name]/spec.md
-   ```
-3. Write the issue file back; only the `spec_ref` line changes. The issue is never deleted or archived.
-
-**If the spec_ref line is absent** (an older issue), append it to the frontmatter block instead of failing.
+Only that line changes; the issue is never deleted or archived. **If the spec_ref line is absent** (an older issue), append it to the frontmatter block instead of failing.
 
 ---
 
 ### Phase 1: Contract Establishment (No File Creation)
 
-**Mission Statement:**
-
-> Turn the rough feature idea into a clear work specification. Deliver the complete spec package only after both sides agree on the requirements contract. Challenge ideas that don't make technical or business sense; surface concerns early.
+**Mission:** turn the rough feature idea into a clear work specification, and deliver the spec package only after both sides agree on the requirements contract. Challenge ideas that don't make technical or business sense; surface concerns early.
 
 #### Step 1.0: Feature Selection (if not provided)
 
@@ -291,128 +235,41 @@ AskQuestion({
 })
 ```
 
-If user selects "Something else", follow up with a free-text question to get their idea.
+On "Something else", follow up with a free-text question.
 
 #### Step 1.1: Initial Context Scan
 
-- Scan existing `.writ/specs/` for related specifications
-- Analyze current codebase architecture and patterns using `codebase_search`
-- Load project context files (`.writ/docs/tech-stack.md`, `.writ/docs/code-style.md` — both written by `/initialize`; skip any that are absent)
-- **Output:** Context summary (no files created yet)
-
-#### Step 1.2: Switch to Plan Mode for Discovery
-
-After the context scan, run discovery in Plan Mode. The user controls when to switch. Plan Mode gives:
-
-- **Read-only enforcement** — prevents premature file creation
-- **Conversational UX** — open-ended back-and-forth instead of multiple-choice boxes
-- **Clear phase signal** — the mode switch tells the user the idea is being shaped, not built
-
-> **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
+Scan `.writ/specs/` for related specifications, analyze codebase architecture and patterns, and load `.writ/docs/tech-stack.md` and `.writ/docs/code-style.md` (written by `/initialize`; skip any that are absent). **Output:** a context summary; no files created.
 
 #### Step 1.3: Discovery Conversation (Plan Mode)
 
-**Internal Process (not shown to user) — do this before speaking:**
+After the context scan, run discovery in Plan Mode; the user controls when to switch. Before speaking, silently list what is missing or ambiguous across four areas:
 
-- Silently list every missing fact, constraint, or requirement
-- Identify ambiguities in the initial description
-- Note potential integration points and dependencies
-- Catalog unknowns — what concrete information is still missing?
+- **Experience:** entry point, happy path, key interaction moments, feedback/confirmation, error/empty/loading states, responsive behavior
+- **Business rules:** permissions and access control, validation rules and limits, state transitions and lifecycle, time-based rules, pricing/billing, domain edge cases, compliance
+- **Technical:** integration points, performance, security, data persistence
+- **Scope:** success criteria, in/out boundaries, implementation approach, timeline
 
-  **Experience gaps:** Entry point, happy path flow, key interaction moments, feedback/confirmation model, error/empty/loading states, responsive behavior
-  **Business rule gaps:** Permissions & access control, validation rules & limits, state transitions & lifecycle, time-based rules, pricing/billing implications, domain edge cases, compliance requirements
-  **Technical gaps:** Integration points, performance requirements, security needs, data persistence
-  **Scope gaps:** Success criteria, in/out boundaries, implementation approach, timeline
+**Conversation rules:** one focused question at a time, on the highest-impact unknown; re-scan the codebase after answers when relevant; continue until 95% confidence on the deliverable; **never declare "final question"**; let the user signal readiness for a contract. Explore experience first, then rules, then technical constraints.
 
-**Conversation Rules:**
+**Critical analysis:** say so when requirements are infeasible with the current architecture (with alternatives), when scope is several features (recommend splitting), when requests conflict with codebase patterns, when business logic does not match stated user value, and when performance/security/scalability concerns arise. Ask about error/empty/loading experience if it has not come up; probe vague rules ("admins can do it") for who, under what conditions, and exceptions; suggest smoother paths when a flow has unnecessary friction.
 
-- Ask ONE focused question at a time, targeting the highest-impact unknown
-- After each answer, re-scan codebase for additional context if relevant
-- Continue until reaching 95% confidence on the deliverable
-- **Never declare "final question"**
-- Let the user signal when they're ready to see a contract
-- **Challenge ideas that don't make technical or business sense**; surface concerns early
-
-**Topic Areas to Explore (across the conversation):**
-
-Start with experience, then rules, then technical constraints. This ordering captures how the feature should feel to use as well as what it does.
-
-**Experience first — how should this feel to use?**
-- Walk me through the ideal interaction: the user does X, sees Y, feels Z
-- What's the first thing they see? What draws their eye? What do they do first?
-- What's the "wow" moment — the instant they get the value and think "this is great"?
-- What happens when there's no data yet? (empty states, onboarding, first-use experience)
-- What happens when something fails? (error messages, recovery paths, graceful degradation)
-- Are there moments that need to feel fast? Moments that can afford a loading state?
-- What existing patterns in the app should this mirror? What should it deliberately break from?
-- How does the user know the action succeeded? (toast, redirect, inline update, animation?)
-- Is discoverability important, or is this a power-user feature?
-
-**Rules next — what business logic constrains the design space?**
-- Who can and can't do this? (roles, permissions, subscription tiers, feature gates)
-- What validation rules apply? (input constraints, format requirements, limits)
-- Are there state machines or lifecycle rules? (draft → published → archived, pending → approved)
-- Are there time-based rules? (expiration, cooldowns, scheduling, rate limiting)
-- Are there pricing/billing/usage implications?
-- What domain-specific edge cases exist? (timezone handling, currency, localization, leap years)
-- Are there audit, compliance, or regulatory requirements?
-- What happens at the boundaries? (max items, storage limits, concurrent access)
-
-**Technical last — what does the system need?**
-- How should this integrate with what already exists?
-- Implementation approach — MVP, complete, iterative?
-- Performance, scale, and latency requirements
-- Data persistence and security needs
-- Feature boundaries — what's in scope, what's explicitly out?
-- Success criteria and how we'll know it's working
-- Timeline constraints and dependencies
-
-**Critical Analysis Responsibility:**
-
-- If requirements seem technically infeasible with current architecture, explain why and suggest alternatives
-- If scope seems too large for a single feature, recommend breaking it down
-- If user requests conflict with existing patterns found in codebase, point out the inconsistency
-- If business logic doesn't align with stated user value, ask clarifying questions
-- If performance/security/scalability concerns arise, surface them proactively
-- If the error/empty/loading experience hasn't been discussed, ask
-- If business rules are vague or assumed ("admins can do it"), probe for specifics — who exactly, under what conditions, what are the exceptions?
-- If the described experience has unnecessary friction (extra clicks, confirmations, page reloads), suggest smoother alternatives
-
-**Pushback Phrasing Examples:**
-
-- "I see a potential issue with [requirement] because [technical reason]. Would [alternative approach] work better?"
-- "Based on your existing codebase, [proposed approach] might conflict with [existing pattern]. How should we handle this?"
-- "The scope you're describing sounds like it might be 3-4 separate features. Should we focus on [core piece] first?"
-- "I'm concerned that [requirement] could create [specific problem]. Have you considered [alternative]?"
-- "We haven't talked about what happens when [error/empty case]. Users will hit this — what should they see?"
-- "You mentioned [role] can do this. What about [other role]? And what happens if someone tries without permission?"
-- "That flow has the user [extra steps]. What if we [shorter path] instead? It would feel faster."
-
-**Transition to Contract:**
-
-- When confidence is high, present the contract (still in Plan Mode)
-- Use phrases like "I think I have a clear picture now — here's what I'd propose" or "Based on our discussion, here's the contract"
-- Leave room for more questions
+When confidence is high, present the contract (still in Plan Mode) and leave room for more questions.
 
 #### Step 1.3b: Cross-Spec Overlap Check (Automatic)
 
-Before presenting the contract, scan for potential conflicts with other in-progress specifications:
+Before presenting the contract, scan for conflicts with in-progress specifications:
 
-1. **List all spec folders** in `.writ/specs/` (single-level glob `.writ/specs/*/spec.md` — this naturally excludes `.writ/specs/archive/**`, one path segment deeper; see `.writ/docs/spec-lifecycle.md`)
-2. **Filter out completed specs** — classify each `spec.md` header with the format-tolerant complete-family check (`python3 scripts/spec-status.py is-complete --file <path>`, or equivalent logic): bold or unbold `Status:` label, matching `Complete`, `Completed ✅`, or `Closed — Abandoned` as complete-family values, trailing parenthetical/emoji text ignored. Skip specs that resolve to complete-family. **Do not** match only the literal substring `Status: Complete` — it never matches the bold form `> **Status:** Complete`. A spec with no status header at all conservatively resolves not-complete (never skipped).
-3. **Read each remaining `spec-lite.md`** — condensed files for quick scanning
-4. **Extract domain keywords** from the new contract: models/entities mentioned, routes/endpoints, shared utilities, domain-specific terms, files to be modified
-5. **Compare against existing specs** — check for keyword overlap in domain areas (same models, same routes, same shared utilities)
-6. **If overlap detected** — add a `⚠️ Cross-Spec Overlap` section to the contract (see format below)
-7. **If no overlap** — proceed silently (no section added to contract)
+1. **List spec folders** with the single-level glob `.writ/specs/*/spec.md` (this excludes `.writ/specs/archive/**`; see `.writ/docs/spec-lifecycle.md`).
+2. **Filter out completed specs** with the format-tolerant complete-family check (`python3 scripts/spec-status.py is-complete --file <path>`, or equivalent logic): bold or unbold `Status:` label; `Complete`, `Completed ✅`, or `Closed — Abandoned` are complete-family; trailing parenthetical/emoji text ignored. **Do not** match only the literal substring `Status: Complete` — it never matches the bold form `> **Status:** Complete`. A spec with no status header resolves not-complete (never skipped).
+3. **Read each remaining `spec-lite.md`.**
+4. **Extract domain keywords** from the new contract: models/entities, routes/endpoints, shared utilities, domain terms, files to be modified.
+5. **Compare** for keyword overlap in the same domain areas.
+6. **Overlap** → add a `⚠️ Cross-Spec Overlap` section to the contract. **None** → proceed silently.
 
-This check is keyword matching, not semantic analysis. False positives are acceptable (user can dismiss). It catches obvious planning-level conflicts before implementation.
+Keyword matching, not semantic analysis; false positives are acceptable (the user can dismiss).
 
 #### Step 1.4: Contract Proposal (Still in Plan Mode)
-
-When confident, present a contract proposal with any concerns surfaced:
-
-**Format:**
 
 ```
 ## Specification Contract
@@ -433,7 +290,6 @@ When confident, present a contract proposal with any concerns surfaced:
 **📋 Business Rules:**
 - [Key rule 1 — e.g., "Only workspace admins can invite members"]
 - [Key rule 2 — e.g., "Free tier limited to 3 projects"]
-- [Key rule 3 — e.g., "Invoices transition: draft → sent → paid → void"]
 - [Edge cases or domain-specific constraints discovered during conversation]
 
 **Success Criteria:** [How we'll know it's working correctly]
@@ -455,11 +311,9 @@ When confident, present a contract proposal with any concerns surfaced:
 - Consider: sequencing these specs, declaring a dependency, or coordinating the shared area
 ```
 
-Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+Discuss refinements in Plan Mode. When the user approves and switches back to Agent Mode, confirm with AskQuestion.
 
 #### Step 1.4b: Contract Decision (Agent Mode)
-
-**When the user returns to Agent Mode after approving the contract direction, use AskQuestion to confirm:**
 
 ```
 AskQuestion({
@@ -480,7 +334,6 @@ AskQuestion({
 })
 ```
 
-**Handling responses:**
 - **yes**: Proceed to Phase 2 (Spec Package Creation)
 - **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
 - **risks**: Present detailed risk analysis, then re-present contract with AskQuestion
@@ -489,9 +342,7 @@ AskQuestion({
 
 #### Step 1.5: Visual References (Optional)
 
-**After contract lock, before creating files**, check if this feature has UI components:
-
-If the spec involves any user-facing UI, ask:
+**After contract lock, before creating files**, if the spec involves any user-facing UI, ask:
 
 ```
 AskQuestion({
@@ -512,17 +363,13 @@ AskQuestion({
 })
 ```
 
-**Handling responses:**
-- **screenshots**: Accept image uploads/paths. Store in `mockups/`. Analyze with vision model to extract layout structure, components, and design patterns. Generate `mockups/README.md` and `mockups/component-inventory.md`.
+- **screenshots**: Accept image uploads/paths. Store in `mockups/`. Extract layout structure, components, and design patterns. Generate `mockups/README.md` and `mockups/component-inventory.md`.
 - **sketch**: Accept `.excalidraw` file. Store in `mockups/`. Parse JSON to extract component names and layout.
 - **generate**: After creating `spec.md`, generate Excalidraw wireframes for each screen/view described in the spec. Store in `mockups/`. Follow wireframe conventions from `/writ-design` command.
 - **existing**: Capture screenshots of the current app at relevant routes. Store in `mockups/current/`. These become the "before" state.
 - **none**: Create empty `mockups/` directory. Skip visual references in story files.
 
-**When mockups are provided or generated:**
-- Add `## Visual References` section to each relevant story file, linking to the specific mockups that story should implement
-- Generate `mockups/component-inventory.md` listing all components, their states, and which stories own them
-- Reference design system tokens from `.writ/docs/design-system.md` if it exists; if not, extract one from the mockups
+**When mockups are provided or generated:** add a `## Visual References` section to each relevant story file linking its mockups; generate `mockups/component-inventory.md` (components, states, owning stories); reference design system tokens from `.writ/docs/design-system.md` if it exists, otherwise extract one from the mockups.
 
 ### Phase 2: Spec Package Creation (Post-Agreement Only)
 

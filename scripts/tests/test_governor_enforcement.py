@@ -597,7 +597,11 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 29304 -> 28733; Step 2.6a no-op emit removed.
     # 2026-10-21 (2026-10-20-platform-neutral-names Story 2): 28733 -> 28738; Step 1.5 names `/writ-design`.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 28738 -> 28652; ADR link removed.
-    "commands/create-spec.md": 28652,
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 3): 28652 -> 21356; cut the
+    # discovery coaching (topic questions, pushback phrasing, Plan Mode rationale,
+    # duplicated framing in the --from-prototype and --from-issue flows). Each cut
+    # removed coaching, not a byte goal; cut-log.md lists every change.
+    "commands/create-spec.md": 21356,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
@@ -945,6 +949,36 @@ class MechanismRecordTests(unittest.TestCase):
             text = (REPO_ROOT / rel).read_text(encoding="utf-8")
             self.assertIn("required_skills:", text, rel)
             self.assertIn("before", text, rel)
+
+
+# ---------------------------------------------------------------------------
+# Spec 2026-10-20-shipped-command-hygiene, Story 3 — the create-spec.md
+# reduction pass. ac-trace credits a test token to the spec folder named most
+# recently above it, so this section names that spec before its tokens.
+# ---------------------------------------------------------------------------
+
+CREATE_SPEC = "commands/create-spec.md"
+# The value before 2026-10-20-harness-cuts. The repin must stay below it.
+CREATE_SPEC_OVERAGE_CEILING = 29304
+# 2026-10-21: the recorded value when Story 3 of 2026-10-20-shipped-command-hygiene
+# started (commit 37e097e, file 53612 bytes). Story 1 had already repinned
+# 28738 -> 28652, so "below 29,304" alone held before any cut; the story's
+# requirement is a repin below the value it started from.
+CREATE_SPEC_OVERAGE_AT_STORY_3_START = 28652
+
+
+class CreateSpecRepinTests(unittest.TestCase):
+    """2026-10-20-shipped-command-hygiene Story 3: the reduction lowers the
+    recorded overage and never raises it."""
+
+    def test_recorded_overage_is_below_start_and_ceiling(self):
+        """AC-3.4: the create-spec.md entry is below both its Story 3 start
+        value and 29,304, and equals the file's measured overage exactly."""
+        recorded = KNOWN_OVER_BUDGET[CREATE_SPEC]
+        self.assertLess(recorded, CREATE_SPEC_OVERAGE_CEILING)
+        self.assertLess(recorded, CREATE_SPEC_OVERAGE_AT_STORY_3_START)
+        size = len((REPO_ROOT / CREATE_SPEC).read_bytes())
+        self.assertEqual(recorded, size - lean.COMMAND_BYTE_BUDGET)
 
 
 if __name__ == "__main__":
