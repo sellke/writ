@@ -1,10 +1,12 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-10-20
+> Last Updated: 2026-10-21
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013; 2026-10-20 refresh — see [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
-> Last Revision: 2026-10-20 — **direction change** after the first full pstack comparison ([research](../research/2026-10-19-writ-vs-pstack-research.md)), recorded in [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md):
+> Last Revision: 2026-10-21 — reconcile pass after `/implement-phase 13`: Phase 13 recorded as implemented, pending human UAT (unreleased); `claude-agent-generator` recorded as inter-phase work; `/writ-design` and Claude Code's native `/design` stated as separate commands, with a matching non-goal. No new ADR.
+>
+> Previous revision: 2026-10-20 — **direction change** after the first full pstack comparison ([research](../research/2026-10-19-writ-vs-pstack-research.md)), recorded in [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md):
 > - Writ owns the contract, the verifier, and the boundary, and users reach it through one front door.
 > - Phases 13–16 are committed.
 > - `/prototype` is described as the exploration workflow (PR #59).
@@ -116,6 +118,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Not a browser daemon or tool-specific runtime.** Writ uses the platform's native browser and tools through adapters.
 - **Not a SaaS or hosted service.** Markdown, git, and shell scripts. No accounts, no servers, no telemetry.
 - **Not a personal style pack.** Writ ships methodology, not one author's taste as universal rules. Punctuation bans and file-length vetoes are project choices, not Writ rules.
+- **Not a wrapper over platform design tools.** `/writ-design` stays a separate command from Claude Code's native `/design`, and neither delegates to the other. `/prototype` may render its drafts on a platform's own design surface. That is `/prototype`'s choice of renderer and does not involve `/writ-design`.
 - **Not a cross-vendor model router by default.** Agents stay family-locked ([ADR-024](../decision-records/adr-024-model-delegation.md)). Other vendors enter only as an opt-in review panel ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
 
 ## Key Features
@@ -176,11 +179,18 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Consumer:** `/create-spec --from-prototype` reads the exploration record. The chosen draft becomes the Deliverable, and rejected drafts become a Directions Considered section.
 - Evidence: [`2026-10-19-prototype-visual-drafts-research.md`](../research/2026-10-19-prototype-visual-drafts-research.md).
 
-### Phases 13–16 (📋 committed, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
+### Phase 13 — Subtract and Repair (◐ implemented, pending human UAT, unreleased)
 
-- **Phase 13, Subtract and Repair:**
-  - Fixes every defect the pstack and prototype research found. The largest are the Claude Code install shipping without the Prime Directive, CI not running `pytest`, and two `update.sh` bugs.
-  - Removes the lean siblings, the dormant staging machinery, the friction-signal no-op lines, and Writ-internal references in shipped commands.
+- **Repairs:**
+  - Claude Code installs now carry the Prime Directive, and the `CLAUDE.md` block is generated from the manifest.
+  - Install, update, and uninstall no longer delete or overwrite files the user wrote or customized, including `CLAUDE.md`.
+  - CI runs `pytest` on the 3.9 floor and the bash tests.
+  - `/design` is renamed `/writ-design`, so it no longer collides with Claude Code's native `/design`.
+- **Cuts:** the lean siblings, the dormant staging machinery, the friction-signal no-op lines, and links to Writ's own history in shipped commands are gone. `eval.sh` literal pins on commands fell from 207 to 144. `create-spec.md` shrank from 54,264 to 38,562 bytes.
+- All nine machine criteria pass. 176 UAT scenarios and the first live CI run are handed off.
+
+### Phases 14–16 (📋 committed, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
+
 - **Phase 14, Front Door and Distribution:**
   - One entry command that restates, classifies, and routes.
   - Plugin distribution for Cursor and Claude Code, with scripts inside the plugin.
@@ -197,6 +207,6 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is implemented and released in v0.40.0:** Writ's verifiers so far checked Writ's own artifacts, and Phase 12 made one check the user's feature. Its three machinery criteria are met and the panel trial returned `keep`; the phase's own UAT plan is unticked, so human UAT is the open item, not more building. Inter-phase work since: `/retro` as a transcript review and the `gbrain-interop` removal (v0.41.0), and, in v0.42.0, the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59).
 
-**Phases 13–16 are committed** ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). Phase 13 subtracts and repairs before anything is added. Phase 14 gives Writ one front door and plugin distribution. Phase 15 extends the verifier from Writ's artifacts to the design and the fix. Phase 16 takes up verified landing once Phase 12's UAT gives it evidence.
+**Phase 13 is implemented, pending human UAT**, on an unreleased branch that also carries the `claude-agent-generator` spec (Claude Code agents generated from the canonical `agents/`). **Phases 14–16 are committed** ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). Phase 13 subtracted and repaired before anything was added. Phase 14 gives Writ one front door and plugin distribution. Phase 15 extends the verifier from Writ's artifacts to the design and the fix. Phase 16 takes up verified landing once Phase 12's UAT gives it evidence.
 
-> **Parking lot (kept as candidates):** cross-project learning corpus, `/design` Mode A modernization, eval Tier 2 expansion, `/implement-phase` orchestration hygiene (pilot story, standing orders, brief template), a decision-trail review, a measured-performance workflow, and formal verification (watch only). **Promoted into Phase 14:** Cursor plugin distribution and the empirical-fork rule. **Retired:** friction signals ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 16* section for the authoritative list.
+> **Parking lot (kept as candidates):** cross-project learning corpus, `/writ-design` Mode A modernization, eval Tier 2 expansion, `/implement-phase` orchestration hygiene (pilot story, standing orders, brief template), a decision-trail review, a measured-performance workflow, and formal verification (watch only). **Promoted into Phase 14:** Cursor plugin distribution and the empirical-fork rule. **Retired:** friction signals ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 16* section for the authoritative list.

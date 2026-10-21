@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-10-20
+> Regenerated from mission.md on 2026-10-21
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-10-20
+> Last Updated: 2026-10-21
 
 ## Core Value
 
@@ -58,16 +58,18 @@ Code and methodology that score well on six production-grade criteria — audita
 - Product-check direction (v0.40.0).
 - `/retro` as a transcript review, plus the `gbrain-interop` removal (v0.41.0).
 - The agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59), both in v0.42.0.
+- `claude-agent-generator`: Claude Code agents generated from the canonical `agents/` (unreleased, rides in the Phase 13 branch).
 
-**Phases 13–16 committed (2026-10-20, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):**
-- **13, Subtract and Repair:** every defect the 2026-10-19 research found, plus the cuts.
+**Phase 13 — Subtract and Repair (◐ implemented, pending human UAT, unreleased):** Claude Code installs carry the Prime Directive, and the `CLAUDE.md` block is generated. Install, update, and uninstall keep the user's own and customized files, including `CLAUDE.md`. CI runs `pytest` and the bash tests. `/design` is renamed `/writ-design`. The lean siblings, the dormant staging machinery, and internal links in shipped commands are gone. All nine machine criteria pass; 176 UAT scenarios and the first live CI run are handed off.
+
+**Phases 14–16 committed ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):**
 - **14, Front Door and Distribution:** one entry command, plugin installs, and generated per-platform trees with an adapter coverage check.
 - **15, Code-Level Rigor:** `/why`, the `design-divergence` skill shared with Gate 0, blast radius, repro-first bug fixing, and `/retro`'s fix ladder.
 - **16, Verified Landing:** a PR-readiness check and a ledger bound to the head SHA. Gated on Phase 12's UAT.
 
 ## What Writ Is Not Building
 
-Opaque unbounded loop runners (Ralph deprecated), autonomous production delivery (recommended flows never merge, open PRs, or release), memory databases (markdown canonical, external indexes are consumers), velocity-first sprint flow, browser daemons (verification drives the app through the project's or platform's own tools), hosted SaaS, a personal style pack (one author's taste as universal rules), a cross-vendor model router by default (agents stay family-locked; other vendors only in the opt-in panel). See `mission.md` for full reasoning.
+Opaque unbounded loop runners (Ralph deprecated), autonomous production delivery (recommended flows never merge, open PRs, or release), memory databases (markdown canonical, external indexes are consumers), velocity-first sprint flow, browser daemons (verification drives the app through the project's or platform's own tools), hosted SaaS, a personal style pack (one author's taste as universal rules), a cross-vendor model router by default (agents stay family-locked; other vendors only in the opt-in panel), a wrapper over platform design tools (`/writ-design` stays separate from Claude Code's native `/design`; neither delegates to the other). See `mission.md` for full reasoning.
 
 ## Design Principles
 
