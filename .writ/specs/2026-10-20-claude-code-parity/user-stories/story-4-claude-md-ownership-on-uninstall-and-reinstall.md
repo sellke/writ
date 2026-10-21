@@ -1,6 +1,7 @@
 # Story 4: Keep CLAUDE.md User-Owned on Uninstall and Reinstall
 
 > **Status:** Completed ✅
+> **Commit:** 5ffa30a42b6e339ae1dfb1ba1f231e1d0013de18
 > **Priority:** High
 > **Dependencies:** Story 2
 
