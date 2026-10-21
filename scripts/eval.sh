@@ -25,6 +25,7 @@ CHECKS=(
   manifest
   referenced-paths
   shipped-refs
+  command-structure
   skill-manifest-parity
   knowledge-integrity
   preamble
@@ -772,6 +773,51 @@ check_shipped_refs() {
         CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
         if [[ "$scenario_name" == shipped-refs-rule-* ]]; then
           add_finding "$scenario_name" "$scenario_reason" "Fix the rule's pattern in scripts/eval-shipped-refs.py."
+        else
+          add_finding "$scenario_name" "$scenario_reason" "$hint"
+        fi
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+}
+
+# Structure that literal pins on command files used to guard: a heading, a
+# frontmatter key, or a script call (shipped-command-hygiene spec, Story 2). A
+# substring pin passes when a heading turns into prose or a call into a bare
+# mention; scripts/eval-command-structure.py checks the structure instead. It
+# owns the row table and one self-test per kind; this function turns its TSV
+# into findings. Helper exit 2, or a run with no verdict lines, is a run error,
+# never a pass.
+check_command_structure() {
+  local helper="$PROJECT_ROOT/scripts/eval-command-structure.py"
+  local scenario_output scenario_status scenario_name scenario_reason helper_status=0
+  local hint="Restore the heading, frontmatter key, or script call the row names. If the command changed on purpose, change the row in scripts/eval-command-structure.py."
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-command-structure.py" "command-structure helper is missing." "Restore scripts/eval-command-structure.py (shipped-command-hygiene spec, Story 2)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  python3 "$helper" --root "$PROJECT_ROOT" > "$scenario_output" || helper_status=$?
+  if [ "$helper_status" -gt 1 ] || ! grep -Eq $'^(PASS|FAIL)\tcommand-structure' "$scenario_output"; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-command-structure.py" "command-structure helper failed to run (exit $helper_status)." "Run python3 scripts/eval-command-structure.py for the error."
+    rm -f "$scenario_output"
+    return
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        if [[ "$scenario_name" == command-structure-kind-* ]]; then
+          add_finding "$scenario_name" "$scenario_reason" "Fix the kind's matcher in scripts/eval-command-structure.py."
         else
           add_finding "$scenario_name" "$scenario_reason" "$hint"
         fi
