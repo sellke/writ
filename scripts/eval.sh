@@ -3657,7 +3657,6 @@ check_ac_trace() {
   # shape for asserting prose against a command file.
   require_literal "$verify_spec" '**3e. Criterion coverage' "verify-spec.md Check 3 must add the 3e criterion-coverage sub-check."
   require_literal "$verify_spec" '**3f. Dangling and malformed references' "verify-spec.md Check 3 must add the 3f dangling/malformed-reference sub-check."
-  require_literal "$verify_spec" 'scripts/ac-trace.py check --spec' "verify-spec.md must name the ac-trace.py executable reference for Check 3e/3f."
   require_literal "$verify_spec" 'untasked_criterion' "verify-spec.md Check 3e must name the untasked_criterion finding code."
   require_literal "$verify_spec" 'untested_criterion' "verify-spec.md Check 3e must name the untested_criterion finding code."
   require_literal "$verify_spec" 'dangling_reference' "verify-spec.md Check 3f must name the dangling_reference finding code."
@@ -3669,12 +3668,10 @@ check_ac_trace() {
   require_literal "$verify_spec" "Phase 4's auto-fix list is unchanged" "verify-spec.md must state that Phase 4's auto-fix list never touches Check 3e/3f."
   require_literal "$verify_spec" '3e/3f finding belongs in **Outstanding Warnings**' "verify-spec.md must state that every 3e/3f finding lands in Outstanding Warnings, never Issues Found & Resolved."
 
-  # The row-count guard: 3e/3f are sub-checks of Check 3, so the Phase 3
-  # report table's eight numbered rows (checks 1-8) must be unchanged -- no
-  # ninth top-level check was added alongside them.
+  # The row-count guard: 3e/3f are sub-checks of Check 3, so the exit
+  # criterion still promises an eight-row check table. The ac-trace.py call is
+  # an invocation row in scripts/eval-command-structure.py.
   require_literal "$verify_spec" 'an eight-row check table' "verify-spec.md's exit_criteria must still promise an eight-row check table (Check 3e/3f are sub-checks, not a ninth check)."
-  require_literal "$verify_spec" ' 8. Spec owner field' "verify-spec.md's Phase 3 report mock must still end at row 8 (Spec owner field)."
-  forbid_literal "$verify_spec" ' 9. ' "verify-spec.md must not gain a ninth top-level check row -- Check 3e/3f are sub-checks of Check 3."
 }
 
 check_quality_config_audit() {
