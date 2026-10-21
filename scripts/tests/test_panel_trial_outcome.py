@@ -23,7 +23,6 @@ TRIAL_DIR = REPO_ROOT / ".writ" / "eval" / "panel-trial"
 REPORT = SPEC_DIR / "trial-report.md"
 COMMAND_FILES = (
     REPO_ROOT / "commands" / "implement-story.md",
-    REPO_ROOT / "commands" / "implement-story.lean.md",
 )
 PANEL_PARAGRAPH = "**Review panel (opt-in).**"
 CAVEAT = "sample: 4 stories; one valid miss keeps the panel — a low bar, not a cost case"

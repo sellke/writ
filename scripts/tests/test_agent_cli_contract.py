@@ -822,14 +822,11 @@ STORY5_STALE_CALLER_TEXT = (
     ("commands/refresh-command.md", "parity OK line"),
     ("commands/refresh-command.md", "exits `0` (all clean)"),
     ("commands/implement-story.md", "printed no IDs"),
-    ("commands/implement-story.lean.md", "printed no IDs"),
     ("commands/implement-story.md", "- **exit 2** (no recipe"),
-    ("commands/implement-story.lean.md", "- **exit 2** (no recipe"),
     ("commands/create-uat-plan.md", "- Exit 2 →"),
     (".writ/docs/app-verification-format.md", "and 2 when the file is missing"),
     ("adapters/codex.md", "warnings must be intentional"),
     ("commands/implement-story.md", "`block` is a Gate 3 FAIL"),
-    ("commands/implement-story.lean.md", "`block` is a Gate 3 FAIL"),
 )
 
 

@@ -15,7 +15,8 @@
 - `story-context.py` keeps `--state-dir` as a hidden no-op. `pipeline-baseline.py run --lean` goes; `validate` still accepts legacy `harness_lean`.
 
 **Files in Scope:**
-- `commands/*.lean.md` (delete), `install.sh`, `update.sh`, README, mixed tests, `eval.sh` review-panel and product-check pins (S1)
+- `commands/*.lean.md` (delete), `install.sh`, `update.sh` (every `is_unshipped_lean_sibling` call, including the commands and agents loops in `write_copy_manifest`), README, mixed tests plus `test_manifest_shipped_baselines.sh`, `eval.sh` review-panel and product-check pins (S1)
+- S1 also: AC-1.5 absence tests in `test_harness_cuts.py`; real `AC-2.2`/`AC-2.4` citations for `2026-10-20-claude-agent-generator` in `test_gen_claude_agents.py` and `test_jev_shadow_hooks.sh`, replacing the bare tokens the deleted `test_lean_preamble.py` carried (DEV-001 to DEV-004)
 - `story-context.py`, `measure-invocation.py`, `eval-leanness.py`, `pipeline-baseline.py`, `eval.sh` `check_manifest`, `lean-decision.py` (delete) and lean tests (S2)
 - `commands/create-spec.md:773`, `commands/implement-story.md:192`, `eval.sh` `check_model_escalation`, `commands/ship.md` 3/17/19/25, `KNOWN_OVER_BUDGET` (S3)
 - Ship filters, `skills/drift-triage/SKILL.md`, `agent-cli-contract.md`, `acceptance-criteria-ids.md`, `update-writ.md`, `gen-skill.sh` + `SKILL.md`, eval lifecycle scenarios (S4)

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T00:59:32Z
+> Last Updated: 2026-10-21T02:58:15Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-20-ci-and-update-integrity — CI and Update Integrity
-- **Status:** Complete (checker verdict met; integration suite passed)
-- **Story:** 5 of 5 — Repair Legacy Manifests and Remove Stale Files From Their Real Path (Completed ✅)
-- **Progress:** 31/31 tasks complete (100%)
+- **Spec:** 2026-10-20-harness-cuts — Harness Cuts
+- **Status:** In Progress
+- **Story:** 1 of 4 — Delete the Lean Siblings and Their Install Logic (Completed ✅)
+- **Progress:** 7/28 tasks complete (25%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-20-ci-and-update-integrity/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-20-harness-cuts/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (28 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-007 (Medium) Cursor units on an unresolved legacy manifest — ci-and-update-integrity Story 5
-- DEV-008 (Small) A legacy run that ends "Already up to date" writes no header manifest — ci-and-update-integrity Story 5
-- DEV-009 (Small) The recorded version must be 4-40 lowercase hex — ci-and-update-integrity Story 5
+- DEV-002 (Small) test_manifest_shipped_baselines.sh edited though absent from the inventory — harness-cuts Story 1
+- DEV-003 (Small) Citations for another spec added outside Files in Scope — harness-cuts Story 1
+- DEV-004 (Small) AC-1.5 gets its own tests — harness-cuts Story 1
 
 ## Open Issues
 

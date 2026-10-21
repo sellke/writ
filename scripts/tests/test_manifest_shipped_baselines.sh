@@ -212,9 +212,8 @@ hash_files() {
 
 # Print "<source file> <manifest path>" for every path the platform ships,
 # computed from $SRC: top-level scripts the ship filter accepts,
-# .writ/docs/*.md, commands and agents minus lean siblings whose default
-# exists, agents by the platform's glob, skills/*/SKILL.md, and the platform
-# units.
+# .writ/docs/*.md, commands/*.md, agents by the platform's glob,
+# skills/*/SKILL.md, and the platform units.
 shipped_sources() {
   local platform="$1" f name agents_src agent_glob
   case "$platform" in
@@ -235,9 +234,6 @@ shipped_sources() {
   for f in "$SRC"/commands/*.md "$SRC/$agents_src"/$agent_glob; do
     [ -f "$f" ] || continue
     name=$(basename "$f")
-    case "$name" in
-      *.lean.md) [ -f "$(dirname "$f")/${name%.lean.md}.md" ] && continue ;;
-    esac
     case "$f" in
       "$SRC"/commands/*) printf '%s commands/%s\n' "$f" "$name" ;;
       *) printf '%s agents/%s\n' "$f" "$name" ;;
@@ -419,13 +415,11 @@ for run in 1 2 3; do
 done
 
 # ----- AC-3.4: Codex fresh install and one update -----
-# The project holds copies of two upstream files Writ does not ship: a lean
-# sibling whose default exists and a dev-only script the ship filter rejects.
-# Their bytes equal upstream, so only the walk's filters keep them out of the
-# manifest.
+# The project holds a copy of an upstream file Writ does not ship: a dev-only
+# script the ship filter rejects. Its bytes equal upstream, so only the walk's
+# filter keeps it out of the manifest.
 P4="$WORK/codex-fresh"
-mkdir -p "$P4/.codex/commands" "$P4/scripts"
-cp "$SRC/commands/implement-story.lean.md" "$P4/.codex/commands/implement-story.lean.md"
+mkdir -p "$P4/scripts"
 cp "$SRC/scripts/harness-cost.py" "$P4/scripts/harness-cost.py"
 is_shippable_script harness-cost.py && fail "fixture: harness-cost.py passes the ship filter"
 run_install "AC-3.4 codex install" "$P4" codex
@@ -437,8 +431,6 @@ run_update "AC-3.4 codex update" "$P4" codex
 check_rewritten "AC-3.4 codex update" "$M4"
 check_header "AC-3.4 codex update" "$M4"
 check_complete "AC-3.4 codex update" "$P4" codex
-cmp -s "$P4/.codex/commands/implement-story.lean.md" "$SRC/commands/implement-story.lean.md" \
-  || fail "AC-3.4 codex update: unshipped commands/implement-story.lean.md was changed or removed"
 cmp -s "$P4/scripts/harness-cost.py" "$SRC/scripts/harness-cost.py" \
   || fail "AC-3.4 codex update: unshipped scripts/harness-cost.py was changed or removed"
 

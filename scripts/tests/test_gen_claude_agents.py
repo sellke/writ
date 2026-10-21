@@ -399,7 +399,8 @@ def test_overlay_covers_every_canonical_stem_with_the_explicit_file_map() -> Non
 
 @pytest.mark.parametrize("stem", COMMITTED_STEMS)
 def test_overlay_frontmatter_matches_committed_file(stem: str) -> None:
-    """AC-1.4 — rendered frontmatter equals the committed file's, byte for byte, key order included."""
+    """AC-1.4, AC-2.2 — rendered frontmatter equals the committed file's, byte for byte, key order
+    included. The overlay holds the pre-regeneration frontmatter, so regeneration kept it."""
     committed = (COMMITTED_DIR / FILE_MAP[stem]).read_text(encoding="utf-8")
     assert gen.render_frontmatter(stem) == frontmatter_block(committed)
 

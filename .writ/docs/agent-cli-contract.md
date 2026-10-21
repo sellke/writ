@@ -130,7 +130,7 @@ These steps apply in the Writ source repo.
 
 The Shape column records the shape each script prints. Every shipped script conforms, and `scripts/tests/test_agent_cli_contract.py` enforces it; its `KNOWN_VIOLATIONS` list names any temporary exception. The notes below record script-specific details an agent needs to parse the output.
 
-The Callers column names the main callers and is not complete. Before you change a script's output, grep `commands/`, `agents/`, `skills/`, `adapters/`, and `.writ/docs/` for its name, including `*.lean.md` files.
+The Callers column names the main callers and is not complete. Before you change a script's output, grep `commands/`, `agents/`, `skills/`, `adapters/`, and `.writ/docs/` for its name.
 
 - `app-verify.py` — check. `touched` prints one `feature: <id>` line per matched feature between the verdict and the summary. A refused run prints `unverifiable` on line 1 and keeps `refused` in its summary and JSON. With `--json`, the verdict lines print as usual and one JSON object follows the summary as the last line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.

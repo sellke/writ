@@ -8,7 +8,6 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 CREATE="$REPO/commands/create-spec.md"
-LEAN="$REPO/commands/create-spec.lean.md"
 SCRIPT="$REPO/scripts/jev-judge.py"
 
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
@@ -63,12 +62,6 @@ printf '%s\n' "$STEP_26C" \
 [ "$(printf '%s\n' "$STEP_26C" | grep -c 'AskQuestion')" -eq 2 ] \
   || fail "Step 2.6c must name AskQuestion only in the setup sub-step and the item-3 exception"
 ok "item 3: no AskQuestion gate, one-time setup prompt the only exception"
-
-# --- Lean sibling stays the no-Jev baseline ---------------------------------------
-if grep -Fq 'jev-judge.py setup' "$LEAN"; then
-  fail "create-spec.lean.md must not gain the setup sub-step (no-Jev baseline arm)"
-fi
-ok "create-spec.lean.md unchanged by the setup sub-step"
 
 # --- status -> setup -> status round trip [AC-6.3] ------------------------------
 TMP="$(mktemp -d)"

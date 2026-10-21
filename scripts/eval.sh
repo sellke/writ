@@ -4780,8 +4780,7 @@ check_review_panel() {
   local helper="$PROJECT_ROOT/scripts/review-panel.py"
   local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/review-panel"
   local story="$PROJECT_ROOT/commands/implement-story.md"
-  local lean="$PROJECT_ROOT/commands/implement-story.lean.md"
-  local output rc=0 file
+  local output rc=0
 
   if [ ! -f "$helper" ]; then
     add_finding "scripts/review-panel.py" "review-panel helper is missing." \
@@ -4813,13 +4812,10 @@ check_review_panel() {
       "A finding raised by one vendor is advisory: restore tally's consensus rule."
   fi
 
-  for file in "$story" "$lean"; do
-    require_literal "$file" '**Review panel (opt-in).**' "$(relpath "$file") Gate 3 must carry the opt-in review panel paragraph."
-    require_literal "$file" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
-    require_literal "$file" '| `/implement-story story-3 --panel` |' "$(relpath "$file") Invocation table must carry the --panel row."
-  done
+  require_literal "$story" '**Review panel (opt-in).**' "$(relpath "$story") Gate 3 must carry the opt-in review panel paragraph."
+  require_literal "$story" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$story") must make a panel block a Gate 3 FAIL."
+  require_literal "$story" '| `/implement-story story-3 --panel` |' "$(relpath "$story") Invocation table must carry the --panel row."
   require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."
-  require_literal "$lean" 'drift summary, the `review-panel:` lines' "implement-story.lean.md Step 4 report must name the review-panel: lines."
   require_literal "$PROJECT_ROOT/adapters/cursor.md" '**Review panel (ADR-028): available.**' "adapters/cursor.md must state the review panel is available."
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
@@ -4831,19 +4827,16 @@ check_product_check_direction() {
   # verification surfaces drift after implementation, /plan-product --reconcile
   # realigns, and no planning step points back to a verification step.
   local verify="$PROJECT_ROOT/commands/verify-spec.md"
-  local verify_lean="$PROJECT_ROOT/commands/verify-spec.lean.md"
   local plan="$PROJECT_ROOT/commands/plan-product.md"
   local direction='Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.'
   local file
 
-  for file in "$verify" "$verify_lean" "$plan"; do
+  for file in "$verify" "$plan"; do
     require_literal "$file" "$direction" "$(relpath "$file") must state the product-check direction sentence verbatim."
   done
-  for file in "$verify" "$verify_lean"; do
-    forbid_literal "$file" 'a lint you run before deciding anything' "$(relpath "$file") must not frame --product as a pre-decision lint."
-    forbid_literal "$file" 'consistency lint (before)' "$(relpath "$file") must not frame --product as running before --reconcile."
-    forbid_literal "$file" 'lints (before' "$(relpath "$file") must not frame --product as linting before --reconcile revises."
-  done
+  forbid_literal "$verify" 'a lint you run before deciding anything' "$(relpath "$verify") must not frame --product as a pre-decision lint."
+  forbid_literal "$verify" 'consistency lint (before)' "$(relpath "$verify") must not frame --product as running before --reconcile."
+  forbid_literal "$verify" 'lints (before' "$(relpath "$verify") must not frame --product as linting before --reconcile revises."
   forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
 
   local phase="$PROJECT_ROOT/commands/implement-phase.md"

@@ -306,15 +306,6 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
 class BehavioralVerificationContractTests(unittest.TestCase):
     """2026-10-01-behavioral-verification Story 4."""
 
-    def test_lean_gate_4_5_matches_default(self) -> None:
-        """AC-4.5: the lean twin carries the same Gate 4.5 behavior."""
-        default = COMMAND_PATH.read_text(encoding="utf-8")
-        lean = (REPO_ROOT / "commands" / "implement-story.lean.md").read_text(encoding="utf-8")
-        heading = "#### Gate 4.5: Behavioral Verification"
-        self.assertEqual(_section(lean, heading, "#### Gate 5:"),
-                         _section(default, heading, "#### Gate 5:"))
-        self.assertIn("  - id: gate4_5_behavior\n    script: scripts/app-verify.py\n", lean)
-
     def test_coding_agent_writes_checks_it_never_grades(self) -> None:
         """AC-4.4: one rule; the check's exit code is the verdict."""
         text = (REPO_ROOT / "agents" / "coding-agent.md").read_text(encoding="utf-8")
