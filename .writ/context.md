@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T19:17:15Z
+> Last Updated: 2026-10-21T19:31:43Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-shipped-command-hygiene — Shipped Command Hygiene
-- **Status:** In Progress
+- **Status:** Complete (checker verdict met; integration suite passed)
 - **Story:** 3 of 3 — `create-spec.md` Reduction Pass (Completed ✅)
 - **Progress:** 21/21 tasks complete (100%)
 
