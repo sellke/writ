@@ -161,18 +161,18 @@ class InvocationKindTests(KindCase):
                 self.assertEqual(self.check("invocation", "scripts/x.py check", line + "\n"),
                                  "PASS")
 
-    def test_a_path_only_value_needs_a_subcommand_or_flag_after_it(self):
-        for line, want in (("python3 scripts/x.py check", "PASS"),
-                           ("python3 scripts/x.py --dry-run", "PASS"),
-                           ("`scripts/x.py`", "FAIL"),
-                           ("See scripts/x.py.", "FAIL"),
-                           ("scripts/x.py", "FAIL")):
+    def test_a_value_without_a_subcommand_never_passes(self):
+        """A path-only value cannot tell a call from a mention, so it never passes."""
+        for line in ("python3 scripts/x.py check", "python3 scripts/x.py --dry-run",
+                     "`scripts/x.py`", "See scripts/x.py for details", "scripts/x.py"):
             with self.subTest(line=line):
-                self.assertEqual(self.check("invocation", "scripts/x.py", line + "\n"), want)
+                self.assertEqual(self.check("invocation", "scripts/x.py", line + "\n"), "FAIL")
 
     def test_fails_on_a_bare_mention(self):
         for line in ("x.py", "the `x.py` helper", "`scripts/x.py`",
-                     "scripts/x.py is the executable reference"):
+                     "scripts/x.py is the executable reference",
+                     "See scripts/x.py for details",
+                     'calibrated_against: "scripts/x.py cmd_classify (retries only once)"'):
             with self.subTest(line=line):
                 self.assertEqual(self.check("invocation", "scripts/x.py check", line + "\n"),
                                  "FAIL")
@@ -250,7 +250,9 @@ def mutate(row, text: str) -> str:
     if row.kind == "frontmatter":
         return re.sub(r"^%s:" % re.escape(row.value), row.value + "_renamed:", text,
                       flags=re.MULTILINE)
-    # invocation: every call reduced to a bare mention of the script's file name.
+    # invocation: every occurrence of the value (path plus subcommand) reduced to
+    # a bare mention of the script's file name. Other mentions of the script,
+    # such as a calibrated_against note, stay, so they cannot hide a weak row.
     script = row.value.split()[0].rsplit("/", 1)[-1]
     return text.replace(row.value, script)
 
@@ -275,7 +277,8 @@ class TableTests(unittest.TestCase):
                 self.assertRegex(row.was, r"^check_[a-z_]+$")
                 self.assertTrue(row.value.strip() and row.message.strip())
                 if row.kind == "invocation":
-                    self.assertRegex(row.value, r"^scripts/[\w.-]+\.(py|sh)\b")
+                    # Path plus the subcommand or flag the command must call.
+                    self.assertRegex(row.value, r"^scripts/[\w.-]+\.(py|sh) \S")
                 key = (row.file, row.kind, row.value)
                 self.assertNotIn(key, seen)
                 seen.add(key)
@@ -296,6 +299,40 @@ class TableTests(unittest.TestCase):
                     target.write_text(broken, encoding="utf-8")
                     _, rows = run_helper(root)
                     self.assertEqual(verdict(rows, row_name(row)), "FAIL")
+
+
+class PhaseStateRowTests(unittest.TestCase):
+    """Pin-map row 74: implement-phase.md's phase-state.py rows fail when every
+    real call becomes a mention, even though the frontmatter's
+    calibrated_against note still names `scripts/phase-state.py cmd_classify`."""
+
+    def test_rows_fail_when_only_the_real_calls_become_mentions(self):
+        module = load_helper_module()
+        rows = [r for r in module.ROWS
+                if r.file == "commands/implement-phase.md" and r.was == "check_phase_lanes"]
+        self.assertTrue(rows)
+        original = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+        note = "scripts/phase-state.py cmd_classify"
+        self.assertIn(note, original)
+        lines = original.splitlines(keepends=True)
+        calls = re.compile(r"scripts/phase-state\.py (?=[a-z][\w-]*\b)(?!cmd_classify)")
+        broken = "".join(calls.sub("phase-state.py ", line) if "calibrated_against" not in line
+                         else line for line in lines)
+        self.assertIn(note, broken, "the frontmatter note must stay")
+        self.assertNotRegex(broken, r"scripts/phase-state\.py (?!cmd_classify)",
+                            "every real call must be reduced")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "commands" / "implement-phase.md"
+            target.parent.mkdir(parents=True)
+            target.write_text(original, encoding="utf-8")
+            _, before = run_helper(root)
+            target.write_text(broken, encoding="utf-8")
+            _, after = run_helper(root)
+        for row in rows:
+            with self.subTest(row=row_name(row)):
+                self.assertEqual(verdict(before, row_name(row)), "PASS")
+                self.assertEqual(verdict(after, row_name(row)), "FAIL")
 
 
 class RealTreeTests(unittest.TestCase):
@@ -345,6 +382,18 @@ class EvalWiringTests(unittest.TestCase):
             code, report = run_eval(root)
             self.assertEqual(code, 2, report)
             self.assertIn("scripts/eval-command-structure.py", report)
+
+    def test_a_helper_that_prints_no_verdict_is_a_run_error(self):
+        for stub in ("raise SystemExit(0)\n", "print('noise')\nraise SystemExit(1)\n"):
+            with self.subTest(stub=stub), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / "scripts").mkdir()
+                shutil.copy(EVAL_SH, root / "scripts" / "eval.sh")
+                (root / "scripts" / "eval-command-structure.py").write_text(stub, encoding="utf-8")
+                shutil.copytree(REPO_ROOT / "commands", root / "commands")
+                code, report = run_eval(root)
+                self.assertEqual(code, 2, report)
+                self.assertIn("command-structure helper failed to run", report)
 
     def test_command_structure_is_registered_right_after_shipped_refs(self):
         text = EVAL_SH.read_text(encoding="utf-8")

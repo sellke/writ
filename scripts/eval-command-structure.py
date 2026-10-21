@@ -13,12 +13,12 @@ mention. Each such pin is now one row in ROWS, checked by structure:
                begins with the value, so "User Challenge" matches
                "## User Challenge (Scope-Degradation Escalation)"
   frontmatter  the YAML frontmatter block has a top-level "<value>:" key
-  invocation   a line contains the script path followed by a subcommand or
-               flag, with or without a leading python3/bash. A value that
-               already names the subcommand (and any flags) must appear whole
-               and end at a delimiter; a path-only value must be followed by
-               whitespace and a flag or a lowercase word. A bare "x.py" or
-               "scripts/x.py" mention never passes.
+  invocation   a line contains the value, the script path plus the subcommand
+               (and any flags or arguments) the command must call, with or
+               without a leading python3/bash. The value must appear whole and
+               end at a delimiter. A value with no subcommand never passes,
+               because a path alone cannot tell a call from a mention, so a
+               bare "x.py" or "scripts/x.py" mention never passes.
 
 Each row records `was`, the eval.sh check function the pin came from, and the
 message a finding shows. The pin map in the spec folder lists every
@@ -109,9 +109,12 @@ ROWS: Tuple[Row, ...] = (
         "check_story_context",
         "implement-story.md must invoke the executable context-hint assembler "
         "instead of parsing hints by prose."),
-    Row("commands/implement-phase.md", "invocation", "scripts/phase-state.py",
+    Row("commands/implement-phase.md", "invocation", "scripts/phase-state.py create-lane",
         "check_phase_lanes",
-        "implement-phase.md must call the executable phase-state reducer with a subcommand."),
+        "implement-phase.md must create each spec's lane through the phase-state reducer."),
+    Row("commands/implement-phase.md", "invocation", "scripts/phase-state.py validate-result",
+        "check_phase_lanes",
+        "implement-phase.md must gate each merge on the phase-state reducer's result validation."),
     Row("commands/_preamble.md", "heading", "User Challenge",
         "check_phase_challenges",
         "_preamble.md must keep the User Challenge section heading."),
@@ -148,10 +151,8 @@ FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
 HEADING = re.compile(r"^#{1,6} (.*)$")
 # A character before the value that would make it part of a longer path.
 PATH_CHAR = re.compile(r"[\w./-]")
-# What may follow a value that already names its subcommand.
+# What may follow the value: a delimiter, never more of a word or path.
 VALUE_END = set(" \t`'\")];,|\\")
-# What must follow a path-only value: whitespace, then a flag or a word.
-SUBCOMMAND = re.compile(r"\s+(?:-{1,2}[A-Za-z]|[a-z])")
 
 
 def unfenced_lines(text: str) -> Iterator[str]:
@@ -192,17 +193,15 @@ def has_frontmatter_key(text: str, value: str) -> bool:
 
 
 def has_invocation(text: str, value: str) -> bool:
-    path_only = not re.search(r"\s", value)
+    if not re.search(r"\S\s+\S", value):
+        return False  # no subcommand: a path alone cannot tell a call from a mention
     for line in text.splitlines():
         start = line.find(value)
         while start >= 0:
             before = line[start - 1] if start else ""
             rest = line[start + len(value):]
-            if not (before and PATH_CHAR.match(before)):
-                if path_only and SUBCOMMAND.match(rest):
-                    return True
-                if not path_only and (not rest or rest[0] in VALUE_END):
-                    return True
+            if not (before and PATH_CHAR.match(before)) and (not rest or rest[0] in VALUE_END):
+                return True
             start = line.find(value, start + 1)
     return False
 
@@ -216,7 +215,7 @@ MATCHERS: Dict[str, Callable[[str, str], bool]] = {
 DESCRIBE = {
     "heading": "no heading outside fenced code starts with '{value}'",
     "frontmatter": "the frontmatter has no top-level '{value}:' key",
-    "invocation": "no line calls '{value}' with a subcommand or flag",
+    "invocation": "no line calls '{value}'",
 }
 
 # Per kind: (value, texts that must pass, texts that must fail).
@@ -236,10 +235,12 @@ SELF_TESTS = {
     "invocation": [
         ("scripts/x.py check",
          ["python3 scripts/x.py check --spec a\n", "`scripts/x.py check --spec <folder>`\n"],
-         ["x.py\n", "`scripts/x.py`\n", "python3 scripts/x.py checker\n"]),
+         ["x.py\n", "`scripts/x.py`\n", "python3 scripts/x.py checker\n",
+          "See scripts/x.py for details\n", "scripts/x.py cmd_classify\n"]),
+        # A value with no subcommand never passes, even on a real call.
         ("scripts/x.py",
-         ["python3 scripts/x.py init\n"],
-         ["`scripts/x.py`\n", "See scripts/x.py.\n"]),
+         [],
+         ["python3 scripts/x.py init\n", "See scripts/x.py for details\n"]),
     ],
 }
 
