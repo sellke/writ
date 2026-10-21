@@ -725,8 +725,8 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py)
-      # Dev-only tooling (eval.sh, measurement); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging); not agent-facing. ADR-029.
       return 1 ;;
   esac
   case "$base" in
@@ -739,6 +739,16 @@ is_shippable_script() {
   return 1
 }
 
+# Writ reference docs shipped to installed projects (.writ/docs/).
+is_shippable_writ_doc() {
+  case "$1" in
+    recommended-delivery-state-format.md)
+      # ADR-013 dormant staging contract; dev-only with recommend-state.py.
+      return 1 ;;
+  esac
+  return 0
+}
+
 overlay_scan_flat_dir() {
   local src_dir="$1" dest_dir="$2" rel_prefix="$3" mode="$4" filter="${5:-}"
   _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
@@ -749,6 +759,9 @@ overlay_scan_flat_dir() {
     [ -f "$src_file" ] || continue
     fname=$(basename "$src_file")
     if [ "$filter" = "script" ] && ! is_shippable_script "$fname"; then
+      continue
+    fi
+    if [ "$filter" = "doc" ] && ! is_shippable_writ_doc "$fname"; then
       continue
     fi
 
@@ -814,13 +827,14 @@ append_manifest_shippable_scripts() {
   done
 }
 
-# Manifest lines for the .writ/docs/*.md upstream ships. Called only by
-# write_copy_manifest.
+# Manifest lines for the .writ/docs/*.md upstream ships (the overlay's "doc"
+# filter). Called only by write_copy_manifest.
 append_manifest_writ_docs() {
   local target="$1" f base
   for f in "$WRIT_SRC"/.writ/docs/*.md; do
     [ -f "$f" ] || continue
     base=$(basename "$f")
+    is_shippable_writ_doc "$base" || continue
     record_file_baseline "$target" ".writ/docs/$base" "$f" ".writ/docs/$base"
   done
 }
@@ -984,10 +998,12 @@ detect_stale_files() {
     esac
 
     # A file an earlier install shipped is stale when upstream no longer has
-    # it, or when it is a script the ship filter now rejects (e.g. the ADR-029
-    # dev-only helpers, which stay upstream for eval.sh).
+    # it, or when it is a script or doc a ship filter now rejects (e.g. the
+    # ADR-029 dev-only helpers and the ADR-013 staging doc, which stay upstream
+    # for eval.sh).
     if [ ! -f "$upstream_file" ] \
-        || { [ "$category" = "scripts" ] && ! is_shippable_script "$(basename "$manifest_path")"; }; then
+        || { [ "$category" = "scripts" ] && ! is_shippable_script "$(basename "$manifest_path")"; } \
+        || { [ "$category" = ".writ" ] && ! is_shippable_writ_doc "$(basename "$manifest_path")"; }; then
       baseline_hash=$(manifest_hash_for "$manifest_path")
       local_hash=$(hash_file "$local_file")
 
@@ -1027,7 +1043,7 @@ TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
 ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}${_PRESERVED_FILES}"
 
 echo "  Writ docs:"
-overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview"
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview" "doc"
 TOTAL_NEW=$((TOTAL_NEW + _NEW))
 TOTAL_UPDATED=$((TOTAL_UPDATED + _UPDATED))
 TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
@@ -1212,7 +1228,7 @@ echo "Updating..."
 
 overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
 overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "apply" "script"
-overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply"
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply" "doc"
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply" "$AGENT_FILE_GLOB"
 
 if [ -d "$WRIT_SRC/skills" ]; then

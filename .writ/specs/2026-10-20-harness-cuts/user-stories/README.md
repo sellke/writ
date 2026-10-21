@@ -7,7 +7,7 @@
 | 1 | [Delete the Lean Siblings and Their Install Logic](story-1-delete-lean-siblings.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Remove the Lean Code Paths from the Scripts](story-2-remove-lean-code-paths.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
 | 3 | [Remove the ADR-025 No-Op Lines and Correct the /ship Description](story-3-noop-lines-and-ship-description.md) | Completed ✅ | Medium | Story 2 | 7 | 7/7 |
-| 4 | [Make Recommended-Delivery Staging Dev-Only](story-4-staging-dev-only.md) | Not Started | High | Story 2 | 7 | 0/7 |
+| 4 | [Make Recommended-Delivery Staging Dev-Only](story-4-staging-dev-only.md) | Completed ✅ | High | Story 2 | 7 | 7/7 |
 
 **Total:** 4 stories, 28 tasks, 19 acceptance criteria.
 

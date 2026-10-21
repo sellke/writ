@@ -32,15 +32,8 @@ Inspect the `### Drift Analysis` section and handle each deviation by severity.
 
 ### Small — naming, cosmetic; contract intent preserved
 
-- Capture the exact **pre-edit SHA-256**, auto-amend **only** `spec-lite.md`,
-  and append **one unique `DEV-NNN` entry** to `drift-log.md`.
-- In recommended mode, return a canonical `recommend-spec-lite-review-v1` result
-  bound to the execution ID, the story ID, `outcome: passed`,
-  `drift_severity: small`, the DEV-ID list, and a **non-empty** summary.
-- The parent must **durably** call
-  `scripts/recommend-state.py record-spec-lite-amendment` with the state,
-  repository, story ID, DEV ID, prior SHA-256 and review-result file before
-  continuing. **A missing acknowledgment blocks.**
+- Auto-amend **only** `spec-lite.md` and append **one unique `DEV-NNN` entry**
+  to `drift-log.md`.
 - Continue **PASS**.
 - **Always** include the spec-lite changes in the run summary.
 
@@ -76,7 +69,3 @@ point another story or the contract names; a changed architectural approach
 - Log all drift to `.writ/specs/[spec-folder]/drift-log.md` — **append-only,
   never modify existing entries.** Continue DEV-ID numbering from the highest
   existing entry.
-- In recommended mode, **never batch** multiple spec-lite byte revisions into
-  one amendment record: each record must form a **contiguous prior/resulting
-  digest link**. Duplicate or missing DEV IDs, a broken chain, or another
-  locked-artifact mutation **blocks reconciliation**.

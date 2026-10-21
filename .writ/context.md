@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T04:33:48Z
+> Last Updated: 2026-10-21T06:08:27Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-harness-cuts — Harness Cuts
 - **Status:** In Progress
-- **Story:** 3 of 4 — Remove the ADR-025 No-Op Lines and Correct the /ship Description (Completed ✅)
-- **Progress:** 21/28 tasks complete (75%)
+- **Story:** 4 of 4 — Make Recommended-Delivery Staging Dev-Only (Completed ✅)
+- **Progress:** 28/28 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-004 (Small) AC-1.5 gets its own tests — harness-cuts Story 1
-- DEV-005 (Medium) Guard grep excludes two sibling Phase 13 spec folders beyond Business Rule 2 — harness-cuts Story 2
 - DEV-006 (Small) test_ci_workflow.py edited to restore another spec's citations — harness-cuts Story 2
+- DEV-007 (Small) AC-4.4 and AC-4.5 tests added to test_harness_cuts.py — harness-cuts Story 4
+- DEV-008 (Small) test_manifest_shipped_baselines.sh applies the new doc filter — harness-cuts Story 4
 
 ## Open Issues
 

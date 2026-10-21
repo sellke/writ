@@ -21,6 +21,7 @@
 - S2 also: `scripts/tests/test_ci_workflow.py` gets AC-1.3/AC-1.4 citations for `2026-10-20-ci-and-update-integrity`, replacing the bare tokens the deleted `test_measure_invocation_lean.py` carried; the AC-1.4 test is a structural check (DEV-006)
 - `commands/create-spec.md:773`, `commands/implement-story.md:192`, `eval.sh` `check_model_escalation`, `commands/ship.md` 3/17/19/25, `KNOWN_OVER_BUDGET` (S3)
 - Ship filters, `skills/drift-triage/SKILL.md`, `agent-cli-contract.md`, `acceptance-criteria-ids.md`, `update-writ.md`, `gen-skill.sh` + `SKILL.md`, eval lifecycle scenarios (S4)
+- S4 also: `test_harness_cuts.py` gains AC-4.4 prose tests and AC-4.5 structural tests on the eval source (AC-4.5's pass evidence is the `eval.sh` run); `test_manifest_shipped_baselines.sh`'s shipped-set builder applies `is_shippable_writ_doc` (DEV-007, DEV-008)
 - New: `scripts/tests/test_harness_cuts.py`, `scripts/tests/test_install_update_harness_cuts.sh`
 
 **Error Handling:**

@@ -1198,6 +1198,7 @@ PY
   scenario_output="$(mktemp)"
   python3 - "$helper" > "$scenario_output" <<'PY'
 import copy
+import hashlib
 import json
 import os
 import pathlib
@@ -1806,25 +1807,41 @@ try:
     command(["git", "add", "."], cwd=source)
     command(["git", "commit", "-m", "sandbox source"], cwd=source)
 
+    # ADR-013 staging is dev-only (2026-10-20-harness-cuts Story 4): the ship
+    # filters reject the helper and the state doc, so install ships neither,
+    # update removes an unmodified copy an older install left even though
+    # upstream still has it, and unlink leaves the helper symlink alone.
+    helper_rel = "scripts/recommend-state.py"
+    state_doc_rel = ".writ/docs/recommended-delivery-state-format.md"
+
+    def manifest_paths(manifest):
+        if not manifest.is_file():
+            return set()
+        return {
+            line.split("  ", 1)[1]
+            for line in manifest.read_text(encoding="utf-8").splitlines()
+            if line and not line.startswith("#") and "  " in line
+        }
+
     for platform in ("cursor", "claude", "codex"):
         beat(f"sandbox: {platform} (install/update/unlink)")
         target = workspace / f"install-{platform}"
         target.mkdir()
+        manifest = target / f".{platform}/.writ-manifest"
+        helper_dest = target / helper_rel
+        state_doc_dest = target / state_doc_rel
         dry = command(
             ["bash", str(project / "scripts/install.sh"), "--platform", platform, "--dry-run", "--no-commit"],
             cwd=target, check=False,
         )
-        helper_dest = target / "scripts/recommend-state.py"
-        state_doc_dest = target / ".writ/docs/recommended-delivery-state-format.md"
         emit(
-            f"install-{platform}-dry-run-helper",
-            dry.returncode == 0 and "scripts/recommend-state.py" in dry.stdout and not helper_dest.exists(),
-            dry.stdout + dry.stderr,
-        )
-        emit(
-            f"install-{platform}-dry-run-state-doc",
+            f"install-{platform}-dry-run-names-neither",
             dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in dry.stdout
+            and "recommend-state.py" not in dry.stdout
+            and "recommended-delivery-state-format.md" not in dry.stdout
+            and "scripts/spec-status.py" in dry.stdout
+            and ".writ/docs/agent-cli-contract.md" in dry.stdout
+            and not helper_dest.exists()
             and not state_doc_dest.exists(),
             dry.stdout + dry.stderr,
         )
@@ -1832,106 +1849,98 @@ try:
             ["bash", str(project / "scripts/install.sh"), "--platform", platform, "--no-commit"],
             cwd=target, check=False,
         )
-        invoked = command([sys.executable, str(helper_dest), "--help"], cwd=target, check=False) if helper_dest.exists() else installed
+        recorded = manifest_paths(manifest)
         emit(
-            f"install-{platform}-helper-executable",
-            installed.returncode == 0 and helper_dest.is_file() and invoked.returncode == 0,
-            installed.stdout + installed.stderr,
-        )
-        emit(
-            f"install-{platform}-state-doc",
+            f"install-{platform}-omits-helper",
             installed.returncode == 0
-            and state_doc_dest.is_file()
-            and state_doc_dest.read_bytes() == (project / ".writ/docs/recommended-delivery-state-format.md").read_bytes(),
+            and not helper_dest.exists()
+            and helper_rel not in recorded
+            and (target / "scripts/spec-status.py").is_file()
+            and "scripts/spec-status.py" in recorded,
             installed.stdout + installed.stderr,
         )
-        helper_dest.unlink()
-        state_doc_dest.unlink()
+        emit(
+            f"install-{platform}-omits-state-doc",
+            installed.returncode == 0
+            and not state_doc_dest.exists()
+            and state_doc_rel not in recorded
+            and (target / ".writ/docs/agent-cli-contract.md").is_file()
+            and ".writ/docs/agent-cli-contract.md" in recorded,
+            installed.stdout + installed.stderr,
+        )
+
+        # An older install left unmodified copies of both, with manifest lines.
+        shutil.copy2(helper, helper_dest)
+        shutil.copy2(project / state_doc_rel, state_doc_dest)
+        with manifest.open("a", encoding="utf-8") as handle:
+            for rel, path in ((helper_rel, helper_dest), (state_doc_rel, state_doc_dest)):
+                handle.write(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {rel}\n")
         env = dict(os.environ, WRIT_REPO=str(source))
         update_dry = subprocess.run(
             ["bash", str(project / "scripts/update.sh"), "--platform", platform, "--dry-run", "--no-commit"],
             cwd=target, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         emit(
-            f"update-{platform}-dry-run-helper",
-            update_dry.returncode == 0 and "scripts/recommend-state.py" in update_dry.stdout and not helper_dest.exists(),
-            update_dry.stdout + update_dry.stderr,
-        )
-        emit(
-            f"update-{platform}-dry-run-state-doc",
+            f"update-{platform}-dry-run-lists-stale",
             update_dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in update_dry.stdout
-            and not state_doc_dest.exists(),
+            and f"\U0001f5d1  {helper_rel}\n" in update_dry.stdout
+            and f"\U0001f5d1  {state_doc_rel}\n" in update_dry.stdout
+            and helper_dest.is_file()
+            and state_doc_dest.is_file(),
             update_dry.stdout + update_dry.stderr,
         )
         updated = subprocess.run(
             ["bash", str(project / "scripts/update.sh"), "--platform", platform, "--no-commit"],
             cwd=target, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
-        invoked = command([sys.executable, str(helper_dest), "--help"], cwd=target, check=False) if helper_dest.exists() else updated
+        recorded = manifest_paths(manifest)
         emit(
-            f"update-{platform}-restores-helper",
-            updated.returncode == 0 and helper_dest.is_file() and invoked.returncode == 0,
+            f"update-{platform}-removes-helper",
+            updated.returncode == 0
+            and not helper_dest.exists()
+            and helper_rel not in recorded
+            and f"Removed: {helper_rel}\n" in updated.stdout,
             updated.stdout + updated.stderr,
         )
         emit(
-            f"update-{platform}-restores-state-doc",
+            f"update-{platform}-removes-state-doc",
             updated.returncode == 0
-            and state_doc_dest.is_file()
-            and state_doc_dest.read_bytes() == (project / ".writ/docs/recommended-delivery-state-format.md").read_bytes(),
+            and not state_doc_dest.exists()
+            and state_doc_rel not in recorded
+            and f"Removed: {state_doc_rel}\n" in updated.stdout,
             updated.stdout + updated.stderr,
         )
 
         linked = workspace / f"unlink-{platform}"
         linked.mkdir()
-        platform_dir = linked / f".{platform if platform != 'claude' else 'claude'}"
+        platform_dir = linked / f".{platform}"
         platform_dir.mkdir()
         agent_source = project / ("codex/agents" if platform == "codex" else ("claude-code/agents" if platform == "claude" else "agents"))
         (platform_dir / "commands").symlink_to(project / "commands", target_is_directory=True)
         (platform_dir / "agents").symlink_to(agent_source, target_is_directory=True)
         (linked / "scripts").mkdir()
-        (linked / "scripts/recommend-state.py").symlink_to(helper)
-        (linked / ".writ/docs").mkdir(parents=True)
-        linked_state_doc = linked / ".writ/docs/recommended-delivery-state-format.md"
-        linked_state_doc.symlink_to(project / ".writ/docs/recommended-delivery-state-format.md")
+        linked_helper = linked / helper_rel
+        linked_helper.symlink_to(helper)
         if platform == "cursor":
             (platform_dir / "rules").mkdir()
             (platform_dir / "rules/writ.mdc").symlink_to(project / "cursor/writ.mdc")
             (platform_dir / "system-instructions.md").symlink_to(project / "system-instructions.md")
         elif platform == "claude":
             (linked / "CLAUDE.md").symlink_to(project / "claude-code/CLAUDE.md")
-        manifest = platform_dir / ".writ-manifest"
-        write(manifest, f"# mode: link\n# platform: {platform}\n# version: fixture\n# link_target: {project}\n")
-        unlink_dry = command(
-            ["bash", str(project / "scripts/unlink.sh"), "--platform", platform, "--dry-run", "--no-commit"],
-            cwd=linked, check=False,
-        )
-        emit(
-            f"unlink-{platform}-dry-run-helper",
-            unlink_dry.returncode == 0 and "scripts/recommend-state.py" in unlink_dry.stdout and (linked / "scripts/recommend-state.py").is_symlink(),
-            unlink_dry.stdout + unlink_dry.stderr,
-        )
-        emit(
-            f"unlink-{platform}-dry-run-state-doc",
-            unlink_dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in unlink_dry.stdout
-            and linked_state_doc.is_symlink(),
-            unlink_dry.stdout + unlink_dry.stderr,
-        )
+        linked_manifest = platform_dir / ".writ-manifest"
+        write(linked_manifest, f"# mode: link\n# platform: {platform}\n# version: fixture\n# link_target: {project}\n")
         unlinked = command(
             ["bash", str(project / "scripts/unlink.sh"), "--platform", platform, "--no-commit"],
             cwd=linked, check=False,
         )
-        unlinked_helper = linked / "scripts/recommend-state.py"
-        invoked = command([sys.executable, str(unlinked_helper), "--help"], cwd=linked, check=False) if unlinked_helper.exists() else unlinked
         emit(
-            f"unlink-{platform}-copies-helper",
-            unlinked.returncode == 0 and unlinked_helper.is_file() and not unlinked_helper.is_symlink() and invoked.returncode == 0,
-            unlinked.stdout + unlinked.stderr,
-        )
-        emit(
-            f"unlink-{platform}-copies-state-doc",
-            unlinked.returncode == 0 and linked_state_doc.is_file() and not linked_state_doc.is_symlink(),
+            f"unlink-{platform}-skips-helper",
+            unlinked.returncode == 0
+            and "recommend-state.py" not in unlinked.stdout
+            and linked_helper.is_symlink()
+            and os.readlink(linked_helper) == str(helper)
+            and not (platform_dir / "commands").is_symlink()
+            and helper_rel not in manifest_paths(linked_manifest),
             unlinked.stdout + unlinked.stderr,
         )
 finally:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard tests for Stories 1, 2, and 3 of `2026-10-20-harness-cuts`.
+"""Guard tests for Stories 1 to 4 of `2026-10-20-harness-cuts`.
 
 The lean command siblings, the install/update logic that skipped them,
 every lean code path in `scripts/`, and the ADR-025 no-op emit lines are
@@ -25,12 +25,17 @@ back:
   keeps their iteration pins;
 - `commands/ship.md` says it opens a PR, did not grow, and the recorded
   overages of the files this story shrank fell.
+- `recommend-state.py` and the recommended-delivery state doc are dev-only:
+  drift-triage has no recommended-mode branch, shipped docs name the script
+  only as dev-only, `SKILL.md` no longer says install manages the state doc,
+  and the eval lifecycle scenarios assert absence, removal, and an untouched
+  unlink symlink.
 
 This file and `test_install_update_harness_cuts.sh` are excluded from the
 guard grep, so only they may name the old variable and the lean suffix.
 
 Each test cites the acceptance criterion it covers (AC-1.1, AC-1.5, AC-2.1,
-AC-2.2, AC-2.4, AC-2.5, AC-3.1, AC-3.2, AC-3.3, AC-3.4).
+AC-2.2, AC-2.4, AC-2.5, AC-3.1, AC-3.2, AC-3.3, AC-3.4, AC-4.4, AC-4.5).
 """
 
 from __future__ import annotations
@@ -625,6 +630,182 @@ class OverageLedgerFellTest(unittest.TestCase):
                 match = re.search(LEDGER_LINE % OVERAGE_BEFORE[rel], self.comments_above_entry(rel))
                 self.assertIsNotNone(match, "no dated ledger line above %s" % rel)
                 self.assertLess(int(match.group(1)), OVERAGE_BEFORE[rel])
+
+
+# Story 4 of 2026-10-20-harness-cuts: recommended-delivery staging is dev-only.
+# The ship filters and install/update behavior are tested in
+# test_install_update_harness_cuts.sh; these tests cover the prose and the
+# eval check.
+
+DRIFT_TRIAGE = "skills/drift-triage/SKILL.md"
+AGENT_CLI_CONTRACT = ".writ/docs/agent-cli-contract.md"
+AC_IDS_DOC = ".writ/docs/acceptance-criteria-ids.md"
+UPDATE_WRIT = "commands/update-writ.md"
+ROOT_SKILL = "SKILL.md"
+GEN_SKILL = "scripts/gen-skill.sh"
+STAGING_HELPER = "recommend-state.py"
+STATE_DOC_NAME = "recommended-delivery-state-format.md"
+
+SMALL_ROUTE_AMEND = ("Auto-amend **only** `spec-lite.md` and append **one unique `DEV-NNN`"
+                     " entry** to `drift-log.md`.")
+# Text the drift-triage skill carried only for recommended mode, lower case.
+RECOMMENDED_BRANCH_TEXT = ("recommended mode", "sha-256", "recommend-state",
+                           "recommend-spec-lite-review", "never batch")
+
+# Lifecycle scenario names in check_recommended_spec_implementation, as the
+# f-strings in its three-platform loop spell them.
+LIFECYCLE_NOW = (
+    "install-{platform}-dry-run-names-neither",
+    "install-{platform}-omits-helper",
+    "install-{platform}-omits-state-doc",
+    "update-{platform}-dry-run-lists-stale",
+    "update-{platform}-removes-helper",
+    "update-{platform}-removes-state-doc",
+    "unlink-{platform}-skips-helper",
+)
+LIFECYCLE_BEFORE = (
+    "install-{platform}-dry-run-helper",
+    "install-{platform}-dry-run-state-doc",
+    "install-{platform}-helper-executable",
+    "install-{platform}-state-doc",
+    "update-{platform}-dry-run-helper",
+    "update-{platform}-dry-run-state-doc",
+    "update-{platform}-restores-helper",
+    "update-{platform}-restores-state-doc",
+    "unlink-{platform}-dry-run-helper",
+    "unlink-{platform}-dry-run-state-doc",
+    "unlink-{platform}-copies-helper",
+    "unlink-{platform}-copies-state-doc",
+)
+# A sample of the reducer and static scenario names the check emitted before
+# Story 4. The full before/after name comparison is in the story record.
+REDUCER_SAMPLE = ("complete-package-validates", "append-only-log-advances",
+                  "parallel-worktrees-reserved-adopted-integrated",
+                  "operational-exception-is-blocked-json")
+STATIC_SAMPLE = ("create-fail-before-mutation", "state-json-parses",
+                 "worktree-state-identity")
+
+
+def flat(text: str) -> str:
+    """`text` with every run of whitespace collapsed to one space."""
+    return " ".join(text.split())
+
+
+def between(text: str, start: str, end: str) -> str:
+    begin = text.index(start)
+    return text[begin:text.index(end, begin + len(start))]
+
+
+class DriftTriageHasNoRecommendedBranchTest(unittest.TestCase):
+    """AC-4.4: the Small route amends spec-lite.md and logs one DEV entry,
+    with no recommended-mode branch and no pre-edit SHA-256 capture."""
+
+    def test_ac_4_4_small_route_amends_spec_lite_and_logs_one_entry(self):
+        small = flat(between(read(DRIFT_TRIAGE), "### Small", "### Medium"))
+        self.assertIn(SMALL_ROUTE_AMEND, small)
+        self.assertIn("Continue **PASS**.", small)
+        self.assertIn("**Always** include the spec-lite changes in the run summary.", small)
+
+    def test_ac_4_4_skill_has_no_recommended_mode_text(self):
+        text = read(DRIFT_TRIAGE).lower()
+        found = [needle for needle in RECOMMENDED_BRANCH_TEXT if needle in text]
+        self.assertEqual(found, [], "%s still carries: %s" % (DRIFT_TRIAGE, found))
+
+
+class StagingIsNamedDevOnlyTest(unittest.TestCase):
+    """AC-4.4: shipped docs name recommend-state.py only as a dev-only,
+    source-repo script, and SKILL.md says the state doc is not installed."""
+
+    def test_ac_4_4_agent_cli_contract_names_it_only_in_the_dev_only_note(self):
+        lines = [line for line in read(AGENT_CLI_CONTRACT).splitlines() if STAGING_HELPER in line]
+        self.assertEqual(len(lines), 1, "%s names %s outside the dev-only note: %s"
+                         % (AGENT_CLI_CONTRACT, STAGING_HELPER, lines))
+        self.assertTrue(lines[0].startswith("**Not in the table.**"), lines[0])
+        self.assertIn("Six dev-only scripts", lines[0])
+        self.assertIn("ADR-013", lines[0])
+
+    def test_ac_4_4_acceptance_criteria_ids_names_a_dev_only_parser(self):
+        text = read(AC_IDS_DOC)
+        self.assertNotIn("scripts/" + STAGING_HELPER, text)
+        why = flat(between(text, "### Why suffix, not prefix", "## The Tag Is End-Anchored"))
+        self.assertIn(STAGING_HELPER, why)
+        self.assertIn("dev-only", why)
+        self.assertIn("not installed", why)
+        self.assertIn("| `recommend-state.py:378` |", why)
+
+    def test_ac_4_4_update_writ_step3_names_both_exclusions(self):
+        text = read(UPDATE_WRIT)
+        scripts = between(text, "**Apply same logic to runtime scripts**",
+                          "**Apply same logic to Writ reference docs**")
+        self.assertIn("`%s`" % STAGING_HELPER, scripts)
+        docs = between(text, "**Apply same logic to Writ reference docs**",
+                       "**Apply same logic to platform-specific files:**")
+        self.assertIn("`%s`" % STATE_DOC_NAME, docs)
+        stale = next(line for line in text.splitlines() if line.startswith("**Detect stale files:**"))
+        self.assertIn("docs the docs filter excludes", stale)
+
+    def test_ac_4_4_skill_md_says_the_state_doc_is_not_installed(self):
+        for rel in (ROOT_SKILL, GEN_SKILL):
+            with self.subTest(file=rel):
+                section = flat(between(read(rel), "## Runtime Contract", "## Available Commands"))
+                self.assertNotIn("manage this file", section)
+                self.assertNotRegex(section, r"(?i)install, update, and unlink")
+                self.assertIn("ADR-013", section)
+                self.assertIn("not installed", section)
+
+    def test_ac_4_4_gen_skill_check_passes(self):
+        proc = subprocess.run(["bash", GEN_SKILL, "--check"], cwd=REPO_ROOT,
+                              capture_output=True, text=True)
+        self.assertEqual(proc.stdout.splitlines()[:1], ["pass"], proc.stdout + proc.stderr)
+        self.assertEqual(proc.returncode, 0)
+
+
+class EvalLifecycleScenariosInvertedTest(unittest.TestCase):
+    """AC-4.5: check_recommended_spec_implementation keeps its reducer and
+    static scenarios and its three-platform loop, and its lifecycle scenarios
+    now assert absence on install, removal on update, and an untouched helper
+    symlink on unlink. `bash scripts/eval.sh` runs them."""
+
+    def body(self) -> str:
+        # Its embedded Python has lines that are exactly `}`, so
+        # shell_function_body would stop early; cut at the next function.
+        return between(read("scripts/eval.sh"), "\ncheck_recommended_spec_implementation() {\n",
+                       "\ncheck_recommended_staging() {\n")
+
+    def test_ac_4_5_lifecycle_scenarios_run_on_three_platforms(self):
+        body = self.body()
+        self.assertTrue('for platform in ("cursor", "claude", "codex"):' in body,
+                        "the lifecycle loop no longer covers cursor, claude, and codex")
+        for name in LIFECYCLE_NOW:
+            with self.subTest(scenario=name):
+                self.assertTrue('f"%s"' % name in body, "no %s scenario" % name)
+
+    def test_ac_4_5_shipping_scenarios_are_gone(self):
+        body = self.body()
+        for name in LIFECYCLE_BEFORE:
+            with self.subTest(scenario=name):
+                self.assertFalse('f"%s"' % name in body, "%s still emitted" % name)
+
+    def test_ac_4_5_lifecycle_reads_each_platform_manifest(self):
+        body = self.body()
+        self.assertTrue('manifest = target / f".{platform}/.writ-manifest"' in body,
+                        "the lifecycle scenarios do not read the platform manifest")
+        self.assertFalse("helper_dest.unlink()" in body,
+                         "the lifecycle scenarios still delete an installed helper")
+
+    def test_ac_4_5_reducer_static_and_adversarial_scenarios_still_run(self):
+        body = self.body()
+        for name in REDUCER_SAMPLE + STATIC_SAMPLE:
+            with self.subTest(scenario=name):
+                self.assertTrue('"%s"' % name in body, "no %s scenario" % name)
+        self.assertTrue("scripts/eval-recommend-state-adversarial.py" in body,
+                        "the adversarial scenarios no longer run")
+        staging = shell_function_body(read("scripts/eval.sh"), "check_recommended_staging")
+        self.assertTrue("scripts/eval-recommend-stage.py" in staging,
+                        "check_recommended_staging no longer runs eval-recommend-stage.py")
+        checks = read("scripts/eval.sh")
+        for name in ("recommended-spec-implementation", "recommended-staging"):
+            self.assertRegex(checks, r"(?m)^  %s$" % re.escape(name))
 
 
 if __name__ == "__main__":

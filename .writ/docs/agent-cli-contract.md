@@ -40,7 +40,7 @@ Bad arguments (an unknown flag, a missing required option) are a usage error.
 
 - Exit non-zero. Print usage on stderr. Leave stdout empty.
 - argparse's default behavior (exit 2, usage on stderr) already conforms.
-- A script may print a single JSON blocker object on stdout instead of leaving it empty. `recommend-state.py` does this.
+- A script may print a single JSON blocker object on stdout instead of leaving it empty.
 - Shell scripts: exit non-zero and print usage on stderr.
 
 This matches pstack's `orch`, which prints help on stderr and exits non-zero. A usage error never needs a structured payload.
@@ -109,7 +109,6 @@ These steps apply in the Writ source repo.
 | `lint-skill.sh` | check |  | commands/new-skill.md, commands/refresh-command.md, commands/update-writ.md |
 | `phase-state.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/status.md, commands/revert.md, commands/knowledge.md, adapters/claude-code.md |
 | `quality-config-audit.py` | data |  | commands/initialize.md, commands/status.md |
-| `recommend-state.py` | data |  | skills/drift-triage/SKILL.md |
 | `resolve-spec-reference.py` | data |  | commands/release.md, commands/ship.md |
 | `revert-resolve.py` | data |  | commands/revert.md, commands/implement-story.md |
 | `review-override.py` | check |  | commands/implement-story.md |
@@ -124,7 +123,7 @@ These steps apply in the Writ source repo.
 | `test-integrity.py` | data |  | commands/implement-story.md, agents/testing-agent.md, commands/status.md |
 | `verdict-provenance.py` | check |  | commands/implement-story.md |
 
-**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Five dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, and `spawn-cap.py`. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install.
+**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install.
 
 ### Notes
 
@@ -135,4 +134,3 @@ The Callers column names the main callers and is not complete. Before you change
 - `app-verify.py` — check. `touched` prints one `feature: <id>` line per matched feature between the verdict and the summary. A refused run prints `unverifiable` on line 1 and keeps `refused` in its summary and JSON. With `--json`, the verdict lines print as usual and one JSON object follows the summary as the last line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
 - `review-panel.py` — check. A panel word that is not a verdict is the first `reason:` line: `tally` prints `fail` then `reason: block` on a consensus finding (exit 1), and `trial-report` prints `pass` then `reason: keep` or `reason: remove`. With `--json`, the object's `verdict` holds the panel word.
-- `recommend-state.py` — data. Its `urllib.parse` import splits URLs and is not a network call. On a bad flag it prints a JSON blocker on stdout, which the usage-error rule allows.

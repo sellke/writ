@@ -59,6 +59,10 @@ filter_body() {
   sed -n '/^is_shippable_script() {/,/^}/p' "$1"
 }
 
+doc_filter_body() {
+  sed -n '/^is_shippable_writ_doc() {/,/^}/p' "$1"
+}
+
 commit_src() {
   git -C "$1" -c user.name=t -c user.email=t@example.invalid add -A
   git -C "$1" -c user.name=t -c user.email=t@example.invalid commit -q -m "$2"
@@ -83,10 +87,13 @@ for p in $USER_PATHS_BEFORE $USER_PATHS_AFTER; do
 done
 [ ! -e "$SRC/claude-code/agents/my-agent.md" ] || fail "fixture: agents/my-agent.md is shipped upstream"
 
-# The ship filter, loaded from update.sh, so the expected set below is
+# The ship filters, loaded from update.sh, so the expected set below is
 # computed from $SRC without update.sh's own manifest walk.
 body=$(filter_body "$SRC/scripts/update.sh")
 [ -n "$body" ] || fail "cannot load is_shippable_script from update.sh"
+eval "$body"
+body=$(doc_filter_body "$SRC/scripts/update.sh")
+[ -n "$body" ] || fail "cannot load is_shippable_writ_doc from update.sh"
 eval "$body"
 
 # ----- helpers -----
@@ -212,7 +219,7 @@ hash_files() {
 
 # Print "<source file> <manifest path>" for every path the platform ships,
 # computed from $SRC: top-level scripts the ship filter accepts,
-# .writ/docs/*.md, commands/*.md, agents by the platform's glob,
+# .writ/docs/*.md the docs filter accepts, commands/*.md, agents by the platform's glob,
 # skills/*/SKILL.md, and the platform units.
 shipped_sources() {
   local platform="$1" f name agents_src agent_glob
@@ -229,6 +236,7 @@ shipped_sources() {
   done
   for f in "$SRC"/.writ/docs/*.md; do
     [ -f "$f" ] || continue
+    is_shippable_writ_doc "$(basename "$f")" || continue
     printf '%s .writ/docs/%s\n' "$f" "$(basename "$f")"
   done
   for f in "$SRC"/commands/*.md "$SRC/$agents_src"/$agent_glob; do

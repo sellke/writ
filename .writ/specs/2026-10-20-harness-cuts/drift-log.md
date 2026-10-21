@@ -69,3 +69,28 @@
 - **Reason:** The deleted `test_measure_invocation_lean.py` held bare `AC-1.3`/`AC-1.4` tokens that `ac-trace.py` credited to that spec; without new citations eval reports 3 `untested_criterion` findings (Business Rule 11). The AC-1.4 test is a structural check of CI wiring, not proof that the suites pass.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md S2 Files in Scope line records the two citations.
+
+---
+
+## Story 4: Make Recommended-Delivery Staging Dev-Only — Drift Report
+
+> Run: 2026-10-21
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-007] AC-4.4 and AC-4.5 tests added to `test_harness_cuts.py`
+- **Severity:** Small
+- **Spec said:** Task 4.1 puts the Story 4 tests in `test_install_update_harness_cuts.sh`, `test_agent_cli_contract_doc.py`, and the eval lifecycle scenarios.
+- **Implementation did:** Added 11 tests to `test_harness_cuts.py`: 7 for the AC-4.4 prose and `gen-skill.sh --check`, and 4 structural checks of the AC-4.5 lifecycle scenarios in the eval source.
+- **Reason:** `ac-trace.py` needs a test-file citation for AC-4.5, whose pass evidence is the `eval.sh` run (eval.sh is not test-shaped). Same class as DEV-004.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S4 Files in Scope line names the new tests and says AC-4.5's pass evidence is the eval run.
+
+#### [DEV-008] `test_manifest_shipped_baselines.sh` applies the new doc filter
+- **Severity:** Small
+- **Spec said:** The Story 4 inventory does not list this test.
+- **Implementation did:** Its shipped-set builder loads `is_shippable_writ_doc` from `update.sh` and skips the docs it rejects.
+- **Reason:** Its expected set listed every source `.writ/docs/*.md`; once install stops recording the state doc the test would fail (Business Rule 11). Same class as DEV-002.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S4 Files in Scope line adds the test.
