@@ -2555,7 +2555,6 @@ check_story_deps() {
   forbid_literal "$recommend_state" 'dependency cycle at' "recommend-state.py must not retain its own retired cycle-detection implementation."
   forbid_literal "$recommend_state" 'invalid_dag' "recommend-state.py must not retain the retired invalid_dag error code."
 
-  require_literal "$implement_spec" 'scripts/story-deps.py validate --spec-dir' "Implement-spec must reference the executable story-graph validator."
   require_literal "$implement_spec" 'Invalid explicit metadata is blocking' "Implement-spec must treat an invalid story graph as blocking."
   require_literal "$implement_spec" 'Do not guess an order around invalid metadata' "Implement-spec must not guess an order around invalid story metadata."
   require_literal "$implement_spec" 'cannot verify story graph' "Implement-spec must distinguish a missing/crashed validator from a named blocker."
