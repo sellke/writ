@@ -1,6 +1,7 @@
 # Story 1: Generate the CLAUDE.md Template from the Manifest
 
 > **Status:** Completed ✅
+> **Commit:** 98b773da449e81698863d20a96f92ccf8971465c
 > **Priority:** High
 > **Dependencies:** None
 
