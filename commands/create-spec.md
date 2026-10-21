@@ -10,7 +10,7 @@ exit_criteria:
   - "spec-lite.md is under 100 lines"
 ---
 
-# Enhanced Create Spec Command (create-spec)
+# Create Spec Command (create-spec)
 
 ## Overview
 
@@ -426,7 +426,7 @@ Owner value: prefix `@`, strip spaces, and do not consult any external user dire
   - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when the spec has no cross-spec dependency.
   - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid dependency identifiers.
   - This spec-level `Dependencies` header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
-  - **Canonical complete-family spelling (forward-only):** when a spec is later marked done, its status line becomes `> **Status:** Complete` — bold, unadorned, no emoji suffix required. This is the only spelling `create-spec` itself ever writes for the complete state. Detection (`scripts/spec-status.py`) remains tolerant of legacy spellings already present in existing files (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`) — this note governs new specs only, per Business Rule 8. Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
+  - **Canonical complete-family spelling (forward-only):** when a spec is later marked done, its status line becomes `> **Status:** Complete` — bold, unadorned, no emoji suffix required. This is the only spelling `create-spec` itself ever writes for the complete state. Detection (`scripts/spec-status.py`) remains tolerant of legacy spellings already present in existing files (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`). Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
   - **Supersession banners:** if the locked contract declares that this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on without full replacement) as a markdown link to the prior spec — link text is the prior spec's folder name, link target its relative `spec.md` path (e.g. field `Amends:`, link text `2026-07-11-leanness-guardian`, target `../2026-07-11-leanness-guardian/spec.md`). See Step 2.4b below for the required reverse-pointer write-back, and [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners) for the full convention.
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
@@ -444,7 +444,7 @@ Invoke the reference implementation rather than hand-editing headers:
 python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md
 ```
 
-This performs, in one step: parsing every markdown link target on the `Amends:`/`Extends:` line (a line may reference more than one target — e.g. a spec **and** an ADR, as in `2026-07-26-leanness-instrumentation`'s `Amends:` line); resolving each against the new spec's own folder; writing a `Superseded by:` line — link text the new spec's folder name, target its relative `spec.md` path — into each resolvable target's header metadata block (inserted if absent, updated in place if already present — never duplicated); and leaving every other line — including the target's own `> **Status:**` line — untouched.
+This performs, in one step: parsing every markdown link target on the `Amends:`/`Extends:` line (a line may reference more than one target — e.g. a spec **and** an ADR); resolving each against the new spec's own folder; writing a `Superseded by:` line — link text the new spec's folder name, target its relative `spec.md` path — into each resolvable target's header metadata block (inserted if absent, updated in place if already present — never duplicated); and leaving every other line — including the target's own `> **Status:**` line — untouched.
 
 Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` file (e.g. an ADR link) are reported under `skipped_other` — forward-only, no reverse pointer is attempted. A broken relative path or missing target spec is reported under `broken`, never raised as a hard failure: **this step never blocks or fails spec package creation** — proceed to Step 2.5 regardless of the write-back outcome, surfacing any `broken` entries to the user as an informational note.
 
@@ -598,7 +598,7 @@ Launch parallel Task subagents to create all story files simultaneously. Referen
 
 For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, **and full specification content for context hint generation**.
 
-**Context hint generation (new):** Pass these additional parameters to each user-story-generator agent:
+**Context hint generation:** Pass these additional parameters to each user-story-generator agent:
 - `spec_content` — full text of `spec.md` (read from `.writ/specs/{spec-folder}/spec.md`)
 - `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise pass empty string `""` and state that hints should reference `spec.md` sections directly
 
@@ -616,9 +616,9 @@ After **all** generators return, and before Step 2.6b (which reads each story's 
 
 1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder because no story is Completed yet (`untested_criterion` cannot fire) and a repo-wide test scan would misattribute other specs' `dangling_reference`s to these story numbers — `/verify-spec` keeps `--repo .` because it needs that scan.
 2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
-3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9 exactly as today. A passing story is never regenerated.
+3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9. A passing story is never regenerated.
 
-Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file is today's error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
+Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file follows the normal error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 
@@ -644,9 +644,7 @@ the gap in Step 2.9's final package review. Do not guess.
 #### Step 2.6c: Spec analysis (advisory)
 
 After stories exist and Step 2.6a has validated IDs, run one analysis pass. This is
-**not** Step 2.6 (generation) and does **not** replace 2.6a (`ac-trace.py`). Goal
-Card Stage 3 said “Step 2.6”; the locked Stage 3 contract relocates the invoke to
-after stories exist. Run this step **once** per `/create-spec` — do not loop.
+**not** Step 2.6 (generation) and does **not** replace 2.6a (`ac-trace.py`). Run this step **once** per `/create-spec` — do not loop.
 
 **Jev first (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, run
 `python3 scripts/jev-judge.py spec-findings --spec .writ/specs/<folder> --out .writ/state/spec-analyze-<run>.json`,

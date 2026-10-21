@@ -597,11 +597,12 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 29304 -> 28733; Step 2.6a no-op emit removed.
     # 2026-10-21 (2026-10-20-platform-neutral-names Story 2): 28733 -> 28738; Step 1.5 names `/writ-design`.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 28738 -> 28652; ADR link removed.
-    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 3): 28652 -> 21356; cut the
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 3): 28652 -> 21100; cut the
     # discovery coaching (topic questions, pushback phrasing, Plan Mode rationale,
-    # duplicated framing in the --from-prototype and --from-issue flows). Each cut
-    # removed coaching, not a byte goal; cut-log.md lists every change.
-    "commands/create-spec.md": 21356,
+    # duplicated framing in the --from-prototype and --from-issue flows) and Writ's
+    # own history and internal labels. Each cut removed coaching, not a byte goal;
+    # cut-log.md lists every change.
+    "commands/create-spec.md": 21100,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
