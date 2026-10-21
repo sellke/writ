@@ -1,6 +1,7 @@
 # Story 4: Make Recommended-Delivery Staging Dev-Only
 
 > **Status:** Completed ✅
+> **Commit:** fff25824f72f67ef4a53e7c5ae8cd11b4c69a5ba
 > **Priority:** High
 > **Dependencies:** Story 2
 
