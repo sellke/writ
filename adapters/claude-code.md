@@ -1,6 +1,6 @@
 # Claude Code Platform Adapter
 
-Native integration with Claude Code's subagent system, git worktrees, agent teams, and hooks. Writ agents are `.claude/agents/` markdown files with YAML frontmatter; no shell scripting is needed.
+Native integration with Claude Code's subagent system, git worktrees, and hooks. Writ agents are `.claude/agents/` markdown files with YAML frontmatter; no shell scripting is needed.
 
 ---
 
@@ -12,7 +12,7 @@ Native integration with Claude Code's subagent system, git worktrees, agent team
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude
 ```
 
-This installs all commands, Claude Code–native agents (with YAML frontmatter), and `CLAUDE.md` into your project. Preview first with `--dry-run`. Update later with:
+This installs all commands, Claude Code–native agents (with YAML frontmatter), and `.claude/system-instructions.md` into your project, and adds the Writ block to `CLAUDE.md` between `<!-- writ:start -->` and `<!-- writ:end -->` markers. Your own text outside the markers is kept. Preview first with `--dry-run`. Update later with:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update.sh) --platform claude
@@ -24,14 +24,20 @@ The updater uses a manifest (`.claude/.writ-manifest`) for three-way overlay mer
 
 If you prefer to install manually, or need to customize the setup:
 
-#### Step 1: Copy files
+#### Step 1: Copy files and add the Writ block
 
 ```bash
 mkdir -p .claude/agents .claude/commands .writ/state
 cp path/to/writ/commands/*.md .claude/commands/
 cp path/to/writ/claude-code/agents/*.md .claude/agents/
-cp path/to/writ/claude-code/CLAUDE.md ./CLAUDE.md
+[ -s CLAUDE.md ] && [ -n "$(tail -c 1 CLAUDE.md)" ] && printf '\n' >> CLAUDE.md   # end the file with a newline first
+{ printf '%s\n' '<!-- writ:start -->'; cat path/to/writ/claude-code/CLAUDE.md; printf '%s\n' '<!-- writ:end -->'; } >> CLAUDE.md
+cp path/to/writ/system-instructions.md .claude/system-instructions.md
 ```
+
+Run these lines on a first install only. They append the Writ template to `CLAUDE.md` between the markers and leave your own text in place; a missing `CLAUDE.md` is created. A manual install writes no manifest, so there is no recorded baseline for the block. A later `install.sh` or `update.sh` run therefore keeps the block whenever it differs from the current template and reports it as locally modified, even if you edited nothing. `--force` replaces only the block in `CLAUDE.md`, but it also overwrites every other Writ file that differs from upstream, customized or not. Neither script changes text outside the markers. `install.sh --platform claude` does all of Step 1 for you and writes the manifest.
+
+`CLAUDE.md` imports `.claude/system-instructions.md` with the line `@.claude/system-instructions.md`, and Claude Code asks once to approve an import that resolves outside the working directory.
 
 Agent source files live in `claude-code/agents/` in the Writ repo. They carry YAML frontmatter (`name`, `tools`, `model`, `permissionMode`, `isolation`, `maxTurns`, `memory`). `scripts/gen-claude-agents.py` generates every one of them from the canonical `agents/*.md` file plus a Claude frontmatter overlay; do not hand-edit them. After changing `agents/<stem>.md`, run `python3 scripts/gen-claude-agents.py`. `bash scripts/eval.sh` and `bash scripts/check-agent-parity.sh` fail when a generated file is stale, missing, orphaned, or has no overlay entry.
 
@@ -63,8 +69,9 @@ EOF
 
 ```
 your-project/
-├── CLAUDE.md                          # Auto-loaded every session
+├── CLAUDE.md                          # Auto-loaded every session; Writ block between markers
 ├── .claude/
+│   ├── system-instructions.md         # Writ root contract, imported by CLAUDE.md
 │   ├── agents/                        # Native subagent definitions
 │   │   ├── writ-architect.md          # isolation: worktree, plan mode
 │   │   ├── writ-coder.md             # isolation: worktree, acceptEdits
@@ -96,17 +103,19 @@ your-project/
 ### Git Worktree Isolation (`isolation: worktree`)
 
 When a subagent has `isolation: worktree`, Claude Code:
-1. Creates a temporary git worktree (isolated copy of the repo)
-2. Runs the subagent in that worktree (no file conflicts with other agents)
-3. Merges changes back when the subagent completes
-4. Auto-cleans the worktree if no changes were made
+1. Creates a temporary git worktree for it. The worktree branches from the repository's default branch unless `worktree.baseRef` is `"head"`, which branches from your current local `HEAD`.
+2. Runs the subagent in that worktree, so parallel agents do not edit the same files.
+3. Removes the worktree when the subagent finishes with no changes.
+4. Otherwise, the worktree stays on disk holding the changes until a periodic sweep can remove it without losing work. Nothing copies the changes into your checkout.
+
+The orchestrator reconciles those changes by following the [worktree integration skill](../skills/subagent-worktree-integration/SKILL.md): diff the worktree against its own checkout, copy the changed files, re-verify in its own checkout, then remove the worktree. Source: [Claude Code worktrees docs](https://code.claude.com/docs/en/worktrees), § Isolate subagents with worktrees.
 
 **Writ agents using worktrees:**
 - `writ-architect` — reads codebase without interfering
 - `writ-coder` — implements in isolation, no conflicts with parallel stories
 - `writ-story-gen` — generates story files in parallel without conflicts
 
-**`/implement-story --all`:** stories run simultaneously in separate worktrees. Each coder gets its own branch and worktree, and changes merge back. No file locking, no conflicts on shared files.
+**Parallel stories:** `/implement-spec` runs independent stories in parallel batches, and each `/implement-story` reconciles its agents' worktrees per the skill before it trusts their output.
 
 ### Persistent Memory (`memory: project`)
 
@@ -317,31 +326,6 @@ Default `/implement-story` is `writ-coder` + `writ-evaluator` plus scripts. The 
 
 Manual and scripted installs copy `commands/_preamble.md` into `.claude/commands/` with the rest of the command files. Claude Code loads the invoked command markdown; the command's final `## References` section points the orchestrator at `_preamble.md` and `system-instructions.md`, No hook is needed.
 
-### implement-story --all: Agent Teams (Experimental)
-
-For full spec execution with inter-agent communication:
-
-```
-Enable agent teams:
-  CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-
-Create a team to implement the spec at .writ/specs/2026-02-22-feature/.
-Spawn teammates:
-  - Story 1 implementer (use writ-coder agent in worktree)
-  - Story 3 implementer (use writ-coder agent in worktree)
-  - Reviewer (use writ-reviewer agent, reviews stories as they complete)
-
-Stories 1 and 3 have no dependencies and can run in parallel.
-After both complete, the reviewer reviews them.
-Then spawn Story 2 (depends on 1) and Story 4 (depends on 3).
-```
-
-Agent teams provide:
-- Shared task list (stories become tasks)
-- Inter-agent messaging (reviewer can send feedback to coders)
-- Self-coordination (agents claim available tasks)
-- Plan approval (architect reviews before coders implement)
-
 ### create-spec: Parallel Story Generation
 
 ```
@@ -358,35 +342,48 @@ Use the writ-story-gen agent to create story-3-ui.md at [path].
   Context: [contract + requirements for story 3]
 
 # All run in parallel in separate worktrees
-# Changes merge back automatically
+# Each story file stays in its worktree until the orchestrator copies it back
 ```
+
+The orchestrator copies each story file back per the [worktree integration skill](../skills/subagent-worktree-integration/SKILL.md) before it reads or commits the file.
 
 ### Quality Gates with Hooks
 
-Use Claude Code hooks to enforce quality gates automatically:
+A `SubagentStop` hook runs when a subagent finishes. This one runs the checks when `writ-coder` stops:
 
 ```json
 // .claude/settings.json
 {
   "hooks": {
-    "SubagentCompleted": [
+    "SubagentStop": [
       {
-        "matcher": "writ-coder",
-        "hooks": [{
-          "type": "command",
-          "command": "cd $WORKTREE && npm test && npx tsc --noEmit"
-        }]
+        "matcher": "^writ-coder$",
+        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/writ-coder-checks.sh" }]
       }
     ]
   }
 }
 ```
 
-If tests fail after the coder completes, the hook returns exit code 2 and sends the coder back to fix.
+```bash
+#!/usr/bin/env bash
+# .claude/hooks/writ-coder-checks.sh: reads the hook input JSON on stdin.
+dir=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["cwd"])')
+cd "$dir" || exit 0
+npm test && npx tsc --noEmit && exit 0
+echo "Tests or typecheck failed. Fix them before you stop." >&2
+exit 2
+```
+
+Facts from the [Claude Code hooks docs](https://code.claude.com/docs/en/hooks) (§ SubagentStart, § SubagentStop):
+
+- The `SubagentStop` matcher is the agent type. For a custom subagent, that is its frontmatter `name`, so `^writ-coder$` matches only `writ-coder`.
+- Exit code 2 keeps the subagent running and gives it the stderr text.
+- The hook input JSON carries `cwd`. The docs do not say whether `cwd` is a worktree-isolated subagent's worktree, so the orchestrator re-runs the checks in its own checkout after it reconciles the worktree (step 4 of the [worktree integration skill](../skills/subagent-worktree-integration/SKILL.md)).
 
 ### The /goal Stop Hook
 
-Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentCompleted` example above, aimed at `scripts/exit-criteria.py check`. See `.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the case against treating `/goal` itself as the mechanism.
+Claude Code's `/goal <condition>` registers a session-scoped prompt-type Stop hook: on every stop attempt an evaluator judges the condition met / not-met+reason / impossible+reason, and not-met forces the run to continue. It is the same native hook mechanism as the `SubagentStop` example above, aimed at `scripts/exit-criteria.py check`. See `.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/spec.md` § "What `/goal` showed, and why it is not the answer" for the case against treating `/goal` itself as the mechanism.
 
 **The checker is the authority; `/goal` is only the delivery vehicle.** Story 5's command wiring makes `exit-criteria.py check` the independent, read-only re-derivation that `implement-phase` and `implement-spec` defer to in their completion steps. The `/goal` condition below likewise asks the checker and relays the verdict without restating or reinterpreting it. Never write a `/goal` condition that encodes its own pass/fail logic.
 
@@ -542,17 +539,15 @@ When a Writ command uses a planning phase for discovery, the planning conversati
 
 ## Gotchas
 
-1. **Worktree merges can conflict**: If two parallel coders modify the same file, the merge will conflict. Design stories with minimal overlap. The dependency graph in `/implement-story` helps prevent this.
+1. **Stale worktrees can overwrite newer work**: By default a subagent worktree branches from the repository's default branch on the remote (usually `main`). It then lacks every commit on your current branch that is not on that branch, unpushed commits included, even ones made before the worktree was created. With `worktree.baseRef: "head"` it branches from your local `HEAD`, but it still lacks commits that land after it was created. Copying its files back as they are can overwrite that newer work in the orchestrator's checkout. Diff before you copy, and follow step 6 of the [worktree integration skill](../skills/subagent-worktree-integration/SKILL.md#6-recognize-and-resolve-a-stale-worktree).
 
-2. **Agent teams are experimental**: Enable with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. Known limitations around session resumption and shutdown. For production use, prefer sequential subagent delegation.
+2. **Memory bootstrapping**: Agent memory starts empty. First few runs will be less effective. Ask agents explicitly to "update your memory with patterns you discover."
 
-3. **Memory bootstrapping**: Agent memory starts empty. First few runs will be less effective. Ask agents explicitly to "update your memory with patterns you discover."
+3. **Haiku for story-gen is the floor, not a knob**: `writ-story-gen` carries `model: haiku` because it is a `floor` agent under ADR-024 (templated output the user reviews before lock). Do not change it to a fixed `model: sonnet` — the anchor is the ceiling, and a fixed `sonnet` exceeds a `haiku` origin (see the tier table above). If a generated story fails validation, `/create-spec` Step 2.6a already re-runs it once at `anchor` (`inherit`); that escalate-once path is the quality lever.
 
-4. **Haiku for story-gen is the floor, not a knob**: `writ-story-gen` carries `model: haiku` because it is a `floor` agent under ADR-024 (templated output the user reviews before lock). Do not change it to a fixed `model: sonnet` — the anchor is the ceiling, and a fixed `sonnet` exceeds a `haiku` origin (see the tier table above). If a generated story fails validation, `/create-spec` Step 2.6a already re-runs it once at `anchor` (`inherit`); that escalate-once path is the quality lever.
+4. **Subagents nest**: three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). `/goal` does not nest: see **Single-slot behavior** under *The /goal Stop Hook* above. Only the outermost running command may hold one.
 
-5. **Subagents nest**: three-deep nesting is observed in practice (`/implement-phase` → spec-runner → `/implement-story` → gate agents). `/goal` does not nest: see **Single-slot behavior** under *The /goal Stop Hook* above. Only the outermost running command may hold one.
-
-6. **Plan mode is read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer cannot modify files, even if prompted to.
+5. **Plan mode is read-only**: `permissionMode: plan` blocks all writes at the tool level. The architect and reviewer cannot modify files, even if prompted to.
 
 ## Model-specific
 

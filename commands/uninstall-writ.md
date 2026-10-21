@@ -96,7 +96,7 @@ Delete Writ-managed files. Run per-platform if "all" was selected.
 2. **Agents:** `rm [platform_dir]/agents/*.md` for Cursor/Claude Code, or `rm .codex/agents/*.toml` for Codex CLI
 3. **Platform-specific files:**
    - Cursor: `rm [platform_dir]/rules/writ.mdc [platform_dir]/system-instructions.md`
-   - Claude Code: `rm CLAUDE.md`
+   - Claude Code: `rm .claude/system-instructions.md`; in `CLAUDE.md`, remove only the Writ block, the `<!-- writ:start -->` line through the `<!-- writ:end -->` line, and keep every other byte (what `uninstall.sh --platform claude` does); delete `CLAUDE.md` only if nothing is left
    - Codex CLI: remove only the marker-bounded Writ block from `AGENTS.md`; prompt before removing `.codex/config.toml`; remove Writ-installed skills from `.agents/skills/`
 4. **Manifest:** `rm [platform_dir]/.writ-manifest`
 
@@ -107,6 +107,7 @@ Delete Writ-managed files. Run per-platform if "all" was selected.
 - `.gitignore` entries (harmless to leave)
 - Any non-`.md` files in commands/ or agents/ directories
 - The platform directory itself
+- Claude Code: content outside the `<!-- writ:start -->` / `<!-- writ:end -->` markers in `CLAUDE.md`, including blank lines next to the block
 - Codex CLI: user content outside the `<!-- writ:start -->` / `<!-- writ:end -->` markers in `AGENTS.md`; `.codex/config.toml` unless the user confirms removal
 
 ### Step 4: Git Commit

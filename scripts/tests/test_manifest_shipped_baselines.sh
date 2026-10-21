@@ -257,6 +257,7 @@ shipped_sources() {
       printf '%s system-instructions.md\n' "$SRC/system-instructions.md"
       ;;
     claude)
+      printf '%s system-instructions.md\n' "$SRC/system-instructions.md"
       printf '%s CLAUDE.md.writ-block\n' "$SRC/claude-code/CLAUDE.md"
       ;;
     codex)

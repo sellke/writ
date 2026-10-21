@@ -78,6 +78,7 @@ CHECKS=(
   drift-format
   codex-tomls
   claude-agents
+  claude-md
   spec-analyze
   jev-judge
   goal-emit
@@ -636,6 +637,7 @@ term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md 
 .writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
 .writ/docs/app-verification.md|/create-uat-plan|Project verification recipe /create-uat-plan Step 1.3 writes after confirmation; never shipped, absent in the Writ repo by design.
 .writ/state/app-verification-draft.md|/create-uat-plan|Scratch copy /create-uat-plan Step 1.3 validates before saving a drafted recipe.
+.claude/system-instructions.md|/update-writ|Copied into Claude Code projects by install.sh and /update-writ Step 3; this repo's .claude/ is a symlink tree without it.
 EOF
 }
 
@@ -4446,6 +4448,49 @@ check_claude_agents() {
   if [ "$rc" -eq 1 ] && [ "$reasons" -eq 0 ]; then
     add_finding "scripts/gen-claude-agents.py" "--check failed without a reason line." \
       "Run python3 scripts/gen-claude-agents.py --check and inspect its output."
+  fi
+}
+
+check_claude_md() {
+  # Story 1 of 2026-10-20-claude-code-parity: claude-code/CLAUDE.md must equal
+  # what scripts/gen-claude-md.py renders from the manifest. One add_finding per
+  # reason: line; unverifiable (a missing manifest) is a finding too.
+  local helper="$PROJECT_ROOT/scripts/gen-claude-md.py"
+  local remedy="Run python3 scripts/gen-claude-md.py and commit claude-code/CLAUDE.md."
+  local output rc=0 line verdict reasons=0
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/gen-claude-md.py" "CLAUDE.md template generator is missing." \
+      "Restore scripts/gen-claude-md.py, then run python3 scripts/gen-claude-md.py."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  verdict="${output%%$'\n'*}"
+  if { [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; } || ! [[ "$verdict" =~ ^(pass|fail|unverifiable)$ ]]; then
+    add_finding "scripts/gen-claude-md.py" "--check exited $rc without a verdict: ${output##*$'\n'}" \
+      "Fix the gen-claude-md.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: missing "*)
+        reasons=$((reasons + 1))
+        add_finding "claude-code/CLAUDE.md" \
+          "manifest command /${line#reason: missing } is missing from the Claude Code template." "$remedy"
+        ;;
+      "reason: "*)
+        reasons=$((reasons + 1))
+        add_finding "claude-code/CLAUDE.md" "gen-claude-md.py --check: ${line#reason: }" "$remedy"
+        ;;
+      gen-claude-md:*)
+        add_note "NOTE [claude-md]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$verdict" != "pass" ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-claude-md.py" "--check printed $verdict without a reason line." \
+      "Run python3 scripts/gen-claude-md.py --check and inspect its output."
   fi
 }
 

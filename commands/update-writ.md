@@ -63,7 +63,7 @@ cat .codex/.writ-manifest 2>/dev/null
 | Platform | Platform dir | Commands src | Agents src | Extra files |
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
-| `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` (project root) |
+| `claude` | `.claude` | `commands` | `claude-code/agents` | `.claude/system-instructions.md`, `CLAUDE.md` (project root) |
 | `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` baseline hash, `.agents/skills/` |
 
 ### Step 2: Fetch Latest Upstream
@@ -108,7 +108,7 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
 
 **Apply same logic to runtime scripts** (project-root `scripts/`; mirror `scripts/install.sh` / `scripts/update.sh`):
 
-Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, `recommend-state.py`; ADR-029), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
+Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, `recommend-state.py`; ADR-029), the dev-only Claude Code template generator (`gen-claude-md.py`), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
 
 **Apply same logic to Writ reference docs** (project-root `.writ/docs/*.md`):
 
@@ -116,7 +116,7 @@ Ship every upstream markdown doc under `.writ/docs/` except `recommended-deliver
 
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
-- Claude Code: `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
+- Claude Code: `.claude/system-instructions.md` (upstream source: `system-instructions.md`), `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
 - Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
 **Skills overlay:** folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).

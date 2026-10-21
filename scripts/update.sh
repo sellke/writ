@@ -333,6 +333,8 @@ EOF
   if [ "$PLATFORM" = "cursor" ]; then
     record_file_baseline "$target" "rules/writ.mdc" \
       "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
+  fi
+  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
     record_file_baseline "$target" "system-instructions.md" \
       "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
   fi
@@ -431,6 +433,21 @@ writ_file_ends_with_newline() {
   [ -s "$file" ] || return 0
   last_hex=$(tail -c 1 "$file" | od -An -t x1 | tr -d ' \n')
   [ "$last_hex" = "0a" ]
+}
+
+# writ_block_inner_has_line FILE LINE — returns 0 when a line between the
+# markers equals LINE once its trailing "\r" is stripped. Keep synced with
+# install.sh.
+writ_block_inner_has_line() {
+  local file="$1"
+  WRIT_WANT_LINE="$2" awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") { inside=1; next }
+      if (line == "<!-- writ:end -->") { inside=0; next }
+      if (inside == 1 && line == ENVIRON["WRIT_WANT_LINE"]) found=1
+    }
+    END { exit found ? 0 : 1 }' "$file"
 }
 
 writ_rewrite_agents_md_with_inner() {
@@ -644,6 +661,9 @@ merge_claude_md() {
   CLAUDE_MD_ACTION="preserved"
   CLAUDE_MD_NOTE="CLAUDE.md: Writ block preserved (local modifications)"
   echo "    ⚡ Preserved: CLAUDE.md (Writ block has local modifications)"
+  if ! writ_block_inner_has_line "$claude_md" "@.claude/system-instructions.md"; then
+    printf '%s\n' "⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run update.sh --force to replace the block."
+  fi
   return 0
 }
 # <<< writ-merge-bundled-end >>>
@@ -725,8 +745,8 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py)
-      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template); not agent-facing. ADR-029.
       return 1 ;;
   esac
   case "$base" in
@@ -1105,7 +1125,10 @@ if [ "$PLATFORM" = "cursor" ]; then
     RULE_ACTION="new"
     echo "    ✨ New:       rules/writ.mdc"
   fi
+fi
 
+# Cursor and Claude Code both install system-instructions.md in the platform dir.
+if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
   SYSINST_ACTION="unchanged"
   if [ -f "$PLATFORM_DIR/system-instructions.md" ]; then
     si_upstream=$(hash_file "$WRIT_SRC/system-instructions.md")
@@ -1134,8 +1157,9 @@ if [ "$PLATFORM" = "cursor" ]; then
     SYSINST_ACTION="new"
     echo "    ✨ New:       system-instructions.md"
   fi
+fi
 
-elif [ "$PLATFORM" = "claude" ]; then
+if [ "$PLATFORM" = "claude" ]; then
   echo "  CLAUDE.md:"
   merge_claude_md preview
   case "$CLAUDE_MD_ACTION" in
@@ -1166,6 +1190,7 @@ if [ "$PLATFORM" = "cursor" ]; then
   { [ "$RULE_ACTION" = "update" ] || [ "$RULE_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "claude" ]; then
+  { [ "${SYSINST_ACTION:-unchanged}" = "update" ] || [ "${SYSINST_ACTION:-unchanged}" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "codex" ]; then
   { [ "${AGENTS_MD_ACTION:-unchanged}" = "update" ] || [ "${AGENTS_MD_ACTION:-unchanged}" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
@@ -1254,6 +1279,10 @@ if [ "$PLATFORM" = "cursor" ]; then
     UPDATES=$((UPDATES + 1))
   fi
 elif [ "$PLATFORM" = "claude" ]; then
+  if [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; then
+    cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
+    UPDATES=$((UPDATES + 1))
+  fi
   if [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; then
     merge_claude_md apply
     UPDATES=$((UPDATES + 1))
@@ -1325,6 +1354,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "claude" ]; then
     git add "CLAUDE.md" 2>/dev/null || true
+    git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
     git add "AGENTS.md" 2>/dev/null || true
   fi

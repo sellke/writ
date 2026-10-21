@@ -194,6 +194,21 @@ writ_file_ends_with_newline() {
   [ "$last_hex" = "0a" ]
 }
 
+# writ_block_inner_has_line FILE LINE — returns 0 when a line between the
+# markers equals LINE once its trailing "\r" is stripped. Keep synced with
+# update.sh.
+writ_block_inner_has_line() {
+  local file="$1"
+  WRIT_WANT_LINE="$2" awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") { inside=1; next }
+      if (line == "<!-- writ:end -->") { inside=0; next }
+      if (inside == 1 && line == ENVIRON["WRIT_WANT_LINE"]) found=1
+    }
+    END { exit found ? 0 : 1 }' "$file"
+}
+
 writ_rewrite_agents_md_with_inner() {
   local file="$1"
   local new_inner="$2"
@@ -471,6 +486,9 @@ merge_claude_md() {
     fi
     CLAUDE_MERGE_NOTE="Would preserve Writ block (local modifications detected)."
     printf '%s\n' "$CLAUDE_MERGE_NOTE"
+    if ! writ_block_inner_has_line "$claude_md" "@.claude/system-instructions.md"; then
+      printf '%s\n' "⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run install.sh --force to replace the block."
+    fi
     return 0
   fi
 
@@ -559,6 +577,9 @@ merge_claude_md() {
   rm -f "$tmp_new"
   CLAUDE_MERGE_NOTE="CLAUDE.md: Writ block preserved (local modifications)"
   printf '%s\n' "⚡ $CLAUDE_MERGE_NOTE — re-run with --force to overwrite the Writ block."
+  if ! writ_block_inner_has_line "$claude_md" "@.claude/system-instructions.md"; then
+    printf '%s\n' "⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run install.sh --force to replace the block."
+  fi
   return 0
 }
 # <<< writ-merge-bundled-end >>>
@@ -723,6 +744,8 @@ EOF
   if [ "$PLATFORM" = "cursor" ]; then
     record_file_baseline "$target" "rules/writ.mdc" \
       "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
+  fi
+  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
     record_file_baseline "$target" "system-instructions.md" \
       "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
   fi
@@ -813,6 +836,7 @@ if [ "$PLATFORM" = "cursor" ]; then
   echo "  📖 System:    1 (system-instructions.md)"
 elif [ "$PLATFORM" = "claude" ]; then
   echo "  📖 Root:      1 (CLAUDE.md)"
+  echo "  📖 System:    1 (system-instructions.md)"
 elif [ "$PLATFORM" = "codex" ]; then
   echo "  📄 AGENTS.md Writ block (.agents/skills/ for AgentSkills)"
   echo "  🧩 Codex cfg: install-once .codex/config.toml when absent"
@@ -957,8 +981,8 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py)
-      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template); not agent-facing. ADR-029.
       return 1 ;;
   esac
   case "$base" in
@@ -1206,6 +1230,7 @@ if [ "$DRY_RUN" = true ]; then
       echo "  Rules:   writ.mdc → always updated"
       echo "  System:  system-instructions.md → always updated"
     elif [ "$PLATFORM" = "claude" ]; then
+      echo "  System:  system-instructions.md → always updated"
       echo "  CLAUDE.md integration plan:"
       merge_claude_md preview
     elif [ "$PLATFORM" = "codex" ]; then
@@ -1312,7 +1337,8 @@ elif [ "$PLATFORM" = "claude" ]; then
   echo "  [$STEP/$STEP_TOTAL] CLAUDE.md integration..."
   merge_claude_md apply
   STEP=$((STEP + 1))
-  echo "  [$STEP/$STEP_TOTAL] (skipped — no system-instructions for Claude Code)"
+  echo "  [$STEP/$STEP_TOTAL] System instructions..."
+  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
 elif [ "$PLATFORM" = "codex" ]; then
   echo "  [$STEP/$STEP_TOTAL] AGENTS.md integration..."
   merge_agents_md apply
@@ -1393,6 +1419,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "claude" ]; then
     git add "CLAUDE.md" 2>/dev/null || true
+    git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
     git add "AGENTS.md" ".codex/config.toml" 2>/dev/null || true
   fi

@@ -123,7 +123,7 @@ These steps apply in the Writ source repo.
 | `test-integrity.py` | data |  | commands/implement-story.md, agents/testing-agent.md, commands/status.md |
 | `verdict-provenance.py` | check |  | commands/implement-story.md |
 
-**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install.
+**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install. `gen-claude-md.py` is dev-only too: it builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`, which installed projects do not have.
 
 ### Notes
 
