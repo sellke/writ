@@ -2469,10 +2469,8 @@ check_post_merge_archival() {
   rm -f "$scenario_output"
 
   # Pins release.md Step 1.3c's actual wired archival-hook prose against
-  # silent regression (Story 4 Task 4.1) — nothing else in the suite guards
-  # this step's own prose today.
-  require_literal "$release_cmd" 'resolve-spec-reference.py resolve --branch "${LAST_MERGED_BRANCH}"' "release.md Step 1.3c's archival hook must resolve via the shared resolve-spec-reference.py CLI, not a second drifting heuristic."
-  require_literal "$release_cmd" 'archive-sweep.py archive-one --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root . --spec-name' "release.md Step 1.3c's archival hook must call archive-sweep.py archive-one directly with the documented flags."
+  # silent regression (Story 4 Task 4.1). The two script calls the hook makes
+  # are invocation rows in scripts/eval-command-structure.py.
   forbid_literal "$release_cmd" 'is_complete_family' "release.md's own prose must not reintroduce a duplicate complete-family eligibility check — that check lives only inside archive-sweep.py's archive_one()."
   require_literal "$release_cmd" 'in one best-effort guard' "release.md Step 1.3c's archival hook must wrap its entire resolve/archive chain in one best-effort guard."
   require_literal "$release_cmd" 'Committing immediately avoids leaving a dangling uncommitted `git mv`' "release.md Step 1.3c's archival hook must commit a successful archive immediately rather than deferring to Phase 3's version-bump commit."
