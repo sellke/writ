@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | 1 | [Strip Internal References and Add `shipped-refs`](story-1-strip-internal-references.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Pin Map and Conversions](story-2-pin-map-and-conversions.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
-| 3 | [`create-spec.md` Reduction Pass](story-3-create-spec-reduction.md) | Not Started | Medium | Story 2 | 7 | 0/7 |
+| 3 | [`create-spec.md` Reduction Pass](story-3-create-spec-reduction.md) | Completed ✅ | Medium | Story 2 | 7 | 7/7 |
 
 **Total:** 3 stories, 21 tasks, 15 acceptance criteria.
 

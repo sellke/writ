@@ -21,7 +21,7 @@
 - 12 `commands/*.md` — reference removals, `calibrated_against` rewrites (S1)
 - `pin-map.md`, `scripts/eval-command-structure.py`, `scripts/tests/test_eval_command_structure.py` — new (S2)
 - `scripts/tests/test_product_check_direction.py`, `test_review_panel.py` — mutation cases (S2)
-- `commands/create-spec.md`, `cut-log.md`, `scripts/tests/test_governor_enforcement.py` (S3; S1 also repins it downward, forced by the exact-sum assertion)
+- `commands/create-spec.md`, `cut-log.md`, `scripts/tests/test_governor_enforcement.py` (S3, whose guard requires the create-spec value below both 29,304 and its Story 3 start value; S1 also repins it downward, forced by the exact-sum assertion)
 
 **Error Handling:**
 - Helper missing → run error, eval exit 2. Broken regex → self-test FAIL.
@@ -55,6 +55,7 @@ See spec.md → ## 📋 Business Rules and sub-specs/technical-spec.md.
 - Safety categories never take `remove`; when unsure, keep.
 - A `structure` pin whose exact text an `eval-*.py` scenario run by the same check also asserts on the same file may be removed as a duplicate; the reason names the scenario.
 - Cuts remove coaching only; no behavior change; step numbers stay.
+- Declined cut-log rows may also use class `wording` for lean-twin rewordings that remove no coaching.
 
 **Experience Design:**
 - Entry: maintainer runs `bash scripts/eval.sh`.

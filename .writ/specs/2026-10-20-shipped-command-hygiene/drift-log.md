@@ -69,3 +69,36 @@
 - **Reason:** Gate 3 iteration 1 found the path-only row passed on the `calibrated_against` note in the frontmatter, so it guarded nothing. Binding the lane-creation and merge-gate calls is stricter; counts are unaffected.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md → For Coding Agents: "A convert row may map to more than one structural row when a bare-path pin is replaced by the specific calls the command must make."
+
+---
+
+## Story 3: `create-spec.md` Reduction Pass — Drift Report
+
+> Run: 2026-10-21
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-007] Fifth declined class `wording` in the cut log
+- **Severity:** Small
+- **Spec said:** AC-3.1: declined rows are constraint, behavior, test-pinned text, or addition.
+- **Implementation did:** `cut-log.md` row 70 uses class `wording` for lean-twin edits that only reword text and remove no coaching.
+- **Reason:** The twin made pure rewordings the AC did not foresee. None of the four classes fits them, and forcing one would mislead a reviewer.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules: declined cut-log rows may also use class `wording` for twin rewordings that remove no coaching.
+
+#### [DEV-008] The cut is larger than the technical spec's estimate
+- **Severity:** Small
+- **Spec said:** technical-spec.md: the adopted rows remove "roughly 8 to 12 KB of coaching on the snapshot", an expectation, not a target.
+- **Implementation did:** `commands/create-spec.md` went from 53,612 to 38,562 bytes at `5536b31`.
+- **Reason:** The estimate was never measured; the twin's own change on its snapshot is larger. The evaluator read all 22 hunks and found no removed instruction without a surviving equivalent.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed. ADR-023: the byte figure is a drift signal; spec-lite states no byte expectation.
+
+#### [DEV-009] The Task 3.1 guard also requires a value below the Story 3 start
+- **Severity:** Small
+- **Spec said:** Task 3.1: write a guard that fails while `KNOWN_OVER_BUDGET["commands/create-spec.md"]` is not below 29,304.
+- **Implementation did:** The guard requires the value to be below both 29,304 and 28,652, the value at Story 3 start (Story 1 had already repinned it below 29,304, so the spec's guard would have passed before any cut).
+- **Reason:** Business Rule 11 and AC-3.4 require a value below the Story 3 start value; the guard encodes that and failed at start as Task 3.1 intends.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md → Files in Scope S3 line notes the guard checks both bounds.

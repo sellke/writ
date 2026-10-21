@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T17:22:51Z
+> Last Updated: 2026-10-21T19:17:15Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-shipped-command-hygiene — Shipped Command Hygiene
 - **Status:** In Progress
-- **Story:** 2 of 3 — Pin Map and Conversions (Completed ✅)
-- **Progress:** 14/21 tasks complete (67%)
+- **Story:** 3 of 3 — `create-spec.md` Reduction Pass (Completed ✅)
+- **Progress:** 21/21 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-004 (Small) Structure pins removed as duplicates of `eval-*.py` scenarios — shipped-command-hygiene Story 2
-- DEV-005 (Small) `merge, never append` removed beyond the per-function guidance — shipped-command-hygiene Story 2
-- DEV-006 (Small) One pin instance maps to two structural rows — shipped-command-hygiene Story 2
+- DEV-007 (Small) Fifth declined class `wording` in the cut log — shipped-command-hygiene Story 3
+- DEV-008 (Small) The cut is larger than the technical spec's estimate — shipped-command-hygiene Story 3
+- DEV-009 (Small) The Task 3.1 guard also requires a value below the Story 3 start — shipped-command-hygiene Story 3
 
 ## Open Issues
 
