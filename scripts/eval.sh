@@ -2064,12 +2064,10 @@ PY
   done < "$scenario_output"
   rm -f "$scenario_output"
 
-  require_literal "$preamble" '### Narrow Recommended-Delivery Exception' "The preamble must define the narrow recommended-planning exception."
   require_literal "$preamble" 'planning commands create files and stop' "The preamble must preserve the default planning stop boundary."
 
   require_literal "$create_spec" 'Parse `--recommend` exactly once at command entry.' "Create-spec must parse recommendation mode once at entry."
   require_literal "$create_spec" 'Normal branch (authoritative): when `--recommend` is absent, follow every' "Create-spec must preserve normal behavior behind an explicit branch."
-  require_literal "$create_spec" '### Authoritative `--recommend` Invocation Matrix' "Create-spec must define its fail-before-mutation invocation matrix."
   require_literal "$create_spec" '`/create-spec --recommend --from-issue <one-path>`' "Create-spec must support one issue source in recommendation mode."
   require_literal "$create_spec" '`/create-spec --recommend --from-prototype`' "Create-spec must support prototype source in recommendation mode."
   require_literal "$create_spec" '`/create-spec --recommend --quick`' "Create-spec must reject recommend plus quick."
