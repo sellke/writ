@@ -1,6 +1,7 @@
 # Story 1: Strip Internal References and Add `shipped-refs`
 
 > **Status:** Completed ✅
+> **Commit:** bba00cb3c96be08983d752db1aaf81200bf0dc97
 > **Priority:** High
 > **Dependencies:** None
 
