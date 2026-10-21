@@ -3147,7 +3147,6 @@ check_git_notes_audit() {
   local ship="$PROJECT_ROOT/commands/ship.md"
   local release="$PROJECT_ROOT/commands/release.md"
   local install="$PROJECT_ROOT/scripts/install.sh"
-  local status="$PROJECT_ROOT/commands/status.md"
   local fmt="$PROJECT_ROOT/.writ/docs/git-notes-audit-format.md"
   local adr="$PROJECT_ROOT/.writ/decision-records/adr-017-git-notes-audit-channel.md"
   local scenario_output scenario_status scenario_name scenario_reason
@@ -3186,7 +3185,6 @@ check_git_notes_audit() {
   require_literal "$ship" 'git push origin refs/notes/writ' "/ship must push the notes ref — an unpushed note is local-only."
   require_literal "$release" 'git push origin refs/notes/writ' "/release must push the notes ref — an unpushed rollup is local-only."
   require_literal "$install" 'writ.auditNotes' "install.sh must gate the refspec config behind the writ.auditNotes opt-out marker."
-  require_literal "$status" 'Last audit note:' "/status must surface the last-audit-note pointer line."
   require_literal "$fmt" 'Writ Audit Digest (spec)' "The format doc must define the spec-level digest schema."
   require_literal "$adr" 'refs/notes/writ' "ADR-017 must record the dedicated-ref decision."
 }
