@@ -63,17 +63,15 @@ GUARD_PATTERNS = ("-e", "WRIT_HARNESS_LEAN", "-e", r"\.lean\.md")
 EXCLUDED = (
     ":!CHANGELOG.md",
     ":!.writ/decision-log.md",
-    ":!.writ/specs/archive",
+    # Spec folders (active and archived) are planning and history records:
+    # contracts, UAT plans, and drift logs name the deleted lean files.
+    # The guard covers the product surface, not the record of changing it.
+    ":!.writ/specs",
     ":!.writ/research",
     ":!.writ/product",
     ":!.writ/decision-records",
-    ":!.writ/specs/2026-10-12-agent-cli-contract",
-    ":!.writ/specs/2026-10-20-harness-cuts",
     ":!scripts/tests/test_harness_cuts.py",
     ":!scripts/tests/test_install_update_harness_cuts.sh",
-    # Sibling Phase 13 specs written after this one; their contracts name the deleted lean files as history.
-    ":!.writ/specs/2026-10-20-platform-neutral-names",
-    ":!.writ/specs/2026-10-20-shipped-command-hygiene",
 )
 
 INSTALL_SCRIPTS = ("scripts/install.sh", "scripts/update.sh")
