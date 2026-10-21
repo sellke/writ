@@ -3195,12 +3195,12 @@ check_artifact_integrity() {
   # asserter checks the durable contract directly against the shipped files.
   # Mirrors the git-notes-audit registration: run the eval-*.py scenario emitter,
   # then add supplementary require_literal assertions for the load-bearing rules,
-  # plus a guard against the rejected .writ/index.md pointer file.
+  # plus a guard against the rejected .writ/index.md pointer file. The section
+  # headings (`## Artifact Integrity` and each command's `## Required Artifacts`)
+  # are heading rows in scripts/eval-command-structure.py.
   local fake="$PROJECT_ROOT/scripts/eval-artifact-integrity.py"
   local preamble="$PROJECT_ROOT/commands/_preamble.md"
-  local story="$PROJECT_ROOT/commands/implement-story.md"
   local index="$PROJECT_ROOT/.writ/index.md"
-  local cmd cmd_path
   local scenario_output scenario_status scenario_name scenario_reason
 
   if [ ! -f "$fake" ]; then
@@ -3227,21 +3227,11 @@ check_artifact_integrity() {
   done < "$scenario_output"
   rm -f "$scenario_output"
 
-  # Preamble Artifact Integrity section: convention + HALT + bounded repair.
-  require_literal "$preamble" '## Artifact Integrity' "_preamble.md must define the Artifact Integrity section."
-  require_literal "$preamble" 'Required Artifacts' "_preamble.md must define the Required Artifacts convention."
+  # Preamble Artifact Integrity section: HALT + bounded repair. The
+  # Required Artifacts convention and the context.md Artifact Map schema are
+  # asserted by the scenario emitter above.
   require_literal "$preamble" 'HALT' "_preamble.md must HALT on a missing required artifact."
   require_literal "$preamble" 'bounded repair' "_preamble.md must offer a bounded repair naming the creating command."
-
-  # Canonical context.md Artifact Map schema.
-  require_literal "$story" '## Artifact Map' "implement-story.md must add the Artifact Map to the context.md schema."
-  require_literal "$story" '**Integrity:**' "implement-story.md Artifact Map must carry the Integrity line."
-
-  # Each of the 7 high-traffic commands declares its Required Artifacts.
-  for cmd in create-spec implement-story implement-spec implement-phase ship release status; do
-    cmd_path="$PROJECT_ROOT/commands/$cmd.md"
-    require_literal "$cmd_path" '## Required Artifacts' "commands/$cmd.md must declare a Required Artifacts block."
-  done
 
   # Guard the rejected design: no .writ/index.md pointer file (ADR-015 leanness).
   if [ -f "$index" ]; then
