@@ -16,7 +16,7 @@ exit_criteria:
 
 Scaffold a new Writ skill — a capability file (SKILL.md) that an agent or command can `Read` to acquire a focused competence. Skills are the third Writ primitive: **commands are verbs**, **agents are nouns**, **skills are tools**. This command captures the skill's intent, runs a boundary lint at authoring time, writes `skills/<name>/SKILL.md`, and appends an entry to `.writ/manifest.yaml` — refusing to scaffold anything that drifts into role or workflow shape.
 
-**When to use** — you have an agent or command that keeps inlining the same chunk of "how to do X well," or you've identified a reusable capability that multiple consumers will need. Before scaffolding, this command enforces the boundary [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) draws between commands, agents, and skills.
+**When to use** — you have an agent or command that keeps inlining the same chunk of "how to do X well," or you've identified a reusable capability that multiple consumers will need. Before scaffolding, this command enforces the boundary between commands, agents, and skills.
 
 ## Invocation
 
@@ -239,7 +239,7 @@ Next steps:
 
 ## Core Rules
 
-1. **Boundary lint gates every write.** Description-shape and body-shape rejections (per [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md)) are the contract. On lint failure, revise or abort; do not write a half-shaped skill.
+1. **Boundary lint gates every write.** Description-shape and body-shape rejections are the contract. On lint failure, revise or abort; do not write a half-shaped skill.
 2. **Lint logic lives in `scripts/lint-skill.sh`.** Both `/new-skill` and `/refresh-command` invoke the same script. No regex grammar duplicated inline in command files.
 3. **Verb-phrase descriptions only.** "Write", "Validate", "Generate", "Audit", "Convert", "Detect" — not "Acts as", "Run the full", "The X agent". The description is the field agents read most.
 4. **`disable-model-invocation: true` is mandatory** for Writ-authored skills. Explicit invocation is the only invocation mode.
@@ -280,7 +280,5 @@ This command succeeds when:
 
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
-- Boundary rationale: [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md)
-- Lifecycle rationale: [ADR-014](../.writ/decision-records/adr-014-skill-lifecycle.md)
 - User-facing explainer: [`.writ/docs/skills.md`](../.writ/docs/skills.md)
 - Lint grammar source: [`scripts/lint-skill.sh`](../scripts/lint-skill.sh)

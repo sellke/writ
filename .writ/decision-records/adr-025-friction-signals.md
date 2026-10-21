@@ -1,7 +1,7 @@
 # ADR-025: Friction Signals — Record Locally, Nudge Quietly, Let the Human Send It Upstream
 
 > **Date:** 2026-09-03
-> **Status:** Accepted (amended 2026-10-12 — see Amendments)
+> **Status:** Superseded in part by [ADR-030](adr-030-contract-verifier-boundary-front-door.md) (2026-10-20): Decisions 1, 3, and 6 will not be built. Amended 2026-10-12. See Amendments.
 > **Category:** Framework Architecture
 > **Extends:** [ADR-022](adr-022-autonomy-gate-classes.md) (nothing leaves the machine or changes a command without a human gate), [ADR-014](adr-014-skill-lifecycle.md) (three occurrences make a pattern), Phase 7's evidence-bound `/refresh-command`
 > **Constrains:** [ADR-017](adr-017-git-notes-audit-channel.md) — not extended; friction is not commit-shaped
@@ -198,6 +198,21 @@ Single spec, five stories. **Prerequisite:** none. ADR-024 Story 4 calls `signal
 **Rationale:** The maintainer asked for `/retro` to learn from every implementation run and fix the agent's environment, not the code (issue [`2026-10-12-transcript-retro-environment-fixes`](../issues/features/2026-10-12-transcript-retro-environment-fixes.md)). Signals catch moments where Writ knows it is struggling. Most waste, such as a stale doc, twenty reads before the right file, or a mistake fixed three times, is invisible to the agent at the time and only visible afterwards in the transcript. The 2026-07-18 leanness audit found no usage evidence that the git-metrics report justified the command.
 
 **Originating work:** `/refresh-command retro`, 2026-10-12, applied as a human override of the evidence gate (logged in `.writ/refresh-log.md`).
+
+### 2026-10-20 — Signal emission retired by ADR-030
+
+[ADR-030](adr-030-contract-verifier-boundary-front-door.md) supersedes Decisions 1, 3, and 6. None of the following will be built:
+
+- `scripts/signal.py` and `.writ/state/signals.jsonl`
+- the `/status` and `/implement-phase` nudge
+- `/retro --friction`
+- the `Signal:` evidence type
+
+Decision 6's evidence bridge stays unbuilt as well. The 2026-10-12 amendment already moved the learning loop to `/retro`'s transcript review. Phase 15 gives that review pstack's fix ladder (architecture, then types, then a lint, then a test, then docs) and a rule-to-enforcer table. The 2026-12-02 review is cancelled because nothing was built to review.
+
+**Removal:** the `(no-op until ADR-025 Story 1)` emit lines in `commands/create-spec.md` and `commands/implement-story.md`, the `check_model_escalation` pins in `scripts/eval.sh`, and the matching lean-twin lines are removed in Phase 13. Until then they stay as they are.
+
+**What does not change:** Decision 5's redaction rules and the rule that nothing leaves the machine without a human gate (ADR-022) still govern any Improvement Request a person files by hand.
 
 ## References
 

@@ -2,18 +2,16 @@
 """Tests for spec `2026-10-01-product-check-direction`.
 
 Product-doc verification reads as a post-implementation check whose findings
-feed `/plan-product --reconcile`, and reconcile hands back to delivery. The
-eval check `product-check-direction` pins the wording; the mutation tests run
-a copy of that check against a temp tree so every pin is proven to bite.
+feed `/plan-product --reconcile`, and reconcile hands back to delivery. These
+tests assert the wording directly. eval.sh no longer pins it: Story 2 of the
+shipped-command-hygiene spec removed the `product-check-direction` check
+because the wording carries no safety contract (see that spec's pin-map.md).
 """
 
 from __future__ import annotations
 
-import shutil
-import subprocess
 import unittest
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Dict, Tuple
 
 
@@ -27,13 +25,39 @@ RELEASE_POINTER = "run /verify-spec --product to check product docs against what
 OLD_RELEASE_POINTER = ("consider `/plan-product --reconcile` if `mission-lite.md` "
                        "needs a matching update")
 OLD_R4 = "suggest `/verify-spec --product` to confirm"
+OLD_FRAMINGS = ("a lint you run before deciding anything",
+                "consistency lint (before)", "lints (before")
 
-PINNED_FILES = ("verify-spec.md", "verify-spec.lean.md", "plan-product.md",
-                "implement-phase.md", "release.md")
+WORDED_FILES = ("verify-spec.md", "plan-product.md", "implement-phase.md", "release.md")
 
 
 def read(name: str) -> str:
     return (COMMANDS / name).read_text(encoding="utf-8")
+
+
+def with_edits(edits: Dict[str, Tuple[str, str]]) -> Dict[str, str]:
+    """The worded command files, with `edits` mapping a file to an (old, new)
+    replacement."""
+    texts = {name: read(name) for name in WORDED_FILES}
+    for name, (old, new) in edits.items():
+        assert old in texts[name], f"{old!r} not in {name}"
+        texts[name] = texts[name].replace(old, new)
+    return texts
+
+
+def story1_wording_holds(texts: Dict[str, str]) -> bool:
+    """The direction sentence in both files, no retired framing, no R4 pointer."""
+    verify, plan = texts["verify-spec.md"], texts["plan-product.md"]
+    return (DIRECTION in verify and DIRECTION in plan
+            and not any(old in verify for old in OLD_FRAMINGS)
+            and OLD_R4 not in plan)
+
+
+def story2_wording_holds(texts: Dict[str, str]) -> bool:
+    """The phase and release lines point to /verify-spec --product, once."""
+    release = texts["release.md"]
+    return ("run /verify-spec --product" in texts["implement-phase.md"]
+            and RELEASE_POINTER in release and OLD_RELEASE_POINTER not in release)
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -41,34 +65,12 @@ def section(text: str, start: str, end: str) -> str:
     return text[head:text.index(end, head)]
 
 
-def run_check_on(edits: Dict[str, Tuple[str, str]]) -> int:
-    """Run eval.sh's product-check-direction check on a temp copy of the
-    pinned files, with `edits` mapping a file to an (old, new) replacement."""
-    with TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        (root / "scripts").mkdir()
-        (root / "commands").mkdir()
-        shutil.copy(REPO_ROOT / "scripts" / "eval.sh", root / "scripts" / "eval.sh")
-        for name in PINNED_FILES:
-            text = read(name)
-            if name in edits:
-                old, new = edits[name]
-                assert old in text, f"{old!r} not in {name}"
-                text = text.replace(old, new)
-            (root / "commands" / name).write_text(text, encoding="utf-8")
-        proc = subprocess.run(
-            ["bash", str(root / "scripts" / "eval.sh"),
-             "--check=product-check-direction", f"--report={root / 'report.md'}"],
-            capture_output=True, text=True, check=False)
-        return proc.returncode
-
-
 class Story1BoundaryTests(unittest.TestCase):
     """Story 1 of `2026-10-01-product-check-direction`."""
 
     def test_direction_sentence_replaces_before_after_framing(self):
         """AC-1.1 — one direction sentence; no before/after or /assess-spec analogy."""
-        for name in ("verify-spec.md", "verify-spec.lean.md", "plan-product.md"):
+        for name in ("verify-spec.md", "plan-product.md"):
             text = read(name)
             self.assertIn(DIRECTION, text, name)
             for old in ("a lint you run before deciding anything",
@@ -102,22 +104,22 @@ class Story1BoundaryTests(unittest.TestCase):
         self.assertNotIn(OLD_R4, text)
         self.assertNotIn("(before)", section(text, "**Boundary (critical):**", "### Step R1"))
 
-    def test_story1_pins_pass_and_each_mutation_bites(self):
-        """AC-1.4 — the check is clean on the tree and fails on each mutation."""
-        self.assertEqual(run_check_on({}), 0)
+    def test_story1_wording_holds_and_each_mutation_bites(self):
+        """AC-1.4 — the wording holds on the tree and each mutation breaks it.
+        eval.sh's product-check-direction check enforced this until it was
+        removed; the same mutations now run against these direct assertions."""
+        self.assertTrue(story1_wording_holds(with_edits({})))
         mutations = [
             {"verify-spec.md": (DIRECTION, "")},
-            {"verify-spec.lean.md": (DIRECTION, "")},
             {"plan-product.md": (DIRECTION, "")},
             {"plan-product.md": ("suggest `/create-spec`", OLD_R4)},
         ]
-        for name in ("verify-spec.md", "verify-spec.lean.md"):
-            for old in ("a lint you run before deciding anything",
-                        "consistency lint (before)", "lints (before a decision)"):
-                mutations.append({name: (DIRECTION, DIRECTION + " " + old)})
+        for old in ("a lint you run before deciding anything",
+                    "consistency lint (before)", "lints (before a decision)"):
+            mutations.append({"verify-spec.md": (DIRECTION, DIRECTION + " " + old)})
         for edits in mutations:
             with self.subTest(edits=edits):
-                self.assertEqual(run_check_on(edits), 1)
+                self.assertFalse(story1_wording_holds(with_edits(edits)))
 
     def test_verify_spec_did_not_grow(self):
         """AC-1.5 — verify-spec.md stays at or below its pre-story 35858 bytes."""
@@ -168,8 +170,9 @@ class Story2CompletionLineTests(unittest.TestCase):
         for name in ("implement-phase.md", "release.md"):
             self.assertIn(name, disclosure)
 
-    def test_story2_pins_bite_and_issue_is_resolved(self):
-        """AC-2.5 — each Story 2 pin fails on its mutation; the issue is resolved."""
+    def test_story2_wording_bites_and_issue_is_resolved(self):
+        """AC-2.5 — each Story 2 mutation breaks the wording; the issue is resolved."""
+        self.assertTrue(story2_wording_holds(with_edits({})))
         mutations = [
             {"implement-phase.md": ("\n" + PHASE_LINE + "\n", "\n")},
             {"release.md": (RELEASE_POINTER, OLD_RELEASE_POINTER)},
@@ -177,7 +180,7 @@ class Story2CompletionLineTests(unittest.TestCase):
         ]
         for edits in mutations:
             with self.subTest(edits=edits):
-                self.assertEqual(run_check_on(edits), 1)
+                self.assertFalse(story2_wording_holds(with_edits(edits)))
         issue = (REPO_ROOT / ".writ" / "issues" / "improvements" /
                  "2026-10-01-product-lint-misread-as-verify-spec.md").read_text(encoding="utf-8")
         resolution = issue.split("\n## Resolution\n", 1)[1]

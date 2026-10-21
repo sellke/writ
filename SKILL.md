@@ -35,9 +35,9 @@ When a user requests any Writ command, read the corresponding command file and f
 
 ## Runtime Contract
 
-The recommended-delivery state contract at `.writ/docs/recommended-delivery-state-format.md` defines
-the resumable state and audit format for `--recommend` execution. Install, update,
-and unlink manage this file alongside its reducer.
+The recommended-delivery state contract at `.writ/docs/recommended-delivery-state-format.md` records
+ADR-013's dormant staging design. It stays in the Writ source repo with its reducer
+and is not installed.
 
 ## Available Commands
 
@@ -50,12 +50,12 @@ and unlink manage this file alongside its reducer.
 | `/create-goal` | `commands/create-goal.md` | Interview for a recurring task and write a Goal Card with a checkable finish line, or record that a loop is the wrong tool. |
 | `/create-issue` | `commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
 | `/create-spec` | `commands/create-spec.md` | Create contract-first specifications; --recommend autonomously authors and locks one package from evidence, then stops (does not implement). |
-| `/design` | `commands/design.md` | Create and compare visual references for Writ specifications. |
 | `/edit-spec` | `commands/edit-spec.md` | Safely modify existing specifications while preserving contract integrity. |
 | `/knowledge` | `commands/knowledge.md` | Capture durable project knowledge as decisions, conventions, glossary terms, or lessons. |
 | `/plan-product` | `commands/plan-product.md` | Shape product strategy and roadmap artifacts through contract-first discovery. |
 | `/research` | `commands/research.md` | Run systematic research workflows and record recommendations. |
 | `/verify-spec` | `commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/writ-design` | `commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ### Implementation & Quality
 

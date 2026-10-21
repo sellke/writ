@@ -8,7 +8,6 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 STORY_CMD="$REPO/commands/implement-story.md"
-LEAN_CMD="$REPO/commands/implement-story.lean.md"
 AGENT="$REPO/agents/evaluator-agent.md"
 FIX="$REPO/scripts/tests/fixtures/jev-replay"
 
@@ -41,8 +40,7 @@ shadow = text.find("jev-judge.py ac-shadow", bullet)
 g35 = text.find("#### Gate 3.5:", g3)
 assert -1 < g3 < override < bullet < shadow < g35, (g3, override, bullet, shadow, g35)
 PY
-grep -Fq 'jev-judge' "$LEAN_CMD" && fail "implement-story.lean.md must stay Jev-free (baseline arm)"
-ok "implement-story Gate 3 ac-shadow line pinned; lean sibling untouched"
+ok "implement-story Gate 3 ac-shadow line pinned"
 
 # --- evaluator [AC-N.M] tag format [AC-5.2] ---------------------------------
 grep -Fq "ending with the criterion's \`[AC-N.M]\` tag" "$AGENT" \
@@ -91,7 +89,9 @@ printf '%s\n' "$REPORT" | tail -n1 | grep -Eq 'rows=1 stories=1 criteria=3 agree
   || fail "shadow-report summary format changed: $REPORT"
 ok "shadow-report reads the log: promotion_not_met at 1 story"
 
-grep -Fq 'then its trailing `[AC-N.M]` tag' "$REPO/claude-code/agents/writ-evaluator.md" \
+# The generated writ-evaluator.md carries the canonical tag wording
+# (2026-10-20-claude-agent-generator AC-2.4).
+grep -Fq "ending with the criterion's \`[AC-N.M]\` tag" "$REPO/claude-code/agents/writ-evaluator.md" \
   || fail "claude-code writ-evaluator must require [AC-N.M] tags on checklist lines"
 awk '/^### On FAIL/{f=1} /^### On PAUSE/{f=0} f' "$AGENT" | grep -Eq '^- \[ \] .*\[AC-[0-9]+\.[0-9]+\]$' \
   || fail "On FAIL example must show a tagged unsatisfied checklist line"

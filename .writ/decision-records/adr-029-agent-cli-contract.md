@@ -144,6 +144,8 @@ The CLI owns install, update, file generation, artifact-graph state, and running
 
 **Review trigger:** reconsider Option C when friction signals show agents failing to find or call a Writ tool in three or more separate sessions, or when a supported platform drops path-based script calls.
 
+*Amended 2026-10-20 by [ADR-030](adr-030-contract-verifier-boundary-front-door.md):* friction signals will not be built. The trigger now counts `/retro` findings that cite an agent failing to find or call a Writ tool, in three or more separate sessions. The platform clause is unchanged. Phase 14 plans plugin distribution with scripts inside the plugin. If it ships, that settles the script-location consequence above.
+
 ## Evidence: pstack (read 2026-10-12)
 
 | Observation | Source |

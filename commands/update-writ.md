@@ -2,12 +2,12 @@
 name: update-writ
 description: "Pull the latest Writ release and decide per customized file whether to overwrite, keep, or diff. Not for use in the Writ source repo."
 problem: "Upstream ships new commands, scripts, and docs while some local files were edited on purpose, and a blanket copy would overwrite exactly those edits without asking."
-outcome: "Unmodified files match the new upstream release, each locally modified file was settled by an explicit per-file keep or overwrite choice, and the manifest re-baselines both kinds."
+outcome: "Unmodified files match the new upstream release, each locally modified file was settled by an explicit per-file keep or overwrite choice, and the manifest records new baselines only for shipped paths while each kept customized or stale file keeps its previous one, so a modified stale file is flagged on every run."
 entry_level: any
 exit_criteria:
   - "every file classified CUSTOMIZED was presented and resolved by an explicit keep or overwrite decision before anything was written"
   - "files the user chose to keep, and stale files whose local hash no longer matches the baseline, are byte-identical before and after the run"
-  - "[platform_dir]/.writ-manifest names the new upstream version hash and carries a fresh baseline for every installed file, including the ones kept"
+  - "[platform_dir]/.writ-manifest names the new upstream version hash and records baselines only for shipped paths, plus one line per kept stale file; each kept customized or stale file keeps its previous baseline, so a modified stale file is flagged on every run"
 ---
 
 # Update Writ Command (update-writ)
@@ -63,7 +63,7 @@ cat .codex/.writ-manifest 2>/dev/null
 | Platform | Platform dir | Commands src | Agents src | Extra files |
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
-| `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` (project root) |
+| `claude` | `.claude` | `commands` | `claude-code/agents` | `.claude/system-instructions.md`, `CLAUDE.md` (project root) |
 | `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` baseline hash, `.agents/skills/` |
 
 ### Step 2: Fetch Latest Upstream
@@ -108,20 +108,22 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
 
 **Apply same logic to runtime scripts** (project-root `scripts/`; mirror `scripts/install.sh` / `scripts/update.sh`):
 
-Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `lean-decision.py`, `prune-ledger.py`, `spawn-cap.py`; ADR-029), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
+Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, `recommend-state.py`; ADR-029), the dev-only Claude Code template generator (`gen-claude-md.py`), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
 
 **Apply same logic to Writ reference docs** (project-root `.writ/docs/*.md`):
 
-Ship every upstream markdown doc under `.writ/docs/`. User-authored docs that exist only locally (e.g. `tech-stack.md`, `code-style.md`, `design-system.md` from `/initialize`) are untouched; they have no upstream counterpart. Locally modified shipped docs follow the same three-way overlay as commands.
+Ship every upstream markdown doc under `.writ/docs/` except `recommended-delivery-state-format.md` (ADR-013's dormant staging design; dev-only, like `recommend-state.py`). User-authored docs that exist only locally (e.g. `tech-stack.md`, `code-style.md`, `design-system.md` from `/initialize`) are untouched; they have no upstream counterpart. Locally modified shipped docs follow the same three-way overlay as commands.
 
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
-- Claude Code: `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
+- Claude Code: `.claude/system-instructions.md` (upstream source: `system-instructions.md`), `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
 - Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
 **Skills overlay:** folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).
 
-**Detect stale files:** files present in the manifest but removed upstream, plus manifest-listed scripts the ship filter now excludes (such as the dev-only helpers above). Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, flag but don't auto-remove.
+**Detect stale files:** files present in the manifest but removed upstream, plus manifest-listed scripts the ship filter now excludes (such as the dev-only helpers above) and manifest-listed docs the docs filter excludes. Manifest paths under `scripts/` and `.writ/` resolve at project root (not under `[platform_dir]/`). If the local hash matches the baseline (user didn't modify it), mark for removal. If modified, in any category, flag it and keep it. It keeps its previous baseline (Step 7), so every later update flags it again until the user deletes it. Only shipped paths get new baselines, so a file the user wrote is never in the manifest and never stale.
+
+**Legacy manifests:** when the manifest has no `# baselines: shipped` line, rebuild its baselines from upstream at its `# version:` commit, fetching full history once if the shallow clone lacks that commit, and drop every path upstream did not have at that commit; if the commit cannot be found, keep only the `.codex/config.toml.baseline` line, so files that differ from upstream are preserved and nothing is removed that run.
 
 ### Step 4: Present Summary
 
@@ -191,16 +193,17 @@ Apply in this order (mirror `scripts/update.sh`):
 3. **Writ reference docs** — all files under `.writ/docs/`
 4. **Agents** — new/updated/customized per Step 5
 5. **Skills** — `SKILL.md` overlay; sidecars install-once only
-6. **Stale files** — remove unmodified stale files; skip modified stale files with a warning
+6. **Stale files** — remove unmodified stale files; keep each modified stale file, in any category, with a warning. It is no longer shipped, so it gets no new baseline: it keeps its previous one (Step 7) and is flagged on every run
 7. **Platform-specific files** — same three-way logic as commands/agents
 
 ### Step 7: Regenerate Manifest
 
-Write a new manifest with updated baselines for all installed files:
+Write a new manifest. Record baselines only for shipped paths, plus one line per kept stale file:
 
 ```
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
+# baselines: shipped
 # mode: copy
 # platform: [cursor|claude|codex]
 # version: [new version hash]
@@ -218,9 +221,13 @@ Write a new manifest with updated baselines for all installed files:
 ...
 <sha256>  AGENTS.md.writ-block        # Codex only
 <sha256>  .codex/config.toml.baseline # Codex only, preserved from install
+<sha256>  commands/<retired>.md       # kept stale file, previous baseline
 ```
 
-Every currently installed file gets a fresh hash entry, including files the user chose to keep (their current hash becomes the new baseline).
+- A shipped file that matches upstream after the run gets the upstream hash.
+- A customized file the user kept keeps its previous baseline, or gets no line if it had none. The next update compares against that baseline, so it asks again when upstream changes the file.
+- A modified stale file keeps its previous baseline, so the next update flags it again. Its line drops once the user deletes the file.
+- A file the user wrote in a Writ folder gets no line.
 
 ### Step 8: Git Commit
 
@@ -283,9 +290,9 @@ See [`adapters/codex.md`](../adapters/codex.md) for the AGENTS.md ownership conv
 
 ## Completion
 
-This command succeeds when every file classified CUSTOMIZED was resolved by an explicit keep-or-overwrite decision, files kept are byte-identical before and after, and `.writ-manifest` re-baselines every installed file.
+This command succeeds when every file classified CUSTOMIZED was resolved by an explicit keep-or-overwrite decision, files kept are byte-identical before and after, and `.writ-manifest` records new baselines only for shipped paths.
 
-Choosing to keep every customized file is a valid outcome. The manifest still re-baselines, so the next update compares against what is on disk.
+Choosing to keep every customized file is a valid outcome. A kept customized file keeps its previous baseline, so the next update asks again when upstream changes it. A modified stale file also keeps its previous baseline and is flagged on every run until the user deletes it.
 
 **Terminal constraint:** This command updates the installation. Do not run the newly updated commands to test them, and do not reconcile customizations it was told to keep.
 

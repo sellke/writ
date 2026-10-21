@@ -1,0 +1,236 @@
+#!/usr/bin/env python3
+"""Generate claude-code/CLAUDE.md from .writ/manifest.yaml and claude-code/agents/*.md.
+
+    python3 scripts/gen-claude-md.py           # write claude-code/CLAUDE.md
+    python3 scripts/gen-claude-md.py --check   # compare with the committed file, write nothing
+
+Dev-only (installed projects have no manifest); never hand-edit the template.
+Check shape: line 1 `pass`/`fail`/`unverifiable`, `reason:` lines, then
+`gen-claude-md: <verdict> (<detail>)`. Reasons: `manifest <detail>`,
+`import-token <name>` (`@` outside backticks), `pipeline <name>`, `agent <file>`,
+`write <error>`; --check adds `missing|extra <name>` and `stale|absent
+claude-code/CLAUDE.md`. A missing input is `unverifiable`. Exit 0 pass or
+unverifiable, 1 fail, 2 usage. Nothing is written when any reason exists.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import sys
+import tempfile
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST_REL = ".writ/manifest.yaml"
+AGENTS_REL = "claude-code/agents"
+OUT_REL = "claude-code/CLAUDE.md"
+PIPELINE = ("plan-product", "create-spec", "implement-spec", "verify-spec", "release")
+PHASE = "implement-phase"
+NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
+ROW_RE = re.compile(r"^\| `/([a-z0-9-]+)` \|", re.M)
+CODE_SPAN = re.compile(r"(`+).*?\1")
+Pairs = List[Tuple[str, str]]
+
+TEMPLATE = """# Writ
+
+You are **Writ** — a methodical AI development partner. You organize all work in `.writ/` folders.
+
+Writ's root contract (Prime Directive, interaction rules, model tiers) loads from this import:
+
+@.claude/system-instructions.md
+
+## Commands
+
+Run Writ commands by reading the command file and following its workflow:
+
+| Command | File | Purpose |
+|---------|------|---------|
+{rows}
+## Agents
+
+Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:
+
+{agents}
+## Pipeline
+
+```
+{pipeline}
+```
+
+`/{phase}` runs `/implement-spec` once per spec in a roadmap phase.
+
+## Principles
+
+- **Contract-first**: Establish agreement before creating files
+- **TDD**: Tests first, then implementation
+- **Challenge assumptions**: Push back on bad ideas with evidence
+- **Commit incrementally**: Small commits, not big bangs
+"""
+
+
+def parse_value(raw: str) -> Optional[str]:
+    """A one-line YAML scalar, quoted or bare. None for a broken quote."""
+    raw = raw.strip()
+    if raw.startswith('"'):
+        m = re.match(r'"((?:[^"\\]|\\.)*)"\s*(#.*)?\Z', raw)
+        return re.sub(r'\\(["\\])', r"\1", m.group(1)) if m else None
+    if raw.startswith("'"):
+        m = re.match(r"'((?:[^']|'')*)'\s*(#.*)?\Z", raw)
+        return m.group(1).replace("''", "'") if m else None
+    return re.sub(r"\s+#.*\Z", "", raw).strip()
+
+
+def read_commands(text: str) -> Tuple[Pairs, List[str]]:
+    """(name, purpose) per `commands:` entry, plus `manifest <detail>` reasons."""
+    lines = text.splitlines()
+    start = next((i for i, l in enumerate(lines) if re.match(r"commands:\s*(#.*)?\Z", l)), None)
+    if start is None:
+        return [], ["manifest no commands section"]
+    entries: List[Dict[str, Optional[str]]] = []
+    for line in lines[start + 1:]:
+        if line.strip() and not line[0].isspace() and not line.startswith("#"):
+            break
+        m = re.match(r"  - name:(.*)\Z", line)
+        if m:
+            entries.append({"name": parse_value(m.group(1))})
+            continue
+        m = re.match(r"    ([A-Za-z_][\w-]*):(.*)\Z", line)
+        if m and entries:
+            entries[-1].setdefault(m.group(1), parse_value(m.group(2)))
+    if not entries:
+        return [], ["manifest no commands"]
+    commands: Pairs = []
+    reasons: List[str] = []
+    for entry in entries:
+        name = entry["name"] or ""
+        if not NAME_RE.match(name):
+            reasons.append("manifest bad name %s" % (name or '""'))
+            continue
+        missing = [k for k in ("file", "purpose") if not entry.get(k)]
+        reasons += ["manifest %s missing %s" % (name, k) for k in missing]
+        if "file" not in missing and entry["file"] != "commands/%s.md" % name:
+            reasons.append("manifest %s file %s" % (name, entry["file"]))
+        if name in dict(commands):
+            reasons.append("manifest duplicate %s" % name)
+        commands.append((name, entry.get("purpose") or ""))
+    return commands, reasons
+
+
+def read_agents(folder: Path) -> Tuple[Pairs, List[str]]:
+    """(file name, description) per agent file, plus `agent <file>` reasons."""
+    agents: Pairs = []
+    reasons: List[str] = []
+    for path in sorted(folder.glob("*.md")):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            text = ""
+        end = text.find("\n---\n", 4) if text.startswith("---\n") else -1
+        keys = dict(re.findall(r"^(name|description):(.*)$", text[4:end], re.M)) if end > 0 else {}
+        description = parse_value(keys.get("description", ""))
+        if not parse_value(keys.get("name", "")) or not description:
+            reasons.append("agent %s" % path.name)
+        agents.append((path.name, description or ""))
+    return agents, reasons
+
+
+def render(commands: Pairs, agents: Pairs) -> str:
+    """The template bytes: LF only, one final newline, `|` escaped."""
+    rows = "".join("| `/%s` | `.claude/commands/%s.md` | %s |\n" % (n, n, p.replace("|", "\\|"))
+                   for n, p in commands)
+    items = "".join("- `%s` — %s\n" % (f, d.replace("|", "\\|")) for f, d in agents)
+    pipeline = " → ".join("/" + name for name in PIPELINE)
+    return TEMPLATE.format(rows=rows, agents=items, pipeline=pipeline, phase=PHASE)
+
+
+def render_reasons(commands: Pairs, agents: Pairs) -> List[str]:
+    """`import-token` for an `@` outside backticks; `pipeline` for a name not in the manifest."""
+    reasons = ["import-token %s" % name for name, text in commands + agents
+               if "@" in CODE_SPAN.sub("", text)]
+    names = {name for name, _ in commands}
+    return reasons + ["pipeline %s" % n for n in PIPELINE + (PHASE,) if names and n not in names]
+
+
+def finish(verdict: str, reasons: List[str], detail: str) -> int:
+    print(verdict)
+    for reason in reasons:
+        print("reason: " + reason)
+    print("gen-claude-md: %s (%s)" % (verdict, detail))
+    return 1 if verdict == "fail" else 0
+
+
+def check(out: Path, text: str, names: List[str], detail: str) -> int:
+    if not out.is_file():
+        return finish("fail", ["absent " + OUT_REL], "1 absent")
+    committed = out.read_bytes()
+    rows = list(dict.fromkeys(ROW_RE.findall(committed.decode("utf-8", "replace"))))
+    missing = [n for n in names if n not in rows]
+    extra = [n for n in rows if n not in names]
+    if missing or extra:
+        reasons = ["missing " + n for n in missing] + ["extra " + n for n in extra]
+        return finish("fail", reasons, "%d missing, %d extra" % (len(missing), len(extra)))
+    if committed != text.encode("utf-8"):
+        return finish("fail", ["stale " + OUT_REL], "1 stale")
+    return finish("pass", [], detail)
+
+
+def write(out: Path, text: str, detail: str) -> int:
+    """Write a temp file next to the template, then os.replace it over the template."""
+    mode = out.stat().st_mode & 0o777 if out.is_file() else 0o644
+    tmp = None
+    try:
+        fd, tmp = tempfile.mkstemp(dir=str(out.parent), prefix=".CLAUDE.md.")
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(text.encode("utf-8"))
+        os.chmod(tmp, mode)
+        os.replace(tmp, str(out))
+    except OSError as err:
+        if tmp and os.path.exists(tmp):
+            os.unlink(tmp)
+        return finish("fail", ["write %s" % err], "1 write")
+    return finish("pass", [], detail)
+
+
+def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
+    parser = argparse.ArgumentParser(
+        prog="gen-claude-md.py", allow_abbrev=False,
+        description="Generate or check claude-code/CLAUDE.md from .writ/manifest.yaml "
+                    "and claude-code/agents/*.md. Dev-only; never shipped.")
+    parser.add_argument("--check", action="store_true",
+                        help="compare with the committed file, write nothing; exit 0 pass, 1 fail")
+    args = parser.parse_args(argv)
+
+    unverifiable = []
+    try:
+        manifest = (root / MANIFEST_REL).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        unverifiable.append("manifest missing: " + MANIFEST_REL)
+    folder = root / AGENTS_REL
+    if not folder.is_dir() or not any(folder.glob("*.md")):
+        unverifiable.append("agents missing: " + AGENTS_REL)
+    if unverifiable:
+        return finish("unverifiable", unverifiable, "inputs missing")
+
+    commands, reasons = read_commands(manifest)
+    agents, agent_reasons = read_agents(folder)
+    reasons += agent_reasons + render_reasons(commands, agents)
+    if reasons:
+        kinds = [r.split(" ", 1)[0] for r in reasons]
+        return finish("fail", reasons, ", ".join(
+            "%d %s" % (kinds.count(k), k) for k in dict.fromkeys(kinds)))
+    text = render(commands, agents)
+    detail = "%d commands, %d agents" % (len(commands), len(agents))
+    out = root / OUT_REL
+    if args.check:
+        return check(out, text, [name for name, _ in commands], detail)
+    return write(out, text, detail)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except BrokenPipeError:
+        sys.exit(0)

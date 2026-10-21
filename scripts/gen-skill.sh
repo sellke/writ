@@ -611,9 +611,9 @@ When a user requests any Writ command, read the corresponding command file and f
 
 ## Runtime Contract
 
-The recommended-delivery state contract at \`$METADATA_RUNTIME_CONTRACT\` defines
-the resumable state and audit format for \`--recommend\` execution. Install, update,
-and unlink manage this file alongside its reducer.
+The recommended-delivery state contract at \`$METADATA_RUNTIME_CONTRACT\` records
+ADR-013's dormant staging design. It stays in the Writ source repo with its reducer
+and is not installed.
 
 ## Available Commands
 EOF

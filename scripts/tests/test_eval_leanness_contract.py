@@ -1027,5 +1027,25 @@ class EvalShBoundaryTests(unittest.TestCase):
         self.assertIn("WARNING [commands/alpha.md]", report)
 
 
+class EveryCommandFileCountsTests(unittest.TestCase):
+    """Story 2 of `2026-10-20-harness-cuts` (AC-2.4): no file under
+    `commands/` is skipped by its name. `all_command_files` and
+    `metrics.commands` count a dotted name such as `b.variant.md` like any
+    other command, and the name-based sibling helper is gone."""
+
+    def test_all_command_files_and_metrics_count_every_md_file(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_command(root, "a", "# a\n")
+            write_command(root, "b.variant", "# b\n")
+            files = [Path(p).name for p in lean.all_command_files(str(root))]
+            metrics, _ = lean.compute_metrics(str(root))
+        self.assertEqual(files, ["a.md", "b.variant.md"])
+        self.assertEqual(metrics["commands"], 2)
+
+    def test_the_name_based_sibling_helper_is_gone(self):
+        self.assertFalse(hasattr(lean, "is_lean_sibling"))
+
+
 if __name__ == "__main__":
     unittest.main()

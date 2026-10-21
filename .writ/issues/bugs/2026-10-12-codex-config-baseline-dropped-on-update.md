@@ -26,3 +26,9 @@
 - `scripts/update.sh` - `write_copy_manifest`, `manifest_hash_for`
 - `scripts/unlink.sh` - the read-before-truncate pattern to copy
 - `adapters/codex.md` - documents the baseline convention
+
+## Resolution
+
+2026-10-20, branch `writ/phase/13/2026-10-20-ci-and-update-integrity` (spec `2026-10-20-ci-and-update-integrity`, Story 2). `write_copy_manifest` in `scripts/update.sh` now reads `manifest_hash_for ".codex/config.toml.baseline"` into a local before `cat > "$target"` truncates the manifest, the same order `scripts/unlink.sh` uses. The Codex block writes that value when it is non-empty, so a manifest with no baseline line still gets none.
+
+`scripts/tests/test_update_codex_config_baseline.sh` installs Codex into a temp project, runs two updates that rewrite the manifest and one dry run, and checks that one baseline line with the install-time hash survives each and that `.codex/config.toml` is unchanged. It also covers the no-baseline case. On the pre-fix `update.sh` it fails at the first update: line count 0, want 1.

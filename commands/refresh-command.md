@@ -224,10 +224,9 @@ required-sections presence, no new broken refs, length sanity, the
 section. A structural regression rejects the amendment with reason `eval failed`.
 A target not on the allowlist runs the base evidence check only.
 
-**Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant is
-deferred behind an explicit future decision: research
-(`.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md`) found its cost
-(~$0.15 / ~30s per run) exceeds its value at current scale. Do not
+**Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant
+stays deferred behind an explicit future decision: measured at about $0.15 and
+30 seconds per run, it costs more than it is worth at current scale. Do not
 introduce an LLM judge here; keep Tier 2 a bounded structural reuse of Tier 1.
 
 CI (`.github/workflows/eval.yml`) is the backstop: it runs the same
@@ -318,7 +317,7 @@ is applied with its evidence, and an unjustifiable one is rejected and logged.
 
 > **Triggered when:** the user picks `lint-skills` from the Phase 1 menu, or invokes `/refresh-command --lint-skills`. This is a separate refresh path: it does not run when refreshing a specific command, and the command-refresh flow above does not invoke it.
 
-The boundary lint enforces the role convention from [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh`, so authoring-time and review-time checks cannot diverge.
+The boundary lint enforces the role convention — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh`, so authoring-time and review-time checks cannot diverge.
 
 ### Step 5.1: Discover Skills
 
@@ -413,17 +412,7 @@ Logged to .writ/refresh-log.md
 
 > **Triggered when:** the user picks `parity` from the Phase 1 menu, or invokes `/refresh-command --check-parity`.
 
-Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. This phase warns when a canonical agent is missing a counterpart. Drift is a warning here, never a block: the script prints `fail` on line 1 and exits 1, and this phase reports it and stops.
-
-### Exclusions
-
-Contributors may omit a Claude Markdown variant when the role is intentionally Cursor/Codex-only:
-
-| Canonical agent (`agents/<name>.md`) | Exemption |
-|---|---|
-| `visual-qa-agent` | No `claude-code/agents/` file today — parity lint skips the Claude check for this agent only. Codex and Cursor still carry the role. |
-
-Add new rows here when a platform legitimately does not ship an agent (with rationale).
+Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. Both platform shapes are generated from the canonical files: `python3 scripts/gen-claude-agents.py` writes `claude-code/agents/`, and `python3 scripts/gen-codex-agent-tomls.py` writes `codex/agents/`. This phase warns when a canonical agent is missing a counterpart or a generated file no longer matches its generator's output. Every canonical agent needs both counterparts; there are no exclusions. Drift is a warning here, never a block: the script prints `fail` on line 1 and exits 1, and this phase reports it and stops.
 
 ### Step 6.1: Run the parity script
 
@@ -433,7 +422,9 @@ From the repository root:
 bash scripts/check-agent-parity.sh
 ```
 
-Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `reason:` line per missing counterpart), or `unverifiable` (exit 0, no `agents/` folder). A `check-agent-parity:` summary is last.
+Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `reason:` line per problem), or `unverifiable` (exit 0, no `agents/` folder). A `check-agent-parity:` summary is last.
+
+A missing counterpart reads `reason: agents/<stem>.md has no counterpart in <dir>/`. Content drift reads `reason: <gen>: <kind> <name>`, folded from the generator's `--check` (`stale`, `missing`, `unmapped`, or `orphan`), `reason: <gen> --check exited <rc>` when a generator crashes, or `reason: <gen> --check failed without a reason line` when it exits 1 without naming the drift. If a generator is absent beside the script, the content check for it is skipped and the summary ends with `; content not checked: <gens>`.
 
 ### Step 6.2: Present results
 
@@ -442,7 +433,7 @@ Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `r
 ```
 ✅ Agent parity check complete — parity OK
 
-agents/, claude-code/agents/, and codex/agents/ are aligned (subject to documented exclusions).
+agents/, claude-code/agents/, and codex/agents/ are aligned and match their generators.
 ```
 
 **If line 1 is `fail`:**
@@ -450,14 +441,16 @@ agents/, claude-code/agents/, and codex/agents/ are aligned (subject to document
 Print the script output verbatim, then summarize:
 
 ```
-⚠️ Agent parity check complete — missing counterpart(s) reported above.
+⚠️ Agent parity check complete — drift reported above.
 
-These are warnings only; parity drift never blocks. Restore or author the missing platform file,
-or add a documented exclusion in Phase 6 if the omission is intentional.
+These are warnings only; parity drift never blocks. Regenerate after editing canonical agents:
 
-Regenerate Codex TOMLs after editing canonical agents:
-
+python3 scripts/gen-claude-agents.py
 python3 scripts/gen-codex-agent-tomls.py
+
+An unmapped stem needs an overlay entry in the generator first (OVERLAY in
+gen-claude-agents.py; PURPOSES and SANDBOX in gen-codex-agent-tomls.py).
+Do not hand-edit generated files.
 ```
 
 **If line 1 is `unverifiable`:** print the `reason:` line; there is no `agents/` folder to compare.
@@ -488,6 +481,7 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome.
 | `agents/*.md`, `claude-code/agents/*.md`, `codex/agents/*.toml` | Parity targets in `--check-parity` mode |
 | `scripts/lint-skill.sh` | Boundary lint grammar — shared with `/new-skill` |
 | `scripts/check-agent-parity.sh` | Agent parity check (`fail` on drift; a warning here, never a block) |
+| `scripts/gen-claude-agents.py` | Regenerate `claude-code/agents/writ-*.md` from canonical `agents/*.md` |
 | `scripts/gen-codex-agent-tomls.py` | Regenerate `codex/agents/*.toml` from canonical `agents/*.md` |
 | `.writ/refresh-log.md` | Append-only improvement history (commands and skill lint runs) |
 | `/verify-spec` | Can validate refreshed commands still produce spec-compliant output |

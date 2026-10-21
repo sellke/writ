@@ -152,21 +152,149 @@ manifest_mode() {
   fi
 }
 
+# Baselines this run trusts, one "<hash>  <path>" line each. load_baselines
+# fills it after the clone; until then lookups read the manifest itself.
+BASELINES_FILE=""
+# Set by load_legacy_baselines when a legacy manifest's version cannot be
+# used: the reason, for the notice printed after the version lines.
+LEGACY_FALLBACK_REASON=""
+
+# load_baselines — the one place that decides which baselines this run trusts.
+# A manifest with `# baselines: shipped`: its "<hash>  <path>" lines. A legacy
+# manifest: baselines rebuilt by load_legacy_baselines. No manifest: none.
+# write_copy_manifest truncates the manifest, so lookups read this copy
+# instead.
+load_baselines() {
+  BASELINES_FILE=$(mktemp)
+  [ -f "$MANIFEST_FILE" ] || return 0
+  if grep -qx '# baselines: shipped' "$MANIFEST_FILE"; then
+    awk '!/^#/ && NF' "$MANIFEST_FILE" > "$BASELINES_FILE"
+  else
+    load_legacy_baselines
+  fi
+}
+
+# The upstream source path of a manifest path. Fails for a path Writ does not
+# ship under that name, such as an old whole-file CLAUDE.md line.
+legacy_source_path() {
+  case "$1" in
+    commands/*|skills/*/SKILL.md|scripts/*|.writ/docs/*|system-instructions.md)
+      printf '%s\n' "$1" ;;
+    agents/*)             printf '%s/%s\n' "$AGENTS_SRC" "${1#agents/}" ;;
+    rules/writ.mdc)       printf 'cursor/writ.mdc\n' ;;
+    CLAUDE.md.writ-block) printf 'claude-code/CLAUDE.md\n' ;;
+    AGENTS.md.writ-block) printf 'codex/AGENTS.md.template\n' ;;
+    *) return 1 ;;
+  esac
+}
+
+# Print the full commit id of a manifest version in the upstream clone. The
+# version comes from a file in the project, so accept only a hex id: it can
+# never be read as a git option. A shallow clone lacks older commits, so fetch
+# the full history once and look again. Every failure returns 1.
+legacy_resolve_commit() {
+  local v="$1"
+  case "$v" in
+    *[!0123456789abcdef]*) return 1 ;;
+  esac
+  [ "${#v}" -ge 4 ] && [ "${#v}" -le 40 ] || return 1
+  git -C "$WRIT_SRC" rev-parse -q --verify "$v^{commit}" 2>/dev/null && return 0
+  [ "$(git -C "$WRIT_SRC" rev-parse --is-shallow-repository 2>/dev/null)" = "true" ] || return 1
+  git -C "$WRIT_SRC" fetch --quiet --unshallow >/dev/null 2>&1 || return 1
+  git -C "$WRIT_SRC" rev-parse -q --verify "$v^{commit}" 2>/dev/null
+}
+
+# A manifest without `# baselines: shipped` was written by a pre-fix script
+# (Business Rule 9). It can record user files, and customizations re-baselined
+# to their local hash. Rebuild its baselines from upstream at its `# version:`:
+# each path gets the hash of its source file at that commit, and a path
+# upstream did not have then is a user file and gets no line, so it is never
+# stale. The Codex config line is kept as recorded. When the version cannot be
+# found, keep only that line: every file that differs from upstream then has
+# no baseline and is preserved, and nothing is stale, as with no manifest.
+load_legacy_baselines() {
+  local v commit path src blob
+  awk '!/^#/ && $2 == ".codex/config.toml.baseline" { print; exit }' "$MANIFEST_FILE" > "$BASELINES_FILE"
+  v=$(manifest_version | sed -n '1p')
+  if [ -z "$v" ] || [ "$v" = "unknown" ]; then
+    LEGACY_FALLBACK_REASON="its version is unknown"
+    return 0
+  fi
+  if ! commit=$(legacy_resolve_commit "$v"); then
+    LEGACY_FALLBACK_REASON="version $v was not found upstream"
+    return 0
+  fi
+  # Hash a temp copy of each blob with hash_file, so it matches the hashes
+  # the overlay computes from the clone's files. For a Writ block that is the
+  # template's hash, which the merge functions compare the inner hash with.
+  blob=$(mktemp)
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    src=$(legacy_source_path "$path") || continue
+    git -C "$WRIT_SRC" cat-file blob "$commit:$src" > "$blob" 2>/dev/null || continue
+    printf '%s  %s\n' "$(hash_file "$blob")" "$path" >> "$BASELINES_FILE"
+  done <<< "$(awk '!/^#/ && NF && $2 != ".codex/config.toml.baseline" && !seen[$2]++ { print $2 }' "$MANIFEST_FILE")"
+  rm -f "$blob"
+}
+
+baselines_source() {
+  if [ -n "${BASELINES_FILE:-}" ]; then
+    printf '%s\n' "$BASELINES_FILE"
+  else
+    printf '%s\n' "$MANIFEST_FILE"
+  fi
+}
+
+# The recorded hash for one path. Exact match on the path field; first line wins.
 manifest_hash_for() {
-  local path="$1"
-  [ -f "$MANIFEST_FILE" ] && grep "  ${path}$" "$MANIFEST_FILE" | cut -d' ' -f1 || true
+  local path="$1" source
+  source=$(baselines_source)
+  [ -f "$source" ] || return 0
+  awk -v p="$path" '!/^#/ && $2 == p { print $1; exit }' "$source"
 }
 
 manifest_files() {
-  [ -f "$MANIFEST_FILE" ] && grep -v '^#' "$MANIFEST_FILE" | grep -v '^$' | awk '{print $2}' || true
+  local source
+  source=$(baselines_source)
+  [ -f "$source" ] || return 0
+  awk '!/^#/ && NF { print $2 }' "$source"
+}
+
+# record_file_baseline — append the manifest line for one shipped file
+# (Business Rule 3). Local copy equals upstream: the upstream hash. Local copy
+# differs (the overlay preserved it): its previous baseline, or no line when it
+# had none, so a later upstream change is still a preserve. No local copy, or
+# nothing upstream: no line. Never writes an empty hash.
+record_file_baseline() {
+  local target="$1" path="$2" upstream_file="$3" local_file="$4" hash
+  [ -f "$local_file" ] && [ -f "$upstream_file" ] || return 0
+  if cmp -s "$local_file" "$upstream_file"; then
+    hash=$(hash_file "$upstream_file")
+  else
+    hash=$(manifest_hash_for "$path")
+  fi
+  [ -n "$hash" ] || return 0
+  printf '%s  %s\n' "$hash" "$path" >> "$target"
 }
 
 write_copy_manifest() {
   local version="$1" target="$2"
 
+  # The Codex config is install-once and may be edited, so its baseline cannot
+  # be recomputed from disk: carry the recorded one. Read it before the
+  # truncation below, in case lookups still read the manifest itself (no
+  # load_baselines yet). Same order as unlink.sh.
+  local config_baseline=""
+  if [ "$PLATFORM" = "codex" ]; then
+    config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
+  fi
+
+  # `# baselines: shipped` marks a manifest that records only shipped paths
+  # (Business Rule 2). A manifest without it was written by an older script.
   cat > "$target" << EOF
 # Writ Manifest — do not edit manually
 # Tracks installed file baselines for safe overlay updates.
+# baselines: shipped
 # mode: copy
 # platform: $PLATFORM
 # version: $version
@@ -174,68 +302,73 @@ write_copy_manifest() {
 # source: $WRIT_REPO
 EOF
 
-  local f rel line path
+  # Walk the shipped set in $WRIT_SRC with the overlay scans' own filters,
+  # never the project's folders (Business Rule 1): a user's own file in a
+  # tracked folder gets no line, so it is never stale and never removed.
+  # AGENTS_SRC and AGENT_FILE_GLOB default to empty because
+  # test_update_claude_md.sh runs this function by itself without them.
+  local f name agents_dir skill_folder skill_name line path
   append_manifest_shippable_scripts "$target"
   append_manifest_writ_docs "$target"
-  for f in "$PLATFORM_DIR"/commands/*.md; do
+  for f in "$WRIT_SRC"/commands/*.md; do
     [ -f "$f" ] || continue
-    rel="${f#"$PLATFORM_DIR"/}"
-    echo "$(hash_file "$f")  $rel" >> "$target"
+    name=$(basename "$f")
+    record_file_baseline "$target" "commands/$name" "$f" "$PLATFORM_DIR/commands/$name"
+  done
+  agents_dir="$WRIT_SRC/${AGENTS_SRC:-}"
+  for f in "$agents_dir"/${AGENT_FILE_GLOB:-}; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f")
+    record_file_baseline "$target" "agents/$name" "$f" "$PLATFORM_DIR/agents/$name"
   done
 
-  if [ "$PLATFORM" = "codex" ]; then
-    for f in "$PLATFORM_DIR"/agents/*.toml; do
-      [ -f "$f" ] || continue
-      rel="${f#"$PLATFORM_DIR"/}"
-      echo "$(hash_file "$f")  $rel" >> "$target"
-    done
-  else
-    for f in "$PLATFORM_DIR"/agents/*.md; do
-      [ -f "$f" ] || continue
-      rel="${f#"$PLATFORM_DIR"/}"
-      echo "$(hash_file "$f")  $rel" >> "$target"
-    done
-  fi
+  for skill_folder in "$WRIT_SRC"/skills/*/; do
+    [ -f "${skill_folder}SKILL.md" ] || continue
+    skill_name=$(basename "$skill_folder")
+    record_file_baseline "$target" "skills/$skill_name/SKILL.md" \
+      "${skill_folder}SKILL.md" "$SKILLS_DIR/$skill_name/SKILL.md"
+  done
 
-  local skill_folder skill_name src_skill
-  if [ -d "$SKILLS_DIR" ]; then
-    for skill_folder in "$SKILLS_DIR"/*/; do
-      [ -d "$skill_folder" ] || continue
-      skill_name=$(basename "$skill_folder")
-      src_skill="${skill_folder}SKILL.md"
-      [ -f "$src_skill" ] || continue
-      rel="skills/$skill_name/SKILL.md"
-      echo "$(hash_file "$src_skill")  $rel" >> "$target"
-    done
-  fi
-
+  # Platform files copied whole.
   if [ "$PLATFORM" = "cursor" ]; then
-    for f in "$PLATFORM_DIR"/rules/writ.mdc "$PLATFORM_DIR"/system-instructions.md; do
-      [ -f "$f" ] || continue
-      rel="${f#"$PLATFORM_DIR"/}"
-      echo "$(hash_file "$f")  $rel" >> "$target"
-    done
-  elif [ "$PLATFORM" = "claude" ]; then
-    local iw=""
-    if [ -f "CLAUDE.md" ] && iw="$(writ_compute_writ_block_inner_hash "CLAUDE.md")"; then
-      echo "$iw  CLAUDE.md.writ-block" >> "$target"
+    record_file_baseline "$target" "rules/writ.mdc" \
+      "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
+  fi
+  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
+    record_file_baseline "$target" "system-instructions.md" \
+      "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
+  fi
+
+  # Writ block: the inner hash when it equals the template hash the merge
+  # functions compare against. Otherwise the block was preserved: keep its
+  # previous baseline, or write no line. The same rule as
+  # record_file_baseline, kept inline because test_update_claude_md.sh runs
+  # this function without the other helpers.
+  local block="" template="" inner="" block_hash=""
+  case "$PLATFORM" in
+    claude) block="CLAUDE.md"; template="$WRIT_SRC/claude-code/CLAUDE.md" ;;
+    codex)  block="AGENTS.md"; template="$WRIT_SRC/codex/AGENTS.md.template" ;;
+  esac
+  if [ -n "$block" ] && [ -f "$block" ] && [ -f "$template" ]; then
+    inner=$(writ_compute_writ_block_inner_hash "$block") || inner=""
+    if [ -n "$inner" ] && [ "$inner" = "$(hash_file "$template")" ]; then
+      block_hash="$inner"
+    else
+      block_hash=$(manifest_hash_for "$block.writ-block")
+    fi
+    if [ -n "$block_hash" ]; then
+      echo "$block_hash  $block.writ-block" >> "$target"
     fi
   fi
 
-  if [ "$PLATFORM" = "codex" ]; then
-    local iw config_baseline
-    if [ -f "AGENTS.md" ] && iw="$(writ_compute_writ_block_inner_hash "AGENTS.md")"; then
-      echo "$iw  AGENTS.md.writ-block" >> "$target"
-    fi
-    config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
-    if [ -n "$config_baseline" ]; then
-      echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
-    fi
+  if [ "$PLATFORM" = "codex" ] && [ -n "$config_baseline" ]; then
+    echo "$config_baseline  .codex/config.toml.baseline" >> "$target"
   fi
 
-  # Keep the old baseline of a kept, locally modified stale file so the next
-  # update warns again instead of silently dropping it (skip paths already
-  # recorded above).
+  # Keep the old baseline of each kept, locally modified stale file, in every
+  # category, so the next update warns again instead of dropping it. A stale
+  # path is never in the shipped set walked above, so the check below only
+  # skips a path the old manifest listed twice.
   if [ -n "${STALE_KEPT_ENTRIES:-}" ]; then
     while IFS= read -r line; do
       [ -n "$line" ] || continue
@@ -300,6 +433,21 @@ writ_file_ends_with_newline() {
   [ -s "$file" ] || return 0
   last_hex=$(tail -c 1 "$file" | od -An -t x1 | tr -d ' \n')
   [ "$last_hex" = "0a" ]
+}
+
+# writ_block_inner_has_line FILE LINE — returns 0 when a line between the
+# markers equals LINE once its trailing "\r" is stripped. Keep synced with
+# install.sh.
+writ_block_inner_has_line() {
+  local file="$1"
+  WRIT_WANT_LINE="$2" awk '{
+      line=$0
+      sub(/\r$/, "", line)
+      if (line == "<!-- writ:start -->") { inside=1; next }
+      if (line == "<!-- writ:end -->") { inside=0; next }
+      if (inside == 1 && line == ENVIRON["WRIT_WANT_LINE"]) found=1
+    }
+    END { exit found ? 0 : 1 }' "$file"
 }
 
 writ_rewrite_agents_md_with_inner() {
@@ -513,6 +661,9 @@ merge_claude_md() {
   CLAUDE_MD_ACTION="preserved"
   CLAUDE_MD_NOTE="CLAUDE.md: Writ block preserved (local modifications)"
   echo "    ⚡ Preserved: CLAUDE.md (Writ block has local modifications)"
+  if ! writ_block_inner_has_line "$claude_md" "@.claude/system-instructions.md"; then
+    printf '%s\n' "⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line. Add it inside the block, or re-run update.sh --force to replace the block."
+  fi
   return 0
 }
 # <<< writ-merge-bundled-end >>>
@@ -553,8 +704,12 @@ if ! git clone --depth 1 "$WRIT_REPO" "$WRIT_SRC" 2>&1 | tail -1; then
   rm -rf "$WRIT_SRC"
   exit 1
 fi
-cleanup() { rm -rf "$WRIT_SRC"; }
+cleanup() {
+  rm -rf "$WRIT_SRC"
+  if [ -n "${BASELINES_FILE:-}" ]; then rm -f "$BASELINES_FILE"; fi
+}
 trap cleanup EXIT
+load_baselines
 
 NEW_VERSION=$(cd "$WRIT_SRC" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
 NEW_VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
@@ -564,7 +719,10 @@ echo "   Installed: ${CURRENT_VERSION:-unknown (no manifest)}"
 echo "   Latest:    $NEW_VERSION_LONG"
 echo ""
 
-if [ -z "$CURRENT_VERSION" ]; then
+if [ -n "$LEGACY_FALLBACK_REASON" ]; then
+  echo "  ⚠️  Manifest predates shipped-only baselines and $LEGACY_FALLBACK_REASON; files that differ from upstream are preserved this run."
+  echo ""
+elif [ -z "$CURRENT_VERSION" ]; then
   echo "  ⚠️  No manifest found — this is an older installation."
   echo "     Files that differ from upstream will be treated conservatively"
   echo "     (assumed locally modified). A manifest will be created after update."
@@ -587,8 +745,8 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|lean-decision.py|prune-ledger.py|spawn-cap.py)
-      # Dev-only tooling (eval.sh, measurement); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template); not agent-facing. ADR-029.
       return 1 ;;
   esac
   case "$base" in
@@ -601,6 +759,16 @@ is_shippable_script() {
   return 1
 }
 
+# Writ reference docs shipped to installed projects (.writ/docs/).
+is_shippable_writ_doc() {
+  case "$1" in
+    recommended-delivery-state-format.md)
+      # ADR-013 dormant staging contract; dev-only with recommend-state.py.
+      return 1 ;;
+  esac
+  return 0
+}
+
 overlay_scan_flat_dir() {
   local src_dir="$1" dest_dir="$2" rel_prefix="$3" mode="$4" filter="${5:-}"
   _NEW=0; _UPDATED=0; _PRESERVED=0; _UNCHANGED=0
@@ -611,6 +779,9 @@ overlay_scan_flat_dir() {
     [ -f "$src_file" ] || continue
     fname=$(basename "$src_file")
     if [ "$filter" = "script" ] && ! is_shippable_script "$fname"; then
+      continue
+    fi
+    if [ "$filter" = "doc" ] && ! is_shippable_writ_doc "$fname"; then
       continue
     fi
 
@@ -664,35 +835,28 @@ overlay_scan_flat_dir() {
   done
 }
 
+# Manifest lines for the top-level scripts upstream ships (the overlay's
+# "script" filter). Called only by write_copy_manifest.
 append_manifest_shippable_scripts() {
   local target="$1" f base
-  for f in scripts/*.py scripts/*.sh scripts/jev-thresholds.json; do
+  for f in "$WRIT_SRC"/scripts/*; do
     [ -f "$f" ] || continue
     base=$(basename "$f")
     is_shippable_script "$base" || continue
-    echo "$(hash_file "$f")  $f" >> "$target"
+    record_file_baseline "$target" "scripts/$base" "$f" "scripts/$base"
   done
 }
 
+# Manifest lines for the .writ/docs/*.md upstream ships (the overlay's "doc"
+# filter). Called only by write_copy_manifest.
 append_manifest_writ_docs() {
-  local target="$1" f
-  for f in .writ/docs/*.md; do
+  local target="$1" f base
+  for f in "$WRIT_SRC"/.writ/docs/*.md; do
     [ -f "$f" ] || continue
-    echo "$(hash_file "$f")  $f" >> "$target"
+    base=$(basename "$f")
+    is_shippable_writ_doc "$base" || continue
+    record_file_baseline "$target" ".writ/docs/$base" "$f" ".writ/docs/$base"
   done
-}
-
-# commands/<stem>.lean.md is the WRIT_HARNESS_LEAN=1 body for <stem>.md. It is
-# not shipped while the default exists (Story 5 of 2026-09-24-flagged-harness-cuts:
-# the default load path is unflipped); `pipeline-baseline.py run --lean` copies
-# it into a replay checkout itself. A .lean.md with no default ships as usual.
-# Mirrors eval.sh's lean-sibling exclusion.
-is_unshipped_lean_sibling() {
-  local src_dir="$1" fname="$2"
-  case "$fname" in
-    *.lean.md) [ -f "$src_dir/${fname%.lean.md}.md" ] ;;
-    *) return 1 ;;
-  esac
 }
 
 overlay_scan() {
@@ -704,7 +868,6 @@ overlay_scan() {
   for src_file in "$src_dir"/$pattern; do
     [ -f "$src_file" ] || continue
     fname=$(basename "$src_file")
-    is_unshipped_lean_sibling "$src_dir" "$fname" && continue
     local_file="$local_dir/$fname"
     rel_path="${label}/${fname}"
     upstream_hash=$(hash_file "$src_file")
@@ -815,7 +978,8 @@ overlay_scan_skills() {
 
 STALE_FILES=""
 STALE_COUNT=0
-# "<baseline>  <path>" lines for locally modified stale files that were kept.
+# "<baseline>  <path>" lines for stale files still on disk after this run:
+# locally modified ones that were kept, and ones rm could not remove.
 STALE_KEPT_ENTRIES=""
 
 detect_stale_files() {
@@ -853,22 +1017,24 @@ detect_stale_files() {
       *)        continue ;;
     esac
 
-    # A lean sibling an earlier install shipped is stale while the default
-    # exists upstream: update.sh no longer ships it. Likewise a script the
-    # ship filter now rejects (e.g. the ADR-029 dev-only helpers).
-    if [ ! -f "$upstream_file" ] || { [ "$category" = "commands" ] \
-        && is_unshipped_lean_sibling "$WRIT_SRC/commands" "$(basename "$manifest_path")"; } \
-        || { [ "$category" = "scripts" ] && ! is_shippable_script "$(basename "$manifest_path")"; }; then
+    # A file an earlier install shipped is stale when upstream no longer has
+    # it, or when it is a script or doc a ship filter now rejects (e.g. the
+    # ADR-029 dev-only helpers and the ADR-013 staging doc, which stay upstream
+    # for eval.sh).
+    if [ ! -f "$upstream_file" ] \
+        || { [ "$category" = "scripts" ] && ! is_shippable_script "$(basename "$manifest_path")"; } \
+        || { [ "$category" = ".writ" ] && ! is_shippable_writ_doc "$(basename "$manifest_path")"; }; then
       baseline_hash=$(manifest_hash_for "$manifest_path")
       local_hash=$(hash_file "$local_file")
 
       if [ "$local_hash" = "$baseline_hash" ]; then
         STALE_FILES="${STALE_FILES}${manifest_path}\n"
         STALE_COUNT=$((STALE_COUNT + 1))
-      elif [ "$category" = "scripts" ]; then
-        # Only scripts/ keeps its old baseline across runs (write_copy_manifest);
-        # other categories are re-baselined from the local copy, so promising
-        # "kept" there would be false on the next update.
+      else
+        # Locally modified: keep it in every category. write_copy_manifest
+        # carries this old baseline forward (a stale path is not in the shipped
+        # set, so nothing else records it), and the next update warns again
+        # until the user deletes the file.
         echo "  ⚠️  Stale (no longer shipped, locally modified — kept): $manifest_path"
         STALE_KEPT_ENTRIES="${STALE_KEPT_ENTRIES}${baseline_hash}  ${manifest_path}\n"
       fi
@@ -897,7 +1063,7 @@ TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
 ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}${_PRESERVED_FILES}"
 
 echo "  Writ docs:"
-overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview"
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "preview" "doc"
 TOTAL_NEW=$((TOTAL_NEW + _NEW))
 TOTAL_UPDATED=$((TOTAL_UPDATED + _UPDATED))
 TOTAL_PRESERVED=$((TOTAL_PRESERVED + _PRESERVED))
@@ -941,12 +1107,16 @@ if [ "$PLATFORM" = "cursor" ]; then
       if [ "$FORCE" = true ]; then
         RULE_ACTION="update"
         echo "    🔄 Update:    rules/writ.mdc (forced)"
-      elif [ -z "$rule_baseline" ] || [ "$rule_local" = "$rule_baseline" ]; then
+      elif [ "$rule_local" = "$rule_baseline" ] || { [ -z "$rule_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
         RULE_ACTION="update"
         echo "    🔄 Update:    rules/writ.mdc"
       else
         RULE_ACTION="preserved"
-        echo "    ⚡ Preserved: rules/writ.mdc (local modifications)"
+        if [ -z "$rule_baseline" ]; then
+          echo "    ⚡ Preserved: rules/writ.mdc (no baseline, assuming modified)"
+        else
+          echo "    ⚡ Preserved: rules/writ.mdc (local modifications)"
+        fi
         TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
         ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    rules/writ.mdc\n"
       fi
@@ -955,7 +1125,10 @@ if [ "$PLATFORM" = "cursor" ]; then
     RULE_ACTION="new"
     echo "    ✨ New:       rules/writ.mdc"
   fi
+fi
 
+# Cursor and Claude Code both install system-instructions.md in the platform dir.
+if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
   SYSINST_ACTION="unchanged"
   if [ -f "$PLATFORM_DIR/system-instructions.md" ]; then
     si_upstream=$(hash_file "$WRIT_SRC/system-instructions.md")
@@ -966,12 +1139,16 @@ if [ "$PLATFORM" = "cursor" ]; then
       if [ "$FORCE" = true ]; then
         SYSINST_ACTION="update"
         echo "    🔄 Update:    system-instructions.md (forced)"
-      elif [ -z "$si_baseline" ] || [ "$si_local" = "$si_baseline" ]; then
+      elif [ "$si_local" = "$si_baseline" ] || { [ -z "$si_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
         SYSINST_ACTION="update"
         echo "    🔄 Update:    system-instructions.md"
       else
         SYSINST_ACTION="preserved"
-        echo "    ⚡ Preserved: system-instructions.md (local modifications)"
+        if [ -z "$si_baseline" ]; then
+          echo "    ⚡ Preserved: system-instructions.md (no baseline, assuming modified)"
+        else
+          echo "    ⚡ Preserved: system-instructions.md (local modifications)"
+        fi
         TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
         ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    system-instructions.md\n"
       fi
@@ -980,8 +1157,9 @@ if [ "$PLATFORM" = "cursor" ]; then
     SYSINST_ACTION="new"
     echo "    ✨ New:       system-instructions.md"
   fi
+fi
 
-elif [ "$PLATFORM" = "claude" ]; then
+if [ "$PLATFORM" = "claude" ]; then
   echo "  CLAUDE.md:"
   merge_claude_md preview
   case "$CLAUDE_MD_ACTION" in
@@ -1012,6 +1190,7 @@ if [ "$PLATFORM" = "cursor" ]; then
   { [ "$RULE_ACTION" = "update" ] || [ "$RULE_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "claude" ]; then
+  { [ "${SYSINST_ACTION:-unchanged}" = "update" ] || [ "${SYSINST_ACTION:-unchanged}" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "codex" ]; then
   { [ "${AGENTS_MD_ACTION:-unchanged}" = "update" ] || [ "${AGENTS_MD_ACTION:-unchanged}" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
@@ -1074,7 +1253,7 @@ echo "Updating..."
 
 overlay_scan "$WRIT_SRC/commands" "$PLATFORM_DIR/commands" "commands" "apply"
 overlay_scan_flat_dir "$WRIT_SRC/scripts" "scripts" "scripts" "apply" "script"
-overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply"
+overlay_scan_flat_dir "$WRIT_SRC/.writ/docs" ".writ/docs" ".writ/docs" "apply" "doc"
 overlay_scan "$WRIT_SRC/$AGENTS_SRC" "$PLATFORM_DIR/agents" "agents" "apply" "$AGENT_FILE_GLOB"
 
 if [ -d "$WRIT_SRC/skills" ]; then
@@ -1100,6 +1279,10 @@ if [ "$PLATFORM" = "cursor" ]; then
     UPDATES=$((UPDATES + 1))
   fi
 elif [ "$PLATFORM" = "claude" ]; then
+  if [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; then
+    cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
+    UPDATES=$((UPDATES + 1))
+  fi
   if [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; then
     merge_claude_md apply
     UPDATES=$((UPDATES + 1))
@@ -1111,21 +1294,29 @@ elif [ "$PLATFORM" = "codex" ]; then
   fi
 fi
 
-# Remove stale files
+# Remove stale files. Skills live in $SKILLS_DIR, which on Codex is
+# .agents/skills, not under $PLATFORM_DIR. A path is reported and counted only
+# when it is gone after rm. One that rm could not remove keeps its manifest
+# line, so the next update tries again. The loop reads a here-string, not a
+# pipe, so the count and the kept lines reach this shell.
 STALE_REMOVED=0
 if [ "$STALE_COUNT" -gt 0 ]; then
-  printf "%b" "$STALE_FILES" | while IFS= read -r sf; do
-    [ -z "$sf" ] && continue
-    if [ "$sf" = "CLAUDE.md" ]; then
-      rm -f "CLAUDE.md"
-    elif [ "${sf%%/*}" = "scripts" ] || [ "${sf%%/*}" = ".writ" ]; then
-      rm -f "$sf"
-    else
-      rm -f "$PLATFORM_DIR/$sf"
+  while IFS= read -r sf; do
+    [ -n "$sf" ] || continue
+    case "$sf" in
+      CLAUDE.md)         stale_local="CLAUDE.md" ;;
+      skills/*)          stale_local="$SKILLS_DIR/${sf#skills/}" ;;
+      scripts/*|.writ/*) stale_local="$sf" ;;
+      *)                 stale_local="$PLATFORM_DIR/$sf" ;;
+    esac
+    rm -f "$stale_local" || true
+    if [ -e "$stale_local" ] || [ -L "$stale_local" ]; then
+      STALE_KEPT_ENTRIES="${STALE_KEPT_ENTRIES}$(manifest_hash_for "$sf")  ${sf}\n"
+      continue
     fi
     echo "  🗑  Removed: $sf"
-  done
-  STALE_REMOVED=$STALE_COUNT
+    STALE_REMOVED=$((STALE_REMOVED + 1))
+  done <<< "$(printf "%b" "$STALE_FILES")"
 fi
 
 # Regenerate manifest with new baselines
@@ -1163,6 +1354,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "$PLATFORM_DIR/rules/writ.mdc" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "claude" ]; then
     git add "CLAUDE.md" 2>/dev/null || true
+    git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
     git add "AGENTS.md" 2>/dev/null || true
   fi

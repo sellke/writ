@@ -207,7 +207,7 @@ Transitions: Proposed → Accepted (after review). Accepted → Deprecated OR Su
 | `/research` | Run before `/create-adr` to build the evidence base for alternatives |
 | `/create-spec` | ADRs inform spec decisions; reference relevant ADRs in technical specs |
 | `/create-issue` | Architectural concerns surfaced during triage may warrant an ADR |
-| `/design` | Design explorations may produce ADR-worthy decisions |
+| `/writ-design` | Design explorations may produce ADR-worthy decisions |
 
 ## Completion
 

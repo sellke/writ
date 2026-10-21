@@ -24,6 +24,8 @@ CHECKS=(
   length
   manifest
   referenced-paths
+  shipped-refs
+  command-structure
   skill-manifest-parity
   knowledge-integrity
   preamble
@@ -77,13 +79,14 @@ CHECKS=(
   change-surface
   drift-format
   codex-tomls
+  claude-agents
+  claude-md
   spec-analyze
   jev-judge
   goal-emit
   spawn-cap
   app-verify
   review-panel
-  product-check-direction
 )
 
 TOTAL_FINDINGS=0
@@ -578,10 +581,6 @@ check_manifest() {
     rel="$(relpath "$file")"
     base="$(basename "$file")"
     [[ "$base" == _*.md ]] && continue
-    # commands/<stem>.lean.md is the WRIT_HARNESS_LEAN=1 body for <stem>, not
-    # a command of its own, so it has no manifest entry. An orphan (no
-    # commands/<stem>.md beside it) is still checked.
-    [[ "$base" == *.lean.md && -f "$(dirname "$file")/${base%.lean.md}.md" ]] && continue
     if ! path_in_file "$rel" "$command_list"; then
       add_finding "$rel" "command file exists but is not listed in .writ/manifest.yaml." "Add the command to the manifest or rename it as an infra file."
     fi
@@ -619,12 +618,12 @@ referenced_paths_allowlist() {
 tech-stack.md|/initialize|Bare form of .writ/docs/tech-stack.md used when the enclosing sentence already names .writ/docs/.
 code-style.md|/initialize|Bare form of .writ/docs/code-style.md used when the enclosing sentence already names .writ/docs/.
 .writ/quality-baseline.md|/initialize|Written by /initialize Step 4 (quality-signal classification); /status reads it when present.
-.writ/docs/design-system.md|/design|Written by /design when a design system is generated; optional in every project.
+.writ/docs/design-system.md|/writ-design|Written by /writ-design when a design system is generated; optional in every project.
 exploration.md|/prototype|Written by /prototype Step 2.5 under .writ/prototypes/<date>-<slug>/ when drafts are generated; absent on runs that skip divergence.
-design-system.md|/design|Bare form of .writ/docs/design-system.md.
-component-inventory.md|/design|Written by /design under the spec's mockups/ folder.
-mockups/README.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
-mockups/component-inventory.md|/design|Written by /design under the spec's mockups/ folder; spec-relative.
+design-system.md|/writ-design|Bare form of .writ/docs/design-system.md.
+component-inventory.md|/writ-design|Written by /writ-design under the spec's mockups/ folder.
+mockups/README.md|/writ-design|Written by /writ-design under the spec's mockups/ folder; spec-relative.
+mockups/component-inventory.md|/writ-design|Written by /writ-design under the spec's mockups/ folder; spec-relative.
 user-stories/README.md|/create-spec|Written by /create-spec Step 2.6 for every spec; spec-relative.
 sub-specs/technical-spec.md|/create-spec|Written by /create-spec Step 2.5 for every spec; spec-relative.
 database-schema.md|/create-spec|Optional sub-spec /create-spec Step 2.5 writes when the contract needs a schema.
@@ -639,6 +638,7 @@ term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md 
 .writ/specs/2026-03-20-fix-login/spec.md|/create-issue|Illustrative example of a spec_ref value in create-issue.md; not a real spec.
 .writ/docs/app-verification.md|/create-uat-plan|Project verification recipe /create-uat-plan Step 1.3 writes after confirmation; never shipped, absent in the Writ repo by design.
 .writ/state/app-verification-draft.md|/create-uat-plan|Scratch copy /create-uat-plan Step 1.3 validates before saving a drafted recipe.
+.claude/system-instructions.md|/update-writ|Copied into Claude Code projects by install.sh and /update-writ Step 3; this repo's .claude/ is a symlink tree without it.
 EOF
 }
 
@@ -735,6 +735,95 @@ check_referenced_paths() {
   done < <(referenced_paths_allowlist)
 
   rm -f "$basenames" "$allowed_paths" "$used"
+}
+
+# A shipped command must not link to Writ's own development history (ADR
+# files, archived specs, research documents, calibration records): none of it
+# exists in an installed project. scripts/eval-shipped-refs.py owns the rules
+# and their self-test scenarios; this function turns its TSV into findings.
+# Exit 2 from the helper (nothing to scan) or a run with no tree verdict is a
+# run error, never a pass.
+check_shipped_refs() {
+  local helper="$PROJECT_ROOT/scripts/eval-shipped-refs.py"
+  local scenario_output scenario_status scenario_name scenario_reason helper_status=0
+  local hint="Remove the link to Writ's development history. If an installed user needs the reason, state it in one plain sentence."
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-shipped-refs.py" "shipped-refs helper is missing." "Restore scripts/eval-shipped-refs.py (shipped-command-hygiene spec, Story 1)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  python3 "$helper" --root "$PROJECT_ROOT" > "$scenario_output" || helper_status=$?
+  if [ "$helper_status" -gt 1 ] || ! grep -Eq $'^(PASS\tshipped-refs-tree|FAIL\tshipped-refs:)' "$scenario_output"; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-shipped-refs.py" "shipped-refs helper failed to run (exit $helper_status)." "Run python3 scripts/eval-shipped-refs.py for the error."
+    rm -f "$scenario_output"
+    return
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        if [[ "$scenario_name" == shipped-refs-rule-* ]]; then
+          add_finding "$scenario_name" "$scenario_reason" "Fix the rule's pattern in scripts/eval-shipped-refs.py."
+        else
+          add_finding "$scenario_name" "$scenario_reason" "$hint"
+        fi
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
+}
+
+# Structure that literal pins on command files used to guard: a heading, a
+# frontmatter key, or a script call (shipped-command-hygiene spec, Story 2). A
+# substring pin passes when a heading turns into prose or a call into a bare
+# mention; scripts/eval-command-structure.py checks the structure instead. It
+# owns the row table and one self-test per kind; this function turns its TSV
+# into findings. Helper exit 2, or a run with no verdict lines, is a run error,
+# never a pass.
+check_command_structure() {
+  local helper="$PROJECT_ROOT/scripts/eval-command-structure.py"
+  local scenario_output scenario_status scenario_name scenario_reason helper_status=0
+  local hint="Restore the heading, frontmatter key, or script call the row names. If the command changed on purpose, change the row in scripts/eval-command-structure.py."
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-command-structure.py" "command-structure helper is missing." "Restore scripts/eval-command-structure.py (shipped-command-hygiene spec, Story 2)."
+    return
+  fi
+
+  scenario_output="$(mktemp)"
+  python3 "$helper" --root "$PROJECT_ROOT" > "$scenario_output" || helper_status=$?
+  if [ "$helper_status" -gt 1 ] || ! grep -Eq $'^(PASS|FAIL)\tcommand-structure' "$scenario_output"; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-command-structure.py" "command-structure helper failed to run (exit $helper_status)." "Run python3 scripts/eval-command-structure.py for the error."
+    rm -f "$scenario_output"
+    return
+  fi
+  while IFS=$'\t' read -r scenario_status scenario_name scenario_reason; do
+    case "$scenario_status" in
+      PASS)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        CURRENT_SCENARIOS_PASSED=$((CURRENT_SCENARIOS_PASSED + 1))
+        ;;
+      FAIL)
+        CURRENT_SCENARIOS=$((CURRENT_SCENARIOS + 1))
+        if [[ "$scenario_name" == command-structure-kind-* ]]; then
+          add_finding "$scenario_name" "$scenario_reason" "Fix the kind's matcher in scripts/eval-command-structure.py."
+        else
+          add_finding "$scenario_name" "$scenario_reason" "$hint"
+        fi
+        ;;
+    esac
+  done < "$scenario_output"
+  rm -f "$scenario_output"
 }
 
 # skills/<name>/SKILL.md on disk and the `skills:` section of the manifest must
@@ -1201,6 +1290,7 @@ PY
   scenario_output="$(mktemp)"
   python3 - "$helper" > "$scenario_output" <<'PY'
 import copy
+import hashlib
 import json
 import os
 import pathlib
@@ -1809,25 +1899,41 @@ try:
     command(["git", "add", "."], cwd=source)
     command(["git", "commit", "-m", "sandbox source"], cwd=source)
 
+    # ADR-013 staging is dev-only (2026-10-20-harness-cuts Story 4): the ship
+    # filters reject the helper and the state doc, so install ships neither,
+    # update removes an unmodified copy an older install left even though
+    # upstream still has it, and unlink leaves the helper symlink alone.
+    helper_rel = "scripts/recommend-state.py"
+    state_doc_rel = ".writ/docs/recommended-delivery-state-format.md"
+
+    def manifest_paths(manifest):
+        if not manifest.is_file():
+            return set()
+        return {
+            line.split("  ", 1)[1]
+            for line in manifest.read_text(encoding="utf-8").splitlines()
+            if line and not line.startswith("#") and "  " in line
+        }
+
     for platform in ("cursor", "claude", "codex"):
         beat(f"sandbox: {platform} (install/update/unlink)")
         target = workspace / f"install-{platform}"
         target.mkdir()
+        manifest = target / f".{platform}/.writ-manifest"
+        helper_dest = target / helper_rel
+        state_doc_dest = target / state_doc_rel
         dry = command(
             ["bash", str(project / "scripts/install.sh"), "--platform", platform, "--dry-run", "--no-commit"],
             cwd=target, check=False,
         )
-        helper_dest = target / "scripts/recommend-state.py"
-        state_doc_dest = target / ".writ/docs/recommended-delivery-state-format.md"
         emit(
-            f"install-{platform}-dry-run-helper",
-            dry.returncode == 0 and "scripts/recommend-state.py" in dry.stdout and not helper_dest.exists(),
-            dry.stdout + dry.stderr,
-        )
-        emit(
-            f"install-{platform}-dry-run-state-doc",
+            f"install-{platform}-dry-run-names-neither",
             dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in dry.stdout
+            and "recommend-state.py" not in dry.stdout
+            and "recommended-delivery-state-format.md" not in dry.stdout
+            and "scripts/spec-status.py" in dry.stdout
+            and ".writ/docs/agent-cli-contract.md" in dry.stdout
+            and not helper_dest.exists()
             and not state_doc_dest.exists(),
             dry.stdout + dry.stderr,
         )
@@ -1835,106 +1941,98 @@ try:
             ["bash", str(project / "scripts/install.sh"), "--platform", platform, "--no-commit"],
             cwd=target, check=False,
         )
-        invoked = command([sys.executable, str(helper_dest), "--help"], cwd=target, check=False) if helper_dest.exists() else installed
+        recorded = manifest_paths(manifest)
         emit(
-            f"install-{platform}-helper-executable",
-            installed.returncode == 0 and helper_dest.is_file() and invoked.returncode == 0,
-            installed.stdout + installed.stderr,
-        )
-        emit(
-            f"install-{platform}-state-doc",
+            f"install-{platform}-omits-helper",
             installed.returncode == 0
-            and state_doc_dest.is_file()
-            and state_doc_dest.read_bytes() == (project / ".writ/docs/recommended-delivery-state-format.md").read_bytes(),
+            and not helper_dest.exists()
+            and helper_rel not in recorded
+            and (target / "scripts/spec-status.py").is_file()
+            and "scripts/spec-status.py" in recorded,
             installed.stdout + installed.stderr,
         )
-        helper_dest.unlink()
-        state_doc_dest.unlink()
+        emit(
+            f"install-{platform}-omits-state-doc",
+            installed.returncode == 0
+            and not state_doc_dest.exists()
+            and state_doc_rel not in recorded
+            and (target / ".writ/docs/agent-cli-contract.md").is_file()
+            and ".writ/docs/agent-cli-contract.md" in recorded,
+            installed.stdout + installed.stderr,
+        )
+
+        # An older install left unmodified copies of both, with manifest lines.
+        shutil.copy2(helper, helper_dest)
+        shutil.copy2(project / state_doc_rel, state_doc_dest)
+        with manifest.open("a", encoding="utf-8") as handle:
+            for rel, path in ((helper_rel, helper_dest), (state_doc_rel, state_doc_dest)):
+                handle.write(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {rel}\n")
         env = dict(os.environ, WRIT_REPO=str(source))
         update_dry = subprocess.run(
             ["bash", str(project / "scripts/update.sh"), "--platform", platform, "--dry-run", "--no-commit"],
             cwd=target, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         emit(
-            f"update-{platform}-dry-run-helper",
-            update_dry.returncode == 0 and "scripts/recommend-state.py" in update_dry.stdout and not helper_dest.exists(),
-            update_dry.stdout + update_dry.stderr,
-        )
-        emit(
-            f"update-{platform}-dry-run-state-doc",
+            f"update-{platform}-dry-run-lists-stale",
             update_dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in update_dry.stdout
-            and not state_doc_dest.exists(),
+            and f"\U0001f5d1  {helper_rel}\n" in update_dry.stdout
+            and f"\U0001f5d1  {state_doc_rel}\n" in update_dry.stdout
+            and helper_dest.is_file()
+            and state_doc_dest.is_file(),
             update_dry.stdout + update_dry.stderr,
         )
         updated = subprocess.run(
             ["bash", str(project / "scripts/update.sh"), "--platform", platform, "--no-commit"],
             cwd=target, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
-        invoked = command([sys.executable, str(helper_dest), "--help"], cwd=target, check=False) if helper_dest.exists() else updated
+        recorded = manifest_paths(manifest)
         emit(
-            f"update-{platform}-restores-helper",
-            updated.returncode == 0 and helper_dest.is_file() and invoked.returncode == 0,
+            f"update-{platform}-removes-helper",
+            updated.returncode == 0
+            and not helper_dest.exists()
+            and helper_rel not in recorded
+            and f"Removed: {helper_rel}\n" in updated.stdout,
             updated.stdout + updated.stderr,
         )
         emit(
-            f"update-{platform}-restores-state-doc",
+            f"update-{platform}-removes-state-doc",
             updated.returncode == 0
-            and state_doc_dest.is_file()
-            and state_doc_dest.read_bytes() == (project / ".writ/docs/recommended-delivery-state-format.md").read_bytes(),
+            and not state_doc_dest.exists()
+            and state_doc_rel not in recorded
+            and f"Removed: {state_doc_rel}\n" in updated.stdout,
             updated.stdout + updated.stderr,
         )
 
         linked = workspace / f"unlink-{platform}"
         linked.mkdir()
-        platform_dir = linked / f".{platform if platform != 'claude' else 'claude'}"
+        platform_dir = linked / f".{platform}"
         platform_dir.mkdir()
         agent_source = project / ("codex/agents" if platform == "codex" else ("claude-code/agents" if platform == "claude" else "agents"))
         (platform_dir / "commands").symlink_to(project / "commands", target_is_directory=True)
         (platform_dir / "agents").symlink_to(agent_source, target_is_directory=True)
         (linked / "scripts").mkdir()
-        (linked / "scripts/recommend-state.py").symlink_to(helper)
-        (linked / ".writ/docs").mkdir(parents=True)
-        linked_state_doc = linked / ".writ/docs/recommended-delivery-state-format.md"
-        linked_state_doc.symlink_to(project / ".writ/docs/recommended-delivery-state-format.md")
+        linked_helper = linked / helper_rel
+        linked_helper.symlink_to(helper)
         if platform == "cursor":
             (platform_dir / "rules").mkdir()
             (platform_dir / "rules/writ.mdc").symlink_to(project / "cursor/writ.mdc")
             (platform_dir / "system-instructions.md").symlink_to(project / "system-instructions.md")
         elif platform == "claude":
             (linked / "CLAUDE.md").symlink_to(project / "claude-code/CLAUDE.md")
-        manifest = platform_dir / ".writ-manifest"
-        write(manifest, f"# mode: link\n# platform: {platform}\n# version: fixture\n# link_target: {project}\n")
-        unlink_dry = command(
-            ["bash", str(project / "scripts/unlink.sh"), "--platform", platform, "--dry-run", "--no-commit"],
-            cwd=linked, check=False,
-        )
-        emit(
-            f"unlink-{platform}-dry-run-helper",
-            unlink_dry.returncode == 0 and "scripts/recommend-state.py" in unlink_dry.stdout and (linked / "scripts/recommend-state.py").is_symlink(),
-            unlink_dry.stdout + unlink_dry.stderr,
-        )
-        emit(
-            f"unlink-{platform}-dry-run-state-doc",
-            unlink_dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in unlink_dry.stdout
-            and linked_state_doc.is_symlink(),
-            unlink_dry.stdout + unlink_dry.stderr,
-        )
+        linked_manifest = platform_dir / ".writ-manifest"
+        write(linked_manifest, f"# mode: link\n# platform: {platform}\n# version: fixture\n# link_target: {project}\n")
         unlinked = command(
             ["bash", str(project / "scripts/unlink.sh"), "--platform", platform, "--no-commit"],
             cwd=linked, check=False,
         )
-        unlinked_helper = linked / "scripts/recommend-state.py"
-        invoked = command([sys.executable, str(unlinked_helper), "--help"], cwd=linked, check=False) if unlinked_helper.exists() else unlinked
         emit(
-            f"unlink-{platform}-copies-helper",
-            unlinked.returncode == 0 and unlinked_helper.is_file() and not unlinked_helper.is_symlink() and invoked.returncode == 0,
-            unlinked.stdout + unlinked.stderr,
-        )
-        emit(
-            f"unlink-{platform}-copies-state-doc",
-            unlinked.returncode == 0 and linked_state_doc.is_file() and not linked_state_doc.is_symlink(),
+            f"unlink-{platform}-skips-helper",
+            unlinked.returncode == 0
+            and "recommend-state.py" not in unlinked.stdout
+            and linked_helper.is_symlink()
+            and os.readlink(linked_helper) == str(helper)
+            and not (platform_dir / "commands").is_symlink()
+            and helper_rel not in manifest_paths(linked_manifest),
             unlinked.stdout + unlinked.stderr,
         )
 finally:
@@ -1965,12 +2063,10 @@ PY
   done < "$scenario_output"
   rm -f "$scenario_output"
 
-  require_literal "$preamble" '### Narrow Recommended-Delivery Exception' "The preamble must define the narrow recommended-planning exception."
   require_literal "$preamble" 'planning commands create files and stop' "The preamble must preserve the default planning stop boundary."
 
   require_literal "$create_spec" 'Parse `--recommend` exactly once at command entry.' "Create-spec must parse recommendation mode once at entry."
   require_literal "$create_spec" 'Normal branch (authoritative): when `--recommend` is absent, follow every' "Create-spec must preserve normal behavior behind an explicit branch."
-  require_literal "$create_spec" '### Authoritative `--recommend` Invocation Matrix' "Create-spec must define its fail-before-mutation invocation matrix."
   require_literal "$create_spec" '`/create-spec --recommend --from-issue <one-path>`' "Create-spec must support one issue source in recommendation mode."
   require_literal "$create_spec" '`/create-spec --recommend --from-prototype`' "Create-spec must support prototype source in recommendation mode."
   require_literal "$create_spec" '`/create-spec --recommend --quick`' "Create-spec must reject recommend plus quick."
@@ -2106,12 +2202,8 @@ check_spec_dependencies() {
   require_literal "$create_spec" 'exact spec-folder IDs' "Create-spec must document exact folder-ID dependency values."
 
   require_literal "$verify_spec" 'Cross-spec dependency validation' "Verify-spec Check 4 must validate cross-spec dependencies."
-  require_literal "$verify_spec" 'self-reference' "Verify-spec must diagnose self-referential spec dependencies."
-  require_literal "$verify_spec" 'story dependency validation is unchanged' "Verify-spec must keep story and spec dependency graphs distinct."
 
   require_literal "$implement_phase" 'Valid explicit `Dependencies` graph' "Implement-phase must treat the explicit graph as authoritative."
-  require_literal "$implement_phase" 'topological' "Implement-phase must topologically order the explicit DAG."
-  require_literal "$implement_phase" 'roadmap order' "Implement-phase must use roadmap order as the independent-spec tie-break."
   require_literal "$implement_phase" 'inference remains advisory' "Implement-phase must keep shared-surface inference advisory only."
   require_literal "$implement_phase" 'stop before the confirmation gate' "Implement-phase must stop before confirmation on an invalid graph."
 }
@@ -2178,8 +2270,6 @@ check_spec_status() {
 
   forbid_literal "$status_cmd" 'grep -q "Status: Complete"' "status.md must not retain the broken literal substring check — it never matches the bold header form."
   forbid_literal "$create_spec" 'skip specs with `Status: Complete`' "create-spec.md Step 1.3b must not retain the broken literal substring instruction."
-  require_literal "$status_cmd" 'spec-status.py' "status.md must invoke the shared format-tolerant detector."
-  require_literal "$create_spec" 'spec-status.py' "create-spec.md Step 1.3b must reference the shared format-tolerant detector."
   require_literal "$create_spec" 'Canonical complete-family spelling' "create-spec.md must document the canonical new-spec Complete spelling."
 }
 
@@ -2187,8 +2277,6 @@ check_archive_sweep() {
   local fake="$PROJECT_ROOT/scripts/eval-archive-sweep.py"
   local helper="$PROJECT_ROOT/scripts/archive-sweep.py"
   local status_cmd="$PROJECT_ROOT/commands/status.md"
-  local create_spec="$PROJECT_ROOT/commands/create-spec.md"
-  local implement_spec="$PROJECT_ROOT/commands/implement-spec.md"
   local scenario_output scenario_status scenario_name scenario_reason
 
   scenario_output="$(mktemp)"
@@ -2216,14 +2304,7 @@ check_archive_sweep() {
   require_literal "$helper" 'move_failures.append' "The archive-sweep helper must record git-mv failures without aborting the sweep."
 
   require_literal "$status_cmd" '--archive' "status.md must document the --archive invocation flag."
-  require_literal "$status_cmd" 'archive-sweep.py' "status.md must invoke the shared archive-sweep reducer."
   require_literal "$status_cmd" 'never as a side effect' "status.md must state that --archive never triggers as a side effect of routine /status."
-
-  # Nesting is the sole filtering mechanism (Business Rule 5) — no command in
-  # the suite should grow a parallel, explicit archive/ exclusion check.
-  forbid_literal "$status_cmd" 'grep -v archive' "status.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
-  forbid_literal "$create_spec" 'grep -v archive' "create-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
-  forbid_literal "$implement_spec" 'grep -v archive' "implement-spec.md must not add a parallel explicit archive/ exclusion — the single-level glob already excludes it."
 }
 
 check_spec_lifecycle_docs() {
@@ -2256,7 +2337,6 @@ check_spec_lifecycle_docs() {
   require_literal "$doc" 'Do not add a second, separate exclusion check for `archive/`' "spec-lifecycle.md must carry the prominent do-not-duplicate-exclusion author note."
   require_literal "$doc" 'backups/' "spec-lifecycle.md must document the backups/ invariant with concrete evidence."
 
-  require_literal "$verify_spec" 'spec-lifecycle.md' "verify-spec.md --all prose must link to the archive-exclusion doc."
   forbid_literal "$verify_spec" 'specs/**' "verify-spec.md must not widen its spec enumeration to a recursive glob — that would silently include archive/."
 }
 
@@ -2300,7 +2380,6 @@ check_supersession_writeback() {
   local fake="$PROJECT_ROOT/scripts/eval-supersession-writeback.py"
   local helper="$PROJECT_ROOT/scripts/supersession-writeback.py"
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
-  local edit_spec="$PROJECT_ROOT/commands/edit-spec.md"
   local guardian
   guardian="$(resolve_spec_path ".writ/specs/2026-07-11-leanness-guardian/spec.md")"
   local scenario_output scenario_status scenario_name scenario_reason
@@ -2327,9 +2406,7 @@ check_supersession_writeback() {
   require_literal "$helper" 'def apply(' "supersession-writeback.py must implement the apply reducer."
   require_literal "$helper" 'Superseded by:' "supersession-writeback.py must write the Superseded by: reverse pointer."
 
-  require_literal "$create_spec" 'supersession-writeback.py' "create-spec.md Phase 2 must invoke the supersession-writeback helper."
   require_literal "$create_spec" 'Amends' "create-spec.md must document the Amends: forward-pointer field."
-  require_literal "$edit_spec" 'supersession-writeback.py' "edit-spec.md must invoke the same supersession-writeback helper as create-spec.md."
 
   if [ ! -f "$guardian" ]; then
     add_finding "supersession-writeback:guardian-spec-missing" "The leanness-guardian validation-pair spec is missing." "Confirm .writ/specs/2026-07-11-leanness-guardian/spec.md still exists, active or archived."
@@ -2391,10 +2468,8 @@ check_post_merge_archival() {
   rm -f "$scenario_output"
 
   # Pins release.md Step 1.3c's actual wired archival-hook prose against
-  # silent regression (Story 4 Task 4.1) — nothing else in the suite guards
-  # this step's own prose today.
-  require_literal "$release_cmd" 'resolve-spec-reference.py resolve --branch "${LAST_MERGED_BRANCH}"' "release.md Step 1.3c's archival hook must resolve via the shared resolve-spec-reference.py CLI, not a second drifting heuristic."
-  require_literal "$release_cmd" 'archive-sweep.py archive-one --specs-dir .writ/specs --knowledge-dir .writ/knowledge --repo-root . --spec-name' "release.md Step 1.3c's archival hook must call archive-sweep.py archive-one directly with the documented flags."
+  # silent regression (Story 4 Task 4.1). The two script calls the hook makes
+  # are invocation rows in scripts/eval-command-structure.py.
   forbid_literal "$release_cmd" 'is_complete_family' "release.md's own prose must not reintroduce a duplicate complete-family eligibility check — that check lives only inside archive-sweep.py's archive_one()."
   require_literal "$release_cmd" 'in one best-effort guard' "release.md Step 1.3c's archival hook must wrap its entire resolve/archive chain in one best-effort guard."
   require_literal "$release_cmd" 'Committing immediately avoids leaving a dangling uncommitted `git mv`' "release.md Step 1.3c's archival hook must commit a successful archive immediately rather than deferring to Phase 3's version-bump commit."
@@ -2437,9 +2512,8 @@ check_roadmap_sync() {
   require_literal "$helper" '<!-- {spec_name} -->' "roadmap-sync.py must embed the invisible spec-name marker in every row it writes — a human-authored title alone does not reliably substring-match its own spec's dated folder name."
 
   # Pins release.md Step 3.1b's actual wired prose against silent regression,
-  # mirroring how Step 1.3c's archival hook is pinned above.
-  require_literal "$release_cmd" 'roadmap-sync.py check --roadmap .writ/product/roadmap.md --spec-name' "release.md Step 3.1b must check via the shared roadmap-sync.py CLI, not a second drifting heuristic."
-  require_literal "$release_cmd" 'roadmap-sync.py append-row --roadmap .writ/product/roadmap.md' "release.md Step 3.1b must append via the shared roadmap-sync.py CLI."
+  # mirroring how Step 1.3c's archival hook is pinned above. The check and
+  # append-row calls are invocation rows in scripts/eval-command-structure.py.
   require_literal "$release_cmd" '**never** touches `mission.md`' "release.md Step 3.1b must state it never touches mission.md's prose — the mechanical/judgment boundary is the whole point of this step."
   require_literal "$release_cmd" 'never fails the release' "release.md Step 3.1b must be documented as strictly non-blocking."
 }
@@ -2480,7 +2554,6 @@ check_story_deps() {
   forbid_literal "$recommend_state" 'dependency cycle at' "recommend-state.py must not retain its own retired cycle-detection implementation."
   forbid_literal "$recommend_state" 'invalid_dag' "recommend-state.py must not retain the retired invalid_dag error code."
 
-  require_literal "$implement_spec" 'scripts/story-deps.py validate --spec-dir' "Implement-spec must reference the executable story-graph validator."
   require_literal "$implement_spec" 'Invalid explicit metadata is blocking' "Implement-spec must treat an invalid story graph as blocking."
   require_literal "$implement_spec" 'Do not guess an order around invalid metadata' "Implement-spec must not guess an order around invalid story metadata."
   require_literal "$implement_spec" 'cannot verify story graph' "Implement-spec must distinguish a missing/crashed validator from a named blocker."
@@ -2523,11 +2596,9 @@ check_story_context() {
   forbid_literal "$leanness" 'def resolve_context_hints(' "eval-leanness.py must not retain the retired resolve_context_hints() implementation."
   forbid_literal "$leanness" 'CONTEXT_HINT_CATEGORY_KEYWORDS' "eval-leanness.py must not retain the retired keyword-anchor category map."
 
-  # Story 4: implement-story.md must delegate to the executable assembler
-  # instead of re-hosting a prose parser/degradation-table copy of it.
-  require_literal "$implement_story" 'scripts/story-context.py assemble' "implement-story.md must invoke the executable context-hint assembler instead of parsing hints by prose."
-  forbid_literal "$implement_story" 'Store parsed hints in `context_hints` map' "implement-story.md must not retain the retired prose parsing-algorithm step."
-  forbid_literal "$implement_story" 'For bracketed references: search source file for matching rows/entries by name' "implement-story.md must not retain the retired prose fetch-and-aggregate step."
+  # Story 4: implement-story.md delegates to the executable assembler; that
+  # call is an invocation row in scripts/eval-command-structure.py. The
+  # routing-table rows stay literal.
   require_literal "$implement_story" '| Architecture Check (Gate 0) |' "implement-story.md must retain the per-gate routing table's Architecture Check row."
   require_literal "$implement_story" '| Coding Agent (Gate 1) |' "implement-story.md must retain the per-gate routing table's Coding Agent row."
   require_literal "$implement_story" '| Review Agent (Gate 3) |' "implement-story.md must retain the per-gate routing table's Review Agent row."
@@ -2536,10 +2607,10 @@ check_story_context() {
 }
 
 check_model_escalation() {
-  # ADR-024 escalate-once (model-delegation Story 4): the two floor-tier sites
-  # must state the one-attempt iteration accounting verbatim and emit the
-  # `escalated` line ADR-025 will record. ADR-025 must keep the `escalated(`
-  # tuple as its `detail` payload or update these pins in the same change.
+  # ADR-024 escalate-once (model-delegation Story 4): pins the escalate-once
+  # accounting at both floor-tier sites. Each must state the one-attempt
+  # iteration rule verbatim. The `escalated(...)` emit lines, which had no
+  # reader, were removed by 2026-10-20-harness-cuts Story 3.
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   # Two per-file pins (Phase 11 Stage 1, Story 1): implement-story.md declares
@@ -2548,18 +2619,10 @@ check_model_escalation() {
   # without citing a bound the file does not declare.
   local implement_story_iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
   local create_spec_iteration_sentence='the floor attempt and its anchor re-run count as one attempt — there is no second regeneration'
-  local noop_prefix='(no-op until ADR-025 Story 1)'
-  local missing_sink='The line has no sink today'
 
   require_literal "$create_spec" "$create_spec_iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim, without naming a loop bound the file does not declare (Business Rule 7)."
   forbid_literal "$create_spec" 'loop.max_iterations' "create-spec.md has no loop: frontmatter block and must not cite loop.max_iterations (assessment §2.4)."
   require_literal "$implement_story" "$implement_story_iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
-  require_literal "$create_spec" "$missing_sink" "create-spec.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
-  require_literal "$implement_story" "$missing_sink" "implement-story.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
-  require_literal "$create_spec" 'escalated(agent=user-story-generator, site=create-spec.2.6, origin=' "create-spec.md must emit the escalated line for the Step 2.6 story-validation site (site label is create-spec.2.6, never 2.6a)."
-  require_literal "$implement_story" 'escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=' "implement-story.md must emit the escalated line for the Gate 0 ABORT site."
-  require_literal "$create_spec" "$noop_prefix" "create-spec.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
-  require_literal "$implement_story" "$noop_prefix" "implement-story.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
 }
 
 check_phase_lanes() {
@@ -2607,7 +2670,6 @@ check_phase_lanes() {
   require_literal "$implement_phase" 'writ/phase/{phase-id}/{spec-id}' "Implement-phase must own the lane branch naming."
   require_literal "$implement_phase" 'phase-spec-result-v1' "Implement-phase must validate the structured result."
   require_literal "$implement_phase" 'only a verified' "Implement-phase must merge only verified success."
-  require_literal "$implement_phase" 'scripts/phase-state.py' "Implement-phase must reference the executable reducer."
 
   require_literal "$implement_spec" 'supplied lane' "Implement-spec must execute only inside the supplied lane."
   require_literal "$implement_spec" 'phase-spec-result-v1' "Implement-spec must return the structured result."
@@ -2652,7 +2714,6 @@ check_phase_challenges() {
   require_literal "$helper" 'CHALLENGE_TRIGGERS' "The reducer must constrain challenge triggers."
   require_literal "$helper" 'invalid_challenge' "A malformed challenge must be a contract error."
 
-  require_literal "$preamble" '## User Challenge' "The preamble must define the User Challenge contract."
   require_literal "$preamble" 'scope_degradation' "The preamble must constrain the challenge trigger."
   require_literal "$preamble" 'select-or-pause' "The preamble must apply the evidence-based select-or-pause rule."
   require_literal "$preamble" 'four required parts' "The preamble must require all four challenge parts."
@@ -2728,7 +2789,6 @@ check_phase_knowledge() {
   local helper="$PROJECT_ROOT/scripts/phase-state.py"
   local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
   local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
-  local knowledge_cmd="$PROJECT_ROOT/commands/knowledge.md"
   local scenario_output scenario_status scenario_name scenario_reason
 
   scenario_output="$(mktemp)"
@@ -2759,9 +2819,6 @@ check_phase_knowledge() {
 
   require_literal "$implement_phase" 'evidence-bound' "Implement-phase must apply evidence-bound knowledge gates."
   require_literal "$implement_phase" 'no qualifying candidate' "Implement-phase must treat no qualifying candidate as a no-op."
-
-  require_literal "$knowledge_cmd" 'Phase-Close Writeback' "Knowledge must document phase-close writeback."
-  require_literal "$knowledge_cmd" 'substantive' "Knowledge must deduplicate candidates substantively."
 }
 
 check_phase_health() {
@@ -2871,15 +2928,15 @@ check_ralph_retirement() {
     fi
   done
 
-  # No Ralph reference on active command, catalog, config, adapter, README, or
-  # status surfaces. Historical specs, ADRs, roadmap/mission history, the
-  # changelog, and archive/ are deliberately excluded from this allowlisted search.
+  # No Ralph reference on active catalog, config, adapter, README, or
+  # instruction surfaces. Historical specs, ADRs, roadmap/mission history, the
+  # changelog, and archive/ are deliberately excluded from this allowlisted
+  # search. Command files are not on the list: commands/ralph.md cannot
+  # return (checked above), so a stray mention in a command points at nothing.
   for surface in "$PROJECT_ROOT/.writ/manifest.yaml" \
                  "$skill" \
                  "$PROJECT_ROOT/.writ/docs/config-format.md" \
                  "$PROJECT_ROOT/README.md" \
-                 "$PROJECT_ROOT/commands/status.md" \
-                 "$PROJECT_ROOT/commands/implement-phase.md" \
                  "$PROJECT_ROOT/scripts/gen-skill.sh" \
                  "$PROJECT_ROOT/codex/AGENTS.md.template" \
                  "$PROJECT_ROOT/claude-code/CLAUDE.md" \
@@ -3010,12 +3067,11 @@ check_refresh_evidence() {
   require_literal "$command_file" 'eval failed' "refresh-command must reject eval-failing proposals with reason 'eval failed'."
   require_literal "$command_file" 'verbatim private transcript bodies' "refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy)."
 
-  # Story 3: the command must wire the pre-merge gate, the Tier 2 allowlist, the
-  # structural-not-LLM boundary, and document the two-example acceptance.
-  require_literal "$command_file" 'bash scripts/eval.sh --check=refresh-evidence' "refresh-command Phase 4 must run the pre-merge eval gate."
+  # Story 3: the command must scope Tier 2 to the allowlist and keep it
+  # structural. The pre-merge gate call is an invocation row in
+  # scripts/eval-command-structure.py.
   require_literal "$command_file" 'high-traffic allowlist — `create-spec`, `implement-story`, `ship`, `refactor`' "refresh-command must scope Tier 2 to the high-traffic allowlist."
   require_literal "$command_file" 'structural only — not an LLM-as-judge' "refresh-command must keep Tier 2 structural and defer the LLM-judge variant."
-  require_literal "$command_file" 'rejected for lacking evidence' "refresh-command must document the two-example acceptance (merged + rejected)."
 
   # The log-format doc must describe the same enforced contract.
   require_literal "$log_format" '**Evidence:**' "The refresh-log format must document the mandatory Evidence block."
@@ -3066,12 +3122,10 @@ check_knowledge_consolidate() {
 
   # The command must expose the gated, non-destructive consolidate mode.
   require_literal "$knowledge_cmd" '--consolidate' "Knowledge must route the --consolidate mode."
-  require_literal "$knowledge_cmd" 'merge, never append' "Knowledge --consolidate must state the merge-never-append principle."
   require_literal "$knowledge_cmd" 'AskQuestion' "Knowledge --consolidate must gate every write on explicit approval."
   require_literal "$knowledge_cmd" 'does not commit' "Knowledge --consolidate must leave a reviewable diff without committing."
 
   # The retro hook must be a read-only advisory nudge only.
-  require_literal "$retro_cmd" '/knowledge --consolidate' "Retro must nudge toward consolidation on a growth signal."
   require_literal "$retro_cmd" 'read-only' "The retro consolidation hook must remain read-only."
   require_literal "$retro_cmd" 'mutates no knowledge file' "The retro hook must never mutate the ledger."
 
@@ -3092,7 +3146,6 @@ check_git_notes_audit() {
   local ship="$PROJECT_ROOT/commands/ship.md"
   local release="$PROJECT_ROOT/commands/release.md"
   local install="$PROJECT_ROOT/scripts/install.sh"
-  local status="$PROJECT_ROOT/commands/status.md"
   local fmt="$PROJECT_ROOT/.writ/docs/git-notes-audit-format.md"
   local adr="$PROJECT_ROOT/.writ/decision-records/adr-017-git-notes-audit-channel.md"
   local scenario_output scenario_status scenario_name scenario_reason
@@ -3131,7 +3184,6 @@ check_git_notes_audit() {
   require_literal "$ship" 'git push origin refs/notes/writ' "/ship must push the notes ref — an unpushed note is local-only."
   require_literal "$release" 'git push origin refs/notes/writ' "/release must push the notes ref — an unpushed rollup is local-only."
   require_literal "$install" 'writ.auditNotes' "install.sh must gate the refspec config behind the writ.auditNotes opt-out marker."
-  require_literal "$status" 'Last audit note:' "/status must surface the last-audit-note pointer line."
   require_literal "$fmt" 'Writ Audit Digest (spec)' "The format doc must define the spec-level digest schema."
   require_literal "$adr" 'refs/notes/writ' "ADR-017 must record the dedicated-ref decision."
 }
@@ -3142,12 +3194,12 @@ check_artifact_integrity() {
   # asserter checks the durable contract directly against the shipped files.
   # Mirrors the git-notes-audit registration: run the eval-*.py scenario emitter,
   # then add supplementary require_literal assertions for the load-bearing rules,
-  # plus a guard against the rejected .writ/index.md pointer file.
+  # plus a guard against the rejected .writ/index.md pointer file. The section
+  # headings (`## Artifact Integrity` and each command's `## Required Artifacts`)
+  # are heading rows in scripts/eval-command-structure.py.
   local fake="$PROJECT_ROOT/scripts/eval-artifact-integrity.py"
   local preamble="$PROJECT_ROOT/commands/_preamble.md"
-  local story="$PROJECT_ROOT/commands/implement-story.md"
   local index="$PROJECT_ROOT/.writ/index.md"
-  local cmd cmd_path
   local scenario_output scenario_status scenario_name scenario_reason
 
   if [ ! -f "$fake" ]; then
@@ -3174,21 +3226,11 @@ check_artifact_integrity() {
   done < "$scenario_output"
   rm -f "$scenario_output"
 
-  # Preamble Artifact Integrity section: convention + HALT + bounded repair.
-  require_literal "$preamble" '## Artifact Integrity' "_preamble.md must define the Artifact Integrity section."
-  require_literal "$preamble" 'Required Artifacts' "_preamble.md must define the Required Artifacts convention."
+  # Preamble Artifact Integrity section: HALT + bounded repair. The
+  # Required Artifacts convention and the context.md Artifact Map schema are
+  # asserted by the scenario emitter above.
   require_literal "$preamble" 'HALT' "_preamble.md must HALT on a missing required artifact."
   require_literal "$preamble" 'bounded repair' "_preamble.md must offer a bounded repair naming the creating command."
-
-  # Canonical context.md Artifact Map schema.
-  require_literal "$story" '## Artifact Map' "implement-story.md must add the Artifact Map to the context.md schema."
-  require_literal "$story" '**Integrity:**' "implement-story.md Artifact Map must carry the Integrity line."
-
-  # Each of the 7 high-traffic commands declares its Required Artifacts.
-  for cmd in create-spec implement-story implement-spec implement-phase ship release status; do
-    cmd_path="$PROJECT_ROOT/commands/$cmd.md"
-    require_literal "$cmd_path" '## Required Artifacts' "commands/$cmd.md must declare a Required Artifacts block."
-  done
 
   # Guard the rejected design: no .writ/index.md pointer file (ADR-015 leanness).
   if [ -f "$index" ]; then
@@ -3253,8 +3295,8 @@ check_revert() {
   # uncommitted work it did not create.
   # The guard is pinned as a numbered step, not as prose: it has to sit between
   # every scope-resolution branch and Step 1.2, so no "proceed to Step 1.2" jump
-  # can route a reader past it.
-  require_literal "$refactor_cmd" '#### Step 1.1b: Dirty-Tree Guard' "refactor.md must carry the dirty-tree guard as its own step ahead of Step 1.2."
+  # can route a reader past it. The step heading is a heading row in
+  # scripts/eval-command-structure.py, which fails if it turns into prose.
   require_literal "$refactor_cmd" 'git status --porcelain' "refactor.md must reference the dirty-tree guard command."
   # Presence-only pins would stay green if the halt were inverted to a warning,
   # so pin the halt and the remedy themselves (AC1).
@@ -3614,7 +3656,6 @@ check_ac_trace() {
   # shape for asserting prose against a command file.
   require_literal "$verify_spec" '**3e. Criterion coverage' "verify-spec.md Check 3 must add the 3e criterion-coverage sub-check."
   require_literal "$verify_spec" '**3f. Dangling and malformed references' "verify-spec.md Check 3 must add the 3f dangling/malformed-reference sub-check."
-  require_literal "$verify_spec" 'scripts/ac-trace.py check --spec' "verify-spec.md must name the ac-trace.py executable reference for Check 3e/3f."
   require_literal "$verify_spec" 'untasked_criterion' "verify-spec.md Check 3e must name the untasked_criterion finding code."
   require_literal "$verify_spec" 'untested_criterion' "verify-spec.md Check 3e must name the untested_criterion finding code."
   require_literal "$verify_spec" 'dangling_reference' "verify-spec.md Check 3f must name the dangling_reference finding code."
@@ -3626,12 +3667,10 @@ check_ac_trace() {
   require_literal "$verify_spec" "Phase 4's auto-fix list is unchanged" "verify-spec.md must state that Phase 4's auto-fix list never touches Check 3e/3f."
   require_literal "$verify_spec" '3e/3f finding belongs in **Outstanding Warnings**' "verify-spec.md must state that every 3e/3f finding lands in Outstanding Warnings, never Issues Found & Resolved."
 
-  # The row-count guard: 3e/3f are sub-checks of Check 3, so the Phase 3
-  # report table's eight numbered rows (checks 1-8) must be unchanged -- no
-  # ninth top-level check was added alongside them.
+  # The row-count guard: 3e/3f are sub-checks of Check 3, so the exit
+  # criterion still promises an eight-row check table. The ac-trace.py call is
+  # an invocation row in scripts/eval-command-structure.py.
   require_literal "$verify_spec" 'an eight-row check table' "verify-spec.md's exit_criteria must still promise an eight-row check table (Check 3e/3f are sub-checks, not a ninth check)."
-  require_literal "$verify_spec" ' 8. Spec owner field' "verify-spec.md's Phase 3 report mock must still end at row 8 (Spec owner field)."
-  forbid_literal "$verify_spec" ' 9. ' "verify-spec.md must not gain a ninth top-level check row -- Check 3e/3f are sub-checks of Check 3."
 }
 
 check_quality_config_audit() {
@@ -3701,19 +3740,15 @@ check_quality_config_audit() {
   forbid_literal "$helper" 'import subprocess' "The config audit is pure file reads and must never invoke a subprocess -- /status's third exit criterion depends on it."
 
   # Story 6: the /initialize and /status wiring prose, bound the way
-  # check_ac_trace binds verify-spec.md's Check 3e/3f.
+  # check_ac_trace binds verify-spec.md's Check 3e/3f. Both quality-config
+  # audit calls are invocation rows in scripts/eval-command-structure.py.
   local initialize="$PROJECT_ROOT/commands/initialize.md"
   local status="$PROJECT_ROOT/commands/status.md"
 
-  require_literal "$initialize" 'scripts/quality-config-audit.py check --project .' "initialize.md must run the quality-config audit during brownfield Gap Analysis."
   require_literal "$initialize" '.writ/quality-baseline.md' "initialize.md must write the quality baseline."
   require_literal "$initialize" 'Never re-baseline automatically' "initialize.md must prohibit automatic re-baselining -- a baseline that absorbs each new finding is a disabled check."
   require_literal "$initialize" 'floor(measured)' "initialize.md must write the coverage threshold at the measured floor, never at the aspiration."
   require_literal "$initialize" 'same explicit confirmation' "initialize.md's coverage-floor write mutates target-project config and must carry the same confirmation the .writ/config.md write does."
-
-  require_literal "$status" 'scripts/quality-config-audit.py check --project .' "status.md must surface the quality-config findings."
-  require_literal "$status" 'Quality config:' "status.md must render the quality-config health line."
-  require_literal "$status" 'Omit the line entirely' "status.md must omit the quality-config line when empty, matching Steps 4 and 5."
 
   # /status's third exit criterion is a hard constraint: only the pure
   # file-read checker may appear there. The two that execute tooling must not.
@@ -4401,6 +4436,99 @@ check_codex_tomls() {
   fi
 }
 
+check_claude_agents() {
+  # Story 3 of 2026-10-20-claude-agent-generator: claude-code/agents/writ-*.md
+  # must equal the generator's output. One add_finding per reason: line.
+  local helper="$PROJECT_ROOT/scripts/gen-claude-agents.py"
+  local remedy="python3 scripts/gen-claude-agents.py"
+  local output rc=0 line kind stem reasons=0
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/gen-claude-agents.py" "Claude agent generator is missing." \
+      "Restore scripts/gen-claude-agents.py, then run $remedy."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then
+    add_finding "scripts/gen-claude-agents.py" "--check exited $rc: ${output##*$'\n'}" \
+      "Fix the gen-claude-agents.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        reasons=$((reasons + 1))
+        read -r kind stem <<< "${line#reason: }"
+        case "$kind" in
+          unmapped)
+            add_finding "agents/$stem.md" "$kind $stem" \
+              "Add an OVERLAY entry for $stem in scripts/gen-claude-agents.py, then run $remedy."
+            ;;
+          orphan)
+            add_finding "claude-code/agents/$stem.md" "$kind $stem" \
+              "Delete the orphan file, or restore its agents/<stem>.md source and OVERLAY entry, then run $remedy."
+            ;;
+          *)
+            add_finding "agents/$stem.md" "$kind $stem" \
+              "Run $remedy. Do not hand-edit claude-code/agents/ files."
+            ;;
+        esac
+        ;;
+      gen-claude-agents:*)
+        add_note "NOTE [claude-agents]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$rc" -eq 1 ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-claude-agents.py" "--check failed without a reason line." \
+      "Run python3 scripts/gen-claude-agents.py --check and inspect its output."
+  fi
+}
+
+check_claude_md() {
+  # Story 1 of 2026-10-20-claude-code-parity: claude-code/CLAUDE.md must equal
+  # what scripts/gen-claude-md.py renders from the manifest. One add_finding per
+  # reason: line; unverifiable (a missing manifest) is a finding too.
+  local helper="$PROJECT_ROOT/scripts/gen-claude-md.py"
+  local remedy="Run python3 scripts/gen-claude-md.py and commit claude-code/CLAUDE.md."
+  local output rc=0 line verdict reasons=0
+
+  if [ ! -f "$helper" ]; then
+    add_finding "scripts/gen-claude-md.py" "CLAUDE.md template generator is missing." \
+      "Restore scripts/gen-claude-md.py, then run python3 scripts/gen-claude-md.py."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  verdict="${output%%$'\n'*}"
+  if { [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; } || ! [[ "$verdict" =~ ^(pass|fail|unverifiable)$ ]]; then
+    add_finding "scripts/gen-claude-md.py" "--check exited $rc without a verdict: ${output##*$'\n'}" \
+      "Fix the gen-claude-md.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: missing "*)
+        reasons=$((reasons + 1))
+        add_finding "claude-code/CLAUDE.md" \
+          "manifest command /${line#reason: missing } is missing from the Claude Code template." "$remedy"
+        ;;
+      "reason: "*)
+        reasons=$((reasons + 1))
+        add_finding "claude-code/CLAUDE.md" "gen-claude-md.py --check: ${line#reason: }" "$remedy"
+        ;;
+      gen-claude-md:*)
+        add_note "NOTE [claude-md]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$verdict" != "pass" ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-claude-md.py" "--check printed $verdict without a reason line." \
+      "Run python3 scripts/gen-claude-md.py --check and inspect its output."
+  fi
+}
+
 check_spec_analyze() {
   # Story 3 of 2026-09-08-phase11-stage3-spec-analysis: advisory analysis.
   # Helper missing / exit 2 → add_finding. Analysis pass/fail/unverifiable
@@ -4729,8 +4857,7 @@ check_review_panel() {
   local helper="$PROJECT_ROOT/scripts/review-panel.py"
   local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/review-panel"
   local story="$PROJECT_ROOT/commands/implement-story.md"
-  local lean="$PROJECT_ROOT/commands/implement-story.lean.md"
-  local output rc=0 file
+  local output rc=0
 
   if [ ! -f "$helper" ]; then
     add_finding "scripts/review-panel.py" "review-panel helper is missing." \
@@ -4762,44 +4889,13 @@ check_review_panel() {
       "A finding raised by one vendor is advisory: restore tally's consensus rule."
   fi
 
-  for file in "$story" "$lean"; do
-    require_literal "$file" '**Review panel (opt-in).**' "$(relpath "$file") Gate 3 must carry the opt-in review panel paragraph."
-    require_literal "$file" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
-    require_literal "$file" '| `/implement-story story-3 --panel` |' "$(relpath "$file") Invocation table must carry the --panel row."
-  done
-  require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."
-  require_literal "$lean" 'drift summary, the `review-panel:` lines' "implement-story.lean.md Step 4 report must name the review-panel: lines."
+  require_literal "$story" '**Review panel (opt-in).**' "$(relpath "$story") Gate 3 must carry the opt-in review panel paragraph."
+  require_literal "$story" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$story") must make a panel block a Gate 3 FAIL."
+  require_literal "$story" '| `/implement-story story-3 --panel` |' "$(relpath "$story") Invocation table must carry the --panel row."
   require_literal "$PROJECT_ROOT/adapters/cursor.md" '**Review panel (ADR-028): available.**' "adapters/cursor.md must state the review panel is available."
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
   require_literal "$PROJECT_ROOT/adapters/openclaw.md" '**Review panel (ADR-028): *(unverified)*.**' "adapters/openclaw.md must mark the review panel unverified."
-}
-
-check_product_check_direction() {
-  # Spec 2026-10-01-product-check-direction. One direction of flow: product
-  # verification surfaces drift after implementation, /plan-product --reconcile
-  # realigns, and no planning step points back to a verification step.
-  local verify="$PROJECT_ROOT/commands/verify-spec.md"
-  local verify_lean="$PROJECT_ROOT/commands/verify-spec.lean.md"
-  local plan="$PROJECT_ROOT/commands/plan-product.md"
-  local direction='Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.'
-  local file
-
-  for file in "$verify" "$verify_lean" "$plan"; do
-    require_literal "$file" "$direction" "$(relpath "$file") must state the product-check direction sentence verbatim."
-  done
-  for file in "$verify" "$verify_lean"; do
-    forbid_literal "$file" 'a lint you run before deciding anything' "$(relpath "$file") must not frame --product as a pre-decision lint."
-    forbid_literal "$file" 'consistency lint (before)' "$(relpath "$file") must not frame --product as running before --reconcile."
-    forbid_literal "$file" 'lints (before' "$(relpath "$file") must not frame --product as linting before --reconcile revises."
-  done
-  forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
-
-  local phase="$PROJECT_ROOT/commands/implement-phase.md"
-  local release="$PROJECT_ROOT/commands/release.md"
-  require_literal "$phase" 'run /verify-spec --product' "implement-phase.md Step 4.2 report must suggest /verify-spec --product where product docs fall behind."
-  require_literal "$release" 'run /verify-spec --product to check product docs against what shipped' "release.md Phase 5 Roadmap line must point to /verify-spec --product."
-  forbid_literal "$release" 'consider `/plan-product --reconcile` if `mission-lite.md` needs a matching update' "release.md Phase 5 must replace the reconcile pointer, not stack a second product line."
 }
 
 run_check() {

@@ -31,7 +31,8 @@ Multiple IDs on one line are comma-separated inside a single tag:
 
 ### Why suffix, not prefix
 
-`scripts/recommend-state.py` parses criterion lines with two anchored regexes:
+Writ's source-repo `recommend-state.py` (dev-only, not installed) parses criterion lines with
+two anchored regexes:
 
 | Site | Pattern | Consequence of a prefixed ID |
 |---|---|---|
@@ -40,7 +41,7 @@ Multiple IDs on one line are comma-separated inside a single tag:
 
 A trailing tag leaves both regexes matching unchanged — verified directly, not assumed
 (Story 1, task 1.1: a criterion line carrying a trailing tag was run against both patterns and
-both still matched). `scripts/recommend-state.py` and its two eval fixture sets
+both still matched). `recommend-state.py` and its two eval fixture sets
 (`eval-recommend-stage.py`, `eval-recommend-state-adversarial.py`) are out of scope for this
 grammar and must not be touched by anything that implements it. If a future change ever moves
 the ID to a line prefix, both regexes above must change first, along with their fixture sets.

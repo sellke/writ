@@ -10,11 +10,11 @@ exit_criteria:
   - "spec-lite.md is under 100 lines"
 ---
 
-# Enhanced Create Spec Command (create-spec)
+# Create Spec Command (create-spec)
 
 ## Overview
 
-Generate feature specifications contract-first: developer and AI agree on a contract before any supporting file is created. This command uses **Plan Mode for open-ended discovery** and **AskQuestion for bounded decisions**.
+Contract-first: developer and AI agree on a contract before any supporting file is created. Discovery runs in Plan Mode; bounded decisions use AskQuestion.
 
 ## Required Artifacts
 
@@ -71,7 +71,7 @@ On rejection, print the supported forms above and stop before mutation.
 ### Autonomous Authoring Boundary
 
 `--recommend` overrides the routine human gates of Phase 1 — not the
-accountability floor (see [ADR-013](../.writ/decision-records/adr-013-recommended-autonomous-delivery.md)):
+accountability floor:
 
 - **Auto-adopt** — record each material decision in `{spec}/recommendation-log.md`
   (decision, evidence, material alternatives, risk/reversibility, result; never
@@ -104,23 +104,14 @@ deliverable.
 
 ### `--from-prototype` Mode
 
-**Invocation:** `/create-spec --from-prototype`
-
-Used when a `/prototype` run triggered scope escalation signals and you want to formalize the prototype work as Story 1 (already complete) and plan Story 2+ onward.
-
-**This mode replaces Phase 1 (discovery) with a shorter, prototype-anchored flow:**
+**Invocation:** `/create-spec --from-prototype`. Formalizes `/prototype` work (typically after scope-escalation signals) as Story 1, already complete, and plans Story 2+. **Replaces Phase 1 with a prototype-anchored flow:**
 
 #### Step 0: Read Prototype Context
 
-1. **Read the exploration record** — the most recent `.writ/prototypes/<date>-<slug>/exploration.md`, or the one named in the invocation. It carries the declared axes, the chosen draft, and why each rejected draft lost. Skip when none exists.
-2. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged). Extract: files changed, lines added/removed, new dependencies added.
-3. **Read the coding agent implementation summary** from the conversation thread if available — it describes what was built and how.
-4. **Build a pre-populated contract draft:**
-   - **Deliverable:** From the chosen draft when an exploration record exists; otherwise inferred from diff file names and implementation summary
-   - **Directions Considered:** One line per rejected draft and the reason it lost, carried from `exploration.md`. Omit the section when there was no exploration — never invent alternatives that were not generated.
-   - **Files in Scope:** Directly from the diff — list every file created or modified
-   - **Implementation Approach:** From the coding agent summary where available; fall back to diff analysis
-   - **Story 1:** per the source matrix below
+1. **Read the exploration record** — the most recent `.writ/prototypes/<date>-<slug>/exploration.md`, or the one named in the invocation: declared axes, chosen draft, and why each rejected draft lost. Skip when none exists.
+2. **Read the current git diff** — `git diff HEAD` (or `git diff --cached` if staged): files changed, lines added/removed, new dependencies.
+3. **Read the coding agent implementation summary** from the conversation if available.
+4. **Build a pre-populated contract draft:** Deliverable (chosen draft, else diff + summary), Directions Considered (one line per rejected draft and why it lost, from `exploration.md`; omit when there was no exploration — never invent alternatives), Files in Scope (every file the diff creates or modifies), Implementation Approach (summary, else diff analysis), and Story 1 per the matrix below.
 
 **Source states.** A `/prototype` run can end at a chosen direction with nothing built, so a diff is no longer required:
 
@@ -131,23 +122,16 @@ Used when a `/prototype` run triggered scope escalation signals and you want to 
 | absent | present | `Completed ✅` | what the prototype left out |
 | absent | absent | — | warn: *"No prototype work found: no exploration record under `.writ/prototypes/` and no uncommitted or staged diff."* then offer manual description, or cancel |
 
-**Never mark Story 1 complete on an exploration record alone.** A chosen draft is a decision, not an implementation, and a spec that claims otherwise sends `/implement-spec` past work nobody wrote.
+**Never mark Story 1 complete on an exploration record alone.** A chosen draft is a decision, not an implementation.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
-Switch to Plan Mode. The prototype is done; do not re-litigate what was built. Discovery covers only what comes next.
-
-**Opening framing** — pick the one the source matrix selected:
-> Built: "The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"
-> Chosen only: "The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"
-
-Cover the gap to shippable: what Story 2 unlocks, the error, edge and production cases the prototype skipped, and the integration points it touched that need productionizing. Skip what the diff or exploration record already answers. Expect 3–5 exchanges.
+Switch to Plan Mode. Do not re-litigate what the prototype settled; discovery covers only what comes next. Open per the source matrix — built: *"The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"*; chosen only: *"The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"* Cover the gap to shippable: what Story 2 unlocks, the error, edge and production cases the prototype skipped, and the integration points it touched that need productionizing. Skip what the diff or exploration record already answers. Expect 3–5 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
 
-Use the pre-populated contract draft from Step 0 as the base. Augment with discovery answers. Present in Plan Mode for review. The contract covers both what is built (Story 1) and what comes next.
+Build on the Step 0 draft plus discovery answers; present in Plan Mode. The contract covers what is built (Story 1) and what comes next:
 
-**Key contract shape for `--from-prototype`:**
 ```
 ## Specification Contract
 
@@ -166,25 +150,17 @@ Use the pre-populated contract draft from Step 0 as the base. Augment with disco
 
 #### Step 3: Phase 2 with Story 1 Marked per the Source Matrix
 
-When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one modification. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft, and none of the bullets below apply.** Otherwise:
-
-**Story 1** is generated with `Status: Completed ✅`, describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
-
-**Why:** the work already exists in the codebase. Marking it Not Started would misrepresent project state and send `/implement-spec` to re-implement it.
+When the user locks the contract, run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
 
 ---
 
 ### `--from-issue` Mode
 
-**Invocation:** `/create-spec --from-issue [path]`
-
-Promotes a captured issue or Goal Card under `.writ/issues/` into a specification, pre-populating the contract from the file.
-
-**This mode replaces Phase 1 with a shorter, issue-anchored flow:**
+**Invocation:** `/create-spec --from-issue [path]`. Promotes an issue or Goal Card under `.writ/issues/` into a spec. **Replaces Phase 1 with an issue-anchored flow:**
 
 #### Step 0: Read Issue Context
 
-1. **Validate the path** — confirm the file exists under `.writ/issues/{bugs,features,improvements,goals}/`. If the path is invalid or the file is missing:
+1. **Validate the path** — the file must exist under `.writ/issues/{bugs,features,improvements,goals}/`. Otherwise:
    ```
    ⚠️ Issue file not found: [path]
    Expected under .writ/issues/{bugs,features,improvements,goals}/YYYY-MM-DD-{slug}.md
@@ -192,45 +168,20 @@ Promotes a captured issue or Goal Card under `.writ/issues/` into a specificatio
    ```
    Do not modify the issue file on error.
 
-2. **Parse the issue file** — extract these fields:
-   - `Type` (from frontmatter line `**Type:**`)
-   - `Priority` (from `**Priority:**`)
-   - `Effort` (from `**Effort:**`)
-   - `TL;DR` section → one-sentence summary
-   - `Current State` section → what's broken/missing
-   - `Expected Outcome` section → what success looks like
-   - `Relevant Files` section → affected files list
+2. **Parse the issue file** — `Type` (`**Type:**`), `Priority` (`**Priority:**`), `Effort` (`**Effort:**`), and the `TL;DR`, `Current State`, `Expected Outcome`, and `Relevant Files` sections.
 
    **Goal Cards** (`**Type:** Goal`, written by `/create-goal`): if the header reads `**loop:** no`, stop with `⚠️ This Goal Card is marked loop: no; use its SINGLE PROMPT section instead.` and leave the file unchanged. Otherwise map OBJECTIVE → Deliverable, OUTPUT and CONTEXT → Files in Scope, DONE WHEN lines → Success Criteria verbatim, STAGES → story seed, STOP-CAPS → the spec's `loop` block, QUALITY and CONSTRAINTS → Constraints.
 
-3. **Build a pre-populated contract draft:**
-   - **Deliverable:** Inferred from issue TL;DR and type (e.g., "Fix [bug summary]" or "Add [feature summary]")
-   - **Origin:** `Promoted from issue: [path]`
-   - **Files in Scope:** From the issue's Relevant Files section
-   - **Priority signal:** From issue Priority field
-   - **Effort signal:** From issue Effort field
+3. **Build a pre-populated contract draft:** Deliverable (from TL;DR and type), `Origin: Promoted from issue: [path]`, Files in Scope (Relevant Files), and Priority / Effort signals.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
-Switch to Plan Mode. Do not re-ask what the issue already documents. Discovery focuses on shaping the solution into stories.
-
-**Opening framing:**
-> "This issue captures [TL;DR from issue]. What does the fix/feature need to accomplish beyond what the issue describes?"
-
-**Discovery anchor questions (forward-looking, gap-filling):**
-- What story decomposition makes sense — single story or multiple?
-- Are there edge cases or error states the issue didn't capture?
-- What acceptance criteria would confirm this is fully resolved?
-- Any integration points or dependencies not mentioned in the issue?
-- Are there constraints (performance, backward-compat, scope limits) the issue omits?
-
-Skip questions the issue already answers. The discovery conversation should take 2–4 exchanges.
+Switch to Plan Mode. Do not re-ask what the issue documents; shape the solution into stories. Open with: *"This issue captures [TL;DR from issue]. What does the fix/feature need to accomplish beyond what the issue describes?"* Cover story decomposition, uncaptured edge cases and error states, confirming acceptance criteria, unmentioned integration points, and omitted constraints. Expect 2–4 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
 
-Use the pre-populated contract draft from Step 0 as the base. Augment with discovery answers. Present for review.
+Build on the Step 0 draft plus discovery answers; present for review:
 
-**Key contract shape for `--from-issue`:**
 ```
 ## Specification Contract
 
@@ -246,26 +197,19 @@ Use the pre-populated contract draft from Step 0 as the base. Augment with disco
 
 #### Step 3: Phase 2 with `spec_ref` Writeback
 
-When the user locks the contract, proceed to Phase 2 (Spec Package Creation) with one addition:
+When the user locks the contract, run Phase 2. **After `spec.md` is written**, update the source issue: replace its `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with
 
-**After the spec directory is created** (after `spec.md` is written), update the source issue file with the spec reference:
+```
+> **spec_ref:** .writ/specs/[date]-[name]/spec.md
+```
 
-1. Read the issue file
-2. Replace the `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with the actual spec path:
-   ```
-   > **spec_ref:** .writ/specs/[date]-[name]/spec.md
-   ```
-3. Write the issue file back; only the `spec_ref` line changes. The issue is never deleted or archived.
-
-**If the spec_ref line is absent** (an older issue), append it to the frontmatter block instead of failing.
+Only that line changes; the issue is never deleted or archived. **If the spec_ref line is absent** (an older issue), append it to the frontmatter block instead of failing.
 
 ---
 
 ### Phase 1: Contract Establishment (No File Creation)
 
-**Mission Statement:**
-
-> Turn the rough feature idea into a clear work specification. Deliver the complete spec package only after both sides agree on the requirements contract. Challenge ideas that don't make technical or business sense; surface concerns early.
+**Mission:** turn the rough feature idea into a clear work specification, and deliver the spec package only after both sides agree on the requirements contract. Challenge ideas that don't make technical or business sense; surface concerns early.
 
 #### Step 1.0: Feature Selection (if not provided)
 
@@ -291,128 +235,41 @@ AskQuestion({
 })
 ```
 
-If user selects "Something else", follow up with a free-text question to get their idea.
+On "Something else", follow up with a free-text question.
 
 #### Step 1.1: Initial Context Scan
 
-- Scan existing `.writ/specs/` for related specifications
-- Analyze current codebase architecture and patterns using `codebase_search`
-- Load project context files (`.writ/docs/tech-stack.md`, `.writ/docs/code-style.md` — both written by `/initialize`; skip any that are absent)
-- **Output:** Context summary (no files created yet)
-
-#### Step 1.2: Switch to Plan Mode for Discovery
-
-After the context scan, run discovery in Plan Mode. The user controls when to switch. Plan Mode gives:
-
-- **Read-only enforcement** — prevents premature file creation
-- **Conversational UX** — open-ended back-and-forth instead of multiple-choice boxes
-- **Clear phase signal** — the mode switch tells the user the idea is being shaped, not built
-
-> **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
+Scan `.writ/specs/` for related specifications, analyze codebase architecture and patterns, and load `.writ/docs/tech-stack.md` and `.writ/docs/code-style.md` (written by `/initialize`; skip any that are absent). **Output:** a context summary; no files created.
 
 #### Step 1.3: Discovery Conversation (Plan Mode)
 
-**Internal Process (not shown to user) — do this before speaking:**
+After the context scan, run discovery in Plan Mode; the user controls when to switch. Before speaking, silently list what is missing or ambiguous across four areas:
 
-- Silently list every missing fact, constraint, or requirement
-- Identify ambiguities in the initial description
-- Note potential integration points and dependencies
-- Catalog unknowns — what concrete information is still missing?
+- **Experience:** entry point, happy path, key interaction moments, feedback/confirmation, error/empty/loading states, responsive behavior
+- **Business rules:** permissions and access control, validation rules and limits, state transitions and lifecycle, time-based rules, pricing/billing, domain edge cases, compliance
+- **Technical:** integration points and dependencies, performance, security, data persistence
+- **Scope:** success criteria, in/out boundaries, implementation approach, timeline
 
-  **Experience gaps:** Entry point, happy path flow, key interaction moments, feedback/confirmation model, error/empty/loading states, responsive behavior
-  **Business rule gaps:** Permissions & access control, validation rules & limits, state transitions & lifecycle, time-based rules, pricing/billing implications, domain edge cases, compliance requirements
-  **Technical gaps:** Integration points, performance requirements, security needs, data persistence
-  **Scope gaps:** Success criteria, in/out boundaries, implementation approach, timeline
+**Conversation rules:** one focused question at a time, on the highest-impact unknown; re-scan the codebase after answers when relevant; continue until 95% confidence on the deliverable; **never declare "final question"**; let the user signal readiness for a contract. Explore experience first, then rules, then technical constraints.
 
-**Conversation Rules:**
+**Critical analysis:** say so when requirements are infeasible with the current architecture (with alternatives), when scope is several features (recommend splitting), when requests conflict with codebase patterns, and when performance/security/scalability concerns arise. Ask clarifying questions when business logic does not align with stated user value. Ask about error/empty/loading experience if it has not come up; probe vague rules ("admins can do it") for who, under what conditions, and exceptions; suggest smoother paths when a flow has unnecessary friction.
 
-- Ask ONE focused question at a time, targeting the highest-impact unknown
-- After each answer, re-scan codebase for additional context if relevant
-- Continue until reaching 95% confidence on the deliverable
-- **Never declare "final question"**
-- Let the user signal when they're ready to see a contract
-- **Challenge ideas that don't make technical or business sense**; surface concerns early
-
-**Topic Areas to Explore (across the conversation):**
-
-Start with experience, then rules, then technical constraints. This ordering captures how the feature should feel to use as well as what it does.
-
-**Experience first — how should this feel to use?**
-- Walk me through the ideal interaction: the user does X, sees Y, feels Z
-- What's the first thing they see? What draws their eye? What do they do first?
-- What's the "wow" moment — the instant they get the value and think "this is great"?
-- What happens when there's no data yet? (empty states, onboarding, first-use experience)
-- What happens when something fails? (error messages, recovery paths, graceful degradation)
-- Are there moments that need to feel fast? Moments that can afford a loading state?
-- What existing patterns in the app should this mirror? What should it deliberately break from?
-- How does the user know the action succeeded? (toast, redirect, inline update, animation?)
-- Is discoverability important, or is this a power-user feature?
-
-**Rules next — what business logic constrains the design space?**
-- Who can and can't do this? (roles, permissions, subscription tiers, feature gates)
-- What validation rules apply? (input constraints, format requirements, limits)
-- Are there state machines or lifecycle rules? (draft → published → archived, pending → approved)
-- Are there time-based rules? (expiration, cooldowns, scheduling, rate limiting)
-- Are there pricing/billing/usage implications?
-- What domain-specific edge cases exist? (timezone handling, currency, localization, leap years)
-- Are there audit, compliance, or regulatory requirements?
-- What happens at the boundaries? (max items, storage limits, concurrent access)
-
-**Technical last — what does the system need?**
-- How should this integrate with what already exists?
-- Implementation approach — MVP, complete, iterative?
-- Performance, scale, and latency requirements
-- Data persistence and security needs
-- Feature boundaries — what's in scope, what's explicitly out?
-- Success criteria and how we'll know it's working
-- Timeline constraints and dependencies
-
-**Critical Analysis Responsibility:**
-
-- If requirements seem technically infeasible with current architecture, explain why and suggest alternatives
-- If scope seems too large for a single feature, recommend breaking it down
-- If user requests conflict with existing patterns found in codebase, point out the inconsistency
-- If business logic doesn't align with stated user value, ask clarifying questions
-- If performance/security/scalability concerns arise, surface them proactively
-- If the error/empty/loading experience hasn't been discussed, ask
-- If business rules are vague or assumed ("admins can do it"), probe for specifics — who exactly, under what conditions, what are the exceptions?
-- If the described experience has unnecessary friction (extra clicks, confirmations, page reloads), suggest smoother alternatives
-
-**Pushback Phrasing Examples:**
-
-- "I see a potential issue with [requirement] because [technical reason]. Would [alternative approach] work better?"
-- "Based on your existing codebase, [proposed approach] might conflict with [existing pattern]. How should we handle this?"
-- "The scope you're describing sounds like it might be 3-4 separate features. Should we focus on [core piece] first?"
-- "I'm concerned that [requirement] could create [specific problem]. Have you considered [alternative]?"
-- "We haven't talked about what happens when [error/empty case]. Users will hit this — what should they see?"
-- "You mentioned [role] can do this. What about [other role]? And what happens if someone tries without permission?"
-- "That flow has the user [extra steps]. What if we [shorter path] instead? It would feel faster."
-
-**Transition to Contract:**
-
-- When confidence is high, present the contract (still in Plan Mode)
-- Use phrases like "I think I have a clear picture now — here's what I'd propose" or "Based on our discussion, here's the contract"
-- Leave room for more questions
+When confidence is high, present the contract (still in Plan Mode) and leave room for more questions.
 
 #### Step 1.3b: Cross-Spec Overlap Check (Automatic)
 
-Before presenting the contract, scan for potential conflicts with other in-progress specifications:
+Before presenting the contract, scan for conflicts with in-progress specifications:
 
-1. **List all spec folders** in `.writ/specs/` (single-level glob `.writ/specs/*/spec.md` — this naturally excludes `.writ/specs/archive/**`, one path segment deeper; see `.writ/docs/spec-lifecycle.md`)
-2. **Filter out completed specs** — classify each `spec.md` header with the format-tolerant complete-family check (`python3 scripts/spec-status.py is-complete --file <path>`, or equivalent logic): bold or unbold `Status:` label, matching `Complete`, `Completed ✅`, or `Closed — Abandoned` as complete-family values, trailing parenthetical/emoji text ignored. Skip specs that resolve to complete-family. **Do not** match only the literal substring `Status: Complete` — it never matches the bold form `> **Status:** Complete`. A spec with no status header at all conservatively resolves not-complete (never skipped).
-3. **Read each remaining `spec-lite.md`** — condensed files for quick scanning
-4. **Extract domain keywords** from the new contract: models/entities mentioned, routes/endpoints, shared utilities, domain-specific terms, files to be modified
-5. **Compare against existing specs** — check for keyword overlap in domain areas (same models, same routes, same shared utilities)
-6. **If overlap detected** — add a `⚠️ Cross-Spec Overlap` section to the contract (see format below)
-7. **If no overlap** — proceed silently (no section added to contract)
+1. **List spec folders** with the single-level glob `.writ/specs/*/spec.md` (this excludes `.writ/specs/archive/**`; see `.writ/docs/spec-lifecycle.md`).
+2. **Filter out completed specs** with the format-tolerant complete-family check (`python3 scripts/spec-status.py is-complete --file <path>`, or equivalent logic): bold or unbold `Status:` label; `Complete`, `Completed ✅`, or `Closed — Abandoned` are complete-family; trailing parenthetical/emoji text ignored. **Do not** match only the literal substring `Status: Complete` — it never matches the bold form `> **Status:** Complete`. A spec with no status header resolves not-complete (never skipped).
+3. **Read each remaining `spec-lite.md`.**
+4. **Extract domain keywords** from the new contract: models/entities, routes/endpoints, shared utilities, domain terms, files to be modified.
+5. **Compare** for keyword overlap in the same domain areas.
+6. **Overlap** → add a `⚠️ Cross-Spec Overlap` section to the contract. **None** → proceed silently.
 
-This check is keyword matching, not semantic analysis. False positives are acceptable (user can dismiss). It catches obvious planning-level conflicts before implementation.
+Keyword matching, not semantic analysis; false positives are acceptable (the user can dismiss).
 
 #### Step 1.4: Contract Proposal (Still in Plan Mode)
-
-When confident, present a contract proposal with any concerns surfaced:
-
-**Format:**
 
 ```
 ## Specification Contract
@@ -433,7 +290,6 @@ When confident, present a contract proposal with any concerns surfaced:
 **📋 Business Rules:**
 - [Key rule 1 — e.g., "Only workspace admins can invite members"]
 - [Key rule 2 — e.g., "Free tier limited to 3 projects"]
-- [Key rule 3 — e.g., "Invoices transition: draft → sent → paid → void"]
 - [Edge cases or domain-specific constraints discovered during conversation]
 
 **Success Criteria:** [How we'll know it's working correctly]
@@ -455,11 +311,9 @@ When confident, present a contract proposal with any concerns surfaced:
 - Consider: sequencing these specs, declaring a dependency, or coordinating the shared area
 ```
 
-Present this in Plan Mode and discuss any refinements conversationally. When the user approves and switches back to Agent Mode, confirm with AskQuestion:
+Discuss refinements in Plan Mode. When the user approves and switches back to Agent Mode, confirm with AskQuestion.
 
 #### Step 1.4b: Contract Decision (Agent Mode)
-
-**When the user returns to Agent Mode after approving the contract direction, use AskQuestion to confirm:**
 
 ```
 AskQuestion({
@@ -480,7 +334,6 @@ AskQuestion({
 })
 ```
 
-**Handling responses:**
 - **yes**: Proceed to Phase 2 (Spec Package Creation)
 - **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
 - **risks**: Present detailed risk analysis, then re-present contract with AskQuestion
@@ -489,9 +342,7 @@ AskQuestion({
 
 #### Step 1.5: Visual References (Optional)
 
-**After contract lock, before creating files**, check if this feature has UI components:
-
-If the spec involves any user-facing UI, ask:
+**After contract lock, before creating files**, if the spec involves any user-facing UI, ask:
 
 ```
 AskQuestion({
@@ -512,31 +363,21 @@ AskQuestion({
 })
 ```
 
-**Handling responses:**
-- **screenshots**: Accept image uploads/paths. Store in `mockups/`. Analyze with vision model to extract layout structure, components, and design patterns. Generate `mockups/README.md` and `mockups/component-inventory.md`.
+- **screenshots**: Accept image uploads/paths. Store in `mockups/`. Extract layout structure, components, and design patterns. Generate `mockups/README.md` and `mockups/component-inventory.md`.
 - **sketch**: Accept `.excalidraw` file. Store in `mockups/`. Parse JSON to extract component names and layout.
-- **generate**: After creating `spec.md`, generate Excalidraw wireframes for each screen/view described in the spec. Store in `mockups/`. Follow wireframe conventions from `/design` command.
+- **generate**: After creating `spec.md`, generate Excalidraw wireframes for each screen/view described in the spec. Store in `mockups/`. Follow wireframe conventions from `/writ-design` command.
 - **existing**: Capture screenshots of the current app at relevant routes. Store in `mockups/current/`. These become the "before" state.
 - **none**: Create empty `mockups/` directory. Skip visual references in story files.
 
-**When mockups are provided or generated:**
-- Add `## Visual References` section to each relevant story file, linking to the specific mockups that story should implement
-- Generate `mockups/component-inventory.md` listing all components, their states, and which stories own them
-- Reference design system tokens from `.writ/docs/design-system.md` if it exists; if not, extract one from the mockups
+**When mockups are provided or generated:** add a `## Visual References` section to each relevant story file linking its mockups; generate `mockups/component-inventory.md` (components, states, owning stories); reference design system tokens from `.writ/docs/design-system.md` if it exists, otherwise extract one from the mockups.
 
 ### Phase 2: Spec Package Creation (Post-Agreement Only)
 
 **Triggered only after user confirms contract with 'yes'**
 
-#### Step 2.1: Initialize Tracking
-
-Track creation progress with `todo_write`: folder structure, core documents, user stories (parallel), sub-specs, and final review.
-
 #### Step 2.2: Determine Current Date
 
-Use `npx @sellke/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
-
-This date is used for folder naming: `.writ/specs/[DATE]-[feature-name]/`
+Use `npx @sellke/writ date` when available; otherwise the local system date in `YYYY-MM-DD`. Folder: `.writ/specs/[DATE]-[feature-name]/`.
 
 Resolve the spec owner from git config before writing `spec.md`:
 
@@ -548,7 +389,7 @@ if [ "$OWNER" = "@" ]; then
 fi
 ```
 
-Owner value: prefix `@`, strip spaces, and do not consult any external user directory. If `git config user.name` is unset or empty, write `owner: @unknown` and show the warning above.
+Prefix `@`, strip spaces, and consult no external user directory. Unset or empty `git config user.name` → `owner: @unknown` with the warning above.
 
 #### Step 2.3: Create Directory Structure
 
@@ -576,11 +417,11 @@ Owner value: prefix `@`, strip spaces, and do not consult any external user dire
   > **Owner:** [OWNER]
   > **Dependencies:** [spec-folder-id, ...]
   ```
-  - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when the spec has no cross-spec dependency.
-  - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid dependency identifiers.
-  - This spec-level `Dependencies` header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
-  - **Canonical complete-family spelling (forward-only):** when a spec is later marked done, its status line becomes `> **Status:** Complete` — bold, unadorned, no emoji suffix required. This is the only spelling `create-spec` itself ever writes for the complete state. Detection (`scripts/spec-status.py`) remains tolerant of legacy spellings already present in existing files (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`) — this note governs new specs only, per Business Rule 8. Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
-  - **Supersession banners:** if the locked contract declares that this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on without full replacement) as a markdown link to the prior spec — link text is the prior spec's folder name, link target its relative `spec.md` path (e.g. field `Amends:`, link text `2026-07-11-leanness-guardian`, target `../2026-07-11-leanness-guardian/spec.md`). See Step 2.4b below for the required reverse-pointer write-back, and [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners) for the full convention.
+  - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when there is no cross-spec dependency.
+  - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid.
+  - This spec-level header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
+  - **Canonical complete-family spelling (forward-only):** a spec later marked done reads `> **Status:** Complete` — bold, unadorned. This is the only complete spelling `create-spec` writes. `scripts/spec-status.py` stays tolerant of legacy spellings (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`). Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
+  - **Supersession banners:** if the locked contract says this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on) as a markdown link — link text the prior spec's folder name, target its relative `spec.md` path (e.g. `Amends:` → `2026-07-11-leanness-guardian` → `../2026-07-11-leanness-guardian/spec.md`). Step 2.4b writes the reverse pointer; convention in [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners).
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
 - **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
@@ -589,19 +430,15 @@ Owner value: prefix `@`, strip spaces, and do not consult any external user dire
 
 #### Step 2.4b: Supersession Write-back (`Amends:`/`Extends:`)
 
-If the new spec's header (written in Step 2.4) contains an `> **Amends:**` or `> **Extends:**` line, write a matching reverse pointer onto each referenced spec — applies uniformly whether Phase 2 was reached via the standard flow, `--from-issue`, or `--from-prototype`.
-
-Invoke the reference implementation rather than hand-editing headers:
+If the new spec's header has an `> **Amends:**` or `> **Extends:**` line, write a matching reverse pointer onto each referenced spec — in the standard flow, `--from-issue`, and `--from-prototype` alike. Use the reference implementation, not hand edits:
 
 ```bash
 python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md
 ```
 
-This performs, in one step: parsing every markdown link target on the `Amends:`/`Extends:` line (a line may reference more than one target — e.g. a spec **and** an ADR, as in `2026-07-26-leanness-instrumentation`'s `Amends:` line); resolving each against the new spec's own folder; writing a `Superseded by:` line — link text the new spec's folder name, target its relative `spec.md` path — into each resolvable target's header metadata block (inserted if absent, updated in place if already present — never duplicated); and leaving every other line — including the target's own `> **Status:**` line — untouched.
+It parses every link target on the line (there may be several, e.g. a spec **and** an ADR), resolves each against the new spec's folder, and writes or updates a `Superseded by:` line (link text the new folder name, target its relative `spec.md`) in each resolvable target's header, never duplicating it and leaving every other line — including the target's `> **Status:**` — untouched. Non-spec targets (e.g. an ADR) are reported under `skipped_other` and get no reverse pointer; broken paths or missing targets are reported under `broken`. **This step never blocks or fails spec package creation** — proceed to Step 2.5 regardless and surface any `broken` entries as an informational note.
 
-Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` file (e.g. an ADR link) are reported under `skipped_other` — forward-only, no reverse pointer is attempted. A broken relative path or missing target spec is reported under `broken`, never raised as a hard failure: **this step never blocks or fails spec package creation** — proceed to Step 2.5 regardless of the write-back outcome, surfacing any `broken` entries to the user as an informational note.
-
-**spec-lite.md** — Condensed version for AI context windows with agent-specific sections. Total budget: <100 lines (hard limit). Format:
+**spec-lite.md** — condensed version for AI context with agent-specific sections. **Hard limit: under 100 lines.** Format:
 
 ```markdown
 # [Feature Name] (Lite)
@@ -616,9 +453,7 @@ Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` fi
 **Deliverable:** [One-sentence summary]
 
 **Implementation Approach:**
-- [Key technical decisions]
-- [Architecture patterns to use]
-- [Integration strategy]
+- [Key technical decisions, architecture patterns, integration strategy]
 
 **Files in Scope:**
 - `path/to/file.ext` — [what changes here]
@@ -642,16 +477,8 @@ Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` fi
 2. [Business rule verification]
 3. [Integration success condition]
 
-**ID tags come later, not here:** at this step (2.4), story files do not exist yet, so
-these bullets cannot cite a story-level `AC-N.M` ID — those IDs aren't assigned until
-Step 2.6 generates the story files. Write these bullets untagged now; Step 2.6b appends
-the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
-
 **Business Rules:**
-- [Permission/access control rules]
-- [Validation constraints]
-- [State transition rules]
-- [Domain-specific edge cases]
+- [Permission/access control, validation, state transitions, domain edge cases]
 
 **Experience Design:**
 - Entry: [How user reaches this]
@@ -684,7 +511,6 @@ the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
 
 **Edge Cases:**
 - [Feature-specific edge case] → [expected behavior]
-- [Interaction edge case] → [expected behavior]
 
 **Coverage Requirements:**
 - New code: ≥80%
@@ -692,115 +518,61 @@ the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
 - Error paths: 100%
 
 **Test Strategy:**
-- [Test types needed]
-- [Key scenarios to verify]
+- [Test types needed and key scenarios]
 ```
 
-**Content Selection Guidelines:**
+The "For Review Agents" acceptance-criteria bullets are written **untagged** here: story-level `AC-N.M` IDs do not exist until Step 2.6. Step 2.6b adds the tags.
 
-When building each section, prioritize based on feature type:
+Emphasis by feature type: data flow (APIs, auth, payments, integrations) → error handling, shadow paths, business rules; UI → experience design, interaction edge cases, responsive behavior; refactors → affected files, integration points, backward compatibility; docs/tooling → success criteria, verification approach.
 
-- **Data flow features** (APIs, auth, payments, integrations): emphasize error handling, shadow paths, business rules
-- **UI features**: emphasize experience design, interaction edge cases, responsive behavior
-- **Refactors**: emphasize affected files, integration points, backward compatibility
-- **Documentation/tooling**: emphasize success criteria, verification approach
-
-**Line Budget Enforcement:**
-
-The total spec-lite.md must stay under 100 lines. The agent-specific sections target 35/35/30 lines, but the three horizontal rules (`---`) and section headers add ~10 lines, leaving ~90 lines for content. Budget breakdown:
-
-- Header block (title, source, purpose): ~5 lines
-- Section headers + dividers: ~10 lines
-- Coding section content: ≤35 lines
-- Review section content: ≤35 lines
-- Testing section content: ≤30 lines
-- **Total: ~90 content + 10 structural = 100 lines**
-
-When content risks exceeding limits:
-
-1. **Cut nice-to-haves first**: Remove verbose descriptions, combine bullets, use terse phrasing
-2. **Prioritize critical information**: Error maps, business rules, and acceptance criteria are highest value
-3. **Use references**: Point to spec.md sections instead of duplicating content (e.g., "See spec.md → ## Technical Decisions")
-4. **Truncate sections proportionally**: If total exceeds 100, reduce all three sections by same percentage
-
-**Backward Compatibility Note:**
-
-Older specs may use the previous single-block format without agent-specific sections. Do not convert them unless asked.
+**Line budget:** the three sections target 35/35/30 lines, and the header, section headers, and dividers count toward the same 100-line hard limit. When over, cut nice-to-haves first, keep error maps, business rules, and acceptance criteria, point to `spec.md` sections instead of duplicating, and reduce all three sections proportionally. Do not convert older single-block spec-lite files unless asked.
 
 #### Step 2.5: Plan User Stories
 
-Before creating files, plan the stories:
-
-1. Analyze the contract deliverable and scope
-2. Break into logical user stories (each delivering standalone value)
-3. Identify dependencies between stories
-4. Ensure each story has 5-7 implementation tasks max
-
-Output a story plan:
+Break the contract into user stories that each deliver standalone value, identify dependencies between them, and keep each to 5-7 implementation tasks max. Output the plan:
 
 ```
 Story Plan:
 1. story-1-{name}: [Description] - Dependencies: None
 2. story-2-{name}: [Description] - Dependencies: Story 1
-3. story-3-{name}: [Description] - Dependencies: None
 ```
 
 #### Step 2.6: Generate User Stories in Parallel
 
 Launch parallel Task subagents to create all story files simultaneously. Reference `agents/user-story-generator.md` for the agent spec and prompt template.
 
-For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, **and full specification content for context hint generation**.
-
-**Context hint generation (new):** Pass these additional parameters to each user-story-generator agent:
-- `spec_content` — full text of `spec.md` (read from `.writ/specs/{spec-folder}/spec.md`)
-- `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise pass empty string `""` and state that hints should reference `spec.md` sections directly
-
-**Timing note:** When Step 2.6 runs in parallel with Step 2.8, `technical-spec.md` may not exist yet. Pass an empty string for `technical_spec_content` and add to the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')."
+For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, and the full specification content for context hint generation:
+- `spec_content` — full text of `spec.md`
+- `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise `""`, and add to the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')." (Step 2.8 may still be running in parallel.)
 
 Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, definition of done, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
 
-**Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`'s prompt template — do not duplicate it here; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
+**Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
 
 Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
 
 #### Step 2.6a: Validate Generated Stories
 
-After **all** generators return, and before Step 2.6b (which reads each story's `## Acceptance Criteria` and must see the regenerated file):
+After **all** generators return, and before Step 2.6b:
 
-1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder because no story is Completed yet (`untested_criterion` cannot fire) and a repo-wide test scan would misattribute other specs' `dangling_reference`s to these story numbers — `/verify-spec` keeps `--repo .` because it needs that scan.
+1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder (no story is Completed yet, and a repo-wide scan would misattribute other specs' `dangling_reference`s); `/verify-spec` keeps `--repo .`.
 2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
-3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9 exactly as today. A passing story is never regenerated.
-4. Per regeneration emit `(no-op until ADR-025 Story 1) escalated(agent=user-story-generator, site=create-spec.2.6, origin=<model>/<effort>@<platform>)` — site is ADR-024's step label, not this heading; origin is the one captured at command entry (`system-instructions.md` § Model Tiers), never re-read or asked here; `origin=unknown/unknown@<platform>` is valid. The line has no sink today: ADR-025 Story 1 has not shipped the recorder it names, so the emit is a printed line nothing reads — do not look for a `scripts/signal.py` or a `/retro --friction` consumer.
+3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9. A passing story is never regenerated.
 
-Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file is today's error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
+Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file follows the normal error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 
-**Why this step exists:** Step 2.4 writes `spec.md` and `spec-lite.md` before Step 2.5 plans
-stories and Step 2.6 generates the story files that assign per-story criterion ordinals. At
-Step 2.4 time, no story-level `AC-N.M` ID exists, so `spec-lite.md`'s "For Review Agents"
-acceptance-criteria bullets are written untagged. This step adds the tags once the IDs exist.
+1. Read every generated story's `## Acceptance Criteria`.
+2. Match each bullet under `spec-lite.md` → `## For Review Agents` → `**Acceptance Criteria:**` by content to the story criterion (or criteria) it condenses.
+3. Append the matching `` `[AC-N.M]` `` tag (comma-separated inside one tag for several) to the end of that bullet.
+4. Change nothing else in `spec-lite.md`; only trailing tags are appended, so the <100-line limit holds.
 
-1. Read every generated `user-stories/story-*.md` file's `## Acceptance Criteria` section.
-2. For each existing bullet under `spec-lite.md`'s `## For Review Agents` → `**Acceptance
-   Criteria:**` list, match it by content to the story criterion (or criteria) it summarizes —
-   the bullet is a condensed restatement of one or more Given/When/Then lines, not new text.
-3. Append the corresponding `` `[AC-N.M]` `` tag (comma-separated inside one tag when a bullet
-   summarizes more than one criterion) to the end of that bullet.
-4. Leave every other line of `spec-lite.md` untouched. This step only appends trailing tags to
-   the acceptance-criteria bullets already written in Step 2.4 — it does not rewrite prose or
-   change the line count in a way that would risk the <100-line budget (Step 2.4's "Line Budget
-   Enforcement").
-
-If a bullet cannot be confidently matched to any story criterion, leave it untagged and note
-the gap in Step 2.9's final package review. Do not guess.
+If a bullet cannot be confidently matched, leave it untagged and note the gap in Step 2.9. Do not guess.
 
 #### Step 2.6c: Spec analysis (advisory)
 
-After stories exist and Step 2.6a has validated IDs, run one analysis pass. This is
-**not** Step 2.6 (generation) and does **not** replace 2.6a (`ac-trace.py`). Goal
-Card Stage 3 said “Step 2.6”; the locked Stage 3 contract relocates the invoke to
-after stories exist. Run this step **once** per `/create-spec` — do not loop.
+After stories exist and Step 2.6a has validated IDs, run one analysis pass — **once** per `/create-spec`, no loop. It does **not** replace 2.6a (`ac-trace.py`).
 
 **Jev first (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, run
 `python3 scripts/jev-judge.py spec-findings --spec .writ/specs/<folder> --out .writ/state/spec-analyze-<run>.json`,
@@ -812,15 +584,7 @@ then run item 1 only over the stories listed in `<out>.escalate.json` and merge 
 `typesafe` / `vercel-gateway` / nothing / `none`; print its export line and take the Otherwise path this run. A key pasted anyway: write it nowhere; tell the user to rotate it.
 `--recommend`, non-interactive, or `none`: one `jev:` note. `no_api_key`: note `jev: unverifiable (no_api_key) — export <VAR>`; no re-prompt.
 
-1. **LLM pass (orchestrator, not the script).** Read the generated stories’
-   acceptance criteria. Look for contradiction, gap, and ambiguity, grounded in
-   exit-criteria grammar (observable, named outcomes). Write a JSON array of
-   finding objects to a per-run path under `.writ/state/` (gitignored), each
-   object `{code, story, summary, ac_ids?}` where `code` is `contradiction`,
-   `gap`, or `ambiguity`. If the model cannot judge, write `[]`. Do not add an
-   API key to `scripts/spec-analyze.py`. Do not create a new agent file. Do not
-   change how `/implement-story` spawns agents. If you skip the pass, omit
-   `--findings` below.
+1. **LLM pass (orchestrator, not the script).** Read the generated stories’ acceptance criteria and look for contradiction, gap, and ambiguity, grounded in exit-criteria grammar (observable, named outcomes). Write a JSON array of `{code, story, summary, ac_ids?}` finding objects (`code` is `contradiction`, `gap`, or `ambiguity`) to a per-run path under `.writ/state/` (gitignored); write `[]` if you cannot judge. Do not add an API key to `scripts/spec-analyze.py`, create a new agent file, or change how `/implement-story` spawns agents. If you skip the pass, omit `--findings` below.
 2. **Verify the claim, don't trust it.**
 
 ```bash
@@ -839,20 +603,13 @@ After all subagents complete, create `user-stories/README.md` with: stories summ
 
 #### Step 2.8: Generate Technical Sub-Specs
 
-Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories for traceability.
+Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories.
 
-**Error Mapping (Required for Data Flow Features):**
-
-Include when the spec touches: API routes, auth flows, payments, file operations, or external integrations. Skip for pure UI/CSS, docs, config, or internal refactors. When in doubt, include it.
-
-**Failure mapping:** `Read skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables, the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline, the "describe what the user sees" principle, and the drift-signal framing (its tables mirror a review pass's output, enabling plan-vs-actual comparison). This command owns when error mapping applies — the data-flow heuristic above — and which sub-specs carry the tables; the skill owns how to construct them.
+**Error Mapping (Required for Data Flow Features):** include when the spec touches API routes, auth flows, payments, file operations, or external integrations; skip for pure UI/CSS, docs, config, or internal refactors; when in doubt, include it. `Read skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables and the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline.
 
 #### Step 2.9: Final Package Review
 
-Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps.
-
-If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as
-**notes**. They never fail this review or block the package.
+Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps. If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as **notes**; they never fail this review or block the package.
 Add one note: `jev: <J>/<T> stories judged, <M> escalated` from `spec-findings`, else `jev: <verdict> (<reason>)`.
 
 ## Completion
@@ -870,85 +627,6 @@ If `--from-prototype`: Story 1 is marked `Completed ✅` with all tasks checked.
 **Suggested next step:** `/implement-spec` to execute the full implementation pipeline, or `/implement-story` for individual stories.
 
 **Terminal constraint:** This command produces specification artifacts (`.writ/specs/{date}-{name}/`). Do not offer to implement, build, or execute what was specified. For implementation, the user should run `/implement-spec` or `/implement-story`. For quick prototyping, use `/prototype`.
-
-## Example Usage
-
-### Example: Feature Provided with Full Flow
-
-```
-Developer: /create-spec "real-time multiplayer chat with blockchain integration"
-
-Agent: [Scans existing code, finds a simple React app with basic authentication]
-       [Switches to Plan Mode for discovery]
-
---- PLAN MODE ---
-
-I found your existing React application with basic user authentication.
-Before I dive in, I'm noticing a potential concern: real-time chat typically
-requires sub-100ms latency, but blockchain transactions can take seconds
-or minutes. What problem does blockchain solve in this chat context?
-
-Developer: We want spam prevention via crypto micropayments and eventually
-permanent message storage, but spam prevention is the must-have.
-
-Agent: That makes sense. If spam prevention is the core value, we need the
-blockchain interaction to not block the real-time UX. I'm thinking a hybrid
-approach — messages deliver instantly, blockchain settlement happens in the
-background. Does that match your mental model, or do you need messages to
-be confirmed on-chain before they're visible?
-
-Developer: Hybrid is exactly right. Instant delivery, background settlement.
-
-Agent: Good. For the cost target — Ethereum mainnet would be $1-5+ per message
-during congestion, which kills the micropayment model. A Layer 2 like Polygon
-would put you in the $0.01-0.10 range. Do you have a target cost per message,
-or should I recommend based on the spam prevention use case?
-
-Developer: $0.01-0.10 range sounds right. What happens if settlement fails?
-
-Agent: Three options: hide the message until settled (bad UX), show with a
-"pending" badge (confusing for chat), or show normally and notify the user
-only if settlement fails (cleanest UX, rare failure case). I'd recommend
-the third — it keeps chat feeling real-time. Thoughts?
-
-Developer: Agreed, show normally and notify on failure. I think that covers it.
-
-Agent: Here's the contract:
-
-## Specification Contract
-
-**Deliverable:** Hybrid real-time chat with immediate message delivery and
-background Polygon verification for anti-spam
-
-**Must Include:** Sub-second message delivery while maintaining blockchain
-verification for spam prevention
-
-**Hardest Constraint:** Balancing real-time UX with blockchain settlement
-delays and gas cost management
-
-**⚠️ Technical Concerns:**
-- Background settlement failures need graceful handling and user notification
-- Wallet integration adds authentication complexity to existing simple auth
-- Need message batching strategy to keep costs in target range
-
-**💡 Recommendations:**
-- Use Polygon for $0.01-0.10 per message cost target
-- Implement message batching to settle multiple messages per transaction
-- Add fallback mode for when blockchain settlement fails
-
-**Success Criteria:** Messages appear instantly, spam is prevented via crypto
-payments, blockchain verification happens within 5 minutes
-
-**Scope Boundaries:**
-- Included: Real-time chat, wallet integration, background Polygon settlement
-- Excluded: Advanced chat features (file sharing, voice), custom token
-  creation, permanent storage (deferred to v2)
-
-Developer: Looks good, let's lock it.
-           [Switches back to Agent Mode → AskQuestion confirms → Phase 2 begins]
-```
-
-**Key UX difference:** Discovery is open-ended dialogue with pushback in Plan Mode. The AskQuestion confirmation at the end gates file creation.
 
 ---
 

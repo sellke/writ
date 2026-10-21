@@ -60,7 +60,7 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Self-improving** — `/refresh-command` turns session friction into cited command diffs. Every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
 - **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
 - **Optional judgment provider** — TypeSafe's Jev model (direct or via the Vercel AI Gateway) can pre-judge acceptance criteria during `/create-spec` and `/verify-spec` spec analysis, and logs a shadow verdict beside the Gate 3 evaluator. It is off by default and requires a double opt-in: a `Judgment Provider` line in `.writ/config.md` *and* the backend's API key. Below its calibrated threshold, an answer falls back to the normal path; no Jev answer decides a gate or skips a spawn ([ADR-027](.writ/decision-records/adr-027-optional-judgment-provider.md)). Set it up with `python3 scripts/jev-judge.py setup`.
-- **Measured, not assumed** — `scripts/pipeline-baseline.py` replays stories in isolation with validated token counts and price-weighted cost (`scripts/harness-cost.py`), so harness changes are kept or reverted on evidence. The `WRIT_HARNESS_LEAN=1` flag loads leaner preamble and command bodies for experiments; its first baseline recorded null (no measurable win, on a reduced sample), so the default path is unchanged and install does not ship the lean files.
+- **Measured, not assumed** — `scripts/pipeline-baseline.py` replays stories in isolation with validated token counts and price-weighted cost (`scripts/harness-cost.py`), so harness changes are kept or reverted on evidence.
 - **Native-memory interop** — markdown stays canonical while adapters document how to ride each platform's native memory; external knowledge indexes (e.g., GBrain via MCP) are consumers
 - **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI, plus an OpenClaw mapping guide
 
@@ -109,7 +109,7 @@ Feedback loop (/retro + /refresh-command):
 | `/plan-product` | Product planning with contract-first approach |
 | `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory; Jev pre-judges first when enabled). `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
 | `/edit-spec` | Safely modify existing specifications |
-| `/design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
+| `/writ-design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
 | `/create-goal` | Goal Card for a recurring task: checkable finish line, stages, stop caps, or a recorded "don't loop this" verdict. A `loop: yes` save emits `GOAL.md` / `VERIFY.md` plus a printed Claude Code goal-mode invoke line (never registers the hook). |
 | `/create-issue` | Quick issue capture (<2 minutes) |

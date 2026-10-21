@@ -78,7 +78,6 @@ Usage:
                         [--tokenizer auto|anthropic|estimate]
                         [--model claude-fable-5-1]
                         [--cache <root>/.writ/state/token-cache.json]
-  WRIT_HARNESS_LEAN=1 measures commands/*.lean.md siblings in place of defaults.
 
 Always exits 0 — measurement never blocks its caller. The only write is the
 token-count cache, and only on the Anthropic path, only when a new count was
@@ -147,48 +146,6 @@ TOKEN_NOTE_ANTHROPIC_DEGRADED = (
     "request failed and fell back to the chars_per_token estimate: {items}. "
     "token_method_validated is therefore false. First failure: {reason}"
 )
-
-
-# --- the lean harness flag ---------------------------------------------------
-# Only the literal "1" turns it on. Lean siblings sit beside the defaults as
-# commands/<stem>.lean.md and are never measured as commands of their own.
-LEAN_ENV = "WRIT_HARNESS_LEAN"
-LEAN_SUFFIX = ".lean.md"
-# The siblings this spec requires. Only these warn when absent under the flag;
-# any other command loads its default file silently.
-LEAN_SIBLINGS = ("_preamble", "create-spec", "verify-spec", "implement-phase",
-                 "implement-story")
-
-
-def _harness_lean(warnings: list[str]) -> bool:
-    """True only when WRIT_HARNESS_LEAN is exactly "1". Any other set value,
-    empty included, is treated as unset and warned about once."""
-    value = os.environ.get(LEAN_ENV)
-    if value is None or value == "1":
-        return value == "1"
-    warnings.append(
-        f"{LEAN_ENV}={value!r} is not a recognized value; only `1` enables lean "
-        f"loading. Measured the default files.")
-    return False
-
-
-def _resolve_lean(root: str, stem: str, lean: bool,
-                  warnings: list[str]) -> str:
-    """Relative path of the file an invocation loads for `commands/<stem>`.
-
-    Flag on and a sibling on disk -> the sibling, replacing the default. Flag
-    on, sibling absent, stem in LEAN_SIBLINGS -> the default, with a warning
-    naming the missing path."""
-    default = f"commands/{stem}.md"
-    if not lean:
-        return default
-    sibling = f"commands/{stem}{LEAN_SUFFIX}"
-    if os.path.isfile(os.path.join(root, sibling)):
-        return sibling
-    if stem in LEAN_SIBLINGS:
-        warnings.append(
-            f"{LEAN_ENV}=1 but {sibling} is absent; measured {default} instead.")
-    return default
 
 
 def _load_leanness():
@@ -494,7 +451,6 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
         raise ValueError(f"tokenizer must be one of {TOKENIZER_CHOICES}, "
                          f"not {tokenizer!r}")
     warnings: list[str] = []
-    lean = _harness_lean(warnings)
 
     api_key = os.environ.get(API_KEY_ENV)
     if tokenizer == "anthropic" and not api_key:
@@ -543,8 +499,7 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
     # --- the shared base: paid by every invocation, immune to disclosure ---
     base_components: dict[str, int] = {}
     base_tokens = 0
-    preamble_rel = _resolve_lean(root, "_preamble", lean, warnings)
-    for key in ("system-instructions.md", preamble_rel):
+    for key in ("system-instructions.md", "commands/_preamble.md"):
         path = os.path.join(root, *key.split("/"))
         if not os.path.isfile(path):
             base_components[key] = 0
@@ -562,8 +517,6 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
         command_paths = _L.all_command_files(root)
     except Exception:
         command_paths = []
-    # A lean sibling is an alternate body for its default, never a command.
-    command_paths = [p for p in command_paths if not p.endswith(LEAN_SUFFIX)]
     if not command_paths:
         warnings.append(
             f"no command files found under {root}/commands/ — nothing to measure.")
@@ -575,7 +528,7 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
         if command is not None and stem != command:
             continue
 
-        rel = _resolve_lean(root, stem, lean, warnings)
+        rel = f"commands/{stem}.md"
         path = os.path.join(root, *rel.split("/"))
         command_bytes = _read_bytes(path)
         command_lines = _read_lines(path)
@@ -663,8 +616,6 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
             "base_share_of_floor": (round(base_bytes / floor_bytes, 4)
                                     if floor_bytes else 0.0),
         }
-        if lean:
-            commands[stem]["source"] = rel
 
     # --- corpus ---
     floors = [c["floor_bytes"] for c in commands.values()]
@@ -708,16 +659,10 @@ def measure(root: str, chars_per_token: float = DEFAULT_CHARS_PER_TOKEN,
     report = {
         "schema": "invocation-load-v1",
         "root": os.path.abspath(root),
-    }
-    if lean:
-        # Additive, like token_model below: absent with the flag off so the
-        # default output stays byte-identical.
-        report["harness_lean"] = True
-    report.update({
         "token_method": token_method,
         "token_method_validated": validated,
         "chars_per_token": chars_per_token,
-    })
+    }
     if counter is not None:
         # Additive and conditional: absent without a key so the no-key output
         # stays byte-identical to the pre-Story-2 output (AC-2.2).

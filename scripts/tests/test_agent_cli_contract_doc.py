@@ -8,8 +8,12 @@ that covers every shipped script once, the two network allowances, and an
 amendment that leaves ADR-029 rules 1-7 untouched.
 
 The shipped set comes from `is_shippable_script` in `scripts/install.sh`,
-never from a list kept here. The six dev-only names below are subtracted
+never from a list kept here. The dev-only names below are subtracted
 so this file passes both before and after the ship filter excludes them.
+`recommend-state.py` joined them in Story 4 of `2026-10-20-harness-cuts`
+(AC-4.4): it holds ADR-013's dormant staging reducers and is not installed.
+`gen-claude-md.py` builds the Claude Code template from the manifest and
+never ships.
 
 Run: uv run pytest scripts/tests/test_agent_cli_contract_doc.py
 """
@@ -33,9 +37,10 @@ DEV_ONLY = {
     "pipeline-baseline.py",
     "measure-invocation.py",
     "harness-cost.py",
-    "lean-decision.py",
     "prune-ledger.py",
     "spawn-cap.py",
+    "recommend-state.py",
+    "gen-claude-md.py",
 }
 SECTIONS = (
     "Scope",
@@ -165,14 +170,14 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(header, ["Script", "Shape", "Allowances", "Callers"])
 
     def test_every_shipped_script_has_exactly_one_row(self) -> None:
-        """AC-1.2 — table rows equal the shipped *.py/*.sh set minus the six dev-only scripts."""
+        """AC-1.2 — table rows equal the shipped *.py/*.sh set minus the dev-only scripts."""
         rows = set(classification())
         shipped = shipped_scripts()
         self.assertEqual(sorted(shipped - rows), [], "shipped but no row")
         self.assertEqual(sorted(rows - shipped), [], "row but not shipped")
 
     def test_dev_only_scripts_only_in_note_below_table(self) -> None:
-        """AC-1.2 — the six dev-only scripts and the JSON data file sit in a note, not the table."""
+        """AC-1.2 — the dev-only scripts and the JSON data file sit in a note, not the table."""
         body = section(read(DOC), "Classification")
         rows = set(classification())
         note = text_after_table(body)
