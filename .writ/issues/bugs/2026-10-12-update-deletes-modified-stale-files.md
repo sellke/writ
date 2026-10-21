@@ -32,3 +32,9 @@ A locally modified file that upstream no longer ships survives one `update.sh` r
 ## Notes
 
 - Fix direction: carry the old baseline forward for every category, and stop re-recording a stale path from its local copy. Then widen the warning, which is limited to `scripts/` until this lands.
+
+## Resolution
+
+2026-10-20, branch `writ/phase/13/2026-10-20-ci-and-update-integrity` (spec `2026-10-20-ci-and-update-integrity`, Stories 3 and 4). Story 3 made `write_copy_manifest` in `scripts/update.sh` record baselines only for shipped paths, walked from the upstream clone, so a kept stale file is no longer re-recorded from its local copy. Story 4 removed the `scripts/`-only condition from the modified branch of `detect_stale_files`. A modified stale file in any category now prints `⚠️  Stale (no longer shipped, locally modified — kept): <path>` and carries its previous baseline forward through `STALE_KEPT_ENTRIES`, so every later update warns again. Its line drops once the user deletes the file.
+
+`scripts/tests/test_update_kept_stale_files.sh` installs into a temp Claude Code project, edits a kept file in each of commands, agents, skills, `.writ/docs`, and `scripts/`, and drops them upstream. Across three updates that rewrite the manifest, an "Already up to date" run, and a dry run, it checks that each file is unchanged, warned about, and recorded once with its install-time hash. It also checks that an unmodified stale command is removed and that a deleted kept file loses its line. On the pre-fix `update.sh` it fails at the first update: no stale warning for `commands/zz-kept.md`.

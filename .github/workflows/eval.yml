@@ -6,6 +6,12 @@ on:
 
 jobs:
   eval:
+    # Linux is enough for every suite (2026-10-20). A grep of scripts/*.sh and
+    # scripts/tests/*.sh for BSD-only calls (stat -f, date -r, sed -i '',
+    # readlink -f, grep -P, md5, gdate, gsed, pbcopy, sw_vers, xcrun,
+    # mktemp -t) found none. In an ubuntu:24.04 container, as a non-root user
+    # with no git identity, the bash-tests step ran 35 tests with 0 failures,
+    # and eval.sh, the SKILL.md check, and pytest passed.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +26,32 @@ jobs:
 
       - name: Run Writ Eval Tier 1
         run: bash scripts/eval.sh --report=eval-report.md
+
+      # The suite steps below use !cancelled() so each one runs and reports
+      # even when an earlier step failed.
+      # v7 is the newest major tag: setup-uv v8 and later publish only full
+      # version tags (v10.3.0 on 2026-10-20), with no v8/v9/v10 tag.
+      - uses: astral-sh/setup-uv@v7
+        if: ${{ !cancelled() }}
+
+      - name: Run pytest (Python 3.9 floor)
+        if: ${{ !cancelled() }}
+        run: uv run --python 3.9 pytest
+
+      # Count failures and exit non-zero at the end, so one red test does not
+      # hide the others. The -f guard skips the literal glob when no test
+      # matches.
+      - name: Run bash tests
+        if: ${{ !cancelled() }}
+        run: |
+          fails=0
+          for t in scripts/tests/test_*.sh; do
+            [ -f "$t" ] || continue
+            echo "== $t"
+            bash "$t" || { echo "FAIL $t"; fails=$((fails + 1)); }
+          done
+          echo "bash tests failed: $fails"
+          [ "$fails" -eq 0 ]
 
       - name: Upload eval report
         if: failure()

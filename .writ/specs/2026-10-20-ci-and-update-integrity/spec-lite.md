@@ -8,17 +8,17 @@
 **Deliverable:** CI runs every suite on every PR. `install.sh` and `update.sh` stop losing user files, user edits, and the Codex config baseline (contract amended 2026-10-20).
 
 **Implementation Approach:**
-- S1 CI: setup-uv (pinned), `uv run --python 3.9 pytest`, and a bash step that counts failures and exits non-zero. Runner `ubuntu-latest` unless evidence says otherwise.
+- S1 CI: setup-uv (pinned), `uv run --python 3.9 pytest`, and a bash step that counts failures, skips an unmatched glob, and exits non-zero on any failure. Runner `ubuntu-latest` unless evidence says otherwise.
 - S2: read `.codex/config.toml.baseline` before `cat > "$target"`, as `unlink.sh:199-204` does.
-- S3: per-run baseline file read by `manifest_hash_for`/`manifest_files`. `write_copy_manifest` (update and install) iterates the shipped set from `$WRIT_SRC`: upstream hash if local = upstream, else the previous baseline or none. Header `# baselines: shipped`.
+- S3: per-run baseline file read by `manifest_hash_for`/`manifest_files`. `write_copy_manifest` (update and install) iterates the shipped set from `$WRIT_SRC`: upstream hash if local = upstream after the run, else the previous baseline or none; Writ blocks and Cursor units use the same post-run comparison. Header `# baselines: shipped`.
 - S4: `detect_stale_files` warns and carries the old baseline in every category.
-- S5: a header-less manifest is legacy. Rebuild baselines from upstream at `# version:` (`--unshallow` once if needed). Unresolvable → no-manifest behavior plus a notice. Remove Codex skills from `$SKILLS_DIR`. Print "Removed" only when the file is gone.
+- S5: a header-less manifest is legacy. Rebuild baselines from upstream at `# version:` (`--unshallow` once if needed). Unresolvable → no-manifest behavior plus a notice. A version that is not 4-40 lowercase hex is unresolved. Remove Codex skills from `$SKILLS_DIR`. Print "Removed" only when the file is gone; a path `rm` could not remove keeps its manifest line.
 - Tests first; each fails on the unchanged scripts.
 
 **Files in Scope:**
 - `.github/workflows/eval.yml`, `scripts/tests/test_ci_workflow.py` (S1)
 - `scripts/update.sh`: `manifest_hash_for`/`manifest_files` `155-162`, `write_copy_manifest` `164-247`, `detect_stale_files` `821-877`, removal `1114-1129`, new legacy step (S2–S5)
-- `scripts/install.sh`: `write_copy_manifest` `639-705` and its `append_manifest_*` `1006-1022` only (S3)
+- `scripts/install.sh`: `write_copy_manifest` `639-705`, its `append_manifest_*` `1006-1022`, and new helpers only they call (S3)
 - `commands/update-writ.md`: frontmatter, Steps 3/6/7, Completion (S4, S5)
 - New tests: `test_update_codex_config_baseline.sh` (S2), `test_manifest_shipped_baselines.sh` (S3), `test_update_kept_stale_files.sh` (S4), `test_update_legacy_manifest.sh` (S5)
 
