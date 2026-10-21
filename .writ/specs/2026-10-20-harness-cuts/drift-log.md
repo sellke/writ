@@ -44,3 +44,28 @@
 - **Reason:** `ac-trace.py` needs a test citation for every criterion once the story is Completed; without one eval reports `untested_criterion` (Gate 3 iteration 1 FAIL).
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md S1 line records the AC-1.5 absence tests.
+
+---
+
+## Story 2: Remove the Lean Code Paths from the Scripts — Drift Report
+
+> Run: 2026-10-20
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-005] Guard grep excludes two sibling Phase 13 spec folders beyond Business Rule 2
+- **Severity:** Medium
+- **Spec said:** Business Rule 2 gives the guard grep an exact exclusion list; AC-2.1 uses "the full pathspec from spec.md Business Rule 2"; the Success Criteria say the grep returns nothing outside the listed historical records.
+- **Implementation did:** `EXCLUDED` in `scripts/tests/test_harness_cuts.py` also excludes `.writ/specs/2026-10-20-platform-neutral-names` and `.writ/specs/2026-10-20-shipped-command-hygiene`. With the exact Business Rule 2 pathspec the grep prints 27 lines, all inside those two folders.
+- **Reason:** Those Not Started sibling specs (added in the same commit, `953f47e`, as this one) name the deleted lean files as plans and history. `2026-10-20-shipped-command-hygiene` Story 3 recovers `create-spec.lean.md` with `git show 617037b:...`, so rewording it would break that spec. Editing other specs' contracts is outside this spec's scope. No product file, script, or test names a lean file, and the roadmap measures the cut by what `install.sh` ships. The folders move under the already excluded `.writ/specs/archive` when those specs complete.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review. Proposed: add the two folders to Business Rule 2's pathspec and to the Success Criteria exclusions.
+
+#### [DEV-006] `test_ci_workflow.py` edited to restore another spec's citations
+- **Severity:** Small
+- **Spec said:** Nothing; the file is outside Files in Scope.
+- **Implementation did:** Added `test_runner_choice_records_its_evidence_above_runs_on` (AC-1.3) and `test_ci_runs_all_three_suites_and_this_file_on_python_3_9` (AC-1.4) for `2026-10-20-ci-and-update-integrity`.
+- **Reason:** The deleted `test_measure_invocation_lean.py` held bare `AC-1.3`/`AC-1.4` tokens that `ac-trace.py` credited to that spec; without new citations eval reports 3 `untested_criterion` findings (Business Rule 11). The AC-1.4 test is a structural check of CI wiring, not proof that the suites pass.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S2 Files in Scope line records the two citations.

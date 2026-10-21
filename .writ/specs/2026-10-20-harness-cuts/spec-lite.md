@@ -18,6 +18,7 @@
 - `commands/*.lean.md` (delete), `install.sh`, `update.sh` (every `is_unshipped_lean_sibling` call, including the commands and agents loops in `write_copy_manifest`), README, mixed tests plus `test_manifest_shipped_baselines.sh`, `eval.sh` review-panel and product-check pins (S1)
 - S1 also: AC-1.5 absence tests in `test_harness_cuts.py`; real `AC-2.2`/`AC-2.4` citations for `2026-10-20-claude-agent-generator` in `test_gen_claude_agents.py` and `test_jev_shadow_hooks.sh`, replacing the bare tokens the deleted `test_lean_preamble.py` carried (DEV-001 to DEV-004)
 - `story-context.py`, `measure-invocation.py`, `eval-leanness.py`, `pipeline-baseline.py`, `eval.sh` `check_manifest`, `lean-decision.py` (delete) and lean tests (S2)
+- S2 also: `scripts/tests/test_ci_workflow.py` gets AC-1.3/AC-1.4 citations for `2026-10-20-ci-and-update-integrity`, replacing the bare tokens the deleted `test_measure_invocation_lean.py` carried; the AC-1.4 test is a structural check (DEV-006)
 - `commands/create-spec.md:773`, `commands/implement-story.md:192`, `eval.sh` `check_model_escalation`, `commands/ship.md` 3/17/19/25, `KNOWN_OVER_BUDGET` (S3)
 - Ship filters, `skills/drift-triage/SKILL.md`, `agent-cli-contract.md`, `acceptance-criteria-ids.md`, `update-writ.md`, `gen-skill.sh` + `SKILL.md`, eval lifecycle scenarios (S4)
 - New: `scripts/tests/test_harness_cuts.py`, `scripts/tests/test_install_update_harness_cuts.sh`

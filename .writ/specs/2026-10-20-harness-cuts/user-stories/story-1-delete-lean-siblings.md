@@ -103,7 +103,7 @@
 - **Drift:** Small (DEV-001 to DEV-004)
 - **Security:** Clean
 - **Boundary Compliance:** one justified deviation (`test_gen_claude_agents.py`, docstring only)
-- gate3-route: review-agent (outside_boundary over the changed set; cross-component surface). review-panel: skipped (platform cannot spawn other vendors). arch-lint: none — see .writ/docs/architecture-lint.md.
+- gate3-route: review-agent (outside_boundary .writ/issues/improvements/2026-10-01-product-lint-misread-as-verify-spec.md). review-panel: skipped (platform cannot spawn other vendors). arch-lint: none — see .writ/docs/architecture-lint.md.
 - Gate 0 arch-check: pass (rederived proceed). Gate 2: no linter configured; `bash -n` and `py_compile` clean; build-smoke unverifiable (unsupported stack). Gate 3 iteration 1: FAIL (AC-1.5 had no test citation; `untested_criterion` once Completed). Iteration 2: PASS. review-override: unverifiable before completion, pass in the completion simulation. Gate 3.5 drift-format: pass. Gate 4 coverage: unverifiable (no report). Gate 4 authenticity: `test_imports_no_source` on `test_install_update_harness_cuts.sh`, the known false positive for bash tests (`.writ/issues/improvements/2026-10-12-test-integrity-shell-tests.md`); carried on the red-phase proof and the mutation runs above, not DEGRADED. Gate 4.5: app-verify unverifiable (no recipe). Gate 5: docs-check unverifiable (no public exports).
 
 ### Deviations from Spec

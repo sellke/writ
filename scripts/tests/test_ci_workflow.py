@@ -13,6 +13,10 @@ parser) and checks that CI runs every suite:
             pipefail), runs every `scripts/tests/test_*.sh`, prints
             `FAIL <path>` per failing test, and exits non-zero when any
             test fails. With only passing tests, or none, it exits 0.
+    AC-1.3  The job runs on `ubuntu-latest`, and the comment above
+            `runs-on` records the BSD-only scan and the Linux run.
+    AC-1.4  CI runs eval.sh, pytest on Python 3.9, and the bash-test loop,
+            and the pytest step collects this file.
 
 The parser below handles only the YAML shapes this workflow uses: a
 top-level `on:` key, `- uses:` / `run:` step keys, and literal `run: |`
@@ -267,3 +271,47 @@ def test_bash_block_with_no_tests_exits_zero(tmp_path: Path) -> None:
     assert result.returncode == 0, output
     assert "FAIL" not in output, output
     assert "ran helper.sh" not in output, output
+
+
+# --- AC-1.3 / AC-1.4: runner evidence and the Python 3.9 run ----------------
+
+def runs_on_and_comment(lines: List[str]) -> tuple:
+    """Return the `runs-on:` value and the comment lines directly above it,
+    joined with spaces."""
+    index = next((i for i, line in enumerate(lines) if re.match(r"^\s*runs-on:", line)), None)
+    assert index is not None, "eval.yml has no runs-on: key"
+    comment: List[str] = []
+    for line in reversed(lines[:index]):
+        if not line.lstrip().startswith("#"):
+            break
+        comment.insert(0, line.strip().lstrip("#").strip())
+    return lines[index].split(":", 1)[1].strip(), " ".join(comment)
+
+
+def test_runner_choice_records_its_evidence_above_runs_on() -> None:
+    """AC-1.3: the job runs on `ubuntu-latest`, and the comment directly
+    above `runs-on` records the scan for BSD-only calls and the Linux run
+    of the bash tests."""
+    runner, comment = runs_on_and_comment(workflow_lines())
+    assert runner == "ubuntu-latest", runner
+    assert "BSD-only calls" in comment, comment
+    assert re.search(r"ran \d+ tests with 0 failures", comment), comment
+
+
+def test_ci_runs_all_three_suites_and_this_file_on_python_3_9() -> None:
+    """AC-1.4: the workflow runs eval.sh, `uv run --python 3.9 pytest`, and
+    the bash-test loop. The pytest step collects this file on the 3.9 floor:
+    pyproject.toml declares `requires-python = ">=3.9"` and its testpaths
+    hold scripts/tests, where this file lives."""
+    steps = step_blocks(workflow_lines())
+    commands = [(run_command(step) or "").strip() for step in steps]
+    assert any(c.startswith("bash scripts/eval.sh") for c in commands), commands
+    assert any(c.startswith("uv run --python 3.9 pytest") for c in commands), commands
+    bash_test_step(steps)
+
+    pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert re.search(r'^requires-python\s*=\s*">=3\.9"\s*$', pyproject, re.M), pyproject
+    testpaths = re.search(r"^testpaths\s*=\s*\[(.*?)\]\s*$", pyproject, re.M)
+    assert testpaths is not None, pyproject
+    assert '"scripts/tests"' in testpaths.group(1), testpaths.group(1)
+    assert Path(__file__).resolve().parent == REPO_ROOT / "scripts" / "tests"

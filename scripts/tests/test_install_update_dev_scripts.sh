@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh / update.sh / unlink.sh do not ship the six dev-only scripts
+# install.sh / update.sh / unlink.sh do not ship the five dev-only scripts
 # (Story 2 of 2026-10-12-agent-cli-contract, ADR-029). They stay in the source
 # repo because eval.sh runs them; installed projects get only agent-facing
 # scripts. update.sh removes an unmodified copy a previous install left behind
@@ -14,7 +14,7 @@ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/writ-dev-scripts-test.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 
-DEV_SCRIPTS="pipeline-baseline.py measure-invocation.py harness-cost.py lean-decision.py prune-ledger.py spawn-cap.py"
+DEV_SCRIPTS="pipeline-baseline.py measure-invocation.py harness-cost.py prune-ledger.py spawn-cap.py"
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -38,7 +38,7 @@ commit_src() {
   git -C "$1" -c user.name=t -c user.email=t@example.invalid commit -q -m "$2"
 }
 
-# ----- AC-2.1: the filter rejects the six, accepts spec-status.py, and is one body -----
+# ----- AC-2.1: the filter rejects the five, accepts spec-status.py, and is one body -----
 for s in install update unlink; do
   body=$(filter_body "$REPO/scripts/$s.sh")
   [ -n "$body" ] || fail "$s.sh: cannot load is_shippable_script"
@@ -58,7 +58,7 @@ for name in $DEV_SCRIPTS; do
   [ -f "$REPO/scripts/$name" ] || fail "source scripts/$name is gone; eval.sh needs it"
 done
 
-# Committed source copy of the working tree; it still contains the six.
+# Committed source copy of the working tree; it still contains the five.
 SRC="$WORK/src"
 mkdir -p "$SRC"
 (cd "$REPO" && tar --exclude=.git --exclude=.cursor --exclude=.claude --exclude=.codex --exclude=.writ \
@@ -71,7 +71,7 @@ for name in $DEV_SCRIPTS; do
   [ -f "$SRC/scripts/$name" ] || fail "fixture: source copy has no scripts/$name"
 done
 
-# ----- AC-2.2: install never ships the six -----
+# ----- AC-2.2: install never ships the five -----
 T1="$WORK/dry"
 mkdir -p "$T1"
 out=$(cd "$T1" && bash "$SRC/scripts/install.sh" --platform claude --dry-run --no-commit 2>&1) \
@@ -97,10 +97,10 @@ for name in $DEV_SCRIPTS; do
 done
 
 # ----- AC-2.3 / AC-2.4: update removes an unmodified copy, keeps and warns on a modified one -----
-KEPT_WARNING='⚠️  Stale (no longer shipped, locally modified — kept): scripts/lean-decision.py'
+KEPT_WARNING='⚠️  Stale (no longer shipped, locally modified — kept): scripts/prune-ledger.py'
 
 # A project an earlier release installed: harness-cost.py unmodified and
-# lean-decision.py edited locally, both with manifest baselines.
+# prune-ledger.py edited locally, both with manifest baselines.
 plant_old_install() {
   local proj="$1" manifest="$1/.claude/.writ-manifest" out
   mkdir -p "$proj"
@@ -108,21 +108,21 @@ plant_old_install() {
     || fail "install into $proj exited non-zero: $out"
   cp "$SRC/scripts/harness-cost.py" "$proj/scripts/harness-cost.py"
   printf '%s  scripts/harness-cost.py\n' "$(hash_file "$SRC/scripts/harness-cost.py")" >> "$manifest"
-  cp "$SRC/scripts/lean-decision.py" "$proj/scripts/lean-decision.py"
-  printf '%s  scripts/lean-decision.py\n' "$(hash_file "$SRC/scripts/lean-decision.py")" >> "$manifest"
-  printf '# local edit\n' >> "$proj/scripts/lean-decision.py"
+  cp "$SRC/scripts/prune-ledger.py" "$proj/scripts/prune-ledger.py"
+  printf '%s  scripts/prune-ledger.py\n' "$(hash_file "$SRC/scripts/prune-ledger.py")" >> "$manifest"
+  printf '# local edit\n' >> "$proj/scripts/prune-ledger.py"
 }
 
 check_update() {
   local label="$1" proj="$2" src="$3" manifest="$2/.claude/.writ-manifest" out modified_hash name
-  modified_hash=$(hash_file "$proj/scripts/lean-decision.py")
+  modified_hash=$(hash_file "$proj/scripts/prune-ledger.py")
 
   out=$(cd "$proj" && WRIT_REPO="$src" bash "$src/scripts/update.sh" --platform claude --dry-run --no-commit 2>&1) \
     || fail "$label: update --dry-run exited non-zero: $out"
   printf '%s' "$out" | grep -qF '🗑  scripts/harness-cost.py' \
     || fail "$label: update dry run does not list harness-cost.py as stale: $out"
   printf '%s' "$out" | grep -qF "$KEPT_WARNING" \
-    || fail "$label: update dry run does not warn on the modified lean-decision.py: $out"
+    || fail "$label: update dry run does not warn on the modified prune-ledger.py: $out"
   [ -f "$proj/scripts/harness-cost.py" ] || fail "$label: update --dry-run removed harness-cost.py"
 
   out=$(cd "$proj" && WRIT_REPO="$src" bash "$src/scripts/update.sh" --platform claude --no-commit 2>&1) \
@@ -135,15 +135,15 @@ check_update() {
     fail "$label: manifest still records the removed harness-cost.py"
   fi
   # AC-2.4: modified copy kept byte for byte, warned about, and still tracked.
-  [ -f "$proj/scripts/lean-decision.py" ] || fail "$label: locally modified lean-decision.py was removed"
-  [ "$(hash_file "$proj/scripts/lean-decision.py")" = "$modified_hash" ] \
-    || fail "$label: locally modified lean-decision.py was changed"
+  [ -f "$proj/scripts/prune-ledger.py" ] || fail "$label: locally modified prune-ledger.py was removed"
+  [ "$(hash_file "$proj/scripts/prune-ledger.py")" = "$modified_hash" ] \
+    || fail "$label: locally modified prune-ledger.py was changed"
   printf '%s' "$out" | grep -qF "$KEPT_WARNING" \
-    || fail "$label: no stale warning names the modified lean-decision.py: $out"
-  grep -q "^$(hash_file "$SRC/scripts/lean-decision.py")  scripts/lean-decision.py\$" "$manifest" \
-    || fail "$label: manifest dropped the original baseline of the kept lean-decision.py"
+    || fail "$label: no stale warning names the modified prune-ledger.py: $out"
+  grep -q "^$(hash_file "$SRC/scripts/prune-ledger.py")  scripts/prune-ledger.py\$" "$manifest" \
+    || fail "$label: manifest dropped the original baseline of the kept prune-ledger.py"
   for name in $DEV_SCRIPTS; do
-    [ "$name" = lean-decision.py ] && continue
+    [ "$name" = prune-ledger.py ] && continue
     [ -e "$proj/scripts/$name" ] && fail "$label: update shipped dev-only scripts/$name"
   done
 
@@ -151,17 +151,17 @@ check_update() {
   out=$(cd "$proj" && WRIT_REPO="$src" bash "$src/scripts/update.sh" --platform claude --no-commit 2>&1) \
     || fail "$label: second update exited non-zero: $out"
   printf '%s' "$out" | grep -qF "$KEPT_WARNING" \
-    || fail "$label: second update no longer warns on the kept lean-decision.py: $out"
-  [ "$(hash_file "$proj/scripts/lean-decision.py")" = "$modified_hash" ] \
-    || fail "$label: second update changed the kept lean-decision.py"
+    || fail "$label: second update no longer warns on the kept prune-ledger.py: $out"
+  [ "$(hash_file "$proj/scripts/prune-ledger.py")" = "$modified_hash" ] \
+    || fail "$label: second update changed the kept prune-ledger.py"
   return 0
 }
 
-# Real case: upstream keeps the six for eval.sh; the ship filter rejects them.
+# Real case: upstream keeps the five for eval.sh; the ship filter rejects them.
 plant_old_install "$WORK/proj-kept"
-check_update "upstream keeps the six" "$WORK/proj-kept" "$SRC"
+check_update "upstream keeps the five" "$WORK/proj-kept" "$SRC"
 
-# Upstream deleted the six.
+# Upstream deleted the five.
 NEW_SRC="$WORK/src-new"
 cp -R "$SRC" "$NEW_SRC"
 for name in $DEV_SCRIPTS; do
@@ -169,9 +169,9 @@ for name in $DEV_SCRIPTS; do
 done
 commit_src "$NEW_SRC" "drop dev-only scripts"
 plant_old_install "$WORK/proj-deleted"
-check_update "upstream deleted the six" "$WORK/proj-deleted" "$NEW_SRC"
+check_update "upstream deleted the five" "$WORK/proj-deleted" "$NEW_SRC"
 
-# ----- AC-2.5: no shipped doc or command points at the six by path -----
+# ----- AC-2.5: no shipped doc or command points at the five by path -----
 for name in $DEV_SCRIPTS; do
   hits=$(cd "$REPO" && grep -rnF "scripts/$name" commands agents skills adapters .writ/docs 2>/dev/null || true)
   [ -z "$hits" ] || fail "shipped source references scripts/$name: $hits"

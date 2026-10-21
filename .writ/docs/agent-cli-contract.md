@@ -124,7 +124,7 @@ These steps apply in the Writ source repo.
 | `test-integrity.py` | data |  | commands/implement-story.md, agents/testing-agent.md, commands/status.md |
 | `verdict-provenance.py` | check |  | commands/implement-story.md |
 
-**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `lean-decision.py`, `prune-ledger.py`, and `spawn-cap.py`. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install.
+**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Five dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, and `spawn-cap.py`. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install.
 
 ### Notes
 
