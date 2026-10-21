@@ -100,7 +100,7 @@ Gather lightweight context before coding:
 - Target area includes: `components/`, `pages/`, `app/`, `views/`, `layouts/`, `screens/`
 - Description contains visual language: "button", "modal", "layout", "form", "page", "dashboard", "sidebar", "card", "table", "nav", "header", "footer", "responsive", "style", "CSS", "UI", "design"
 
-**Figma MCP detection:** if `cursor-ide-browser` MCP and `design-system.md` or Figma MCP server are available, note in context so the coding agent generates token-referenced code instead of hardcoded values.
+**Figma MCP detection:** if the `canvas-preview` capability (see the adapter) and `design-system.md` or a Figma MCP server are available, note in context so the coding agent generates token-referenced code instead of hardcoded values.
 
 Output a brief context summary (internal: passed to the coding agent, not shown to the user):
 
@@ -169,10 +169,10 @@ Writ ships no renderer. Use what the platform provides, best available first:
 | Available | Use |
 |---|---|
 | Native artboard/design surface | Platform's own canvas; point it at the project's components so it does not re-draw what exists |
-| Artifact / canvas / preview pane | A self-contained HTML page per draft, project framework and tokens |
+| `canvas-preview` (the adapter maps it) | A self-contained HTML page per draft, project framework and tokens |
 | Neither | A written structural description per draft — say plainly that drafts were not rendered |
 
-See the adapter for the platform's capability name. Never degrade silently.
+Each adapter maps `canvas-preview` to its own tool and states what to do when it has none. Never degrade silently.
 
 #### Present and choose
 

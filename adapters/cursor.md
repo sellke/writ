@@ -111,6 +111,7 @@ These Cursor tools are used directly; no adapter is needed:
 | `read_file` | All commands | Read file contents |
 | `run_terminal_cmd` | implement-story | Run shell commands |
 | `list_dir` | initialize, status | List directory contents |
+| `canvas-preview` | prototype (Step 2.5) | The `cursor-ide-browser` canvas renders each draft. No renderer: write a structural description of each draft and say the drafts were not rendered. |
 
 ### Recommendation Interaction Mapping
 

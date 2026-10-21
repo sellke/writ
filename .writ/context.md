@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T11:05:27Z
+> Last Updated: 2026-10-21T11:45:17Z
 
 ## Product Mission
 
@@ -8,24 +8,22 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-20-claude-code-parity — Claude Code Parity
-- **Status:** Complete (checker verdict met; integration suite passed)
-- **Story:** 4 of 4 — Keep CLAUDE.md User-Owned on Uninstall and Reinstall (Completed ✅)
-- **Progress:** 28/28 tasks complete (100%)
+- **Spec:** 2026-10-20-platform-neutral-names — Platform-Neutral Names
+- **Status:** In Progress (1 of 3 stories complete)
+- **Story:** 1 of 3 — Canvas-Preview Capability in `/prototype` and the Four Adapters (Completed ✅)
+- **Progress:** 7/20 tasks complete (35%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-20-claude-code-parity/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-20-platform-neutral-names/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (28 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-009 (Small) Business Rule 5's no-baseline rule is not Cursor's actual rule — claude-code-parity Story 2
-- DEV-011 (Small) The reinstall doc names .claude/system-instructions.md — claude-code-parity Story 4
-- DEV-013 (Small) Story 4 tests go beyond the listed cases — claude-code-parity Story 4
+- DEV-001 (Small) OpenClaw row says "HTML file" where the technical spec's row text says "file" — platform-neutral-names Story 1
 
 ## Open Issues
 
