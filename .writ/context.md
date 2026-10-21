@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T06:08:27Z
+> Last Updated: 2026-10-21T06:20:02Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-harness-cuts — Harness Cuts
-- **Status:** In Progress
+- **Status:** Complete (checker verdict met; integration suite passed)
 - **Story:** 4 of 4 — Make Recommended-Delivery Staging Dev-Only (Completed ✅)
 - **Progress:** 28/28 tasks complete (100%)
 
