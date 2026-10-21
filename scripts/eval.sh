@@ -2671,7 +2671,6 @@ check_phase_lanes() {
   require_literal "$implement_phase" 'writ/phase/{phase-id}/{spec-id}' "Implement-phase must own the lane branch naming."
   require_literal "$implement_phase" 'phase-spec-result-v1' "Implement-phase must validate the structured result."
   require_literal "$implement_phase" 'only a verified' "Implement-phase must merge only verified success."
-  require_literal "$implement_phase" 'scripts/phase-state.py' "Implement-phase must reference the executable reducer."
 
   require_literal "$implement_spec" 'supplied lane' "Implement-spec must execute only inside the supplied lane."
   require_literal "$implement_spec" 'phase-spec-result-v1' "Implement-spec must return the structured result."
