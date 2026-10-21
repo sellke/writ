@@ -375,15 +375,9 @@ AskQuestion({
 
 **Triggered only after user confirms contract with 'yes'**
 
-#### Step 2.1: Initialize Tracking
-
-Track creation progress with `todo_write`: folder structure, core documents, user stories (parallel), sub-specs, and final review.
-
 #### Step 2.2: Determine Current Date
 
-Use `npx @sellke/writ date` when available; otherwise use the local system date in `YYYY-MM-DD`.
-
-This date is used for folder naming: `.writ/specs/[DATE]-[feature-name]/`
+Use `npx @sellke/writ date` when available; otherwise the local system date in `YYYY-MM-DD`. Folder: `.writ/specs/[DATE]-[feature-name]/`.
 
 Resolve the spec owner from git config before writing `spec.md`:
 
@@ -395,7 +389,7 @@ if [ "$OWNER" = "@" ]; then
 fi
 ```
 
-Owner value: prefix `@`, strip spaces, and do not consult any external user directory. If `git config user.name` is unset or empty, write `owner: @unknown` and show the warning above.
+Prefix `@`, strip spaces, and consult no external user directory. Unset or empty `git config user.name` → `owner: @unknown` with the warning above.
 
 #### Step 2.3: Create Directory Structure
 
@@ -423,11 +417,11 @@ Owner value: prefix `@`, strip spaces, and do not consult any external user dire
   > **Owner:** [OWNER]
   > **Dependencies:** [spec-folder-id, ...]
   ```
-  - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when the spec has no cross-spec dependency.
-  - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid dependency identifiers.
-  - This spec-level `Dependencies` header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
-  - **Canonical complete-family spelling (forward-only):** when a spec is later marked done, its status line becomes `> **Status:** Complete` — bold, unadorned, no emoji suffix required. This is the only spelling `create-spec` itself ever writes for the complete state. Detection (`scripts/spec-status.py`) remains tolerant of legacy spellings already present in existing files (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`). Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
-  - **Supersession banners:** if the locked contract declares that this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on without full replacement) as a markdown link to the prior spec — link text is the prior spec's folder name, link target its relative `spec.md` path (e.g. field `Amends:`, link text `2026-07-11-leanness-guardian`, target `../2026-07-11-leanness-guardian/spec.md`). See Step 2.4b below for the required reverse-pointer write-back, and [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners) for the full convention.
+  - Emit `> **Dependencies:**` for **every** new spec — never omit it. Use `[]` when there is no cross-spec dependency.
+  - Values are **exact spec-folder IDs** under `.writ/specs/` (e.g. `2026-07-09-autonomy-ceiling`), in declared order. Titles and fuzzy matches are invalid.
+  - This spec-level header is distinct from story-level `Dependencies:` metadata. Do not conflate the two graphs.
+  - **Canonical complete-family spelling (forward-only):** a spec later marked done reads `> **Status:** Complete` — bold, unadorned. This is the only complete spelling `create-spec` writes. `scripts/spec-status.py` stays tolerant of legacy spellings (`Completed ✅`, unbold `Status: Complete`, `Closed — Abandoned`). Non-complete values (`Not Started`, `In Progress`, etc.) are unchanged.
+  - **Supersession banners:** if the locked contract says this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on) as a markdown link — link text the prior spec's folder name, target its relative `spec.md` path (e.g. `Amends:` → `2026-07-11-leanness-guardian` → `../2026-07-11-leanness-guardian/spec.md`). Step 2.4b writes the reverse pointer; convention in [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners).
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
 - **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
@@ -436,19 +430,15 @@ Owner value: prefix `@`, strip spaces, and do not consult any external user dire
 
 #### Step 2.4b: Supersession Write-back (`Amends:`/`Extends:`)
 
-If the new spec's header (written in Step 2.4) contains an `> **Amends:**` or `> **Extends:**` line, write a matching reverse pointer onto each referenced spec — applies uniformly whether Phase 2 was reached via the standard flow, `--from-issue`, or `--from-prototype`.
-
-Invoke the reference implementation rather than hand-editing headers:
+If the new spec's header has an `> **Amends:**` or `> **Extends:**` line, write a matching reverse pointer onto each referenced spec — in the standard flow, `--from-issue`, and `--from-prototype` alike. Use the reference implementation, not hand edits:
 
 ```bash
 python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md
 ```
 
-This performs, in one step: parsing every markdown link target on the `Amends:`/`Extends:` line (a line may reference more than one target — e.g. a spec **and** an ADR); resolving each against the new spec's own folder; writing a `Superseded by:` line — link text the new spec's folder name, target its relative `spec.md` path — into each resolvable target's header metadata block (inserted if absent, updated in place if already present — never duplicated); and leaving every other line — including the target's own `> **Status:**` line — untouched.
+It parses every link target on the line (there may be several, e.g. a spec **and** an ADR), resolves each against the new spec's folder, and writes or updates a `Superseded by:` line (link text the new folder name, target its relative `spec.md`) in each resolvable target's header, never duplicating it and leaving every other line — including the target's `> **Status:**` — untouched. Non-spec targets (e.g. an ADR) are reported under `skipped_other` and get no reverse pointer; broken paths or missing targets are reported under `broken`. **This step never blocks or fails spec package creation** — proceed to Step 2.5 regardless and surface any `broken` entries as an informational note.
 
-Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` file (e.g. an ADR link) are reported under `skipped_other` — forward-only, no reverse pointer is attempted. A broken relative path or missing target spec is reported under `broken`, never raised as a hard failure: **this step never blocks or fails spec package creation** — proceed to Step 2.5 regardless of the write-back outcome, surfacing any `broken` entries to the user as an informational note.
-
-**spec-lite.md** — Condensed version for AI context windows with agent-specific sections. Total budget: <100 lines (hard limit). Format:
+**spec-lite.md** — condensed version for AI context with agent-specific sections. **Hard limit: under 100 lines.** Format:
 
 ```markdown
 # [Feature Name] (Lite)
@@ -463,9 +453,7 @@ Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` fi
 **Deliverable:** [One-sentence summary]
 
 **Implementation Approach:**
-- [Key technical decisions]
-- [Architecture patterns to use]
-- [Integration strategy]
+- [Key technical decisions, architecture patterns, integration strategy]
 
 **Files in Scope:**
 - `path/to/file.ext` — [what changes here]
@@ -489,16 +477,8 @@ Targets that resolve to something other than a `.writ/specs/<folder>/spec.md` fi
 2. [Business rule verification]
 3. [Integration success condition]
 
-**ID tags come later, not here:** at this step (2.4), story files do not exist yet, so
-these bullets cannot cite a story-level `AC-N.M` ID — those IDs aren't assigned until
-Step 2.6 generates the story files. Write these bullets untagged now; Step 2.6b appends
-the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
-
 **Business Rules:**
-- [Permission/access control rules]
-- [Validation constraints]
-- [State transition rules]
-- [Domain-specific edge cases]
+- [Permission/access control, validation, state transitions, domain edge cases]
 
 **Experience Design:**
 - Entry: [How user reaches this]
@@ -531,7 +511,6 @@ the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
 
 **Edge Cases:**
 - [Feature-specific edge case] → [expected behavior]
-- [Interaction edge case] → [expected behavior]
 
 **Coverage Requirements:**
 - New code: ≥80%
@@ -539,82 +518,44 @@ the matching `` `[AC-N.M]` `` tag(s) to each one once the story criteria exist.
 - Error paths: 100%
 
 **Test Strategy:**
-- [Test types needed]
-- [Key scenarios to verify]
+- [Test types needed and key scenarios]
 ```
 
-**Content Selection Guidelines:**
+The "For Review Agents" acceptance-criteria bullets are written **untagged** here: story-level `AC-N.M` IDs do not exist until Step 2.6. Step 2.6b adds the tags.
 
-When building each section, prioritize based on feature type:
+Emphasis by feature type: data flow (APIs, auth, payments, integrations) → error handling, shadow paths, business rules; UI → experience design, interaction edge cases, responsive behavior; refactors → affected files, integration points, backward compatibility; docs/tooling → success criteria, verification approach.
 
-- **Data flow features** (APIs, auth, payments, integrations): emphasize error handling, shadow paths, business rules
-- **UI features**: emphasize experience design, interaction edge cases, responsive behavior
-- **Refactors**: emphasize affected files, integration points, backward compatibility
-- **Documentation/tooling**: emphasize success criteria, verification approach
-
-**Line Budget Enforcement:**
-
-The total spec-lite.md must stay under 100 lines. The agent-specific sections target 35/35/30 lines, but the three horizontal rules (`---`) and section headers add ~10 lines, leaving ~90 lines for content. Budget breakdown:
-
-- Header block (title, source, purpose): ~5 lines
-- Section headers + dividers: ~10 lines
-- Coding section content: ≤35 lines
-- Review section content: ≤35 lines
-- Testing section content: ≤30 lines
-- **Total: ~90 content + 10 structural = 100 lines**
-
-When content risks exceeding limits:
-
-1. **Cut nice-to-haves first**: Remove verbose descriptions, combine bullets, use terse phrasing
-2. **Prioritize critical information**: Error maps, business rules, and acceptance criteria are highest value
-3. **Use references**: Point to spec.md sections instead of duplicating content (e.g., "See spec.md → ## Technical Decisions")
-4. **Truncate sections proportionally**: If total exceeds 100, reduce all three sections by same percentage
-
-**Backward Compatibility Note:**
-
-Older specs may use the previous single-block format without agent-specific sections. Do not convert them unless asked.
+**Line budget:** the three sections target 35/35/30 lines, and the header, section headers, and dividers count toward the same 100-line hard limit. When over, cut nice-to-haves first, keep error maps, business rules, and acceptance criteria, point to `spec.md` sections instead of duplicating, and reduce all three sections proportionally. Do not convert older single-block spec-lite files unless asked.
 
 #### Step 2.5: Plan User Stories
 
-Before creating files, plan the stories:
-
-1. Analyze the contract deliverable and scope
-2. Break into logical user stories (each delivering standalone value)
-3. Identify dependencies between stories
-4. Ensure each story has 5-7 implementation tasks max
-
-Output a story plan:
+Break the contract into user stories that each deliver standalone value, identify dependencies between them, and keep each to 5-7 implementation tasks max. Output the plan:
 
 ```
 Story Plan:
 1. story-1-{name}: [Description] - Dependencies: None
 2. story-2-{name}: [Description] - Dependencies: Story 1
-3. story-3-{name}: [Description] - Dependencies: None
 ```
 
 #### Step 2.6: Generate User Stories in Parallel
 
 Launch parallel Task subagents to create all story files simultaneously. Reference `agents/user-story-generator.md` for the agent spec and prompt template.
 
-For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, **and full specification content for context hint generation**.
-
-**Context hint generation:** Pass these additional parameters to each user-story-generator agent:
-- `spec_content` — full text of `spec.md` (read from `.writ/specs/{spec-folder}/spec.md`)
-- `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise pass empty string `""` and state that hints should reference `spec.md` sections directly
-
-**Timing note:** When Step 2.6 runs in parallel with Step 2.8, `technical-spec.md` may not exist yet. Pass an empty string for `technical_spec_content` and add to the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')."
+For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier resolved per the platform adapter — the tier `agents/user-story-generator.md` declares) in a single message. Provide each agent with: output path, story number, title, description, dependencies, priority, the locked contract, relevant codebase patterns, and the full specification content for context hint generation:
+- `spec_content` — full text of `spec.md`
+- `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise `""`, and add to the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')." (Step 2.8 may still be running in parallel.)
 
 Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, definition of done, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
 
-**Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`'s prompt template — do not duplicate it here; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
+**Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
 
 Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
 
 #### Step 2.6a: Validate Generated Stories
 
-After **all** generators return, and before Step 2.6b (which reads each story's `## Acceptance Criteria` and must see the regenerated file):
+After **all** generators return, and before Step 2.6b:
 
-1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder because no story is Completed yet (`untested_criterion` cannot fire) and a repo-wide test scan would misattribute other specs' `dangling_reference`s to these story numbers — `/verify-spec` keeps `--repo .` because it needs that scan.
+1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder (no story is Completed yet, and a repo-wide scan would misattribute other specs' `dangling_reference`s); `/verify-spec` keeps `--repo .`.
 2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
 3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9. A passing story is never regenerated.
 
@@ -622,29 +563,16 @@ Escalation fires only on a *returned* file that fails the check — a Task error
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 
-**Why this step exists:** Step 2.4 writes `spec.md` and `spec-lite.md` before Step 2.5 plans
-stories and Step 2.6 generates the story files that assign per-story criterion ordinals. At
-Step 2.4 time, no story-level `AC-N.M` ID exists, so `spec-lite.md`'s "For Review Agents"
-acceptance-criteria bullets are written untagged. This step adds the tags once the IDs exist.
+1. Read every generated story's `## Acceptance Criteria`.
+2. Match each bullet under `spec-lite.md` → `## For Review Agents` → `**Acceptance Criteria:**` by content to the story criterion (or criteria) it condenses.
+3. Append the matching `` `[AC-N.M]` `` tag (comma-separated inside one tag for several) to the end of that bullet.
+4. Change nothing else in `spec-lite.md`; only trailing tags are appended, so the <100-line limit holds.
 
-1. Read every generated `user-stories/story-*.md` file's `## Acceptance Criteria` section.
-2. For each existing bullet under `spec-lite.md`'s `## For Review Agents` → `**Acceptance
-   Criteria:**` list, match it by content to the story criterion (or criteria) it summarizes —
-   the bullet is a condensed restatement of one or more Given/When/Then lines, not new text.
-3. Append the corresponding `` `[AC-N.M]` `` tag (comma-separated inside one tag when a bullet
-   summarizes more than one criterion) to the end of that bullet.
-4. Leave every other line of `spec-lite.md` untouched. This step only appends trailing tags to
-   the acceptance-criteria bullets already written in Step 2.4 — it does not rewrite prose or
-   change the line count in a way that would risk the <100-line budget (Step 2.4's "Line Budget
-   Enforcement").
-
-If a bullet cannot be confidently matched to any story criterion, leave it untagged and note
-the gap in Step 2.9's final package review. Do not guess.
+If a bullet cannot be confidently matched, leave it untagged and note the gap in Step 2.9. Do not guess.
 
 #### Step 2.6c: Spec analysis (advisory)
 
-After stories exist and Step 2.6a has validated IDs, run one analysis pass. This is
-**not** Step 2.6 (generation) and does **not** replace 2.6a (`ac-trace.py`). Run this step **once** per `/create-spec` — do not loop.
+After stories exist and Step 2.6a has validated IDs, run one analysis pass — **once** per `/create-spec`, no loop. It does **not** replace 2.6a (`ac-trace.py`).
 
 **Jev first (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, run
 `python3 scripts/jev-judge.py spec-findings --spec .writ/specs/<folder> --out .writ/state/spec-analyze-<run>.json`,
@@ -656,15 +584,7 @@ then run item 1 only over the stories listed in `<out>.escalate.json` and merge 
 `typesafe` / `vercel-gateway` / nothing / `none`; print its export line and take the Otherwise path this run. A key pasted anyway: write it nowhere; tell the user to rotate it.
 `--recommend`, non-interactive, or `none`: one `jev:` note. `no_api_key`: note `jev: unverifiable (no_api_key) — export <VAR>`; no re-prompt.
 
-1. **LLM pass (orchestrator, not the script).** Read the generated stories’
-   acceptance criteria. Look for contradiction, gap, and ambiguity, grounded in
-   exit-criteria grammar (observable, named outcomes). Write a JSON array of
-   finding objects to a per-run path under `.writ/state/` (gitignored), each
-   object `{code, story, summary, ac_ids?}` where `code` is `contradiction`,
-   `gap`, or `ambiguity`. If the model cannot judge, write `[]`. Do not add an
-   API key to `scripts/spec-analyze.py`. Do not create a new agent file. Do not
-   change how `/implement-story` spawns agents. If you skip the pass, omit
-   `--findings` below.
+1. **LLM pass (orchestrator, not the script).** Read the generated stories’ acceptance criteria and look for contradiction, gap, and ambiguity, grounded in exit-criteria grammar (observable, named outcomes). Write a JSON array of `{code, story, summary, ac_ids?}` finding objects (`code` is `contradiction`, `gap`, or `ambiguity`) to a per-run path under `.writ/state/` (gitignored); write `[]` if you cannot judge. Do not add an API key to `scripts/spec-analyze.py`, create a new agent file, or change how `/implement-story` spawns agents. If you skip the pass, omit `--findings` below.
 2. **Verify the claim, don't trust it.**
 
 ```bash
@@ -683,20 +603,13 @@ After all subagents complete, create `user-stories/README.md` with: stories summ
 
 #### Step 2.8: Generate Technical Sub-Specs
 
-Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories for traceability.
+Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories.
 
-**Error Mapping (Required for Data Flow Features):**
-
-Include when the spec touches: API routes, auth flows, payments, file operations, or external integrations. Skip for pure UI/CSS, docs, config, or internal refactors. When in doubt, include it.
-
-**Failure mapping:** `Read skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables, the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline, the "describe what the user sees" principle, and the drift-signal framing (its tables mirror a review pass's output, enabling plan-vs-actual comparison). This command owns when error mapping applies — the data-flow heuristic above — and which sub-specs carry the tables; the skill owns how to construct them.
+**Error Mapping (Required for Data Flow Features):** include when the spec touches API routes, auth flows, payments, file operations, or external integrations; skip for pure UI/CSS, docs, config, or internal refactors; when in doubt, include it. `Read skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables and the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline.
 
 #### Step 2.9: Final Package Review
 
-Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps.
-
-If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as
-**notes**. They never fail this review or block the package.
+Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps. If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as **notes**; they never fail this review or block the package.
 Add one note: `jev: <J>/<T> stories judged, <M> escalated` from `spec-findings`, else `jev: <verdict> (<reason>)`.
 
 ## Completion
