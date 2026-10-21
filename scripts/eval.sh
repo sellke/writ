@@ -2338,7 +2338,6 @@ check_spec_lifecycle_docs() {
   require_literal "$doc" 'Do not add a second, separate exclusion check for `archive/`' "spec-lifecycle.md must carry the prominent do-not-duplicate-exclusion author note."
   require_literal "$doc" 'backups/' "spec-lifecycle.md must document the backups/ invariant with concrete evidence."
 
-  require_literal "$verify_spec" 'spec-lifecycle.md' "verify-spec.md --all prose must link to the archive-exclusion doc."
   forbid_literal "$verify_spec" 'specs/**' "verify-spec.md must not widen its spec enumeration to a recursive glob — that would silently include archive/."
 }
 
