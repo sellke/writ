@@ -1,6 +1,7 @@
 # Story 2: Install the System Instructions and Import Line on Claude Code
 
 > **Status:** Completed ✅
+> **Commit:** 18b1fe0d58e66308e55f237c4706f1de2febc672
 > **Priority:** High
 > **Dependencies:** Story 1
 
