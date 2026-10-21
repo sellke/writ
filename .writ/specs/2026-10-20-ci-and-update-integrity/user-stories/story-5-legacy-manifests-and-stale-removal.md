@@ -1,6 +1,7 @@
 # Story 5: Repair Legacy Manifests and Remove Stale Files From Their Real Path
 
 > **Status:** Completed ✅
+> **Commit:** a805e09abf6cecd48fe723126f40e4ff31025592
 > **Priority:** High
 > **Dependencies:** Story 4
 
