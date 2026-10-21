@@ -11,7 +11,7 @@
 - `scripts/eval-shipped-refs.py` + `check_shipped_refs`: four rules (numbered ADR link; dated archived-spec path, archive or old form; dated research path; `calibrated_against` naming `.writ/state/` or `.writ/specs/archive/` outside a glob). Self-test scenarios, PASS/FAIL TSV, `--root`.
 - Remove each link with its label; one plain sentence only where listed. Rewrite five `calibrated_against` values with a shipped path token or `no recorded run`.
 - Pin map: recipe in technical-spec.md; one row per instance; categories decide what may be removed.
-- Convert rows move to `scripts/eval-command-structure.py` (`heading`, `frontmatter`, `invocation`) run by `check_command_structure`.
+- Convert rows move to `scripts/eval-command-structure.py` (`heading`, `frontmatter`, `invocation`) run by `check_command_structure`. A convert row may map to more than one structural row when a bare-path pin is replaced by the specific calls the command must make.
 - `create-spec.md`: adopt lean-twin cuts that remove coaching; decline anything behavioral, pinned, or test-asserted.
 - Python 3.9 standard library. `eval-*` helpers are dev-only.
 
@@ -53,6 +53,7 @@ See spec.md → ## 📋 Business Rules and sub-specs/technical-spec.md.
 - Shipped = every `commands/*.md`, including `_preamble.md`; no name is skipped (install.sh ships them all after `2026-10-20-harness-cuts`).
 - Runtime paths, placeholders, and globs stay.
 - Safety categories never take `remove`; when unsure, keep.
+- A `structure` pin whose exact text an `eval-*.py` scenario run by the same check also asserts on the same file may be removed as a duplicate; the reason names the scenario.
 - Cuts remove coaching only; no behavior change; step numbers stay.
 
 **Experience Design:**

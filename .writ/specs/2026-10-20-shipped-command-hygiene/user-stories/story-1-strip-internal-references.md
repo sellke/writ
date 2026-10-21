@@ -128,3 +128,12 @@
   - Reality: five downward repins, forced by the exact-sum assertion.
   - Resolution: Auto-amended
   - Spec amendment: spec-lite.md Files in Scope updated.
+
+---
+
+### Post-Completion Repair (2026-10-21)
+
+- After this story was marked Completed, `scripts/ac-trace.py` reported AC-1.2 to AC-1.5 as `untested_criterion` and full eval had 5 `review-override` findings. ac-trace credits a test token to the spec folder named most recently above it, and the AC-1.1 fixtures named archived spec folders; AC-1.5 had no test.
+- `499dbc5`: the class docstrings in `scripts/tests/test_eval_shipped_refs.py` name this spec before each AC tag, and `CalibrationValueTests` covers AC-1.5 (shipped path or `no recorded run`, refactor literal, no record path outside a glob, loop-bounds rows PASS).
+- `b129c34`: `.writ/context.md` named the retired lean-file suffix in DEV-001's headline and tripped the harness-cuts guard; the line was reworded.
+- A fresh evaluator passed the repair: each AC now cites a test that exercises it, five value mutations fail the AC-1.5 tests, and ac-trace over all 81 spec folders changed only for this spec and the archived `2026-07-18-logical-unit-revert` (3 false findings gone).

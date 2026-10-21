@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T15:01:26Z
+> Last Updated: 2026-10-21T17:22:51Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-shipped-command-hygiene — Shipped Command Hygiene
 - **Status:** In Progress
-- **Story:** 1 of 3 — Strip Internal References and Add `shipped-refs` (Completed ✅)
-- **Progress:** 7/21 tasks complete (33%)
+- **Story:** 2 of 3 — Pin Map and Conversions (Completed ✅)
+- **Progress:** 14/21 tasks complete (67%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Small) `shipped-refs` scans every `commands/*.md` with no name skipped — shipped-command-hygiene Story 1
-- DEV-002 (Small) No `commands/*.md` under `--root` is a run error, not a PASS — shipped-command-hygiene Story 1
-- DEV-003 (Small) Story 1 repins `KNOWN_OVER_BUDGET` for five commands — shipped-command-hygiene Story 1
+- DEV-004 (Small) Structure pins removed as duplicates of `eval-*.py` scenarios — shipped-command-hygiene Story 2
+- DEV-005 (Small) `merge, never append` removed beyond the per-function guidance — shipped-command-hygiene Story 2
+- DEV-006 (Small) One pin instance maps to two structural rows — shipped-command-hygiene Story 2
 
 ## Open Issues
 
