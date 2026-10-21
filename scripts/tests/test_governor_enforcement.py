@@ -603,8 +603,9 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
     # for the conditional /verify-spec --product line in the Step 4.2 report.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 10361 -> 10256;
-    # ADR and archived-spec links removed.
-    "commands/implement-phase.md": 10256,
+    # ADR and archived-spec links removed. 10256 -> 9921; calibrated_against
+    # no longer cites Writ's own .writ/state/ records.
+    "commands/implement-phase.md": 9921,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
@@ -616,7 +617,9 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-01 (2026-10-01-cross-family-review-panel Story 3): 11103 -> 12013;
     # opt-in Gate 3 review panel, duplicated Gate 3 prose trimmed to offset.
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 12013 -> 11533; Gate 0 no-op emit removed.
-    "commands/implement-story.md": 11533,
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 11533 -> 11266;
+    # calibrated_against no longer cites Writ's archived specs.
+    "commands/implement-story.md": 11266,
 }
 
 

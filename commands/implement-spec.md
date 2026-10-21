@@ -12,7 +12,7 @@ loop:
   unit: "story"
   max_iterations: 12
   on_exhaustion: halt_reported
-  calibrated_against: "Counts stories dispatched to /implement-story, not the human-selected retry offered on story failure, which stays unbounded because a user's choices are not this bound's business. Largest story count across the 41 archived specs under .writ/specs/archive/ = 9 (2026-03-19-command-suite-evolution). Recorded runs: .writ/state/execution-20260718-1101.json = 4 stories, execution-20260803T193200Z.json = 4, execution-20260804205617.json = 4; stories_total in .writ/state/phase9-result-*.json and phase-spec-result-*.json = 4, 4, 3. Bound = all-time authored maximum plus 3. Evidence: strongest of the five bounds - 41 authored specs plus 6 recorded runs."
+  calibrated_against: "Counts stories dispatched to /implement-story, not the human-selected retry offered on story failure, which stays unbounded because a user's choices are not this bound's business. Set from Writ's own specs: the largest had 9 stories, and the bound is that plus 3. Recalibrate against this project's .writ/state/execution-*.json records."
 ---
 
 # Implement Spec Command (implement-spec)

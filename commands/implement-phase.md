@@ -13,7 +13,7 @@ loop:
   unit: "spec"
   max_iterations: 12
   on_exhaustion: halt_reported
-  calibrated_against: "Counts distinct specs within one phase - the counter resets at each phase boundary under --all, and a transient retry does not increment it. Observed runs: .writ/state/phase-execution-20260719-121255.json (Phase 9, specOrder length 3, every spec attempts=1, zero retries, zero quarantines); .writ/state/phase-execution-20260811-2030.json (Phase 10, specOrder length 5 - the largest phase with a surviving state file); roadmap Phase 7, 4 specs, roadmap-attested with no surviving state file. Largest observed = 5, bound is 2.4x. Evidence: thin - three runs, one of them without a state file, and .writ/state/ is gitignored so the sample can only shrink."
+  calibrated_against: "Counts distinct specs within one phase; the counter resets at each phase boundary under --all, and a transient retry does not increment it. Set from Writ's own phase runs: the largest had 5 specs, and 12 is 2.4 times that. Recalibrate against this project's .writ/state/phase-execution-*.json records once they exist."
   nested:
     - unit: "spec_attempt"
       max_iterations: 2

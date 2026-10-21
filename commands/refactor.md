@@ -12,7 +12,7 @@ loop:
   unit: "change"
   max_iterations: 10
   on_exhaustion: halt_reported
-  calibrated_against: "no recorded run - zero /refactor executions exist anywhere in .writ/state/, so this number is calibrated against nothing that happened. Sole anchor: this file's Phase 2 advisory recommending that plans of 7+ changes be split into sessions; 10 sits above it so the bound can never fire before the advice that already exists and the file cannot give two answers about the same plan size. This is a runaway guard, not a plan-size policy. Evidence: weak. Recalibrate against the first recorded run rather than re-guessing."
+  calibrated_against: "no recorded run - Writ had no recorded /refactor execution when this bound was set. Anchor: the Phase 2 advisory in commands/refactor.md recommends splitting plans of 7+ changes into sessions; 10 sits above it so the bound never fires before that advice. This is a runaway guard, not a plan-size policy. Recalibrate against the first recorded run."
 ---
 
 # Refactor Command (refactor)
