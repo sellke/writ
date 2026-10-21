@@ -1,6 +1,7 @@
 # Story 2: Remove the Lean Code Paths from the Scripts
 
 > **Status:** Completed ✅
+> **Commit:** e408f10dda9563eeba7c6406d75da9a3b09fb824
 > **Priority:** High
 > **Dependencies:** Story 1
 
