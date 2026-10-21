@@ -225,9 +225,11 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("never on ABORT", gate0)
         self.assertIn("ADR-024", gate0)
         self.assertIn("⚠️ DEGRADED", gate0)
-        self.assertIn("escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=", gate0)
-        self.assertIn("(no-op until ADR-025 Story 1)", gate0)
-        self.assertIn("The line has no sink today", gate0)
+        # 2026-10-20-harness-cuts Story 3 (AC-3.1): the no-op emit and its
+        # sink sentence are gone; the iteration accounting stays.
+        self.assertNotIn("(no-op until ADR-025 Story 1)", gate0)
+        self.assertNotIn("The line has no sink today", gate0)
+        self.assertNotIn("escalated(agent=architecture-check-agent", gate0)
         self.assertIn(PAIR_COUNTS_ONCE, gate0)
         default_agents = _default_agent_markers(gate0)
         self.assertEqual(default_agents, [], default_agents)

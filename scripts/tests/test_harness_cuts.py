@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Guard tests for Stories 1 and 2 of `2026-10-20-harness-cuts`.
+"""Guard tests for Stories 1, 2, and 3 of `2026-10-20-harness-cuts`.
 
-The lean command siblings, the install/update logic that skipped them, and
-every lean code path in `scripts/` are gone. These tests fail if any of it
-comes back:
+The lean command siblings, the install/update logic that skipped them,
+every lean code path in `scripts/`, and the ADR-025 no-op emit lines are
+gone, and `/ship` says it opens a PR. These tests fail if any of it comes
+back:
 
 - no `commands/*.lean.md` file exists;
 - the guard grep from spec.md Business Rule 2, with two sibling Phase 13
@@ -18,17 +19,23 @@ comes back:
 - `eval-leanness.py` and `eval.sh` `check_manifest` treat every
   `commands/*.md` as a command, whatever its name;
 - the three `is_shippable_script` copies are identical and no longer name
-  `lean-decision.py`.
+  `lean-decision.py`;
+- `commands/` carries no `escalated(...)` no-op emit or its sink sentence,
+  while both floor-tier sites keep escalate-once and `check_model_escalation`
+  keeps their iteration pins;
+- `commands/ship.md` says it opens a PR, did not grow, and the recorded
+  overages of the files this story shrank fell.
 
 This file and `test_install_update_harness_cuts.sh` are excluded from the
 guard grep, so only they may name the old variable and the lean suffix.
 
 Each test cites the acceptance criterion it covers (AC-1.1, AC-1.5, AC-2.1,
-AC-2.2, AC-2.4, AC-2.5).
+AC-2.2, AC-2.4, AC-2.5, AC-3.1, AC-3.2, AC-3.3, AC-3.4).
 """
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import os
@@ -357,6 +364,267 @@ class ShipFilterDropsLeanDecisionTest(unittest.TestCase):
         self.assertFalse(DECISION_SCRIPT in text, "%s still names %s" % (DEV_SCRIPTS_TEST, DECISION_SCRIPT))
         self.assertTrue("locally modified \u2014 kept): scripts/prune-ledger.py" in text,
                         "%s does not warn on a kept prune-ledger.py" % DEV_SCRIPTS_TEST)
+
+
+# Story 3 of 2026-10-20-harness-cuts. ac-trace credits a test token to the
+# spec folder named most recently above it, and EXCLUDED names other specs,
+# so this line names this spec again before the Story 3 tokens.
+
+CREATE_SPEC = "commands/create-spec.md"
+IMPLEMENT_STORY = "commands/implement-story.md"
+SHIP = "commands/ship.md"
+GOVERNOR_TEST = "scripts/tests/test_governor_enforcement.py"
+
+# The two greps AC-3.1 runs over commands/.
+NOOP_GREPS = ("no-op until ADR-025", "The line has no sink today")
+
+# spec.md Business Rule 5: both iteration sentences stay verbatim.
+CREATE_SPEC_ITERATION = ("the floor attempt and its anchor re-run count as one attempt"
+                         " \u2014 there is no second regeneration")
+IMPLEMENT_STORY_ITERATION = ("the floor attempt and its anchor re-run count as one attempt"
+                             " against `loop.max_iterations`")
+
+# Wording that says /ship merges, compared in lower case.
+MERGE_CLAIMS = ("merged pr", "branch to merged", "gets it merged")
+OPENS_A_PR = re.compile(r"\ban open (?:PR|pull request)\b|\bopens (?:a|the) (?:PR|pull request)\b")
+
+# ship.md frontmatter lines this story must not touch, as they read before it.
+SHIP_KEPT_FRONTMATTER = (
+    'problem: "The last mile from green branch to open PR is a manual chain \u2014 merge default,'
+    ' split commits, write the body, push, open \u2014 and a skipped link yields a stale or'
+    ' unreviewable PR."',
+    'outcome: "The branch has the default branch merged into it and its commits grouped by'
+    ' concern, and an open pull request states the change\'s spec, test and drift position."',
+    'exit_criteria:\n'
+    '  - "the current branch has an origin upstream and its local tip equals the pushed tip"\n'
+    '  - "an open pull request exists whose head is the current branch and whose body carries'
+    ' Summary, Changes, Spec Reference and Test Results sections"\n'
+    '  - "the default branch tip is an ancestor of the branch tip, and the PR is marked draft'
+    ' whenever tests failed or drift is unresolved"',
+)
+
+COMMAND_BYTE_BUDGET = 24960
+SHIP_MAX_BYTES = 28990
+# KNOWN_OVER_BUDGET before this story; each file sat exactly at its entry.
+OVERAGE_BEFORE = {
+    "commands/create-spec.md": 29304,
+    "commands/implement-story.md": 12013,
+    "commands/ship.md": 4030,
+}
+LEDGER_LINE = r"# 2026-10-20 \(2026-10-20-harness-cuts Story 3\): %d -> (\d+);"
+
+
+def read(rel: str) -> str:
+    return (REPO_ROOT / rel).read_text(encoding="utf-8")
+
+
+def section(text: str, start: str, end: str) -> str:
+    """From the `start` heading up to, not including, the `end` heading."""
+    i = text.index(start)
+    return text[i:text.index(end, i)]
+
+
+def step_2_6a() -> str:
+    return section(read(CREATE_SPEC), "#### Step 2.6a: Validate Generated Stories", "#### Step 2.6b:")
+
+
+def anchor_confirmation() -> str:
+    gate0 = section(read(IMPLEMENT_STORY), "#### Gate 0: Architecture Check", "#### Gate 0.5:")
+    lines = [line for line in gate0.splitlines()
+             if line.startswith("**Anchor confirmation (ADR-024):**")]
+    if len(lines) != 1:
+        raise RuntimeError("Gate 0 has %d anchor confirmation paragraphs" % len(lines))
+    return lines[0]
+
+
+def ship_frontmatter_and_overview() -> tuple:
+    text = read(SHIP)
+    if not text.startswith("---\n"):
+        raise RuntimeError("%s has no frontmatter" % SHIP)
+    frontmatter = text[len("---\n"):text.index("\n---\n")]
+    overview = section(text, "## Overview\n", "\n## ")
+    return frontmatter, overview
+
+
+def run_model_escalation(create_spec_text: str, implement_story_text: str) -> str:
+    """Run `eval.sh --check=model-escalation` in a temp tree holding only the
+    two command files, and return the report."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        for rel in ("scripts", "commands", "agents", ".writ/state"):
+            (root / rel).mkdir(parents=True)
+        shutil.copy(REPO_ROOT / "scripts" / "eval.sh", root / "scripts" / "eval.sh")
+        (root / CREATE_SPEC).write_text(create_spec_text, encoding="utf-8")
+        (root / IMPLEMENT_STORY).write_text(implement_story_text, encoding="utf-8")
+        subprocess.run(["bash", "scripts/eval.sh", "--check=model-escalation",
+                        "--report=eval-report.md"],
+                       cwd=str(root), capture_output=True, text=True)
+        report_path = root / "eval-report.md"
+        if not report_path.is_file():
+            raise RuntimeError("eval.sh wrote no report")
+        return report_path.read_text(encoding="utf-8")
+
+
+def findings_count(report: str) -> int:
+    match = re.search(r"^- Findings: (\d+)$", report, re.MULTILINE)
+    if match is None:
+        raise RuntimeError("report has no Findings line:\n" + report)
+    return int(match.group(1))
+
+
+def known_over_budget() -> dict:
+    tree = ast.parse(read(GOVERNOR_TEST))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+                isinstance(target, ast.Name) and target.id == "KNOWN_OVER_BUDGET"
+                for target in node.targets):
+            return ast.literal_eval(node.value)
+    raise RuntimeError("%s defines no KNOWN_OVER_BUDGET" % GOVERNOR_TEST)
+
+
+class NoOpEmitLinesGoneTest(unittest.TestCase):
+    """AC-3.1: no command tells an agent to print an `escalated(...)` line
+    that nothing reads."""
+
+    def test_ac_3_1_noop_greps_over_commands_print_nothing(self):
+        for pattern in NOOP_GREPS:
+            with self.subTest(pattern=pattern):
+                proc = subprocess.run(["grep", "-rn", pattern, "commands"],
+                                      cwd=REPO_ROOT, capture_output=True, text=True)
+                self.assertIn(proc.returncode, (0, 1), proc.stderr)
+                self.assertEqual(proc.stdout, "", "grep -rn %r commands printed:\n%s"
+                                 % (pattern, proc.stdout))
+
+    def test_ac_3_1_create_spec_step_2_6a_has_items_1_to_3_only(self):
+        items = re.findall(r"^(\d+)\. ", step_2_6a(), re.MULTILINE)
+        self.assertEqual(items, ["1", "2", "3"])
+
+    def test_ac_3_1_gate0_anchor_confirmation_has_no_escalated_emit(self):
+        paragraph = anchor_confirmation()
+        self.assertNotIn("escalated(", paragraph)
+        self.assertNotIn("On the re-run emit", paragraph)
+
+
+class EscalateOnceUnchangedTest(unittest.TestCase):
+    """AC-3.2: both floor-tier sites still re-run a failing floor result once
+    at `anchor` and state the iteration accounting verbatim, and
+    `check_model_escalation` pins exactly that, with no emit pin left."""
+
+    def test_ac_3_2_create_spec_still_reruns_once_at_anchor(self):
+        text = step_2_6a()
+        self.assertIn("spawn one regeneration with the identical prompt at `anchor`", text)
+        self.assertIn("re-check once", text)
+        self.assertIn("A passing story is never regenerated.", text)
+        self.assertIn("Escalation fires only on a *returned* file that fails the check", text)
+        self.assertIn("Iteration accounting: " + CREATE_SPEC_ITERATION, text)
+
+    def test_ac_3_2_implement_story_gate0_still_reruns_once_at_anchor(self):
+        paragraph = anchor_confirmation()
+        self.assertIn("re-run `architecture-check-agent` once at `anchor`", paragraph)
+        self.assertIn("A floor PROCEED/CAUTION is never re-run", paragraph)
+        self.assertIn("escalation fires only on a returned verdict", paragraph)
+        self.assertIn("Iteration accounting: " + IMPLEMENT_STORY_ITERATION, paragraph)
+
+    def test_ac_3_2_check_keeps_the_iteration_pins_and_drops_the_emit_pins(self):
+        body = shell_function_body(read("scripts/eval.sh"), "check_model_escalation")
+        self.assertIn("local create_spec_iteration_sentence='%s'" % CREATE_SPEC_ITERATION, body)
+        self.assertIn("local implement_story_iteration_sentence='%s'" % IMPLEMENT_STORY_ITERATION, body)
+        self.assertIn('require_literal "$create_spec" "$create_spec_iteration_sentence"', body)
+        self.assertIn('require_literal "$implement_story" "$implement_story_iteration_sentence"', body)
+        self.assertIn('forbid_literal "$create_spec" \'loop.max_iterations\'', body)
+        for gone in ("noop_prefix", "missing_sink", "escalated(agent="):
+            with self.subTest(gone=gone):
+                self.assertNotIn(gone, body)
+
+    def test_ac_3_2_check_passes_on_the_sentences_without_an_emit_line(self):
+        report = run_model_escalation("x\n%s\n" % CREATE_SPEC_ITERATION,
+                                      "x\n%s\n" % IMPLEMENT_STORY_ITERATION)
+        self.assertEqual(findings_count(report), 0, report)
+
+    def test_ac_3_2_check_still_requires_each_iteration_sentence(self):
+        for missing, create_spec, implement_story in (
+                (CREATE_SPEC, "x\n", "x\n%s\n" % IMPLEMENT_STORY_ITERATION),
+                (IMPLEMENT_STORY, "x\n%s\n" % CREATE_SPEC_ITERATION, "x\n")):
+            with self.subTest(missing=missing):
+                report = run_model_escalation(create_spec, implement_story)
+                self.assertEqual(findings_count(report), 1, report)
+                self.assertIn(missing, report)
+
+    def test_ac_3_2_check_still_forbids_loop_max_iterations_in_create_spec(self):
+        report = run_model_escalation(
+            "x\n%s\nbounded by `loop.max_iterations`\n" % CREATE_SPEC_ITERATION,
+            "x\n%s\n" % IMPLEMENT_STORY_ITERATION)
+        self.assertEqual(findings_count(report), 1, report)
+        self.assertIn(CREATE_SPEC, report)
+
+
+class ShipSaysItOpensAPRTest(unittest.TestCase):
+    """AC-3.3: `/ship` is described as opening a pull request, never as
+    merging one, and its contract frontmatter is untouched."""
+
+    def test_ac_3_3_description_and_overview_make_no_merge_claim(self):
+        frontmatter, overview = ship_frontmatter_and_overview()
+        description = re.search(r'^description: "(.*)"$', frontmatter, re.MULTILINE)
+        self.assertIsNotNone(description, "ship.md has no description")
+        for name, text in (("description", description.group(1)), ("Overview", overview)):
+            for claim in MERGE_CLAIMS:
+                with self.subTest(part=name, claim=claim):
+                    self.assertNotIn(claim, text.lower())
+
+    def test_ac_3_3_description_and_overview_say_it_opens_a_pr(self):
+        frontmatter, overview = ship_frontmatter_and_overview()
+        description = re.search(r'^description: "(.*)"$', frontmatter, re.MULTILINE).group(1)
+        self.assertRegex(description, OPENS_A_PR)
+        self.assertRegex(overview, OPENS_A_PR)
+
+    def test_ac_3_3_problem_outcome_and_exit_criteria_are_unchanged(self):
+        frontmatter, _ = ship_frontmatter_and_overview()
+        lines = "\n" + frontmatter + "\n"
+        for kept in SHIP_KEPT_FRONTMATTER:
+            with self.subTest(key=kept.split(":", 1)[0]):
+                self.assertIn("\n" + kept + "\n", lines)
+
+
+class OverageLedgerFellTest(unittest.TestCase):
+    """AC-3.4: ship.md did not grow, and the recorded overages of the files
+    this story shrank equal their new overage, each with a dated line."""
+
+    def size(self, rel: str) -> int:
+        return len((REPO_ROOT / rel).read_bytes())
+
+    def test_ac_3_4_ship_md_did_not_grow(self):
+        self.assertLessEqual(self.size(SHIP), SHIP_MAX_BYTES)
+
+    def test_ac_3_4_lowered_entries_equal_the_new_overage(self):
+        recorded = known_over_budget()
+        for rel in (CREATE_SPEC, IMPLEMENT_STORY):
+            with self.subTest(file=rel):
+                self.assertEqual(recorded[rel], self.size(rel) - COMMAND_BYTE_BUDGET)
+                self.assertLess(recorded[rel], OVERAGE_BEFORE[rel])
+        self.assertEqual(recorded[SHIP], self.size(SHIP) - COMMAND_BYTE_BUDGET)
+        self.assertLessEqual(recorded[SHIP], OVERAGE_BEFORE[SHIP])
+
+    def comments_above_entry(self, rel: str) -> str:
+        """The comment lines directly above `rel`'s KNOWN_OVER_BUDGET entry."""
+        lines = read(GOVERNOR_TEST).splitlines()
+        entry = re.compile(r'^\s*"%s": \d+,$' % re.escape(rel))
+        index = next(i for i, line in enumerate(lines) if entry.match(line))
+        comments = []
+        while index > 0 and lines[index - 1].lstrip().startswith("#"):
+            index -= 1
+            comments.insert(0, lines[index].strip())
+        return "\n".join(comments)
+
+    def test_ac_3_4_each_lowered_entry_has_a_dated_ledger_line(self):
+        recorded = known_over_budget()
+        lowered = [rel for rel in OVERAGE_BEFORE if recorded[rel] != OVERAGE_BEFORE[rel]]
+        self.assertIn(CREATE_SPEC, lowered)
+        self.assertIn(IMPLEMENT_STORY, lowered)
+        for rel in lowered:
+            with self.subTest(file=rel):
+                match = re.search(LEDGER_LINE % OVERAGE_BEFORE[rel], self.comments_above_entry(rel))
+                self.assertIsNotNone(match, "no dated ledger line above %s" % rel)
+                self.assertLess(int(match.group(1)), OVERAGE_BEFORE[rel])
 
 
 if __name__ == "__main__":

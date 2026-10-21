@@ -2533,10 +2533,10 @@ check_story_context() {
 }
 
 check_model_escalation() {
-  # ADR-024 escalate-once (model-delegation Story 4): the two floor-tier sites
-  # must state the one-attempt iteration accounting verbatim and emit the
-  # `escalated` line ADR-025 will record. ADR-025 must keep the `escalated(`
-  # tuple as its `detail` payload or update these pins in the same change.
+  # ADR-024 escalate-once (model-delegation Story 4): pins the escalate-once
+  # accounting at both floor-tier sites. Each must state the one-attempt
+  # iteration rule verbatim. The `escalated(...)` emit lines, which had no
+  # reader, were removed by 2026-10-20-harness-cuts Story 3.
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   # Two per-file pins (Phase 11 Stage 1, Story 1): implement-story.md declares
@@ -2545,18 +2545,10 @@ check_model_escalation() {
   # without citing a bound the file does not declare.
   local implement_story_iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
   local create_spec_iteration_sentence='the floor attempt and its anchor re-run count as one attempt — there is no second regeneration'
-  local noop_prefix='(no-op until ADR-025 Story 1)'
-  local missing_sink='The line has no sink today'
 
   require_literal "$create_spec" "$create_spec_iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim, without naming a loop bound the file does not declare (Business Rule 7)."
   forbid_literal "$create_spec" 'loop.max_iterations' "create-spec.md has no loop: frontmatter block and must not cite loop.max_iterations (assessment §2.4)."
   require_literal "$implement_story" "$implement_story_iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
-  require_literal "$create_spec" "$missing_sink" "create-spec.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
-  require_literal "$implement_story" "$missing_sink" "implement-story.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
-  require_literal "$create_spec" 'escalated(agent=user-story-generator, site=create-spec.2.6, origin=' "create-spec.md must emit the escalated line for the Step 2.6 story-validation site (site label is create-spec.2.6, never 2.6a)."
-  require_literal "$implement_story" 'escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=' "implement-story.md must emit the escalated line for the Gate 0 ABORT site."
-  require_literal "$create_spec" "$noop_prefix" "create-spec.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
-  require_literal "$implement_story" "$noop_prefix" "implement-story.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
 }
 
 check_phase_lanes() {

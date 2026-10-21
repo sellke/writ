@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Take a green branch to a merged PR - merge the default branch, organize commits, write the PR description, push, and open it."
+description: "Take a green branch to an open PR - merge the default branch, organize commits, write the PR description, push, and open it."
 problem: "The last mile from green branch to open PR is a manual chain — merge default, split commits, write the body, push, open — and a skipped link yields a stale or unreviewable PR."
 outcome: "The branch has the default branch merged into it and its commits grouped by concern, and an open pull request states the change's spec, test and drift position."
 entry_level: standard
@@ -14,15 +14,15 @@ exit_criteria:
 
 ## Overview
 
-Unified shipping workflow that takes a green branch to a merged PR. Replaces the manual sequence of merge-main → run-tests → organize-commits → write-PR → push → open-PR. Non-interactive by default.
+Unified shipping workflow that takes a green branch to an open PR. Replaces the manual sequence of merge-main → run-tests → organize-commits → write-PR → push → open-PR. Non-interactive by default.
 
-`/ship` assumes the code is ready (review complete, correctness established) and gets it merged. Tests do not run by default; use `/ship --test` to run the suite after merging the default branch. `/ship` is not a review gate; `/review` is.
+`/ship` assumes the code is ready (review complete, correctness established) and opens a PR. Tests do not run by default; use `/ship --test` to run the suite after merging the default branch. `/ship` is not a review gate; `/review` is.
 
 Use `/ship` standalone on any branch, or after `/implement-story` completes.
 
 **How `/ship` absorbs the PR agent concept:**
 
-The roadmap listed a "PR agent" and a "`/ship` command" separately. Both create PRs. `/ship` folds the PR agent's structured-description, auto-labeling, and draft/ready detection into its PR creation step. One command owns the full "branch to merged" path: `/implement-story` → pipeline green → `/ship` → merged PR.
+The roadmap listed a "PR agent" and a "`/ship` command" separately. Both create PRs. `/ship` folds the PR agent's structured-description, auto-labeling, and draft/ready detection into its PR creation step. One command owns the full "branch to open PR" path: `/implement-story` → pipeline green → `/ship` → open PR.
 
 ## Required Artifacts
 
