@@ -1,10 +1,10 @@
 # Pin Map: Command-File Literal Pins in scripts/eval.sh
 
 > Inventory commit: 04799a9 · Recipe: sub-specs/technical-spec.md → Pin inventory recipe
-> Before: 207 instances at 199 call sites · After: 144 instances at 144 call sites (expected; pending re-inventory)
+> Before: 207 instances at 199 call sites · After: 144 instances at 144 call sites
 > Dispositions: keep 144 · convert 29 · remove 34 · 144 + 29 + 34 = 207
 
-Spec: `2026-10-20-shipped-command-hygiene`, Story 2. One row per `require_literal`, `forbid_literal`, or `forbid_literal_ci` instance in `scripts/eval.sh` whose target is a `commands/` file; a loop over several files is one row per file. `Line` is the eval.sh line at the inventory commit. The recipe parsed 572 pin call lines, equal to `grep -c` of pin call lines. Its 22 unresolved targets are all spec files read through `resolve_spec_path` (`check_autonomy_governance`, `check_recommended_spec_implementation`, `check_exit_criteria`), so none adds a row.
+Spec: `2026-10-20-shipped-command-hygiene`, Story 2. One row per `require_literal`, `forbid_literal`, or `forbid_literal_ci` instance in `scripts/eval.sh` whose target is a `commands/` file; a loop over several files is one row per file. `Line` is the eval.sh line at the inventory commit. The recipe parsed 572 pin call lines, equal to `grep -c` of pin call lines. Its 22 unresolved targets are all spec files read through `resolve_spec_path` (`check_autonomy_governance`, `check_recommended_spec_implementation`, `check_exit_criteria`), so none adds a row. Re-inventoried after the change: the recipe parsed 518 pin call lines, equal to `grep -c` 518, with the same 22 unresolved spec-file targets. Every keep literal is still pinned on its target, no convert or remove literal remains on its target, and the count fell by 63 (convert 29 + remove 34).
 
 How the dispositions were decided:
 
