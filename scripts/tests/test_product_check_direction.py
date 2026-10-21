@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from typing import Dict, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -24,10 +25,39 @@ RELEASE_POINTER = "run /verify-spec --product to check product docs against what
 OLD_RELEASE_POINTER = ("consider `/plan-product --reconcile` if `mission-lite.md` "
                        "needs a matching update")
 OLD_R4 = "suggest `/verify-spec --product` to confirm"
+OLD_FRAMINGS = ("a lint you run before deciding anything",
+                "consistency lint (before)", "lints (before")
+
+WORDED_FILES = ("verify-spec.md", "plan-product.md", "implement-phase.md", "release.md")
 
 
 def read(name: str) -> str:
     return (COMMANDS / name).read_text(encoding="utf-8")
+
+
+def with_edits(edits: Dict[str, Tuple[str, str]]) -> Dict[str, str]:
+    """The worded command files, with `edits` mapping a file to an (old, new)
+    replacement."""
+    texts = {name: read(name) for name in WORDED_FILES}
+    for name, (old, new) in edits.items():
+        assert old in texts[name], f"{old!r} not in {name}"
+        texts[name] = texts[name].replace(old, new)
+    return texts
+
+
+def story1_wording_holds(texts: Dict[str, str]) -> bool:
+    """The direction sentence in both files, no retired framing, no R4 pointer."""
+    verify, plan = texts["verify-spec.md"], texts["plan-product.md"]
+    return (DIRECTION in verify and DIRECTION in plan
+            and not any(old in verify for old in OLD_FRAMINGS)
+            and OLD_R4 not in plan)
+
+
+def story2_wording_holds(texts: Dict[str, str]) -> bool:
+    """The phase and release lines point to /verify-spec --product, once."""
+    release = texts["release.md"]
+    return ("run /verify-spec --product" in texts["implement-phase.md"]
+            and RELEASE_POINTER in release and OLD_RELEASE_POINTER not in release)
 
 
 def section(text: str, start: str, end: str) -> str:
@@ -73,6 +103,23 @@ class Story1BoundaryTests(unittest.TestCase):
         self.assertIn("roadmap.md", r4)
         self.assertNotIn(OLD_R4, text)
         self.assertNotIn("(before)", section(text, "**Boundary (critical):**", "### Step R1"))
+
+    def test_story1_wording_holds_and_each_mutation_bites(self):
+        """AC-1.4 — the wording holds on the tree and each mutation breaks it.
+        eval.sh's product-check-direction check enforced this until it was
+        removed; the same mutations now run against these direct assertions."""
+        self.assertTrue(story1_wording_holds(with_edits({})))
+        mutations = [
+            {"verify-spec.md": (DIRECTION, "")},
+            {"plan-product.md": (DIRECTION, "")},
+            {"plan-product.md": ("suggest `/create-spec`", OLD_R4)},
+        ]
+        for old in ("a lint you run before deciding anything",
+                    "consistency lint (before)", "lints (before a decision)"):
+            mutations.append({"verify-spec.md": (DIRECTION, DIRECTION + " " + old)})
+        for edits in mutations:
+            with self.subTest(edits=edits):
+                self.assertFalse(story1_wording_holds(with_edits(edits)))
 
     def test_verify_spec_did_not_grow(self):
         """AC-1.5 — verify-spec.md stays at or below its pre-story 35858 bytes."""
@@ -123,8 +170,17 @@ class Story2CompletionLineTests(unittest.TestCase):
         for name in ("implement-phase.md", "release.md"):
             self.assertIn(name, disclosure)
 
-    def test_issue_is_resolved(self):
-        """AC-2.5 — the issue is resolved."""
+    def test_story2_wording_bites_and_issue_is_resolved(self):
+        """AC-2.5 — each Story 2 mutation breaks the wording; the issue is resolved."""
+        self.assertTrue(story2_wording_holds(with_edits({})))
+        mutations = [
+            {"implement-phase.md": ("\n" + PHASE_LINE + "\n", "\n")},
+            {"release.md": (RELEASE_POINTER, OLD_RELEASE_POINTER)},
+            {"release.md": (RELEASE_POINTER, RELEASE_POINTER + "; " + OLD_RELEASE_POINTER)},
+        ]
+        for edits in mutations:
+            with self.subTest(edits=edits):
+                self.assertFalse(story2_wording_holds(with_edits(edits)))
         issue = (REPO_ROOT / ".writ" / "issues" / "improvements" /
                  "2026-10-01-product-lint-misread-as-verify-spec.md").read_text(encoding="utf-8")
         resolution = issue.split("\n## Resolution\n", 1)[1]
