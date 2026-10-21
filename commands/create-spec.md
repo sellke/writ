@@ -247,12 +247,12 @@ After the context scan, run discovery in Plan Mode; the user controls when to sw
 
 - **Experience:** entry point, happy path, key interaction moments, feedback/confirmation, error/empty/loading states, responsive behavior
 - **Business rules:** permissions and access control, validation rules and limits, state transitions and lifecycle, time-based rules, pricing/billing, domain edge cases, compliance
-- **Technical:** integration points, performance, security, data persistence
+- **Technical:** integration points and dependencies, performance, security, data persistence
 - **Scope:** success criteria, in/out boundaries, implementation approach, timeline
 
 **Conversation rules:** one focused question at a time, on the highest-impact unknown; re-scan the codebase after answers when relevant; continue until 95% confidence on the deliverable; **never declare "final question"**; let the user signal readiness for a contract. Explore experience first, then rules, then technical constraints.
 
-**Critical analysis:** say so when requirements are infeasible with the current architecture (with alternatives), when scope is several features (recommend splitting), when requests conflict with codebase patterns, when business logic does not match stated user value, and when performance/security/scalability concerns arise. Ask about error/empty/loading experience if it has not come up; probe vague rules ("admins can do it") for who, under what conditions, and exceptions; suggest smoother paths when a flow has unnecessary friction.
+**Critical analysis:** say so when requirements are infeasible with the current architecture (with alternatives), when scope is several features (recommend splitting), when requests conflict with codebase patterns, and when performance/security/scalability concerns arise. Ask clarifying questions when business logic does not align with stated user value. Ask about error/empty/loading experience if it has not come up; probe vague rules ("admins can do it") for who, under what conditions, and exceptions; suggest smoother paths when a flow has unnecessary friction.
 
 When confidence is high, present the contract (still in Plan Mode) and leave room for more questions.
 
