@@ -1,6 +1,7 @@
 # Story 1: Delete the Lean Siblings and Their Install Logic
 
 > **Status:** Completed ✅
+> **Commit:** 49f347ffe00fc04b5e14a9ec5fc38ac4956083f1
 > **Priority:** High
 > **Dependencies:** None
 
