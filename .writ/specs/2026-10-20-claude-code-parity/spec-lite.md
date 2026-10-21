@@ -19,6 +19,7 @@
 **Files in Scope:**
 - `scripts/gen-claude-md.py`, `claude-code/CLAUDE.md`, `scripts/eval.sh` (S1)
 - `is_shippable_script` in `scripts/install.sh`, `update.sh`, `unlink.sh`; `.writ/docs/agent-cli-contract.md`; `commands/update-writ.md` (S1)
+- S1 as built (DEV-001–004): `claude-md` follows `claude-agents` in `CHECKS`; the agent list comes from `claude-code/agents/*.md` (eight today); the CLI contract note keeps "Six dev-only scripts" and adds a sentence for `gen-claude-md.py`.
 - `scripts/install.sh`, `update.sh`, `uninstall.sh`; Claude rows of `update-writ.md`, `reinstall-writ.md`, `uninstall-writ.md` (S2)
 - `adapters/claude-code.md`: claims, install section, `SubagentStop` hook (D6), seven agents (S3)
 - `scripts/uninstall.sh` block removal; Claude bullets of `uninstall-writ.md`, `reinstall-writ.md` (S4)
