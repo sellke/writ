@@ -149,15 +149,22 @@ class HelperNegativeTests(unittest.TestCase):
         self.assertEqual([row[0] for row in rows[:len(KINDS)]], ["PASS"] * len(KINDS))
         self.assertEqual(names[-1], "shipped-refs-tree")
 
-    def test_lean_files_and_other_directories_are_not_scanned(self):
+    def test_other_directories_are_not_scanned(self):
         with TemporaryDirectory() as tmp:
             root = make_root(tmp, ["# clean"])
-            (root / "commands" / "x.lean.md").write_text(ADR_LINK + "\n", encoding="utf-8")
             (root / "agents").mkdir()
             (root / "agents" / "a.md").write_text(ADR_LINK + "\n", encoding="utf-8")
             _, rows = run_helper(root)
         self.assertEqual(fails(rows), [])
         self.assertIn(["PASS", "shipped-refs-tree"], rows)
+
+    def test_preamble_is_a_shipped_command_and_is_scanned(self):
+        """Business Rule 1: every commands/*.md, _preamble.md included."""
+        with TemporaryDirectory() as tmp:
+            root = make_root(tmp, ["# clean"])
+            (root / "commands" / "_preamble.md").write_text(ADR_LINK + "\n", encoding="utf-8")
+            _, rows = run_helper(root)
+        self.assertEqual([row[1] for row in fails(rows)], ["shipped-refs:commands/_preamble.md:1"])
 
     def test_scanned_directories_live_in_one_constant(self):
         self.assertEqual(load_helper_module().SCANNED_DIRS, ("commands",))

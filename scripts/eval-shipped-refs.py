@@ -4,6 +4,9 @@
 Spec: 2026-10-20-shipped-command-hygiene, Story 1. Consumed by scripts/eval.sh
 check_shipped_refs.
 
+Scans every commands/*.md, _preamble.md included. install.sh ships every
+commands/*.md whatever its name, so no file name is skipped.
+
 An installed project has none of Writ's ADR files, archived specs, research
 documents, or calibration records. A shipped command that links to one sends
 the user, or the user's agent, to a path that does not exist. Four rules:
@@ -40,7 +43,8 @@ from typing import Callable, Iterable, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# Directories whose *.md files ship to installed projects and are scanned.
+# Directories whose *.md files ship to installed projects and are scanned
+# (top level only, every name).
 # The later agents/, adapters/, skills/, .writ/docs/ pass widens this tuple.
 SCANNED_DIRS = ("commands",)
 
@@ -146,8 +150,7 @@ def shipped_files(root: Path) -> List[Path]:
     for name in SCANNED_DIRS:
         folder = root / name
         if folder.is_dir():
-            files.extend(path for path in sorted(folder.glob("*.md"))
-                         if not path.name.endswith(".lean.md"))  # never ships
+            files.extend(sorted(folder.glob("*.md")))
     return files
 
 
