@@ -146,6 +146,9 @@ class FrontmatterKindTests(KindCase):
     def test_fails_without_a_frontmatter_block(self):
         self.assertEqual(self.check("frontmatter", "loop", "# Title\nloop: 3\n"), "FAIL")
 
+    def test_fails_when_the_block_never_closes(self):
+        self.assertEqual(self.check("frontmatter", "loop", "---\nloop: 3\n# Body\n"), "FAIL")
+
 
 class InvocationKindTests(KindCase):
     """AC-2.3: an invocation row passes on a call and fails on a bare mention."""
