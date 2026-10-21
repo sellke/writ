@@ -1,6 +1,6 @@
 # Cut Log: create-spec.md Reduction
 
-> Start: 37e097e, 53612 bytes, overage 28652 · End: pending, overage pending
+> Start: 37e097e, 53612 bytes, overage 28652 · End: 38515 bytes, overage 13555
 
 Spec: `2026-10-20-shipped-command-hygiene`, Story 3. The candidate list is the lean twin (`git show 617037b:commands/create-spec.lean.md`), diffed against `commands/create-spec.md` at the start commit. Each twin change was decided against the current text, not the twin's wording. Adopted rows remove coaching and have class `coaching`; every hunk of `git diff 37e097e -- commands/create-spec.md` maps to one of them. Declined rows name what the change would have touched, and have no hunk. A row marked *re-decided* differs from the technical spec's candidate table because the current text differs from what that table assumed.
 
@@ -22,7 +22,7 @@ Spec: `2026-10-20-shipped-command-hygiene`, Story 3. The candidate list is the l
 | 3 | `--from-prototype` Step 0, items 1–3 | "It carries…", "Extract:", and "— it describes what was built and how" trimmed | coaching | Explains what each source holds; every read stays |
 | 4 | `--from-prototype` Step 0, item 4 | Five sub-bullets folded into one line | coaching | Format only; each field and "never invent alternatives" stay |
 | 5 | `--from-prototype`, "Never mark Story 1 complete" | Clause on what a wrong spec causes removed | coaching | Rationale; the rule and "a chosen draft is a decision, not an implementation" stay |
-| 6 | `--from-prototype` Step 1 | "Opening framing" label and blockquotes folded into the paragraph | coaching | Format only; both opening lines, the gap list, and the skip rule stay. *Re-decided:* the prototype reframe had already shortened this step, so only the framing merge was left |
+| 6 | `--from-prototype` Step 1 | "Opening framing" label and blockquotes folded into the paragraph | coaching | Format only; both opening lines, the gap list, and the skip rule stay. *Re-decided:* the prototype reframe had already shortened this step, so only the framing merge was left; the twin's rewording of the gap list is row 70 |
 | 7 | `--from-prototype` Step 2 | Intro sentences and the "Key contract shape" label merged into one line | coaching | Duplicated framing; the contract block is unchanged |
 | 8 | `--from-prototype` Step 3 | "Why:" paragraph folded into a parenthetical; the paragraph's lead shortened | coaching | Rationale; the Story 1 status rule and its exception stay. *Re-decided:* "none of the bullets below apply" pointed at bullets that were already prose; it now reads "the rest of this paragraph does not apply" |
 | 9 | `--from-issue` intro | Description and "This mode replaces…" folded into the Invocation line | coaching | Duplicated framing; "pre-populating the contract" repeats Step 0 item 3 |
@@ -54,12 +54,12 @@ Spec: `2026-10-20-shipped-command-hygiene`, Story 3. The candidate list is the l
 | 35 | Step 2.2 | Date and owner sentences shortened | coaching | Format only; the date source, folder name, bash block, and `@unknown` rule stay |
 | 36 | Step 2.4, dependency and canonical bullets | Shortened | coaching | Format only; "never omit it", `[]`, "exact spec-folder IDs", "Canonical complete-family spelling", and every spelling stay |
 | 37 | Step 2.4, supersession bullet | Shortened | coaching | Format only; both fields, the link shape, the example, and the lifecycle link stay |
-| 38 | Step 2.4b | Intro and two paragraphs compressed | coaching | Format only; the `supersession-writeback.py apply` call, never-duplicated, `skipped_other`, `broken`, and "never blocks or fails spec package creation" stay |
+| 38 | Step 2.4b | Intro and two paragraphs compressed | coaching | Format only; the `supersession-writeback.py apply` call, never-duplicated, `skipped_other`, `broken`, and "never blocks or fails spec package creation" stay. *Re-decided:* keeps "no reverse pointer" for non-spec targets, which the twin dropped |
 | 39 | spec-lite intro | "Total budget: <100 lines (hard limit)" became "Hard limit: under 100 lines" | coaching | Format only |
 | 40 | spec-lite template | Placeholder bullets merged (Implementation Approach, Business Rules, Edge Cases, Test Strategy) | coaching | Fewer placeholders; every section and the 35/35/30 markers stay |
 | 41 | spec-lite, "ID tags come later" | Moved out of the template fence and shortened to two sentences | coaching | Explanation; the untagged-now rule and the Step 2.6b hand-off stay, and authors no longer copy the note into spec-lite files |
 | 42 | Content Selection Guidelines | Label and bullets became one "Emphasis by feature type" sentence | coaching | Format only; the same four feature types |
-| 43 | Line Budget Enforcement | Breakdown list and four-step list became one paragraph | coaching | Keeps the hard 100-line limit, the 35/35/30 targets, and the four over-limit moves |
+| 43 | Line Budget Enforcement | Breakdown list and four-step list became one paragraph | coaching | Keeps the hard 100-line limit, the 35/35/30 targets, and the four over-limit moves. *Re-decided:* says the header, section headers, and dividers count toward the 100 lines instead of the twin's "~15, so the file stays under 100", which does not add up against 35/35/30 |
 | 44 | Backward Compatibility Note | Became the paragraph's last sentence | coaching | Format only |
 | 45 | Step 2.5 | Numbered list became one sentence; third example plan row removed | coaching | Format and example padding; standalone value, dependencies, and the 5-7 task cap stay |
 | 46 | Step 2.6, context hints | "Context hint generation" paragraph and "Timing note" merged | coaching | They said the same thing twice; both parameters and the prompt line stay |
@@ -76,7 +76,7 @@ Spec: `2026-10-20-shipped-command-hygiene`, Story 3. The candidate list is the l
 
 | # | Section | Change | Class | Reason |
 |---|---|---|---|---|
-| 55 | Frontmatter | Twin renames to `create-spec-lean` with a lean-variant description | constraint | The frontmatter stays byte-identical; the name is the command's identity |
+| 55 | Frontmatter | Twin renames to `create-spec-lean` with a lean-variant description | constraint | The frontmatter, exit criteria included, must not change; the name is the command's identity |
 | 56 | Title | Twin appends ", lean" | addition | A twin-only label |
 | 57 | Autonomous Authoring Boundary | Twin still links ADR-013 | addition | Story 1 removed the link and `shipped-refs` fails on it |
 | 58 | `--from-prototype` source matrix | Twin trims two Story 1 cells | constraint | The matrix decides Story 1's status; technical-spec.md keeps it whole |
@@ -91,4 +91,33 @@ Spec: `2026-10-20-shipped-command-hygiene`, Story 3. The candidate list is the l
 | 67 | Step 2.9, `jev:` note | Removed by the twin | behavior | Reports the Jev outcome; `test_spec_analyze_command_hooks.sh` pins it |
 | 68 | Completion | Twin adds a "Production boundary" line | addition | An addition, not a cut |
 | 69 | References | Twin points at `_preamble.lean.md` | constraint | The lean preamble is deleted; `broken-refs` would fail on the link |
-| 70 | Wording-only edits | Twin rewords text without removing coaching: Step 1.0 "If the user didn't"; Step 1.4b response lines ("Ask free-text:", "re-present the contract", "return to discovery"); Step 1.5 "in the spec" and the `existing` response; the Phase 2 trigger line; Step 2.4's "Main specification" lead and its five "Must contain" bullets; Step 2.6's launch, contents, and batching lines; Step 2.7's "with" and "quick links"; Step 2.8's "May run" and "Create only" | wording | A rewording with no coaching to remove, so it is outside a coaching-only pass |
+| 70 | Wording-only edits | Twin rewords text without removing coaching: the `--from-prototype` Step 1 gap list and Step 3's description of Story 1; Step 1.0 "If the user didn't"; Step 1.4b response lines ("Ask free-text:", "re-present the contract", "return to discovery"); Step 1.5 "in the spec", the `existing` response, and "design tokens"; the Phase 2 trigger line; Step 2.4's "Main specification" lead and its five "Must contain" bullets; Step 2.6's launch, provide, contents, and batching lines; Step 2.7's "with" and "quick links"; Step 2.8's "May run" and "Create only"; Step 2.9's "the package" and "items" | wording | A rewording with no coaching to remove, so it is outside a coaching-only pass |
+
+## Hunk map
+
+`git diff 37e097e ef91755 -- commands/create-spec.md` (default context; `ef91755` is the last commit of this story that touches the file). Every hunk maps to adopted rows only.
+
+| Hunk | Section | Rows |
+|---|---|---|
+| -10,11 | Title, Overview | 28, 1 |
+| -104,23 | `--from-prototype` intro, Step 0 | 2, 3, 4 |
+| -131,23 | `--from-prototype` Story 1 rule, Steps 1–2 | 5, 6, 7 |
+| -166,25 | `--from-prototype` Step 3; `--from-issue` intro, Step 0 item 1 | 8, 9, 10 |
+| -192,45 | `--from-issue` Step 0 items 2–3, Steps 1–2 | 10, 11, 12 |
+| -246,26 | `--from-issue` Step 3; Phase 1 Mission | 13, 14 |
+| -291,129 | Steps 1.0–1.4 | 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 |
+| -433,7 | Step 1.4 template | 25 |
+| -455,12 | Steps 1.4–1.4b | 25, 26 |
+| -480,7 | Step 1.4b | 26 |
+| -489,9 | Step 1.5 intro | 27 |
+| -512,31 | Step 1.5 responses; Steps 2.1–2.2 | 27, 34, 35 |
+| -548,7 | Step 2.2 owner | 35 |
+| -576,11 | Step 2.4 bullets | 29, 36, 37 |
+| -589,19 | Step 2.4b; spec-lite intro | 30, 38, 39 |
+| -616,9 | spec-lite template | 40 |
+| -642,16 | spec-lite template | 40, 41 |
+| -684,7 | spec-lite template | 40 |
+| -692,114 | spec-lite guidance; Steps 2.5–2.6c intro | 31, 32, 33, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50 |
+| -811,15 | Step 2.6c item 1 | 51 |
+| -838,20 | Steps 2.8–2.9 | 52, 53 |
+| -870,85 | Example Usage | 54 |

@@ -40,6 +40,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import List
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO_ROOT / "scripts" / "eval-leanness.py"
@@ -957,17 +958,136 @@ class MechanismRecordTests(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # Spec 2026-10-20-shipped-command-hygiene, Story 3 — the create-spec.md
 # reduction pass. ac-trace credits a test token to the spec folder named most
-# recently above it, so this section names that spec before its tokens.
+# recently above it, so this section names that spec before its tokens and
+# names no other spec folder after it.
 # ---------------------------------------------------------------------------
 
 CREATE_SPEC = "commands/create-spec.md"
-# The value before 2026-10-20-harness-cuts. The repin must stay below it.
+HYGIENE_SPEC = "2026-10-20-shipped-command-hygiene"
+# The value before the harness-cuts spec lowered it. The repin must stay below it.
 CREATE_SPEC_OVERAGE_CEILING = 29304
 # 2026-10-21: the recorded value when Story 3 of 2026-10-20-shipped-command-hygiene
 # started (commit 37e097e, file 53612 bytes). Story 1 had already repinned
 # 28738 -> 28652, so "below 29,304" alone held before any cut; the story's
 # requirement is a repin below the value it started from.
 CREATE_SPEC_OVERAGE_AT_STORY_3_START = 28652
+STORY_3_START = "37e097e"
+
+# What the cut must not touch, as it read at STORY_3_START.
+CREATE_SPEC_FRONTMATTER_AT_START = (
+    '---\n'
+    'name: create-spec\n'
+    'description: "Generate a full feature specification contract-first - discovery'
+    ' conversation, then user stories, sub-specs, and acceptance criteria. The entry'
+    ' point for any feature large enough to need a spec."\n'
+    'problem: "Implementation starts from a feature idea nobody wrote down, so scope,'
+    ' story boundaries, and acceptance criteria get invented mid-build and argued about'
+    ' afterwards."\n'
+    'outcome: "A new .writ/specs/<date>-<name>/ package exists — spec, spec-lite,'
+    ' per-story files, and sub-specs — matching a contract the user locked before'
+    ' any file was written."\n'
+    'entry_level: high\n'
+    'exit_criteria:\n'
+    '  - "spec.md carries a Status line and a Dependencies line listing exact'
+    ' spec-folder IDs, or [] when there are none"\n'
+    '  - "every user-stories/story-*.md file has 3-5 Given/When/Then acceptance'
+    ' criteria and no more than 7 implementation tasks"\n'
+    '  - "spec-lite.md is under 100 lines"\n'
+    '---\n'
+)
+CREATE_SPEC_STEPS_AT_START = (
+    "#### Step 0: Read Prototype Context",
+    "#### Step 1: Shortened Discovery Conversation (Plan Mode)",
+    "#### Step 2: Contract Proposal (Plan Mode)",
+    "#### Step 3: Phase 2 with Story 1 Marked per the Source Matrix",
+    "#### Step 0: Read Issue Context",
+    "#### Step 1: Shortened Discovery Conversation (Plan Mode)",
+    "#### Step 2: Contract Proposal (Plan Mode)",
+    "#### Step 3: Phase 2 with `spec_ref` Writeback",
+    "#### Step 1.0: Feature Selection (if not provided)",
+    "#### Step 1.1: Initial Context Scan",
+    "#### Step 1.2: Switch to Plan Mode for Discovery",
+    "#### Step 1.3: Discovery Conversation (Plan Mode)",
+    "#### Step 1.3b: Cross-Spec Overlap Check (Automatic)",
+    "#### Step 1.4: Contract Proposal (Still in Plan Mode)",
+    "#### Step 1.4b: Contract Decision (Agent Mode)",
+    "#### Step 1.5: Visual References (Optional)",
+    "#### Step 2.1: Initialize Tracking",
+    "#### Step 2.2: Determine Current Date",
+    "#### Step 2.3: Create Directory Structure",
+    "#### Step 2.4: Generate Core Documents",
+    "#### Step 2.4b: Supersession Write-back (`Amends:`/`Extends:`)",
+    "#### Step 2.5: Plan User Stories",
+    "#### Step 2.6: Generate User Stories in Parallel",
+    "#### Step 2.6a: Validate Generated Stories",
+    "#### Step 2.6b: Tag spec-lite.md Review Criteria with IDs",
+    "#### Step 2.6c: Spec analysis (advisory)",
+    "#### Step 2.7: Create User Stories README",
+    "#### Step 2.8: Generate Technical Sub-Specs",
+    "#### Step 2.9: Final Package Review",
+)
+CREATE_SPEC_ASKQUESTIONS_AT_START = (
+    'title: "Feature Specification - What would you like to build?"',
+    'title: "Contract Decision"',
+    'title: "Visual References"',
+    'ask one AskQuestion titled "Jev judgment provider"',
+)
+CREATE_SPEC_INVOCATIONS_AT_START = (
+    "python3 scripts/spec-status.py is-complete --file <path>",
+    "python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md",
+    "python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}",
+    "python3 scripts/jev-judge.py status",
+    "python3 scripts/jev-judge.py spec-findings --spec .writ/specs/<folder> --out .writ/state/spec-analyze-<run>.json",
+    "python3 scripts/jev-judge.py setup --provider",
+    "python3 scripts/spec-analyze.py check --spec .writ/specs/<folder> [--findings .writ/state/spec-analyze-<run>.json]",
+)
+# The technical spec declines these twin changes by name; each needs a Declined row.
+NAMED_DECLINES = ("phase/source metadata", "iteration sentence", "Jev first",
+                  "`jev:` note", "Production boundary", "lean preamble")
+DECLINED_CLASSES = {"constraint", "behavior", "test-pinned", "addition", "wording"}
+CUT_LOG_HEADER = re.compile(
+    r"^> Start: (\w+), (\d+) bytes, overage (\d+) · End: (\d+) bytes, overage (\d+)$",
+    re.MULTILINE)
+BYTE_WORDS = re.compile(r"\b(?:bytes?|kb|kib|kilobytes?)\b", re.IGNORECASE)
+HUNK_MAP_DIFF = re.compile(r"`git diff (\w+) (\w+) -- commands/create-spec\.md`")
+EVAL_COMMAND_STRUCTURE = REPO_ROOT / "scripts" / "eval-command-structure.py"
+
+
+def spec_file(name: str) -> Path:
+    """A file in this spec's folder, active or archived."""
+    for parent in (".writ/specs", ".writ/specs/archive"):
+        path = REPO_ROOT / parent / HYGIENE_SPEC / name
+        if path.is_file():
+            return path
+    raise AssertionError(f"no {name} for {HYGIENE_SPEC}")
+
+
+def table_rows(text: str, heading: str) -> List[List[str]]:
+    """The numbered rows of the markdown table under `heading`."""
+    section = text[text.index(heading):]
+    following = section.find("\n## ", len(heading))
+    if following != -1:
+        section = section[:following]
+    return [[cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
+            for line in section.splitlines() if re.match(r"^\| \S+ \|", line)
+            and not line.startswith("| # ") and not line.startswith("| Hunk ")
+            and not line.startswith("|---")]
+
+
+def cut_log():
+    text = spec_file("cut-log.md").read_text(encoding="utf-8")
+    return text, table_rows(text, "## Adopted"), table_rows(text, "## Declined")
+
+
+def git_has(*revisions: str) -> bool:
+    """True when this checkout has full history holding every revision."""
+    shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                             cwd=REPO_ROOT, capture_output=True, text=True)
+    if shallow.returncode != 0 or shallow.stdout.strip() != "false":
+        return False
+    return all(subprocess.run(["git", "cat-file", "-e", rev + "^{commit}"],
+                              cwd=REPO_ROOT, capture_output=True).returncode == 0
+               for rev in revisions)
 
 
 class CreateSpecRepinTests(unittest.TestCase):
@@ -982,6 +1102,168 @@ class CreateSpecRepinTests(unittest.TestCase):
         self.assertLess(recorded, CREATE_SPEC_OVERAGE_AT_STORY_3_START)
         size = len((REPO_ROOT / CREATE_SPEC).read_bytes())
         self.assertEqual(recorded, size - lean.COMMAND_BYTE_BUDGET)
+
+    def test_dated_comment_names_the_coaching_cut(self):
+        """AC-3.4: the comment above the entry has a dated Story 3 line from
+        the start value, says the cuts removed coaching, and sets no byte goal."""
+        lines = Path(__file__).read_text(encoding="utf-8").splitlines()
+        index = next(i for i, line in enumerate(lines)
+                     if re.match(r'^\s*"commands/create-spec\.md": \d+,$', line))
+        comments = []
+        while lines[index - 1].lstrip().startswith("#"):
+            index -= 1
+            comments.insert(0, lines[index].strip().lstrip("# "))
+        block = " ".join(comments)
+        story_line = re.search(r"2026-10-21 \(%s Story 3\): (\d+) -> (\d+);" % HYGIENE_SPEC, block)
+        self.assertIsNotNone(story_line, block)
+        self.assertEqual(int(story_line.group(1)), CREATE_SPEC_OVERAGE_AT_STORY_3_START)
+        self.assertEqual(int(story_line.group(2)), KNOWN_OVER_BUDGET[CREATE_SPEC])
+        story_text = block[story_line.start():]
+        for named in ("coaching", "Example Usage", "pushback phrasing", "not a byte goal"):
+            self.assertIn(named, story_text)
+
+
+class CreateSpecCutLogTests(unittest.TestCase):
+    """2026-10-20-shipped-command-hygiene Story 3: cut-log.md accounts for
+    every lean-twin change and every hunk of the reduction."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text, cls.adopted, cls.declined = cut_log()
+
+    def test_every_twin_change_is_adopted_coaching_or_declined_with_a_class(self):
+        """AC-3.1: rows run 1..N across both tables; every adopted row is
+        class coaching; every declined row names what it would have touched;
+        each technical-spec decline has a row; no change or reason cites bytes."""
+        rows = self.adopted + self.declined
+        self.assertEqual([int(row[0]) for row in rows], list(range(1, len(rows) + 1)))
+        for row in rows:
+            with self.subTest(row=row[0]):
+                self.assertEqual(len(row), 5)
+                self.assertTrue(all(row), row)
+                self.assertIsNone(BYTE_WORDS.search(row[2] + " " + row[4]), row)
+        self.assertEqual({row[3] for row in self.adopted}, {"coaching"})
+        for row in self.declined:
+            with self.subTest(row=row[0]):
+                self.assertIn(row[3], DECLINED_CLASSES)
+        declined_text = "\n".join(" | ".join(row) for row in self.declined)
+        for named in NAMED_DECLINES:
+            with self.subTest(decline=named):
+                self.assertIn(named, declined_text)
+
+    def test_header_records_start_and_end_with_the_overage_falling(self):
+        """AC-3.5: the header's start is the Story 3 start state and its end
+        bytes and overage are filled in, consistent, and lower."""
+        header = CUT_LOG_HEADER.search(self.text)
+        self.assertIsNotNone(header, "cut-log.md header does not match the technical-spec format")
+        sha, start_bytes, start_over, end_bytes, end_over = header.groups()
+        self.assertEqual(sha, STORY_3_START)
+        self.assertEqual(int(start_over), CREATE_SPEC_OVERAGE_AT_STORY_3_START)
+        self.assertEqual(int(start_bytes) - lean.COMMAND_BYTE_BUDGET, int(start_over))
+        self.assertEqual(int(end_bytes) - lean.COMMAND_BYTE_BUDGET, int(end_over))
+        self.assertLess(int(end_over), int(start_over))
+
+    def test_every_hunk_maps_to_adopted_rows_only(self):
+        """AC-3.5: the hunk map cites only adopted rows, and every adopted row
+        is cited by a hunk."""
+        hunks = table_rows(self.text, "## Hunk map")
+        self.assertTrue(hunks)
+        adopted = {int(row[0]) for row in self.adopted}
+        cited = set()
+        for hunk in hunks:
+            with self.subTest(hunk=hunk[0]):
+                numbers = {int(n) for n in re.findall(r"\d+", hunk[2])}
+                self.assertTrue(numbers)
+                self.assertLessEqual(numbers, adopted)
+                cited |= numbers
+        self.assertEqual(cited, adopted)
+
+    def test_hunk_map_is_the_story_diff(self):
+        """AC-3.5: with full history, the hunk map lists exactly the hunks of
+        the story's diff, and the end bytes are the end commit's file size."""
+        named = HUNK_MAP_DIFF.search(self.text)
+        self.assertIsNotNone(named, "the hunk map does not name its diff")
+        start, end = named.groups()
+        self.assertEqual(start, STORY_3_START)
+        if not git_has(start, end):
+            self.skipTest("needs full git history holding %s and %s" % (start, end))
+        diff = subprocess.run(["git", "diff", start, end, "--", CREATE_SPEC], cwd=REPO_ROOT,
+                              capture_output=True, text=True, check=True).stdout
+        actual = re.findall(r"^@@ (-\d+(?:,\d+)?) ", diff, re.MULTILINE)
+        listed = [row[0] for row in table_rows(self.text, "## Hunk map")]
+        self.assertEqual(listed, actual)
+        shown = subprocess.run(["git", "show", "%s:%s" % (end, CREATE_SPEC)], cwd=REPO_ROOT,
+                               capture_output=True, check=True).stdout
+        self.assertEqual(int(CUT_LOG_HEADER.search(self.text).group(4)), len(shown))
+
+
+class CreateSpecInvariantTests(unittest.TestCase):
+    """2026-10-20-shipped-command-hygiene Story 3: the reduced file keeps its
+    contract, its step numbers, its AskQuestion blocks, its script calls, and
+    every pin and structural row on it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = (REPO_ROOT / CREATE_SPEC).read_text(encoding="utf-8")
+
+    def test_frontmatter_is_byte_identical(self):
+        """AC-3.3: the frontmatter, including the three exit_criteria lines,
+        reads exactly as it did at Story 3 start."""
+        self.assertTrue(self.text.startswith(CREATE_SPEC_FRONTMATTER_AT_START))
+
+    def test_steps_keep_their_numbers_and_removed_ones_are_logged(self):
+        """AC-3.3: each start heading is still present, or the cut log lists
+        it as removed and no remaining heading reuses its number."""
+        headings = re.findall(r"^#### Step .*$", self.text, re.MULTILINE)
+        log = cut_log()[0]
+        for heading in dict.fromkeys(CREATE_SPEC_STEPS_AT_START):
+            with self.subTest(heading=heading):
+                if heading in headings:
+                    continue
+                number = re.match(r"#### (Step [\d.]+[a-z]?):", heading).group(1)
+                self.assertIn("| %s (heading removed) |" % number, log)
+                self.assertFalse([h for h in headings if h.startswith("#### %s:" % number)])
+        remaining = [h for h in headings if h in CREATE_SPEC_STEPS_AT_START]
+        self.assertEqual(remaining, [h for h in CREATE_SPEC_STEPS_AT_START if h in headings])
+
+    def test_every_askquestion_block_and_script_call_remains(self):
+        """AC-3.3: all four AskQuestion prompts and all seven script calls
+        from the start state are still in the file."""
+        for needle in CREATE_SPEC_ASKQUESTIONS_AT_START + CREATE_SPEC_INVOCATIONS_AT_START:
+            with self.subTest(needle=needle):
+                self.assertIn(needle, self.text)
+        self.assertEqual(self.text.count("AskQuestion({"), 3)
+
+    def test_keep_pins_and_structural_rows_hold(self):
+        """AC-3.2: every pin-map keep row on create-spec.md still holds (a
+        require literal present, a forbid literal absent) and every
+        command-structure row on it passes."""
+        eval_sh = EVAL_SH.read_text(encoding="utf-8")
+        pin_map = spec_file("pin-map.md").read_text(encoding="utf-8")
+        rows = [[cell.strip() for cell in re.split(r"(?<!\\)\|", line.strip())[1:-1]]
+                for line in pin_map.splitlines() if re.match(r"^\| \d+ \|", line)]
+        keep = [row for row in rows if row[3] == CREATE_SPEC and row[7] == "keep"]
+        self.assertEqual(len(keep), 17)
+        for row in keep:
+            with self.subTest(row=row[0]):
+                literal = row[5].replace("\\|", "|")
+                literal = (literal[3:-3] if literal.startswith("`` ") else literal[1:-1])
+                if literal.startswith("$"):
+                    literal = re.search(r"local %s='([^']*)'" % literal[1:], eval_sh).group(1)
+                if row[4] == "require":
+                    self.assertIn(literal, self.text)
+                else:
+                    self.assertNotIn(literal, self.text)
+        spec = importlib.util.spec_from_file_location("eval_command_structure_ge",
+                                                      EVAL_COMMAND_STRUCTURE)
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        structural = [row for row in helper.ROWS if row.file == CREATE_SPEC]
+        self.assertEqual(len(structural), 4)
+        for row in structural:
+            with self.subTest(row=row.value):
+                ok, detail = helper.check_row(REPO_ROOT, row)
+                self.assertTrue(ok, detail)
 
 
 if __name__ == "__main__":
