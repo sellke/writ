@@ -7,7 +7,7 @@
 |---|---|---|---|---|---|---|
 | 1 | [Generate the CLAUDE.md Template from the Manifest](story-1-generate-claude-md-template.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Install the System Instructions and Import Line on Claude Code](story-2-install-system-instructions-on-claude.md) | Not Started | High | Story 1 | 7 | 0/7 |
-| 3 | [Correct the Claude Code Adapter](story-3-correct-claude-code-adapter.md) | Not Started | Medium | None | 7 | 0/7 |
+| 3 | [Correct the Claude Code Adapter](story-3-correct-claude-code-adapter.md) | Completed ✅ | Medium | None | 7 | 7/7 |
 | 4 | [Keep CLAUDE.md User-Owned on Uninstall and Reinstall](story-4-claude-md-ownership-on-uninstall-and-reinstall.md) | Not Started | High | Story 2 | 7 | 0/7 |
 
 **Total:** 4 stories, 28 tasks, 19 acceptance criteria.

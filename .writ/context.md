@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T07:26:46Z
+> Last Updated: 2026-10-21T08:35:58Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-20-claude-code-parity — Claude Code Parity
 - **Status:** In Progress
-- **Story:** 1 of 4 — Generate the CLAUDE.md Template from the Manifest (Completed ✅)
-- **Progress:** 7/28 tasks complete (25%)
+- **Story:** 3 of 4 — Correct the Claude Code Adapter (Completed ✅); Stories 1 and 3 complete
+- **Progress:** 14/28 tasks complete (50%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Small) claude-md sits after claude-agents in CHECKS — claude-code-parity Story 1
-- DEV-002 (Small) Classification note keeps "Six dev-only scripts" and adds a sentence — claude-code-parity Story 1
-- DEV-004 (Small) Choices where the spec is silent, and eight agents — claude-code-parity Story 1
+- DEV-005 (Small) Manual Step 1 prose corrects the technical spec's claim — claude-code-parity Story 3
+- DEV-006 (Small) Gotcha 1 names both causes of a stale worktree — claude-code-parity Story 3
+- DEV-008 (Small) Adapter test checks more than task 3.1 lists — claude-code-parity Story 3
 
 ## Open Issues
 

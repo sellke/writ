@@ -44,3 +44,44 @@
 - **Reason:** Each choice fits the check shape in `.writ/docs/agent-cli-contract.md` and the spec's intent.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md S1 line says the agent count comes from the files (eight today).
+
+---
+
+## Story 3: Correct the Claude Code Adapter — Drift Report
+
+> Run: 2026-10-21
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] Manual Step 1 prose corrects the technical spec's claim
+- **Severity:** Small
+- **Spec said:** technical-spec.md → Adapter Corrections, Manual Step 1 row: say that later installs and updates replace only the block, and that `install.sh --platform claude` does all of this.
+- **Implementation did:** The adapter says a manual install writes no manifest, so later `install.sh` and `update.sh` runs keep a block that differs from the template and report it as locally modified; `--force` replaces only the block in `CLAUDE.md` but also overwrites every other Writ file that differs from upstream; `install.sh --platform claude` does all of Step 1 and writes the manifest.
+- **Reason:** The spec's sentence is wrong for a manual install, which has no `CLAUDE.md.writ-block` baseline. Gate 3 confirmed the behavior by running `update.sh` and `install.sh` against a manually installed scratch project. Bytes outside the markers are untouched either way.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S3 line records the corrected Step 1 wording.
+
+#### [DEV-006] Gotcha 1 names both causes of a stale worktree
+- **Severity:** Small
+- **Spec said:** Gotcha 1: copying worktree output back can overwrite newer work when the worktree is stale; follow the skill's stale-worktree step.
+- **Implementation did:** Adds the two causes from the worktrees docs: with the default base the worktree lacks commits not on the remote default branch, unpushed ones included; with `worktree.baseRef: "head"` it lacks commits made after it was created.
+- **Reason:** Business Rule 13 requires the adapter's worktree facts to match the docs. Gate 3 iteration 1 found the first wording gave the wrong cause.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S3 line.
+
+#### [DEV-007] The parallel-stories line has an extra clause
+- **Severity:** Small
+- **Spec said:** One line: `/implement-spec` runs independent stories in parallel batches.
+- **Implementation did:** Adds "and each `/implement-story` reconciles its agents' worktrees per the skill before it trusts their output".
+- **Reason:** `commands/implement-story.md` (Sub-agent worktree integration note) says exactly that.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S3 line.
+
+#### [DEV-008] Adapter test checks more than task 3.1 lists
+- **Severity:** Small
+- **Spec said:** Task 3.1: presence and absence checks, the regex `cp\s+\S*claude-code/CLAUDE\.md\s+\./CLAUDE\.md`, and agent names from frontmatter in three places.
+- **Implementation did:** The regex also catches a copy onto bare `CLAUDE.md` (`(\./)?CLAUDE\.md\b`) and runs on the whole file. The tier and permission tables must match each agent's frontmatter `model` and `permissionMode`; the worktree agent list must equal the agents with `isolation: worktree`; the import line may appear only inside code; Gotchas are numbered in order; skill step numbers come from the skill's headings; Gotcha 1 and the Step 1 prose are pinned.
+- **Reason:** Stricter checks serve Business Rules 13 and 16. No behavior changes.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec-lite.md S3 line.
