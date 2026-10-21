@@ -2597,11 +2597,9 @@ check_story_context() {
   forbid_literal "$leanness" 'def resolve_context_hints(' "eval-leanness.py must not retain the retired resolve_context_hints() implementation."
   forbid_literal "$leanness" 'CONTEXT_HINT_CATEGORY_KEYWORDS' "eval-leanness.py must not retain the retired keyword-anchor category map."
 
-  # Story 4: implement-story.md must delegate to the executable assembler
-  # instead of re-hosting a prose parser/degradation-table copy of it.
-  require_literal "$implement_story" 'scripts/story-context.py assemble' "implement-story.md must invoke the executable context-hint assembler instead of parsing hints by prose."
-  forbid_literal "$implement_story" 'Store parsed hints in `context_hints` map' "implement-story.md must not retain the retired prose parsing-algorithm step."
-  forbid_literal "$implement_story" 'For bracketed references: search source file for matching rows/entries by name' "implement-story.md must not retain the retired prose fetch-and-aggregate step."
+  # Story 4: implement-story.md delegates to the executable assembler; that
+  # call is an invocation row in scripts/eval-command-structure.py. The
+  # routing-table rows stay literal.
   require_literal "$implement_story" '| Architecture Check (Gate 0) |' "implement-story.md must retain the per-gate routing table's Architecture Check row."
   require_literal "$implement_story" '| Coding Agent (Gate 1) |' "implement-story.md must retain the per-gate routing table's Coding Agent row."
   require_literal "$implement_story" '| Review Agent (Gate 3) |' "implement-story.md must retain the per-gate routing table's Review Agent row."
