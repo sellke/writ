@@ -164,7 +164,7 @@ Tips:
 |---|---|
 | `/create-spec` | Research informs spec creation — run research first when domain is unfamiliar |
 | `/create-adr` | Research feeds directly into Architecture Decision Records |
-| `/design` | Research provides evidence base for design decisions |
+| `/writ-design` | Research provides evidence base for design decisions |
 | `/edit-spec` | Research may reveal need for spec changes — use findings to justify edits |
 | `/implement-spec` | Reference research documents for implementation context |
 

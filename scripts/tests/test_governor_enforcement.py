@@ -595,7 +595,8 @@ KNOWN_OVER_BUDGET = {
     # Acknowledged, not exempted: this file is the tree's worst violator and
     # wants a real reduction pass, which is not this change.
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 29304 -> 28733; Step 2.6a no-op emit removed.
-    "commands/create-spec.md": 28733,
+    # 2026-10-21 (2026-10-20-platform-neutral-names Story 2): 28733 -> 28738; Step 1.5 names `/writ-design`.
+    "commands/create-spec.md": 28738,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

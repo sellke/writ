@@ -143,6 +143,7 @@ On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Code
 | `run_terminal_cmd` | `Bash(command)` | Respect sandbox of the active agent |
 | `list_dir` | `Glob("pattern")` or `Bash("ls")` | Codex has no dedicated list-dir tool |
 | `todo_write` | `Write(".writ/state/...json")` | File-based tracking |
+| `canvas-preview` | `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/` | Inline CSS, no network fetch; give the user each path. Includes a read-only sandbox. No renderer: write a structural description of each draft and say the drafts were not rendered. |
 
 ### Writ agents ↔ Codex TOML
 

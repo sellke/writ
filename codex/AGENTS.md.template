@@ -16,12 +16,12 @@ Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows
 | `/create-adr` | `.codex/commands/create-adr.md` | Create architecture decision records with research-backed context. |
 | `/create-issue` | `.codex/commands/create-issue.md` | Quickly capture bugs or feature ideas into `.writ/issues/`. |
 | `/create-spec` | `.codex/commands/create-spec.md` | Create contract-first feature specifications with stories and verificati… |
-| `/design` | `.codex/commands/design.md` | Create and compare visual references for Writ specifications. |
 | `/edit-spec` | `.codex/commands/edit-spec.md` | Safely modify existing specifications while preserving contract integrit… |
 | `/knowledge` | `.codex/commands/knowledge.md` | Capture durable project knowledge as decisions, conventions, glossary te… |
 | `/plan-product` | `.codex/commands/plan-product.md` | Shape product strategy and roadmap artifacts through contract-first disc… |
 | `/research` | `.codex/commands/research.md` | Run systematic research workflows and record recommendations. |
 | `/verify-spec` | `.codex/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract … |
+| `/writ-design` | `.codex/commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ### Implementation & Quality
 

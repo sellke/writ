@@ -515,7 +515,7 @@ AskQuestion({
 **Handling responses:**
 - **screenshots**: Accept image uploads/paths. Store in `mockups/`. Analyze with vision model to extract layout structure, components, and design patterns. Generate `mockups/README.md` and `mockups/component-inventory.md`.
 - **sketch**: Accept `.excalidraw` file. Store in `mockups/`. Parse JSON to extract component names and layout.
-- **generate**: After creating `spec.md`, generate Excalidraw wireframes for each screen/view described in the spec. Store in `mockups/`. Follow wireframe conventions from `/design` command.
+- **generate**: After creating `spec.md`, generate Excalidraw wireframes for each screen/view described in the spec. Store in `mockups/`. Follow wireframe conventions from `/writ-design` command.
 - **existing**: Capture screenshots of the current app at relevant routes. Store in `mockups/current/`. These become the "before" state.
 - **none**: Create empty `mockups/` directory. Skip visual references in story files.
 

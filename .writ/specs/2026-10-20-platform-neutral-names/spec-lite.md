@@ -17,7 +17,7 @@
 
 **Files in Scope:**
 - `commands/prototype.md`, `adapters/{cursor,claude-code,codex,openclaw}.md` — capability (S1)
-- `commands/writ-design.md`, `.writ/manifest.yaml`, `SKILL.md`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, `adapters/cursor.md` tree, `commands/{create-spec,create-adr,research,status,prototype}.md`, `create-spec.lean.md` if present, `.writ/docs/model-tiers.md`, `scripts/eval.sh` allowlist — rename (S2)
+- `commands/writ-design.md`, `.writ/manifest.yaml`, `SKILL.md`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, `adapters/cursor.md` tree, `commands/{create-spec,create-adr,research,status,prototype}.md`, `create-spec.lean.md` if present, `.writ/docs/model-tiers.md`, `scripts/eval.sh` allowlist, both `status.md` command lists, the `create-spec.md` byte ledger in `scripts/tests/test_governor_enforcement.py` — rename (S2)
 - `scripts/tests/test_platform_neutral_names.py` (S1–S3), `scripts/tests/test_install_update_writ_design.sh` (S3), both origin issues (S3)
 
 **Error Handling:**
@@ -51,7 +51,7 @@ See spec.md → ## Business Rules (Expanded) and sub-specs/technical-spec.md →
 - Commands name capabilities; adapters name tools.
 - Rename changes names only: no mode, flag, or output change. No `design` alias.
 - Generated files are regenerated, never hand-edited.
-- Gate record list = contract paths + this spec folder + parity spec folder + three named dated snapshots. Native refs must read "native `/design`".
+- Gate record list = contract paths with all of `.writ/specs/` (DEV-004) + `.writ/context.md` (DEV-006) + three named dated snapshots. Native refs must read "native `/design`".
 - Never run `install.sh`/`update.sh` against the Writ repo; temp dirs only.
 
 **Experience Design:**

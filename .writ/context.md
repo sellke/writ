@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T11:05:27Z
+> Last Updated: 2026-10-21T13:48:18Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-20-claude-code-parity — Claude Code Parity
+- **Spec:** 2026-10-20-platform-neutral-names — Platform-Neutral Names
 - **Status:** Complete (checker verdict met; integration suite passed)
-- **Story:** 4 of 4 — Keep CLAUDE.md User-Owned on Uninstall and Reinstall (Completed ✅)
-- **Progress:** 28/28 tasks complete (100%)
+- **Story:** 3 of 3 — Upgrade-Path Test, Reference Gate, and Issue Resolutions (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-20-claude-code-parity/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-20-platform-neutral-names/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (21 entries)
 - **Docs:** .writ/docs/ (28 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-009 (Small) Business Rule 5's no-baseline rule is not Cursor's actual rule — claude-code-parity Story 2
-- DEV-011 (Small) The reinstall doc names .claude/system-instructions.md — claude-code-parity Story 4
-- DEV-013 (Small) Story 4 tests go beyond the listed cases — claude-code-parity Story 4
+- DEV-004 (Medium) Gate record list exempts all of `.writ/specs/` instead of named folders — platform-neutral-names Story 3
+- DEV-005 (Small) Gate fixture's fourth reported line moved out of `.writ/specs/` — platform-neutral-names Story 3
+- DEV-006 (Small) `.writ/context.md` added to the gate's record list — platform-neutral-names Story 3
 
 ## Open Issues
 
-21 open issue files in .writ/issues/ (30 total; 9 closed with `## Resolution`)
+19 open issue files in .writ/issues/ (30 total; 11 closed with `## Resolution`)
