@@ -2929,15 +2929,15 @@ check_ralph_retirement() {
     fi
   done
 
-  # No Ralph reference on active command, catalog, config, adapter, README, or
-  # status surfaces. Historical specs, ADRs, roadmap/mission history, the
-  # changelog, and archive/ are deliberately excluded from this allowlisted search.
+  # No Ralph reference on active catalog, config, adapter, README, or
+  # instruction surfaces. Historical specs, ADRs, roadmap/mission history, the
+  # changelog, and archive/ are deliberately excluded from this allowlisted
+  # search. Command files are not on the list: commands/ralph.md cannot
+  # return (checked above), so a stray mention in a command points at nothing.
   for surface in "$PROJECT_ROOT/.writ/manifest.yaml" \
                  "$skill" \
                  "$PROJECT_ROOT/.writ/docs/config-format.md" \
                  "$PROJECT_ROOT/README.md" \
-                 "$PROJECT_ROOT/commands/status.md" \
-                 "$PROJECT_ROOT/commands/implement-phase.md" \
                  "$PROJECT_ROOT/scripts/gen-skill.sh" \
                  "$PROJECT_ROOT/codex/AGENTS.md.template" \
                  "$PROJECT_ROOT/claude-code/CLAUDE.md" \
