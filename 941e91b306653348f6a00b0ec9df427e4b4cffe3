@@ -1,0 +1,161 @@
+writ-audit: phase-digest
+phase: 13 (Subtract and Repair)
+Landed:   main @ 941e91b
+Source:   617037b..b3ebd3d (126 commits, PR #60)
+Shipped:  2026-10-21 by Adam Sellke
+
+Writ Audit Digest (spec)
+========================
+Spec:     2026-10-20-ci-and-update-integrity — CI and Update Integrity
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-ci-runs-every-suite | PASS | Small (DEV-001) | na |
+| story-2-keep-codex-config-baseline | PASS | None | na |
+| story-3-baselines-for-shipped-paths-only | PASS | Small (DEV-002, DEV-003) | na |
+| story-4-keep-modified-stale-files | PASS | Small (DEV-004, DEV-005) | na |
+| story-5-legacy-manifests-and-stale-removal | PASS | Medium (DEV-006, DEV-007, DEV-008, DEV-009) | na |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Medium; DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006, DEV-007, DEV-008, DEV-009
+Coverage:  see story rows
+Files:     5 created, 10 modified
+Review:    6 iterations
+
+Refs
+----
+spec:      .writ/specs/2026-10-20-ci-and-update-integrity/spec.md
+drift-log: .writ/specs/2026-10-20-ci-and-update-integrity/drift-log.md
+
+Writ Audit Digest (spec)
+========================
+Spec:     2026-10-20-harness-cuts — Harness Cuts
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-delete-lean-siblings | PASS | Small (DEV-001, DEV-002, DEV-003, DEV-004) | na |
+| story-2-remove-lean-code-paths | PASS | Medium (DEV-005, DEV-006) | na |
+| story-3-noop-lines-and-ship-description | PASS | None | na |
+| story-4-staging-dev-only | PASS | Small (DEV-007, DEV-008) | na |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Medium; DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006, DEV-007, DEV-008
+Coverage:  see story rows
+Files:     2 created, 45 modified
+Review:    6 iterations
+
+Refs
+----
+spec:      .writ/specs/2026-10-20-harness-cuts/spec.md
+drift-log: .writ/specs/2026-10-20-harness-cuts/drift-log.md
+
+Writ Audit Digest (spec)
+========================
+Spec:     2026-10-20-claude-code-parity — Claude Code Parity
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-generate-claude-md-template | PASS | Small (DEV-001, DEV-002, DEV-003, DEV-004) | na |
+| story-2-install-system-instructions-on-claude | PASS | Small (DEV-009, DEV-010) | na |
+| story-3-correct-claude-code-adapter | PASS | Small (DEV-005, DEV-006, DEV-007, DEV-008) | na |
+| story-4-claude-md-ownership-on-uninstall-and-reinstall | PASS | Small (DEV-011, DEV-012, DEV-013) | na |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Small; DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006, DEV-007, DEV-008, DEV-009, DEV-010, DEV-011, DEV-012, DEV-013
+Coverage:  see story rows
+Files:     9 created, 17 modified
+Review:    6 iterations
+
+Refs
+----
+spec:      .writ/specs/2026-10-20-claude-code-parity/spec.md
+drift-log: .writ/specs/2026-10-20-claude-code-parity/drift-log.md
+
+Writ Audit Digest (spec)
+========================
+Spec:     2026-10-20-platform-neutral-names — Platform-Neutral Names
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-canvas-preview-capability | PASS | Small (DEV-001) | na |
+| story-2-rename-writ-design | PASS | Small (DEV-002, DEV-003) | na |
+| story-3-upgrade-path-and-reference-gate | PASS | Medium (DEV-004, DEV-005, DEV-006, DEV-009) | na |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Medium; DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006, DEV-009
+Coverage:  see story rows
+Files:     2 created, 22 modified
+Review:    4 iterations
+
+Refs
+----
+spec:      .writ/specs/2026-10-20-platform-neutral-names/spec.md
+drift-log: .writ/specs/2026-10-20-platform-neutral-names/drift-log.md
+
+Writ Audit Digest (spec)
+========================
+Spec:     2026-10-20-shipped-command-hygiene — Shipped Command Hygiene
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-strip-internal-references | PASS | Small (DEV-001, DEV-002, DEV-003) | 98% (92 statements, 2 missed)  |
+| story-2-pin-map-and-conversions | PASS | Small (DEV-004, DEV-005, DEV-006) | 100% (110 statements) on `scri |
+| story-3-create-spec-reduction | PASS | Small (DEV-007, DEV-008, DEV-009) | N/A (no new source module; mar |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Small; DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006, DEV-007, DEV-008, DEV-009
+Coverage:  see story rows
+Files:     6 created, 10 modified
+Review:    5 iterations
+
+Refs
+----
+spec:      .writ/specs/2026-10-20-shipped-command-hygiene/spec.md
+drift-log: .writ/specs/2026-10-20-shipped-command-hygiene/drift-log.md
+
+Writ Audit Digest (spec)
+========================
+Spec:     2026-10-20-claude-agent-generator — Claude Agent Generator
+
+Stories
+-------
+| Story | Review | Drift | Coverage |
+|-------|--------|-------|----------|
+| story-1-generator-and-overlay | PASS | Small (DEV-001, DEV-002, DEV-003) | 98% |
+| story-2-regenerate-claude-agents | PASS | None | na |
+| story-3-parity-eval-and-docs | PASS | Small (DEV-004, DEV-005, DEV-006) | na |
+
+Aggregate
+---------
+Verdict:   PASS w/ drift
+Drift:     highest = Small; DEV-IDs: DEV-001, DEV-002, DEV-003, DEV-004, DEV-005, DEV-006
+Coverage:  see story rows
+Files:     4 created, 10 modified
+Review:    4 iterations
+
+Refs
+----
+spec:      .writ/specs/2026-10-20-claude-agent-generator/spec.md
+drift-log: .writ/specs/2026-10-20-claude-agent-generator/drift-log.md
+
+Generated by Writ 0.42.0
