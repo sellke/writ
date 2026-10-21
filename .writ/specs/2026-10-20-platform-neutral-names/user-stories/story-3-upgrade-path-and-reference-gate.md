@@ -1,6 +1,7 @@
 # Story 3: Upgrade-Path Test, Reference Gate, and Issue Resolutions
 
 > **Status:** Completed ✅
+> **Commit:** 5739a4c292c961e470e7d33c94b6ef24c01d4b95
 > **Priority:** High
 > **Dependencies:** Story 2
 
