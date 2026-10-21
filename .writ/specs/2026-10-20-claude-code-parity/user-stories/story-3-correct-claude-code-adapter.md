@@ -1,6 +1,7 @@
 # Story 3: Correct the Claude Code Adapter
 
 > **Status:** Completed ✅
+> **Commit:** 4cebc62b051be6a861ed0c6e6521416f2944709b
 > **Priority:** Medium
 > **Dependencies:** None
 
