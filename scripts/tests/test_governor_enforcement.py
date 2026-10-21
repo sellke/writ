@@ -596,15 +596,20 @@ KNOWN_OVER_BUDGET = {
     # wants a real reduction pass, which is not this change.
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 29304 -> 28733; Step 2.6a no-op emit removed.
     # 2026-10-21 (2026-10-20-platform-neutral-names Story 2): 28733 -> 28738; Step 1.5 names `/writ-design`.
-    "commands/create-spec.md": 28738,
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 28738 -> 28652; ADR link removed.
+    "commands/create-spec.md": 28652,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
     # for the conditional /verify-spec --product line in the Step 4.2 report.
-    "commands/implement-phase.md": 10361,
-    "commands/release.md": 7655,
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 10361 -> 10256;
+    # ADR and archived-spec links removed.
+    "commands/implement-phase.md": 10256,
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
+    "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
-    "commands/ship.md": 4023,
+    # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 4023 -> 3947; ADR link removed.
+    "commands/ship.md": 3947,
     # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
     # Gate 4.5 rewritten as behavioral verification, old Results ladder and an
     # adjacent Gate 4 clause trimmed to offset (-7 bytes net).

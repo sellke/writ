@@ -71,7 +71,7 @@ On rejection, print the supported forms above and stop before mutation.
 ### Autonomous Authoring Boundary
 
 `--recommend` overrides the routine human gates of Phase 1 — not the
-accountability floor (see [ADR-013](../.writ/decision-records/adr-013-recommended-autonomous-delivery.md)):
+accountability floor:
 
 - **Auto-adopt** — record each material decision in `{spec}/recommendation-log.md`
   (decision, evidence, material alternatives, risk/reversibility, result; never

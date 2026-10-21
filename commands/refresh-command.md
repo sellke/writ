@@ -224,10 +224,9 @@ required-sections presence, no new broken refs, length sanity, the
 section. A structural regression rejects the amendment with reason `eval failed`.
 A target not on the allowlist runs the base evidence check only.
 
-**Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant is
-deferred behind an explicit future decision: research
-(`.writ/research/2026-04-24-writ-vs-gstack-rigor-comparison.md`) found its cost
-(~$0.15 / ~30s per run) exceeds its value at current scale. Do not
+**Tier 2 is structural only — not an LLM-as-judge.** The LLM-judge variant
+stays deferred behind an explicit future decision: measured at about $0.15 and
+30 seconds per run, it costs more than it is worth at current scale. Do not
 introduce an LLM judge here; keep Tier 2 a bounded structural reuse of Tier 1.
 
 CI (`.github/workflows/eval.yml`) is the backstop: it runs the same
@@ -318,7 +317,7 @@ is applied with its evidence, and an unjustifiable one is rejected and logged.
 
 > **Triggered when:** the user picks `lint-skills` from the Phase 1 menu, or invokes `/refresh-command --lint-skills`. This is a separate refresh path: it does not run when refreshing a specific command, and the command-refresh flow above does not invoke it.
 
-The boundary lint enforces the role convention from [ADR-009](../.writ/decision-records/adr-009-command-agent-skill-boundary.md) — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh`, so authoring-time and review-time checks cannot diverge.
+The boundary lint enforces the role convention — skills describe a **capability**, not a workflow and not a role. The grammar is shared with `/new-skill`; both commands invoke `scripts/lint-skill.sh`, so authoring-time and review-time checks cannot diverge.
 
 ### Step 5.1: Discover Skills
 

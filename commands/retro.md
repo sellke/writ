@@ -201,5 +201,4 @@ This command succeeds when `.writ/retros/YYYY-MM-DD-<scope>.md` lists every tran
 
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
-- Friction signals: [ADR-025](../.writ/decision-records/adr-025-friction-signals.md)
 - Evidence contract: [`commands/refresh-command.md`](refresh-command.md)

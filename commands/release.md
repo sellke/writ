@@ -451,8 +451,7 @@ Create manually at: https://github.com/${owner}/${repo}/releases/new?tag=v${VERS
 After tagging, attach a **version rollup** audit note to the tag's target commit
 under the dedicated `refs/notes/writ` ref, so each version carries an immutable,
 git-native summary of the specs it shipped and their verdicts. Full schema:
-[`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md) §4;
-rationale: [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
+[`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md) §4.
 
 > **Strictly non-blocking.** Rollup composition or attachment failure never fails
 > the release. On any error, log `⚠️ audit note not attached — {error}` and continue
