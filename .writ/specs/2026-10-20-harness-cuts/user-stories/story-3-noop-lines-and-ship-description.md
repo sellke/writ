@@ -1,6 +1,7 @@
 # Story 3: Remove the ADR-025 No-Op Lines and Correct the /ship Description
 
 > **Status:** Completed ✅
+> **Commit:** dd763b7d158cd0c83f79225127e01782dc01c8fd
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
