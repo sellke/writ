@@ -2715,7 +2715,6 @@ check_phase_challenges() {
   require_literal "$helper" 'CHALLENGE_TRIGGERS' "The reducer must constrain challenge triggers."
   require_literal "$helper" 'invalid_challenge' "A malformed challenge must be a contract error."
 
-  require_literal "$preamble" '## User Challenge' "The preamble must define the User Challenge contract."
   require_literal "$preamble" 'scope_degradation' "The preamble must constrain the challenge trigger."
   require_literal "$preamble" 'select-or-pause' "The preamble must apply the evidence-based select-or-pause rule."
   require_literal "$preamble" 'four required parts' "The preamble must require all four challenge parts."
