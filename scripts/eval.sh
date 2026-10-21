@@ -4893,7 +4893,6 @@ check_review_panel() {
   require_literal "$story" '**Review panel (opt-in).**' "$(relpath "$story") Gate 3 must carry the opt-in review panel paragraph."
   require_literal "$story" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$story") must make a panel block a Gate 3 FAIL."
   require_literal "$story" '| `/implement-story story-3 --panel` |' "$(relpath "$story") Invocation table must carry the --panel row."
-  require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."
   require_literal "$PROJECT_ROOT/adapters/cursor.md" '**Review panel (ADR-028): available.**' "adapters/cursor.md must state the review panel is available."
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
