@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T00:47:27Z
+> Last Updated: 2026-10-21T00:59:32Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-ci-and-update-integrity — CI and Update Integrity
-- **Status:** In Progress
+- **Status:** Complete (checker verdict met; integration suite passed)
 - **Story:** 5 of 5 — Repair Legacy Manifests and Remove Stale Files From Their Real Path (Completed ✅)
 - **Progress:** 31/31 tasks complete (100%)
 
