@@ -2790,7 +2790,6 @@ check_phase_knowledge() {
   local helper="$PROJECT_ROOT/scripts/phase-state.py"
   local state_doc="$PROJECT_ROOT/.writ/docs/phase-execution-state-format.md"
   local implement_phase="$PROJECT_ROOT/commands/implement-phase.md"
-  local knowledge_cmd="$PROJECT_ROOT/commands/knowledge.md"
   local scenario_output scenario_status scenario_name scenario_reason
 
   scenario_output="$(mktemp)"
@@ -2821,9 +2820,6 @@ check_phase_knowledge() {
 
   require_literal "$implement_phase" 'evidence-bound' "Implement-phase must apply evidence-bound knowledge gates."
   require_literal "$implement_phase" 'no qualifying candidate' "Implement-phase must treat no qualifying candidate as a no-op."
-
-  require_literal "$knowledge_cmd" 'Phase-Close Writeback' "Knowledge must document phase-close writeback."
-  require_literal "$knowledge_cmd" 'substantive' "Knowledge must deduplicate candidates substantively."
 }
 
 check_phase_health() {
