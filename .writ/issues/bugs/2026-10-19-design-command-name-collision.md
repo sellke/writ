@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-10-19
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/2026-10-20-platform-neutral-names/
 
 ## TL;DR
 
@@ -44,3 +44,18 @@ Found during `/research` on pre-spec visual drafts; see `.writ/research/2026-10-
 The collision is also a live instance of Design Principle 4 ("if the harness does it natively, adapt to it; never re-implement it"). A rename settles the name; it does not settle whether Writ should still ship a wireframe generator at all. That question belongs with the roadmap's `/design` Mode A modernization item, not here.
 
 Worth a general check: Writ ships 32 commands into a namespace the platform also writes to. Nothing today detects a second collision.
+
+## Resolution
+
+2026-10-21, branch `writ/phase/13/2026-10-20-platform-neutral-names` (spec `2026-10-20-platform-neutral-names`, Stories 2 and 3; Story 2 is commit d36a283). Writ's command is renamed to `/writ-design`, with no alias. `commands/design.md` moved to `commands/writ-design.md` with `git mv`, and only its self-naming lines changed. The manifest entry, `SKILL.md`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, the commands and adapter that named it, and the five `scripts/eval.sh` allowlist rows now say `/writ-design`. The commit carries a `BREAKING CHANGE:` footer, and the spec's Upgrade Note is written for the CHANGELOG.
+
+Old installs upgrade through stale detection; `update.sh` has no rename map. When the project manifest lists `commands/design.md` and upstream no longer ships it:
+
+- An unmodified copy is removed, and the update prints `🗑  Removed: commands/design.md`.
+- A locally modified copy is kept, and every update prints `⚠️  Stale (no longer shipped, locally modified — kept): commands/design.md` until the user deletes it. Until then, `/design` in that project still opens the old copy.
+
+`/update-writ` states the same stale rules (Step 3 and Step 6). Only `update.sh` was run in a test.
+
+`scripts/tests/test_platform_neutral_names.py` pins the registration (file and frontmatter, manifest entry, `SKILL.md`, `claude-code/CLAUDE.md`, allowlist rows) and runs the reference gate `writ_design_refs`, which fails on any tracked line outside the record list that names `/design` or `commands/design.md`. `scripts/tests/test_install_update_writ_design.sh` runs the real `install.sh` and `update.sh` from committed copies of the tree: a fresh install on Cursor, Claude Code, and Codex; an upgrade from a stand-in for the last release with the old file unmodified on all three; and a locally modified old file on Claude Code across two updates.
+
+Not verified: nobody checked in a live Claude Code session (2.1.233 or later) whether a project command shadows the native `/design`, or the reverse. The rename removes the collision either way. Nothing detects a second collision between a Writ command and a platform command (see Notes).

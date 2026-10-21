@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T12:47:17Z
+> Last Updated: 2026-10-21T13:34:03Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-platform-neutral-names — Platform-Neutral Names
-- **Status:** In Progress (2 of 3 stories complete)
-- **Story:** 2 of 3 — Rename `/design` to `/writ-design` Across Every Reference (Completed ✅)
-- **Progress:** 14/20 tasks complete (70%)
+- **Status:** In Progress (3 of 3 stories complete; integration verification pending)
+- **Story:** 3 of 3 — Upgrade-Path Test, Reference Gate, and Issue Resolutions (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,10 +23,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 (Small) OpenClaw row says "HTML file" where the technical spec's row text says "file" — platform-neutral-names Story 1
-- DEV-002 (Small) Governor ledger re-pinned for the create-spec Step 1.5 rename — platform-neutral-names Story 2
-- DEV-003 (Small) Inventory missed the bare `design` in the `/status` Maintainer Note allowlist — platform-neutral-names Story 2
+- DEV-004 (Medium) Gate record list exempts all of `.writ/specs/` instead of named folders — platform-neutral-names Story 3
+- DEV-005 (Small) Gate fixture's fourth reported line moved out of `.writ/specs/` — platform-neutral-names Story 3
+- DEV-006 (Small) `.writ/context.md` added to the gate's record list — platform-neutral-names Story 3
 
 ## Open Issues
 
-21 open issue files in .writ/issues/ (30 total; 9 closed with `## Resolution`)
+19 open issue files in .writ/issues/ (30 total; 11 closed with `## Resolution`)

@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | 1 | [Canvas-Preview Capability in `/prototype` and the Four Adapters](story-1-canvas-preview-capability.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Rename `/design` to `/writ-design` Across Every Reference](story-2-rename-writ-design.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
-| 3 | [Upgrade-Path Test, Reference Gate, and Issue Resolutions](story-3-upgrade-path-and-reference-gate.md) | Not Started | High | Story 2 | 6 | 0/6 |
+| 3 | [Upgrade-Path Test, Reference Gate, and Issue Resolutions](story-3-upgrade-path-and-reference-gate.md) | Completed ✅ | High | Story 2 | 6 | 6/6 |
 
 **Total:** 3 stories, 20 tasks, 15 acceptance criteria.
 

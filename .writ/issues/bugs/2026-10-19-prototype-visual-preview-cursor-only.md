@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Small
 > **Created:** 2026-10-19
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/2026-10-20-platform-neutral-names/
 
 ## TL;DR
 
@@ -39,3 +39,17 @@
 Found during `/research` on pre-spec visual drafts; see `.writ/research/2026-10-19-prototype-visual-drafts-research.md` finding F6. That research recommends leaving Step 2.5's single-preview scope alone — this issue is only the tool-name and adapter fix, not a redesign of the step.
 
 Worth checking whether an eval check can catch the general case: a command naming a tool that no adapter translates. That would stop the next one rather than this one.
+
+## Resolution
+
+2026-10-21, branch `writ/phase/13/2026-10-20-platform-neutral-names` (spec `2026-10-20-platform-neutral-names`, Story 1, commit 81c63c1). `commands/prototype.md` no longer names a vendor tool. Step 2 (Figma MCP detection) and Step 2.5 (the "Render through the platform" table) name the `canvas-preview` capability, and the sentence under the table says each adapter maps it and states its fallback. Each adapter maps the capability in one row of its tool table:
+
+- `adapters/cursor.md`: the `cursor-ide-browser` canvas.
+- `adapters/claude-code.md`: an artifact, or the preview pane, with one self-contained HTML page per draft.
+- `adapters/codex.md` and `adapters/openclaw.md`: one self-contained HTML file per draft (inline CSS, no network fetch) under `.writ/prototypes/<date>-<slug>/`.
+
+Every row ends with the same fallback: "No renderer: write a structural description of each draft and say the drafts were not rendered."
+
+`scripts/tests/test_platform_neutral_names.py` pins this. `test_prototype_names_capability` checks both steps and the three-row render table. `test_adapter_canvas_row` checks for exactly one row per adapter, its platform keywords, and the fallback in its last cell. `test_cursor_ide_browser_confined` fails if `cursor-ide-browser` appears anywhere outside `adapters/cursor.md` and record paths.
+
+Not done: no eval check catches the general case, a command naming a tool that no adapter translates (see Notes).

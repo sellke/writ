@@ -22,11 +22,22 @@ Registration section (Story 2):
   five `referenced_paths_allowlist` rows in `scripts/eval.sh`, name
   `/writ-design`.
 
+Reference gate section (Story 3):
+
+- `writ_design_refs(root)` lists every tracked line outside the record list
+  that names the old command, by slash name or file name. The real repo has
+  none; a fixture repo shows which lines it reports and which it ignores; a
+  `git grep` error fails instead of passing.
+- Both origin issues end with a `## Resolution` section and point their
+  `spec_ref` at this spec.
+
 RECORD_PREFIXES and DATED_SNAPSHOTS come from technical-spec.md → Reference
-Gate → Record list. Story 3's reference gate reuses them.
+Gate → Record list, with every `.writ/specs/` folder counted as a record.
+Story 1's confinement test and Story 3's reference gate share them.
 
 Covers AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5, AC-2.1, AC-2.2, AC-2.3, AC-2.4,
-and AC-2.5.
+AC-2.5, AC-3.4, and AC-3.5. The install and update criteria are tested in
+`scripts/tests/test_install_update_writ_design.sh`.
 
 Run: uv run --python 3.9 pytest scripts/tests/test_platform_neutral_names.py
 """
@@ -45,14 +56,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 RECORD_PREFIXES = (
     "CHANGELOG.md",
-    ".writ/specs/archive/",
+    # Every spec folder, archived or in flight, is a planning or history record
+    # (Phase 13 precedent: the harness-cuts guard grep, DEV-009).
+    ".writ/specs/",
     ".writ/research/",
     ".writ/decision-records/",
     ".writ/product/",
     ".writ/decision-log.md",
     ".writ/issues/",
-    ".writ/specs/2026-10-20-platform-neutral-names/",  # this spec describes the rename
-    ".writ/specs/2026-10-20-claude-code-parity/",  # its technical spec cites the rename as a generator edge case
+    # Regenerated after each story; quotes story and drift titles from the spec folders.
+    ".writ/context.md",
 )
 DATED_SNAPSHOTS = {
     ".writ/docs/leanness-audit-2026-07-11.md": "dated leanness audit",
@@ -146,18 +159,19 @@ def cells(row: str) -> List[str]:
     return [c.strip() for c in re.split(r"(?<!\\)\|", row.strip())[1:-1]]
 
 
-def git_grep(root: Path, pattern: str) -> List[Tuple[str, str, str]]:
+def git_grep(root: Path, *patterns: str) -> List[Tuple[str, str, str]]:
     """Fixed-string `git grep` over tracked text files as (path, line, text).
 
-    Parses `-n --null` output (`path\\0line\\0text`), so paths with spaces stay
-    whole. Exit 1 means no matches. Any other non-zero exit raises, so a broken
-    grep never reads as a clean result.
+    A line is a hit when it contains any of `patterns`. Parses `-n --null`
+    output (`path\\0line\\0text`), so paths with spaces stay whole. Exit 1
+    means no matches. Any other non-zero exit raises, so a broken grep never
+    reads as a clean result.
     """
-    proc = subprocess.run(
-        ["git", "-C", str(root), "grep", "-n", "-I", "--null", "-F", "-e", pattern],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    assert patterns, "git_grep needs at least one pattern"
+    argv = ["git", "-C", str(root), "grep", "-n", "-I", "--null", "-F"]
+    for pattern in patterns:
+        argv += ["-e", pattern]
+    proc = subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if proc.returncode == 1:
         return []
     if proc.returncode != 0:
@@ -249,8 +263,9 @@ def test_cursor_ide_browser_confined():
 # ---------------------------------------------------------------------------
 # Registration section (Story 2 of 2026-10-20-platform-neutral-names): the old
 # command is renamed to `/writ-design`. Naming the spec here keeps the AC
-# citations below attributed to it (ac-trace attributes a token to the spec
-# folder named most recently above it; RECORD_PREFIXES names another).
+# citations below attributed to it: ac-trace attributes a token to the spec
+# folder named most recently above it, so another spec folder named earlier
+# in this file would otherwise claim them.
 # ---------------------------------------------------------------------------
 
 # The old name is built from parts, never spelled as a slash command or a
@@ -564,7 +579,7 @@ def test_model_tiers_entry_level():
 
 
 # Files the sweep edits that also carry the keep-class design-system path. A
-# blind `/design` -> `/writ-design` replace would rewrite it.
+# blind OLD_SLASH -> `/writ-design` replace would rewrite it.
 DESIGN_SYSTEM_PATH = ".writ/docs/design-system.md"
 SWEPT_WITH_DESIGN_SYSTEM_PATH = [NEW_FILE, "commands/create-spec.md", "commands/prototype.md"]
 
@@ -585,3 +600,177 @@ def test_keep_class_roadmap_pair():
     text = read(".writ/docs/model-tiers.md")
     assert "roadmap" + OLD_SLASH in text, "model-tiers.md lost the roadmap pair"
     assert "roadmap/writ-design" not in text, "model-tiers.md renamed the roadmap pair"
+
+
+# ---------------------------------------------------------------------------
+# Reference gate section (Story 3 of 2026-10-20-platform-neutral-names): no
+# tracked file outside the record list names the old command. Naming the spec
+# here keeps the AC citations below attributed to it.
+# ---------------------------------------------------------------------------
+
+OLD_MD = OLD_NAME + ".md"
+# technical-spec.md → Reference Gate, steps 3 and 5. Built from the old-name
+# parts so this file is not a hit of its own gate.
+GATE_CMD = re.compile(r"(?<![\w-])" + re.escape(OLD_SLASH) + r"(?![\w-])")
+GATE_FILE = re.compile(r"(?<![\w-])" + re.escape(OLD_MD))
+GATE_NATIVE = re.compile(r"native\s+`?" + re.escape(OLD_SLASH) + r"(?![\w-])", re.I)
+
+
+def writ_design_refs(root: Path) -> List[str]:
+    """Tracked lines under `root` that name the old command, as
+    `path:line: text`.
+
+    Greps tracked text files for the old slash name or the old file name
+    (fixed strings, the same match as the spec's escaped-dot regex). Keeps a
+    hit whose text names the command (GATE_CMD) or its file (GATE_FILE), then
+    drops record paths and lines that name Claude Code's native command
+    (GATE_NATIVE). `git grep` exit 1 means no hits; any other error raises.
+    """
+    refs = []  # type: List[str]
+    for path, line, text in git_grep(root, OLD_SLASH, OLD_MD):
+        if not (GATE_CMD.search(text) or GATE_FILE.search(text)):
+            continue
+        if is_record(path) or GATE_NATIVE.search(text):
+            continue
+        refs.append("%s:%s: %s" % (path, line, text))
+    return refs
+
+
+# (path, line text, reported). The fixture repo for test_gate_fixture: each
+# file holds its text on line 3. Every text is built from the old-name parts.
+GATE_FIXTURE = [
+    ("commands/a.md", "Run `%s` to draw a wireframe." % OLD_SLASH, True),
+    ("commands/b.md", "The command file is `%s`." % OLD_FILE, True),
+    # "native" elsewhere on the line does not exempt it.
+    ("commands/f.md", "`%s` uses native browser tools." % OLD_SLASH, True),
+    # Only the three named snapshots are exempt in `.writ/docs/`.
+    (".writ/docs/other.md", "Draw the screens with %s first." % OLD_SLASH, True),
+    ("commands/c.md", "Read `%s` first." % DESIGN_SYSTEM_PATH, False),
+    ("commands/d.md", "Run `/writ-design`; its file is `%s`." % NEW_FILE, False),
+    ("commands/e.md", "Locks a contract (spec/ADR/roadmap%s)." % OLD_SLASH, False),
+    ("adapters/x.md", "Claude Code's native `%s` is the platform's own command." % OLD_SLASH, False),
+    ("CHANGELOG.md", "- `%s` is renamed to `/writ-design`." % OLD_SLASH, False),
+    (".writ/docs/swot-2026-03-01.md", "| `%s` | Visual design companion |" % OLD_SLASH, False),
+    # A snapshot path with a space: `--null` keeps it whole.
+    (
+        ".writ/explanations/2026-03-20-WritPipelineArchitecture .md",
+        '    DESIGN["%s"] -.->|mockups| SPEC' % OLD_SLASH,
+        False,
+    ),
+    (".writ/specs/2026-10-20-platform-neutral-names/spec.md", "Rename `%s`." % OLD_SLASH, False),
+    (".writ/specs/2026-01-01-other/spec.md", "Use `%s` for the mockups." % OLD_SLASH, False),
+]
+
+
+def git_in(repo: Path, *args: str) -> None:
+    proc = subprocess.run(
+        ["git", "-C", str(repo)] + list(args), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert proc.returncode == 0, "git %s failed: %s" % (
+        " ".join(args), proc.stderr.decode("utf-8", "replace"))
+
+
+@pytest.fixture
+def isolated_git(tmp_path, monkeypatch):
+    """Git sees only repos under tmp_path: no parent repo, no inherited
+    GIT_DIR or index from a hook that runs the suite."""
+    for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+        monkeypatch.delenv(name, raising=False)
+    ceilings = {str(tmp_path), str(tmp_path.resolve())}
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", ":".join(sorted(ceilings)))
+    return tmp_path
+
+
+def test_no_writ_design_reference():
+    """AC-3.4: no tracked file outside the record list names the old command
+    by slash name or file name."""
+    refs = writ_design_refs(REPO_ROOT)
+    assert refs == [], "%d line(s) still name %s or %s outside the record list:\n%s" % (
+        len(refs), OLD_SLASH, OLD_FILE, "\n".join(refs))
+
+
+def test_gate_fixture(isolated_git):
+    """AC-3.4: in a fixture repo the gate reports exactly the four planted
+    references, as `path:line: text`, and ignores the keep-class lines, the
+    native-command line, and the record paths."""
+    repo = isolated_git / "fixture"
+    repo.mkdir()
+    git_in(repo, "init", "-q")
+    for rel, text, _ in GATE_FIXTURE:
+        path = repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Fixture\n\n%s\n" % text, encoding="utf-8")
+    git_in(repo, "add", "-A")
+
+    # Every planted file is a raw grep hit, so each ignored line is dropped
+    # by the gate's filters, not missed by the grep.
+    grepped = {hit[0] for hit in git_grep(repo, OLD_SLASH, OLD_MD)}
+    assert grepped == {rel for rel, _, _ in GATE_FIXTURE}, sorted(grepped)
+
+    expected = sorted("%s:3: %s" % (rel, text) for rel, text, reported in GATE_FIXTURE if reported)
+    assert len(expected) == 4
+    assert writ_design_refs(repo) == expected
+
+
+def test_gate_git_error(isolated_git):
+    """AC-3.4: a `git grep` error fails the gate instead of reading as no
+    hits; a repo with no match (exit 1) is a clean result."""
+    plain = isolated_git / "not-a-repo"
+    plain.mkdir()
+    (plain / "a.md").write_text("Run `%s`.\n" % OLD_SLASH, encoding="utf-8")
+    with pytest.raises(RuntimeError, match=r"git grep failed \(exit \d+\): \S"):
+        writ_design_refs(plain)
+
+    clean = isolated_git / "clean"
+    clean.mkdir()
+    git_in(clean, "init", "-q")
+    (clean / "a.md").write_text("Run `/writ-design`.\n", encoding="utf-8")
+    git_in(clean, "add", "-A")
+    assert writ_design_refs(clean) == []
+
+
+SPEC_SLUG = "2026-10-20-platform-neutral-names"
+SPEC_DIR = ".writ/specs/%s/" % SPEC_SLUG
+LANE_BRANCH = "writ/phase/13/%s" % SPEC_SLUG
+# (issue, phrases its Resolution must contain besides the spec and branch)
+ISSUE_RESOLUTIONS = [
+    (
+        ".writ/issues/bugs/2026-10-19-prototype-visual-preview-cursor-only.md",
+        (
+            "`canvas-preview`",
+            "`adapters/cursor.md`",
+            "`adapters/claude-code.md`",
+            "`adapters/codex.md`",
+            "`adapters/openclaw.md`",
+            DEGRADATION_CLAUSE,
+        ),
+    ),
+    (
+        ".writ/issues/bugs/2026-10-19-design-command-name-collision.md",
+        (
+            "`/writ-design`",
+            "Removed: %s" % OLD_FILE,
+            "Stale (no longer shipped, locally modified — kept): %s" % OLD_FILE,
+            "`scripts/tests/test_install_update_writ_design.sh`",
+            "live Claude Code session",
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "rel, phrases", ISSUE_RESOLUTIONS, ids=[Path(r).stem for r, _ in ISSUE_RESOLUTIONS])
+def test_issue_resolution(rel, phrases):
+    """AC-3.5: the origin issue's last section is `## Resolution`; it names
+    the date, this spec, the lane branch, and the fix; the issue's
+    `spec_ref` points at this spec."""
+    lines = read(rel).splitlines()
+    assert lines.count("## Resolution") == 1, "%s: expected one '## Resolution' line" % rel
+    body = lines[lines.index("## Resolution") + 1:]
+    later = [line for line in body if re.match(r"^#{1,2} ", line)]
+    assert later == [], "%s: Resolution is not the last section: %s" % (rel, later)
+    text = "\n".join(body)
+    for phrase in ("2026-10-21", "`%s`" % SPEC_SLUG, "`%s`" % LANE_BRANCH) + phrases:
+        assert phrase in text, "%s: Resolution lacks %r" % (rel, phrase)
+
+    refs = [line for line in lines if line.startswith("> **spec_ref:**")]
+    assert refs == ["> **spec_ref:** %s" % SPEC_DIR], "%s: %s" % (rel, refs)

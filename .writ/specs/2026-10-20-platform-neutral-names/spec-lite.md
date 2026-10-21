@@ -51,7 +51,7 @@ See spec.md → ## Business Rules (Expanded) and sub-specs/technical-spec.md →
 - Commands name capabilities; adapters name tools.
 - Rename changes names only: no mode, flag, or output change. No `design` alias.
 - Generated files are regenerated, never hand-edited.
-- Gate record list = contract paths + this spec folder + parity spec folder + three named dated snapshots. Native refs must read "native `/design`".
+- Gate record list = contract paths with all of `.writ/specs/` (DEV-004) + `.writ/context.md` (DEV-006) + three named dated snapshots. Native refs must read "native `/design`".
 - Never run `install.sh`/`update.sh` against the Writ repo; temp dirs only.
 
 **Experience Design:**
