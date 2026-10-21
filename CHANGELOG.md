@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.43.0] - 2026-10-21
+
+**Updates keep your files, Claude Code installs carry the Prime Directive, and `/design` is now `/writ-design`.** This is Phase 13, Subtract and Repair. It fixes every defect a full comparison of Writ against pstack turned up, and removes what no longer earned its place.
+
+### Breaking Changes
+- **`/design` is renamed `/writ-design`.** Claude Code now ships its own `/design`. Writ's command keeps its modes and flags under the new name, and the two stay separate commands; neither delegates to the other.
+  - Updating installs `commands/writ-design.md`.
+  - An unmodified `design.md` is removed (`🗑  Removed: commands/design.md`).
+  - A modified copy is kept, with a warning on every run, until you delete it. Move your edits into `writ-design.md` first.
+  - Two cases leave an old `design.md` in place without a message, so delete it by hand: the manifest never tracked it, or the install predates this release and its recorded version is not in upstream history.
+  - Notes or custom commands of your own that say `/design` need the new name. ([spec](.writ/specs/2026-10-20-platform-neutral-names/spec.md))
+
+### Fixed
+- **Updates no longer delete files you wrote.** Install and update now record baselines only for files Writ ships. Before this, the first update could delete a project's own files, such as `.writ/docs/tech-stack.md` from `/initialize`, a script under `scripts/`, or a command you added.
+- **Updates no longer overwrite files you customized.** A customized file keeps its previous baseline, so a later upstream change is preserved instead of silently replacing your edits.
+- **A modified file Writ no longer ships is kept**, with a warning on every update. It used to be deleted on the second run.
+- **Older installs are repaired on their first update.** A manifest written by an older version has its baselines re-derived from the version it records.
+- The Codex `.codex/config.toml` baseline survives update. Stale Codex skills are removed from `.agents/skills/`, where they actually live.
+- **Claude Code installs carry the Prime Directive.** `system-instructions.md` installs to `.claude/`, and the Writ block in `CLAUDE.md` imports it. ([spec](.writ/specs/2026-10-20-claude-code-parity/spec.md))
+- **Your `CLAUDE.md` stays yours.** `uninstall.sh --platform claude` removes only the Writ block and keeps every other byte; it used to delete the whole file. `/reinstall-writ` and the adapter's manual install step merge between markers instead of overwriting.
+- `adapters/claude-code.md` no longer documents `/implement-story --all`, agent teams, or a nonexistent `SubagentCompleted` hook.
+- `/prototype` no longer names a Cursor-only tool. It names a `canvas-preview` capability, and each adapter maps it and says what happens when the platform has no renderer.
+
+### Changed
+- The Claude Code `CLAUDE.md` block is generated from the command registry, so it always lists every command.
+- Claude Code agents are generated from the canonical `agents/`, so they carry the same scope rules, iteration caps, and verdicts as the other platforms. ([spec](.writ/specs/2026-10-20-claude-agent-generator/spec.md))
+- `/create-spec` is shorter: 54,264 bytes down to 38,562. Coaching was removed and every rule was kept; the spec's cut log maps each cut.
+- Shipped commands no longer link Writ's own ADRs, archived specs, or research, which do not exist in your project.
+- `/ship`'s description says what it does: it opens a PR.
+
+### Removed
+- The five `*.lean.md` command variants and the `WRIT_HARNESS_LEAN` flag. They came from an experiment with a null result. Update removes unmodified copies. ([spec](.writ/specs/2026-10-20-harness-cuts/spec.md))
+- `recommend-state.py` and `recommended-delivery-state-format.md` no longer ship. The dormant staging design stays in the Writ repository. Update removes unmodified copies.
+- The `(no-op until ADR-025 Story 1)` lines. ADR-030 retires friction signals; `/retro`'s transcript review covers their purpose.
+
+### Internal
+- **ADR-030** sets the new posture: Writ owns the contract, the verifier, and the boundary, reached through one front door.
+  - Mission and roadmap are refreshed, Phases 13–16 committed, Phase 13 implemented pending UAT.
+  - Research: the pstack comparison and the `/prototype` exploration study.
+- CI runs `pytest` on Python 3.9 and the bash tests beside `eval.sh`. ([spec](.writ/specs/2026-10-20-ci-and-update-integrity/spec.md))
+- New eval checks:
+  - `shipped-refs`
+  - `command-structure`, which converts prose pins. Command-file literal pins in `eval.sh` fell from 207 to 144. ([spec](.writ/specs/2026-10-20-shipped-command-hygiene/spec.md))
+  - `claude-md`
+  - the generated-agents check
+- Five UAT plans (176 scenarios), the Phase 13 leanness audit, two knowledge lessons, and issues for findings outside Phase 13's scope.
+
 ## [0.42.0] - 2026-10-20
 
 **Shipped scripts follow one agent contract.** Every script an installed project receives prints either one JSON document or a `pass` / `fail` / `unverifiable` line, and a test fails when a script breaks that contract. `/prototype` now explores a few drafts before it builds.
