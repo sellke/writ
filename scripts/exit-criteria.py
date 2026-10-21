@@ -197,8 +197,8 @@ EXIT_CODES = {"met": 0, "unmet": 1, "impossible": 2}
 #
 # scripts/phase-state.py, scripts/spec-status.py, and scripts/story-deps.py
 # all have filenames that cannot be `import`ed normally; each is loaded by
-# path, deferred to first use, mirroring scripts/recommend-state.py's
-# existing `_story_deps()` shim -- the house pattern for this exact problem.
+# path, deferred to first use -- the house pattern for loading a hyphenated
+# script by path.
 
 _phase_state_module: Any = None
 _spec_status_module: Any = None

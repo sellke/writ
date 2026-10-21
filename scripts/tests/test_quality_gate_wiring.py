@@ -436,11 +436,6 @@ class Gate2ArchLintTests(unittest.TestCase):
         self.assertNotIn("Gate 2", skips)
         self.assertIn("Gate 2 (lint + build smoke)", keeps)
 
-    def test_lean_sibling_is_untouched(self) -> None:
-        """AC-3.5 (spec Business Rule 7)"""
-        lean = read(REPO_ROOT / "commands" / "implement-story.lean.md")
-        self.assertNotIn("arch-lint", lean)
-
 
 if __name__ == "__main__":
     unittest.main()

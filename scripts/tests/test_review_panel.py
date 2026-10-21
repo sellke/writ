@@ -685,7 +685,6 @@ class TallyMutationTests(unittest.TestCase):
 # --------------------------------------------------------------------------
 
 STORY_CMD = "commands/implement-story.md"
-LEAN_CMD = "commands/implement-story.lean.md"
 PANEL_OPENER = "**Review panel (opt-in).**"
 
 
@@ -708,26 +707,14 @@ def _gate3(rel: str) -> str:
 class Gate3PanelPlacementTests(unittest.TestCase):
     """One inline paragraph, placed in Gate 3, no heading or spawn marker. [AC-3.1]"""
 
-    def test_each_command_carries_exactly_one_opener(self):
-        for rel in (STORY_CMD, LEAN_CMD):
-            self.assertEqual(_read(rel).count(PANEL_OPENER), 1, rel)
+    def test_command_carries_exactly_one_opener(self):
+        self.assertEqual(_read(STORY_CMD).count(PANEL_OPENER), 1)
 
     def test_default_paragraph_directly_follows_the_risk_route(self):
         paras = _paragraphs(_gate3(STORY_CMD))
         at = next(i for i, p in enumerate(paras) if p.startswith(PANEL_OPENER))
         self.assertTrue(paras[at - 1].startswith("**Risk route:**"))
         self.assertTrue(paras[at + 1].startswith("**`--full-pipeline`:**"))
-
-    def test_lean_paragraph_sits_at_the_matching_position(self):
-        # The lean twin carries no Risk route paragraph; the panel takes its
-        # slot between the default-spawn line and the --full-pipeline hatch.
-        paras = _paragraphs(_gate3(LEAN_CMD))
-        at = next(i for i, p in enumerate(paras) if p.startswith(PANEL_OPENER))
-        self.assertTrue(paras[at - 1].startswith("Default spawn is `evaluator-agent`"))
-        self.assertTrue(paras[at + 1].startswith("**`--full-pipeline`:**"))
-
-    def test_both_commands_carry_the_same_paragraph(self):
-        self.assertEqual(_panel_paragraph(STORY_CMD), _panel_paragraph(LEAN_CMD))
 
     def test_paragraph_wording_follows_the_technical_spec(self):
         para = _panel_paragraph(STORY_CMD)
@@ -743,22 +730,20 @@ class Gate3PanelPlacementTests(unittest.TestCase):
             self.assertIn(phrase, para)
 
     def test_no_heading_spawn_marker_or_gates_entry_is_added(self):
-        for rel in (STORY_CMD, LEAN_CMD):
-            para = _panel_paragraph(rel)
-            self.assertNotIn("\n", para)
-            self.assertNotIn("Task(", para)
-            frontmatter = _read(rel).split("\n---\n", 1)[0]
-            self.assertNotIn("panel", frontmatter.lower(), rel)
+        para = _panel_paragraph(STORY_CMD)
+        self.assertNotIn("\n", para)
+        self.assertNotIn("Task(", para)
+        frontmatter = _read(STORY_CMD).split("\n---\n", 1)[0]
+        self.assertNotIn("panel", frontmatter.lower())
 
     def test_spawn_cap_still_passes(self):
-        for rel in (STORY_CMD, LEAN_CMD):
-            proc = subprocess.run(
-                [sys.executable, str(REPO_ROOT / "scripts" / "spawn-cap.py"), "check",
-                 "--command", str(REPO_ROOT / rel), "--repo", str(REPO_ROOT)],
-                capture_output=True, text=True,
-            )
-            self.assertEqual(proc.returncode, 0, proc.stdout)
-            self.assertEqual(proc.stdout.splitlines()[0], "pass")
+        proc = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / "spawn-cap.py"), "check",
+             "--command", str(REPO_ROOT / STORY_CMD), "--repo", str(REPO_ROOT)],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout)
+        self.assertEqual(proc.stdout.splitlines()[0], "pass")
 
 
 class Gate3PanelCombinationTests(unittest.TestCase):
@@ -770,10 +755,9 @@ class Gate3PanelCombinationTests(unittest.TestCase):
         self.assertIn("one loop increment even if the agent also failed", para)
         self.assertIn("on PAUSE, Gate 3.5 lists the block lines and accept still recodes", para)
         self.assertIn("under `--review-only` it ends the run", para)
-        for rel in (STORY_CMD, LEAN_CMD):
-            gate35 = _read(rel).split("#### Gate 3.5:", 1)[1].split("#### Gate 4:", 1)[0]
-            self.assertIn("with a Gate 3 panel `block`, list its lines, and accept still recodes",
-                          gate35, rel)
+        gate35 = _read(STORY_CMD).split("#### Gate 3.5:", 1)[1].split("#### Gate 4:", 1)[0]
+        self.assertIn("with a Gate 3 panel `block`, list its lines, and accept still recodes",
+                      gate35)
 
     def test_every_other_verdict_prints_and_continues(self):
         self.assertIn(
@@ -803,33 +787,29 @@ class Gate3PanelCombinationTests(unittest.TestCase):
 class InvocationAndReportTests(unittest.TestCase):
     """The `--panel` row, the `--quick` conflict, item 8, the no-config path. [AC-3.3]"""
 
-    def test_panel_row_in_both_tables(self):
-        for rel in (STORY_CMD, LEAN_CMD):
-            rows = [ln for ln in _read(rel).splitlines()
-                    if ln.startswith("| `/implement-story story-3 --panel` |")]
-            self.assertEqual(len(rows), 1, rel)
-            self.assertIn("regardless of route (needs the config line)", rows[0])
+    def test_panel_row_in_the_invocation_table(self):
+        rows = [ln for ln in _read(STORY_CMD).splitlines()
+                if ln.startswith("| `/implement-story story-3 --panel` |")]
+        self.assertEqual(len(rows), 1)
+        self.assertIn("regardless of route (needs the config line)", rows[0])
 
     def test_quick_conflict_is_a_usage_error_before_any_gate(self):
         self.assertIn(
             "`--panel` conflicts with `--quick`: on a conflict, stop with a usage "
             "error before any gate", _read(STORY_CMD),
         )
-        self.assertIn("with `--quick`, a usage error before any gate", _read(LEAN_CMD))
 
     def test_report_names_the_panel_lines(self):
         self.assertIn("the `gate3-route:`, `review-panel:`, and `arch-lint:` lines",
                       _read(STORY_CMD))
-        self.assertIn("drift summary, the `review-panel:` lines", _read(LEAN_CMD))
 
     def test_no_config_line_runs_no_new_step(self):
-        for rel in (STORY_CMD, LEAN_CMD):
-            para = _panel_paragraph(rel)
-            self.assertTrue(para.startswith(
-                PANEL_OPENER + " Only with a `- **Review Panel:**` line in `.writ/config.md`:"
-            ))
-            gate3 = _gate3(rel)
-            self.assertEqual(gate3.count("review-panel.py"), para.count("review-panel.py"))
+        para = _panel_paragraph(STORY_CMD)
+        self.assertTrue(para.startswith(
+            PANEL_OPENER + " Only with a `- **Review Panel:**` line in `.writ/config.md`:"
+        ))
+        gate3 = _gate3(STORY_CMD)
+        self.assertEqual(gate3.count("review-panel.py"), para.count("review-panel.py"))
         with TemporaryDirectory() as tmp:
             code, out = _run("status", "--repo", str(_repo(Path(tmp), None)),
                              "--origin", ORIGIN, "--platform", "cursor")
@@ -847,7 +827,7 @@ class EvalPinMutationTests(unittest.TestCase):
 
     def _root(self, tmp: str) -> Path:
         root = Path(tmp)
-        for rel in ("scripts/eval.sh", "scripts/review-panel.py", STORY_CMD, LEAN_CMD,
+        for rel in ("scripts/eval.sh", "scripts/review-panel.py", STORY_CMD,
                     *("adapters/%s.md" % name for name in ADAPTERS)):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(REPO_ROOT / rel, root / rel)
@@ -930,21 +910,15 @@ class EvalPinMutationTests(unittest.TestCase):
             ("| `/implement-story story-3 --panel` |",
              "%s Invocation table must carry the --panel row."),
         )
-        for rel in (STORY_CMD, LEAN_CMD):
-            for literal, message in pins:
-                with self.subTest(file=rel, pin=literal):
-                    self._assert_bites(lambda root: self._cut(root / rel, literal),
-                                       message % rel)
+        for literal, message in pins:
+            with self.subTest(pin=literal):
+                self._assert_bites(lambda root: self._cut(root / STORY_CMD, literal),
+                                   message % STORY_CMD)
 
-    def test_report_entry_pins_bite(self):
-        for rel, literal, message in (
-            (STORY_CMD, " `review-panel:`,",
-             "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."),
-            (LEAN_CMD, " the `review-panel:` lines,",
-             "implement-story.lean.md Step 4 report must name the review-panel: lines."),
-        ):
-            with self.subTest(file=rel):
-                self._assert_bites(lambda root: self._cut(root / rel, literal), message)
+    def test_report_entry_pin_bites(self):
+        self._assert_bites(
+            lambda root: self._cut(root / STORY_CMD, " `review-panel:`,"),
+            "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:.")
 
     def test_adapter_row_pins_bite(self):
         for name, label, message in (

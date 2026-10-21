@@ -259,9 +259,8 @@ def validate_graph(graph: dict[str, list[str]]) -> dict[str, Any]:
 
     Structural checks (self-reference, duplicate-reference, missing
     reference) and the cycle/batch computation are independent of how the
-    graph was built, so callers that already have their own parsed
-    dependency map — `recommend-state.py`'s `validate_dag()` — can reuse
-    this directly instead of re-reading story files from disk.
+    graph was built, so callers that already hold a parsed dependency map
+    can reuse this directly instead of re-reading story files from disk.
     """
     known = set(graph)
     for story in sorted(graph, key=story_number):

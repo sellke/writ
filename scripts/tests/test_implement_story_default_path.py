@@ -225,9 +225,11 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("never on ABORT", gate0)
         self.assertIn("ADR-024", gate0)
         self.assertIn("⚠️ DEGRADED", gate0)
-        self.assertIn("escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=", gate0)
-        self.assertIn("(no-op until ADR-025 Story 1)", gate0)
-        self.assertIn("The line has no sink today", gate0)
+        # 2026-10-20-harness-cuts Story 3 (AC-3.1): the no-op emit and its
+        # sink sentence are gone; the iteration accounting stays.
+        self.assertNotIn("(no-op until ADR-025 Story 1)", gate0)
+        self.assertNotIn("The line has no sink today", gate0)
+        self.assertNotIn("escalated(agent=architecture-check-agent", gate0)
         self.assertIn(PAIR_COUNTS_ONCE, gate0)
         default_agents = _default_agent_markers(gate0)
         self.assertEqual(default_agents, [], default_agents)
@@ -305,15 +307,6 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
 
 class BehavioralVerificationContractTests(unittest.TestCase):
     """2026-10-01-behavioral-verification Story 4."""
-
-    def test_lean_gate_4_5_matches_default(self) -> None:
-        """AC-4.5: the lean twin carries the same Gate 4.5 behavior."""
-        default = COMMAND_PATH.read_text(encoding="utf-8")
-        lean = (REPO_ROOT / "commands" / "implement-story.lean.md").read_text(encoding="utf-8")
-        heading = "#### Gate 4.5: Behavioral Verification"
-        self.assertEqual(_section(lean, heading, "#### Gate 5:"),
-                         _section(default, heading, "#### Gate 5:"))
-        self.assertIn("  - id: gate4_5_behavior\n    script: scripts/app-verify.py\n", lean)
 
     def test_coding_agent_writes_checks_it_never_grades(self) -> None:
         """AC-4.4: one rule; the check's exit code is the verdict."""

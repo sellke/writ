@@ -10,6 +10,8 @@ amendment that leaves ADR-029 rules 1-7 untouched.
 The shipped set comes from `is_shippable_script` in `scripts/install.sh`,
 never from a list kept here. The six dev-only names below are subtracted
 so this file passes both before and after the ship filter excludes them.
+`recommend-state.py` joined them in Story 4 of `2026-10-20-harness-cuts`
+(AC-4.4): it holds ADR-013's dormant staging reducers and is not installed.
 
 Run: uv run pytest scripts/tests/test_agent_cli_contract_doc.py
 """
@@ -33,9 +35,9 @@ DEV_ONLY = {
     "pipeline-baseline.py",
     "measure-invocation.py",
     "harness-cost.py",
-    "lean-decision.py",
     "prune-ledger.py",
     "spawn-cap.py",
+    "recommend-state.py",
 }
 SECTIONS = (
     "Scope",

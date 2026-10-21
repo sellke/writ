@@ -594,20 +594,23 @@ KNOWN_OVER_BUDGET = {
     # already proves is sufficient; the residual is the matrix itself.
     # Acknowledged, not exempted: this file is the tree's worst violator and
     # wants a real reduction pass, which is not this change.
-    "commands/create-spec.md": 29304,
+    # 2026-10-20 (2026-10-20-harness-cuts Story 3): 29304 -> 28733; Step 2.6a no-op emit removed.
+    "commands/create-spec.md": 28733,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
     # for the conditional /verify-spec --product line in the Step 4.2 report.
     "commands/implement-phase.md": 10361,
     "commands/release.md": 7655,
-    "commands/ship.md": 4030,
+    # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
+    "commands/ship.md": 4023,
     # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
     # Gate 4.5 rewritten as behavioral verification, old Results ladder and an
     # adjacent Gate 4 clause trimmed to offset (-7 bytes net).
     # 2026-10-01 (2026-10-01-cross-family-review-panel Story 3): 11103 -> 12013;
     # opt-in Gate 3 review panel, duplicated Gate 3 prose trimmed to offset.
-    "commands/implement-story.md": 12013,
+    # 2026-10-20 (2026-10-20-harness-cuts Story 3): 12013 -> 11533; Gate 0 no-op emit removed.
+    "commands/implement-story.md": 11533,
 }
 
 

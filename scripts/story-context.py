@@ -6,7 +6,7 @@ and currently *run* by LLM judgment at `commands/implement-story.md` lines
 prose at it and deletes the parsing steps (not this story's job).
 
 Subcommand:
-  assemble --story PATH [--budget-bytes N] [--state-dir DIR]
+  assemble --story PATH [--budget-bytes N]
              Parse one story file's `## Context for Agents` section, resolve
              every bracketed and extended reference against the story's spec
              folder, and emit a bounded JSON payload.
@@ -24,9 +24,6 @@ becomes `true`, and a warning names actual and budget bytes. Omitting the
 flag (`budget_bytes=None`) remains unbounded — Story 4, not this script,
 decides whether/when a caller passes the derived constant.
 
-With `WRIT_HARNESS_LEAN=1`, an over-budget payload also spills its full text
-to `<state-dir>/story-context-spill-<story-id>.md` and reports it as `spill`.
-
 ```json
 {
   "fetched_context": { "error_map_rows": "...", "business_rules": "..." },
@@ -41,7 +38,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 from pathlib import Path
@@ -97,13 +93,6 @@ CATEGORY_ORDER: list[str] = list(CATEGORIES)
 #   fixing that bug later doesn't retroactively invalidate this constant;
 #   re-run scripts/sweep-story-context-bytes.py once it's fixed to confirm.
 FETCHED_CONTEXT_BUDGET_BYTES = 21000
-
-# --- flagged-harness-cuts Story 3: spill instead of discard ----------------
-# Same flag and semantics as measure-invocation.py (not imported, to keep this
-# script self-contained): only the literal "1" is on.
-LEAN_ENV = "WRIT_HARNESS_LEAN"
-DEFAULT_STATE_DIR = Path(__file__).resolve().parent.parent / ".writ" / "state"
-SPILL_TAIL_BYTES = 500
 
 # Canonical arrow for extended references. `>>`/`>` leniency lived only in
 # the eval-leanness.py regex being replaced (an implementation accident, not
@@ -514,92 +503,28 @@ def enforce_budget(
     return kept_fetched, kept_bytes, True
 
 
-def _harness_lean(warnings: list[str]) -> bool:
-    """True only when WRIT_HARNESS_LEAN is exactly "1". Any other set value,
-    empty included, is treated as unset and warned about once."""
-    value = os.environ.get(LEAN_ENV)
-    if value is None or value == "1":
-        return value == "1"
-    warnings.append(
-        f"\u26a0\ufe0f {LEAN_ENV}={value!r} is not a recognized value; only `1` enables lean "
-        f"spill. Used the default truncation.")
-    return False
-
-
-def _spill(full: dict[str, str], path: Path) -> int:
-    """Write every category's pre-truncation text to `path` and return its
-    size. A short write raises, so the caller never reports a partial file."""
-    text = "".join(f"## {label}\n\n{full[key]}\n\n" for label, key in CATEGORIES.items() if key in full)
-    data = text.encode("utf-8")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    size = path.stat().st_size
-    if size != len(data):
-        raise OSError(f"short write: {size} of {len(data)} bytes")
-    return size
-
-
-def _tail_cut_category(
-    full: dict[str, str], fetched: dict[str, str], byte_counts: dict[str, int]
-) -> None:
-    """Replace the first cut category's inline value with the last
-    SPILL_TAIL_BYTES of its full text. The head is in the spill file; the
-    tail is what a prefix cut would otherwise hide. Later categories stay
-    dropped. The tail is bounded in bytes and UTF-8 safe (a leading partial
-    character is dropped), so `bytes.total` can exceed the budget by at most
-    SPILL_TAIL_BYTES."""
-    for key in CATEGORIES.values():
-        if key in full and fetched.get(key) != full[key]:
-            tail = full[key].encode("utf-8")[-SPILL_TAIL_BYTES:].decode("utf-8", errors="ignore")
-            fetched[key] = tail
-            byte_counts[key] = len(tail.encode("utf-8"))
-            return
-
-
 def _payload(
     fetched: dict[str, str],
     byte_counts: dict[str, int],
     warnings: list[str],
     budget_bytes: int | None = None,
-    spill_path: Path | None = None,
 ) -> dict[str, Any]:
     truncated = False
-    spill: dict[str, Any] | None = None
     if budget_bytes is not None:
-        lean = spill_path is not None and _harness_lean(warnings)
-        full = fetched
         actual_total = sum(byte_counts.values())
         fetched, byte_counts, truncated = enforce_budget(fetched, byte_counts, budget_bytes)
         if truncated:
             warnings.append(
                 f"\u26a0\ufe0f fetched_context truncated ({actual_total} of {budget_bytes} bytes)"
             )
-        if truncated and lean:
-            try:
-                spill = {"path": str(spill_path), "bytes": _spill(full, spill_path)}
-            except OSError as exc:
-                try:
-                    spill_path.unlink()
-                except OSError:
-                    pass
-                warnings.append(
-                    f"\u26a0\ufe0f {LEAN_ENV}=1 but the spill was not written to {spill_path}: "
-                    f"{type(exc).__name__}: {exc}. Inline payload is truncated."
-                )
-            else:
-                fetched, byte_counts = dict(fetched), dict(byte_counts)
-                _tail_cut_category(full, fetched, byte_counts)
     bytes_out = dict(byte_counts)
     bytes_out["total"] = sum(byte_counts.values())
-    payload: dict[str, Any] = {
+    return {
         "fetched_context": fetched,
         "warnings": warnings,
         "bytes": bytes_out,
         "truncated": truncated,
     }
-    if spill is not None:
-        payload["spill"] = spill
-    return payload
 
 
 def assemble(
@@ -610,8 +535,7 @@ def assemble(
     `budget_bytes`, when given, is enforced by `_payload()` via
     `enforce_budget()` (Story 3) — content strictly exceeding it is
     truncated by relevance order. `None` (the default) remains unbounded.
-    `state_dir` (default `DEFAULT_STATE_DIR`) is where a flag-on spill lands;
-    the story id in its filename is the story file's stem.
+    `state_dir` is accepted and ignored; it served the removed spill path.
     """
     warnings: list[str] = []
     fetched: dict[str, str] = {}
@@ -666,12 +590,12 @@ def assemble(
             fetched[key] = content
             byte_counts[key] = len(content.encode("utf-8"))
 
-    spill_path = (state_dir or DEFAULT_STATE_DIR) / f"story-context-spill-{story_path.stem}.md"
-    return _payload(fetched, byte_counts, warnings, budget_bytes, spill_path)
+    return _payload(fetched, byte_counts, warnings, budget_bytes)
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entrypoint: `assemble --story PATH [--budget-bytes N] [--state-dir DIR]`.
+    """CLI entrypoint: `assemble --story PATH [--budget-bytes N]`. A hidden
+    `--state-dir DIR` is accepted and ignored.
 
     The outer `except Exception` around the `assemble()` call is a second,
     broader degrade path on top of `assemble()`'s own internal handling: it
@@ -686,7 +610,9 @@ def main(argv: list[str] | None = None) -> int:
     p_asm = sub.add_parser("assemble", help="assemble bounded context for one story")
     p_asm.add_argument("--story", required=True, type=Path)
     p_asm.add_argument("--budget-bytes", type=int, default=None)
-    p_asm.add_argument("--state-dir", type=Path, default=None)
+    # Hidden no-op. It served the removed spill path; ADR-029 keeps a
+    # removed flag accepted so existing callers still parse.
+    p_asm.add_argument("--state-dir", type=Path, default=None, help=argparse.SUPPRESS)
 
     args = parser.parse_args(argv)
 

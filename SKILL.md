@@ -35,9 +35,9 @@ When a user requests any Writ command, read the corresponding command file and f
 
 ## Runtime Contract
 
-The recommended-delivery state contract at `.writ/docs/recommended-delivery-state-format.md` defines
-the resumable state and audit format for `--recommend` execution. Install, update,
-and unlink manage this file alongside its reducer.
+The recommended-delivery state contract at `.writ/docs/recommended-delivery-state-format.md` records
+ADR-013's dormant staging design. It stays in the Writ source repo with its reducer
+and is not installed.
 
 ## Available Commands
 

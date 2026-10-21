@@ -28,8 +28,7 @@ OLD_RELEASE_POINTER = ("consider `/plan-product --reconcile` if `mission-lite.md
                        "needs a matching update")
 OLD_R4 = "suggest `/verify-spec --product` to confirm"
 
-PINNED_FILES = ("verify-spec.md", "verify-spec.lean.md", "plan-product.md",
-                "implement-phase.md", "release.md")
+PINNED_FILES = ("verify-spec.md", "plan-product.md", "implement-phase.md", "release.md")
 
 
 def read(name: str) -> str:
@@ -68,7 +67,7 @@ class Story1BoundaryTests(unittest.TestCase):
 
     def test_direction_sentence_replaces_before_after_framing(self):
         """AC-1.1 — one direction sentence; no before/after or /assess-spec analogy."""
-        for name in ("verify-spec.md", "verify-spec.lean.md", "plan-product.md"):
+        for name in ("verify-spec.md", "plan-product.md"):
             text = read(name)
             self.assertIn(DIRECTION, text, name)
             for old in ("a lint you run before deciding anything",
@@ -107,14 +106,12 @@ class Story1BoundaryTests(unittest.TestCase):
         self.assertEqual(run_check_on({}), 0)
         mutations = [
             {"verify-spec.md": (DIRECTION, "")},
-            {"verify-spec.lean.md": (DIRECTION, "")},
             {"plan-product.md": (DIRECTION, "")},
             {"plan-product.md": ("suggest `/create-spec`", OLD_R4)},
         ]
-        for name in ("verify-spec.md", "verify-spec.lean.md"):
-            for old in ("a lint you run before deciding anything",
-                        "consistency lint (before)", "lints (before a decision)"):
-                mutations.append({name: (DIRECTION, DIRECTION + " " + old)})
+        for old in ("a lint you run before deciding anything",
+                    "consistency lint (before)", "lints (before a decision)"):
+            mutations.append({"verify-spec.md": (DIRECTION, DIRECTION + " " + old)})
         for edits in mutations:
             with self.subTest(edits=edits):
                 self.assertEqual(run_check_on(edits), 1)

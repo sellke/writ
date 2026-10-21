@@ -1230,12 +1230,13 @@ class ValidateTest(unittest.TestCase):
             self.assertEqual(code, 0, stdout + stderr)
             self.assertEqual(stdout.strip(), "")
 
-    def test_writ_block_with_or_without_harness_lean_validates(self) -> None:
-        # Story 5 of flagged-harness-cuts added `writ.harness_lean`; files
-        # written before it (the committed 09-06/09-07 baselines) lack it.
-        old = {"source": "overlay", "commit": _hex(9), "dirty": False,
-               "checkout_manifest_version": "e1a3fd1", "manifest_diff_count": 3}
-        for writ in (old, dict(old, harness_lean=True), dict(old, harness_lean=False)):
+    def test_legacy_harness_lean_in_the_writ_block_still_validates(self) -> None:
+        """Story 2 of `2026-10-20-harness-cuts` (AC-2.3): new records omit
+        `writ.harness_lean`. Records the removed lean arm wrote carry it as
+        true or false, and `validate` still accepts a record that has it."""
+        writ_block = {"source": "overlay", "commit": _hex(9), "dirty": False,
+                      "checkout_manifest_version": "e1a3fd1", "manifest_diff_count": 3}
+        for writ in (dict(writ_block, harness_lean=True), dict(writ_block, harness_lean=False)):
             doc = clean_baseline()
             for rec in doc["runs"]:
                 rec["writ"] = dict(writ)

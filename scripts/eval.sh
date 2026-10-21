@@ -579,10 +579,6 @@ check_manifest() {
     rel="$(relpath "$file")"
     base="$(basename "$file")"
     [[ "$base" == _*.md ]] && continue
-    # commands/<stem>.lean.md is the WRIT_HARNESS_LEAN=1 body for <stem>, not
-    # a command of its own, so it has no manifest entry. An orphan (no
-    # commands/<stem>.md beside it) is still checked.
-    [[ "$base" == *.lean.md && -f "$(dirname "$file")/${base%.lean.md}.md" ]] && continue
     if ! path_in_file "$rel" "$command_list"; then
       add_finding "$rel" "command file exists but is not listed in .writ/manifest.yaml." "Add the command to the manifest or rename it as an infra file."
     fi
@@ -1202,6 +1198,7 @@ PY
   scenario_output="$(mktemp)"
   python3 - "$helper" > "$scenario_output" <<'PY'
 import copy
+import hashlib
 import json
 import os
 import pathlib
@@ -1810,25 +1807,41 @@ try:
     command(["git", "add", "."], cwd=source)
     command(["git", "commit", "-m", "sandbox source"], cwd=source)
 
+    # ADR-013 staging is dev-only (2026-10-20-harness-cuts Story 4): the ship
+    # filters reject the helper and the state doc, so install ships neither,
+    # update removes an unmodified copy an older install left even though
+    # upstream still has it, and unlink leaves the helper symlink alone.
+    helper_rel = "scripts/recommend-state.py"
+    state_doc_rel = ".writ/docs/recommended-delivery-state-format.md"
+
+    def manifest_paths(manifest):
+        if not manifest.is_file():
+            return set()
+        return {
+            line.split("  ", 1)[1]
+            for line in manifest.read_text(encoding="utf-8").splitlines()
+            if line and not line.startswith("#") and "  " in line
+        }
+
     for platform in ("cursor", "claude", "codex"):
         beat(f"sandbox: {platform} (install/update/unlink)")
         target = workspace / f"install-{platform}"
         target.mkdir()
+        manifest = target / f".{platform}/.writ-manifest"
+        helper_dest = target / helper_rel
+        state_doc_dest = target / state_doc_rel
         dry = command(
             ["bash", str(project / "scripts/install.sh"), "--platform", platform, "--dry-run", "--no-commit"],
             cwd=target, check=False,
         )
-        helper_dest = target / "scripts/recommend-state.py"
-        state_doc_dest = target / ".writ/docs/recommended-delivery-state-format.md"
         emit(
-            f"install-{platform}-dry-run-helper",
-            dry.returncode == 0 and "scripts/recommend-state.py" in dry.stdout and not helper_dest.exists(),
-            dry.stdout + dry.stderr,
-        )
-        emit(
-            f"install-{platform}-dry-run-state-doc",
+            f"install-{platform}-dry-run-names-neither",
             dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in dry.stdout
+            and "recommend-state.py" not in dry.stdout
+            and "recommended-delivery-state-format.md" not in dry.stdout
+            and "scripts/spec-status.py" in dry.stdout
+            and ".writ/docs/agent-cli-contract.md" in dry.stdout
+            and not helper_dest.exists()
             and not state_doc_dest.exists(),
             dry.stdout + dry.stderr,
         )
@@ -1836,106 +1849,98 @@ try:
             ["bash", str(project / "scripts/install.sh"), "--platform", platform, "--no-commit"],
             cwd=target, check=False,
         )
-        invoked = command([sys.executable, str(helper_dest), "--help"], cwd=target, check=False) if helper_dest.exists() else installed
+        recorded = manifest_paths(manifest)
         emit(
-            f"install-{platform}-helper-executable",
-            installed.returncode == 0 and helper_dest.is_file() and invoked.returncode == 0,
-            installed.stdout + installed.stderr,
-        )
-        emit(
-            f"install-{platform}-state-doc",
+            f"install-{platform}-omits-helper",
             installed.returncode == 0
-            and state_doc_dest.is_file()
-            and state_doc_dest.read_bytes() == (project / ".writ/docs/recommended-delivery-state-format.md").read_bytes(),
+            and not helper_dest.exists()
+            and helper_rel not in recorded
+            and (target / "scripts/spec-status.py").is_file()
+            and "scripts/spec-status.py" in recorded,
             installed.stdout + installed.stderr,
         )
-        helper_dest.unlink()
-        state_doc_dest.unlink()
+        emit(
+            f"install-{platform}-omits-state-doc",
+            installed.returncode == 0
+            and not state_doc_dest.exists()
+            and state_doc_rel not in recorded
+            and (target / ".writ/docs/agent-cli-contract.md").is_file()
+            and ".writ/docs/agent-cli-contract.md" in recorded,
+            installed.stdout + installed.stderr,
+        )
+
+        # An older install left unmodified copies of both, with manifest lines.
+        shutil.copy2(helper, helper_dest)
+        shutil.copy2(project / state_doc_rel, state_doc_dest)
+        with manifest.open("a", encoding="utf-8") as handle:
+            for rel, path in ((helper_rel, helper_dest), (state_doc_rel, state_doc_dest)):
+                handle.write(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {rel}\n")
         env = dict(os.environ, WRIT_REPO=str(source))
         update_dry = subprocess.run(
             ["bash", str(project / "scripts/update.sh"), "--platform", platform, "--dry-run", "--no-commit"],
             cwd=target, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         emit(
-            f"update-{platform}-dry-run-helper",
-            update_dry.returncode == 0 and "scripts/recommend-state.py" in update_dry.stdout and not helper_dest.exists(),
-            update_dry.stdout + update_dry.stderr,
-        )
-        emit(
-            f"update-{platform}-dry-run-state-doc",
+            f"update-{platform}-dry-run-lists-stale",
             update_dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in update_dry.stdout
-            and not state_doc_dest.exists(),
+            and f"\U0001f5d1  {helper_rel}\n" in update_dry.stdout
+            and f"\U0001f5d1  {state_doc_rel}\n" in update_dry.stdout
+            and helper_dest.is_file()
+            and state_doc_dest.is_file(),
             update_dry.stdout + update_dry.stderr,
         )
         updated = subprocess.run(
             ["bash", str(project / "scripts/update.sh"), "--platform", platform, "--no-commit"],
             cwd=target, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
-        invoked = command([sys.executable, str(helper_dest), "--help"], cwd=target, check=False) if helper_dest.exists() else updated
+        recorded = manifest_paths(manifest)
         emit(
-            f"update-{platform}-restores-helper",
-            updated.returncode == 0 and helper_dest.is_file() and invoked.returncode == 0,
+            f"update-{platform}-removes-helper",
+            updated.returncode == 0
+            and not helper_dest.exists()
+            and helper_rel not in recorded
+            and f"Removed: {helper_rel}\n" in updated.stdout,
             updated.stdout + updated.stderr,
         )
         emit(
-            f"update-{platform}-restores-state-doc",
+            f"update-{platform}-removes-state-doc",
             updated.returncode == 0
-            and state_doc_dest.is_file()
-            and state_doc_dest.read_bytes() == (project / ".writ/docs/recommended-delivery-state-format.md").read_bytes(),
+            and not state_doc_dest.exists()
+            and state_doc_rel not in recorded
+            and f"Removed: {state_doc_rel}\n" in updated.stdout,
             updated.stdout + updated.stderr,
         )
 
         linked = workspace / f"unlink-{platform}"
         linked.mkdir()
-        platform_dir = linked / f".{platform if platform != 'claude' else 'claude'}"
+        platform_dir = linked / f".{platform}"
         platform_dir.mkdir()
         agent_source = project / ("codex/agents" if platform == "codex" else ("claude-code/agents" if platform == "claude" else "agents"))
         (platform_dir / "commands").symlink_to(project / "commands", target_is_directory=True)
         (platform_dir / "agents").symlink_to(agent_source, target_is_directory=True)
         (linked / "scripts").mkdir()
-        (linked / "scripts/recommend-state.py").symlink_to(helper)
-        (linked / ".writ/docs").mkdir(parents=True)
-        linked_state_doc = linked / ".writ/docs/recommended-delivery-state-format.md"
-        linked_state_doc.symlink_to(project / ".writ/docs/recommended-delivery-state-format.md")
+        linked_helper = linked / helper_rel
+        linked_helper.symlink_to(helper)
         if platform == "cursor":
             (platform_dir / "rules").mkdir()
             (platform_dir / "rules/writ.mdc").symlink_to(project / "cursor/writ.mdc")
             (platform_dir / "system-instructions.md").symlink_to(project / "system-instructions.md")
         elif platform == "claude":
             (linked / "CLAUDE.md").symlink_to(project / "claude-code/CLAUDE.md")
-        manifest = platform_dir / ".writ-manifest"
-        write(manifest, f"# mode: link\n# platform: {platform}\n# version: fixture\n# link_target: {project}\n")
-        unlink_dry = command(
-            ["bash", str(project / "scripts/unlink.sh"), "--platform", platform, "--dry-run", "--no-commit"],
-            cwd=linked, check=False,
-        )
-        emit(
-            f"unlink-{platform}-dry-run-helper",
-            unlink_dry.returncode == 0 and "scripts/recommend-state.py" in unlink_dry.stdout and (linked / "scripts/recommend-state.py").is_symlink(),
-            unlink_dry.stdout + unlink_dry.stderr,
-        )
-        emit(
-            f"unlink-{platform}-dry-run-state-doc",
-            unlink_dry.returncode == 0
-            and ".writ/docs/recommended-delivery-state-format.md" in unlink_dry.stdout
-            and linked_state_doc.is_symlink(),
-            unlink_dry.stdout + unlink_dry.stderr,
-        )
+        linked_manifest = platform_dir / ".writ-manifest"
+        write(linked_manifest, f"# mode: link\n# platform: {platform}\n# version: fixture\n# link_target: {project}\n")
         unlinked = command(
             ["bash", str(project / "scripts/unlink.sh"), "--platform", platform, "--no-commit"],
             cwd=linked, check=False,
         )
-        unlinked_helper = linked / "scripts/recommend-state.py"
-        invoked = command([sys.executable, str(unlinked_helper), "--help"], cwd=linked, check=False) if unlinked_helper.exists() else unlinked
         emit(
-            f"unlink-{platform}-copies-helper",
-            unlinked.returncode == 0 and unlinked_helper.is_file() and not unlinked_helper.is_symlink() and invoked.returncode == 0,
-            unlinked.stdout + unlinked.stderr,
-        )
-        emit(
-            f"unlink-{platform}-copies-state-doc",
-            unlinked.returncode == 0 and linked_state_doc.is_file() and not linked_state_doc.is_symlink(),
+            f"unlink-{platform}-skips-helper",
+            unlinked.returncode == 0
+            and "recommend-state.py" not in unlinked.stdout
+            and linked_helper.is_symlink()
+            and os.readlink(linked_helper) == str(helper)
+            and not (platform_dir / "commands").is_symlink()
+            and helper_rel not in manifest_paths(linked_manifest),
             unlinked.stdout + unlinked.stderr,
         )
 finally:
@@ -2537,10 +2542,10 @@ check_story_context() {
 }
 
 check_model_escalation() {
-  # ADR-024 escalate-once (model-delegation Story 4): the two floor-tier sites
-  # must state the one-attempt iteration accounting verbatim and emit the
-  # `escalated` line ADR-025 will record. ADR-025 must keep the `escalated(`
-  # tuple as its `detail` payload or update these pins in the same change.
+  # ADR-024 escalate-once (model-delegation Story 4): pins the escalate-once
+  # accounting at both floor-tier sites. Each must state the one-attempt
+  # iteration rule verbatim. The `escalated(...)` emit lines, which had no
+  # reader, were removed by 2026-10-20-harness-cuts Story 3.
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
   local implement_story="$PROJECT_ROOT/commands/implement-story.md"
   # Two per-file pins (Phase 11 Stage 1, Story 1): implement-story.md declares
@@ -2549,18 +2554,10 @@ check_model_escalation() {
   # without citing a bound the file does not declare.
   local implement_story_iteration_sentence='the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`'
   local create_spec_iteration_sentence='the floor attempt and its anchor re-run count as one attempt — there is no second regeneration'
-  local noop_prefix='(no-op until ADR-025 Story 1)'
-  local missing_sink='The line has no sink today'
 
   require_literal "$create_spec" "$create_spec_iteration_sentence" "create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim, without naming a loop bound the file does not declare (Business Rule 7)."
   forbid_literal "$create_spec" 'loop.max_iterations' "create-spec.md has no loop: frontmatter block and must not cite loop.max_iterations (assessment §2.4)."
   require_literal "$implement_story" "$implement_story_iteration_sentence" "implement-story.md Gate 0 must state the pair-counts-once iteration rule verbatim (Business Rule 7)."
-  require_literal "$create_spec" "$missing_sink" "create-spec.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
-  require_literal "$implement_story" "$missing_sink" "implement-story.md must say, beside its escalated line, that the line has no sink yet (assessment §2.4)."
-  require_literal "$create_spec" 'escalated(agent=user-story-generator, site=create-spec.2.6, origin=' "create-spec.md must emit the escalated line for the Step 2.6 story-validation site (site label is create-spec.2.6, never 2.6a)."
-  require_literal "$implement_story" 'escalated(agent=architecture-check-agent, site=implement-story.gate0, origin=' "implement-story.md must emit the escalated line for the Gate 0 ABORT site."
-  require_literal "$create_spec" "$noop_prefix" "create-spec.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
-  require_literal "$implement_story" "$noop_prefix" "implement-story.md must mark its escalated line as a no-op until ADR-025 Story 1 records it."
 }
 
 check_phase_lanes() {
@@ -4780,8 +4777,7 @@ check_review_panel() {
   local helper="$PROJECT_ROOT/scripts/review-panel.py"
   local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/review-panel"
   local story="$PROJECT_ROOT/commands/implement-story.md"
-  local lean="$PROJECT_ROOT/commands/implement-story.lean.md"
-  local output rc=0 file
+  local output rc=0
 
   if [ ! -f "$helper" ]; then
     add_finding "scripts/review-panel.py" "review-panel helper is missing." \
@@ -4813,13 +4809,10 @@ check_review_panel() {
       "A finding raised by one vendor is advisory: restore tally's consensus rule."
   fi
 
-  for file in "$story" "$lean"; do
-    require_literal "$file" '**Review panel (opt-in).**' "$(relpath "$file") Gate 3 must carry the opt-in review panel paragraph."
-    require_literal "$file" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$file") must make a panel block a Gate 3 FAIL."
-    require_literal "$file" '| `/implement-story story-3 --panel` |' "$(relpath "$file") Invocation table must carry the --panel row."
-  done
+  require_literal "$story" '**Review panel (opt-in).**' "$(relpath "$story") Gate 3 must carry the opt-in review panel paragraph."
+  require_literal "$story" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$story") must make a panel block a Gate 3 FAIL."
+  require_literal "$story" '| `/implement-story story-3 --panel` |' "$(relpath "$story") Invocation table must carry the --panel row."
   require_literal "$story" '`gate3-route:`, `review-panel:`' "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:."
-  require_literal "$lean" 'drift summary, the `review-panel:` lines' "implement-story.lean.md Step 4 report must name the review-panel: lines."
   require_literal "$PROJECT_ROOT/adapters/cursor.md" '**Review panel (ADR-028): available.**' "adapters/cursor.md must state the review panel is available."
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
@@ -4831,19 +4824,16 @@ check_product_check_direction() {
   # verification surfaces drift after implementation, /plan-product --reconcile
   # realigns, and no planning step points back to a verification step.
   local verify="$PROJECT_ROOT/commands/verify-spec.md"
-  local verify_lean="$PROJECT_ROOT/commands/verify-spec.lean.md"
   local plan="$PROJECT_ROOT/commands/plan-product.md"
   local direction='Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.'
   local file
 
-  for file in "$verify" "$verify_lean" "$plan"; do
+  for file in "$verify" "$plan"; do
     require_literal "$file" "$direction" "$(relpath "$file") must state the product-check direction sentence verbatim."
   done
-  for file in "$verify" "$verify_lean"; do
-    forbid_literal "$file" 'a lint you run before deciding anything' "$(relpath "$file") must not frame --product as a pre-decision lint."
-    forbid_literal "$file" 'consistency lint (before)' "$(relpath "$file") must not frame --product as running before --reconcile."
-    forbid_literal "$file" 'lints (before' "$(relpath "$file") must not frame --product as linting before --reconcile revises."
-  done
+  forbid_literal "$verify" 'a lint you run before deciding anything' "$(relpath "$verify") must not frame --product as a pre-decision lint."
+  forbid_literal "$verify" 'consistency lint (before)' "$(relpath "$verify") must not frame --product as running before --reconcile."
+  forbid_literal "$verify" 'lints (before' "$(relpath "$verify") must not frame --product as linting before --reconcile revises."
   forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
 
   local phase="$PROJECT_ROOT/commands/implement-phase.md"
