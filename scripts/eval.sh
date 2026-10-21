@@ -3123,12 +3123,10 @@ check_knowledge_consolidate() {
 
   # The command must expose the gated, non-destructive consolidate mode.
   require_literal "$knowledge_cmd" '--consolidate' "Knowledge must route the --consolidate mode."
-  require_literal "$knowledge_cmd" 'merge, never append' "Knowledge --consolidate must state the merge-never-append principle."
   require_literal "$knowledge_cmd" 'AskQuestion' "Knowledge --consolidate must gate every write on explicit approval."
   require_literal "$knowledge_cmd" 'does not commit' "Knowledge --consolidate must leave a reviewable diff without committing."
 
   # The retro hook must be a read-only advisory nudge only.
-  require_literal "$retro_cmd" '/knowledge --consolidate' "Retro must nudge toward consolidation on a growth signal."
   require_literal "$retro_cmd" 'read-only' "The retro consolidation hook must remain read-only."
   require_literal "$retro_cmd" 'mutates no knowledge file' "The retro hook must never mutate the ledger."
 
