@@ -915,11 +915,6 @@ class EvalPinMutationTests(unittest.TestCase):
                 self._assert_bites(lambda root: self._cut(root / STORY_CMD, literal),
                                    message % STORY_CMD)
 
-    def test_report_entry_pin_bites(self):
-        self._assert_bites(
-            lambda root: self._cut(root / STORY_CMD, " `review-panel:`,"),
-            "implement-story.md Step 4 report must name the review-panel: lines beside gate3-route:.")
-
     def test_adapter_row_pins_bite(self):
         for name, label, message in (
             ("cursor", "available.", "must state the review panel is available."),

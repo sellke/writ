@@ -12,12 +12,12 @@ loop:
   unit: "review_cycle"
   max_iterations: 3
   on_exhaustion: escalate
-  calibrated_against: "One shared counter across four increment sites - Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, Gate 4.5 script fail - not four separate budgets. Transcribes the existing prose cap in this file: 'Review loop: Max 3 iterations across review and Gate 4.5'. 42 'Iteration count' records across archived story What Was Built sections in .writ/specs/archive/: 39 at 1 iteration, 3 at 2, maximum ever observed = 2. A bound of 2 would sit at the observed maximum with zero headroom; 3 keeps one iteration and is the number already honored today. Evidence: strong - 42 real records."
+  calibrated_against: "One shared counter across four increment sites - Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, Gate 4.5 script fail - not four separate budgets. Transcribes the prose cap in commands/implement-story.md: 'Review loop: Max 3 iterations across review and Gate 4.5'. When this bound was set, no Writ story run needed more than 2; 3 leaves one iteration of headroom."
   nested:
     - unit: "testing_cycle"
       max_iterations: 2
       on_exhaustion: escalate
-      calibrated_against: "Transcribes the existing Gate 4 prose cap in this file: '2 fix iterations max (separate from the review loop's 3-iteration cap)'. No recorded run in .writ/specs/archive/ reports a testing-fix iteration above 1. Evidence: adequate - a faithful transcription, but the original derivation of the 2 is recorded nowhere, so do not read it as measured."
+      calibrated_against: "Transcribes the Gate 4 prose cap in commands/implement-story.md: '2 fix iterations max (separate from the review loop's 3-iteration cap)'. When this bound was set, no Writ story run needed a second testing fix. The original derivation of the 2 is not recorded, so do not read it as measured."
     - unit: "agent_self_fix"
       max_iterations: 3
       on_exhaustion: escalate

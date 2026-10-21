@@ -11,7 +11,7 @@
 - `scripts/eval-shipped-refs.py` + `check_shipped_refs`: four rules (numbered ADR link; dated archived-spec path, archive or old form; dated research path; `calibrated_against` naming `.writ/state/` or `.writ/specs/archive/` outside a glob). Self-test scenarios, PASS/FAIL TSV, `--root`.
 - Remove each link with its label; one plain sentence only where listed. Rewrite five `calibrated_against` values with a shipped path token or `no recorded run`.
 - Pin map: recipe in technical-spec.md; one row per instance; categories decide what may be removed.
-- Convert rows move to `scripts/eval-command-structure.py` (`heading`, `frontmatter`, `invocation`) run by `check_command_structure`.
+- Convert rows move to `scripts/eval-command-structure.py` (`heading`, `frontmatter`, `invocation`) run by `check_command_structure`. A convert row may map to more than one structural row when a bare-path pin is replaced by the specific calls the command must make.
 - `create-spec.md`: adopt lean-twin cuts that remove coaching; decline anything behavioral, pinned, or test-asserted.
 - Python 3.9 standard library. `eval-*` helpers are dev-only.
 
@@ -21,7 +21,7 @@
 - 12 `commands/*.md` — reference removals, `calibrated_against` rewrites (S1)
 - `pin-map.md`, `scripts/eval-command-structure.py`, `scripts/tests/test_eval_command_structure.py` — new (S2)
 - `scripts/tests/test_product_check_direction.py`, `test_review_panel.py` — mutation cases (S2)
-- `commands/create-spec.md`, `cut-log.md`, `scripts/tests/test_governor_enforcement.py` (S3)
+- `commands/create-spec.md`, `cut-log.md`, `scripts/tests/test_governor_enforcement.py` (S3, whose guard requires the create-spec value below both 29,304 and its Story 3 start value; S1 also repins it downward, forced by the exact-sum assertion)
 
 **Error Handling:**
 - Helper missing → run error, eval exit 2. Broken regex → self-test FAIL.
@@ -50,10 +50,12 @@ See spec.md → ## 📋 Business Rules and sub-specs/technical-spec.md.
 9. Bytes fall; overage repinned exactly, below start and below 29,304; every hunk maps to a log row `[AC-3.4, AC-3.5]`
 
 **Business Rules:**
-- Shipped = `commands/*.md` except `*.lean.md`, including `_preamble.md`.
+- Shipped = every `commands/*.md`, including `_preamble.md`; no name is skipped (install.sh ships them all after `2026-10-20-harness-cuts`).
 - Runtime paths, placeholders, and globs stay.
 - Safety categories never take `remove`; when unsure, keep.
+- A `structure` pin whose exact text an `eval-*.py` scenario run by the same check also asserts on the same file may be removed as a duplicate; the reason names the scenario.
 - Cuts remove coaching only; no behavior change; step numbers stay.
+- Declined cut-log rows may also use class `wording` for lean-twin rewordings that remove no coaching.
 
 **Experience Design:**
 - Entry: maintainer runs `bash scripts/eval.sh`.
@@ -74,7 +76,7 @@ See spec.md → ## 📋 Business Rules and sub-specs/technical-spec.md.
 **Shadow Paths to Verify:**
 - **Happy path:** clean tree → PASS with scenario counts.
 - **Nil input:** helper missing → run error, exit 2.
-- **Empty input:** `commands/` empty in a temp root → PASS, self-tests still run.
+- **Empty input:** no `commands/*.md` under `--root` → self-tests print, then the helper exits 2 and eval records a run error.
 - **Upstream error:** a rule regex matches nothing → self-test FAIL.
 
 **Edge Cases:**

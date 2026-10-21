@@ -407,8 +407,7 @@ After the branch **lands** on the base branch, attach a spec-level audit digest 
 the landed commit under the dedicated `refs/notes/writ` ref, so the review verdict,
 coverage, and drift for the spec are permanently recorded in git — on the surviving
 commit, never on a pre-merge story commit that a squash orphans. Full schema and
-rationale: [`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md)
-and [ADR-017](../.writ/decision-records/adr-017-git-notes-audit-channel.md).
+rationale: [`.writ/docs/git-notes-audit-format.md`](../.writ/docs/git-notes-audit-format.md).
 
 > **This step is strictly non-blocking.** Audit-note composition or attachment
 > failure never fails the ship. On any error, log `⚠️ audit note not attached —

@@ -13,7 +13,7 @@ loop:
   unit: "spec"
   max_iterations: 12
   on_exhaustion: halt_reported
-  calibrated_against: "Counts distinct specs within one phase - the counter resets at each phase boundary under --all, and a transient retry does not increment it. Observed runs: .writ/state/phase-execution-20260719-121255.json (Phase 9, specOrder length 3, every spec attempts=1, zero retries, zero quarantines); .writ/state/phase-execution-20260811-2030.json (Phase 10, specOrder length 5 - the largest phase with a surviving state file); roadmap Phase 7, 4 specs, roadmap-attested with no surviving state file. Largest observed = 5, bound is 2.4x. Evidence: thin - three runs, one of them without a state file, and .writ/state/ is gitignored so the sample can only shrink."
+  calibrated_against: "Counts distinct specs within one phase; the counter resets at each phase boundary under --all, and a transient retry does not increment it. Set from Writ's own phase runs: the largest had 5 specs, and 12 is 2.4 times that. Recalibrate against this project's .writ/state/phase-execution-*.json records once they exist."
   nested:
     - unit: "spec_attempt"
       max_iterations: 2
@@ -52,7 +52,7 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 
 ## Recommended Mode (`--recommend`)
 
-`/implement-phase --recommend` runs the phase as a complete end-to-end loop with no routine confirmations. It is the only command that autonomously chains spec authoring into implementation (see [ADR-013](../.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
+`/implement-phase --recommend` runs the phase as a complete end-to-end loop with no routine confirmations. It is the only command that autonomously chains spec authoring into implementation.
 
 - **Auto-author missing specs.** When unspecced features exist, the decomposition pre-pass (Step 1.2b) runs without its approval gate, and each proposed spec is created with `/create-spec --recommend` (autonomous, evidence-backed contract authoring) instead of the collaborative `/create-spec`. Record each authoring decision in that spec's `recommendation-log.md`.
 - **Auto-accept the execution plan.** The single Step 2.3 execution-plan confirmation is auto-accepted; the loop then runs exactly as in normal mode (isolated lanes → `/implement-spec` per spec → `/create-uat-plan`).
@@ -277,7 +277,7 @@ python3 scripts/exit-criteria.py check  --command implement-phase --state .writ/
 
 `progress` reports the current spec/lane, per-status spec counts, quarantine branches, each spec closed by decision with its reason, and each blocked spec with the cause that blocked it. `health` returns a **categorical** disposition (`Healthy` / `Warning` / `Attention`), never a score: missing or stale evidence degrades to `Warning` (never a silent pass), and `Attention` requires an affirmative current failure (eval findings, failing verification, unresolved material drift, or a `phase-state`/git mismatch). `exit-criteria.py check` is an independent, read-only re-derivation of `implement-phase.c1`–`c4` against the same state file (`met`/`unmet`/`impossible` overall, plus each criterion's own verdict and evidence) that Step 4.2 defers to rather than the run's own self-assessment. Carry all three into the completion report so the maintainer sees phase progress, production health, and the checker's verdict together with the evidence behind each. The same reducers back `/status`, so an interrupted phase reports identically on resume.
 
-Why this predicate check isn't delegated to the harness's `/goal` Stop hook: spec.md § [On Design Principle 4](../.writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria/spec.md#on-design-principle-4).
+This check does not use a harness `/goal` Stop hook. That hook exists on one platform and asks a model to judge a prose condition; `exit-criteria.py` evaluates predicates over files on disk.
 
 #### Step 4.2: The Honest Completion Report
 

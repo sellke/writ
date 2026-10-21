@@ -175,4 +175,4 @@ The `## What Was Built` record is retained under a Reverted banner rather than d
 
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
-- Resolver: `scripts/revert-resolve.py` · Technical spec: `.writ/specs/2026-07-18-logical-unit-revert/sub-specs/technical-spec.md`
+- Resolver: `scripts/revert-resolve.py`
