@@ -1,6 +1,7 @@
 # Story 2: Rename `/design` to `/writ-design` Across Every Reference
 
 > **Status:** Completed ✅
+> **Commit:** d36a2837ce7c918443f711077c5e312360583286
 > **Priority:** High
 > **Dependencies:** Story 1
 
