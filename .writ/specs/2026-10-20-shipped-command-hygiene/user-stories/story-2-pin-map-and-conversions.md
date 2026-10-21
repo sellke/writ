@@ -1,6 +1,7 @@
 # Story 2: Pin Map and Conversions
 
 > **Status:** Completed ✅
+> **Commit:** 882dac43713950d9e388789042f10d0a98dc65a7
 > **Priority:** High
 > **Dependencies:** Story 1
 
