@@ -94,3 +94,11 @@
 - **Reason:** Its expected set listed every source `.writ/docs/*.md`; once install stops recording the state doc the test would fail (Business Rule 11). Same class as DEV-002.
 - **Resolution:** Auto-amended
 - **Spec amendment:** spec-lite.md S4 Files in Scope line adds the test.
+
+#### [DEV-009] Guard grep excludes all of `.writ/specs/` (phase integration fix)
+- **Severity:** Small
+- **Spec said:** Business Rule 2 lists individual spec folders to exclude; DEV-005 added two sibling Phase 13 folders.
+- **Implementation did:** After integration, the guard test failed on the phase branch: `.writ/specs/2026-10-20-ci-and-update-integrity/uat-plan.md`, committed on the phase branch while this lane ran, mentions an unshipped `*.lean.md` command. The orchestrator replaced the per-folder spec exclusions in `scripts/tests/test_harness_cuts.py` with `:!.writ/specs`.
+- **Reason:** Spec folders are planning and history records. Later UAT plans and drift logs in Phase 13 also name the lean files, so a per-folder list fails each time one lands. Product files, scripts, docs, adapters, and tests stay guarded. This supersedes DEV-005's per-folder list and resolves it.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Business Rule 2 carries a dated amendment.

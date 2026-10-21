@@ -15,6 +15,7 @@ Phase 13's specs remove the friction-signal no-op lines and the internal links i
 - `.writ/docs/model-tiers.md` lines ~101, ~134, and ~178 describe the `escalated` signal as "a no-op call until that spec ships". ADR-030 retired friction signals, so the spec will never ship.
 - About 23 lines in 10 commands name a Writ ADR as a bare label without a link, such as `(ADR-013)` and `Design principle (ADR-001)`. `2026-10-20-shipped-command-hygiene` removes only links, by contract.
 - `.writ/issues/improvements/2026-09-25-jev-typed-judgments-for-harness-gates.md` line ~35 cites `scripts/lean-decision.py` as an existing tool. `2026-10-20-harness-cuts` deletes it.
+- `.writ/issues/improvements/2026-10-12-script-install-location.md` line ~39 and `2026-10-12-test-integrity-shell-tests.md` line ~15 name lean tests that `2026-10-20-harness-cuts` deleted.
 - pytest tests and several `eval-*.py` helpers pin command prose directly. The shipped-command-hygiene pin map covers only `eval.sh` pins.
 
 ## Expected Outcome
