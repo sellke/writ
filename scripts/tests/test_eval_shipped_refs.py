@@ -6,7 +6,7 @@ link to Writ's own development history: ADR files, archived specs, research
 documents, or calibration records under `.writ/state/`. Runtime paths and
 placeholders for the user's own files stay. The helper runs against temp roots
 through `--root`; the eval-level test copies `eval.sh` and the helper into a
-temp `scripts/` the way `test_product_check_direction.py` does.
+temp `scripts/` the way `test_review_panel.py` does.
 """
 
 from __future__ import annotations

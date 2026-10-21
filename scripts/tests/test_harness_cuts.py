@@ -100,7 +100,9 @@ MIXED_TESTS = (
 )
 
 # eval.sh checks that pinned a lean file. Each now pins the default files only.
-EVAL_CHECKS = ("check_review_panel", "check_product_check_direction")
+# check_product_check_direction, the other one, was deleted by
+# 2026-10-20-shipped-command-hygiene Story 2 (its pins were wording only).
+EVAL_CHECKS = ("check_review_panel",)
 
 # Files Story 2 deletes.
 STORY2_DELETED = (

@@ -87,7 +87,6 @@ CHECKS=(
   spawn-cap
   app-verify
   review-panel
-  product-check-direction
 )
 
 TOTAL_FINDINGS=0
@@ -4897,30 +4896,6 @@ check_review_panel() {
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
   require_literal "$PROJECT_ROOT/adapters/openclaw.md" '**Review panel (ADR-028): *(unverified)*.**' "adapters/openclaw.md must mark the review panel unverified."
-}
-
-check_product_check_direction() {
-  # Spec 2026-10-01-product-check-direction. One direction of flow: product
-  # verification surfaces drift after implementation, /plan-product --reconcile
-  # realigns, and no planning step points back to a verification step.
-  local verify="$PROJECT_ROOT/commands/verify-spec.md"
-  local plan="$PROJECT_ROOT/commands/plan-product.md"
-  local direction='Verification surfaces drift after implementation; `/plan-product --reconcile` realigns the baseline when it does.'
-  local file
-
-  for file in "$verify" "$plan"; do
-    require_literal "$file" "$direction" "$(relpath "$file") must state the product-check direction sentence verbatim."
-  done
-  forbid_literal "$verify" 'a lint you run before deciding anything' "$(relpath "$verify") must not frame --product as a pre-decision lint."
-  forbid_literal "$verify" 'consistency lint (before)' "$(relpath "$verify") must not frame --product as running before --reconcile."
-  forbid_literal "$verify" 'lints (before' "$(relpath "$verify") must not frame --product as linting before --reconcile revises."
-  forbid_literal "$plan" 'suggest `/verify-spec --product` to confirm' "plan-product.md Step R4 must hand back to delivery, not point to a verification step."
-
-  local phase="$PROJECT_ROOT/commands/implement-phase.md"
-  local release="$PROJECT_ROOT/commands/release.md"
-  require_literal "$phase" 'run /verify-spec --product' "implement-phase.md Step 4.2 report must suggest /verify-spec --product where product docs fall behind."
-  require_literal "$release" 'run /verify-spec --product to check product docs against what shipped' "release.md Phase 5 Roadmap line must point to /verify-spec --product."
-  forbid_literal "$release" 'consider `/plan-product --reconcile` if `mission-lite.md` needs a matching update' "release.md Phase 5 must replace the reconcile pointer, not stack a second product line."
 }
 
 run_check() {
