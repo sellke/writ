@@ -2513,9 +2513,8 @@ check_roadmap_sync() {
   require_literal "$helper" '<!-- {spec_name} -->' "roadmap-sync.py must embed the invisible spec-name marker in every row it writes — a human-authored title alone does not reliably substring-match its own spec's dated folder name."
 
   # Pins release.md Step 3.1b's actual wired prose against silent regression,
-  # mirroring how Step 1.3c's archival hook is pinned above.
-  require_literal "$release_cmd" 'roadmap-sync.py check --roadmap .writ/product/roadmap.md --spec-name' "release.md Step 3.1b must check via the shared roadmap-sync.py CLI, not a second drifting heuristic."
-  require_literal "$release_cmd" 'roadmap-sync.py append-row --roadmap .writ/product/roadmap.md' "release.md Step 3.1b must append via the shared roadmap-sync.py CLI."
+  # mirroring how Step 1.3c's archival hook is pinned above. The check and
+  # append-row calls are invocation rows in scripts/eval-command-structure.py.
   require_literal "$release_cmd" '**never** touches `mission.md`' "release.md Step 3.1b must state it never touches mission.md's prose — the mechanical/judgment boundary is the whole point of this step."
   require_literal "$release_cmd" 'never fails the release' "release.md Step 3.1b must be documented as strictly non-blocking."
 }
