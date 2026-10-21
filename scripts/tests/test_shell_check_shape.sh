@@ -13,7 +13,7 @@
 # in a temp dir; nothing here writes inside the repo.
 #
 # lint-skill.sh, gen-skill.sh (--check, write, --dry-run) [AC-5.1]
-# check-agent-parity.sh [AC-5.2]
+# check-agent-parity.sh [AC-5.2; 2026-10-20-claude-agent-generator AC-3.1..AC-3.3]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -259,12 +259,27 @@ PARITY="$PAR_ROOT/scripts/check-agent-parity.sh"
 printf '# Coding\n' > "$PAR_ROOT/agents/coding-agent.md"
 printf '# Coder\n' > "$PAR_ROOT/claude-code/agents/writ-coder.md"
 printf 'name = "coding-agent"\n' > "$PAR_ROOT/codex/agents/coding-agent.toml"
-# visual-qa-agent is exempt from the claude-code/ check, not from codex/.
 printf '# Visual QA\n' > "$PAR_ROOT/agents/visual-qa-agent.md"
+printf '# Visual QA\n' > "$PAR_ROOT/claude-code/agents/writ-visual-qa.md"
 printf 'name = "visual-qa-agent"\n' > "$PAR_ROOT/codex/agents/visual-qa-agent.toml"
 
+# No generators beside the copied script: presence only, and the summary says
+# the content check was skipped. [AC-3.3]
 run bash "$PARITY"
 assert_shape "parity aligned" check-agent-parity pass 0
+printf '%s\n' "$OUT" | sed -n '$p' | grep -Fq '; content not checked: gen-claude-agents.py gen-codex-agent-tomls.py)' \
+  || fail "parity aligned, no generators: summary must note the skipped content check:
+$OUT"
+ok
+
+# visual-qa-agent is checked like every other agent: a missing writ-visual-qa.md is drift. [AC-3.1]
+rm "$PAR_ROOT/claude-code/agents/writ-visual-qa.md"
+run bash "$PARITY"
+assert_shape "parity, writ-visual-qa.md missing" check-agent-parity fail 1
+printf '%s\n' "$OUT" | grep -Fxq 'reason: agents/visual-qa-agent.md has no counterpart in claude-code/agents/' \
+  || fail "parity, writ-visual-qa.md missing: expected a claude-code/ reason for visual-qa-agent:
+$OUT"
+printf '# Visual QA\n' > "$PAR_ROOT/claude-code/agents/writ-visual-qa.md"
 ok
 
 rm "$PAR_ROOT/codex/agents/coding-agent.toml" "$PAR_ROOT/claude-code/agents/writ-coder.md"
@@ -289,6 +304,61 @@ ok
 
 run bash "$PARITY" --help
 assert_help "parity --help" check-agent-parity.sh
+ok
+
+# Content drift: both generators beside the script, real canonical agents, and
+# outputs generated in the temp tree. Each generator resolves agents/ and its
+# out-dir from its own location, so they must sit in <tmp>/scripts/. [AC-3.2]
+CON_ROOT="$WORK/parity-content"
+mkdir -p "$CON_ROOT/scripts"
+cp "$REPO/scripts/check-agent-parity.sh" "$REPO/scripts/gen-claude-agents.py" \
+  "$REPO/scripts/gen-codex-agent-tomls.py" "$CON_ROOT/scripts/"
+cp -R "$REPO/agents" "$CON_ROOT/agents"
+python3 "$CON_ROOT/scripts/gen-claude-agents.py" >/dev/null
+python3 "$CON_ROOT/scripts/gen-codex-agent-tomls.py" >/dev/null
+CPARITY="$CON_ROOT/scripts/check-agent-parity.sh"
+
+run bash "$CPARITY"
+assert_shape "parity content aligned" check-agent-parity pass 0
+case "$OUT" in
+  *"content not checked"*) fail "parity content aligned: both generators are present:
+$OUT" ;;
+esac
+ok
+
+cp "$CON_ROOT/agents/coding-agent.md" "$WORK/coding-agent.md.orig"
+printf '\nOne canonical line, not regenerated.\n' >> "$CON_ROOT/agents/coding-agent.md"
+run bash "$CPARITY"
+assert_shape "parity content stale" check-agent-parity fail 1
+printf '%s\n' "$OUT" | grep -Fxq 'reason: gen-claude-agents.py: stale coding-agent' \
+  || fail "parity content stale: expected 'reason: gen-claude-agents.py: stale coding-agent':
+$OUT"
+if printf '%s\n' "$OUT" | grep -q '^reason: agents/'; then
+  fail "parity content stale: presence is aligned, so no presence reason is expected:
+$OUT"
+fi
+cp "$WORK/coding-agent.md.orig" "$CON_ROOT/agents/coding-agent.md"
+ok
+
+# A generator whose --check crashes (rc >= 2) is drift, never a silent pass. [AC-3.3]
+cp "$CON_ROOT/scripts/gen-codex-agent-tomls.py" "$WORK/gen-codex.orig"
+printf 'import sys\nsys.exit(2)\n' > "$CON_ROOT/scripts/gen-codex-agent-tomls.py"
+run bash "$CPARITY"
+assert_shape "parity generator crash" check-agent-parity fail 1
+printf '%s\n' "$OUT" | grep -Fxq 'reason: gen-codex-agent-tomls.py --check exited 2' \
+  || fail "parity generator crash: expected 'reason: gen-codex-agent-tomls.py --check exited 2':
+$OUT"
+cp "$WORK/gen-codex.orig" "$CON_ROOT/scripts/gen-codex-agent-tomls.py"
+ok
+
+# One generator absent: the other still runs; the summary names the skipped one
+# and the verdict comes from the remaining reasons only. [AC-3.3]
+rm "$CON_ROOT/scripts/gen-claude-agents.py"
+run bash "$CPARITY"
+assert_shape "parity, claude generator absent" check-agent-parity pass 0
+printf '%s\n' "$OUT" | sed -n '$p' | grep -Fq '; content not checked: gen-claude-agents.py)' \
+  || fail "parity, claude generator absent: summary must name only gen-claude-agents.py:
+$OUT"
 ok
 
 # Parity drift warns and never blocks (/refresh-command), so the live repo is

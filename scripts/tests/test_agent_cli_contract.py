@@ -622,6 +622,8 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("docs-check.py", ["check", "--repo", "{repo}", "--changed",
                             "scripts/tests/test_agent_cli_contract_doc.py"], {}),
     Smoke("drift-format.py", ["check", "--story", "{tmp}/missing-story.md"], {}),
+    Smoke("gen-claude-agents.py", ["--agents-dir", "{repo}/agents", "--out-dir",
+                                   "{tmp}/claude-agents"], {}),
     Smoke("gen-codex-agent-tomls.py", ["--agents-dir", "{repo}/agents", "--out-dir",
                                        "{tmp}/codex-agents"], {}),
     Smoke("goal-emit.py", ["check", "--card", "{tmp}/missing-card.md", "--repo", "{tmp}"], {}),

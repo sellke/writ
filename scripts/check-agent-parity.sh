@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
-# Cross-check agents/*.md vs claude-code/agents and codex/agents counterparts.
+# Cross-check agents/*.md vs claude-code/agents and codex/agents counterparts,
+# then check the generated content with each generator's --check.
 #
 # Usage: bash scripts/check-agent-parity.sh [--help]
 #
 # Prints the agent CLI contract's check shape (.writ/docs/agent-cli-contract.md):
 #   line 1  pass | fail | unverifiable
-#   then    one `reason:` line per missing counterpart
+#   then    one `reason:` line per missing counterpart or content drift
 #   last    check-agent-parity: <verdict> (...)
+#
+# Content check: after the presence loop the script runs
+# `python3 scripts/<gen> --check` for gen-claude-agents.py and
+# gen-codex-agent-tomls.py. Each `reason: <kind> <stem>` line becomes the drift
+# reason `<gen>: <kind> <stem>`; an exit code of 2 or more becomes
+# `<gen> --check exited <rc>`. A generator absent beside this script (temp-copy
+# tests) is skipped, and the summary ends with `; content not checked: <gens>`.
 #
 # Exit 0 on pass or unverifiable (no agents/ folder), 1 on fail (drift),
 # 2 on a usage error (any argument but --help; usage on stderr). Drift is a
 # warning to /refresh-command --check-parity: the caller reads line 1 and
 # never blocks on `fail`.
-#
-# Exclusions (documented in commands/refresh-command.md):
-#   - visual-qa-agent has no claude-code/agents/writ-*.md peer by design.
 
 set -uo pipefail
 
@@ -22,8 +27,9 @@ usage() {
   echo "Usage: bash scripts/check-agent-parity.sh [--help]"
   echo ""
   echo "Warns when an agents/*.md file has no claude-code/agents/ or codex/agents/"
-  echo "counterpart. Line 1 is pass, fail, or unverifiable; one reason: line per"
-  echo "missing counterpart; a check-agent-parity: summary is last."
+  echo "counterpart, or when generated content drifts from gen-claude-agents.py or"
+  echo "gen-codex-agent-tomls.py --check. Line 1 is pass, fail, or unverifiable; one"
+  echo "reason: line per problem; a check-agent-parity: summary is last."
   echo "Exit 0 pass or unverifiable, 1 fail (drift), 2 usage error."
 }
 
@@ -56,17 +62,17 @@ claude_counterpart() {
     review-agent) echo "writ-reviewer.md" ;;
     testing-agent) echo "writ-tester.md" ;;
     user-story-generator) echo "writ-story-gen.md" ;;
+    visual-qa-agent) echo "writ-visual-qa.md" ;;
     *) echo "" ;;
   esac
 }
 
-claude_exempt() {
-  [[ "$1" == "visual-qa-agent" ]]
-}
-
 REASONS=""
 DRIFT=0
+MISSING=0
+CONTENT=0
 AGENTS=0
+SKIPPED=""
 drift() {
   REASONS="${REASONS}reason: $1"$'\n'
   DRIFT=$((DRIFT + 1))
@@ -80,25 +86,56 @@ for md in "$ROOT/agents"/*.md; do
 
   if [[ ! -f "$ROOT/codex/agents/${stem}.toml" ]]; then
     drift "agents/${stem}.md has no counterpart in codex/agents/"
-  fi
-
-  if claude_exempt "$stem"; then
-    continue
+    MISSING=$((MISSING + 1))
   fi
 
   cf=$(claude_counterpart "$stem")
   if [[ -z "$cf" || ! -f "$ROOT/claude-code/agents/$cf" ]]; then
     drift "agents/${stem}.md has no counterpart in claude-code/agents/"
+    MISSING=$((MISSING + 1))
   fi
 done
 
+for gen in gen-claude-agents.py gen-codex-agent-tomls.py; do
+  if [[ ! -f "$ROOT/scripts/$gen" ]]; then
+    SKIPPED="${SKIPPED:+$SKIPPED }$gen"
+    continue
+  fi
+  rc=0
+  found=0
+  out=$(python3 "$ROOT/scripts/$gen" --check 2>&1) || rc=$?
+  if [[ "$rc" -ge 2 ]]; then
+    drift "$gen --check exited $rc"
+    CONTENT=$((CONTENT + 1))
+    continue
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        drift "$gen: ${line#reason: }"
+        CONTENT=$((CONTENT + 1))
+        found=$((found + 1))
+        ;;
+    esac
+  done <<< "$out"
+  if [[ "$rc" -eq 1 && "$found" -eq 0 ]]; then
+    drift "$gen --check failed without a reason line"
+    CONTENT=$((CONTENT + 1))
+  fi
+done
+
+NOTE=""
+if [[ -n "$SKIPPED" ]]; then
+  NOTE="; content not checked: $SKIPPED"
+fi
+
 if [[ "$DRIFT" -eq 0 ]]; then
   echo "pass"
-  echo "check-agent-parity: pass ($AGENTS agents; agents/, claude-code/agents/, and codex/agents/ aligned, subject to documented exclusions)"
+  echo "check-agent-parity: pass ($AGENTS agents; agents/, claude-code/agents/, and codex/agents/ aligned${NOTE})"
   exit 0
 fi
 
 echo "fail"
 printf '%s' "$REASONS"
-echo "check-agent-parity: fail ($DRIFT missing counterpart(s) across $AGENTS agents)"
+echo "check-agent-parity: fail ($MISSING missing counterpart(s), $CONTENT content drift reason(s) across $AGENTS agents${NOTE})"
 exit 1
