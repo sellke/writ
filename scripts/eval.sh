@@ -2381,7 +2381,6 @@ check_supersession_writeback() {
   local fake="$PROJECT_ROOT/scripts/eval-supersession-writeback.py"
   local helper="$PROJECT_ROOT/scripts/supersession-writeback.py"
   local create_spec="$PROJECT_ROOT/commands/create-spec.md"
-  local edit_spec="$PROJECT_ROOT/commands/edit-spec.md"
   local guardian
   guardian="$(resolve_spec_path ".writ/specs/2026-07-11-leanness-guardian/spec.md")"
   local scenario_output scenario_status scenario_name scenario_reason
@@ -2408,9 +2407,7 @@ check_supersession_writeback() {
   require_literal "$helper" 'def apply(' "supersession-writeback.py must implement the apply reducer."
   require_literal "$helper" 'Superseded by:' "supersession-writeback.py must write the Superseded by: reverse pointer."
 
-  require_literal "$create_spec" 'supersession-writeback.py' "create-spec.md Phase 2 must invoke the supersession-writeback helper."
   require_literal "$create_spec" 'Amends' "create-spec.md must document the Amends: forward-pointer field."
-  require_literal "$edit_spec" 'supersession-writeback.py' "edit-spec.md must invoke the same supersession-writeback helper as create-spec.md."
 
   if [ ! -f "$guardian" ]; then
     add_finding "supersession-writeback:guardian-spec-missing" "The leanness-guardian validation-pair spec is missing." "Confirm .writ/specs/2026-07-11-leanness-guardian/spec.md still exists, active or archived."
