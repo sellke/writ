@@ -111,7 +111,8 @@ class HelperPositiveTests(unittest.TestCase):
 
 
 class HelperNegativeTests(unittest.TestCase):
-    """AC-1.2: runtime paths and placeholders produce no finding."""
+    """Spec 2026-10-20-shipped-command-hygiene, AC-1.2: runtime paths and
+    placeholders produce no finding."""
 
     LINES = [
         "State lives in `.writ/state/` and is gitignored.",
@@ -211,7 +212,8 @@ def run_eval(root: Path) -> Tuple[int, str]:
 
 
 class EvalMutationTests(unittest.TestCase):
-    """AC-1.3: clean -> link added -> link removed -> helper missing."""
+    """Spec 2026-10-20-shipped-command-hygiene, AC-1.3: clean -> link added ->
+    link removed -> helper missing."""
 
     CLEAN = [
         "# Example",
@@ -259,13 +261,87 @@ class EvalMutationTests(unittest.TestCase):
 
 
 class RealTreeTests(unittest.TestCase):
-    """AC-1.4: the shipped commands carry no internal reference."""
+    """Spec 2026-10-20-shipped-command-hygiene, AC-1.4: the shipped commands
+    carry no internal reference."""
 
     def test_real_tree_is_clean(self):
         code, rows = run_helper(REPO_ROOT)
         self.assertEqual(fails(rows), [])
         self.assertIn(["PASS", "shipped-refs-tree"], rows)
         self.assertEqual(code, 0)
+
+
+LOOP_BOUNDS = REPO_ROOT / "scripts" / "eval-loop-bounds.py"
+# The five rewritten values: (command, unit).
+REWRITTEN_UNITS = (
+    ("implement-phase", "spec"),
+    ("implement-spec", "story"),
+    ("implement-story", "review_cycle"),
+    ("implement-story", "testing_cycle"),
+    ("refactor", "change"),
+)
+# A `.writ/state/` or `.writ/specs/archive/` path is allowed only as a glob.
+INTERNAL_RECORD = re.compile(r"\.writ/(?:state|specs/archive)/[\w./*-]*")
+
+
+def load_loop_bounds_module():
+    spec = importlib.util.spec_from_file_location("eval_loop_bounds", LOOP_BOUNDS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def calibrated_against(module, command: str, unit: str) -> str:
+    """Read one unit's value with eval-loop-bounds.py's own frontmatter parser."""
+    text = (REPO_ROOT / "commands" / f"{command}.md").read_text(encoding="utf-8")
+    parsed, err = module.frontmatter(text)
+    if err:
+        raise AssertionError(f"commands/{command}.md: {err}")
+    loop = parsed.get("loop")
+    entries = ([loop] + list(loop.get("nested") or [])) if isinstance(loop, dict) else []
+    for entry in entries:
+        if isinstance(entry, dict) and entry.get("unit") == unit:
+            return str(entry.get("calibrated_against") or "")
+    raise AssertionError(f"commands/{command}.md declares no loop unit {unit!r}")
+
+
+class CalibrationValueTests(unittest.TestCase):
+    """Spec 2026-10-20-shipped-command-hygiene, AC-1.5: the rewritten
+    calibrated_against values cite shipped paths or `no recorded run`, name no
+    Writ record except as a glob, and loop-bounds still passes."""
+
+    def setUp(self):
+        self.module = load_loop_bounds_module()
+
+    def test_each_value_cites_a_shipped_path_or_no_recorded_run(self):
+        for command, unit in REWRITTEN_UNITS:
+            with self.subTest(command=command, unit=unit):
+                value = calibrated_against(self.module, command, unit)
+                self.assertTrue(
+                    self.module.PATH_TOKEN.search(value)
+                    or self.module.NO_RECORDED_RUN in value.lower(), value)
+
+    def test_refactor_value_keeps_no_recorded_run(self):
+        value = calibrated_against(self.module, "refactor", "change")
+        self.assertIn("no recorded run", value.lower())
+
+    def test_no_value_names_a_writ_record_except_as_a_glob(self):
+        for command, unit in REWRITTEN_UNITS:
+            with self.subTest(command=command, unit=unit):
+                value = calibrated_against(self.module, command, unit)
+                records = [m.group(0) for m in INTERNAL_RECORD.finditer(value)
+                           if "*" not in m.group(0)]
+                self.assertEqual(records, [], value)
+
+    def test_loop_bounds_reports_no_fail_for_these_commands(self):
+        proc = subprocess.run([sys.executable, str(LOOP_BOUNDS)], cwd=REPO_ROOT,
+                              capture_output=True, text=True, check=False)
+        rows = {line.split("\t")[1]: line.split("\t")[0]
+                for line in proc.stdout.splitlines() if line.count("\t") >= 1}
+        names = sorted({f"schema-{command}" for command, _ in REWRITTEN_UNITS}
+                       | {"refactor-no-recorded-run-literal"})
+        self.assertEqual({name: rows.get(name) for name in names},
+                         {name: "PASS" for name in names}, proc.stdout)
 
 
 if __name__ == "__main__":
