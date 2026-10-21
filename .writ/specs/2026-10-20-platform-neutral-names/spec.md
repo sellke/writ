@@ -1,6 +1,6 @@
 # Platform-Neutral Names
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-10-20
 > **Owner:** @AdamSellke
 > **Dependencies:** [2026-10-20-ci-and-update-integrity, 2026-10-20-claude-code-parity]

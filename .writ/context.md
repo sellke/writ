@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-21T13:34:03Z
+> Last Updated: 2026-10-21T13:48:18Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-20-platform-neutral-names — Platform-Neutral Names
-- **Status:** In Progress (3 of 3 stories complete; integration verification pending)
+- **Status:** Complete (checker verdict met; integration suite passed)
 - **Story:** 3 of 3 — Upgrade-Path Test, Reference Gate, and Issue Resolutions (Completed ✅)
 - **Progress:** 20/20 tasks complete (100%)
 
