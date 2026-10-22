@@ -7,7 +7,8 @@ check_command_structure.
 Some eval.sh literal pins on commands/*.md guarded structure rather than
 wording: a heading, a frontmatter key, or a script call. A substring pin
 passes when the heading turns into prose or the call turns into a bare
-mention. Each such pin is now one row in ROWS, checked by structure:
+mention. Each such pin is now one row in ROWS, checked by structure. Rules
+added later with no earlier pin get rows here too, not literal pins:
 
   heading      a line outside fenced code is a heading (^#{1,6} ) whose text
                begins with the value, so "User Challenge" matches
@@ -19,8 +20,14 @@ mention. Each such pin is now one row in ROWS, checked by structure:
                end at a delimiter. A value with no subcommand never passes,
                because a path alone cannot tell a call from a mention, so a
                bare "x.py" or "scripts/x.py" mention never passes.
+  lead         the value is "<heading> | <label>". Every heading (outside
+               fenced code) whose text begins with <heading> opens its
+               section with a "**<label>:**" paragraph: the first non-blank
+               line after the heading, ahead of any fenced block such as the
+               step's AskQuestion prompt. At least one heading must match.
 
-Each row records `was`, the eval.sh check function the pin came from, and the
+Each row records `was`, the eval.sh check function the pin came from
+(check_command_structure for a rule that never had a pin), and the
 message a finding shows. The pin map in the spec folder lists every
 converted pin and the row that replaced it.
 
@@ -44,7 +51,7 @@ from typing import Callable, Dict, Iterator, List, NamedTuple, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 
-KINDS = ("heading", "frontmatter", "invocation")
+KINDS = ("heading", "frontmatter", "invocation", "lead")
 
 
 class Row(NamedTuple):
@@ -145,6 +152,28 @@ ROWS: Tuple[Row, ...] = (
     Row("commands/status.md", "invocation", "scripts/quality-config-audit.py check --project .",
         "check_quality_config_audit",
         "status.md must surface the quality-config findings by running the pure file-read audit."),
+    Row("commands/create-spec.md", "lead",
+        "Step 1.3: Discovery Conversation | One question at a time",
+        "check_command_structure",
+        "create-spec.md Step 1.3 must open with its one-question-at-a-time rule: a "
+        "question whose answer could change the next one is asked alone."),
+    Row("commands/create-spec.md", "lead",
+        "Step 1: Shortened Discovery Conversation | One question at a time",
+        "check_command_structure",
+        "create-spec.md --from-prototype and --from-issue Step 1 must each open with the "
+        "one-question-at-a-time rule."),
+    Row("commands/create-spec.md", "lead", "Step 1.4b: Contract Decision | Precondition",
+        "check_command_structure",
+        "create-spec.md Step 1.4b must open with its precondition: the full contract is "
+        "printed as a visible message before the Contract Decision prompt."),
+    Row("commands/create-spec.md", "lead", "Step 3: Phase 2 with Story 1 | Precondition",
+        "check_command_structure",
+        "create-spec.md --from-prototype Step 3 must open with its precondition: the "
+        "Step 2 contract is locked at Step 1.4b."),
+    Row("commands/create-spec.md", "lead", "Step 3: Phase 2 with `spec_ref` | Precondition",
+        "check_command_structure",
+        "create-spec.md --from-issue Step 3 must open with its precondition: the "
+        "Step 2 contract is locked at Step 1.4b."),
 )
 
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
@@ -155,20 +184,27 @@ PATH_CHAR = re.compile(r"[\w./-]")
 VALUE_END = set(" \t`'\")];,|\\")
 
 
-def unfenced_lines(text: str) -> Iterator[str]:
-    """Yield the lines outside fenced code blocks."""
+def marked_lines(text: str) -> Iterator[Tuple[str, bool]]:
+    """Yield (line, fenced) for every line; fence markers count as fenced."""
     fence = ""
     for line in text.splitlines():
         match = FENCE.match(line)
         if not fence:
             if match:
                 fence = match.group(1)
+                yield line, True
                 continue
-            yield line
+            yield line, False
             continue
+        yield line, True
         stripped = line.strip()
         if stripped and set(stripped) == {fence[0]} and len(stripped) >= len(fence):
             fence = ""
+
+
+def unfenced_lines(text: str) -> Iterator[str]:
+    """Yield the lines outside fenced code blocks."""
+    return (line for line, fenced in marked_lines(text) if not fenced)
 
 
 def has_heading(text: str, value: str) -> bool:
@@ -206,16 +242,37 @@ def has_invocation(text: str, value: str) -> bool:
     return False
 
 
+def has_lead(text: str, value: str) -> bool:
+    heading, _, label = value.rpartition(" | ")
+    if not heading.strip() or not label.strip():
+        return False  # a value without both parts names no rule
+    lead = f"**{label}:**"
+    found = waiting = False
+    for line, fenced in marked_lines(text):
+        if waiting and line.strip():
+            if fenced or not line.startswith(lead):
+                return False
+            waiting = False
+            continue
+        match = None if fenced else HEADING.match(line)
+        if match and match.group(1).startswith(heading):
+            found = waiting = True
+    return found and not waiting
+
+
 MATCHERS: Dict[str, Callable[[str, str], bool]] = {
     "heading": has_heading,
     "frontmatter": has_frontmatter_key,
     "invocation": has_invocation,
+    "lead": has_lead,
 }
 
 DESCRIBE = {
     "heading": "no heading outside fenced code starts with '{value}'",
     "frontmatter": "the frontmatter has no top-level '{value}:' key",
     "invocation": "no line calls '{value}'",
+    "lead": "no heading matches '{value}', or one whose section does not open "
+            "with the bold-labelled paragraph it names",
 }
 
 # Per kind: (value, texts that must pass, texts that must fail).
@@ -241,6 +298,23 @@ SELF_TESTS = {
         ("scripts/x.py",
          [],
          ["python3 scripts/x.py init\n", "See scripts/x.py for details\n"]),
+    ],
+    "lead": [
+        ("Step 1.4b | Precondition",
+         ["#### Step 1.4b: Decision\n\n**Precondition:** shown.\n\n```\nAsk()\n```\n",
+          "## Step 1.4b\n**Precondition:** shown.\n## Step 1.4b again\n\n**Precondition:** x\n"],
+         ["#### Step 1.4b: Decision\n\n```\nAsk()\n```\n\n**Precondition:** shown.\n",
+          "#### Step 1.4b: Decision\n\nPrecondition: shown.\n",
+          "#### Step 1.4b: Decision\n\n**Note:** shown.\n",
+          "#### Step 1.4b: Decision\n\nAsk.\n\n**Precondition:** shown.\n",
+          "Step 1.4b\n\n**Precondition:** shown.\n",
+          "```\n## Step 1.4b\n```\n**Precondition:** shown.\n",
+          "## Step 1.4b\n\n**Precondition:** a\n## Step 1.4b again\n\nAsk.\n",
+          "## Step 1.4b\n"]),
+        # A value without both parts never passes.
+        ("Step 1.4b",
+         [],
+         ["#### Step 1.4b: Decision\n\n**Precondition:** shown.\n"]),
     ],
 }
 

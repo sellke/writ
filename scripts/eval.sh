@@ -782,16 +782,17 @@ check_shipped_refs() {
 }
 
 # Structure that literal pins on command files used to guard: a heading, a
-# frontmatter key, or a script call (shipped-command-hygiene spec, Story 2). A
-# substring pin passes when a heading turns into prose or a call into a bare
-# mention; scripts/eval-command-structure.py checks the structure instead. It
+# frontmatter key, a script call (shipped-command-hygiene spec, Story 2), or a
+# step that opens with a named bold-labelled rule. A substring pin passes
+# when a heading turns into prose or a call into a bare mention;
+# scripts/eval-command-structure.py checks the structure instead. It
 # owns the row table and one self-test per kind; this function turns its TSV
 # into findings. Helper exit 2, or a run with no verdict lines, is a run error,
 # never a pass.
 check_command_structure() {
   local helper="$PROJECT_ROOT/scripts/eval-command-structure.py"
   local scenario_output scenario_status scenario_name scenario_reason helper_status=0
-  local hint="Restore the heading, frontmatter key, or script call the row names. If the command changed on purpose, change the row in scripts/eval-command-structure.py."
+  local hint="Restore the heading, frontmatter key, script call, or opening rule the row names. If the command changed on purpose, change the row in scripts/eval-command-structure.py."
 
   if [ ! -f "$helper" ]; then
     RUN_ERRORS=$((RUN_ERRORS + 1))
