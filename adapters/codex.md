@@ -143,7 +143,14 @@ On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Code
 | `run_terminal_cmd` | `Bash(command)` | Respect sandbox of the active agent |
 | `list_dir` | `Glob("pattern")` or `Bash("ls")` | Codex has no dedicated list-dir tool |
 | `todo_write` | `Write(".writ/state/...json")` | File-based tracking |
-| `canvas-preview` | `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/` | Inline CSS, no network fetch; give the user each path. Includes a read-only sandbox. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `canvas-preview` | CLI: `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/`. Desktop: the app's docs say it opens workspace files and has a browser, and do not document rendering an HTML draft; write the same files. | Inline CSS, no network fetch; give the user each path. A read-only sandbox cannot write drafts. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+
+#### Verification record — 2026-10-22
+
+| Check | Platform & version | Observed | Source | Status |
+|---|---|---|---|---|
+| CLI writes one HTML file per draft under `.writ/prototypes/<date>-<slug>/` | Codex CLI, docs read 2026-10-22 (no run) | The CLI page documents a sandbox with writable roots, so writing files inside the workspace is the documented path. No HTML preview is documented: not documented. | https://learn.chatgpt.com/docs/cli | unverified 2026-10-22 (pending UAT) |
+| Desktop app renders an HTML draft | Codex Desktop, docs read 2026-10-22 (no run) | `https://developers.openai.com/codex/app` redirected (308) to the "ChatGPT desktop app" page, which says the app can "Open documents, spreadsheets, images, and other files in the same workspace" and "Use the browser, desktop apps, and plugins". Rendering or previewing a local HTML file is not documented. | https://learn.chatgpt.com/docs/app | unverified 2026-10-22 (pending UAT) |
 
 ### Writ agents ↔ Codex TOML
 

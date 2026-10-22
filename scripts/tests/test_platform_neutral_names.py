@@ -85,7 +85,9 @@ PROTOTYPES_DIR = ".writ/prototypes/<date>-<slug>/"
 
 # (adapter, heading chain to the tool table, keywords the row must contain)
 ADAPTER_TABLES = [
-    ("adapters/cursor.md", ("## Native Tool Availability",), (CURSOR_TOOL,)),
+    # The Cursor docs (rendering-delegation rows, 2026-10-22) document no canvas
+    # that renders a local HTML file, so the row names the HTML-file floor.
+    ("adapters/cursor.md", ("## Native Tool Availability",), (PROTOTYPES_DIR, "HTML")),
     (
         "adapters/claude-code.md",
         ("## Tool Mapping (Cursor → Claude Code)", "### Quick Reference"),
@@ -794,14 +796,11 @@ STATUS_GRAMMAR = re.compile(
 )
 RECORD_COLUMNS = ["Check", "Platform & version", "Observed", "Source", "Status"]
 
-# (adapter, heading chain to the section that holds its tool table). Story 2
-# of the spec adds the other three adapters.
-VERIFICATION_RECORDS = [
-    (
-        "adapters/claude-code.md",
-        ("## Tool Mapping (Cursor → Claude Code)", "### Quick Reference"),
-    ),
-]
+# (adapter, heading chain to the section that holds its tool table): the
+# record lives in the same section as the `canvas-preview` row, so the
+# chain is the one ADAPTER_TABLES already names. Story 1 covered
+# `claude-code`; Story 2 (AC-2.2) covers the other three.
+VERIFICATION_RECORDS = [(adapter, headings) for adapter, headings, _ in ADAPTER_TABLES]
 
 
 def verification_record(text: str, *headings: str) -> List[str]:
@@ -822,7 +821,7 @@ def verification_record(text: str, *headings: str) -> List[str]:
     ids=[Path(a).stem for a, _ in VERIFICATION_RECORDS],
 )
 def test_verification_records(adapter, headings):
-    """AC-1.3, AC-1.5: the adapter's tool-table section holds a dated
+    """AC-1.3, AC-1.5, AC-2.2, AC-2.5: the adapter's tool-table section holds a dated
     verification record whose table has the five record columns and at
     least one data row; every Status cell matches the anchored status
     grammar and every Source cell starts with `https://`. No network: the
@@ -885,3 +884,55 @@ def test_claude_code_canvas_row_states_facts():
     assert "artifact" in row[0] and "preview pane" in row[0], row[0]
     assert cells(row[0])[-1].endswith(DEGRADATION_CLAUSE), row[0]
     assert "verified" not in row[0], row[0]
+
+
+RENDERING_SPEC = ".writ/specs/2026-10-22-rendering-delegation-rows"
+UAT_HEADING = "## UAT Protocols (maintainer, Story 2 writes; `/create-uat-plan` derives scenarios)"
+UAT_FIELDS = ("- **Precondition:**", "- **Run:**", "- **Look for:**", "- **On pass", "- **On fail")
+SAMPLE_IDEA = '"a settings page with a dark-mode toggle"'
+
+
+def canvas_row(text: str) -> str:
+    rows = [line for line in text.splitlines() if line.startswith(CANVAS_ROW_PREFIX)]
+    assert len(rows) == 1, "expected one canvas-preview row, found %d" % len(rows)
+    return rows[0]
+
+
+def test_cursor_row_names_the_floor():
+    """AC-2.1: the Cursor pages the record cites document no canvas that
+    renders a local HTML file, so the Cursor row names the HTML-file floor,
+    drops the old tool name, and keeps the degradation clause; the record's
+    Sources are Cursor docs pages."""
+    text = read("adapters/cursor.md")
+    row = canvas_row(text)
+    assert CURSOR_TOOL not in row, row
+    assert PROTOTYPES_DIR in row and "HTML" in row, row
+    assert cells(row)[-1].endswith(DEGRADATION_CLAUSE), row
+    table = verification_record(text, "## Native Tool Availability")
+    sources = [cells(r)[3] for r in table[2:]]
+    assert sources and all(s.startswith("https://cursor.com/docs/") for s in sources), sources
+
+
+def test_codex_row_has_cli_and_desktop_clauses():
+    """AC-2.3: the Codex row's mapping cell reads a "CLI:" clause and then a
+    "Desktop:" clause; the CLI clause keeps the HTML-file floor text."""
+    mapping = cells(canvas_row(read("adapters/codex.md")))[1]
+    cli = "CLI: `Write` one self-contained HTML file per draft to `%s`." % PROTOTYPES_DIR
+    assert mapping.startswith(cli), mapping
+    assert " Desktop: " in mapping, mapping
+
+
+@pytest.mark.parametrize("platform", ["Cursor", "Codex Desktop"])
+def test_uat_protocol(platform):
+    """AC-2.4: each UAT protocol states a precondition, a `--diverge` run on
+    the shared sample idea, what to look for, and the record edit on pass and
+    on fail; the on-pass edit writes `verified <date>` in Status and the
+    version in the Platform & version cell."""
+    body = section(read(RENDERING_SPEC + "/sub-specs/technical-spec.md"), UAT_HEADING, "### " + platform)
+    for field in UAT_FIELDS:
+        assert field in body, "%s protocol lacks %r" % (platform, field)
+    lines = body.splitlines()
+    run = [l for l in lines if l.startswith("- **Run:**")][0]
+    assert "--diverge " + SAMPLE_IDEA in run, run
+    on_pass = [l for l in lines if l.startswith("- **On pass")][0]
+    assert "`verified <date>`" in on_pass and "Platform & version" in on_pass, on_pass

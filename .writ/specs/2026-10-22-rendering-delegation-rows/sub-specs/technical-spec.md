@@ -41,20 +41,24 @@ Status grammar (test-pinned, anchored): `^(verified|unverified) \d{4}-\d{2}-\d{2
 
 ## UAT Protocols (maintainer, Story 2 writes; `/create-uat-plan` derives scenarios)
 
+Both protocols use the same sample idea: `"a settings page with a dark-mode toggle"`. The Status grammar is anchored, so a pass writes `verified <date>` in the Status cell and the platform version in the Platform & version cell, never `verified <date>, Cursor <version>`.
+
 ### Cursor
 
-- **Precondition:** Cursor with Writ installed (`install.sh`, cursor platform) in a sample project that has at least one UI component file.
+- **Precondition:** Cursor with Writ installed (`install.sh`, cursor platform) in a sample project that has at least one UI component file. The Browser tool is enabled ("Enable Browser Automation Features") and, if the project has a dev server, its origin is on the Browser Origin Allowlist.
 - **Run:** `/prototype --diverge "a settings page with a dark-mode toggle"`.
-- **Look for:** does Step 2.5 render three drafts in a canvas or browser pane? Which tool name does the agent report using? If nothing renders, does it say so and produce structural descriptions?
-- **On pass:** edit the `adapters/cursor.md` record row: Status `verified <date>`, and the Cursor version in the Platform & version cell; adjust the row text to the tool the agent actually used.
-- **On fail:** keep `unverified`; add the observation; change the row to the HTML-file floor if the canvas does not exist.
+- **Look for:** Step 2.5 writes one self-contained HTML file per draft under `.writ/prototypes/<date>-<slug>/` and gives each path. Does the agent open a draft in the Browser pane (`@browser`, `browser_navigate` on a served origin) or in a Canvas? Which tool name does the agent report using? If nothing renders, does it say so and produce a structural description per draft?
+- **On pass (a draft rendered):** in the `adapters/cursor.md` record, edit the row for the surface that rendered: Status `verified <date>`, the Cursor version in the Platform & version cell, and what rendered in Observed. Adjust the `canvas-preview` row text to the tool the agent used.
+- **On fail (nothing rendered):** Status `unverified <date>` (drop the `(pending UAT)` reason), the Cursor version in the Platform & version cell, and the observation in Observed. The row already names the HTML-file floor; leave it.
 
 ### Codex Desktop
 
-- **Precondition:** Codex Desktop with the sample project open; Writ installed with the codex platform.
-- **Run:** ask Codex to follow `.codex/commands/prototype.md` with `--diverge` and the same sample idea.
-- **Look for:** does the app open or preview the HTML drafts written under `.writ/prototypes/<date>-<slug>/`? Record the mechanism (file preview, browser, none).
-- **On pass or fail:** edit the Desktop clause of the Codex row and the record as above.
+- **Precondition:** Codex Desktop (the desktop app the Codex app docs redirect to) with the sample project open; Writ installed with the codex platform.
+- **Run:** ask Codex to follow `.codex/commands/prototype.md` with `--diverge "a settings page with a dark-mode toggle"`.
+- **Look for:** one self-contained HTML file per draft under `.writ/prototypes/<date>-<slug>/`, each path given to the user. Does the app open or preview any of them, and by what mechanism (file preview, browser, none)? If nothing renders, does the agent say so and produce a structural description per draft?
+- **On pass (a draft rendered):** in the `adapters/codex.md` record, edit the Desktop row: Status `verified <date>`, the app version in the Platform & version cell, the mechanism in Observed. Rewrite the row's Desktop clause to that mechanism.
+- **On fail (nothing rendered):** Status `unverified <date>`, the app version in the Platform & version cell, the observation in Observed. The Desktop clause already says rendering is not documented; leave it.
+- **CLI row (pass or fail):** when the files appear under `.writ/prototypes/<date>-<slug>/`, edit the record's CLI row too: Status `verified <date>`, the Codex version in the Platform & version cell, and the paths written in Observed.
 
 ## Codex Row Shape (Story 2)
 

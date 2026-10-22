@@ -63,7 +63,7 @@
 
 **Shadow Paths to Verify:**
 - **Happy path:** four records present, grammar valid.
-- **Nil input:** record row with Source "not documented" → test fails (Source must be `https://`); write the docs index page URL instead and say "not documented" in Observed.
+- **Nil input:** record row with Source "not documented" → test fails (Source must be `https://`); cite the first-party page that was read and found silent (the docs index only when no page exists) and say "not documented" in Observed.
 - **Empty input:** record heading with no rows → fails.
 - **Upstream error:** status text without a date → fails.
 

@@ -111,7 +111,14 @@ These Cursor tools are used directly; no adapter is needed:
 | `read_file` | All commands | Read file contents |
 | `run_terminal_cmd` | implement-story | Run shell commands |
 | `list_dir` | initialize, status | List directory contents |
-| `canvas-preview` | prototype (Step 2.5) | The `cursor-ide-browser` canvas renders each draft. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `canvas-preview` | prototype (Step 2.5) | Write one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/` and give the user each path. The documented Browser tool (`@browser`, `browser_navigate`) opens only origins on its allowlist, such as `http://localhost:3000`, so a draft renders there only when the project serves that folder; no canvas tool that renders a local HTML file is documented. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+
+#### Verification record — 2026-10-22
+
+| Check | Platform & version | Observed | Source | Status |
+|---|---|---|---|---|
+| Browser tool renders a local HTML draft | Cursor, docs read 2026-10-22 (no run) | The Browser page documents a browser pane (`@browser`) and a `browser_navigate` tool with an origin allowlist (example `http://localhost:3000`), behind the settings "Enable Browser Automation Features" (v2.0+) and "Browser Origin Allowlist" (v2.1+). No `file://` origin, no `cursor-ide-browser` tool, and no rendering of a local HTML file are documented. | https://cursor.com/docs/agent/tools/browser | unverified 2026-10-22 (pending UAT) |
+| Canvas renders a local HTML draft from a command run | Cursor, docs read 2026-10-22 (no run) | The Canvas page describes interactive artifacts that render next to the chat, opened with "Open Canvas" from the Command Palette. It names no agent tool and says nothing about HTML or local files: not documented. | https://cursor.com/docs/agent/tools/canvas | unverified 2026-10-22 (pending UAT) |
 
 ### Recommendation Interaction Mapping
 

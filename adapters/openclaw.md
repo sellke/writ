@@ -18,6 +18,12 @@ Maps Cursor-specific tool calls to OpenClaw equivalents for running Writ command
 | `readonly: true` | Add constraint to task prompt | "Do NOT modify any files" |
 | `canvas-preview` | `Write({ path: ".writ/prototypes/<date>-<slug>/<draft>.html" })`, one self-contained HTML file per draft | Inline CSS, no network fetch; send the user each path. Includes a run that cannot write files. No renderer: write a structural description of each draft and say the drafts were not rendered. |
 
+#### Verification record — 2026-10-22
+
+| Check | Platform & version | Observed | Source | Status |
+|---|---|---|---|---|
+| File write of one HTML file per draft | OpenClaw, docs read 2026-10-22 (no deployment) | The Tools page lists the file tools `read`, `write`, `edit`, and `apply_patch`, and says a local HTML report can be published to the current conversation with `message(action=send, media=<path>)`, where the preview "keeps its existing sandbox and script controls". It says nothing about a run that cannot write files, and rendering inside the agent is not documented. | https://docs.openclaw.ai/tools | unverified 2026-10-22 (no deployment) |
+
 ---
 
 ## Detailed Mappings

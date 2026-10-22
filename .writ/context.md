@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-22T22:40:00Z
+> Last Updated: 2026-10-22T23:30:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-22-rendering-delegation-rows — Rendering-Delegation Rows
 - **Status:** In Progress (Phase 14 lane `writ/phase/14/2026-10-22-rendering-delegation-rows`)
-- **Story:** 1 of 3 — Claude Code Live Verification and Record (Completed ✅); next: Story 2 — Cursor, Codex, and OpenClaw Rows from First-Party Docs with UAT Protocols (Not Started)
-- **Progress:** 6/20 tasks complete (30%)
+- **Story:** 2 of 3 — Cursor, Codex, and OpenClaw Rows from First-Party Docs with UAT Protocols (Completed ✅); next: Story 3 — Verification-Record Tests, prototype.md Reconciliation, and Issue Note (Not Started)
+- **Progress:** 13/20 tasks complete (65%)
 
 ## Artifact Map
 
@@ -23,6 +23,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-003 Silent-page rows cite the specific page, not the docs index URL — rendering-delegation-rows (Story 2, auto-amended)
 - DEV-001 Headless row's Platform cell omitted the session kind — rendering-delegation-rows (Story 1, fixed in place)
 - DEV-002 Two Observed cells stated one step past what the run saw — rendering-delegation-rows (Story 1, fixed in place)
 
