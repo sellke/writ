@@ -24,6 +24,7 @@
   ```bash
   REPO=/Users/asellke/Projects/writ            # read from, never mutated or installed into
   W=$(mktemp -d "${TMPDIR:-/tmp}/writ-uat-hygiene.XXXXXX")
+  cd "$W"   # run every helper from the temp folder: an empty path then fails instead of writing to the Writ repo
   CL="$W/clone"; git clone -q "$REPO" "$CL"   # committed tree on the current branch
   SPEC="$CL/.writ/specs/2026-10-20-shipped-command-hygiene"
   PM="$SPEC/pin-map.md"
@@ -95,9 +96,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   - `shipped-refs:commands/x.md:6` `calibration-state: .writ/state/phase-execution-20260719-121255.json`
 - Step 3: `5`. Without the archive folder, the old-form path on line 4 is no longer a finding.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 2 printed 4 `PASS shipped-refs-rule-<kind>` lines, the six expected FAIL lines (`x.md:1`–`6`, same kinds and tokens), `exit 1`; step 3 printed `5`.
 
 **Implementation Reference:** Story 1 — `scripts/eval-shipped-refs.py` (four rules; the old-path form checks `<root>/.writ/specs/archive/<name>/` on disk).
 
@@ -131,9 +134,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 **Expected Result:**
 - Four `PASS shipped-refs-rule-<kind>` lines, then `PASS shipped-refs-tree`, then `exit 0`. No FAIL line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: 4 `PASS shipped-refs-rule-<kind>` lines, `PASS shipped-refs-tree`, `exit 0`; no FAIL line.
 
 ---
 
@@ -157,9 +162,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `exit 1`; one finding that names the file and line first, then the kind and token, then the remediation: `` `shipped-refs:commands/ship.md:646`: adr: decision-records/adr-017-git-notes-audit-channel.md _Remediation:_ Remove the link to Writ's development history. If an installed user needs the reason, state it in one plain sentence. ``; `Scenarios: 4/5 passed`; `Findings: 1`.
 - Step 3: `exit 0`, `Scenarios: 5/5 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, 5/5, Findings 0, Run errors 0; step 2 `exit 1`, `shipped-refs:commands/ship.md:646` `adr: decision-records/adr-017-git-notes-audit-channel.md` with the expected remediation, 4/5, Findings 1; step 3 `exit 0`, 5/5.
 
 **Implementation Reference:** Story 1 — `check_shipped_refs` in `scripts/eval.sh`, registered after `referenced-paths`.
 
@@ -194,9 +201,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   - `shipped-refs:commands/status.md:499` `archived-spec: .writ/specs/archive/2026-08-12-machine-evaluable-exit-criteria`
 - Step 3: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The contract grep (Scenario 8) misses the `revert.md` form; only the on-disk archive check catches it.
+
+agent-run 2026-10-21 @ b850e66: step 1 three files changed (research.md, revert.md, status.md); step 2 `exit 1`, 4/7, Findings 3: `research.md:190` research, `revert.md:178` archived-spec `.writ/specs/2026-07-18-logical-unit-revert`, `status.md:499` archived-spec; step 3 `reset` printed nothing.
 
 ---
 
@@ -218,9 +227,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 1: `exit 2`; `` `scripts/eval-shipped-refs.py`: shipped-refs helper is missing. _Remediation:_ Restore scripts/eval-shipped-refs.py (shipped-command-hygiene spec, Story 1). ``; `Findings: 1`; `Run errors: 1`.
 - Step 2: `exit 0`, `Scenarios: 5/5 passed`; `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 2`, `shipped-refs helper is missing` with the expected remediation, Findings 1, Run errors 1; step 2 `exit 0`, 5/5, `reset` printed nothing.
 
 ---
 
@@ -244,9 +255,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `exit 2`; `` `scripts/eval-shipped-refs.py`: shipped-refs helper failed to run (exit 2). ``; `Run errors: 1`.
 - Step 3: `exit 0`, `Scenarios: 5/5 passed`; `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 four rule PASS lines, stderr `eval-shipped-refs: no shipped command files under <T> (commands/*.md)`, `exit 2`, no `PASS shipped-refs-tree`; step 2 `exit 2`, `shipped-refs helper failed to run (exit 2)`, Run errors 1; step 3 `exit 0`, 5/5, `reset` printed nothing.
 
 ---
 
@@ -272,9 +285,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `exit 1`; finding `` `shipped-refs-rule-adr` `` with remediation `Fix the rule's pattern in scripts/eval-shipped-refs.py.`
 - Step 4: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `scripts/eval-shipped-refs.py | 2 +-`; step 2 `FAIL shipped-refs-rule-adr missed: [ADR-017](…); missed: [ADR-009](…)`, other three rules PASS, `PASS shipped-refs-tree`, `exit 1`; step 3 `exit 1`, finding `shipped-refs-rule-adr`, remediation `Fix the rule's pattern in scripts/eval-shipped-refs.py.`; step 4 printed nothing.
 
 ---
 
@@ -301,9 +316,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   - None names a dated archived spec, a dated research file, or an `adr-NNN-` file.
 - Step 3: `1 .writ/state/execution-*.json` and `1 .writ/state/phase-execution-*.json`. Both are globs; no value names a single record.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, 5/5; step 2 26 lines, exactly the listed files and line numbers (18 runtime paths, placeholders, or globs; 8 `calibrated_against` values), none dated or `adr-NNN-`; step 3 `1 .writ/state/execution-*.json`, `1 .writ/state/phase-execution-*.json`.
 
 ---
 
@@ -338,9 +355,14 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: every hunk is one of the 14 ADR, archived-spec, or research rows in technical-spec.md → Internal references, or one of the two replacement sentences (`implement-phase.md` `/goal` hook, `refresh-command.md` cost reason). `new-command.md` keeps its `model-tiers.md` link; `release.md` and `ship.md` keep their `git-notes-audit-format.md` links. No unrelated wording changed.
 - Step 4: `1`, `1`, `1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Diff against each commit's own parent (`git show`), not against an older base. A wider range picks up unrelated edits from merged lanes.
+
+agent-run 2026-10-21 @ b850e66: step 1 `7967ea3` 9 files (13 insertions, 19 deletions), `ce6e8ac` 4 files (5, 5); step 2 `11` and `0`; step 4 `1`, `1`, `1`. All as expected.
+
+needs maintainer judgment: step 3. Read `git show --format= -U0 7967ea3 -- commands/` (81 lines, 12 hunks) and confirm each hunk only drops an ADR, archived-spec, or research link or is one of the two replacement sentences, with no unrelated wording change.
+- maintainer judgment 2026-10-21: Pass (excerpt reviewed in session).
 
 **Implementation Reference:** Story 1 — `7967ea3` (link removals), `ce6e8ac` (`calibrated_against` rewrites).
 
@@ -371,9 +393,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 5: `exit 1`; finding `shipped-refs:commands/implement-spec.md:15` `calibration-state: .writ/state/execution-20260718-1101.json`.
 - Each `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, 37/37; step 2 seven values, refactor.md's starts `no recorded run - Writ had no recorded /refactor execution…`; step 3 `exit 1`, 36/37, `loop-bounds:refactor-no-recorded-run-literal`; step 4 `exit 1`, 36/37, `loop-bounds:schema-implement-spec` (`…cites no path and does not say 'no recorded run'…`); step 5 `exit 1`, `shipped-refs:commands/implement-spec.md:15` `calibration-state: .writ/state/execution-20260718-1101.json`; each `reset` printed nothing.
 
 ---
 
@@ -397,9 +421,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `exit 1`; one finding, `shipped-refs:commands/_preamble.md:80`; none for `agents/coding-agent.md`.
 - Step 3: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Widening the scan to `agents/`, `adapters/`, `skills/`, and `.writ/docs/` is a later pass (`SCANNED_DIRS` in the helper).
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, 5/5; step 2 `exit 1`, one finding `shipped-refs:commands/_preamble.md:80`, none for `agents/coding-agent.md`; step 3 printed nothing.
 
 ---
 
@@ -425,9 +451,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `0`.
 - Step 4: `0`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Keep `$P` for Scenario 29.
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0` (install.sh used the clone as its local source); step 2 `33`, `same`; step 3 `0`; step 4 `0`, `0`. `$P` was deleted with the temp folder at the end of the run.
 
 ---
 
@@ -461,9 +489,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `before: 207 rows, 199 lines, parsed 572 pin call lines, 22 unresolved`; `now: 144 rows, 144 lines, parsed 518 pin call lines, 22 unresolved`. `grep -c` gives `572` and `518`, equal to the parsed counts. The 22 unresolved targets are `check_autonomy_governance` 13, `check_exit_criteria` 5, `check_recommended_spec_implementation` 4 (spec files read through `resolve_spec_path`, not commands).
 - Step 3: `Inventory commit: 04799a9`; `Before: 207 instances at 199 call sites · After: 144 instances at 144 call sites`; `keep 144 · convert 29 · remove 34 · 144 + 29 + 34 = 207`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `ls: commands/*.lean.md: No such file or directory`, `exit 1`; step 2 `before: 207 rows, 199 lines, parsed 572 pin call lines, 22 unresolved`, `now: 144 rows, 144 lines, parsed 518 pin call lines, 22 unresolved`, `grep -c` 572 and 518, unresolved 13/5/4 on the three named functions; step 3 the three expected header lines.
 
 **Implementation Reference:** Story 2 — `pin-map.md` (207 rows at `04799a9`).
 
@@ -548,9 +578,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   Every `remove` falls in `retired-text`, `structure`, or `wording`.
 - Step 3: `…pins on commands/ now 143` and `row 110: keep literal no longer pinned: 'verbatim private transcript bodies' on commands/refresh-command.md`; `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 2 output identical to the expected block, ending `rows 207: keep 144, convert 29, remove 34; pins on commands/ now 144` and `no problems`; step 3 `pins on commands/ now 143` and `row 110: keep literal no longer pinned: 'verbatim private transcript bodies' on commands/refresh-command.md`; `reset` printed nothing.
 
 ---
 
@@ -576,9 +608,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `FAILED …PinMapTests::test_no_safety_row_is_removed` and `FAILED …PinMapTests::test_header_totals_match_the_rows_and_the_count_fell`; `2 failed, 2 passed`.
 - Step 4: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `4 passed, 30 deselected`; step 2 row 2 reads `| recommend-boundary | remove |`; step 3 FAILED `test_header_totals_match_the_rows_and_the_count_fell` and `test_no_safety_row_is_removed`, `2 failed, 2 passed`; step 4 printed nothing.
 
 ---
 
@@ -601,9 +635,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `exit 1`; `` `commands/knowledge.md`: Knowledge --consolidate must leave a reviewable diff without committing. ``; `Findings: 1`.
 - Each `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Scenario 25 does the same for a `loop-bound` keep row on `create-spec.md` (row 67).
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 1`, `commands/refresh-command.md`: `refresh-command must forbid storing verbatim private transcript bodies (Prime Directive privacy).`, Findings 1; step 2 `exit 1`, `commands/knowledge.md`: `Knowledge --consolidate must leave a reviewable diff without committing.`, Findings 1; each `reset` printed nothing.
 
 ---
 
@@ -634,9 +670,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   - `` `command-structure:commands/_preamble.md:heading:User Challenge` `` … `(no heading outside fenced code starts with 'User Challenge'; was check_phase_challenges)`
 - Step 3: `exit 0`, `Scenarios: 33/33 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The table has 30 rows: 13 `heading`, 17 `invocation`, no `frontmatter` row. The `frontmatter` kind is exercised only by the helper's self-test and `FrontmatterKindTests`.
+
+agent-run 2026-10-21 @ b850e66: step 1 `0` and `2`; step 2 `exit 1`, 31/33, the two expected findings (`…invocation:scripts/archive-sweep.py sweep` … `was check_archive_sweep`; `…heading:User Challenge` … `was check_phase_challenges`); step 3 `exit 0`, 33/33.
 
 **Implementation Reference:** Story 2 — `scripts/eval-command-structure.py` (`ROWS`, one self-test per kind), `check_command_structure` in `scripts/eval.sh`.
 
@@ -664,9 +702,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `exit 2`; `` `scripts/eval-command-structure.py`: command-structure helper failed to run (exit 2). ``; `Run errors: 1`.
 - Step 4: `exit 0`, `Scenarios: 33/33 passed`; `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `33 PASS`; step 2 `exit 2`, `command-structure helper is missing.`, Run errors 1; step 3 `exit 2`, `command-structure helper failed to run (exit 2).`, Run errors 1; step 4 `exit 0`, 33/33, `reset` printed nothing.
 
 ---
 
@@ -697,9 +737,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `spec-dependencies` `exit 1` with two findings (`Implement-phase must topologically order the explicit DAG.`, `Implement-phase must use roadmap order as the independent-spec tie-break.`); `knowledge-consolidate` `exit 1` (`Knowledge --consolidate must state the merge-never-append principle.`).
 - Step 4: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Step 3 shows what the old pins enforced. Judge whether their messages describe behavior or wording; Scenario 20 covers that judgment for a wider sample.
+
+agent-run 2026-10-21 @ b850e66: step 1 `implement-phase.md | 10 +++++-----` (5 lines), `knowledge.md | 2 +-` (1 line); step 2 both `exit 0`, Findings 0 (11/11, 13/13); step 3 `spec-dependencies` `exit 1` with the two expected findings, `knowledge-consolidate` `exit 1` with `must state the merge-never-append principle`; step 4 printed nothing.
 
 ---
 
@@ -734,9 +776,14 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 5: `0`, then `status.md:265` (single-level glob, never recurse into `archive/`); two `eval.sh` lines pin `merge, never append` on the reducer and the knowledge README; `eval-git-notes-audit.py` asserts `Last audit note:` (scenario `status-audit-pointer-line`); `test_review_panel.py:803` and `implement-story.md:417` both carry the `gate3-route:`, `review-panel:` sentence.
 - Step 6: each reason says why no gate, verdict, loop bound, script call, or parsed format depends on the text, or names the scenario or test that still asserts it. Mark Fail and name the row if any remove row reads like a safety contract.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: steps 2–5 matched: keep literals at `_preamble.md:27`, `create-spec.md:562` (Step 2.6a), `refresh-command.md:115`; `implement-phase.md:216,220`, `_preamble.md:29`, `refactor.md:63`, helper rows present; step 4 `0` (before `3`); step 5 `0`, `status.md:265`, `eval.sh:3121,3136`, `eval-git-notes-audit.py:120` (`status-audit-pointer-line`), `test_review_panel.py:803`, `implement-story.md:417`.
+
+needs maintainer judgment: steps 1 and 6. Read the 10 sampled rows and all 34 remove rows (12 retired-text, 7 structure, 15 wording) and decide whether any remove row reads like a safety contract.
+- maintainer judgment 2026-10-21: Pass (excerpt reviewed in session).
 
 ---
 
@@ -762,9 +809,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: the deleted test cut `` `review-panel:`, `` from `implement-story.md`, the text of row 198.
 - Step 4: `0` (the check and its `CHECKS` entry are gone); `test_product_check_direction.py` still has tests that assert the command text directly.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `6bf0ded` changes eval.sh and test_review_panel.py; `c1f7a7f` changes eval.sh and test_product_check_direction.py (also one-line edits to test_eval_shipped_refs.py and test_harness_cuts.py, not named in the expectation); `8ead450` adds 60 lines to test_product_check_direction.py; step 2 the three named tests; step 3 the deleted test cut `` `review-panel:`, `` from implement-story.md; step 4 `0`, and test_product_check_direction.py still has direct-text tests (lines 71–173).
 
 ---
 
@@ -792,9 +841,14 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `20` twin hunks (several hunks hold more than one logged change).
 - Step 4: every sampled twin change has a row. Each Declined row names what the change would have touched; no Adopted row is a constraint or behavior change.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `54 coaching`, `8 behavior`, `4 constraint`, `3 test-pinned`, `3 addition`, `1 wording` (73 rows); step 2 `0`; step 3 `20`. All 54 Adopted rows are class `coaching`.
+
+needs maintainer judgment: step 4. Check sampled twin hunks against cut-log rows. Five pre-matched: `-1,6` (frontmatter rename) → row 55 Declined; `-71,7` (twin keeps the ADR-013 link) → row 57 Declined; `-280,7` (AskQuestion comment) → row 60 Declined; `-433,7` (example business rule 3) → row 25 Adopted; `-868,90` (Example Usage removed, Production boundary added) → rows 54 Adopted and 68 Declined.
+- maintainer judgment 2026-10-21: Pass (excerpt reviewed in session).
 
 **Implementation Reference:** Story 3 — `cut-log.md` (54 adopted, 19 declined, hunk map).
 
@@ -827,9 +881,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 3: `3`, `3`, `1` (three AskQuestion code blocks plus the Jev provider prompt).
 - Step 4: `calls identical` (seven calls: `ac-trace.py check`, `jev-judge.py setup`, `jev-judge.py spec-findings`, `jev-judge.py status`, `spec-analyze.py check`, `spec-status.py is-complete`, `supersession-writeback.py apply`).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `frontmatter identical`, `3`; step 2 only `< #### Step 1.2: Switch to Plan Mode for Discovery` and `< #### Step 2.1: Initialize Tracking`; step 3 `3`, `3`, `1`; step 4 `calls identical` (the seven listed calls).
 
 ---
 
@@ -869,9 +925,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 **Expected Result:**
 - Every line prints a count of `1` or more. A `0` means the cut removed text it was told to keep.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `5536b31` restored "ask clarifying questions" and "dependencies" after the first cut copied two twin edits (cut-log rows 71, 72).
+
+agent-run 2026-10-21 @ b850e66: all 16 lines printed `1`.
 
 ---
 
@@ -895,9 +953,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: every check `exit 0` with `Findings: 0`. `recommended-spec-implementation` takes longer: it builds install sandboxes.
 - Step 3: `exit 1`; `` `commands/create-spec.md`: create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim… ``; `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `jev 0`, `spec-analyze 0`; step 2 all five checks `exit 0`, Findings 0 (recommended-spec-implementation 147/147, spec-dependencies 13/13, command-structure 33/33, shipped-refs 5/5; model-escalation prints no Scenarios line); step 3 `exit 1`, `create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim…`, `reset` printed nothing.
 
 ---
 
@@ -924,9 +984,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 4: at least one failure; the exact-sum assertion reports `57164 != 57125` and the repin test `13602 != 13641`.
 - Each `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `53612`, `38562`, line 608 `"commands/create-spec.md": 13602,`; step 2 the dated `28652 -> 13602` comment with the listed cuts and `Each cut removed coaching, not a byte goal`; step 3 `2 failed, 56 passed` (the two named tests); step 4 `3 failed, 55 passed` with `57164 != 57125` and `13602 != 13641` (third failure: `test_no_command_acquires_a_new_or_larger_budget_violation`); each `reset` printed nothing.
 
 ---
 
@@ -950,9 +1012,14 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `hunk map matches` (22 hunks).
 - Step 3: each removed passage is coaching (sample questions, example phrasing, rationale, history labels, the Example Usage dialogue, duplicated framing). No step, gate, rule, AskQuestion block, or script call is removed without a surviving equivalent.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `0`; step 2 `hunk map matches` (22 hunks).
+
+needs maintainer judgment: step 3. Read the four largest hunks of `git diff 37e097e 5536b31 -- commands/create-spec.md` (`-291,129` rows 15–25; `-692,114` rows 31–33, 40–50; `-870,85` row 54; `-192,45` rows 10–12) and confirm each removed passage is coaching, with no step, gate, rule, AskQuestion block, or script call lost.
+- maintainer judgment 2026-10-21: Pass (excerpt reviewed in session).
 
 ---
 
@@ -976,9 +1043,11 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
 - Step 2: `2774 passed, 2 skipped` on `ef65139` (the count grows with later commits; there must be no failure).
 - Step 3: `bash tests: 45 run, 0 failed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, `Findings: 0`, `Run errors: 0`, `commands/create-spec.md +13602`; step 2 `2774 passed, 2 skipped`; step 3 `bash tests: 45 run, 0 failed`.
 
 ---
 
@@ -996,7 +1065,7 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   ```bash
   printf '# Notes CLI\n\nA shell script that appends notes to notes.txt.\n' > "$P/README.md"
   printf '#!/bin/sh\necho "$*" >> notes.txt\n' > "$P/note.sh"
-  git -C "$P" add -A && git -C "$P" -c user.name=t -c user.email=t@example.invalid commit -qm init
+  case "$P" in "$W"/?*) git -C "$P" add -A && git -C "$P" -c user.name=t -c user.email=t@example.invalid commit -qm init ;; *) echo "P is not under $W: run Scenario 12 step 1 in this shell first" >&2 ;; esac
   ```
 
 **Steps:**
@@ -1026,9 +1095,13 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
   - The final review lists the file tree, story and task counts, the `spec-analyze.py` verdict as a note, and one `jev:` note.
 - The session never offers to implement the spec (Terminal constraint).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [ ] Pass  [x] Fail
 
 **Notes:** Optional comparison: install from `37e097e` (`git -C "$CL" worktree add "$W/pre" 37e097e`, then install from `$W/pre` into a second scratch project) and run the same request. The two packages should have the same structure; wording will differ run to run.
+
+needs live session (Claude Code): run Scenario 12 step 1 again first (the agent run deleted `$P`), then seed the project and follow steps 1–6.
+- live run 2026-10-22 (maintainer, Claude Code 2.1.308); transcript reviewed by Claude. Package checks pass: spec.md, spec-lite.md, user-stories/README.md, story-1 and story-2, sub-specs/technical-spec.md (plus an empty mockups/); Status and Dependencies [] present; each story AC 4, tasks 6; spec-lite 78 lines; ac-trace exit 0, no findings. Discovery asked three questions one at a time, each with a recommendation, and called out a pre-existing no-arguments bug as out of scope. No spec files existed before the lock. The final review listed the tree, counts, the spec-analyze verdict, and one jev: note, and pointed to /implement-spec without offering to implement. FAIL: the contract was never shown. The agent drafted it only in its thinking and went straight to the Contract Decision prompt, so the maintainer locked a contract they had not seen. The seven sections exist only in the written spec.md. The prompt had 4 options, not 5; Claude Code's AskUserQuestion caps at 4 plus Other, so the plan's five-option expectation cannot be met there. Discovery used AskUserQuestion rather than Plan Mode. See .writ/issues/bugs/2026-10-22-create-spec-can-lock-an-unseen-contract.md.
+- maintainer confirmed 2026-10-22: no contract was shown before the lock prompt.
 
 ---
 

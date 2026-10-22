@@ -26,6 +26,7 @@
   ```bash
   REPO=/Users/asellke/Projects/writ          # the Writ checkout; read from, never installed into
   W=$(mktemp -d "${TMPDIR:-/tmp}/writ-uat-cuts.XXXXXX")
+  cd "$W"   # run every helper from the temp folder: an empty path then fails instead of writing to the Writ repo
   h()      { shasum -a 256 "$1" | cut -d' ' -f1; }
   digest() { (cd "$1" && find . -type f -exec shasum -a 256 {} + | LC_ALL=C sort | shasum -a 256 | cut -d' ' -f1); }
   # Committed copy of the working tree. install.sh and update.sh run from here.
@@ -97,9 +98,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: no output, `exit 1`.
 - Step 3: `scripts/install.sh:0` and `scripts/update.sh:0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The Story 1 paths are clean. The repo-wide version of this grep (Scenario 7) currently fails on a path outside these; see Known Issue.
+
+agent-run 2026-10-21 @ b850e66: step 1 `ls: commands/*.lean.md: No such file or directory`, `exit 1`; step 2 no output, `exit 1`; step 3 `scripts/install.sh:0`, `scripts/update.sh:0`.
 
 **Implementation Reference:** Story 1 — five `commands/*.lean.md` deleted; `is_unshipped_lean_sibling` removed from both scripts, including the `write_copy_manifest` loops (DEV-001).
 
@@ -125,9 +128,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`.
 - Step 3: `0`, `0`, `33`, `33`. The installed command count equals every `commands/*.md` in the source.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: dry run `exit 0`, `📋 Commands:  33`, `0`, `✨ New:       commands/implement-story.md`, `0` files written; install `exit 0`; step 3 `0`, `0`, `33`, `33`.
 
 ---
 
@@ -157,9 +160,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0`, `🗑  Removed: commands/implement-story.lean.md`, `🗑  Removed: commands/_preamble.lean.md`.
 - Step 4: `0`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: dry run `exit 0`, `tree unchanged`, both lean files listed under `Stale files (removed upstream, would be deleted):`; update `exit 0`, `🗑  Removed:` for both; step 4 `0`, `0`.
 
 ---
 
@@ -182,9 +185,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Run 1: `run 1 exit 0`, `⚠️  Stale (no longer shipped, locally modified — kept): commands/verify-spec.lean.md`, `🗑  Removed: commands/implement-phase.lean.md`, `edited copy unchanged`, `baseline kept`.
 - Run 2: `run 2 exit 0`, the same `⚠️  Stale …` line, `✅ Already up to date! (<hash>)`, `edited copy unchanged`, `baseline kept`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The unmodified `implement-phase.lean.md` makes run 1 rewrite the manifest, so "baseline kept" after run 1 is meaningful (see Conventions).
+
+agent-run 2026-10-21 @ b850e66: run 1 `exit 0`, `⚠️  Stale (no longer shipped, locally modified — kept): commands/verify-spec.lean.md`, `🗑  Removed: commands/implement-phase.lean.md`, `edited copy unchanged`, `baseline kept`; run 2 `exit 0`, same Stale line, `✅ Already up to date! (d732939)`, `edited copy unchanged`, `baseline kept`.
 
 **Implementation Reference:** Story 1 — `update.sh` `detect_stale_files` keeps the `! -f "$upstream_file"` test and the kept-modified branch from `2026-10-20-ci-and-update-integrity`.
 
@@ -212,9 +217,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0` and `- Findings: 0`.
 - Step 4: three lines of `No such file or directory`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Observed on `7922922`: Step 1 `1 failed, 2606 passed, 2 skipped` (the guard test; see Known Issue). Step 2: 39 bash tests, 0 failed. Step 3: `exit 0`, `- Findings: 0`, `- Run errors: 0`. Only Step 1 fails.
+
+agent-run 2026-10-21 @ b850e66: step 1 `2774 passed, 2 skipped` (no failures; the guard test passes since `8974202`); step 2 only `bash tests done` (45 bash tests); step 3 `exit 0`, `- Findings: 0`, `- Run errors: 0`; step 4 three `No such file or directory`.
 
 ---
 
@@ -237,9 +244,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; the only line is `🗑  Removed: commands/implement-phase.lean.md`; `hand-made file unchanged`; `0` (not recorded).
 - Step 3: `exit 0`, `0`, `✅ Already up to date! (<hash>)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, only `🗑  Removed: commands/implement-phase.lean.md`, `hand-made file unchanged`, `0`; step 3 `exit 0`, `0`, `✅ Already up to date! (d732939)`.
 
 ---
 
@@ -256,8 +263,8 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Setup block pasted.
 
 **Steps:**
-1. The Business Rule 2 pathspec plus the two DEV-005 folders (what the test runs):
-   `cd "$REPO" && git grep -n -e WRIT_HARNESS_LEAN -e '\.lean\.md' -- . ':!CHANGELOG.md' ':!.writ/decision-log.md' ':!.writ/specs/archive' ':!.writ/research' ':!.writ/product' ':!.writ/decision-records' ':!.writ/specs/2026-10-12-agent-cli-contract' ':!.writ/specs/2026-10-20-harness-cuts' ':!scripts/tests/test_harness_cuts.py' ':!scripts/tests/test_install_update_harness_cuts.sh' ':!.writ/specs/2026-10-20-platform-neutral-names' ':!.writ/specs/2026-10-20-shipped-command-hygiene'; echo "exit $?"`
+1. The guard's current pathspec (what the test runs since DEV-009 excluded `.writ/specs` as a whole):
+   `cd "$REPO" && git grep -n -e WRIT_HARNESS_LEAN -e '\.lean\.md' -- . ':!CHANGELOG.md' ':!.writ/decision-log.md' ':!.writ/specs' ':!.writ/research' ':!.writ/product' ':!.writ/decision-records' ':!scripts/tests/test_harness_cuts.py' ':!scripts/tests/test_install_update_harness_cuts.sh'; echo "exit $?"`
 2. The literal Business Rule 2 pathspec, counted by folder:
    `git grep -n -e WRIT_HARNESS_LEAN -e '\.lean\.md' -- . ':!CHANGELOG.md' ':!.writ/decision-log.md' ':!.writ/specs/archive' ':!.writ/research' ':!.writ/product' ':!.writ/decision-records' ':!.writ/specs/2026-10-12-agent-cli-contract' ':!.writ/specs/2026-10-20-harness-cuts' ':!scripts/tests/test_harness_cuts.py' ':!scripts/tests/test_install_update_harness_cuts.sh' | cut -d: -f1 | cut -d/ -f1-3 | sort | uniq -c`
 3. `ls scripts/lean-decision.py scripts/tests/test_lean_decision.py scripts/tests/test_measure_invocation_lean.py scripts/tests/test_eval_manifest_lean.sh 2>&1 | sed 's/.*: //'`
@@ -267,9 +274,13 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: hits only under `.writ/specs/2026-10-20-platform-neutral-names` (12) and `.writ/specs/2026-10-20-shipped-command-hygiene` (15). These are the Not Started sibling specs that DEV-005 excludes. That exclusion is flagged for review and is not yet in Business Rule 2.
 - Step 3: four lines of `No such file or directory`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Observed on `7922922`: Step 1 prints `.writ/specs/2026-10-20-ci-and-update-integrity/uat-plan.md:609:- No line for a dev-only script (for example `scripts/harness-cost.py`) or an unshipped `*.lean.md` command.` and exits 0. Step 2 shows that folder too (`1`). See Known Issue.
+
+agent-run 2026-10-21 @ b850e66: the step 1 pathspec as written still prints the `2026-10-20-ci-and-update-integrity/uat-plan.md:609` line (exit 0), but it is no longer what the test runs: `8974202` (DEV-009, Business Rule 2 amended) replaced the per-folder spec exclusions with `':!.writ/specs'`, and that pathspec prints nothing, `exit 1`; the guard test passes in the full suite (Scenario 5).
+Step 2: `1` ci-and-update-integrity, `12` platform-neutral-names, `26` shipped-command-hygiene (was 15; that spec grew after `7922922`). Step 3: four `No such file or directory`.
+- maintainer sign-off 2026-10-21 (delegated): Pass accepted; the guard test excludes .writ/specs as a whole since 8974202 (DEV-009). Step 1 pathspec updated.
 
 ---
 
@@ -295,9 +306,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 4: `identical`; `['bytes', 'fetched_context', 'truncated', 'warnings'] True 500`; `['⚠️ fetched_context truncated (2563 of 500 bytes)']` (the first number depends on the story).
 - Step 5: `No such file or directory` (nothing written under the state dir); `.writ/state unchanged`; `0` (the flag is not shown in help).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: steps 2–3 `exit 0`; `identical`; `['bytes', 'fetched_context', 'truncated', 'warnings'] True 500`; `['⚠️ fetched_context truncated (2563 of 500 bytes)']`; step 5 `No such file or directory`, `.writ/state unchanged`, `0`.
 
 **Implementation Reference:** Story 2 — `scripts/story-context.py`: spill path removed; `--state-dir` kept with `help=argparse.SUPPRESS` (Business Rule 7).
 
@@ -325,9 +336,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `719:WRIT_KEYS = ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count")` and `0`.
 - Step 4: `4 passed, 149 deselected`. These tests run `overlay_writ` and check the record's `writ` block has exactly the five keys, and validate records carrying `harness_lean` true and false.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The committed baselines in `.writ/eval/baselines/2026-09-25-lean-arms/` already fail `validate` for an unrelated reason ("expected 8 records, got 2"), so legacy tolerance is pinned by a fixture, not by those files (Story 2 What Was Built).
+
+agent-run 2026-10-21 @ b850e66: step 1 `0`; step 2 `pipeline-baseline.py: error: unrecognized arguments: --lean`, `exit 2`, `No such file or directory`; step 3 `719:WRIT_KEYS = ("source", "commit", "dirty", "checkout_manifest_version", "manifest_diff_count")`, `0`; step 4 `4 passed, 149 deselected`.
 
 ---
 
@@ -353,9 +366,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: one line: `` - `commands/listed.lean.md`: command file exists but is not listed in .writ/manifest.yaml. … `` and none for `commands/listed.md`. (The report also has a `.writ/manifest.yaml` generator-validation finding because the fixture manifest is minimal; ignore it.)
 - Step 4: `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 2 `Wrote baseline: ../s10-baseline.json`, `2`; step 3 one `not listed` finding, for `commands/listed.lean.md` only (plus the expected `.writ/manifest.yaml` generator-validation finding); step 4 `0`.
 
 ---
 
@@ -381,9 +394,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `PASS test_install_update_dev_scripts` (its kept-modified fixture is now `prune-ledger.py`).
 - Step 4: `🗑  Removed: scripts/lean-decision.py`, `No such file or directory`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `three identical`, `0`; `.writ/docs/agent-cli-contract.md:0`, `commands/update-writ.md:0`; `PASS test_install_update_dev_scripts`; `🗑  Removed: scripts/lean-decision.py`, `No such file or directory`, `0`.
 
 ---
 
@@ -410,9 +423,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 4: `FileNotFoundError: [Errno 2] No such file or directory: 'git'`. The guard errors; it does not pass.
 - Step 5: no output.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Until the Known Issue is fixed, Step 2's README failure also lists the `2026-10-20-ci-and-update-integrity/uat-plan.md:609` line.
+
+agent-run 2026-10-21 @ b850e66: step 2 `E       + [] : lean command files still exist: zz-new.lean.md`, `E       README.md:386:Export WRIT_HARNESS_LEAN=1 to try it.`, `2 failed, 40 deselected` (the ci-and-update-integrity line no longer appears); step 3 `exit 0`, file listed, `1`; step 4 `FileNotFoundError: [Errno 2] No such file or directory: 'git'`; step 5 no output.
 
 ---
 
@@ -436,9 +451,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 1: only `scripts/tests/test_harness_cuts.py` (one of the two guard-excluded tests).
 - Steps 2–4: `install dry runs identical`, `measure-invocation identical`, `story-context identical`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 1 only `scripts/tests/test_harness_cuts.py`; `install dry runs identical`, `measure-invocation identical`, `story-context identical`.
 
 ---
 
@@ -464,9 +479,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: items 1, 2, and 3 only. Item 3 re-runs each failing story once at `anchor`.
 - Step 3: the paragraph re-runs `architecture-check-agent` once at `anchor` and ends with the "Iteration accounting: …" sentence. It does not tell the agent to print an `escalated(...)` line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 1 no output and `exit 1` twice, `commands/create-spec.md:0`, `commands/implement-story.md:0`. Step 2.6a (line 554) has items 1–3 only; item 3 re-runs each failing story once at `anchor`. Gate 0 anchor confirmation (line 192) re-runs `architecture-check-agent` once at `anchor`, ends with the "Iteration accounting: …" sentence, and has no `escalated(...)` line.
 
 ---
 
@@ -494,9 +509,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 4: `exit 1` and a finding: `` - `commands/create-spec.md`: create-spec.md Step 2.6a must state the pair-counts-once iteration rule verbatim, … ``.
 - Step 5: no output.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 1 `1`, `1`, `0`; step 2 `0`; step 3 `exit 0`, `## model-escalation`, blank, `PASS`; step 4 `exit 1` and the `commands/create-spec.md`: "…must state the pair-counts-once iteration rule verbatim…" finding; step 5 no output.
 
 ---
 
@@ -522,9 +537,12 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: the Overview says `/ship` takes a green branch to an open PR, opens a PR, and owns the "branch to open PR" path ending `→ open PR`. It does not say `/ship` merges.
 - Step 4: the installed `ship.md` has the same description. The installed `CLAUDE.md` still lists `/ship` as `Branch to merged PR workflow`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The `CLAUDE.md` line comes from `claude-code/CLAUDE.md:20`, which Story 3 left out of scope. See Not Covered.
+
+agent-run 2026-10-21 @ b850e66: steps 1–3 as expected (`3c3`, `17c17`, `19c19`, `25c25`; Overview says green branch to open PR, path ends `→ open PR`, no merge claim). Step 4: installed `ship.md` description matches.
+Installed `CLAUDE.md:42` now reads `Take a green branch through commit intelligence and PR creation.`, not `Branch to merged PR workflow`: `claude-code/CLAUDE.md` is generated from the manifest since `98b773d` (after `7922922`), which closes the Not Covered gap.
 
 ---
 
@@ -548,9 +566,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `"commands/create-spec.md": 28733`, `"commands/ship.md": 4023`, `"commands/implement-story.md": 11533`. Each equals the file size minus 24,960. Each has a dated `2026-10-20 (2026-10-20-harness-cuts Story 3)` comment naming its old value (29304, 4030, 12013).
 - Step 3: `49 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Sizes are as of `7922922`. Later Phase 13 specs may edit these files and their ledger entries.
+
+agent-run 2026-10-21 @ b850e66: sizes `28907` ship.md (≤ 28,990), `38562` create-spec.md, `36226` implement-story.md, smaller than at `7922922` (later shipped-command-hygiene and platform-neutral-names edits). Ledger `13602`, `3947`, `11266`, each = size − 24,960; each keeps the harness-cuts Story 3 comment naming 29304, 4030, 12013, followed by later dated comments. Step 3 `58 passed` (was 49).
 
 ---
 
@@ -590,9 +610,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `script filter: 3 identical`, `doc filter: 2 identical`.
 - Step 4: both files listed. They stay in the source repo.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `recommend-state.py=1 spec-status.py=0` for install, update, unlink; only `install rejects:` and `update rejects: recommended-delivery-state-format.md`; `script filter: 3 identical`, `doc filter: 2 identical`; both files listed.
 
 **Implementation Reference:** Story 4 — `is_shippable_script` dev-only arm in `install.sh`, `update.sh`, `unlink.sh`; new `is_shippable_writ_doc` in `install.sh` and `update.sh`.
 
@@ -630,9 +650,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: only `< recommended-delivery-state-format.md`.
 - Step 3: `35`, matching the installed script count.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: claude, cursor, codex each `dry exit 0, dry wrote 0, install exit 0, names: 0, on disk: 0, manifest: 0, scripts: 35, docs: 28` (docs was 27; the source now has 29 docs). Step 2 only `< recommended-delivery-state-format.md`; step 3 `35`.
 
 **Implementation Reference:** Story 4 — `overlay_scan_flat_dir` gets a `doc` filter at the four `.writ/docs` call sites; both `append_manifest_writ_docs` skip rejected docs.
 
@@ -664,9 +684,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0`, `🗑  Removed: scripts/recommend-state.py`, `🗑  Removed: .writ/docs/recommended-delivery-state-format.md`.
 - Step 4: `0`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The heading says "removed upstream" although upstream still has both files. That is today's wording and matches the spec's State Catalog.
+
+agent-run 2026-10-21 @ b850e66: dry run `exit 0`, `tree unchanged`, both staging files listed under `Stale files (removed upstream, would be deleted):`; update `exit 0`, `🗑  Removed:` for both; step 4 `0`, `0`.
 
 ---
 
@@ -689,9 +711,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Run 1: `run 1 exit 0`; `⚠️  Stale (no longer shipped, locally modified — kept): scripts/recommend-state.py`; `⚠️  Stale (no longer shipped, locally modified — kept): .writ/docs/recommended-delivery-state-format.md`; `🗑  Removed: scripts/harness-cost.py`; `both edited copies unchanged`; `baselines kept`.
 - Run 2: `run 2 exit 0`; the same two `⚠️  Stale …` lines; `✅ Already up to date! (<hash>)`; `both edited copies unchanged`; `baselines kept`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The unmodified dev-only `harness-cost.py` makes run 1 rewrite the manifest (see Conventions).
+
+agent-run 2026-10-21 @ b850e66: run 1 `exit 0`, both `⚠️  Stale (… — kept)` lines, `🗑  Removed: scripts/harness-cost.py`, `both edited copies unchanged`, `baselines kept`; run 2 `exit 0`, both Stale lines, `✅ Already up to date! (d732939)`, `both edited copies unchanged`, `baselines kept`.
 
 ---
 
@@ -719,9 +743,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 4: one line from `agent-cli-contract.md`, 126, the "Not in the table" note. Read in full, it lists six dev-only scripts ending with `recommend-state.py`, which "holds ADR-013's dormant staging reducers". No table row names it. Then line 34 of `acceptance-criteria-ids.md`: "Writ's source-repo `recommend-state.py` (dev-only, not installed) parses criterion lines …".
 - Step 5: lines 111, 115, 124. Line 111 lists `recommend-state.py` among the dev-only helpers. Line 115 ships every doc except `recommended-delivery-state-format.md`. Line 124 counts "manifest-listed docs the docs filter excludes" as stale.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 1 no hits, `exit 1`, Small route text matches; step 2 `exit 1`; step 3 Runtime Contract text matches, `gen-skill: pass (SKILL.md matches .writ/manifest.yaml)`; step 4 line 126 lists six dev-only scripts ending `recommend-state.py` ("holds ADR-013's dormant staging reducers"), no table row, and `acceptance-criteria-ids.md:34` matches; step 5 lines 111, 115, 124 match.
 
 **Implementation Reference:** Story 4 — `skills/drift-triage/SKILL.md`, `.writ/docs/agent-cli-contract.md`, `.writ/docs/acceptance-criteria-ids.md`, `commands/update-writ.md` Step 3, `scripts/gen-skill.sh` + `SKILL.md`; comments in `scripts/exit-criteria.py` and `scripts/story-deps.py` no longer name the script (Gate 3 iteration 1 finding).
 
@@ -749,9 +773,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0`, `Scenarios: 147/147 passed`, `Supplementary static assertions: 16/16 passed`, `- Findings: 0`. 147 = 21 lifecycle (7 × 3 platforms) + 76 reducer + 50 adversarial.
 - Step 4: `exit 0`, `Scenarios: 60/60 passed`, `- Findings: 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 1 five files; step 2 exactly the seven names, none of the old ones; step 3 `exit 0`, `Scenarios: 147/147 passed`, `Supplementary static assertions: 16/16 passed`, `- Findings: 0`; step 4 `exit 0`, `Scenarios: 60/60 passed`, `- Findings: 0`.
 
 ---
 
@@ -782,9 +806,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0`; `0`; `helper symlink untouched`; `state doc is now a regular file`; manifest `0` for the helper and `1` for the state doc.
 - Step 4: `exit 0`; `🗑  Removed: .writ/docs/recommended-delivery-state-format.md`; `No such file or directory`; `helper symlink still untouched`; `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Unlink writes a manifest without the `# baselines: shipped` header, so the first update takes the legacy path and rebuilds baselines from upstream at `# version:`. With a version upstream does not have (tried with `# version: fixture`), update preserves every differing file and lists nothing as stale, so the state doc copy stays. That is the dependency spec's legacy rule, not this spec's.
+
+agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, `0`, `1`; step 3 `exit 0`, `0`, `helper symlink untouched`, `state doc is now a regular file`, `0`, `1`; step 4 `exit 0`, `🗑  Removed: .writ/docs/recommended-delivery-state-format.md`, `No such file or directory`, `helper symlink still untouched`, `0`.
 
 ---
 
@@ -807,9 +833,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`, `0`.
 - Step 3: `both copies unchanged`, `0`. `install.sh` never removes files, so old copies stay, untracked (same as the ADR-029 dev-only scripts).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `0`; `both copies unchanged`, `0`.
 
 ---
 
@@ -832,9 +858,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; the only line is `🗑  Removed: scripts/harness-cost.py` (proof the manifest was rewritten).
 - Step 3: `both copies unchanged`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, only `🗑  Removed: scripts/harness-cost.py`; `both copies unchanged`, `0`.
 
 ---
 
@@ -855,9 +881,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - Step 2: `exit 0`; `⚠️  No manifest found — this is an older installation.`; `✅ Already up to date! (<hash>)`; no `Removed` or `Stale` line; `tree unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The spec's shadow path says "update refuses as today". It does not refuse: it warns and treats differing files as locally modified. The safety property holds: nothing is removed. Update also prints "A manifest will be created after update" but writes none when nothing differs. Both are behavior from before this spec.
+
+agent-run 2026-10-21 @ b850e66: `exit 0`, `⚠️  No manifest found — this is an older installation.`, `✅ Already up to date! (d732939)`, no Removed or Stale line, `tree unchanged`.
 
 ---
 
@@ -878,9 +906,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - Step 2: `exit 0`, `0`, `✅ Already up to date! (<hash>)`, `tree unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `0`, `✅ Already up to date! (d732939)`, `tree unchanged`.
 
 ---
 
@@ -901,9 +929,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - Step 2: `exit 1`; `❌ Failed to clone <W>/no-such-repo`; no `Removed` or `Stale` line; `tree unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 1`, `❌ Failed to clone <W>/no-such-repo`, no Removed or Stale line, `tree unchanged`.
 
 ---
 
@@ -926,9 +954,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `⚠️  Stale (no longer shipped, locally modified — kept): commands/verify-spec.lean.md`; `⚠️  Stale (no longer shipped, locally modified — kept): .writ/docs/recommended-delivery-state-format.md`; `🗑  Removed: commands/implement-story.lean.md`; `🗑  Removed: scripts/recommend-state.py`.
 - Step 3: `verify-spec.lean.md`; `No such file or directory` (the helper); `.writ/docs/recommended-delivery-state-format.md` (kept).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `--force` overwrites customized shipped files, but edited stale files are still kept, the same as without it.
+
+agent-run 2026-10-21 @ b850e66: `exit 0`, Stale-kept for `commands/verify-spec.lean.md` and the state doc, Removed for `commands/implement-story.lean.md` and `scripts/recommend-state.py`; step 3 `verify-spec.lean.md`, `No such file or directory`, `.writ/docs/recommended-delivery-state-format.md`.
 
 ---
 
@@ -951,9 +981,9 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`.
 - Step 3: `0` (the folder exists, empty), `0`, `33`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: install `exit 0`; `0`, `0`, `33`.
 
 ---
 
@@ -974,9 +1004,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - Step 2: `exit 1`; `📥 Cloning writ from GitHub...`; `❌ Failed to clone https://github.com/sellke/writ.git`; `bin` (nothing else was written).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `install.sh` clones only when it is not inside a Writ checkout. Every other scenario runs it from `$SRC`, which never clones.
+
+agent-run 2026-10-21 @ b850e66: `exit 1`, `📥 Cloning writ from GitHub...`, `❌ Failed to clone https://github.com/sellke/writ.git`, `bin` only.
 
 ---
 
