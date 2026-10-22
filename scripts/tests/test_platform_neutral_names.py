@@ -246,6 +246,8 @@ def test_adapter_canvas_row(adapter, headings, keywords):
         assert keyword in row, "%s: row lacks %r" % (adapter, keyword)
     assert cells(row)[-1].endswith(DEGRADATION_CLAUSE), "%s: last cell must end with %r" % (
         adapter, DEGRADATION_CLAUSE)
+    # A row states facts; only the adapter's verification record says "verified".
+    assert "verified" not in row, "%s: the row must not say 'verified'" % adapter
 
 
 def test_cursor_ide_browser_confined():
@@ -774,3 +776,112 @@ def test_issue_resolution(rel, phrases):
 
     refs = [line for line in lines if line.startswith("> **spec_ref:**")]
     assert refs == ["> **spec_ref:** %s" % SPEC_DIR], "%s: %s" % (rel, refs)
+
+
+# ---------------------------------------------------------------------------
+# Verification records (Story 1 of 2026-10-22-rendering-delegation-rows): the
+# section that holds each adapter's tool table also carries a dated
+# `#### Verification record` whose rows cite a first-party `https://` source
+# and a status in the anchored grammar. Naming the spec here keeps the AC
+# citations below attributed to it.
+# ---------------------------------------------------------------------------
+
+RECORD_HEADING = re.compile(r"^#### Verification record — \d{4}-\d{2}-\d{2}$")
+# technical-spec.md → Verification Record Format. Anchored at both ends: a
+# version or a reason outside the two parentheticals fails.
+STATUS_GRAMMAR = re.compile(
+    r"^(verified|unverified) \d{4}-\d{2}-\d{2}( \((pending UAT|no deployment)\))?$"
+)
+RECORD_COLUMNS = ["Check", "Platform & version", "Observed", "Source", "Status"]
+
+# (adapter, heading chain to the section that holds its tool table). Story 2
+# of the spec adds the other three adapters.
+VERIFICATION_RECORDS = [
+    (
+        "adapters/claude-code.md",
+        ("## Tool Mapping (Cursor → Claude Code)", "### Quick Reference"),
+    ),
+]
+
+
+def verification_record(text: str, *headings: str) -> List[str]:
+    """The table under the first `#### Verification record — YYYY-MM-DD`
+    heading inside the section `headings` names; `[]` when that section has
+    no such heading. `first_table` on the section itself returns the tool
+    table, so the search starts after the record heading."""
+    lines = section(text, *headings).splitlines()
+    for i, line in enumerate(lines):
+        if RECORD_HEADING.match(line):
+            return first_table("\n".join(lines[i + 1:]))
+    return []
+
+
+@pytest.mark.parametrize(
+    "adapter, headings",
+    VERIFICATION_RECORDS,
+    ids=[Path(a).stem for a, _ in VERIFICATION_RECORDS],
+)
+def test_verification_records(adapter, headings):
+    """AC-1.3, AC-1.5: the adapter's tool-table section holds a dated
+    verification record whose table has the five record columns and at
+    least one data row; every Status cell matches the anchored status
+    grammar and every Source cell starts with `https://`. No network: the
+    source is checked for its prefix only."""
+    table = verification_record(read(adapter), *headings)
+    assert table, "%s: no '#### Verification record — YYYY-MM-DD' heading with a table under %s" % (
+        adapter, headings[-1])
+    assert cells(table[0]) == RECORD_COLUMNS, "%s: record columns are %s" % (
+        adapter, cells(table[0]))
+    rows = table[2:]
+    assert rows, "%s: verification record has no data row" % adapter
+    for row in rows:
+        row_cells = cells(row)
+        assert len(row_cells) == len(RECORD_COLUMNS), "%s: record row has %d cells: %r" % (
+            adapter, len(row_cells), row)
+        source, status = row_cells[3], row_cells[4]
+        assert STATUS_GRAMMAR.match(status), "%s: Status %r does not match the status grammar" % (
+            adapter, status)
+        assert source.startswith("https://"), "%s: Source %r does not start with https://" % (
+            adapter, source)
+
+
+CLAUDE_CODE_RECORD = (
+    "adapters/claude-code.md",
+    ("## Tool Mapping (Cursor → Claude Code)", "### Quick Reference"),
+)
+CLAUDE_CODE_DOCS = "https://code.claude.com/docs/"
+VERSION = re.compile(r"\b\d+\.\d+\.\d+\b")
+
+
+def record_row(table: List[str], word: str) -> List[str]:
+    """The one record row whose Check cell contains `word` (case-insensitive)."""
+    hits = [cells(row) for row in table[2:] if word in cells(row)[0].lower()]
+    assert len(hits) == 1, "expected one record row with %r in Check, found %d" % (word, len(hits))
+    return hits[0]
+
+
+def test_claude_code_record_checks():
+    """AC-1.1, AC-1.2: the Claude Code record has one row each for the
+    artifact attempt, the preview pane, the native design surface, and the
+    headless no-renderer path. Every Source is a Claude Code docs page and
+    every Platform cell names a version and the session kind; the headless
+    row names the no-renderer clause."""
+    table = verification_record(read(CLAUDE_CODE_RECORD[0]), *CLAUDE_CODE_RECORD[1])
+    rows = [record_row(table, w) for w in ("artifact", "preview", "native design surface", "headless")]
+    for row in rows:
+        assert row[3].startswith(CLAUDE_CODE_DOCS), "Source %r is not a Claude Code docs page" % row[3]
+        assert VERSION.search(row[1]), "Platform cell %r names no version" % row[1]
+        assert "desktop" in row[1] or "terminal" in row[1], "Platform cell %r names no session kind" % row[1]
+    assert "no-renderer" in rows[3][2], "headless row does not name the no-renderer clause"
+
+
+def test_claude_code_canvas_row_states_facts():
+    """AC-1.4: the Claude Code `canvas-preview` row keeps `artifact`,
+    `preview pane`, and the degradation clause, and says nothing about
+    verification; status lives in the record."""
+    text = read(CLAUDE_CODE_RECORD[0])
+    row = [line for line in text.splitlines() if line.startswith(CANVAS_ROW_PREFIX)]
+    assert len(row) == 1, "expected one canvas-preview row, found %d" % len(row)
+    assert "artifact" in row[0] and "preview pane" in row[0], row[0]
+    assert cells(row[0])[-1].endswith(DEGRADATION_CLAUSE), row[0]
+    assert "verified" not in row[0], row[0]
