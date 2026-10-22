@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-22T17:52:25Z
+> Last Updated: 2026-10-22T23:50:00Z
 
 ## Product Mission
 
@@ -8,22 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none in progress. Phase 13 (Subtract and Repair) shipped in v0.43.0 and closed 2026-10-22: 173 of 176 UAT scenarios pass, names S9 is tracked as an issue, and 2 need OpenClaw. The hygiene S29 fix is in PR #62.
-- **Most recent:** 2026-10-20-shipped-command-hygiene — Shipped Command Hygiene (Complete, 3/3 stories, 21/21 tasks)
+- **Spec:** 2026-10-22-rendering-delegation-rows — Rendering-Delegation Rows
+- **Status:** Complete (3/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-rendering-delegation-rows`, awaiting merge by /implement-phase)
+- **Story:** 3 of 3 — Verification-Record Tests, prototype.md Reconciliation, and Issue Note (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** none in progress — most recent .writ/specs/2026-10-20-shipped-command-hygiene/ (spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, uat-plan.md)
+- **Active spec:** .writ/specs/2026-10-22-rendering-delegation-rows/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (24 entries)
 - **Docs:** .writ/docs/ (29 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-007 Fifth declined class `wording` in the cut log — shipped-command-hygiene
-- DEV-008 The cut is larger than the technical spec's estimate — shipped-command-hygiene
-- DEV-009 The Task 3.1 guard also requires a value below the Story 3 start — shipped-command-hygiene
+- DEV-003 Silent-page rows cite the specific page, not the docs index URL — rendering-delegation-rows (Story 2, auto-amended)
+- DEV-001 Headless row's Platform cell omitted the session kind — rendering-delegation-rows (Story 1, fixed in place)
+- DEV-002 Two Observed cells stated one step past what the run saw — rendering-delegation-rows (Story 1, fixed in place)
 
 ## Open Issues
 

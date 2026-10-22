@@ -197,6 +197,15 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |
 | `canvas-preview` | An artifact, or the preview pane | One self-contained HTML page per draft. No renderer: write a structural description of each draft and say the drafts were not rendered. |
 
+#### Verification record — 2026-10-22
+
+| Check | Platform & version | Observed | Source | Status |
+|---|---|---|---|---|
+| Publish one self-contained HTML draft as an artifact | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | The `Artifact` tool published `draft-a.html` (inline CSS, no network fetch, one labeled region per component) from the session scratchpad to a private claude.ai URL as version 1. Reading the URL back returned the page inside the viewer's document shell, and the Browser pane rendered the URL in the artifact viewer with all four labeled regions visible. | https://code.claude.com/docs/en/artifacts | verified 2026-10-22 |
+| Open the same draft in the preview (Browser) pane | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | `navigate` to the `file://` path opened the draft in the pane as a static snapshot; a screenshot of the local-file tab was refused, so that render was not inspected. Served from the scratchpad over `http://127.0.0.1` by a static file server, `navigate` rendered the page and a screenshot showed all four labeled regions. | https://code.claude.com/docs/en/desktop#preview-your-app | verified 2026-10-22 |
+| Native design surface reachable from a command run | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | The `Artifact` tool's read-only `quickstart` (intent `design`) listed the Claude Design type with a `type_url` and said to publish to that URL to start a canvas. Listed and addressable from inside the run without the user typing the native `/design` command; nothing was published and no canvas was created. | https://code.claude.com/docs/en/artifacts#draft-a-design-canvas | verified 2026-10-22 |
+| Headless run (`claude -p`): no-renderer path | Claude Code 2.1.308 (`claude --version`), desktop app session; `-p` not run, docs read 2026-10-22 | Not exercised in this run. The docs list `-p` from a terminal or script among the contexts where artifacts are off by default, so a headless `/prototype` run takes the row's no-renderer clause. | https://code.claude.com/docs/en/artifacts#availability | unverified 2026-10-22 |
+
 ### Agent Paths
 
 Commands name agents by canonical path, as in `> **Agent:** agents/coding-agent.md`. On Claude Code, each path resolves to the generated subagent file:

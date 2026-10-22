@@ -1,6 +1,6 @@
 # Rendering-Delegation Rows
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-10-22
 > **Owner:** @AdamSellke
 > **Dependencies:** []
