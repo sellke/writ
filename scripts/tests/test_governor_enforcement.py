@@ -611,7 +611,13 @@ KNOWN_OVER_BUDGET = {
     # with one that the lock happened at Step 1.4b; the --from Step 2s say to print
     # the contract. The "more questions" option folded into "edit" so the prompt
     # fits a four-option cap. No new step or gate. Acknowledged, not exempted.
-    "commands/create-spec.md": 14065,
+    # 2026-10-22 (hygiene UAT Scenario 29 re-run): 14065 -> 14632, a disclosed
+    # increase. A live run bundled three discovery questions into one AskUserQuestion
+    # call. Step 1.3 and both --from Step 1s now open with a "One question per
+    # prompt" rule (one question per message or AskQuestion call, never bundled),
+    # restoring the line the Phase 13 cut folded into a run-in clause. No new step
+    # or gate. Acknowledged, not exempted.
+    "commands/create-spec.md": 14632,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

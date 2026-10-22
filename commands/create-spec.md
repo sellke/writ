@@ -126,6 +126,8 @@ deliverable.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
 
+**One question per prompt:** as in Step 1.3, one question per message or AskQuestion call, never bundled; ask the next only after the answer.
+
 Switch to Plan Mode. Do not re-litigate what the prototype settled; discovery covers only what comes next. Open per the source matrix — built: *"The prototype built [summary from diff]. Story 1 is already complete. What should Story 2+ accomplish?"*; chosen only: *"The exploration picked [chosen draft] over [rejected drafts]. Nothing is built yet. What does shipping it take?"* Cover the gap to shippable: what Story 2 unlocks, the error, edge and production cases the prototype skipped, and the integration points it touched that need productionizing. Skip what the diff or exploration record already answers. Expect 3–5 exchanges.
 
 #### Step 2: Contract Proposal (Plan Mode)
@@ -177,6 +179,8 @@ Run Phase 2 with one change. **Where Step 0 found an exploration record and no d
 3. **Build a pre-populated contract draft:** Deliverable (from TL;DR and type), `Origin: Promoted from issue: [path]`, Files in Scope (Relevant Files), and Priority / Effort signals.
 
 #### Step 1: Shortened Discovery Conversation (Plan Mode)
+
+**One question per prompt:** as in Step 1.3, one question per message or AskQuestion call, never bundled; ask the next only after the answer.
 
 Switch to Plan Mode. Do not re-ask what the issue documents; shape the solution into stories. Open with: *"This issue captures [TL;DR from issue]. What does the fix/feature need to accomplish beyond what the issue describes?"* Cover story decomposition, uncaptured edge cases and error states, confirming acceptance criteria, unmentioned integration points, and omitted constraints. Expect 2–4 exchanges.
 
@@ -247,6 +251,8 @@ Scan `.writ/specs/` for related specifications, analyze codebase architecture an
 
 #### Step 1.3: Discovery Conversation (Plan Mode)
 
+**One question per prompt:** every discovery prompt asks exactly one focused question, on the highest-impact unknown: one Plan Mode message, or one AskQuestion call (AskUserQuestion on Claude Code) with a single entry in `questions`. Never bundle several questions into one prompt. Ask the next only after the answer, re-analyzing in between.
+
 After the context scan, run discovery in Plan Mode; the user controls when to switch. Before speaking, silently list what is missing or ambiguous across four areas:
 
 - **Experience:** entry point, happy path, key interaction moments, feedback/confirmation, error/empty/loading states, responsive behavior
@@ -254,7 +260,7 @@ After the context scan, run discovery in Plan Mode; the user controls when to sw
 - **Technical:** integration points and dependencies, performance, security, data persistence
 - **Scope:** success criteria, in/out boundaries, implementation approach, timeline
 
-**Conversation rules:** one focused question at a time, on the highest-impact unknown; re-scan the codebase after answers when relevant; continue until 95% confidence on the deliverable; **never declare "final question"**; let the user signal readiness for a contract. Explore experience first, then rules, then technical constraints.
+**Conversation rules:** re-scan the codebase after answers when relevant; continue until 95% confidence on the deliverable; **never declare "final question"**; let the user signal readiness for a contract. Explore experience first, then rules, then technical constraints.
 
 **Critical analysis:** say so when requirements are infeasible with the current architecture (with alternatives), when scope is several features (recommend splitting), when requests conflict with codebase patterns, and when performance/security/scalability concerns arise. Ask clarifying questions when business logic does not align with stated user value. Ask about error/empty/loading experience if it has not come up; probe vague rules ("admins can do it") for who, under what conditions, and exceptions; suggest smoother paths when a flow has unnecessary friction.
 
