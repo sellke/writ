@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | 1 | [Claude Code Live Verification and Record](story-1-claude-code-verification.md) | Completed ✅ | High | None | 6 | 6/6 |
 | 2 | [Cursor, Codex, and OpenClaw Rows from First-Party Docs with UAT Protocols](story-2-docs-based-rows-and-uat-protocols.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
-| 3 | [Verification-Record Tests, prototype.md Reconciliation, and Issue Note](story-3-tests-and-reconciliation.md) | Not Started | High | Story 1, Story 2 | 7 | 0/7 |
+| 3 | [Verification-Record Tests, prototype.md Reconciliation, and Issue Note](story-3-tests-and-reconciliation.md) | Completed ✅ | High | Story 1, Story 2 | 7 | 7/7 |
 
 **Total:** 3 stories, 20 tasks, 15 acceptance criteria.
 

@@ -1,6 +1,7 @@
 # Story 2: Cursor, Codex, and OpenClaw Rows from First-Party Docs with UAT Protocols
 
 > **Status:** Completed ✅
+> **Commit:** 45ce90e7df1737ed0dc7cc2d4afa19bc93c4ee04
 > **Priority:** High
 > **Dependencies:** Story 1
 

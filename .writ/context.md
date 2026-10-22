@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-22T23:30:00Z
+> Last Updated: 2026-10-22T23:50:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-rendering-delegation-rows — Rendering-Delegation Rows
-- **Status:** In Progress (Phase 14 lane `writ/phase/14/2026-10-22-rendering-delegation-rows`)
-- **Story:** 2 of 3 — Cursor, Codex, and OpenClaw Rows from First-Party Docs with UAT Protocols (Completed ✅); next: Story 3 — Verification-Record Tests, prototype.md Reconciliation, and Issue Note (Not Started)
-- **Progress:** 13/20 tasks complete (65%)
+- **Status:** Complete (3/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-rendering-delegation-rows`, awaiting merge by /implement-phase)
+- **Story:** 3 of 3 — Verification-Record Tests, prototype.md Reconciliation, and Issue Note (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 

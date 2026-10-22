@@ -815,20 +815,13 @@ def verification_record(text: str, *headings: str) -> List[str]:
     return []
 
 
-@pytest.mark.parametrize(
-    "adapter, headings",
-    VERIFICATION_RECORDS,
-    ids=[Path(a).stem for a, _ in VERIFICATION_RECORDS],
-)
-def test_verification_records(adapter, headings):
-    """AC-1.3, AC-1.5, AC-2.2, AC-2.5: the adapter's tool-table section holds a dated
-    verification record whose table has the five record columns and at
-    least one data row; every Status cell matches the anchored status
-    grammar and every Source cell starts with `https://`. No network: the
-    source is checked for its prefix only."""
-    table = verification_record(read(adapter), *headings)
-    assert table, "%s: no '#### Verification record — YYYY-MM-DD' heading with a table under %s" % (
-        adapter, headings[-1])
+
+
+def check_record(adapter: str, table: List[str]) -> None:
+    """Assert the record table's shape: the five record columns, at least one
+    data row, five cells per row, a Status in the anchored grammar, and a
+    Source starting with `https://`. Every message names the adapter and the
+    failing cell."""
     assert cells(table[0]) == RECORD_COLUMNS, "%s: record columns are %s" % (
         adapter, cells(table[0]))
     rows = table[2:]
@@ -842,6 +835,23 @@ def test_verification_records(adapter, headings):
             adapter, status)
         assert source.startswith("https://"), "%s: Source %r does not start with https://" % (
             adapter, source)
+
+
+@pytest.mark.parametrize(
+    "adapter, headings",
+    VERIFICATION_RECORDS,
+    ids=[Path(a).stem for a, _ in VERIFICATION_RECORDS],
+)
+def test_verification_records(adapter, headings):
+    """AC-1.3, AC-1.5, AC-2.2, AC-2.5, AC-3.1: the adapter's tool-table section holds a dated
+    verification record whose table has the five record columns and at
+    least one data row; every Status cell matches the anchored status
+    grammar and every Source cell starts with `https://`. No network: the
+    source is checked for its prefix only."""
+    table = verification_record(read(adapter), *headings)
+    assert table, "%s: no '#### Verification record — YYYY-MM-DD' heading with a table under %s" % (
+        adapter, headings[-1])
+    check_record(adapter, table)
 
 
 CLAUDE_CODE_RECORD = (
@@ -936,3 +946,74 @@ def test_uat_protocol(platform):
     assert "--diverge " + SAMPLE_IDEA in run, run
     on_pass = [l for l in lines if l.startswith("- **On pass")][0]
     assert "`verified <date>`" in on_pass and "Platform & version" in on_pass, on_pass
+
+
+RECORD_HEADER = "| Check | Platform & version | Observed | Source | Status |\n|---|---|---|---|---|\n"
+
+
+@pytest.mark.parametrize(
+    "row, message",
+    [
+        (
+            "| Render | Cursor 2.3 | not documented | not documented | unverified 2026-10-22 (pending UAT) |",
+            "cursor: Source 'not documented' does not start with https://",
+        ),
+        (
+            "| Render | Cursor 2.3 | rendered | https://cursor.com/docs/ | verified |",
+            "cursor: Status 'verified' does not match the status grammar",
+        ),
+        (
+            "| Render | Cursor 2.3 | rendered | https://cursor.com/docs/ | verified 2026-10-22, Cursor 2.3 |",
+            "cursor: Status 'verified 2026-10-22, Cursor 2.3' does not match the status grammar",
+        ),
+    ],
+    ids=["source-not-documented", "status-without-date", "status-with-version"],
+)
+def test_check_record_rejects_bad_cells(row, message):
+    """AC-3.1, AC-3.2: `check_record` rejects a Source of `not documented`
+    and a Status without a date or with a version appended, naming the
+    adapter and the failing cell; a record with no data row is rejected too."""
+    with pytest.raises(AssertionError) as err:
+        check_record("cursor", (RECORD_HEADER + row).splitlines())
+    assert str(err.value).startswith(message), str(err.value)
+    with pytest.raises(AssertionError, match="cursor: verification record has no data row"):
+        check_record("cursor", RECORD_HEADER.splitlines())
+
+
+def test_prototype_render_table_reconciled():
+    """AC-3.3, AC-3.4: no recorded observation contradicts a Step 2.5
+    render-table row, so `commands/prototype.md` keeps its three labels in
+    order, names no vendor tool, and the spec's drift log has no DEV entry
+    for a render-table change."""
+    text = read("commands/prototype.md")
+    assert CURSOR_TOOL not in text
+    render = section(text, "### Step 2.5: Diverge & Choose", "#### Render through the platform")
+    labels = [cells(row)[0] for row in first_table(render)[2:]]
+    assert labels == [
+        "Native artboard/design surface",
+        "`canvas-preview` (the adapter maps it)",
+        "Neither",
+    ], labels
+    titles = [l for l in read(RENDERING_SPEC + "/drift-log.md").splitlines() if l.startswith("#### [DEV-")]
+    assert not any("prototype.md" in t or "Step 2.5" in t for t in titles), (
+        "drift log has a Step 2.5 entry but commands/prototype.md is unchanged: %s" % titles)
+
+
+def test_issue_verification_note():
+    """AC-3.5: the origin issue's `## Resolution` section ends with a
+    `### Verification` subsection naming this spec and each adapter's
+    recorded status."""
+    lines = read(ISSUE_RESOLUTIONS[0][0]).splitlines()
+    body = lines[lines.index("## Resolution") + 1:]
+    assert body.count("### Verification") == 1, body
+    note = "\n".join(body[body.index("### Verification") + 1:])
+    assert "`2026-10-22-rendering-delegation-rows`" in note
+    for adapter, status in (
+        ("adapters/claude-code.md", "verified 2026-10-22"),
+        ("adapters/cursor.md", "unverified 2026-10-22 (pending UAT)"),
+        ("adapters/codex.md", "unverified 2026-10-22 (pending UAT)"),
+        ("adapters/openclaw.md", "unverified 2026-10-22 (no deployment)"),
+    ):
+        line = [l for l in note.splitlines() if l.startswith("- `%s`" % adapter)]
+        assert len(line) == 1, "%s: expected one status line, found %d" % (adapter, len(line))
+        assert status in line[0], line[0]
