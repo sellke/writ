@@ -79,7 +79,7 @@ accountability floor:
   - *Feature selection (Step 1.0):* use the provided `[idea]`; with no idea and
     exactly one unambiguous candidate from context, adopt it, otherwise pause.
   - *Contract lock (Step 1.4b):* auto-lock the evidence-backed contract. Do
-    **not** present the lock/edit/risks/blueprint/questions choice. The lock is
+    **not** present the lock/edit/risks/blueprint choice. The lock is
     justified by discovery and codebase evidence and recorded. Silence is not
     justification.
   - *Story decomposition and sub-spec set:* choose from contract scope and
@@ -130,7 +130,7 @@ Switch to Plan Mode. Do not re-litigate what the prototype settled; discovery co
 
 #### Step 2: Contract Proposal (Plan Mode)
 
-Build on the Step 0 draft plus discovery answers; present in Plan Mode. The contract covers what is built (Story 1) and what comes next:
+Build on the Step 0 draft plus discovery answers; print it as a visible message, in Plan Mode or not. The contract covers what is built (Story 1) and what comes next:
 
 ```
 ## Specification Contract
@@ -150,7 +150,9 @@ Build on the Step 0 draft plus discovery answers; present in Plan Mode. The cont
 
 #### Step 3: Phase 2 with Story 1 Marked per the Source Matrix
 
-When the user locks the contract, run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
+**Precondition:** the Step 2 contract is locked at the Step 1.4b Contract Decision.
+
+Run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
 
 ---
 
@@ -180,7 +182,7 @@ Switch to Plan Mode. Do not re-ask what the issue documents; shape the solution 
 
 #### Step 2: Contract Proposal (Plan Mode)
 
-Build on the Step 0 draft plus discovery answers; present for review:
+Build on the Step 0 draft plus discovery answers; print it as a visible message, in Plan Mode or not:
 
 ```
 ## Specification Contract
@@ -197,7 +199,9 @@ Build on the Step 0 draft plus discovery answers; present for review:
 
 #### Step 3: Phase 2 with `spec_ref` Writeback
 
-When the user locks the contract, run Phase 2. **After `spec.md` is written**, update the source issue: replace its `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with
+**Precondition:** the Step 2 contract is locked at the Step 1.4b Contract Decision.
+
+Run Phase 2. **After `spec.md` is written**, update the source issue: replace its `spec_ref:` line (which reads `_(set automatically when promoted via ...)_`) with
 
 ```
 > **spec_ref:** .writ/specs/[date]-[name]/spec.md
@@ -311,9 +315,11 @@ Keyword matching, not semantic analysis; false positives are acceptable (the use
 - Consider: sequencing these specs, declaring a dependency, or coordinating the shared area
 ```
 
-Discuss refinements in Plan Mode. When the user approves and switches back to Agent Mode, confirm with AskQuestion.
+Print it as a visible message, then discuss refinements (in Plan Mode when the run uses it). When the user approves, confirm with AskQuestion.
 
 #### Step 1.4b: Contract Decision (Agent Mode)
+
+**Precondition:** the full contract (Step 1.4, or Step 2 of `--from-prototype` and `--from-issue`) is already printed as a visible message, in Plan Mode or not. A contract drafted only in reasoning was never shown: print it first. A prompt about "this contract" when none was shown violates contract-first.
 
 ```
 AskQuestion({
@@ -324,10 +330,9 @@ AskQuestion({
       prompt: "How would you like to proceed with this contract?",
       options: [
         { id: "yes", label: "Lock contract and create spec package" },
-        { id: "edit", label: "Edit the contract (I'll specify changes)" },
+        { id: "edit", label: "Edit the contract or ask more questions (I'll type it)" },
         { id: "risks", label: "Explore potential implementation risks first" },
-        { id: "blueprint", label: "See the planned folder structure and documents" },
-        { id: "questions", label: "I have more questions before deciding" }
+        { id: "blueprint", label: "See the planned folder structure and documents" }
       ]
     }
   ]
@@ -335,10 +340,9 @@ AskQuestion({
 ```
 
 - **yes**: Proceed to Phase 2 (Spec Package Creation)
-- **edit**: Ask free-text follow-up: "What changes would you like to make to the contract?"
+- **edit**, or any free-text reply (including a platform's automatic "Other"): apply the changes, or answer the questions and return to discovery; print the revised contract, then re-present with AskQuestion
 - **risks**: Present detailed risk analysis, then re-present contract with AskQuestion
 - **blueprint**: Show planned folder structure, then re-present contract with AskQuestion
-- **questions**: Switch back to Plan Mode and return to discovery conversation
 
 #### Step 1.5: Visual References (Optional)
 
