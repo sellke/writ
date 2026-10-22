@@ -23,8 +23,10 @@
   ```bash
   REPO=/Users/asellke/Projects/writ          # the Writ checkout; read from, never installed into
   W=$(mktemp -d "${TMPDIR:-/tmp}/writ-uat.XXXXXX")
+  cd "$W"   # run every helper from the temp folder: an empty path then fails instead of writing to the Writ repo
   h()  { shasum -a 256 "$1" | cut -d' ' -f1; }
-  gc() { git -C "$SRC" -c user.name=t -c user.email=t@example.invalid add -A &&
+  gc() { case "$SRC" in "$W"/?*) ;; *) echo "gc: SRC='$SRC' is not under $W; refusing" >&2; return 1;; esac
+         git -C "$SRC" -c user.name=t -c user.email=t@example.invalid add -A &&
          git -C "$SRC" -c user.name=t -c user.email=t@example.invalid commit -q -m "$1"; }
   # A committed copy of the working tree at $W/src-<name>. Sets SRC.
   new_src() {
@@ -91,9 +93,9 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
 - New steps: `uses: astral-sh/setup-uv@v7` (a major tag), then a step running `uv run --python 3.9 pytest`, then a bash-tests step. All three carry `if: ${{ !cancelled() }}`.
 - The pytest run reports `9 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `on:` has `pull_request:` and `push:`; checkout@v4 (fetch-depth 0), `gen-skill.sh --check`, `eval.sh --report=eval-report.md`, upload `if: failure()` all present; setup-uv@v7, then `uv run --python 3.9 pytest`, then Run bash tests, each `if: ${{ !cancelled() }}`. pytest: `11 passed in 0.08s` (9 at plan time; tests added since c74eb22, intent holds).
 
 **Implementation Reference:** Story 1 — `.github/workflows/eval.yml`; `scripts/tests/test_ci_workflow.py`. `@v7` is the newest bare major tag; v8+ publish only full version tags.
 
@@ -130,9 +132,9 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
   ```
 - All three tests ran; the first failure did not stop the loop.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: block is the counting loop ending `[ "$fails" -eq 0 ]`; step 3 printed the expected 7 lines exactly, ending `bash tests failed: 2` / `exit 1`.
 
 **Implementation Reference:** Story 1 — `.github/workflows/eval.yml` (Run bash tests). The loop in `CLAUDE.md` (`|| echo "FAIL $t"`) exits 0 on failure; this step does not.
 
@@ -159,9 +161,9 @@ bash tests failed: 0
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `== scripts/tests/test_pass.sh`, `bash tests failed: 0`, `exit 0`.
 
 ---
 
@@ -186,9 +188,11 @@ exit 0
 ```
 - No `FAIL scripts/tests/test_*.sh` line (the literal glob is skipped).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** If the test folder ever moves, CI would pass with zero tests; only the `bash tests failed: 0` line with no `==` lines shows it.
+
+agent-run 2026-10-21 @ b850e66: `bash tests failed: 0`, `exit 0`; no `==` or `FAIL` line.
 
 ---
 
@@ -213,9 +217,11 @@ exit 0
 - Step 2 prints no matches and `grep exit 1`.
 - No `macos-latest` job exists.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Scenario 7 is the real Linux check.
+
+agent-run 2026-10-21 @ b850e66: `runs-on: ubuntu-latest`; comment names the grep, its patterns, and the ubuntu:24.04 run (35 tests, 0 failures). Scan printed no matches and `grep exit 1`. eval.yml is the only workflow; no `macos`. Story 1 Test Results record both.
 
 ---
 
@@ -239,9 +245,9 @@ exit 0
 - Step 2 prints no `FAIL` line and `bash tests failed: 0` (40 test files at plan time).
 - `eval.sh` reports `Findings: 0`, `Run errors: 0`, and `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: pytest `2774 passed, 2 skipped in 207.35s` (higher than 2623, as expected); bash loop no `FAIL`, `bash tests failed: 0` over 45 files (40 at plan time); eval.sh `Findings: 0`, `Run errors: 0`, `exit 0`.
 
 ---
 
@@ -265,9 +271,12 @@ exit 0
 - The pytest log shows uv fetching or using CPython 3.9.x and ends with `passed`, no `failed`.
 - The bash log has one `== scripts/tests/<name>.sh` line per test and ends with `bash tests failed: 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** If the pytest step is red because uv cannot provide 3.9 on the x86_64 runner, mark Fail and file an issue. The spec allows a switch to `actions/setup-python` only with that failure as evidence.
+orchestrator-run 2026-10-21 via `gh run view 39678517441` (PR #60, pull_request, b3ebd3d): job `eval` success; steps listed separately (SKILL.md check, Eval Tier 1, setup-uv@v7, pytest, bash tests, all success); `Using CPython 3.9.25`; `2774 passed, 2 skipped`; 45 `== scripts/tests/` lines; `bash tests failed: 0`. Push run 39678515273 also success.
+
+needs live session (GitHub Actions): open the PR's Checks → `Eval Tier 1` → `eval` and read the pytest and bash-tests step logs. Pointer only: `gh pr checks 60` (2026-10-21) lists two `eval` runs, both `pass`; step logs not read by the agent.
 
 ---
 
@@ -295,9 +304,12 @@ exit 0
 - The pytest step is red, and its summary names `scripts/tests/test_uat_red.py::test_uat_red`.
 - The bash-tests step still ran after the red pytest step (it is not skipped). It is red, its log has `FAIL scripts/tests/test_uat_red.sh` and `bash tests failed: 1`, and every other test file still has its `==` line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The unchanged upload step also fires on this failure; `eval-report.md` will be uploaded even though `eval.sh` passed (known, Minor).
+
+needs live session (GitHub Actions): requires pushing a throwaway `uat/red-suite` branch to origin; the agent does not push. Not run.
+- orchestrator-run 2026-10-22 (maintainer approved the push): branch uat/red-suite (0b6e8e8), run 39795856168 conclusion failure; pytest step failure with 'FAILED scripts/tests/test_uat_red.py::test_uat_red' and '1 failed, 2774 passed, 2 skipped'; bash step still ran and failed with 'FAIL scripts/tests/test_uat_red.sh' and 'bash tests failed: 1'; 46 '== scripts/tests/' lines. Branch deleted afterwards.
 
 ---
 
@@ -333,9 +345,11 @@ printf '\n# my edit\n' >> "$PX/.codex/config.toml"; CFG=$(h "$PX/.codex/config.t
 - `1` and `same line`.
 - `config unchanged` (the edited `.codex/config.toml` is untouched).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, this run left 0 baseline lines.
+
+agent-run 2026-10-21 @ b850e66: `exit 0`, `manifest rewritten`; `1`, `same line`; `config unchanged`.
 
 **Implementation Reference:** Story 2 — `scripts/update.sh` (`write_copy_manifest` reads the line before truncating; Story 3 moved all lookups to a per-run baseline file).
 
@@ -361,9 +375,9 @@ printf '\n# my edit\n' >> "$PX/.codex/config.toml"; CFG=$(h "$PX/.codex/config.t
 - Step 2: `exit 0`.
 - Step 3: `manifest byte-identical`, and the output ends with `🏃 DRY RUN — No changes applied.`
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, `manifest rewritten`, `same line`; step 2 `exit 0`; step 3 `manifest byte-identical`, output ends `🏃 DRY RUN — No changes applied.`
 
 ---
 
@@ -387,9 +401,9 @@ printf '\n# my edit\n' >> "$PX/.codex/config.toml"; CFG=$(h "$PX/.codex/config.t
 - Step 2: `exit 0`, `manifest rewritten`.
 - Step 3 prints `0`. No empty-hash line was invented.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `0`; `exit 0`, `manifest rewritten`; `0`; no malformed (non-64-hex) line in the manifest.
 
 ---
 
@@ -413,9 +427,11 @@ printf '\n# my edit\n' >> "$PX/.codex/config.toml"; CFG=$(h "$PX/.codex/config.t
 - Step 2 (observed): `FAIL: first update: .codex/config.toml.baseline line count is 0, want 1`, `exit 1`.
 - Step 3: the file ends with a `## Resolution` section naming the read-before-truncate change and `scripts/tests/test_update_codex_config_baseline.sh`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `953f47e` is the commit before this spec's code changes.
+
+agent-run 2026-10-21 @ b850e66: step 1 `PASS test_update_codex_config_baseline`, exit 0; step 2 `FAIL: first update: .codex/config.toml.baseline line count is 0, want 1`, exit 1; issue ends with `## Resolution` naming the read-before-truncate change and the test.
 
 ---
 
@@ -457,9 +473,11 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - `1`.
 - `no line for any user file`. `commands/review.md` was preserved with no baseline, so it gets no line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, install recorded all three user files and the first update removed them.
+
+agent-run 2026-10-21 @ b850e66: `exit 0`, `1 file(s) preserved (local modifications kept)`; `user files unchanged`; `1`; `no line for any user file`.
 
 **Implementation Reference:** Story 3 — `scripts/install.sh` (`write_copy_manifest`, `record_file_baseline`, `previous_manifest_hash_for`).
 
@@ -484,9 +502,11 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - Step 1: `1`.
 - Step 3: `exit 0`, then `0`. Install leaves the manifest marked as legacy so the next `update.sh` repairs it (Story 5).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Residual risk (spec, not fixed here): re-install over a legacy manifest trusts its old baselines; `update.sh` is the supported upgrade path.
+
+agent-run 2026-10-21 @ b850e66: step 1 `1`; step 3 `exit 0`, `0`.
 
 ---
 
@@ -517,9 +537,11 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - `user files unchanged`; both new files still exist.
 - `no line for any user file`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, files created after install were recorded by update 1 and removed by update 2.
+
+agent-run 2026-10-21 @ b850e66: each update `exit 0`, `manifest rewritten`, and only `⚡ Preserved: commands/review.md (no baseline, assuming modified)` + `commands/review.md`; `user files unchanged`, both new files exist; `no line for any user file`.
 
 **Implementation Reference:** Story 3 — `scripts/update.sh` (`load_baselines`, `record_file_baseline`, `write_copy_manifest` walks the shipped set from the source).
 
@@ -554,9 +576,11 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
   ```
 - Step 6: `both unchanged` and `baselines unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, update 1 re-baselined `status.md` to its local hash, and update 2 overwrote it (`🔄 Update`).
+
+agent-run 2026-10-21 @ b850e66: steps 3 and 5 `exit 0`, `manifest rewritten`, both expected Preserved lines (plus review.md no-baseline); step 6 `both unchanged`, `baselines unchanged`.
 
 ---
 
@@ -581,9 +605,9 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - Steps 3 and 4: `exit 0`, `manifest rewritten`, and `⚡ Preserved: rules/writ.mdc (local modifications)`.
 - Step 5: `rule unchanged` and `baseline unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: steps 3 and 4 `exit 0`, `manifest rewritten`, `⚡ Preserved: rules/writ.mdc (local modifications)`; `rule unchanged`, `baseline unchanged`.
 
 ---
 
@@ -601,16 +625,19 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 1. `PF="$W/fresh"; inst "$PF" claude > /dev/null 2>&1; MF="$PF/.claude/.writ-manifest"`
 2. `awk '!/^#/ && NF {print $2}' "$MF" | sort > "$W/recorded"; echo "duplicates:"; uniq -d "$W/recorded"; echo "malformed:"; awk '!/^#/ && NF && $1 !~ /^[0-9a-f]{64}$/' "$MF"`
 3. List what install put on disk and compare:
-   `(cd "$PF" && { find .claude/commands .claude/agents -type f | sed 's|^\.claude/||'; (cd .claude && find skills -name SKILL.md); find scripts .writ/docs -type f; echo CLAUDE.md.writ-block; }) | sort > "$W/ondisk"; diff "$W/recorded" "$W/ondisk" && echo "one line per shipped file"`
+   `(cd "$PF" && { find .claude/commands .claude/agents -type f | sed 's|^\.claude/||'; (cd .claude && find skills -name SKILL.md); find scripts .writ/docs -type f; echo system-instructions.md; echo CLAUDE.md.writ-block; }) | sort > "$W/ondisk"; diff "$W/recorded" "$W/ondisk" && echo "one line per shipped file"`
 4. `bump; upd "$PF" claude > /dev/null 2>&1; rewritten "$MF"`, then repeat steps 2 and 3.
 
 **Expected Result:**
 - After install and after the update: nothing under `duplicates:` or `malformed:`, and `one line per shipped file` (122 lines at plan time).
 - No line for a dev-only script (for example `scripts/harness-cost.py`) or an unshipped `*.lean.md` command.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** For a Codex check, the automated test also confirms the `.codex/config.toml.baseline` line is present once.
+
+agent-run 2026-10-21 @ b850e66: after install and after the update (`manifest rewritten`): no duplicates, no malformed lines, 122 lines, no harness-cost.py or `*.lean.md` line. Step 3's diff printed only `< system-instructions.md` instead of `one line per shipped file`: Claude Code has shipped `.claude/system-instructions.md` since 18b1fe0 (after c74eb22); the file is on disk with the recorded hash, and the step's find list omits it. Legitimate growth; intent holds.
+- maintainer sign-off 2026-10-21 (delegated): Pass accepted; .claude/system-instructions.md is shipped since 18b1fe0. Step 3's find list updated.
 
 ---
 
@@ -626,7 +653,7 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 
 **Steps:**
 1. `bash "$REPO/scripts/tests/test_manifest_shipped_baselines.sh"; echo "exit $?"`
-2. `X="$W/prefix-3"; mkdir -p "$X" && git -C "$REPO" archive ef012f5 | tar -x -C "$X" && cp "$REPO/scripts/tests/test_manifest_shipped_baselines.sh" "$X/scripts/tests/" && bash "$X/scripts/tests/test_manifest_shipped_baselines.sh"; echo "exit $?"`
+2. `X="$W/prefix-3"; mkdir -p "$X" && git -C "$REPO" archive ef012f5 | tar -x -C "$X" && git -C "$REPO" show c74eb22:scripts/tests/test_manifest_shipped_baselines.sh > "$X/scripts/tests/test_manifest_shipped_baselines.sh" && bash "$X/scripts/tests/test_manifest_shipped_baselines.sh"; echo "exit $?"`
 3. `cd "$REPO" && for t in scripts/tests/test_install_update_*.sh scripts/tests/test_update_*.sh; do bash "$t" > /dev/null 2>&1 && echo "ok $t" || echo "FAIL $t"; done`
 
 **Expected Result:**
@@ -634,9 +661,12 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - Step 2 (recorded in What Was Built): `FAIL: AC-3.1 install: manifest records user file .writ/docs/tech-stack.md`, `exit 1`.
 - Step 3: `ok` for every file, no `FAIL`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `ef012f5` is the lane head after Story 2, before Story 3.
+
+agent-run 2026-10-21 @ b850e66: step 1 `PASS test_manifest_shipped_baselines`, exit 0; step 3 `ok` for all 9 files. Step 2 expected `FAIL: AC-3.1 install: manifest records user file .writ/docs/tech-stack.md`, got `FAIL: cannot load is_shippable_writ_doc from update.sh`, exit 1. Stale expectation, not a product bug: the test now loads `is_shippable_writ_doc` (added in fff2582, after ef012f5). The plan-time test (`git show c74eb22:scripts/tests/test_manifest_shipped_baselines.sh`) on the same ef012f5 extract prints the expected FAIL line, exit 1.
+- maintainer sign-off 2026-10-21 (delegated): Pass. Intent holds: the test that shipped with the fix (c74eb22) fails on the pre-fix extract with the expected AC-3.1 line; today's test fails earlier on a helper added later (fff2582). Step 2 updated to run the c74eb22 test.
 
 ---
 
@@ -664,9 +694,9 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
   ```
 - Step 3: `manifest byte-identical` and `user files unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: ends `❌ Failed to clone <W>/does-not-exist`, `Check your network connection and try again.`, `exit 1`; `manifest byte-identical`, `user files unchanged`.
 
 ---
 
@@ -690,9 +720,11 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - `equals upstream`.
 - `upstream hash recorded`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `--force` also overwrites the user-written `commands/review.md` (it is at a shipped path). That is expected.
+
+agent-run 2026-10-21 @ b850e66: `exit 0`, `🔄 Update:    commands/status.md (forced)`, `🔄 Updated: CLAUDE.md (Writ block forced)`; `equals upstream`; `upstream hash recorded`.
 
 ---
 
@@ -716,9 +748,9 @@ U3=".writ/docs/tech-stack.md scripts/deploy.sh .claude/commands/my-own.md .claud
 - `exit 0` and a `✨ New:` line for `commands/status.md`.
 - `re-copied` and `upstream hash recorded`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `✨ New:       commands/status.md`; `re-copied`, `upstream hash recorded`.
 
 ---
 
@@ -759,9 +791,11 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 **Expected Result:**
 - For each of the three updates: `exit 0`, `manifest rewritten`, `kept files unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Update 1 rewrites the manifest because it removes `zz-clean.md`; updates 2 and 3 because of `bump`.
+
+agent-run 2026-10-21 @ b850e66: updates 1-3 each `exit 0`, `manifest rewritten`, `kept files unchanged`.
 
 **Implementation Reference:** Story 4 — `scripts/update.sh` (`detect_stale_files` warns and carries the old baseline in every category).
 
@@ -794,9 +828,11 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - Step 2: `exit 0`, the same five warnings, `✅ Already up to date! (<version>)`, and `manifest byte-identical`.
 - Step 3: `exit 0`, the same five warnings, `🏃 DRY RUN — No changes applied.`, and `manifest byte-identical`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The warning text is byte-identical to the pre-fix text; other tests match it.
+
+agent-run 2026-10-21 @ b850e66: `5` for each update and the five expected Stale lines; up-to-date run `exit 0`, five warnings, `✅ Already up to date! (0454087)`, `manifest byte-identical`; dry run `exit 0`, five warnings, `🏃 DRY RUN — No changes applied.`, `manifest byte-identical`.
 
 ---
 
@@ -818,9 +854,9 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - Step 1: `🗑  Removed: commands/zz-clean.md` and `No such file or directory`.
 - Step 2: `kept lines carry install-time hashes`. Five lines, one per kept path, no `zz-clean.md` line, and no local (edited) hash.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `🗑  Removed: commands/zz-clean.md`, `No such file or directory`; `kept lines carry install-time hashes` (5 lines).
 
 ---
 
@@ -843,9 +879,9 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - Step 2: `exit 0`, `manifest rewritten`, `4` warnings, and `0` lines naming `.writ/docs/zz-kept.md`.
 - Step 3: `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `manifest rewritten`, `4`, `0`; step 3 `0`.
 
 ---
 
@@ -867,9 +903,11 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - Step 1: `PASS test_update_kept_stale_files`, `exit 0`, then `exit 0` for the dev-scripts test.
 - Step 2 (recorded in What Was Built): starts with `FAIL: update 1: no stale warning for the kept commands/zz-kept.md.`, `exit 1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** AC-4.4 says the failure names a removed file. After Story 3 the pre-fix script drops the line instead, so the test fails on the missing warning (DEV-004, accepted).
+
+agent-run 2026-10-21 @ b850e66: step 1 `PASS test_update_kept_stale_files`, exit 0, then `PASS test_install_update_dev_scripts`, exit 0; step 2 starts `FAIL: update 1: no stale warning for the kept commands/zz-kept.md.`, exit 1.
 
 ---
 
@@ -894,9 +932,12 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - Nothing says a kept file gets a fresh baseline or that the manifest re-baselines to what is on disk.
 - The issue ends with `## Resolution` naming shipped-only recording (Story 3), the `detect_stale_files` change, and `scripts/tests/test_update_kept_stale_files.sh`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Known wording gap (evaluator, Minor): Step 7 and Completion say a kept customized file is asked about again "when upstream changes" it; it is reported on every run while it differs from upstream.
+
+needs maintainer judgment: read `commands/update-writ.md` frontmatter (outcome, exit criteria), Step 3 "Detect stale files", Step 6 item 6, Step 7 and Completion, and judge whether the three claims are stated clearly. Agent pre-check: Step 7 template has `# baselines: shipped` and a kept-stale example line; no "fresh" / "on disk" / "re-baselin" claim found; the issue ends with `## Resolution` naming Stories 3 and 4, `detect_stale_files`, and the test.
+- maintainer judgment 2026-10-21: Pass; wording gap filed as .writ/issues/improvements/2026-10-21-update-writ-kept-file-wording.md.
 
 ---
 
@@ -919,9 +960,9 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - `exit 0`, `manifest rewritten`, and `⚡ Preserved: commands/zz-kept.md (local modifications)`. No Stale line for `commands/zz-kept.md`; the other kept files still warn.
 - The manifest hash for `commands/zz-kept.md` equals the source A hash printed after it (the carried baseline).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `manifest rewritten`, `⚡ Preserved: commands/zz-kept.md (local modifications)`, no Stale line for it, the other three kept files still warn; manifest hash `3f92fc2c…` equals the source A hash.
 
 ---
 
@@ -942,9 +983,9 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 **Expected Result:**
 - `exit 0`, `🗑  Removed: agents/zz-kept.md`, and `No such file or directory`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `🗑  Removed: agents/zz-kept.md`, `No such file or directory`.
 
 ---
 
@@ -967,9 +1008,9 @@ SRC="$SRC_B"     # from here on, upstream no longer ships any zz file
 - `exit 0` and the same Stale warnings for `scripts/zz_kept.py` and `skills/zz-kept/SKILL.md`. No `Removed` line for either.
 - `kept files unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, Stale warnings for `scripts/zz_kept.py` and `skills/zz-kept/SKILL.md`, no Removed line; `kept files unchanged`.
 
 ---
 
@@ -1052,9 +1093,11 @@ user_files_same() {
 - Step 4: `1`, `user files unchanged`, `no line for any user file`.
 - Step 5: `exit 0`, `no line names a user file`, `user files unchanged`, `no line for any user file`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, the same run printed `🗑  Removed:` for all three user files and deleted them. An `unlink.sh`-written manifest also lacks the header and takes this same path (evaluator probe; not reproduced here because `unlink.sh` needs a linked install from GitHub).
+
+agent-run 2026-10-21 @ b850e66: step 2 `0` + three user-file lines; step 3 `exit 0`, `manifest rewritten`, exactly the three expected Removed lines, no user file named, no notice; step 4 `1`, `user files unchanged`, `no line for any user file`; step 5 `exit 0`, `no line names a user file`, unchanged, no line.
 
 **Implementation Reference:** Story 5 — `scripts/update.sh` (`load_baselines`, `load_legacy_baselines`, `legacy_source_path`, `legacy_resolve_commit`).
 
@@ -1082,9 +1125,11 @@ user_files_same() {
 - Step 3: the two hashes are equal. The baseline is the upstream content at the recorded version, not the local hash the old script wrote.
 - Step 4: `1` (the edit survived).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, the old local-hash baseline made the edited file look unmodified, and the update overwrote it.
+
+agent-run 2026-10-21 @ b850e66: `No such file or directory`; `⚡ Preserved: commands/status.md (local modifications)` + end-of-run path, no Update line; both hashes `8fe6d62b…`; `1`.
 
 ---
 
@@ -1111,9 +1156,11 @@ user_files_same() {
 - Step 3: both retired files still listed by `ls`; `status unchanged`; `user files unchanged`; `no line for any user file`; `1`.
 - Step 4: `0`, then `1` (the same notice, once).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** After a fallback, an unedited but outdated file may show as "Preserved (no baseline)" on later runs until the user deletes it or uses `--force`. This is conservative by design (evaluator residual).
+
+agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, `manifest rewritten`, the "its version is unknown" notice once, Preserved (no baseline) for `create-issue.md` and `status.md`, `✨ New:       commands/zz-new.md`, no Removed/Stale; step 3 both retired files listed, `status unchanged`, user files unchanged, no line, `1`; step 4 `0`, `1`.
 
 ---
 
@@ -1137,9 +1184,11 @@ user_files_same() {
   - `⚠️  Manifest predates shipped-only baselines and version HEAD was not found upstream; files that differ from upstream are preserved this run.`
 - Step 2 prints the `0000000` notice even though the shallow clone first fetched its full history.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Only 4–40 lowercase hex characters are treated as a version, so a value like `HEAD`, `main`, or `--help` from the manifest never reaches git as a ref or option.
+
+agent-run 2026-10-21 @ b850e66: `0000000 exit 0` and `HEAD exit 0`, each with its exact "was not found upstream" notice and no Removed line; shallow `file://` run `exit 0` with the `0000000` notice.
 
 ---
 
@@ -1162,9 +1211,9 @@ user_files_same() {
 - Step 2: `exit 0`, `manifest rewritten`, the "its version is unknown" notice, no `Removed` line.
 - Step 3: `config line unchanged`, `config unchanged`, `1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `manifest rewritten`, "its version is unknown" notice, no Removed; `config line unchanged`, `config unchanged`, `1`.
 
 ---
 
@@ -1194,9 +1243,11 @@ user_files_same() {
 - Step 4: `exit 0` and the same two Preserved lines.
 - Step 5: `both unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Iteration 1 overwrote both files here while printing the "preserved" notice. A Cursor project with no manifest at all still gets both units updated, as before.
+
+agent-run 2026-10-21 @ b850e66: step 3 `exit 0`, `manifest rewritten`, notice, both `⚡ Preserved: … (no baseline, assuming modified)` lines; step 4 `exit 0`, same two lines; `both unchanged`.
 
 ---
 
@@ -1218,9 +1269,11 @@ user_files_same() {
 - Each run: `exit 0`, the "its version is unknown" notice, `✅ Already up to date! (<version>)`, and `0` (no header written).
 - Nothing was removed or overwritten.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The repair and notice repeat until a run has something to apply and rewrites the manifest. Safe; the only cost is the repeated notice.
+
+agent-run 2026-10-21 @ b850e66: runs 1 and 2 each `exit 0`, the notice, `✅ Already up to date! (b2bf01e)`, `0`; full-tree hash compare after both runs showed no change.
 
 ---
 
@@ -1245,9 +1298,11 @@ user_files_same() {
 - Step 3: `exit 0`, `manifest rewritten`, the three `🗑  Removed:` lines from Scenario 32, `⚡ Preserved: commands/status.md (local modifications)`, and no notice.
 - Step 4: `user files unchanged`, `no line for any user file`, `1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `WRIT_REPO` must be a `file://` URL here. Git ignores `--depth` for a plain local path, so a plain path is never shallow.
+
+agent-run 2026-10-21 @ b850e66: dry run `exit 0`, `manifest byte-identical`, `0`; real run `exit 0`, `manifest rewritten`, the three Removed lines, `⚡ Preserved: commands/status.md (local modifications)`, no notice; `user files unchanged`, `no line for any user file`, `1`.
 
 ---
 
@@ -1270,9 +1325,9 @@ user_files_same() {
 - Step 2: `exit 0`, `manifest rewritten`, `no stale, removal, or notice lines`.
 - Step 3: `user files unchanged`, `no line for any user file`, `1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: `exit 0`, `manifest rewritten`, `no stale, removal, or notice lines`; `user files unchanged`, `no line for any user file`, `1`.
 
 ---
 
@@ -1295,9 +1350,11 @@ user_files_same() {
 - Step 2: `exit 0`, including `🗑  Removed: skills/zz-old/SKILL.md` and `🗑  Removed: skills/zz-locked/SKILL.md`.
 - Step 3: `gone:` for every path; no `STILL ON DISK` line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Before the fix, update printed `🗑  Removed:` for a Codex skill but looked under `.codex/skills`, so the file stayed in `.agents/skills`. Skill sidecar files other than `SKILL.md` stay behind (residual risk, unchanged).
+
+agent-run 2026-10-21 @ b850e66: `exit 0`, Removed lines for `commands/zz-retired.md`, `skills/zz-locked/SKILL.md`, `skills/zz-old/SKILL.md`; `gone:` for all three, no `STILL ON DISK`.
 
 ---
 
@@ -1320,9 +1377,9 @@ user_files_same() {
 - Step 2: `exit 0`; `🗑  Removed: commands/zz-retired.md` and `🗑  Removed: skills/zz-old/SKILL.md`, but no Removed line for `zz-locked`; the `zz-locked` file is still listed; the manifest still has a `skills/zz-locked/SKILL.md` line.
 - Step 3: `exit 0`, `🗑  Removed: skills/zz-locked/SKILL.md`, `No such file or directory`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, Removed for `commands/zz-retired.md` and `skills/zz-old/SKILL.md` only, zz-locked file still listed, manifest keeps its `skills/zz-locked/SKILL.md` line; step 3 `exit 0`, `🗑  Removed: skills/zz-locked/SKILL.md`, `No such file or directory`, `0`.
 
 ---
 
@@ -1346,9 +1403,11 @@ user_files_same() {
 - Step 2 (recorded in What Was Built): starts with `FAIL: A update 1: user file .writ/docs/tech-stack.md was removed.`, `exit 1`.
 - Step 3: one sentence says a manifest without `# baselines: shipped` has its baselines rebuilt from upstream at its `# version:` (fetching full history once if needed), paths upstream did not have are dropped, and if the commit cannot be found only the Codex config line is kept, so differing files are preserved and nothing is removed.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `6f24327` is the lane head after Story 4, before Story 5.
+
+agent-run 2026-10-21 @ b850e66: step 1 `PASS test_update_legacy_manifest`, exit 0; step 2 starts `FAIL: A update 1: user file .writ/docs/tech-stack.md was removed.`, exit 1; step 3 the `**Legacy manifests:**` paragraph states all four points (rebuild at `# version:`, fetch full history once, drop paths upstream lacked, unresolved → keep only the Codex config line, preserve, remove nothing).
 
 ---
 

@@ -24,9 +24,11 @@
   ```bash
   REPO=/Users/asellke/Projects/writ          # the Writ checkout; read from, never installed into
   W=$(mktemp -d "${TMPDIR:-/tmp}/writ-uat-parity.XXXXXX")
+  cd "$W"   # run every helper from the temp folder: an empty path then fails instead of writing to the Writ repo
   h()      { shasum -a 256 "$1" | cut -d' ' -f1; }
   digest() { (cd "$1" && find . -type f -exec shasum -a 256 {} + | LC_ALL=C sort | shasum -a 256 | cut -d' ' -f1); }
-  gc()     { git -C "$1" -c user.name=t -c user.email=t@example.invalid add -A &&
+  gc()     { case "$1" in "$W"/?*) ;; *) echo "gc: '$1' is not under $W; refusing" >&2; return 1;; esac
+             git -C "$1" -c user.name=t -c user.email=t@example.invalid add -A &&
              git -C "$1" -c user.name=t -c user.email=t@example.invalid commit -q -m "$2"; }
   # Committed copy of the working tree. install.sh, update.sh, and uninstall.sh run from here.
   SRC="$W/src"; mkdir -p "$SRC"
@@ -113,9 +115,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `7:@.claude/system-instructions.md` and `0` (no code fence opens before it, and the line has no backticks); `64:/plan-product → /create-spec → /implement-spec → /verify-spec → /release`; `0` CR characters; the last two bytes are `s  \n` (one final newline).
 - Step 4: the two hashes are equal.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The spec said seven agents. There are eight because `writ-visual-qa.md` landed from `2026-10-20-claude-agent-generator`; the generator reads the folder, so the count follows it (DEV-004).
+- agent-run 2026-10-21 @ b850e66: `pass (32 commands, 8 agents)`, exit 0, no status change; `32` rows, `rows match manifest order`, `3`, `agents match files`; `7:@.claude/system-instructions.md`, `0`; `64:/plan-product …`; `0` CR; tail `s  \n`; step 4 hashes equal. The `/revert` row is line 38, not 39: the `/design` row is now `/writ-design` and sorts last (legitimate change).
+- Setup: `$SRC` from `git archive b850e66` and `$CL` reset to `b850e66`, because main briefly carried a stray commit from another run (`a8aa8d8`) when the setup block ran.
 
 **Implementation Reference:** Story 1 — `scripts/gen-claude-md.py` (write mode, temp file plus `os.replace`); `claude-code/CLAUDE.md` regenerated.
 
@@ -155,9 +159,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `fail`, `reason: stale claude-code/CLAUDE.md`, `gen-claude-md: fail (1 stale)`, `exit 1`.
 - Step 4: `fail`, `reason: absent claude-code/CLAUDE.md`, `gen-claude-md: fail (1 absent)`, `exit 1`. `git status` prints nothing afterwards.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 `pass`, exit 0; step 2 one `reason: missing revert`, `fail (1 missing, 0 extra)`, exit 1; step 3 `reason: stale claude-code/CLAUDE.md`, `fail (1 stale)`, exit 1; step 4 `reason: absent claude-code/CLAUDE.md`, `fail (1 absent)`, exit 1; `git status` empty.
 
 **Implementation Reference:** Story 1 — a row-set difference suppresses `stale`, so one removed row gives one reason (Implementation Decision 2).
 
@@ -208,9 +213,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 4: `fail`, `reason: import-token revert`, `gen-claude-md: fail (1 import-token)`, `exit 1`, `template unchanged`. With the backticks: `fail` and `reason: stale claude-code/CLAUDE.md` (the purpose text changed, but the `@` inside a code span is accepted; no `import-token` reason).
 - Step 5: `fail`, `reason: pipeline verify-spec`, `gen-claude-md: fail (1 pipeline)`, `exit 1`, `template unchanged`. `git status` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 `unverifiable`, `manifest missing`, exit 0; step 2 exit 2, `0` bytes, argparse usage and `unrecognized arguments: --bogus`; step 3 `manifest revert missing purpose`, exit 1; step 4 `import-token revert`, exit 1, backticked `@team` gives `stale` only; step 5 `pipeline verify-spec`, exit 1. `template unchanged` each time; `git status` empty.
 
 **Implementation Reference:** Story 1 — the generator writes nothing when any `fail` reason exists.
 
@@ -249,9 +255,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `ls` lists `<W>/s4/scripts/gen-skill.sh` and reports `<W>/s4/scripts/gen-claude-md.py: No such file or directory`; manifest count `0`.
 - Step 3: `.writ/docs/agent-cli-contract.md:1` and `commands/update-writ.md:1`. The contract doc's sentence reads "`gen-claude-md.py` is dev-only too: it builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`, which installed projects do not have."
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The contract doc still says "Six dev-only scripts" and adds the generator in a separate sentence, because `test_harness_cuts.py` pins that wording (DEV-002).
+- agent-run 2026-10-21 @ b850e66: three equal hashes `f21807b6718a45b9`; `gen-claude-md.py dev-only` and `gen-skill.sh ships` for install, update, unlink; install exit 0, `gen-skill.sh` present, `gen-claude-md.py: No such file or directory`, manifest count `0`; `agent-cli-contract.md:1`, `update-writ.md:1`, contract sentence matches.
 
 **Implementation Reference:** Story 1 — `gen-claude-md.py` added to the dev-only arm of `is_shippable_script` in `scripts/install.sh`, `scripts/update.sh`, `scripts/unlink.sh`.
 
@@ -300,9 +307,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 4: `exit 1`; `FAIL (1 finding(s))`; one finding: `` - `claude-code/CLAUDE.md`: gen-claude-md.py --check: stale claude-code/CLAUDE.md _Remediation:_ Run python3 scripts/gen-claude-md.py and commit claude-code/CLAUDE.md. `` `git status` prints nothing.
 - Step 5: `codex-tomls`, `claude-agents`, `claude-md` in that order; `28:        run: bash scripts/eval.sh --report=eval-report.md`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `claude-md` sits after `claude-agents`, not directly after `codex-tomls` as the technical spec said; `test_eval_claude_agents.sh` requires that order (DEV-001).
+- agent-run 2026-10-21 @ b850e66: step 1 exit 0, `PASS`, `NOTE [claude-md]: gen-claude-md: pass (32 commands, 8 agents)`, `Findings: 0`; steps 2–4 exit 1, `FAIL (1 finding(s))` naming `/revert`, `/uat-probe`, and `--check: stale claude-code/CLAUDE.md`, each with the expected remedy; order `codex-tomls`, `claude-agents`, `claude-md`; `28:        run: bash scripts/eval.sh --report=eval-report.md`.
 
 **Implementation Reference:** Story 1 — `check_claude_md` in `scripts/eval.sh`, modeled on `check_codex_tomls`.
 
@@ -341,9 +349,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `fail`, `reason: agent writ-tester.md`, `gen-claude-md: fail (1 agent)`, `exit 1`, `template unchanged`.
 - Step 3: `fail`, `reason: write [Errno 13] Permission denied: '<W>/clone/claude-code/.CLAUDE.md.<random>'`, `gen-claude-md: fail (1 write)`, `exit 1`; `ls -A` shows only `CLAUDE.md` and `agents` (no temp file left); `template unchanged`; `git status` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 `pass`, exit 0, purpose reads `Safely unwind a story \| spec via …`; step 2 `reason: agent writ-tester.md`, `fail (1 agent)`, exit 1, template unchanged; step 3 `reason: write [Errno 13] Permission denied: '<W>/clone/claude-code/.CLAUDE.md.nj71vxnp'`, `fail (1 write)`, exit 1, `ls -A` shows `CLAUDE.md agents`, template unchanged, `git status` empty.
 
 ---
 
@@ -374,9 +383,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 1: `fail`, `reason: manifest no commands`, `gen-claude-md: fail (1 manifest)`, `exit 1`; `claude-code/` holds only `agents` (no template written).
 - Step 2: `unverifiable`, `reason: agents missing: claude-code/agents`, `gen-claude-md: unverifiable (inputs missing)`, `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `eval.sh` turns `unverifiable` into a finding, so CI does not pass on missing inputs (technical spec → Eval Check, rule 3).
+- agent-run 2026-10-21 @ b850e66: step 1 `reason: manifest no commands`, `fail (1 manifest)`, exit 1, `claude-code/` holds only `agents`; step 2 `reason: agents missing: claude-code/agents`, `unverifiable (inputs missing)`, exit 0.
 
 ---
 
@@ -393,7 +403,7 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Steps:**
 1. Rename `/design` in the manifest:
    ```bash
-   cd "$CL"; sed -i '' 's/^  - name: design$/  - name: visual-design/; s|file: commands/design.md|file: commands/visual-design.md|' .writ/manifest.yaml
+   cd "$CL"; sed -i '' 's/^  - name: writ-design$/  - name: visual-design/; s|file: commands/writ-design.md|file: commands/visual-design.md|' .writ/manifest.yaml
    python3 scripts/gen-claude-md.py --check; echo "exit $?"; git checkout -q .writ/manifest.yaml
    ```
 2. Add an agent file:
@@ -406,9 +416,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 1: `fail`, `reason: missing visual-design`, `reason: extra design`, `gen-claude-md: fail (1 missing, 1 extra)`, `exit 1`.
 - Step 2: `fail`, `reason: stale claude-code/CLAUDE.md`, `gen-claude-md: fail (1 stale)`, `exit 1`. `git status` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 as written is a no-op at this commit: the manifest entry is now `writ-design`, so the `sed` matched nothing and `--check` printed `pass`, exit 0. Re-run with `writ-design` in the `sed`: `reason: missing visual-design`, `reason: extra writ-design`, `fail (1 missing, 1 extra)`, exit 1. The plan's step 1 needs `design` → `writ-design`.
+- Step 2: `reason: stale claude-code/CLAUDE.md`, `fail (1 stale)`, exit 1; `git status` empty.
 
 ---
 
@@ -448,9 +460,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `  [6/7] System instructions...`; `  CLAUDE.md: Writ block created`; `0` skipped lines.
 - Step 3: `byte copy`; `7:## Prime Directive`; `1` manifest line under the key `system-instructions.md`; `8:@.claude/system-instructions.md` (line 1 is the start marker); `32` command rows.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Install leaves `CLAUDE.md` at mode `0600` (`-rw-------`). That comes from `merge_claude_md`'s `mktemp` + `mv`, predates this spec, and is out of scope (technical spec → Interaction Edge Cases, last row).
+- agent-run 2026-10-21 @ b850e66: dry run exit 0 with the `Root`, `System`, `System:  … always updated`, `CLAUDE.md integration plan:`, and `Would create CLAUDE.md …` lines, `0` files; install exit 0, `[6/7] System instructions...`, `CLAUDE.md: Writ block created`, `0` skipped; `byte copy`, `7:## Prime Directive`, `1`, `8:@.claude/system-instructions.md`, `32` rows. Mode `-rw-------` as noted.
 
 **Implementation Reference:** Story 2 — `scripts/install.sh`: platform step `[6/7] System instructions...`, `write_copy_manifest`, inventory and dry run.
 
@@ -499,9 +512,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0`; `    🔄 Updated: CLAUDE.md (Writ block)`; `block lines 74 -> 76`; `outside bytes unchanged after update`.
 - Step 4: `exit 0`; `  CLAUDE.md: Writ block updated (--force)`; `outside bytes unchanged after --force`; `block = template`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 exit 0, `Writ block appended (existing content preserved)`, `before-block bytes = original + one newline`; step 3 exit 0, `🔄 Updated: CLAUDE.md (Writ block)`, `block lines 74 -> 76`, outside bytes unchanged; step 4 exit 0, `Writ block updated (--force)`, outside bytes unchanged, `block = template`.
 
 **Implementation Reference:** Story 2 — `merge_claude_md` in `scripts/install.sh` and `scripts/update.sh` writes the template's bytes between the markers only.
 
@@ -545,9 +559,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `    ⚡ Preserved: system-instructions.md (local modifications)`, `  ⚠️  1 file(s) with local modifications were preserved:`, `    system-instructions.md`; `local copy kept`.
 - Step 3: `exit 0`; `    🔄 Update:    system-instructions.md (forced)`; `overwritten with upstream`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** A manifest that lacks the `system-instructions.md` line while the local file differs from upstream gives `⚡ Preserved … (no baseline, assuming modified)`, not an update. That is Cursor's rule, copied as is (DEV-009). This plan does not exercise it; no test does either.
+- agent-run 2026-10-21 @ b850e66: step 1 exit 0, `🔄 Update:    system-instructions.md`, `now equals upstream`; step 2 exit 0, `⚡ Preserved: system-instructions.md (local modifications)`, `1 file(s) with local modifications were preserved:`, `local copy kept`; step 3 exit 0, `🔄 Update:    system-instructions.md (forced)`, `overwritten with upstream`.
 
 **Implementation Reference:** Story 2 — `scripts/update.sh`: the `SYSINST_ACTION` scan runs for Cursor or Claude.
 
@@ -590,9 +605,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `    ✨ New:       system-instructions.md`, `  CLAUDE.md:`, `    🔄 Updated: CLAUDE.md (Writ block)`, `  2 file(s) to update`.
 - Step 3: the file exists; `1` import line; `user text unchanged`; `1` manifest line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 file shows `# Team notes`, blank, `Our rules.`, start marker, `# Writ (old template)`, end marker; update exit 0, `✨ New:       system-instructions.md`, `CLAUDE.md:`, `🔄 Updated: CLAUDE.md (Writ block)`, `2 file(s) to update`; file exists, `1` import line, `user text unchanged`, `1` manifest line.
 
 ---
 
@@ -635,9 +651,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
   - `CLAUDE.md unchanged by all four runs`.
 - Step 3: install reports the block preserved (count `2`: the `⚡` line and the summary line), update reports `Preserved: CLAUDE.md` (`1`), and `0` warning lines.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** In `update.sh` output the `⚠️` line is flush-left under the indented `⚡ Preserved` line, because the spec's exact text has no indent (Story 2 reviewer note). Cosmetic.
+- agent-run 2026-10-21 @ b850e66: all four runs exit 0 with the expected preserve line and the `⚠️  CLAUDE.md: the preserved Writ block has no @.claude/system-instructions.md line …` warning (`install.sh --force` for install, `update.sh --force` for update); `CLAUDE.md unchanged by all four runs`; second project `2`, `1`, `0`.
 
 **Implementation Reference:** Story 2 — `writ_block_inner_has_line` inside each `writ-merge-bundled` region.
 
@@ -677,9 +694,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `  🗑  Removed: CLAUDE.md (empty after Writ block removal)` and `  🗑  Removed 60 file(s)`; `ls -A` shows `.cursorindexingignore`, `.writ`, `scripts` (no `.claude/`, no `CLAUDE.md`).
 - Step 3: the `claude` row of `update-writ.md` lists `` `.claude/system-instructions.md`, `CLAUDE.md` (project root) ``; the `claude` row of `reinstall-writ.md` lists `` `CLAUDE.md` Writ block (project root), `.claude/system-instructions.md` ``; `update-writ.md` (Step 3 platform files) and `reinstall-writ.md` (Step 3 removal) each have a `Claude Code: .claude/system-instructions.md` bullet; `uninstall-writ.md` line 99 starts `Claude Code: rm .claude/system-instructions.md`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `scripts/` and `.writ/` stay after uninstall. That is not part of this spec.
+- agent-run 2026-10-21 @ b850e66: dry run exit 0, `Extras:    2 (.claude/system-instructions.md CLAUDE.md Writ block)`, both `🗑` lines, `Would remove 60 file(s).`, nothing changed; real run exit 0, `Removed: CLAUDE.md (empty after Writ block removal)`, `Removed 60 file(s)`, left `.cursorindexingignore .writ scripts`.
+- Docs: `update-writ.md:66` and `reinstall-writ.md:71` rows as expected; bullets at `update-writ.md:119` (Step 3), `reinstall-writ.md:116` (Step 3), `uninstall-writ.md:99`.
 
 ---
 
@@ -718,9 +737,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 12`; `❌ Missing <W>/src15b/claude-code/CLAUDE.md — cannot integrate CLAUDE.md for Claude Code.`; the project has `.claude`, `.writ`, `scripts` and no `CLAUDE.md`.
 - Step 3: `exit 13`; `❌ CLAUDE.md: Writ block error: malformed markers (expected exactly one <!-- writ:start --> and one <!-- writ:end -->).`; `CLAUDE.md unchanged`; `.claude/` holds `agents`, `commands`, `skills` and no `.writ-manifest`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** In all three cases install has already copied commands, agents, and skills when it stops. That is existing behavior, not introduced here.
+- agent-run 2026-10-21 @ b850e66: step 1 exit 1, `[6/7] System instructions...`, `cp: <W>/src15a/system-instructions.md: No such file or directory`, `.claude/` = `agents commands skills`; step 2 exit 12, `❌ Missing <W>/src15b/claude-code/CLAUDE.md — cannot integrate CLAUDE.md for Claude Code.`, project = `.claude .writ scripts`; step 3 exit 13, malformed-markers line, `CLAUDE.md unchanged`, `.claude/` = `agents commands skills`.
 
 ---
 
@@ -756,9 +776,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `    ⚡ Preserved: CLAUDE.md (Writ block has local modifications)` and the `⚠️  CLAUDE.md: … re-run update.sh --force to replace the block.` line; `CLAUDE.md unchanged`.
 - Step 3: `exit 1`; `❌ Writ doesn't appear to be installed for Claude Code in this project.` and `   Run install.sh --platform claude first.`; `1` (no `CLAUDE.md` was created).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 exit 0, `Writ block appended (existing content preserved)`, line 1 `<!-- writ:start -->`, `block = template`; step 2 exit 0, `⚡ Preserved: CLAUDE.md (Writ block has local modifications)` and the `⚠️ … update.sh --force` line, unchanged; step 3 exit 1, `❌ Writ doesn't appear to be installed for Claude Code in this project.`, `Run install.sh --platform claude first.`, `1`.
 
 ---
 
@@ -796,9 +817,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `overwritten with source` (install always updates this file, same as Cursor; `update.sh` is the path that keeps edits).
 - Step 3: `exit 0`; `user text unchanged`; `2` (the user's line and the block's line). Claude Code may read the file twice; the spec calls that harmless.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 exit 0, only `✅ Already up to date! (f4ecb4e)`, `CLAUDE.md unchanged`; step 2 exit 0, `overwritten with source`; step 3 exit 0, `user text unchanged`, `2`.
 
 ---
 
@@ -828,9 +850,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - Every `grep` prints no line and each echo reports `exit 1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: all five `grep`s printed nothing; `--all`, `agent teams`, `merge-back`, `hook names`, `six/seventh` each `exit 1`.
 
 ---
 
@@ -856,9 +879,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: Gotcha 1 is **Stale worktrees can overwrite newer work**, names both causes (default base lacks commits not on the remote default branch; `worktree.baseRef: "head"` lacks commits made after creation), and links step 6 of the skill. No "Worktree merges can conflict" gotcha.
 - Step 4: the skill has a step 6 about a stale worktree, matching the link.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: section has the four numbered steps (default branch unless `worktree.baseRef` is `"head"`; removed with no changes; stays until a periodic sweep; "Nothing copies the changes into your checkout."), the skill link and worktrees-docs citation, and the **Parallel stories** line; `349:` copy-back line.
+- Gotcha 1 is **Stale worktrees can overwrite newer work** with both causes and a link to step 6; `0` "Worktree merges can conflict"; skill has `### 6. Recognize and resolve a stale worktree`.
 
 ---
 
@@ -905,9 +930,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `user text kept, plus one newline`; `block = template`; `system instructions copied`.
 - Step 4: `exit 0`; `⚡ CLAUDE.md: Writ block preserved (local modifications) — re-run with --force to overwrite the Writ block.`; `CLAUDE.md unchanged`. This matches the Step 1 prose (DEV-005).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The automated-install paragraph still says "Files you have customized are never overwritten", which ignores `--force` (Story 3 reviewer note). Not in this spec's acceptance criteria.
+- agent-run 2026-10-21 @ b850e66: Installation text names `.claude/system-instructions.md`, the markers, kept outside text, the import sentence with the approval clause, and the no-baseline / `--force` prose; tree `74:│   ├── system-instructions.md         # Writ root contract, imported by CLAUDE.md`; `copy-over: exit 1`.
+- Manual Step 1: `user text kept, plus one newline`, `block = template`, `system instructions copied`; install from newer template exit 0, `⚡ CLAUDE.md: Writ block preserved (local modifications) — re-run with --force …`, `CLAUDE.md unchanged`.
 
 **Implementation Reference:** Story 3 — `adapters/claude-code.md` § Installation.
 
@@ -943,9 +970,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: prints the phrase "the `SubagentStop` example above" once.
 - Step 3: eight lines, each `tier=1 perm=1 tree=1`, for `writ-architect`, `writ-coder`, `writ-documenter`, `writ-evaluator`, `writ-reviewer`, `writ-story-gen`, `writ-tester`, `writ-visual-qa`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** This plan does not run the hook example; doing so needs an npm project and a live `writ-coder` run. AC-3.5 is a text check.
+- agent-run 2026-10-21 @ b850e66: hook example has `"SubagentStop"`, `"matcher": "^writ-coder$"`, `json.load(sys.stdin)["cwd"]`, `exit 2`, the hooks-docs link, and the `cwd` caveat; the phrase "the `SubagentStop` example above" printed once; eight agents, each `tier=1 perm=1 tree=1`.
 
 ---
 
@@ -975,9 +1003,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: **Memory files** lists the parent `CLAUDE.md` and `.claude/system-instructions.md`.
 - Pass if Step 3 holds. The adapter states the approval as a condition ("an import that resolves outside the working directory"), so either outcome in Step 2 is consistent with it. A missing prompt only means the spec's inference was wrong.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Scenario 23 covers the plainer case, a session started at the project root. Declining the prompt disables external imports for the project (memory docs); this plan does not test the decline path because resetting it is outside Writ.
+- needs live session (Claude Code): interactive `claude` session in the temp project; the agent did not start `claude`. Record whether the external-import prompt appears, then `/context` → Memory files.
+- live run 2026-10-22 (maintainer, Claude Code, started in s22/sub): /context Memory files listed the parent CLAUDE.md and .claude/system-instructions.md. Whether the external-import prompt appeared was not reported.
 
 ---
 
@@ -1006,9 +1036,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: no import-approval prompt (the import resolves inside the working directory).
 - Step 3: **Memory files** lists the project `CLAUDE.md` and `.claude/system-instructions.md` (alongside any user-level memory files you already have).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Claude Code docs name `/context` for this check (technical spec → Verification). If the file is missing from the list, check that `CLAUDE.md` line 8 is exactly `@.claude/system-instructions.md` with no backticks.
+- needs live session (Claude Code): interactive `claude` session in the temp project; the agent did not start `claude`. Expect no import prompt; `/context` → Memory files lists `CLAUDE.md` and `.claude/system-instructions.md`.
+- live run 2026-10-22 (maintainer, Claude Code): no external-import prompt; /context Memory files listed CLAUDE.md and .claude/system-instructions.md.
 
 ---
 
@@ -1042,9 +1074,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - Step 2: `exit 0`; `    📄 Extras:    2 (.claude/system-instructions.md CLAUDE.md Writ block)` and `  🗑  Removed: CLAUDE.md Writ block`; `only the block lines were removed`; `-rw-r-----`; `3` CRLF lines left (two from the hand-written top, one from the text after the block); the tail shows `.`, two spaces, `\n \n`, then `Trailing line, no newline` with no final `\n`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Codex's `remove_agents_md_block` trims blank lines and adds a final newline; the Claude function deliberately does not (D5).
+- agent-run 2026-10-21 @ b850e66: exit 0, `Extras:    2 (…)`, `🗑  Removed: CLAUDE.md Writ block`, `only the block lines were removed`, `-rw-r-----`, `3` CRLF lines; tail shows `.`, two spaces, `\n`, `\n`, then `Trailing line, no newline` with no final newline.
 
 **Implementation Reference:** Story 4 — `remove_claude_md_block` in the `writ-remove-claude-md-bundled` region of `scripts/uninstall.sh` (`head`/`tail`, `cat "$tmp" >"$file"`).
 
@@ -1092,11 +1125,13 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: first project: `exit 13`; `❌ CLAUDE.md block error: malformed markers (expected exactly one <!-- writ:start --> and one <!-- writ:end -->).`; `CLAUDE.md unchanged`; `.claude/` holds only `.writ-manifest`. Second project: `exit 13`; `❌ CLAUDE.md block error: malformed markers (invalid marker order).`; `CLAUDE.md unchanged`.
 - Step 4: `exit 0`; `    📄 Extras:    1 (.claude/system-instructions.md)` and no other `CLAUDE.md` line; then `rc=0 note=✓ CLAUDE.md (no file present)` and `0` (nothing created).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
 - Step 3: by the time uninstall stops with 13, it has already removed commands, agents, skills, and `.claude/system-instructions.md`; only the manifest and `CLAUDE.md` remain. The spec keeps this, matching Codex ("do not add new recovery").
 - Step 4: the error map says the person sees `✓ CLAUDE.md (no file present)`. Through `uninstall.sh` they see nothing about `CLAUDE.md`, because the call site checks for the file first (as the Codex branch does). The note exists only at function level, which is what AC-4.2 tests.
+- agent-run 2026-10-21 @ b850e66: step 1 exit 0, `Removed: CLAUDE.md (empty after Writ block removal)`, `1`; step 2 exit 0, `✓ CLAUDE.md (no Writ block present)`, unchanged; step 3 exit 13 `(expected exactly one …)`, unchanged, `.claude/` = `.writ-manifest`; exit 13 `(invalid marker order)`, unchanged.
+- Step 4: exit 0, `Extras:    1 (.claude/system-instructions.md)` and no other `CLAUDE.md` line; `rc=0 note=✓ CLAUDE.md (no file present)`, `0`.
 
 ---
 
@@ -1132,9 +1167,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 2: `exit 0`; `.cursorindexingignore`, `.writ`, `scripts` (no `CLAUDE.md`, no `.claude/`).
 - Step 3: `exit 0`; `    📄 Extras:    2 (.claude/system-instructions.md CLAUDE.md Writ block)` and `  🗑  CLAUDE.md Writ block`; `dry run changed nothing`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: A exit 0, `🗑  Removed: CLAUDE.md Writ block`, `CLAUDE.md = original + one newline`; B exit 0, `.cursorindexingignore .writ scripts`; C exit 0, `Extras:    2 (…)` and `🗑  CLAUDE.md Writ block`, `dry run changed nothing`.
 
 ---
 
@@ -1166,9 +1202,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 1: no lines; `rm: exit 1` and `cp: exit 1`.
 - Step 2: five lines: `uninstall-writ.md:99` (remove only the Writ block, keep every other byte, delete `CLAUDE.md` only if nothing is left), `uninstall-writ.md:110` (do not remove content outside the markers, including blank lines next to the block), `reinstall-writ.md:116` (leave `CLAUDE.md` in place; Step 4 replaces only the lines between the markers), `reinstall-writ.md:123` (do not remove content outside the markers), `reinstall-writ.md:143` (merge the template the way `install.sh --platform claude --force` does; never copy the template over the file). Count `1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `uninstall-writ.md`'s frontmatter `exit_criteria` (line 10) and its Step 2 confirm prompt still name only `AGENTS.md` content outside the markers (Story 4 evaluator residual). Not in AC-4.4.
+- agent-run 2026-10-21 @ b850e66: `rm: exit 1`, `cp: exit 1`; five lines at `uninstall-writ.md:99`, `:110`, `reinstall-writ.md:116`, `:123`, `:143` with the expected text (99 ends "delete `CLAUDE.md` only if nothing is left"; 143 says "Never copy the template over the file"); count `1`.
 
 ---
 
@@ -1205,9 +1242,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: the agent never runs `rm CLAUDE.md` and never copies `claude-code/CLAUDE.md` onto `CLAUDE.md`. It replaces only the lines between the markers.
 - Step 4: `outside bytes unchanged`; `1`; both files exist (`status.md` is back, so the reinstall ran).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The command doc the agent follows comes from this branch (installed from `$SRC`). The template it merges comes from GitHub `main`, so until Phase 13 is merged the new block may lack the import line. That does not affect this scenario, which checks the bytes outside the block.
+- needs live session (Claude Code): interactive `claude` session in the temp project; the agent did not start `claude`. Also needs network access to github.com: `/reinstall-writ` Step 4 clones upstream `main`.
+- live run 2026-10-22 (maintainer, Claude Code): /reinstall-writ ran without rm CLAUDE.md or a template copy over it. verify-s28.sh re-run by Claude: 'outside bytes unchanged', one Writ block, .claude/commands/status.md and .claude/system-instructions.md present.
 
 ---
 
@@ -1231,9 +1270,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 **Expected Result:**
 - `exit 0`; `  🗑  Removed: CLAUDE.md Writ block`; the file holds 5 bytes: `\n  \n          \n` (two newlines, two spaces, a newline).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** `commands/uninstall-writ.md` says "delete `CLAUDE.md` only if nothing is left"; the script means zero bytes. A person following the doc by hand could delete this file (Story 4 evaluator residual).
+- agent-run 2026-10-21 @ b850e66: exit 0, `🗑  Removed: CLAUDE.md Writ block`; file is 5 bytes: `\n`, `\n`, two spaces, `\n`.
 
 ---
 
@@ -1268,9 +1308,11 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: the agent never runs `rm CLAUDE.md`. It removes only the start-marker line through the end-marker line.
 - Step 4: `only the block was removed`; `1` (`.claude/system-instructions.md` is gone); `.writ` still exists.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** If the agent trims a blank line next to the block, `cmp` fails. That would be a Fail against Business Rule 1 even though `uninstall.sh` itself keeps those bytes (Scenario 24).
+- needs live session (Claude Code): interactive `claude` session in the temp project; the agent did not start `claude`. Then compare `$W/s30.expect` with `CLAUDE.md`.
+- live run 2026-10-22 (maintainer, Claude Code): /uninstall-writ did not rm CLAUDE.md. verify-s30.sh re-run by Claude: 'only the block was removed', 1, .writ kept.
 
 ---
 
@@ -1296,9 +1338,10 @@ Error-map, shadow-path, edge-case, and state-catalog items that a scenario alrea
 - Step 3: `exit 0`; `Findings: 0`, `Run errors: 0`.
 - Step 4: `gen-claude-md: pass (32 commands, 8 agents)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+- agent-run 2026-10-21 @ b850e66: step 1 `2774 passed, 2 skipped in 215.09s` (Python 3.9; more tests than the plan's 2682, legitimate growth); step 2 no `FAIL` line, `bash tests done` (45 tests, about 12 minutes); step 3 exit 0, `Findings: 0`, `Run errors: 0`; step 4 `gen-claude-md: pass (32 commands, 8 agents)`.
 
 ---
 
