@@ -27,4 +27,4 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Open Issues
 
-28 open issue files in .writ/issues/ (39 total; 11 closed with `## Resolution`)
+27 open issue files in .writ/issues/ (39 total; 12 closed with `## Resolution`)

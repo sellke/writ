@@ -29,3 +29,7 @@ In the 2026-10-22 UAT run of `2026-10-20-shipped-command-hygiene` Scenario 29 (C
 - `commands/create-spec.md`: Steps 1.3, 1.4, and 1.4b
 - `adapters/claude-code.md`: the `AskQuestion` mapping
 - `.writ/specs/2026-10-20-shipped-command-hygiene/uat-plan.md`: Scenario 29 notes
+
+## Resolution
+
+2026-10-22, PR #62 (branch `claude/sweet-pike-a83e04`, commits `3fdbbbf`, `cae0ced`, `8a59b4b`); no spec, by maintainer decision. Step 1.4b of `commands/create-spec.md` now opens with a precondition: the full contract is printed as a visible message before the Contract Decision prompt, in Plan Mode or not. The `--from-prototype` and `--from-issue` paths print theirs too. The prompt has four options; "more questions" folds into "edit", where a free-text "Other" also goes, so `adapters/claude-code.md` needed no change. Step 1.3 opens with the discovery rule the maintainer chose: ask a question alone when its answer could change the next one; independent bounded choices may share one prompt. `eval-command-structure.py` pins both with its `lead` kind. Hygiene Scenario 29 was re-run on `3fdbbbf`: all seven sections printed before a 4-option prompt, and it is marked Pass. The remaining gap, discovery never entering Plan Mode on Claude Code, is `.writ/issues/improvements/2026-10-22-create-spec-discovery-skips-plan-mode-on-claude-code.md`.
