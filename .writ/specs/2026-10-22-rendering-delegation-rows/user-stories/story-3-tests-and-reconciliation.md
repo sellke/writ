@@ -1,6 +1,7 @@
 # Story 3: Verification-Record Tests, prototype.md Reconciliation, and Issue Note
 
 > **Status:** Completed ✅
+> **Commit:** 731665452a6fd2795d52ee0bbdc0b9d93224f847
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
