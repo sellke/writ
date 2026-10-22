@@ -153,15 +153,15 @@ ROWS: Tuple[Row, ...] = (
         "check_quality_config_audit",
         "status.md must surface the quality-config findings by running the pure file-read audit."),
     Row("commands/create-spec.md", "lead",
-        "Step 1.3: Discovery Conversation | One question per prompt",
+        "Step 1.3: Discovery Conversation | One question at a time",
         "check_command_structure",
-        "create-spec.md Step 1.3 must open with its one-question-per-prompt rule: never "
-        "several questions in one prompt or AskQuestion call."),
+        "create-spec.md Step 1.3 must open with its one-question-at-a-time rule: a "
+        "question whose answer could change the next one is asked alone."),
     Row("commands/create-spec.md", "lead",
-        "Step 1: Shortened Discovery Conversation | One question per prompt",
+        "Step 1: Shortened Discovery Conversation | One question at a time",
         "check_command_structure",
         "create-spec.md --from-prototype and --from-issue Step 1 must each open with the "
-        "one-question-per-prompt rule."),
+        "one-question-at-a-time rule."),
     Row("commands/create-spec.md", "lead", "Step 1.4b: Contract Decision | Precondition",
         "check_command_structure",
         "create-spec.md Step 1.4b must open with its precondition: the full contract is "

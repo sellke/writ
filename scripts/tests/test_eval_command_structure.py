@@ -5,7 +5,7 @@ Spec `2026-10-20-shipped-command-hygiene`, Story 2. Some literal pins on
 command files guarded structure, not wording: a heading, a frontmatter key, or
 a script call. The `lead` kind came later, for create-spec rules a step must
 open with: show the contract before the lock (bug 2026-10-22) and ask one
-discovery question per prompt. A literal substring pin passes when the heading turns into
+discovery question at a time. A literal substring pin passes when the heading turns into
 prose or the call turns into a bare mention. The helper checks the structure
 instead, one table row per converted pin. Tests run the helper against temp
 roots through `--root`; the eval-level test copies `eval.sh`, the helper, and
@@ -232,7 +232,7 @@ class LeadKindTests(KindCase):
 class CreateSpecLeadTests(unittest.TestCase):
     """Bug 2026-10-22-create-spec-can-lock-an-unseen-contract and hygiene UAT
     Scenario 29: every discovery step in create-spec.md opens with the
-    one-question-per-prompt rule, every lock point opens with the rule that
+    one-question-at-a-time rule, every lock point opens with the rule that
     the contract was shown first, and the Contract Decision fits a
     four-option prompt."""
 
@@ -241,8 +241,8 @@ class CreateSpecLeadTests(unittest.TestCase):
         values = {r.value for r in module.ROWS
                   if r.file == "commands/create-spec.md" and r.kind == "lead"}
         self.assertEqual(values, {
-            "Step 1.3: Discovery Conversation | One question per prompt",
-            "Step 1: Shortened Discovery Conversation | One question per prompt",
+            "Step 1.3: Discovery Conversation | One question at a time",
+            "Step 1: Shortened Discovery Conversation | One question at a time",
             "Step 1.4b: Contract Decision | Precondition",
             "Step 3: Phase 2 with Story 1 | Precondition",
             "Step 3: Phase 2 with `spec_ref` | Precondition",
@@ -256,7 +256,7 @@ class CreateSpecLeadTests(unittest.TestCase):
                            text, re.MULTILINE)
         self.assertEqual(len(steps), 2)
         for line in steps:
-            self.assertTrue(line.startswith("**One question per prompt:**"), line)
+            self.assertTrue(line.startswith("**One question at a time:**"), line)
 
     def test_the_contract_decision_has_at_most_four_options(self):
         text = (REPO_ROOT / "commands" / "create-spec.md").read_text(encoding="utf-8")

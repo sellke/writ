@@ -617,7 +617,11 @@ KNOWN_OVER_BUDGET = {
     # prompt" rule (one question per message or AskQuestion call, never bundled),
     # restoring the line the Phase 13 cut folded into a run-in clause. No new step
     # or gate. Acknowledged, not exempted.
-    "commands/create-spec.md": 14632,
+    # 2026-10-22: 14632 -> 14445. The maintainer relaxed that rule to "One question
+    # at a time": a question whose answer could change the next is asked alone;
+    # independent bounded choices may share one AskQuestion prompt. The --from
+    # Step 1s now point to Step 1.3 instead of restating it.
+    "commands/create-spec.md": 14445,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
