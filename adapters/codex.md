@@ -23,6 +23,8 @@ Native integration with OpenAI Codex CLI: project-scoped TOML subagents under `.
 
 Writ-authored agents for Codex live in the Writ repo at `codex/agents/*.toml` and install (copy or symlink) into `.codex/agents/`.
 
+Plugin (2026-10-23): Writ ships no Codex plugin in this release; `install.sh --platform codex` remains the Codex install path.
+
 ---
 
 ## Installation

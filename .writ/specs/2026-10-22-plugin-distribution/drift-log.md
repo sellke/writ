@@ -201,3 +201,44 @@
 - **Spec amendment:** spec-lite.md Cursor line lists `system-instructions.md` at the layout root.
 
 ---
+
+## Story 5: Smoke Test Across Five Targets, README Install Order, and Live-Run Evidence — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-021] `cursor-plugin` script-run reads `unverifiable (no cursor session)`, not `pass (requires project scripts/)`
+- **Severity:** Small
+- **Spec said:** Rule 9 and technical-spec.md § Smoke Test (`cursor-plugin` row): with the identity `scripts/` form, check in a temp project holding install.sh's script copy and report `pass (requires project scripts/)`.
+- **Implementation did:** Follows AC-5.3 and the contract's Success Criteria ("green or `unverifiable (no cursor session)` on Cursor"): the line reads `unverifiable (no cursor session)` when the layout has no `scripts/`, so the target's summary is `unverifiable`.
+- **Reason:** The contract outranks Rule 9, and `pass (...)` would break AC-5.1's line grammar. While the layout ships no `scripts/`, `cursor-plugin` cannot read `pass`, so AC-5.4's "Cursor plugin first" branch needs a layout change as well as the UAT.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Smoke test line: the cursor-plugin script-run line reads `unverifiable (no cursor session)` until the layout ships a plugin-root `scripts/`.
+
+#### [DEV-022] `### Cursor (plugin)` stays in the README when `cursor-plugin` fails
+- **Severity:** Medium
+- **Spec said:** Rule 10: "when the target fails, the subsection is omitted."
+- **Implementation did:** Follows AC-5.4 and the story Notes: `test_readme_install_order` keeps `### Cursor (plugin)` after the Cursor install.sh section, with "local install; marketplace listing pending", for any result short of `pass` plus `cursor-uat run`. Today's fixture reads `cursor-plugin unverifiable`, so today's README is the same under either rule.
+- **Reason:** The story Notes chose this branch and asked to amend Rule 10 if the maintainer wants a failing Cursor plugin removed. A failing Cursor plugin path would stay documented with a green test.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review (options: amend Rule 10 to match AC-5.4, or keep Rule 10 and assert the heading is absent on `cursor-plugin fail`)
+
+#### [DEV-023] Smoke test adds checks and flags beyond the AC
+- **Severity:** Small
+- **Spec said:** AC-5.1 to AC-5.3 and technical-spec.md § Smoke Test list four checks per target plus `validate`; the story Notes say the maintainer copies the summary lines into the fixture.
+- **Implementation did:** Adds an `install` line for the install.sh targets (rc 0 and the local-source line, so install.sh never clones), `validate-marketplace` for `claude-plugin`, `--targets`, `--no-self-test`, `--verbose`, usage errors exiting 2, and `--record`, which writes the fixture (carrying a `cursor-uat run` line forward).
+- **Reason:** Sharper diagnosis; no network.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Smoke test line names the `install` and `validate-marketplace` lines and `--record`.
+
+#### [DEV-024] test-integrity authenticity has no shell analysis
+- **Severity:** Small
+- **Spec said:** implement-story Gate 4: `test_imports_no_source` is blocking.
+- **Implementation did:** `scripts/test-integrity.py` applies its script-invocation pass to `.py` tests only (about line 768), so `scripts/tests/test_plugin_smoke.sh`, like every existing `scripts/tests/*.sh`, reads `test_imports_no_source`. The story's Python test passes; the smoke test's hold on the source is shown by mutation runs (a broken `spec-status.py`, a dropped scaffold path, a removed carrier heading, a changed Writ-block import each made it exit 1).
+- **Reason:** Checker blind spot, not a test defect; follow-up: extend authenticity to shell tests that call `bash|python3 "<x>/scripts/<name>"`.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Testing Agents, Test Strategy: the bash smoke test is checked by mutation runs; test-integrity authenticity reads `.py` tests only.
+
+---

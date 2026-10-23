@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T19:43:29Z
+> Last Updated: 2026-10-23T21:07:06Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-plugin-distribution — Plugin Distribution
-- **Status:** In Progress (4/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`)
-- **Story:** 3 of 5 — Cursor Plugin (Completed ✅)
-- **Progress:** 26/33 tasks complete (79%)
+- **Status:** Complete (5/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`, awaiting the phase merge)
+- **Story:** 5 of 5 — Smoke Test Across Five Targets, README Install Order, and Live-Run Evidence (Completed ✅)
+- **Progress:** 33/33 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,8 +23,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- ⚠️ DEV-022 `### Cursor (plugin)` stays in the README when `cursor-plugin` fails — plugin-distribution (Story 5, flagged for review)
 - ⚠️ DEV-017 Cursor `agents/` prompt docs lack the frontmatter Cursor requires — plugin-distribution (Story 3, flagged for review)
-- DEV-020 The Cursor layout ships `system-instructions.md` at its root — plugin-distribution (Story 3, auto-amended)
 - ⚠️ DEV-006 `.writ/docs/` reference docs are absent in a plugin-only project — plugin-distribution (Story 2, flagged for review)
 
 ## Open Issues

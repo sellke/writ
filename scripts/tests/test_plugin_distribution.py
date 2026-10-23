@@ -63,13 +63,20 @@ HOME pointed at a temp dir for the render; nothing here writes under
 - TestCursorAdapterPlugin: `adapters/cursor.md` -> Plugin (AC-3.4).
 - TestCursorUatProtocol: the Cursor local plugin protocol (AC-3.5).
 
-Covers AC-1.1 to AC-1.5, AC-2.1 to AC-2.5, and AC-3.1 to AC-3.5.
+README install order (Story 5): `test_readme_install_order` reads only
+README.md, adapters/codex.md, and the results that
+`scripts/tests/test_plugin_smoke.sh --record` wrote to
+`scripts/tests/fixtures/plugin-smoke-results.txt`, and checks README §
+Quick Start against them (spec.md Rule 10, AC-5.4). No install, no network.
+
+Covers AC-1.1 to AC-1.5, AC-2.1 to AC-2.5, AC-3.1 to AC-3.5, and AC-5.4.
 
 Run: uv run --python 3.9 pytest scripts/tests/test_plugin_distribution.py
 """
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -1787,3 +1794,143 @@ class TestCursorUatProtocol:
         for field in ("Cursor version:", "Rules list result", "Commands seen", "Script call result",
                       "Result: `pass` or `fail`", "cursor.com/marketplace/publish"):
             assert field in protocol, field
+
+
+# -- AC-5.4: README § Quick Start follows the recorded smoke results ----------
+
+README = REPO_ROOT / "README.md"
+CODEX_ADAPTER = REPO_ROOT / "adapters" / "codex.md"
+SMOKE_RESULTS = REPO_ROOT / "scripts" / "tests" / "fixtures" / "plugin-smoke-results.txt"
+SMOKE_TARGETS = ("cursor", "claude", "codex", "claude-plugin", "cursor-plugin")
+SMOKE_VERDICTS = ("pass", "fail", "unverifiable")
+UAT_VALUES = ("pending", "run")
+RUN_DATE = re.compile(r"^# run date: 20\d{2}-\d{2}-\d{2}$")
+CLAUDE_VERSION_LINE = re.compile(r"^# claude --version: \S.*$")
+ROUTES_HEADING = "### What `/writ` routes to"
+CLAUDE_PLUGIN_HEADING = "### Claude Code (plugin)"
+CURSOR_PLUGIN_HEADING = "### Cursor (plugin)"
+CURSOR_INSTALL_HEADING = "### Cursor (one-line install)"
+CURSOR_PENDING = "local install; marketplace listing pending"
+# The install.sh subsections, in README order, each with the sha256 of its
+# bytes from the heading line to the next heading, taken from README.md as
+# it stood before Story 5 (spec.md Rule 10: the install.sh sections stay).
+# A prose edit in one of them fails here; re-pin only with a deliberate
+# README change to that section.
+INSTALL_SH_SECTIONS = (
+    (CURSOR_INSTALL_HEADING, "8a99f53f92a350a6f18ff8290b1a0dfbec8dd298b824bf7522b5bc86450c9d4a"),
+    ("### Updating", "290219f0089c95527181d95ac2e6a72193fd0a6b17a9e7af92b41db085a07ec0"),
+    ("### Claude Code (one-line install)", "ed394cfae47b6f68df02dfa034c18ea45c52932ce63999c6f5d2108098ab461e"),
+    ("### Codex CLI (one-line install)", "6b346373eceab6081a94138d81a5dfd01f0da21cfcd354cd19d2e362cab358e2"),
+)
+
+
+def smoke_results() -> Dict[str, str]:
+    """The recorded run: `#` comment lines (run date, `claude --version`),
+    one `<target> <verdict>` line per smoke target, and `cursor-uat
+    <pending|run>`."""
+    assert SMOKE_RESULTS.exists(), (
+        "no %s: run `bash scripts/tests/test_plugin_smoke.sh --record`"
+        % SMOKE_RESULTS.relative_to(REPO_ROOT))
+    lines = read_text(SMOKE_RESULTS).splitlines()
+    comments = [line for line in lines if line.startswith("#")]
+    assert any(RUN_DATE.match(line) for line in comments), "no `# run date: <date>` line"
+    assert any(CLAUDE_VERSION_LINE.match(line) for line in comments), (
+        "no `# claude --version: <output or no claude CLI>` line")
+    results = {}  # type: Dict[str, str]
+    for number, line in enumerate(lines, 1):
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split(" ")
+        assert len(parts) == 2, "line %d is not `<target> <result>`: %r" % (number, line)
+        assert parts[0] not in results, "line %d repeats %s" % (number, parts[0])
+        results[parts[0]] = parts[1]
+    assert sorted(results) == sorted(SMOKE_TARGETS + ("cursor-uat",)), sorted(results)
+    for target in SMOKE_TARGETS:
+        assert results[target] in SMOKE_VERDICTS, "%s reads %r" % (target, results[target])
+    assert results["cursor-uat"] in UAT_VALUES, "cursor-uat reads %r" % results["cursor-uat"]
+    return results
+
+
+def quick_start_subsections() -> List[Tuple[str, str]]:
+    """Each `### ` heading under README `## Quick Start`, in order, with its
+    text from the heading line up to the next heading, line endings kept. A
+    `#` line inside a ``` fence is code, not a heading."""
+    lines = read_text(README).splitlines(keepends=True)
+    bare = [line.rstrip("\r\n") for line in lines]
+    assert "## Quick Start" in bare, "README.md has no `## Quick Start`"
+    out = []  # type: List[Tuple[str, List[str]]]
+    in_fence = False
+    for line in lines[bare.index("## Quick Start") + 1:]:
+        text = line.rstrip("\r\n")
+        if text.startswith("```"):
+            in_fence = not in_fence
+        elif not in_fence and text.startswith("## "):
+            break
+        elif not in_fence and text.startswith("### "):
+            out.append((text.rstrip(), [line]))
+            continue
+        if out:
+            out[-1][1].append(line)
+    return [(heading, "".join(body)) for heading, body in out]
+
+
+def overview_lines() -> List[str]:
+    """The lines of adapters/codex.md under `## Overview`, up to the next
+    `## ` heading or `---` rule."""
+    lines = read_text(CODEX_ADAPTER).splitlines()
+    assert "## Overview" in lines, "adapters/codex.md has no `## Overview`"
+    out = []  # type: List[str]
+    for line in lines[lines.index("## Overview") + 1:]:
+        if line.startswith("## ") or line.strip() == "---":
+            break
+        out.append(line)
+    return out
+
+
+def test_readme_install_order():
+    """AC-5.4, spec.md Rule 10: the Claude Code plugin subsection comes first
+    only when `claude-plugin` passed; the Cursor plugin subsection comes after
+    the Cursor install.sh subsection, saying the install is local and the
+    listing pending, unless `cursor-plugin` passed and the Cursor UAT has run;
+    the install.sh subsections stay; adapters/codex.md says Codex has no
+    plugin in this release."""
+    results = smoke_results()
+    sections = quick_start_subsections()
+    headings = [heading for heading, _ in sections]
+    body = dict(sections)
+    for heading, _ in INSTALL_SH_SECTIONS:
+        assert headings.count(heading) == 1, "Quick Start has %d %r" % (headings.count(heading), heading)
+    order = [headings.index(heading) for heading, _ in INSTALL_SH_SECTIONS]
+    assert order == sorted(order), "install.sh subsections out of order: %s" % headings
+    for heading, pinned in INSTALL_SH_SECTIONS:
+        digest = hashlib.sha256(body[heading].encode("utf-8")).hexdigest()
+        assert digest == pinned, "%s changed: sha256 %s, pinned %s" % (heading, digest, pinned)
+    cursor_install = headings.index(CURSOR_INSTALL_HEADING)
+    # The front-door content stays first: the plugin subsections follow it.
+    routes = headings.index(ROUTES_HEADING)
+
+    if results["claude-plugin"] == "pass":
+        assert headings.count(CLAUDE_PLUGIN_HEADING) == 1, "claude-plugin passed: %s" % headings
+        at = headings.index(CLAUDE_PLUGIN_HEADING)
+        assert routes < at < cursor_install, headings
+        text = body[CLAUDE_PLUGIN_HEADING]
+        for needle in ("claude plugin marketplace add sellke/writ", "claude plugin install writ@writ",
+                       "/writ:initialize"):
+            assert needle in text, "%s has no %r" % (CLAUDE_PLUGIN_HEADING, needle)
+    else:
+        assert CLAUDE_PLUGIN_HEADING not in headings, (
+            "claude-plugin reads %s, so README lists no Claude Code plugin" % results["claude-plugin"])
+
+    assert headings.count(CURSOR_PLUGIN_HEADING) == 1, "Quick Start: %s" % headings
+    at = headings.index(CURSOR_PLUGIN_HEADING)
+    if results["cursor-plugin"] == "pass" and results["cursor-uat"] == "run":
+        assert routes < at < cursor_install, headings
+    else:
+        assert at > cursor_install, "%s before %s: %s" % (CURSOR_PLUGIN_HEADING, CURSOR_INSTALL_HEADING,
+                                                           headings)
+        assert CURSOR_PENDING in body[CURSOR_PLUGIN_HEADING], (
+            "%s has no %r" % (CURSOR_PLUGIN_HEADING, CURSOR_PENDING))
+
+    dated = [line for line in overview_lines() if DATE.search(line)]
+    assert len(dated) == 1, "adapters/codex.md ## Overview has %d dated lines: %r" % (len(dated), dated)
+    assert "no Codex plugin" in dated[0] and "install.sh" in dated[0], dated[0]
