@@ -1,6 +1,7 @@
 # Story 1: Verify Both Plugin Formats and Decide the Layout
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** e907b67497b86c71f6a9bedf7edfdf124ae0cf3b
 > **Priority:** High
 > **Dependencies:** None
 
