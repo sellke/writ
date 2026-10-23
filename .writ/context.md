@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T04:10:34Z
+> Last Updated: 2026-10-23T04:54:26Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-generated-platform-trees — Generated Platform Trees
-- **Status:** In Progress (1/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
-- **Story:** 1 of 5 — Adapter Table Parser and Parity Repairs (Completed ✅)
-- **Progress:** 7/33 tasks complete (21%)
+- **Status:** In Progress (2/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
+- **Story:** 2 of 5 — Driver Write Mode for the Cursor and Claude Code Root Files (Completed ✅)
+- **Progress:** 14/33 tasks complete (42%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-003 Cursor `Plan Mode` row split across columns 2 and 3 — generated-platform-trees (Story 1, auto-amended; spec-lite Story 1 line names the layout)
-- DEV-002 URL-shaped tokens excluded from vendor identifiers — generated-platform-trees (Story 1, auto-amended; spec-lite vocabulary line gains the clause)
-- DEV-001 `is_shippable_script` entry pulled forward from Story 4 — generated-platform-trees (Story 1, auto-amended; spec-lite check-shape line names Story 1 and the three scripts)
+- DEV-006 `claude-code/CLAUDE.md` carries no generated-file comment — generated-platform-trees (Story 2, auto-amended; spec-lite regenerate line says which files carry the comment)
+- DEV-005 Sub-generator output-state kinds do not block write mode — generated-platform-trees (Story 2, auto-amended; spec-lite Business Rules check-shape line gains the clause)
+- DEV-004 Driver summary line in write mode is `(<n> written, <r> reasons)` — generated-platform-trees (Story 2, auto-amended; spec-lite check-shape line names the write-mode summary)
 
 ## Open Issues
 
