@@ -76,4 +76,4 @@
 - Prose `scripts/` mentions outside invocation lines are never rewritten.
 
 **Test Strategy:**
-- Fixture adapters and commands under `scripts/tests/fixtures/platform-trees/`; golden neutral set; mutation tests for eval; bash install test from a committed source copy.
+- Fixture adapters and commands under `scripts/tests/fixtures/platform-trees/`; golden neutral set; mutation tests for eval; bash install test from a committed source copy (`install.sh --platform <p> --no-commit`, as the parity test runs it; the flag skips only the install's own commit, and the files written are the same; DEV-010).

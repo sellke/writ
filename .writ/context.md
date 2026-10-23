@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T07:35:00Z
+> Last Updated: 2026-10-23T08:20:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-generated-platform-trees — Generated Platform Trees
-- **Status:** In Progress (4/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
-- **Story:** 4 of 5 — `--check`, Coverage, Tokens, and Eval Wiring (Completed ✅)
-- **Progress:** 28/33 tasks complete (85%)
+- **Status:** Complete (5/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`, awaiting the phase merge)
+- **Story:** 5 of 5 — Install Evidence and Issue Closure (Completed ✅)
+- **Progress:** 33/33 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,10 +23,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-010 Install evidence test passes `--no-commit` — generated-platform-trees (Story 5, auto-amended; spec-lite Test Strategy line names the flag)
 - DEV-009 `browser_navigate` hit rewritten to neutral prose, not a neutral name — generated-platform-trees (Story 4, auto-amended; spec-lite vocabulary line records the no-neutral-name rule)
 - DEV-008 `check_platform_trees` runs `--check` only, not `--check` then `coverage` — generated-platform-trees (Story 4, auto-amended; spec-lite check-shape line says why)
-- DEV-007 Render-time guards beyond the spec's shadow paths — generated-platform-trees (Story 3, auto-amended; spec-lite generated-files line names the guards)
 
 ## Open Issues
 
-25 open issue files in .writ/issues/ (39 total; 14 closed with `## Resolution`)
+24 open issue files in .writ/issues/ (39 total; 15 closed with `## Resolution`)

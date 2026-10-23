@@ -111,3 +111,20 @@
 - **Reason:** The vocabulary has no neutral name for browser navigation; `canvas-preview` names draft rendering, not driving a running app, so substituting it would misdescribe the step. One line, same file class, same intent as the contract's allowance.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md → Implementation Approach, the vocabulary line records the third hit and the no-neutral-name rule.
+
+---
+
+## Story 5: Install Evidence and Issue Closure — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-010] Install evidence test passes `--no-commit`
+- **Severity:** Small
+- **Spec said:** AC-5.1: "when `install.sh --platform <platform>` runs from that copy"; Rule 14 and the technical-spec test row name no flags.
+- **Implementation did:** `scripts/tests/test_install_platform_trees.sh` runs `install.sh --platform <p> --no-commit` in each fresh `git init` project.
+- **Reason:** `NO_COMMIT` gates only the install's trailing `git commit`; every installed file is identical. It keeps the install's commit output out of failure messages and matches `test_install_update_claude_parity.sh`, which the story says to follow.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Testing Agents → Test Strategy, the install-test line names the flag and why it changes nothing the test reads.
