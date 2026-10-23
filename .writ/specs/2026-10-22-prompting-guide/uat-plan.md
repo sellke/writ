@@ -74,9 +74,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 - Step 2: the H1 `# Prompting Guide`; one paragraph that names the three sections and says to read the guide once before the first request (DEV-002); under the first H2 exactly three list items beginning `- **Goal**:`, `- **Done check**:`, `- **Proof**:`, one sentence each (DEV-001: a colon follows each bold name); then the line "The strong examples below state all three in a few sentences."
 - Step 3: the read takes under two minutes, the time the README claims; nothing in it assumes a Writ maintainer's artifacts (research, ADRs, spec folders).
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: H2s are `5:## What a request carries`, `13:## Recipes`, `55:## Pitfalls`; lines 1-11 show `# Prompting Guide`, one paragraph naming the three sections and ending "Read it once before your first request.", then `- **Goal**:`, `- **Done check**:`, `- **Proof**:` (one sentence each, colon after each name), then "The strong examples below state all three in a few sentences."; 61 lines, 407 words; no research, ADR, or spec-folder references; readability judgment left to the maintainer
 
 ---
 
@@ -99,9 +97,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 - Step 2: `15` (three labelled lines per recipe), then five Route lines: `` `/prototype` `` with no `--no-diverge`; `` `/prototype --no-diverge` ``; `` `/create-spec` ``; `` `/implement-phase <N>`, where N is the phase number `` (DEV-003 added the clause; the command is still named); `` `/research` (`/why` replaces it when it ships) ``.
 - Step 3: each Weak line is a one-line request with no done check (`Fix the login bug.`, `Add export.`); each Strong line is one line that states a goal, a "Done when" check, and a "Proof:" clause (the bug recipe's `a+b@example.com` test, for one). Labels sit at column 0 with a blank line between them.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: H3s at 15/23/31/39/47 in the contracted order; 15 labelled lines; Route lines are `/prototype`, `/prototype --no-diverge`, `/create-spec`, `/implement-phase <N>`, where N is the phase number, and `/research` (`/why` replaces it when it ships); all five Weak lines have no done check, all five Strong lines carry "Done when" and "Proof:"; labels at column 0 with a blank line between each; readability judgment left to the maintainer
 
 ---
 
@@ -124,9 +120,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 - Step 2: `0`.
 - Step 3: no output from either grep.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: five pitfalls in the contracted order, one sentence each, pitfall before the colon and fix after it; em-dash count `0`; both plain-prose greps printed nothing; readability judgment left to the maintainer
 
 ---
 
@@ -151,9 +145,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 - Step 3: no lines and `rc=1`: nothing under `.writ/research/`, `.writ/decision-records/`, `.writ/specs/`, `.writ/product/`, or any other `.writ/` path.
 - Step 4: one hit, line 57, the word "write" in the first pitfall. The guide names neither Writ nor a `/writ` command (the front-door spec adds that later).
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `61` lines; `0` for `](`; `.writ/` grep printed no lines, `rc=1`; one case-insensitive `writ` hit, line 57 ("write")
 
 ---
 
@@ -180,9 +172,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 
 **Implementation Reference:** Story 2 — `README.md` § Quick Start (lines 215 to 216).
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: the front-door spec (06b78eb, 0e4085e) reshaped Quick Start: it now opens with a `/writ` example block (lines 220-225), the pointer is line 227 not 215 and continues "(two minutes), then type `/writ` followed by what you want.", and the lead-in under new heading `` ### What `/writ` routes to `` is "Five commands take you from idea to PR:" instead of "Writ ships 32 commands, but you only need five to go from idea to PR:". Behavior holds: one `New here` line, above the `| Command | What it does |` table (line 233), lead-in keeps its colon, link target is `61` lines
 
 ---
 
@@ -205,9 +195,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 
 **Implementation Reference:** Story 2 — `scripts/tests/test_prompting_guide.py` (a loop rather than `parametrize` keeps the collected count at seven).
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: Python 3.9.6; seven PASSED in order test_exists_and_budget, test_headings, test_parts, test_recipes, test_no_internal_links, test_readme_links_guide, test_ships; `7 passed in 0.03s`; no FAILED; one file `test_prompting_guide.py`
 
 ---
 
@@ -234,9 +222,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 
 **Implementation Reference:** `scripts/install.sh` and `scripts/update.sh`, `is_shippable_writ_doc` (read, not modified). DEV-004: `shipfn` sources the function from a here-string, the form `test_ships` ships, because `source <(sed …)` defines nothing on macOS bash 3.2.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `exit 0` twice; the two `is_shippable_writ_doc` bodies are `identical` and exclude only `recommended-delivery-state-format.md`; dry run shows `🏃 DRY RUN — No changes will be made`, `Writ docs:`, `✨ New:       .writ/docs/prompting-guide.md`, no recommended-delivery line; `$SAMPLE` still holds only `.git` and `README.md`
 
 ---
 
@@ -262,9 +248,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 - Step 4: `exit 64` (no function in that file; `test_ships` would fail with "fix this test's extraction, not the guide"), then `exit 1` (the denylist rejects its one excluded doc, so Scenario 7's admission is a real decision).
 - `reset` prints nothing after each of steps 1 to 3.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: step 1 `2 failed, 5 passed` with the expected test_headings AssertionError and `Failed: heading not found: '## Recipes'`; step 2 `1 failed, 6 passed`, `'### A feature' has 0 'Route:' lines, expected one`; step 3 `1 failed, 6 passed`, `README.md section '## Quick Start' does not link .writ/docs/prompting-guide.md`; step 4 `exit 64` then `exit 1`; reset printed nothing after each of steps 1-3
 
 ---
 
@@ -285,8 +269,6 @@ The technical spec's Error & Rescue Map is "Not required" (documentation only), 
 - Step 1: progress lines, then `Eval report: .writ/state/eval-<timestamp>.md`, then `exit 0`.
 - Step 2: `- Findings: 0` and `- Run errors: 0`. In particular no `broken-refs`, `referenced-paths`, `shipped-refs`, or `length` finding names the guide or the README.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: eval.sh ended `Eval report: .writ/state/eval-20261023-225922.md` and `exit 0`; report tail `- Findings: 0`, `- Run errors: 0`
 
 ---

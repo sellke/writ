@@ -272,7 +272,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 2: the four labeled lines, with `Proof:` carrying the guide link; a `Proposed: /prototype --no-diverge` line; `(Recommended)` on the first option and `Not what I meant` on the last, rendered as a numbered list because `-p` has no widget. No `Extract Intent` line: the run stops at the confirmation, which nobody can answer headless. Fail if `/prototype` steps ran without a confirmation.
 - Step 3: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [ ] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: NOT RUN, neither box checked. `claude -p` exited 1 with `Failed to authenticate: OAuth session expired and could not be refreshed` (`claude auth status` inside the agent's sandbox reports `loggedIn: false`); the session transcript shows `/writ` loaded as a project command in the clone but no model turn ran, and the permission classifier refused a re-run outside the sandbox. Clone stayed clean. The maintainer needs to run this one by hand.
 
 ---
 ## Story 2: Registration and Catalogs
@@ -295,7 +295,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 2: `106:### Start here` (under `## Commands`, above `### Planning & Specification`); `227:New here? …` ending `` then type `/writ` followed by what you want. ``; `` 229:### What `/writ` routes to ``; `241:` the closing sentence ending `` ; `/writ` picks the route for you. ``; lines 257, 287, and 307 naming `/writ "my feature"` for Cursor, Claude Code, and Codex (DEV-004). No `32 commands` line: the count sentence was dropped.
 - Step 3: `| Command | Purpose |`, the separator, then `` | `/writ` | **The front door.** Restates a request as a goal ``.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: the three DEV-004 `/writ "my feature"` lines sit at 268, 313, 333 (plan: 257, 287, 307) because plugin-distribution Story 5 (`0e4085e`) added install sections. Everything else exact: Quick Start opens with the `/writ` fence before any table, `106:### Start here` under `## Commands` above Planning (111), 227 New here, 229 What `/writ` routes to, 241 picks the route, no `32 commands` line, Step 3 rows as expected.
 
 ---
 ### Scenario 13: Every catalog and surface registers `/writ`, both generator checks pass, and a hand edit to `SKILL.md` fails them
@@ -322,7 +322,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 
 **Implementation Reference:** Story 2 — `scripts/gen-skill.sh`, `scripts/gen-claude-md.py` TEMPLATE, `.writ/manifest.yaml`, `adapters/cursor.md` § Directory Structure, `commands/status.md` allowlists, `.writ/docs/model-tiers.md` `high` row, `adapters/claude-code.md` § Quick Reference.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: `codex/AGENTS.md.template` has Start here at 10, the `/writ` row at 14 with its full purpose (no `…` truncation), and Planning at 16 (plan: 11/15/17, truncated), because plugin-distribution Story 3 (`bf407c5`) regenerated it; the `todo_write` row in `adapters/claude-code.md` is at 217 (plan: 194), text exact, no `tracking.json` mapping left. The rest is exact: SKILL.md 44/48/50, CLAUDE.md 48 and 13 (table at 15), both `--check` pass (33 commands, 8 agents), manifest 181/186/191 and the writ entry, cursor.md `(33)` and 64 to 66, status.md 249/442, model-tiers 75 `(16)`. Step 5 printed `exit 1`, `fail`, the drift reason, the AssertionError from `test_catalogs`, and `1 failed, 10 passed`. `reset` was clean.
 
 ---
 ## Story 3: Structure Rows, Issue Resolution, and Routing Fixture
@@ -349,7 +349,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 
 **Implementation Reference:** Story 3 — `scripts/eval-command-structure.py` `ROWS` (two `commands/writ.md` rows after `Artifact Integrity`); the issue's `## Resolution`; `scripts/tests/test_front_door.py` (490 lines).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: Step 1 `exit 0`, 35 PASS and 0 FAIL, including both `commands/writ.md` rows. Step 2: `spec_ref` at 7, six H2s with `## Resolution` last at 37, all five tokens present. Step 3: `6:entry_level: high`, line 20 ends `/writ:writ`, `107:## Routing Rules`, 135 lines. Step 4: eleven PASSED in the listed order, `11 passed`.
 
 ---
 ### Scenario 15: Removing a rule row fails `test_routing_rules`; renaming the heading fails the structure row too
@@ -369,7 +369,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 2: `exit 1` and one `FAIL	command-structure:commands/writ.md:heading:Routing Rules	writ.md must keep the Routing Rules heading … (no heading outside fenced code starts with 'Routing Rules'; …)` line; then `FAILED …::test_routing_rules` (heading not found) and `FAILED …::test_structure_rows`, `2 failed, 9 passed`.
 - `reset` prints nothing after each step.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: Step 1: `AssertionError: 5 data rows, expected 6`, `FAILED ...::test_routing_rules`, `1 failed, 10 passed`. Step 2: `exit 1`, one `FAIL command-structure:commands/writ.md:heading:Routing Rules` line with the expected text, then `FAILED` for `test_routing_rules` (heading not found) and `test_structure_rows`, `2 failed, 9 passed`. `reset` was clean after each step.
 
 ---
 ### Scenario 16: The repository quality gate reports zero findings
@@ -388,6 +388,6 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 1: progress lines, then `Eval report: .writ/state/eval-<timestamp>.md`, then `exit 0`. No `check_manifest`, `check_command_structure`, `check_referenced_paths`, or leanness `structural` finding names `commands/writ.md`.
 - Step 2: `- Findings: 0` and `- Run errors: 0`. Non-blocking leanness WARNINGs about surface lines past their ceilings pre-date this spec on the phase branch and are not findings.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: eval.sh ran inside the agent's sandbox (`git init` was not blocked), printed progress lines, `Eval report: .writ/state/eval-20261023-230006.md`, and `exit 0`. The report tail reads `- Findings: 0` and `- Run errors: 0`, and no line names `commands/writ.md`. The only WARNINGs are the non-blocking leanness ceiling and byte-budget ones.
 
 ---

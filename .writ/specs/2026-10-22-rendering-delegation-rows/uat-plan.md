@@ -81,9 +81,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 
 **Implementation Reference:** Story 1 — `adapters/claude-code.md` § Tool Mapping → Quick Reference; `test_claude_code_record_checks`.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: a `Plan Mode` row added by a later spec now sits between the `canvas-preview` row (line 221) and the blank line before the record heading (224); order still ascends 221 < 224 < 233 (`### Agent Paths`). Record matches: four rows, every Platform cell names Claude Code 2.1.308 (`claude --version`) and desktop app session, rows 1-3 `verified 2026-10-22`, row 4 `unverified 2026-10-22` with `-p` not run, the four Sources in order, row 2 file:// screenshot refused and http://127.0.0.1 render, row 3 type listed with a `type_url` and nothing published.
 
 ---
 
@@ -106,9 +104,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Step 2: mapping cell `An artifact, or the preview pane`; notes cell ends with `No renderer: write a structural description of each draft and say the drafts were not rendered.`; the word `verified` does not appear in the row.
 - Step 3 prints nothing: the row did not change across the spec's commits (no observation contradicted it).
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: count 1; row maps to `An artifact, or the preview pane`, ends with the no-renderer clause, contains no `verified`; the 21833ba..5da0b61 diff grep printed nothing.
 
 ---
 
@@ -163,9 +159,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Both Platform cells read `Cursor, docs read 2026-10-22 (no run)`: no version is claimed. Both Status cells read `unverified 2026-10-22 (pending UAT)`.
 - Observed cells report what the pages document (`@browser`, `browser_navigate`, an origin allowlist with `http://localhost:3000`, the settings "Enable Browser Automation Features" and "Browser Origin Allowlist") and end in "not documented" for rendering a local HTML file. `cursor-ide-browser` appears only as a tool the docs do not mention.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: two rows, both Platform `Cursor, docs read 2026-10-22 (no run)` and Status `unverified 2026-10-22 (pending UAT)`, Sources .../tools/browser and .../tools/canvas; lines ascend 155 < 158 < 165; Observed names `@browser`, `browser_navigate`, `http://localhost:3000` and both settings, and `cursor-ide-browser` only as undocumented. Wording note: the Browser row's Observed ends "no rendering of a local HTML file are documented", not the literal "not documented" (same meaning; text unchanged since 5da0b61).
 
 ---
 
@@ -188,9 +182,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Codex: the mapping cell begins exactly ``CLI: `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/`.`` followed by ` Desktop: the app's docs say it opens workspace files and has a browser, and do not document rendering an HTML draft; write the same files.`
 - OpenClaw: `` `Write({ path: ".writ/prototypes/<date>-<slug>/<draft>.html" })` ``, one self-contained HTML file per draft. Step 2 prints `0`: the row is unchanged.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: count 1 for cursor, codex, openclaw; each row ends with the no-renderer clause and has no `verified` or `cursor-ide-browser`; Cursor names the folder, the allowlist and no canvas tool; Codex mapping cell matches the CLI and Desktop clauses exactly; OpenClaw row as expected and step 2 printed `0`.
 
 ---
 
@@ -214,9 +206,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - OpenClaw: one row. Platform `OpenClaw, docs read 2026-10-22 (no deployment)`, Source `https://docs.openclaw.ai/tools`, Observed names `read`, `write`, `edit`, `apply_patch` and `message(action=send, media=<path>)`, Status `unverified 2026-10-22 (no deployment)`. The record precedes `## Detailed Mappings`.
 - Step 4: `0` for every file. "not documented" never fills a Source cell; it appears only inside Observed text.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: Codex two rows and OpenClaw one row match the plan (Platform, Source, Observed, Status cells); record before `### Writ agents ↔ Codex TOML` (152 < 159) and before `## Detailed Mappings` (22 < 30); `| not documented |` count 0 in all four adapters.
 
 ---
 
@@ -309,9 +299,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Step 2: PASSED for `test_verification_records[cursor]`, `[claude-code]`, `[codex]`, `[openclaw]`; `test_check_record_rejects_bad_cells[source-not-documented]`, `[status-without-date]`, `[status-with-version]`; `test_uat_protocol[Cursor]`, `[Codex Desktop]`; `test_prototype_render_table_reconciled`; `test_issue_verification_note`. No FAILED line.
 - Step 3: `1` for each of the four files: one dated record per adapter tool-table section.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: step 1 `48 passed` on CPython 3.9.6; step 2 all 11 named tests PASSED, no FAILED; step 3 `1` for each of the four adapters.
 
 ---
 
@@ -335,9 +323,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Step 3: `1 failed` and `AssertionError: adapters/cursor.md: verification record has no data row`.
 - Every message names the adapter and the failing cell. `reset` prints nothing after each step.
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: each mutation gave `1 failed` with the exact message: Status 'unverified (pending UAT)' does not match the status grammar / Source 'not documented' does not start with https:// / verification record has no data row, each prefixed `adapters/cursor.md:`; `reset` printed nothing after each step.
 
 ---
 
@@ -362,9 +348,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Step 3: `0`.
 - Step 4: three titles, DEV-001 through DEV-003; none names `prototype.md` or Step 2.5. (Business Rule 7 did not fire: the Claude Code record shows the Claude Design type listable from a command run, so the first row stands.)
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: step 1 empty diff; step 2 three-row table in order (Native artboard/design surface, `canvas-preview` (the adapter maps it), Neither) then the line ending "Never degrade silently."; step 3 `0`; step 4 DEV-001..DEV-003, none names prototype.md or Step 2.5.
 
 ---
 
@@ -388,8 +372,6 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 - Step 3: `3 passed` (`test_issue_resolution[...]` and `test_issue_verification_note`).
 - After Scenario 7 or 8 flips a record, this note and `test_issue_verification_note` must change with it (see their Follow-on lines).
 
-**Status:** [ ] Pass  [ ] Fail
-
-**Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `## Resolution` (line 44) is the last `##`, `### Verification` once at 58; note names the spec and Phase 14 lane, four adapter lines with the expected statuses and protocol pointers, closing line says Step 2.5 unchanged; step 3 `3 passed`.
 
 ---

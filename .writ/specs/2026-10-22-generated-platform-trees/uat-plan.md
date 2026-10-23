@@ -77,7 +77,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 2: `cursor/writ.mdc` lists `` `Task` `AskQuestion` `codebase_search` `file_search` `todo_write` `read_file` `run_terminal_cmd` `list_dir` `canvas-preview` `PlanMode` `` (the helper strips blanks; the row reads `Plan Mode`). `claude-code/CLAUDE.md` is the same with `` `Task({readonly:true})` `` second (a variant sub-row, not an eleventh name). `codex/AGENTS.md.template` lists `read_file`, `run_terminal_cmd`, `list_dir`, `todo_write` in that order after `file_search` (the Codex table's order). No file lists `readonly`, `EnterPlanMode`, `Grep`, or `Glob` in its first column.
 - Step 3: `11 passed, 89 deselected …` — the golden ten-name set, nine name normalizations (`Task({ prompt })` → `Task`; `canvas-preview` and `Plan Mode` kept whole), and `EnterPlanMode` in the vendor-only set with `Read`, `Write`, `Bash` allowlisted.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `coverage` prints `pass` with five zeros, exit 0; maps list 10 Cursor names, 11 Claude Code names with `Task({readonly:true})` second, Codex order `read_file` `run_terminal_cmd` `list_dir` `todo_write`; no `readonly`/`EnterPlanMode`/`Grep`/`Glob` rows; `11 passed, 89 deselected`.
 
 ---
 ### Scenario 2: The parity repairs, the four `Plan Mode` rows, the three command sentences, and the Plan Mode issue's Resolution are on disk
@@ -98,7 +98,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 2: exactly one line per file. `create-spec.md:246` begins "After the context scan, run discovery in Plan Mode, entered through the adapter's `Plan Mode` row; the user controls when to switch back."; `plan-product.md:178` and `new-command.md:45` each contain "through the adapter's `Plan Mode` row".
 - Step 3: `> **spec_ref:** .writ/specs/2026-10-22-generated-platform-trees/spec.md` and a `## Resolution` heading; `10 passed, 90 deselected …`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: adapter line numbers moved after the plugin-distribution merge (`cursor.md:156`, `claude-code.md:222`, `codex.md:150`, `file_search` at `codex.md:144`; openclaw 18 and 20 unchanged). Row text matches and each `Plan Mode` row is the last in its table; one sentence each at `create-spec.md:246`, `plan-product.md:178`, `new-command.md:45`; issue has `spec_ref` and `## Resolution`; `10 passed, 90 deselected`.
 
 ---
 ### Scenario 3: An adapter without its tool-table heading is `unverifiable`, exit 0, and nothing is written
@@ -117,7 +117,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Write mode: the same verdict and reason, `gen-platform-trees: unverifiable (0 written, 1 reasons)`, `exit 0`.
 - `git status --short` prints only ` M adapters/codex.md`: no generated file changed. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `--check` and write both print `unverifiable` with the section reason, exit 0, write `(0 written, 1 reasons)`; status shows only ` M adapters/codex.md`; `reset` clean.
 
 ---
 ### Scenario 4: A header-only table and a row with the wrong cell count each fail closed, naming the file and line
@@ -139,7 +139,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 3: `5 passed, 95 deselected …` (wrong cell count, empty first cell, header-only, missing heading, parity gap on fixtures).
 - `reset` prints nothing after steps 1 and 2.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: the bad row is line 144, not 142. Header-only table gives `reason: empty adapters/codex.md`, exit 1 in both modes, `(0 written, 1 reasons)`; bad row gives `malformed adapters/codex.md:144`, exit 1 in both modes; status only ` M adapters/codex.md`; `5 passed, 95 deselected`.
 
 ---
 ### Scenario 5: A neutral name missing from one adapter is `unmapped`, and `--check` also reports the map it would change
@@ -158,7 +158,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - `--check`: the same reason plus `reason: stale codex/AGENTS.md.template` (the committed Codex map still has the row a fresh render would drop), summary `(1 stale, 0 missing, 0 orphan, 1 unmapped, 0 vendor)`, `exit 1`.
 - Write mode: `fail`, only the `unmapped` reason, `(0 written, 1 reasons)`; `git status --short` prints only ` M adapters/codex.md`. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `coverage` gives `unmapped file_search in adapters/codex.md` (1 unmapped), exit 1; `--check` adds `stale codex/AGENTS.md.template` (1 stale, 1 unmapped); write mode only the unmapped reason, `(0 written, 1 reasons)`; status only ` M adapters/codex.md`.
 
 ---
 ### Scenario 6: `/create-spec` discovery on Claude Code enters Plan Mode itself through `EnterPlanMode` (live)
@@ -204,7 +204,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 2: only `>` lines, two hunks: `3a4` (the comment line) and `82a84,100` (a blank line, `## Capability Map`, the lead sentence "Commands name capabilities; this table maps them to this platform.", the `Capability | On this platform | When unavailable` header, and the ten Cursor rows); `diff exit 1`. No `<` line: nothing of the source file is missing, which is the Story 2 takeover record (the hand copy was byte-identical to `system-instructions.md`).
 - Step 3: `prime directive byte-equal`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: head shows frontmatter and the generator comment; diff has only `>` lines in hunks `3a4` and `82a84,100` (heading, lead sentence, header, ten rows), `diff exit 1`; `prime directive byte-equal`.
 
 ---
 ### Scenario 8: Each Capability Map follows the rendering rule, with the degradation text only where the adapter carries it
@@ -228,7 +228,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 3: 10 rows (the Codex `Task` row is a single row); `` `Plan Mode` `` maps to "No agent-side mode: run discovery as a read-only conversation and say so; Codex's `/plan` is user-side".
 - Step 4: `6 passed, 94 deselected …`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: Cursor 10 rows with the degradation sentence in both cells for `canvas-preview` and `Plan Mode`; Claude Code 11 rows with the `Task({ readonly: true })` sub-row and `EnterPlanMode` row, ending before `## Agents`; Codex 10 rows with the user-side `/plan` row; `6 passed, 94 deselected`.
 
 ---
 ### Scenario 9: `claude-code/CLAUDE.md` carries the map between the Commands table and `## Agents`, and its own generator still passes
@@ -247,7 +247,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: the file opens with `# Writ` and no generated-file comment (DEV-006: the existing generator keeps its header); the headings are `9:## Commands`, `51:## Capability Map`, `69:## Agents`, `82:## Pipeline`, `90:## Principles`, in that order.
 - Step 2: `pass`, `gen-claude-md: pass (33 commands, 8 agents)`, `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: opens `# Writ` with no generated comment; headings at 9, 51, 69, 82, 90 in plan order; `gen-claude-md: pass (33 commands, 8 agents)`, exit 0.
 
 ---
 ### Scenario 10: Write mode on a clean clone rewrites all nineteen files byte-identically and reports them
@@ -266,7 +266,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: `pass`, `wrote cursor/writ.mdc`, `wrote codex/AGENTS.md.template`; `wrote lines: 19` (those two, eight `claude-code/agents/writ-*.md`, eight `codex/agents/*.toml`, and `wrote claude-code/CLAUDE.md` last); `gen-platform-trees: pass (19 written, 0 reasons)`, `exit 0`.
 - Step 2: nothing between the command and `(end status)`: every regenerated file equals the committed one, so the committed tree is the generator's output. `0`: identity targets write no `commands/` or `skills/` copies.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: write mode reports `186 written`, not 19: the 19 named files in the plan's order, then 167 files from the `claude-code-plugin` and `cursor-plugin` targets, so `claude-code/CLAUDE.md` is no longer the last line. `git status` empty after the write; `0` commands dirs in `cursor/` and `codex/`.
 
 ---
 ### Scenario 11: A sub-generator that exits 2 fails the driver with the exit code, and nothing is written
@@ -285,7 +285,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Write mode: `fail`, the same reason, `gen-platform-trees: fail (0 written, 1 reasons)`, `exit 1`.
 - `git status --short` prints only ` M scripts/gen-claude-agents.py`; `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: `--check` prints a second reason, `gen-claude-agents load SystemExit`, after `gen-claude-agents --check exited 2` (the claude-code-plugin target loads that module, bc7e964). Both modes fail, exit 1; write `(0 written, 1 reasons)`; status only ` M scripts/gen-claude-agents.py`.
 
 ---
 
@@ -307,7 +307,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: line 1 starts `<!-- Writ-managed AGENTS.md fragment: merged between HTML comment markers writ:start and writ:end`; line 2 starts `<!-- generated by scripts/gen-platform-trees.py from .writ/manifest.yaml, skills/*/SKILL.md, and the Codex adapter tool table`; line 6 ends "map tools with the Capability Map below." (no "via `adapters/codex.md`"). The `## ` headings, in order: `Writ on Codex`, `Available Commands`, `Available Agents`, `Available Skills`, `Built-in Codex slash commands vs Writ`, `Capability Map`, `Catalog source`.
 - Step 2: `adapters/: 0`; `12478` (under 16384).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: line 1 merge marker, line 2 generator comment, line 6 ends "map tools with the Capability Map below."; seven `## ` headings in plan order; `adapters/: 0`; 12478 bytes.
 
 ---
 ### Scenario 13: Every manifest command, every agent, and every skill has a row, with `/writ` first under `### Start here`
@@ -326,7 +326,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: `commands 33 agents 9 skills 17` (the agents and skills counts include each table's header row, so 8 agents and 16 skills); the first row under `### Start here` is `` | `/writ` | `.codex/commands/writ.md` | ``.
 - Step 2: nothing but `(loops done)`: all 33 commands (`/create-goal`, `/implement-phase`, `/revert`, and `/writ` among them), all 8 agents (`evaluator-agent` included), and all 16 skills are present with their install paths; `7 passed, 93 deselected …`, which includes the byte-for-byte match of a fresh render against the committed file.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `commands 33 agents 9 skills 17`; first row under `### Start here` is `/writ`; loops print only `(loops done)`; `7 passed, 93 deselected`.
 
 ---
 ### Scenario 14: An `adapters/` mention that would reach the Codex template fails both modes and writes nothing
@@ -345,7 +345,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - `--check`: `fail`, `reason: codex template mentions adapters/`, five zeros, `exit 1`. Write mode: `fail`, the same reason, `(0 written, 1 reasons)`, `exit 1`.
 - `git status --short` prints only ` M adapters/codex.md`: the template was not rewritten with the mention. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: edited row shows `(see adapters/codex.md)`; both modes print `codex template mentions adapters/`, exit 1, write `(0 written, 1 reasons)`; status only ` M adapters/codex.md`.
 
 ---
 
@@ -371,7 +371,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 3: `fail`, `reason: missing claude-code/CLAUDE.md`, `(0 stale, 1 missing, …)`, `exit 1`. `reset` prints nothing.
 - Step 4: `fail`, `reason: orphan claude-code/agents/helper.md` and `reason: gen-claude-md: agent helper.md`, `(0 stale, 0 missing, 1 orphan, …)`, `exit 1`; write mode `fail` with the orphan reason, `(0 written, 1 reasons)` (a stray agent file would otherwise ship with the install). `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: write mode repairs the stale file with `(186 written, 0 reasons)`, not 19, and the step's `sed -n '1p;$p'` shows `pass` and `exit 0` because the summary is the second-to-last line. Clean `--check` passes with five zeros; stale, missing, and orphan reasons and counts match, exit 1; `--check` passes and status is empty after the repair; orphan blocks writes `(0 written, 1 reasons)`.
 
 ---
 ### Scenario 16: A vendor tool name in shipped text is a `vendor` hit with its line; an allowlisted verb and a dotted field are not
@@ -392,7 +392,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 2: two reasons: the `TodoWrite` line and `reason: vendor Grep in skills/tdd-cycle/SKILL.md:122` (call syntax is normalized to its leading identifier, so `Grep("pattern")` is a hit for `Grep`). `reset` prints nothing.
 - Step 3: `15 passed, 85 deselected …`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: `gen --check | sed -n '2p'` prints `reason: stale plugins/writ/commands/status.md`; the vendor reason is on line 4, after a second stale reason for `cursor/plugin/commands/status.md` (the plugin targets copy `commands/`). `coverage` gives `vendor TodoWrite in commands/status.md:500` (1 vendor), exit 1, no reason for `Read` or `message.usage`; write mode fails with the vendor reason; step 2 adds `vendor Grep in skills/tdd-cycle/SKILL.md:122`; `15 passed, 85 deselected`.
 
 ---
 ### Scenario 17: The three vendor hits the first `coverage` run found are rewritten, one line each
@@ -411,7 +411,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: line 54 says "Use `codebase_search` to find relevant files …"; line 70 says "… with `file_search` for existing issues …"; `writ-design.md:137` reads "navigate to each screen with the platform's browser tool and take screenshots …" with no backticked tool name (DEV-009: no neutral name covers browser navigation, so the sentence was reworded).
 - Step 2: no matches, `exit 1`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `create-issue.md:54` names `codebase_search`, `:70` names `file_search`, `writ-design.md:137` reads "navigate to each screen with the platform's browser tool"; grep finds nothing, exit 1.
 
 ---
 ### Scenario 18: The fixture target writes a full `commands/` and `skills/` tree with only the script-root tokens rewritten; identity targets write in place and refuse `--out-dir`
@@ -432,7 +432,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 2: `tokens in source: 69  rewritten: 69  left: 0`; then `0` (every differing line is a token line, so prose is byte-identical); then `0` (the prose mention `` `scripts/phase-state.py validate-challenge` `` in `_preamble.md:46` is unchanged).
 - Step 3: status empty (the in-place tree is untouched by a fixture run); `pass`, `wrote cursor/writ.mdc`, `gen-platform-trees: pass (1 written, 0 reasons)`, `exit 0`, and `cursor/` holds `writ.mdc` only, no `commands`; `--target cursor writes in place; it takes no --out-dir` with `exit 2`; `--target fixture needs --out-dir` with `exit 2`. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: 70 script tokens, not 69 (rewritten 70, left 0); `cursor/` holds the committed `plugin/` beside `writ.mdc` (cursor-plugin target), still no `commands`. Otherwise matches: `50 written`, `commands 34 skills 16`, prose diff `0`, `_preamble.md` `0`, `--target cursor` `(1 written, 0 reasons)` exit 0, both `--out-dir` misuse errors exit 2.
 
 ---
 ### Scenario 19: `eval.sh` turns each `--check` reason into one finding with the regenerate remedy, and treats a broken helper as a run error
@@ -457,7 +457,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 4: `exit 2`; `FAIL (1 finding(s))` and a finding at `` `scripts/gen-platform-trees.py` `` saying `--check exited 2 without a verdict`; `- Run errors: 1`. `reset` prints nothing.
 - Step 5: `All 6 platform-trees check assertions passed.`
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: step 3's report has 3 findings (stale `plugins/writ/` and `cursor/plugin/` copies of `status.md` plus the vendor hit), but the vendor hit is counted once (`1`). Step 1 `PASS` with the pass note; step 2 exit 1, one stale finding with the regenerate remedy; step 4 exit 2, finding at `scripts/gen-platform-trees.py` "--check exited 2 without a verdict", `- Run errors: 1`; step 5 `All 6 platform-trees check assertions passed.`
 
 ---
 ### Scenario 20: The driver is dev-only: denied by `is_shippable_script` in three byte-identical bodies
@@ -474,7 +474,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 **Expected Result:**
 - One line per script (three in all, `unlink.sh` included per DEV-001), each inside `is_shippable_script`'s dev-only case beside `gen-claude-md.py`; `1 passed, 99 deselected …` (the three bodies compare byte-identical, the driver is denied, a shipped script such as `spec-status.py` is allowed). Scenario 21 confirms the installed `scripts/` has no copy.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: one line each at `install.sh:1001`, `update.sh:792`, `unlink.sh:162`, in the dev-only case beside `gen-claude-md.py`; `1 passed, 99 deselected`.
 
 ---
 
@@ -494,7 +494,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 **Expected Result:**
 - `📦 Using local writ: <$W>/clone` (the clone, not a network clone of upstream); `1` (exactly one map heading); the ten Cursor names ending `` `canvas-preview` `PlanMode` ``; `0` (no `gen-*.py` shipped: the driver and its siblings are dev-only); `No such file or directory` (no `adapters/` is installed; the map is what the installed agent reads).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: `ls scripts | grep -c 'gen-'` prints `3` (`gen-claude-agents.py`, `gen-codex-agent-tomls.py`, `gen-skill.sh`), not `0`. A 304d63e install also gives 3, so the expectation was wrong when written; these ship by design (`/refresh-command` runs them), and `gen-platform-trees.py` and `gen-claude-md.py` are absent. Source line names the clone, one map heading, ten Cursor names ending `canvas-preview` `PlanMode`, no `adapters/`.
 
 ---
 ### Scenario 22: A fresh Claude Code install carries the map inside the `CLAUDE.md` Writ block, and its `Plan Mode` row names `EnterPlanMode`
@@ -511,7 +511,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 **Expected Result:**
 - `📦 Using local writ: <$W>/clone`; `1`; the row begins `` | `Plan Mode` | `EnterPlanMode`; present the contract proposal as the plan; after ``; the eleven Claude Code names (with `` `Task({readonly:true})` `` second); `.claude/` holds `agents`, `commands`, `skills`, `system-instructions.md` and no `adapters`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: source line names the clone; one map heading; `Plan Mode` row begins with `EnterPlanMode`; eleven names with `Task({readonly:true})` second; `.claude/` holds `agents`, `commands`, `skills`, `system-instructions.md`, no `adapters`.
 
 ---
 ### Scenario 23: A fresh Codex install carries the map inside the `AGENTS.md` Writ block with no `adapters/` mention, and the install evidence test passes
@@ -530,7 +530,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: `📦 Using local writ: <$W>/clone`; `1`; `adapters/: 0`; the row begins `` | `Plan Mode` | No agent-side mode: run discovery as a read-only conversation and say so; ``; the ten Codex names.
 - Step 2: `All 8 install platform-trees assertions passed.` (three temp projects of its own, installed with `--no-commit`, DEV-010); status empty: the test wrote nothing into the clone.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: source line names the clone; one map heading; `adapters/: 0`; `Plan Mode` row begins "No agent-side mode: run discovery as a read-only conversation and say so;"; ten Codex names; `All 8 install platform-trees assertions passed.`; clone status empty.
 
 ---
 ### Scenario 24: The adapter-mappings issue is resolved on installed-file evidence, and no adapter Installation section sends a user to `adapters/`
@@ -549,7 +549,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 1: `> **spec_ref:** .writ/specs/2026-10-22-generated-platform-trees/spec.md`; the count is at least `4`: the Resolution names the spec, the three install paths (`.cursor/rules/writ.mdc`, the `CLAUDE.md` Writ block, the `AGENTS.md` Writ block), and opens with the date `2026-10-22`.
 - Step 2: `codex: 0` and `claude-code: 0`: neither `## Installation` section tells an installed user to read an adapter file for tool mappings (AC-5.5 held without an edit; Story 5 recorded the audit).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `spec_ref` line present; Resolution count `4`; `codex: 0`, `claude-code: 0`.
 
 ---
 ### Scenario 25: The spec's test file, the bash tests, and the repository quality gate pass on the clone
@@ -570,6 +570,6 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 - Step 2: four `ok` lines, no `FAIL`.
 - Step 3: `exit 0`; `Eval report: .writ/state/eval-<timestamp>.md`; `- Findings: 0` and `- Run errors: 0`; each of the five checks prints `PASS` (`prime-directive-sync` passes by construction now that `cursor/writ.mdc` is generated from `system-instructions.md`). Non-blocking leanness WARNINGs pre-date this spec and are not findings. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: `100 passed`; four `ok` lines; `eval.sh` exit 0, `- Findings: 0`, `- Run errors: 0`; platform-trees, prime-directive-sync, claude-md, claude-agents, codex-tomls all `PASS`; `reset` clean.
 
 ---

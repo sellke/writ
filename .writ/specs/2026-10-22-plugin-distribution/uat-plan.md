@@ -84,7 +84,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 3: `7` upstream-change bullets, each naming the row re-read (V26, V05, V25, V38, V37, V36, V48). Two decision headings: line 205 `Layout B` and line 265 `carrier 2, the forced output style`.
 - Step 4: `7 passed, 108 deselected …`. These tests check the header, the status grammar, `https://` sources, unique IDs, that every `Rests on:` line cites verified rows only, the live and Cursor rows, and the path inventory.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: 77 verified / 3 unverified / 5 pending-UAT (85 rows); unverified V66 V73-V79; 7 upstream bullets (V26 V05 V25 V38 V37 V36 V48); decisions at lines 205 and 265; 7 passed, 108 deselected
 
 ---
 
@@ -113,7 +113,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 
 **Implementation Reference:** Story 2 — `plugins/writ/output-styles/writ.md` (`force-for-plugin: true`, `keep-coding-instructions: true`, body = `system-instructions.md`).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [ ] Pass  [ ] Fail — **Notes:** blocked: agent run 2026-10-23 at 0b033a3: nested `claude -p` cannot authenticate ("OAuth session expired and could not be refreshed"; `claude auth status` loggedIn false), so the step 2 and step 4 replies were not observed; rerun those two steps in a logged-in shell. Steps 1, 3, 5 ran: snap 0/0; add and install lines as expected; ipath `local 0.43.0 $W/writ/plugins/writ <cache>/writ/writ/0.43.0`; undo exit 0, both registries same as snapshot, settings.json OK. Supplementary: `--debug` log with the plugin installed shows "Using forced plugin output style: writ:writ", after undo none. plan drift: `--tools` is variadic and swallows "$P2", so steps 2 and 4 as written print "Input must be provided…"; the prompt must come before `--tools ""`.
 
 ---
 
@@ -147,7 +147,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 7: as Scenario 2 step 5.
 - **Record edit on pass:** in `technical-spec.md` § Verification Record, set V73's Observed to the step 2 add and install lines, the cache path, and the step 3 summary line, and set its Status to `verified <run date>`. In `adapters/claude-code.md` § Installation → Plugin → Install, replace the sentence "The install from `sellke/writ` itself has not run yet: …" with the run date, the Claude Code version, and the cache observation, keeping the loading.md URL. If `claude --version` is not 2.1.309, `TestStory1Record::test_live_rows_name_the_version_and_the_observation` fails, because it pins every live row's Platform to `Claude Code 2.1.309`. Update that pin in the same commit.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [ ] Pass  [ ] Fail — **Notes:** blocked: phase not merged
 
 ---
 
@@ -173,7 +173,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 4: `0` (no dev-only script ships), then `carrier-body-equal`.
 - Step 5: `fail`, five `reason: stale …` lines (`cursor/writ.mdc`, `plugins/writ/output-styles/writ.md`, `plugins/writ/system-instructions.md`, `cursor/plugin/rules/writ.mdc`, `cursor/plugin/system-instructions.md`), `gen-platform-trees: fail (5 stale, 0 missing, 0 orphan, 0 unmapped, 0 vendor)`, `exit 1`. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: `validate plugins/writ` also prints one plugin-directory warning (ICON_MISSING, "do not change the result") besides the eight no-frontmatter `agents/` warnings (DEV-009). Otherwise as expected: "Validation passed with warnings" / "Validation passed"; gen --check pass 0/0/0/0/0 exit 0; 0 bare, 98 namespaced, `4 bash scripts/eval.sh` + `1 bash scripts/gen-skill.sh`; 0 dev-only scripts, carrier-body-equal; after the edit fail with the five named stale files, exit 1; reset printed nothing
 
 ---
 
@@ -253,7 +253,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 5: usage on stderr, `exit 2`.
 - Step 6: line 22 in each file. The source and Cursor copies read `python3 scripts/scaffold-writ.py scaffold`; the Claude plugin copy reads `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-writ.py scaffold`. Then `0`, and `### Step 0: Scaffold .writ/` sits directly above `### Detection Logic`. Scenarios 3 and 9 show Step 0 running live, and Scenario 10 covers the installers' matching bash list.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: step 6 finds the Step 0 line at line 21 in `commands/initialize.md` (also 21 at b2d9ea7) and line 22 in the plugin and Cursor copies, not 22 in all three. Otherwise as expected: --check fail (13 missing, DEV-012) exit 1, dir empty; scaffold 11 created + two .gitignore entries (DEV-011) exit 0; rerun 0 created / 11 existing, .gitignore: OK, only file; pre-seeded `.writ/state` kept once, only `.writ-lanes-*/` added; no args usage exit 2; plugin copy uses `${CLAUDE_PLUGIN_ROOT}`; 0 "exists from installation"; Step 0 (19) directly above Detection Logic (27)
 
 ---
 
@@ -281,7 +281,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 4: two Consequences bullets record DEV-005 and DEV-006 as follow-ups.
 - Judge: the decision matches what Scenarios 3 and 9 show, with the plugin command naming the plugin's own script path.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: plan drift: ADR-029 "Superseded in part by" is at line 5 (also 5 at b2d9ea7), not line 4; step 4 also matches a References line (144) besides the two Consequences bullets. Otherwise as expected: ADR-031 Date 2026-10-23, Accepted, supersedes ADR-029 scripts/ bullet; sections and Options A-D (A chosen) as listed; issue spec_ref line 7, Resolution line 42 stating the three points; DEV-005 and DEV-006 Consequences bullets at 110-111. Judge: plugin `initialize.md` names `${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-writ.py` (Scenario 6); the live Step 0 call in Scenarios 3 and 9 was not observed
 
 ---
 
@@ -315,7 +315,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 
 **Implementation Reference:** Story 5 — `scripts/tests/test_plugin_smoke.sh`, `scripts/tests/fixtures/plugin-smoke-results.txt`, `test_readme_install_order` in `scripts/tests/test_plugin_distribution.py`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3 (steps 1 and 7 outside the sandbox): smoke exit 0, 33 lines, summaries cursor/claude/codex/claude-plugin pass and cursor-plugin unverifiable via `script-run unverifiable (no cursor session)` (DEV-021), 8 self-tests; fixture-matches, run date 2026-10-23, claude 2.1.309, cursor-uat pending; README order as listed, 1 "listing pending"; 1 passed, 114 deselected; unverifiable fixture gives the expected AssertionError; `cursor-plugin fail` still 1 passed (known limitation DEV-022); --record exit 0 with no diff lines; every reset clean
 
 ---
 
@@ -342,7 +342,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 5: `📦 Using local writ: $W/writ`. The menu offers both `/create-spec` (project) and `/writ:create-spec` (plugin), and `/agents` lists both `writ-coder` and `writ:writ-coder`. `adapters/claude-code.md` § Installation → Plugin documents this and recommends one install path per project.
 - Step 6: as Scenario 2 step 5.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [ ] Pass  [ ] Fail — **Notes:** blocked: agent run 2026-10-23 at 0b033a3: step 4 (interactive `/writ:initialize` and `/writ:writ`) not run, because nested `claude` cannot authenticate (OAuth session expired) and the agent has no TTY; rerun step 4 and the step 5 menu read in a logged-in terminal. Ran: snap 0/0; add and install lines as expected, ipath `local 0.43.0 $W/writ/plugins/writ`, `ls: scripts: No such file or directory`; step 3 the eight `writ:writ-*` agents and `49 []` (DEV-009); step 5 install.sh exit 0 with `Using local writ: $W/writ`, and the stream-json init event (in place of the menu and `/agents`) lists `create-spec` and `writ:create-spec`, `writ-coder` and `writ:writ-coder`; adapter bullet says "Use one install path per project"; undo exit 0, both registries same as snapshot, settings.json OK
 
 ---
 
@@ -362,7 +362,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 1: `158 passed in …s`. A failure names the AC in its test's docstring.
 - Step 2: `11 passed, 32 deselected …`. The `mkdir -p` lists in `install.sh` and `update.sh` expand to the script's eleven paths, and the bash function writes the same `.gitignore` bytes as the script on each fixture (no Python enters the installers).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: Python 3.9 via uv, pytest alone in the clone: `158 passed in 24.25s`; `11 passed, 32 deselected in 0.38s`
 
 ---
 
@@ -380,4 +380,4 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 **Expected Result:**
 - `claude-plugin commands pass`, `claude-plugin script-run pass`, `claude-plugin instructions pass`, `claude-plugin scaffold pass`, `claude-plugin validate unverifiable (no claude CLI)`, `claude-plugin validate-marketplace unverifiable (no claude CLI)`, `claude-plugin unverifiable`, then `exit 0`. A recorded run like this would keep the Claude plugin out of first place in the README (Scenario 8 step 5).
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3 (outside the sandbox): with PATH=/usr/bin:/bin, commands/script-run/instructions/scaffold pass, `validate unverifiable (no claude CLI)`, `validate-marketplace unverifiable (no claude CLI)`, `claude-plugin unverifiable`, exit 0
