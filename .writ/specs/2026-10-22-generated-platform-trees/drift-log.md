@@ -69,3 +69,20 @@
 - **Reason:** Rule 12's own carve-out ("Existing generators keep their own comments"); the technical spec is the more specific statement. Story 5's install evidence asserts the map, not a comment.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md → Business Rules, the regenerate line says which files carry the comment.
+
+---
+
+## Story 3: Generated Codex Template — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-007] Render-time guards beyond the spec's shadow paths
+- **Severity:** Small
+- **Spec said:** Rule 8 and AC-3.2 state "no `adapters/` mention" and "under 16 KiB" as properties of the output enforced by `test_codex_template`; technical-spec.md → Shadow Paths lists only the nil, empty, and upstream cases.
+- **Implementation did:** `render_codex_template` raises `ValueError("codex template mentions adapters/")` and `ValueError("codex template <n> bytes exceeds 16384")` so write mode prints `fail` and writes nothing; a missing `skills/` directory is `unverifiable`, `reason: missing skills`. Pinned by `test_codex_template_fails_closed`, `test_codex_template_size_guard`, `test_read_errors_name_the_missing_file`.
+- **Reason:** The constraints are enforced at the source instead of only in the test; no interface or data-shape change.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Implementation Approach, the generated-files line names the two guards.

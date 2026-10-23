@@ -9,9 +9,9 @@
 Dev-only (it reads adapters/*.md and .writ/manifest.yaml, which installed
 projects do not have); never hand-edit a generated file. Story 1 ships the
 adapter tool-table parser and the vocabulary rule; Story 2 the capability
-map, `cursor/writ.mdc`, and write mode. `--check`, `coverage`, and
-`--target` print `unverifiable` with one `reason: not-implemented <mode>`
-line until Story 4 adds them.
+map, `cursor/writ.mdc`, and write mode; Story 3 `codex/AGENTS.md.template`.
+`--check`, `coverage`, and `--target` print `unverifiable` with one
+`reason: not-implemented <mode>` line until Story 4 adds them.
 
 Check shape: line 1 `pass`/`fail`/`unverifiable`, `reason: <kind> <detail>`
 lines, `wrote <path>` lines in write mode, then `gen-platform-trees:
@@ -50,6 +50,26 @@ with only its leading frontmatter block removed + a blank line + the Cursor
 map; its `## Prime Directive` section is therefore byte-equal to the
 source's (eval.sh check_prime_directive_sync).
 
+`codex/AGENTS.md.template` (spec.md -> Rule 8) = the merge-marker line that
+install.sh merge_agents_md and update.sh rely on (CODEX_MARKER, byte-identical
+to the hand-maintained file's line 1), the generated-file comment, then one
+`## ` section per AC-3.2 in order: `## Writ on Codex`; `## Available
+Commands`, one `### <label>` table per manifest category that has commands,
+categories and rows in manifest order, purposes verbatim, path
+`.codex/commands/<name>.md`; `## Available Agents` (`.codex/agents/<name>.toml`);
+`## Available Skills`, every skills/*/SKILL.md with its frontmatter
+description and path `.agents/skills/<name>/SKILL.md`; the built-ins
+paragraph (CODEX_BUILTINS, a literal); the Codex map; `## Catalog source`.
+Sections are separated by one blank line. The manifest is read line by line
+(`read_manifest`, after gen-claude-md.py's reader; no YAML library on the 3.9
+floor). `render_codex_template` raises ValueError, which write mode reports
+as `fail`, when a manifest section or an entry's name, label, category, or
+purpose is missing, a command's category is undeclared, a SKILL.md has no
+description, the render reaches CODEX_TEMPLATE_CAP bytes (Codex may truncate
+a long AGENTS.md), or the text mentions `adapters/` (an installed project has
+none); a missing manifest or skills/ directory is `unverifiable`, `missing
+<path>`.
+
 Parser (technical-spec.md -> ## Adapter Table Grammar). Each adapter has one
 tool table: the first contiguous block of `|` lines under its HEADINGS
 chain, each heading searched inside the previous one. A section ends at the
@@ -74,6 +94,7 @@ ALLOWLIST.
 from __future__ import annotations
 
 import argparse
+import errno
 import os
 import re
 import subprocess
@@ -364,9 +385,201 @@ def render_writ_mdc(root: Path) -> str:
     return WRIT_MDC_FRONTMATTER + comment + body + "\n" + capability_map("cursor", root)
 
 
+# ---------------------------------------------------------------------------
+# codex/AGENTS.md.template
+# ---------------------------------------------------------------------------
+
+MANIFEST_REL = ".writ/manifest.yaml"
+SKILLS_DIR = "skills"
+# Byte cap on the rendered template (spec.md -> Rule 8). Codex's AGENTS.md
+# budget is 32 KiB; the cap is tighter on purpose.
+CODEX_TEMPLATE_CAP = 16384
+# Line 1 of the template. install.sh merge_agents_md and update.sh merge the
+# file between the writ:start/writ:end markers and this line names the file
+# as the source of truth; it stays byte-identical to the hand-maintained
+# file's line 1. Line 2, the generated-file comment, says to regenerate.
+CODEX_MARKER = (
+    "<!-- Writ-managed AGENTS.md fragment: merged between HTML comment markers "
+    "writ:start and writ:end by install/update scripts. Source of truth: "
+    "codex/AGENTS.md.template in the Writ repository (edit there, not by hand in "
+    "downstream AGENTS.md). -->")
+# Rule 12 `<sources>`. The Codex adapter is named without its path: the
+# generated file must not mention adapters/, which an installed project
+# does not have (AC-3.2, AC-5.2).
+CODEX_SOURCES = ".writ/manifest.yaml, skills/*/SKILL.md, and the Codex adapter tool table"
+CODEX_INTRO = (
+    "Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows, "
+    "`.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format "
+    "capabilities. Read bundled `system-instructions.md` for Writ identity; map tools "
+    "with the Capability Map below.")
+# The hand-maintained file's paragraph, verbatim (story 3 Notes -> Built-ins literal).
+CODEX_BUILTINS = (
+    "Codex built-ins include `/plan`, `/review`, `/status`, `/init`, `/agent`, `/fork`, "
+    "`/side`, and more ([official list](https://developers.openai.com/codex/cli/slash-commands)). "
+    "Writ keeps its own `/plan`-style command files under `.codex/commands/` and does **not** "
+    "rename them. Bare `/status` or `/review` in the Codex UI runs Codex's built-in. To execute "
+    "**Writ's** `/status` or `/review` workflows, ask explicitly to load and follow the Markdown "
+    "in `.codex/commands/status.md` or `.codex/commands/review.md`.")
+CODEX_CATALOG_SOURCE = (
+    "Command and agent metadata also lives in `.writ/manifest.yaml` (upstream Writ repo). "
+    "Regenerate root `SKILL.md` with `scripts/gen-skill.sh` when extending the manifest.")
+COMMAND_TABLE = ("| Command | File | Purpose |", "|---------|------|---------|")
+AGENT_TABLE = ("| Agent | TOML | Purpose |", "|-------|------|---------|")
+SKILL_TABLE = ("| Skill | File | Description |", "|-------|------|-------------|")
+
+
+class Manifest(NamedTuple):
+    categories: List[Tuple[str, str]]     # (id, label), manifest order
+    commands: List[Tuple[str, str, str]]  # (name, category id, purpose), manifest order
+    agents: List[Tuple[str, str]]         # (name, purpose), manifest order
+
+
+def parse_value(raw: str) -> Optional[str]:
+    """A one-line YAML scalar, quoted or bare (gen-claude-md.py's reader).
+    None for a broken quote."""
+    raw = raw.strip()
+    if raw.startswith('"'):
+        m = re.match(r'"((?:[^"\\]|\\.)*)"\s*(#.*)?\Z', raw)
+        return re.sub(r'\\(["\\])', r"\1", m.group(1)) if m else None
+    if raw.startswith("'"):
+        m = re.match(r"'((?:[^']|'')*)'\s*(#.*)?\Z", raw)
+        return m.group(1).replace("''", "'") if m else None
+    return re.sub(r"\s+#.*\Z", "", raw).strip()
+
+
+def manifest_entries(lines: List[str], key: str, head: str) -> List[Dict[str, Optional[str]]]:
+    """Entries of the manifest's top-level `<key>:` list: each starts with
+    `  - <head>:` and continues with `    <field>:` lines; the list ends at
+    the next unindented, non-comment line. ValueError `manifest no <key>
+    section` when the key is absent, `manifest no <key>` when it is empty."""
+    start = next((i for i, line in enumerate(lines)
+                  if re.match(r"%s:\s*(#.*)?\Z" % re.escape(key), line)), None)
+    if start is None:
+        raise ValueError("manifest no %s section" % key)
+    entries = []  # type: List[Dict[str, Optional[str]]]
+    for line in lines[start + 1:]:
+        if line.strip() and not line[0].isspace() and not line.startswith("#"):
+            break
+        match = re.match(r"  - %s:(.*)\Z" % re.escape(head), line)
+        if match:
+            entries.append({head: parse_value(match.group(1))})
+            continue
+        match = re.match(r"    ([A-Za-z_][\w-]*):(.*)\Z", line)
+        if match and entries:
+            entries[-1].setdefault(match.group(1), parse_value(match.group(2)))
+    if not entries:
+        raise ValueError("manifest no %s" % key)
+    return entries
+
+
+def read_manifest(root: Path) -> Manifest:
+    """Categories, commands, and agents of root/.writ/manifest.yaml, in
+    manifest order, purposes verbatim. ValueError `manifest <detail>` for a
+    missing section, a category without its id or label, a command or agent
+    without its name or purpose, a command without a category or with one no
+    `categories:` entry declares, or a duplicate command. A missing file is
+    the OSError write mode reports as `missing .writ/manifest.yaml`."""
+    lines = (Path(root) / MANIFEST_REL).read_text(encoding="utf-8").splitlines()
+    categories = []  # type: List[Tuple[str, str]]
+    for entry in manifest_entries(lines, "categories", "id"):
+        if not entry.get("id"):
+            raise ValueError("manifest category missing id")
+        if not entry.get("label"):
+            raise ValueError("manifest category %s missing label" % entry["id"])
+        categories.append((entry["id"] or "", entry["label"] or ""))
+    ids = {cid for cid, _ in categories}
+    commands = []  # type: List[Tuple[str, str, str]]
+    for entry in manifest_entries(lines, "commands", "name"):
+        name = entry.get("name")
+        if not name:
+            raise ValueError("manifest command missing name")
+        for field in ("category", "purpose"):
+            if not entry.get(field):
+                raise ValueError("manifest %s missing %s" % (name, field))
+        if entry["category"] not in ids:
+            raise ValueError("manifest %s category %s" % (name, entry["category"]))
+        if any(name == seen for seen, _, _ in commands):
+            raise ValueError("manifest duplicate %s" % name)
+        commands.append((name, entry["category"] or "", entry["purpose"] or ""))
+    agents = []  # type: List[Tuple[str, str]]
+    for entry in manifest_entries(lines, "agents", "name"):
+        name = entry.get("name")
+        if not name:
+            raise ValueError("manifest agent missing name")
+        if not entry.get("purpose"):
+            raise ValueError("manifest %s missing purpose" % name)
+        agents.append((name, entry["purpose"] or ""))
+    return Manifest(categories, commands, agents)
+
+
+def read_skills(root: Path) -> List[Tuple[str, str]]:
+    """(directory name, frontmatter `description:`) per root/skills/*/SKILL.md,
+    sorted by directory name. ValueError `skill <name> missing description`
+    when the value is absent or empty; a missing skills/ directory is the
+    OSError write mode reports as `missing skills`."""
+    folder = Path(root) / SKILLS_DIR
+    if not folder.is_dir():
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(folder))
+    skills = []  # type: List[Tuple[str, str]]
+    for path in sorted(folder.glob("*/SKILL.md"), key=lambda p: p.parent.name):
+        text = path.read_text(encoding="utf-8")
+        end = text.find("\n---\n", 4) if text.startswith("---\n") else -1
+        match = re.search(r"^description:(.*)$", text[4:end], re.M) if end > 0 else None
+        description = parse_value(match.group(1)) if match else None
+        if not description:
+            raise ValueError("skill %s missing description" % path.parent.name)
+        skills.append((path.parent.name, description))
+    return skills
+
+
+def escape_cell(text: str) -> str:
+    """A table cell: `|` escaped as `\\|`."""
+    return text.replace("|", "\\|")
+
+
+def render_codex_template(root: Path) -> str:
+    """`codex/AGENTS.md.template` (module docstring -> codex/AGENTS.md.template).
+    Writes nothing. ValueError `codex template <n> bytes exceeds <cap>` when
+    the UTF-8 encoding reaches CODEX_TEMPLATE_CAP, `codex template mentions
+    adapters/` when any source put that path into the text."""
+    root = Path(root)
+    manifest = read_manifest(root)
+    skills = read_skills(root)
+    codex_map = capability_map("codex", root)
+    blocks = [
+        CODEX_MARKER + "\n" + (COMMENT % CODEX_SOURCES).rstrip("\n"),
+        "## Writ on Codex\n\n" + CODEX_INTRO,
+        "## Available Commands",
+    ]
+    for cid, label in manifest.categories:
+        rows = ["| `/%s` | `.codex/commands/%s.md` | %s |" % (name, name, escape_cell(purpose))
+                for name, category, purpose in manifest.commands if category == cid]
+        if rows:
+            blocks.append("\n".join(["### " + label, ""] + list(COMMAND_TABLE) + rows))
+    blocks.append("\n".join(["## Available Agents", ""] + list(AGENT_TABLE) + [
+        "| %s | `.codex/agents/%s.toml` | %s |" % (name, name, escape_cell(purpose))
+        for name, purpose in manifest.agents]))
+    blocks.append("\n".join(["## Available Skills", ""] + list(SKILL_TABLE) + [
+        "| `%s` | `.agents/skills/%s/SKILL.md` | %s |" % (name, name, escape_cell(description))
+        for name, description in skills]))
+    blocks.append("## Built-in Codex slash commands vs Writ\n\n" + CODEX_BUILTINS)
+    blocks.append(codex_map.rstrip("\n"))
+    blocks.append("## Catalog source\n\n" + CODEX_CATALOG_SOURCE)
+    text = "\n\n".join(blocks) + "\n"
+    size = len(text.encode("utf-8"))
+    if size >= CODEX_TEMPLATE_CAP:
+        raise ValueError("codex template %d bytes exceeds %d" % (size, CODEX_TEMPLATE_CAP))
+    if "adapters/" in text:
+        raise ValueError("codex template mentions adapters/")
+    return text
+
+
 # (relative path, renderer taking the tree root) per file the driver writes
-# itself, in write order. Story 3 appends codex/AGENTS.md.template.
-GENERATED = [("cursor/writ.mdc", render_writ_mdc)]  # type: List[Tuple[str, Callable[[Path], str]]]
+# itself, in write order.
+GENERATED = [
+    ("cursor/writ.mdc", render_writ_mdc),
+    ("codex/AGENTS.md.template", render_codex_template),
+]  # type: List[Tuple[str, Callable[[Path], str]]]
 
 
 def write_file(out: Path, text: str) -> Optional[str]:

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T04:54:26Z
+> Last Updated: 2026-10-23T05:32:50Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-generated-platform-trees — Generated Platform Trees
-- **Status:** In Progress (2/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
-- **Story:** 2 of 5 — Driver Write Mode for the Cursor and Claude Code Root Files (Completed ✅)
-- **Progress:** 14/33 tasks complete (42%)
+- **Status:** In Progress (3/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
+- **Story:** 3 of 5 — Generated Codex Template (Completed ✅)
+- **Progress:** 21/33 tasks complete (64%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-007 Render-time guards beyond the spec's shadow paths — generated-platform-trees (Story 3, auto-amended; spec-lite generated-files line names the guards)
 - DEV-006 `claude-code/CLAUDE.md` carries no generated-file comment — generated-platform-trees (Story 2, auto-amended; spec-lite regenerate line says which files carry the comment)
 - DEV-005 Sub-generator output-state kinds do not block write mode — generated-platform-trees (Story 2, auto-amended; spec-lite Business Rules check-shape line gains the clause)
-- DEV-004 Driver summary line in write mode is `(<n> written, <r> reasons)` — generated-platform-trees (Story 2, auto-amended; spec-lite check-shape line names the write-mode summary)
 
 ## Open Issues
 
