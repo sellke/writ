@@ -9,19 +9,72 @@
 Dev-only (it reads adapters/*.md and .writ/manifest.yaml, which installed
 projects do not have); never hand-edit a generated file. Story 1 ships the
 adapter tool-table parser and the vocabulary rule; Story 2 the capability
-map, `cursor/writ.mdc`, and write mode; Story 3 `codex/AGENTS.md.template`.
-`--check`, `coverage`, and `--target` print `unverifiable` with one
-`reason: not-implemented <mode>` line until Story 4 adds them.
+map, `cursor/writ.mdc`, and write mode; Story 3 `codex/AGENTS.md.template`;
+Story 4 `--check`, `coverage`, the vendor scan, and the targets.
 
 Check shape: line 1 `pass`/`fail`/`unverifiable`, `reason: <kind> <detail>`
-lines, `wrote <path>` lines in write mode, then `gen-platform-trees:
-<verdict> (<n> written, <r> reasons)` (Story 4 adds the per-kind counts).
-Exit 0 pass or unverifiable, 1 fail, 2 usage. Nothing is written when any
-reason exists.
+lines, `wrote <path>` lines in write mode, then the summary: write mode and
+a target print `gen-platform-trees: <verdict> (<n> written, <r> reasons)`;
+`--check` and `coverage` print `gen-platform-trees: <verdict> (<s> stale,
+<m> missing, <o> orphan, <u> unmapped, <v> vendor)`, counting own and folded
+reasons by kind (a folded reason's kind is the token after `<gen>: `) and 0
+for a kind the mode does not check. Exit 0 pass or unverifiable, 1 fail, 2
+usage. Nothing is written when any reason exists.
+
+`--check` (spec.md -> Rule 1, AC-4.1), in order, writing nothing: the four
+adapters and `unmapped`, as in coverage; when every table parsed, each
+GENERATED file is rendered in memory and compared byte for byte with disk
+(`stale <path>` when they differ, `missing <path>` when there is no file; a
+source OSError is `unverifiable`, `missing <source path>`; a ValueError is
+`fail` with its text), then each sub-generator's `--check` runs: an exit of 2
+or more, or no verdict, is `fail`, `<gen> --check exited <rc>`; an
+`unverifiable` verdict makes the run `unverifiable`; the reasons that name
+this driver's own files are translated to its kinds (gen-claude-md `stale
+claude-code/CLAUDE.md` -> `stale claude-code/CLAUDE.md`, `absent
+claude-code/CLAUDE.md` -> `missing claude-code/CLAUDE.md`; gen-claude-agents
+`orphan <stem>` -> `orphan claude-code/agents/<stem>.md`; gen-codex-agent-tomls
+`orphan <stem>` -> `orphan codex/agents/<stem>.toml`) and every other reason
+folds as `<gen>: <kind> <detail>` (TRANSLATED). gen-claude-agents' orphan
+check sees only `writ-*.md`, so a `claude-code/agents/*.md` with another
+name is reported by the driver itself as `orphan claude-code/agents/<name>`
+(`stray_agent_reasons`): no generator produces it, and `install.sh` ships
+every file in that directory. Last, the vendor scan. The renders and the
+sub-generator checks are skipped when a table did not parse, because they
+read the same tables and would repeat the parser's reason.
+
+`coverage` (spec.md -> Rules 3 and 4, AC-4.2): the four adapters' own
+reasons, `unmapped`, and the vendor scan; nothing else; nothing written.
+
+Vendor scan (`vendor_hits`): every line of commands/*.md, agents/*.md, and
+skills/*/SKILL.md, in that order and sorted within each, is searched for
+single-backticked tokens; a token references a tool (`tool_reference`) when
+its leading identifier, normalized like a first-column cell, is followed by
+nothing or by call syntax (`(` or `{`): `` `TodoWrite` ``, `` `Grep("p")` ``,
+and `` `sessions_spawn({ task })` `` reference TodoWrite, Grep, and
+sessions_spawn; `` `message.usage` `` (a field), `` `http://x` ``, a path, a
+`key: value`, or a flag reference none. A referenced vendor-only name is
+`vendor <name> in <path>:<line>` (1-based), once per name, file, and line.
+An allowlisted bare verb (`` `Read` ``) is never vendor-only. Write mode runs
+the scan among its pre-checks, so a hit blocks a write.
+
+Targets (spec.md -> Rule 11, AC-4.3): TARGETS maps a name to its
+`script_root`. `--target <identity>` (root `scripts`: cursor, claude-code,
+codex) runs write mode restricted to that platform's generated files and
+sub-generators and never writes a commands/ or skills/ copy. `--target
+fixture --out-dir <dir>` (root `${PLUGIN_ROOT}/scripts`, tests only) runs
+`emit_tree`: every commands/*.md and skills/*/SKILL.md is copied as bytes to
+`<dir>/fixture/<same path>` with each TOKEN match, `(python3|bash)
+scripts/<name>.py|.sh`, rewritten to the same interpreter and
+`<script_root>/<name>` and every other byte unchanged; one `wrote
+<dir-relative path>` line per file; nothing in place. An identity target with
+--out-dir, a non-identity target without it, --target beside --check or
+coverage, or --out-dir alone is a usage error (exit 2).
 
 Write mode (spec.md -> Rule 1; technical-spec.md -> ## Driver CLI), in
 order: parse the four adapters (a table that is not `pass` ends the run with
-its verdict and reasons); `unmapped` names end it with `fail`; each
+its verdict and reasons); `unmapped` names end it with `fail`; so do vendor
+hits and, when gen-claude-agents is among the sub-generators, stray
+`claude-code/agents/*.md` files (`stray_agent_reasons`); each
 sub-generator's `--check` runs (SUBGENERATORS, as subprocesses from this
 tree): an exit of 2 or more, or a first line that is not a verdict, is
 `reason: <gen> --check exited <rc>`; an `unverifiable` verdict makes the run
@@ -101,7 +154,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple
+from typing import Callable, Dict, Iterable, List, NamedTuple, Optional, Set, Tuple, Union
 
 ROOT = Path(__file__).resolve().parents[1]
 ADAPTERS_DIR = ROOT / "adapters"
@@ -321,6 +374,50 @@ def unmapped(tables: Iterable[AdapterTable]) -> List[str]:
         for table in tables:
             if table.verdict == "pass" and name not in table.names:
                 out.append("unmapped %s in %s" % (name, table.rel))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Vendor scan
+# ---------------------------------------------------------------------------
+
+# (directory, glob) of the shipped text the vendor scan reads, in report order.
+SCANNED = (("commands", "*.md"), ("agents", "*.md"), ("skills", "*/SKILL.md"))
+
+
+def tool_reference(token: str) -> Optional[str]:
+    """The tool a backticked token references: its leading identifier
+    (`capability_name`'s rule) when the rest of the token is empty or call
+    syntax starting with `(` or `{`; None when the rest starts with anything
+    else (`message.usage` is a field, `scripts/x.py` a path, `http://x` a
+    URL, `key: value` a key, `exec=1` an assignment) or when there is no
+    identifier (`--check`, an empty token)."""
+    text = token.strip()
+    match = NAME_RE.match(text)
+    if not match:
+        return None
+    rest = text[match.end():]
+    if rest and rest[0] not in "({":
+        return None
+    return match.group(0).rstrip()
+
+
+def vendor_hits(root: Path, vendor_only: Set[str]) -> List[str]:
+    """`vendor <name> in <path>:<line>` for each vendor-only name a
+    single-backticked token references in SCANNED, one per name, file, and
+    1-based line; files in SCANNED order, sorted within each directory."""
+    out = []  # type: List[str]
+    for folder, pattern in SCANNED:
+        for path in sorted((Path(root) / folder).glob(pattern)):
+            rel = path.relative_to(root).as_posix()
+            text = path.read_bytes().decode("utf-8", errors="replace")
+            for number, line in enumerate(text.splitlines(), 1):
+                seen = []  # type: List[str]
+                for token in BACKTICK.findall(line):
+                    name = tool_reference(token)
+                    if name in vendor_only and name not in seen:
+                        seen.append(name)
+                        out.append("vendor %s in %s:%d" % (name, rel, number))
     return out
 
 
@@ -582,16 +679,17 @@ GENERATED = [
 ]  # type: List[Tuple[str, Callable[[Path], str]]]
 
 
-def write_file(out: Path, text: str) -> Optional[str]:
-    """Write `text` through a temp file in the same directory and os.replace
-    it over `out`, keeping `out`'s mode. Returns the error text, or None."""
+def write_file(out: Path, data: Union[str, bytes]) -> Optional[str]:
+    """Write `data` (text as UTF-8, or bytes verbatim) through a temp file in
+    the same directory and os.replace it over `out`, keeping `out`'s mode.
+    Returns the error text, or None."""
     mode = out.stat().st_mode & 0o777 if out.is_file() else 0o644
     tmp = None
     try:
         out.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=str(out.parent), prefix="." + out.name + ".")
         with os.fdopen(fd, "wb") as handle:
-            handle.write(text.encode("utf-8"))
+            handle.write(data.encode("utf-8") if isinstance(data, str) else data)
         os.chmod(tmp, mode)
         os.replace(tmp, str(out))
     except OSError as err:
@@ -599,6 +697,75 @@ def write_file(out: Path, text: str) -> Optional[str]:
             os.unlink(tmp)
         return str(err)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Targets and tokens
+# ---------------------------------------------------------------------------
+
+IDENTITY_SCRIPT_ROOT = "scripts"
+# One entry per target (spec.md -> Rule 11; technical-spec.md -> ## Tokens).
+# `script_root` replaces `scripts` in every TOKEN match. An identity target
+# (root `scripts`) writes its platform's files in place and never a commands/
+# or skills/ copy: `generated` names its GENERATED paths and `subgenerators`
+# its sub-generators, producers first. A non-identity target writes a full
+# commands/ + skills/ tree under <out-dir>/<target>/. Adding a target is one
+# entry here; `2026-10-22-plugin-distribution` adds the real ones.
+TARGETS = {
+    "cursor": {"script_root": IDENTITY_SCRIPT_ROOT,
+               "generated": ("cursor/writ.mdc",), "subgenerators": ()},
+    "claude-code": {"script_root": IDENTITY_SCRIPT_ROOT,
+                    "generated": (), "subgenerators": ("gen-claude-agents", "gen-claude-md")},
+    "codex": {"script_root": IDENTITY_SCRIPT_ROOT,
+              "generated": ("codex/AGENTS.md.template",), "subgenerators": ("gen-codex-agent-tomls",)},
+    # Tests only (test_fixture_target): the one non-identity target this spec ships.
+    "fixture": {"script_root": "${PLUGIN_ROOT}/scripts"},
+}  # type: Dict[str, Dict[str, object]]
+# The script-root token: an invocation of a script under scripts/. Bytes, so
+# a file round-trips with every other byte intact.
+TOKEN = re.compile(rb"\b(python3|bash) scripts/([a-z0-9_-]+\.(?:py|sh))")
+# What a non-identity target copies, in output order.
+EMITTED = (("commands", "*.md"), ("skills", "*/SKILL.md"))
+
+
+def is_identity(target: str) -> bool:
+    return TARGETS[target]["script_root"] == IDENTITY_SCRIPT_ROOT
+
+
+def rewrite_tokens(data: bytes, script_root: str) -> bytes:
+    """`data` with every TOKEN match rewritten to the same interpreter and
+    `<script_root>/<name>`. The replacement is a callable, so `$` and `\\`
+    in `script_root` (`${PLUGIN_ROOT}`) stay literal."""
+    root = script_root.encode("utf-8")
+    return TOKEN.sub(lambda m: m.group(1) + b" " + root + b"/" + m.group(2), data)
+
+
+def emit_tree(root: Path, target: str, out_dir: Path) -> Tuple[List[Reason], List[str]]:
+    """Write every EMITTED file of `root`, tokens rewritten for `target`, to
+    `out_dir/<target>/<same relative path>`; returns (reasons, `wrote
+    <out_dir-relative path>` lines). A missing commands/ or skills/ directory
+    is `unverifiable`, `missing <dir>`, and nothing is written; a write error
+    is `fail`, `write <error>`."""
+    root, out_dir = Path(root), Path(out_dir)
+    script_root = str(TARGETS[target]["script_root"])
+    reasons = []  # type: List[Reason]
+    wrote = []  # type: List[str]
+    files = []  # type: List[Tuple[Path, str]]
+    for folder, pattern in EMITTED:
+        if not (root / folder).is_dir():
+            reasons.append(("unverifiable", "missing %s" % folder))
+            continue
+        for src in sorted((root / folder).glob(pattern)):
+            files.append((src, "%s/%s" % (target, src.relative_to(root).as_posix())))
+    if reasons:
+        return reasons, wrote
+    for src, rel in files:
+        error = write_file(out_dir / rel, rewrite_tokens(src.read_bytes(), script_root))
+        if error:
+            reasons.append(("fail", "write %s" % error))
+            return reasons, wrote
+        wrote.append("wrote " + rel)
+    return reasons, wrote
 
 
 # ---------------------------------------------------------------------------
@@ -617,21 +784,46 @@ def reason_lines(lines: Iterable[str]) -> List[str]:
     return [line[len("reason: "):] for line in lines if line.startswith("reason: ")]
 
 
-def fold_check(gen: str, rc: int, lines: List[str]) -> List[Reason]:
+# (sub-generator, its reason kind) -> (this driver's kind, the path the
+# detail becomes) for the sub-generator reasons that name a file this driver
+# owns the check of; every other reason folds as `<gen>: <kind> <detail>`.
+TRANSLATED = {
+    ("gen-claude-md", "stale"): ("stale", "%s"),
+    ("gen-claude-md", "absent"): ("missing", "%s"),
+    ("gen-claude-agents", "orphan"): ("orphan", "claude-code/agents/%s.md"),
+    ("gen-codex-agent-tomls", "orphan"): ("orphan", "codex/agents/%s.toml"),
+}  # type: Dict[Tuple[str, str], Tuple[str, str]]
+# The kinds the --check and coverage summary counts, in summary order.
+COUNTED_KINDS = ("stale", "missing", "orphan", "unmapped", "vendor")
+
+
+def fold_reason(gen: str, text: str, translate: bool) -> str:
+    """One sub-generator reason as this driver reports it: the TRANSLATED
+    form in --check (`translate`), else `<gen>: <text>`."""
+    kind, _, detail = text.partition(" ")
+    if translate and (gen, kind) in TRANSLATED:
+        own_kind, path = TRANSLATED[(gen, kind)]
+        return "%s %s" % (own_kind, path % detail)
+    return "%s: %s" % (gen, text)
+
+
+def fold_check(gen: str, rc: int, lines: List[str], translate: bool = False) -> List[Reason]:
     """The driver's reasons for one sub-generator's --check output. An exit
     of 2 or more, or no verdict on line 1, is `<gen> --check exited <rc>`.
-    Reasons fold as `<gen>: <kind> <detail>`; an `unverifiable` verdict makes
-    them unverifiable; a `fail` drops the REPAIRED_KINDS a write fixes."""
+    Reasons fold through `fold_reason`; an `unverifiable` verdict makes them
+    unverifiable. Write mode (`translate` false) drops the REPAIRED_KINDS a
+    write fixes; --check (`translate` true) keeps every reason."""
     verdict = lines[0] if lines else ""
     if rc >= 2 or verdict not in VERDICTS:
         return [("fail", "%s --check exited %d" % (gen, rc))]
     reasons = reason_lines(lines)
     if verdict == "unverifiable":
-        return [("unverifiable", "%s: %s" % (gen, text)) for text in reasons]
+        return [("unverifiable", fold_reason(gen, text, translate)) for text in reasons]
     if verdict == "fail" and not reasons:
         return [("fail", "%s --check printed fail without a reason" % gen)]
-    return [("fail", "%s: %s" % (gen, text)) for text in reasons
-            if text.split(" ", 1)[0] not in REPAIRED_KINDS]
+    if not translate:
+        reasons = [text for text in reasons if text.split(" ", 1)[0] not in REPAIRED_KINDS]
+    return [("fail", fold_reason(gen, text, translate)) for text in reasons]
 
 
 def verdict_of(reasons: List[Reason]) -> str:
@@ -639,8 +831,19 @@ def verdict_of(reasons: List[Reason]) -> str:
     return "fail" if "fail" in classes else "unverifiable" if classes else "pass"
 
 
+def kind_of(text: str) -> str:
+    """The kind of a reason: its first token, or for a folded
+    `<gen>: <kind> <detail>` the token after the sub-generator's name."""
+    for gen in SUBGENERATORS:
+        if text.startswith(gen + ": "):
+            text = text[len(gen) + 2:]
+            break
+    return text.split(" ", 1)[0]
+
+
 def finish(reasons: List[Reason], wrote: List[str]) -> int:
-    """Print the check shape: verdict, reasons, `wrote` lines, summary."""
+    """Print the write-mode check shape: verdict, reasons, `wrote` lines,
+    `(<n> written, <r> reasons)` summary."""
     verdict = verdict_of(reasons)
     print(verdict)
     for _, text in reasons:
@@ -651,37 +854,132 @@ def finish(reasons: List[Reason], wrote: List[str]) -> int:
     return 1 if verdict == "fail" else 0
 
 
-def write_mode(root: Path) -> int:
-    """Check the adapters, the vocabulary, and every sub-generator, then
-    write GENERATED and run the sub-generators' writers; nothing is written
-    when any reason exists (module docstring -> Write mode)."""
-    reasons = []  # type: List[Reason]
-    wrote = []  # type: List[str]
+def finish_check(reasons: List[Reason]) -> int:
+    """Print the --check and coverage shape: verdict, reasons, the
+    five-count summary over COUNTED_KINDS."""
+    verdict = verdict_of(reasons)
+    print(verdict)
+    for _, text in reasons:
+        print("reason: " + text)
+    kinds = [kind_of(text) for _, text in reasons]
+    print("%s: %s (%s)" % (TOOL, verdict, ", ".join(
+        "%d %s" % (kinds.count(kind), kind) for kind in COUNTED_KINDS)))
+    return 1 if verdict == "fail" else 0
 
+
+def adapter_reasons(root: Path) -> Tuple[List[AdapterTable], List[Reason]]:
+    """The four parsed tables and the reasons of those that did not parse."""
     tables = [parse_adapter(root / "adapters" / (adapter + ".md"), adapter) for adapter in ADAPTERS]
-    for table in tables:
-        if table.verdict != "pass":
-            reasons += [(table.verdict, text) for text in table.reasons]
-    if reasons:
-        return finish(reasons, wrote)
-    reasons += [("fail", text) for text in unmapped(tables)]
-    if reasons:
-        return finish(reasons, wrote)
+    reasons = [(table.verdict, text) for table in tables if table.verdict != "pass"
+               for text in table.reasons]
+    return tables, reasons
 
-    for gen in SUBGENERATORS:
-        rc, lines = run_subgenerator(root, gen, ["--check"])
-        reasons += fold_check(gen, rc, lines)
-    if reasons:
-        return finish(reasons, wrote)
 
+def vendor_reasons(root: Path, tables: List[AdapterTable]) -> List[Reason]:
+    return [("fail", text) for text in vendor_hits(root, vocabulary(tables)[1])]
+
+
+def render_all(root: Path, generated: List[Tuple[str, Callable[[Path], str]]]) -> Tuple[List[Tuple[str, str]], List[Reason]]:
+    """(rendered (path, text) pairs, reasons) for `generated`: a source
+    OSError is `unverifiable`, `missing <source path>`; a ValueError is
+    `fail` with its text."""
     texts = []  # type: List[Tuple[str, str]]
-    for rel, render in GENERATED:
+    reasons = []  # type: List[Reason]
+    for rel, render in generated:
         try:
             texts.append((rel, render(root)))
         except OSError as err:
             reasons.append(("unverifiable", "missing %s" % relative(root, err.filename or rel)))
         except ValueError as err:
             reasons.append(("fail", str(err)))
+    return texts, reasons
+
+
+def stale_reasons(root: Path, texts: List[Tuple[str, str]]) -> List[Reason]:
+    """`stale <path>` when the file's bytes differ from the render, `missing
+    <path>` when there is no file."""
+    reasons = []  # type: List[Reason]
+    for rel, text in texts:
+        path = root / rel
+        if not path.is_file():
+            reasons.append(("fail", "missing " + rel))
+        elif path.read_bytes() != text.encode("utf-8"):
+            reasons.append(("fail", "stale " + rel))
+    return reasons
+
+
+# gen-claude-agents.py owns only claude-code/agents/writ-*.md, so its --check
+# cannot see a stray file with another name, while install.sh ships every
+# claude-code/agents/*.md; the driver reports the rest itself.
+CLAUDE_AGENT_PREFIX = "writ-"
+
+
+def stray_agent_reasons(root: Path) -> List[Reason]:
+    """`orphan claude-code/agents/<name>` for each .md under
+    claude-code/agents/ that no generator produces: one whose name does not
+    start with CLAUDE_AGENT_PREFIX (gen-claude-agents' own orphan check
+    covers the rest). A missing directory yields no reason."""
+    folder = Path(root) / "claude-code" / "agents"
+    return [("fail", "orphan claude-code/agents/" + path.name)
+            for path in sorted(folder.glob("*.md"))
+            if not path.name.startswith(CLAUDE_AGENT_PREFIX)]
+
+
+def check_mode(root: Path) -> int:
+    """Report stale, missing, orphan, unmapped, and vendor without writing
+    (module docstring -> --check)."""
+    tables, reasons = adapter_reasons(root)
+    reasons += [("fail", text) for text in unmapped(tables)]
+    if all(table.verdict == "pass" for table in tables):
+        texts, render_errors = render_all(root, GENERATED)
+        reasons += render_errors + stale_reasons(root, texts) + stray_agent_reasons(root)
+        for gen in SUBGENERATORS:
+            rc, lines = run_subgenerator(root, gen, ["--check"])
+            reasons += fold_check(gen, rc, lines, translate=True)
+    reasons += vendor_reasons(root, tables)
+    return finish_check(reasons)
+
+
+def coverage_mode(root: Path) -> int:
+    """Report the adapters' own reasons, unmapped, and vendor; nothing else
+    (module docstring -> coverage)."""
+    tables, reasons = adapter_reasons(root)
+    reasons += [("fail", text) for text in unmapped(tables)]
+    reasons += vendor_reasons(root, tables)
+    return finish_check(reasons)
+
+
+def write_mode(root: Path, generated: List[Tuple[str, Callable[[Path], str]]] = GENERATED,
+               subgenerators: Tuple[str, ...] = SUBGENERATORS) -> int:
+    """Check the adapters, the vocabulary, the vendor scan, the stray agent
+    files (when gen-claude-agents is among `subgenerators`), and every
+    sub-generator in `subgenerators`, then write `generated` and run those
+    sub-generators' writers; nothing is written when any reason exists
+    (module docstring -> Write mode). An identity target narrows `generated`
+    and `subgenerators` to its platform."""
+    wrote = []  # type: List[str]
+
+    tables, reasons = adapter_reasons(root)
+    if reasons:
+        return finish(reasons, wrote)
+    reasons += [("fail", text) for text in unmapped(tables)]
+    if reasons:
+        return finish(reasons, wrote)
+    reasons += vendor_reasons(root, tables)
+    if reasons:
+        return finish(reasons, wrote)
+    if "gen-claude-agents" in subgenerators:
+        reasons += stray_agent_reasons(root)
+        if reasons:
+            return finish(reasons, wrote)
+
+    for gen in subgenerators:
+        rc, lines = run_subgenerator(root, gen, ["--check"])
+        reasons += fold_check(gen, rc, lines)
+    if reasons:
+        return finish(reasons, wrote)
+
+    texts, reasons = render_all(root, generated)
     if reasons:
         return finish(reasons, wrote)
 
@@ -691,13 +989,24 @@ def write_mode(root: Path) -> int:
             reasons.append(("fail", "write %s" % error))
             return finish(reasons, wrote)
         wrote.append("wrote " + rel)
-    for gen in SUBGENERATORS:
+    for gen in subgenerators:
         rc, lines = run_subgenerator(root, gen, [])
         wrote += [line for line in lines if line.startswith("wrote ")]
         if rc != 0:
             reasons.append(("fail", "%s exited %d" % (gen, rc)))
             reasons += [("fail", "%s: %s" % (gen, text)) for text in reason_lines(lines)]
             return finish(reasons, wrote)
+    return finish(reasons, wrote)
+
+
+def target_mode(root: Path, target: str, out_dir: Optional[str]) -> int:
+    """`--target`: an identity target is write mode narrowed to its platform;
+    a non-identity target is `emit_tree` into `out_dir`."""
+    if is_identity(target):
+        entry = TARGETS[target]
+        generated = [(rel, render) for rel, render in GENERATED if rel in entry["generated"]]  # type: ignore[operator]
+        return write_mode(root, generated, tuple(entry["subgenerators"]))  # type: ignore[arg-type]
+    reasons, wrote = emit_tree(root, target, Path(out_dir or ""))
     return finish(reasons, wrote)
 
 
@@ -718,23 +1027,36 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--check", action="store_true",
                         help="report stale, missing, orphan, unmapped, vendor, and malformed; "
                              "write nothing; exit 0 pass or unverifiable, 1 fail")
-    parser.add_argument("--target", metavar="NAME",
-                        help="one target (cursor, claude-code, codex, fixture) instead of every identity target")
+    parser.add_argument("--target", metavar="NAME", choices=list(TARGETS),
+                        help="one target (%s) instead of every identity target; an identity "
+                             "target writes its platform's files in place, a non-identity one "
+                             "needs --out-dir" % ", ".join(TARGETS))
     parser.add_argument("--out-dir", metavar="DIR",
                         help="with a non-identity --target: the directory that receives <target>/commands and <target>/skills")
     return parser
 
 
 def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
-    args = build_parser().parse_args(argv)
-    if args.mode == "coverage" or args.check or args.target or args.out_dir:
-        # Story 4 adds --check, coverage, and the fixture target.
-        mode = args.mode or ("check" if args.check else "target")
-        print("unverifiable")
-        print("reason: not-implemented %s" % mode)
-        print("%s: unverifiable (0 written, 1 reasons)" % TOOL)
-        return 0
-    return write_mode(Path(root))
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    modes = [name for name, on in (("coverage", args.mode == "coverage"), ("--check", args.check),
+                                   ("--target", args.target is not None)) if on]
+    if len(modes) > 1:
+        parser.error("%s cannot be combined" % " and ".join(modes))
+    if args.out_dir and not args.target:
+        parser.error("--out-dir needs --target")
+    if args.target and is_identity(args.target) and args.out_dir:
+        parser.error("--target %s writes in place; it takes no --out-dir" % args.target)
+    if args.target and not is_identity(args.target) and not args.out_dir:
+        parser.error("--target %s needs --out-dir" % args.target)
+    root = Path(root)
+    if args.mode == "coverage":
+        return coverage_mode(root)
+    if args.check:
+        return check_mode(root)
+    if args.target:
+        return target_mode(root, args.target, args.out_dir)
+    return write_mode(root)
 
 
 if __name__ == "__main__":

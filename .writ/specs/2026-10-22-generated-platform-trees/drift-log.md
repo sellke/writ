@@ -86,3 +86,28 @@
 - **Reason:** The constraints are enforced at the source instead of only in the test; no interface or data-shape change.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md → Implementation Approach, the generated-files line names the two guards.
+
+---
+
+## Story 4: `--check`, Coverage, Tokens, and Eval Wiring — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-008] `check_platform_trees` runs `--check` only, not `--check` then `coverage`
+- **Severity:** Small
+- **Spec said:** spec.md → Business Rules Rule 13 and technical-spec.md → Eval Wiring: `check_platform_trees` "runs `--check`, then `coverage`". The Specification Contract (item 1) says only that the driver "adds one `check_platform_trees`".
+- **Implementation did:** `scripts/eval.sh` `check_platform_trees` runs `python3 scripts/gen-platform-trees.py --check` once; `check_mode` already includes the coverage reasons (`unmapped` and `vendor`).
+- **Reason:** Story task 4.5 (the later, more specific decision) says "Run `--check` only; it already runs coverage, and a second `coverage` run reports each vendor and unmapped hit twice." Observable behaviour is preserved: every unmapped or vendor reason becomes exactly one finding (`test_eval_platform_trees.sh`, vendor case).
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Implementation Approach, the check-shape line says `check_platform_trees` runs `--check` only and why.
+
+#### [DEV-009] `browser_navigate` hit rewritten to neutral prose, not a neutral name
+- **Severity:** Small
+- **Spec said:** Contract item 3 / Rule 4: every vendor hit the first `coverage` run finds "is rewritten to its neutral name"; the contract lists the two `commands/create-issue.md` hits (`Grep`, `Glob`).
+- **Implementation did:** `coverage` on the committed tree found a third hit, `vendor browser_navigate in commands/writ-design.md:137` (`browser_navigate` is vendor-only through the cursor `canvas-preview` mapping cell). The line was reworded to "navigate to each screen with the platform's browser tool and take screenshots"; no backticked token remains.
+- **Reason:** The vocabulary has no neutral name for browser navigation; `canvas-preview` names draft rendering, not driving a running app, so substituting it would misdescribe the step. One line, same file class, same intent as the contract's allowance.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Implementation Approach, the vocabulary line records the third hit and the no-neutral-name rule.

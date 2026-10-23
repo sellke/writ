@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scripts/gen-platform-trees.py, Stories 1 to 3 of `2026-10-22-generated-platform-trees`.
+"""Tests for scripts/gen-platform-trees.py, Stories 1 to 4 of `2026-10-22-generated-platform-trees`.
 
 Story 1 ships the adapter tool-table parser (`parse_adapter`), the
 vocabulary rule (`vocabulary`, `unmapped`), and the repairs the golden
@@ -12,8 +12,12 @@ checks the four adapters and the three sub-generators before it writes
 `cursor/writ.mdc` and runs the sub-generators' writers. Story 3 adds the
 manifest and skills readers (`read_manifest`, `read_skills`) and
 `render_codex_template`, which replaces the hand-maintained
-`codex/AGENTS.md.template` as the second GENERATED file. `--check`,
-`coverage`, and `--target` stay a stub until Story 4.
+`codex/AGENTS.md.template` as the second GENERATED file. Story 4 adds
+`--check` (stale, missing, and orphan per generated path, the sub-generators'
+checks folded in), `coverage` (unmapped names and vendor hits in commands/,
+agents/, and skills/), the TARGETS table with the `fixture` target that
+rewrites `(python3|bash) scripts/<name>` tokens into a `--out-dir` tree, and
+the per-platform identity targets.
 
 The module name has a hyphen, so the tests import it by path, the way
 test_gen_claude_md.py does. Fixture adapters live under
@@ -23,7 +27,7 @@ reason strings name `adapters/<basename>`. Write-mode tests copy the tree
 into `tmp_path` (`tmp_tree`) and run the driver there. Nothing here writes
 to the repo.
 
-Covers AC-1.1 to AC-1.5, AC-2.1 to AC-2.5, and AC-3.1 to AC-3.4.
+Covers AC-1.1 to AC-1.5, AC-2.1 to AC-2.5, AC-3.1 to AC-3.4, and AC-4.1 to AC-4.5.
 
 Run: uv run --python 3.9 pytest scripts/tests/test_gen_platform_trees.py
 """
@@ -338,7 +342,7 @@ def test_issue_resolution():
 
 
 # ---------------------------------------------------------------------------
-# CLI stub
+# CLI
 # ---------------------------------------------------------------------------
 
 
@@ -348,7 +352,7 @@ def run_cli(*args: str) -> subprocess.CompletedProcess:
 
 
 def test_cli_help():
-    """CLI: `--help` exits 0 and names every mode, including the ones Story 4 adds."""
+    """CLI: `--help` exits 0 and names every mode."""
     proc = run_cli("--help")
     assert proc.returncode == 0, proc.stderr
     assert "usage" in proc.stdout.lower()
@@ -362,25 +366,6 @@ def test_cli_unknown_flag_is_usage_error():
     assert proc.returncode == 2
     assert proc.stdout == ""
     assert "usage:" in proc.stderr
-
-
-@pytest.mark.parametrize(
-    "args, mode",
-    [(("--check",), "check"), (("coverage",), "coverage"),
-     (("--target", "fixture", "--out-dir", "x"), "target")],
-    ids=["check", "coverage", "target"])
-def test_cli_stub(args, mode):
-    """Story 4 modes, still stubbed: `--check`, `coverage`, and `--target`
-    print the check shape with `unverifiable`, one `reason: not-implemented
-    <mode>` line, and the summary, exit 0, and write nothing. Write mode is
-    real since Story 2 (see below)."""
-    proc = run_cli(*args)
-    assert proc.returncode == 0, proc.stderr
-    lines = proc.stdout.splitlines()
-    assert lines[0] == "unverifiable"
-    assert lines[1] == "reason: not-implemented %s" % mode
-    assert lines[-1].startswith("gen-platform-trees: unverifiable (")
-    assert len(lines) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -1046,3 +1031,446 @@ def test_codex_template_size_guard(gen, tmp_path):
     assert proc.returncode == 1, proc.stdout + proc.stderr
     assert proc.stdout.splitlines()[1] == "reason: " + str(err.value)
     assert wrote_lines(proc) == []
+
+
+# ---------------------------------------------------------------------------
+# Story 4: --check, coverage, tokens and targets, dev-only
+# ---------------------------------------------------------------------------
+
+CHECK_SUMMARY = "gen-platform-trees: %s (%d stale, %d missing, %d orphan, %d unmapped, %d vendor)"
+CLEAN_SUMMARY = CHECK_SUMMARY % ("pass", 0, 0, 0, 0, 0)
+UNMAPPED_REASON = "reason: unmapped file_search in adapters/codex.md"
+VENDOR_FIXTURE = FIXTURES / "vendor" / "commands" / "vendor-fixture.md"
+# technical-spec.md -> ## Tokens, applied here independently of the driver.
+TOKEN = re.compile(rb"\b(python3|bash) scripts/([a-z0-9_-]+\.(?:py|sh))")
+FIXTURE_ROOT = b"${PLUGIN_ROOT}/scripts"
+# One invocation per interpreter, a prose mention, a bare path, and an
+# uppercase name; CRLF, a tab, and a non-UTF-8 byte must survive untouched.
+TOKEN_FIXTURE = (
+    b"# Token fixture\n\n"
+    b"Run `python3 scripts/foo.py --x` first.\n"
+    b"Then `bash scripts/bar.sh`.\n"
+    b"see scripts/ for details\n"
+    b"scripts/foo.py\n"
+    b"python3 scripts/Foo.py\n"
+    b"\xe2\x80\x94 odd bytes\r\n\t\xff stay\n")
+TOKEN_FIXTURE_REWRITTEN = (
+    TOKEN_FIXTURE
+    .replace(b"python3 scripts/foo.py --x", b"python3 ${PLUGIN_ROOT}/scripts/foo.py --x")
+    .replace(b"bash scripts/bar.sh", b"bash ${PLUGIN_ROOT}/scripts/bar.sh"))
+IDENTITY_TARGETS = ("cursor", "claude-code", "codex")
+# (args, what makes it a usage error)
+USAGE_ERRORS = [
+    (("--target", "cursor", "--out-dir", "x"), "identity target with --out-dir"),
+    (("--target", "fixture"), "non-identity target without --out-dir"),
+    (("--target", "fixture", "--out-dir", "x", "--check"), "--target with --check"),
+    (("--target", "fixture", "--out-dir", "x", "coverage"), "--target with coverage"),
+    (("--target", "bogus", "--out-dir", "x"), "unknown target"),
+    (("--out-dir", "x"), "--out-dir without --target"),
+    (("coverage", "--check"), "two modes"),
+]
+# (id, token text inside the backticks, the tool it references or None)
+TOOL_REFERENCES = [
+    ("bare", "TodoWrite", "TodoWrite"),
+    ("call-parens", 'Grep("pattern")', "Grep"),
+    ("call-braces", "sessions_spawn({ task })", "sessions_spawn"),
+    ("variant", "Task({ readonly: true })", "Task"),
+    ("spaced-name", "Plan Mode", "Plan Mode"),
+    ("dotted-field", "message.usage", None),
+    ("url", "http://localhost:3000", None),
+    ("path", "scripts/foo.py", None),
+    ("dot-path", ".writ/state", None),
+    ("key-value", "permissionMode: plan", None),
+    ("flag", "--check", None),
+    ("assignment", "exec=1", None),
+    ("empty", "", None),
+]
+
+
+def snapshot(tree: Path) -> Dict[str, bytes]:
+    """Every file under `tree` (bytecode caches excluded), keyed by relative
+    path, so a test can assert that a run wrote nothing."""
+    return {p.relative_to(tree).as_posix(): p.read_bytes()
+            for p in sorted(tree.rglob("*"))
+            if p.is_file() and "__pycache__" not in p.parts}
+
+
+def line_of(path: Path, needle: str) -> int:
+    """The 1-based line of the one line in `path` that contains `needle`."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    hits = [i for i, line in enumerate(lines) if needle in line]
+    assert len(hits) == 1, "%s: expected %r on one line, found %d" % (path.name, needle, len(hits))
+    return hits[0] + 1
+
+
+def append_token(path: Path, token: str = "`TodoWrite`") -> int:
+    """Append `token` as its own last line; returns that line's number."""
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write("\n%s\n" % token)
+    return len(path.read_text(encoding="utf-8").splitlines())
+
+
+def reasons_of(proc: subprocess.CompletedProcess) -> List[str]:
+    return [l for l in proc.stdout.splitlines() if l.startswith("reason: ")]
+
+
+def check_lines(proc: subprocess.CompletedProcess, verdict: str, counts: Tuple[int, ...]) -> List[str]:
+    """Assert the check shape with `verdict` on line 1 and the five-count
+    summary last; returns the reason lines."""
+    lines = proc.stdout.splitlines()
+    assert lines[0] == verdict, proc.stdout + proc.stderr
+    assert lines[-1] == CHECK_SUMMARY % ((verdict,) + counts), proc.stdout
+    assert lines[1:-1] == reasons_of(proc), "only reason lines between verdict and summary"
+    return reasons_of(proc)
+
+
+def ship_filter(script: str) -> str:
+    """The `is_shippable_script` body the way test_install_update_dev_scripts.sh
+    extracts it: from `is_shippable_script() {` to the next line that is `}`."""
+    lines = (REPO_ROOT / "scripts" / script).read_text(encoding="utf-8").splitlines(True)
+    start = lines.index("is_shippable_script() {\n")
+    end = next(i for i in range(start, len(lines)) if lines[i] == "}\n")
+    return "".join(lines[start:end + 1])
+
+
+def is_shippable(body: str, name: str) -> bool:
+    proc = subprocess.run(["bash", "-c", body + '\nis_shippable_script "$1"', "_", name],
+                          capture_output=True, text=True)
+    return proc.returncode == 0
+
+
+def edit_writ_mdc(tree: Path) -> None:
+    with (tree / "cursor" / "writ.mdc").open("a", encoding="utf-8") as handle:
+        handle.write("\nhand edit\n")
+
+
+def delete_claude_md(tree: Path) -> None:
+    (tree / "claude-code" / "CLAUDE.md").unlink()
+
+
+def add_claude_agent(tree: Path) -> None:
+    (tree / "claude-code" / "agents" / "writ-extra.md").write_text(
+        "---\nname: writ-extra\ndescription: Extra.\n---\n\n# Extra\n", encoding="utf-8")
+
+
+def add_stray_claude_agent(tree: Path) -> None:
+    """A claude-code/agents/*.md outside gen-claude-agents' `writ-*.md` glob."""
+    (tree / "claude-code" / "agents" / "helper.md").write_text(
+        "---\nname: helper\ndescription: Stray.\n---\n\n# Helper\n", encoding="utf-8")
+
+
+def add_codex_toml(tree: Path) -> None:
+    (tree / "codex" / "agents" / "extra.toml").write_text('name = "extra"\n', encoding="utf-8")
+
+
+def edit_codex_template(tree: Path) -> None:
+    with (tree / "codex" / "AGENTS.md.template").open("a", encoding="utf-8") as handle:
+        handle.write("\nhand edit\n")
+
+
+def edit_claude_agent(tree: Path) -> None:
+    with (tree / "claude-code" / "agents" / "writ-tester.md").open("a", encoding="utf-8") as handle:
+        handle.write("\nhand edit\n")
+
+
+# (id, mutation, the exact reason lines --check prints, the five counts).
+# gen-claude-md lists claude-code/agents/*.md, so an orphan agent file also
+# makes claude-code/CLAUDE.md stale; a hand-edited agent file is the agent
+# generator's stale stem, folded. A stray file outside the `writ-*.md` glob
+# is the driver's own orphan (no generator produces it; install.sh would
+# ship it).
+STALE_CASES = [
+    ("stale-writ-mdc", edit_writ_mdc, ["stale cursor/writ.mdc"], (1, 0, 0, 0, 0)),
+    ("missing-claude-md", delete_claude_md, ["missing claude-code/CLAUDE.md"], (0, 1, 0, 0, 0)),
+    ("orphan-claude-agent", add_claude_agent,
+     ["orphan claude-code/agents/writ-extra.md", "stale claude-code/CLAUDE.md"], (1, 0, 1, 0, 0)),
+    ("orphan-stray-claude-agent", add_stray_claude_agent,
+     ["orphan claude-code/agents/helper.md", "stale claude-code/CLAUDE.md"], (1, 0, 1, 0, 0)),
+    ("orphan-codex-toml", add_codex_toml, ["orphan codex/agents/extra.toml"], (0, 0, 1, 0, 0)),
+    ("stale-codex-template", edit_codex_template, ["stale codex/AGENTS.md.template"], (1, 0, 0, 0, 0)),
+    ("stale-claude-agent", edit_claude_agent, ["gen-claude-agents: stale testing-agent"], (1, 0, 0, 0, 0)),
+]  # type: List[Tuple[str, Callable[[Path], None], List[str], Tuple[int, int, int, int, int]]]
+
+
+def test_check_clean(tmp_path):
+    """AC-4.1: on a clean tree `--check` prints `pass` and the five-zero
+    summary and nothing else, exit 0, and writes nothing; `coverage` prints
+    the same; both also pass on the committed tree itself."""
+    tree = tmp_tree(tmp_path)
+    before = snapshot(tree)
+    for args in (("--check",), ("coverage",)):
+        proc = run_tree(tree, *args)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        assert proc.stdout.splitlines() == ["pass", CLEAN_SUMMARY], args
+        assert snapshot(tree) == before, args
+    for args in (("--check",), ("coverage",)):
+        proc = run_cli(*args)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        lines = proc.stdout.splitlines()
+        assert lines[0] == "pass", "committed tree, %s: %s" % (args, proc.stdout)
+        assert lines[-1] == CLEAN_SUMMARY
+
+
+@pytest.mark.parametrize("mutate, expected, counts", [(m, r, c) for _, m, r, c in STALE_CASES],
+                         ids=[i for i, _, _, _ in STALE_CASES])
+def test_check_stale(tmp_path, mutate, expected, counts):
+    """AC-4.1: a hand edit to a generated root file is `stale <path>`, a
+    deleted `claude-code/CLAUDE.md` is `missing <path>`, an extra file under
+    `claude-code/agents/` or `codex/agents/` is `orphan <path>`, and a
+    hand-edited agent file is the agent generator's reason folded as
+    `gen-claude-agents: stale <stem>`; in every case line 1 is `fail`, the
+    summary counts the kinds, exit 1, and no byte changes."""
+    tree = tmp_tree(tmp_path)
+    mutate(tree)
+    before = snapshot(tree)
+    proc = run_tree(tree, "--check")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert check_lines(proc, "fail", counts) == ["reason: " + text for text in expected]
+    assert wrote_lines(proc) == []
+    assert snapshot(tree) == before
+
+
+def test_check_counts(tmp_path):
+    """AC-4.1: every STALE_CASES mutation at once -> one reason each and a
+    summary whose counts add up (the deleted CLAUDE.md is missing, not stale,
+    even though the orphan agent file would otherwise make it stale)."""
+    tree = tmp_tree(tmp_path)
+    for _, mutate, _, _ in STALE_CASES:
+        mutate(tree)
+    before = snapshot(tree)
+    proc = run_tree(tree, "--check")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    reasons = check_lines(proc, "fail", (3, 1, 3, 0, 0))
+    assert sorted(reasons) == sorted([
+        "reason: stale cursor/writ.mdc", "reason: stale codex/AGENTS.md.template",
+        "reason: missing claude-code/CLAUDE.md", "reason: orphan claude-code/agents/writ-extra.md",
+        "reason: orphan claude-code/agents/helper.md",
+        "reason: orphan codex/agents/extra.toml", "reason: gen-claude-agents: stale testing-agent"])
+    assert snapshot(tree) == before
+
+
+@pytest.mark.parametrize("token, name", [(t, n) for _, t, n in TOOL_REFERENCES],
+                         ids=[i for i, _, _ in TOOL_REFERENCES])
+def test_tool_reference(gen, token, name):
+    """AC-4.2 (the whole-token rule): a backticked token references a tool
+    when its leading identifier is followed by nothing or by call syntax
+    (`(` or `{`); a dotted field, a URL, a path, a `key: value`, a flag, or
+    an assignment references none."""
+    assert gen.tool_reference(token) == name
+
+
+def test_vendor_hit(tmp_path):
+    """AC-4.2: the vendor fixture copied into a tree's commands/ makes
+    `coverage` print exactly one `vendor <name> in commands/<f>.md:<line>`
+    reason for `` `TodoWrite` `` and one for `` `Grep("pattern")` `` with the
+    real line numbers, none for the allowlisted `` `Read` `` or the dotted
+    `` `message.usage` ``, the summary counting 2 vendor, exit 1; `--check`
+    reports the same two; a token in agents/<f>.md or skills/<name>/SKILL.md
+    is reported with that path; nothing is written."""
+    tree = tmp_tree(tmp_path)
+    shutil.copy(VENDOR_FIXTURE, tree / "commands" / VENDOR_FIXTURE.name)
+    rel = "commands/" + VENDOR_FIXTURE.name
+    for needle in ("`Read`", "`message.usage`"):
+        assert line_of(VENDOR_FIXTURE, needle)
+    expected = [
+        "reason: vendor TodoWrite in %s:%d" % (rel, line_of(VENDOR_FIXTURE, "`TodoWrite`")),
+        "reason: vendor Grep in %s:%d" % (rel, line_of(VENDOR_FIXTURE, '`Grep("pattern")`')),
+    ]
+    before = snapshot(tree)
+    proc = run_tree(tree, "coverage")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert check_lines(proc, "fail", (0, 0, 0, 0, 2)) == expected
+    proc = run_tree(tree, "--check")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert check_lines(proc, "fail", (0, 0, 0, 0, 2)) == expected
+    assert wrote_lines(proc) == []
+    assert snapshot(tree) == before
+
+    agent_line = append_token(tree / "agents" / "coding-agent.md")
+    skill_line = append_token(tree / "skills" / "tdd-cycle" / "SKILL.md", "`sessions_spawn({ task })`")
+    proc = run_tree(tree, "coverage")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert check_lines(proc, "fail", (0, 0, 0, 0, 4)) == expected + [
+        "reason: vendor TodoWrite in agents/coding-agent.md:%d" % agent_line,
+        "reason: vendor sessions_spawn in skills/tdd-cycle/SKILL.md:%d" % skill_line,
+    ]
+
+
+def test_coverage_unmapped(tmp_path):
+    """AC-4.2: the Story 1 parity fixture (no `file_search` row) copied over
+    adapters/codex.md makes `coverage` print exactly
+    `reason: unmapped file_search in adapters/codex.md` and `--check` print
+    the same reason first, then the stale Codex template the missing row
+    implies (every table parsed, so the renders still run), exit 1, nothing
+    written."""
+    tree = tmp_tree(tmp_path)
+    shutil.copy(FIXTURES / "parity-no-file-search" / "codex.md", tree / "adapters" / "codex.md")
+    before = snapshot(tree)
+    proc = run_tree(tree, "coverage")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert check_lines(proc, "fail", (0, 0, 0, 1, 0)) == [UNMAPPED_REASON]
+    proc = run_tree(tree, "--check")
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert check_lines(proc, "fail", (1, 0, 0, 1, 0)) == [
+        UNMAPPED_REASON, "reason: stale codex/AGENTS.md.template"]
+    assert wrote_lines(proc) == []
+    assert snapshot(tree) == before
+
+
+def test_fixture_target(gen, tmp_path):
+    """AC-4.3: `--target fixture --out-dir <dir>` writes every commands/*.md
+    (the preamble included) and every skills/<name>/SKILL.md under
+    `<dir>/fixture/`, each `python3 scripts/<name>` or `bash scripts/<name>`
+    match rewritten to `${PLUGIN_ROOT}/scripts/<name>` with the same
+    interpreter and every other byte identical: a prose `scripts/` mention, a
+    bare path, and an uppercase name stay; one `wrote` line per file; nothing
+    is written in place."""
+    tree = tmp_tree(tmp_path / "tree")
+    fixture = tree / "commands" / "zz-token-fixture.md"
+    fixture.write_bytes(TOKEN_FIXTURE)
+    assert gen.TARGETS["fixture"]["script_root"] == FIXTURE_ROOT.decode()
+    assert gen.TOKEN.pattern == TOKEN.pattern
+    commands = sorted((tree / "commands").glob("*.md"))
+    skills = sorted((tree / "skills").glob("*/SKILL.md"))
+    assert "_preamble.md" in [p.name for p in commands]
+    assert any(TOKEN.search(p.read_bytes()) for p in commands if p != fixture), \
+        "a real command must carry an invocation token"
+    out = tmp_path / "out"
+    before = snapshot(tree)
+
+    proc = run_tree(tree, "--target", "fixture", "--out-dir", str(out))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    lines = proc.stdout.splitlines()
+    wrote = wrote_lines(proc)
+    assert lines[0] == "pass"
+    assert wrote == (["wrote fixture/commands/%s" % p.name for p in commands]
+                     + ["wrote fixture/skills/%s/SKILL.md" % p.parent.name for p in skills])
+    assert lines[-1] == "gen-platform-trees: pass (%d written, 0 reasons)" % len(wrote)
+    assert len(lines) == len(wrote) + 2
+    assert snapshot(tree) == before
+
+    got = (out / "fixture" / "commands" / fixture.name).read_bytes()
+    assert got == TOKEN_FIXTURE_REWRITTEN
+    got_lines = got.split(b"\n")
+    assert got_lines[2] == b"Run `python3 ${PLUGIN_ROOT}/scripts/foo.py --x` first."
+    assert got_lines[3] == b"Then `bash ${PLUGIN_ROOT}/scripts/bar.sh`."
+    assert got_lines[4:7] == [b"see scripts/ for details", b"scripts/foo.py", b"python3 scripts/Foo.py"]
+    assert got_lines[7:] == TOKEN_FIXTURE.split(b"\n")[7:]
+
+    def rewritten(data: bytes) -> bytes:
+        return TOKEN.sub(lambda m: m.group(1) + b" " + FIXTURE_ROOT + b"/" + m.group(2), data)
+
+    assert rewritten(TOKEN_FIXTURE) == TOKEN_FIXTURE_REWRITTEN
+    for p in commands:
+        assert (out / "fixture" / "commands" / p.name).read_bytes() == rewritten(p.read_bytes()), p.name
+    for p in skills:
+        assert (out / "fixture" / "skills" / p.parent.name / "SKILL.md").read_bytes() == \
+            rewritten(p.read_bytes()), p.parent.name
+    written = sorted(q.relative_to(out).as_posix() for q in out.rglob("*") if q.is_file())
+    assert written == sorted(["fixture/commands/%s" % p.name for p in commands]
+                             + ["fixture/skills/%s/SKILL.md" % p.parent.name for p in skills])
+
+
+def test_targets_cover_every_generator(gen):
+    """AC-4.3: the three identity targets share the `scripts` root and
+    between them own every GENERATED path and every SUBGENERATOR exactly
+    once, so no generated file is skipped by `--target <platform>`; the
+    fixture target is the one non-identity target."""
+    identity = [t for t in gen.TARGETS if gen.TARGETS[t]["script_root"] == "scripts"]
+    assert identity == list(IDENTITY_TARGETS)
+    assert [t for t in gen.TARGETS if t not in identity] == ["fixture"]
+    owned = [rel for t in identity for rel in gen.TARGETS[t]["generated"]]
+    assert sorted(owned) == sorted(rel for rel, _ in gen.GENERATED) and len(owned) == len(set(owned))
+    subs = [g for t in identity for g in gen.TARGETS[t]["subgenerators"]]
+    assert sorted(subs) == sorted(gen.SUBGENERATORS) and len(subs) == len(set(subs))
+
+
+@pytest.mark.parametrize("target", IDENTITY_TARGETS)
+def test_identity_target(tmp_path, target):
+    """AC-4.3: `--target <identity>` runs write mode for that platform's files
+    only (cursor: writ.mdc; claude-code: the agent files and CLAUDE.md; codex:
+    the template and the TOMLs) and writes no commands/ or skills/ output
+    anywhere: on a clean tree the set of files and every byte are unchanged."""
+    tree = tmp_tree(tmp_path)
+    before = snapshot(tree)
+    proc = run_tree(tree, "--target", target)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    lines = proc.stdout.splitlines()
+    wrote = wrote_lines(proc)
+    assert lines[0] == "pass"
+    assert lines[-1] == "gen-platform-trees: pass (%d written, 0 reasons)" % len(wrote)
+    stems = sorted(p.stem for p in (tree / "agents").glob("*.md"))
+    expected = {
+        "cursor": {"wrote cursor/writ.mdc"},
+        "claude-code": {"wrote claude-code/CLAUDE.md"} | {
+            "wrote claude-code/agents/%s" % p.name for p in (tree / "claude-code" / "agents").glob("writ-*.md")},
+        "codex": {"wrote codex/AGENTS.md.template"} | {"wrote codex/agents/%s.toml" % s for s in stems},
+    }[target]
+    assert set(wrote) == expected and len(wrote) == len(expected)
+    assert all(line.startswith("wrote %s/" % target) for line in wrote)
+    assert snapshot(tree) == before
+
+
+@pytest.mark.parametrize("args, why", USAGE_ERRORS, ids=[w for _, w in USAGE_ERRORS])
+def test_target_usage_errors(tmp_path, args, why):
+    """AC-4.3: an identity target with --out-dir, a non-identity target
+    without one, --target beside --check or coverage, an unknown target,
+    --out-dir alone, or two modes at once is a usage error: usage on stderr,
+    empty stdout, exit 2, nothing written."""
+    tree = tmp_tree(tmp_path)
+    before = snapshot(tree)
+    proc = run_tree(tree, *args)
+    assert proc.returncode == 2, why + ": " + proc.stdout + proc.stderr
+    assert proc.stdout == "", why
+    assert "usage:" in proc.stderr, why
+    assert not (tree / "x").exists(), why
+    assert snapshot(tree) == before
+
+
+def test_dev_only():
+    """AC-4.5: `is_shippable_script gen-platform-trees.py` returns non-zero in
+    install.sh, update.sh, and unlink.sh, whose function bodies are
+    byte-identical; the control `spec-status.py` stays shippable."""
+    bodies = {script: ship_filter(script) for script in ("install.sh", "update.sh", "unlink.sh")}
+    assert len(set(bodies.values())) == 1, "is_shippable_script bodies differ"
+    for script, body in bodies.items():
+        assert "gen-platform-trees.py" in body, script
+        assert not is_shippable(body, "gen-platform-trees.py"), script
+        assert is_shippable(body, "spec-status.py"), script
+
+
+@pytest.mark.parametrize("target", [None, "claude-code"], ids=["all", "claude-code"])
+def test_write_blocked_by_stray_agent(tmp_path, target):
+    """Write mode, and the claude-code identity target, fail on a stray
+    claude-code/agents/*.md outside the `writ-*.md` glob with `orphan
+    claude-code/agents/<name>`, exit 1, nothing written: a write would
+    otherwise list the stray in claude-code/CLAUDE.md and `--check` would
+    then pass on a file install.sh ships. `--target cursor` does not read
+    that directory and still writes."""
+    tree = tmp_tree(tmp_path)
+    add_stray_claude_agent(tree)
+    before = snapshot(tree)
+    proc = run_tree(tree, *(("--target", target) if target else ()))
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert proc.stdout.splitlines() == [
+        "fail", "reason: orphan claude-code/agents/helper.md",
+        "gen-platform-trees: fail (0 written, 1 reasons)"]
+    assert snapshot(tree) == before
+    proc = run_tree(tree, "--target", "cursor")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert wrote_lines(proc) == ["wrote cursor/writ.mdc"]
+
+
+def test_write_blocked_by_vendor(tmp_path):
+    """Write mode runs the vendor scan among its pre-checks: a vendor token
+    in a command fails the run with `vendor <name> in commands/<f>.md:<line>`,
+    exit 1, and nothing is written."""
+    tree = tmp_tree(tmp_path)
+    line = append_token(tree / "commands" / "status.md")
+    before = snapshot(tree)
+    proc = run_tree(tree)
+    assert proc.returncode == 1, proc.stdout + proc.stderr
+    assert proc.stdout.splitlines() == [
+        "fail", "reason: vendor TodoWrite in commands/status.md:%d" % line,
+        "gen-platform-trees: fail (0 written, 1 reasons)"]
+    assert snapshot(tree) == before

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T05:32:50Z
+> Last Updated: 2026-10-23T07:35:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-generated-platform-trees — Generated Platform Trees
-- **Status:** In Progress (3/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
-- **Story:** 3 of 5 — Generated Codex Template (Completed ✅)
-- **Progress:** 21/33 tasks complete (64%)
+- **Status:** In Progress (4/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
+- **Story:** 4 of 5 — `--check`, Coverage, Tokens, and Eval Wiring (Completed ✅)
+- **Progress:** 28/33 tasks complete (85%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-009 `browser_navigate` hit rewritten to neutral prose, not a neutral name — generated-platform-trees (Story 4, auto-amended; spec-lite vocabulary line records the no-neutral-name rule)
+- DEV-008 `check_platform_trees` runs `--check` only, not `--check` then `coverage` — generated-platform-trees (Story 4, auto-amended; spec-lite check-shape line says why)
 - DEV-007 Render-time guards beyond the spec's shadow paths — generated-platform-trees (Story 3, auto-amended; spec-lite generated-files line names the guards)
-- DEV-006 `claude-code/CLAUDE.md` carries no generated-file comment — generated-platform-trees (Story 2, auto-amended; spec-lite regenerate line says which files carry the comment)
-- DEV-005 Sub-generator output-state kinds do not block write mode — generated-platform-trees (Story 2, auto-amended; spec-lite Business Rules check-shape line gains the clause)
 
 ## Open Issues
 
