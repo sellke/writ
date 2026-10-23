@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T08:20:00Z
+> Last Updated: 2026-10-23T15:28:07Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-22-generated-platform-trees — Generated Platform Trees
-- **Status:** Complete (5/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`, awaiting the phase merge)
-- **Story:** 5 of 5 — Install Evidence and Issue Closure (Completed ✅)
-- **Progress:** 33/33 tasks complete (100%)
+- **Spec:** 2026-10-22-plugin-distribution — Plugin Distribution
+- **Status:** In Progress (1/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`)
+- **Story:** 1 of 5 — Verify Both Plugin Formats and Decide the Layout (Completed ✅)
+- **Progress:** 7/33 tasks complete (21%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-22-generated-platform-trees/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
-- **Knowledge:** .writ/knowledge/ (24 entries)
+- **Active spec:** .writ/specs/2026-10-22-plugin-distribution/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Knowledge:** .writ/knowledge/ (25 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-010 Install evidence test passes `--no-commit` — generated-platform-trees (Story 5, auto-amended; spec-lite Test Strategy line names the flag)
-- DEV-009 `browser_navigate` hit rewritten to neutral prose, not a neutral name — generated-platform-trees (Story 4, auto-amended; spec-lite vocabulary line records the no-neutral-name rule)
-- DEV-008 `check_platform_trees` runs `--check` only, not `--check` then `coverage` — generated-platform-trees (Story 4, auto-amended; spec-lite check-shape line says why)
+- DEV-004 Cursor `commands/` and `agents/` directories are now documented — plugin-distribution (Story 1, auto-amended; spec-lite Cursor line)
+- DEV-003 Two token classes added (`script-path`, `command-ref`) — plugin-distribution (Story 1, auto-amended; spec-lite Story 1 line)
+- DEV-002 Carrier decided by the quote and persona probes, not the assertion probe — plugin-distribution (Story 1, auto-amended)
 
 ## Open Issues
 

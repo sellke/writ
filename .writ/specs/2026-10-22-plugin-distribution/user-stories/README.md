@@ -4,7 +4,7 @@
 
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
-| 1 | [Verify Both Plugin Formats and Decide the Layout](story-1-verify-plugin-formats-and-decide-layout.md) | Not Started | High | None | 7 | 0/7 |
+| 1 | [Verify Both Plugin Formats and Decide the Layout](story-1-verify-plugin-formats-and-decide-layout.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Claude Code Plugin](story-2-claude-code-plugin.md) | Not Started | High | Story 1 | 7 | 0/7 |
 | 3 | [Cursor Plugin](story-3-cursor-plugin.md) | Not Started | High | Story 1, Story 2 | 6 | 0/6 |
 | 4 | [Scaffold Script, `/initialize` Step 0, and ADR-031](story-4-scaffold-script-initialize-and-adr-031.md) | Not Started | High | Story 1 | 6 | 0/6 |
