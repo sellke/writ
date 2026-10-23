@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T00:43:08Z
+> Last Updated: 2026-10-23T01:47:37Z
 
 ## Product Mission
 
@@ -8,24 +8,23 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-22-prompting-guide — Prompting Guide
-- **Status:** Complete (2/2 stories; Phase 14 lane `writ/phase/14/2026-10-22-prompting-guide`, awaiting merge by /implement-phase)
-- **Story:** 2 of 2 — Ship, Link, and Pin the Guide (Completed ✅)
-- **Progress:** 13/13 tasks complete (100%)
+- **Spec:** 2026-10-22-front-door — Front Door
+- **Status:** In Progress (1/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-front-door`)
+- **Story:** 1 of 3 — The `/writ` Command File (Completed ✅)
+- **Progress:** 7/21 tasks complete (33%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-22-prompting-guide/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-22-front-door/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (24 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-004 Ship-set function sourced from a here-string instead of process substitution — prompting-guide (Story 2, auto-amended; no spec-lite change needed)
-- DEV-003 Roadmap Route line adds a clarifying clause — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
-- DEV-002 Opening paragraph states coverage instead of the sketch's metaphor — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
+- DEV-002 Step 1 adds an issue-file restatement heuristic — front-door (Story 1, auto-amended; no spec-lite change needed)
+- DEV-001 Overview states the Claude Code plugin name `/writ:writ` — front-door (Story 1, auto-amended; no spec-lite change needed)
 
 ## Open Issues
 
