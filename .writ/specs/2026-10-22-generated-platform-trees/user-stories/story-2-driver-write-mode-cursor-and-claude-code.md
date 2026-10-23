@@ -1,6 +1,7 @@
 # Story 2: Driver Write Mode for the Cursor and Claude Code Root Files
 
 > **Status:** Completed ✅ (2026-10-22)
+> **Commit:** 19ffbc5e97db0f4bb6691d7a0d517e521d2efba1
 > **Priority:** High
 > **Dependencies:** Story 1
 
