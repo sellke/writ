@@ -605,7 +605,9 @@ KNOWN_OVER_BUDGET = {
     # tracking step, why-this-step paragraphs, spec-lite budget breakdown), and the
     # Example Usage dialogue. Each cut removed coaching, not a byte goal; every
     # step, gate, AskQuestion block, and script call stays. cut-log.md lists every change.
-    "commands/create-spec.md": 13602,
+    # 2026-10-22 (2026-10-22-generated-platform-trees Story 1): 13602 -> 13654; Step 1.3 names
+    # the adapter's `Plan Mode` row.
+    "commands/create-spec.md": 13654,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

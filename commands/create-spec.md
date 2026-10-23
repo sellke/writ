@@ -243,7 +243,7 @@ Scan `.writ/specs/` for related specifications, analyze codebase architecture an
 
 #### Step 1.3: Discovery Conversation (Plan Mode)
 
-After the context scan, run discovery in Plan Mode; the user controls when to switch. Before speaking, silently list what is missing or ambiguous across four areas:
+After the context scan, run discovery in Plan Mode, entered through the adapter's `Plan Mode` row; the user controls when to switch back. Before speaking, silently list what is missing or ambiguous across four areas:
 
 - **Experience:** entry point, happy path, key interaction moments, feedback/confirmation, error/empty/loading states, responsive behavior
 - **Business rules:** permissions and access control, validation rules and limits, state transitions and lifecycle, time-based rules, pricing/billing, domain edge cases, compliance

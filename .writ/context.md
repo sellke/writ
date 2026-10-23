@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T03:02:18Z
+> Last Updated: 2026-10-23T04:10:34Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-22-front-door — Front Door
-- **Status:** Complete (3/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-front-door`, awaiting merge by /implement-phase)
-- **Story:** 3 of 3 — Structure Rows, Issue Resolution, and Routing Fixture (Completed ✅)
-- **Progress:** 21/21 tasks complete (100%)
+- **Spec:** 2026-10-22-generated-platform-trees — Generated Platform Trees
+- **Status:** In Progress (1/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-generated-platform-trees`)
+- **Story:** 1 of 5 — Adapter Table Parser and Parity Repairs (Completed ✅)
+- **Progress:** 7/33 tasks complete (21%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-22-front-door/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-22-generated-platform-trees/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (24 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-006 Step 2 tie-break says when an escalation signal counts — front-door (Story 3, auto-amended; spec-lite Business Rules tie-break line amended)
-- DEV-005 Maintenance edits to two pre-existing test files outside the S2 file list — front-door (Story 2, auto-amended; spec-lite Files in Scope names them)
-- DEV-004 README install follow-up lines and closing sentence point at `/writ` — front-door (Story 2, auto-amended; spec-lite Registration line amended)
+- DEV-003 Cursor `Plan Mode` row split across columns 2 and 3 — generated-platform-trees (Story 1, auto-amended; spec-lite Story 1 line names the layout)
+- DEV-002 URL-shaped tokens excluded from vendor identifiers — generated-platform-trees (Story 1, auto-amended; spec-lite vocabulary line gains the clause)
+- DEV-001 `is_shippable_script` entry pulled forward from Story 4 — generated-platform-trees (Story 1, auto-amended; spec-lite check-shape line names Story 1 and the three scripts)
 
 ## Open Issues
 
-26 open issue files in .writ/issues/ (39 total; 13 closed with `## Resolution`)
+25 open issue files in .writ/issues/ (39 total; 14 closed with `## Resolution`)

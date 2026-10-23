@@ -113,6 +113,7 @@ These Cursor tools are used directly; no adapter is needed:
 | `run_terminal_cmd` | implement-story | Run shell commands |
 | `list_dir` | initialize, status | List directory contents |
 | `canvas-preview` | prototype (Step 2.5) | Write one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/` and give the user each path. The documented Browser tool (`@browser`, `browser_navigate`) opens only origins on its allowlist, such as `http://localhost:3000`, so a draft renders there only when the project serves that folder; no canvas tool that renders a local HTML file is documented. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `Plan Mode` | create-spec, plan-product, new-command | Ask the user to switch to Plan Mode; continue when they have. If the platform has no toggle, say so and proceed read-only. |
 
 #### Verification record — 2026-10-22
 

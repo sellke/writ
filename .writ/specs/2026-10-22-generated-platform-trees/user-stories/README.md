@@ -4,7 +4,7 @@
 
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
-| 1 | [Adapter Table Parser and Parity Repairs](story-1-adapter-parser-and-parity-repairs.md) | Not Started | High | None | 7 | 0/7 |
+| 1 | [Adapter Table Parser and Parity Repairs](story-1-adapter-parser-and-parity-repairs.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Driver Write Mode for the Cursor and Claude Code Root Files](story-2-driver-write-mode-cursor-and-claude-code.md) | Not Started | High | Story 1 | 7 | 0/7 |
 | 3 | [Generated Codex Template](story-3-generated-codex-template.md) | Not Started | High | Story 2 | 7 | 0/7 |
 | 4 | [`--check`, Coverage, Tokens, and Eval Wiring](story-4-check-coverage-tokens-and-eval-wiring.md) | Not Started | High | Story 3 | 7 | 0/7 |
