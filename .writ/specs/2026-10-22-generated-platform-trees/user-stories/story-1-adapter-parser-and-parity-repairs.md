@@ -1,6 +1,7 @@
 # Story 1: Adapter Table Parser and Parity Repairs
 
 > **Status:** Completed ✅ (2026-10-22)
+> **Commit:** bf7434a71b7fb21e677936f86f613137428b7012
 > **Priority:** High
 > **Dependencies:** None
 
