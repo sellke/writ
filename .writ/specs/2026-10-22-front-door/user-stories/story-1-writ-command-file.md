@@ -1,6 +1,7 @@
 # Story 1: The `/writ` Command File
 
 > **Status:** Completed ✅
+> **Commit:** 00f8261a2ff71fca1806817c6835f947bbbf8f8f
 > **Priority:** High
 > **Dependencies:** None
 
