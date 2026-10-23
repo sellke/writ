@@ -6,6 +6,8 @@ metadata:
   runtime_contract: ".writ/docs/recommended-delivery-state-format.md"
 
 categories:
+  - id: entry
+    label: "Start here"
   - id: planning
     label: "Planning & Specification"
   - id: implementation
@@ -181,6 +183,11 @@ commands:
     category: planning
     purpose: "Validate spec integrity, status sync, completion evidence, and contract drift."
     tags: [planning, verification, spec]
+  - name: writ
+    file: commands/writ.md
+    category: entry
+    purpose: "Restate a request, route it to the fitting command, and run it with its phases on the todo list."
+    tags: [entry, routing]
   - name: writ-design
     file: commands/writ-design.md
     category: planning

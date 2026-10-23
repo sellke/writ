@@ -518,13 +518,23 @@ def test_status_allowlists():
     """AC-2.3: both command allowlists in `commands/status.md` name
     `writ-design` where the old name stood."""
     text = read("commands/status.md")
-    quick = [line for line in text.splitlines() if line.startswith("`/create-spec`, ")]
+    # The slash list opens with the front door (`/writ`), so anchor on the
+    # `/create-spec` token rather than the line start.
+    quick = [
+        line for line in text.splitlines()
+        if line.startswith("`/") and "`/create-spec`, " in line
+    ]
     assert len(quick) == 1, quick
     listed = re.findall(r"`([^`]+)`", quick[0])
     assert "/writ-design" in listed and OLD_SLASH not in listed, listed
 
     note = section(text, "## Maintainer Note: Command Allowlist")
-    bare = [line for line in note.splitlines() if line.startswith("`create-spec`, ")]
+    # The bare list opens with `writ` too, so anchor on the `create-spec`
+    # token rather than the line start.
+    bare = [
+        line for line in note.splitlines()
+        if line.startswith("`") and "`create-spec`, " in line
+    ]
     assert len(bare) == 1, bare
     listed = re.findall(r"`([^`]+)`", bare[0])
     assert "writ-design" in listed and OLD_NAME not in listed, listed
@@ -535,8 +545,13 @@ def test_cursor_tree():
     `writ-design.md` in sorted position (last, `└──`), lists one file per
     manifest command with the count in its header, and keeps the comment
     column aligned."""
-    manifest = sorted(
-        Path(str(entry["file"])).name for entry in manifest_commands(read(".writ/manifest.yaml")))
+    # Sorted by command name, as the manifest is: `writ` precedes `writ-design`
+    # by name while `writ.md` would follow `writ-design.md` by file name.
+    manifest = [
+        Path(str(entry["file"])).name
+        for entry in sorted(
+            manifest_commands(read(".writ/manifest.yaml")), key=lambda e: str(e["name"]))
+    ]
     tree = section(read("adapters/cursor.md"), "## Directory Structure").splitlines()
     start = next(i for i, line in enumerate(tree) if line.startswith("│   ├── commands/"))
     assert "(%d)" % len(manifest) in tree[start], tree[start]

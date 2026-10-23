@@ -11,12 +11,12 @@
 - `commands/writ.md` under 200 lines: frontmatter (`entry_level: high`, 4 exit criteria), Steps 1–5 (Restate, Classify, Confirm, Mirror, Run), `## Routing Rules` table with exactly six rows in order (idea → `/prototype`; bug/small → `/prototype --no-diverge`; feature or any `/prototype` escalation signal → `/create-spec`; roadmap → `/implement-phase <N>`; why/how → `/research` until `/why`; empirical fork → `/prototype` with the fork named).
 - Missing parts are named with the guide's words and linked to `.writ/docs/prompting-guide.md` § What a request carries; routing proceeds unless the goal is missing (then one natural-language question).
 - Mirroring: `### Phase N` headings (fallback `### Step N`) via `todo_write`; where the adapter maps it to a file, print a checklist instead.
-- Registration: manifest (`entry` category first; `writ` after `verify-spec`), `gen-skill.sh`, `gen-claude-md.py` template line + regen, Codex template, README Quick Start, cursor tree (33), `status.md` list, `model-tiers.md` high row (16), Claude Code `todo_write` → `TodoWrite`.
+- Registration: manifest (`entry` category first; `writ` after `verify-spec`), `gen-skill.sh`, `gen-claude-md.py` template line + regen, Codex template, README Quick Start (its per-platform install follow-up lines name `/writ "my feature"`), cursor tree (33), `status.md` lists (the slash allowlist and the Maintainer Note bare list both add `writ` first), `model-tiers.md` high row (16), Claude Code `todo_write` → `TodoWrite`.
 - Edit by section heading, never by line number. Regenerate generated files; never hand-edit them.
 
 **Files in Scope:**
 - `commands/writ.md`, `scripts/tests/test_front_door.py` (S1)
-- `.writ/manifest.yaml`, `SKILL.md`, `scripts/gen-claude-md.py`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, `adapters/cursor.md`, `adapters/claude-code.md`, `commands/status.md`, `.writ/docs/model-tiers.md` (S2)
+- `.writ/manifest.yaml`, `SKILL.md`, `scripts/gen-claude-md.py`, `claude-code/CLAUDE.md`, `codex/AGENTS.md.template`, `README.md`, `adapters/cursor.md`, `adapters/claude-code.md`, `commands/status.md`, `.writ/docs/model-tiers.md` (S2); maintenance edits forced by the registration: `scripts/tests/test_gen_claude_md.py` (fixture gains the template line), `scripts/tests/test_platform_neutral_names.py` (allowlist and tree anchors)
 - `scripts/eval-command-structure.py`, `.writ/issues/features/2026-10-13-in-your-own-words.md`, technical-spec.md § Routing Fixture evidence (S3)
 
 **Error Handling:**
@@ -42,7 +42,7 @@
 6. Issue has `## Resolution` and `spec_ref`; the routing fixture's eight requests route as expected in the recorded run `[AC-3.2, AC-3.3, AC-3.4]`
 
 **Business Rules:**
-- The rule table is the only classifier; tie-break by `/prototype`'s escalation signals.
+- The rule table is the only classifier; tie-break by `/prototype`'s escalation signals, counted only when the request states one or the restatement can name it (an unstated file count is not a signal; `/prototype` counts files when it runs and escalates itself).
 - Exactly one confirmation; flags travel with the route.
 - `/writ` creates nothing under `.writ/` and keeps no state.
 

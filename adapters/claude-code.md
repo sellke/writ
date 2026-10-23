@@ -191,7 +191,7 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 | `AskQuestion()` | Formatted text with numbered options | No interactive UI |
 | `codebase_search` | `Grep("pattern")` or `Bash("rg 'pattern'")` | Built-in Grep tool |
 | `file_search` | `Glob("**/pattern*")` | Built-in Glob tool |
-| `todo_write` | `Write(".writ/state/tracking.json")` | File-based |
+| `todo_write` | `TodoWrite` | Native todo list; phases mirror here |
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Direct equivalent |
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |

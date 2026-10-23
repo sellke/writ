@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T00:43:08Z
+> Last Updated: 2026-10-23T03:02:18Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-22-prompting-guide — Prompting Guide
-- **Status:** Complete (2/2 stories; Phase 14 lane `writ/phase/14/2026-10-22-prompting-guide`, awaiting merge by /implement-phase)
-- **Story:** 2 of 2 — Ship, Link, and Pin the Guide (Completed ✅)
-- **Progress:** 13/13 tasks complete (100%)
+- **Spec:** 2026-10-22-front-door — Front Door
+- **Status:** Complete (3/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-front-door`, awaiting merge by /implement-phase)
+- **Story:** 3 of 3 — Structure Rows, Issue Resolution, and Routing Fixture (Completed ✅)
+- **Progress:** 21/21 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-22-prompting-guide/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-22-front-door/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (24 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-004 Ship-set function sourced from a here-string instead of process substitution — prompting-guide (Story 2, auto-amended; no spec-lite change needed)
-- DEV-003 Roadmap Route line adds a clarifying clause — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
-- DEV-002 Opening paragraph states coverage instead of the sketch's metaphor — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
+- DEV-006 Step 2 tie-break says when an escalation signal counts — front-door (Story 3, auto-amended; spec-lite Business Rules tie-break line amended)
+- DEV-005 Maintenance edits to two pre-existing test files outside the S2 file list — front-door (Story 2, auto-amended; spec-lite Files in Scope names them)
+- DEV-004 README install follow-up lines and closing sentence point at `/writ` — front-door (Story 2, auto-amended; spec-lite Registration line amended)
 
 ## Open Issues
 
-27 open issue files in .writ/issues/ (39 total; 12 closed with `## Resolution`)
+26 open issue files in .writ/issues/ (39 total; 13 closed with `## Resolution`)
