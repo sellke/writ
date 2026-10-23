@@ -1,6 +1,7 @@
 # Story 5: Install Evidence and Issue Closure
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** 1340368c5968c90a6c257310d0b6c1bd59de0c46
 > **Priority:** High
 > **Dependencies:** Story 4
 
