@@ -1,6 +1,7 @@
 # Story 1: Write the Prompting Guide
 
 > **Status:** Completed ✅
+> **Commit:** 4fe27c75dc526e87bcc810fc39b2c242d353dc9d
 > **Priority:** High
 > **Dependencies:** None
 
