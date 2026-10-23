@@ -1,6 +1,7 @@
 # Story 3: Cursor Plugin
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** 1f076f9bbbb86f6a7e22bf952c47651c8f669f6b
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
