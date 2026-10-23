@@ -372,8 +372,10 @@ def test_cli_unknown_flag_is_usage_error():
 # Story 2: capability map, cursor/writ.mdc, claude-code/CLAUDE.md, write mode
 # ---------------------------------------------------------------------------
 
-TREE_DIRS = ("adapters", "agents", "commands", "skills", "cursor", "claude-code", "codex")
-TREE_FILES = ("system-instructions.md", ".writ/manifest.yaml")
+TREE_DIRS = ("adapters", "agents", "commands", "skills", "cursor", "claude-code", "codex",
+             # The claude-code-plugin target's output.
+             "plugins", ".claude-plugin")
+TREE_FILES = ("system-instructions.md", ".writ/manifest.yaml", "VERSION")
 MAP_LEAD = "Commands name capabilities; this table maps them to this platform."
 MAP_HEADER = ["| Capability | On this platform | When unavailable |", "|---|---|---|"]
 NO_RENDERER = ("No renderer: write a structural description of each draft and say the "
@@ -389,11 +391,13 @@ CURSOR_HEADING = "## Native Tool Availability"
 
 
 def tmp_tree(tmp_path: Path) -> Path:
-    """A copy of what the driver reads and writes: scripts/*.py, the source
-    and generated directories, system-instructions.md, and the manifest."""
+    """A copy of what the driver reads and writes: every top-level file in
+    scripts/ (the plugin target copies the shipped ones), the source and
+    generated directories, system-instructions.md, the manifest, and VERSION."""
     (tmp_path / "scripts").mkdir(parents=True)
-    for script in (REPO_ROOT / "scripts").glob("*.py"):
-        shutil.copy(script, tmp_path / "scripts" / script.name)
+    for script in (REPO_ROOT / "scripts").iterdir():
+        if script.is_file():
+            shutil.copy2(script, tmp_path / "scripts" / script.name)
     for name in TREE_DIRS:
         shutil.copytree(REPO_ROOT / name, tmp_path / name)
     for rel in TREE_FILES:
@@ -579,7 +583,12 @@ def test_write_mode_shape(tmp_path):
         assert "wrote claude-code/agents/%s" % name in wrote
     for stem in stems:
         assert "wrote codex/agents/%s.toml" % stem in wrote
-    assert len(wrote) == 3 + 2 * len(stems)
+    # The claude-code-plugin target's tree is written last, one line per file.
+    plugin = sorted(["wrote .claude-plugin/marketplace.json"] + [
+        "wrote " + p.relative_to(tree).as_posix()
+        for p in (tree / "plugins" / "writ").rglob("*") if p.is_file()])
+    assert sorted(wrote[len(wrote) - len(plugin):]) == plugin
+    assert len(wrote) == 3 + 2 * len(stems) + len(plugin)
     assert lines[-1] == "gen-platform-trees: pass (%d written, 0 reasons)" % len(wrote)
     assert len(lines) == len(wrote) + 2
     assert not any(l.startswith("reason: ") for l in lines)
@@ -1282,7 +1291,12 @@ def test_vendor_hit(tmp_path):
     assert check_lines(proc, "fail", (0, 0, 0, 0, 2)) == expected
     proc = run_tree(tree, "--check")
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    assert check_lines(proc, "fail", (0, 0, 0, 0, 2)) == expected
+    # A new command also leaves the claude-code-plugin target's tree behind;
+    # those reasons come before the vendor scan.
+    assert check_lines(proc, "fail", (1, 1, 0, 0, 2)) == [
+        "reason: stale plugins/writ/.claude-plugin/plugin.json",
+        "reason: missing plugins/writ/" + rel,
+    ] + expected
     assert wrote_lines(proc) == []
     assert snapshot(tree) == before
 
@@ -1375,10 +1389,11 @@ def test_targets_cover_every_generator(gen):
     """AC-4.3: the three identity targets share the `scripts` root and
     between them own every GENERATED path and every SUBGENERATOR exactly
     once, so no generated file is skipped by `--target <platform>`; the
-    fixture target is the one non-identity target."""
+    non-identity targets are the fixture and the Claude Code plugin
+    (`claude-code-plugin`)."""
     identity = [t for t in gen.TARGETS if gen.TARGETS[t]["script_root"] == "scripts"]
     assert identity == list(IDENTITY_TARGETS)
-    assert [t for t in gen.TARGETS if t not in identity] == ["fixture"]
+    assert [t for t in gen.TARGETS if t not in identity] == ["fixture", "claude-code-plugin"]
     owned = [rel for t in identity for rel in gen.TARGETS[t]["generated"]]
     assert sorted(owned) == sorted(rel for rel, _ in gen.GENERATED) and len(owned) == len(set(owned))
     subs = [g for t in identity for g in gen.TARGETS[t]["subgenerators"]]

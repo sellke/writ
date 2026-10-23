@@ -8,7 +8,7 @@
 **Deliverable:** Writ installs as a plugin in Claude Code and Cursor from this repository, built from the generated trees; scripts run from the plugin root; `/initialize` scaffolds `.writ/` via a shipped `scaffold-writ.py`; one smoke test covers both plugins and the three `install.sh` installs; `install.sh` stays; ADR-031 records the script-location decision.
 
 **Implementation Approach:**
-- Story 1 verifies before any code: first-party docs plus one live install per platform, recorded in technical-spec.md § Verification Record (status grammar as the rendering-rows spec); picks layout B (`plugins/writ/` generated subdir, the default) or A (repo root is the plugin, `source: "."`, only if validate, a local-path live install, and the root `skills/` scan all behave); picks the Prime Directive carrier (`settings.json` main-thread agent, or forced output style) by probe; fills the relative-path inventory and the token classes (`agent-path`, `skill-path`, `preamble-path`, `instructions-path`). Outcome 2026-10-23: layout B; carrier `plugins/writ/output-styles/writ.md` with `force-for-plugin: true` and `keep-coding-instructions: true` (the P2 quote and P3 persona probes discriminated, P1 did not); token classes add `script-path` (bare `scripts/<name>`) and `command-ref` (`/<cmd>` to `/writ:<cmd>`), body only (DEV-002, DEV-003).
+- Story 1 verifies before any code: first-party docs plus one live install per platform, recorded in technical-spec.md § Verification Record (status grammar as the rendering-rows spec); picks layout B (`plugins/writ/` generated subdir, the default) or A (repo root is the plugin, `source: "."`, only if validate, a local-path live install, and the root `skills/` scan all behave); picks the Prime Directive carrier (`settings.json` main-thread agent, or forced output style) by probe; fills the relative-path inventory and the token classes (`agent-path`, `skill-path`, `preamble-path`, `instructions-path`). Outcome 2026-10-23: layout B; carrier `plugins/writ/output-styles/writ.md` with `force-for-plugin: true` and `keep-coding-instructions: true` (the P2 quote and P3 persona probes discriminated, P1 did not); token classes add `script-path` (bare `scripts/<name>`) and `command-ref` (`/<cmd>` to `/writ:<cmd>`), body only; `instructions-path` rewrites the Markdown link form only and whole-line HTML comments are never rewritten (DEV-002, DEV-003, DEV-007).
 - Claude Code: `.claude-plugin/plugin.json` + `marketplace.json`; a `claude-code-plugin` target in `gen-platform-trees.py` with `script_root: ${CLAUDE_PLUGIN_ROOT}/scripts` and the new tokens; namespaced names (`/writ:<cmd>`, `writ:<agent>`) spelled in generated text; ignored agent frontmatter keys documented.
 - Cursor: `.cursor-plugin/plugin.json` (`name`, `description`, `version` from `VERSION`), `rules/writ.mdc`, skills, commands, agents (`commands/` and `agents/` are docs-verified discovery dirs as of 2026-10-23, live load pending UAT, DEV-004; commands keep `python3 scripts/<name>.py`, no plugin-root script form is verified); local-install protocol; live check is UAT; Story 3 runs after Story 2 (shared `TARGETS` and test file).
 - `scripts/scaffold-writ.py scaffold [--project] [--check]`: idempotent eleven-path `.writ/` tree (adds `knowledge/` and `issues/{bugs,features,improvements,goals}`, drops `explanations/`) + `.gitignore` entries, creating the file when absent; `install.sh` and `update.sh` keep a byte-identical bash `init_writ_workspace` with the same list (no Python in the installers) and a test asserts the two lists match; `/initialize` Step 0 runs the script.
@@ -17,7 +17,7 @@
 
 **Files in Scope:**
 - technical-spec.md § Verification Record, § Relative Path Inventory, § Candidate Layouts decision (S1)
-- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `scripts/gen-platform-trees.py` (target + tokens), generated plugin tree, carrier file(s), `adapters/claude-code.md` § Installation (S2)
+- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `scripts/gen-platform-trees.py` (target + tokens), generated plugin tree, carrier file(s), `adapters/claude-code.md` § Installation; Story 1 record tests and optional manifest fields `repository`, `license`, marketplace `description` (S2, DEV-010)
 - `.cursor-plugin/plugin.json`, Cursor layout, `adapters/cursor.md` § Plugin (S3)
 - `scripts/scaffold-writ.py`, `scripts/install.sh`, `scripts/update.sh`, `commands/initialize.md`, `.writ/decision-records/adr-031-script-location.md`, script-install-location issue (S4)
 - `scripts/tests/test_plugin_smoke.sh`, `README.md`, `adapters/codex.md` one-line note (S5)
@@ -31,6 +31,7 @@
 - Needs `2026-10-22-generated-platform-trees` (TARGETS, token pattern, `--check`).
 - Front door under the plugin reads `/writ:writ`; the README example says so.
 - ADR-029's script-location consequence is superseded by ADR-031.
+- Story 5's live run confirms the prompt-template docs in `plugins/writ/agents/` do not load as agents (DEV-009).
 
 ---
 
@@ -47,7 +48,7 @@
 **Business Rules:**
 - Every platform claim carries a date and a URL; the README cites only the smoke test.
 - The plugin tree is a generator target, never a second generation path.
-- Dev-only scripts never enter a plugin.
+- Dev-only scripts never enter a plugin (their names may stay in prose that addresses the Writ source repository, DEV-008).
 
 **Experience Design:**
 - Entry: two `claude plugin` commands, then `/writ:initialize`.

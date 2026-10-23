@@ -46,3 +46,60 @@
 - **Spec amendment:** spec-lite.md → For Coding Agents, the Cursor line says the directories are docs-verified and the live load is pending UAT.
 
 ---
+
+## Story 2: Claude Code Plugin — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-005] Self-locating Writ-source scripts resolve their root to the plugin
+- **Severity:** Medium
+- **Spec said:** Rule 3: the plugin root holds the shipped script set (`is_shippable_script`), and commands run scripts from the plugin root.
+- **Implementation did:** Ships exactly that set. Four of those scripts locate their working root from their own path (`gen-claude-agents.py`, `gen-codex-agent-tomls.py`, `check-agent-parity.sh`, `gen-skill.sh`), so run as `${CLAUDE_PLUGIN_ROOT}/scripts/<name>` from `/writ:refresh-command` or `/writ:new-skill` they read and would write inside the plugin directory instead of the project.
+- **Reason:** These are Writ-source maintenance tools that `is_shippable_script` admits today; under `install.sh` their root is the project and the effect is harmless. Reclassifying them (dev-only, or cwd-relative) changes the shipped set for every install path, which is outside this story. Recorded in ADR-031 consequences as a follow-up.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review
+
+#### [DEV-006] `.writ/docs/` reference docs are absent in a plugin-only project
+- **Severity:** Medium
+- **Spec said:** spec.md Technical Concerns and the Relative Path Inventory: `.writ/docs/<x>` is a project path, unchanged; Story 2's user story: "I copy nothing into my project".
+- **Implementation did:** Leaves the 83 references unchanged, as the inventory decides, and `adapters/claude-code.md` § Plugin says the plugin does not ship them. `install.sh` copies Writ's format docs (e.g. `acceptance-criteria-ids.md`, `spec-lifecycle.md`, `what-was-built-format.md`) into `.writ/docs/`; a plugin-only project has none, and the Story 4 scaffold creates the empty directory only.
+- **Reason:** Shipping the docs would add a token class or a scaffold copy step that the contract does not name. Spec-level gap; follow-up for an amendment (candidate: scaffold-writ.py copies shipped docs from the plugin root, or a `writ-doc-path` token).
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review
+
+#### [DEV-007] Inventory re-take: `instructions-path` rewrites link forms only; comment lines skipped
+- **Severity:** Small
+- **Spec said:** Story 1 inventory: link and bare `system-instructions.md` forms resolve to `${CLAUDE_PLUGIN_ROOT}/system-instructions.md`.
+- **Implementation did:** After review, rewrites only the Markdown link (`` [`system-instructions.md`](../system-instructions.md) `` text and target); bare mentions name installed files and stay. Whole-line HTML comments are not rewritten. The inventory row carries a dated note. Remaining minor prose items: `migrate.md` "Just use /writ:writ commands", `status.md` example log line, `new-command.md` template References now carry `${CLAUDE_PLUGIN_ROOT}/commands/_preamble.md`.
+- **Reason:** Bare-mention rewrites changed meaning in install and meta commands (update-writ, reinstall-writ, migrate, plain-prose).
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents, the Story 1 outcome line notes the link-only rule and skipped comment lines.
+
+#### [DEV-008] Dev-only script calls stay bare in plugin bodies
+- **Severity:** Small
+- **Spec said:** Rule 3: "A plugin command never references a dev-only script."
+- **Implementation did:** Follows the record ("dev-only names unchanged"): `bash scripts/eval.sh` (refresh-command, plain-prose), `scripts/publish-writ-runtime.sh` (release), `scripts/install.sh` / `scripts/update.sh` (update-writ, migrate) stay as written; they address the Writ source repository, not the plugin.
+- **Reason:** The record outranks the literal wording for this form; the rule's intent (no dev-only script in the plugin's `scripts/`) holds and is tested.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Review Agents, Business Rules: the dev-only rule now says their names may stay in prose that addresses the Writ source repository.
+
+#### [DEV-009] Prompt-template docs excluded from agent loading by the manifest only
+- **Severity:** Small
+- **Spec said:** Story 1 decision: `plugin.json` `agents` lists the eight generated agents so the prompt-template docs in `agents/` do not load (V03, V23).
+- **Implementation did:** Sets the key. `claude plugin validate` still reads the eight prompt docs and warns "No frontmatter block found"; runtime loading is unverified (V72).
+- **Reason:** Story 5's live run checks that no `writ:coding-agent`-style agent appears.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Integration Points: Story 5's live run confirms the prompt-template docs do not load as agents.
+
+#### [DEV-010] Story 1 record tests added; marketplace and manifest gain optional fields
+- **Severity:** Small
+- **Spec said:** Story 2 tests cover AC-2.x; AC-2.1 names `name`, `owner.name`, `plugins[]` for the marketplace and `name`, `description`, `author`, `version` for the manifest.
+- **Implementation did:** Adds `TestStory1Record` (AC-1.2 to AC-1.4 citations that `review-override.py` requires once Story 1 reads Completed); adds a marketplace `description` and a manifest `repository` and `license` (validate 2.1.309 accepts them, `--strict` included). Owner and author name: Adam Sellke.
+- **Reason:** Traceability for a completed story; the optional fields clear validate warnings.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Files in Scope (S2) names the Story 1 record tests and the optional manifest fields.
+
+---

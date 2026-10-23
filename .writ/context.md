@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T15:28:07Z
+> Last Updated: 2026-10-23T17:12:02Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-plugin-distribution — Plugin Distribution
-- **Status:** In Progress (1/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`)
-- **Story:** 1 of 5 — Verify Both Plugin Formats and Decide the Layout (Completed ✅)
-- **Progress:** 7/33 tasks complete (21%)
+- **Status:** In Progress (2/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`)
+- **Story:** 2 of 5 — Claude Code Plugin (Completed ✅)
+- **Progress:** 14/33 tasks complete (42%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-004 Cursor `commands/` and `agents/` directories are now documented — plugin-distribution (Story 1, auto-amended; spec-lite Cursor line)
-- DEV-003 Two token classes added (`script-path`, `command-ref`) — plugin-distribution (Story 1, auto-amended; spec-lite Story 1 line)
-- DEV-002 Carrier decided by the quote and persona probes, not the assertion probe — plugin-distribution (Story 1, auto-amended)
+- ⚠️ DEV-006 `.writ/docs/` reference docs are absent in a plugin-only project — plugin-distribution (Story 2, flagged for review)
+- ⚠️ DEV-005 Self-locating Writ-source scripts resolve their root to the plugin — plugin-distribution (Story 2, flagged for review)
+- DEV-007 `instructions-path` rewrites link forms only; comment lines skipped — plugin-distribution (Story 2, auto-amended; spec-lite token line)
 
 ## Open Issues
 
