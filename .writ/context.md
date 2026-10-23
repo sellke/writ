@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-22T23:50:00Z
+> Last Updated: 2026-10-23T00:43:08Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-22-rendering-delegation-rows — Rendering-Delegation Rows
-- **Status:** Complete (3/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-rendering-delegation-rows`, awaiting merge by /implement-phase)
-- **Story:** 3 of 3 — Verification-Record Tests, prototype.md Reconciliation, and Issue Note (Completed ✅)
-- **Progress:** 20/20 tasks complete (100%)
+- **Spec:** 2026-10-22-prompting-guide — Prompting Guide
+- **Status:** Complete (2/2 stories; Phase 14 lane `writ/phase/14/2026-10-22-prompting-guide`, awaiting merge by /implement-phase)
+- **Story:** 2 of 2 — Ship, Link, and Pin the Guide (Completed ✅)
+- **Progress:** 13/13 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-22-rendering-delegation-rows/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-22-prompting-guide/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (24 entries)
-- **Docs:** .writ/docs/ (29 files)
+- **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-003 Silent-page rows cite the specific page, not the docs index URL — rendering-delegation-rows (Story 2, auto-amended)
-- DEV-001 Headless row's Platform cell omitted the session kind — rendering-delegation-rows (Story 1, fixed in place)
-- DEV-002 Two Observed cells stated one step past what the run saw — rendering-delegation-rows (Story 1, fixed in place)
+- DEV-004 Ship-set function sourced from a here-string instead of process substitution — prompting-guide (Story 2, auto-amended; no spec-lite change needed)
+- DEV-003 Roadmap Route line adds a clarifying clause — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
+- DEV-002 Opening paragraph states coverage instead of the sketch's metaphor — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
 
 ## Open Issues
 

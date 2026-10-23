@@ -212,6 +212,8 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
+New here? Read [`.writ/docs/prompting-guide.md`](.writ/docs/prompting-guide.md) (two minutes).
+
 Writ ships 32 commands, but you only need five to go from idea to PR:
 
 | Command | What it does |
