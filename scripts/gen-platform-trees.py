@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Generate the per-platform trees from source (spec `2026-10-22-generated-platform-trees`).
 
-    python3 scripts/gen-platform-trees.py                  # write all identity targets and the plugin in place
+    python3 scripts/gen-platform-trees.py                  # write all identity targets and both plugin trees in place
     python3 scripts/gen-platform-trees.py --check          # report stale|missing|orphan|unmapped|vendor|malformed; write nothing
     python3 scripts/gen-platform-trees.py coverage         # unmapped + vendor only
     python3 scripts/gen-platform-trees.py --target fixture --out-dir <dir>   # commands/ + skills/ with the fixture script root
     python3 scripts/gen-platform-trees.py --target claude-code-plugin [--out-dir <dir>]   # the Claude Code plugin only
+    python3 scripts/gen-platform-trees.py --target cursor-plugin [--out-dir <dir>]        # the Cursor plugin layout only
 
 Dev-only (it reads adapters/*.md and .writ/manifest.yaml, which installed
 projects do not have); never hand-edit a generated file. Story 1 ships the
@@ -36,9 +37,10 @@ claude-code/CLAUDE.md` -> `stale claude-code/CLAUDE.md`, `absent
 claude-code/CLAUDE.md` -> `missing claude-code/CLAUDE.md`; gen-claude-agents
 `orphan <stem>` -> `orphan claude-code/agents/<stem>.md`; gen-codex-agent-tomls
 `orphan <stem>` -> `orphan codex/agents/<stem>.toml`) and every other reason
-folds as `<gen>: <kind> <detail>` (TRANSLATED); then the plugin tree (below:
-Claude Code plugin). gen-claude-agents' orphan
-check sees only `writ-*.md`, so a `claude-code/agents/*.md` with another
+folds as `<gen>: <kind> <detail>` (TRANSLATED); then the plugin trees
+(below: Claude Code plugin, Cursor plugin), the Cursor tree only when every
+table parsed, because its rule renders the Cursor map. gen-claude-agents'
+orphan check sees only `writ-*.md`, so a `claude-code/agents/*.md` with another
 name is reported by the driver itself as `orphan claude-code/agents/<name>`
 (`stray_agent_reasons`): no generator produces it, and `install.sh` ships
 every file in that directory. Last, the vendor scan. The renders and the
@@ -61,10 +63,10 @@ An allowlisted bare verb (`` `Read` ``) is never vendor-only. Write mode runs
 the scan among its pre-checks, so a hit blocks a write.
 
 Targets (spec.md -> Rule 11, AC-4.3): TARGETS maps a name to its
-`script_root`. `--target <identity>` (root `scripts`: cursor, claude-code,
-codex) runs write mode restricted to that platform's generated files and
-sub-generators and never writes a commands/ or skills/ copy. `--target
-fixture --out-dir <dir>` (root `${PLUGIN_ROOT}/scripts`, tests only) runs
+`script_root`. `--target <identity>` (root `scripts` and no `in_place`:
+cursor, claude-code, codex) runs write mode restricted to that platform's
+generated files and sub-generators and never writes a commands/ or skills/
+copy. `--target fixture --out-dir <dir>` (root `${PLUGIN_ROOT}/scripts`, tests only) runs
 `emit_tree`: every commands/*.md and skills/*/SKILL.md is copied as bytes to
 `<dir>/fixture/<same path>` with each TOKEN match, `(python3|bash)
 scripts/<name>.py|.sh`, rewritten to the same interpreter and
@@ -72,9 +74,14 @@ scripts/<name>.py|.sh`, rewritten to the same interpreter and
 <dir-relative path>` line per file; nothing in place. `--target
 claude-code-plugin` (root `${CLAUDE_PLUGIN_ROOT}/scripts`) is write mode
 restricted to the plugin tree, in place or, with --out-dir, under <dir> at
-the same repository-relative paths. An identity target with --out-dir, the
-fixture target without it, --target beside --check or coverage, or --out-dir
-alone is a usage error (exit 2).
+the same repository-relative paths. `--target cursor-plugin` (root `scripts`,
+the identity form, but `in_place` and a whole tree, so not an identity
+target) is the same for the Cursor layout. The layout's rule renders from
+the same sources as cursor/writ.mdc, so after `--target cursor` run
+`--target cursor-plugin` or a full write, or `--check` reports the layout's
+rule stale. An identity target with --out-dir, the fixture target without
+it, --target beside --check or coverage, or --out-dir alone is a usage
+error (exit 2).
 
 Write mode (spec.md -> Rule 1; technical-spec.md -> ## Driver CLI), in
 order: parse the four adapters (a table that is not `pass` ends the run with
@@ -88,16 +95,18 @@ tree): an exit of 2 or more, or a first line that is not a verdict, is
 `reason: <gen>: <kind> <detail>`, except the output-state kinds in
 REPAIRED_KINDS (`stale`, `missing`, `absent`, `extra`), which are what a
 write repairs. With no reason left, each GENERATED file is rendered, and the
-plugin tree when the run writes it (no --target, or --target
-claude-code-plugin); a render error ends the run before any write. Each
-GENERATED file is written through a temp file plus os.replace (`wrote
-<path>`), then the sub-generators run in write mode and their `wrote` lines
-are relayed; one that exits non-zero ends the run with `fail`, `reason: <gen>
-exited <rc>`, and its folded reasons. Last, every plugin file is written the
-same way and every orphan under plugins/writ/ is deleted (`removed <path>`).
-Before the first write, a run that writes the plugin refuses a symlink at
-`.claude-plugin/`, `plugins/`, `plugins/writ/`, the marketplace file, or
-anywhere under `plugins/writ/` (`reason: symlink <path>`, walked without
+plugin trees the run writes (PLUGIN_TREES: both with no --target, one with
+--target claude-code-plugin or cursor-plugin); a render error ends the run
+before any write. Each GENERATED file is written through a temp file plus
+os.replace (`wrote <path>`), then the sub-generators run in write mode and
+their `wrote` lines are relayed; one that exits non-zero ends the run with
+`fail`, `reason: <gen> exited <rc>`, and its folded reasons. Last, each
+plugin tree, in PLUGIN_TREES order, has every file written the same way and
+every orphan under its directory deleted (`removed <path>`). Before the first
+write, a run that writes a plugin tree refuses a symlink at one of the tree's
+`parents` (Claude Code: `.claude-plugin/`, `plugins/`, `plugins/writ/`;
+Cursor: `cursor/`, `cursor/plugin/`), at an extra file (the marketplace), or
+anywhere under the tree's directory (`reason: symlink <path>`, walked without
 following links), and a rendered file whose resolved path is not the one it
 names (`reason: outside <path>`): verdict `fail`, nothing written or deleted.
 Each write and delete re-checks its own path.
@@ -137,6 +146,35 @@ and `orphan <path>` for a file under plugins/writ/ that no render produces
 The orphan scan never follows a symlink: a linked `plugins/` or
 `plugins/writ/` is the one orphan, a linked directory below is an orphan not
 descended, and a rendered path with a link on it is `stale`.
+
+Cursor plugin (same spec, Story 3; its technical-spec.md -> Candidate
+Layouts -> Cursor layout input for Story 3). The `cursor-plugin` target
+renders the layout under `cursor/plugin/` (`render_cursor_plugin`), which a
+user copies to ~/.cursor/plugins/local/writ; nothing here writes there:
+
+- `.cursor-plugin/plugin.json`: name, `version` read from VERSION (the same
+  `read_version` as the Claude Code manifest), description, author,
+  repository, license; no component path field, because a path field
+  replaces Cursor's folder discovery (V48). Fixed key order, two-space
+  indent, one trailing newline.
+- `rules/writ.mdc`: `render_writ_mdc`, so it is byte-equal to
+  cursor/writ.mdc whenever that file is fresh, and a source edit makes both
+  stale in one `--check`.
+- `commands/*.md` (the preamble included: commands link it as a sibling, and
+  install.sh ships it into .cursor/commands/), `agents/*.md` (the
+  prompt-template docs install.sh copies into .cursor/agents/),
+  `skills/<name>/SKILL.md`, and `system-instructions.md` at the layout root
+  (where install.sh puts it in .cursor/, so the `../system-instructions.md`
+  links resolve): the YAML frontmatter verbatim, the generated-file
+  comment, then the body with only the script-root token applied for the
+  target's root. That root is `scripts`, the identity form: no record row
+  verifies a plugin-root form for a Cursor command body (V49 documents
+  `${CURSOR_PLUGIN_ROOT}` in MCP fields only), so commands keep `python3
+  scripts/<name>.py`, the layout has no `scripts/`, and a project still needs
+  install.sh's script copy. No namespacing and no other token class.
+
+`--check` reports `stale`, `missing`, and `orphan` for the layout as for the
+Claude Code plugin; a symlinked `cursor/plugin/` is the one orphan.
 
 Token classes (technical-spec.md -> Relative Path Inventory), applied line by
 line, skipping a whole-line HTML comment (`<!-- ... -->`, such as the
@@ -784,11 +822,13 @@ def write_file(out: Path, data: Union[str, bytes], mode: Optional[int] = None) -
 IDENTITY_SCRIPT_ROOT = "scripts"
 # One entry per target (spec.md -> Rule 11; technical-spec.md -> ## Tokens).
 # `script_root` replaces `scripts` in every TOKEN match. An identity target
-# (root `scripts`) writes its platform's files in place and never a commands/
-# or skills/ copy: `generated` names its GENERATED paths and `subgenerators`
-# its sub-generators, producers first. The fixture target writes a full
-# commands/ + skills/ tree under <out-dir>/<target>/. `in_place` marks a
-# non-identity target that writes in place without --out-dir (the plugin).
+# (root `scripts`, no `in_place`) writes its platform's files in place and
+# never a commands/ or skills/ copy: `generated` names its GENERATED paths and
+# `subgenerators` its sub-generators, producers first. The fixture target
+# writes a full commands/ + skills/ tree under <out-dir>/<target>/. `in_place`
+# marks a non-identity target that writes in place without --out-dir (the two
+# plugin trees, PLUGIN_TREES); the Cursor plugin keeps the root `scripts`, so
+# `in_place` is what makes it non-identity.
 PLUGIN_ROOT_VAR = "${CLAUDE_PLUGIN_ROOT}"
 TARGETS = {
     "cursor": {"script_root": IDENTITY_SCRIPT_ROOT,
@@ -802,6 +842,10 @@ TARGETS = {
     "fixture": {"script_root": "${PLUGIN_ROOT}/scripts"},
     # `2026-10-22-plugin-distribution` Story 2: the Claude Code plugin tree.
     "claude-code-plugin": {"script_root": PLUGIN_ROOT_VAR + "/scripts", "in_place": True},
+    # Story 3: the Cursor plugin layout. The identity root (AC-3.3 second
+    # branch): no record row verifies a plugin-root form for a Cursor command
+    # body (V49; V79 pending UAT), so commands keep `python3 scripts/<name>.py`.
+    "cursor-plugin": {"script_root": IDENTITY_SCRIPT_ROOT, "in_place": True},
 }  # type: Dict[str, Dict[str, object]]
 # The script-root token: an invocation of a script under scripts/. Bytes, so
 # a file round-trips with every other byte intact.
@@ -811,7 +855,9 @@ EMITTED = (("commands", "*.md"), ("skills", "*/SKILL.md"))
 
 
 def is_identity(target: str) -> bool:
-    return TARGETS[target]["script_root"] == IDENTITY_SCRIPT_ROOT
+    """Root `scripts` and no `in_place`: the target writes its platform's
+    files and no tree. The Cursor plugin shares the root but writes a tree."""
+    return TARGETS[target]["script_root"] == IDENTITY_SCRIPT_ROOT and not writes_in_place(target)
 
 
 def writes_in_place(target: str) -> bool:
@@ -1065,6 +1111,16 @@ def plugin_names(root: Path) -> PluginNames:
     return names_of(plugin_sources(root))
 
 
+def read_version(root: Path) -> str:
+    """VERSION's content, stripped: the `version` of both plugin manifests,
+    read at generation time. ValueError `empty VERSION` when blank; a missing
+    file is the OSError reported as `missing VERSION`."""
+    version = read_source(Path(root) / VERSION_FILE).strip()
+    if not version:
+        raise ValueError("empty %s" % VERSION_FILE)
+    return version
+
+
 def render_plugin_manifest(version: str, commands: List[Path], agents: List[str]) -> str:
     manifest = {
         "name": PLUGIN_NAME,
@@ -1100,9 +1156,7 @@ def render_plugin(root: Path) -> List[PluginFile]:
     sources = plugin_sources(root)
     commands, docs, agents, skills, scripts = sources
     names = names_of(sources)
-    version = read_source(root / VERSION_FILE).strip()
-    if not version:
-        raise ValueError("empty %s" % VERSION_FILE)
+    version = read_version(root)
     instructions = read_source(root / SYSTEM_INSTRUCTIONS)
 
     def markdown(rel: str, text: str, source: str) -> PluginFile:
@@ -1130,20 +1184,109 @@ def render_plugin(root: Path) -> List[PluginFile]:
     return sorted(files, key=lambda f: f.rel)
 
 
-def plugin_render(root: Path) -> Tuple[List[PluginFile], List[Reason]]:
-    """(render_plugin's files, reasons): a source OSError is `unverifiable`,
-    `missing <source path>`; a ValueError is `fail` with its text."""
+# ---------------------------------------------------------------------------
+# Cursor plugin (spec `2026-10-22-plugin-distribution`, Story 3)
+# ---------------------------------------------------------------------------
+
+CURSOR_PLUGIN_TARGET = "cursor-plugin"
+CURSOR_PLUGIN_DIR = "cursor/plugin"
+CURSOR_PLUGIN_MANIFEST = ".cursor-plugin/plugin.json"  # under CURSOR_PLUGIN_DIR
+CURSOR_RULES_FILE = "rules/writ.mdc"                    # under CURSOR_PLUGIN_DIR
+# What the layout copies, in output order: the folders install.sh copies into
+# .cursor/ (AGENTS_SRC is `agents` for Cursor), at the discovery directories
+# the Cursor reference documents (V48).
+CURSOR_COPIED = (("commands", "*.md"), ("agents", "*.md"), ("skills", "*/SKILL.md"))
+
+
+def render_cursor_manifest(version: str) -> str:
+    """`.cursor-plugin/plugin.json`: `name` (the one required field, V47) and
+    the optional fields the reference lists. No component path field: one
+    would replace folder discovery (V48)."""
+    manifest = {
+        "name": PLUGIN_NAME,
+        "version": version,
+        "description": PLUGIN_DESCRIPTION,
+        "author": {"name": PLUGIN_AUTHOR},
+        "repository": PLUGIN_REPOSITORY,
+        "license": PLUGIN_LICENSE,
+    }
+    return json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
+
+
+def render_cursor_markdown(text: str, source: str, script_root: str) -> str:
+    """The frontmatter verbatim, the generated-file comment naming `source`,
+    then the body with only the script-root token applied for `script_root`.
+    Under the identity root `scripts` the body is its source byte for byte."""
+    frontmatter, body = split_frontmatter(text)
+    body = rewrite_tokens(body.encode("utf-8"), script_root).decode("utf-8")
+    return frontmatter + COMMENT % source + body
+
+
+def render_cursor_plugin(root: Path) -> List[PluginFile]:
+    """Every file of the Cursor layout, sorted by path (module docstring ->
+    Cursor plugin). Writes nothing. A missing source is the OSError reported
+    as `missing <path>`; an empty VERSION or a Cursor tool table that does
+    not parse is a ValueError."""
+    root = Path(root)
+    for folder, _ in CURSOR_COPIED:
+        require_dir(root / folder)
+    version = read_version(root)
+    script_root = str(TARGETS[CURSOR_PLUGIN_TARGET]["script_root"])
+    top = CURSOR_PLUGIN_DIR + "/"
+    files = [
+        PluginFile(top + CURSOR_PLUGIN_MANIFEST, render_cursor_manifest(version).encode("utf-8"), None),
+        PluginFile(top + CURSOR_RULES_FILE, render_writ_mdc(root).encode("utf-8"), None),
+        # At the layout root, where install.sh puts it in .cursor/, so the
+        # `](../system-instructions.md)` links in commands/ and agents/ resolve.
+        PluginFile(top + SYSTEM_INSTRUCTIONS, render_cursor_markdown(
+            read_source(root / SYSTEM_INSTRUCTIONS), SYSTEM_INSTRUCTIONS, script_root).encode("utf-8"), None),
+    ]
+    for folder, pattern in CURSOR_COPIED:
+        for path in sorted((root / folder).glob(pattern)):
+            rel = path.relative_to(root).as_posix()
+            files.append(PluginFile(top + rel, render_cursor_markdown(
+                read_source(path), rel, script_root).encode("utf-8"), None))
+    return sorted(files, key=lambda f: f.rel)
+
+
+# ---------------------------------------------------------------------------
+# Plugin trees: --check, the symlink guard, and the write
+# ---------------------------------------------------------------------------
+
+
+class PluginTree(NamedTuple):
+    target: str                # its TARGETS name
+    top: str                   # the plugin directory; the orphan scan covers it
+    parents: Tuple[str, ...]   # directories above its files, outermost first: a
+                               # symlink at any of them redirects every write below it
+    owned: Tuple[str, ...]     # the parents only this tree uses: a symlink at one
+                               # is the tree's one orphan
+    extras: Tuple[str, ...]    # rendered files outside `top` (the marketplace)
+    render: Callable[[Path], List[PluginFile]]
+    reads_adapters: bool       # its render reads the adapter tables, so --check
+                               # skips it when a table did not parse
+
+
+CLAUDE_PLUGIN_TREE = PluginTree(
+    PLUGIN_TARGET, PLUGIN_DIR, (".claude-plugin", "plugins", PLUGIN_DIR), ("plugins", PLUGIN_DIR),
+    (MARKETPLACE_FILE,), render_plugin, False)
+CURSOR_PLUGIN_TREE = PluginTree(
+    CURSOR_PLUGIN_TARGET, CURSOR_PLUGIN_DIR, ("cursor", CURSOR_PLUGIN_DIR), (CURSOR_PLUGIN_DIR,),
+    (), render_cursor_plugin, True)
+# Check and write order.
+PLUGIN_TREES = (CLAUDE_PLUGIN_TREE, CURSOR_PLUGIN_TREE)
+TREE_OF = {tree.target: tree for tree in PLUGIN_TREES}
+
+
+def plugin_render(root: Path, tree: PluginTree = CLAUDE_PLUGIN_TREE) -> Tuple[List[PluginFile], List[Reason]]:
+    """(the tree's rendered files, reasons): a source OSError is
+    `unverifiable`, `missing <source path>`; a ValueError is `fail` with its text."""
     try:
-        return render_plugin(root), []
+        return tree.render(root), []
     except OSError as err:
-        return [], [("unverifiable", "missing %s" % relative(root, err.filename or PLUGIN_DIR))]
+        return [], [("unverifiable", "missing %s" % relative(root, err.filename or tree.top))]
     except ValueError as err:
         return [], [("fail", str(err))]
-
-
-# The directories above the plugin's files, outermost first: a symlink at
-# any of them redirects every write below it.
-PLUGIN_PARENTS = (".claude-plugin", "plugins", PLUGIN_DIR)
 
 
 def link_in_chain(out_root: Path, rel: str) -> bool:
@@ -1156,17 +1299,18 @@ def link_in_chain(out_root: Path, rel: str) -> bool:
     return False
 
 
-def plugin_orphans(out_root: Path, rendered: Set[str]) -> List[str]:
-    """Paths (relative to `out_root`) under PLUGIN_DIR that no render
-    produces, sorted, walked without following a symlink: a symlinked
-    `plugins/` or `plugins/writ/` is the one orphan, and a symlinked
-    directory below is an orphan that is not descended. The .gitignore'd
-    caches are skipped."""
+def plugin_orphans(out_root: Path, rendered: Set[str],
+                   tree: PluginTree = CLAUDE_PLUGIN_TREE) -> List[str]:
+    """Paths (relative to `out_root`) under the tree's directory that no
+    render produces, sorted, walked without following a symlink: a symlinked
+    `owned` directory (`plugins/` or `plugins/writ/`; `cursor/plugin/`) is the
+    one orphan, and a symlinked directory below is an orphan that is not
+    descended. The .gitignore'd caches are skipped."""
     out_root = Path(out_root)
-    for rel in PLUGIN_PARENTS[1:]:
+    for rel in tree.owned:
         if (out_root / rel).is_symlink():
             return [rel]
-    top = out_root / PLUGIN_DIR
+    top = out_root / tree.top
     if not top.is_dir():
         return []
     out = []  # type: List[str]
@@ -1188,15 +1332,17 @@ def plugin_orphans(out_root: Path, rendered: Set[str]) -> List[str]:
     return sorted(out)
 
 
-def plugin_link_reasons(out_root: Path, files: List[PluginFile]) -> List[Reason]:
+def plugin_link_reasons(out_root: Path, files: List[PluginFile],
+                        tree: PluginTree = CLAUDE_PLUGIN_TREE) -> List[Reason]:
     """Write mode's guard, before anything is written: `symlink <path>` for
-    each symlink at `.claude-plugin/`, `plugins/`, `plugins/writ/`, the
-    marketplace file, or anywhere under `plugins/writ/` (walked without
-    following links); then `outside <path>` for each rendered file whose
-    resolved path is not the path it names under `out_root`."""
+    each symlink at one of the tree's `parents` or `extras` (Claude Code:
+    `.claude-plugin/`, `plugins/`, `plugins/writ/`, the marketplace file;
+    Cursor: `cursor/`, `cursor/plugin/`) or anywhere under its directory
+    (walked without following links); then `outside <path>` for each rendered
+    file whose resolved path is not the path it names under `out_root`."""
     out_root = Path(out_root)
-    links = [rel for rel in PLUGIN_PARENTS + (MARKETPLACE_FILE,) if (out_root / rel).is_symlink()]
-    top = out_root / PLUGIN_DIR
+    links = [rel for rel in tree.parents + tree.extras if (out_root / rel).is_symlink()]
+    top = out_root / tree.top
     if not links and top.is_dir():
         for dirpath, dirnames, filenames in os.walk(str(top), followlinks=False):
             here = Path(dirpath)
@@ -1211,10 +1357,10 @@ def plugin_link_reasons(out_root: Path, files: List[PluginFile]) -> List[Reason]
             if os.path.realpath(str(out_root / item.rel)) != os.path.join(base, *item.rel.split("/"))]
 
 
-def plugin_reasons(root: Path) -> List[Reason]:
-    """--check for the plugin target: `stale`, `missing`, and `orphan`
-    against a fresh in-memory render, or the render's own reason."""
-    files, reasons = plugin_render(root)
+def plugin_reasons(root: Path, tree: PluginTree = CLAUDE_PLUGIN_TREE) -> List[Reason]:
+    """--check for one plugin tree: `stale`, `missing`, and `orphan` against
+    a fresh in-memory render, or the render's own reason."""
+    files, reasons = plugin_render(root, tree)
     if reasons:
         return reasons
     for item in files:
@@ -1225,16 +1371,17 @@ def plugin_reasons(root: Path) -> List[Reason]:
             reasons.append(("fail", "missing " + item.rel))
         elif path.read_bytes() != item.data:
             reasons.append(("fail", "stale " + item.rel))
-    reasons += [("fail", "orphan " + rel) for rel in plugin_orphans(root, {f.rel for f in files})]
+    reasons += [("fail", "orphan " + rel) for rel in plugin_orphans(root, {f.rel for f in files}, tree)]
     return reasons
 
 
-def write_plugin(out_root: Path, files: List[PluginFile]) -> Tuple[List[Reason], List[str], List[str]]:
-    """Write every plugin file under `out_root`, then delete each orphan
-    under PLUGIN_DIR and the directories it leaves empty; returns (reasons,
-    `wrote <path>` lines, `removed <path>` lines). The caller has run
-    `plugin_link_reasons`; each write and delete re-checks that its path has
-    no symlink on it and resolves where it names, and stops the run if not."""
+def write_plugin(out_root: Path, files: List[PluginFile],
+                 tree: PluginTree = CLAUDE_PLUGIN_TREE) -> Tuple[List[Reason], List[str], List[str]]:
+    """Write every file of the tree under `out_root`, then delete each orphan
+    under its directory and the directories it leaves empty; returns
+    (reasons, `wrote <path>` lines, `removed <path>` lines). The caller has
+    run `plugin_link_reasons`; each write and delete re-checks that its path
+    has no symlink on it and resolves where it names, and stops the run if not."""
     out_root = Path(out_root)
     base = os.path.realpath(str(out_root))
     wrote = []  # type: List[str]
@@ -1251,10 +1398,10 @@ def write_plugin(out_root: Path, files: List[PluginFile]) -> Tuple[List[Reason],
         if error:
             return [("fail", "write %s" % error)], wrote, removed
         wrote.append("wrote " + item.rel)
-    top = out_root / PLUGIN_DIR
-    for rel in plugin_orphans(out_root, {f.rel for f in files}):
+    top = out_root / tree.top
+    for rel in plugin_orphans(out_root, {f.rel for f in files}, tree):
         path = out_root / rel
-        if unsafe(rel) or not rel.startswith(PLUGIN_DIR + "/"):
+        if unsafe(rel) or not rel.startswith(tree.top + "/"):
             return [("fail", "outside " + rel)], wrote, removed
         try:
             path.unlink()
@@ -1430,13 +1577,16 @@ def check_mode(root: Path) -> int:
     (module docstring -> --check)."""
     tables, reasons = adapter_reasons(root)
     reasons += [("fail", text) for text in unmapped(tables)]
-    if all(table.verdict == "pass" for table in tables):
+    parsed = all(table.verdict == "pass" for table in tables)
+    if parsed:
         texts, render_errors = render_all(root, GENERATED)
         reasons += render_errors + stale_reasons(root, texts) + stray_agent_reasons(root)
         for gen in SUBGENERATORS:
             rc, lines = run_subgenerator(root, gen, ["--check"])
             reasons += fold_check(gen, rc, lines, translate=True)
-    reasons += plugin_reasons(root)
+    for tree in PLUGIN_TREES:
+        if parsed or not tree.reads_adapters:
+            reasons += plugin_reasons(root, tree)
     reasons += vendor_reasons(root, tables)
     return finish_check(reasons)
 
@@ -1452,14 +1602,16 @@ def coverage_mode(root: Path) -> int:
 
 def write_mode(root: Path, generated: List[Tuple[str, Callable[[Path], str]]] = GENERATED,
                subgenerators: Tuple[str, ...] = SUBGENERATORS,
-               plugin_out: Optional[Path] = None) -> int:
+               plugin_out: Optional[Path] = None,
+               trees: Tuple[PluginTree, ...] = PLUGIN_TREES) -> int:
     """Check the adapters, the vocabulary, the vendor scan, the stray agent
     files (when gen-claude-agents is among `subgenerators`), and every
     sub-generator in `subgenerators`, then write `generated`, run those
-    sub-generators' writers, and, with `plugin_out`, write the plugin tree
+    sub-generators' writers, and, with `plugin_out`, write each of `trees`
     under it; nothing is written when any reason exists (module docstring ->
     Write mode). An identity target narrows `generated` and `subgenerators`
-    to its platform and passes no `plugin_out`."""
+    to its platform and passes no `plugin_out`; a plugin target passes its
+    one tree."""
     wrote = []  # type: List[str]
 
     tables, reasons = adapter_reasons(root)
@@ -1485,11 +1637,15 @@ def write_mode(root: Path, generated: List[Tuple[str, Callable[[Path], str]]] = 
     texts, reasons = render_all(root, generated)
     if reasons:
         return finish(reasons, wrote)
-    plugin_files = []  # type: List[PluginFile]
+    rendered = []  # type: List[Tuple[PluginTree, List[PluginFile]]]
     if plugin_out is not None:
-        plugin_files, reasons = plugin_render(root)
+        for tree in trees:
+            files, tree_reasons = plugin_render(root, tree)
+            reasons += tree_reasons
+            rendered.append((tree, files))
         if not reasons:
-            reasons = plugin_link_reasons(plugin_out, plugin_files)
+            for tree, files in rendered:
+                reasons += plugin_link_reasons(plugin_out, files, tree)
         if reasons:
             return finish(reasons, wrote)
 
@@ -1507,22 +1663,26 @@ def write_mode(root: Path, generated: List[Tuple[str, Callable[[Path], str]]] = 
             reasons += [("fail", "%s: %s" % (gen, text)) for text in reason_lines(lines)]
             return finish(reasons, wrote)
     removed = []  # type: List[str]
-    if plugin_out is not None:
-        reasons, plugin_wrote, removed = write_plugin(plugin_out, plugin_files)
-        wrote += plugin_wrote
+    for tree, files in rendered:
+        reasons, tree_wrote, tree_removed = write_plugin(plugin_out, files, tree)  # type: ignore[arg-type]
+        wrote += tree_wrote
+        removed += tree_removed
+        if reasons:
+            break
     return finish(reasons, wrote, removed)
 
 
 def target_mode(root: Path, target: str, out_dir: Optional[str]) -> int:
     """`--target`: an identity target is write mode narrowed to its platform;
-    the plugin target is write mode narrowed to the plugin tree, under
+    a plugin target is write mode narrowed to its plugin tree, under
     `out_dir` or in place; the fixture target is `emit_tree` into `out_dir`."""
     if is_identity(target):
         entry = TARGETS[target]
         generated = [(rel, render) for rel, render in GENERATED if rel in entry["generated"]]  # type: ignore[operator]
         return write_mode(root, generated, tuple(entry["subgenerators"]))  # type: ignore[arg-type]
-    if target == PLUGIN_TARGET:
-        return write_mode(root, [], (), plugin_out=Path(out_dir) if out_dir else root)
+    if target in TREE_OF:
+        return write_mode(root, [], (), plugin_out=Path(out_dir) if out_dir else root,
+                          trees=(TREE_OF[target],))
     reasons, wrote = emit_tree(root, target, Path(out_dir or ""))
     return finish(reasons, wrote)
 
@@ -1537,7 +1697,7 @@ def relative(root: Path, path: str) -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="gen-platform-trees.py", allow_abbrev=False,
-        description="Generate or check the per-platform trees and the Claude Code plugin from "
+        description="Generate or check the per-platform trees and the Claude Code and Cursor plugins from "
                     "adapters/*.md, system-instructions.md, .writ/manifest.yaml, and the command, "
                     "agent, skill, and script sources. Dev-only; never shipped.")
     parser.add_argument("mode", nargs="?", choices=["coverage"],
@@ -1546,14 +1706,16 @@ def build_parser() -> argparse.ArgumentParser:
                         help="report stale, missing, orphan, unmapped, vendor, and malformed; "
                              "write nothing; exit 0 pass or unverifiable, 1 fail")
     parser.add_argument("--target", metavar="NAME", choices=list(TARGETS),
-                        help="one target (%s) instead of every identity target and the plugin; an "
+                        help="one target (%s) instead of every identity target and both plugins; an "
                              "identity target writes its platform's files in place, claude-code-plugin "
-                             "writes the plugin in place or under --out-dir, fixture needs --out-dir"
+                             "and cursor-plugin write their plugin in place or under --out-dir, fixture "
+                             "needs --out-dir"
                              % ", ".join(TARGETS))
     parser.add_argument("--out-dir", metavar="DIR",
                         help="with --target fixture: the directory that receives fixture/commands and "
                              "fixture/skills; with --target claude-code-plugin: the directory that "
-                             "receives .claude-plugin/ and plugins/writ/")
+                             "receives .claude-plugin/ and plugins/writ/; with --target cursor-plugin: "
+                             "the directory that receives cursor/plugin/")
     return parser
 
 

@@ -3,7 +3,8 @@
 # 2026-10-22-generated-platform-trees, AC-4.4). Each case runs eval.sh in a
 # temp root holding eval.sh, every top-level scripts/ file, and what the
 # driver's --check reads: adapters/, agents/, commands/, skills/, the three
-# platform directories, the Claude Code plugin tree (plugins/, .claude-plugin/;
+# platform directories (cursor/ holds the cursor-plugin target's layout,
+# cursor/plugin/), the Claude Code plugin tree (plugins/, .claude-plugin/;
 # the claude-code-plugin target), system-instructions.md, the manifest,
 # and VERSION. Never touches the repo's generated files.
 set -euo pipefail
@@ -84,15 +85,18 @@ finding="$(section "$ROOT" | grep -F 'stale cursor/writ.mdc' || true)"
 ok "hand-edited cursor/writ.mdc -> one stale finding with the remedy"
 
 # AC-4.4: a vendor token in a command -> one vendor finding naming file:line,
-# beside the stale plugin copy of that command (the claude-code-plugin target).
+# beside the stale plugin copies of that command (the claude-code-plugin and
+# cursor-plugin targets).
 ROOT="$(new_root)"
 printf '\n`TodoWrite`\n' >> "$ROOT/commands/status.md"
 line="$(wc -l < "$ROOT/commands/status.md" | tr -d ' ')"
 rc="$(run_check "$ROOT")"
 [ "$rc" -eq 1 ] || fail "vendor: expected exit 1, got $rc"
-section "$ROOT" | grep -Fxq 'FAIL (2 finding(s))' || fail "vendor: expected exactly two findings"
+section "$ROOT" | grep -Fxq 'FAIL (3 finding(s))' || fail "vendor: expected exactly three findings"
 section "$ROOT" | grep -Fq -- '- `plugins/writ/commands/status.md`: gen-platform-trees --check: stale plugins/writ/commands/status.md' \
   || fail "vendor: the plugin copy of the edited command must be a stale finding"
+section "$ROOT" | grep -Fq -- '- `cursor/plugin/commands/status.md`: gen-platform-trees --check: stale cursor/plugin/commands/status.md' \
+  || fail "vendor: the Cursor layout copy of the edited command must be a stale finding"
 finding="$(section "$ROOT" | grep -F "vendor TodoWrite in commands/status.md:$line" || true)"
 [ -n "$finding" ] || fail "vendor: finding must name commands/status.md:$line"
 [[ "$finding" == "- \`commands/status.md:$line\`: gen-platform-trees --check: vendor TodoWrite in commands/status.md:$line"* ]] \

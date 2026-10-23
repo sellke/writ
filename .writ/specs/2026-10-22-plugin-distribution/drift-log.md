@@ -160,3 +160,44 @@
 - **Spec amendment:** spec-lite.md → scaffold line: Step 0's tree counts as boilerplate for greenfield detection.
 
 ---
+
+## Story 3: Cursor Plugin — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-017] Cursor `agents/` ships frontmatter-less prompt docs where Cursor requires agent frontmatter
+- **Severity:** Medium
+- **Spec said:** Contract item 3: "commands, agents, skills as the docs place them"; Rule 6 keeps install.sh's component set.
+- **Implementation did:** Ships the 8 `agents/*.md` prompt-template docs (install.sh `AGENTS_SRC="agents"`) at the documented `agents/` directory. https://cursor.com/docs/reference/plugins.md (read 2026-10-23) says agents require YAML frontmatter (`name`, `description`) and the submission checklist requires valid frontmatter for every component (V80); none of the 8 files has it.
+- **Reason:** Parity with install.sh's `.cursor/agents/`; the live load is pending UAT. Cursor may skip or list them as broken agents, and they may fail the marketplace review. Decide before the maintainer submits: generate Cursor frontmatter, move them out of a discovery directory, or let the UAT outcome decide.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review
+
+#### [DEV-018] Cursor agent-frontmatter claim added to the Verification Record
+- **Severity:** Small
+- **Spec said:** Rule 1: every platform claim is in the Verification Record first.
+- **Implementation did:** `adapters/cursor.md` § Plugin states that Cursor agent files need YAML frontmatter; the claim was read from https://cursor.com/docs/reference/plugins.md on 2026-10-23 and is recorded as V80 (verified 2026-10-23), which the adapter row cites.
+- **Reason:** Story 3 read the claim while writing the adapter; the record row keeps Rule 1.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** technical-spec.md § Verification Record gains V80; spec-lite.md Cursor line notes it.
+
+#### [DEV-019] Story 2 and prior-spec test expectations extended for the Cursor layout
+- **Severity:** Small
+- **Spec said:** Story 3 Notes: "Add a class to it. Do not rewrite Story 2's tests."
+- **Implementation did:** Extends Story 2's VERSION check case to expect both stale manifests and adds one `--target cursor-plugin` step to its write-repair test; updates four exact expectations in `test_gen_platform_trees.py` and one in `test_eval_platform_trees.sh` for the new tree. No assertion loosened.
+- **Reason:** VERSION feeds both manifests, and every full write and `--check` now covers the Cursor layout.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md Cursor line: Story 2's VERSION and full-write expectations extend in place for the Cursor layout.
+
+#### [DEV-020] The Cursor layout ships `system-instructions.md` at its root
+- **Severity:** Small
+- **Spec said:** Rule 6 lists `.cursor-plugin/plugin.json`, `rules/writ.mdc`, `skills/`, `commands/`, `agents/`.
+- **Implementation did:** After review, also renders `system-instructions.md` at the layout root so the 42 `](../system-instructions.md)` links in commands, agents, and skills resolve, as they do in install.sh's `.cursor/` shape and in the Claude plugin; a link-resolution test guards it. The root file sits outside every discovery directory (V48), so it adds no component.
+- **Reason:** Without it the layout is the only Writ shape where those links dangle; the rule file already carries the same text.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md Cursor line lists `system-instructions.md` at the layout root.
+
+---

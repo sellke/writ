@@ -48,7 +48,22 @@ renders into a temp directory from a temp copy of the sources
 - TestStory1Record: Story 1's live rows, Cursor rows, UAT protocol, and
   path inventory (AC-1.2, AC-1.3, AC-1.4).
 
-Covers AC-1.1 to AC-1.5 and AC-2.1 to AC-2.5.
+Cursor plugin (Story 3): the `cursor-plugin` target writes the layout under
+`cursor/plugin/` (technical-spec.md -> Candidate Layouts -> Cursor layout
+input for Story 3). Tree tests render from a temp copy of the sources, with
+HOME pointed at a temp dir for the render; nothing here writes under
+~/.cursor or to the repository.
+
+- TestCursorPlugin: manifest keys and `version` equal to VERSION, `--check`
+  failing when they disagree (AC-3.1); `rules/writ.mdc` byte-equal to
+  `cursor/writ.mdc`, every command and skill and the install.sh agents at
+  the discovery directories (AC-3.2); no `scripts/` and no script, bodies
+  keeping `python3 scripts/` (AC-3.3, second branch); `--check` drift, the
+  write's repairs, and the symlink guard on this tree.
+- TestCursorAdapterPlugin: `adapters/cursor.md` -> Plugin (AC-3.4).
+- TestCursorUatProtocol: the Cursor local plugin protocol (AC-3.5).
+
+Covers AC-1.1 to AC-1.5, AC-2.1 to AC-2.5, and AC-3.1 to AC-3.5.
 
 Run: uv run --python 3.9 pytest scripts/tests/test_plugin_distribution.py
 """
@@ -851,7 +866,9 @@ CHECK_CASES = [
      ["stale plugins/writ/scripts/spec-status.py"], (1, 0, 0, 0, 0)),
     ("stale-carrier", edit(CARRIER_REL), ["stale plugins/writ/output-styles/writ.md"], (1, 0, 0, 0, 0)),
     ("stale-marketplace", edit(MARKETPLACE_REL), ["stale .claude-plugin/marketplace.json"], (1, 0, 0, 0, 0)),
-    ("version", bump_version, ["stale plugins/writ/.claude-plugin/plugin.json"], (1, 0, 0, 0, 0)),
+    # VERSION feeds both manifests; the Cursor one is Story 3's.
+    ("version", bump_version, ["stale plugins/writ/.claude-plugin/plugin.json",
+                               "stale cursor/plugin/.cursor-plugin/plugin.json"], (2, 0, 0, 0, 0)),
     ("missing-skill", delete(PLUGIN_REL + "/skills/tdd-cycle/SKILL.md"),
      ["missing plugins/writ/skills/tdd-cycle/SKILL.md"], (0, 1, 0, 0, 0)),
     ("orphan-command", add(PLUGIN_REL + "/commands/zz-stray.md"),
@@ -916,6 +933,8 @@ class TestPluginCheck:
         assert removed == ["removed plugins/writ/commands/zz-stray.md", "removed plugins/writ/scripts/eval.sh"]
         assert "wrote plugins/writ/skills/tdd-cycle/SKILL.md" in lines
         assert "wrote .claude-plugin/marketplace.json" in lines
+        # The VERSION bump also left the Cursor manifest (Story 3) stale.
+        assert run(built, "--target", "cursor-plugin").returncode == 0
         check = run(built, "--check")
         assert check.returncode == 0, check.stdout + check.stderr
         assert check.stdout.splitlines() == ["pass", CLEAN_SUMMARY]
@@ -1146,3 +1165,625 @@ class TestAdapterPluginSection:
             else:
                 open_item = False
         return items
+
+
+# ---------------------------------------------------------------------------
+# Story 3: the Cursor plugin
+# ---------------------------------------------------------------------------
+
+CURSOR_TARGET = "cursor-plugin"
+# The layout directory (story Notes default); the local install copies it to
+# ~/.cursor/plugins/local/writ (V50).
+CURSOR_LAYOUT = "cursor/plugin"
+CURSOR_MANIFEST = CURSOR_LAYOUT + "/.cursor-plugin/plugin.json"
+CURSOR_RULES = CURSOR_LAYOUT + "/rules/writ.mdc"
+CURSOR_MANIFEST_KEYS = ["name", "version", "description", "author", "repository", "license"]
+# A manifest path field replaces folder discovery (V48); the layout relies on
+# discovery, so the manifest names none.
+CURSOR_PATH_FIELDS = ("rules", "agents", "skills", "commands", "hooks", "mcpServers")
+CURSOR_ROOT_VARS = ("${CURSOR_PLUGIN_ROOT}", ROOT_VAR)
+
+
+def version_text() -> str:
+    return (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+
+def run_with_home(tree: Path, home: Path, *args: str) -> subprocess.CompletedProcess:
+    """The driver with HOME pointed at `home`, so any write under ~/.cursor
+    would land there."""
+    env = dict(os.environ, HOME=str(home))
+    return subprocess.run([sys.executable, str(tree / DRIVER)] + list(args),
+                          cwd=str(tree), capture_output=True, text=True, env=env)
+
+
+class CursorRendered(NamedTuple):
+    src: Path      # the source copy
+    out: Path      # the --out-dir: holds cursor/plugin/
+    layout: Path   # out/cursor/plugin
+    home: Path     # the HOME the render ran with
+    proc: subprocess.CompletedProcess
+
+
+@pytest.fixture(scope="module")
+def cursor_rendered(tmp_path_factory) -> CursorRendered:
+    """`--target cursor-plugin --out-dir <out>` on a source copy, HOME a temp dir."""
+    base = tmp_path_factory.mktemp("cursor-plugin")
+    src = copy_sources(base / "src")
+    out, home = base / "out", base / "home"
+    home.mkdir()
+    proc = run_with_home(src, home, "--target", CURSOR_TARGET, "--out-dir", str(out))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    return CursorRendered(src, out, out / CURSOR_LAYOUT, home, proc)
+
+
+@pytest.fixture
+def cursor_built(tmp_path) -> Path:
+    """A source copy with the Cursor layout written in place by its target,
+    and the Claude Code plugin by its own, so `--check` sees both trees."""
+    tree = copy_sources(tmp_path / "tree")
+    shutil.rmtree(str(tree / CURSOR_LAYOUT), ignore_errors=True)  # the target writes it fresh
+    for target in (TARGET, CURSOR_TARGET):
+        proc = run(tree, "--target", target)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+    return tree
+
+
+def cursor_sources(root: Path) -> List[Tuple[str, Path]]:
+    """(layout-relative path, source) for each Markdown file the layout
+    copies: every commands/*.md (the preamble too), the agents/*.md that
+    install.sh copies into .cursor/agents/, and every skills/<name>/SKILL.md."""
+    paths = (sorted((root / "commands").glob("*.md")) + sorted((root / "agents").glob("*.md"))
+             + sorted((root / "skills").glob("*/SKILL.md")))
+    return [(p.relative_to(root).as_posix(), p) for p in paths]
+
+
+def install_sh_cursor_agents_src() -> str:
+    """install.sh's AGENTS_SRC on the cursor branch: the folder it copies
+    into .cursor/agents/."""
+    text = (REPO_ROOT / "scripts" / "install.sh").read_text(encoding="utf-8")
+    branch = re.search(r'if \[ "\$PLATFORM" = "cursor" \]; then\n(.*?)\nelif', text, re.S)
+    assert branch, "install.sh has no cursor platform branch"
+    match = re.search(r'^\s*AGENTS_SRC="([^"]+)"', branch.group(1), re.M)
+    assert match, "install.sh's cursor branch sets no AGENTS_SRC"
+    return match.group(1)
+
+
+def add_file(rel: str):
+    def mutate(tree: Path) -> None:
+        (tree / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tree / rel).write_text("# stray\n", encoding="utf-8")
+    return mutate
+
+
+def set_cursor_version(value: str):
+    def mutate(tree: Path) -> None:
+        path = tree / CURSOR_MANIFEST
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["version"] = value
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return mutate
+
+
+# (id, mutation, the reason lines --check prints, the five counts)
+CURSOR_CHECK_CASES = [
+    ("stale-command", edit(CURSOR_LAYOUT + "/commands/status.md"),
+     ["stale cursor/plugin/commands/status.md"], (1, 0, 0, 0, 0)),
+    ("stale-rules", edit(CURSOR_RULES), ["stale cursor/plugin/rules/writ.mdc"], (1, 0, 0, 0, 0)),
+    ("stale-manifest-version", set_cursor_version("0.0.1"),
+     ["stale cursor/plugin/.cursor-plugin/plugin.json"], (1, 0, 0, 0, 0)),
+    ("missing-skill", delete(CURSOR_LAYOUT + "/skills/tdd-cycle/SKILL.md"),
+     ["missing cursor/plugin/skills/tdd-cycle/SKILL.md"], (0, 1, 0, 0, 0)),
+    ("missing-agent", delete(CURSOR_LAYOUT + "/agents/coding-agent.md"),
+     ["missing cursor/plugin/agents/coding-agent.md"], (0, 1, 0, 0, 0)),
+    ("orphan-command", add_file(CURSOR_LAYOUT + "/commands/zz-stray.md"),
+     ["orphan cursor/plugin/commands/zz-stray.md"], (0, 0, 1, 0, 0)),
+    ("orphan-script", add_file(CURSOR_LAYOUT + "/scripts/spec-status.py"),
+     ["orphan cursor/plugin/scripts/spec-status.py"], (0, 0, 1, 0, 0)),
+]
+
+
+def link_cursor_commands(tree: Path) -> None:
+    shutil.rmtree(str(tree / CURSOR_LAYOUT / "commands"))
+    os.symlink("../../commands", str(tree / CURSOR_LAYOUT / "commands"))
+
+
+def link_cursor_layout(tree: Path) -> None:
+    shutil.rmtree(str(tree / CURSOR_LAYOUT))
+    os.symlink("..", str(tree / CURSOR_LAYOUT))
+
+
+def link_cursor_rules(tree: Path) -> None:
+    path = tree / CURSOR_RULES
+    path.unlink()
+    os.symlink("../../writ.mdc", str(path))
+
+
+def link_cursor_dir(tree: Path) -> None:
+    os.rename(str(tree / "cursor"), str(tree / "cursor-real"))
+    os.symlink("cursor-real", str(tree / "cursor"))
+
+
+# (id, mutation, the link the write refuses, the reason --check prints for it)
+CURSOR_LINK_CASES = [
+    ("subdirectory", link_cursor_commands, "cursor/plugin/commands", "orphan cursor/plugin/commands"),
+    ("layout-root", link_cursor_layout, "cursor/plugin", "orphan cursor/plugin"),
+    ("file", link_cursor_rules, "cursor/plugin/rules/writ.mdc", "stale cursor/plugin/rules/writ.mdc"),
+    ("cursor-dir", link_cursor_dir, "cursor", "stale cursor/plugin/rules/writ.mdc"),
+]
+
+
+class TestCursorPlugin:
+    """The `cursor-plugin` target (technical-spec.md -> Candidate Layouts ->
+    Cursor layout input for Story 3): `.cursor-plugin/plugin.json`,
+    `rules/writ.mdc`, and the discovery directories (V47, V48), with the
+    identity `scripts/` form and no `scripts/` directory (AC-3.3 second
+    branch: V49 documents `${CURSOR_PLUGIN_ROOT}` in MCP fields only)."""
+
+    # -- AC-3.1: the manifest ------------------------------------------------
+
+    def test_manifest_keys_and_version(self, cursor_rendered):
+        """AC-3.1, V47: `name` writ, a description, `version` equal to
+        VERSION, and the optional author, repository, and license fields the
+        reference lists; fixed key order, two-space indent, one trailing
+        newline; no component path field, so folder discovery (V48) places
+        every component."""
+        raw = (cursor_rendered.out / CURSOR_MANIFEST).read_text(encoding="utf-8")
+        manifest = json.loads(raw)
+        assert list(manifest) == CURSOR_MANIFEST_KEYS
+        assert manifest["name"] == "writ"
+        assert manifest["description"].strip()
+        assert manifest["version"] == version_text()
+        assert manifest["author"]["name"].strip()
+        assert manifest["repository"] == "https://github.com/sellke/writ"
+        assert manifest["license"] == "MIT"
+        assert raw == json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
+        assert not set(CURSOR_PATH_FIELDS) & set(manifest)
+
+    def test_check_fails_when_version_disagrees(self, cursor_built):
+        """AC-3.1: a VERSION that no longer matches the manifest makes
+        `--check` print `fail` with the stale manifest; a full write brings
+        the manifest to the new version and `--check` passes again."""
+        bump_version(cursor_built)
+        proc = run(cursor_built, "--check")
+        assert proc.returncode == 1, proc.stdout + proc.stderr
+        assert proc.stdout.splitlines()[0] == "fail"
+        assert "stale " + CURSOR_MANIFEST in check_reasons(proc)
+        write = run(cursor_built)
+        assert write.returncode == 0, write.stdout + write.stderr
+        assert load_json(cursor_built / CURSOR_MANIFEST)["version"] == "99.0.0"
+        check = run(cursor_built, "--check")
+        assert check.stdout.splitlines() == ["pass", CLEAN_SUMMARY], check.stdout
+
+    # -- AC-3.2: rules, skills, commands, agents -----------------------------
+
+    def test_rules_are_byte_equal_to_cursor_writ_mdc(self, cursor_rendered):
+        """AC-3.2: `rules/writ.mdc` is byte-equal to `cursor/writ.mdc`, and
+        it is the only rule."""
+        assert files_under(cursor_rendered.layout / "rules") == ["writ.mdc"]
+        rules = (cursor_rendered.layout / "rules" / "writ.mdc").read_bytes()
+        assert rules == (cursor_rendered.src / "cursor" / "writ.mdc").read_bytes()
+        assert rules == (REPO_ROOT / "cursor" / "writ.mdc").read_bytes()
+
+    def test_components_sit_at_the_discovery_directories(self, cursor_rendered):
+        """AC-3.2, V48: commands/ holds every commands/*.md, the preamble
+        included (33 commands link it as a sibling file, and install.sh ships
+        it into .cursor/commands/ the same way); agents/ holds the files
+        install.sh copies into .cursor/agents/; skills/<name>/SKILL.md every
+        shipped skill; then the manifest, the rule, and system-instructions.md
+        at the root, where install.sh puts it in .cursor/. Nothing else, and
+        no symlink."""
+        assert install_sh_cursor_agents_src() == "agents"
+        expected = [rel for rel, _ in cursor_sources(REPO_ROOT)] + [
+            ".cursor-plugin/plugin.json", "rules/writ.mdc", "system-instructions.md"]
+        assert files_under(cursor_rendered.layout) == sorted(expected)
+        assert "commands/_preamble.md" in expected
+        assert len([r for r in expected if r.startswith("skills/")]) == \
+            len(list((REPO_ROOT / "skills").glob("*/SKILL.md")))
+        assert not any(p.is_symlink() for p in cursor_rendered.layout.rglob("*"))
+
+    def test_relative_links_resolve(self, cursor_rendered):
+        """Every relative `](...)` link target outside a code fence resolves
+        to a file inside the layout (the `../system-instructions.md` links
+        included), except those under CURSOR_UNRESOLVED_PREFIXES, which
+        resolve nowhere under install.sh's .cursor/ either; each prefix is
+        used."""
+        unresolved = []  # type: List[str]
+        resolved_instructions = 0
+        layout = os.path.realpath(str(cursor_rendered.layout))
+        for path in sorted(cursor_rendered.layout.rglob("*")):
+            if not path.is_file() or path.suffix not in (".md", ".mdc"):
+                continue
+            for target in link_targets(read_text(path)):
+                rel = target.split("#")[0]
+                if not rel:
+                    continue
+                full = os.path.normpath(os.path.join(os.path.realpath(str(path.parent)), rel))
+                if full.startswith(layout + os.sep) and os.path.isfile(full):
+                    resolved_instructions += rel.endswith("../system-instructions.md")
+                else:
+                    unresolved.append(rel)
+        assert resolved_instructions >= 10, resolved_instructions
+        assert sorted({r for r in unresolved if not r.startswith(CURSOR_UNRESOLVED_PREFIXES)}) == []
+        for prefix in CURSOR_UNRESOLVED_PREFIXES:
+            assert any(r.startswith(prefix) for r in unresolved), "unused prefix %s" % prefix
+
+    def test_system_instructions_at_the_root(self, cursor_rendered):
+        """system-instructions.md: its frontmatter, the generated-file
+        comment, then its body byte for byte."""
+        fm, body = split_frontmatter(read_text(REPO_ROOT / "system-instructions.md"))
+        text = read_text(cursor_rendered.layout / "system-instructions.md")
+        assert text == fm + COMMENT % "system-instructions.md" + body
+
+    def test_every_markdown_file_carries_the_comment(self, cursor_rendered):
+        """Lane rule (spec Rule 12): each copied Markdown file names its
+        source after its frontmatter; the rule file carries cursor/writ.mdc's
+        own comment, once."""
+        for rel, _ in cursor_sources(REPO_ROOT):
+            _, body = split_frontmatter((cursor_rendered.layout / rel).read_text(encoding="utf-8"))
+            assert body.startswith(COMMENT % rel), rel
+        rules = (cursor_rendered.layout / "rules" / "writ.mdc").read_text(encoding="utf-8")
+        assert rules.count(COMMENT_PREFIX) == 1
+
+    # -- AC-3.3: the script form ---------------------------------------------
+
+    def test_no_scripts_directory_and_no_script(self, cursor_rendered):
+        """AC-3.3 second branch: the layout has no `scripts/` directory and
+        no script file at all, so no dev-only script ships."""
+        assert not (cursor_rendered.layout / "scripts").exists()
+        files = files_under(cursor_rendered.layout)
+        assert [f for f in files if f.endswith((".py", ".sh"))] == []
+        dev_only = {p.name for p in (REPO_ROOT / "scripts").iterdir() if p.is_file()} - source_shipped()
+        assert "eval.sh" in dev_only and "gen-platform-trees.py" in dev_only
+        assert [f for f in files if Path(f).name in dev_only] == []
+
+    def test_bodies_keep_the_identity_text(self, cursor_rendered):
+        """AC-3.3 second branch: commands keep `python3 scripts/<name>.py`.
+        Each copied file is its source with the generated-file comment after
+        the frontmatter and every other byte unchanged: no plugin-root
+        variable, no `/writ:` namespace, no rewritten path."""
+        calls = 0
+        for rel, src in cursor_sources(REPO_ROOT):
+            fm, body = split_frontmatter(read_text(src))
+            text = read_text(cursor_rendered.layout / rel)
+            assert text == fm + COMMENT % rel + body, rel
+            for var in CURSOR_ROOT_VARS:
+                assert var not in text, "%s: %s" % (rel, var)
+            if rel.startswith("commands/"):
+                calls += len(BARE_CALL.findall(body))
+        assert calls, "the commands keep `python3 scripts/` calls"
+
+    def test_target_keeps_the_identity_script_root(self, gen):
+        """AC-3.3: the `cursor-plugin` script root is `scripts`, the identity
+        form (no verified plugin-root row: V49, V79 pending UAT), and the
+        target writes a whole tree, so it is not one of the identity targets
+        that write their platform's files and no copy."""
+        assert gen.TARGETS[CURSOR_TARGET]["script_root"] == "scripts"
+        assert not gen.is_identity(CURSOR_TARGET)
+        assert [t for t in gen.TARGETS if gen.is_identity(t)] == ["cursor", "claude-code", "codex"]
+
+    # -- Task 3.6: nothing outside the layout --------------------------------
+
+    def test_writes_only_the_layout(self, cursor_rendered):
+        """Task 3.6: every `wrote` line names a file under cursor/plugin/,
+        the out-dir holds nothing else, and the temp HOME the render ran
+        with is still empty, so nothing lands under ~/.cursor."""
+        wrote = [l for l in cursor_rendered.proc.stdout.splitlines() if l.startswith("wrote ")]
+        layout = files_under(cursor_rendered.layout)
+        assert sorted(wrote) == sorted("wrote %s/%s" % (CURSOR_LAYOUT, rel) for rel in layout)
+        assert files_under(cursor_rendered.out) == ["%s/%s" % (CURSOR_LAYOUT, rel) for rel in layout]
+        assert list(cursor_rendered.home.iterdir()) == []
+
+    def test_render_is_deterministic(self, cursor_rendered, tmp_path):
+        again = tmp_path / "again"
+        proc = run(cursor_rendered.src, "--target", CURSOR_TARGET, "--out-dir", str(again))
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        assert snapshot(again) == snapshot(cursor_rendered.out)
+
+    def test_committed_layout_is_fresh(self):
+        """The repository carries the layout: its manifest version is VERSION
+        and its rule equals cursor/writ.mdc (the whole `--check` on the
+        repository runs in TestPluginCheck.test_committed_tree_is_fresh)."""
+        assert load_json(REPO_ROOT / CURSOR_MANIFEST)["version"] == version_text()
+        assert (REPO_ROOT / CURSOR_RULES).read_bytes() == (REPO_ROOT / "cursor" / "writ.mdc").read_bytes()
+        assert not (REPO_ROOT / CURSOR_LAYOUT / "scripts").exists()
+
+    # -- --check and write ---------------------------------------------------
+
+    def test_fresh_layout_passes_check(self, cursor_built):
+        proc = run(cursor_built, "--check")
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        assert proc.stdout.splitlines() == ["pass", CLEAN_SUMMARY]
+
+    @pytest.mark.parametrize("mutate, expected, counts", [(m, r, c) for _, m, r, c in CURSOR_CHECK_CASES],
+                             ids=[i for i, _, _, _ in CURSOR_CHECK_CASES])
+    def test_drift_is_a_reason(self, cursor_built, mutate, expected, counts):
+        """A layout file that differs from a fresh render is `stale`, one
+        that is gone is `missing`, one no render produces (a `scripts/` copy
+        included) is `orphan`; exit 1, nothing written."""
+        mutate(cursor_built)
+        before = snapshot(cursor_built)
+        proc = run(cursor_built, "--check")
+        assert proc.returncode == 1, proc.stdout + proc.stderr
+        lines = proc.stdout.splitlines()
+        assert lines[0] == "fail"
+        assert check_reasons(proc) == expected
+        assert lines[-1] == CHECK_SUMMARY % (("fail",) + counts)
+        assert snapshot(cursor_built) == before
+
+    def test_source_edits_fail_check(self, cursor_built):
+        """A system-instructions.md edit makes cursor/writ.mdc and the
+        layout's rule stale together; a source command edit makes its
+        layout copy stale."""
+        path = cursor_built / "system-instructions.md"
+        path.write_text(read_text(path) + "\nNew rule.\n", encoding="utf-8")
+        edit("commands/status.md")(cursor_built)
+        proc = run(cursor_built, "--check")
+        assert proc.returncode == 1, proc.stdout + proc.stderr
+        reasons = check_reasons(proc)
+        for reason in ("stale cursor/writ.mdc", "stale " + CURSOR_RULES,
+                       "stale cursor/plugin/commands/status.md"):
+            assert reason in reasons, reason
+
+    def test_check_skips_the_layout_when_the_cursor_table_does_not_parse(self, cursor_built):
+        """The layout's rule renders the Cursor map, so when the Cursor tool
+        table does not parse, `--check` reports the parser's reason once and
+        nothing about cursor/plugin/ (the renders that read the tables are
+        skipped, as for cursor/writ.mdc)."""
+        adapter = cursor_built / "adapters" / "cursor.md"
+        heading = "## Native Tool Availability"
+        text = read_text(adapter)
+        assert text.count("\n%s\n" % heading) == 1
+        adapter.write_text(text.replace("\n%s\n" % heading, "\n"), encoding="utf-8")
+        proc = run(cursor_built, "--check")
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        assert proc.stdout.splitlines()[0] == "unverifiable"
+        reasons = check_reasons(proc)
+        assert reasons.count("section %s in adapters/cursor.md" % heading) == 1
+        assert [r for r in reasons if "cursor/" in r] == [], reasons
+
+    def test_write_repairs_and_removes_orphans(self, cursor_built):
+        """The target repairs every CURSOR_CHECK_CASES drift: it rewrites
+        each rendered file, removes each orphan under cursor/plugin/ (and
+        the `scripts/` directory the orphan left empty) with a `removed
+        <path>` line, and `--check` passes afterwards."""
+        for _, mutate, _, _ in CURSOR_CHECK_CASES:
+            mutate(cursor_built)
+        proc = run(cursor_built, "--target", CURSOR_TARGET)
+        assert proc.returncode == 0, proc.stdout + proc.stderr
+        lines = proc.stdout.splitlines()
+        assert lines[0] == "pass"
+        assert [l for l in lines if l.startswith("removed ")] == [
+            "removed cursor/plugin/commands/zz-stray.md", "removed cursor/plugin/scripts/spec-status.py"]
+        assert all(l.startswith("wrote " + CURSOR_LAYOUT + "/") for l in lines if l.startswith("wrote "))
+        assert "wrote " + CURSOR_MANIFEST in lines
+        assert not (cursor_built / CURSOR_LAYOUT / "scripts").exists()
+        check = run(cursor_built, "--check")
+        assert check.stdout.splitlines() == ["pass", CLEAN_SUMMARY], check.stdout
+
+    # -- write safety: symlinks under the layout ------------------------------
+
+    @pytest.mark.parametrize("args", [(), ("--target", CURSOR_TARGET)], ids=["write", "target"])
+    @pytest.mark.parametrize("mutate, link", [(m, l) for _, m, l, _ in CURSOR_LINK_CASES],
+                             ids=[i for i, _, _, _ in CURSOR_LINK_CASES])
+    def test_write_refuses_a_symlink(self, cursor_built, mutate, link, args):
+        """Story 2's guard covers this tree: a symlink at cursor/,
+        cursor/plugin/, a subdirectory, or a file ends the run before any
+        write: `fail`, `reason: symlink <path>`, no `wrote` or `removed`
+        line, and the tree unchanged."""
+        edit("commands/status.md")(cursor_built)  # a stale layout, so a write has work to do
+        mutate(cursor_built)
+        before = tree_state(cursor_built)
+        proc = run(cursor_built, *args)
+        assert proc.returncode == 1, proc.stdout + proc.stderr
+        lines = proc.stdout.splitlines()
+        assert lines[0] == "fail"
+        assert "reason: symlink " + link in lines, proc.stdout
+        assert [l for l in lines if l.startswith(("wrote ", "removed "))] == []
+        assert tree_state(cursor_built) == before
+
+    @pytest.mark.parametrize("mutate, expected", [(m, r) for _, m, _, r in CURSOR_LINK_CASES],
+                             ids=[i for i, _, _, _ in CURSOR_LINK_CASES])
+    def test_check_reports_a_symlink_without_following_it(self, cursor_built, mutate, expected):
+        mutate(cursor_built)
+        before = tree_state(cursor_built)
+        proc = run(cursor_built, "--check")
+        assert proc.returncode == 1, proc.stdout + proc.stderr
+        reasons = check_reasons(proc)
+        assert expected in reasons, proc.stdout
+        assert not [r for r in reasons if r.startswith("orphan ") and not r.startswith("orphan cursor/plugin")]
+        assert tree_state(cursor_built) == before
+
+
+def read_text(path: Path) -> str:
+    return path.read_bytes().decode("utf-8")
+
+
+LINK_TARGET = re.compile(r"\]\(([^)\s]+)\)")
+# Relative link targets in the layout that resolve to no file inside it, as
+# under install.sh's .cursor/: project docs (.writ/docs/), the Writ
+# repository's adapters/, and the project's scripts/ (AC-3.3 second branch:
+# the layout ships none).
+CURSOR_UNRESOLVED_PREFIXES = ("../.writ/docs/", "../adapters/", "../scripts/")
+
+
+def link_targets(text: str) -> List[str]:
+    """Relative `](target)` link targets outside ``` fences: no URL scheme,
+    no in-page anchor."""
+    out = []  # type: List[str]
+    in_fence = False
+    for line in text.splitlines():
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for m in LINK_TARGET.finditer(line):
+            target = m.group(1)
+            if not re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", target) and not target.startswith("#"):
+                out.append(target)
+    return out
+
+
+# -- AC-3.4: adapters/cursor.md -> Plugin -----------------------------------
+
+CURSOR_ADAPTER = REPO_ROOT / "adapters" / "cursor.md"
+CURSOR_CLAIM_COLUMNS = ["Claim", "Record", "Status", "Source", "Read"]
+ISO_DATE = re.compile(r"^20\d{2}-\d{2}-\d{2}$")
+# The Cursor record rows: docs (V47 to V53, V80) and live (V76 to V79).
+CURSOR_RECORD_ROWS = ("V47", "V48", "V49", "V50", "V51", "V52", "V53", "V76", "V77", "V78", "V79",
+                      "V80")
+
+
+def cursor_plugin_section(gen) -> List[str]:
+    lines = CURSOR_ADAPTER.read_text(encoding="utf-8").splitlines()
+    span, missing = gen.section(lines, ("## Plugin",))
+    assert span is not None, "adapters/cursor.md has no %r" % missing
+    return lines[span[0]:span[1]]
+
+
+def cursor_claims(gen) -> List[List[str]]:
+    lines = cursor_plugin_section(gen)
+    table = gen.first_table(lines, 0, len(lines))
+    assert table, "## Plugin has no claims table"
+    assert gen.cells(table[0][1]) == CURSOR_CLAIM_COLUMNS
+    rows = [gen.cells(text) for _, text in table[2:]]
+    assert rows, "the claims table has no row"
+    return rows
+
+
+class TestCursorAdapterPlugin:
+    def test_local_install_steps(self, gen):
+        """AC-3.4, V50: a bash block copies the layout to
+        ~/.cursor/plugins/local/writ (a copy: a symlink to a folder outside
+        it does not load), then the section says to reload Cursor."""
+        text = "\n".join(cursor_plugin_section(gen))
+        block = re.search(r"```bash\n(.*?)\n```", text, re.S)
+        assert block, "no bash block under ## Plugin"
+        assert "cursor/plugin" in block.group(1)
+        assert "~/.cursor/plugins/local/writ" in block.group(1)
+        assert "ln -s" not in block.group(1)
+        assert "Developer: Reload Window" in text
+
+    def test_marketplace_is_a_maintainer_step(self, gen):
+        """AC-3.4, V51: submission at cursor.com/marketplace/publish is a
+        maintainer step this story does not perform; the listing is pending."""
+        text = "\n".join(cursor_plugin_section(gen))
+        assert "cursor.com/marketplace/publish" in text
+        assert "marketplace listing pending" in text
+        para = [p for p in text.split("\n\n") if "cursor.com/marketplace/publish" in p]
+        assert any("maintainer" in p and "does not" in p for p in para), para
+
+    def test_project_needs_the_install_sh_scripts(self, gen):
+        """AC-3.3 second branch: the section says a project still needs the
+        `scripts/` copy install.sh makes."""
+        text = "\n".join(cursor_plugin_section(gen))
+        para = [p for p in text.split("\n\n") if "install.sh" in p and "`scripts/`" in p]
+        assert para, "no paragraph says the project needs install.sh's scripts/"
+        assert "python3 scripts/" in "\n".join(para)
+
+    def test_claims_carry_status_source_and_date(self, gen):
+        """AC-3.4: one row per platform claim; Status in the Verification
+        Record grammar, an https Source, a Read date; a row that cites a
+        record row carries that row's status, so the live claims (V76 to
+        V79) read `unverified 2026-10-23 (pending UAT)`; every Cursor record
+        row is cited."""
+        statuses = status_by_id(gen)
+        rows = cursor_claims(gen)
+        for row in rows:
+            assert len(row) == len(CURSOR_CLAIM_COLUMNS), row[0][:60]
+            assert STATUS_GRAMMAR.match(row[2]), "Status %r (row %r)" % (row[2], row[0][:60])
+            assert row[3].startswith("https://"), row[0][:60]
+            assert ISO_DATE.match(row[4]), row[0][:60]
+            match = ROW_ID.match(row[1])
+            if match:
+                assert row[2] == statuses[match.group(1)], row[0][:60]
+            else:
+                assert row[1] == "—", row[0][:60]
+        cited = [row[1] for row in rows]
+        for row_id in CURSOR_RECORD_ROWS:
+            assert row_id in cited, row_id
+        for row in rows:
+            if row[1] in ("V76", "V77", "V78", "V79"):
+                assert PENDING_UAT.match(row[2]), row[1]
+
+    def test_tool_table_still_parses(self, gen):
+        """gen-platform-trees reads the adapter's tool table; the new section
+        leaves it intact."""
+        table = gen.parse_adapter(CURSOR_ADAPTER, "cursor")
+        assert table.verdict == "pass", table.reasons
+
+
+# -- AC-3.5: the Cursor local plugin UAT protocol ----------------------------
+
+UAT_HEADING = "## UAT Protocols (Story 3 and Story 5 write)"
+CURSOR_UAT_BULLET = "- **Cursor local plugin:**"
+
+
+def cursor_protocol(gen) -> str:
+    """The Cursor local plugin bullet and its sub-items, up to the next
+    top-level bullet."""
+    lines = spec_section(gen, UAT_HEADING)
+    start = next((i for i, l in enumerate(lines) if l.startswith(CURSOR_UAT_BULLET)), None)
+    assert start is not None, "no %r bullet" % CURSOR_UAT_BULLET
+    end = next((j for j in range(start + 1, len(lines)) if lines[j].startswith("- ")), len(lines))
+    return "\n".join(lines[start:end])
+
+
+def protocol_item(protocol: str, label: str) -> str:
+    """The sub-item starting `  - <label>` and its deeper lines."""
+    lines = protocol.splitlines()
+    start = next((i for i, l in enumerate(lines) if l.startswith("  - " + label)), None)
+    assert start is not None, "no %r item" % label
+    end = next((j for j in range(start + 1, len(lines)) if lines[j].startswith("  - ")), len(lines))
+    return "\n".join(lines[start:end])
+
+
+class TestCursorUatProtocol:
+    def test_precondition(self, gen):
+        """AC-3.5: the Cursor version is recorded, a sample project is open,
+        and the project holds `scripts/` from install.sh (the scripts/ form)."""
+        item = protocol_item(cursor_protocol(gen), "Precondition")
+        for needle in ("Cursor version", "sample project", "install.sh", "`scripts/`"):
+            assert needle in item, needle
+
+    def test_numbered_steps(self, gen):
+        """AC-3.5: numbered steps copy the layout, reload Cursor, and open the
+        sample project, then confirm the project's `scripts/` before any
+        script call."""
+        item = protocol_item(cursor_protocol(gen), "Steps")
+        steps = re.findall(r"^\s+(\d+)\. (.*)$", item, re.M)
+        assert [int(n) for n, _ in steps] == list(range(1, len(steps) + 1)) and len(steps) >= 4
+        text = [s for _, s in steps]
+        copy = next(i for i, s in enumerate(text) if "~/.cursor/plugins/local/writ" in s)
+        reload = next(i for i, s in enumerate(text) if "Developer: Reload Window" in s)
+        project = next(i for i, s in enumerate(text) if "sample project" in s and "pen" in s)
+        scripts = next(i for i, s in enumerate(text) if "`scripts/`" in s and "install.sh" in s)
+        assert copy < reload < project <= scripts
+
+    def test_three_look_fors(self, gen):
+        """AC-3.5: rules listed in the session, `/writ` visible, a
+        script-calling command resolves."""
+        item = protocol_item(cursor_protocol(gen), "Look for")
+        looks = re.findall(r"^\s+\d+\. (.*)$", item, re.M)
+        assert len(looks) == 3, looks
+        assert "writ.mdc" in looks[0] and "Prime Directive" in looks[0]
+        assert "`/writ`" in looks[1]
+        assert "script" in looks[2] and "python3 scripts/" in looks[2]
+
+    def test_record_edit_on_pass_and_on_fail(self, gen):
+        """AC-3.5: the record edit to adapters/cursor.md § Plugin for a pass
+        and for a fail, with the record rows it flips."""
+        protocol = cursor_protocol(gen)
+        for label in ("On pass", "On fail"):
+            item = protocol_item(protocol, label)
+            assert "adapters/cursor.md" in item and "§ Plugin" in item, label
+            assert "V76" in item and "V78" in item, label
+        assert "verified <run date>" in protocol_item(protocol, "On pass")
+        assert "unverified <run date>" in protocol_item(protocol, "On fail")
+
+    def test_keeps_the_story_1_fields(self, gen):
+        """Story 1's recorded fields stay in the protocol (TestStory1Record)."""
+        protocol = cursor_protocol(gen)
+        for field in ("Cursor version:", "Rules list result", "Commands seen", "Script call result",
+                      "Result: `pass` or `fail`", "cursor.com/marketplace/publish"):
+            assert field in protocol, field

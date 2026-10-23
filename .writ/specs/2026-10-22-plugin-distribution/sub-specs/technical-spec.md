@@ -110,6 +110,7 @@ Status grammar: `^(verified|unverified) \d{4}-\d{2}-\d{2}( \((pending UAT|no dep
 | V77 A Cursor local plugin shows `/writ` and the other commands from `commands/` | Cursor (no session in lane) | Not run: no Cursor session in the lane | https://cursor.com/docs/plugins.md | unverified 2026-10-23 (pending UAT) |
 | V78 A script-calling command from a Cursor local plugin resolves its script | Cursor (no session in lane) | Not run: no Cursor session in the lane | https://cursor.com/docs/plugins.md | unverified 2026-10-23 (pending UAT) |
 | V79 A Cursor command body can use `${CURSOR_PLUGIN_ROOT}` | Cursor (no session in lane) | Not run: no Cursor session in the lane; V49 documents expansion in MCP fields only | https://cursor.com/docs/reference/plugins.md | unverified 2026-10-23 (pending UAT) |
+| V80 Cursor agent files require YAML frontmatter with `name` and `description` | Cursor docs, read 2026-10-23 | Agents format: "Agents require YAML frontmatter"; fields `name`, `description`; the submission checklist requires valid frontmatter for every included component | https://cursor.com/docs/reference/plugins.md | verified 2026-10-23 |
 
 ### Upstream changes since 2026-10-22
 
@@ -306,13 +307,29 @@ Per target: every `commands:` entry in the manifest has a file; `python3 <root>/
 
 ## UAT Protocols (Story 3 and Story 5 write)
 
-- **Cursor local plugin:** copy the Cursor layout to `~/.cursor/plugins/local/writ`, restart Cursor or run Developer: Reload Window, open a sample project, and check Customize (V50); confirm the rules file loads (the Prime Directive is visible in the session's rules list), `/writ` appears, and a command that calls a script resolves. Record in `adapters/cursor.md` § Plugin, then flip V76 to V79 from `unverified 2026-10-23 (pending UAT)` to the run's result:
-  - Cursor version:
-  - Rules list result (is `writ.mdc` listed; is the Prime Directive visible):
-  - Commands seen (is `/writ` listed; which others):
-  - Script call result (command run, script path, exit code):
-  - Result: `pass` or `fail`, with the failing check named
-  - The Cursor marketplace listing is not part of this protocol. It is a submission the maintainer makes at cursor.com/marketplace/publish, and Cursor reviews every plugin before listing it (V51). Story 3 expands this protocol (AC-3.5).
+- **Cursor local plugin:** (Story 3, AC-3.5) load the layout `cursor/plugin/` from Cursor's local plugins folder (V50) and check the three things V76 to V78 claim. Commands keep the `python3 scripts/<name>.py` form (§ Candidate Layouts → Cursor layout input for Story 3), so the sample project supplies `scripts/`.
+  - Precondition: the Cursor version is recorded (Cursor → About Cursor). A sample project is a git repository in which `bash <writ>/scripts/install.sh --no-commit` has run, so it holds `scripts/` from install.sh, and whose `.cursor/` was then deleted, so every rule, command, agent, and skill the session shows comes from the plugin. Nothing of an earlier copy is left in `~/.cursor/plugins/local/writ`.
+  - Steps:
+    1. In the Writ repository, run `python3 scripts/gen-platform-trees.py --check` and confirm it prints `pass`, so the layout matches its sources.
+    2. Copy the layout: `rm -rf ~/.cursor/plugins/local/writ && mkdir -p ~/.cursor/plugins/local/writ && cp -R cursor/plugin/. ~/.cursor/plugins/local/writ/`.
+    3. Restart Cursor or run **Developer: Reload Window**.
+    4. Open the sample project, then open **Customize** and note the `writ` plugin and the components it lists.
+    5. Confirm the project has `scripts/` from install.sh: `test -f scripts/quality-config-audit.py && test ! -e .cursor` exits 0.
+    6. Start a new chat in the sample project and run the three look-fors below.
+    7. Optional, after the look-fors: run `bash <writ>/scripts/install.sh --no-commit` in the sample project again, reload, and note which `/status` and which `writ.mdc` Cursor shows, the plugin's or the project's `.cursor/` copy.
+  - Look for:
+    1. Rules: the session's rules list shows `writ.mdc` from the plugin, and the Prime Directive is visible: asked to quote the first Hard Constraints bullet and its parent heading (Story 1's probe P2), the reply quotes it.
+    2. Commands: typing `/` lists `/writ` and the other commands from `commands/`; note whether `/_preamble` is listed.
+    3. Script call: `/status` runs `python3 scripts/quality-config-audit.py check --project .` from the project root, and the script prints its JSON report with a `verdict` field (exit 0). `can't open file` or exit 2 fails this check.
+  - On pass: edit `adapters/cursor.md` § Plugin: the V76, V77, and V78 rows read `verified <run date>`, with the run date in Read and the Cursor version in the Claim; fill the `/_preamble` and agents rows with what the run showed. The both-copies row stays `unverified 2026-10-23 (pending UAT)` unless step 7 ran: the precondition deletes `.cursor/`, so steps 1 to 6 cannot show which copy wins. In § Verification Record above, flip V76 to V78 the same way (Platform & version `Cursor <version>`, Observed the transcript line). V79 stays `unverified 2026-10-23 (pending UAT)` unless the run also tried a `${CURSOR_PLUGIN_ROOT}` command body.
+  - On fail: edit `adapters/cursor.md` § Plugin: each failing row among V76 to V78 reads `unverified <run date>`, and a sentence above the table names the failing check and what the run showed; the passing rows flip as on pass. In § Verification Record, the same rows get the same status, with the failing check in Observed. The README keeps the Cursor plugin out of first place (spec.md → Rule 10).
+  - Record these fields with the result:
+    - Cursor version:
+    - Rules list result (is `writ.mdc` listed; is the Prime Directive visible):
+    - Commands seen (is `/writ` listed; which others; is `/_preamble` listed):
+    - Script call result (command run, script path, exit code):
+    - Result: `pass` or `fail`, with the failing check named
+  - The Cursor marketplace listing is not part of this protocol. It is a submission the maintainer makes at cursor.com/marketplace/publish, and Cursor reviews every plugin before listing it (V51).
 - **Claude Code plugin live run:** `claude plugin marketplace add sellke/writ`; `claude plugin install writ@writ`; in an empty temp project run `/writ:initialize` then `/writ:writ "add a health endpoint"`; record the transcript lines showing the scaffold and the route. A GitHub-sourced install runs from a cache copy (V34), so this run also flips V72 and V73.
 
 ## Shadow Paths

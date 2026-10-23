@@ -535,7 +535,10 @@ def test_writ_mdc(gen, tmp_path):
     assert headings.count("## Capability Map") == 1
     assert prime_directive(source)
     assert prime_directive(text) == prime_directive(source)
-    assert sorted(p.name for p in (tree / "cursor").iterdir()) == ["writ.mdc"]
+    # cursor/plugin/ is the cursor-plugin target's layout (Story 3 of the
+    # plugin-distribution spec; its folder is not named here, so ac-trace
+    # keeps crediting this file's AC tokens to this file's spec).
+    assert sorted(p.name for p in (tree / "cursor").iterdir()) == ["plugin", "writ.mdc"]
 
 
 def test_claude_md_map(gen, tmp_path):
@@ -583,10 +586,12 @@ def test_write_mode_shape(tmp_path):
         assert "wrote claude-code/agents/%s" % name in wrote
     for stem in stems:
         assert "wrote codex/agents/%s.toml" % stem in wrote
-    # The claude-code-plugin target's tree is written last, one line per file.
+    # The plugin trees (claude-code-plugin, then cursor-plugin) are written
+    # last, one line per file.
     plugin = sorted(["wrote .claude-plugin/marketplace.json"] + [
         "wrote " + p.relative_to(tree).as_posix()
-        for p in (tree / "plugins" / "writ").rglob("*") if p.is_file()])
+        for top in (("plugins", "writ"), ("cursor", "plugin"))
+        for p in tree.joinpath(*top).rglob("*") if p.is_file()])
     assert sorted(wrote[len(wrote) - len(plugin):]) == plugin
     assert len(wrote) == 3 + 2 * len(stems) + len(plugin)
     assert lines[-1] == "gen-platform-trees: pass (%d written, 0 reasons)" % len(wrote)
@@ -614,7 +619,10 @@ def test_write_blocked_by_bad_row(tmp_path):
     assert wrote_lines(proc) == []
     assert lines[-1] == "gen-platform-trees: fail (0 written, 1 reasons)"
     assert generated_bytes(tree) == before
-    assert sorted(p.name for p in (tree / "cursor").iterdir()) == ["writ.mdc"]
+    # cursor/plugin/ is the cursor-plugin target's layout (Story 3 of the
+    # plugin-distribution spec; its folder is not named here, so ac-trace
+    # keeps crediting this file's AC tokens to this file's spec).
+    assert sorted(p.name for p in (tree / "cursor").iterdir()) == ["plugin", "writ.mdc"]
 
 
 def test_write_blocked_by_subgenerator_exit(tmp_path):
@@ -1291,11 +1299,12 @@ def test_vendor_hit(tmp_path):
     assert check_lines(proc, "fail", (0, 0, 0, 0, 2)) == expected
     proc = run_tree(tree, "--check")
     assert proc.returncode == 1, proc.stdout + proc.stderr
-    # A new command also leaves the claude-code-plugin target's tree behind;
-    # those reasons come before the vendor scan.
-    assert check_lines(proc, "fail", (1, 1, 0, 0, 2)) == [
+    # A new command also leaves the plugin trees behind (claude-code-plugin,
+    # then cursor-plugin); those reasons come before the vendor scan.
+    assert check_lines(proc, "fail", (1, 2, 0, 0, 2)) == [
         "reason: stale plugins/writ/.claude-plugin/plugin.json",
         "reason: missing plugins/writ/" + rel,
+        "reason: missing cursor/plugin/" + rel,
     ] + expected
     assert wrote_lines(proc) == []
     assert snapshot(tree) == before
@@ -1389,11 +1398,13 @@ def test_targets_cover_every_generator(gen):
     """AC-4.3: the three identity targets share the `scripts` root and
     between them own every GENERATED path and every SUBGENERATOR exactly
     once, so no generated file is skipped by `--target <platform>`; the
-    non-identity targets are the fixture and the Claude Code plugin
-    (`claude-code-plugin`)."""
-    identity = [t for t in gen.TARGETS if gen.TARGETS[t]["script_root"] == "scripts"]
+    non-identity targets are the fixture and the two plugin trees
+    (`claude-code-plugin`, and `cursor-plugin`, which keeps the `scripts`
+    root but writes a tree)."""
+    identity = [t for t in gen.TARGETS if gen.is_identity(t)]
     assert identity == list(IDENTITY_TARGETS)
-    assert [t for t in gen.TARGETS if t not in identity] == ["fixture", "claude-code-plugin"]
+    assert all(gen.TARGETS[t]["script_root"] == "scripts" for t in identity)
+    assert [t for t in gen.TARGETS if t not in identity] == ["fixture", "claude-code-plugin", "cursor-plugin"]
     owned = [rel for t in identity for rel in gen.TARGETS[t]["generated"]]
     assert sorted(owned) == sorted(rel for rel, _ in gen.GENERATED) and len(owned) == len(set(owned))
     subs = [g for t in identity for g in gen.TARGETS[t]["subgenerators"]]
