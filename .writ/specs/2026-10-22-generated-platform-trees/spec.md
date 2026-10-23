@@ -1,6 +1,6 @@
 # Generated Platform Trees
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-10-22
 > **Owner:** @AdamSellke
 > **Dependencies:** [2026-10-22-front-door, 2026-10-22-rendering-delegation-rows]
