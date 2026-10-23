@@ -103,3 +103,60 @@
 - **Spec amendment:** spec-lite.md → Files in Scope (S2) names the Story 1 record tests and the optional manifest fields.
 
 ---
+
+## Story 4: Scaffold Script, `/initialize` Step 0, and ADR-031 — Drift Report
+
+> Run: 2026-10-23
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-011] Extra `added .gitignore entry <entry>` output lines
+- **Severity:** Small
+- **Spec said:** AC-4.1: line 1 `pass`, one `created <path>` line per missing path, last line the summary.
+- **Implementation did:** Prints one `added .gitignore entry <entry>` line per appended entry after the `created` lines and before the summary; `/initialize` Step 0 reports them.
+- **Reason:** The agent CLI check shape allows detail lines; the `created` lines still follow line 1 and the summary stays last.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → scaffold line: output adds `added .gitignore entry <entry>` detail lines.
+
+#### [DEV-012] `--check` summary counts every reason line
+- **Severity:** Small
+- **Spec said:** Story Notes: `<n>` and `<m>` count only the listed paths ("ten", stale: the contract has eleven).
+- **Implementation did:** `scaffold-writ: fail (<m> missing)` counts missing paths plus missing `.gitignore` entries (plus blocked paths), so a fail caused only by an entry never reads `0 missing`. The pass-path summary counts the eleven paths.
+- **Reason:** The summary matches the visible `reason:` lines; AC-4.3 does not define `<m>`.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → scaffold line: the `--check` count covers paths and entries.
+
+#### [DEV-013] `not a directory` fail path; misleading reason on permission errors; `.gitignore` directory crash
+- **Severity:** Small
+- **Spec said:** No behaviour specified for a file in the way of a path.
+- **Implementation did:** A non-directory at a listed path is `fail`, `reason: not a directory <path>`, with a `<k> not a directory` summary suffix; `--project` naming a non-directory exits 2. Review found two edge cases left as follow-ups: a permission error from `mkdir` is reported with the same `not a directory` reason, and a `.gitignore` that is a directory raises `IsADirectoryError` (exit 1, empty stdout, breaking the check-shape line-1 rule).
+- **Reason:** Edge cases outside the ACs; logged for a follow-up fix rather than widening this story.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → Error Handling: scaffold-writ.py's permission-error and directory-`.gitignore` paths are known follow-ups.
+
+#### [DEV-014] Missing entries appended at end of file when the Writ comment exists
+- **Severity:** Small
+- **Spec said:** Notes: append missing entries under the `# Writ ephemeral state` comment, in one write.
+- **Implementation did:** When the comment exists, appends the missing entries at end of file without repeating it; otherwise appends a new comment block. The bash function and the script produce the same bytes (9 fixtures).
+- **Reason:** Identical result for the block today's installer writes (it sits at end of file); keeps the bash side one `>>` write.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → scaffold line: entries append at end of file under the existing comment block.
+
+#### [DEV-015] `update.sh` repairs before its early exits, skips on `--dry-run`, and leaves `.gitignore` uncommitted
+- **Severity:** Small
+- **Spec said:** Task 4.3: call the function after `WRIT_SRC` is set so an update repairs a missing tree.
+- **Implementation did:** Calls it after `load_baselines`, before the "Already up to date" exits, guarded by `DRY_RUN != true`; the scoped update commit does not stage `.gitignore`, and an up-to-date run prints no repair line. ADR-031 Consequences records it.
+- **Reason:** Meets the intent (verified: a real update repaired `.writ/knowledge`, `.writ/issues/goals`, and the lanes entry; dry run wrote nothing).
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → scaffold line: `update.sh` repairs on every non-dry run and leaves the `.gitignore` change for the user to commit.
+
+#### [DEV-016] `/initialize` Greenfield wording counts the Step 0 tree as boilerplate
+- **Severity:** Small
+- **Spec said:** Task 4.4 names Step 0 and one replaced sentence.
+- **Implementation did:** Also edits the Greenfield bullet so the `.writ/` tree Step 0 created does not tip detection toward brownfield.
+- **Reason:** Without it Step 0 would change the detection result it runs before.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → scaffold line: Step 0's tree counts as boilerplate for greenfield detection.
+
+---

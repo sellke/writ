@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T17:12:02Z
+> Last Updated: 2026-10-23T18:15:54Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-plugin-distribution — Plugin Distribution
-- **Status:** In Progress (2/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`)
-- **Story:** 2 of 5 — Claude Code Plugin (Completed ✅)
-- **Progress:** 14/33 tasks complete (42%)
+- **Status:** In Progress (3/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`)
+- **Story:** 4 of 5 — Scaffold Script, /initialize Step 0, and ADR-031 (Completed ✅)
+- **Progress:** 20/33 tasks complete (61%)
 
 ## Artifact Map
 
@@ -23,10 +23,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-015 `update.sh` repairs before its early exits and leaves `.gitignore` uncommitted — plugin-distribution (Story 4, auto-amended)
+- DEV-013 scaffold-writ.py permission-error reason and `.gitignore`-directory crash left as follow-ups — plugin-distribution (Story 4, auto-amended)
 - ⚠️ DEV-006 `.writ/docs/` reference docs are absent in a plugin-only project — plugin-distribution (Story 2, flagged for review)
-- ⚠️ DEV-005 Self-locating Writ-source scripts resolve their root to the plugin — plugin-distribution (Story 2, flagged for review)
-- DEV-007 `instructions-path` rewrites link forms only; comment lines skipped — plugin-distribution (Story 2, auto-amended; spec-lite token line)
 
 ## Open Issues
 
-24 open issue files in .writ/issues/ (39 total; 15 closed with `## Resolution`)
+23 open issue files in .writ/issues/ (39 total; 16 closed with `## Resolution`)

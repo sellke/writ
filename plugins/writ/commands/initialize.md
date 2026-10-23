@@ -17,6 +17,14 @@ exit_criteria:
 
 Set up technical foundation by detecting whether this is a greenfield (new) or brownfield (existing) project, then executing the appropriate workflow. This command handles technical infrastructure only; product strategy belongs to `/writ:plan-product`.
 
+### Step 0: Scaffold .writ/
+
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/scaffold-writ.py scaffold` from the project root before detection. It creates each missing `.writ/` directory that Writ's commands write into and adds `.writ/state/` and `.writ-lanes-*/` to `.gitignore`, creating that file when absent. It creates directories only, `.writ/product/` among them, and writes no file under `.writ/`. On a project that already has the tree it reports `0 created` and changes nothing.
+
+- Report each `created` line, and each `added .gitignore entry` line, to the user.
+- If line 1 of its output is not `pass`, stop and report the `reason:` lines. Do not continue to detection.
+- Otherwise continue to Detection Logic.
+
 ### Detection Logic
 
 Auto-detect project type — never ask the user which workflow to run.
@@ -28,14 +36,14 @@ Auto-detect project type — never ask the user which workflow to run.
    - Configuration files (.eslintrc, tsconfig.json, Dockerfile, etc.)
 
 2. **Classify as:**
-   - **Greenfield** — empty directory or only boilerplate files (README, LICENSE, .gitignore)
+   - **Greenfield** — empty directory or only boilerplate files (README, LICENSE, .gitignore, and the `.writ/` tree Step 0 created)
    - **Brownfield** — existing codebase with established structure and dependencies
 
 **Edge case:** A freshly scaffolded project (e.g., `create-react-app` just ran) is greenfield — it has structure but no custom code. Look for non-boilerplate source files and git history beyond the initial commit, not just directory presence.
 
 After classification, announce the result and the evidence: *"Detected brownfield project — found package.json with 47 dependencies, src/ with 200+ files, 6 months of git history."* This gives the user a chance to correct a misclassification before proceeding.
 
-`.writ/` exists from installation; create docs within `.writ/docs/`.
+Step 0 creates `.writ/` when it is absent; create docs within `.writ/docs/`.
 
 ## Invocation
 

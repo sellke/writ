@@ -865,10 +865,27 @@ init_writ_workspace() {
     echo ""
     echo "  📁 Creating .writ/ directory structure..."
   fi
-  mkdir -p .writ/{specs,product,research,decision-records,docs,issues,explanations,state}
+  # The eleven PATHS of scripts/scaffold-writ.py; test_scaffold_writ.py fails on drift.
+  mkdir -p .writ/{specs,product,research,decision-records,docs,knowledge,state} .writ/issues/{bugs,features,improvements,goals}
 
-  if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
-    printf '\n# Writ ephemeral state\n.writ/state/\n' >> .gitignore
+  # .gitignore, as scaffold-writ.py does it: created when absent; each missing
+  # entry appended in one write, under the comment unless the file has it.
+  # Lines compare trimmed and whole, one trailing "/" ignored.
+  local gi_entry gi_add="" gi_head=""
+  for gi_entry in ".writ/state/" ".writ-lanes-*/"; do
+    if ! awk -v e="${gi_entry%/}" '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); sub(/\/$/, "") } $0 == e { f = 1 } END { exit !f }' .gitignore 2>/dev/null; then
+      gi_add="$gi_add$gi_entry"$'\n'
+    fi
+  done
+  if [ -n "$gi_add" ]; then
+    if [ ! -f .gitignore ]; then
+      gi_head='# Writ ephemeral state'$'\n'
+    elif awk '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, "") } $0 == "# Writ ephemeral state" { f = 1 } END { exit !f }' .gitignore; then
+      if [ -n "$(tail -c 1 .gitignore)" ]; then gi_head=$'\n'; fi
+    else
+      gi_head=$'\n''# Writ ephemeral state'$'\n'
+    fi
+    printf '%s%s' "$gi_head" "$gi_add" >> .gitignore
   fi
 
   if [ -f ".cursor/rules/cc.mdc" ]; then
