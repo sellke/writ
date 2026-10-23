@@ -196,6 +196,7 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 | `run_terminal_cmd` | `Bash(command)` | Direct equivalent |
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |
 | `canvas-preview` | An artifact, or the preview pane | One self-contained HTML page per draft. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `Plan Mode` | `EnterPlanMode`; present the contract proposal as the plan; after `ExitPlanMode` approval, lock with AskQuestion | If the platform has no toggle, say so and proceed read-only. |
 
 #### Verification record — 2026-10-22
 

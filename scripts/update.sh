@@ -745,8 +745,8 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py)
-      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template, platform trees); not agent-facing. ADR-029.
       return 1 ;;
   esac
   case "$base" in

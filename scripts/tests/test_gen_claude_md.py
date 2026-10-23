@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Tests for scripts/gen-claude-md.py, Story 1 of `2026-10-20-claude-code-parity`.
+"""Tests for scripts/gen-claude-md.py. CapabilityMapTests at the end come from
+Story 2 of `2026-10-22-generated-platform-trees` (the `{capability_map}` slot);
+everything else is Story 1 of `2026-10-20-claude-code-parity`.
 
 The generator builds `claude-code/CLAUDE.md` from the `commands:` list in
-`.writ/manifest.yaml` and the frontmatter of `claude-code/agents/*.md`. It
-prints the check shape from the agent CLI contract and writes nothing on any
-failure.
+`.writ/manifest.yaml`, the frontmatter of `claude-code/agents/*.md`, and the
+Claude Code capability map that `scripts/gen-platform-trees.py` renders from
+`adapters/claude-code.md`. It prints the check shape from the agent CLI
+contract and writes nothing on any failure.
 
-CLI tests copy the script into a temp root, because the script resolves its
-root from its own path. Nothing here writes to the real repo. The module name
-has a hyphen, so in-process tests import it by path, the way
-test_gen_codex_agent_tomls.py does.
+CLI tests copy the script, the driver, and the adapter into a temp root,
+because the script resolves its root from its own path. Nothing here writes
+to the real repo. The module name has a hyphen, so in-process tests import it
+by path, the way test_gen_codex_agent_tomls.py does.
 
-Expected rows and agents come from the real manifest and agent files, never
-from a hard-coded count.
+Expected rows, agents, and map rows come from the real manifest, agent files,
+and adapter, never from a hard-coded count.
 
 Run: uv run pytest scripts/tests/test_gen_claude_md.py
 """
@@ -32,18 +35,32 @@ from typing import List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO_ROOT / "scripts" / "gen-claude-md.py"
+TREES_PATH = REPO_ROOT / "scripts" / "gen-platform-trees.py"
 MANIFEST = REPO_ROOT / ".writ" / "manifest.yaml"
 AGENTS_DIR = REPO_ROOT / "claude-code" / "agents"
+ADAPTER = REPO_ROOT / "adapters" / "claude-code.md"
 TEMPLATE = REPO_ROOT / "claude-code" / "CLAUDE.md"
 IMPORT_LINE = "@.claude/system-instructions.md"
 SENTINEL = b"SENTINEL TEMPLATE\n"
+# A minimal adapter with the real Claude Code headings and one row whose
+# mapping cell holds an `@` outside backticks.
+AT_SIGN_ADAPTER = "\n".join([
+    "# Claude Code Adapter", "", "## Tool Mapping (Cursor → Claude Code)", "",
+    "### Quick Reference", "", "| Cursor Tool | Claude Code Native | Notes |", "|---|---|---|",
+    "| `read_file` | Load @docs/x.md first | Direct equivalent |", "",
+]) + "\n"
 
 
-def load_module():
-    spec = importlib.util.spec_from_file_location("gen_claude_md", MODULE_PATH)
+def load_module(path: Path = MODULE_PATH, name: str = "gen_claude_md"):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)  # type: ignore[union-attr]
     return module
+
+
+def claude_map() -> str:
+    """The Claude Code capability map the driver renders from the real adapter."""
+    return load_module(TREES_PATH, "gen_platform_trees").capability_map("claude-code", REPO_ROOT)
 
 
 def manifest_commands() -> List[Tuple[str, str]]:
@@ -94,7 +111,7 @@ PIPELINE_ENTRIES = [
     ("implement-phase", "Run a phase."),
 ]
 
-EXPECTED_FIXTURE = "\n".join([
+EXPECTED_HEAD = [
     "# Writ",
     "",
     "You are **Writ** — a methodical AI development partner. You organize all work in `.writ/` folders.",
@@ -117,7 +134,8 @@ EXPECTED_FIXTURE = "\n".join([
     "| `/verify-spec` | `.claude/commands/verify-spec.md` | Check a spec. |",
     "| `/release` | `.claude/commands/release.md` | Cut a release. |",
     "| `/implement-phase` | `.claude/commands/implement-phase.md` | Run a phase. |",
-    "",
+]
+EXPECTED_TAIL = [
     "## Agents",
     "",
     "Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:",
@@ -139,7 +157,13 @@ EXPECTED_FIXTURE = "\n".join([
     "- **TDD**: Tests first, then implementation",
     "- **Challenge assumptions**: Push back on bad ideas with evidence",
     "- **Commit incrementally**: Small commits, not big bangs",
-]) + "\n"
+]
+
+
+def expected_fixture() -> str:
+    """The exact fixture output: the Commands table, a blank line, the real
+    Claude Code map, a blank line, then `## Agents` onward."""
+    return "\n".join(EXPECTED_HEAD) + "\n\n" + claude_map() + "\n" + "\n".join(EXPECTED_TAIL) + "\n"
 
 
 class TempRoot(unittest.TestCase):
@@ -150,12 +174,19 @@ class TempRoot(unittest.TestCase):
         self.root = Path(self._tmp.name)
         (self.root / "scripts").mkdir()
         (self.root / ".writ").mkdir()
+        (self.root / "adapters").mkdir()
         self.agents = self.root / "claude-code" / "agents"
         self.agents.mkdir(parents=True)
         self.out = self.root / "claude-code" / "CLAUDE.md"
         self.manifest = self.root / ".writ" / "manifest.yaml"
+        self.adapter = self.root / "adapters" / "claude-code.md"
+        self.trees = self.root / "scripts" / "gen-platform-trees.py"
         if MODULE_PATH.is_file():
             shutil.copy(MODULE_PATH, self.root / "scripts" / "gen-claude-md.py")
+        if TREES_PATH.is_file():
+            shutil.copy(TREES_PATH, self.trees)
+        if ADAPTER.is_file():
+            shutil.copy(ADAPTER, self.adapter)
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
@@ -205,6 +236,18 @@ class TempRoot(unittest.TestCase):
         self.assertEqual(self.out.read_bytes(), SENTINEL)
         self.assertEqual(sorted(p.name for p in self.out.parent.iterdir()),
                          ["CLAUDE.md", "agents"], "a temp file was left behind")
+
+    def assert_unverifiable(self, reason: str) -> None:
+        """Both modes print unverifiable with this reason, exit 0, and leave the template."""
+        for args in ((), ("--check",)):
+            self.out.write_bytes(SENTINEL)
+            result = self.run_cli(*args)
+            lines = self.lines(result)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(lines[0], "unverifiable")
+            self.assertIn("reason: " + reason, lines)
+            self.assertTrue(lines[-1].startswith("gen-claude-md: unverifiable ("), lines[-1])
+            self.assertEqual(self.out.read_bytes(), SENTINEL)
 
 
 # --- AC-1.1: the template from the real manifest and agents --------------------
@@ -284,14 +327,14 @@ class FixtureLayoutTests(TempRoot):
     def test_ac_1_1_exact_bytes_escaping_and_agent_order(self) -> None:
         """AC-1.1: layout per the technical spec; `|` escaped; agents sorted by file name."""
         self.use_fixture()
-        self.assertEqual(self.generate().decode("utf-8"), EXPECTED_FIXTURE)
+        self.assertEqual(self.generate().decode("utf-8"), expected_fixture())
 
     def test_ac_1_1_render_matches_cli(self) -> None:
         """AC-1.1: render() returns the same text the CLI writes."""
         gen = load_module()
         commands = [(n, p) for n, p in PIPELINE_ENTRIES]
         agents = [("writ-alpha.md", "Alpha agent."), ("writ-beta.md", "Beta agent.")]
-        self.assertEqual(gen.render(commands, agents), EXPECTED_FIXTURE)
+        self.assertEqual(gen.render(commands, agents, claude_map()), expected_fixture())
 
 
 # --- AC-1.2: --check ------------------------------------------------------------
@@ -374,17 +417,6 @@ class CheckModeTests(TempRoot):
 
 class ErrorPathTests(TempRoot):
     """AC-1.3: unverifiable, usage, and named fail reasons; no write on any failure."""
-
-    def assert_unverifiable(self, reason: str) -> None:
-        for args in ((), ("--check",)):
-            self.out.write_bytes(SENTINEL)
-            result = self.run_cli(*args)
-            lines = self.lines(result)
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual(lines[0], "unverifiable")
-            self.assertIn("reason: " + reason, lines)
-            self.assertTrue(lines[-1].startswith("gen-claude-md: unverifiable ("), lines[-1])
-            self.assertEqual(self.out.read_bytes(), SENTINEL)
 
     def test_ac_1_3_missing_manifest_is_unverifiable(self) -> None:
         """AC-1.3: a missing .writ/manifest.yaml prints unverifiable and exits 0."""
@@ -506,6 +538,71 @@ class ValueParserTests(unittest.TestCase):
         commands, reasons = gen.read_commands(fixture_manifest([("ship", "Ship it.")]))
         self.assertEqual(reasons, [])
         self.assertEqual(commands, [("ship", "Ship it.")])
+
+
+# --- 2026-10-22-generated-platform-trees, Story 2: the {capability_map} slot ---
+
+
+class CapabilityMapTests(TempRoot):
+    """2026-10-22-generated-platform-trees AC-2.3: the Claude Code capability
+    map from scripts/gen-platform-trees.py fills the slot after the Commands
+    table; its inputs and failures follow the generator's check shape."""
+
+    def test_ac_2_3_capability_map_between_commands_and_agents(self) -> None:
+        """AC-2.3: `## Capability Map` with the Claude Code rows sits after the
+        Commands table and before `## Agents` in the real output."""
+        self.use_real_inputs()
+        lines = self.generate().decode("utf-8").splitlines()
+        table = lines.index("| Command | File | Purpose |")
+        heading = lines.index("## Capability Map")
+        agents = lines.index("## Agents")
+        self.assertLess(table, heading)
+        self.assertLess(heading, agents)
+        expected = claude_map().splitlines()
+        self.assertEqual(lines[heading:heading + len(expected)], expected)
+        self.assertEqual(lines[heading - 1], "")
+        self.assertTrue(lines[heading - 2].startswith("| `/"), lines[heading - 2])
+        self.assertEqual(lines[heading + len(expected):heading + len(expected) + 2], ["", "## Agents"])
+
+    def test_ac_2_3_write_prints_wrote_line(self) -> None:
+        """AC-2.3: write mode prints `wrote claude-code/CLAUDE.md` between the
+        verdict and the summary, so the driver can relay it."""
+        self.use_fixture()
+        result = self.run_cli()
+        self.assertEqual(self.lines(result), [
+            "pass", "wrote claude-code/CLAUDE.md", "gen-claude-md: pass (6 commands, 2 agents)"])
+
+    def test_ac_2_3_missing_adapter_is_unverifiable(self) -> None:
+        """AC-2.3: a missing adapters/claude-code.md prints unverifiable and exits 0."""
+        self.use_fixture()
+        self.adapter.unlink()
+        self.assert_unverifiable("adapter missing: adapters/claude-code.md")
+
+    def test_ac_2_3_missing_driver_is_unverifiable(self) -> None:
+        """AC-2.3: a missing scripts/gen-platform-trees.py prints unverifiable and exits 0."""
+        self.use_fixture()
+        self.trees.unlink()
+        self.assert_unverifiable("platform-trees missing: scripts/gen-platform-trees.py")
+
+    def test_ac_2_3_malformed_adapter_row(self) -> None:
+        """AC-2.3: a malformed adapter row fails as `capability-map malformed
+        adapters/claude-code.md:<line>` in both modes and writes nothing."""
+        self.use_fixture()
+        lines = self.adapter.read_text(encoding="utf-8").splitlines(True)
+        hits = [i for i, l in enumerate(lines) if l.startswith("| `file_search` |")]
+        self.assertEqual(len(hits), 1)
+        lines.insert(hits[0] + 1, "| `zz_bad` | two cells only |\n")
+        self.adapter.write_text("".join(lines), encoding="utf-8")
+        reason = "capability-map malformed adapters/claude-code.md:%d" % (hits[0] + 2)
+        self.assert_fail_untouched([reason])
+        self.assert_fail_untouched([reason], "--check")
+
+    def test_ac_2_3_at_sign_in_capability_map(self) -> None:
+        """AC-2.3: an `@` outside backticks in the rendered map fails as
+        `import-token capability-map`."""
+        self.use_fixture()
+        self.adapter.write_text(AT_SIGN_ADAPTER, encoding="utf-8")
+        self.assert_fail_untouched(["import-token capability-map"])
 
 
 if __name__ == "__main__":

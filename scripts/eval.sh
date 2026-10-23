@@ -81,6 +81,7 @@ CHECKS=(
   codex-tomls
   claude-agents
   claude-md
+  platform-trees
   spec-analyze
   jev-judge
   goal-emit
@@ -4526,6 +4527,64 @@ check_claude_md() {
   if [ "$verdict" != "pass" ] && [ "$reasons" -eq 0 ]; then
     add_finding "scripts/gen-claude-md.py" "--check printed $verdict without a reason line." \
       "Run python3 scripts/gen-claude-md.py --check and inspect its output."
+  fi
+}
+
+check_platform_trees() {
+  # Story 4 of 2026-10-22-generated-platform-trees: every generated platform
+  # file must equal a fresh render, every neutral capability must have a row in
+  # all four adapters, and no shipped command, agent, or skill may name a
+  # vendor tool. Runs --check only; it runs coverage inside it, and a second
+  # coverage run would report each unmapped and vendor hit twice. One
+  # add_finding per reason: line, located at the last token of the reason that
+  # holds a `/` (a path, or path:line), else at the sub-generator a folded
+  # `<gen>: …` reason names, else at the driver. A missing helper, a helper
+  # exit of 2 or more, or no verdict line is a run error.
+  local helper="$PROJECT_ROOT/scripts/gen-platform-trees.py"
+  local remedy="Run python3 scripts/gen-platform-trees.py, then commit the regenerated files."
+  local output rc=0 line verdict reasons=0 text location token tokens
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/gen-platform-trees.py" "platform-trees generator is missing." \
+      "Restore scripts/gen-platform-trees.py, then run python3 scripts/gen-platform-trees.py."
+    return
+  fi
+
+  output="$(python3 "$helper" --check 2>&1)" || rc=$?
+  verdict="${output%%$'\n'*}"
+  if [ "$rc" -ge 2 ] || ! [[ "$verdict" =~ ^(pass|fail|unverifiable)$ ]]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/gen-platform-trees.py" "--check exited $rc without a verdict: ${output##*$'\n'}" \
+      "Fix the gen-platform-trees.py --check CLI."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        reasons=$((reasons + 1))
+        text="${line#reason: }"
+        location=""
+        read -ra tokens <<< "$text"
+        for token in "${tokens[@]}"; do
+          case "$token" in */*) location="$token" ;; esac
+        done
+        if [ -z "$location" ]; then
+          case "$text" in
+            gen-*:\ *) location="scripts/${text%%:*}.py" ;;
+            *) location="scripts/gen-platform-trees.py" ;;
+          esac
+        fi
+        add_finding "$location" "gen-platform-trees --check: $text" "$remedy"
+        ;;
+      gen-platform-trees:*)
+        add_note "NOTE [platform-trees]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$verdict" != "pass" ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/gen-platform-trees.py" "--check printed $verdict without a reason line." \
+      "Run python3 scripts/gen-platform-trees.py --check and inspect its output."
   fi
 }
 

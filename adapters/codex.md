@@ -139,11 +139,13 @@ On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Code
 | `Task({ prompt, readonly })` | Subagent spawn with matching `sandbox_mode` | Use explicit agent names from `.codex/agents/*.toml` |
 | `AskQuestion()` | Structured numbered options in prose | No modal UI — mimic with clear option lists |
 | `codebase_search` | `Grep` / `Glob` / ripgrep via `Bash` | Prefer native `Grep`/`Glob` when possible |
+| `file_search` | `Glob("**/pattern*")` | Built-in Glob tool |
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Respect sandbox of the active agent |
 | `list_dir` | `Glob("pattern")` or `Bash("ls")` | Codex has no dedicated list-dir tool |
 | `todo_write` | `Write(".writ/state/...json")` | File-based tracking |
 | `canvas-preview` | CLI: `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/`. Desktop: the app's docs say it opens workspace files and has a browser, and do not document rendering an HTML draft; write the same files. | Inline CSS, no network fetch; give the user each path. A read-only sandbox cannot write drafts. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `Plan Mode` | No agent-side mode: run discovery as a read-only conversation and say so; Codex's `/plan` is user-side | If the platform has no toggle, say so and proceed read-only. |
 
 #### Verification record — 2026-10-22
 

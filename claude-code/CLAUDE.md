@@ -48,6 +48,24 @@ Start with `/writ "<what you want>"`: it restates the request and routes it to t
 | `/writ` | `.claude/commands/writ.md` | Restate a request, route it to the fitting command, and run it with its phases on the todo list. |
 | `/writ-design` | `.claude/commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
+## Capability Map
+
+Commands name capabilities; this table maps them to this platform.
+
+| Capability | On this platform | When unavailable |
+|---|---|---|
+| `Task` | Automatic delegation to named subagent | — |
+| `Task({ readonly: true })` | `permissionMode: plan` + `disallowedTools: Write, Edit` | — |
+| `AskQuestion` | Formatted text with numbered options | — |
+| `codebase_search` | `Grep("pattern")` or `Bash("rg 'pattern'")` | — |
+| `file_search` | `Glob("**/pattern*")` | — |
+| `todo_write` | `TodoWrite` | — |
+| `read_file` | `Read(path)` | — |
+| `run_terminal_cmd` | `Bash(command)` | — |
+| `list_dir` | `Glob("dir/*")` or `Bash("ls")` | — |
+| `canvas-preview` | An artifact, or the preview pane | No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `Plan Mode` | `EnterPlanMode`; present the contract proposal as the plan; after `ExitPlanMode` approval, lock with AskQuestion | If the platform has no toggle, say so and proceed read-only. |
+
 ## Agents
 
 Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:

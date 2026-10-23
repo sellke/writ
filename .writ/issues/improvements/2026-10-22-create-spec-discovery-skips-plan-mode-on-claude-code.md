@@ -4,7 +4,7 @@
 > **Priority:** Medium
 > **Effort:** Small
 > **Created:** 2026-10-22
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/2026-10-22-generated-platform-trees/spec.md
 
 ## TL;DR
 
@@ -29,3 +29,24 @@ ADR-001 puts `/create-spec` discovery in Plan Mode as a conversation and keeps A
 - `adapters/claude-code.md`: Plan Mode mapping
 - `.writ/decision-records/adr-001-askquestion-vs-plan-mode.md`
 - `.writ/specs/2026-10-20-shipped-command-hygiene/uat-plan.md`: Scenario 29 notes
+
+## Resolution
+
+2026-10-22, branch `writ/phase/14/2026-10-22-generated-platform-trees` (spec `2026-10-22-generated-platform-trees`, Story 1). Decision: the agent enters Plan Mode. On Claude Code it calls `EnterPlanMode`, presents the contract proposal as the plan, and after `ExitPlanMode` approval locks the contract with AskQuestion. On Cursor it asks the user to switch to Plan Mode and continues when they have. On Codex and OpenClaw there is no agent-side mode: it runs discovery as a read-only conversation and says so (Codex's `/plan` is user-side). On a platform with no toggle, it says so and proceeds read-only.
+
+Each adapter's tool table ends with a `Plan Mode` row that carries that platform's mapping and the degradation sentence:
+
+- `adapters/cursor.md`: used by create-spec, plan-product, new-command; "Ask the user to switch to Plan Mode; continue when they have."
+- `adapters/claude-code.md`: "`EnterPlanMode`; present the contract proposal as the plan; after `ExitPlanMode` approval, lock with AskQuestion."
+- `adapters/codex.md`: "No agent-side mode: run discovery as a read-only conversation and say so; Codex's `/plan` is user-side."
+- `adapters/openclaw.md`: "No agent-side mode: run discovery as a read-only conversation and say so."
+
+One sentence changed in each command that follows the ADR-001 pattern:
+
+- `commands/create-spec.md` Step 1.3: "After the context scan, run discovery in Plan Mode, entered through the adapter's `Plan Mode` row; the user controls when to switch back."
+- `commands/plan-product.md` Step 1.2: discovery runs in Plan Mode "through the adapter's `Plan Mode` row".
+- `commands/new-command.md` Step 1.2: the switch to Plan Mode is "through the adapter's `Plan Mode` row".
+
+`scripts/tests/test_gen_platform_trees.py` pins the four rows (`test_plan_mode_row`), the three sentences (`test_command_sentence`), and this section (`test_issue_resolution`).
+
+Not done here: hygiene Scenario 29 was not re-run with a request that needs open-ended shaping. That is UAT for this spec.

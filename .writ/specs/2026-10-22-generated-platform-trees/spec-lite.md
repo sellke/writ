@@ -9,11 +9,11 @@
 
 **Implementation Approach:**
 - Parse one tool table per adapter by heading (cursor § Native Tool Availability; claude-code § Tool Mapping → Quick Reference; codex § … → Quick reference — orchestration primitives; openclaw § Quick Reference). Name = leading identifier of column 1; mapping = column 2 (cursor: column 3); notes = last column. Malformed row → `fail`, nothing written; missing heading → `unverifiable`.
-- Vocabulary: neutral = union of first-column names; every neutral name needs a row in all four adapters (`unmapped`); vendor-only = backticked identifiers in mapping cells minus neutral minus allowlist {Read, Write, Bash}; a vendor-only token in `commands/`, `agents/`, `skills/` → `vendor`.
-- Story 1 repairs tables first: Codex `file_search` row; OpenClaw `readonly: true` folded into `Task`; `Plan Mode` row in all four (agent enters it: Claude Code `EnterPlanMode`; Cursor asks the user; Codex/OpenClaw read-only conversation); one sentence in `create-spec.md`, `plan-product.md`, `new-command.md`.
-- Generated: `cursor/writ.mdc` (frontmatter + comment + `system-instructions.md` body + map); `claude-code/CLAUDE.md` via `gen-claude-md.py` with a `{capability_map}` slot; `codex/AGENTS.md.template` from manifest + all skills + built-ins literal + map, no `adapters/` mention, < 16 KiB; driver calls `gen-claude-agents.py` and `gen-codex-agent-tomls.py`.
+- Vocabulary: neutral = union of first-column names; every neutral name needs a row in all four adapters (`unmapped`); vendor-only = backticked identifiers in mapping cells minus neutral minus allowlist {Read, Write, Bash} (a token containing `://` is a URL, not an identifier; DEV-002); a vendor-only token in `commands/`, `agents/`, `skills/` → `vendor` (the first `coverage` run also found `browser_navigate` in `commands/writ-design.md`, which has no neutral name; a hit with no neutral name is rewritten to neutral prose on the same line; DEV-009).
+- Story 1 repairs tables first: Codex `file_search` row; OpenClaw `readonly: true` folded into `Task`; `Plan Mode` row in all four (agent enters it: Claude Code `EnterPlanMode`; Cursor asks the user, with the command list in its `Used By` column and the mapping plus degradation sentence in `Purpose` (DEV-003); Codex/OpenClaw read-only conversation); one sentence in `create-spec.md`, `plan-product.md`, `new-command.md`.
+- Generated: `cursor/writ.mdc` (frontmatter + comment + `system-instructions.md` body + map); `claude-code/CLAUDE.md` via `gen-claude-md.py` with a `{capability_map}` slot; `codex/AGENTS.md.template` from manifest + all skills + built-ins literal + map, no `adapters/` mention, < 16 KiB (the renderer fails closed on an `adapters/` mention or at 16 KiB, writing nothing; DEV-007); driver calls `gen-claude-agents.py` and `gen-codex-agent-tomls.py`.
 - Tokens: `TARGETS` with identity `script_root: scripts` for cursor/claude-code/codex (no `commands/` output) and a `fixture` target (`${PLUGIN_ROOT}/scripts`) that writes full `commands/` + `skills/` to `--out-dir`, rewriting only `(python3|bash) scripts/<name>` lines.
-- Check shape like `gen-claude-agents.py`; `check_platform_trees` in eval.sh; `is_shippable_script` denylist entry; install evidence bash test.
+- Check shape like `gen-claude-agents.py` (write mode summary `gen-platform-trees: <verdict> (<n> written, <r> reasons)`; `--check` carries the per-kind counts; DEV-004); `check_platform_trees` in eval.sh runs `--check` only, since `--check` already carries the coverage reasons and a second `coverage` run would report each unmapped and vendor hit twice (DEV-008); `is_shippable_script` denylist entry (landed in Story 1 in `install.sh`, `update.sh`, and `unlink.sh`, byte-identical, because the CLI-contract tests derive the shipped set from it; DEV-001); install evidence bash test.
 
 **Files in Scope:**
 - `scripts/gen-platform-trees.py`, `scripts/tests/test_gen_platform_trees.py`, `scripts/tests/fixtures/platform-trees/`, `adapters/*.md` tool tables, `commands/{create-spec,plan-product,new-command}.md` (one sentence each), Plan Mode issue (S1)
@@ -44,9 +44,9 @@
 6. Temp-project installs on cursor, claude, codex carry the map; adapter-mappings issue resolved `[AC-5.1, AC-5.2, AC-5.3, AC-5.4, AC-5.5]`
 
 **Business Rules:**
-- Regenerate, never hand-edit; every generated file names its generator.
+- Regenerate, never hand-edit; every file the driver renders itself names its generator, while `claude-code/CLAUDE.md` keeps `gen-claude-md.py`'s header and no comment (DEV-006).
 - Only what differs is committed; identity targets write no command copies.
-- Check shape: verdict, reasons, summary; nothing written when any reason exists.
+- Check shape: verdict, reasons, summary; nothing written when any reason exists, except a sub-generator's `stale`/`missing`/`absent`/`extra` output-state reasons, which are what write mode repairs (DEV-005).
 
 **Experience Design:**
 - Entry: edit an adapter row or agent, run the driver.
@@ -76,4 +76,4 @@
 - Prose `scripts/` mentions outside invocation lines are never rewritten.
 
 **Test Strategy:**
-- Fixture adapters and commands under `scripts/tests/fixtures/platform-trees/`; golden neutral set; mutation tests for eval; bash install test from a committed source copy.
+- Fixture adapters and commands under `scripts/tests/fixtures/platform-trees/`; golden neutral set; mutation tests for eval; bash install test from a committed source copy (`install.sh --platform <p> --no-commit`, as the parity test runs it; the flag skips only the install's own commit, and the files written are the same; DEV-010).
