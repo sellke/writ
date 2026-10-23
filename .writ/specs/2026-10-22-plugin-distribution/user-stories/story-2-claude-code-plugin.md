@@ -1,6 +1,7 @@
 # Story 2: Claude Code Plugin
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** bc7e964c41fd0705dc601113e67f5d243b8ef587
 > **Priority:** High
 > **Dependencies:** Story 1
 
