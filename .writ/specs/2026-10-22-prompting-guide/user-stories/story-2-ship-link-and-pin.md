@@ -1,6 +1,7 @@
 # Story 2: Ship, Link, and Pin the Guide
 
 > **Status:** Completed ✅
+> **Commit:** 9c21831ce494afd722b12ddea79cc55e709a30e6
 > **Priority:** High
 > **Dependencies:** Story 1
 
