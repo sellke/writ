@@ -1,6 +1,7 @@
 # Story 3: Generated Codex Template
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** bf407c58657c544c532fa55ed72a9a2a027e1b72
 > **Priority:** High
 > **Dependencies:** Story 2
 
