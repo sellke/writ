@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | 1 | [The `/writ` Command File](story-1-writ-command-file.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Registration and Catalogs](story-2-registration-and-catalogs.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
-| 3 | [Structure Rows, Issue Resolution, and Routing Fixture](story-3-structure-rows-issue-and-routing-fixture.md) | Not Started | High | Story 1, Story 2 | 7 | 0/7 |
+| 3 | [Structure Rows, Issue Resolution, and Routing Fixture](story-3-structure-rows-issue-and-routing-fixture.md) | Completed ✅ | High | Story 1, Story 2 | 7 | 7/7 |
 
 **Total:** 3 stories, 21 tasks, 15 acceptance criteria.
 

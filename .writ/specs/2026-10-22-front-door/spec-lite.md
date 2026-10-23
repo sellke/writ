@@ -42,7 +42,7 @@
 6. Issue has `## Resolution` and `spec_ref`; the routing fixture's eight requests route as expected in the recorded run `[AC-3.2, AC-3.3, AC-3.4]`
 
 **Business Rules:**
-- The rule table is the only classifier; tie-break by `/prototype`'s escalation signals.
+- The rule table is the only classifier; tie-break by `/prototype`'s escalation signals, counted only when the request states one or the restatement can name it (an unstated file count is not a signal; `/prototype` counts files when it runs and escalates itself).
 - Exactly one confirmation; flags travel with the route.
 - `/writ` creates nothing under `.writ/` and keeps no state.
 

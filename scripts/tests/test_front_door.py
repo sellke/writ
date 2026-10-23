@@ -51,7 +51,24 @@ generator `--check` calls are the only subprocesses.
   maps to `TodoWrite` with Notes "Native todo list; phases mirror here"
   (AC-2.5).
 
-Story 3 adds the structure-row and issue section to this same file.
+Issue and structure section (Story 3). The issue file and the structure
+checker's TSV output are read; the checker is the one subprocess.
+
+- `test_structure_rows`: `python3 scripts/eval-command-structure.py --root .`
+  exits 0, its three `command-structure-kind-*` self-test lines read `PASS`,
+  and it prints a `PASS` line for the `commands/writ.md` `heading` row
+  `Routing Rules` and for the `frontmatter` row `entry_level` (AC-3.1).
+- `test_issue_resolution`:
+  `.writ/issues/features/2026-10-13-in-your-own-words.md` has
+  `## Resolution` as its last H2, its `spec_ref` line names
+  `.writ/specs/2026-10-22-front-door/`, and the Resolution section names
+  `2026-10-22-front-door`, `/writ`, `Restate`, `does not end the turn`, and
+  `2026-10-22` (AC-3.2).
+- No test here covers AC-3.3 or AC-3.4: they are the orchestrator's recorded
+  routing-fixture run in the story's What Was Built, with any rule-table
+  correction and its drift-log entry. AC-3.5 is the verification runs
+  (`uv run --python 3.9 pytest`, the bash test loop, `bash scripts/eval.sh`),
+  not a test here.
 
 Run: uv run --python 3.9 pytest scripts/tests/test_front_door.py
 """
@@ -430,3 +447,44 @@ def test_surfaces():
     todo = [row for row in first_table(quick_ref)[1:] if row and row[0] == "`todo_write`"]
     assert len(todo) == 1, todo
     assert todo[0] == TODO_ROW, todo[0]
+
+
+# ---------------------------------------------------------------------------
+# Issue and structure section (Story 3)
+
+ISSUE_REL = ".writ/issues/features/2026-10-13-in-your-own-words.md"
+SPEC_REF_PREFIX = "> **spec_ref:**"
+SPEC_DIR = ".writ/specs/2026-10-22-front-door/"
+RESOLUTION_HEADING = "## Resolution"
+RESOLUTION_NAMES = ("2026-10-22-front-door", "/writ", "Restate", "does not end the turn", "2026-10-22")
+STRUCTURE_ARGV = [sys.executable, "scripts/eval-command-structure.py", "--root", "."]
+# Names as main() builds them: clean(f"command-structure:{file}:{kind}:{value}").
+STRUCTURE_ROWS = (
+    "command-structure:commands/writ.md:heading:Routing Rules",
+    "command-structure:commands/writ.md:frontmatter:entry_level",
+)
+STRUCTURE_KINDS = ("heading", "frontmatter", "invocation")
+
+
+def test_issue_resolution():
+    # AC-3.2
+    body = read(ISSUE_REL).splitlines()
+    h2s = [line.rstrip() for line in body if line.startswith("## ")]
+    assert h2s, "%s has no H2" % ISSUE_REL
+    assert h2s[-1] == RESOLUTION_HEADING, "last H2 is %r" % h2s[-1]
+    spec_ref = body[first_prefixed(body, SPEC_REF_PREFIX)]
+    assert SPEC_DIR in spec_ref, spec_ref
+    resolution = "\n".join(section(body, RESOLUTION_HEADING))
+    for name in RESOLUTION_NAMES:
+        assert name in resolution, "Resolution does not name %r" % name
+
+
+def test_structure_rows():
+    # AC-3.1
+    proc = subprocess.run(STRUCTURE_ARGV, cwd=REPO_ROOT, capture_output=True, text=True)
+    assert proc.returncode == 0, "exit %d:\n%s%s" % (proc.returncode, proc.stdout, proc.stderr)
+    out = proc.stdout.splitlines()
+    for kind in STRUCTURE_KINDS:
+        assert "PASS\tcommand-structure-kind-%s" % kind in out, proc.stdout
+    for name in STRUCTURE_ROWS:
+        assert "PASS\t" + name in out, "no PASS line for %s:\n%s" % (name, proc.stdout)

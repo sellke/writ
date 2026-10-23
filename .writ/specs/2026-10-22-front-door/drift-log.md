@@ -63,3 +63,20 @@
 - **Spec amendment:** spec-lite.md → Files in Scope (S2) line names the two maintenance edits.
 
 ---
+
+## Story 3: Structure Rows, Issue Resolution, and Routing Fixture — Drift Report
+
+> Run: 2026-10-22
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-006] Step 2 tie-break says when an escalation signal counts
+- **Severity:** Small
+- **Spec said:** Business Rule 2: when the `/prototype --no-diverge` and `/create-spec` cues both fire, `/prototype`'s escalation signals decide. Neither the rule nor the `## Routing Rules` table says whether a file count the request does not state counts as a signal. AC-3.4 corrects the table only on a fixture mismatch.
+- **Implementation did:** No fixture mismatch occurred (8 of 8). Request 7 ("rename `getUser` to `fetchUser` everywhere") exposed two readings of "fires": under one, "everywhere" implies over 5 files and routes `/create-spec`. The orchestrator added one sentence to `commands/writ.md` → Step 2 → Tie-break: "A signal counts here only when the request states it or the restatement can name it; an unstated file count is not a signal, because `/prototype` counts files when it runs and escalates itself." The table and the fixture are unchanged; the file stays at 135 lines.
+- **Reason:** A reading rule for Business Rule 2's trigger, not new classification machinery: no row, step, table, or question is added. `/writ` reads no code before routing, and `commands/prototype.md` Step 3 flags over 5 files and offers `/create-spec --from-prototype` itself.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Review Agents → Business Rules, the tie-break line now says signals are counted only when stated or nameable from the restatement.
+
+---

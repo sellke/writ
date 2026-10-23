@@ -62,7 +62,7 @@ Goal: (not stated — see prompting-guide.md § What a request carries)
 
 Apply `## Routing Rules` to the restatement. The table is the only classifier. Take the row whose Signal fits; when two rows fit, the rules below decide.
 
-- **Tie-break.** When the cues for `/prototype --no-diverge` and `/create-spec` both fire, `/prototype`'s escalation signals decide: over 5 files, a schema change, a new dependency, core architecture, or low existing coverage → `/create-spec`. None of them → `/prototype --no-diverge`.
+- **Tie-break.** When the cues for `/prototype --no-diverge` and `/create-spec` both fire, `/prototype`'s escalation signals decide: over 5 files, a schema change, a new dependency, core architecture, or low existing coverage → `/create-spec`. None of them → `/prototype --no-diverge`. A signal counts here only when the request states it or the restatement can name it; an unstated file count is not a signal, because `/prototype` counts files when it runs and escalates itself.
 - **Empirical fork.** Ask: could a throwaway run answer this faster than asking the user? If yes, the route is `/prototype` with the fork named as the thing to try, and the confirmation says so. Never answer a fork with a question.
 - **Roadmap work.** Match the named phase or feature in `.writ/product/roadmap.md` and route `/implement-phase <N>`; the confirmation shows the matched phase. Roadmap absent: the route is not offered (see Required Artifacts).
 - **Why or how.** Route `/research`. The confirmation notes that `/why` takes this route when it ships.
