@@ -19,12 +19,30 @@ the parts of it that other commands cite by heading or by name:
 The pitfalls list and the prose standard (AC-1.5) are read by hand; the
 em-dash count is part of Story 1's verification, not a test here.
 
+Story 2 adds two checks beside the guide:
+
+- `test_readme_links_guide` reads `README.md` from `## Quick Start` to the
+  next H2 and asserts that slice names `.writ/docs/prompting-guide.md`
+  (AC-2.2). It pins the path only. The exact pointer sentence and its place
+  above the five-command table (AC-2.1) are read by hand, because the
+  front-door spec later appends a `/writ` clause to the same paragraph.
+- `test_ships` extracts `is_shippable_writ_doc` from `scripts/install.sh`
+  and `scripts/update.sh` with `sed`, sources it in a `bash` subprocess, and
+  asserts that calling it with `prompting-guide.md` exits 0 (AC-2.3). An
+  empty extraction fails with its own message naming the script and the
+  function: fix the test's extraction, not the guide.
+
+AC-2.4 is the run of this file (seven tests, and one test file for the
+guide) and AC-2.5 is `bash scripts/eval.sh`. Both are verification runs,
+not assertions here.
+
 Run: uv run --python 3.9 pytest scripts/tests/test_prompting_guide.py
 """
 
 from __future__ import annotations
 
 import re
+import subprocess
 from pathlib import Path
 from typing import List
 
@@ -56,6 +74,27 @@ INTERNAL_PREFIXES = (
     ".writ/specs/",
     ".writ/product/",
 )
+
+README = REPO_ROOT / "README.md"
+QUICK_START = "## Quick Start"
+
+SHIP_FUNCTION = "is_shippable_writ_doc"
+SHIP_SCRIPTS = ["scripts/install.sh", "scripts/update.sh"]
+GUIDE_NAME = Path(GUIDE_REL).name
+# Exit code the bash snippet uses when the sed extraction is empty, so the
+# test can tell "function missing or restructured" from "function rejects
+# the file" (is_shippable_writ_doc itself returns 0 or 1).
+NO_FUNCTION = 64
+# $1 is the script path and $2 the filename; both arrive as positional
+# arguments to `bash -c`, never interpolated into this string. The function
+# is sourced from a here-string, not `source <(sed ...)`: on macOS bash 3.2
+# that process-substitution form defines nothing and reports no error.
+SHIP_SNIPPET = r'''
+fn=$(sed -n '/^is_shippable_writ_doc()/,/^}/p' "$1")
+[ -n "$fn" ] || exit 64
+source /dev/stdin <<<"$fn"
+is_shippable_writ_doc "$2"
+'''
 
 HEADING = re.compile(r"^(#{1,6}) \S")
 LINK_TARGET = re.compile(r"\]\(([^)]*)\)")
@@ -149,3 +188,40 @@ def test_no_internal_links():
     refs = LINK_TARGET.findall(content) + CODE_SPAN.findall(content)
     bad = [ref for ref in refs if ref.startswith(INTERNAL_PREFIXES)]
     assert not bad, "the guide links Writ-internal paths: %r" % bad
+
+
+def test_readme_links_guide():
+    # AC-2.2; AC-2.1 (the exact sentence and its place) is read by hand.
+    assert README.exists(), "README.md does not exist"
+    body = README.read_text(encoding="utf-8").splitlines()
+    quick_start = "\n".join(section(body, QUICK_START))
+    assert GUIDE_REL in quick_start, "README.md section %r does not link %s" % (
+        QUICK_START,
+        GUIDE_REL,
+    )
+
+
+def test_ships():
+    # AC-2.3
+    for script_rel in SHIP_SCRIPTS:
+        script = REPO_ROOT / script_rel
+        assert script.exists(), "%s does not exist" % script_rel
+        proc = subprocess.run(
+            ["bash", "-c", SHIP_SNIPPET, "bash", str(script), GUIDE_NAME],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if proc.returncode == NO_FUNCTION:
+            pytest.fail(
+                "sed found no %s() in %s; fix this test's extraction, not the guide"
+                % (SHIP_FUNCTION, script_rel)
+            )
+        assert proc.returncode == 0, "%s %s exits %d in %s (stderr: %s)" % (
+            SHIP_FUNCTION,
+            GUIDE_NAME,
+            proc.returncode,
+            script_rel,
+            proc.stderr.strip(),
+        )

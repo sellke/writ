@@ -36,3 +36,20 @@
 - **Reason:** A reader of an installed project has no other definition of N. The line stays one line, names the contracted command, and `test_recipes` passes on the command substring.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed. spec-lite.md names `/implement-phase <N>`, which the line still carries.
+
+---
+
+## Story 2: Ship, Link, and Pin the Guide — Drift Report
+
+> Run: 2026-10-22
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-004] Ship-set function sourced from a here-string instead of process substitution
+- **Severity:** Small
+- **Spec said:** spec.md → Implementation Approach sketches `bash -c 'source <(sed -n "/^is_shippable_writ_doc()/,/^}/p" scripts/install.sh); is_shippable_writ_doc prompting-guide.md'` and expects exit 0. The contract (Must Include 4), Business Rule 5, and Detailed Requirements → Story 2 require only that the test sources the function from each script in a bash subprocess and asserts it admits the filename.
+- **Implementation did:** `test_ships` keeps the same `sed` expression, `bash -c` subprocess, call, and argument, but captures the extraction into `$fn` and sources it with `source /dev/stdin <<<"$fn"`; the script path and filename arrive as positional arguments. An empty extraction exits 64 and the test fails naming the script and the function.
+- **Reason:** On macOS `/bin/bash` 3.2.57 the sketched `source <(sed …)` form defines nothing and exits 127 (verified by the orchestrator and the evaluator); the here-string form exits 0 on bash 3.2.57 and 5.3.20. A sketch detail changed; the contract's intent is preserved.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed in spec-lite.md, which does not name the sourcing form. spec.md's Implementation Approach sketch is not auto-modified by the pipeline; the here-string form is recorded here.

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T00:12:19Z
+> Last Updated: 2026-10-23T00:43:08Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-prompting-guide — Prompting Guide
-- **Status:** In Progress (1/2 stories; Phase 14 lane `writ/phase/14/2026-10-22-prompting-guide`)
-- **Story:** 1 of 2 — Write the Prompting Guide (Completed ✅)
-- **Progress:** 7/13 tasks complete (54%)
+- **Status:** Complete (2/2 stories; Phase 14 lane `writ/phase/14/2026-10-22-prompting-guide`, awaiting merge by /implement-phase)
+- **Story:** 2 of 2 — Ship, Link, and Pin the Guide (Completed ✅)
+- **Progress:** 13/13 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 Part definitions use a colon instead of the sketch's em-dash — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
-- DEV-002 Opening paragraph states coverage instead of the sketch's metaphor — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
+- DEV-004 Ship-set function sourced from a here-string instead of process substitution — prompting-guide (Story 2, auto-amended; no spec-lite change needed)
 - DEV-003 Roadmap Route line adds a clarifying clause — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
+- DEV-002 Opening paragraph states coverage instead of the sketch's metaphor — prompting-guide (Story 1, auto-amended; no spec-lite change needed)
 
 ## Open Issues
 
