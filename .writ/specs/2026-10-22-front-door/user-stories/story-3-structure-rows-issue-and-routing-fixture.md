@@ -1,6 +1,7 @@
 # Story 3: Structure Rows, Issue Resolution, and Routing Fixture
 
 > **Status:** Completed ✅
+> **Commit:** 8bd79dcccb169cc4bc850695073dd29aaf4bf368
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
