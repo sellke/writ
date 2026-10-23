@@ -1,6 +1,7 @@
 # Story 2: Registration and Catalogs
 
 > **Status:** Completed ✅
+> **Commit:** 06b78ebdadf6452da82460d1d36fe4e7daef9f92
 > **Priority:** High
 > **Dependencies:** Story 1
 
