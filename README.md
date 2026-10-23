@@ -240,6 +240,17 @@ Five commands take you from idea to PR:
 
 Everything else (planning, reviews, retros, releases) is there when you need it; `/writ` picks the route for you.
 
+### Claude Code (plugin)
+
+```bash
+claude plugin marketplace add sellke/writ
+claude plugin install writ@writ
+```
+
+Then open your project in Claude Code and run `/writ:initialize`, which creates the `.writ/` workspace. Under the plugin every command carries the `writ:` prefix, so the front door is `/writ:writ "my feature"`. Scripts run from the plugin's own folder, so the project needs no `scripts/` copy. The plugin does not include the `.writ/docs/` reference docs that `install.sh` copies; [`adapters/claude-code.md`](adapters/claude-code.md) → Installation → Plugin lists what else differs.
+
+Smoke test: `claude-plugin pass` in [`scripts/tests/fixtures/plugin-smoke-results.txt`](scripts/tests/fixtures/plugin-smoke-results.txt), recorded by `bash scripts/tests/test_plugin_smoke.sh --record`.
+
 ### Cursor (one-line install)
 
 From your project root:
@@ -271,6 +282,21 @@ The updater uses a manifest (`.cursor/.writ-manifest`) to track what was install
 | `--no-commit` | Don't auto-commit after update |
 
 To reset a single file to upstream: delete it and re-run update.
+
+### Cursor (plugin)
+
+Status: local install; marketplace listing pending.
+
+From a clone of this repository, copy the plugin folder into Cursor's local plugins folder, then restart Cursor or run **Developer: Reload Window**:
+
+```bash
+git clone https://github.com/sellke/writ.git && cd writ
+rm -rf ~/.cursor/plugins/local/writ
+mkdir -p ~/.cursor/plugins/local/writ
+cp -R cursor/plugin/. ~/.cursor/plugins/local/writ/
+```
+
+The plugin ships no `scripts/`: its commands run `python3 scripts/<name>.py` in your project, so run the Cursor one-line install above as well. Smoke test: `cursor-plugin unverifiable` in [`scripts/tests/fixtures/plugin-smoke-results.txt`](scripts/tests/fixtures/plugin-smoke-results.txt), because the test runs no Cursor session; the Cursor UAT protocol has not run yet. Details: [`adapters/cursor.md`](adapters/cursor.md) → Plugin.
 
 ### Claude Code (one-line install)
 

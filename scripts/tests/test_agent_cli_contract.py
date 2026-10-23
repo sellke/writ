@@ -644,6 +644,7 @@ SMOKE_INVOCATIONS: List[Smoke] = [
                               "gpt-5.6-sol-medium=" + PANEL_FX + "panel-ac23.md"], {}, "tally"),
     Smoke("review-panel.py", ["trial-report", "--trial", "{tmp}/trial.json"],
           {"trial.json": PANEL_TRIAL_KEEP}, "trial-report"),
+    Smoke("scaffold-writ.py", ["scaffold", "--project", "{tmp}/proj"], {"proj/.keep": ""}),
     Smoke("spec-analyze.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),

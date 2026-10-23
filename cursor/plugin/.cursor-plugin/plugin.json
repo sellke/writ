@@ -1,0 +1,10 @@
+{
+  "name": "writ",
+  "version": "0.43.0",
+  "description": "AI development workflow: contract-first specs, a test-first multi-agent story pipeline, and script-backed quality gates.",
+  "author": {
+    "name": "Adam Sellke"
+  },
+  "repository": "https://github.com/sellke/writ",
+  "license": "MIT"
+}

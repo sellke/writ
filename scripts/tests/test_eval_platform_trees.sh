@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Tests check_platform_trees in eval.sh (Story 4 of
 # 2026-10-22-generated-platform-trees, AC-4.4). Each case runs eval.sh in a
-# temp root holding eval.sh, every scripts/*.py generator, and what the
+# temp root holding eval.sh, every top-level scripts/ file, and what the
 # driver's --check reads: adapters/, agents/, commands/, skills/, the three
-# platform directories, system-instructions.md, and the manifest. Never
-# touches the repo's generated files.
+# platform directories (cursor/ holds the cursor-plugin target's layout,
+# cursor/plugin/), the Claude Code plugin tree (plugins/, .claude-plugin/;
+# the claude-code-plugin target), system-instructions.md, the manifest,
+# and VERSION. Never touches the repo's generated files.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -36,11 +38,13 @@ new_root() {
   TMP_ROOTS+=("$root")
   mkdir -p "$root/scripts" "$root/.writ"
   cp "$EVAL" "$root/scripts/eval.sh"
-  cp "$REPO"/scripts/*.py "$root/scripts/"
+  find "$REPO/scripts" -maxdepth 1 -type f -exec cp -p {} "$root/scripts/" \;
   cp -R "$REPO/adapters" "$REPO/agents" "$REPO/commands" "$REPO/skills" \
-        "$REPO/cursor" "$REPO/claude-code" "$REPO/codex" "$root/"
+        "$REPO/cursor" "$REPO/claude-code" "$REPO/codex" \
+        "$REPO/plugins" "$REPO/.claude-plugin" "$root/"
   cp "$REPO/system-instructions.md" "$root/system-instructions.md"
   cp "$REPO/.writ/manifest.yaml" "$root/.writ/manifest.yaml"
+  cp "$REPO/VERSION" "$root/VERSION"
   printf "%s" "$root"
 }
 
@@ -80,13 +84,19 @@ finding="$(section "$ROOT" | grep -F 'stale cursor/writ.mdc' || true)"
 [[ "$finding" == *"$REMEDY"* ]] || fail "stale: finding must carry the remedy: $finding"
 ok "hand-edited cursor/writ.mdc -> one stale finding with the remedy"
 
-# AC-4.4: a vendor token in a command -> one vendor finding naming file:line.
+# AC-4.4: a vendor token in a command -> one vendor finding naming file:line,
+# beside the stale plugin copies of that command (the claude-code-plugin and
+# cursor-plugin targets).
 ROOT="$(new_root)"
 printf '\n`TodoWrite`\n' >> "$ROOT/commands/status.md"
 line="$(wc -l < "$ROOT/commands/status.md" | tr -d ' ')"
 rc="$(run_check "$ROOT")"
 [ "$rc" -eq 1 ] || fail "vendor: expected exit 1, got $rc"
-section "$ROOT" | grep -Fxq 'FAIL (1 finding(s))' || fail "vendor: expected exactly one finding"
+section "$ROOT" | grep -Fxq 'FAIL (3 finding(s))' || fail "vendor: expected exactly three findings"
+section "$ROOT" | grep -Fq -- '- `plugins/writ/commands/status.md`: gen-platform-trees --check: stale plugins/writ/commands/status.md' \
+  || fail "vendor: the plugin copy of the edited command must be a stale finding"
+section "$ROOT" | grep -Fq -- '- `cursor/plugin/commands/status.md`: gen-platform-trees --check: stale cursor/plugin/commands/status.md' \
+  || fail "vendor: the Cursor layout copy of the edited command must be a stale finding"
 finding="$(section "$ROOT" | grep -F "vendor TodoWrite in commands/status.md:$line" || true)"
 [ -n "$finding" ] || fail "vendor: finding must name commands/status.md:$line"
 [[ "$finding" == "- \`commands/status.md:$line\`: gen-platform-trees --check: vendor TodoWrite in commands/status.md:$line"* ]] \

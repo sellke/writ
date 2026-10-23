@@ -96,6 +96,29 @@ your-project/
     └── state/
 ```
 
+### Plugin
+
+Writ also installs as a Claude Code plugin from this repository: the marketplace file is `.claude-plugin/marketplace.json` at the repository root, and the plugin is `plugins/writ/`. `python3 scripts/gen-platform-trees.py` generates both from `commands/`, `agents/`, `skills/`, `scripts/`, `system-instructions.md`, and `VERSION`, and `--check` fails when either differs from a fresh render. Do not hand-edit them.
+
+```bash
+claude plugin marketplace add sellke/writ
+claude plugin install writ@writ
+```
+
+Under the plugin, commands and agents carry the `writ` namespace and scripts run from the plugin's own `scripts/`, so the project needs no `scripts/` folder. The plugin does not include the `.writ/docs/` reference docs that `install.sh` copies. A command that cites `.writ/docs/<name>.md` reads the project's copy, and a project with only the plugin has none.
+
+Platform facts, from the Verification Record of spec `2026-10-22-plugin-distribution`:
+
+- **Install.** `claude plugin marketplace add` takes a GitHub `owner/repo`, and `claude plugin install <plugin>@<marketplace>` installs at user scope unless `--scope` names another (docs read 2026-10-23, https://code.claude.com/docs/en/plugins/install.md). A local-path add and install of a scratch copy of this layout worked on Claude Code 2.1.309 on 2026-10-23 (same page). The install from `sellke/writ` itself has not run yet: a GitHub-sourced plugin runs from a cache copy, not in place (docs read 2026-10-23, https://code.claude.com/docs/en/plugins/loading.md).
+- **Validation.** On the generated tree, `claude plugin validate plugins/writ` exits 0 with warnings (the prompt-template docs in `agents/` have no frontmatter), and `claude plugin validate .` exits 0 with no warnings (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/cli-reference.md).
+- **Namespacing.** Plugin commands run as `/writ:<command>`, so the front door is `/writ:writ`, and plugin agents are `writ:<agent>`, for example `writ:writ-coder` (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/components.md). The generated commands spell every cross-reference this way.
+- **Scripts.** Claude Code substitutes `${CLAUDE_PLUGIN_ROOT}` in command, skill, and agent bodies but not in the Bash tool's environment, so the generated commands spell `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/<name>.py` inline (docs read 2026-10-23, https://code.claude.com/docs/en/plugins/manifest-reference.md).
+- **Prime Directive carrier.** `plugins/writ/output-styles/writ.md` with `force-for-plugin: true` and `keep-coding-instructions: true`; its body is the body of `system-instructions.md`. Observed on Claude Code 2.1.309 on 2026-10-23 in a scratch plugin: asked to quote the first Hard Constraints bullet, the session quoted it and named the Prime Directive as its source, and it named its persona Writ; with no carrier it answered `NONE` (https://code.claude.com/docs/en/output-styles.md).
+- **Carrier cost: your output style.** A forced style overrides your `outputStyle` while the plugin is enabled, and when another enabled plugin also forces a style, the first loaded wins (docs read 2026-10-23, https://code.claude.com/docs/en/output-styles.md).
+- **Carrier cost: subagents.** Output styles reach the main conversation and forks, not other subagents, so each Writ agent carries its own instructions in its body (docs read 2026-10-23, https://code.claude.com/docs/en/output-styles.md).
+- **Ignored agent keys.** Plugin agents ignore `permissionMode`, `hooks`, and `mcpServers`, and the field table marks `initialPrompt` ignored as well (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). All eight Writ agents set `permissionMode`, so the modes in [Permission Modes](#permission-modes) do not apply under the plugin; no Writ agent sets the other three. `isolation: worktree` and `memory: project` took effect in a scratch plugin agent on Claude Code 2.1.309 on 2026-10-23 (same page).
+- **Both installs in one project.** A project with an `install.sh` install and the plugin has both command sets, `/create-spec` from `.claude/commands/` and `/writ:create-spec` from the plugin, and a project command does not shadow the plugin command of the same name (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/components.md). Plugin agents rank lowest among same-named agents, but their names carry the `writ:` prefix, so `writ-coder` is the project's agent and `writ:writ-coder` the plugin's (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). Writ commands spawn agents from the prompt templates in `agents/`, not by name. Use one install path per project.
+
 ---
 
 ## Key Features Used

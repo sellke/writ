@@ -2,6 +2,7 @@
 
 > **Date:** 2026-10-12
 > **Status:** Accepted
+> **Superseded in part by:** [ADR-031](adr-031-script-location.md) (2026-10-23): the Consequences bullet "Scripts install into the project-root `scripts/` folder." Rules 1 to 7 and the amendments stand.
 > **Category:** Framework Architecture
 > **Deciders:** @AdamSellke
 > **Origin:** [`2026-10-12-agent-facing-writ-cli`](../issues/features/2026-10-12-agent-facing-writ-cli.md)
