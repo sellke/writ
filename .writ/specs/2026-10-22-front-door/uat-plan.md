@@ -70,7 +70,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 2: `Proposed: /prototype --no-diverge` with a one-line reason (a bug with one obvious shape, no escalation signal named); `/prototype --no-diverge (Recommended)` is the first option, `Not what I meant` the last; exactly one question.
 - Step 3: prints nothing. No todo list appeared and no routed command ran.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 2: Fixture 2, an API-keys settings page, routes to `/create-spec` by the tie-break
@@ -89,7 +89,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Restatement: goal, users create, view, and revoke API keys from a settings page; problem, no place to manage keys today; `Done check:` and `Proof:` both `(not stated — see prompting-guide.md § What a request carries)`; routing proceeds with no question about either.
 - `Proposed: /create-spec`, reason: a capability users rely on, and the tie-break lands there too (key storage is a schema change; key handling is security-sensitive). `/create-spec (Recommended)` first; `Not what I meant` last.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 3: Fixture 3, an unsettled onboarding idea, routes to `/prototype`; "Not what I meant" restates again
@@ -109,7 +109,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 2: goal, a new user's first screens feel populated; problem, onboarding shows empty states with nothing to do; done check and proof not stated. `Proposed: /prototype` (names a goal rather than a change; "something" leaves the direction unsettled); the `(Recommended)` option reads `/prototype`, with no `--no-diverge`.
 - Step 3: one free-text question, no menu; then a fresh restatement built from the answer (goal: the post-sign-up screen suggests three actions) and one new confirmation. Nothing ran in between.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 4: Fixture 4, "do Phase 15", routes to `/implement-phase 15` and shows the matched phase
@@ -128,7 +128,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Restatement: goal, Phase 15 (Code-Level Rigor) implemented to its exit criteria; problem, the phase is committed and its specs unbuilt; done check, the phase's success criteria hold (carried by the roadmap); proof not stated.
 - `Proposed: /implement-phase 15` with the matched phase named in the confirmation (`Phase 15: Code-Level Rigor`); `/implement-phase 15 (Recommended)` first.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 5: Fixture 5, a why question, routes to `/research` and notes `/why`
@@ -147,7 +147,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Restatement: goal, an evidenced explanation of the skip; problem, unknown whether the skip is intended or a defect; done check, the reason is stated with the code path that produces it; proof not stated.
 - `Proposed: /research`, and the confirmation says `/why` takes this route when it ships. `/research (Recommended)` first.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 6: Fixture 6, a Postgres-or-Meilisearch fork, routes to `/prototype` with the fork named, never a question
@@ -166,7 +166,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Restatement: goal, one search backend chosen on evidence; problem, two candidates and no measured basis (relevance, latency, operating cost); done check and proof not stated.
 - `Proposed: /prototype` with the fork named as the thing to try (index the project's data both ways and compare), and the reason says a throwaway run answers it faster than asking. `/writ` does not answer the fork with a question of its own and does not ask which backend the user prefers.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 7: Fixture 7, a rename "everywhere", stays on `/prototype --no-diverge` (DEV-006)
@@ -185,7 +185,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Restatement: goal, every `getUser` reference reads `fetchUser` and nothing else changes; problem, the name does not say what the function does; done check, no `getUser` reference remains and the suite passes; proof not stated.
 - `Proposed: /prototype --no-diverge`: a mechanical rename with one obvious shape. "Everywhere" is not treated as an over-5-files signal (DEV-006, `commands/writ.md` Step 2 Tie-break, last sentence: an unstated file count does not count; `/prototype` counts files when it runs and escalates itself), so the route is not `/create-spec`.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 8: Fixture 8, multi-tenant billing, routes to `/create-spec` on escalation signals
@@ -204,7 +204,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Restatement: goal, each tenant is billed per seat; problem, no tenant-scoped billing exists; done check and proof not stated.
 - `Proposed: /create-spec`, with the reason naming at least one escalation signal (schema change, new payment dependency, core architecture). `/create-spec (Recommended)` first.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 9: Confirming the route puts `/prototype`'s six steps on the todo list with Step 2.5 marked `skip:`
@@ -228,7 +228,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 
 **Implementation Reference:** Story 1 — `commands/writ.md` Steps 4 and 5; `commands/prototype.md` `### Step` headings; Story 2 — `adapters/claude-code.md` § Quick Reference, `todo_write` row.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed).
 
 ---
 ### Scenario 10: No request, no goal, no roadmap, and a missing routed file each get the contracted response
@@ -251,7 +251,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 3: the restatement says the roadmap is missing and that `/plan-product` creates it; `/implement-phase` is neither the proposed route nor an option.
 - Step 4: the reply names `commands/prototype.md` as missing and names `/update-writ`; no prototype steps appear on the todo list and no improvised fix happens: `cat` still prints `hello wrold`. `reset` prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:**
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed): steps 1 and 2 pass; steps 3 (missing roadmap) and 4 (missing routed file) not run. Observation for Scenarios 1 to 10: Claude Code's question widget holds four options, so a confirmation cannot list every route; the observed confirmation named the routes it could not show and pointed to Other, as this plan's conventions anticipate.
 
 ---
 ### Scenario 11: Headless `claude -p` restates and proposes the route without running anything
@@ -272,7 +272,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 2: the four labeled lines, with `Proof:` carrying the guide link; a `Proposed: /prototype --no-diverge` line; `(Recommended)` on the first option and `Not what I meant` on the last, rendered as a numbered list because `-p` has no widget. No `Extract Intent` line: the run stops at the confirmation, which nobody can answer headless. Fail if `/prototype` steps ran without a confirmation.
 - Step 3: prints nothing.
 
-**Status:** [ ] Pass  [ ] Fail — **Notes:** agent run 2026-10-23 at 0b033a3: NOT RUN, neither box checked. `claude -p` exited 1 with `Failed to authenticate: OAuth session expired and could not be refreshed` (`claude auth status` inside the agent's sandbox reports `loggedIn: false`); the session transcript shows `/writ` loaded as a project command in the clone but no model turn ran, and the permission classifier refused a re-run outside the sandbox. Clone stayed clean. The maintainer needs to run this one by hand.
+**Status:** [x] Pass  [ ] Fail — **Notes:** run 2026-10-23 at 73b31ed in a logged-in shell, Claude Code 2.1.310: `exit 0`; Goal, Problem, Done check, and Proof lines present, Proof carrying the guide link; `Proposed: \`/prototype --no-diverge\``; numbered list with `(Recommended)` first and `Not what I meant` last; no `Extract Intent` line; clone clean. Two observations: the reply added "this repo has no search box" (true for the Writ clone), and it listed four routes, omitting `/implement-phase` with "isn't listed because the roadmap has no phase or feature about this". The conventions say the option set is the same every time, so watch for the same omission in Scenarios 1 to 10.
 
 ---
 ## Story 2: Registration and Catalogs
