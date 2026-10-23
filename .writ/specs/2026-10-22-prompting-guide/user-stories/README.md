@@ -4,7 +4,7 @@
 
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
-| 1 | [Write the Prompting Guide](story-1-write-the-guide.md) | Not Started | High | None | 7 | 0/7 |
+| 1 | [Write the Prompting Guide](story-1-write-the-guide.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [Ship, Link, and Pin the Guide](story-2-ship-link-and-pin.md) | Not Started | High | Story 1 | 6 | 0/6 |
 
 **Total:** 2 stories, 13 tasks, 10 acceptance criteria.
