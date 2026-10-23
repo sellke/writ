@@ -1,6 +1,7 @@
 # Story 5: Smoke Test Across Five Targets, README Install Order, and Live-Run Evidence
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** 0e4085eeebeb34df1a90e2fbf2938b61ef14e81a
 > **Priority:** High
 > **Dependencies:** Story 2, Story 3, Story 4
 
