@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T01:47:37Z
+> Last Updated: 2026-10-23T02:36:54Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-22-front-door — Front Door
-- **Status:** In Progress (1/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-front-door`)
-- **Story:** 1 of 3 — The `/writ` Command File (Completed ✅)
-- **Progress:** 7/21 tasks complete (33%)
+- **Status:** In Progress (2/3 stories; Phase 14 lane `writ/phase/14/2026-10-22-front-door`)
+- **Story:** 2 of 3 — Registration and Catalogs (Completed ✅)
+- **Progress:** 14/21 tasks complete (67%)
 
 ## Artifact Map
 
@@ -23,8 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-002 Step 1 adds an issue-file restatement heuristic — front-door (Story 1, auto-amended; no spec-lite change needed)
-- DEV-001 Overview states the Claude Code plugin name `/writ:writ` — front-door (Story 1, auto-amended; no spec-lite change needed)
+- DEV-005 Maintenance edits to two pre-existing test files outside the S2 file list — front-door (Story 2, auto-amended; spec-lite Files in Scope names them)
+- DEV-004 README install follow-up lines and closing sentence point at `/writ` — front-door (Story 2, auto-amended; spec-lite Registration line amended)
+- DEV-003 `commands/status.md` Maintainer Note bare list also gains `writ` — front-door (Story 2, auto-amended; spec-lite Registration line amended)
 
 ## Open Issues
 

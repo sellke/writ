@@ -107,6 +107,8 @@ EXPECTED_FIXTURE = "\n".join([
     "",
     "Run Writ commands by reading the command file and following its workflow:",
     "",
+    'Start with `/writ "<what you want>"`: it restates the request and routes it to the right command.',
+    "",
     "| Command | File | Purpose |",
     "|---------|------|---------|",
     "| `/plan-product` | `.claude/commands/plan-product.md` | Plan the product. |",

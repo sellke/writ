@@ -10,6 +10,8 @@ Writ's root contract (Prime Directive, interaction rules, model tiers) loads fro
 
 Run Writ commands by reading the command file and following its workflow:
 
+Start with `/writ "<what you want>"`: it restates the request and routes it to the right command.
+
 | Command | File | Purpose |
 |---------|------|---------|
 | `/assess-spec` | `.claude/commands/assess-spec.md` | Analyze a specification for implementability risks before committing to build it. |
@@ -43,6 +45,7 @@ Run Writ commands by reading the command file and following its workflow:
 | `/uninstall-writ` | `.claude/commands/uninstall-writ.md` | Remove Writ platform files while preserving `.writ/` project artifacts. |
 | `/update-writ` | `.claude/commands/update-writ.md` | Update Writ from upstream with per-file control over local customizations. |
 | `/verify-spec` | `.claude/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/writ` | `.claude/commands/writ.md` | Restate a request, route it to the fitting command, and run it with its phases on the todo list. |
 | `/writ-design` | `.claude/commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ## Agents

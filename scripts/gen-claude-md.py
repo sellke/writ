@@ -46,6 +46,8 @@ Writ's root contract (Prime Directive, interaction rules, model tiers) loads fro
 
 Run Writ commands by reading the command file and following its workflow:
 
+Start with `/writ "<what you want>"`: it restates the request and routes it to the right command.
+
 | Command | File | Purpose |
 |---------|------|---------|
 {rows}

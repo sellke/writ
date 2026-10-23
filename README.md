@@ -103,6 +103,11 @@ Feedback loop (/retro + /refresh-command):
 
 ## Commands
 
+### Start here
+| Command | Purpose |
+|---------|---------|
+| `/writ` | **The front door.** Restates a request as a goal, a problem, and a done check, routes it to the command whose ceremony fits, confirms once, and runs it with its phases on the todo list. |
+
 ### Planning & Specification
 | Command | Purpose |
 |---------|---------|
@@ -212,9 +217,18 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-New here? Read [`.writ/docs/prompting-guide.md`](.writ/docs/prompting-guide.md) (two minutes).
+Type `/writ` followed by what you want:
 
-Writ ships 32 commands, but you only need five to go from idea to PR:
+```
+/writ "users can't paste into the search box on Safari"
+→ Goal, Problem, Done check restated; route: /prototype --no-diverge (Recommended); one confirmation; then it runs.
+```
+
+New here? Read [`.writ/docs/prompting-guide.md`](.writ/docs/prompting-guide.md) (two minutes), then type `/writ` followed by what you want.
+
+### What `/writ` routes to
+
+Five commands take you from idea to PR:
 
 | Command | What it does |
 |---------|--------------|
@@ -224,7 +238,7 @@ Writ ships 32 commands, but you only need five to go from idea to PR:
 | `/ship` | Merge, split commits, open a PR. |
 | `/status` | See where everything stands — specs, branches, progress. |
 
-Everything else (planning, reviews, retros, releases) is there when you need it. Start here.
+Everything else (planning, reviews, retros, releases) is there when you need it; `/writ` picks the route for you.
 
 ### Cursor (one-line install)
 
@@ -240,7 +254,7 @@ This copies all commands, agents, rules, and system instructions into `.cursor/`
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --dry-run
 ```
 
-Then in Cursor chat: `/create-spec "my feature"`
+Then in Cursor chat: `/writ "my feature"`
 
 ### Updating
 
@@ -270,7 +284,7 @@ This copies all commands and Claude Code–native agents (with YAML frontmatter)
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude --dry-run
 ```
 
-Then in Claude Code: `/create-spec "my feature"`
+Then in Claude Code: `/writ "my feature"`
 
 **Updating:**
 
@@ -290,7 +304,7 @@ This copies commands into `.codex/commands/`, installs Codex-native TOML agents 
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex --dry-run
 ```
 
-Restart Codex after install so it reloads `AGENTS.md`, then ask it to follow `.codex/commands/create-spec.md` for `/create-spec "my feature"`.
+Restart Codex after install so it reloads `AGENTS.md`, then ask it to follow `.codex/commands/writ.md` for `/writ "my feature"`.
 
 Tested against Codex CLI as of May 2026; TOML schema may evolve — see [`adapters/codex.md`](adapters/codex.md).
 

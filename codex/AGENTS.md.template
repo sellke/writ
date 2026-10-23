@@ -8,6 +8,12 @@ Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows
 
 ## Available Commands
 
+### Start here
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/writ` | `.codex/commands/writ.md` | Restate a request, route it to the fitting command, and run it with its … |
+
 ### Planning & Specification
 
 | Command | File | Purpose |
