@@ -1,6 +1,7 @@
 # Story 4: Scaffold Script, `/initialize` Step 0, and ADR-031
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** 88c36551e1c2af5cb06554c8a1c2b41492db6542
 > **Priority:** High
 > **Dependencies:** Story 1
 
