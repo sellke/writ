@@ -1,6 +1,7 @@
 # Story 4: `--check`, Coverage, Tokens, and Eval Wiring
 
 > **Status:** Completed ✅ (2026-10-23)
+> **Commit:** 4677ef30afd02de181ec4d6152d2e85284e7caeb
 > **Priority:** High
 > **Dependencies:** Story 3
 
