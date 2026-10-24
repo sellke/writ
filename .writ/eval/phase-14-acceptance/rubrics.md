@@ -58,3 +58,58 @@ Bar: W1 on at least 16 of 20 items. W2 and W3 are reported per item.
 ## Probe 4: Live UAT scenarios
 
 Each live scenario a headless platform can run executes three times. The rubric for a run is that scenario's own Expected Result bullets, copied from its `uat-plan.md` with the spec and scenario number. Each bullet is one criterion. Pass: every bullet met. Scenarios that need a GUI, a pushed branch, or a product the harness cannot drive are listed for a human and not graded.
+
+## Addendum: gap runs from the coverage audit
+
+Written 2026-10-24 after the coverage audit and before any of these runs. Three runs each. Same verdict rule. A two-turn run resumes the first session with the second prompt.
+
+### G1: Restatement first when the session already holds the request (C17, fix 1dcb44c)
+
+Condition claude-installsh with the roadmap. Turn 1: "The page_size default of 20 is too small for our tables. Don't change anything yet." Turn 2: `/writ`.
+- **G1a.** The turn-2 reply opens with labeled `Goal:`, `Problem:`, and `Done check:` lines before any other prose.
+- **G1b.** The turn-2 reply proposes one route.
+
+### G2: Routed command file missing (C26, front-door S10 step 4)
+
+Condition claude-installsh with the roadmap, with `.claude/commands/prototype.md` deleted. Turn 1: `/writ "get('page_size', {'page_size': 0}) should raise ValueError for a page size below 1."` Turn 2: "1".
+- **G2a.** After the route is chosen, the reply names the missing command file.
+- **G2b.** The reply points to `/update-writ` or `update.sh`.
+- **G2c.** The agent does not improvise the routed workflow: no edits to `src/` or `tests/`.
+
+### G3: Roadmap missing (front-door S10 step 3)
+
+Condition claude-installsh without a roadmap. `/writ "Implement phase 14."`
+- **G3a.** `/implement-phase` is not the proposed route.
+- **G3b.** The restatement or the reply says the roadmap is missing and that `/plan-product` creates it.
+
+### G4: `/writ` on Codex (C11, C22)
+
+Condition codex-installsh, sandbox `workspace-write`. Turn 1: "Follow .codex/commands/writ.md for this request: get('page_size', {'page_size': 0}) should raise ValueError for a page size below 1." Turn 2: "Go with your recommended route."
+- **G4a.** Turn 1 prints labeled `Goal:`, `Problem:`, and `Done check:` lines.
+- **G4b.** Turn 1 proposes one route, marks it recommended, offers others, and waits.
+- **G4c.** Turn 2 prints the routed command's phases as a markdown checklist before running them.
+- **G4d.** No todo or state file is written for the checklist: no new file under `.writ/state/`.
+
+### G5: Routed command completes under the plugin (C29, C78, plugin-distribution S9)
+
+Condition claude-plugin, edits accepted and Bash allowed. Turn 1: `/writ:writ "get('page_size', {'page_size': 0}) should raise ValueError for a page size below 1."` Turn 2: "1".
+- **G5a.** Turn 1 proposes the namespaced route `/writ:prototype --no-diverge`.
+- **G5b.** Turn 2 changes `src/settings.py` and adds or changes a test, and the test suite passes when the harness runs `python3 -m pytest -q` afterwards.
+- **G5c.** The plugin's folder is byte-identical before and after the run, and nothing is written outside the workspace.
+
+### G6: Capability map reaches the agent with no adapters (C51, C54)
+
+Conditions claude-installsh and codex-installsh. Prompt: "Using only this project's Writ instructions, name the tool or behavior the capability todo_write maps to on this platform, and the one AskQuestion maps to. Answer in two lines, then name the file or section you took them from."
+- **G6a.** Both answers match the platform's installed Capability Map: the CLAUDE.md Writ block on Claude Code, the AGENTS.md Writ block on Codex.
+- **G6b.** The cited source is that block or its Capability Map, not an `adapters/` file.
+
+### G7: Plugin identity holds with the user's own output style (C41)
+
+Condition claude-plugin with `"outputStyle": "Explanatory"` added to the workspace's local settings. Probe 1 verbatim. Criteria I1 to I3.
+
+### G8: Plan Mode contract line (fix 47137a1, generated-platform-trees S6)
+
+Condition claude-installsh, `--permission-mode plan`. `/create-spec "a reset command that restores every setting to its default"`.
+- **G8a.** The agent presents a plan through `ExitPlanMode` or as its final plan text.
+- **G8b.** The plan's first line says that approving it accepts the draft and runs nothing.
+- **G8c.** No file is written.
