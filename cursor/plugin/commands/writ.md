@@ -39,7 +39,7 @@ None required. Two are optional:
 
 ### Step 1: Restate
 
-Write the request back in Writ's words, not the user's. Name the problem the request implies, not only the change it asks for. Three labeled lines, and a fourth when the request names evidence:
+Write the request back in Writ's words, not the user's. Name the problem the request implies, not only the change it asks for. Three labeled lines, and a fourth when the request names evidence. Print them as labeled lines first in the reply every time, even when the conversation already holds the request; never fold them into prose:
 
 ```
 Goal: <what is true afterwards>

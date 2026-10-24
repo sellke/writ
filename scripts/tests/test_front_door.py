@@ -201,6 +201,15 @@ def test_guide_cited():
     assert "What a request carries" in content
 
 
+def test_restatement_always_labeled():
+    # AC-1.2: the labeled lines come first every time, even when the session
+    # already holds the request (UAT 2026-10-23: a plugin run after an
+    # interrupted /writ:initialize answered in prose without them).
+    step1 = "\n".join(section(text().splitlines(), "### Step 1: Restate"))
+    assert "first in the reply every time" in step1
+    assert "never fold them into prose" in step1
+
+
 def test_routing_rules():
     # AC-1.3
     body = lines()
