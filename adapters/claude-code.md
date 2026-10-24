@@ -211,10 +211,10 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 |---|---|---|
 | `Task({ prompt })` | Automatic delegation to named subagent | Claude routes based on `description` field |
 | `Task({ readonly: true })` | `permissionMode: plan` + `disallowedTools: Write, Edit` | Enforced at tool level |
-| `AskQuestion()` | Formatted text with numbered options | No interactive UI |
+| `AskQuestion()` | `AskUserQuestion`: one to four questions, two to four options each; the user can always type another answer | Interactive sessions only (tool schema observed in Claude Code 2.1.310, 2026-10-24). If the platform has no question tool, as in headless `claude -p`, print the question as formatted text with numbered options. |
 | `codebase_search` | `Grep("pattern")` or `Bash("rg 'pattern'")` | Built-in Grep tool |
 | `file_search` | `Glob("**/pattern*")` | Built-in Glob tool |
-| `todo_write` | `TodoWrite` | Native todo list; phases mirror here |
+| `todo_write` | `TodoWrite` | Native todo list; phases mirror here. If the platform has no todo tool, as in headless `claude -p`, print the checklist in the reply. |
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Direct equivalent |
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |
@@ -229,6 +229,7 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 | Open the same draft in the preview (Browser) pane | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | `navigate` to the `file://` path opened the draft in the pane as a static snapshot; a screenshot of the local-file tab was refused, so that render was not inspected. Served from the scratchpad over `http://127.0.0.1` by a static file server, `navigate` rendered the page and a screenshot showed all four labeled regions. | https://code.claude.com/docs/en/desktop#preview-your-app | verified 2026-10-22 |
 | Native design surface reachable from a command run | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | The `Artifact` tool's read-only `quickstart` (intent `design`) listed the Claude Design type with a `type_url` and said to publish to that URL to start a canvas. Listed and addressable from inside the run without the user typing the native `/design` command; nothing was published and no canvas was created. | https://code.claude.com/docs/en/artifacts#draft-a-design-canvas | verified 2026-10-22 |
 | Headless run (`claude -p`): no-renderer path | Claude Code 2.1.308 (`claude --version`), desktop app session; `-p` not run, docs read 2026-10-22 | Not exercised in this run. The docs list `-p` from a terminal or script among the contexts where artifacts are off by default, so a headless `/prototype` run takes the row's no-renderer clause. | https://code.claude.com/docs/en/artifacts#availability | unverified 2026-10-22 |
+| Print mode (`claude -p`): tool set | Claude Code 2.1.310 (`claude --version`), `claude -p` init event, run 2026-10-24 | The init event's `tools` list held `Artifact` by default, so artifacts were not off for this account. `AskUserQuestion`, `TodoWrite`, `EnterPlanMode`, and `ExitPlanMode` were absent even when `--tools` named them or `--permission-mode plan` was set; `Glob` and `Grep` loaded only when `--tools` named them. | https://code.claude.com/docs/en/artifacts#availability | verified 2026-10-24 |
 
 ### Agent Paths
 
@@ -256,7 +257,9 @@ Use the writ-coder agent to implement this story.
 Use the writ-reviewer agent to review the implementation.
 ```
 
-### Structured Questions (no AskQuestion equivalent)
+### Structured Questions
+
+Interactive sessions use `AskUserQuestion`. A question that needs more than four options keeps the recommended one and the closest alternatives, and says the user can type any other. Headless runs (`claude -p`) have no question tool, so the question is printed as numbered text:
 
 ```
 **Feature Clarification - Round 1**

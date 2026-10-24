@@ -286,7 +286,7 @@ CURSOR_COUNT_ANCHOR = "one file per `commands:` entry"
 CURSOR_COUNT = "(33)"
 HIGH_ROW_PREFIX = "| `high` |"
 HIGH_COUNT = "(16)"
-TODO_ROW = ["`todo_write`", "`TodoWrite`", "Native todo list; phases mirror here"]
+TODO_ROW = ["`todo_write`", "`TodoWrite`", "Native todo list; phases mirror here. If the platform has no todo tool, as in headless `claude -p`, print the checklist in the reply."]  # fallback added after UAT (DEV-012)
 # argv per generator check; both must exit 0 with `pass` as the first stdout line.
 CHECKS = [
     ["bash", "scripts/gen-skill.sh", "--check"],

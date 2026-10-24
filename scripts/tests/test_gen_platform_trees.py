@@ -298,8 +298,10 @@ def test_codex_file_search_row(gen):
     assert "file_search" in names
     assert names.index("file_search") == names.index("codebase_search") + 1
     row = next(r for r in table.rows if r.name == "file_search")
-    assert row.mapping == '`Glob("**/pattern*")`'
-    assert row.notes == "Built-in Glob tool"
+    # Corrected after UAT (DEV-013): Codex's event stream shows shell
+    # commands only, no Glob tool (codex-cli 0.163.0, 2026-10-24).
+    assert row.mapping == "`rg --files -g '*pattern*'` through the shell"
+    assert row.notes == "Codex has no Glob tool"
 
 
 def test_openclaw_readonly_folded(gen):
@@ -498,8 +500,14 @@ def test_capability_map(gen, adapter):
     by_name = {r[0].strip("`"): r for r in rows}
     assert by_name["canvas-preview"][2] == NO_RENDERER
     assert by_name["Plan Mode"][2] == DEGRADATION
-    assert by_name["AskQuestion"][2] == "—"
+    # Claude Code's question tool exists only in interactive sessions
+    # (Phase 14 acceptance, 2026-10-24); the other adapters map no fallback.
+    assert by_name["AskQuestion"][2] == (ASK_FALLBACK if adapter == "claude-code" else "—")
     assert by_name["Plan Mode"][1] == table.rows[-1].mapping
+
+
+ASK_FALLBACK = ("If the platform has no question tool, as in headless `claude -p`, print the "
+                "question as formatted text with numbered options.")
 
 
 def test_capability_map_rejects_bad_table(gen, tmp_path):
@@ -851,9 +859,9 @@ def blank_description(tree: Path) -> None:
 def inject_adapters(tree: Path) -> None:
     path = tree / "adapters" / "codex.md"
     text = path.read_text(encoding="utf-8")
-    old = '| `file_search` | `Glob("**/pattern*")` |'
+    old = "| `file_search` | `rg --files -g '*pattern*'` through the shell |"
     assert text.count(old) == 1
-    path.write_text(text.replace(old, '| `file_search` | `Glob("**/pattern*")` (see adapters/codex.md) |'),
+    path.write_text(text.replace(old, "| `file_search` | `rg --files -g '*pattern*'` through the shell (see adapters/codex.md) |"),
                     encoding="utf-8")
 
 

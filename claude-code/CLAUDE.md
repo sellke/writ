@@ -56,10 +56,10 @@ Commands name capabilities; this table maps them to this platform.
 |---|---|---|
 | `Task` | Automatic delegation to named subagent | — |
 | `Task({ readonly: true })` | `permissionMode: plan` + `disallowedTools: Write, Edit` | — |
-| `AskQuestion` | Formatted text with numbered options | — |
+| `AskQuestion` | `AskUserQuestion`: one to four questions, two to four options each; the user can always type another answer | If the platform has no question tool, as in headless `claude -p`, print the question as formatted text with numbered options. |
 | `codebase_search` | `Grep("pattern")` or `Bash("rg 'pattern'")` | — |
 | `file_search` | `Glob("**/pattern*")` | — |
-| `todo_write` | `TodoWrite` | — |
+| `todo_write` | `TodoWrite` | If the platform has no todo tool, as in headless `claude -p`, print the checklist in the reply. |
 | `read_file` | `Read(path)` | — |
 | `run_terminal_cmd` | `Bash(command)` | — |
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | — |

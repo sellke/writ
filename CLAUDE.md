@@ -29,6 +29,9 @@ for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
 
 # Quality gate (does `git init` in a temp dir — run outside any sandbox)
 bash scripts/eval.sh                 # --check=<name> for one check
+
+# Recheck the third-party platform facts adapters rely on (dev-only; --live starts short CLI sessions)
+python3 scripts/eval-platform-facts.py [--live]
 ```
 
 The install/update scripts can be tested:

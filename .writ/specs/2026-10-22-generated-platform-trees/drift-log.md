@@ -136,3 +136,11 @@
 - **Reason:** Found in the Phase 14 acceptance pass, 2026-10-24. `install.sh` never copied the file for Codex, and Codex's session log showed the Writ block loaded with no Prime Directive. With Writ installed, Codex confirmed a false claim about the code without reading it in 3 of 3 runs, the same as with no Writ. After the fix, the identity probe passed 3 of 3 and no run confirmed the false claim.
 - **Resolution:** Fixed after UAT. Tests: `test_codex_template_carries_prime_directive` and `scripts/tests/test_install_update_codex_identity.sh`.
 - **Spec amendment:** None needed. Rule 8's byte cap still holds.
+
+#### [DEV-012] The Claude Code map names `AskUserQuestion`, with numbered text only for headless runs
+- **Severity:** Small
+- **Spec said:** Must Include 2 emits each adapter's tool table as the platform's Capability Map.
+- **Implementation did:** The Claude Code adapter row for `AskQuestion` said "Formatted text with numbered options" and "No interactive UI", so every installed CLAUDE.md told the agent to print text menus. The row now maps to `AskUserQuestion` (one to four questions, two to four options each), and its fallback, numbered text, applies when the platform has no question tool, as in headless `claude -p`.
+- **Reason:** Found in the Phase 14 acceptance pass, 2026-10-24. Claude Code has the tool in interactive sessions (tool schema observed in 2.1.310; front-door S10 saw the widget) and lacks it in `claude -p`. The old row predates Phase 14; the generated map shipped it to every install.
+- **Resolution:** Fixed after UAT. Whether an installed project's interactive session now uses the native picker needs a human run.
+- **Spec amendment:** None needed.
