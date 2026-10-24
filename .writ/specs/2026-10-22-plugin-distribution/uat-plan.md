@@ -98,9 +98,9 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 
 **Steps:**
 1. `newproj probe && snap`
-2. Baseline, before any install: `claude -p --tools "" "$P2"`
+2. Baseline, before any install: `claude -p "$P2" --tools ""` (the prompt goes before `--tools ""`, which takes several values and would swallow it)
 3. `claude plugin marketplace add "$CL" --scope local && claude plugin install writ@writ --scope local && ipath`
-4. `claude -p --tools "" "$P2"`, then `claude -p --tools "" "Name your persona in one word."`
+4. `claude -p "$P2" --tools ""`, then `claude -p "Name your persona in one word." --tools ""`
 5. `undo` (runs `claude plugin uninstall writ@writ --scope local` and `claude plugin marketplace remove writ --scope local` in `$P`, then `regdiff`)
 
 **Expected Result:**
@@ -332,14 +332,14 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 2. `claude plugin marketplace add "$CL" --scope local && claude plugin install writ@writ --scope local && ipath; ls scripts`
 3. `claude -p --tools "" --output-format stream-json --verbose "Reply OK" | head -1 | python3 -c 'import json,sys; e=json.loads(sys.stdin.readline()); print(sorted(a for a in e.get("agents", []) if a.startswith("writ:"))); s=[c for c in e.get("slash_commands", []) if c.lstrip("/").startswith("writ:")]; print(len(s), [c for c in s if "preamble" in c])'`
 4. Run `claude` in `$P`: type `/writ:initialize` (approve the Bash call, Esc at the discovery questions), then `/writ:writ "add a health endpoint"` (Esc at the route), then `/exit`. Afterwards run `ls -A .writ/docs | wc -l`.
-5. Both installs: `bash "$CL/scripts/install.sh" --platform claude --no-commit | grep -F 'Using local writ'`. Run `claude`, type `/create-spec` and read the menu, run `/agents` and read the list, then `/exit`.
+5. Both installs: `bash "$CL/scripts/install.sh" --platform claude --no-commit | grep -F 'Using local writ'`. Run `claude`, type `/writ:create-spec` and confirm it resolves, then `/exit`. (Autocomplete matches by prefix, so typing `/create-spec` does not list the plugin copy; `/agents` no longer exists in Claude Code 2.1.310.) Read the loaded inventory: `claude -p "Reply OK" --tools "" --output-format stream-json --verbose | head -1 | python3 -c 'import json,sys; e=json.loads(sys.stdin.readline()); print(sorted(a for a in e.get("agents",[]) if "writ-coder" in a)); print(sorted(c for c in e.get("slash_commands",[]) if c.lstrip("/") in ("create-spec","writ:create-spec")))'`
 6. `cd "$P" && claude plugin uninstall writ@writ --scope local && claude plugin marketplace remove writ --scope local; regdiff`
 
 **Expected Result:**
 - Step 2: the add and install lines as in Scenario 2 step 3. `ipath` prints `local 0.43.0 $W/writ/plugins/writ …`, loaded in place (V81). `ls: scripts: No such file or directory`.
 - Step 3: the eight `writ:writ-architect` … `writ:writ-visual-qa` agents, with no prompt-template doc such as `writ:coding-agent` (DEV-009, V84). Then `49 []`: 33 commands and 16 skills, no `_preamble`.
 - Step 4: as Scenario 3 steps 3 and 4, with the tool call reading `python3 $W/writ/plugins/writ/scripts/scaffold-writ.py scaffold` (V82, V83). Then `0` (DEV-006).
-- Step 5: `📦 Using local writ: $W/writ`. The menu offers both `/create-spec` (project) and `/writ:create-spec` (plugin), and `/agents` lists both `writ-coder` and `writ:writ-coder`. `adapters/claude-code.md` § Installation → Plugin documents this and recommends one install path per project.
+- Step 5: `📦 Using local writ: $W/writ`. `/writ:create-spec` resolves beside the project's `/create-spec`; the inventory prints `['writ-coder', 'writ:writ-coder']` and `['create-spec', 'writ:create-spec']`. `adapters/claude-code.md` § Installation → Plugin documents this and recommends one install path per project.
 - Step 6: as Scenario 2 step 5.
 
 **Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 from a clone of e275977, Claude Code 2.1.310. Steps 1-3: snap 0/0; add and install lines as expected; ipath `local 0.43.0 $W/writ/plugins/writ <cache>/writ/writ/0.43.0`; `ls: scripts: No such file or directory`. Step 4: `/writ:initialize` ran `python3 $W/writ/plugins/writ/scripts/scaffold-writ.py scaffold` and printed `scaffold-writ: pass (11 created, 0 existing)`; eleven directories and both `.gitignore` entries on disk; `.writ/docs` count 0 (DEV-006). `/writ:writ "add a health endpoint"`: the first run, right after the interrupted `/writ:initialize` in the same session, answered in prose without the labeled Goal/Problem/Done check/Proof lines and proposed `/writ:create-spec` (new dependency and architecture signals in an empty project); after `/clear` the second run gave the four labeled lines, `/writ:prototype (Recommended)`, every option spelled `/writ:...`, and noted the absent roadmap. Watch item: the restatement shape is not enforced (1 of 2 runs missed it); the second run's `Proof:` line omitted the guide link. Step 5: install.sh printed `Using local writ: $W/writ`. plan drift: autocomplete matches by prefix, so typing `/create-spec` does not list `/writ:create-spec`, which is reachable by its full name; `/agents` no longer exists in 2.1.310, so the stream-json init inventory was read instead: agents `writ-coder` and `writ:writ-coder`, commands `create-spec` and `writ:create-spec`. Step 6: uninstall and marketplace remove exit 0; installed_plugins.json and known_marketplaces.json same as snapshot; settings.json OK. Earlier agent run at 0b033a3 covered steps 1-3, 5 (inventory substitute) and 6 with the same results.

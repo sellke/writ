@@ -170,7 +170,7 @@ The technical spec's Error & Rescue Map is "Not required" (a build-time generato
 **Preconditions:** setup block pasted; `reset` prints nothing; Claude Code installed, with a model and thinking level of at least `create-spec`'s `entry_level`. Open the session from a second shell that has the setup block: `inW && (cd "$CL" && claude)`. Never in `$REPO`.
 
 **Steps:**
-1. Type: `/create-spec a settings page where people can manage API keys` (a request that needs open-ended shaping).
+1. Type: `/create-spec a --json mode for /status that prints project state for scripts` (a request that needs open-ended shaping and fits the Writ repo; a UI request makes the command correctly decline, since Writ has no UI).
 2. Watch the turn after the context scan. Answer one or two discovery questions, then say you are ready for a contract.
 3. When the contract proposal appears as the plan, approve the plan exit. At the **Contract Decision** question, do not choose "Lock contract and create spec package"; pick the option that revises or stops, then end the session.
 4. In the first shell: `reset`
