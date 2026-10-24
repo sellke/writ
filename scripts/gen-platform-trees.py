@@ -1213,13 +1213,23 @@ def render_cursor_manifest(version: str) -> str:
     return json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
 
 
-def render_cursor_markdown(text: str, source: str, script_root: str) -> str:
-    """The frontmatter verbatim, the generated-file comment naming `source`,
-    then the body with only the script-root token applied for `script_root`.
-    Under the identity root `scripts` the body is its source byte for byte."""
+def render_cursor_markdown(text: str, source: str, script_root: str, frontmatter_if_none: str = "") -> str:
+    """The frontmatter verbatim (or `frontmatter_if_none` when the source has
+    none), the generated-file comment naming `source`, then the body with only
+    the script-root token applied for `script_root`. Under the identity root
+    `scripts` the body is its source byte for byte."""
     frontmatter, body = split_frontmatter(text)
+    frontmatter = frontmatter or frontmatter_if_none
     body = rewrite_tokens(body.encode("utf-8"), script_root).decode("utf-8")
     return frontmatter + COMMENT % source + body
+
+
+def cursor_agent_frontmatter(name: str, purpose: str) -> str:
+    """The YAML frontmatter Cursor requires on a plugin agent (`name`,
+    `description`; https://cursor.com/docs/reference/plugins.md, drift DEV-017).
+    The description is the manifest purpose, double-quoted."""
+    description = purpose.replace("\\", "\\\\").replace('"', '\\"')
+    return '---\nname: %s\ndescription: "%s"\n---\n' % (name, description)
 
 
 def render_cursor_plugin(root: Path) -> List[PluginFile]:
@@ -1241,11 +1251,19 @@ def render_cursor_plugin(root: Path) -> List[PluginFile]:
         PluginFile(top + SYSTEM_INSTRUCTIONS, render_cursor_markdown(
             read_source(root / SYSTEM_INSTRUCTIONS), SYSTEM_INSTRUCTIONS, script_root).encode("utf-8"), None),
     ]
+    purposes = dict(read_manifest(root).agents)
     for folder, pattern in CURSOR_COPIED:
         for path in sorted((root / folder).glob(pattern)):
             rel = path.relative_to(root).as_posix()
+            frontmatter_if_none = ""
+            if folder == "agents":
+                # Cursor requires agent frontmatter; the prompt-template docs
+                # carry none, so the layout adds it from the manifest (DEV-017).
+                if path.stem not in purposes:
+                    raise ValueError("manifest has no agent %s" % path.stem)
+                frontmatter_if_none = cursor_agent_frontmatter(path.stem, purposes[path.stem])
             files.append(PluginFile(top + rel, render_cursor_markdown(
-                read_source(path), rel, script_root).encode("utf-8"), None))
+                read_source(path), rel, script_root, frontmatter_if_none).encode("utf-8"), None))
     return sorted(files, key=lambda f: f.rel)
 
 

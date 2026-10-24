@@ -173,7 +173,7 @@
 - **Spec said:** Contract item 3: "commands, agents, skills as the docs place them"; Rule 6 keeps install.sh's component set.
 - **Implementation did:** Ships the 8 `agents/*.md` prompt-template docs (install.sh `AGENTS_SRC="agents"`) at the documented `agents/` directory. https://cursor.com/docs/reference/plugins.md (read 2026-10-23) says agents require YAML frontmatter (`name`, `description`) and the submission checklist requires valid frontmatter for every component (V80); none of the 8 files has it.
 - **Reason:** Parity with install.sh's `.cursor/agents/`; the live load is pending UAT. Cursor may skip or list them as broken agents, and they may fail the marketplace review. Decide before the maintainer submits: generate Cursor frontmatter, move them out of a discovery directory, or let the UAT outcome decide.
-- **Resolution:** Flagged for review
+- **Resolution:** Fixed 2026-10-24 after UAT: `render_cursor_plugin` adds `name` and `description` frontmatter (from the manifest purpose) to each layout agent whose source has none; `test_agents_carry_cursor_frontmatter` pins it. install.sh's `.cursor/agents/` copies are unchanged; whether Cursor needs frontmatter there too is part of the pending Cursor UAT.
 - **Spec amendment:** N/A — flagged for post-implementation review
 
 #### [DEV-018] Cursor agent-frontmatter claim added to the Verification Record
@@ -222,7 +222,7 @@
 - **Spec said:** Rule 10: "when the target fails, the subsection is omitted."
 - **Implementation did:** Follows AC-5.4 and the story Notes: `test_readme_install_order` keeps `### Cursor (plugin)` after the Cursor install.sh section, with "local install; marketplace listing pending", for any result short of `pass` plus `cursor-uat run`. Today's fixture reads `cursor-plugin unverifiable`, so today's README is the same under either rule.
 - **Reason:** The story Notes chose this branch and asked to amend Rule 10 if the maintainer wants a failing Cursor plugin removed. A failing Cursor plugin path would stay documented with a green test.
-- **Resolution:** Flagged for review
+- **Resolution:** Fixed 2026-10-24 after UAT: `test_readme_install_order` follows spec Rule 10, so a `cursor-plugin fail` result requires the `### Cursor (plugin)` subsection to be omitted; a mutation run confirms the test fails when it is present.
 - **Spec amendment:** N/A — flagged for post-implementation review (options: amend Rule 10 to match AC-5.4, or keep Rule 10 and assert the heading is absent on `cursor-plugin fail`)
 
 #### [DEV-023] Smoke test adds checks and flags beyond the AC

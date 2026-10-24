@@ -1443,14 +1443,20 @@ class TestCursorPlugin:
         assert "eval.sh" in dev_only and "gen-platform-trees.py" in dev_only
         assert [f for f in files if Path(f).name in dev_only] == []
 
-    def test_bodies_keep_the_identity_text(self, cursor_rendered):
+    def test_bodies_keep_the_identity_text(self, cursor_rendered, gen):
         """AC-3.3 second branch: commands keep `python3 scripts/<name>.py`.
         Each copied file is its source with the generated-file comment after
         the frontmatter and every other byte unchanged: no plugin-root
-        variable, no `/writ:` namespace, no rewritten path."""
+        variable, no `/writ:` namespace, no rewritten path. An agent file,
+        whose source has no frontmatter, gets the name and description
+        frontmatter Cursor requires (DEV-017)."""
+        purposes = dict(gen.read_manifest(REPO_ROOT).agents)
         calls = 0
         for rel, src in cursor_sources(REPO_ROOT):
             fm, body = split_frontmatter(read_text(src))
+            if not fm and rel.startswith("agents/"):
+                stem = Path(rel).stem
+                fm = gen.cursor_agent_frontmatter(stem, purposes[stem])
             text = read_text(cursor_rendered.layout / rel)
             assert text == fm + COMMENT % rel + body, rel
             for var in CURSOR_ROOT_VARS:
@@ -1458,6 +1464,18 @@ class TestCursorPlugin:
             if rel.startswith("commands/"):
                 calls += len(BARE_CALL.findall(body))
         assert calls, "the commands keep `python3 scripts/` calls"
+
+    def test_agents_carry_cursor_frontmatter(self, cursor_rendered, gen):
+        """DEV-017: Cursor requires `name` and `description` frontmatter on a
+        plugin agent; each layout agent opens with it, named for its file and
+        described by its manifest purpose."""
+        purposes = dict(gen.read_manifest(REPO_ROOT).agents)
+        agents = sorted((cursor_rendered.layout / "agents").glob("*.md"))
+        assert agents, "the layout ships agents/"
+        for path in agents:
+            fm, _ = split_frontmatter(path.read_text(encoding="utf-8"))
+            assert fm.startswith("---\nname: %s\ndescription: \"" % path.stem), path.name
+            assert purposes[path.stem].split(";")[0] in fm, path.name
 
     def test_target_keeps_the_identity_script_root(self, gen):
         """AC-3.3: the `cursor-plugin` script root is `scripts`, the identity
@@ -1889,9 +1907,10 @@ def overview_lines() -> List[str]:
 
 def test_readme_install_order():
     """AC-5.4, spec.md Rule 10: the Claude Code plugin subsection comes first
-    only when `claude-plugin` passed; the Cursor plugin subsection comes after
-    the Cursor install.sh subsection, saying the install is local and the
-    listing pending, unless `cursor-plugin` passed and the Cursor UAT has run;
+    only when `claude-plugin` passed; the Cursor plugin subsection is omitted
+    when `cursor-plugin` fails (DEV-022), and otherwise comes after the Cursor
+    install.sh subsection, saying the install is local and the listing
+    pending, unless `cursor-plugin` passed and the Cursor UAT has run;
     the install.sh subsections stay; adapters/codex.md says Codex has no
     plugin in this release."""
     results = smoke_results()
@@ -1921,6 +1940,11 @@ def test_readme_install_order():
         assert CLAUDE_PLUGIN_HEADING not in headings, (
             "claude-plugin reads %s, so README lists no Claude Code plugin" % results["claude-plugin"])
 
+    if results["cursor-plugin"] == "fail":
+        # spec.md Rule 10: a failing Cursor plugin is not documented (DEV-022).
+        assert CURSOR_PLUGIN_HEADING not in headings, (
+            "cursor-plugin fails, so README lists no Cursor plugin: %s" % headings)
+        return
     assert headings.count(CURSOR_PLUGIN_HEADING) == 1, "Quick Start: %s" % headings
     at = headings.index(CURSOR_PLUGIN_HEADING)
     if results["cursor-plugin"] == "pass" and results["cursor-uat"] == "run":

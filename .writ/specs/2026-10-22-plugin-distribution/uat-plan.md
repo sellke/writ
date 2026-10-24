@@ -206,7 +206,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 1: `pass` summary, `exit 0`, `layout-ok`: the rule is byte-equal, and the layout has no `scripts/`.
 - Step 2: `P=…`, `📦 Using local writ: $W/writ`, `sample-ok`.
 - Step 3: `0`, `0`; listing `.cursor-plugin agents commands rules skills system-instructions.md`.
-- Step 4: Customize lists `writ` with the rule `writ.mdc`, the commands from `commands/` (34 files), and 16 skills. **Known limitation DEV-017:** the eight `agents/*.md` have no YAML frontmatter, which Cursor requires (V80). Cursor may omit them or show them as broken. Record what it shows; it decides the open review item before a marketplace submission.
+- Step 4: Customize lists `writ` with the rule `writ.mdc`, the commands from `commands/` (34 files), and 16 skills. **DEV-017 (fixed 2026-10-24):** the eight `agents/*.md` now open with the `name` and `description` frontmatter Cursor requires (V80), generated from the manifest. Check that Customize lists them as agents, and record what it shows.
 - Step 5a (V76): `writ.mdc` is listed. The reply quotes the first Hard Constraints bullet and `SOURCE Prime Directive`.
 - Step 5b (V77): `/writ` and the other commands are listed.
 - Step 5c (V78): the agent runs `python3 scripts/quality-config-audit.py check --project .` from the project root, and the script prints a JSON report with a `verdict` field (exit 0). `can't open file` or exit 2 fails this look-for.
@@ -310,7 +310,7 @@ The technical spec's Error & Rescue Map is "Not required" (no runtime data flow)
 - Step 3: in order, `### What /writ routes to` (backticked), `### Claude Code (plugin)`, `### Cursor (one-line install)`, `### Updating`, `### Cursor (plugin)`, `### Claude Code (one-line install)`, `### Codex CLI (one-line install)`; then `1`. The Claude plugin comes first because the fixture reads `claude-plugin pass`. The Cursor plugin follows the Cursor `install.sh` section because the fixture reads `cursor-plugin unverifiable` and `cursor-uat pending`.
 - Step 4: `1 passed, 114 deselected …`. The test reads the committed fixture, not a live run, so the README follows the last recorded run.
 - Step 5: `E   AssertionError: claude-plugin reads unverifiable, so README lists no Claude Code plugin`. `unverifiable` never counts as a pass. `reset` prints nothing.
-- Step 6: `1 passed, 114 deselected …`. **Known limitation DEV-022:** Rule 10 says to omit `### Cursor (plugin)` when the target fails, but the test, following AC-5.4, keeps it after the `install.sh` section. Mark Pass when the output matches; the open decision is logged in the drift log.
+- Step 6: `1 failed, 115 deselected …`, with `AssertionError: cursor-plugin fails, so README lists no Cursor plugin`. **DEV-022 (fixed 2026-10-24):** the test now follows Rule 10, so a failing Cursor plugin target requires the `### Cursor (plugin)` subsection to be removed; the README still has it, which is the failure the mutation proves.
 - Step 7: `exit 0`. On 2026-10-23 with the same CLI, no diff lines. On a later date, only `-# run date: 2026-10-23` / `+# run date: <today>` changes, plus the `claude --version` line if the CLI changed. The five summaries and `cursor-uat` stay. Re-record after any plugin layout or platform version change.
 
 **Implementation Reference:** Story 5 — `scripts/tests/test_plugin_smoke.sh`, `scripts/tests/fixtures/plugin-smoke-results.txt`, `test_readme_install_order` in `scripts/tests/test_plugin_distribution.py`.

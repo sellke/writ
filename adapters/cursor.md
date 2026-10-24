@@ -122,7 +122,7 @@ Each platform claim above, with its row in the Verification Record of the plugin
 | A script-calling command resolves its script from the project's `scripts/` | V78 | unverified 2026-10-23 (pending UAT) | https://cursor.com/docs/plugins.md | 2026-10-23 |
 | A command body can use `${CURSOR_PLUGIN_ROOT}` | V79 | unverified 2026-10-23 (pending UAT) | https://cursor.com/docs/reference/plugins.md | 2026-10-23 |
 | `/_preamble` appears as a command | — | unverified 2026-10-23 (pending UAT) | https://cursor.com/docs/reference/plugins.md | 2026-10-23 |
-| Cursor lists the frontmatter-less `agents/*.md` as agents | — | unverified 2026-10-23 (pending UAT) | https://cursor.com/docs/reference/plugins.md | 2026-10-23 |
+| Cursor lists the plugin's `agents/*.md` (name and description frontmatter generated from the manifest, DEV-017) as agents | — | unverified 2026-10-23 (pending UAT) | https://cursor.com/docs/reference/plugins.md | 2026-10-23 |
 | With install.sh's `.cursor/` copy in the same project, which copy of a same-named command or rule Cursor uses | — | unverified 2026-10-23 (pending UAT) | https://cursor.com/docs/plugins.md | 2026-10-23 |
 
 ## Usage
