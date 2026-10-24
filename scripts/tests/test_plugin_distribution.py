@@ -649,15 +649,17 @@ class TestPluginTree:
         assert hits == []
 
     def test_dev_only_calls_are_unchanged(self, rendered):
-        """Spec Rule 3: dev-only script names keep their bare form (the four
-        `bash scripts/eval.sh` lines, inventory G2), in the same number."""
+        """Spec Rule 3: dev-only script names keep their bare form (the
+        `bash scripts/eval.sh` lines, inventory G2, and the Writ-source
+        maintenance calls, drift DEV-005), in the same number. Comment lines
+        are skipped on both sides, as scanned_body does."""
         shipped = source_shipped()
 
         def dev_calls(bodies: List[str]) -> List[str]:
             return sorted(m.group(0) for body in bodies for m in BARE_CALL.finditer(body)
                           if m.group(1) not in shipped)
 
-        expected = dev_calls(source_bodies(REPO_ROOT))
+        expected = dev_calls([without_comment_lines(b) for b in source_bodies(REPO_ROOT)])
         assert expected, "the source has dev-only script calls (inventory G2)"
         assert dev_calls([scanned_body(p) for p in rewritten_files(rendered.plugin)]) == expected
 
@@ -792,6 +794,74 @@ class TestShippableSet:
             assert (rendered.plugin / "scripts" / name).read_bytes() == \
                 (REPO_ROOT / "scripts" / name).read_bytes(), name
         assert "eval.sh" not in shipped and "gen-platform-trees.py" not in shipped
+
+
+# -- DEV-005: maintenance commands write in the project ---------------------
+
+# The two commands whose script calls ran Writ-source generators from the
+# plugin's folder (drift DEV-005), and those generators. Each reads and writes
+# Writ's own source trees, so a call must reach the project's copy.
+MAINTENANCE_COMMANDS = ("new-skill", "refresh-command")
+SOURCE_TREE_SCRIPTS = ("check-agent-parity.sh", "gen-claude-agents.py",
+                       "gen-codex-agent-tomls.py", "gen-skill.sh")
+CODE_SPAN = re.compile(r"`([^`\n]+)`")
+SCRIPT_CALL = re.compile(r"^(?:bash|python3) \S*scripts/([a-z0-9_-]+\.(?:py|sh))\b")
+# One file each project generator owns, made stale before the calls run.
+GENERATED_IN_PROJECT = ("SKILL.md", "claude-code/agents/writ-tester.md",
+                        "codex/agents/testing-agent.toml")
+
+
+def script_calls(path: Path) -> List[str]:
+    """The body's `bash`/`python3` script calls, from fenced lines and
+    inline code spans, in order. Frontmatter exit criteria are not calls."""
+    calls = []  # type: List[str]
+    in_fence = False
+    for line in split_frontmatter(path.read_text(encoding="utf-8"))[1].splitlines():
+        if line.startswith("```"):
+            in_fence = not in_fence
+            continue
+        texts = [line.strip()] if in_fence else CODE_SPAN.findall(line)
+        calls += [t for t in texts if SCRIPT_CALL.match(t)]
+    return calls
+
+
+class TestMaintenanceCommandsWriteInProject:
+    def test_calls_write_only_inside_the_project(self, rendered, tmp_path):
+        """DEV-005: run under the plugin from a Writ source checkout, every
+        script call of /writ:new-skill and /writ:refresh-command leaves the
+        plugin byte-identical, and the generators repair the checkout's own
+        stale files. eval.sh, the refresh gate, runs the whole eval, so it
+        is checked for its bare (project) form and not run."""
+        plugin = tmp_path / "plugin"
+        shutil.copytree(str(rendered.plugin), str(plugin))
+        project = copy_sources(tmp_path / "project")
+        # gen-skill.sh reads the root SKILL.md and the manifest's
+        # runtime_contract, a .writ/docs/ file.
+        shutil.copy(str(REPO_ROOT / "SKILL.md"), str(project / "SKILL.md"))
+        shutil.copytree(str(REPO_ROOT / ".writ" / "docs"), str(project / ".writ" / "docs"))
+        clean = snapshot(project)
+        for rel in GENERATED_IN_PROJECT:
+            with (project / rel).open("a", encoding="utf-8") as handle:
+                handle.write("\nhand edit\n")
+        plugin_before = snapshot(plugin)
+
+        calls = [call for name in MAINTENANCE_COMMANDS
+                 for call in script_calls(plugin / "commands" / ("%s.md" % name))]
+        called = {SCRIPT_CALL.match(call).group(1) for call in calls}
+        assert set(SOURCE_TREE_SCRIPTS) <= called, sorted(called)
+        env = dict(os.environ, CLAUDE_PLUGIN_ROOT=str(plugin))
+        for call in calls:
+            if SCRIPT_CALL.match(call).group(1) == "eval.sh":
+                assert call.startswith("bash scripts/eval.sh"), call
+                continue
+            subprocess.run(["bash", "-c", call], cwd=str(project), env=env,
+                           capture_output=True, text=True, timeout=120)
+
+        assert snapshot(plugin) == plugin_before
+        stale = sorted(rel for rel in GENERATED_IN_PROJECT
+                       if (project / rel).read_bytes() != clean[rel])
+        assert stale == [], "the calls did not regenerate the project's %s" % stale
+        assert snapshot(project) == clean
 
 
 # -- AC-2.3: the Prime Directive carrier -----------------------------------

@@ -982,6 +982,7 @@ DEV_ONLY_SCRIPTS = frozenset((
     "publish-writ-runtime.sh", "eval.sh", "writ-runtime-readme.md",
     "pipeline-baseline.py", "measure-invocation.py", "harness-cost.py", "prune-ledger.py",
     "spawn-cap.py", "recommend-state.py", "gen-claude-md.py", "gen-platform-trees.py",
+    "gen-claude-agents.py", "gen-codex-agent-tomls.py", "check-agent-parity.sh", "gen-skill.sh",
 ))
 DEV_ONLY_PREFIXES = ("eval-", "_", "sweep-")
 SHIPPED_DATA = frozenset(("jev-thresholds.json",))
