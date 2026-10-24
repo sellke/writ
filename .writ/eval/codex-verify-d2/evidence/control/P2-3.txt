@@ -1,0 +1,1 @@
+ASSISTANT: Given the existing theme validation, `get("theme", {"theme": "purple"})` raises a `ValueError`.
