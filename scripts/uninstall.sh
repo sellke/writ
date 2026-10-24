@@ -464,6 +464,21 @@ if [ "$INCLUDE_WRIT" = true ] && [ "$LAST_INSTALL" = true ]; then
   REVERT_IGNORES=true
 fi
 
+# The refs/notes/writ sync refspecs install adds to .git/config (ADR-017) go
+# with the last install. Only Writ's exact lines are removed, from any remote,
+# including the pre-0.33 fetch line; the notes themselves stay.
+NOTES_REFSPECS=()
+if [ "$LAST_INSTALL" = true ] && command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
+  while IFS= read -r remote; do
+    [ -n "$remote" ] || continue
+    for refspec in "fetch +refs/notes/writ:refs/notes/origin-writ" "fetch +refs/notes/writ:refs/notes/writ" "push refs/notes/writ"; do
+      if git config --get-all "remote.$remote.${refspec%% *}" 2>/dev/null | grep -qxF -- "${refspec#* }"; then
+        NOTES_REFSPECS+=("remote.$remote.$refspec")
+      fi
+    done
+  done <<< "$(git remote 2>/dev/null || true)"
+fi
+
 echo "  Files to remove:"
 echo "    📋 Commands:  $CMD_COUNT"
 echo "    🤖 Agents:    $AGENT_COUNT"
@@ -481,6 +496,9 @@ if [ "${#SHARED_REMOVE[@]}" -gt 0 ]; then
   echo "    🧰 Shipped scripts/docs (unmodified): ${#SHARED_REMOVE[@]}"
 fi
 [ "$REVERT_IGNORES" = true ] && echo "    🙈 Writ lines in .gitignore and .cursorindexingignore"
+if [ "${#NOTES_REFSPECS[@]}" -gt 0 ]; then
+  echo "    🔗 refs/notes/writ refspecs in .git/config: ${#NOTES_REFSPECS[@]}"
+fi
 if [ "${#SHARED_KEPT[@]}" -gt 0 ]; then
   echo ""
   echo "  Kept (modified since install):"
@@ -490,7 +508,7 @@ if [ "${#SHARED_KEPT[@]}" -gt 0 ]; then
 fi
 if [ "$LAST_INSTALL" = false ]; then
   echo ""
-  echo "  Kept: scripts/, .writ/docs/, and ignore files (still used by ${OTHER_INSTALLS[*]})"
+  echo "  Kept: scripts/, .writ/docs/, ignore files, and refs/notes/writ refspecs (still used by ${OTHER_INSTALLS[*]})"
 fi
 echo ""
 
@@ -505,7 +523,7 @@ TOTAL=$((CMD_COUNT + AGENT_COUNT + SKILL_COUNT + ${#EXTRA_FILES[@]} + CODEX_EXTR
 [ "$HAS_MANIFEST" = true ] && TOTAL=$((TOTAL + 1))
 TOTAL=$((TOTAL + ${#SHARED_REMOVE[@]}))
 
-if [ "$TOTAL" -eq 0 ]; then
+if [ "$TOTAL" -eq 0 ] && [ "${#NOTES_REFSPECS[@]}" -eq 0 ]; then
   echo "  Nothing to remove."
   exit 0
 fi
@@ -560,6 +578,9 @@ if [ "$DRY_RUN" = true ]; then
     [ -f ".gitignore" ] && echo "  🗑  .gitignore Writ lines"
     [ -f ".cursorindexingignore" ] && echo "  🗑  .cursorindexingignore Writ lines"
   fi
+  for entry in ${NOTES_REFSPECS[@]+"${NOTES_REFSPECS[@]}"}; do
+    echo "  🗑  .git/config $entry"
+  done
   echo ""
   echo "  Would remove $TOTAL file(s)."
   echo "  .writ/ directory would be $([ "$INCLUDE_WRIT" = true ] && echo "REMOVED" || echo "preserved")."
@@ -682,6 +703,14 @@ if [ "$REVERT_IGNORES" = true ]; then
   [ -n "$REVERT_NOTE" ] && echo "  $REVERT_NOTE"
   revert_cursorindexingignore
   [ -n "$REVERT_NOTE" ] && echo "  $REVERT_NOTE"
+fi
+
+if [ "${#NOTES_REFSPECS[@]}" -gt 0 ]; then
+  for entry in "${NOTES_REFSPECS[@]}"; do
+    refspec="${entry#* }"
+    git config --unset-all "${entry%% *}" "^${refspec//+/\\+}\$" 2>/dev/null || true
+  done
+  echo "  🗑  Removed ${#NOTES_REFSPECS[@]} refs/notes/writ refspec(s) from .git/config (the notes stay)"
 fi
 
 echo "  🗑  Removed $REMOVED file(s)"

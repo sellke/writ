@@ -8,13 +8,14 @@ exit_criteria:
   - ".writ/ keeps every spec, story, ADR, and research doc, and every .writ/docs file the user added or changed; only shipped docs that still match their manifest baseline are gone"
   - "[platform_dir]/.writ-manifest is gone, no Writ command or agent file remains in [platform_dir]/commands/ or [platform_dir]/agents/, and every kept modified script or doc is listed in the summary"
   - "the platform directory itself, its non-Markdown files, .gitignore entries, and any AGENTS.md content outside the writ:start and writ:end markers survive"
+  - "once no other platform's .writ-manifest remains, .git/config holds none of the refs/notes/writ refspecs install added, every other refspec is unchanged, and the notes in refs/notes/writ remain"
 ---
 
 # Uninstall Writ Command (uninstall-writ)
 
 ## Overview
 
-Remove Writ from the project. Deletes all platform files — commands, agents, rules, and the manifest — and the shipped scripts in `scripts/` and docs in `.writ/docs/` that still match their install baseline. Files you changed stay and are listed. The rest of `.writ/` stays, so your specs, ADRs, and research are preserved.
+Remove Writ from the project. Deletes all platform files — commands, agents, rules, and the manifest — and the shipped scripts in `scripts/` and docs in `.writ/docs/` that still match their install baseline. With the last platform it also removes the `refs/notes/writ` refspecs install added to `.git/config`. Files you changed stay and are listed. The rest of `.writ/` stays, so your specs, ADRs, and research are preserved.
 
 **When to use:** You're done with Writ and want to remove it from the project. Your work artifacts in `.writ/` stay unless you delete them manually.
 
@@ -74,12 +75,14 @@ ls [platform_dir]/agents/*.md 2>/dev/null | wc -l
 
 **Shipped scripts and docs** — only when no other platform's `.writ-manifest` exists (they are shared by every platform install): for each manifest line whose path is `scripts/<file>` or `.writ/docs/<file>.md`, hash the local file (`shasum -a 256`). Equal to the line's hash: remove it. Different: keep it and list it. A file with no manifest line is the user's: leave it.
 
+**Audit-notes refspecs** — under the same condition, for each remote (`git remote`), look for the lines install adds for the git-notes audit trail (ADR-017): `+refs/notes/writ:refs/notes/origin-writ` and the pre-0.33 `+refs/notes/writ:refs/notes/writ` in `git config --get-all remote.<remote>.fetch`, and `refs/notes/writ` in `git config --get-all remote.<remote>.push`. Match whole lines only. Left behind, the push line makes a plain `git push` push only the notes.
+
 ```
 AskQuestion({
   title: "Confirm Uninstall",
   questions: [{
     id: "confirm",
-    prompt: "This will remove Writ from your project.\n\n  Platform: [Cursor/Claude Code/Codex CLI]\n  Removing: [N] commands, [M] agents, platform extras, manifest, [S] unmodified shipped scripts and docs\n  Customized files: [K] (will be lost)\n\n  Keeping: .writ/ directory (specs, ADRs, research), [J] scripts and docs you changed\n\nCodex CLI: AGENTS.md will be modified by removing only the Writ block. .codex/config.toml is removed if it still matches its install baseline; if you changed it, you will be asked separately. See adapters/codex.md.\n\nProceed?",
+    prompt: "This will remove Writ from your project.\n\n  Platform: [Cursor/Claude Code/Codex CLI]\n  Removing: [N] commands, [M] agents, platform extras, manifest, [S] unmodified shipped scripts and docs, [R] refs/notes/writ refspecs in .git/config\n  Customized files: [K] (will be lost)\n\n  Keeping: .writ/ directory (specs, ADRs, research), [J] scripts and docs you changed\n\nCodex CLI: AGENTS.md will be modified by removing only the Writ block. .codex/config.toml is removed if it still matches its install baseline; if you changed it, you will be asked separately. See adapters/codex.md.\n\nProceed?",
     options: [
       { id: "yes", label: "Yes — remove Writ" },
       { id: "abort", label: "Cancel" }
@@ -101,14 +104,22 @@ Delete Writ-managed files. Run per-platform if "all" was selected.
    - Claude Code: `rm .claude/system-instructions.md`; in `CLAUDE.md`, remove only the Writ block, the `<!-- writ:start -->` line through the `<!-- writ:end -->` line, and keep every other byte (what `uninstall.sh --platform claude` does); delete `CLAUDE.md` only if nothing is left
    - Codex CLI: `rm .codex/system-instructions.md`; remove only the marker-bounded Writ block from `AGENTS.md`; remove `.codex/config.toml` when its hash equals the manifest's `.codex/config.toml.baseline` line, otherwise ask first; remove Writ-installed skills from `.agents/skills/`
 4. **Shipped scripts and docs:** remove the unmodified files from Step 2; remove `scripts/` if it is now empty
-5. **Manifest:** `rm [platform_dir]/.writ-manifest`
+5. **Audit-notes refspecs:** remove the lines Step 2 found, each with an anchored value regex so no other line goes:
+   ```bash
+   git config --unset-all remote.<remote>.fetch '^\+refs/notes/writ:refs/notes/origin-writ$'
+   git config --unset-all remote.<remote>.fetch '^\+refs/notes/writ:refs/notes/writ$'
+   git config --unset-all remote.<remote>.push '^refs/notes/writ$'
+   ```
+6. **Manifest:** `rm [platform_dir]/.writ-manifest`
 
 **Clean up empty directories** — if `commands/` or `agents/` directories are now empty, remove them. Don't remove the platform directory itself (`.cursor/`, `.claude/`, or `.codex/`) unless it becomes empty.
 
 **Do NOT remove:**
 - `.writ/` directory, apart from the unmodified shipped docs in `.writ/docs/`
 - Scripts and docs that differ from their manifest baseline or have no manifest line
-- Shipped scripts and docs while another platform's manifest exists
+- Shipped scripts, docs, and the audit-notes refspecs while another platform's manifest exists
+- The notes themselves (`refs/notes/writ`, `refs/notes/origin-writ`) and every refspec Writ did not add
+- The `writ.auditNotes` setting, which the user sets
 - `.gitignore` entries and `.cursorindexingignore` (they keep `.writ/state/` out of git and archived specs out of Cursor's index while `.writ/` stays; `uninstall.sh --include-writ` removes them with `.writ/`)
 - Any non-`.md` files in commands/ or agents/ directories
 - The platform directory itself
@@ -132,6 +143,7 @@ Use `git add -u` to stage deletions without adding untracked files.
 ✅ Writ has been removed.
 
   🗑  Removed: [N] commands, [M] agents, rules, manifest, [S] shipped scripts and docs
+  🗑  Removed: [R] refs/notes/writ refspecs from .git/config (the notes stay)
   ⚡ Kept (modified since install): [each kept script or doc]
   📂 Kept: .writ/ directory (specs, ADRs, research intact)
 
