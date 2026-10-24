@@ -88,3 +88,11 @@
 - **Reason:** Found in the Phase 14 acceptance pass, 2026-10-24. Claude Code's question tool takes two to four options per question (tool schema, Claude Code 2.1.310), and front-door S10 saw the widget show four. The rule asked for something the platform cannot render.
 - **Resolution:** Fixed after UAT. `test_confirmation_fits_four_options` pins the cap, the two alternatives, and the "Other routes" line.
 - **Spec amendment:** Must Include 2, Journey step 3, and Business Rule 4 amended 2026-10-24.
+
+#### [DEV-008] `/prototype` brings a worktree-isolated coder's change into the user's checkout
+- **Severity:** Medium
+- **Spec said:** Business Rule 6: after the confirmation, `/writ` follows the routed command top to bottom. The routed command is trusted to finish its work.
+- **Implementation did:** No change to `/writ`. `commands/prototype.md` Step 3 now cites `skills/subagent-worktree-integration/SKILL.md` and says the change is done only when `git status` shows it in the user's checkout.
+- **Reason:** Acceptance runs of `/writ:writ` routed to `/writ:prototype --no-diverge` under the Claude Code plugin. In 2 of 3 runs, the `writ:writ-coder` agent finished the fix in its isolated worktree and the user's checkout stayed unchanged, while the reply said the tests passed. The same scenario on an `install.sh` install landed 3 of 3. After the fix, 3 of 3 plugin runs landed. `/writ` routes most real requests to this command, so the gap reaches most users.
+- **Resolution:** Fixed after UAT; `test_prototype_worktree_integration.py` pins the step. `commands/prototype.md` is outside this spec's file list.
+- **Spec amendment:** None needed.
