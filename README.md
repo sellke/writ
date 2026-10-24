@@ -162,7 +162,7 @@ Feedback loop (/retro + /refresh-command):
 | `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |
 | `/update-writ` | Interactive update — pull latest, per-file control over customized files |
 | `/reinstall-writ` | Clean slate — remove all Writ files and install fresh from upstream |
-| `/uninstall-writ` | Remove Writ platform files (preserves `.writ/` directory) |
+| `/uninstall-writ` | Remove Writ platform files and the shipped scripts and `.writ/docs/` files you left unchanged. Keeps the rest of `.writ/`, files you changed, and the `.gitignore` lines that protect `.writ/` |
 
 ## Agents
 
