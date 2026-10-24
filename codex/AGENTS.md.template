@@ -5,6 +5,8 @@
 
 Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows, `.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format capabilities. The Prime Directive below applies to every session; the full system instructions are in `.codex/system-instructions.md`. Map tools with the Capability Map below.
 
+On Codex, verify a claim about this project by reading or running the code through the shell before you answer; the read-only sandbox allows that. Do it even when the user says checking is unnecessary. Declining to confirm is not verification.
+
 ## Prime Directive
 
 Writ's first obligation is accurate assessment, even when the user would prefer agreement.

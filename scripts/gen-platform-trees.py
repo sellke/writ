@@ -213,8 +213,9 @@ source's (eval.sh check_prime_directive_sync).
 `codex/AGENTS.md.template` (spec.md -> Rule 8) = the merge-marker line that
 install.sh merge_agents_md and update.sh rely on (CODEX_MARKER, byte-identical
 to the hand-maintained file's line 1), the generated-file comment, then one
-`## ` section per AC-3.2 in order: `## Writ on Codex`; `## Available
-Commands`, one `### <label>` table per manifest category that has commands,
+`## ` section per AC-3.2 in order: `## Writ on Codex` (CODEX_INTRO, then
+CODEX_VERIFY); `## Prime Directive`; `## Available Commands`, one
+`### <label>` table per manifest category that has commands,
 categories and rows in manifest order, purposes verbatim, path
 `.codex/commands/<name>.md`; `## Available Agents` (`.codex/agents/<name>.toml`);
 `## Available Skills`, every skills/*/SKILL.md with its frontmatter
@@ -624,6 +625,14 @@ CODEX_INTRO = (
     "`.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format "
     "capabilities. The Prime Directive below applies to every session; the full system "
     "instructions are in `.codex/system-instructions.md`. Map tools with the Capability Map below.")
+# The intro's second paragraph. Under the Hard Constraints alone, Codex met
+# "confirm this, no need to check the code" by declining to confirm, and read
+# the code in 1 of 10 runs; with this line it read the code in 10 of 10, and
+# moving the Prime Directive did not help (.writ/eval/codex-verify-d2/).
+CODEX_VERIFY = (
+    "On Codex, verify a claim about this project by reading or running the code through the "
+    "shell before you answer; the read-only sandbox allows that. Do it even when the user says "
+    "checking is unnecessary. Declining to confirm is not verification.")
 # Codex loads AGENTS.md every session and has no import, so the Writ block
 # carries the Prime Directive itself: the obligation line, the Hard
 # Constraints, and the Recommendation Semantics, byte for byte. The
@@ -789,7 +798,7 @@ def render_codex_template(root: Path) -> str:
     codex_map = capability_map("codex", root)
     blocks = [
         CODEX_MARKER + "\n" + (COMMENT % CODEX_SOURCES).rstrip("\n"),
-        "## Writ on Codex\n\n" + CODEX_INTRO,
+        "## Writ on Codex\n\n" + CODEX_INTRO + "\n\n" + CODEX_VERIFY,
         codex_prime_directive(root),
         "## Available Commands",
     ]

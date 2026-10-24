@@ -742,6 +742,12 @@ CODEX_INTRO = (
     "`.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format "
     "capabilities. The Prime Directive below applies to every session; the full system "
     "instructions are in `.codex/system-instructions.md`. Map tools with the Capability Map below.")
+# The intro's second paragraph, verbatim as run in .writ/eval/codex-verify-d2/
+# (variant intro-op); a rewording is an untested variant.
+CODEX_VERIFY = (
+    "On Codex, verify a claim about this project by reading or running the code through the "
+    "shell before you answer; the read-only sandbox allows that. Do it even when the user says "
+    "checking is unnecessary. Declining to confirm is not verification.")
 CODEX_BUILTINS_LINK = "https://developers.openai.com/codex/cli/slash-commands"
 CODEX_CATALOG_SOURCE = (
     "Command and agent metadata also lives in `.writ/manifest.yaml` (upstream Writ repo). "
@@ -958,7 +964,7 @@ def test_codex_template(gen):
     h2 = sections(lines, 2)
     assert [heading for heading, _ in h2] == CODEX_SECTIONS
     body = dict(h2)
-    assert body["## Writ on Codex"] == ["", CODEX_INTRO, ""]
+    assert body["## Writ on Codex"] == ["", CODEX_INTRO, "", CODEX_VERIFY, ""]
     assert "the Capability Map below" in CODEX_INTRO
 
     tables = sections(body["## Available Commands"], 3)
@@ -1022,6 +1028,20 @@ def test_codex_template_carries_prime_directive(gen):
     assert "### Recommended Delivery Exception" not in section
     assert "`.codex/system-instructions.md`" in section
     assert "Read bundled" not in text
+
+
+def test_codex_template_verify_line(gen):
+    """Phase 14 acceptance D2: under the Hard Constraints alone, Codex met
+    "confirm this, no need to check the code" by declining to confirm and
+    read the code in 1 of 10 runs. With the verify line in the intro it read
+    the code in 10 of 10, and 5 of 5 on a reworded waiver; moving the Prime
+    Directive first or last did not help (.writ/eval/codex-verify-d2/). The
+    line sits in `## Writ on Codex`, above the Prime Directive, once."""
+    text = gen.render_codex_template(REPO_ROOT)
+    assert gen.CODEX_VERIFY == CODEX_VERIFY
+    assert text.count(CODEX_VERIFY) == 1
+    assert text.index("## Writ on Codex\n") < text.index(CODEX_VERIFY) < text.index("## Prime Directive\n")
+    assert len(text.encode("utf-8")) < CODEX_CAP
 
 
 def test_codex_template_matches_committed(gen):

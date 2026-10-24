@@ -144,3 +144,11 @@
 - **Reason:** Found in the Phase 14 acceptance pass, 2026-10-24. Claude Code has the tool in interactive sessions (tool schema observed in 2.1.310; front-door S10 saw the widget) and lacks it in `claude -p`. The old row predates Phase 14; the generated map shipped it to every install.
 - **Resolution:** Fixed after UAT. Whether an installed project's interactive session now uses the native picker needs a human run.
 - **Spec amendment:** None needed.
+
+#### [DEV-014] The Codex intro gains a verify line
+- **Severity:** Small
+- **Spec said:** Rule 8: `## Writ on Codex` is one paragraph.
+- **Implementation did:** A second paragraph, `CODEX_VERIFY`, tells Codex to verify a claim about the project by reading or running the code through the shell before answering, even when the user says checking is unnecessary, and says that declining to confirm is not verification. The template is 14,790 bytes, under the 16 KB cap.
+- **Reason:** Phase 14 acceptance defect D2, 2026-10-24. After DEV-011, Codex declined to confirm a false claim but read the code in only 1 of 3 runs. A pre-registered follow-up (`.writ/eval/codex-verify-d2/`) scored the line at 10 of 10, against 1 of 10 for the template without it. Moving the Prime Directive first or last scored 0 and 1 of 10.
+- **Resolution:** Fixed after UAT. Test: `test_codex_template_verify_line`. The DEV-013 number is skipped because the acceptance report already uses it.
+- **Spec amendment:** None. This entry records the second paragraph.
