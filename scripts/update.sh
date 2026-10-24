@@ -334,10 +334,9 @@ EOF
     record_file_baseline "$target" "rules/writ.mdc" \
       "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
   fi
-  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
-    record_file_baseline "$target" "system-instructions.md" \
-      "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
-  fi
+  # Every platform ships system-instructions.md. Keep synced with install.sh.
+  record_file_baseline "$target" "system-instructions.md" \
+    "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
 
   # Writ block: the inner hash when it equals the template hash the merge
   # functions compare against. Otherwise the block was preserved: keep its
@@ -1171,36 +1170,35 @@ if [ "$PLATFORM" = "cursor" ]; then
   fi
 fi
 
-# Cursor and Claude Code both install system-instructions.md in the platform dir.
-if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
-  SYSINST_ACTION="unchanged"
-  if [ -f "$PLATFORM_DIR/system-instructions.md" ]; then
-    si_upstream=$(hash_file "$WRIT_SRC/system-instructions.md")
-    si_local=$(hash_file "$PLATFORM_DIR/system-instructions.md")
-    si_baseline=$(manifest_hash_for "system-instructions.md")
+# Every platform installs system-instructions.md in the platform dir. A Codex
+# install from before this change has none and gets it as new.
+SYSINST_ACTION="unchanged"
+if [ -f "$PLATFORM_DIR/system-instructions.md" ]; then
+  si_upstream=$(hash_file "$WRIT_SRC/system-instructions.md")
+  si_local=$(hash_file "$PLATFORM_DIR/system-instructions.md")
+  si_baseline=$(manifest_hash_for "system-instructions.md")
 
-    if [ "$si_local" != "$si_upstream" ]; then
-      if [ "$FORCE" = true ]; then
-        SYSINST_ACTION="update"
-        echo "    🔄 Update:    system-instructions.md (forced)"
-      elif [ "$si_local" = "$si_baseline" ] || { [ -z "$si_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
-        SYSINST_ACTION="update"
-        echo "    🔄 Update:    system-instructions.md"
+  if [ "$si_local" != "$si_upstream" ]; then
+    if [ "$FORCE" = true ]; then
+      SYSINST_ACTION="update"
+      echo "    🔄 Update:    system-instructions.md (forced)"
+    elif [ "$si_local" = "$si_baseline" ] || { [ -z "$si_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
+      SYSINST_ACTION="update"
+      echo "    🔄 Update:    system-instructions.md"
+    else
+      SYSINST_ACTION="preserved"
+      if [ -z "$si_baseline" ]; then
+        echo "    ⚡ Preserved: system-instructions.md (no baseline, assuming modified)"
       else
-        SYSINST_ACTION="preserved"
-        if [ -z "$si_baseline" ]; then
-          echo "    ⚡ Preserved: system-instructions.md (no baseline, assuming modified)"
-        else
-          echo "    ⚡ Preserved: system-instructions.md (local modifications)"
-        fi
-        TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
-        ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    system-instructions.md\n"
+        echo "    ⚡ Preserved: system-instructions.md (local modifications)"
       fi
+      TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
+      ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    system-instructions.md\n"
     fi
-  elif [ -f "$WRIT_SRC/system-instructions.md" ]; then
-    SYSINST_ACTION="new"
-    echo "    ✨ New:       system-instructions.md"
   fi
+elif [ -f "$WRIT_SRC/system-instructions.md" ]; then
+  SYSINST_ACTION="new"
+  echo "    ✨ New:       system-instructions.md"
 fi
 
 if [ "$PLATFORM" = "claude" ]; then
@@ -1237,6 +1235,7 @@ elif [ "$PLATFORM" = "claude" ]; then
   { [ "${SYSINST_ACTION:-unchanged}" = "update" ] || [ "${SYSINST_ACTION:-unchanged}" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "codex" ]; then
+  { [ "${SYSINST_ACTION:-unchanged}" = "update" ] || [ "${SYSINST_ACTION:-unchanged}" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "${AGENTS_MD_ACTION:-unchanged}" = "update" ] || [ "${AGENTS_MD_ACTION:-unchanged}" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 fi
 
@@ -1332,6 +1331,10 @@ elif [ "$PLATFORM" = "claude" ]; then
     UPDATES=$((UPDATES + 1))
   fi
 elif [ "$PLATFORM" = "codex" ]; then
+  if [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; then
+    cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
+    UPDATES=$((UPDATES + 1))
+  fi
   if [ "$AGENTS_MD_ACTION" = "update" ] || [ "$AGENTS_MD_ACTION" = "restore" ]; then
     merge_agents_md apply
     UPDATES=$((UPDATES + 1))
@@ -1400,7 +1403,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "CLAUDE.md" 2>/dev/null || true
     git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
-    git add "AGENTS.md" 2>/dev/null || true
+    git add "AGENTS.md" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   fi
 
   git commit -m "$(cat <<EOF

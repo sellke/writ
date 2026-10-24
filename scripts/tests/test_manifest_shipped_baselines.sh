@@ -261,6 +261,8 @@ shipped_sources() {
       printf '%s CLAUDE.md.writ-block\n' "$SRC/claude-code/CLAUDE.md"
       ;;
     codex)
+      # Codex ships system-instructions.md too (Phase 14 acceptance, DEV-011).
+      printf '%s system-instructions.md\n' "$SRC/system-instructions.md"
       printf '%s AGENTS.md.writ-block\n' "$SRC/codex/AGENTS.md.template"
       printf '%s .codex/config.toml.baseline\n' "$SRC/codex/config.toml.template"
       ;;

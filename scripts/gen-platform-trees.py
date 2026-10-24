@@ -622,8 +622,16 @@ CODEX_SOURCES = ".writ/manifest.yaml, skills/*/SKILL.md, and the Codex adapter t
 CODEX_INTRO = (
     "Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows, "
     "`.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format "
-    "capabilities. Read bundled `system-instructions.md` for Writ identity; map tools "
-    "with the Capability Map below.")
+    "capabilities. The Prime Directive below applies to every session; the full system "
+    "instructions are in `.codex/system-instructions.md`. Map tools with the Capability Map below.")
+# Codex loads AGENTS.md every session and has no import, so the Writ block
+# carries the Prime Directive itself: the obligation line, the Hard
+# Constraints, and the Recommendation Semantics, byte for byte. The
+# `--recommend` rules stay in the installed file, which keeps the template
+# under CODEX_TEMPLATE_CAP.
+CODEX_IDENTITY_POINTER = (
+    "The `--recommend` rules and the rest of Writ's system instructions are in "
+    "`.codex/system-instructions.md`. Read it when a command cites `system-instructions.md`.")
 # The hand-maintained file's paragraph, verbatim (story 3 Notes -> Built-ins literal).
 CODEX_BUILTINS = (
     "Codex built-ins include `/plan`, `/review`, `/status`, `/init`, `/agent`, `/fork`, "
@@ -749,6 +757,27 @@ def escape_cell(text: str) -> str:
     return text.replace("|", "\\|")
 
 
+def codex_prime_directive(root: Path) -> str:
+    """The `## Prime Directive` block of the Codex template: the heading and
+    obligation line, `### Hard Constraints`, and `### Recommendation
+    Semantics`, copied from system-instructions.md, then the pointer to the
+    installed file. ValueError when a heading it copies is missing."""
+    source = strip_frontmatter((Path(root) / SYSTEM_INSTRUCTIONS).read_text(encoding="utf-8"))
+
+    def part(heading: str, upto: str) -> str:
+        start = source.find(heading)
+        end = source.find(upto, start + 1) if start >= 0 else -1
+        if start < 0 or end < 0:
+            raise ValueError("system-instructions.md has no %r before %r" % (heading, upto))
+        return source[start:end].rstrip("\n")
+
+    return "\n\n".join([
+        part("## Prime Directive", "### Recommended Delivery Exception"),
+        part("### Recommendation Semantics", "## Interaction Tool Selection"),
+        CODEX_IDENTITY_POINTER,
+    ])
+
+
 def render_codex_template(root: Path) -> str:
     """`codex/AGENTS.md.template` (module docstring -> codex/AGENTS.md.template).
     Writes nothing. ValueError `codex template <n> bytes exceeds <cap>` when
@@ -761,6 +790,7 @@ def render_codex_template(root: Path) -> str:
     blocks = [
         CODEX_MARKER + "\n" + (COMMENT % CODEX_SOURCES).rstrip("\n"),
         "## Writ on Codex\n\n" + CODEX_INTRO,
+        codex_prime_directive(root),
         "## Available Commands",
     ]
     for cid, label in manifest.categories:

@@ -128,3 +128,11 @@
 - **Reason:** `NO_COMMIT` gates only the install's trailing `git commit`; every installed file is identical. It keeps the install's commit output out of failure messages and matches `test_install_update_claude_parity.sh`, which the story says to follow.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md → For Testing Agents → Test Strategy, the install-test line names the flag and why it changes nothing the test reads.
+
+#### [DEV-011] The Codex template carries the Prime Directive, and Codex installs ship system-instructions.md
+- **Severity:** Medium
+- **Spec said:** Must Include 3 renders `codex/AGENTS.md.template` from the manifest, skills, and the Codex map. Its intro, carried over from the hand-maintained file, said to read a bundled `system-instructions.md`.
+- **Implementation did:** The template gains a `## Prime Directive` section: the obligation line, the Hard Constraints, and the Recommendation Semantics, byte for byte from `system-instructions.md`, then a pointer to `.codex/system-instructions.md`. `install.sh`, `update.sh`, and `uninstall.sh` now install, update, and remove that file on Codex. The template is 14.5 KB, under the 16 KB cap.
+- **Reason:** Found in the Phase 14 acceptance pass, 2026-10-24. `install.sh` never copied the file for Codex, and Codex's session log showed the Writ block loaded with no Prime Directive. With Writ installed, Codex confirmed a false claim about the code without reading it in 3 of 3 runs, the same as with no Writ. After the fix, the identity probe passed 3 of 3 and no run confirmed the false claim.
+- **Resolution:** Fixed after UAT. Tests: `test_codex_template_carries_prime_directive` and `scripts/tests/test_install_update_codex_identity.sh`.
+- **Spec amendment:** None needed. Rule 8's byte cap still holds.

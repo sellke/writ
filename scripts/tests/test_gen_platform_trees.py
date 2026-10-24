@@ -726,14 +726,14 @@ CODEX_COMMENT = (
     "skills/*/SKILL.md, and the Codex adapter tool table \u2014 do not hand-edit; regenerate -->")
 # AC-3.2: the `## ` headings, in this order and no other.
 CODEX_SECTIONS = [
-    "## Writ on Codex", "## Available Commands", "## Available Agents", "## Available Skills",
+    "## Writ on Codex", "## Prime Directive", "## Available Commands", "## Available Agents", "## Available Skills",
     "## Built-in Codex slash commands vs Writ", "## Capability Map", "## Catalog source",
 ]
 CODEX_INTRO = (
     "Writ uses `.writ/` for specs and artifacts, `.codex/commands/*.md` for workflows, "
     "`.codex/agents/*.toml` for subagents, `.agents/skills/` for AgentSkills-format "
-    "capabilities. Read bundled `system-instructions.md` for Writ identity; map tools "
-    "with the Capability Map below.")
+    "capabilities. The Prime Directive below applies to every session; the full system "
+    "instructions are in `.codex/system-instructions.md`. Map tools with the Capability Map below.")
 CODEX_BUILTINS_LINK = "https://developers.openai.com/codex/cli/slash-commands"
 CODEX_CATALOG_SOURCE = (
     "Command and agent metadata also lives in `.writ/manifest.yaml` (upstream Writ repo). "
@@ -990,6 +990,30 @@ def test_codex_template(gen):
     assert ["## Capability Map"] + body["## Capability Map"] == \
         gen.capability_map("codex", REPO_ROOT).splitlines() + [""]
     assert body["## Catalog source"] == ["", CODEX_CATALOG_SOURCE]
+
+
+def test_codex_template_carries_prime_directive(gen):
+    """Phase 14 acceptance: Codex loads AGENTS.md every session but has no
+    import, so the Writ block carries the Prime Directive itself. The section
+    holds the obligation line, the Hard Constraints, and the Recommendation
+    Semantics byte for byte from system-instructions.md, leaves the
+    `--recommend` rules to the installed file, and names that file."""
+    text = gen.render_codex_template(REPO_ROOT)
+    source = read("system-instructions.md")
+
+    def sub(heading, upto):
+        start = source.index(heading)
+        return source[start:source.index(upto, start)]
+
+    section = text[text.index("## Prime Directive\n"):text.index("## Available Commands")]
+    assert sub("### Hard Constraints", "### Recommended Delivery Exception") in section
+    assert sub("### Recommendation Semantics", "## Interaction Tool Selection").rstrip("\n") in section
+    obligation = source.splitlines()[source.splitlines().index("## Prime Directive") + 2]
+    assert obligation.startswith("Writ's first obligation is accurate assessment")
+    assert section.splitlines()[2] == obligation
+    assert "### Recommended Delivery Exception" not in section
+    assert "`.codex/system-instructions.md`" in section
+    assert "Read bundled" not in text
 
 
 def test_codex_template_matches_committed(gen):

@@ -236,7 +236,7 @@ Delegate multiple **user-story-generator** instances (each `workspace-write`) wi
 
 ### Preamble convention
 
-Writ commands reference `commands/_preamble.md` and `system-instructions.md` in their `## References` sections. Ensure both exist in the installation target and `Read` them when starting a command.
+Writ commands reference `commands/_preamble.md` and `system-instructions.md` in their `## References` sections. `install.sh` copies `system-instructions.md` to `.codex/system-instructions.md`, and the AGENTS.md Writ block carries its Prime Directive, because Codex loads AGENTS.md every session and has no import. `Read` the full file when a command cites it.
 
 Copy `_preamble.md` beside the other command markdown files during install so relative paths resolve inside `.codex/commands/`.
 

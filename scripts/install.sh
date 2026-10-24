@@ -745,10 +745,10 @@ EOF
     record_file_baseline "$target" "rules/writ.mdc" \
       "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
   fi
-  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
-    record_file_baseline "$target" "system-instructions.md" \
-      "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
-  fi
+  # Every platform ships system-instructions.md: CLAUDE.md imports it,
+  # writ.mdc carries it, and the Codex AGENTS.md block points to it.
+  record_file_baseline "$target" "system-instructions.md" \
+    "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
 
   # Writ block: the inner hash when it equals the template hash the merge
   # functions compare against. Otherwise the block was preserved: keep its
@@ -839,6 +839,7 @@ elif [ "$PLATFORM" = "claude" ]; then
   echo "  📖 System:    1 (system-instructions.md)"
 elif [ "$PLATFORM" = "codex" ]; then
   echo "  📄 AGENTS.md Writ block (.agents/skills/ for AgentSkills)"
+  echo "  📖 System:    1 (system-instructions.md)"
   echo "  🧩 Codex cfg: install-once .codex/config.toml when absent"
 fi
 echo "  🎯 Platform:  $PLATFORM_LABEL"
@@ -1251,6 +1252,7 @@ if [ "$DRY_RUN" = true ]; then
       echo "  CLAUDE.md integration plan:"
       merge_claude_md preview
     elif [ "$PLATFORM" = "codex" ]; then
+      echo "  System:  system-instructions.md → always updated"
       echo "  AGENTS.md integration plan:"
       merge_agents_md preview
       echo "  Codex config seed plan:"
@@ -1315,6 +1317,7 @@ mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
 [ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
 
 if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then STEP_TOTAL=7; else STEP_TOTAL=6; fi
+[ "$PLATFORM" = "codex" ] && STEP_TOTAL=$((STEP_TOTAL + 1))
 STEP=0
 
 STEP=$((STEP + 1))
@@ -1363,6 +1366,9 @@ elif [ "$PLATFORM" = "codex" ]; then
   echo "  [$STEP/$STEP_TOTAL] Codex CLI config..."
   seed_codex_config apply
   writ_warn_agents_md_size
+  STEP=$((STEP + 1))
+  echo "  [$STEP/$STEP_TOTAL] System instructions..."
+  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
 fi
 
 STEP=$((STEP + 1))
@@ -1438,7 +1444,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "CLAUDE.md" 2>/dev/null || true
     git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
-    git add "AGENTS.md" ".codex/config.toml" 2>/dev/null || true
+    git add "AGENTS.md" ".codex/config.toml" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   fi
   git add "$MANIFEST_FILE" 2>/dev/null || true
   [ -d .writ ] && git add .writ/ 2>/dev/null || true

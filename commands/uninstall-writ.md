@@ -97,7 +97,7 @@ Delete Writ-managed files. Run per-platform if "all" was selected.
 3. **Platform-specific files:**
    - Cursor: `rm [platform_dir]/rules/writ.mdc [platform_dir]/system-instructions.md`
    - Claude Code: `rm .claude/system-instructions.md`; in `CLAUDE.md`, remove only the Writ block, the `<!-- writ:start -->` line through the `<!-- writ:end -->` line, and keep every other byte (what `uninstall.sh --platform claude` does); delete `CLAUDE.md` only if nothing is left
-   - Codex CLI: remove only the marker-bounded Writ block from `AGENTS.md`; prompt before removing `.codex/config.toml`; remove Writ-installed skills from `.agents/skills/`
+   - Codex CLI: `rm .codex/system-instructions.md`; remove only the marker-bounded Writ block from `AGENTS.md`; prompt before removing `.codex/config.toml`; remove Writ-installed skills from `.agents/skills/`
 4. **Manifest:** `rm [platform_dir]/.writ-manifest`
 
 **Clean up empty directories** — if `commands/` or `agents/` directories are now empty, remove them. Don't remove the platform directory itself (`.cursor/`, `.claude/`, or `.codex/`) unless it becomes empty.

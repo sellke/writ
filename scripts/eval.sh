@@ -640,6 +640,7 @@ term-slug.md|/knowledge|Placeholder filename for a glossary entry (knowledge.md 
 .writ/docs/app-verification.md|/create-uat-plan|Project verification recipe /create-uat-plan Step 1.3 writes after confirmation; never shipped, absent in the Writ repo by design.
 .writ/state/app-verification-draft.md|/create-uat-plan|Scratch copy /create-uat-plan Step 1.3 validates before saving a drafted recipe.
 .claude/system-instructions.md|/update-writ|Copied into Claude Code projects by install.sh and /update-writ Step 3; this repo's .claude/ is a symlink tree without it.
+.codex/system-instructions.md|/update-writ|Copied into Codex projects by install.sh and /update-writ Step 3 (Phase 14 acceptance, DEV-011); this repo's .codex/ holds only an agents symlink.
 EOF
 }
 

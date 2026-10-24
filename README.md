@@ -324,7 +324,7 @@ bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
 ```
 
-This copies commands into `.codex/commands/`, installs Codex-native TOML agents into `.codex/agents/`, merges a Writ block into `AGENTS.md`, seeds `.codex/config.toml` only if absent, and installs skills into `.agents/skills/`. Preview first with `--dry-run`:
+This copies commands into `.codex/commands/` and `system-instructions.md` into `.codex/`, installs Codex-native TOML agents into `.codex/agents/`, merges a Writ block that carries the Prime Directive into `AGENTS.md`, seeds `.codex/config.toml` only if absent, and installs skills into `.agents/skills/`. Preview first with `--dry-run`:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex --dry-run

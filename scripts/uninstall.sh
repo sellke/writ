@@ -344,6 +344,7 @@ elif [ "$PLATFORM" = "claude" ]; then
     CLAUDE_EXTRA_DESC="CLAUDE.md Writ block "
   fi
 elif [ "$PLATFORM" = "codex" ]; then
+  [ -f "$PLATFORM_DIR/system-instructions.md" ] && EXTRA_FILES+=("$PLATFORM_DIR/system-instructions.md")
   if [ -f "AGENTS.md" ]; then
     CODEX_EXTRA_COUNT=$((CODEX_EXTRA_COUNT + 1))
     CODEX_EXTRA_DESC="${CODEX_EXTRA_DESC}AGENTS.md Writ block "
@@ -361,7 +362,10 @@ echo "  Files to remove:"
 echo "    📋 Commands:  $CMD_COUNT"
 echo "    🤖 Agents:    $AGENT_COUNT"
 echo "    📜 Skills:    $SKILL_COUNT"
-EXTRAS_DESC="${EXTRA_FILES[*]:-${CODEX_EXTRA_DESC:-}}"
+EXTRAS_DESC="${EXTRA_FILES[*]:-}"
+if [ -n "$CODEX_EXTRA_DESC" ]; then
+  EXTRAS_DESC="${EXTRAS_DESC:+$EXTRAS_DESC }${CODEX_EXTRA_DESC% }"
+fi
 if [ -n "$CLAUDE_EXTRA_DESC" ]; then
   EXTRAS_DESC="${EXTRAS_DESC:+$EXTRAS_DESC }${CLAUDE_EXTRA_DESC% }"
 fi

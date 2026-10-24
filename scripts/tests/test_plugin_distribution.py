@@ -1838,7 +1838,9 @@ INSTALL_SH_SECTIONS = (
     (CURSOR_INSTALL_HEADING, "8a99f53f92a350a6f18ff8290b1a0dfbec8dd298b824bf7522b5bc86450c9d4a"),
     ("### Updating", "290219f0089c95527181d95ac2e6a72193fd0a6b17a9e7af92b41db085a07ec0"),
     ("### Claude Code (one-line install)", "ed394cfae47b6f68df02dfa034c18ea45c52932ce63999c6f5d2108098ab461e"),
-    ("### Codex CLI (one-line install)", "6b346373eceab6081a94138d81a5dfd01f0da21cfcd354cd19d2e362cab358e2"),
+    # Re-pinned 2026-10-24: the section now says Codex installs get
+    # system-instructions.md and a Writ block that carries the Prime Directive.
+    ("### Codex CLI (one-line install)", "77e4a1f5a3c118777134a3ebfecf0b9edf05d88f24e8054c298326e3fd91ccd1"),
 )
 
 
