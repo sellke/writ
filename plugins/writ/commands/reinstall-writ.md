@@ -70,7 +70,7 @@ AskQuestion({
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
 | `claude` | `.claude` | `commands` | `claude-code/agents` | `CLAUDE.md` Writ block (project root), `.claude/system-instructions.md` |
-| `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` install-once prompt, `.agents/skills/` |
+| `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` (install-once), `.agents/skills/` |
 
 ### Step 2: Confirm Destructive Operation
 
@@ -115,7 +115,7 @@ Delete all Writ-managed files from the platform directory.
 - Platform-specific extras:
   - Cursor: `[platform_dir]/rules/writ.mdc`, `[platform_dir]/system-instructions.md`
   - Claude Code: `.claude/system-instructions.md`. Leave `CLAUDE.md` in place; Step 4 replaces only the lines between `<!-- writ:start -->` and `<!-- writ:end -->`
-  - Codex CLI: `AGENTS.md` Writ block removed by `uninstall.sh --platform codex`; `.codex/config.toml` removal is prompted separately by `uninstall.sh` because the file is install-once and user-owned
+  - Codex CLI: `AGENTS.md` Writ block removed by `uninstall.sh --platform codex`; `uninstall.sh` removes `.codex/config.toml` only when it still matches its install baseline and prompts otherwise, because the file is install-once and user-owned
 - `[platform_dir]/.writ-manifest`
 
 **Do NOT remove:**
