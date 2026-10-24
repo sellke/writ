@@ -1023,12 +1023,13 @@ def test_issue_verification_note():
     assert body.count("### Verification") == 1, body
     note = "\n".join(body[body.index("### Verification") + 1:])
     assert "`2026-10-22-rendering-delegation-rows`" in note
-    for adapter, status in (
-        ("adapters/claude-code.md", "verified 2026-10-22"),
-        ("adapters/cursor.md", "unverified 2026-10-22 (pending UAT)"),
-        ("adapters/codex.md", "unverified 2026-10-22 (pending UAT)"),
-        ("adapters/openclaw.md", "unverified 2026-10-22 (no deployment)"),
+    for adapter, statuses in (
+        ("adapters/claude-code.md", ("verified 2026-10-22",)),
+        ("adapters/cursor.md", ("unverified 2026-10-22 (pending UAT)",)),
+        ("adapters/codex.md", ("CLI clause verified 2026-10-24", "unverified 2026-10-22 (pending UAT)")),
+        ("adapters/openclaw.md", ("unverified 2026-10-22 (no deployment)",)),
     ):
         line = [l for l in note.splitlines() if l.startswith("- `%s`" % adapter)]
         assert len(line) == 1, "%s: expected one status line, found %d" % (adapter, len(line))
-        assert status in line[0], line[0]
+        for status in statuses:
+            assert status in line[0], line[0]

@@ -153,7 +153,7 @@ On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Code
 
 | Check | Platform & version | Observed | Source | Status |
 |---|---|---|---|---|
-| CLI writes one HTML file per draft under `.writ/prototypes/<date>-<slug>/` | Codex CLI, docs read 2026-10-22 (no run) | The CLI page documents a sandbox with writable roots, so writing files inside the workspace is the documented path. No HTML preview is documented: not documented. | https://learn.chatgpt.com/docs/cli | unverified 2026-10-22 (pending UAT) |
+| CLI writes one HTML file per draft under `.writ/prototypes/<date>-<slug>/` | Codex CLI 0.163.0, run 2026-10-24 on a fresh `install.sh` sample | `/prototype --diverge` on the settings dark-mode idea wrote `draft-a.html`, `draft-b.html`, `draft-c.html`, and `exploration.md` under `.writ/prototypes/2026-10-24-settings-dark-mode/`. No draft loads an external script or stylesheet. The reply listed the paths, said the drafts were "only written, not rendered", and left `src/` unchanged. The CLI shows no HTML preview. | https://learn.chatgpt.com/docs/cli | verified 2026-10-24 |
 | Desktop app renders an HTML draft | Codex Desktop, docs read 2026-10-22 (no run) | `https://developers.openai.com/codex/app` redirected (308) to the "ChatGPT desktop app" page, which says the app can "Open documents, spreadsheets, images, and other files in the same workspace" and "Use the browser, desktop apps, and plugins". Rendering or previewing a local HTML file is not documented. | https://learn.chatgpt.com/docs/app | unverified 2026-10-22 (pending UAT) |
 
 ### Writ agents ↔ Codex TOML

@@ -132,7 +132,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 
 **Implementation Reference:** Story 1 — `commands/prototype.md` Step 2.5 → "Render through the platform"; `adapters/claude-code.md` record rows 1–2.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail — **Notes:** agent run 2026-10-24 in the Claude Code desktop app on a fresh `install claude` sample. Three self-contained drafts (inline CSS) under `.writ/prototypes/2026-10-24-settings-page-dark-mode/`, each path given. All three rendered in the Browser pane from `python3 -m http.server` bound to 127.0.0.1; no artifact published; the network log shows only the three local page loads. `exploration.md` records the axes, the choice (A), and why B and C lost; `src/` unchanged; nothing under `.writ/specs/`. The record rows stay `verified 2026-10-22`. Draft nit: draft C put three component tags inside closed `<details>` groups, so they did not show in its screenshot.
 
 **Notes:**
 
@@ -272,7 +272,7 @@ The technical spec's Error & Rescue Map is "Not required" (documentation and tes
 
 **Implementation Reference:** Story 2 — `adapters/codex.md` record rows "CLI writes …" and "Desktop app renders …"; `test_codex_row_has_cli_and_desktop_clauses`; `test_uat_protocol[Codex Desktop]`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [ ] Pass  [ ] Fail — **Notes:** CLI half done 2026-10-24; Desktop half open. `codex exec` (codex-cli 0.163.0, workspace-write sandbox) on a fresh `install codex` sample wrote `draft-a.html`, `draft-b.html`, `draft-c.html`, and `exploration.md` under `.writ/prototypes/2026-10-24-settings-dark-mode/`, no external script or stylesheet in any draft. Its reply listed the paths, said the drafts were "only written, not rendered", and left `src/` unchanged. CLI row flipped to `verified 2026-10-24`; the origin issue line and `test_issue_verification_note` updated in the same commit. Still needed: steps 2–4 in Codex Desktop, then the Desktop row.
 
 **Notes:**
 
