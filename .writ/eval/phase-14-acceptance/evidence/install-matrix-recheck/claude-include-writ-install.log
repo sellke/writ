@@ -1,0 +1,168 @@
+⚡ Writ Installer (Claude Code)
+==================
+
+📦 Using local writ: <tmp>/src
+
+  📋 Commands:  34
+  🤖 Agents:    8
+  📜 Skills:    16
+  📖 Root:      1 (CLAUDE.md)
+  📖 System:    1 (system-instructions.md)
+  🎯 Platform:  Claude Code
+  📌 Version:   unknown
+
+Installing...
+  [1/7] Commands...
+  [2/7] Scripts & Writ docs...
+  [3/7] Agents...
+  [4/7] Skills...
+  [5/7] CLAUDE.md integration...
+  [6/7] System instructions...
+  [7/7] Writing manifest...
+  🔗 Audit notes sync (refs/notes/writ)...
+    📝 Audit notes: refs/notes/writ sync configured on 'origin'.
+  🔎 Cursor indexing ignore (install-once)...
+✨ Seeded: .cursorindexingignore
+
+✅ Writ installed for Claude Code! (version: unknown)
+
+  📋 Summary:
+     119 new file(s) installed
+     Skills: 16 new, 0 updated, 0 preserved
+
+  CLAUDE.md: Writ block created
+
+  ✨ Seeded: .cursorindexingignore
+[main 8d7f3a1] chore: install Writ development workflow (Claude Code)
+ 124 files changed, 37815 insertions(+)
+ create mode 100644 .claude/.writ-manifest
+ create mode 100644 .claude/agents/writ-architect.md
+ create mode 100644 .claude/agents/writ-coder.md
+ create mode 100644 .claude/agents/writ-documenter.md
+ create mode 100644 .claude/agents/writ-evaluator.md
+ create mode 100644 .claude/agents/writ-reviewer.md
+ create mode 100644 .claude/agents/writ-story-gen.md
+ create mode 100644 .claude/agents/writ-tester.md
+ create mode 100644 .claude/agents/writ-visual-qa.md
+ create mode 100644 .claude/commands/_preamble.md
+ create mode 100644 .claude/commands/assess-spec.md
+ create mode 100644 .claude/commands/create-adr.md
+ create mode 100644 .claude/commands/create-goal.md
+ create mode 100644 .claude/commands/create-issue.md
+ create mode 100644 .claude/commands/create-spec.md
+ create mode 100644 .claude/commands/create-uat-plan.md
+ create mode 100644 .claude/commands/edit-spec.md
+ create mode 100644 .claude/commands/implement-phase.md
+ create mode 100644 .claude/commands/implement-spec.md
+ create mode 100644 .claude/commands/implement-story.md
+ create mode 100644 .claude/commands/initialize.md
+ create mode 100644 .claude/commands/knowledge.md
+ create mode 100644 .claude/commands/migrate.md
+ create mode 100644 .claude/commands/new-command.md
+ create mode 100644 .claude/commands/new-skill.md
+ create mode 100644 .claude/commands/plan-product.md
+ create mode 100644 .claude/commands/prototype.md
+ create mode 100644 .claude/commands/refactor.md
+ create mode 100644 .claude/commands/refresh-command.md
+ create mode 100644 .claude/commands/reinstall-writ.md
+ create mode 100644 .claude/commands/release.md
+ create mode 100644 .claude/commands/research.md
+ create mode 100644 .claude/commands/retro.md
+ create mode 100644 .claude/commands/revert.md
+ create mode 100644 .claude/commands/review.md
+ create mode 100644 .claude/commands/security-audit.md
+ create mode 100644 .claude/commands/ship.md
+ create mode 100644 .claude/commands/status.md
+ create mode 100644 .claude/commands/uninstall-writ.md
+ create mode 100644 .claude/commands/update-writ.md
+ create mode 100644 .claude/commands/verify-spec.md
+ create mode 100644 .claude/commands/writ-design.md
+ create mode 100644 .claude/commands/writ.md
+ create mode 100644 .claude/skills/boundary-map-computation/SKILL.md
+ create mode 100644 .claude/skills/change-surface-classification/SKILL.md
+ create mode 100644 .claude/skills/code-explanation/SKILL.md
+ create mode 100644 .claude/skills/conventional-commits/SKILL.md
+ create mode 100644 .claude/skills/dependency-context-loading/SKILL.md
+ create mode 100644 .claude/skills/drift-triage/SKILL.md
+ create mode 100644 .claude/skills/error-rescue-mapping/SKILL.md
+ create mode 100644 .claude/skills/plain-prose/SKILL.md
+ create mode 100644 .claude/skills/project-context-snapshot/SKILL.md
+ create mode 100644 .claude/skills/safe-refactor-loop/SKILL.md
+ create mode 100644 .claude/skills/story-commit-provenance/SKILL.md
+ create mode 100644 .claude/skills/story-context-assembly/SKILL.md
+ create mode 100644 .claude/skills/subagent-result-completeness/SKILL.md
+ create mode 100644 .claude/skills/subagent-worktree-integration/SKILL.md
+ create mode 100644 .claude/skills/tdd-cycle/SKILL.md
+ create mode 100644 .claude/skills/what-was-built-authoring/SKILL.md
+ create mode 100644 .claude/system-instructions.md
+ create mode 100644 .cursorindexingignore
+ create mode 100644 .gitignore
+ create mode 100644 .writ/docs/acceptance-criteria-ids.md
+ create mode 100644 .writ/docs/agent-cli-contract.md
+ create mode 100644 .writ/docs/app-verification-format.md
+ create mode 100644 .writ/docs/architecture-lint.md
+ create mode 100644 .writ/docs/command-overlay.md
+ create mode 100644 .writ/docs/component-contract.md
+ create mode 100644 .writ/docs/config-format.md
+ create mode 100644 .writ/docs/context-hint-format.md
+ create mode 100644 .writ/docs/drift-report-format.md
+ create mode 100644 .writ/docs/exit-criteria-classification.md
+ create mode 100644 .writ/docs/gbrain-recipe.md
+ create mode 100644 .writ/docs/git-notes-audit-format.md
+ create mode 100644 .writ/docs/leanness-audit-2026-07-11.md
+ create mode 100644 .writ/docs/leanness-audit-2026-07-18.md
+ create mode 100644 .writ/docs/leanness-audit-2026-10-21.md
+ create mode 100644 .writ/docs/leanness-audit-format.md
+ create mode 100644 .writ/docs/model-tiers.md
+ create mode 100644 .writ/docs/phase-execution-state-format.md
+ create mode 100644 .writ/docs/prompting-guide.md
+ create mode 100644 .writ/docs/quality-signal-classification.md
+ create mode 100644 .writ/docs/recommendation-semantics.md
+ create mode 100644 .writ/docs/refresh-log-format.md
+ create mode 100644 .writ/docs/self-dogfooding.md
+ create mode 100644 .writ/docs/skills.md
+ create mode 100644 .writ/docs/spec-format.md
+ create mode 100644 .writ/docs/spec-lifecycle.md
+ create mode 100644 .writ/docs/startup-update-awareness.md
+ create mode 100644 .writ/docs/swot-2026-03-01.md
+ create mode 100644 .writ/docs/what-was-built-format.md
+ create mode 100644 CLAUDE.md
+ create mode 100755 scripts/ac-trace.py
+ create mode 100755 scripts/app-verify.py
+ create mode 100755 scripts/arch-check.py
+ create mode 100755 scripts/arch-lint.py
+ create mode 100755 scripts/archive-sweep.py
+ create mode 100755 scripts/boundary-map.py
+ create mode 100755 scripts/build-smoke.py
+ create mode 100755 scripts/change-surface.py
+ create mode 100755 scripts/docs-check.py
+ create mode 100755 scripts/drift-format.py
+ create mode 100755 scripts/exit-criteria.py
+ create mode 100755 scripts/goal-emit.py
+ create mode 100755 scripts/jev-judge.py
+ create mode 100644 scripts/jev-thresholds.json
+ create mode 100755 scripts/knowledge-consolidate.py
+ create mode 100755 scripts/lint-skill.sh
+ create mode 100755 scripts/phase-state.py
+ create mode 100755 scripts/quality-config-audit.py
+ create mode 100755 scripts/resolve-spec-reference.py
+ create mode 100755 scripts/revert-resolve.py
+ create mode 100755 scripts/review-override.py
+ create mode 100755 scripts/review-panel.py
+ create mode 100755 scripts/roadmap-sync.py
+ create mode 100755 scripts/scaffold-writ.py
+ create mode 100755 scripts/spec-analyze.py
+ create mode 100755 scripts/spec-deps.py
+ create mode 100755 scripts/spec-status.py
+ create mode 100755 scripts/story-context.py
+ create mode 100755 scripts/story-deps.py
+ create mode 100755 scripts/supersession-writeback.py
+ create mode 100755 scripts/test-integrity.py
+ create mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+Usage:
+  In Claude Code, try: /create-spec, /implement-story, /status
+
+⚡ So it is written. So it shall be built.
+exit=0

@@ -1,0 +1,160 @@
+⚡ Writ Uninstaller (Claude Code)
+===================
+
+  Files to remove:
+    📋 Commands:  34
+    🤖 Agents:    8
+    📜 Skills:    16
+    📄 Extras:    2 (.claude/system-instructions.md CLAUDE.md Writ block)
+    📌 Manifest:  1
+    🧰 Shipped scripts/docs (unmodified): 32
+    🙈 Writ lines in .gitignore and .cursorindexingignore
+    🔗 refs/notes/writ refspecs in .git/config: 2
+
+  ⚠️  --include-writ: Also removing .writ/ (29 files)
+     This includes specs, docs, ADRs, and all work artifacts.
+
+Removing...
+  🗑  Removed: CLAUDE.md (empty after Writ block removal)
+  🗑  Removed .writ/ directory
+  🗑  Removed: .gitignore (empty after Writ lines removal)
+  🗑  Removed: .cursorindexingignore (empty after Writ lines removal)
+  🗑  Removed 2 refs/notes/writ refspec(s) from .git/config (the notes stay)
+  🗑  Removed 93 file(s)
+[main a1b1f45] chore: uninstall Writ (Claude Code)
+ 124 files changed, 37815 deletions(-)
+ delete mode 100644 .claude/.writ-manifest
+ delete mode 100644 .claude/agents/writ-architect.md
+ delete mode 100644 .claude/agents/writ-coder.md
+ delete mode 100644 .claude/agents/writ-documenter.md
+ delete mode 100644 .claude/agents/writ-evaluator.md
+ delete mode 100644 .claude/agents/writ-reviewer.md
+ delete mode 100644 .claude/agents/writ-story-gen.md
+ delete mode 100644 .claude/agents/writ-tester.md
+ delete mode 100644 .claude/agents/writ-visual-qa.md
+ delete mode 100644 .claude/commands/_preamble.md
+ delete mode 100644 .claude/commands/assess-spec.md
+ delete mode 100644 .claude/commands/create-adr.md
+ delete mode 100644 .claude/commands/create-goal.md
+ delete mode 100644 .claude/commands/create-issue.md
+ delete mode 100644 .claude/commands/create-spec.md
+ delete mode 100644 .claude/commands/create-uat-plan.md
+ delete mode 100644 .claude/commands/edit-spec.md
+ delete mode 100644 .claude/commands/implement-phase.md
+ delete mode 100644 .claude/commands/implement-spec.md
+ delete mode 100644 .claude/commands/implement-story.md
+ delete mode 100644 .claude/commands/initialize.md
+ delete mode 100644 .claude/commands/knowledge.md
+ delete mode 100644 .claude/commands/migrate.md
+ delete mode 100644 .claude/commands/new-command.md
+ delete mode 100644 .claude/commands/new-skill.md
+ delete mode 100644 .claude/commands/plan-product.md
+ delete mode 100644 .claude/commands/prototype.md
+ delete mode 100644 .claude/commands/refactor.md
+ delete mode 100644 .claude/commands/refresh-command.md
+ delete mode 100644 .claude/commands/reinstall-writ.md
+ delete mode 100644 .claude/commands/release.md
+ delete mode 100644 .claude/commands/research.md
+ delete mode 100644 .claude/commands/retro.md
+ delete mode 100644 .claude/commands/revert.md
+ delete mode 100644 .claude/commands/review.md
+ delete mode 100644 .claude/commands/security-audit.md
+ delete mode 100644 .claude/commands/ship.md
+ delete mode 100644 .claude/commands/status.md
+ delete mode 100644 .claude/commands/uninstall-writ.md
+ delete mode 100644 .claude/commands/update-writ.md
+ delete mode 100644 .claude/commands/verify-spec.md
+ delete mode 100644 .claude/commands/writ-design.md
+ delete mode 100644 .claude/commands/writ.md
+ delete mode 100644 .claude/skills/boundary-map-computation/SKILL.md
+ delete mode 100644 .claude/skills/change-surface-classification/SKILL.md
+ delete mode 100644 .claude/skills/code-explanation/SKILL.md
+ delete mode 100644 .claude/skills/conventional-commits/SKILL.md
+ delete mode 100644 .claude/skills/dependency-context-loading/SKILL.md
+ delete mode 100644 .claude/skills/drift-triage/SKILL.md
+ delete mode 100644 .claude/skills/error-rescue-mapping/SKILL.md
+ delete mode 100644 .claude/skills/plain-prose/SKILL.md
+ delete mode 100644 .claude/skills/project-context-snapshot/SKILL.md
+ delete mode 100644 .claude/skills/safe-refactor-loop/SKILL.md
+ delete mode 100644 .claude/skills/story-commit-provenance/SKILL.md
+ delete mode 100644 .claude/skills/story-context-assembly/SKILL.md
+ delete mode 100644 .claude/skills/subagent-result-completeness/SKILL.md
+ delete mode 100644 .claude/skills/subagent-worktree-integration/SKILL.md
+ delete mode 100644 .claude/skills/tdd-cycle/SKILL.md
+ delete mode 100644 .claude/skills/what-was-built-authoring/SKILL.md
+ delete mode 100644 .claude/system-instructions.md
+ delete mode 100644 .cursorindexingignore
+ delete mode 100644 .gitignore
+ delete mode 100644 .writ/docs/acceptance-criteria-ids.md
+ delete mode 100644 .writ/docs/agent-cli-contract.md
+ delete mode 100644 .writ/docs/app-verification-format.md
+ delete mode 100644 .writ/docs/architecture-lint.md
+ delete mode 100644 .writ/docs/command-overlay.md
+ delete mode 100644 .writ/docs/component-contract.md
+ delete mode 100644 .writ/docs/config-format.md
+ delete mode 100644 .writ/docs/context-hint-format.md
+ delete mode 100644 .writ/docs/drift-report-format.md
+ delete mode 100644 .writ/docs/exit-criteria-classification.md
+ delete mode 100644 .writ/docs/gbrain-recipe.md
+ delete mode 100644 .writ/docs/git-notes-audit-format.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-07-11.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-07-18.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-10-21.md
+ delete mode 100644 .writ/docs/leanness-audit-format.md
+ delete mode 100644 .writ/docs/model-tiers.md
+ delete mode 100644 .writ/docs/phase-execution-state-format.md
+ delete mode 100644 .writ/docs/prompting-guide.md
+ delete mode 100644 .writ/docs/quality-signal-classification.md
+ delete mode 100644 .writ/docs/recommendation-semantics.md
+ delete mode 100644 .writ/docs/refresh-log-format.md
+ delete mode 100644 .writ/docs/self-dogfooding.md
+ delete mode 100644 .writ/docs/skills.md
+ delete mode 100644 .writ/docs/spec-format.md
+ delete mode 100644 .writ/docs/spec-lifecycle.md
+ delete mode 100644 .writ/docs/startup-update-awareness.md
+ delete mode 100644 .writ/docs/swot-2026-03-01.md
+ delete mode 100644 .writ/docs/what-was-built-format.md
+ delete mode 100644 CLAUDE.md
+ delete mode 100755 scripts/ac-trace.py
+ delete mode 100755 scripts/app-verify.py
+ delete mode 100755 scripts/arch-check.py
+ delete mode 100755 scripts/arch-lint.py
+ delete mode 100755 scripts/archive-sweep.py
+ delete mode 100755 scripts/boundary-map.py
+ delete mode 100755 scripts/build-smoke.py
+ delete mode 100755 scripts/change-surface.py
+ delete mode 100755 scripts/docs-check.py
+ delete mode 100755 scripts/drift-format.py
+ delete mode 100755 scripts/exit-criteria.py
+ delete mode 100755 scripts/goal-emit.py
+ delete mode 100755 scripts/jev-judge.py
+ delete mode 100644 scripts/jev-thresholds.json
+ delete mode 100755 scripts/knowledge-consolidate.py
+ delete mode 100755 scripts/lint-skill.sh
+ delete mode 100755 scripts/phase-state.py
+ delete mode 100755 scripts/quality-config-audit.py
+ delete mode 100755 scripts/resolve-spec-reference.py
+ delete mode 100755 scripts/revert-resolve.py
+ delete mode 100755 scripts/review-override.py
+ delete mode 100755 scripts/review-panel.py
+ delete mode 100755 scripts/roadmap-sync.py
+ delete mode 100755 scripts/scaffold-writ.py
+ delete mode 100755 scripts/spec-analyze.py
+ delete mode 100755 scripts/spec-deps.py
+ delete mode 100755 scripts/spec-status.py
+ delete mode 100755 scripts/story-context.py
+ delete mode 100755 scripts/story-deps.py
+ delete mode 100755 scripts/supersession-writeback.py
+ delete mode 100755 scripts/test-integrity.py
+ delete mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+✅ Writ has been removed (Claude Code).
+
+  All Writ files including .writ/ have been removed.
+
+  To reinstall:
+    bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude
+
+⚡ So it is written. So it shall be built.
+exit=0

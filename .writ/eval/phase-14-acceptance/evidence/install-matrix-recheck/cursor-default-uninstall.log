@@ -1,0 +1,152 @@
+⚡ Writ Uninstaller (Cursor)
+===================
+
+  Files to remove:
+    📋 Commands:  34
+    🤖 Agents:    8
+    📜 Skills:    16
+    📄 Extras:    2 (.cursor/rules/writ.mdc .cursor/system-instructions.md)
+    📌 Manifest:  1
+    🧰 Shipped scripts/docs (unmodified): 61
+    🔗 refs/notes/writ refspecs in .git/config: 2
+
+Removing...
+  🗑  Removed 2 refs/notes/writ refspec(s) from .git/config (the notes stay)
+  🗑  Removed 122 file(s)
+[main f412594] chore: uninstall Writ (Cursor)
+ 122 files changed, 37705 deletions(-)
+ delete mode 100644 .cursor/.writ-manifest
+ delete mode 100644 .cursor/agents/architecture-check-agent.md
+ delete mode 100644 .cursor/agents/coding-agent.md
+ delete mode 100644 .cursor/agents/documentation-agent.md
+ delete mode 100644 .cursor/agents/evaluator-agent.md
+ delete mode 100644 .cursor/agents/review-agent.md
+ delete mode 100644 .cursor/agents/testing-agent.md
+ delete mode 100644 .cursor/agents/user-story-generator.md
+ delete mode 100644 .cursor/agents/visual-qa-agent.md
+ delete mode 100644 .cursor/commands/_preamble.md
+ delete mode 100644 .cursor/commands/assess-spec.md
+ delete mode 100644 .cursor/commands/create-adr.md
+ delete mode 100644 .cursor/commands/create-goal.md
+ delete mode 100644 .cursor/commands/create-issue.md
+ delete mode 100644 .cursor/commands/create-spec.md
+ delete mode 100644 .cursor/commands/create-uat-plan.md
+ delete mode 100644 .cursor/commands/edit-spec.md
+ delete mode 100644 .cursor/commands/implement-phase.md
+ delete mode 100644 .cursor/commands/implement-spec.md
+ delete mode 100644 .cursor/commands/implement-story.md
+ delete mode 100644 .cursor/commands/initialize.md
+ delete mode 100644 .cursor/commands/knowledge.md
+ delete mode 100644 .cursor/commands/migrate.md
+ delete mode 100644 .cursor/commands/new-command.md
+ delete mode 100644 .cursor/commands/new-skill.md
+ delete mode 100644 .cursor/commands/plan-product.md
+ delete mode 100644 .cursor/commands/prototype.md
+ delete mode 100644 .cursor/commands/refactor.md
+ delete mode 100644 .cursor/commands/refresh-command.md
+ delete mode 100644 .cursor/commands/reinstall-writ.md
+ delete mode 100644 .cursor/commands/release.md
+ delete mode 100644 .cursor/commands/research.md
+ delete mode 100644 .cursor/commands/retro.md
+ delete mode 100644 .cursor/commands/revert.md
+ delete mode 100644 .cursor/commands/review.md
+ delete mode 100644 .cursor/commands/security-audit.md
+ delete mode 100644 .cursor/commands/ship.md
+ delete mode 100644 .cursor/commands/status.md
+ delete mode 100644 .cursor/commands/uninstall-writ.md
+ delete mode 100644 .cursor/commands/update-writ.md
+ delete mode 100644 .cursor/commands/verify-spec.md
+ delete mode 100644 .cursor/commands/writ-design.md
+ delete mode 100644 .cursor/commands/writ.md
+ delete mode 100644 .cursor/rules/writ.mdc
+ delete mode 100644 .cursor/skills/boundary-map-computation/SKILL.md
+ delete mode 100644 .cursor/skills/change-surface-classification/SKILL.md
+ delete mode 100644 .cursor/skills/code-explanation/SKILL.md
+ delete mode 100644 .cursor/skills/conventional-commits/SKILL.md
+ delete mode 100644 .cursor/skills/dependency-context-loading/SKILL.md
+ delete mode 100644 .cursor/skills/drift-triage/SKILL.md
+ delete mode 100644 .cursor/skills/error-rescue-mapping/SKILL.md
+ delete mode 100644 .cursor/skills/plain-prose/SKILL.md
+ delete mode 100644 .cursor/skills/project-context-snapshot/SKILL.md
+ delete mode 100644 .cursor/skills/safe-refactor-loop/SKILL.md
+ delete mode 100644 .cursor/skills/story-commit-provenance/SKILL.md
+ delete mode 100644 .cursor/skills/story-context-assembly/SKILL.md
+ delete mode 100644 .cursor/skills/subagent-result-completeness/SKILL.md
+ delete mode 100644 .cursor/skills/subagent-worktree-integration/SKILL.md
+ delete mode 100644 .cursor/skills/tdd-cycle/SKILL.md
+ delete mode 100644 .cursor/skills/what-was-built-authoring/SKILL.md
+ delete mode 100644 .cursor/system-instructions.md
+ delete mode 100644 .writ/docs/acceptance-criteria-ids.md
+ delete mode 100644 .writ/docs/agent-cli-contract.md
+ delete mode 100644 .writ/docs/app-verification-format.md
+ delete mode 100644 .writ/docs/architecture-lint.md
+ delete mode 100644 .writ/docs/command-overlay.md
+ delete mode 100644 .writ/docs/component-contract.md
+ delete mode 100644 .writ/docs/config-format.md
+ delete mode 100644 .writ/docs/context-hint-format.md
+ delete mode 100644 .writ/docs/drift-report-format.md
+ delete mode 100644 .writ/docs/exit-criteria-classification.md
+ delete mode 100644 .writ/docs/gbrain-recipe.md
+ delete mode 100644 .writ/docs/git-notes-audit-format.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-07-11.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-07-18.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-10-21.md
+ delete mode 100644 .writ/docs/leanness-audit-format.md
+ delete mode 100644 .writ/docs/model-tiers.md
+ delete mode 100644 .writ/docs/phase-execution-state-format.md
+ delete mode 100644 .writ/docs/prompting-guide.md
+ delete mode 100644 .writ/docs/quality-signal-classification.md
+ delete mode 100644 .writ/docs/recommendation-semantics.md
+ delete mode 100644 .writ/docs/refresh-log-format.md
+ delete mode 100644 .writ/docs/self-dogfooding.md
+ delete mode 100644 .writ/docs/skills.md
+ delete mode 100644 .writ/docs/spec-format.md
+ delete mode 100644 .writ/docs/spec-lifecycle.md
+ delete mode 100644 .writ/docs/startup-update-awareness.md
+ delete mode 100644 .writ/docs/swot-2026-03-01.md
+ delete mode 100644 .writ/docs/what-was-built-format.md
+ delete mode 100755 scripts/ac-trace.py
+ delete mode 100755 scripts/app-verify.py
+ delete mode 100755 scripts/arch-check.py
+ delete mode 100755 scripts/arch-lint.py
+ delete mode 100755 scripts/archive-sweep.py
+ delete mode 100755 scripts/boundary-map.py
+ delete mode 100755 scripts/build-smoke.py
+ delete mode 100755 scripts/change-surface.py
+ delete mode 100755 scripts/docs-check.py
+ delete mode 100755 scripts/drift-format.py
+ delete mode 100755 scripts/exit-criteria.py
+ delete mode 100755 scripts/goal-emit.py
+ delete mode 100755 scripts/jev-judge.py
+ delete mode 100644 scripts/jev-thresholds.json
+ delete mode 100755 scripts/knowledge-consolidate.py
+ delete mode 100755 scripts/lint-skill.sh
+ delete mode 100755 scripts/phase-state.py
+ delete mode 100755 scripts/quality-config-audit.py
+ delete mode 100755 scripts/resolve-spec-reference.py
+ delete mode 100755 scripts/revert-resolve.py
+ delete mode 100755 scripts/review-override.py
+ delete mode 100755 scripts/review-panel.py
+ delete mode 100755 scripts/roadmap-sync.py
+ delete mode 100755 scripts/scaffold-writ.py
+ delete mode 100755 scripts/spec-analyze.py
+ delete mode 100755 scripts/spec-deps.py
+ delete mode 100755 scripts/spec-status.py
+ delete mode 100755 scripts/story-context.py
+ delete mode 100755 scripts/story-deps.py
+ delete mode 100755 scripts/supersession-writeback.py
+ delete mode 100755 scripts/test-integrity.py
+ delete mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+✅ Writ has been removed (Cursor).
+
+  .writ/ directory preserved (specs, ADRs, research intact).
+  Writ's lines in .gitignore and .cursorindexingignore stay with it.
+  To also remove: rm -rf .writ
+
+  To reinstall:
+    bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform cursor
+
+⚡ So it is written. So it shall be built.
+exit=0
