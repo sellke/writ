@@ -63,7 +63,8 @@ DEGRADATION = "If the platform has no toggle, say so and proceed read-only."
 PLAN_MODE_MAPPING = {
     "cursor": "Ask the user to switch to Plan Mode; continue when they have",
     "claude-code": (
-        "`EnterPlanMode`; present the contract proposal as the plan; "
+        "`EnterPlanMode`; present the contract proposal as the plan, opening with one "
+        "line that approving it accepts the draft and runs nothing; "
         "after `ExitPlanMode` approval, lock with AskQuestion"),
     "codex": (
         "No agent-side mode: run discovery as a read-only conversation and say so; "
