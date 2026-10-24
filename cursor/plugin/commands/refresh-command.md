@@ -417,6 +417,8 @@ Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodie
 
 ### Step 6.1: Run the parity script
 
+The parity script and both generators check the Writ source repository's own agent folders, and installs do not ship them. If the project has no `scripts/check-agent-parity.sh`, report `unverifiable` with the reason `no scripts/check-agent-parity.sh; agent parity applies to the Writ source repository` and stop.
+
 From the repository root:
 
 ```bash

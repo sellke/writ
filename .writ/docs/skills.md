@@ -247,7 +247,7 @@ Use `/new-skill <name>` to scaffold a new skill with the role convention (verb-p
 3. Runs `scripts/lint-skill.sh` against the captured frontmatter — re-prompts on rejection, never writes a half-shaped skill.
 4. Generates `skills/<name>/SKILL.md` with `disable-model-invocation: true`, `status: candidate` (the born lifecycle state), and the standard sections.
 5. Appends a `skills:` entry to `.writ/manifest.yaml` (alphabetical).
-6. Regenerates the root `SKILL.md` catalog via `scripts/gen-skill.sh`.
+6. In the Writ source repository, regenerates the root `SKILL.md` catalog via `scripts/gen-skill.sh`. Installs do not ship that script, so elsewhere the step is skipped.
 
 The boundary lint is the contract — same script, same grammar, same exit codes whether the lint runs at authoring time (`/new-skill`) or at review time (`/refresh-command --lint-skills`). No divergence.
 
@@ -414,6 +414,6 @@ To prevent drift, name what skills aren't:
 - **Authoring tool:** [`commands/new-skill.md`](../../commands/new-skill.md)
 - **Review tool:** [`commands/refresh-command.md`](../../commands/refresh-command.md) → Phase 5 (Skills Boundary Lint)
 - **Lint grammar:** [`scripts/lint-skill.sh`](../../scripts/lint-skill.sh)
-- **Catalog generator:** [`scripts/gen-skill.sh`](../../scripts/gen-skill.sh)
+- **Catalog generator:** [`scripts/gen-skill.sh`](../../scripts/gen-skill.sh) (Writ source repository only)
 - **Required-skills convention source:** this document, [`required_skills:` frontmatter convention](#required_skills-frontmatter-convention) (moved from [`system-instructions.md`](../../system-instructions.md) → Skills on 2026-09-07; the base keeps a pointer line)
 - **Self-dogfooding pattern:** [`.writ/docs/self-dogfooding.md`](./self-dogfooding.md) → Skills section

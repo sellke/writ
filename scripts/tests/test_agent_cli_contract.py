@@ -58,7 +58,6 @@ import collections
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -500,32 +499,6 @@ def _git_in(cwd: Path, *args: str) -> str:
                           + list(args), capture_output=True, text=True, check=True).stdout.strip()
 
 
-GEN_SKILL_TREE = {
-    ".writ/manifest.yaml": (
-        'version: 1\nmetadata:\n  name: fixture\n  version: 0.0.1\n'
-        '  description: "Fixture catalog."\n  runtime_contract: ".writ/docs/contract.md"\n\n'
-        'categories:\n  - id: core\n    label: "Core"\n\n'
-        'commands:\n  - name: hello\n    file: commands/hello.md\n    category: core\n'
-        '    purpose: "Say hello."\n\n'
-        'agents:\n  - name: helper\n    file: agents/helper.md\n    purpose: "Help."\n'
-        '    model_tier: floor\n\nskills: []\n'),
-    ".writ/docs/contract.md": "# Contract\n",
-    "commands/hello.md": "# Hello\n",
-    "agents/helper.md": "# Helper\n",
-    "SKILL.md": "---\nname: fixture\n---\n",
-}
-
-
-def gen_skill_copy(tmp: Path) -> Path:
-    """gen-skill.sh reads and writes relative to its own folder, so its write
-    mode runs from a copy inside the `GEN_SKILL_TREE` fixture in `{tmp}` and
-    regenerates `{tmp}/SKILL.md`, never the repo's."""
-    copy = tmp / "scripts" / "gen-skill.sh"
-    copy.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(str(SCRIPTS / "gen-skill.sh"), str(copy))
-    return copy
-
-
 def panel_trial_setup(tmp: Path) -> None:
     """A throwaway yuss repo (parent + story commit) and a trial file naming it,
     so `review-panel.py trial-prepare` runs its success path inside `{tmp}`."""
@@ -622,10 +595,6 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("docs-check.py", ["check", "--repo", "{repo}", "--changed",
                             "scripts/tests/test_agent_cli_contract_doc.py"], {}),
     Smoke("drift-format.py", ["check", "--story", "{tmp}/missing-story.md"], {}),
-    Smoke("gen-claude-agents.py", ["--agents-dir", "{repo}/agents", "--out-dir",
-                                   "{tmp}/claude-agents"], {}),
-    Smoke("gen-codex-agent-tomls.py", ["--agents-dir", "{repo}/agents", "--out-dir",
-                                       "{tmp}/codex-agents"], {}),
     Smoke("goal-emit.py", ["check", "--card", "{tmp}/missing-card.md", "--repo", "{tmp}"], {}),
     Smoke("goal-emit.py", ["emit", "--card", "{tmp}/card.md", "--out", "{tmp}/out",
                            "--repo", "{tmp}"], {"card.md": GOAL_CARD}, "emit"),
@@ -648,9 +617,6 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("spec-analyze.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),
-    Smoke("check-agent-parity.sh", [], {}),
-    Smoke("gen-skill.sh", ["--check"], {}),
-    Smoke("gen-skill.sh", [], GEN_SKILL_TREE, "write", gen_skill_copy),
     Smoke("lint-skill.sh", ["{repo}/skills/tdd-cycle/SKILL.md"], {}),
 ]
 SMOKE_BY_KEY = {smoke_key(s): s for s in SMOKE_INVOCATIONS}

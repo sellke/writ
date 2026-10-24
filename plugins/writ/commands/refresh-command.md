@@ -413,14 +413,16 @@ Logged to .writ/refresh-log.md
 
 > **Triggered when:** the user picks `parity` from the Phase 1 menu, or invokes `/writ:refresh-command --check-parity`.
 
-Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. Both platform shapes are generated from the canonical files: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/gen-claude-agents.py` writes `claude-code/agents/`, and `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/gen-codex-agent-tomls.py` writes `codex/agents/`. This phase warns when a canonical agent is missing a counterpart or a generated file no longer matches its generator's output. Every canonical agent needs both counterparts; there are no exclusions. Drift is a warning here, never a block: the script prints `fail` on line 1 and exits 1, and this phase reports it and stops.
+Cross-platform Writ agents exist in three shapes: `agents/*.md` (canonical bodies), `claude-code/agents/writ-*.md`, and `codex/agents/*.toml`. Both platform shapes are generated from the canonical files: `python3 scripts/gen-claude-agents.py` writes `claude-code/agents/`, and `python3 scripts/gen-codex-agent-tomls.py` writes `codex/agents/`. This phase warns when a canonical agent is missing a counterpart or a generated file no longer matches its generator's output. Every canonical agent needs both counterparts; there are no exclusions. Drift is a warning here, never a block: the script prints `fail` on line 1 and exits 1, and this phase reports it and stops.
 
 ### Step 6.1: Run the parity script
+
+The parity script and both generators check the Writ source repository's own agent folders, and installs do not ship them. If the project has no `scripts/check-agent-parity.sh`, report `unverifiable` with the reason `no scripts/check-agent-parity.sh; agent parity applies to the Writ source repository` and stop.
 
 From the repository root:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-agent-parity.sh
+bash scripts/check-agent-parity.sh
 ```
 
 Capture stdout verbatim and read line 1: `pass` (exit 0), `fail` (exit 1, one `reason:` line per problem), or `unverifiable` (exit 0, no `agents/` folder). A `check-agent-parity:` summary is last.
@@ -446,8 +448,8 @@ Print the script output verbatim, then summarize:
 
 These are warnings only; parity drift never blocks. Regenerate after editing canonical agents:
 
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/gen-claude-agents.py
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/gen-codex-agent-tomls.py
+python3 scripts/gen-claude-agents.py
+python3 scripts/gen-codex-agent-tomls.py
 
 An unmapped stem needs an overlay entry in the generator first (OVERLAY in
 gen-claude-agents.py; PURPOSES and SANDBOX in gen-codex-agent-tomls.py).
@@ -481,9 +483,9 @@ Log as "reviewed, no changes applied" in refresh-log. This is a valid outcome.
 | `skills/*/SKILL.md` | Lint targets in `--lint-skills` mode |
 | `agents/*.md`, `claude-code/agents/*.md`, `codex/agents/*.toml` | Parity targets in `--check-parity` mode |
 | `${CLAUDE_PLUGIN_ROOT}/scripts/lint-skill.sh` | Boundary lint grammar — shared with `/writ:new-skill` |
-| `${CLAUDE_PLUGIN_ROOT}/scripts/check-agent-parity.sh` | Agent parity check (`fail` on drift; a warning here, never a block) |
-| `${CLAUDE_PLUGIN_ROOT}/scripts/gen-claude-agents.py` | Regenerate `claude-code/agents/writ-*.md` from canonical `agents/*.md` |
-| `${CLAUDE_PLUGIN_ROOT}/scripts/gen-codex-agent-tomls.py` | Regenerate `codex/agents/*.toml` from canonical `agents/*.md` |
+| `scripts/check-agent-parity.sh` | Agent parity check (`fail` on drift; a warning here, never a block) |
+| `scripts/gen-claude-agents.py` | Regenerate `claude-code/agents/writ-*.md` from canonical `agents/*.md` |
+| `scripts/gen-codex-agent-tomls.py` | Regenerate `codex/agents/*.toml` from canonical `agents/*.md` |
 | `.writ/refresh-log.md` | Append-only improvement history (commands and skill lint runs) |
 | `/writ:verify-spec` | Can validate refreshed commands still produce spec-compliant output |
 | `/writ:new-command` | Creates new commands; `/writ:refresh-command` improves existing ones |

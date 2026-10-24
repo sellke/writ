@@ -791,6 +791,9 @@ is_shippable_script() {
     pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py)
       # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template, platform trees); not agent-facing. ADR-029.
       return 1 ;;
+    gen-claude-agents.py|gen-codex-agent-tomls.py|check-agent-parity.sh|gen-skill.sh)
+      # Writ-source generators and checks: they read agents/, claude-code/agents/, codex/agents/, .writ/manifest.yaml, and SKILL.md, which no install has. ADR-031.
+      return 1 ;;
   esac
   case "$base" in
     *.py|*.sh)
