@@ -96,3 +96,11 @@
 - **Reason:** Acceptance runs of `/writ:writ` routed to `/writ:prototype --no-diverge` under the Claude Code plugin. In 2 of 3 runs, the `writ:writ-coder` agent finished the fix in its isolated worktree and the user's checkout stayed unchanged, while the reply said the tests passed. The same scenario on an `install.sh` install landed 3 of 3. After the fix, 3 of 3 plugin runs landed. `/writ` routes most real requests to this command, so the gap reaches most users.
 - **Resolution:** Fixed after UAT; `test_prototype_worktree_integration.py` pins the step. `commands/prototype.md` is outside this spec's file list.
 - **Spec amendment:** None needed.
+
+#### [DEV-009] `/writ` asks before routing a request that names something the project lacks
+- **Severity:** Small
+- **Spec said:** Business Rule 4: a missing part is reported, not demanded, and routing proceeds unless the goal itself is missing.
+- **Implementation did:** `commands/writ.md` Step 1 gains a case. When the request names a file, function, or system that a search of the project does not find, `/writ` says what it searched for and asks one natural-language question about where it lives, then routes from the answer.
+- **Reason:** Phase 14 acceptance decision D9, 2026-10-24. In two routing runs (R04, R12) the request stated a goal, yet `/writ` searched, found nothing the request named, and asked instead of routing. That contradicted Rule 4. The maintainer chose the observed behavior over the rule, because a route built on absent code plans against nothing. The command now states the case instead of leaving it to the model.
+- **Resolution:** Fixed after UAT. The new text states behavior already seen in R04 and R12; no run has checked the text itself.
+- **Spec amendment:** Business Rule 4 and the State Catalog gain the case.

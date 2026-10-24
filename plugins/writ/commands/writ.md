@@ -56,6 +56,7 @@ Goal: (not stated — see prompting-guide.md § What a request carries)
 
 - Missing done check or proof: name it on its line and continue to Step 2.
 - Missing goal: ask one question in natural language, no menu, and restate from the answer before routing.
+- Request names a file, function, or system that a search of the project does not find: say what you searched for, then ask one question in natural language, no menu, about where it lives. Route from the answer. A route planned against code that is not here plans against nothing.
 - `/writ:writ` with no request and no context: ask one question, "What do you want to do?", and wait for the answer.
 - Request is a file: read it. An issue's title and expected outcome are the goal and done check unless the body says otherwise.
 
