@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G5a": {
+      "met": true,
+      "evidence": "Turn 1: \"Proposed: `/writ:prototype --no-diverge`\" listed as option 1 (Recommended)."
+    },
+    "G5b": {
+      "met": false,
+      "evidence": "The edits went into `.claude/worktrees/agent-a9436a224cb68a662`, not the main checkout: \"The change is not in your main checkout yet.\" The harness reports \"git diff of the workspace touched: no files\", and pytest shows \"1 passed\" (only the original test)."
+    },
+    "G5c": {
+      "met": true,
+      "evidence": "plugin_hash_before=f1633fadd9c701ce after=f1633fadd9c701ce. Agent edits were limited to the workspace's .claude/worktrees path. The only outside writes are uvx's tool cache from running pytest/ruff, which is incidental."
+    }
+  },
+  "verdict": "fail",
+  "note": "The route was correct and the plugin was untouched, but the fix stayed in a subagent worktree and never reached the workspace, so the harness saw no change to src/settings.py and no new test."
+}

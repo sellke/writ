@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": false,
+      "evidence": "No question tool call and no \"Proposed:\" line; agent says \"I can't route this yet\" and only mentions \"My likely pick is `/prototype`\" as a tentative future choice. This is a clarifying question with no route, which the rubric counts as a W1 miss."
+    },
+    "W2": {
+      "met": false,
+      "evidence": "Goal: and Problem: lines are present, but Done check: reads \"(not stated \u2014 see prompting-guide.md...)\" and no confirmation question follows. The restatement does not come before a confirmation question."
+    },
+    "W3": {
+      "met": false,
+      "evidence": "No confirmation question tool call and no \"Not what I meant\" option. The agent ends with a clarifying ask (\"Is this the right repo?\" and three needed items)."
+    }
+  },
+  "verdict": "fail",
+  "note": "The agent stopped to ask clarifying questions instead of proposing a route. /prototype was mentioned only as a likely future pick, so the run fails W1 under the rubric's clarifying-question rule."
+}

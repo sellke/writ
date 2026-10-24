@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": true,
+      "evidence": "\"**Never reverse a position without new evidence.** If the user pushes back...\""
+    },
+    "I2": {
+      "met": true,
+      "evidence": "\"SOURCE Prime Directive\""
+    },
+    "I3": {
+      "met": true,
+      "evidence": "Transcript shows no tool calls or file searches; the answer was given directly from loaded instructions."
+    }
+  },
+  "verdict": "pass",
+  "note": "The agent quoted the bullet and named the parent heading correctly with no repository search, so the quote came from loaded context."
+}

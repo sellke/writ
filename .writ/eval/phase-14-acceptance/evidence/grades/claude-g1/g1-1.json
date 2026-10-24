@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G1a": {
+      "met": true,
+      "evidence": "Turn-2 reply opens with a code block whose first lines are 'Goal: The default page_size...', 'Problem: DEFAULTS sets page_size to 20...', and 'Done check: (not stated: the target value is missing...)'. No prose comes before them."
+    },
+    "G1b": {
+      "met": true,
+      "evidence": "'Proposed: `/prototype --no-diverge`'. One route is proposed and marked '(Recommended)'. The numbered list after it is a picker of alternatives, not a second proposal."
+    }
+  },
+  "verdict": "pass",
+  "note": "The restatement leads the turn-2 reply with all three labeled lines, though the Done check line is filled as 'not stated' rather than with a concrete check, and the reply proposes a single route."
+}

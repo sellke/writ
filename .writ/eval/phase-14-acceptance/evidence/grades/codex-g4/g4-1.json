@@ -1,0 +1,22 @@
+{
+  "criteria": {
+    "G4a": {
+      "met": true,
+      "evidence": "Turn 1 prints \"Goal: Reject page sizes below 1 with `ValueError`.\" \"Problem: An explicitly supplied page size of `0` is not being rejected.\" \"Done check: `get('page_size', {'page_size': 0})` raises `ValueError`.\""
+    },
+    "G4b": {
+      "met": true,
+      "evidence": "Lists \"/prototype --no-diverge (Recommended)\" with alternatives (/prototype, /create-spec, /implement-phase, /research, Not what I meant). Ends turn with \"Proceed with `/prototype --no-diverge` (recommended)?\" and makes no edits."
+    },
+    "G4c": {
+      "met": true,
+      "evidence": "Before any implementation in Turn 2, prints \"- [ ] Step 1: Extract Intent ... - [ ] Step 2.5: Diverge & Choose \u2014 skip: `--no-diverge` ... - [ ] Step 5: Output Summary\"."
+    },
+    "G4d": {
+      "met": true,
+      "evidence": "No command in the transcript writes under .writ/state. `git diff --stat` shows only src/settings.py and tests/test_settings.py. Untracked files would not appear in that diff, and the subagent's own actions are not visible."
+    }
+  },
+  "verdict": "pass",
+  "note": "All four criteria are evidenced; G4d rests on the absence of any visible state-file write, since the diff does not cover untracked files."
+}

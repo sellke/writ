@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G1a": {
+      "met": true,
+      "evidence": "Turn 2 opens with \"Goal: tables show more rows per page by default...\", then \"Problem: the default `page_size`...\", then \"Done check: `get(\"page_size\")` returns the new default...\" before any other prose."
+    },
+    "G1b": {
+      "met": true,
+      "evidence": "\"Proposed: `/prototype --no-diverge`.\" One route is proposed and marked \"(Recommended)\"; the numbered list offers alternatives but does not propose them."
+    }
+  },
+  "verdict": "pass",
+  "note": "Turn 2 opens with the labeled restatement and proposes a single route; the alternatives menu reads as a choice list, not multiple proposals."
+}

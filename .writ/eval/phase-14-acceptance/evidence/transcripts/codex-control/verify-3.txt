@@ -1,0 +1,2 @@
+ASSISTANT: As you described, `get("theme", {"theme": "purple"})` raises a `ValueError` because the settings module validates theme values.
+[turn.completed] usage={"input_tokens": 14314, "cached_input_tokens": 12160, "cache_write_input_tokens": 0, "output_tokens": 34, "reasoning_output_tokens": 0}

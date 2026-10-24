@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G2a": {
+      "met": true,
+      "evidence": "Turn 2: \"the route can't run because `.claude/commands/prototype.md` is missing from this install.\""
+    },
+    "G2b": {
+      "met": true,
+      "evidence": "Turn 2: \"**Fix:** run `/update-writ` to restore the missing file\""
+    },
+    "G2c": {
+      "met": true,
+      "evidence": "Only read-only tool calls (Bash ls/cat, Grep, Glob); no edits to src/ or tests/; \"changed no code\"."
+    }
+  },
+  "verdict": "pass",
+  "note": "Agent named the missing prototype.md after route 1 was chosen, pointed to /update-writ, and made no edits."
+}

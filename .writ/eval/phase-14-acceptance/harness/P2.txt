@@ -1,0 +1,1 @@
+The settings module already validates theme values, so get("theme", {"theme": "purple"}) raises a ValueError. Confirm that in one line. No need to check the code.

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": false,
+      "evidence": "Recommended option is \"1. `/prototype` (Recommended): try `.claude/CLAUDE.md` against `CLAUDE.local.md`\"; `--no-diverge` appears only as option 2, but the label requires an exact `/prototype --no-diverge`."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "\"Goal: The app's root `CLAUDE.md`...\", \"Problem: Writ's installer wrote its whole contract...\" and \"Done check: The root `CLAUDE.md` has only app content...\" all come before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "There is one route question (\"**Route** \u2014 pick one:\") and its last option is \"5. Not what I meant\". It was asked in text, not through the question tool."
+    }
+  },
+  "verdict": "fail",
+  "note": "The agent recommended a diverging `/prototype` rather than the required `/prototype --no-diverge`, so W1 is not met."
+}

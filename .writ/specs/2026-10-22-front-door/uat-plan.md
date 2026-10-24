@@ -251,7 +251,7 @@ The technical spec's Error & Rescue Map is "Not required" (no data flow), so the
 - Step 3: the restatement says the roadmap is missing and that `/plan-product` creates it; `/implement-phase` is neither the proposed route nor an option.
 - Step 4: the reply names `commands/prototype.md` as missing and names `/update-writ`; no prototype steps appear on the todo list and no improvised fix happens: `cat` still prints `hello wrold`. `reset` prints nothing.
 
-**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed): steps 1 and 2 pass; steps 3 (missing roadmap) and 4 (missing routed file) not run. Observation for Scenarios 1 to 10: Claude Code's question widget holds four options, so a confirmation cannot list every route; the observed confirmation named the routes it could not show and pointed to Other, as this plan's conventions anticipate.
+**Status:** [x] Pass  [ ] Fail — **Notes:** maintainer run 2026-10-23 (live session in a clone of 73b31ed): steps 1 and 2 pass; steps 3 (missing roadmap) and 4 (missing routed file) not run. Observation for Scenarios 1 to 10: Claude Code's question widget holds four options, so a confirmation cannot list every route; the observed confirmation named the routes it could not show and pointed to Other, as this plan's conventions anticipate. Acceptance pass 2026-10-24 (headless, install.sh sample, `.writ/eval/phase-14-acceptance/`): step 3 ran as gap run G3 and step 4 as G2, 3 of 3 each, graded blind.
 
 ---
 ### Scenario 11: Headless `claude -p` restates and proposes the route without running anything

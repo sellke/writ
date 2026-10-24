@@ -1,0 +1,40 @@
+ delete mode 100644 .codex/commands/edit-spec.md
+ delete mode 100644 .codex/commands/implement-phase.md
+ delete mode 100644 .codex/commands/implement-spec.md
+ delete mode 100644 .codex/commands/implement-story.md
+ delete mode 100644 .codex/commands/initialize.md
+ delete mode 100644 .codex/commands/knowledge.md
+ delete mode 100644 .codex/commands/migrate.md
+ delete mode 100644 .codex/commands/new-command.md
+ delete mode 100644 .codex/commands/new-skill.md
+ delete mode 100644 .codex/commands/plan-product.md
+ delete mode 100644 .codex/commands/prototype.md
+ delete mode 100644 .codex/commands/refactor.md
+ delete mode 100644 .codex/commands/refresh-command.md
+ delete mode 100644 .codex/commands/reinstall-writ.md
+ delete mode 100644 .codex/commands/release.md
+ delete mode 100644 .codex/commands/research.md
+ delete mode 100644 .codex/commands/retro.md
+ delete mode 100644 .codex/commands/revert.md
+ delete mode 100644 .codex/commands/review.md
+ delete mode 100644 .codex/commands/security-audit.md
+ delete mode 100644 .codex/commands/ship.md
+ delete mode 100644 .codex/commands/status.md
+ delete mode 100644 .codex/commands/uninstall-writ.md
+ delete mode 100644 .codex/commands/update-writ.md
+ delete mode 100644 .codex/commands/verify-spec.md
+ delete mode 100644 .codex/commands/writ-design.md
+ delete mode 100644 .codex/commands/writ.md
+ delete mode 100644 AGENTS.md
+  📦 Git commit created.
+
+✅ Writ has been removed (Codex CLI).
+
+  .writ/ directory preserved (specs, docs, ADRs intact).
+  To also remove: rm -rf .writ
+
+  To reinstall:
+    bash <(curl -s https://raw.githubusercontent.com/owner/writ/main/scripts/install.sh) --platform codex
+
+⚡ So it is written. So it shall be built.
+exit=0

@@ -1,0 +1,55 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Grep: {"pattern": "launchd|Cursor|sync", "-i": true, "glob": "!.claude/**", "output_mode": "content", "head_limit": 60}
+TOOL_RESULT: CLAUDE.md:48:| `/verify-spec` | `.claude/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+scripts/gen-skill.sh:674:| Cursor | `adapters/cursor.md` | Native - `Task()`, `AskQuestion()`, `codebase_search` |
+scripts/gen-skill.sh:727:- `/refresh-docs` -> `/verify-spec` (metadata sync + auto-fix)
+scripts/phase-state.py:6:must behave identically across Cursor, Claude Code, and Codex:
+scripts/phase-state.py:136:            os.fsync(handle.fileno())
+scripts/docs-check.py:58:    r"\bexport\s+(?:async\s+)?(?:function|class|const|let|var|type|int …[8448 chars]
+TOOL_CALL Glob: {"pattern": "*"}
+TOOL_RESULT: .git/config
+.git/objects/61/ed0016779bcd4aa8474a4d12e9db6c1daafe63
+.git/objects/0d/02a5f91df2fa6aca42bb1b45ab1daf8526dfb2
+.git/objects/0d/83a623941594e2066776e067bc495c1406361a
+.git/objects/0c/d47263125a42a7a3fafcd4c04f46b5ce2a24a0
+.git/objects/3e/b0a6059016ca7f0eb500f85b6cd78570432ae7
+.git/objects/6f/8c16382c2ca28957a3034f8b2edb2cb619b845
+.git/objects/9e/1167561bc91c785e54048f0bb03d8255d904b2
+.git/objects/9e/4f153260ba0125f23f7445d5e4ed0ea7c517d5
+.git/objects/32/8a6fa444a0d9496a5bcdd4568d2e20dc7c7ac0
+.git/objects/32/b9a08fb6bf1fd348acd799c9ba609e9a48e6b0
+.git/objects/35/654c9489f383efa667ec50 …[5562 chars]
+TOOL_CALL Grep: {"pattern": "launchd|launchctl|plist|force.?sync", "-i": true, "output_mode": "files_with_matches"}
+TOOL_RESULT: No files found
+TOOL_CALL Read: {"file_path": "<tmp>/ws/claude-routing-5/.writ/product/roadmap.md"}
+TOOL_RESULT: 1	# Roadmap
+2	
+3	## Phase 13: Settings validation — Complete
+4	
+5	- Reject unknown setting names with a clear error.
+6	
+7	## Phase 14: CSV export and import — Planned
+8	
+9	- Export all settings to a CSV file.
+10	- Import settings from a CSV file, with a dry-run preview.
+11	
+12	**Exit criteria:** a round trip through export and import leaves settings unchanged; tests pass.
+13	
+14	## Phase 15: Audit log — Planned
+15	
+16	- Record every settings change with a timestamp and the old and new value.
+17	
+ASSISTANT: ```
+Goal: (not stated — see prompting-guide.md § What a request carries)
+Problem: Something is out of sync. The fix is either a one-off forced sync from Cursor or a launchd job that syncs on a schedule.
+Done check: (not stated — see prompting-guide.md § What a request carries)
+```
+
+I can't route this yet, because nothing in this repo mentions a launchd job, a plist, or a Cursor sync. The repo has the Writ install, the `scripts/` helpers and a roadmap for phases 13–15 (settings validation, CSV export/import, audit log). None of them involve sync.
+
+**What is being synced, between where and where, and how often does it drift?** For example: Cursor settings or rules to another machine, `.cursor/` to `.claude/`, or a repo mirror.
+
+The answer depends on that last part:
+- **Forced sync from Cursor:** enough if it drifted once.
+- **launchd job:** worth it only if the drift keeps coming back.
+[result] success turns=5 cost=1.8867056
