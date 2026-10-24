@@ -242,6 +242,19 @@ def test_confirmation_step():
     assert "Not what I meant" in step3
 
 
+def test_confirmation_fits_four_options():
+    # Phase 14 acceptance: Claude Code's question tool takes two to four
+    # options per question, and front-door S10 saw the widget cap the route
+    # list at four. Step 3 offers the proposed route, two alternatives, and
+    # `Not what I meant`, and names the routes it leaves out.
+    step3 = "\n".join(section(lines(), "### Step 3"))
+    assert "at most four options" in step3
+    assert "every other route in the table is an option" not in step3
+    assert '{ id: "alt-2", label: "<other route>" },' in step3
+    assert "alt-3" not in step3 and "…" not in step3
+    assert "Other routes: <routes left out>" in step3
+
+
 def test_mirroring_step():
     # AC-1.5
     step4 = "\n".join(section(lines(), "### Step 4"))

@@ -72,17 +72,18 @@ Hold one route and a one-line reason for it. Run nothing yet.
 
 ### Step 3: Confirm
 
-Exactly one AskQuestion. The proposed route carries the `(Recommended)` label per `system-instructions.md` § Recommendation Semantics; every other route in the table is an option; `Not what I meant` is last.
+Exactly one AskQuestion, with at most four options: a question tool may hold no more (Claude Code's takes two to four). The proposed route carries the `(Recommended)` label per `system-instructions.md` § Recommendation Semantics; the two other routes closest to the request follow; `Not what I meant` is last. The prompt names the routes left out, so the user can ask for one through `Not what I meant`.
 
 ```
 AskQuestion({
   title: "Route",
   questions: [{
     id: "route",
-    prompt: "<restatement>\n\nProposed: <route> — <one-line reason>",
+    prompt: "<restatement>\n\nProposed: <route> — <one-line reason>\nOther routes: <routes left out>",
     options: [
       { id: "proposed", label: "<route> (Recommended)" },
-      { id: "alt-1", label: "<other route>" }, …,
+      { id: "alt-1", label: "<other route>" },
+      { id: "alt-2", label: "<other route>" },
       { id: "other", label: "Not what I meant" }
     ]
   }]

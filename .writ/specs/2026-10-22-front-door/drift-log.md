@@ -80,3 +80,11 @@
 - **Spec amendment:** spec-lite.md → For Review Agents → Business Rules, the tie-break line now says signals are counted only when stated or nameable from the restatement.
 
 ---
+
+#### [DEV-007] The route confirmation holds at most four options
+- **Severity:** Medium
+- **Spec said:** Must Include 2 and Business Rule 4: the proposed route, every other route as an option, and "Not what I meant" last. With six routes that is up to seven options.
+- **Implementation did:** Step 3 offers the proposed route, the two other routes closest to the request, and "Not what I meant", and names the routes left out in the prompt.
+- **Reason:** Found in the Phase 14 acceptance pass, 2026-10-24. Claude Code's question tool takes two to four options per question (tool schema, Claude Code 2.1.310), and front-door S10 saw the widget show four. The rule asked for something the platform cannot render.
+- **Resolution:** Fixed after UAT. `test_confirmation_fits_four_options` pins the cap, the two alternatives, and the "Other routes" line.
+- **Spec amendment:** Must Include 2, Journey step 3, and Business Rule 4 amended 2026-10-24.
