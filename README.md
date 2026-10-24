@@ -247,7 +247,7 @@ claude plugin marketplace add sellke/writ
 claude plugin install writ@writ
 ```
 
-Then open your project in Claude Code and run `/writ:initialize`, which creates the `.writ/` workspace. Under the plugin every command carries the `writ:` prefix, so the front door is `/writ:writ "my feature"`. Scripts run from the plugin's own folder, so the project needs no `scripts/` copy. The plugin does not include the `.writ/docs/` reference docs that `install.sh` copies; [`adapters/claude-code.md`](adapters/claude-code.md) → Installation → Plugin lists what else differs.
+Then open your project in Claude Code and run `/writ:initialize`, which creates the `.writ/` workspace. Under the plugin every command carries the `writ:` prefix, so the front door is `/writ:writ "my feature"`. Scripts run from the plugin's own folder, so the project needs no `scripts/` copy. The plugin does not include the `.writ/docs/` reference docs that `install.sh` copies, and `/writ:new-skill` and `/writ:refresh-command` write inside the plugin's folder; [`adapters/claude-code.md`](adapters/claude-code.md) → Installation → Plugin lists what else differs.
 
 Smoke test: `claude-plugin pass` in [`scripts/tests/fixtures/plugin-smoke-results.txt`](scripts/tests/fixtures/plugin-smoke-results.txt), recorded by `bash scripts/tests/test_plugin_smoke.sh --record`.
 

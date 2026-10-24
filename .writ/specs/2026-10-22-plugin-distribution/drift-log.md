@@ -59,7 +59,7 @@
 - **Spec said:** Rule 3: the plugin root holds the shipped script set (`is_shippable_script`), and commands run scripts from the plugin root.
 - **Implementation did:** Ships exactly that set. Four of those scripts locate their working root from their own path (`gen-claude-agents.py`, `gen-codex-agent-tomls.py`, `check-agent-parity.sh`, `gen-skill.sh`), so run as `${CLAUDE_PLUGIN_ROOT}/scripts/<name>` from `/writ:refresh-command` or `/writ:new-skill` they read and would write inside the plugin directory instead of the project.
 - **Reason:** These are Writ-source maintenance tools that `is_shippable_script` admits today; under `install.sh` their root is the project and the effect is harmless. Reclassifying them (dev-only, or cwd-relative) changes the shipped set for every install path, which is outside this story. Recorded in ADR-031 consequences as a follow-up.
-- **Resolution:** Flagged for review
+- **Resolution:** Disclosed 2026-10-24 after the acceptance audit found no user-facing warning: `adapters/claude-code.md` → Plugin and the README plugin paragraph now say the two commands write inside the plugin's folder. The scripts are unchanged; reclassifying them stays a follow-up.
 - **Spec amendment:** N/A — flagged for post-implementation review
 
 #### [DEV-006] `.writ/docs/` reference docs are absent in a plugin-only project
