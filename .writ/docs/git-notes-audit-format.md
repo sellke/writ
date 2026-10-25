@@ -153,13 +153,19 @@ audit constraint). This is the same boundary the durable audit summaries in
 ## Sync Configuration
 
 Git neither pushes nor fetches notes by default, so the audit must be sync-configured
-or it stays local-only. `scripts/install.sh` (and platform setup) configures the
-following refspecs on the default push remote (origin fallback), **unless opted out**:
+or it stays local-only. `scripts/install.sh` (and platform setup) configures this
+fetch refspec on the default push remote (origin fallback), **unless opted out**:
 
 ```
 git config --add remote.<remote>.fetch "+refs/notes/writ:refs/notes/origin-writ"
-git config --add remote.<remote>.push  "refs/notes/writ"
 ```
+
+**Why install adds no push refspec.** Any `remote.<remote>.push` line replaces
+`push.default` for a plain `git push`. With `refs/notes/writ` as the only push line,
+`git push` pushes the notes and never the current branch, and with no notes yet it
+fails with `src refspec refs/notes/writ does not match any`. `/ship` and `/release`
+push the notes explicitly instead (below). A note attached by hand stays local until
+the next `/ship` or `/release`, or until `git push origin refs/notes/writ`.
 
 **Why the fetch lands on `refs/notes/origin-writ`.** Notes refs are not
 fast-forward-only the way branches are, and Writ writes to `refs/notes/writ` locally.
@@ -187,7 +193,9 @@ Sync setup is:
 
 - **Idempotent** — existing refspecs are grepped first; no duplicates are ever added.
 - **Migrating** — a repo carrying the pre-0.33 `+refs/notes/writ:refs/notes/writ`
-  refspec has it removed and replaced; re-run `install.sh` to pick this up.
+  refspec has it removed and replaced; re-run `install.sh` to pick this up. Earlier
+  installs also added `remote.<remote>.push = refs/notes/writ`; `install.sh` and
+  `update.sh` both remove that exact line from every remote, opted out or not.
 - **Guarded** — skipped entirely when the feature is opted out (see below).
 - **No-op graceful** — when there is no git repo or no remote, it warns and skips
   (never fails install).
@@ -213,7 +221,8 @@ When `writ.auditNotes` is `false`:
 
 - `/ship` and `/release` skip note composition/attachment entirely (silent no-op).
 - `install.sh` adds no refspecs and **removes any Writ-added `refs/notes/writ`
-  refspecs** it previously created, including the pre-0.33 clobbering fetch line.
+  refspecs** it previously created, including the pre-0.33 clobbering fetch line and
+  the push line earlier installs added.
 - Opt-out leaves **no residue**: no `refs/notes/writ` refspec lines, and no dangling
   config beyond the single `writ.auditNotes=false` marker.
 

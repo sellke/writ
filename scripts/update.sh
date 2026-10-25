@@ -754,6 +754,29 @@ if [ "$DRY_RUN" != true ]; then
   init_writ_workspace
 fi
 
+# remove_notes_push_refspec — earlier installs added remote.<r>.push =
+# refs/notes/writ (ADR-017). Any push line replaces push.default, so a plain
+# `git push` pushed only the notes and never the branch. Removes that exact
+# line from every remote, as install.sh's configure_audit_notes_sync does;
+# /ship and /release push the notes explicitly. A dry run only lists it.
+# Runs before the "Already up to date" exits so every update migrates.
+# Globals: DRY_RUN
+remove_notes_push_refspec() {
+  git rev-parse --is-inside-work-tree &>/dev/null || return 0
+  local r
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    git config --get-all "remote.$r.push" 2>/dev/null | grep -Fxq "refs/notes/writ" || continue
+    if [ "$DRY_RUN" = true ]; then
+      echo "  🔀 Audit notes: would remove remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
+    else
+      git config --unset-all "remote.$r.push" '^refs/notes/writ$' 2>/dev/null || true
+      echo "  🔀 Audit notes: removed remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
+    fi
+  done <<< "$(git remote 2>/dev/null || true)"
+}
+remove_notes_push_refspec
+
 NEW_VERSION=$(cd "$WRIT_SRC" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
 NEW_VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
 CURRENT_VERSION=$(manifest_version)
