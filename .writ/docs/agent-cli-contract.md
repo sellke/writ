@@ -111,6 +111,7 @@ These steps apply in the Writ source repo.
 | `review-panel.py` | check |  | commands/implement-story.md, adapters/claude-code.md, adapters/codex.md, adapters/cursor.md |
 | `roadmap-sync.py` | data |  | commands/release.md |
 | `scaffold-writ.py` | check |  | commands/initialize.md |
+| `skill-target.py` | check |  | commands/new-skill.md |
 | `spec-analyze.py` | check |  | commands/create-spec.md, commands/verify-spec.md |
 | `spec-deps.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/verify-spec.md |
 | `spec-status.py` | data |  | commands/create-spec.md, commands/status.md |

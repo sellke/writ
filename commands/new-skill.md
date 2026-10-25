@@ -2,19 +2,19 @@
 name: new-skill
 description: "Scaffold a reusable Writ skill (SKILL.md) that commands and agents can read to acquire a focused competence. Enforces the command/agent/skill boundary."
 problem: "Reusable know-how stays inlined in agent and command bodies, and hand-written skill files drift into role or workflow shape that nobody catches until a consumer loads them."
-outcome: "A lint-clean skills/<name>/SKILL.md scaffold exists, registered in .writ/manifest.yaml and reflected in the regenerated root SKILL.md catalog."
+outcome: "A lint-clean SKILL.md scaffold exists at the path scripts/skill-target.py printed: skills/<name>/ in the Writ source repository, registered in .writ/manifest.yaml and the root SKILL.md catalog; the platform's skills folder in an installed project, with no manifest created."
 entry_level: standard
 exit_criteria:
-  - "skills/<name>/SKILL.md exists carrying disable-model-invocation: true and status: candidate in its frontmatter"
+  - "the target: path scripts/skill-target.py printed exists carrying disable-model-invocation: true and status: candidate in its frontmatter"
   - "scripts/lint-skill.sh printed pass on line 1 for the captured description before any file was written"
-  - ".writ/manifest.yaml gained one alphabetically placed skills: entry for <name>, and bash scripts/gen-skill.sh --check printed pass on line 1 or the project has no scripts/gen-skill.sh"
+  - "when scripts/skill-target.py printed manifest: .writ/manifest.yaml, the manifest gained one alphabetically placed skills: entry for <name> and bash scripts/gen-skill.sh --check printed pass on line 1 or the project has no scripts/gen-skill.sh; when it printed manifest: none, no .writ/manifest.yaml exists"
 ---
 
 # New Skill Creator (new-skill)
 
 ## Overview
 
-Scaffold a new Writ skill — a capability file (SKILL.md) that an agent or command can `Read` to acquire a focused competence. Skills are the third Writ primitive: **commands are verbs**, **agents are nouns**, **skills are tools**. This command captures the skill's intent, runs a boundary lint at authoring time, writes `skills/<name>/SKILL.md`, and appends an entry to `.writ/manifest.yaml` — refusing to scaffold anything that drifts into role or workflow shape.
+Scaffold a new Writ skill — a capability file (SKILL.md) that an agent or command can `Read` to acquire a focused competence. Skills are the third Writ primitive: **commands are verbs**, **agents are nouns**, **skills are tools**. This command captures the skill's intent, runs a boundary lint at authoring time, and writes the SKILL.md — refusing to scaffold anything that drifts into role or workflow shape. In the Writ source repository the skill goes to `skills/<name>/SKILL.md` and gets a `.writ/manifest.yaml` entry. A project that installed Writ with `install.sh` or a plugin has no manifest, so the skill goes to the platform's skills folder and no manifest is created.
 
 **When to use** — you have an agent or command that keeps inlining the same chunk of "how to do X well," or you've identified a reusable capability that multiple consumers will need. Before scaffolding, this command enforces the boundary between commands, agents, and skills.
 
@@ -53,11 +53,21 @@ AskQuestion({
 Validate the name:
 
 - **Format:** Matches `^[a-z][a-z0-9-]*$` (kebab-case, starts with letter)
-- **Uniqueness:** Read `.writ/manifest.yaml` and verify no `name:` entry under `commands:`, `agents:`, or `skills:` matches. If a collision exists, reject:
+- **Uniqueness and target:** Run the check, with `<platform>` the platform you are running on: `claude` (Claude Code), `cursor`, or `codex`.
 
-  > ❌ Name "{name}" conflicts with existing {kind}. Skills must have unique names across commands, agents, and skills.
+  ```bash
+  python3 scripts/skill-target.py check <name> --platform <platform>
+  ```
 
-  Then re-prompt or exit. **Do not write any files.**
+  With `.writ/manifest.yaml` (the Writ source repository), the script checks the manifest's `commands:`, `agents:`, and `skills:` entries. Without it (an `install.sh` or plugin project), it checks the installed commands, agents, and skills. Read line 1:
+
+  - `pass` → keep the `target:` and `manifest:` lines. Step 3.1 writes the `target:` path, and Step 3.2 runs only when `manifest:` is `.writ/manifest.yaml`.
+  - `fail` → each `reason:` line names a format problem or the command, agent, or skill that has the name. For a taken name, reject:
+
+    > ❌ Name "{name}" conflicts with existing {kind}. Skills must have unique names across commands, agents, and skills.
+
+    Then re-prompt or exit. **Do not write any files.**
+  - `unverifiable` → no installed commands were found for that platform. Check `--platform` and re-run; never proceed on `unverifiable`.
 
 #### Step 1.2: Verb-Phrase Coaching, Then Capture Description
 
@@ -161,9 +171,9 @@ Use `AskQuestion` with options `revise` / `abort`.
 
 Triggered only after lint passes. Track with `todo_write` if more than three writes are involved (in this case: SKILL.md, manifest entry, optional gen-skill check — borderline; use judgment).
 
-#### Step 3.1: Generate `skills/<name>/SKILL.md`
+#### Step 3.1: Write the Skill File
 
-Create the directory `skills/<name>/` if needed. `Read skills/plain-prose/SKILL.md` before filling the body sections below; a skill is read inline by every consumer, so its prose carries the same rules as a command's. Then write `skills/<name>/SKILL.md`:
+Write the `target:` path from Step 1.1: `skills/<name>/SKILL.md` in the Writ source repository; `.claude/skills/<name>/SKILL.md`, `.cursor/skills/<name>/SKILL.md`, or `.agents/skills/<name>/SKILL.md` in an installed project. Create its folder if needed. `Read skills/plain-prose/SKILL.md` before filling the body sections below; a skill is read inline by every consumer, so its prose carries the same rules as a command's. Then write the file:
 
 ```markdown
 ---
@@ -199,7 +209,9 @@ The frontmatter MUST include `disable-model-invocation: true` so platforms with 
 
 #### Step 3.2: Append to `.writ/manifest.yaml`
 
-Append a new entry under `skills:`, in **alphabetical order by `name`** to keep diffs clean:
+Skip this step and Step 3.3 when Step 1.1 printed `manifest: none`. An installed project has no `.writ/manifest.yaml`; do not create one. Report `Manifest: none (installed project)` and `Catalog: not regenerated (no scripts/gen-skill.sh)` in Step 3.4.
+
+Otherwise append a new entry under `skills:`, in **alphabetical order by `name`** to keep diffs clean:
 
 ```yaml
   - name: <name>
@@ -222,17 +234,19 @@ Otherwise run `bash scripts/gen-skill.sh --check` to confirm the manifest is wel
 
 #### Step 3.4: Final Output
 
+`<target>` is the `target:` path from Step 1.1.
+
 ```
-✅ Skill scaffolded: skills/<name>/SKILL.md
+✅ Skill scaffolded: <target>
 
 Description: "<description>"
 Manifest:    .writ/manifest.yaml (entry appended)
 Catalog:     SKILL.md (regenerated)
 
 Next steps:
-  - Open skills/<name>/SKILL.md and write the body
+  - Open <target> and write the body
   - Reference it from the consumer (agent or command) via:
-      Read skills/<name>/SKILL.md
+      Read <target>
   - Or declare it under `required_skills:` in the consumer's frontmatter
     (see system-instructions.md → Skills section)
 ```
@@ -245,8 +259,8 @@ Next steps:
 2. **Lint logic lives in `scripts/lint-skill.sh`.** Both `/new-skill` and `/refresh-command` invoke the same script. No regex grammar duplicated inline in command files.
 3. **Verb-phrase descriptions only.** "Write", "Validate", "Generate", "Audit", "Convert", "Detect" — not "Acts as", "Run the full", "The X agent". The description is the field agents read most.
 4. **`disable-model-invocation: true` is mandatory** for Writ-authored skills. Explicit invocation is the only invocation mode.
-5. **Names are unique across primitives.** A skill cannot share a name with a command or agent. The validation runs before the lint to fail fast.
-6. **Manifest in alphabetical order.** Within `skills:`, entries are sorted by `name:` to keep diffs reviewable.
+5. **Names are unique across primitives.** A skill cannot share a name with a command or agent: in the Writ source repository, any manifest entry; in an installed project, any installed command, agent, or skill. `scripts/skill-target.py` runs before the lint to fail fast.
+6. **Manifest in alphabetical order.** Within `skills:`, entries are sorted by `name:` to keep diffs reviewable. Only the Writ source repository has a manifest; `/new-skill` never creates one.
 7. **Born `candidate`.** Every new skill scaffolds at `status: candidate` (ADR-014) — the provisional lifecycle state that requires no evidence. A skill earns `proven` (≥3 recorded evidence entries) and then `promoted` (a consumer's `required_skills:` declaration) later, by hand, as it sees real use. `/new-skill` never scaffolds a non-`candidate` state.
 
 ---
@@ -265,14 +279,14 @@ Next steps:
 
 This command succeeds when:
 
-1. **Skill file created** — `skills/<name>/SKILL.md` exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
+1. **Skill file created** — the `target:` path from Step 1.1 exists with valid frontmatter (`name`, `description`, `disable-model-invocation: true`, `status: candidate`) and scaffolded sections (Purpose, When to Use, How to Apply, Examples)
 2. **Lint passed** — `scripts/lint-skill.sh` printed `pass` on line 1 against the captured frontmatter (including the lifecycle check: a born `candidate` needs no evidence)
-3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed
+3. **Manifest updated** — `.writ/manifest.yaml` contains a new `skills:` entry, alphabetically placed, or, when Step 1.1 printed `manifest: none`, no `.writ/manifest.yaml` exists
 4. **Catalog regenerated** — root `SKILL.md` reflects the new skill (`bash scripts/gen-skill.sh --check` prints `pass`), or Step 3.3 was skipped because the project has no `scripts/gen-skill.sh`
-5. **No name collisions** — the skill name is unique across commands, agents, and existing skills
+5. **No name collisions** — `scripts/skill-target.py` printed `pass`: the name is unique across commands, agents, and existing skills
 6. **Summary presented** — the user received the file path, manifest confirmation, and next-step guidance
 
-**Suggested next step:** Open `skills/<name>/SKILL.md` and write the body. When ready to use the skill, declare it in the consumer's `required_skills:` frontmatter (see [`system-instructions.md`](../system-instructions.md) → Skills) or invoke it inline with `Read skills/<name>/SKILL.md`.
+**Suggested next step:** Open the `target:` path and write the body. When ready to use the skill, declare it in the consumer's `required_skills:` frontmatter (see [`system-instructions.md`](../system-instructions.md) → Skills) or invoke it inline with a `Read` of that path.
 
 **Terminal constraint:** This command produces a skill scaffold. Do not offer to implement, build, or execute the skill body; the user writes it. For quick prototyping of skill content, the user can edit the file directly.
 
@@ -284,3 +298,4 @@ This command succeeds when:
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
 - User-facing explainer: [`.writ/docs/skills.md`](../.writ/docs/skills.md)
 - Lint grammar source: [`scripts/lint-skill.sh`](../scripts/lint-skill.sh)
+- Name check and target path: [`scripts/skill-target.py`](../scripts/skill-target.py)
