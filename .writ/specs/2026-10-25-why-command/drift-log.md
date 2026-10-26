@@ -1,14 +1,14 @@
 # Drift Log
 
 > Spec: .writ/specs/2026-10-25-why-command/
-> Created: 2026-10-26
+> Created: 2026-10-25
 > ⚠️ Append-only — do not modify existing entries.
 
 ---
 
 ## Story 1: The `/why` Command File — Drift Report
 
-> Run: 2026-10-26
+> Run: 2026-10-25
 > Overall Drift: Small
 
 ### Deviations
@@ -33,7 +33,7 @@
 
 ## Story 2: Registration and Catalogs — Drift Report
 
-> Run: 2026-10-26
+> Run: 2026-10-25
 > Overall Drift: Small
 
 ### Deviations

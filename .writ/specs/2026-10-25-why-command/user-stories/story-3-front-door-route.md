@@ -1,6 +1,7 @@
 # Story 3: The Front Door Routes Why Questions to `/why`
 
 > **Status:** Completed ✅
+> **Commit:** b0f881e90ebf98e0019f91c2a8307eb36486a54c
 > **Priority:** High
 > **Dependencies:** Story 2
 
