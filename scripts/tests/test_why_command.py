@@ -21,6 +21,9 @@ runs the command.
 - `test_budgets`: under 200 lines and under 24,960 bytes.
 - No test here covers AC-1.5: it is the dogfood fixture run (questions 1 to
   3) recorded in Story 1's What Was Built.
+- No test here covers AC-4.4: it is dogfood question 4 and the `/create-spec`
+  Steps 1.1-1.2 run, recorded in Story 4's What Was Built. AC-4.3 is pinned by
+  `KNOWN_OVER_BUDGET` in `scripts/tests/test_governor_enforcement.py`.
 
 Registration section (Story 2). `test_registration` reads every surface in
 technical-spec.md → Registration Edits as text and runs the two generator
@@ -398,3 +401,46 @@ def test_registration():
         assert "PASS\t" + name in out, "no PASS line for %s:\n%s" % (name, proc.stdout)
     front_door = read("scripts/tests/test_front_door.py")
     assert 'CURSOR_COUNT = "(34)"' in front_door
+
+
+# ---------------------------------------------------------------------------
+# Seam section (Story 4). `commands/create-spec.md` Step 1.2 reads the handoff
+# heading that `commands/why.md` writes; the literal is read from why.md.
+
+CREATE_SPEC_REL = "commands/create-spec.md"
+STEP_1_1 = "#### Step 1.1: Initial Context Scan"
+STEP_1_2 = "#### Step 1.2: Read a `/why` Handoff"
+STEP_1_3 = "#### Step 1.3: Discovery Conversation"
+HANDOFF_LINE = re.compile(r"^## Preserve / Change / Avoid / Risk$")
+MAPPINGS = (
+    "Preserve into Business Rules",
+    "Change into the Deliverable",
+    "Avoid into Scope Boundaries → Excluded",
+    "Risk into Technical Concerns",
+)
+SEARCH_PLACES = ("this conversation", "a file the invocation names", ".writ/research/*-why-*.md")
+
+
+def test_create_spec_reads_handoff():
+    # AC-4.1, AC-4.2
+    heading = [line.rstrip() for line in lines() if HANDOFF_LINE.match(line.rstrip())]
+    assert heading, "%s has no handoff heading line" % COMMAND_REL
+    literal = heading[0]
+
+    body = read(CREATE_SPEC_REL).splitlines()
+    starts = {}
+    for name in (STEP_1_1, STEP_1_2, STEP_1_3):
+        hits = [i for i, line in enumerate(body) if line.startswith(name)]
+        assert len(hits) == 1, "%s has %d %r headings" % (CREATE_SPEC_REL, len(hits), name)
+        starts[name] = hits[0]
+    assert starts[STEP_1_1] < starts[STEP_1_2] < starts[STEP_1_3], starts
+
+    step = "\n".join(section(body, STEP_1_2))
+    assert literal in step, "Step 1.2 does not search for %r" % literal
+    for place in SEARCH_PLACES:
+        assert place in step, "Step 1.2 does not search %r" % place
+    assert "`Subject` or `Change` line" in step
+    for mapping in MAPPINGS:
+        assert mapping in step, "Step 1.2 lacks %r" % mapping
+    assert "Keep each item's tier and cite the record" in step
+    assert "None found: skip this step." in step

@@ -139,6 +139,9 @@ ROWS: Tuple[Row, ...] = (
     Row("commands/why.md", "frontmatter", "entry_level",
         "check_entry_level",
         "why.md must declare entry_level in its frontmatter (why-command spec, Story 2)."),
+    Row("commands/create-spec.md", "heading", "Step 1.2: Read a `/why` Handoff",
+        "check_command_structure",
+        "create-spec.md must keep Step 1.2, which reads the /why handoff section (why-command spec, Story 4)."),
 ) + tuple(
     Row(f"commands/{name}.md", "heading", "Required Artifacts",
         "check_artifact_integrity",

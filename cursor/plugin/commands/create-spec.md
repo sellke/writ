@@ -242,6 +242,10 @@ On "Something else", follow up with a free-text question.
 
 Scan `.writ/specs/` for related specifications, analyze codebase architecture and patterns, and load `.writ/docs/tech-stack.md` and `.writ/docs/code-style.md` (written by `/initialize`; skip any that are absent). **Output:** a context summary; no files created.
 
+#### Step 1.2: Read a `/why` Handoff
+
+Look for a `## Preserve / Change / Avoid / Risk` section in this conversation, in a file the invocation names, and in `.writ/research/*-why-*.md` records whose `Subject` or `Change` line shares a keyword with the feature idea. Carry each one into the contract: Preserve into Business Rules, Change into the Deliverable, Avoid into Scope Boundaries → Excluded, Risk into Technical Concerns. Keep each item's tier and cite the record. Do not re-ask in discovery what the section settles. None found: skip this step.
+
 #### Step 1.3: Discovery Conversation (Plan Mode)
 
 After the context scan, run discovery in Plan Mode, entered through the adapter's `Plan Mode` row; the user controls when to switch back. Before speaking, silently list what is missing or ambiguous across four areas:
