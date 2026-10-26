@@ -1,6 +1,6 @@
 # Why Command
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** []

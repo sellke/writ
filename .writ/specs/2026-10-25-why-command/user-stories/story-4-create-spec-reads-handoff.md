@@ -1,6 +1,7 @@
 # Story 4: `/create-spec` Reads the `/why` Handoff
 
 > **Status:** Completed ✅
+> **Commit:** f9569cb60b6718de44f36976ea49992fc15257c4
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
