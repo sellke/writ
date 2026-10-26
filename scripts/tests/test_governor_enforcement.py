@@ -630,7 +630,10 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 12013 -> 11533; Gate 0 no-op emit removed.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 11533 -> 11266;
     # calibrated_against no longer cites Writ's archived specs.
-    "commands/implement-story.md": 11266,
+    # 2026-10-26 (2026-10-25-design-divergence Story 3): 11266 -> 13474; Gate 0
+    # boundary-crossing divergence block (1994 bytes) plus its Overview clause,
+    # Pipeline Gate 0 row, and References link.
+    "commands/implement-story.md": 13474,
 }
 
 

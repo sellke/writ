@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-26T06:52:03Z
+> Last Updated: 2026-10-26T07:49:55Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
-- **Status:** In Progress (3/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
-- **Story:** 2 of 6 — /prototype Step 2.5 Loads the Skill (Completed ✅)
-- **Progress:** 20/41 tasks complete (49%)
+- **Status:** In Progress (4/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
+- **Story:** 3 of 6 — Gate 0 Usage-First Divergence and the Gate 0 Divergence Switch (Completed ✅)
+- **Progress:** 27/41 tasks complete (66%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-009 A script `unverifiable` arch-check also runs divergence — design-divergence (Story 3, Small)
+- DEV-008 `test_harness_cuts.py` edited to allow disclosed upward re-pins — design-divergence (Story 3, Small)
 - DEV-007 `Title:` lines inside `Structure:` are content — design-divergence (Story 4, Small)
-- DEV-006 New `unverifiable` reason `brief_count` — design-divergence (Story 4, Small)
-- DEV-005 No filled-sheet fixture — design-divergence (Story 4, Small)
 
 ## Open Issues
 

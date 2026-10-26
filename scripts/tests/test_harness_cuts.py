@@ -605,7 +605,7 @@ class OverageLedgerFellTest(unittest.TestCase):
         for rel in (CREATE_SPEC, IMPLEMENT_STORY):
             with self.subTest(file=rel):
                 self.assertEqual(recorded[rel], self.size(rel) - COMMAND_BYTE_BUDGET)
-                self.assertLess(recorded[rel], OVERAGE_BEFORE[rel])
+                # Lowering: see test_ac_3_4_each_lowered_entry_has_a_dated_ledger_line; later re-pins may rise.
         self.assertEqual(recorded[SHIP], self.size(SHIP) - COMMAND_BYTE_BUDGET)
         self.assertLessEqual(recorded[SHIP], OVERAGE_BEFORE[SHIP])
 

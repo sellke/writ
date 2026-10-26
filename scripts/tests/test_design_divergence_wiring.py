@@ -17,7 +17,19 @@ The spec ships markdown, so these checks read the files directly. Sections:
   verification time, since HEAD moves. AC-2.4 is the verification run
   (`gen-platform-trees.py --check`, `uv run pytest`,
   `uv run --python 3.9 pytest`, `bash scripts/eval.sh`), not an assertion here.
-- Story 3 (`/implement-story` Gate 0) appends its own section below.
+- Story 3: `commands/implement-story.md` Gate 0 carries the
+  boundary-crossing divergence block: every text-contract literal, the three
+  route-predictor commands, the switch, the seven report states, and the
+  never-blocking rule; `.writ/docs/config-format.md` documents the switch; the
+  Pipeline Gate 0 row, Overview clause, and References line name the skill
+  [AC-3.1, AC-3.2, AC-3.3, AC-3.4]. AC-3.4's byte-identity of Gate 0.5
+  through Gate 5, the routing table, and the completeness and worktree notes
+  is checked against `git show HEAD:commands/implement-story.md` at
+  verification time, since HEAD moves. AC-3.5 is the verification run (the
+  ratchet re-pin in `test_governor_enforcement.py`,
+  `gen-platform-trees.py --check`, `uv run pytest`,
+  `uv run --python 3.9 pytest`, the bash tests, `bash scripts/eval.sh`), not
+  an assertion here.
 
 Run: uv run pytest scripts/tests/test_design_divergence_wiring.py -q
 """
@@ -460,6 +472,250 @@ class PrototypeReferencesTest(unittest.TestCase):
         differ = section(section(plugin, STEP_25), DIFFER)
         self.assertIn("skills/design-divergence/SKILL.md", differ)
         self.assertNotIn("Declare the axes first.", plugin)
+
+
+# ---------------------------------------------------------------------------
+# Story 3: /implement-story Gate 0 divergence [AC-3.1, AC-3.2, AC-3.3, AC-3.4]
+# ---------------------------------------------------------------------------
+
+IMPLEMENT_STORY = REPO_ROOT / "commands" / "implement-story.md"
+PLUGIN_IMPLEMENT_STORY = REPO_ROOT / "plugins" / "writ" / "commands" / "implement-story.md"
+CONFIG_FORMAT = REPO_ROOT / ".writ" / "docs" / "config-format.md"
+GATE_0 = "#### Gate 0: Architecture Check"
+GATE_05 = "#### Gate 0.5"
+BLOCK_LEAD = "**Design divergence (boundary-crossing route).**"
+SWITCH_LITERAL = "- **Gate 0 Divergence:** off"
+MALFORMED_LINE = "gate0-divergence: on (malformed: <value>)"
+
+PREDICTOR_COMMANDS = (
+    "python3 scripts/boundary-map.py compute --story <story-file> --repo . "
+    "[--overlap <check-5-overlap>] > .writ/state/boundary-<story-stem>.json",
+    "python3 scripts/change-surface.py classify --changed <planned files>",
+    "python3 scripts/boundary-map.py crossings --map "
+    ".writ/state/boundary-<story-stem>.json --changed <planned files> "
+    "--story <story-file> --surface <class>",
+)
+
+# spec.md -> Experience Design -> State Catalog, in order.
+REPORT_STATES = (
+    "gate0-divergence: off (config)",
+    MALFORMED_LINE,
+    "gate0-divergence: skip (route evaluator-agent)",
+    "gate0-divergence: skip (unverifiable: <reason>)",
+    "gate0-divergence: skip (arch-check abort)",
+    "gate0-divergence: skip (sketch incomplete: <A|B>)",
+    "gate0-divergence: chose <A|B> (<axis combination>) — <why the other lost>",
+)
+
+
+def gate0_section(text: str) -> str:
+    """`#### Gate 0: Architecture Check` up to `#### Gate 0.5`."""
+    start = text.index(GATE_0)
+    return text[start : text.index(GATE_05, start)]
+
+
+def divergence_block(text: str) -> str:
+    """From the block's bold lead to the `---` that precedes Gate 0.5."""
+    gate0 = gate0_section(text)
+    if BLOCK_LEAD not in gate0:
+        raise AssertionError("%s missing from Gate 0" % BLOCK_LEAD)
+    start = gate0.index(BLOCK_LEAD)
+    end = gate0.rindex("\n---")
+    if end < start:
+        raise AssertionError("no `---` after the block inside Gate 0")
+    return gate0[start:end]
+
+
+def flat(text: str) -> str:
+    return " ".join(text.split())
+
+
+class Gate0DivergenceLiteralsTest(unittest.TestCase):
+    """Every Gate 0 literal in technical-spec.md's text contract [AC-3.1]."""
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.gate0 = gate0_section(self.text)
+        self.block = divergence_block(self.text)
+
+    def test_lead_and_read_line(self) -> None:
+        self.assertEqual(self.gate0.count(BLOCK_LEAD), 1)
+        self.assertIn(READ_LINE, self.block)
+
+    def test_block_sits_after_anchor_confirmation(self) -> None:
+        anchor = self.gate0.index("**Anchor confirmation (ADR-024):**")
+        self.assertLess(anchor, self.gate0.index(BLOCK_LEAD))
+
+    def test_predictor_commands_verbatim_in_bash_fence(self) -> None:
+        fences = re.findall(r"```bash\n(.*?)```", self.block, re.S)
+        lines = [l for fence in fences for l in fence.splitlines()]
+        for command in PREDICTOR_COMMANDS:
+            self.assertIn(command, lines)
+
+    def test_triggers(self) -> None:
+        for trigger in ("`--full-pipeline`", "`--panel`", "`route: review-agent`"):
+            self.assertIn(trigger, self.block)
+
+    def test_runs_after_proceed_or_caution_or_resolved_abort(self) -> None:
+        block = flat(self.block)
+        self.assertIn(
+            "Run on PROCEED, CAUTION, `unverifiable`, or an ABORT resolved as proceed", block
+        )
+
+    def test_order_switch_abort_route_then_read(self) -> None:
+        """BR2: switch off first, then an unresolved ABORT, then the route; the
+        skill is read only on the route, inside the Sketches paragraph."""
+        block = self.block
+        positions = [
+            block.index("`%s`" % SWITCH_LITERAL),
+            block.index("`gate0-divergence: skip (arch-check abort)`"),
+            block.index("`--panel`"),
+            block.index("Otherwise run:"),
+            block.index("```bash"),
+            block.index("`gate0-divergence: skip (route evaluator-agent)`"),
+            block.index("**Sketches.** `%s`" % READ_LINE),
+            block.index("**Choice.**"),
+        ]
+        self.assertEqual(positions, sorted(positions))
+        self.assertEqual(block.count(READ_LINE), 1)
+
+    def test_predictor_runs_only_off_the_forced_triggers(self) -> None:
+        self.assertIn("`--full-pipeline` or `--panel` qualifies. Otherwise run:", flat(self.block))
+
+    def test_usage_written_before_axes(self) -> None:
+        block = flat(self.block)
+        path = "`.writ/state/divergence-<story-stem>.md`"
+        self.assertIn(path, block)
+        self.assertRegex(block, r"3 to 10 lines")
+        self.assertLess(block.index(path), block.index("axes"))
+        self.assertRegex(block, r"before (declaring|picking|any) ")
+
+    def test_two_readonly_anchor_spawns_in_one_message(self) -> None:
+        block = flat(self.block)
+        self.assertRegex(block, r"(?i)two `readonly` .*at `anchor`")
+        self.assertIn("one message", block)
+        for item in ("the story", "`spec_lite_for_coding`", "persona"):
+            self.assertIn(item, block)
+        self.assertRegex(block, r"neither sees the other")
+
+    def test_sketch_fields(self) -> None:
+        block = flat(self.block)
+        for field in ("`COMMITMENT:`", "`SKETCH:`", "`USAGE FIT:`"):
+            self.assertIn(field, block)
+        self.assertRegex(block, r"`SKETCH:` \(≤40 lines\)")
+        self.assertLess(block.index("`COMMITMENT:`"), block.index("`SKETCH:`"))
+        self.assertLess(block.index("`SKETCH:`"), block.index("`USAGE FIT:`"))
+
+    def test_axes_from_skill_catalog(self) -> None:
+        self.assertRegex(flat(self.block), r"two axes from the skill's catalog")
+
+    def test_choice_rule_and_handoff(self) -> None:
+        block = flat(self.block)
+        self.assertRegex(block, r"unchanged usage|usage unchanged")
+        self.assertRegex(block, r"fewer new public names")
+        self.assertIn("`sketches converged`", block)
+        self.assertIn("`design sketch (Gate 0 divergence)`", block)
+        self.assertIn("Gate 0 warnings", block)
+
+    def test_no_new_gate_heading_or_agent_marker(self) -> None:
+        self.assertNotRegex(self.block, r"(?m)^#{1,6} ")
+        self.assertNotIn("> **Agent:**", self.block)
+
+    def test_block_under_2000_bytes(self) -> None:
+        size = len(self.block.encode("utf-8"))
+        self.assertLess(size, 2000, "block is %d bytes" % size)
+
+    def test_plugin_copy_regenerated(self) -> None:
+        """Parity is `gen-platform-trees.py --check`'s job; this catches a stale
+        plugin copy of Gate 0 [AC-3.5]."""
+        plugin = gate0_section(read(PLUGIN_IMPLEMENT_STORY))
+        self.assertIn(BLOCK_LEAD, plugin)
+
+
+class Gate0DivergenceSwitchTest(unittest.TestCase):
+    """The switch in Gate 0 and config-format.md, and the report states [AC-3.2]."""
+
+    def setUp(self) -> None:
+        self.block = flat(divergence_block(read(IMPLEMENT_STORY)))
+        self.config = read(CONFIG_FORMAT)
+
+    def test_switch_literal_in_gate0(self) -> None:
+        self.assertIn("`%s`" % SWITCH_LITERAL, self.block)
+
+    def test_gate0_absent_means_on_and_malformed_means_on(self) -> None:
+        self.assertRegex(self.block, r"(?i)absent( line)? or `on` means on")
+        self.assertRegex(self.block, r"(another|any other) value (means|is) on")
+        self.assertIn("`%s`" % MALFORMED_LINE, self.block)
+
+    def test_report_states_each_start_with_prefix(self) -> None:
+        for state in REPORT_STATES:
+            self.assertIn("`%s`" % state, self.block, state)
+        spans = re.findall(r"`(gate0-divergence: [^`]+)`", self.block)
+        self.assertEqual(sorted(set(spans)), sorted(REPORT_STATES))
+
+    def test_every_run_prints_a_line(self) -> None:
+        self.assertRegex(self.block, r"Each run prints a `gate0-divergence:` line")
+
+    def test_config_key_table_row(self) -> None:
+        rows = [
+            r
+            for r in table_rows(section(self.config, "## Supported Keys"))
+            if r.startswith("| `Gate 0 Divergence` |")
+        ]
+        self.assertEqual(len(rows), 1)
+        self.assertIn("implement-story (Gate 0)", rows[0])
+        self.assertIn("`off`", rows[0])
+
+    def test_config_section(self) -> None:
+        body = section(self.config, "## Gate 0 Divergence")
+        self.assertTrue(body.strip(), "## Gate 0 Divergence section missing")
+        self.assertIn(SWITCH_LITERAL, body)
+        text = flat(body)
+        self.assertRegex(text, r"(?i)no line.*means on|absent.*means on")
+        self.assertIn("`%s`" % MALFORMED_LINE, text)
+        self.assertRegex(text, r"(?i)only Gate 0 reads")
+        self.assertIn("`/prototype`", text)
+
+
+class Gate0DivergenceNeverBlocksTest(unittest.TestCase):
+    """No divergence outcome blocks the story [AC-3.3]."""
+
+    def setUp(self) -> None:
+        self.block = flat(divergence_block(read(IMPLEMENT_STORY)))
+
+    def test_never_blocking_statements(self) -> None:
+        self.assertRegex(self.block, r"(?i)never blocks")
+        self.assertIn("DEGRADED", self.block)
+        self.assertIn("AskQuestion", self.block)
+        self.assertIn("`review_cycle`", self.block)
+        self.assertRegex(self.block, r"(?i)\bretr(y|ies)\b")
+
+    def test_sketch_failure_skips_without_retry(self) -> None:
+        self.assertRegex(self.block, r"(?i)spawn error or (a )?missing field")
+
+
+class Gate0DivergenceOtherEditsTest(unittest.TestCase):
+    """Overview clause, Pipeline Gate 0 row, References line [AC-3.4]."""
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+
+    def test_overview_clause(self) -> None:
+        overview = section(self.text, "## Overview")
+        self.assertIn("and two Gate 0 sketch spawns on the boundary-crossing route", overview)
+
+    def test_pipeline_gate0_row(self) -> None:
+        pipeline = section(self.text, "## Pipeline")
+        rows = [r for r in pipeline.splitlines() if r.startswith("| Gate 0 |")]
+        self.assertEqual(len(rows), 1)
+        cells = [c.strip() for c in rows[0].strip("|").split("|")]
+        self.assertEqual(len(cells), 5, rows[0])
+        self.assertIn("two sketch spawns on the boundary-crossing route", cells[2])
+        self.assertEqual(cells[4].replace("`", ""), "design-divergence (boundary-crossing route)")
+
+    def test_references_link_once(self) -> None:
+        refs = section(self.text, "## References")
+        self.assertEqual(refs.count(REFERENCE_LINK), 1, refs)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,7 @@
 | `Writ Specs` | status | Path to spec folder (default: `.writ/specs/`) |
 | `Writ Issues` | status | Path to issues folder (default: `.writ/issues/`) |
 | `Review Panel` | implement-story (Gate 3) | Opt-in cross-vendor reviewer slugs; see [Review Panel](#review-panel) |
+| `Gate 0 Divergence` | implement-story (Gate 0) | On by default; `off` disables the boundary-crossing-route sketches; see [Gate 0 Divergence](#gate-0-divergence) |
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
 > itself; supervised multi-spec execution runs through `/implement-phase` and needs
@@ -127,6 +128,19 @@ the vendor table does not know (`unknown_vendor`) are dropped too.
 prints which reviewers are active, which were dropped, and why. See
 [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)
 Decision 3.
+
+## Gate 0 Divergence
+
+```markdown
+- **Gate 0 Divergence:** off
+```
+
+`- **Gate 0 Divergence:** on|off` under `## Conventions` turns off the
+design sketches `/implement-story` Gate 0 runs on the boundary-crossing route.
+It is never detected or offered for saving. No line, or `on`, means on. Any
+other value also means on, and Gate 0 prints
+`gate0-divergence: on (malformed: <value>)`, so a typo never disables the
+sketches. Only Gate 0 reads the line; `/prototype` is unaffected.
 
 ## Rules
 
