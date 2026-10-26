@@ -202,6 +202,7 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`subagent-result-completeness`](skills/subagent-result-completeness/SKILL.md) | Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early |
 | [`subagent-worktree-integration`](skills/subagent-worktree-integration/SKILL.md) | Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale |
 | [`plain-prose`](skills/plain-prose/SKILL.md) | Rewrite mannered prose in instructional markdown (commands, agents, skills, adapters) into plain, direct text that keeps every rule and literal |
+| [`design-divergence`](skills/design-divergence/SKILL.md) | Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-26T04:13:29Z
+> Last Updated: 2026-10-26T05:05:41Z
 
 ## Product Mission
 
@@ -8,24 +8,22 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-why-command — Why Command
-- **Status:** Complete (4/4 stories; Phase 15 lane `writ/phase/15/2026-10-25-why-command`, awaiting the phase merge)
-- **Story:** 4 of 4 — `/create-spec` Reads the `/why` Handoff (Completed ✅)
-- **Progress:** 27/27 tasks complete (100%)
+- **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
+- **Status:** In Progress (1/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
+- **Story:** 1 of 6 — Extract the design-divergence Skill and Register It (Completed ✅)
+- **Progress:** 7/41 tasks complete (17%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-why-command/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-design-divergence/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-003 Three more test pins move with the registration — why-command (Story 2, Small)
-- DEV-002 `/why` points to `/research` when the subject is outside the project — why-command (Story 1, Small)
-- DEV-001 Answer template's ADR placeholder reads `adr-<NNN>-<slug>.md` — why-command (Story 1, Small)
+- DEV-001 One axis-catalog table per medium, not one shared table — design-divergence (Story 1, Small)
 
 ## Open Issues
 

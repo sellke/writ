@@ -1,6 +1,6 @@
 # Design Divergence Skill and Usage-First Gate 0
 
-> **Status:** Not Started
+> **Status:** In Progress
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** []

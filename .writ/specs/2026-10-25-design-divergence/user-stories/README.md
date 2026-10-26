@@ -4,7 +4,7 @@
 
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
-| 1 | [Extract the design-divergence Skill and Register It](story-1-extract-design-divergence-skill.md) | Not Started | High | None | 7 | 0/7 |
+| 1 | [Extract the design-divergence Skill and Register It](story-1-extract-design-divergence-skill.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [/prototype Step 2.5 Loads the Skill](story-2-prototype-loads-skill.md) | Not Started | High | Story 1 | 6 | 0/6 |
 | 3 | [Gate 0 Usage-First Divergence and the Gate 0 Divergence Switch](story-3-gate-0-usage-first-divergence.md) | Not Started | High | Story 1 | 7 | 0/7 |
 | 4 | [Divergence Trial Harness](story-4-divergence-trial-harness.md) | Not Started | Medium | None | 7 | 0/7 |
