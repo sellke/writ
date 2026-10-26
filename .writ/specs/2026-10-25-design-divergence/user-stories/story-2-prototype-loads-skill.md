@@ -1,6 +1,7 @@
 # Story 2: /prototype Step 2.5 Loads the Skill
 
 > **Status:** Completed ✅ (2026-10-26)
+> **Commit:** 6b10789bc0e44b64eb6acae97880a37466b9ef3c
 > **Priority:** High
 > **Dependencies:** Story 1
 
