@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-26T05:05:41Z
+> Last Updated: 2026-10-26T06:07:44Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
-- **Status:** In Progress (1/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
-- **Story:** 1 of 6 — Extract the design-divergence Skill and Register It (Completed ✅)
-- **Progress:** 7/41 tasks complete (17%)
+- **Status:** In Progress (2/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
+- **Story:** 4 of 6 — Divergence Trial Harness (Completed ✅)
+- **Progress:** 14/41 tasks complete (34%)
 
 ## Artifact Map
 
@@ -23,7 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-001 One axis-catalog table per medium, not one shared table — design-divergence (Story 1, Small)
+- DEV-007 `Title:` lines inside `Structure:` are content — design-divergence (Story 4, Small)
+- DEV-006 New `unverifiable` reason `brief_count` — design-divergence (Story 4, Small)
+- DEV-005 No filled-sheet fixture — design-divergence (Story 4, Small)
 
 ## Open Issues
 

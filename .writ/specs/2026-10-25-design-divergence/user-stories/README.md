@@ -7,7 +7,7 @@
 | 1 | [Extract the design-divergence Skill and Register It](story-1-extract-design-divergence-skill.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [/prototype Step 2.5 Loads the Skill](story-2-prototype-loads-skill.md) | Not Started | High | Story 1 | 6 | 0/6 |
 | 3 | [Gate 0 Usage-First Divergence and the Gate 0 Divergence Switch](story-3-gate-0-usage-first-divergence.md) | Not Started | High | Story 1 | 7 | 0/7 |
-| 4 | [Divergence Trial Harness](story-4-divergence-trial-harness.md) | Not Started | Medium | None | 7 | 0/7 |
+| 4 | [Divergence Trial Harness](story-4-divergence-trial-harness.md) | Completed ✅ | Medium | None | 7 | 7/7 |
 | 5 | [Trial Inputs, Generation, Blinding, and Rating Handoff](story-5-trial-inputs-run-and-handoff.md) | Not Started | Medium | Story 1, Story 4 | 7 | 0/7 |
 | 6 | [Act on the Blind Verdict (Human-Gated)](story-6-act-on-blind-verdict.md) | Not Started | Medium | Story 2, Story 3, Story 5 | 7 | 0/7 |
 

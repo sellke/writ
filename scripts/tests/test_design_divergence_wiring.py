@@ -6,7 +6,9 @@ The spec ships markdown, so these checks read the files directly. Sections:
 - Story 1: `skills/design-divergence/SKILL.md` content (frontmatter, lint,
   sections, the eight rules, the axis catalog, examples, boundary) and its
   registration (manifest, root catalog, README, generated trees)
-  [AC-1.1 .. AC-1.4].
+  [AC-1.1 .. AC-1.4]. AC-1.5 is the verification run (`uv run pytest`,
+  `uv run --python 3.9 pytest`, the bash tests, `bash scripts/eval.sh`), not
+  an assertion here.
 - Story 2 (`commands/prototype.md` Step 2.5) and Story 3 (`/implement-story`
   Gate 0) append their own sections below.
 
