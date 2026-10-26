@@ -9,8 +9,15 @@ The spec ships markdown, so these checks read the files directly. Sections:
   [AC-1.1 .. AC-1.4]. AC-1.5 is the verification run (`uv run pytest`,
   `uv run --python 3.9 pytest`, the bash tests, `bash scripts/eval.sh`), not
   an assertion here.
-- Story 2 (`commands/prototype.md` Step 2.5) and Story 3 (`/implement-story`
-  Gate 0) append their own sections below.
+- Story 2: `commands/prototype.md` Step 2.5 reads the skill instead of
+  carrying the rules inline, keeps its render-table pins, and links the skill
+  under `## References` [AC-2.1, AC-2.2, AC-2.3]. AC-2.2's full pin set lives
+  in `test_platform_neutral_names.py`; AC-2.3's byte-identity of the untouched
+  sections and the shrink are checked against the pre-change file at
+  verification time, since HEAD moves. AC-2.4 is the verification run
+  (`gen-platform-trees.py --check`, `uv run pytest`,
+  `uv run --python 3.9 pytest`, `bash scripts/eval.sh`), not an assertion here.
+- Story 3 (`/implement-story` Gate 0) appends its own section below.
 
 Run: uv run pytest scripts/tests/test_design_divergence_wiring.py -q
 """
@@ -378,6 +385,81 @@ class GeneratedTreesTest(unittest.TestCase):
 
     def test_codex_template_lists_skill(self) -> None:
         self.assertIn("| `%s` |" % SKILL_NAME, read(CODEX_TEMPLATE))
+
+
+# ---------------------------------------------------------------------------
+# Story 2: /prototype Step 2.5 loads the skill [AC-2.1, AC-2.2, AC-2.3]
+# ---------------------------------------------------------------------------
+
+PROTOTYPE = REPO_ROOT / "commands" / "prototype.md"
+PLUGIN_PROTOTYPE = REPO_ROOT / "plugins" / "writ" / "commands" / "prototype.md"
+STEP_25 = "### Step 2.5: Diverge & Choose"
+DIFFER = "#### Getting drafts that actually differ"
+READ_LINE = "Read skills/design-divergence/SKILL.md"
+REFERENCE_LINK = "[design-divergence](../skills/design-divergence/SKILL.md)"
+
+
+class PrototypeReadsSkillTest(unittest.TestCase):
+    """[AC-2.1]"""
+
+    def setUp(self) -> None:
+        self.text = read(PROTOTYPE)
+        self.differ = section(section(self.text, STEP_25), DIFFER)
+
+    def test_subsection_present(self) -> None:
+        self.assertTrue(self.differ.strip(), "%s missing under Step 2.5" % DIFFER)
+
+    def test_subsection_reads_skill(self) -> None:
+        self.assertIn(READ_LINE, self.differ)
+
+    def test_subsection_states_what_the_step_owns(self) -> None:
+        flat = " ".join(self.differ.split())
+        self.assertRegex(flat, r"(?i)this step owns")
+        for owned in ("when drafts are made", "what a draft is", "how they render", "the record"):
+            self.assertIn(owned, flat)
+
+    def test_inline_rules_removed(self) -> None:
+        for removed in (
+            "Declare the axes first.",
+            "Use ordinary personas, not visionary ones.",
+        ):
+            self.assertNotIn(removed, self.text)
+
+    def test_no_numbered_rules_left_in_subsection(self) -> None:
+        self.assertEqual(numbered_items(self.differ), [])
+
+
+class PrototypeRenderPinsTest(unittest.TestCase):
+    """Step 2.5 keeps its heading order and render table [AC-2.2]."""
+
+    def setUp(self) -> None:
+        self.step = section(read(PROTOTYPE), STEP_25)
+
+    def test_render_table_three_rows_in_order(self) -> None:
+        block = section(self.step, "#### Render through the platform")
+        rows = table_rows(block)
+        self.assertEqual(len(rows), 3, "\n".join(rows))
+        self.assertTrue(rows[0].startswith("| Native artboard/design surface |"))
+        self.assertTrue(rows[1].startswith("| `canvas-preview` (the adapter maps it) |"))
+        self.assertTrue(rows[2].startswith("| Neither |"))
+        self.assertIn("Never degrade silently.", block)
+
+
+class PrototypeReferencesTest(unittest.TestCase):
+    """[AC-2.3]"""
+
+    def test_references_link_skill_once(self) -> None:
+        refs = section(read(PROTOTYPE), "## References")
+        self.assertEqual(refs.count(REFERENCE_LINK), 1, refs)
+
+    def test_plugin_copy_regenerated(self) -> None:
+        """The generator rewrites paths, so the plugin copy is not a byte copy;
+        parity is `gen-platform-trees.py --check`'s job. This only catches a
+        stale plugin copy of the replaced subsection [AC-2.4]."""
+        plugin = read(PLUGIN_PROTOTYPE)
+        differ = section(section(plugin, STEP_25), DIFFER)
+        self.assertIn("skills/design-divergence/SKILL.md", differ)
+        self.assertNotIn("Declare the axes first.", plugin)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-26T06:07:44Z
+> Last Updated: 2026-10-26T06:52:03Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
-- **Status:** In Progress (2/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
-- **Story:** 4 of 6 — Divergence Trial Harness (Completed ✅)
-- **Progress:** 14/41 tasks complete (34%)
+- **Status:** In Progress (3/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
+- **Story:** 2 of 6 — /prototype Step 2.5 Loads the Skill (Completed ✅)
+- **Progress:** 20/41 tasks complete (49%)
 
 ## Artifact Map
 

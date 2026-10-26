@@ -145,23 +145,10 @@ idea cheaply, not to build it three times.
 
 #### Getting drafts that actually differ
 
-Asking one agent for "a few options" produces one idea three times. Models fixate
-on their own early output, and repeated samples from one prompt converge. Force
-the divergence instead:
-
-1. **Declare the axes first.** Name two or three *orthogonal* dimensions the
-   drafts must differ on — information density, navigation model, primary action
-   placement, progressive disclosure vs. everything-visible. Assign each draft a
-   distinct combination, and state it before generating anything.
-2. **Generate independently.** One subagent per draft. No shared scratch, no
-   draft seeing another. Shared context is how drafts collapse into each other.
-3. **Commit before rendering.** Each generator states its axis combination and
-   the trade-off it accepts, then renders.
-4. **Use ordinary personas, not visionary ones.** "A support rep who opens this
-   forty times a shift" beats "a world-class designer" — genius framing measurably
-   narrows output.
-5. **Three drafts, not five.** Rendering is not free. More than three rarely adds
-   a distinct option, and the user has to read all of them.
+`Read ${CLAUDE_PLUGIN_ROOT}/skills/design-divergence/SKILL.md` for how to get drafts that differ: axes
+declared first, one context per draft, a commitment before rendering, ordinary
+personas. This step owns when drafts are made, what a draft is, how they render,
+and the record. Default to three drafts.
 
 #### Render through the platform
 
@@ -339,3 +326,4 @@ A scope-escalation signal firing is also a valid outcome, not a failure. It is n
 
 - Standing instructions: [`${CLAUDE_PLUGIN_ROOT}/commands/_preamble.md`](${CLAUDE_PLUGIN_ROOT}/commands/_preamble.md)
 - Identity & Prime Directive: [`${CLAUDE_PLUGIN_ROOT}/system-instructions.md`](${CLAUDE_PLUGIN_ROOT}/system-instructions.md)
+- Divergence rules: [design-divergence](${CLAUDE_PLUGIN_ROOT}/skills/design-divergence/SKILL.md)
