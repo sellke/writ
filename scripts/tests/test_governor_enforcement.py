@@ -607,7 +607,8 @@ KNOWN_OVER_BUDGET = {
     # step, gate, AskQuestion block, and script call stays. cut-log.md lists every change.
     # 2026-10-22 (2026-10-22-generated-platform-trees Story 1): 13602 -> 13654; Step 1.3 names
     # the adapter's `Plan Mode` row.
-    "commands/create-spec.md": 13654,
+    # 2026-10-25 (2026-10-25-why-command Story 4): 13654 -> 14209; Step 1.2 reads a /why handoff.
+    "commands/create-spec.md": 14209,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

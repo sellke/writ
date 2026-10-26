@@ -120,6 +120,7 @@ Feedback loop (/retro + /refresh-command):
 | `/create-issue` | Quick issue capture (<2 minutes) |
 | `/knowledge` | Capture durable project knowledge (decisions, conventions, glossary, lessons) into `.writ/knowledge/` |
 | `/research` | Systematic 4-phase research workflow |
+| `/why` | Answers why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim; when a change follows, ends with a Preserve / Change / Avoid / Risk list `/create-spec` reads |
 
 ### Implementation & Quality
 | Command | Purpose |

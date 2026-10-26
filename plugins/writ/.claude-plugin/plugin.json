@@ -39,6 +39,7 @@
     "./commands/uninstall-writ.md",
     "./commands/update-writ.md",
     "./commands/verify-spec.md",
+    "./commands/why.md",
     "./commands/writ.md",
     "./commands/writ-design.md"
   ],

@@ -45,6 +45,7 @@ Start with `/writ "<what you want>"`: it restates the request and routes it to t
 | `/uninstall-writ` | `.claude/commands/uninstall-writ.md` | Remove Writ platform files while preserving `.writ/` project artifacts. |
 | `/update-writ` | `.claude/commands/update-writ.md` | Update Writ from upstream with per-file control over local customizations. |
 | `/verify-spec` | `.claude/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/why` | `.claude/commands/why.md` | Answer why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim. |
 | `/writ` | `.claude/commands/writ.md` | Restate a request, route it to the fitting command, and run it with its phases on the todo list. |
 | `/writ-design` | `.claude/commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
