@@ -1,6 +1,7 @@
 # Story 3: Gate 0 Usage-First Divergence and the Gate 0 Divergence Switch
 
 > **Status:** Completed ✅ (2026-10-26)
+> **Commit:** 49719ed2f83314caaec6951f32aba1a9c958c234
 > **Priority:** High
 > **Dependencies:** Story 1
 
