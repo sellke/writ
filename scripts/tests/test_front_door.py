@@ -14,8 +14,8 @@ runs the command.
 - `test_routing_rules`: the first table under `## Routing Rules` has a
   `Signal | Route` header and six data rows whose Route cells, in order,
   contain `/prototype` (without `--no-diverge`), `/prototype --no-diverge`,
-  `/create-spec`, `/implement-phase`, `/research`, `/prototype`; the fifth
-  row mentions `/why`; and `### Step 2` names both `/prototype --no-diverge`
+  `/create-spec`, `/implement-phase`, `/why`, `/prototype`; the fifth
+  row names `/research` for questions outside the project; and `### Step 2` names both `/prototype --no-diverge`
   and `/create-spec` and sends their conflict to `/create-spec` on an
   escalation signal (AC-1.3).
 - `test_confirmation_step`: `### Step 3` contains `AskQuestion`,
@@ -98,7 +98,7 @@ ROUTES = [
     ("/prototype --no-diverge", None),
     ("/create-spec", None),
     ("/implement-phase", None),
-    ("/research", None),
+    ("/why", None),
     ("/prototype", None),
 ]
 TABLE_HEADER = ["Signal", "Route"]
@@ -226,12 +226,21 @@ def test_routing_rules():
                 row[1],
                 forbidden,
             )
-    assert "/why" in rows[4][1], "row 5 Route cell %r does not mention /why" % rows[4][1]
+    assert "/research" in rows[4][1], "row 5 Route cell %r does not name /research" % rows[4][1]
 
     step2 = "\n".join(section(body, "### Step 2"))
     assert "/prototype --no-diverge" in step2
     assert "/create-spec" in step2
     assert "over 5 files" in step2 or "escalation" in step2
+
+
+def test_why_route():
+    # why-command spec, Story 3: the why-or-how route is /why; the interim
+    # "when it ships" notes are gone.
+    step2 = "\n".join(section(lines(), "### Step 2"))
+    assert "Route `/why`" in step2, "Step 2 does not route /why"
+    assert "/research" in step2
+    assert "when it ships" not in text(), "%s still says 'when it ships'" % COMMAND_REL
 
 
 def test_confirmation_step():
