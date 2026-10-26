@@ -574,7 +574,8 @@ def test_codex_template_row():
     text = read("codex/AGENTS.md.template")
     rows = first_table(section(text, "## Available Commands", "### Planning & Specification"))[2:]
     commands = [cells(row)[0] for row in rows]
-    assert commands[-2:] == ["`/verify-spec`", "`/writ-design`"], commands
+    # `/why` (why-command spec, Story 2) sorts between the two.
+    assert commands[-3:] == ["`/verify-spec`", "`/why`", "`/writ-design`"], commands
     assert cells(rows[-1]) == [
         "`/writ-design`", "`.codex/commands/writ-design.md`", DESIGN_PURPOSE], rows[-1]
 

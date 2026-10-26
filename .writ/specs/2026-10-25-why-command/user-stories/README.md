@@ -5,7 +5,7 @@
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
 | 1 | [The `/why` Command File](story-1-why-command-file.md) | Completed ✅ | High | None | 7 | 7/7 |
-| 2 | [Registration and Catalogs](story-2-registration-and-catalogs.md) | Not Started | High | Story 1 | 7 | 0/7 |
+| 2 | [Registration and Catalogs](story-2-registration-and-catalogs.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
 | 3 | [The Front Door Routes Why Questions to `/why`](story-3-front-door-route.md) | Not Started | High | Story 2 | 6 | 0/6 |
 | 4 | [`/create-spec` Reads the `/why` Handoff](story-4-create-spec-reads-handoff.md) | Not Started | High | Story 1, Story 2 | 7 | 0/7 |
 

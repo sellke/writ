@@ -61,6 +61,7 @@ and is not installed.
 | `/plan-product` | `commands/plan-product.md` | Shape product strategy and roadmap artifacts through contract-first discovery. |
 | `/research` | `commands/research.md` | Run systematic research workflows and record recommendations. |
 | `/verify-spec` | `commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/why` | `commands/why.md` | Answer why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim. |
 | `/writ-design` | `commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ### Implementation & Quality

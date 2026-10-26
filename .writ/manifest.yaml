@@ -183,6 +183,11 @@ commands:
     category: planning
     purpose: "Validate spec integrity, status sync, completion evidence, and contract drift."
     tags: [planning, verification, spec]
+  - name: why
+    file: commands/why.md
+    category: planning
+    purpose: "Answer why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim."
+    tags: [planning, why, history, ledger]
   - name: writ
     file: commands/writ.md
     category: entry

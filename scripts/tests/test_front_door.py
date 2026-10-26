@@ -45,9 +45,9 @@ generator `--check` calls are the only subprocesses.
   AC-2.3).
 - `test_surfaces`: the cursor tree line for `writ.md` sits between
   `verify-spec.md` and `writ-design.md` in the same comment column, with
-  the count comment at (33); the `status.md` allowlist starts with `/writ`;
+  the count comment at (34); the `status.md` allowlist starts with `/writ`;
   the `model-tiers.md` `high` row names `writ` between `security-audit` and
-  `writ-design` and ends `(16)`; the Claude Code adapter `todo_write` row
+  `writ-design` and ends `(17)`; the Claude Code adapter `todo_write` row
   maps to `TodoWrite` with Notes "Native todo list; phases mirror here"
   (AC-2.5).
 
@@ -296,9 +296,9 @@ GUIDE_REL = ".writ/docs/prompting-guide.md"
 POINTER_END = "then type `/writ` followed by what you want."
 CURSOR_TREE_LINE = "│   │   ├── writ.md                # /writ"
 CURSOR_COUNT_ANCHOR = "one file per `commands:` entry"
-CURSOR_COUNT = "(33)"
+CURSOR_COUNT = "(34)"
 HIGH_ROW_PREFIX = "| `high` |"
-HIGH_COUNT = "(16)"
+HIGH_COUNT = "(17)"
 TODO_ROW = ["`todo_write`", "`TodoWrite`", "Native todo list; phases mirror here. If the platform has no todo tool, as in headless `claude -p`, print the checklist in the reply."]  # fallback added after UAT (DEV-012)
 # argv per generator check; both must exit 0 with `pass` as the first stdout line.
 CHECKS = [
@@ -374,7 +374,8 @@ def test_manifest():
     assert "writ" in names, "manifest commands have no writ entry"
     assert names == sorted(names), "manifest commands are not sorted by name: %r" % names
     at = names.index("writ")
-    assert names[at - 1:at + 2] == ["verify-spec", "writ", "writ-design"], names[at - 1:at + 2]
+    # `why` (why-command spec, Story 2) sorts between `verify-spec` and `writ`.
+    assert names[at - 1:at + 2] == ["why", "writ", "writ-design"], names[at - 1:at + 2]
     fields = commands[at][1]
     for field in WRIT_FIELDS:
         assert field in fields, "writ entry lacks %r: %r" % (field, fields)

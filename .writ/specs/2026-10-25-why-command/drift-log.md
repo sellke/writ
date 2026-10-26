@@ -28,3 +28,20 @@
 - **Reason:** The Integration row named a behavior no step performed.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** None needed in spec-lite.md.
+
+---
+
+## Story 2: Registration and Catalogs — Drift Report
+
+> Run: 2026-10-26
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-003] Three more test pins move with the registration
+- **Severity:** Small
+- **Spec said:** technical-spec.md → Tests that move names `test_front_door.py` (`CURSOR_COUNT`, `ROUTES`), `test_prompting_guide.py`, `test_platform_neutral_names.py` (`test_cursor_tree`, passes once the tree and manifest change together), and `test_governor_enforcement.py`. Story 2's tasks name only `CURSOR_COUNT`.
+- **Implementation did:** Also updated `test_front_door.py` `HIGH_COUNT` "(16)" → "(17)" and `test_manifest`'s neighbor pin to `["why", "writ", "writ-design"]`; `test_platform_neutral_names.py` `test_codex_template_row` and `test_gen_platform_trees.py` `test_codex_template`, which pinned `/verify-spec` immediately before `/writ-design` in the Planning table, now pin `/verify-spec`, `/why`, `/writ-design`.
+- **Reason:** Each pin asserted the neighbor or count this story changes; the first full pytest run failed on them. The comments name the spec as "why-command spec" rather than its folder id, because `scripts/ac-trace.py` attributes later `AC-` tokens in a test file to the last spec folder named above them.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** None needed in spec-lite.md.

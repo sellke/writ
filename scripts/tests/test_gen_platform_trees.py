@@ -984,7 +984,8 @@ def test_codex_template(gen):
         assert text.count("| `/%s` |" % name) == 1, name
     assert sum(len(table(tbody)) - 2 for _, tbody in tables) == len(commands)
     planning = [row[0] for row in table(dict(tables)["### Planning & Specification"])[2:]]
-    assert planning[-2:] == ["`/verify-spec`", "`/writ-design`"]
+    # `/why` (why-command spec, Story 2) sorts between the two.
+    assert planning[-3:] == ["`/verify-spec`", "`/why`", "`/writ-design`"]
 
     rows = table(body["## Available Agents"])
     assert rows[:2] == [cells(line) for line in AGENT_HEADER]

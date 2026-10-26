@@ -19,6 +19,13 @@ runs the command.
 - `test_handoff_shape`: the fixed heading and its four subsections in order,
   and the saved-record path pattern (AC-1.4).
 - `test_budgets`: under 200 lines and under 24,960 bytes.
+- No test here covers AC-1.5: it is the dogfood fixture run (questions 1 to
+  3) recorded in Story 1's What Was Built.
+
+Registration section (Story 2). `test_registration` reads every surface in
+technical-spec.md → Registration Edits as text and runs the two generator
+`--check` commands and `scripts/eval-command-structure.py` (AC-2.1 to
+AC-2.4).
 
 Run: uv run --python 3.9 pytest scripts/tests/test_why_command.py
 """
@@ -238,3 +245,156 @@ def test_budgets():
         BYTE_BUDGET,
     )
 
+
+# ---------------------------------------------------------------------------
+# Registration section (Story 2). Every surface is read as text; the two
+# generator `--check` calls are the only subprocesses.
+
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+
+MANIFEST_REL = ".writ/manifest.yaml"
+WHY_FIELDS = (
+    "file: commands/why.md",
+    "category: planning",
+    'purpose: "Answer why code is the way it is from the ledger, git history, '
+    'and MCP servers, with a confidence tier on every claim."',
+    "tags: [planning, why, history, ledger]",
+)
+WHY_ROW_PREFIX = "| `/why` |"
+README_ROW = (
+    "| `/why` | Answers why code is the way it is from the ledger, git history, "
+    "and MCP servers, with a confidence tier on every claim; when a change "
+    "follows, ends with a Preserve / Change / Avoid / Risk list `/create-spec` reads |"
+)
+STRUCTURE_ARGV = [sys.executable, "scripts/eval-command-structure.py", "--root", "."]
+STRUCTURE_ROWS = (
+    "command-structure:commands/why.md:heading:Confidence Tiers",
+    "command-structure:commands/why.md:frontmatter:entry_level",
+)
+GENERATED = (
+    "SKILL.md",
+    "claude-code/CLAUDE.md",
+    "codex/AGENTS.md.template",
+    "cursor/plugin/commands/why.md",
+    "plugins/writ/commands/why.md",
+)
+CHECKS = [
+    ["bash", "scripts/gen-skill.sh", "--check"],
+    [sys.executable, "scripts/gen-platform-trees.py", "--check"],
+]
+CURSOR_TREE_LINE = "│   │   ├── why.md                 # /why"
+CURSOR_COUNT_ANCHOR = "one file per `commands:` entry"
+CURSOR_COUNT = "(34)"
+HIGH_ROW_PREFIX = "| `high` |"
+HIGH_COUNT = "(17)"
+NAME_IN_TICKS = re.compile(r"`([a-z0-9-]+)`")
+
+
+def read(rel: str) -> str:
+    path = REPO_ROOT / rel
+    assert path.exists(), "%s does not exist" % rel
+    return path.read_text(encoding="utf-8")
+
+
+def manifest_commands() -> List[tuple]:
+    """(name, stripped field lines) per entry under the top-level `commands:`."""
+    body = read(MANIFEST_REL).splitlines()
+    start = [i for i, line in enumerate(body) if line.rstrip() == "commands:"]
+    assert start, "manifest has no commands: block"
+    entries = []  # type: List[tuple]
+    for line in body[start[0] + 1:]:
+        if line.strip() and not line.startswith(" ") and not line.startswith("#"):
+            break
+        m = re.match(r"^  - name:\s*(\S+)", line)
+        if m:
+            entries.append((m.group(1), []))
+        elif entries and line.startswith("    "):
+            entries[-1][1].append(line.strip())
+    return entries
+
+
+def line_index(body: List[str], needle: str) -> int:
+    hits = [i for i, line in enumerate(body) if needle in line]
+    assert hits, "no line containing %r" % needle
+    return hits[0]
+
+
+def test_registration():
+    # AC-2.1
+    entries = manifest_commands()
+    names = [name for name, _ in entries]
+    assert "why" in names, "manifest commands have no why entry"
+    assert names == sorted(names), "manifest commands are not sorted: %r" % names
+    at = names.index("why")
+    assert names[at - 1:at + 2] == ["verify-spec", "why", "writ"], names[at - 1:at + 2]
+    for field in WHY_FIELDS:
+        assert field in entries[at][1], "why entry lacks %r: %r" % (field, entries[at][1])
+
+    # AC-2.2
+    for argv in CHECKS:
+        proc = subprocess.run(argv, cwd=str(REPO_ROOT), capture_output=True, text=True)
+        out = proc.stdout.splitlines()
+        first = out[0] if out else ""
+        assert proc.returncode == 0 and first == "pass", "%s exit %d:\n%s%s" % (
+            " ".join(argv[1:]),
+            proc.returncode,
+            proc.stdout,
+            proc.stderr,
+        )
+    source = read(COMMAND_REL)
+    for rel in GENERATED:
+        body = read(rel)
+        if rel.endswith("/why.md"):
+            assert "## Confidence Tiers" in body and "entry_level: high" in body, (
+                "%s is not a copy of %s" % (rel, COMMAND_REL)
+            )
+        else:
+            assert "/why" in body, "%s does not carry /why" % rel
+    assert "Confidence Tiers" in source
+    for rel in ("SKILL.md", "claude-code/CLAUDE.md", "codex/AGENTS.md.template"):
+        assert any(
+            line.startswith(WHY_ROW_PREFIX) for line in read(rel).splitlines()
+        ), "%s has no /why row" % rel
+
+    # AC-2.3
+    planning = section(read("README.md").splitlines(), "### Planning & Specification")
+    rows = [row[0] for row in first_table(planning)[1:]]
+    assert "`/why`" in rows, "README Planning table: %r" % rows
+    assert rows.index("`/why`") == rows.index("`/research`") + 1, rows
+    assert README_ROW in [line.rstrip() for line in planning], "README /why row text differs"
+
+    tree = section(read("adapters/cursor.md").splitlines(), "## Directory Structure")
+    why_at = line_index(tree, CURSOR_TREE_LINE)
+    verify_at = line_index(tree, "verify-spec.md")
+    writ_at = line_index(tree, "├── writ.md")
+    assert verify_at < why_at < writ_at, (verify_at, why_at, writ_at)
+    assert tree[why_at].index("#") == tree[verify_at].index("#"), "comment column not aligned"
+    assert CURSOR_COUNT in tree[line_index(tree, CURSOR_COUNT_ANCHOR)]
+
+    status = read("commands/status.md").splitlines()
+    slash = [line for line in status if line.startswith("`/writ`, ")]
+    assert len(slash) == 1, slash
+    assert "`/research`, `/why`," in slash[0], slash[0]
+    bare = [line for line in status if line.startswith("`writ`, ")]
+    assert len(bare) == 1, bare
+    assert "`research`, `why`," in bare[0], bare[0]
+
+    high = [
+        line
+        for line in read(".writ/docs/model-tiers.md").splitlines()
+        if line.startswith(HIGH_ROW_PREFIX)
+    ]
+    assert len(high) == 1, high
+    listed = [c.strip() for c in high[0].strip().strip("|").split("|")][1]
+    names = NAME_IN_TICKS.findall(listed)
+    assert names.index("security-audit") < names.index("why") < names.index("writ"), names
+    assert listed.endswith(HIGH_COUNT), listed
+
+    # AC-2.4
+    proc = subprocess.run(STRUCTURE_ARGV, cwd=str(REPO_ROOT), capture_output=True, text=True)
+    out = proc.stdout.splitlines()
+    for name in STRUCTURE_ROWS:
+        assert "PASS\t" + name in out, "no PASS line for %s:\n%s" % (name, proc.stdout)
+    front_door = read("scripts/tests/test_front_door.py")
+    assert 'CURSOR_COUNT = "(34)"' in front_door

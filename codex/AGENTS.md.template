@@ -62,6 +62,7 @@ The `--recommend` rules and the rest of Writ's system instructions are in `.code
 | `/plan-product` | `.codex/commands/plan-product.md` | Shape product strategy and roadmap artifacts through contract-first discovery. |
 | `/research` | `.codex/commands/research.md` | Run systematic research workflows and record recommendations. |
 | `/verify-spec` | `.codex/commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/why` | `.codex/commands/why.md` | Answer why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim. |
 | `/writ-design` | `.codex/commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ### Implementation & Quality

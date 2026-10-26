@@ -247,7 +247,7 @@ Based on the gathered state, produce 2–4 suggested next actions. Rules:
 | New quality-config findings against an existing baseline (Step 7) | Fix the finding, or add a dated entry with a rationale to `.writ/quality-baseline.md` |
 
 **Command allowlist (only suggest commands that exist in the suite):**
-`/writ:writ`, `/writ:create-spec`, `/writ:implement-story`, `/writ:implement-spec`, `/writ:implement-phase`, `/writ:prototype`, `/writ:review`, `/writ:verify-spec`, `/writ:refresh-command`, `/writ:assess-spec`, `/writ:ship`, `/writ:release`, `/writ:plan-product`, `/writ:writ-design`, `/writ:research`, `/writ:refactor`, `/writ:status`, `/writ:new-command`, `/writ:new-skill`, `/writ:initialize`, `/writ:create-adr`, `/writ:create-issue`, `/writ:create-uat-plan`, `/writ:edit-spec`, `/writ:knowledge`, `/writ:migrate`, `/writ:retro`, `/writ:security-audit`, `/writ:update-writ`, `/writ:reinstall-writ`, `/writ:uninstall-writ`
+`/writ:writ`, `/writ:create-spec`, `/writ:implement-story`, `/writ:implement-spec`, `/writ:implement-phase`, `/writ:prototype`, `/writ:review`, `/writ:verify-spec`, `/writ:refresh-command`, `/writ:assess-spec`, `/writ:ship`, `/writ:release`, `/writ:plan-product`, `/writ:writ-design`, `/writ:research`, `/writ:why`, `/writ:refactor`, `/writ:status`, `/writ:new-command`, `/writ:new-skill`, `/writ:initialize`, `/writ:create-adr`, `/writ:create-issue`, `/writ:create-uat-plan`, `/writ:edit-spec`, `/writ:knowledge`, `/writ:migrate`, `/writ:retro`, `/writ:security-audit`, `/writ:update-writ`, `/writ:reinstall-writ`, `/writ:uninstall-writ`
 
 Never suggest a command not in this list. If you need to suggest something that doesn't match an existing command, describe the action in plain English instead (e.g., "Resolve merge conflicts manually").
 
@@ -440,7 +440,7 @@ A story is "in-flight" if its `"status"` is `"in_progress"` or `"pending"` (not 
 
 The ⚡ QUICK COMMANDS section and 🎯 SUGGESTED ACTIONS section must only name commands from this allowlist. Future edits must not introduce commands that do not exist in `commands/*.md`:
 
-`writ`, `create-spec`, `implement-story`, `implement-spec`, `implement-phase`, `prototype`, `review`, `verify-spec`, `refresh-command`, `assess-spec`, `ship`, `release`, `plan-product`, `writ-design`, `research`, `refactor`, `status`, `new-command`, `new-skill`, `initialize`, `create-adr`, `create-issue`, `create-uat-plan`, `edit-spec`, `knowledge`, `migrate`, `retro`, `security-audit`, `update-writ`, `reinstall-writ`, `uninstall-writ`
+`writ`, `create-spec`, `implement-story`, `implement-spec`, `implement-phase`, `prototype`, `review`, `verify-spec`, `refresh-command`, `assess-spec`, `ship`, `release`, `plan-product`, `writ-design`, `research`, `why`, `refactor`, `status`, `new-command`, `new-skill`, `initialize`, `create-adr`, `create-issue`, `create-uat-plan`, `edit-spec`, `knowledge`, `migrate`, `retro`, `security-audit`, `update-writ`, `reinstall-writ`, `uninstall-writ`
 
 If a new command is added to the suite, add it here. If a command is removed, remove it here.
 

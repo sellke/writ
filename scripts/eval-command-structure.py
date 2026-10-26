@@ -133,6 +133,12 @@ ROWS: Tuple[Row, ...] = (
     Row("commands/writ.md", "frontmatter", "entry_level",
         "check_entry_level",
         "writ.md must declare entry_level in its frontmatter (ADR-024 A3; front-door spec, Story 3)."),
+    Row("commands/why.md", "heading", "Confidence Tiers",
+        "check_command_structure",
+        "why.md must keep the Confidence Tiers heading over its five-tier table (why-command spec, Story 2)."),
+    Row("commands/why.md", "frontmatter", "entry_level",
+        "check_entry_level",
+        "why.md must declare entry_level in its frontmatter (why-command spec, Story 2)."),
 ) + tuple(
     Row(f"commands/{name}.md", "heading", "Required Artifacts",
         "check_artifact_integrity",
