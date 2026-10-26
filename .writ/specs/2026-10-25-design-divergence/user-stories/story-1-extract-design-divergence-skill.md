@@ -1,6 +1,7 @@
 # Story 1: Extract the design-divergence Skill and Register It
 
 > **Status:** Completed ✅ (2026-10-26)
+> **Commit:** 42754d7b076313a6777d8487fc03a585e993a0b4
 > **Priority:** High
 > **Dependencies:** None
 
