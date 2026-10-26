@@ -1,6 +1,7 @@
 # Story 1: The `/why` Command File
 
 > **Status:** Completed ✅
+> **Commit:** 6625f742650f73dc1c0681fa0edc479050bf6064
 > **Priority:** High
 > **Dependencies:** None
 
