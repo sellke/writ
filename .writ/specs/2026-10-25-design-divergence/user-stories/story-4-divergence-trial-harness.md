@@ -1,6 +1,7 @@
 # Story 4: Divergence Trial Harness
 
 > **Status:** Completed ✅ (2026-10-26)
+> **Commit:** c98a80df3a3d4ca49ceec24b850f53f14152a98e
 > **Priority:** Medium
 > **Dependencies:** None
 
