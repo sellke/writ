@@ -1,6 +1,7 @@
 # Story 2: Reviewer lead-judgment filters
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 36dc9e4c5d45dbb57a68667bbe12fb9dd461eb61
 > **Priority:** High
 > **Dependencies:** Story 1
 
