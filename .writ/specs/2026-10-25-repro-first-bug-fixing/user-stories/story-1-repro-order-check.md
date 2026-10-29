@@ -1,6 +1,7 @@
 # Story 1: Repro-Order Check Script
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 35a211b2a83db280324253ad5b7ee329c6d67a22
 > **Priority:** High
 > **Dependencies:** None
 
