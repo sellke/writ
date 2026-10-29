@@ -196,6 +196,8 @@ Spawn the coding agent with extracted intent and codebase context.
 
 The change is done only when it is in the user's checkout. When the agent's result names a worktree path or a branch other than the current one, integrate it as the skill describes before Step 4, writing no temporary file outside the project (pipe the worktree's diff into `git apply`), then confirm with `git status` that the changed files are in this checkout.
 
+**Bug path:** record `git rev-parse HEAD` before spawning. When the agent's `### Repro` block names commits, bring them into this checkout with `git cherry-pick`, oldest first, as the integration skill's Ordered commits paragraph says, not through `git apply`. Then run `python3 scripts/repro-order.py check --repo . --base <that SHA>` and put its output and the failing-then-passing output in the Step 5 summary; `fail` makes the summary "Prototype Complete (with issues)".
+
 **Required context to include in prompt:**
 - Change description and watch-outs
 - Full context scan output (tech stack, patterns, nearby rules, files to modify)
@@ -204,7 +206,7 @@ The change is done only when it is in the user's checkout. When the agent's resu
 
 **Principles to instruct:**
 
-1. **TDD** — tests first covering core behavior and obvious edge cases
+1. **TDD** — tests first covering core behavior and obvious edge cases. A bug fix follows the bug path in `skills/tdd-cycle/SKILL.md`: a failing repro committed before the fix.
 2. **Match codebase** — follow existing patterns and conventions
 3. **Respect nearby rules** — don't bypass auth, skip validation, or ignore state transitions.
 4. **Don't ship only the happy path** — handle error, empty, and loading states.

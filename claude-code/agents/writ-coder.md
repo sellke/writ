@@ -126,9 +126,9 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 
 ## Implementation Requirements
 
-1. **Follow TDD**: `Read skills/tdd-cycle/SKILL.md` and run its red → green → refactor loop per unit of behavior — write the failing test first, implement the least code to pass, refactor under green. This agent owns what to build (the story's tasks and acceptance criteria) and when to hand off; the skill owns how the cycle runs.
+1. **Follow TDD**: `Read skills/tdd-cycle/SKILL.md` and run its red → green → refactor loop per unit of behavior — write the failing test first, implement the least code to pass, refactor under green. This agent owns what to build (the story's tasks and acceptance criteria) and when to hand off; the skill owns how the cycle runs. For a bug fix, follow the `### Bug fixes: repro first` section of `skills/tdd-cycle/SKILL.md`.
 2. **Match patterns**: Follow existing codebase conventions
-3. **Small commits**: Make logical, incremental changes. When authoring each commit message, `Read skills/conventional-commits/SKILL.md` so coding-agent commits match the format `/ship` will use downstream.
+3. **Small commits**: Make logical, incremental changes. When authoring each commit message, `Read skills/conventional-commits/SKILL.md` so coding-agent commits match the format `/ship` will use downstream. Under `/implement-story`, the repro and fix commits each end with `Ref: .writ/specs/<spec-id>/user-stories/<story-file>.md` in the message's last paragraph, with any other trailers (and, on the repro commit, its `Repro:` trailer); `/prototype` commits carry no `Ref:` footer.
 4. **Document as you go**: Add inline comments for complex logic
 5. **Only create files listed in the tasks**: Do NOT create supplementary files (verification guides, validation reports, acceptance-criteria checklists, integration test plans, etc.) that aren't specified in the implementation tasks. Your findings, verification results, and analysis belong in your **output summary**, not in new files on disk.
 6. **Behavioral checks**: When `.writ/docs/app-verification.md` exists and the story adds user-facing behavior that no Feature Map row covers, write a check in the project's own test harness and add a matching Feature Map row (ID, feature, paths, check). Gate 4.5 runs it through `scripts/app-verify.py`: the check's exit code is the verdict, and you never grade the result.
@@ -160,6 +160,7 @@ When complete, provide a summary:
 - Tests written (file paths and test names)
 - Any deviations from the plan and why
 - Any concerns or areas needing review attention
+- A **### Repro** subsection in every report, in exactly one of the four forms under **Output Format** below
 - **If `boundary_map` was provided:** a **### Boundary Compliance** subsection (see **Output Format** below). If no boundary map was provided, omit this subsection entirely.
 
 Do NOT mark the story as complete - the review and testing phases will handle that.
@@ -205,7 +206,7 @@ If a **boundary_map** was supplied for the original run, it still applies — pr
 
 The Coding Agent must return a structured summary:
 
-```markdown
+````markdown
 ## Implementation Complete
 
 ### Files Created
@@ -234,6 +235,40 @@ The Coding Agent must return a structured summary:
 - **Self-fixed:** [List any issues caught and fixed during self-check, or "None"]
 - **Known issues:** [Any unfixable issues flagged for Gate 2 (lint, typecheck, build smoke), or "None"]
 
+### Repro
+
+_Every report has this section, in exactly one of these four forms. List commits oldest first._
+
+_Bug with a repro:_
+
+- **Kind:** bug: [the recognition signal that applied]
+- **Surface:** [where the bug shows]; the test enters through [entry point][; gap: what the harness could not reach]
+- **Command:** `[exact command that runs the repro]`
+- **Commits:** repro `[sha]` → fix `[sha]`[, `[sha]`]
+- **Before the fix (failing):**
+  ```text
+  [at most 20 lines]
+  ```
+- **After the fix (passing):**
+  ```text
+  [at most 10 lines from the same command]
+  ```
+- **Check:** [line 1, any `reason:` lines, and the summary line of `repro-order.py check`]
+
+_Bug without a repro:_
+
+- **Kind:** bug: [signal]
+- **Repro:** none: [reason]
+- **Regression test:** [path, or none]
+
+_Not a bug fix:_
+
+- **Kind:** not a bug fix: [reason]
+
+_Switch off (`.writ/config.md` has `- **Repro First:** off`):_
+
+- **Repro:** off
+
 ### Boundary Compliance
 
 _Include this section only when a non-empty `boundary_map` was supplied._
@@ -245,7 +280,7 @@ If you did not cross any boundaries: **BOUNDARY_DEVIATION:** None — **BOUNDARY
 
 ### Summary
 [2-3 sentence summary of what was implemented]
-```
+````
 
 ## Iteration Cap
 

@@ -55,6 +55,13 @@ in the isolated worktree into the corresponding paths of the orchestrator's
 own checkout. Files present in the worktree but outside the story's owned
 scope are not copied without inspection first.
 
+**Ordered commits.** When the agent's result names commits whose order is
+evidence, such as a repro commit before its fix, carry those commits with
+`git cherry-pick <sha>...`, oldest first, instead of copying their files, so
+the order and message trailers survive. On a conflict, run
+`git cherry-pick --abort`, copy the files as above, and say that the order was
+lost.
+
 ### 4. Re-verify in the orchestrator's own checkout
 
 The isolated worktree's own verification is not sufficient. Run verification

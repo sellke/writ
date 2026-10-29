@@ -64,6 +64,7 @@
 | `Gate 0 Divergence` | implement-story (Gate 0) | On by default; `off` disables the boundary-crossing-route sketches; see [Gate 0 Divergence](#gate-0-divergence) |
 | `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
 | `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
+| `Repro First` | tdd-cycle, coding-agent, prototype, implement-story (Gate 1) | `off` turns off the repro-first bug path; absent or `on` keeps it; see [Repro First](#repro-first) |
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
 > itself; supervised multi-spec execution runs through `/implement-phase` and needs
@@ -172,6 +173,25 @@ case turns it off; any other value means on with
 `reason: malformed_value <value>`. The key must match the case shown.
 `python3 scripts/review-override.py switch --name reviewer-filters --repo .`
 prints the state.
+
+## Repro First
+
+```markdown
+- **Repro First:** off
+```
+
+`- **Repro First:** on|off` under `## Conventions` turns off the repro-first
+bug path. It is never detected or offered for saving. No line, an empty value,
+or `on` means on. Only `off` in any case turns it off. Any other value also
+means on, and `python3 scripts/repro-order.py check --base <rev>` prints
+`reason: repro-first value <value> read as on`. The first matching line wins.
+The key must match the case shown. With `off`, the bug path in
+`skills/tdd-cycle/SKILL.md` is skipped and the ordinary cycle runs, so a bug
+fix still starts from a failing test. The coding agent's `### Repro` block
+reads `Repro: off`. Neither `/prototype` nor `/implement-story` runs the check,
+and the ordered-commits cherry-pick rule does not apply. Run by hand,
+`python3 scripts/repro-order.py check --base <rev>` prints `unverifiable` and
+`reason: repro-first off` and exits 0 before reading git.
 
 ## Rules
 

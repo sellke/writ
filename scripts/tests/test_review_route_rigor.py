@@ -520,7 +520,9 @@ SAFETY_LINE = (
     "`### Safety Fact` section, starting from `{blast_radius}`."
 )
 SAFETY_SLOT = "### Safety Fact (only when safety_fact is on; format in the skill)"
-IMPLEMENT_STORY_CAP = 40234
+# 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 40234 -> 40682, +448 for the
+# Gate 1 bug-path line, so this spec's 1,800-byte Gate 2.5/3 allowance is unchanged.
+IMPLEMENT_STORY_CAP = 40682
 RUNG_ORDER = ("claimed", "read", "traced", "tested", "reproduced")
 
 # Rung definitions only the skill may carry, compared normalized.
