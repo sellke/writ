@@ -1,6 +1,7 @@
 # Story 4: /refresh-command Execution-Failure and Used-Skill Criteria
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 87493aed118ed060c26efa0fdb06ee69eb3ffd87
 > **Priority:** High
 > **Dependencies:** None
 
