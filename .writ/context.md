@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-26T07:49:55Z
+> Last Updated: 2026-10-29T13:17:09Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
-- **Status:** In Progress (4/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
-- **Story:** 3 of 6 — Gate 0 Usage-First Divergence and the Gate 0 Divergence Switch (Completed ✅)
-- **Progress:** 27/41 tasks complete (66%)
+- **Status:** In Progress — awaiting blind rating (rating-handoff.md) (5/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
+- **Story:** 5 of 6 — Trial Inputs, Generation, Blinding, and Rating Handoff (Completed ✅)
+- **Progress:** 34/41 tasks complete (83%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-011 Outcome test also checks the committed trial inputs structurally — design-divergence (Story 5, Small)
+- DEV-010 First generation discarded for content tells; residual tells from the arm design remain — design-divergence (Story 5, Medium)
 - DEV-009 A script `unverifiable` arch-check also runs divergence — design-divergence (Story 3, Small)
-- DEV-008 `test_harness_cuts.py` edited to allow disclosed upward re-pins — design-divergence (Story 3, Small)
-- DEV-007 `Title:` lines inside `Structure:` are content — design-divergence (Story 4, Small)
 
 ## Open Issues
 

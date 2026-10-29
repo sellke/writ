@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype Record</title>
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --surface: #ffffff;
+    --border: #d9dce0;
+    --text: #1f2328;
+    --muted: #5f6670;
+    --faint: #eef0f2;
+    --accent: #2f6fde;
+    --accent-soft: #e8f0fd;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .page { max-width: 1120px; margin: 0 auto; padding: 0 16px 48px; }
+  header { padding: 24px 0 12px; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header .date { color: var(--muted); font-size: 13px; }
+  header .question { margin: 10px 0 0; font-size: 15px; }
+  header .question b { color: var(--muted); font-weight: 600; }
+
+  .verdict {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 8px 0 16px;
+    font-size: 15px;
+  }
+  .verdict b { color: var(--accent); }
+
+  .row {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  }
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .card.chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-head .label { font-weight: 600; flex: 1; min-width: 0; }
+  .badge {
+    font-size: 11px; padding: 1px 6px; border-radius: 3px;
+    background: var(--faint); color: var(--muted); border: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: .03em;
+  }
+  .tag { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; }
+  .tag.chosen { background: var(--accent); color: #fff; }
+  .tag.lost { background: var(--faint); color: var(--muted); border: 1px solid var(--border); }
+
+  .preview { height: 168px; border-bottom: 1px solid var(--border); background: var(--faint); overflow: hidden; position: relative; }
+  .preview iframe {
+    border: 0; width: 200%; height: 336px;
+    transform: scale(.5); transform-origin: 0 0;
+    pointer-events: none; background: #fff;
+  }
+  .preview pre, .detail pre {
+    margin: 0; padding: 8px 10px;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre; overflow: hidden;
+  }
+
+  .commitments { padding: 10px 12px 4px; }
+  .commitments h3, .detail h3 { margin: 0 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .commitments ul, .detail ul { margin: 0; padding-left: 18px; }
+  .commitments li { margin: 2px 0; }
+  .more { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .loss {
+    margin: 8px 12px 0;
+    padding: 6px 8px;
+    border-left: 3px solid var(--muted);
+    background: var(--faint);
+    font-size: 13px;
+  }
+  .loss b { font-weight: 600; }
+
+  .card-foot { margin-top: auto; padding: 10px 12px 12px; }
+  button {
+    font: inherit; font-size: 13px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius: 4px; padding: 4px 10px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  .detail {
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .detail[hidden] { display: none; }
+  .detail-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  .detail-head .label { font-weight: 600; flex: 1; }
+  .detail-body { padding: 12px; display: grid; gap: 16px; }
+  .detail iframe { width: 100%; height: 360px; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+  .code-full { border: 1px solid var(--border); border-radius: 4px; overflow-x: auto; background: var(--faint); }
+  .code-full pre { overflow: visible; }
+  .code-full .ln { display: inline-block; width: 2.5em; color: var(--muted); text-align: right; margin-right: 12px; user-select: none; }
+
+  details.matrix {
+    margin-top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  details.matrix summary { padding: 10px 12px; cursor: pointer; font-weight: 600; }
+  .matrix-wrap { overflow-x: auto; padding: 0 12px 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+  th.col, td.mark { text-align: center; width: 90px; }
+  th.col.chosen { color: var(--accent); }
+  td.mark { font-weight: 700; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page" id="app"></div>
+
+<script>
+const record = {
+  title: "/prototype: in-flight lanes in /status",
+  date: "2026-10-12",
+  question: "How should /status show lanes that are still running, so a reader can tell at a glance which one needs attention?",
+  choiceSummary: "lane cards put the blocked lane first and show its next action, which neither the table nor the tree did.",
+  drafts: [
+    {
+      id: "A", label: "A. Single table", kind: "page",
+      preview: `<style>body{font:13px system-ui;margin:12px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px;text-align:left}th{background:#eee}</style>
+<h3>Lanes</h3><table><tr><th>Lane</th><th>Spec</th><th>Story</th><th>State</th><th>Age</th></tr>
+<tr><td>1</td><td>why-command</td><td>4/4</td><td>done</td><td>2d</td></tr>
+<tr><td>2</td><td>design-divergence</td><td>2/5</td><td>blocked</td><td>6h</td></tr>
+<tr><td>3</td><td>lint-rules</td><td>1/3</td><td>running</td><td>40m</td></tr></table>`,
+      body: `<style>body{font:14px system-ui;margin:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#eee}</style>
+<h2>/status — lanes</h2>
+<table><tr><th>Lane</th><th>Spec</th><th>Story</th><th>State</th><th>Age</th><th>Branch</th></tr>
+<tr><td>1</td><td>why-command</td><td>4/4</td><td>done</td><td>2d</td><td>writ/phase/15/why-command</td></tr>
+<tr><td>2</td><td>design-divergence</td><td>2/5</td><td>blocked</td><td>6h</td><td>writ/phase/15/design-divergence</td></tr>
+<tr><td>3</td><td>lint-rules</td><td>1/3</td><td>running</td><td>40m</td><td>writ/phase/15/lint-rules</td></tr>
+<tr><td>4</td><td>eval-gate</td><td>0/2</td><td>queued</td><td>—</td><td>writ/phase/15/eval-gate</td></tr></table>
+<p style="color:#666">Sorted by lane number. Click a row to open the lane log.</p>`,
+      commitments: [
+        "One row per lane, sorted by lane number",
+        "State shown as a plain text column",
+        "Branch name visible on every row",
+        "No per-lane next action"
+      ]
+    },
+    {
+      id: "B", label: "B. Lane cards", kind: "page",
+      preview: `<style>body{font:13px system-ui;margin:12px}.c{border:1px solid #ccc;border-radius:6px;padding:8px;margin-bottom:8px}.b{border-color:#c33;border-width:2px}.s{font-size:11px;color:#666}</style>
+<div class="c b"><b>design-divergence</b> · blocked 6h<div class="s">Next: answer reviewer question on Story 2</div></div>
+<div class="c"><b>lint-rules</b> · running 40m<div class="s">Next: wait for Story 1 tests</div></div>
+<div class="c"><b>why-command</b> · done<div class="s">Next: merge lane</div></div>`,
+      body: `<style>body{font:14px system-ui;margin:20px}.c{border:1px solid #ccc;border-radius:8px;padding:12px;margin-bottom:10px}.b{border-color:#c33;border-width:2px}.s{font-size:13px;color:#555;margin-top:4px}h2{margin-top:0}</style>
+<h2>/status — lanes</h2>
+<div class="c b"><b>design-divergence</b> · blocked 6h · Story 2/5<div class="s">Next: answer reviewer question on Story 2 (contract vs. AC 3)</div></div>
+<div class="c"><b>lint-rules</b> · running 40m · Story 1/3<div class="s">Next: wait for Story 1 tests</div></div>
+<div class="c"><b>eval-gate</b> · queued · Story 0/2<div class="s">Next: starts after lint-rules</div></div>
+<div class="c"><b>why-command</b> · done · Story 4/4<div class="s">Next: merge lane into phase branch</div></div>
+<p style="color:#666">Order: blocked, running, queued, done.</p>`,
+      commitments: [
+        "One card per lane, blocked lanes first",
+        "Each card names the lane's next action",
+        "Blocked state gets the only strong border",
+        "Branch name moves to the lane log",
+        "Done lanes sink to the bottom"
+      ]
+    },
+    {
+      id: "C", label: "C. Text tree", kind: "code",
+      preview: `phase/15
+├─ why-command        done     4/4
+├─ design-divergence  BLOCKED  2/5  6h
+│  └─ story-2: reviewer question open
+├─ lint-rules         running  1/3  40m
+│  └─ story-1: tests running
+└─ eval-gate          queued   0/2
+`,
+      body: `def render_lanes(lanes):
+    """Print lanes as a tree under the phase branch."""
+    print(f"phase/{lanes.phase}")
+    for i, lane in enumerate(lanes):
+        last = i == len(lanes) - 1
+        branch = "└─" if last else "├─"
+        state = lane.state.upper() if lane.state == "blocked" else lane.state
+        age = f"  {lane.age}" if lane.age else ""
+        print(f"{branch} {lane.spec:<18} {state:<8} {lane.progress}{age}")
+        if lane.current_story and lane.state in ("blocked", "running"):
+            pad = "   " if last else "│  "
+            print(f"{pad}└─ {lane.current_story.id}: {lane.current_story.note}")
+
+
+# Sample output:
+# phase/15
+# ├─ why-command        done     4/4
+# ├─ design-divergence  BLOCKED  2/5  6h
+# │  └─ story-2: reviewer question open
+# ├─ lint-rules         running  1/3  40m
+# │  └─ story-1: tests running
+# └─ eval-gate          queued   0/2`,
+      commitments: [
+        "One row per lane, sorted by lane number",
+        "State shown as a plain text column",
+        "Blocked state shown in capitals",
+        "Current story note under active lanes",
+        "Works in a terminal with no rendering"
+      ]
+    }
+  ],
+  outcomes: [
+    { draftId: "A", chosen: false, reason: "Blocked lane sat in row 2 with no next action, so readers scanned every row to find what needed them." },
+    { draftId: "B", chosen: true, reason: "" },
+    { draftId: "C", chosen: false, reason: "Capitals were the only blocked signal, and the tree kept lane order, so the blocked lane was easy to miss." }
+  ]
+};
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function el(tag, attrs, html) {
+  const n = document.createElement(tag);
+  if (attrs) for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (html != null) n.innerHTML = html;
+  return n;
+}
+
+const app = document.getElementById("app");
+const outcomeFor = id => record.outcomes.find(o => o.draftId === id);
+const chosen = record.drafts.find(d => outcomeFor(d.id).chosen);
+
+// Header
+const header = el("header");
+header.innerHTML =
+  `<h1>${esc(record.title)}</h1>` +
+  `<div class="date">${esc(record.date)}</div>` +
+  `<p class="question"><b>Question:</b> ${esc(record.question)}</p>`;
+app.appendChild(header);
+
+// VerdictBanner
+app.appendChild(el("div", { class: "verdict", role: "status" },
+  `<b>Chose ${esc(chosen.id)}:</b> ${esc(record.choiceSummary)}`));
+
+// DraftRow
+const row = el("div", { class: "row" });
+row.style.setProperty("--cols", record.drafts.length);
+app.appendChild(row);
+
+// DraftDetail (single container, one open at a time)
+const detail = el("section", { class: "detail", id: "detail", "aria-live": "polite" });
+detail.hidden = true;
+app.appendChild(detail);
+
+const expandButtons = {};
+
+record.drafts.forEach(d => {
+  const o = outcomeFor(d.id);
+  const card = el("article", { class: "card" + (o.chosen ? " chosen" : "") });
+
+  // CardHead
+  card.appendChild(el("div", { class: "card-head" },
+    `<span class="label">${esc(d.label)}</span>` +
+    `<span class="badge">${d.kind}</span>` +
+    `<span class="tag ${o.chosen ? "chosen" : "lost"}">${o.chosen ? "Chosen" : "Lost"}</span>`));
+
+  // Preview
+  const pv = el("div", { class: "preview" });
+  if (d.kind === "page") {
+    const f = el("iframe", { title: d.label + " preview", tabindex: "-1", sandbox: "" });
+    f.srcdoc = d.preview;
+    pv.appendChild(f);
+  } else {
+    const lines = d.preview.split("\n").slice(0, 8).join("\n");
+    pv.appendChild(el("pre", null, esc(lines)));
+  }
+  card.appendChild(pv);
+
+  // CommitmentList
+  const shown = d.commitments.slice(0, 3);
+  const extra = d.commitments.length - shown.length;
+  card.appendChild(el("div", { class: "commitments" },
+    `<h3>Commits to</h3><ul>${shown.map(c => `<li>${esc(c)}</li>`).join("")}</ul>` +
+    (extra > 0 ? `<div class="more">+${extra} more</div>` : "")));
+
+  // LossReason
+  if (!o.chosen) {
+    card.appendChild(el("div", { class: "loss" }, `<b>Lost:</b> ${esc(o.reason)}`));
+  }
+
+  // ExpandButton
+  const foot = el("div", { class: "card-foot" });
+  const btn = el("button", { type: "button", "aria-expanded": "false", "aria-controls": "detail" }, "Expand");
+  btn.addEventListener("click", () => toggleDetail(d));
+  expandButtons[d.id] = btn;
+  foot.appendChild(btn);
+  card.appendChild(foot);
+
+  row.appendChild(card);
+});
+
+let openId = null;
+function toggleDetail(d) {
+  if (openId === d.id) { closeDetail(); return; }
+  openId = d.id;
+  for (const id in expandButtons) {
+    expandButtons[id].setAttribute("aria-expanded", id === d.id ? "true" : "false");
+    expandButtons[id].textContent = id === d.id ? "Expanded" : "Expand";
+  }
+  detail.innerHTML = "";
+  const head = el("div", { class: "detail-head" },
+    `<span class="label">${esc(d.label)}</span><span class="badge">${d.kind}</span>`);
+  const close = el("button", { type: "button" }, "Close");
+  close.addEventListener("click", closeDetail);
+  head.appendChild(close);
+  detail.appendChild(head);
+
+  const body = el("div", { class: "detail-body" });
+  // FullBody
+  if (d.kind === "page") {
+    const f = el("iframe", { title: d.label + " full page", sandbox: "" });
+    f.srcdoc = d.body;
+    body.appendChild(f);
+  } else {
+    const lines = d.body.split("\n").map((l, i) =>
+      `<span class="ln">${i + 1}</span>${esc(l)}`).join("\n");
+    const wrap = el("div", { class: "code-full" });
+    wrap.appendChild(el("pre", null, lines));
+    body.appendChild(wrap);
+  }
+  // AllCommitments
+  body.appendChild(el("div", null,
+    `<h3>All commitments (${d.commitments.length})</h3><ul>${d.commitments.map(c => `<li>${esc(c)}</li>`).join("")}</ul>`));
+  detail.appendChild(body);
+  detail.hidden = false;
+}
+function closeDetail() {
+  openId = null;
+  detail.hidden = true;
+  detail.innerHTML = "";
+  for (const id in expandButtons) {
+    expandButtons[id].setAttribute("aria-expanded", "false");
+    expandButtons[id].textContent = "Expand";
+  }
+}
+
+// CommitmentMatrix
+const all = [];
+record.drafts.forEach(d => d.commitments.forEach(c => { if (!all.includes(c)) all.push(c); }));
+const matrix = el("details", { class: "matrix" });
+matrix.appendChild(el("summary", null, `Commitment matrix (${all.length} commitments × ${record.drafts.length} drafts)`));
+const thead = `<tr><th>Commitment</th>${record.drafts.map(d =>
+  `<th class="col${outcomeFor(d.id).chosen ? " chosen" : ""}">${esc(d.id)}</th>`).join("")}</tr>`;
+const rows = all.map(c => `<tr><td>${esc(c)}</td>${record.drafts.map(d =>
+  `<td class="mark" aria-label="${d.commitments.includes(c) ? "applies" : "does not apply"}">${d.commitments.includes(c) ? "●" : ""}</td>`).join("")}</tr>`).join("");
+const wrap = el("div", { class: "matrix-wrap" }, `<table><thead>${thead}</thead><tbody>${rows}</tbody></table>`);
+matrix.appendChild(wrap);
+app.appendChild(matrix);
+</script>
+</body>
+</html>

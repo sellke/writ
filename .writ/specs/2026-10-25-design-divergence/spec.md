@@ -1,6 +1,6 @@
 # Design Divergence Skill and Usage-First Gate 0
 
-> **Status:** In Progress
+> **Status:** In Progress — awaiting blind rating (rating-handoff.md)
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** []

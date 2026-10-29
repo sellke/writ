@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Progress</title>
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --surface: #ffffff;
+    --border: #dfe2e6;
+    --text: #1f2328;
+    --muted: #656d76;
+    --accent: #2563eb;
+    --pass: #2563eb;
+    --red: #c62828;
+    --red-bg: #fdecea;
+    --gray-bg: #eef0f2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  main { max-width: 820px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* RemainingHeader */
+  .remaining-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .spec-id { color: var(--muted); font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .spec-title { margin: 2px 0 12px; font-size: 20px; font-weight: 600; }
+  .totals { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-bottom: 12px; }
+  .total { font-size: 16px; }
+  .total strong { font-size: 22px; font-weight: 600; }
+  .status-counts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .status-counts li {
+    background: var(--gray-bg);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .status-counts li b { color: var(--text); font-weight: 600; }
+  .status-counts li.blocked-alert { background: var(--red-bg); color: var(--red); }
+  .status-counts li.blocked-alert b { color: var(--red); }
+
+  /* StoryCardList */
+  .story-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .story-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+  }
+  .card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .card-title { margin: 0; font-size: 16px; font-weight: 600; flex: 1 1 260px; }
+  .card-title .sid { color: var(--muted); font-weight: 500; margin-right: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  .badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .badge.blocked { background: var(--red-bg); color: var(--red); border-color: #f3c3bf; }
+  .badge.in-progress { background: #e8effd; color: var(--accent); border-color: #c4d5f8; }
+  .badge.not-started { background: var(--gray-bg); color: var(--muted); border-color: var(--border); }
+  .badge.completed { background: #ffffff; color: #3b4048; border-color: #9aa1a9; }
+  .crit-count { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .crit-count b { color: var(--text); }
+
+  .mismatch {
+    margin: 10px 0 0;
+    padding: 6px 10px;
+    border-left: 3px solid var(--red);
+    background: var(--red-bg);
+    color: var(--red);
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  details.criteria { margin-top: 10px; }
+  details.criteria > summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    user-select: none;
+  }
+  .criteria-list { list-style: none; margin: 8px 0 0; padding: 0; }
+  .criterion {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 5px 0;
+    border-top: 1px solid #f0f1f3;
+  }
+  .criterion:first-child { border-top: 0; }
+  .box {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 3px;
+    border: 1.5px solid #9aa1a9;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .box.pass { background: var(--pass); border-color: var(--pass); color: #fff; }
+  .crit-id { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; margin-right: 6px; }
+  .criterion.failing .crit-text { color: var(--text); }
+  .criterion.passing .crit-text { color: #4a5059; }
+</style>
+</head>
+<body>
+<main>
+
+  <!-- RemainingHeader: counts from remaining(spec) -->
+  <header class="remaining-header" aria-label="Remaining work">
+    <div class="spec-id">2026-10-25-why-command</div>
+    <h1 class="spec-title">/why command</h1>
+    <div class="totals">
+      <div class="total"><strong>3</strong> of 6 stories completed</div>
+      <div class="total"><strong>14</strong> of 24 criteria passing</div>
+    </div>
+    <ul class="status-counts" aria-label="Stories per status">
+      <li class="blocked-alert">Blocked <b>1</b></li>
+      <li>In Progress <b>1</b></li>
+      <li>Not Started <b>1</b></li>
+      <li>Completed <b>3</b></li>
+    </ul>
+  </header>
+
+  <!-- StoryCardList: Blocked, In Progress, Not Started, Completed -->
+  <ol class="story-list">
+
+    <li class="story-card">
+      <div class="card-head">
+        <h2 class="card-title"><span class="sid">story-5</span>Query connected MCP servers</h2>
+        <span class="badge blocked">Blocked</span>
+        <span class="crit-count"><b>1</b> / 5 passing</span>
+      </div>
+      <details class="criteria" open>
+        <summary>Acceptance criteria</summary>
+        <ul class="criteria-list">
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC5.1</span>Lists connected MCP servers before querying any of them</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC5.2</span>Queries an MCP server only after ledger and git history return no answer</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC5.3</span>Tags each MCP-sourced claim with the server it came from</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC5.4</span>Skips a server that requires authentication and says which one was skipped</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC5.5</span>Times out a server query after 20 seconds and continues</span></li>
+        </ul>
+      </details>
+    </li>
+
+    <li class="story-card">
+      <div class="card-head">
+        <h2 class="card-title"><span class="sid">story-3</span>Route why-or-how questions to /why</h2>
+        <span class="badge in-progress">In Progress</span>
+        <span class="crit-count"><b>2</b> / 4 passing</span>
+      </div>
+      <details class="criteria" open>
+        <summary>Acceptance criteria</summary>
+        <ul class="criteria-list">
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC3.1</span>/writ routes "why is X like this" to /why</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC3.2</span>/writ keeps routing "build X" requests to /create-spec</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC3.3</span>A mixed why-and-change request runs /why first, then offers /create-spec</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC3.4</span>The routing table in the /writ command lists /why</span></li>
+        </ul>
+      </details>
+    </li>
+
+    <li class="story-card">
+      <div class="card-head">
+        <h2 class="card-title"><span class="sid">story-4</span>create-spec reads a /why handoff</h2>
+        <span class="badge not-started">Not Started</span>
+        <span class="crit-count"><b>0</b> / 3 passing</span>
+      </div>
+      <details class="criteria" open>
+        <summary>Acceptance criteria</summary>
+        <ul class="criteria-list">
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC4.1</span>Step 1.2 loads the Preserve / Change / Avoid / Risk list when a handoff file exists</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC4.2</span>Preserve items appear as constraints in the spec contract</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC4.3</span>Without a handoff file, Step 1.2 behaves as before</span></li>
+        </ul>
+      </details>
+    </li>
+
+    <li class="story-card">
+      <div class="card-head">
+        <h2 class="card-title"><span class="sid">story-1</span>Answer from the Writ ledger</h2>
+        <span class="badge completed">Completed</span>
+        <span class="crit-count"><b>4</b> / 4 passing</span>
+      </div>
+      <details class="criteria">
+        <summary>Acceptance criteria</summary>
+        <ul class="criteria-list">
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC1.1</span>Searches ADRs, specs, and knowledge entries under .writ/ first</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC1.2</span>Cites the file path for every ledger claim</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC1.3</span>Marks a claim backed by an accepted ADR as High confidence</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC1.4</span>Reports "no ledger record" instead of guessing when nothing matches</span></li>
+        </ul>
+      </details>
+    </li>
+
+    <li class="story-card">
+      <div class="card-head">
+        <h2 class="card-title"><span class="sid">story-2</span>Fall back to git history</h2>
+        <span class="badge completed">Completed</span>
+        <span class="crit-count"><b>4</b> / 5 passing</span>
+      </div>
+      <p class="mismatch" role="note">Marked Completed, but 1 criterion has no passing test.</p>
+      <details class="criteria" open>
+        <summary>Acceptance criteria</summary>
+        <ul class="criteria-list">
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC2.1</span>Runs git log and git blame only when the ledger has no answer</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC2.2</span>Quotes the commit SHA and subject for each claim</span></li>
+          <li class="criterion failing"><span class="box" aria-label="failing"></span><span class="crit-text"><span class="crit-id">AC2.3</span>Follows a file across renames with --follow</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC2.4</span>Marks a claim inferred from a commit message as Medium confidence</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC2.5</span>Works in a shallow clone and says the history is partial</span></li>
+        </ul>
+      </details>
+    </li>
+
+    <li class="story-card">
+      <div class="card-head">
+        <h2 class="card-title"><span class="sid">story-6</span>Confidence tier on every claim</h2>
+        <span class="badge completed">Completed</span>
+        <span class="crit-count"><b>3</b> / 3 passing</span>
+      </div>
+      <details class="criteria">
+        <summary>Acceptance criteria</summary>
+        <ul class="criteria-list">
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC6.1</span>Every claim in the answer carries High, Medium, or Low</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC6.2</span>The answer states which source each tier came from</span></li>
+          <li class="criterion passing"><span class="box pass" aria-label="passing">&#10003;</span><span class="crit-text"><span class="crit-id">AC6.3</span>Low-confidence claims are listed after higher ones</span></li>
+        </ul>
+      </details>
+    </li>
+
+  </ol>
+</main>
+</body>
+</html>

@@ -102,3 +102,28 @@
 - **Reason:** On the default path `arch-check.py` can return `unverifiable` and the pipeline continues; without this case Gate 0 would print no `gate0-divergence:` line on that run.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md → For Review Agents → Business Rules, Route line now names a script `unverifiable`. The stale For Testing Agents edge case "Malformed switch value → off with reason" now reads "on with `gate0-divergence: on (malformed: <value>)` (D24)".
+
+---
+
+## Story 5: Trial Inputs, Generation, Blinding, and Rating Handoff — Drift Report
+
+> Run: 2026-10-26
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-010] First generation discarded for content tells; residual tells from the arm design remain
+- **Severity:** Medium
+- **Spec said:** Hardest Constraint: the keep/remove verdict rests on a human's blind rating. Business Rule 10 and D14: blinding strips `Commitment:` lines and titles, shuffles drafts, assigns sets at random; the accepted risk is the rater opening the key or raw files.
+- **Implementation did:** Gate 3 cycle 1 returned PAUSE (Large): the first-generation sheet showed which set was which in several briefs, because `prompts/axes.md` asked drafts to show changes to the caller lines and the arms differed in draft length. Lane mode cannot ask the owner, and the only option that keeps the contract was regeneration, so the orchestrator took the reject path. `prompts/axes.md` now treats caller lines as private input that drafts must not quote or mention, and forbids naming the persona or combination in a draft. The shared template sets Structure to 15 to 25 lines and requires each draft to stand alone. The first generation was discarded before any rating; both arms were regenerated, re-blinded with a new seed, and re-rendered. Gate 3 cycle 2 passed. Weaker tells remain that follow from the arm definitions themselves (one response vs three separate spawns, and drafts that must support the same caller usage); they cannot be removed without changing the spec's arm design.
+- **Reason:** A rating that is not blind cannot carry the keep/remove decision. Regeneration was reversible and cost 37 spawns; accepting the leak would have weakened the contract.
+- **Resolution:** Logged (Medium); PASS on cycle 2. Story 6: after rating, record next to `trial-report.md` (in ADR-030 § Review and the Story 6 What Was Built) that the sheet carried style and identifier tells inherent to the arm design and that the rater wrote the protocol, because the report's fixed `blinding:` line alone overstates the blinding. Do not add the specific tells to `rating-handoff.md` before rating.
+- **Spec amendment:** None to spec-lite.md. A D14 note for the owner: the residual risk is "content tells from the arm design; the rater is the protocol author", not only "the rater could open the key".
+
+#### [DEV-011] Outcome test also checks the committed trial inputs structurally
+- **Severity:** Small
+- **Spec said:** the outcome test skips while `trial-report.md` is absent, then asserts the Verdict Execution table.
+- **Implementation did:** it also checks the briefs, shared prompt template, trial file hashes, raw arms, rating sheet (no column-0 `Commitment:` or `Title:`, no arm label in a label position), renders, and handoff, each skipping until its files exist.
+- **Reason:** These checks guard the committed record after Story 6 deletes the harness.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** None needed in spec-lite.md.
