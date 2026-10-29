@@ -1,6 +1,7 @@
 # Story 3: The Coding Agent's Repro Report
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 320bbf65a218a71ea73afd9728c7023a5b1ef382
 > **Priority:** High
 > **Dependencies:** Story 2
 
