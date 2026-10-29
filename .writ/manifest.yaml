@@ -256,6 +256,11 @@ agents:
 # See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
 #      ADR-014 (.writ/decision-records/adr-014-skill-lifecycle.md)
 skills:
+  - name: blast-radius
+    file: skills/blast-radius/SKILL.md
+    description: "Name the one fact a change is safe because of and push its evidence up a five-rung ladder."
+    status: candidate
+    tags: [review, safety, evidence]
   - name: boundary-map-computation
     file: skills/boundary-map-computation/SKILL.md
     description: "Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data."
@@ -306,6 +311,11 @@ skills:
     description: "Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources."
     status: candidate
     tags: [context, snapshot, reporting]
+  - name: review-judgment-filters
+    file: skills/review-judgment-filters/SKILL.md
+    description: "Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings."
+    status: candidate
+    tags: [review, judgment, security]
   - name: safe-refactor-loop
     file: skills/safe-refactor-loop/SKILL.md
     description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."

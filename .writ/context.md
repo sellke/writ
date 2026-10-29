@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T13:17:09Z
+> Last Updated: 2026-10-29T16:41:30Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
-- **Status:** In Progress — awaiting blind rating (rating-handoff.md) (5/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
-- **Story:** 5 of 6 — Trial Inputs, Generation, Blinding, and Rating Handoff (Completed ✅)
-- **Progress:** 34/41 tasks complete (83%)
+- **Spec:** 2026-10-25-review-route-rigor — Review-Route Rigor
+- **Status:** Complete (Phase 15 lane `writ/phase/15/2026-10-25-review-route-rigor`)
+- **Story:** 4 of 4 — Safety fact at Gate 3 (Completed ✅ (2026-10-29))
+- **Progress:** 26/26 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-design-divergence/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-review-route-rigor/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-011 Outcome test also checks the committed trial inputs structurally — design-divergence (Story 5, Small)
-- DEV-010 First generation discarded for content tells; residual tells from the arm design remain — design-divergence (Story 5, Medium)
-- DEV-009 A script `unverifiable` arch-check also runs divergence — design-divergence (Story 3, Small)
+- DEV-019 Routing precedence when reasons co-occur — review-route-rigor (Story 4, Small)
+- DEV-018 `review-agent` gains a `## Recorded Test Results` prompt block — review-route-rigor (Story 4, Small)
+- DEV-017 `tested` accepts pytest node IDs — review-route-rigor (Story 4, Small)
 
 ## Open Issues
 

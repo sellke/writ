@@ -62,6 +62,8 @@
 | `Writ Issues` | status | Path to issues folder (default: `.writ/issues/`) |
 | `Review Panel` | implement-story (Gate 3) | Opt-in cross-vendor reviewer slugs; see [Review Panel](#review-panel) |
 | `Gate 0 Divergence` | implement-story (Gate 0) | On by default; `off` disables the boundary-crossing-route sketches; see [Gate 0 Divergence](#gate-0-divergence) |
+| `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
+| `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
 > itself; supervised multi-spec execution runs through `/implement-phase` and needs
@@ -141,6 +143,35 @@ It is never detected or offered for saving. No line, or `on`, means on. Any
 other value also means on, and Gate 0 prints
 `gate0-divergence: on (malformed: <value>)`, so a typo never disables the
 sketches. Only Gate 0 reads the line; `/prototype` is unaffected.
+
+## Safety Fact
+
+```markdown
+- **Safety Fact:** off
+```
+
+`- **Safety Fact:** on|off` turns off the `/implement-story` Gate 2.5 blast
+radius and the Gate 3 safety-fact section and verifier. It is never detected
+or offered for saving. No line, an empty value, or `on` means on. Only `off`
+in any case turns it off; surrounding whitespace is ignored. Any other value
+also means on and resolves with `reason: malformed_value <value>`. The first
+matching line wins. The key must match the case shown.
+`python3 scripts/review-override.py switch --name safety-fact --repo .`
+prints the state.
+
+## Reviewer Filters
+
+```markdown
+- **Reviewer Filters:** off
+```
+
+`- **Reviewer Filters:** on|off` turns off the lead-judgment filters that the
+Gate 3 reviewers and `/review` apply. It follows the same rules as
+`Safety Fact`: no line, an empty value, or `on` means on; only `off` in any
+case turns it off; any other value means on with
+`reason: malformed_value <value>`. The key must match the case shown.
+`python3 scripts/review-override.py switch --name reviewer-filters --repo .`
+prints the state.
 
 ## Rules
 
