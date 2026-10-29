@@ -1,6 +1,7 @@
 # Story 4: Consumer Wiring and Ordered-Commit Integration
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** cbf054a39d129314cc7bf6892ab87a0be94ea7cf
 > **Priority:** High
 > **Dependencies:** Story 3
 
