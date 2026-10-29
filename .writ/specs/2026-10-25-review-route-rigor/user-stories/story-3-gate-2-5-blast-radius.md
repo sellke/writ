@@ -1,6 +1,7 @@
 # Story 3: Blast radius at Gate 2.5
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 6382e2488e73d0f970273920d734b6547b3a0ce1
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
