@@ -292,7 +292,7 @@ An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` wi
 > **Skip in:** `--quick` mode
 > **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
 
-Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's own run of the story's tests (command, exit code, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's own run of the story's tests (`command:`, `exit code: N`, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
 **Reviewer filters.** Once per story, run `python3 scripts/review-override.py switch --name reviewer-filters` and pass line 1 as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent`, panel reviewers, and any re-review. The story report prints `reviewer-filters: <on|off>`.
 
@@ -303,7 +303,7 @@ Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `re
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
 
-Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`.
+Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`, `recorded_test_results`, `blast_radius`, `safety_fact` (`on` unless `blast_radius` is `(none)`).
 
 **Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
@@ -319,6 +319,14 @@ Show both the agent's claim and the script's measurement in the story report. Th
 
 - **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the review-loop recode path.
 - **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
+
+**Safety fact (`safety_fact` on).** Save the review and `recorded_test_results` to `.writ/state/gate3-review-<story-stem>.md` and `gate3-tests-<story-stem>.txt`; run `python3 scripts/review-override.py safety-fact --review-output <review> --repo . --blast-radius <blast_radius> --tests-output <tests>`. First match wins:
+
+- `safety_fact_contradicts_verdict` → Gate 3 FAIL.
+- `safety_fact_missing` or `safety_fact_below_floor` → re-spawn `review-agent` once, appending the `rung:`/`reason:` lines; re-verify (same Gate 3 attempt, no `review_cycle` increment). Still missing → BLOCKED escalation (`review-agent`, restart Gate 3). Still below floor → Gate 3 FAIL; the coder gets the `fact:`/`rung:` lines to add a test that exercises the fact.
+- `pass`, `unverifiable`, or exit not 0/1/2 → continue, print the reason, never `⚠️ DEGRADED`.
+
+A fail counts as a panel `block`: one increment; on PAUSE, accept recodes. Report `safety-fact: <measured> (claimed <claimed>) — <fact>`, else `safety-fact: off` or `safety-fact: not on route`.
 
 **Jev shadow (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, save the recorded test output (the story's targeted run, `recorded_test_results`, not the full suite), the story diff, and the Gate 3 agent's output under `.writ/state/` and run `python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests-output> --diff <diff> --review-output <review-output>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
 

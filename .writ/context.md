@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T15:33:10Z
+> Last Updated: 2026-10-29T16:25:47Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-review-route-rigor — Review-Route Rigor
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-review-route-rigor`)
-- **Story:** 3 of 4 — Blast radius at Gate 2.5 (Completed ✅ (2026-10-29))
-- **Progress:** 19/26 tasks complete (73%)
+- **Story:** 4 of 4 — Safety fact at Gate 3 (Completed ✅ (2026-10-29))
+- **Progress:** 26/26 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-011 `--pretty` counts are taken before the cap and cover non-test changed files — review-route-rigor (Story 3, Small)
-- DEV-010 Non-regular and unreadable candidates skipped — review-route-rigor (Story 3, Small)
-- DEV-009 `.writ/` skipped at any depth — review-route-rigor (Story 3, Small)
+- DEV-019 Routing precedence when reasons co-occur — review-route-rigor (Story 4, Small)
+- DEV-018 `review-agent` gains a `## Recorded Test Results` prompt block — review-route-rigor (Story 4, Small)
+- DEV-017 `tested` accepts pytest node IDs — review-route-rigor (Story 4, Small)
 
 ## Open Issues
 

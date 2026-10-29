@@ -137,6 +137,7 @@ and is not installed.
 
 | Skill | Status | File | Description |
 |-------|--------|------|-------------|
+| `blast-radius` | `candidate` | `skills/blast-radius/SKILL.md` | Name the one fact a change is safe because of and push its evidence up a five-rung ladder. |
 | `boundary-map-computation` | `candidate` | `skills/boundary-map-computation/SKILL.md` | Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data. |
 | `change-surface-classification` | `candidate` | `skills/change-surface-classification/SKILL.md` | Classify a change set as style-only, single-component, cross-component, or full-stack. |
 | `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |

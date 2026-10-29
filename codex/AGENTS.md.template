@@ -138,6 +138,7 @@ The `--recommend` rules and the rest of Writ's system instructions are in `.code
 
 | Skill | File | Description |
 |-------|------|-------------|
+| `blast-radius` | `.agents/skills/blast-radius/SKILL.md` | Name the one fact a change is safe because of and push its evidence up a five-rung ladder. |
 | `boundary-map-computation` | `.agents/skills/boundary-map-computation/SKILL.md` | Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data. |
 | `change-surface-classification` | `.agents/skills/change-surface-classification/SKILL.md` | Classify a change set as style-only, single-component, cross-component, or full-stack. |
 | `code-explanation` | `.agents/skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |

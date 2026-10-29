@@ -118,3 +118,76 @@
 - **Reason:** The human view reports the true size. Story 4 reads the JSON, so the integration point is unaffected.
 - **Resolution:** Auto-amended
 - **Spec amendment:** § Blast Radius `--pretty` bullet: "one line per non-test changed file, counted before the `--limit` cap; `<k>` counts distinct consumers before the cap." None needed in spec-lite.md.
+
+---
+
+## Story 4: Safety fact at Gate 3 — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-012] Story report line leaves out the State Catalog outcome suffixes
+- **Severity:** Medium
+- **Spec said:** spec.md → Experience Design → State Catalog shows `— does not hold`, `— contradicts verdict`, `— below floor`, `safety-fact: missing`, and `safety-fact: unverifiable (<reason>)`.
+- **Implementation did:** Gate 3 prints `safety-fact: <measured> (claimed <claimed>) — <fact>`, `safety-fact: off`, or `safety-fact: not on route`, and "print the reason" for `unverifiable` — the technical-spec § Gate 3 Change draft.
+- **Reason:** The technical-spec draft and the State Catalog disagree. The 1,800-byte cap leaves 5 bytes, which does not fit the suffixes. The verifier's line 1 and `reason:` lines still carry the outcome, and the removal-measurement spec reads those.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review. Either amend the State Catalog to the shipped form or add "plus ` — <reason>` on a fail" and trim elsewhere in Gate 3.
+
+#### [DEV-013] `Holds: no` with no verdict line is a contradiction
+- **Severity:** Small
+- **Spec said:** `safety_fact_contradicts_verdict` fires on `Holds: no` with verdict PASS.
+- **Implementation did:** It also fires when no `REVIEW_RESULT` or `EVALUATION_RESULT` line is found.
+- **Reason:** The table does not cover a missing verdict; without this the case would pass or fail with no reason. Failing closed is the safer reading.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Verifier table, `contradicts` row: "`Holds: no` with verdict PASS, or with no verdict line". None needed in spec-lite.md.
+
+#### [DEV-014] No section prints `missing section` and `below_floor none`
+- **Severity:** Small
+- **Spec said:** No section → `safety_fact_missing`; "when more than one fail reason applies, all are printed in the table's order".
+- **Implementation did:** Prints `reason: safety_fact_missing section` then `reason: safety_fact_below_floor none`.
+- **Reason:** Both conditions are true. Gate 3 checks "still missing" before "still below floor", so routing is unchanged.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Verifier: "With no section, the measured rung is `none` and `below_floor none` follows `missing section`." None needed in spec-lite.md.
+
+#### [DEV-015] Every evidence line of a rung must be accepted, for every rung
+- **Severity:** Small
+- **Spec said:** "Every cited `path:line` is valid" is stated for `traced` only.
+- **Implementation did:** One bad `read`, `tested`, or `reproduced` line also rejects that rung; the skill says the same.
+- **Reason:** Consistent with `traced`; stops a reviewer padding a rung with unchecked citations.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Evidence Ladder: "A rung counts only when it has at least one evidence line and every line for that rung is accepted." None needed in spec-lite.md.
+
+#### [DEV-016] Absolute cited paths are rejected even inside `--repo`
+- **Severity:** Small
+- **Spec said:** "A path that resolves outside `--repo` is rejected."
+- **Implementation did:** Every absolute path is rejected; the skill tells reviewers to cite repo-relative paths.
+- **Reason:** Stricter, simpler rule with the same intent.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Verifier → Parsing: "Cited paths are repo-relative; an absolute path, or one that resolves outside `--repo`, is rejected." spec-lite.md "Cited path outside `--repo` or missing → evidence rejected" still holds.
+
+#### [DEV-017] `tested` accepts pytest node IDs
+- **Severity:** Small
+- **Spec said:** `- tested: path::test_name`, accepted when `test_name` occurs in the file's text.
+- **Implementation did:** Also accepts `path::Class::name` and strips a trailing `[param]`; every `::` segment must occur in the file.
+- **Reason:** Reviewers copy pytest node IDs.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Evidence Ladder `tested` row: "`path::name` or a pytest node ID; each `::` segment, `[param]` removed, occurs in the file's text". None needed in spec-lite.md.
+
+#### [DEV-018] `review-agent` gains a `## Recorded Test Results` prompt block
+- **Severity:** Small
+- **Spec said:** review-agent gets input rows, one conditional line, and one output slot; Clean Removal step 5 lists those.
+- **Implementation did:** Also adds a `{recorded_test_results}` block to the prompt template so the new input reaches the agent.
+- **Reason:** Required plumbing for the `tested` rung.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Agent and Command Changes and § Clean Removal → Remove `safety-fact` step 5 also name the `## Recorded Test Results` prompt block. None needed in spec-lite.md.
+
+#### [DEV-019] Routing precedence when reasons co-occur
+- **Severity:** Small
+- **Spec said:** Each reason has its own outcome; the re-spawn carries "the `reason:` lines".
+- **Implementation did:** Gate 3 routes "first match wins" with `safety_fact_contradicts_verdict` first (recode, no re-review); the re-spawn carries the `rung:` and `reason:` lines (Gate 0 divergence sketch A).
+- **Reason:** A reviewer that found the fact does not hold is past the point a re-review helps; the skill's re-review guidance reads the `rung:` line.
+- **Resolution:** Auto-amended
+- **Spec amendment:** spec.md → Verifier outcomes is never auto-modified; proposed text: "When `safety_fact_contradicts_verdict` is among the reasons, it decides the outcome. The re-review receives the `rung:` and `reason:` lines." None needed in spec-lite.md.

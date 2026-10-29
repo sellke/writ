@@ -484,5 +484,341 @@ class FilterTextIsolationTest(unittest.TestCase):
         self.assertEqual(hits, [], "\n".join(hits))
 
 
+# ---------------------------------------------------------------------------
+# Story 4 of `2026-10-25-review-route-rigor`: the safety fact at Gate 3.
+# [AC-4.4, AC-4.5]
+#
+# - `skills/blast-radius/SKILL.md`: frontmatter, lint, the ladder table, the
+#   section format, and its registration (manifest, README, root catalog,
+#   generated copies).
+# - The ladder's rung definitions live only in the skill: none of the agent
+#   or command trees carry them, so the switch-off arm carries no ladder text.
+# - `agents/review-agent.md` takes `recorded_test_results`, `safety_fact`, and
+#   `blast_radius`, reads the skill only when `safety_fact` is `on`, and has a
+#   one-line output slot; the generated reviewer carries the same.
+# - Gate 3 of `commands/implement-story.md` saves the review output and the
+#   recorded run, runs `review-override.py safety-fact`, routes each reason,
+#   counts the re-review as the same attempt, and prints the report lines;
+#   nothing outside Gate 3 runs the verifier.
+# - `agents/evaluator-agent.md` takes no `safety_fact`: the evaluator never
+#   runs on the risk route.
+# ---------------------------------------------------------------------------
+
+BLAST_NAME = "blast-radius"
+BLAST_REL = "skills/blast-radius/SKILL.md"
+BLAST_SKILL = REPO_ROOT / "skills" / BLAST_NAME / "SKILL.md"
+BLAST_DESCRIPTION = (
+    "Name the one fact a change is safe because of and push its evidence up a "
+    "five-rung ladder."
+)
+BLAST_STATUS_EVIDENCE = (
+    "Phase 15 (2026-10-25). 1 consumer: agents/review-agent.md; kept as a skill "
+    "so the safety-fact switch can remove it cleanly."
+)
+SAFETY_LINE = (
+    "When `{safety_fact}` is `on`, `Read skills/blast-radius/SKILL.md` and write its "
+    "`### Safety Fact` section, starting from `{blast_radius}`."
+)
+SAFETY_SLOT = "### Safety Fact (only when safety_fact is on; format in the skill)"
+IMPLEMENT_STORY_CAP = 40234
+RUNG_ORDER = ("claimed", "read", "traced", "tested", "reproduced")
+
+# Rung definitions only the skill may carry, compared normalized.
+LADDER_SENTENCES = (
+    "someone said so: the coding agent's report, a commit message, a comment, the spec",
+    "the reviewer read the code that makes the fact true",
+    "the reviewer followed the changed code to its callers",
+    "a test exercises the fact and passed in the orchestrator's recorded run",
+    "the fact was observed in the running app",
+    "the ladder is not cumulative",
+)
+
+
+def blast_text() -> str:
+    if not BLAST_SKILL.is_file():
+        raise AssertionError("%s does not exist" % BLAST_REL)
+    return read(BLAST_SKILL)
+
+
+class BlastSkillTest(unittest.TestCase):
+    """Frontmatter, lint, sections, ladder table, section format. [AC-4.5]"""
+
+    def setUp(self) -> None:
+        self.frontmatter, self.body = split_frontmatter(blast_text())
+        self.how = slice_between(self.body, "## How to Apply", "## ")
+
+    def test_frontmatter(self) -> None:
+        fm = self.frontmatter
+        self.assertEqual(frontmatter_value(fm, "name"), BLAST_NAME)
+        self.assertEqual(frontmatter_value(fm, "description"), BLAST_DESCRIPTION)
+        self.assertEqual(frontmatter_value(fm, "disable-model-invocation"), "true")
+        self.assertEqual(frontmatter_value(fm, "status"), "candidate")
+        self.assertEqual(frontmatter_value(fm, "status_evidence"), BLAST_STATUS_EVIDENCE)
+
+    def test_lint_passes(self) -> None:
+        result = subprocess.run(
+            ["bash", str(LINT), BLAST_REL],
+            cwd=str(REPO_ROOT),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        first = result.stdout.splitlines()[0] if result.stdout else ""
+        self.assertEqual(first, "pass", result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_sections_in_order(self) -> None:
+        headings = [l for l in self.body.splitlines() if l.startswith("## ")]
+        required = ["## Purpose", "## When to Use", "## How to Apply"]
+        for heading in required:
+            self.assertIn(heading, headings)
+        self.assertEqual([headings.index(h) for h in required],
+                         sorted(headings.index(h) for h in required))
+
+    def test_ladder_table_lists_five_rungs_in_order(self) -> None:
+        rows = table_rows(slice_between(self.how, "### Evidence Ladder", "### "))
+        rungs = [re.search(r"`(\w+)`", r.split("|")[2]).group(1) for r in rows]
+        self.assertEqual(rungs, list(RUNG_ORDER))
+        for row in rows:
+            self.assertEqual(len([c for c in row.strip("|").split("|")]), 4, row)
+
+    def test_section_format(self) -> None:
+        # The format block itself holds a `### Safety Fact` line, so the slice
+        # runs to the next named subsection rather than the next `### `.
+        block = slice_between(self.how, "### Safety Fact section", "### Rules")
+        for line in ("### Safety Fact", "**Fact:**", "**Holds:** yes | no",
+                     "**Rung:** claimed | read | traced | tested | reproduced",
+                     "**Evidence:**", "- read:", "- traced:", "- tested:"):
+            self.assertIn(line, block)
+        self.assertIn("### Security Assessment", block)
+
+    def test_rules(self) -> None:
+        how = normalized(self.how)
+        for phrase in (
+            "one fact",
+            "name the weaker one",
+            "a fact about the code, not about the process",
+            "push the fact up the ladder",
+            "**holds:** no",
+            "`architecture`",
+            "`security`",
+            "`blast_radius`",
+            "`consumers`",
+            "`tests`",
+            "search for callers yourself",
+            "`app-verify-result-v1`",
+            "recode iteration",
+            "did not change since",
+            "`rung:`",
+            "`reason:`",
+        ):
+            self.assertIn(phrase, how)
+
+
+class BlastSkillRegistrationTest(unittest.TestCase):
+    """Manifest entry, README row, root catalog row, generated copies. [AC-4.5]"""
+
+    def test_manifest_entry(self) -> None:
+        entries = manifest_skill_entries()
+        by_name = {e["name"]: e for e in entries}
+        self.assertIn(BLAST_NAME, by_name)
+        entry = by_name[BLAST_NAME]
+        self.assertEqual(entry.get("file"), BLAST_REL)
+        self.assertEqual(entry.get("description"), BLAST_DESCRIPTION)
+        self.assertEqual(entry.get("status"), "candidate")
+        self.assertTrue(entry.get("tags", "").startswith("["), entry)
+        names = [e["name"] for e in entries]
+        self.assertEqual(names.index(BLAST_NAME) + 1,
+                         names.index("boundary-map-computation"))
+
+    def test_readme_row(self) -> None:
+        rows = table_rows(slice_between(read(README), "## Skills", "## Platform"))
+        self.assertTrue(any("[`%s`](%s)" % (BLAST_NAME, BLAST_REL) in r for r in rows), rows)
+        self.assertIn(BLAST_NAME, rows[-1])
+
+    def test_root_catalog_row(self) -> None:
+        self.assertIn("| `%s` | `candidate` | `%s` |" % (BLAST_NAME, BLAST_REL),
+                      read(ROOT_CATALOG))
+
+    def test_generated_skill_copies_exist(self) -> None:
+        for base in ("plugins/writ/skills", "cursor/plugin/skills"):
+            if (REPO_ROOT / base).is_dir():
+                copy = REPO_ROOT / base / BLAST_NAME / "SKILL.md"
+                self.assertTrue(copy.is_file(), "%s missing" % copy.relative_to(REPO_ROOT))
+
+    def test_example_citations_stay_repo_relative_in_every_copy(self) -> None:
+        """The plugin generator rewrites `scripts/` paths; the format example must
+        not turn into a citation the skill's own repo-relative rule rejects."""
+        for base in ("skills", "plugins/writ/skills", "cursor/plugin/skills"):
+            copy = REPO_ROOT / base / BLAST_NAME / "SKILL.md"
+            if not copy.is_file():
+                continue
+            block = slice_between(read(copy), "### Safety Fact section", "### Rules")
+            cites = [l for l in block.splitlines()
+                     if re.match(r"^- (read|traced|tested|reproduced): ", l)]
+            self.assertTrue(cites, base)
+            for line in cites:
+                self.assertNotIn("${", line, "%s: %s" % (base, line))
+                self.assertNotRegex(line, r"`(/|scripts/)", "%s: %s" % (base, line))
+
+
+class LadderTextIsolationTest(unittest.TestCase):
+    """The rung definitions live only in the skill. [AC-4.5]"""
+
+    def test_sentences_are_in_the_skill(self) -> None:
+        text = normalized(blast_text())
+        for sentence in LADDER_SENTENCES:
+            self.assertIn(sentence, text)
+
+    def test_sentences_absent_from_agents_commands_and_generated_trees(self) -> None:
+        files = scanned_files()
+        self.assertGreater(len(files), 0)
+        hits = []
+        for path in files:
+            text = normalized(read(path))
+            for sentence in LADDER_SENTENCES:
+                if sentence in text:
+                    hits.append("%s: %s" % (path.relative_to(REPO_ROOT), sentence))
+        self.assertEqual(hits, [], "\n".join(hits))
+
+
+class ReviewAgentSafetyFactTest(unittest.TestCase):
+    """Input rows, one conditional `Read` line, one output slot. [AC-4.4, AC-4.5]"""
+
+    def setUp(self) -> None:
+        self.text = read(REVIEW_AGENT)
+        self.lines = self.text.splitlines()
+
+    def _row(self, name: str) -> str:
+        inputs = slice_between(self.text, "## Input Requirements", "## ")
+        rows = [r for r in table_rows(inputs) if r.startswith("| `%s` |" % name)]
+        self.assertEqual(len(rows), 1, name)
+        return rows[0]
+
+    def test_input_rows(self) -> None:
+        self.assertIn("exit code", self._row("recorded_test_results"))
+        safety = self._row("safety_fact")
+        self.assertIn("`on`", safety)
+        self.assertIn("`off`", safety)
+        self.assertIn("`(none)`", self._row("blast_radius"))
+
+    def test_recorded_test_results_reach_the_prompt(self) -> None:
+        prompt = slice_between(self.text, "## Prompt Template", "## Severity Definitions")
+        self.assertIn("{recorded_test_results}", prompt)
+
+    def test_conditional_line_follows_filters_line(self) -> None:
+        self.assertIn(SAFETY_LINE, self.lines)
+        at = self.lines.index(SAFETY_LINE)
+        self.assertEqual(self.lines[at - 2], REVIEW_LINE)
+        output = self.lines.index("## Output Format")
+        self.assertLess(at, output)
+
+    def test_every_read_of_the_skill_is_conditional(self) -> None:
+        reads = [l for l in self.lines if BLAST_REL in l]
+        self.assertEqual(reads, [SAFETY_LINE])
+
+    def test_output_slot_after_security_assessment(self) -> None:
+        self.assertIn(SAFETY_SLOT, self.lines)
+        at = self.lines.index(SAFETY_SLOT)
+        security = self.lines.index("### Security Assessment")
+        issues = self.lines.index("### Issues Found (if FAIL)")
+        self.assertLess(security, at)
+        self.assertLess(at, issues)
+
+    def test_no_ladder_or_format_text_in_agent(self) -> None:
+        text = normalized(self.text)
+        self.assertNotIn("**holds:**", text)
+        self.assertNotIn("- traced:", text)
+        self.assertNotIn("app-verify-result-v1", text)
+
+    def test_generated_reviewer_carries_the_wiring(self) -> None:
+        text = read(NATIVE_REVIEWER)
+        self.assertIn(SAFETY_LINE, text.splitlines())
+        self.assertIn(SAFETY_SLOT, text.splitlines())
+        for name in ("recorded_test_results", "safety_fact", "blast_radius"):
+            self.assertIn("| `%s` |" % name, text)
+
+
+class EvaluatorHasNoSafetyFactTest(unittest.TestCase):
+    """The evaluator never runs on the risk route. [AC-4.5]"""
+
+    def test_no_safety_fact_input_or_read(self) -> None:
+        for path in (EVALUATOR_AGENT, NATIVE_EVALUATOR):
+            text = read(path)
+            self.assertNotIn("safety_fact", text, path.name)
+            self.assertNotIn("blast_radius", text, path.name)
+            self.assertNotIn(BLAST_REL, text, path.name)
+
+
+class Gate3SafetyFactTest(unittest.TestCase):
+    """Gate 3 runs the verifier, routes its reasons, and prints the report
+    lines; only Gate 3 runs it; the file stays under its byte cap.
+    [AC-4.4, AC-4.5]"""
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.gate3 = slice_between(self.text, "#### Gate 3: Review Agent", "#### Gate 3.5:")
+        self.assertTrue(self.gate3, "Gate 3 section not found")
+
+    def test_gate3_carries_the_wiring(self) -> None:
+        for literal in (
+            "python3 scripts/review-override.py safety-fact",
+            ".writ/state/gate3-review-<story-stem>.md",
+            "gate3-tests-<story-stem>.txt",
+            "`recorded_test_results`",
+            "`blast_radius`",
+            "`safety_fact`",
+            "safety_fact_missing",
+            "safety_fact_below_floor",
+            "safety_fact_contradicts_verdict",
+            "same Gate 3 attempt",
+            "review_cycle",
+            "BLOCKED",
+            "unverifiable",
+            "a test that exercises the fact",
+            "safety-fact: off",
+            "safety-fact: not on route",
+            "safety-fact: <measured> (claimed <claimed>) — <fact>",
+        ):
+            self.assertIn(literal, self.gate3)
+
+    def test_gate_condition_is_pinned(self) -> None:
+        """The paragraph runs only when `safety_fact` is on, and `safety_fact` is
+        on exactly when Gate 2.5 wrote a blast radius."""
+        self.assertIn("**Safety fact (`safety_fact` on).**", self.gate3)
+        same_inputs = [l for l in self.gate3.splitlines()
+                       if l.startswith("Spawn `review-agent` instead. Same inputs:")]
+        self.assertEqual(len(same_inputs), 1, same_inputs)
+        self.assertIn("`safety_fact` (`on` unless `blast_radius` is `(none)`)", same_inputs[0])
+
+    def test_unverifiable_is_not_degraded(self) -> None:
+        paragraph = slice_between(self.gate3, "**Safety fact", "**Jev shadow")
+        self.assertIn("never `⚠️ DEGRADED`", paragraph)
+
+    def test_contradicts_routes_before_re_review(self) -> None:
+        paragraph = slice_between(self.gate3, "**Safety fact", "**Jev shadow")
+        self.assertLess(paragraph.index("safety_fact_contradicts_verdict"),
+                        paragraph.index("safety_fact_missing"))
+
+    def test_verifier_runs_only_in_gate3(self) -> None:
+        self.assertEqual(self.text.count("review-override.py safety-fact"), 1)
+        self.assertEqual(self.gate3.count("review-override.py safety-fact"), 1)
+        for start, end in (("#### Gate 0: Architecture Check", "#### Gate 0.5:"),
+                           ("#### Gate 2.5:", "#### Gate 3: Review Agent"),
+                           ("### Step 4: Story Completion", "## Error Handling")):
+            block = slice_between(self.text, start, end)
+            self.assertTrue(block, start)
+            self.assertNotIn("safety_fact", block, start)
+            self.assertNotIn("gate3-review-", block, start)
+
+    def test_gate3_carries_no_ladder_text(self) -> None:
+        self.assertNotIn(BLAST_REL, self.gate3)
+        self.assertNotIn("app-verify-result-v1", self.gate3)
+
+    def test_implement_story_byte_cap(self) -> None:
+        size = len(IMPLEMENT_STORY.read_bytes())
+        self.assertLessEqual(size, IMPLEMENT_STORY_CAP)
+
+
 if __name__ == "__main__":
     unittest.main()

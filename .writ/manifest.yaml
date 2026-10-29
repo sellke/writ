@@ -256,6 +256,11 @@ agents:
 # See: ADR-009 (.writ/decision-records/adr-009-command-agent-skill-boundary.md)
 #      ADR-014 (.writ/decision-records/adr-014-skill-lifecycle.md)
 skills:
+  - name: blast-radius
+    file: skills/blast-radius/SKILL.md
+    description: "Name the one fact a change is safe because of and push its evidence up a five-rung ladder."
+    status: candidate
+    tags: [review, safety, evidence]
   - name: boundary-map-computation
     file: skills/boundary-map-computation/SKILL.md
     description: "Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data."

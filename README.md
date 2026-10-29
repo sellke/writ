@@ -43,7 +43,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 18 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 19 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -204,6 +204,7 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`plain-prose`](skills/plain-prose/SKILL.md) | Rewrite mannered prose in instructional markdown (commands, agents, skills, adapters) into plain, direct text that keeps every rule and literal |
 | [`design-divergence`](skills/design-divergence/SKILL.md) | Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context |
 | [`review-judgment-filters`](skills/review-judgment-filters/SKILL.md) | Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings |
+| [`blast-radius`](skills/blast-radius/SKILL.md) | Name the one fact a change is safe because of and push its evidence up a five-rung ladder |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 

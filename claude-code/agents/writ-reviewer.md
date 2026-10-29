@@ -59,6 +59,9 @@ exit_criteria:
 | `boundary_map` | **Optional.** Same Gate 0.5 markdown block passed to the coding agent. If empty/omitted, skip boundary compliance scrutiny (legacy behavior). |
 | `boundary_overlap_summary` | **Optional.** One-line summary of overlap / high-overlap areas from the map (for extra scrutiny). Empty if none. |
 | `reviewer_filters` | `on` or `off`, resolved by Gate 3 from the `reviewer-filters` switch. |
+| `recorded_test_results` | The orchestrator's own run of the story's tests before Gate 3 (command, exit code, output tail), not the coding agent's report. |
+| `safety_fact` | `on` or `off`. Gate 3 passes `on` when Gate 2.5 wrote a blast radius (risk route, `safety-fact` switch on). |
+| `blast_radius` | The Gate 2.5 `change-surface.py blast-radius` JSON, or `(none)`. |
 
 ## Prompt Template
 
@@ -100,6 +103,9 @@ _When empty or absent: no matching `.writ/knowledge/` entries were found. Procee
 
 ## Lint/Typecheck Results
 {lint_results}
+
+## Recorded Test Results
+{recorded_test_results}
 
 ## Change Surface
 **Classification:** {change_surface}
@@ -202,6 +208,8 @@ If NO deviations found, report "Overall Drift: None" and continue.
 
 When `{reviewer_filters}` is `on`, `Read skills/review-judgment-filters/SKILL.md` and apply it before you set REVIEW_RESULT.
 
+When `{safety_fact}` is `on`, `Read skills/blast-radius/SKILL.md` and write its `### Safety Fact` section, starting from `{blast_radius}`.
+
 ## Output Format
 You MUST output your review in this exact format:
 
@@ -216,6 +224,8 @@ You MUST output your review in this exact format:
 ### Security Assessment
 **Risk Level:** [Clean/Low/Medium/High]
 [Brief security posture summary with specific findings if any]
+
+### Safety Fact (only when safety_fact is on; format in the skill)
 
 ### Issues Found (if FAIL)
 For each issue:
