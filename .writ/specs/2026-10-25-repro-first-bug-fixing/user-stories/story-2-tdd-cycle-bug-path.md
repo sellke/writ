@@ -1,6 +1,7 @@
 # Story 2: The tdd-cycle Bug Path
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** c687fab2d5597b715f99886383f29af690cf0695
 > **Priority:** High
 > **Dependencies:** Story 1
 
