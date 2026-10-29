@@ -1,6 +1,7 @@
 # Story 2: Seed This Repository's Rule-to-Enforcer Table
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 3f1f5e8d7b11266a1612d9c1417f40f9a414ea80
 > **Priority:** High
 > **Dependencies:** Story 1
 
