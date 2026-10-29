@@ -281,6 +281,11 @@ skills:
     description: "Load, filter, and truncate upstream stories' implementation records into dependency context."
     status: candidate
     tags: [context, dependencies, records]
+  - name: design-divergence
+    file: skills/design-divergence/SKILL.md
+    description: "Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context."
+    status: candidate
+    tags: [design, divergence, exploration]
   - name: drift-triage
     file: skills/drift-triage/SKILL.md
     description: "Triage implementation deviations by severity and route each to amend, warn, or pause."

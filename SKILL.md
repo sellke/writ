@@ -142,6 +142,7 @@ and is not installed.
 | `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |
 | `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
 | `dependency-context-loading` | `candidate` | `skills/dependency-context-loading/SKILL.md` | Load, filter, and truncate upstream stories' implementation records into dependency context. |
+| `design-divergence` | `candidate` | `skills/design-divergence/SKILL.md` | Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context. |
 | `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `plain-prose` | `candidate` | `skills/plain-prose/SKILL.md` | Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries. |

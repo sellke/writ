@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-26T04:13:29Z
+> Last Updated: 2026-10-29T13:17:09Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-why-command — Why Command
-- **Status:** Complete (4/4 stories; Phase 15 lane `writ/phase/15/2026-10-25-why-command`, awaiting the phase merge)
-- **Story:** 4 of 4 — `/create-spec` Reads the `/why` Handoff (Completed ✅)
-- **Progress:** 27/27 tasks complete (100%)
+- **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
+- **Status:** In Progress — awaiting blind rating (rating-handoff.md) (5/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
+- **Story:** 5 of 6 — Trial Inputs, Generation, Blinding, and Rating Handoff (Completed ✅)
+- **Progress:** 34/41 tasks complete (83%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-why-command/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-design-divergence/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-003 Three more test pins move with the registration — why-command (Story 2, Small)
-- DEV-002 `/why` points to `/research` when the subject is outside the project — why-command (Story 1, Small)
-- DEV-001 Answer template's ADR placeholder reads `adr-<NNN>-<slug>.md` — why-command (Story 1, Small)
+- DEV-011 Outcome test also checks the committed trial inputs structurally — design-divergence (Story 5, Small)
+- DEV-010 First generation discarded for content tells; residual tells from the arm design remain — design-divergence (Story 5, Medium)
+- DEV-009 A script `unverifiable` arch-check also runs divergence — design-divergence (Story 3, Small)
 
 ## Open Issues
 

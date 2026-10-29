@@ -159,7 +159,7 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py)
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py|divergence-trial.py)
       # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template, platform trees); not agent-facing. ADR-029.
       return 1 ;;
     gen-claude-agents.py|gen-codex-agent-tomls.py|check-agent-parity.sh|gen-skill.sh)

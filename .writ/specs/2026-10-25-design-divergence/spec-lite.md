@@ -51,7 +51,7 @@
 7. The verdict is executed only from a human rating, the report is committed before any removal, and the harness is deleted afterward. `[AC-6.1, AC-6.4, AC-6.5]`
 
 **Business Rules:**
-- Route: switch on and (`--full-pipeline`, `--panel`, or predicted `review-agent`).
+- Route: switch on, after PROCEED, CAUTION, a script `unverifiable`, or an ABORT resolved as proceed, and (`--full-pipeline`, `--panel`, or predicted `review-agent`).
 - Caller usage before axes; two sketches in independent contexts; commitment before sketch.
 - Keep only if axes win ≥4 of 6 briefs and total distinct count; ties are not wins.
 - Only a human rates; `unverifiable` is never acted on.
@@ -79,7 +79,7 @@
 - **Upstream error:** sketch spawn fails → `skip (sketch incomplete: …)`
 
 **Edge Cases:**
-- Malformed switch value → off with reason
+- Malformed switch value → on with `gate0-divergence: on (malformed: <value>)` (D24)
 - Draft text edited after blinding → `rate` exits 2
 - Key changed after blinding → `report` `unverifiable` / `key_changed`
 

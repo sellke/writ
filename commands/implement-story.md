@@ -51,7 +51,7 @@ gates:
 
 ## Overview
 
-Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
+Default is two Task spawns (`coding-agent`, `evaluator-agent`), and two Gate 0 sketch spawns on the boundary-crossing route, plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -82,7 +82,7 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Stage | Name | Runs as | Skipped in | Skill |
 |---|---|---|---|---|
 | Step 2 | Load Context | inline | — | `story-context-assembly`; `dependency-context-loading` (dependency branch only) |
-| Gate 0 | Architecture Check | `arch-check.py` on default; `architecture-check-agent` on `--full-pipeline` | `--quick`, `--review-only` (agent); default is script-only | — |
+| Gate 0 | Architecture Check | `arch-check.py` on default; `architecture-check-agent` on `--full-pipeline`; two sketch spawns on the boundary-crossing route | `--quick`, `--review-only` (agent); default is script-only | `design-divergence` (boundary-crossing route) |
 | Gate 0.5 | Boundary Map | inline — data transformation | `--quick`, `--review-only`, `/prototype` | `boundary-map-computation` |
 | Gate 1 | Coding Agent | `coding-agent` — TDD | `--review-only` | `tdd-cycle` |
 | Gate 2 | Lint, Typecheck, Format & Build Smoke | inline — auto | — | — |
@@ -190,6 +190,24 @@ Spawn a **read-only** sub-agent before code: viability, integration risk, comple
 **Context routing:** Pass `spec_lite_for_coding` as `spec_lite_content`; if agent-specific sections are unavailable, pass full spec-lite. Also pass `fetched_context` when hints were parsed in Step 2, and `knowledge_context` when populated.
 
 **Anchor confirmation (ADR-024):** a `floor` **ABORT** is provisional. Before presenting anything, re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`. The anchor verdict stands: PROCEED/CAUTION continue as that verdict with no AskQuestion and no user-visible line; ABORT presents findings and asks proceed/modify/skip as above. A floor PROCEED/CAUTION is never re-run; `--quick`/`--review-only` skip Gate 0, so no escalation path exists there; a spawn error follows the existing **Agent crash** handling (§ Error Handling), not this branch — escalation fires only on a returned verdict. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`; Gate 0 runs before the `review_cycle` counter exists and does not consume an iteration.
+
+**Design divergence (boundary-crossing route).** Each run prints a `gate0-divergence:` line and never blocks: no DEGRADED, AskQuestion, `review_cycle` increment, or retry.
+
+**Switch.** `- **Gate 0 Divergence:** off` in config prints `gate0-divergence: off (config)`. Absent or `on` means on; another value is on and prints `gate0-divergence: on (malformed: <value>)`.
+
+**Route.** Run on PROCEED, CAUTION, `unverifiable`, or an ABORT resolved as proceed; another ABORT prints `gate0-divergence: skip (arch-check abort)`. `--full-pipeline` or `--panel` qualifies. Otherwise run:
+
+```bash
+python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>] > .writ/state/boundary-<story-stem>.json
+python3 scripts/change-surface.py classify --changed <planned files>
+python3 scripts/boundary-map.py crossings --map .writ/state/boundary-<story-stem>.json --changed <planned files> --story <story-file> --surface <class>
+```
+
+`route: review-agent` qualifies; `evaluator-agent` prints `gate0-divergence: skip (route evaluator-agent)`. No planned files or usage, or a failed or `unverifiable` helper: `gate0-divergence: skip (unverifiable: <reason>)`.
+
+**Sketches.** `Read skills/design-divergence/SKILL.md`. Write 3 to 10 lines of caller usage from the ACs (or tasks) to `.writ/state/divergence-<story-stem>.md` before picking two axes from the skill's catalog. In one message, spawn two `readonly` sketches at `anchor`, each with the story, `spec_lite_for_coding`, the usage, its own axes, the caller as persona; neither sees the other. Each returns `COMMITMENT:`, `SKETCH:` (≤40 lines), `USAGE FIT:`; a spawn error or missing field prints `gate0-divergence: skip (sketch incomplete: <A|B>)`.
+
+**Choice.** Prefer unchanged usage, then fewer new public names (`sketches converged` if equal). Add sketch, usage, and reason to Gate 0 warnings as `design sketch (Gate 0 divergence)`; print `gate0-divergence: chose <A|B> (<axis combination>) — <why the other lost>`.
 
 ---
 
@@ -478,4 +496,4 @@ A story that cannot clear every gate is marked DEGRADED rather than Completed. T
 
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
-- Skills, each loaded at the stage the Pipeline table names: [story-context-assembly](../skills/story-context-assembly/SKILL.md), [dependency-context-loading](../skills/dependency-context-loading/SKILL.md), [boundary-map-computation](../skills/boundary-map-computation/SKILL.md), [tdd-cycle](../skills/tdd-cycle/SKILL.md), [change-surface-classification](../skills/change-surface-classification/SKILL.md), [drift-triage](../skills/drift-triage/SKILL.md), [project-context-snapshot](../skills/project-context-snapshot/SKILL.md), [what-was-built-authoring](../skills/what-was-built-authoring/SKILL.md), [story-commit-provenance](../skills/story-commit-provenance/SKILL.md)
+- Skills, each loaded at the stage the Pipeline table names: [story-context-assembly](../skills/story-context-assembly/SKILL.md), [dependency-context-loading](../skills/dependency-context-loading/SKILL.md), [design-divergence](../skills/design-divergence/SKILL.md), [boundary-map-computation](../skills/boundary-map-computation/SKILL.md), [tdd-cycle](../skills/tdd-cycle/SKILL.md), [change-surface-classification](../skills/change-surface-classification/SKILL.md), [drift-triage](../skills/drift-triage/SKILL.md), [project-context-snapshot](../skills/project-context-snapshot/SKILL.md), [what-was-built-authoring](../skills/what-was-built-authoring/SKILL.md), [story-commit-provenance](../skills/story-commit-provenance/SKILL.md)
