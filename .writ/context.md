@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T22:23:06Z
+> Last Updated: 2026-10-29T23:20:08Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-retro-fix-ladder — Retro Fix Ladder
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-retro-fix-ladder`)
-- **Story:** 2 of 4 — Seed This Repository's Rule-to-Enforcer Table (Completed ✅ (2026-10-29))
-- **Progress:** 20/27 tasks complete (74%)
+- **Story:** 3 of 4 — /retro Fix Ladder, Proof, Rule Table, and Signal Retirement (Completed ✅ (2026-10-29))
+- **Progress:** 27/27 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-010 Two enforced rows, not three; the trees proof is a planned stale window — retro-fix-ladder (Story 2, Small)
-- DEV-009 The Python 3.9 enforcer adds `--with pytest` — retro-fix-ladder (Story 2, Small)
-- DEV-008 A covered signal suggests `/retro` when it recurs — retro-fix-ladder (Story 4, Small)
+- DEV-013 Heading level, exit-criterion quoting, and the example's result — retro-fix-ladder (Story 3, Small)
+- DEV-012 Single-event counting is split between Step 3 and Step 4 — retro-fix-ladder (Story 3, Small)
+- DEV-011 A second finding on the same rule is dismissed, with its reason on a `**Reason:**` line — retro-fix-ladder (Story 3, Small)
 
 ## Open Issues
 

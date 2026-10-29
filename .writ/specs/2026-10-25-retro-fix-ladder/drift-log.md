@@ -110,3 +110,36 @@
 - **Reason:** AC-2.2 asks for at least two rows. The trees proof is a real commit that broke the rule, not a fixture, so it meets Business Rule 6. A scan of all 100 commits since `--check` was added found no accidental stale tree.
 - **Resolution:** Auto-amended
 - **Spec amendment:** Story 2 Notes record that the shipped-refs candidate does not qualify because its enforcer postdates the fix. None needed in spec-lite.md.
+
+---
+
+## Story 3: /retro Fix Ladder, Proof, Rule Table, and Signal Retirement — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-011] A second finding on the same rule is dismissed, with its reason on a `**Reason:**` line
+- **Severity:** Small
+- **Spec said:** Interaction Edge Cases: "the second is recorded in the retro file only." Business Rule 12 lists the `**Rung:**` and `**Disposition:**` lines.
+- **Implementation did:** Step 6 offers Apply only on the first finding that names a rule. The second is recorded as `dismissed` with `**Reason:** same rule as F<n>` and gets no table row. A dismissal's reason goes on its own `**Reason:**` line, because `retro-check.py` rejects any text after the disposition value (`disposition_invalid`).
+- **Reason:** `retro-check.py` requires a table row for every applied or refreshed ladder finding; `dismissed` needs none.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Interaction Edge Cases row reads "One table row; Since names the first finding. The second is recorded as `dismissed` with `**Reason:** same rule as F<n>`." Business Rule 12 adds "a dismissal's reason goes on a `**Reason:**` line." None needed in spec-lite.md.
+
+#### [DEV-012] Single-event counting is split between Step 3 and Step 4
+- **Severity:** Small
+- **Spec said:** technical-spec Step 3: "A user correction against a rule whose enforcer is `none` in the rule table counts on its own, as a Repeated mistake." Must Include 4 says "a user correction or mistake".
+- **Implementation did:** Step 3 uses the contract's "user correction or mistake" and holds single events until Step 4 has read the table. Step 4 reports a single event against an enforced row as **enforcer did not hold** ("even for a single event") and drops single corrections and mistakes that match no row.
+- **Reason:** Step 3 cannot match against the table before Step 4 reads it. The contract outranks the technical spec.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec Step 3 and Step 4 bullets record the split and the drop rule. None needed in spec-lite.md.
+
+#### [DEV-013] Heading level, exit-criterion quoting, and the example's result
+- **Severity:** Small
+- **Spec said:** "Add a `### Fix ladder` table" in Step 5; exit criterion (2) quotes the command in backticks.
+- **Implementation did:** `### Fix ladder` is a level-3 section right after Step 5's Routes; the tests read Step 5 as the text up to the next `### Step ` or `## ` heading. The second new exit criterion carries no backticks, matching every other `exit_criteria` line in `commands/`. The Step 5 example shows `result fails`, as a finding after Step 6 ran its proof.
+- **Reason:** Literal heading from the spec; frontmatter convention; matches the spec's Moment of truth.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed. None needed in spec-lite.md.
