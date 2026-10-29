@@ -7,16 +7,30 @@ are present) `test-integrity.py`. Does not judge architecture, security, or
 taste — those stay with `review-agent`. A mechanical pass never washes out
 an agent FAIL or PAUSE; this script only reports the measurement.
 
-Subcommand:
+Subcommands:
   check --spec PATH --repo . [--story PATH] [--new-files FILE …] [--tests FILE …]
   `--project` is accepted as an alias of `--repo`.
+  switch --name safety-fact|reviewer-filters [--repo .]
 
-Prints one verdict line (`pass` / `fail` / `unverifiable`), optional
+`check` prints one verdict line (`pass` / `fail` / `unverifiable`), optional
 `reason: <code>` lines, then a summary line last.
 
 Exit 0: ran, no blocking verdict (`pass` or `unverifiable`).
 Exit 1: `fail`.
 Exit 2: usage.
+
+`switch` (Story 1 of `2026-10-25-review-route-rigor`) resolves one upgrade
+switch from `<repo>/.writ/config.md`. The config lines are:
+  - **Safety Fact:** off
+  - **Reviewer Filters:** off
+The first matching line anywhere in the file wins. A switch is on by default;
+only the value `off` (any case, surrounding whitespace ignored) turns it off.
+Line 1 is the state word `on` or `off`, then one `reason:` line, then the
+summary `review-override switch: <name> <state> (.writ/config.md)`.
+Reasons: `no_config` (file missing or unreadable), `no_config_line`,
+`config_off`, `config_on` (value `on` or empty), `malformed_value <value>`
+(any other value; the switch stays on). Always exit 0, except usage (2) for
+an unknown or missing `--name`.
 """
 
 from __future__ import annotations
@@ -46,6 +60,12 @@ BLOCKING_INTEGRITY = frozenset({
 })
 
 HELPER_DIR = Path(__file__).resolve().parent
+
+CONFIG_REL = ".writ/config.md"
+SWITCH_LINES = {
+    "safety-fact": re.compile(r"^- \*\*Safety Fact:\*\*[ \t]*(.*)$", re.MULTILINE),
+    "reviewer-filters": re.compile(r"^- \*\*Reviewer Filters:\*\*[ \t]*(.*)$", re.MULTILINE),
+}
 
 
 class UsageError(Exception):
@@ -207,6 +227,29 @@ def check(spec: Optional[Path], repo: Path, story: Optional[Path],
     return _emit("pass", [], "review-override: pass (no blocking helper finding)")
 
 
+def _resolve_switch(name: str, repo: Path) -> Tuple[str, str]:
+    """(state, reason) for one switch; never raises on a bad config."""
+    try:
+        text = (repo / CONFIG_REL).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return "on", "no_config"
+    match = SWITCH_LINES[name].search(text)
+    if match is None:
+        return "on", "no_config_line"
+    value = match.group(1).strip()
+    if value.lower() == "off":
+        return "off", "config_off"
+    if value == "" or value.lower() == "on":
+        return "on", "config_on"
+    return "on", "malformed_value %s" % value
+
+
+def switch(name: str, repo: Path) -> int:
+    state, reason = _resolve_switch(name, repo)
+    return _emit(state, [reason],
+                 "review-override switch: %s %s (%s)" % (name, state, CONFIG_REL))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
@@ -216,6 +259,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--story", type=Path, default=None)
     p.add_argument("--new-files", nargs="+", default=None)
     p.add_argument("--tests", nargs="+", default=None)
+    s = sub.add_parser("switch", help="resolve an upgrade switch from .writ/config.md")
+    s.add_argument("--name", required=True, choices=sorted(SWITCH_LINES))
+    s.add_argument("--repo", type=Path, default=Path("."))
     return parser
 
 
@@ -226,6 +272,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     except SystemExit as exc:
         code = exc.code
         return int(code) if isinstance(code, int) else 2
+    if args.action == "switch":
+        return switch(args.name, args.repo)
     return check(args.spec, args.repo, args.story, args.new_files, args.tests)
 
 

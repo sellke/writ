@@ -1,6 +1,6 @@
 # Review-Route Rigor
 
-> **Status:** Not Started
+> **Status:** In Progress
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** []

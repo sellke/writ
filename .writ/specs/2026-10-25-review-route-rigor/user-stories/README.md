@@ -6,12 +6,12 @@
 
 | # | Story | Status | Tasks | Progress | Dependencies |
 |---|---|---|---|---|---|
-| 1 | [Upgrade switches](story-1-upgrade-switches.md) | Not Started | 6 | 0/6 (0%) | None |
+| 1 | [Upgrade switches](story-1-upgrade-switches.md) | Completed ✅ | 6 | 6/6 (100%) | None |
 | 2 | [Reviewer lead-judgment filters](story-2-reviewer-judgment-filters.md) | Not Started | 7 | 0/7 (0%) | Story 1 |
 | 3 | [Blast radius at Gate 2.5](story-3-gate-2-5-blast-radius.md) | Not Started | 6 | 0/6 (0%) | Story 1, Story 2 |
 | 4 | [Safety fact at Gate 3](story-4-gate-3-safety-fact.md) | Not Started | 7 | 0/7 (0%) | Story 1, Story 2, Story 3 |
 
-**Total:** 4 stories, 26 tasks, 19 acceptance criteria. **Progress:** 0/26 tasks (0%).
+**Total:** 4 stories, 26 tasks, 19 acceptance criteria. **Progress:** 6/26 tasks (23%).
 
 ## Dependencies
 

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T13:17:09Z
+> Last Updated: 2026-10-29T14:19:06Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-design-divergence — Design Divergence Skill and Usage-First Gate 0
-- **Status:** In Progress — awaiting blind rating (rating-handoff.md) (5/6 stories; Phase 15 lane `writ/phase/15/2026-10-25-design-divergence`)
-- **Story:** 5 of 6 — Trial Inputs, Generation, Blinding, and Rating Handoff (Completed ✅)
-- **Progress:** 34/41 tasks complete (83%)
+- **Spec:** 2026-10-25-review-route-rigor — Review-Route Rigor
+- **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-review-route-rigor`)
+- **Story:** 1 of 4 — Upgrade switches (Completed ✅ (2026-10-29))
+- **Progress:** 6/26 tasks complete (23%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-design-divergence/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-review-route-rigor/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-011 Outcome test also checks the committed trial inputs structurally — design-divergence (Story 5, Small)
-- DEV-010 First generation discarded for content tells; residual tells from the arm design remain — design-divergence (Story 5, Medium)
-- DEV-009 A script `unverifiable` arch-check also runs divergence — design-divergence (Story 3, Small)
+- DEV-003 A script edit regenerates the plugin tree — review-route-rigor (Story 1, Small)
+- DEV-002 `on` is matched in any case — review-route-rigor (Story 1, Small)
+- DEV-001 `switch` prints a state word on line 1, an exception to the agent CLI check shape — review-route-rigor (Story 1, Medium)
 
 ## Open Issues
 
