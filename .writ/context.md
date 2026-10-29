@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T18:18:40Z
+> Last Updated: 2026-10-29T19:10:59Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-repro-first-bug-fixing — Repro-First Bug Fixing
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-repro-first-bug-fixing`)
-- **Story:** 2 of 4 — The tdd-cycle Bug Path (Completed ✅ (2026-10-29))
-- **Progress:** 14/27 tasks complete (52%)
+- **Story:** 3 of 4 — The Coding Agent's Repro Report (Completed ✅ (2026-10-29))
+- **Progress:** 20/27 tasks complete (74%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-009 `### Repro` block presentation differs; labels and `Commits` shape do not — repro-first-bug-fixing (Story 3, Small)
+- DEV-008 Requirement 3 sentence longer than the draft — repro-first-bug-fixing (Story 3, Small)
 - DEV-007 Removal Inventory row 1 omits the When to Use bullet — repro-first-bug-fixing (Story 2, Small)
-- DEV-006 `Repro:` trailer shares the last paragraph with other trailers — repro-first-bug-fixing (Story 2, Small)
-- DEV-005 `## Repro First` sits after `## Reviewer Filters` — repro-first-bug-fixing (Story 2, Small)
 
 ## Open Issues
 

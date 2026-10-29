@@ -79,3 +79,28 @@
 - **Spec amendment:** Removal Inventory row reads "`### Bug fixes: repro first` section; the bug example under `## Examples` (restore the three-line `parseDate('')` example); the When to Use bug bullet (restore the 'reproduce it with a failing test first' bullet)". Recorded here because the pipeline never auto-modifies `spec.md`. None needed in spec-lite.md.
 
 ---
+
+## Story 3: The Coding Agent's Repro Report — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-008] Requirement 3 sentence is longer than the technical-spec draft
+- **Severity:** Small
+- **Spec said:** technical-spec § Report Block: "Implementation Requirement 3 gains: under `/implement-story`, the repro and fix commits each end with `Ref: .writ/specs/<spec-id>/user-stories/<story-file>.md`."
+- **Implementation did:** The sentence adds that the footer sits in the message's last paragraph with any other trailers (and, on the repro commit, its `Repro:` trailer), and that `/prototype` commits carry no `Ref:` footer.
+- **Reason:** AC-3.1 and Business Rule 6 require the `/prototype` clause. `scripts/repro-order.py` reads `Repro:` only from the last paragraph, so a separate `Ref:` paragraph after it would hide the repro (see DEV-006). The repro-commit qualifier came from a Gate 3 recommendation so a fix commit is never read as needing `Repro:`.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Report Block's last line reads as built in `agents/coding-agent.md` Requirement 3. None needed in spec-lite.md.
+
+#### [DEV-009] Report block presentation differs from the draft; labels, order and `Commits` shape do not
+- **Severity:** Small
+- **Spec said:** technical-spec § Report Block shows the bug form in its own fence and the three short forms as bold-labelled prose; placeholders `[at most 10 lines]` and `[line 1, any reason: lines, and the summary of repro-order.py check]`. spec.md § Detailed Requirements → Story 3 says "three forms".
+- **Implementation did:** All four forms sit in one block under italic label lines, with an intro line ("Every report has this section, in exactly one of these four forms. List commits oldest first."). Placeholders read `[at most 10 lines from the same command]` and name `reason:` lines and the summary line. Field labels, field order, and the `Commits: repro [sha] → fix [sha][, [sha]]` shape match the technical spec. Four forms, per AC-3.2/3.3 and the technical spec.
+- **Reason:** Gate 0 divergence chose sketch A (fields per form, one arrow `Commits` line) with the technical-spec order kept; "same command" is Business Rule 7.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Report Block shows the as-built block; spec.md Story 3 "three forms" reads "four forms" (recorded here; the pipeline never edits spec.md). None needed in spec-lite.md.
+
+---

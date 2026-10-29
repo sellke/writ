@@ -6,10 +6,10 @@
 |---|---|---|---|---|---|---|
 | 1 | [Repro-Order Check Script](story-1-repro-order-check.md) | Completed ✅ | High | None | 7 | 7/7 |
 | 2 | [The tdd-cycle Bug Path](story-2-tdd-cycle-bug-path.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
-| 3 | [The Coding Agent's Repro Report](story-3-coding-agent-repro-report.md) | Not Started | High | Story 2 | 6 | 0/6 |
+| 3 | [The Coding Agent's Repro Report](story-3-coding-agent-repro-report.md) | Completed ✅ | High | Story 2 | 6 | 6/6 |
 | 4 | [Consumer Wiring and Ordered-Commit Integration](story-4-consumer-wiring-and-integration.md) | Not Started | High | Story 3 | 7 | 0/7 |
 
-**Total:** 4 stories, 27 tasks, 20 acceptance criteria. **Progress:** 14/27 tasks (52%).
+**Total:** 4 stories, 27 tasks, 20 acceptance criteria. **Progress:** 20/27 tasks (74%).
 
 ## Dependencies
 
