@@ -77,3 +77,44 @@
 - **Reason:** The `skills:` list is alphabetical, as the `design-divergence` precedent shows. "Append only" holds in the sense that matters: no existing entry is edited.
 - **Resolution:** Auto-amended
 - **Spec amendment:** task 2.2 reads "add the entry in alphabetical order without editing other entries". None needed in spec-lite.md.
+
+---
+
+## Story 3: Blast radius at Gate 2.5 — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-008] Repo-root extensionless path token dropped for generic or short stems
+- **Severity:** Small
+- **Spec said:** technical-spec § Blast Radius step 1: tokens are the path with and without its extension, plus the stem unless it is generic or short.
+- **Implementation did:** `search_tokens` leaves out the extensionless path when it equals a generic or short bare stem, which happens only for repo-root files such as `setup.py` (`setup`).
+- **Reason:** Read literally, step 1 makes `setup` a token and breaks AC-3.2 ("a file that contains only the bare stem is not listed"). The implementation follows the AC.
+- **Resolution:** Auto-amended
+- **Spec amendment:** § Blast Radius step 1: "When the path has no directory part and its stem is generic or shorter than 4 characters, the path without its extension is not a token." spec-lite.md "path or non-generic stem" already covers it.
+
+#### [DEV-009] `.writ/` skipped at any depth
+- **Severity:** Small
+- **Spec said:** "Always skip `.writ/`."
+- **Implementation did:** Skips any path with a `.writ` directory segment, including nested ones.
+- **Reason:** Same intent: specs and state mention files but do not call them.
+- **Resolution:** Auto-amended
+- **Spec amendment:** § Blast Radius step 2: "Always skip any `.writ/` directory, at any depth." None needed in spec-lite.md.
+
+#### [DEV-010] Non-regular and unreadable candidates skipped
+- **Severity:** Small
+- **Spec said:** Skip files over 1 MB and files that are not valid UTF-8.
+- **Implementation did:** Also skips directories (including tracked symlinked directories), FIFOs, devices, permission-denied files, and tracked files deleted from the working tree, checked with `stat` before `open`.
+- **Reason:** A FIFO would otherwise hang `open`, which the agent CLI contract's "never wait unbounded" rule forbids.
+- **Resolution:** Auto-amended
+- **Spec amendment:** § Blast Radius step 2: add "and any path that is not a readable regular file". None needed in spec-lite.md.
+
+#### [DEV-011] `--pretty` counts are taken before the cap and cover non-test changed files
+- **Severity:** Small
+- **Spec said:** "one `<changed>: <n> consumer(s), <m> test(s)` line per changed file"; summary `(<n> changed, <k> consumers)`; silent on the cap.
+- **Implementation did:** Per-file lines and `<n>` cover non-test changed files; the counts and `<k>` (distinct consumers) are taken before `--limit`, so they can exceed the JSON list lengths when `truncated` is non-empty.
+- **Reason:** The human view reports the true size. Story 4 reads the JSON, so the integration point is unaffected.
+- **Resolution:** Auto-amended
+- **Spec amendment:** § Blast Radius `--pretty` bullet: "one line per non-test changed file, counted before the `--limit` cap; `<k>` counts distinct consumers before the cap." None needed in spec-lite.md.

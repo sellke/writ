@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T15:01:51Z
+> Last Updated: 2026-10-29T15:33:10Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-review-route-rigor — Review-Route Rigor
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-review-route-rigor`)
-- **Story:** 2 of 4 — Reviewer lead-judgment filters (Completed ✅ (2026-10-29))
-- **Progress:** 13/26 tasks complete (50%)
+- **Story:** 3 of 4 — Blast radius at Gate 2.5 (Completed ✅ (2026-10-29))
+- **Progress:** 19/26 tasks complete (73%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-007 Manifest entry inserted in alphabetical position — review-route-rigor (Story 2, Small)
-- DEV-006 README live-skill count corrected from a stale value — review-route-rigor (Story 2, Small)
-- DEV-005 Agent CLI contract Callers cell names `commands/review.md` — review-route-rigor (Story 2, Small)
+- DEV-011 `--pretty` counts are taken before the cap and cover non-test changed files — review-route-rigor (Story 3, Small)
+- DEV-010 Non-regular and unreadable candidates skipped — review-route-rigor (Story 3, Small)
+- DEV-009 `.writ/` skipped at any depth — review-route-rigor (Story 3, Small)
 
 ## Open Issues
 

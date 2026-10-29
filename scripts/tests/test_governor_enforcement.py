@@ -635,7 +635,8 @@ KNOWN_OVER_BUDGET = {
     # Pipeline Gate 0 row, and References link.
     # 2026-10-29 (2026-10-25-review-route-rigor Story 2): 13474 -> 13769; Gate 3
     # reviewer-filters switch and report line.
-    "commands/implement-story.md": 13769,
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 3): 13769 -> 14116; Gate 2.5 blast-radius paragraph.
+    "commands/implement-story.md": 14116,
 }
 
 

@@ -282,6 +282,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/boundary-map.py crossings --map .writ/stat
 
 An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` with reason `unverifiable: <reason>`.
 
+**Blast radius.** When `gate3_route` names `review-agent`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py switch --name safety-fact`. On `on`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/change-surface.py blast-radius --changed <files> --repo . > .writ/state/blast-radius-<story-stem>.json` and pass the file to Gate 3 as `blast_radius`. Otherwise `blast_radius` is `(none)`.
+
 ---
 
 #### Gate 3: Review Agent
