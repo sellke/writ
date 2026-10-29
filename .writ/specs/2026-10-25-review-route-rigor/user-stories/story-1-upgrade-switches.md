@@ -1,6 +1,7 @@
 # Story 1: Upgrade switches
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 35d670fe77d22fe47ba4d23894d86f4148e6f7c9
 > **Priority:** High
 > **Dependencies:** None
 
