@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T22:03:20Z
+> Last Updated: 2026-10-29T22:03:53Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-retro-fix-ladder — Retro Fix Ladder
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-retro-fix-ladder`)
-- **Story:** 1 of 4 — retro-check.py, the Rule Table and Ladder Checker (Completed ✅ (2026-10-29))
-- **Progress:** 7/27 tasks complete (26%)
+- **Story:** 4 of 4 — /refresh-command Execution-Failure and Used-Skill Criteria (Completed ✅ (2026-10-29))
+- **Progress:** 14/27 tasks complete (52%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-005 Grammar parts with no reason code are not enforced — retro-fix-ladder (Story 1, Small)
-- DEV-004 A path that exists but cannot be read exits 2 — retro-fix-ladder (Story 1, Small)
-- DEV-003 `no_git` prints once; `proof_not_failing` needs a well-formed Proof line — retro-fix-ladder (Story 1, Small)
+- DEV-008 A covered signal suggests `/retro` when it recurs — retro-fix-ladder (Story 4, Small)
+- DEV-007 Step 4.1a lints the skill with the diff applied and restores it on `fail` — retro-fix-ladder (Story 4, Small)
+- DEV-006 Three more places name skills so the command and log format stay consistent — retro-fix-ladder (Story 4, Small)
 
 ## Open Issues
 

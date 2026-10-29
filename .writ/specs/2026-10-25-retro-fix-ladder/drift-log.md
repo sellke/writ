@@ -55,3 +55,33 @@
 
 ---
 
+## Story 4: /refresh-command Execution-Failure and Used-Skill Criteria — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-006] Three more places name skills so the command and log format stay consistent
+- **Severity:** Small
+- **Spec said:** technical-spec § `commands/refresh-command.md` changes lists Phase 3, the Evidence block, Step 4.1a, Step 4.2, exit criteria, and Completion; the log-format section lists two Rejection-reasons rows and the Rejected and Target file rows.
+- **Implementation did:** Also: Step 4.1 applies the diff "to the command file or skill"; the Cross-References `skills/*/SKILL.md` row adds "amendment targets when the cited run read them"; `refresh-log-format.md` gains an overview bullet for the two new reasons, names `lint-skill.sh` in the `eval failed` row, and lets the Affected section row name a skill section.
+- **Reason:** Contract item 8 allows skill amendments, so the apply step, the cross-reference, and the doc must say so. All four pinned literals are intact.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec adds "Step 4.1 applies the diff to the command file or skill; the Cross-References skills row and refresh-log-format.md's overview, `eval failed`, and Affected section rows name skills." None needed in spec-lite.md.
+
+#### [DEV-007] Step 4.1a lints the skill with the diff applied and restores it on `fail`
+- **Severity:** Small
+- **Spec said:** "A skill amendment also runs `bash scripts/lint-skill.sh skills/<name>/SKILL.md`; line 1 `fail` rejects with `eval failed`."
+- **Implementation did:** Runs the lint with the diff applied, and on line 1 `fail` restores the file and rejects with `eval failed`.
+- **Reason:** The lint reads the amended file. The step's opening line says "Before writing any amendment", so a later pass could lint a temp copy instead, as `/new-skill` does.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Step 4.1a: "lints the skill with the diff applied and restores the file on line 1 `fail`." None needed in spec-lite.md.
+
+#### [DEV-008] A covered signal suggests `/retro` when it recurs
+- **Severity:** Small
+- **Spec said:** Business Rule 13 and contract item 7 stop at logging the signal under `**Rejected:**` with `execution failure` and the covering section.
+- **Implementation did:** Adds one clause: "and suggest `/retro` if it recurs."
+- **Reason:** Matches the spec's State Catalog row ("suggests `/retro` if it recurs") and the Integration Points line in spec-lite.
+- **Resolution:** Auto-amended
+- **Spec amendment:** None needed; the State Catalog already states it. None needed in spec-lite.md.

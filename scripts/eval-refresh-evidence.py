@@ -16,6 +16,8 @@ refresh-command):
     fails the Prime Directive privacy guard
   - a reviewed-with-zero-amendments entry is exempt (passes)
   - a rejected-for-lacking-evidence entry is a valid record (passes)
+  - rejected entries with reason execution failure or skill not used are valid
+    records (pass); a rejected entry with any other reason token fails
   - a rejected entry with no reason token fails
   - a live entry dated before LEARNING_CONTRACT_SINCE is grandfathered (passes)
   - a cited transcript file absent on disk still passes on the ID citation
@@ -65,7 +67,9 @@ _APPLIED_RE = re.compile(r"\*\*Amendments applied:\*\*\s*(\d+)\s+of\s+(\d+)")
 _TRANSCRIPT_RE = re.compile(r"(?mi)^\s*[-*]?\s*Transcript:\s*(.+?)\s*$")
 _SIGNAL_RE = re.compile(r"(?mi)^\s*[-*]?\s*Observable signal:\s*(.+?)\s*$")
 _SECTION_RE = re.compile(r"(?mi)^\s*[-*]?\s*Affected section:\s*(.+?)\s*$")
-_REASON_RE = re.compile(r"reason:\s*(no evidence|eval failed)", re.IGNORECASE)
+# The four rejection reason tokens; no other token is valid.
+REASON_TOKENS = ("no evidence", "eval failed", "execution failure", "skill not used")
+_REASON_RE = re.compile(r"reason:\s*(%s)" % "|".join(REASON_TOKENS), re.IGNORECASE)
 
 # Markers of forbidden private content (chain-of-thought / verbatim body).
 _PRIVATE_MARKERS = (
@@ -138,7 +142,7 @@ def validate_entry(text: str) -> tuple[bool, str]:
             return False, "rejected: section present but lists no candidates"
         for bullet in bullets:
             if not _REASON_RE.search(bullet):
-                return False, "rejected: candidate missing reason token (no evidence / eval failed)"
+                return False, "rejected: candidate missing reason token (%s)" % " / ".join(REASON_TOKENS)
 
     # No-op review is a valid, evidence-exempt outcome.
     if k == 0:
@@ -290,6 +294,18 @@ def rejected_missing_reason_entry() -> str:
     )
 
 
+def rejected_with_reason_entry(reason: str) -> str:
+    return (
+        "## 2026-10-25 — /create-spec refreshed\n\n"
+        "**Signals found:** 2 total, 1 actionable\n"
+        "**Amendments applied:** 0 of 1 proposed\n\n"
+        "**Rejected:**\n"
+        f"- Restate the scan rule — reason: {reason}\n\n"
+        "**Scope:** Local only\n"
+        "**Target file:** commands/create-spec.md\n"
+    )
+
+
 def grandfathered_entry() -> str:
     return (
         "## 2026-03-15 — /ship refreshed\n\n"
@@ -351,6 +367,17 @@ def run_base_scenarios() -> None:
 
     ok, reason = validate_entry(rejected_missing_reason_entry())
     emit("rejected-missing-reason-fails", (not ok) and "rejected" in reason, reason)
+
+    ok, reason = validate_entry(rejected_with_reason_entry(
+        'execution failure (covered by commands/create-spec.md → "Phase 2: Codebase Scan")'))
+    emit("rejected-execution-failure-is-valid-record", ok, reason)
+
+    ok, reason = validate_entry(rejected_with_reason_entry(
+        "skill not used (skills/tdd-cycle/SKILL.md; transcript shows no read)"))
+    emit("rejected-skill-not-used-is-valid-record", ok, reason)
+
+    ok, reason = validate_entry(rejected_with_reason_entry("seemed wrong"))
+    emit("rejected-unknown-token-fails", (not ok) and "rejected" in reason, reason)
 
     ok, reason = validate_entry(grandfathered_entry())
     emit("pre-contract-entry-grandfathered", ok, reason)
