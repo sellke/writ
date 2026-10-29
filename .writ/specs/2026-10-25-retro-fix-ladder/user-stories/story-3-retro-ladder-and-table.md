@@ -1,6 +1,7 @@
 # Story 3: /retro Fix Ladder, Proof, Rule Table, and Signal Retirement
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** e32d567c36d8716b38d6e37d47924b448c38e8fd
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
