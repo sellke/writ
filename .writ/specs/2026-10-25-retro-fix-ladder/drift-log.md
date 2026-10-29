@@ -85,3 +85,28 @@
 - **Reason:** Matches the spec's State Catalog row ("suggests `/retro` if it recurs") and the Integration Points line in spec-lite.
 - **Resolution:** Auto-amended
 - **Spec amendment:** None needed; the State Catalog already states it. None needed in spec-lite.md.
+
+---
+
+## Story 2: Seed This Repository's Rule-to-Enforcer Table — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-009] The Python 3.9 enforcer adds `--with pytest`
+- **Severity:** Small
+- **Spec said:** technical-spec § Seeded table: candidate enforcer `uv run --python 3.9 pytest <test>`.
+- **Implementation did:** `uv run --python 3.9 --with pytest pytest scripts/tests/test_ac_trace.py::CitationScanTests::test_symlink_loop_does_not_crash_the_scan`, proven against parent `0335b29` of fix `ebbf064` (parent exit 1, `RuntimeError: Symlink loop`; fix exit 0; the same parent passes on Python 3.13).
+- **Reason:** The parent has no `pyproject.toml`, so without the flag the parent run fails for a missing pytest, not for the mistake. The flag does nothing in the current repo.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Seeded table candidate enforcer reads `uv run --python 3.9 --with pytest pytest <test>`. None needed in spec-lite.md.
+
+#### [DEV-010] Two enforced rows, not three; the trees proof is a planned stale window
+- **Severity:** Small
+- **Spec said:** Story 2 Notes list three enforced candidates; AC-2.2 needs at least two, each a fix commit whose parent the enforcer fails on.
+- **Implementation did:** Seeded the Python 3.9 row and the generated-trees row (`python3 scripts/gen-platform-trees.py --check`, parent `ddfb17f` of `d47bcec`: parent exit 1 with 2 stale and 2 missing files, fix exit 0). Left out the shipped-refs row: `scripts/eval-shipped-refs.py` did not exist at `7967ea3` or `ce6e8ac`, so it cannot run in a materialized copy of either. The trees parent was a stale state the why-command spec left on purpose between its Stories 1 and 2, closed by a `feat` commit.
+- **Reason:** AC-2.2 asks for at least two rows. The trees proof is a real commit that broke the rule, not a fixture, so it meets Business Rule 6. A scan of all 100 commits since `--check` was added found no accidental stale tree.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Story 2 Notes record that the shipped-refs candidate does not qualify because its enforcer postdates the fix. None needed in spec-lite.md.

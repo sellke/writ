@@ -5,11 +5,11 @@
 | # | Story | Status | Priority | Dependencies | Tasks | Progress |
 |---|---|---|---|---|---|---|
 | 1 | [retro-check.py, the Rule Table and Ladder Checker](story-1-retro-check-script.md) | Completed ✅ | High | None | 7 | 7/7 |
-| 2 | [Seed This Repository's Rule-to-Enforcer Table](story-2-seed-rule-table.md) | Not Started | High | Story 1 | 6 | 0/6 |
+| 2 | [Seed This Repository's Rule-to-Enforcer Table](story-2-seed-rule-table.md) | Completed ✅ | High | Story 1 | 6 | 6/6 |
 | 3 | [/retro Fix Ladder, Proof, Rule Table, and Signal Retirement](story-3-retro-ladder-and-table.md) | Not Started | High | Story 1, Story 2 | 7 | 0/7 |
 | 4 | [/refresh-command Execution-Failure and Used-Skill Criteria](story-4-refresh-command-criteria.md) | Completed ✅ | High | None | 7 | 7/7 |
 
-**Total:** 4 stories, 27 tasks, 19 acceptance criteria. **Progress:** 14/27 tasks (52%).
+**Total:** 4 stories, 27 tasks, 19 acceptance criteria. **Progress:** 20/27 tasks (74%).
 
 ## Dependencies
 
