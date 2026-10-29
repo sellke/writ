@@ -1,6 +1,7 @@
 # Story 1: retro-check.py, the Rule Table and Ladder Checker
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 50ecd98ac4ceec066baf952313df53e8ba70de51
 > **Priority:** High
 > **Dependencies:** None
 
