@@ -37,8 +37,7 @@ designed for testability, minimal, and continuously verified.
 
 - Implementing new behavior where a test can express the desired outcome before
   the code exists — the default for feature and bug-fix work.
-- Fixing a bug: reproduce it with a failing test first, then make that test pass,
-  so the fix is proven and the regression is guarded.
+- Fixing a bug: follow `### Bug fixes: repro first` under How to Apply.
 - Any change where "designed for testability" matters and a fast test runner is
   available to make the loop cheap.
 - Not the right tool for pure structural change under an already-green suite —
@@ -93,6 +92,44 @@ test is probably doing too much or is too coupled; reshape it.
 - **Know when to stop.** If the same failure resists several distinct fix
   attempts, stop. The approach needs a rethink, not another patch.
 
+### Bug fixes: repro first
+
+Skip this section when `.writ/config.md` has the line `- **Repro First:** off`.
+A bug fix then starts from a failing test, as in the three beats.
+
+**Is it a bug?** Yes when the input is an issue with `**Type:** Bug` or a file
+under `.writ/issues/bugs/`, when the spec's Origin cites such a file, or when
+the request, issue, or story says existing behavior is wrong: a crash, an
+error, a wrong result, a regression. When signals disagree, ask whether a test
+can fail today because the code does the wrong thing rather than because code
+is missing. Yes means bug. A missing feature, a refactor, or a speed-up with
+correct output is not.
+
+1. **Reproduce where the bug shows.** Enter through the surface it was seen on:
+   run the CLI, send the request, render the component, call the public
+   function. A unit test of the suspected cause is not the repro; it can follow
+   as a later cycle. When the harness cannot reach that surface, use the
+   nearest one it can and note the gap.
+2. **Watch it fail for the bug's reason.** The failure shows the wrong value or
+   the reported error. An import error, a missing fixture, or a broken harness
+   is not a repro. Keep the command and its output.
+3. **Commit the repro alone.** Change test files only, at least one. Fixtures
+   under a test directory count, and so does un-skipping a test. Use type
+   `test` and a trailer `Repro: <issue path or one-line bug>`, in the message's
+   last paragraph with any other trailers and no blank line between them.
+4. **Fix, then commit the fix separately.** Run the same command and keep the
+   passing output. Leave the repro's test files untouched. If the repro was
+   wrong, reset to before it and commit a corrected repro first. Reset only
+   commits you have not pushed.
+5. **Check the order:** `python3 scripts/repro-order.py check --repo . --base <commit before the repro>`.
+   Fix every `fail` reason before handing off.
+6. **Carry forward** the command, the failing then passing output, both SHAs,
+   and the check's output.
+
+No repro possible (nondeterministic, environment-only, no harness): say
+`Repro: none` and why, add a regression test where one fits, and write no
+`Repro:` trailer.
+
 ## Examples
 
 **Growing a small function, one cycle per behavior:**
@@ -111,9 +148,12 @@ Cycle 3 — red:   test "throws on a non-array argument"     → fails (returns 
 **A bug fix that starts with a failing reproduction:**
 
 ```text
-red:   test "parseDate('') returns null, does not throw"   → fails (throws)
-green: guard the empty-string case before parsing          → passes
-refactor: fold the guard into the existing validation block → suite stays green
+red:    test "POST /login accepts a+b@example.com" → 401 (bug: plus sign rejected)
+commit: test(auth): reproduce login failure for plus-sign emails
+        Repro: login fails for plus-sign emails
+green:  stop stripping '+' in normalizeEmail                       → 200
+commit: fix(auth): accept a plus sign in the login email
+check:  repro-order: pass (1 repro, 1 fix commit(s))
 ```
 
 At the end of each cycle: the new test passes, every earlier test still passes,

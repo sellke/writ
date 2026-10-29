@@ -46,3 +46,36 @@
 - **Spec amendment:** technical-spec § CLI adds "Control characters in printed paths and subjects are escaped." None needed in spec-lite.md.
 
 ---
+
+## Story 2: The tdd-cycle Bug Path — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] `## Repro First` sits after `## Reviewer Filters`, not after `## Review Panel`
+- **Severity:** Small
+- **Spec said:** Task 2.4: add a `## Repro First` section "after `## Review Panel`" that follows that section's pattern.
+- **Implementation did:** The row is last in Supported Keys and the section follows `## Reviewer Filters`, the last of the three switch sections (Gate 0 Divergence, Safety Fact, Reviewer Filters) that sibling Phase 15 specs added after Review Panel. It uses their pattern: fenced `off` example, then one paragraph.
+- **Reason:** Placing it directly after Review Panel would split the switch sections, and Review Panel is a slug list, not an on/off switch. The contract and technical spec set no placement.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Task 2.4 reads "add a `## Repro First` section after `## Reviewer Filters` that follows the switch sections' pattern". None needed in spec-lite.md.
+
+#### [DEV-006] Step 3 says the `Repro:` trailer shares the last paragraph with other trailers; the example shows it on its own line
+- **Severity:** Small
+- **Spec said:** technical-spec § Skill Section Draft step 3: "a trailer `Repro: <issue path or one-line bug>` in the message's last paragraph"; the Examples block shows `Repro:` on the subject line.
+- **Implementation did:** Step 3 adds "with any other trailers and no blank line between them". The example puts `Repro: login fails for plus-sign emails` on an indented line under the repro `commit:` line.
+- **Reason:** `scripts/repro-order.py` reads only the final paragraph (Story 1); a separate `Repro:` paragraph followed by a `Co-Authored-By:` or `Ref:` paragraph is not detected, and a one-line message with `Repro:` on the subject fails `no_repro_commit`.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Skill Section Draft step 3 and Examples block as built. None needed in spec-lite.md.
+
+#### [DEV-007] Removal Inventory row 1 omits the When to Use bullet this story changes
+- **Severity:** Small
+- **Spec said:** Removal Inventory, `skills/tdd-cycle/SKILL.md` row: "`### Bug fixes: repro first` section and its example; restore the original two-line bug example".
+- **Implementation did:** Per AC-2.3, the When to Use bug bullet also changed to point at the section. The removed example was three lines (red / green / refactor), not two.
+- **Reason:** Followed literally, the row would leave a bullet pointing at a deleted heading. `2026-10-25-gate-upgrade-removal-measurement` consumes this inventory.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Removal Inventory row reads "`### Bug fixes: repro first` section; the bug example under `## Examples` (restore the three-line `parseDate('')` example); the When to Use bug bullet (restore the 'reproduce it with a failing test first' bullet)". Recorded here because the pipeline never auto-modifies `spec.md`. None needed in spec-lite.md.
+
+---
