@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T19:10:59Z
+> Last Updated: 2026-10-29T20:55:47Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-repro-first-bug-fixing — Repro-First Bug Fixing
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-repro-first-bug-fixing`)
-- **Story:** 3 of 4 — The Coding Agent's Repro Report (Completed ✅ (2026-10-29))
-- **Progress:** 20/27 tasks complete (74%)
+- **Story:** 4 of 4 — Consumer Wiring and Ordered-Commit Integration (Completed ✅ (2026-10-29))
+- **Progress:** 27/27 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-009 `### Repro` block presentation differs; labels and `Commits` shape do not — repro-first-bug-fixing (Story 3, Small)
-- DEV-008 Requirement 3 sentence longer than the draft — repro-first-bug-fixing (Story 3, Small)
-- DEV-007 Removal Inventory row 1 omits the When to Use bullet — repro-first-bug-fixing (Story 2, Small)
+- DEV-013 `/implement-story` Bug path keeps the base across recodes, routes exit 2 — repro-first-bug-fixing (Story 4, Small)
+- DEV-012 `/prototype` Bug path integrates named commits by cherry-pick — repro-first-bug-fixing (Story 4, Small)
+- DEV-010 Two whole-file byte caps on implement-story.md raised by +448 — repro-first-bug-fixing (Story 4, Small)
 
 ## Open Issues
 

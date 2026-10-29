@@ -104,3 +104,44 @@
 - **Spec amendment:** technical-spec § Report Block shows the as-built block; spec.md Story 3 "three forms" reads "four forms" (recorded here; the pipeline never edits spec.md). None needed in spec-lite.md.
 
 ---
+
+## Story 4: Consumer Wiring and Ordered-Commit Integration — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-010] Two out-of-boundary byte caps raised by this story's growth
+- **Severity:** Small
+- **Spec said:** Task 4.7: the only edits are `commands/prototype.md` Step 3, `commands/implement-story.md` Gate 1, the integration skill's step 3 paragraph, the wiring module, and generated trees. Technical Concerns expected byte-budget warnings.
+- **Implementation did:** `KNOWN_OVER_BUDGET["commands/implement-story.md"]` in `scripts/tests/test_governor_enforcement.py` 15269 → 15717 and `IMPLEMENT_STORY_CAP` in `scripts/tests/test_review_route_rigor.py` 40234 → 40682, each with a dated comment. The file grew 40,229 → 40,677 bytes (+448); the cap keeps its 5-byte slack.
+- **Reason:** Both are whole-file caps, so any growth in `implement-story.md` breaks them, and AC-4.5 needs a green suite. The sibling spec's Gate 2.5/3 allowance is unchanged.
+- **Resolution:** Auto-amended
+- **Spec amendment:** Task 4.7 adds "plus the dated bumps of both whole-file byte caps by this story's measured growth". None needed in spec-lite.md.
+
+#### [DEV-011] AC-3.5 and AC-4.5 traced by citations in the wiring module
+- **Severity:** Small
+- **Spec said:** No task names ac-trace citations; AC-3.5 and AC-4.5 are verification-run criteria.
+- **Implementation did:** Cited both in the `test_repro_first_wiring.py` docstring and in `test_generated_trees_current`, as the module already does for AC-2.5.
+- **Reason:** `ac-trace.py` reported `untested_criterion AC-3.5` once Story 3 was marked Completed, which would have failed AC-4.5's zero-findings `eval.sh`.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Tests → `test_repro_first_wiring.py` adds "The module cites AC-3.5 and AC-4.5; their evidence is the full pytest run, the bash loop, and `bash scripts/eval.sh`." None needed in spec-lite.md.
+
+#### [DEV-012] The `/prototype` Bug path line integrates named commits by cherry-pick
+- **Severity:** Small
+- **Spec said:** technical-spec § Consumer Lines: "When the agent's `### Repro` block names commits, run `python3 scripts/repro-order.py check --repo . --base <that SHA>` after integration and put its output …".
+- **Implementation did:** "When the agent's `### Repro` block names commits, bring them into this checkout with `git cherry-pick`, oldest first, as the integration skill's Ordered commits paragraph says, not through `git apply`. Then run `python3 scripts/repro-order.py check --repo . --base <that SHA>` …".
+- **Reason:** Gate 3 cycle 1 (FAIL, Major): Step 3's integration sentence prescribes `git apply`, which drops commits, so every worktree-isolated bug run would fail `no_repro_commit`. Reproduced in a scratch repo. The fix stays inside the one Removal Inventory line; the integration sentence (pinned by `test_prototype_worktree_integration.py`) is unchanged.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Consumer Lines `/prototype` Bug path line reads as built in `commands/prototype.md` Step 3; § Error & Rescue Map → Integration adds "/prototype: the line overrides Step 3's `git apply` for named commits". None needed in spec-lite.md.
+
+#### [DEV-013] The `/implement-story` Bug path line keeps the base across recodes and routes exit 2
+- **Severity:** Small
+- **Spec said:** technical-spec § Consumer Lines: "record `git rev-parse HEAD` before the spawn … `unverifiable` prints and continues."
+- **Implementation did:** "record `git rev-parse HEAD` before the story's first Gate 1 spawn and reuse it on recodes … `unverifiable`, or exit 2 with its stderr cause, prints and continues."
+- **Reason:** Gate 3 cycle 1 (FAIL, Major): a per-spawn base moves past the first pass's repro on a recode, so the check fails `no_repro_commit` and the story is falsely `⚠️ DEGRADED`. Exit 2 left stdout empty and unrouted. No loop or increment is added; only `fail` maps to DEGRADED (Business Rule 10).
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Consumer Lines `/implement-story` Bug path line reads as built in `commands/implement-story.md` Gate 1. None needed in spec-lite.md.
+
+---

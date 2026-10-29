@@ -41,9 +41,41 @@ Story 3 (the coding agent's report, `agents/coding-agent.md`):
   `codex/agents/coding-agent.toml` carry the same block, generator rewrites
   allowed, and `python3 scripts/gen-platform-trees.py --check` passes
   (AC-3.4).
+- The Story 3 tests above pass in the full pytest run; the bash test loop
+  and `bash scripts/eval.sh` are the rest of the verification run (AC-3.5).
 
-Story 4 extends this file with the consumer lines and the cherry-pick
-paragraph.
+Story 4 (the consumers and the ordered-commits paragraph):
+
+- `commands/prototype.md` Step 3 principle 1 names the bug path in
+  `skills/tdd-cycle/SKILL.md`, and a `**Bug path:**` line right after the
+  integration paragraph records the base, brings the named commits in with
+  `git cherry-pick`, oldest first, not through `git apply`, runs
+  `python3 scripts/repro-order.py check`, and sends its output and the
+  failing-then-passing output to the Step 5 summary, where `fail` reads
+  "Prototype Complete (with issues)" (AC-4.1).
+- `commands/implement-story.md` Gate 1 has a `**Bug path:**` line right after
+  `**Report:**`: base recorded before the story's first Gate 1 spawn and
+  reused on recodes, check re-run, a `repro-order:` line in the Step 4
+  report, `fail` → `⚠️ DEGRADED` with its `reason:` lines, `unverifiable` or
+  exit 2 with its stderr cause prints and continues. `gate1_coding` stays
+  `verification: prose-only` and `scripts/verdict-provenance.py check` passes
+  (AC-4.2).
+- Both `**Bug path:**` lines fire only when the report's `### Repro` block
+  names commits, and never read `.writ/config.md`; the agent's `Repro: off`
+  form names no commits. Each command names `repro-order.py` only in that
+  line, so Step 2.5, Gate 0, Gate 2.5, Gate 3, and Step 4 carry none of it
+  (AC-4.1, AC-4.2).
+- `skills/subagent-worktree-integration/SKILL.md` step 3 ends with the
+  "Ordered commits" paragraph: `git cherry-pick`, oldest first, instead of
+  copying; on a conflict `git cherry-pick --abort`, copy the files, and say
+  the order was lost. `bash scripts/lint-skill.sh` passes on it (AC-4.3).
+- `test_removal_inventory_row` has one case per row of the spec's
+  `## Removal Inventory` (with the When to Use bullet added to the tdd-cycle
+  row, drift DEV-007); its id and failure message name the row. The
+  generated-trees row is `test_generated_trees_current` (AC-4.4).
+- `test_generated_trees_current` is the `gen-platform-trees.py --check` part
+  of AC-4.5; the full pytest run, the bash test loop, and
+  `bash scripts/eval.sh` are the rest of the verification run (AC-4.5).
 
 Run: uv run --python 3.9 pytest scripts/tests/test_repro_first_wiring.py -q
 """
@@ -121,6 +153,40 @@ BUG_FIELDS = [
 ]
 # Story 4's consumers read the SHAs from this exact shape.
 COMMITS_LINE = re.compile(r"^- \*\*Commits:\*\* repro `\[sha\]` → fix `\[sha\]`\[, `\[sha\]`\]$")
+
+PROTOTYPE_REL = "commands/prototype.md"
+IMPLEMENT_STORY_REL = "commands/implement-story.md"
+INTEGRATION_REL = "skills/subagent-worktree-integration/SKILL.md"
+CONTRACT_REL = ".writ/docs/agent-cli-contract.md"
+CONTRACT_TEST_REL = "scripts/tests/test_agent_cli_contract.py"
+SCRIPT_REL = "scripts/repro-order.py"
+SCRIPT_TEST_REL = "scripts/tests/test_repro_order.py"
+WIRING_REL = "scripts/tests/test_repro_first_wiring.py"
+VERDICT_REL = "scripts/verdict-provenance.py"
+
+STEP25 = "### Step 2.5: Diverge & Choose"
+STEP3 = "### Step 3: Spawn Coding Agent"
+STEP5 = "### Step 5: Output Summary"
+GATE0 = "#### Gate 0: Architecture Check (Pre-Implementation)"
+GATE1 = "#### Gate 1: Coding Agent (TDD Implementation)"
+GATE25 = "#### Gate 2.5: Change Surface Classification"
+GATE3 = "#### Gate 3: Review Agent"
+STEP4 = "### Step 4: Story Completion"
+INTEGRATION_STEP3 = "### 3. Copy changed and created files into the main checkout"
+
+PRINCIPLE1_LEAD = "1. **TDD**"
+INTEGRATION_LEAD = "The change is done only when it is in the user's checkout."
+REPORT_LEAD = "**Report:**"
+BLOCKED_LEAD = "**On `STATUS: BLOCKED`:**"
+BUG_PATH_LEAD = "**Bug path:**"
+ORDERED_LEAD = "**Ordered commits.**"
+SCRIPT_NAME = "repro-order.py"
+# Both consumers run the check from the checkout's root against the recorded base.
+CONSUMER_CHECK = "`python3 scripts/repro-order.py check --repo . --base <that SHA>`"
+WITH_ISSUES = "Prototype Complete (with issues)"
+DEGRADED = "⚠️ DEGRADED"
+# A `### Repro` block names commits only in its bug-with-a-repro form.
+COMMITS_FIELD = "- **Commits:** "
 
 HEADING = re.compile(r"^(#{1,6}) \S")
 FENCE = re.compile(r"^\s*```")
@@ -299,6 +365,63 @@ def agent_repro_block() -> List[str]:
 def unrewrite(text: str) -> str:
     """Undo the platform-term rewrites the generator may apply to a copy."""
     return text.replace("${CLAUDE_PLUGIN_ROOT}/", "").replace("/writ:", "/")
+
+
+def paragraphs(block: str) -> List[str]:
+    """Blank-line separated paragraphs of `block`, stripped, empty ones
+    dropped."""
+    return [p.strip() for p in re.split(r"\n\s*\n", block) if p.strip()]
+
+
+def one_paragraph(block: str, lead: str, where: str) -> str:
+    """The one paragraph of `block` that starts with `lead`."""
+    found = [p for p in paragraphs(block) if p.startswith(lead)]
+    assert len(found) == 1, "expected one paragraph starting %r in %s, found %d" % (
+        lead,
+        where,
+        len(found),
+    )
+    return found[0]
+
+
+def paragraph_after(block: str, lead: str, where: str) -> str:
+    """The paragraph right after the one that starts with `lead`."""
+    paras = paragraphs(block)
+    at = [i for i, p in enumerate(paras) if p.startswith(lead)]
+    assert len(at) == 1, "expected one paragraph starting %r in %s, found %d" % (
+        lead,
+        where,
+        len(at),
+    )
+    assert at[0] + 1 < len(paras), "nothing follows %r in %s" % (lead, where)
+    return paras[at[0] + 1]
+
+
+def run_lint(rel: str) -> None:
+    """`bash scripts/lint-skill.sh <rel>` exits 0 with `pass` on line 1."""
+    proc = subprocess.run(
+        ["bash", LINT_REL, rel],
+        cwd=str(REPO_ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    first = proc.stdout.splitlines()[0] if proc.stdout else ""
+    assert first == "pass", proc.stdout + proc.stderr
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def prototype_step3() -> str:
+    return section(read(PROTOTYPE_REL), STEP3)
+
+
+def gate1() -> str:
+    return section(read(IMPLEMENT_STORY_REL), GATE1)
+
+
+def bug_path_line(rel: str, heading: str) -> str:
+    return one_paragraph(section(read(rel), heading), BUG_PATH_LEAD, "%s %s" % (rel, heading))
 
 
 # ---------------------------------------------------------------------------
@@ -517,17 +640,7 @@ def test_config_section():
 def test_lint_skill_passes():
     """AC-2.5: `bash scripts/lint-skill.sh skills/tdd-cycle/SKILL.md` exits 0
     with `pass` on line 1."""
-    proc = subprocess.run(
-        ["bash", LINT_REL, SKILL_REL],
-        cwd=str(REPO_ROOT),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        universal_newlines=True,
-        check=False,
-    )
-    first = proc.stdout.splitlines()[0] if proc.stdout else ""
-    assert first == "pass", proc.stdout + proc.stderr
-    assert proc.returncode == 0, proc.stdout + proc.stderr
+    run_lint(SKILL_REL)
 
 
 # ---------------------------------------------------------------------------
@@ -707,7 +820,8 @@ def test_generated_copy_carries_repro_block(rel):
 
 
 def test_generated_trees_current():
-    """AC-3.4: `python3 scripts/gen-platform-trees.py --check` exits 0."""
+    """AC-3.4, AC-4.5: `python3 scripts/gen-platform-trees.py --check` exits
+    0."""
     proc = subprocess.run(
         [sys.executable, GEN_REL, "--check"],
         cwd=str(REPO_ROOT),
@@ -718,3 +832,356 @@ def test_generated_trees_current():
     )
     first = proc.stdout.splitlines()[0] if proc.stdout else ""
     assert proc.returncode == 0 and first == "pass", proc.stdout + proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# Story 4: commands/prototype.md Step 3
+# ---------------------------------------------------------------------------
+
+
+def test_prototype_principle_1_names_bug_path():
+    """AC-4.1: Step 3 principle 1 keeps the TDD instruction and names the bug
+    path in skills/tdd-cycle/SKILL.md, a failing repro committed before the
+    fix."""
+    line = requirement(prototype_step3(), PRINCIPLE1_LEAD)
+    assert "tests first covering core behavior and obvious edge cases" in line, (
+        "principle 1 lost its TDD instruction: %r" % line
+    )
+    assert "bug path in `%s`" % SKILL_REL in line, (
+        "principle 1 does not name the bug path in %s: %r" % (SKILL_REL, line)
+    )
+    assert re.search(r"(?i)failing repro committed before the fix", line), (
+        "principle 1 does not say the failing repro is committed before the fix: %r" % line
+    )
+    assert BUG_HEADING in headings(read(SKILL_REL)), "%s has no %r heading" % (SKILL_REL, BUG_HEADING)
+
+
+def test_prototype_bug_path_line():
+    """AC-4.1: the `**Bug path:**` line follows the integration paragraph,
+    records the base before spawning, brings the named commits in with
+    `git cherry-pick`, oldest first, not through `git apply` (which drops
+    commits, so the check would fail `no_repro_commit`), runs the check, and
+    puts its output and the failing-then-passing output in the Step 5
+    summary; `fail` makes it "Prototype Complete (with issues)"."""
+    step = prototype_step3()
+    line = one_paragraph(step, BUG_PATH_LEAD, STEP3)
+    assert paragraph_after(step, INTEGRATION_LEAD, STEP3) == line, (
+        "the %s line does not follow the integration paragraph" % BUG_PATH_LEAD
+    )
+    assert_in_order(
+        line,
+        [
+            "`git rev-parse HEAD`",
+            "before spawning",
+            "names commits",
+            "`git cherry-pick`",
+            "oldest first",
+            "Ordered commits",
+            "not through `git apply`",
+            CONSUMER_CHECK,
+            "failing-then-passing output",
+            "Step 5 summary",
+            "`fail`",
+            '"%s"' % WITH_ISSUES,
+        ],
+    )
+    assert WITH_ISSUES in section(read(PROTOTYPE_REL), STEP5), (
+        "Step 5 has no %r summary for the line to point at" % WITH_ISSUES
+    )
+
+
+# ---------------------------------------------------------------------------
+# Story 4: commands/implement-story.md Gate 1
+# ---------------------------------------------------------------------------
+
+
+def test_gate1_bug_path_line():
+    """AC-4.2: the `**Bug path:**` line sits between `**Report:**` and the
+    `STATUS: BLOCKED` handling, records the base before the story's first
+    Gate 1 spawn and reuses it on recodes (a recode's fresh base would hold no
+    repro and fail `no_repro_commit`), re-runs the check after integration,
+    prints `repro-order:` in the Step 4 report, maps `fail` to `⚠️ DEGRADED`
+    with its `reason:` lines, and lets `unverifiable` or exit 2 print and
+    continue."""
+    gate = gate1()
+    line = one_paragraph(gate, BUG_PATH_LEAD, GATE1)
+    assert paragraph_after(gate, REPORT_LEAD, GATE1) == line, (
+        "the %s line does not follow %s" % (BUG_PATH_LEAD, REPORT_LEAD)
+    )
+    assert paragraph_after(gate, BUG_PATH_LEAD, GATE1).startswith(BLOCKED_LEAD), (
+        "the %s handling no longer follows the %s line" % (BLOCKED_LEAD, BUG_PATH_LEAD)
+    )
+    assert_in_order(
+        line,
+        [
+            "`git rev-parse HEAD`",
+            "before the story's first Gate 1 spawn",
+            "reuse it on recodes",
+            "names commits",
+            CONSUMER_CHECK,
+            "after integration",
+            "`repro-order:`",
+            "Step 4 report",
+            "`fail` marks the story `%s`" % DEGRADED,
+            "`reason:` lines",
+            "`unverifiable`, or exit 2 with its stderr cause, prints and continues",
+        ],
+    )
+    after = line[line.index("`unverifiable`"):]
+    assert "DEGRADED" not in after, "`unverifiable` must not mark the story DEGRADED: %r" % after
+    command = read(IMPLEMENT_STORY_REL)
+    assert DEGRADED in command.replace(gate, ""), (
+        "%s is not a state the command defines outside Gate 1" % DEGRADED
+    )
+
+
+def test_gate1_stays_prose_only():
+    """AC-4.2: the `gates:` frontmatter keeps `gate1_coding` as
+    `verification: prose-only` with no `script:`, and
+    `scripts/verdict-provenance.py check` passes, so no gate names both a
+    script and prose-only."""
+    frontmatter = read(IMPLEMENT_STORY_REL).split("\n---\n", 1)[0] + "\n"
+    entry = re.search(r"(?m)^  - id: gate1_coding\n((?:    \S.*\n)*)", frontmatter)
+    assert entry, "gates: has no gate1_coding entry"
+    assert entry.group(1).split("\n")[:-1] == ["    verification: prose-only"], (
+        "gate1_coding changed: %r" % entry.group(1)
+    )
+    proc = subprocess.run(
+        [sys.executable, VERDICT_REL, "check", "--command", IMPLEMENT_STORY_REL],
+        cwd=str(REPO_ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+        check=False,
+    )
+    first = proc.stdout.splitlines()[0] if proc.stdout else ""
+    assert proc.returncode == 0 and first == "pass", proc.stdout + proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# Story 4: both consumers
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "rel,heading",
+    [
+        pytest.param(PROTOTYPE_REL, STEP3, id="prototype-step-3"),
+        pytest.param(IMPLEMENT_STORY_REL, GATE1, id="implement-story-gate-1"),
+    ],
+)
+def test_bug_path_fires_only_on_named_commits(rel, heading):
+    """AC-4.1, AC-4.2: the line runs the check only when the report's
+    `### Repro` block names commits, and never reads `.writ/config.md`. Only
+    the agent's bug-with-a-repro form names commits, so a `Repro: off`,
+    `Repro: none`, or not-a-bug report never triggers it."""
+    line = bug_path_line(rel, heading)
+    cond = re.search(r"When the (agent's|report's) `### Repro` block names commits", line)
+    assert cond, "%s %s does not limit the check to a report that names commits: %r" % (
+        rel,
+        heading,
+        line,
+    )
+    assert cond.start() < line.index(CONSUMER_CHECK), "the condition must come before the check"
+    for needle in (".writ/config.md", "Repro First"):
+        assert needle not in line, "%s %s reads the switch itself (%r)" % (rel, heading, needle)
+    block = agent_repro_block()
+    assert any(f.startswith(COMMITS_FIELD) for f in form(block, FORM_BUG)), (
+        "the bug-with-a-repro form no longer names commits"
+    )
+    for name in (FORM_OFF, FORM_NO_REPRO, FORM_NOT_BUG):
+        assert not any(COMMITS_FIELD.strip() in f for f in form(block, name)), (
+            "the %r form names commits, so it would trigger the check" % name
+        )
+
+
+@pytest.mark.parametrize(
+    "rel,owner,others",
+    [
+        pytest.param(PROTOTYPE_REL, STEP3, [STEP25], id="prototype"),
+        pytest.param(IMPLEMENT_STORY_REL, GATE1, [GATE0, GATE25, GATE3, STEP4], id="implement-story"),
+    ],
+)
+def test_bug_path_only_in_its_section(rel, owner, others):
+    """AC-4.1, AC-4.2: each command has one `**Bug path:**` line and names
+    `repro-order.py` only in its own section; the sibling specs' sections
+    (`/prototype` Step 2.5; `/implement-story` Gates 0, 2.5, 3) and Step 4
+    carry none of it."""
+    text = read(rel)
+    own = section(text, owner)
+    assert text.count(BUG_PATH_LEAD) == own.count(BUG_PATH_LEAD) == 1, (
+        "%s: expected one %s line, inside %r" % (rel, BUG_PATH_LEAD, owner)
+    )
+    assert text.count(SCRIPT_NAME) == own.count(SCRIPT_NAME), (
+        "%s names %s outside %r" % (rel, SCRIPT_NAME, owner)
+    )
+    for heading in others:
+        block = section(text, heading)
+        for needle in (BUG_PATH_LEAD, SCRIPT_NAME):
+            assert needle not in block, "%s %r carries %r" % (rel, heading, needle)
+
+
+# ---------------------------------------------------------------------------
+# Story 4: skills/subagent-worktree-integration/SKILL.md
+# ---------------------------------------------------------------------------
+
+
+def test_ordered_commits_paragraph():
+    """AC-4.3: step 3 ends with the "Ordered commits" paragraph: carry the
+    commits with `git cherry-pick`, oldest first, instead of copying their
+    files; on a conflict run `git cherry-pick --abort`, copy the files, and
+    say that the order was lost."""
+    skill = read(INTEGRATION_REL)
+    step = section(skill, INTEGRATION_STEP3)
+    paras = paragraphs(step)
+    assert paras and paras[-1].startswith(ORDERED_LEAD), (
+        "step 3 does not end with the %s paragraph" % ORDERED_LEAD
+    )
+    assert sum(p.startswith(ORDERED_LEAD) for p in paras) == 1, "expected one %s paragraph" % ORDERED_LEAD
+    text = flat(paras[-1])
+    assert_in_order(
+        text,
+        [
+            "repro commit before its fix",
+            "`git cherry-pick <sha>...`",
+            "oldest first",
+            "instead of copying",
+            "On a conflict",
+            "`git cherry-pick --abort`",
+            "copy the files",
+            "order was lost",
+        ],
+    )
+    assert skill.count("cherry-pick") == text.count("cherry-pick"), (
+        "%s names cherry-pick outside the %s paragraph" % (INTEGRATION_REL, ORDERED_LEAD)
+    )
+
+
+@pytest.mark.skipif(shutil.which("bash") is None, reason="bash is not available")
+def test_lint_integration_skill_passes():
+    """AC-4.3: `bash scripts/lint-skill.sh
+    skills/subagent-worktree-integration/SKILL.md` exits 0 with `pass` on
+    line 1."""
+    run_lint(INTEGRATION_REL)
+
+
+# ---------------------------------------------------------------------------
+# Story 4: one pin per Removal Inventory row
+# ---------------------------------------------------------------------------
+
+
+def read_or_empty(rel: str) -> str:
+    path = REPO_ROOT / rel
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+
+def section_or_empty(text: str, heading: str) -> str:
+    if heading not in [line.rstrip() for line in text.splitlines()]:
+        return ""
+    return section(text, heading)
+
+
+def has_paragraph(block: str, lead: str, needle: str) -> bool:
+    return any(p.startswith(lead) and needle in p for p in paragraphs(block))
+
+
+def inventory_tdd_cycle() -> List[str]:
+    skill = read_or_empty(SKILL_REL)
+    missing = []  # type: List[str]
+    if BUG_HEADING not in headings(skill):
+        missing.append("the %r section" % BUG_HEADING)
+    if "repro-order: pass" not in section_or_empty(skill, EXAMPLES):
+        missing.append("the bug example under %r" % EXAMPLES)
+    if BUG_HEADING not in section_or_empty(skill, WHEN_TO_USE):
+        missing.append("the When to Use bug bullet (drift DEV-007)")
+    return missing
+
+
+def inventory_coding_agent() -> List[str]:
+    lines = read_or_empty(AGENT_REL).splitlines()
+    missing = []  # type: List[str]
+    if not any(line.startswith(REQ1_LEAD) and BUG_HEADING in line for line in lines):
+        missing.append("the bug-path sentence in Implementation Requirement 1")
+    if not any(line.startswith(REQ3_LEAD) and REF_FOOTER in line for line in lines):
+        missing.append("the `Ref:` footer sentence in Implementation Requirement 3")
+    if not any(line.startswith("- ") and REPRO_HEADING + "*" in line for line in lines):
+        missing.append("the `### Repro` item in Output Requirements")
+    if REPRO_HEADING not in lines:
+        missing.append("the `### Repro` block in Output Format")
+    return missing
+
+
+def inventory_prototype() -> List[str]:
+    step = section_or_empty(read_or_empty(PROTOTYPE_REL), STEP3)
+    missing = []  # type: List[str]
+    principle = "bug path in `%s`" % SKILL_REL
+    if not any(line.startswith(PRINCIPLE1_LEAD) and principle in line for line in step.splitlines()):
+        missing.append("the bug-path sentence in Step 3 principle 1")
+    if not has_paragraph(step, BUG_PATH_LEAD, SCRIPT_NAME):
+        missing.append("the %s line in Step 3" % BUG_PATH_LEAD)
+    return missing
+
+
+def inventory_implement_story() -> List[str]:
+    gate = section_or_empty(read_or_empty(IMPLEMENT_STORY_REL), GATE1)
+    if not has_paragraph(gate, BUG_PATH_LEAD, SCRIPT_NAME):
+        return ["the %s line in Gate 1" % BUG_PATH_LEAD]
+    return []
+
+
+def inventory_integration() -> List[str]:
+    step = section_or_empty(read_or_empty(INTEGRATION_REL), INTEGRATION_STEP3)
+    if not has_paragraph(step, ORDERED_LEAD, "git cherry-pick"):
+        return ["the ordered-commits paragraph in step 3"]
+    return []
+
+
+def inventory_files() -> List[str]:
+    return [rel for rel in (SCRIPT_REL, SCRIPT_TEST_REL, WIRING_REL) if not (REPO_ROOT / rel).is_file()]
+
+
+def inventory_contract() -> List[str]:
+    missing = []  # type: List[str]
+    rows = read_or_empty(CONTRACT_REL).splitlines()
+    if not any(line.startswith("| `%s` |" % SCRIPT_NAME) for line in rows):
+        missing.append("the `%s` row in %s" % (SCRIPT_NAME, CONTRACT_REL))
+    if 'Smoke("%s"' % SCRIPT_NAME not in read_or_empty(CONTRACT_TEST_REL):
+        missing.append("the `%s` Smoke entry in %s" % (SCRIPT_NAME, CONTRACT_TEST_REL))
+    return missing
+
+
+def inventory_config() -> List[str]:
+    config = read_or_empty(CONFIG_FORMAT_REL)
+    missing = []  # type: List[str]
+    rows = table_rows(section_or_empty(config, SUPPORTED_KEYS))
+    if not any(row.startswith(CONFIG_ROW_PREFIX) for row in rows):
+        missing.append("the `Repro First` row in Supported Keys")
+    if CONFIG_HEADING not in headings(config):
+        missing.append("the %r section" % CONFIG_HEADING)
+    return missing
+
+
+# One entry per row of spec.md `## Removal Inventory`: (test id, the row's
+# Location column, the check). DEV-007 adds the When to Use bullet to the
+# tdd-cycle row. The ninth row, generated trees, is test_generated_trees_current.
+REMOVAL_INVENTORY = [
+    ("tdd-cycle", SKILL_REL, inventory_tdd_cycle),
+    ("coding-agent", AGENT_REL, inventory_coding_agent),
+    ("prototype", PROTOTYPE_REL, inventory_prototype),
+    ("implement-story", IMPLEMENT_STORY_REL, inventory_implement_story),
+    ("worktree-integration", INTEGRATION_REL, inventory_integration),
+    ("script-files", ", ".join((SCRIPT_REL, SCRIPT_TEST_REL, WIRING_REL)), inventory_files),
+    ("cli-contract", "%s, %s" % (CONTRACT_REL, CONTRACT_TEST_REL), inventory_contract),
+    ("config-format", CONFIG_FORMAT_REL, inventory_config),
+]
+
+
+@pytest.mark.parametrize(
+    "location,check",
+    [pytest.param(location, check, id=row_id) for row_id, location, check in REMOVAL_INVENTORY],
+)
+def test_removal_inventory_row(location, check):
+    """AC-4.4: the row's text or files are present, so deleting any part of
+    the upgrade without the rest fails here, and the message names the row."""
+    missing = check()
+    assert not missing, "Removal Inventory row `%s`: missing %s" % (location, "; ".join(missing))

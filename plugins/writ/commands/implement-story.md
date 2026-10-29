@@ -244,6 +244,8 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ${C
 
 **Report:** files changed, tests written, deviations from plan, concerns.
 
+**Bug path:** record `git rev-parse HEAD` before the story's first Gate 1 spawn and reuse it on recodes. When the report's `### Repro` block names commits, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repro-order.py check --repo . --base <that SHA>` after integration and print its first line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
+
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; skip-with-warning marks the story `In Progress` with the note *"Gate 1 skipped after BLOCKED — review required."*
 
 ---
