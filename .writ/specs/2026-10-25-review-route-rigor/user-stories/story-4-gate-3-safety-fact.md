@@ -1,6 +1,7 @@
 # Story 4: Safety fact at Gate 3
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 149dc40597653ace9c5129b385f4176db417e28c
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2, Story 3
 
