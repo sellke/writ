@@ -105,6 +105,7 @@ These steps apply in the Writ source repo.
 | `lint-skill.sh` | check |  | commands/new-skill.md, commands/refresh-command.md, commands/update-writ.md |
 | `phase-state.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/status.md, commands/revert.md, commands/knowledge.md, adapters/claude-code.md |
 | `quality-config-audit.py` | data |  | commands/initialize.md, commands/status.md |
+| `repro-order.py` | check |  | commands/implement-story.md, commands/prototype.md, skills/tdd-cycle/SKILL.md |
 | `resolve-spec-reference.py` | data |  | commands/release.md, commands/ship.md |
 | `revert-resolve.py` | data |  | commands/revert.md, commands/implement-story.md |
 | `review-override.py` | check |  | commands/implement-story.md, commands/review.md |
@@ -130,5 +131,6 @@ The Callers column names the main callers and is not complete. Before you change
 
 - `app-verify.py` — check. `touched` prints one `feature: <id>` line per matched feature between the verdict and the summary. A refused run prints `unverifiable` on line 1 and keeps `refused` in its summary and JSON. With `--json`, the verdict lines print as usual and one JSON object follows the summary as the last line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
+- `repro-order.py` — check. On `pass` the `reason:` lines are informational, one per repro and fix commit (`reason: repro <sha> <subject> (<n> test file(s))`, `reason: fix <sha> <subject> (<n> source file(s))`); on `fail` each `reason:` line is a finding. `reason: repro-first value <v> read as on` can precede either. `- **Repro First:** off` in `.writ/config.md` prints `unverifiable` before any git call.
 - `review-override.py` — check. `switch` prints a state word, `on` or `off`, on line 1 instead of a verdict, then one `reason:` line, then the summary `review-override switch: <name> <state> (.writ/config.md)`. It always exits 0, except 2 for a usage error. This is a documented exception to the Check shape: the state word is the answer, as the `2026-10-25-review-route-rigor` spec defines it.
 - `review-panel.py` — check. A panel word that is not a verdict is the first `reason:` line: `tally` prints `fail` then `reason: block` on a consensus finding (exit 1), and `trial-report` prints `pass` then `reason: keep` or `reason: remove`. With `--json`, the object's `verdict` holds the panel word.

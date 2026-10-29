@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T16:41:30Z
+> Last Updated: 2026-10-29T17:31:40Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-review-route-rigor — Review-Route Rigor
-- **Status:** Complete (Phase 15 lane `writ/phase/15/2026-10-25-review-route-rigor`)
-- **Story:** 4 of 4 — Safety fact at Gate 3 (Completed ✅ (2026-10-29))
-- **Progress:** 26/26 tasks complete (100%)
+- **Spec:** 2026-10-25-repro-first-bug-fixing — Repro-First Bug Fixing
+- **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-repro-first-bug-fixing`)
+- **Story:** 1 of 4 — Repro-Order Check Script (Completed ✅ (2026-10-29))
+- **Progress:** 7/27 tasks complete (26%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-review-route-rigor/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-repro-first-bug-fixing/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-019 Routing precedence when reasons co-occur — review-route-rigor (Story 4, Small)
-- DEV-018 `review-agent` gains a `## Recorded Test Results` prompt block — review-route-rigor (Story 4, Small)
-- DEV-017 `tested` accepts pytest node IDs — review-route-rigor (Story 4, Small)
+- DEV-004 Control characters escaped; unsearchable `.writ/` exits 2 — repro-first-bug-fixing (Story 1, Small)
+- DEV-003 Which commit the `<sha>` in a reason line names — repro-first-bug-fixing (Story 1, Small)
+- DEV-002 Rule 6 freezes only the repro's test-classified paths — repro-first-bug-fixing (Story 1, Small)
 
 ## Open Issues
 
