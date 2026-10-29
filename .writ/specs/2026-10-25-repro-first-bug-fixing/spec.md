@@ -1,6 +1,6 @@
 # Repro-First Bug Fixing
 
-> **Status:** Not Started
+> **Status:** Complete
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** []
