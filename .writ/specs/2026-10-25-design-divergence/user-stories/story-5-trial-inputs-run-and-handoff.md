@@ -1,6 +1,7 @@
 # Story 5: Trial Inputs, Generation, Blinding, and Rating Handoff
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** c15513276d30f16bdb76e574c77d65b21be7a9c7
 > **Priority:** Medium
 > **Dependencies:** Story 1, Story 4
 
