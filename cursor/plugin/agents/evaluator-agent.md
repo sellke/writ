@@ -44,6 +44,7 @@ exit_criteria:
 | `contract_content` | The `## Specification Contract` section of `spec.md`, heading through the line before the next `## ` heading, verbatim. The drift reference: outranks `spec-lite.md` when they disagree. Empty string when absent; then use `spec_lite_content` alone. |
 | `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries. Empty string when none match. |
 | `boundary_map` | **Optional.** Gate 0.5 ownership block. If empty/omitted, skip boundary lines. |
+| `reviewer_filters` | `on` or `off`, resolved by Gate 3 from the `reviewer-filters` switch. |
 
 ## Prompt Template
 
@@ -89,6 +90,8 @@ If `boundary_map` is empty, whitespace-only, or `(none)`, ignore this section.
 
 ## Residual Scan (not a general quality tour)
 Scan only for residual architecture, security, and taste. Do not expand into a full code-quality, coverage, or integration tour.
+
+When `{reviewer_filters}` is `on`, `Read skills/review-judgment-filters/SKILL.md` and apply it before you set EVALUATION_RESULT.
 
 ## Output Format
 

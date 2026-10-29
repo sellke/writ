@@ -107,7 +107,7 @@ These steps apply in the Writ source repo.
 | `quality-config-audit.py` | data |  | commands/initialize.md, commands/status.md |
 | `resolve-spec-reference.py` | data |  | commands/release.md, commands/ship.md |
 | `revert-resolve.py` | data |  | commands/revert.md, commands/implement-story.md |
-| `review-override.py` | check |  | commands/implement-story.md |
+| `review-override.py` | check |  | commands/implement-story.md, commands/review.md |
 | `review-panel.py` | check |  | commands/implement-story.md, adapters/claude-code.md, adapters/codex.md, adapters/cursor.md |
 | `roadmap-sync.py` | data |  | commands/release.md |
 | `scaffold-writ.py` | check |  | commands/initialize.md |

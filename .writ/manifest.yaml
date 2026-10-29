@@ -306,6 +306,11 @@ skills:
     description: "Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources."
     status: candidate
     tags: [context, snapshot, reporting]
+  - name: review-judgment-filters
+    file: skills/review-judgment-filters/SKILL.md
+    description: "Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings."
+    status: candidate
+    tags: [review, judgment, security]
   - name: safe-refactor-loop
     file: skills/safe-refactor-loop/SKILL.md
     description: "Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline."

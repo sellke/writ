@@ -633,7 +633,9 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-26 (2026-10-25-design-divergence Story 3): 11266 -> 13474; Gate 0
     # boundary-crossing divergence block (1994 bytes) plus its Overview clause,
     # Pipeline Gate 0 row, and References link.
-    "commands/implement-story.md": 13474,
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 2): 13474 -> 13769; Gate 3
+    # reviewer-filters switch and report line.
+    "commands/implement-story.md": 13769,
 }
 
 

@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T14:19:06Z
+> Last Updated: 2026-10-29T15:01:51Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-review-route-rigor — Review-Route Rigor
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-review-route-rigor`)
-- **Story:** 1 of 4 — Upgrade switches (Completed ✅ (2026-10-29))
-- **Progress:** 6/26 tasks complete (23%)
+- **Story:** 2 of 4 — Reviewer lead-judgment filters (Completed ✅ (2026-10-29))
+- **Progress:** 13/26 tasks complete (50%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-003 A script edit regenerates the plugin tree — review-route-rigor (Story 1, Small)
-- DEV-002 `on` is matched in any case — review-route-rigor (Story 1, Small)
-- DEV-001 `switch` prints a state word on line 1, an exception to the agent CLI check shape — review-route-rigor (Story 1, Medium)
+- DEV-007 Manifest entry inserted in alphabetical position — review-route-rigor (Story 2, Small)
+- DEV-006 README live-skill count corrected from a stale value — review-route-rigor (Story 2, Small)
+- DEV-005 Agent CLI contract Callers cell names `commands/review.md` — review-route-rigor (Story 2, Small)
 
 ## Open Issues
 

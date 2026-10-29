@@ -59,6 +59,7 @@ exit_criteria:
 | `change_surface` | Classification from Gate 2.5: `style-only`, `single-component`, `cross-component`, or `full-stack`. Determines review depth allocation per category. |
 | `boundary_map` | **Optional.** Same Gate 0.5 markdown block passed to the coding agent. If empty/omitted, skip boundary compliance scrutiny (legacy behavior). |
 | `boundary_overlap_summary` | **Optional.** One-line summary of overlap / high-overlap areas from the map (for extra scrutiny). Empty if none. |
+| `reviewer_filters` | `on` or `off`, resolved by Gate 3 from the `reviewer-filters` switch. |
 
 ## Prompt Template
 
@@ -199,6 +200,8 @@ Compare the implementation against the Locked Contract above, then Spec-Lite; th
 - **Large:** Report the conflict and set REVIEW_RESULT to PAUSE. Still include all completed review sections in the output — drift analysis is additive. The pipeline will PAUSE for human decision.
 
 If NO deviations found, report "Overall Drift: None" and continue.
+
+When `{reviewer_filters}` is `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/review-judgment-filters/SKILL.md` and apply it before you set REVIEW_RESULT.
 
 ## Output Format
 You MUST output your review in this exact format:

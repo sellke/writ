@@ -147,6 +147,7 @@ and is not installed.
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `plain-prose` | `candidate` | `skills/plain-prose/SKILL.md` | Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries. |
 | `project-context-snapshot` | `candidate` | `skills/project-context-snapshot/SKILL.md` | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources. |
+| `review-judgment-filters` | `candidate` | `skills/review-judgment-filters/SKILL.md` | Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
 | `story-commit-provenance` | `candidate` | `skills/story-commit-provenance/SKILL.md` | Record a completion commit SHA into a story file header idempotently and without amending it. |
 | `story-context-assembly` | `candidate` | `skills/story-context-assembly/SKILL.md` | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections. |
