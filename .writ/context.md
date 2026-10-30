@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T23:20:37Z
+> Last Updated: 2026-10-30T03:08:11Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-retro-fix-ladder — Retro Fix Ladder
-- **Status:** Complete (Phase 15 lane `writ/phase/15/2026-10-25-retro-fix-ladder`)
-- **Story:** 4 of 4 — all stories Completed ✅ (2026-10-29)
-- **Progress:** 27/27 tasks complete (100%)
+- **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
+- **Status:** In Progress — awaiting human labels (rating-handoff.md) (Phase 15 lane `writ/phase/15/2026-10-25-gate-upgrade-removal-measurement`)
+- **Story:** 3 of 4 — Run the Arms and Hand Off for Labeling (Completed ✅); Story 4 waits on human labels
+- **Progress:** 21/28 tasks complete (75%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-retro-fix-ladder/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-013 Heading level, exit-criterion quoting, and the example's result — retro-fix-ladder (Story 3, Small)
-- DEV-012 Single-event counting is split between Step 3 and Step 4 — retro-fix-ladder (Story 3, Small)
-- DEV-011 A second finding on the same rule is dismissed, with its reason on a `**Reason:**` line — retro-fix-ladder (Story 3, Small)
+- DEV-011 Removal-inventory corrections for Story 4, from the dependency specs' drift logs — gate-upgrade-removal-measurement
+- DEV-010 `tests.txt` written by hand for two stories — gate-upgrade-removal-measurement
+- DEV-009 `repro-stop.md` adds `Targets:` and a `Repro: none` form; failing output is indented — gate-upgrade-removal-measurement
 
 ## Open Issues
 
