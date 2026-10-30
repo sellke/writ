@@ -552,21 +552,20 @@ def test_writ_mdc(gen, tmp_path):
 
 def test_claude_md_map(gen, tmp_path):
     """AC-2.3: the written `claude-code/CLAUDE.md` carries `## Capability Map`
-    with the Claude Code rows between the Commands table and `## Agents`, and
+    with the Claude Code rows between `## Commands` and `## Pipeline`, and
     `gen-claude-md.py --check` on the written tree prints `pass`."""
     tree = tmp_tree(tmp_path)
     proc = run_tree(tree)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     lines = (tree / "claude-code" / "CLAUDE.md").read_text(encoding="utf-8").splitlines()
-    table_header = lines.index("| Command | File | Purpose |")
+    commands_heading = lines.index("## Commands")
     map_heading = lines.index("## Capability Map")
-    agents_heading = lines.index("## Agents")
-    assert table_header < map_heading < agents_heading
-    command_rows = [i for i, l in enumerate(lines) if l.startswith("| `/")]
-    assert command_rows[-1] == map_heading - 2 and lines[map_heading - 1] == ""
+    pipeline_heading = lines.index("## Pipeline")
+    assert commands_heading < map_heading < pipeline_heading
+    assert lines[map_heading - 1] == ""
     expected = gen.capability_map("claude-code", tree).splitlines()
     assert lines[map_heading:map_heading + len(expected)] == expected
-    assert lines[map_heading + len(expected):map_heading + len(expected) + 2] == ["", "## Agents"]
+    assert lines[map_heading + len(expected):map_heading + len(expected) + 2] == ["", "## Pipeline"]
 
     check = subprocess.run([sys.executable, str(tree / "scripts" / "gen-claude-md.py"), "--check"],
                            cwd=str(tree), capture_output=True, text=True)
@@ -672,8 +671,7 @@ def test_write_folds_subgenerator_reason(tmp_path):
 def test_write_ignores_stale_outputs(tmp_path):
     """AC-2.4: a stale, missing, or hand-edited generated file is what write
     mode repairs, so a sub-generator's `stale`/`missing` reason never blocks
-    the run; and one run converges, because the agent generators run before
-    gen-claude-md, which reads their output."""
+    the run; and one run converges."""
     tree = tmp_tree(tmp_path)
     clean = tmp_tree(tmp_path / "clean")
     assert run_tree(clean).returncode == 0
@@ -691,7 +689,6 @@ def test_write_ignores_stale_outputs(tmp_path):
     assert "wrote claude-code/CLAUDE.md" in wrote_lines(proc)
     assert "wrote codex/AGENTS.md.template" in wrote_lines(proc)
     assert generated_bytes(tree) == expected
-    assert "- `writ-coder.md`" in (tree / "claude-code" / "CLAUDE.md").read_text(encoding="utf-8")
 
 
 def test_unverifiable_heading(tmp_path):
@@ -1245,18 +1242,17 @@ def edit_claude_agent(tree: Path) -> None:
 
 
 # (id, mutation, the exact reason lines --check prints, the five counts).
-# gen-claude-md lists claude-code/agents/*.md, so an orphan agent file also
-# makes claude-code/CLAUDE.md stale; a hand-edited agent file is the agent
-# generator's stale stem, folded. A stray file outside the `writ-*.md` glob
+# claude-code/CLAUDE.md lists no agents, so an orphan agent file leaves it
+# current; a hand-edited agent file is the agent generator's stale stem, folded. A stray file outside the `writ-*.md` glob
 # is the driver's own orphan (no generator produces it; install.sh would
 # ship it).
 STALE_CASES = [
     ("stale-writ-mdc", edit_writ_mdc, ["stale cursor/writ.mdc"], (1, 0, 0, 0, 0)),
     ("missing-claude-md", delete_claude_md, ["missing claude-code/CLAUDE.md"], (0, 1, 0, 0, 0)),
     ("orphan-claude-agent", add_claude_agent,
-     ["orphan claude-code/agents/writ-extra.md", "stale claude-code/CLAUDE.md"], (1, 0, 1, 0, 0)),
+     ["orphan claude-code/agents/writ-extra.md"], (0, 0, 1, 0, 0)),
     ("orphan-stray-claude-agent", add_stray_claude_agent,
-     ["orphan claude-code/agents/helper.md", "stale claude-code/CLAUDE.md"], (1, 0, 1, 0, 0)),
+     ["orphan claude-code/agents/helper.md"], (0, 0, 1, 0, 0)),
     ("orphan-codex-toml", add_codex_toml, ["orphan codex/agents/extra.toml"], (0, 0, 1, 0, 0)),
     ("stale-codex-template", edit_codex_template, ["stale codex/AGENTS.md.template"], (1, 0, 0, 0, 0)),
     ("stale-claude-agent", edit_claude_agent, ["gen-claude-agents: stale testing-agent"], (1, 0, 0, 0, 0)),

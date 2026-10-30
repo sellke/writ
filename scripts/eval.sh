@@ -4490,7 +4490,7 @@ check_claude_agents() {
 
 check_claude_md() {
   # Story 1 of 2026-10-20-claude-code-parity: claude-code/CLAUDE.md must equal
-  # what scripts/gen-claude-md.py renders from the manifest. One add_finding per
+  # what scripts/gen-claude-md.py renders. One add_finding per
   # reason: line; unverifiable (a missing manifest) is a finding too.
   local helper="$PROJECT_ROOT/scripts/gen-claude-md.py"
   local remedy="Run python3 scripts/gen-claude-md.py and commit claude-code/CLAUDE.md."
@@ -4511,11 +4511,6 @@ check_claude_md() {
   fi
   while IFS= read -r line; do
     case "$line" in
-      "reason: missing "*)
-        reasons=$((reasons + 1))
-        add_finding "claude-code/CLAUDE.md" \
-          "manifest command /${line#reason: missing } is missing from the Claude Code template." "$remedy"
-        ;;
       "reason: "*)
         reasons=$((reasons + 1))
         add_finding "claude-code/CLAUDE.md" "gen-claude-md.py --check: ${line#reason: }" "$remedy"

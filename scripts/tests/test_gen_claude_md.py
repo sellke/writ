@@ -3,10 +3,11 @@
 Story 2 of `2026-10-22-generated-platform-trees` (the `{capability_map}` slot);
 everything else is Story 1 of `2026-10-20-claude-code-parity`.
 
-The generator builds `claude-code/CLAUDE.md` from the `commands:` list in
-`.writ/manifest.yaml`, the frontmatter of `claude-code/agents/*.md`, and the
-Claude Code capability map that `scripts/gen-platform-trees.py` renders from
-`adapters/claude-code.md`. It prints the check shape from the agent CLI
+The generator builds `claude-code/CLAUDE.md` from the Claude Code capability
+map that `scripts/gen-platform-trees.py` renders from `adapters/claude-code.md`,
+after validating the `commands:` list in `.writ/manifest.yaml`. The template
+lists no commands and no agents: Claude Code's skill listing and Agent tool
+show both every session. It prints the check shape from the agent CLI
 contract and writes nothing on any failure.
 
 CLI tests copy the script, the driver, and the adapter into a temp root,
@@ -14,8 +15,8 @@ because the script resolves its root from its own path. Nothing here writes
 to the real repo. The module name has a hyphen, so in-process tests import it
 by path, the way test_gen_codex_agent_tomls.py does.
 
-Expected rows, agents, and map rows come from the real manifest, agent files,
-and adapter, never from a hard-coded count.
+Expected command counts and map rows come from the real manifest and adapter,
+never from a hard-coded count.
 
 Run: uv run pytest scripts/tests/test_gen_claude_md.py
 """
@@ -37,7 +38,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = REPO_ROOT / "scripts" / "gen-claude-md.py"
 TREES_PATH = REPO_ROOT / "scripts" / "gen-platform-trees.py"
 MANIFEST = REPO_ROOT / ".writ" / "manifest.yaml"
-AGENTS_DIR = REPO_ROOT / "claude-code" / "agents"
 ADAPTER = REPO_ROOT / "adapters" / "claude-code.md"
 TEMPLATE = REPO_ROOT / "claude-code" / "CLAUDE.md"
 IMPORT_LINE = "@.claude/system-instructions.md"
@@ -78,16 +78,6 @@ def manifest_commands() -> List[Tuple[str, str]]:
     return out
 
 
-def agent_entries() -> List[Tuple[str, str]]:
-    """(file name, description) per claude-code/agents/*.md, sorted by file name."""
-    out = []
-    for path in sorted(AGENTS_DIR.glob("*.md")):
-        front = path.read_text(encoding="utf-8").split("\n---\n", 1)[0]
-        desc = re.search(r"^description: (.*)$", front, re.M)
-        out.append((path.name, desc.group(1) if desc else ""))
-    return out
-
-
 def fixture_manifest(entries: List[Tuple[str, Optional[str]]]) -> str:
     """A small manifest: one command per (name, purpose); None omits purpose."""
     lines = ["version: 1", "metadata:", "  name: fixture", "", "commands:"]
@@ -122,27 +112,12 @@ EXPECTED_HEAD = [
     "",
     "## Commands",
     "",
-    "Run Writ commands by reading the command file and following its workflow:",
-    "",
     'Start with `/writ "<what you want>"`: it restates the request and routes it to the right command.',
     "",
-    "| Command | File | Purpose |",
-    "|---------|------|---------|",
-    "| `/plan-product` | `.claude/commands/plan-product.md` | Plan the product. |",
-    "| `/create-spec` | `.claude/commands/create-spec.md` | Write a spec \\| contract first. |",
-    "| `/implement-spec` | `.claude/commands/implement-spec.md` | Build a spec from `@scope` code. |",
-    "| `/verify-spec` | `.claude/commands/verify-spec.md` | Check a spec. |",
-    "| `/release` | `.claude/commands/release.md` | Cut a release. |",
-    "| `/implement-phase` | `.claude/commands/implement-phase.md` | Run a phase. |",
+    "Writ commands live in `.claude/commands/` and its subagents in `.claude/agents/`; "
+    "Claude Code lists both every session. To run a command, read its file and follow its workflow.",
 ]
 EXPECTED_TAIL = [
-    "## Agents",
-    "",
-    "Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:",
-    "",
-    "- `writ-alpha.md` — Alpha agent.",
-    "- `writ-beta.md` — Beta agent.",
-    "",
     "## Pipeline",
     "",
     "```",
@@ -161,8 +136,8 @@ EXPECTED_TAIL = [
 
 
 def expected_fixture() -> str:
-    """The exact fixture output: the Commands table, a blank line, the real
-    Claude Code map, a blank line, then `## Agents` onward."""
+    """The exact fixture output: the Commands section, a blank line, the real
+    Claude Code map, a blank line, then `## Pipeline` onward."""
     return "\n".join(EXPECTED_HEAD) + "\n\n" + claude_map() + "\n" + "\n".join(EXPECTED_TAIL) + "\n"
 
 
@@ -175,8 +150,7 @@ class TempRoot(unittest.TestCase):
         (self.root / "scripts").mkdir()
         (self.root / ".writ").mkdir()
         (self.root / "adapters").mkdir()
-        self.agents = self.root / "claude-code" / "agents"
-        self.agents.mkdir(parents=True)
+        (self.root / "claude-code").mkdir()
         self.out = self.root / "claude-code" / "CLAUDE.md"
         self.manifest = self.root / ".writ" / "manifest.yaml"
         self.adapter = self.root / "adapters" / "claude-code.md"
@@ -193,22 +167,9 @@ class TempRoot(unittest.TestCase):
 
     def use_real_inputs(self) -> None:
         shutil.copy(MANIFEST, self.manifest)
-        for path in AGENTS_DIR.glob("*.md"):
-            shutil.copy(path, self.agents / path.name)
 
     def use_fixture(self, entries=PIPELINE_ENTRIES) -> None:
         self.manifest.write_text(fixture_manifest(entries), encoding="utf-8")
-        self.add_agent("writ-beta.md", "writ-beta", "Beta agent.")
-        self.add_agent("writ-alpha.md", "writ-alpha", "Alpha agent.")
-
-    def add_agent(self, file: str, name: Optional[str], description: Optional[str]) -> None:
-        front = ["---"]
-        if name is not None:
-            front.append("name: %s" % name)
-        if description is not None:
-            front.append("description: %s" % description)
-        front += ["tools: Read", "---", "", "# Body", ""]
-        (self.agents / file).write_text("\n".join(front), encoding="utf-8")
 
     def run_cli(self, *args: str) -> subprocess.CompletedProcess:
         return subprocess.run(
@@ -235,7 +196,7 @@ class TempRoot(unittest.TestCase):
         self.assertTrue(lines[-1].startswith("gen-claude-md: fail ("), lines[-1])
         self.assertEqual(self.out.read_bytes(), SENTINEL)
         self.assertEqual(sorted(p.name for p in self.out.parent.iterdir()),
-                         ["CLAUDE.md", "agents"], "a temp file was left behind")
+                         ["CLAUDE.md"], "a temp file was left behind")
 
     def assert_unverifiable(self, reason: str) -> None:
         """Both modes print unverifiable with this reason, exit 0, and leave the template."""
@@ -250,11 +211,11 @@ class TempRoot(unittest.TestCase):
             self.assertEqual(self.out.read_bytes(), SENTINEL)
 
 
-# --- AC-1.1: the template from the real manifest and agents --------------------
+# --- AC-1.1: the template from the real manifest --------------------------------
 
 
 class RealTemplateTests(TempRoot):
-    """AC-1.1: rows, agents, pipeline, import line, bytes, and determinism."""
+    """AC-1.1: no command table or agent list, pipeline, import line, bytes, and determinism."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -262,23 +223,28 @@ class RealTemplateTests(TempRoot):
         self.result = self.run_cli()
         self.text = self.out.read_text(encoding="utf-8") if self.out.is_file() else ""
 
-    def test_ac_1_1_one_row_per_manifest_command_in_order(self) -> None:
-        """AC-1.1: one row per manifest command, manifest order, file and purpose."""
-        expected = [
-            "| `/%s` | `.claude/commands/%s.md` | %s |" % (name, name, purpose.replace("|", "\\|"))
-            for name, purpose in manifest_commands()]
-        rows = [l for l in self.text.splitlines() if l.startswith("| `/")]
-        self.assertEqual(rows, expected)
-        names = [name for name, _ in manifest_commands()]
-        for name in ("implement-phase", "knowledge", "revert"):
-            self.assertIn(name, names)
+    def test_ac_1_1_no_command_table_or_agent_list(self) -> None:
+        """AC-1.1: the harness lists commands and agents, so the template does not:
+        no command rows, no `## Agents`, no agent file names, no command purposes."""
+        self.assertTrue(self.text)
+        lines = self.text.splitlines()
+        self.assertEqual([l for l in lines if l.startswith("| `/")], [])
+        self.assertNotIn("| Command | File | Purpose |", lines)
+        self.assertNotIn("## Agents", lines)
+        self.assertNotIn("writ-evaluator", self.text)
+        for _, purpose in manifest_commands():
+            self.assertNotIn(purpose, self.text)
 
-    def test_ac_1_1_one_entry_per_agent_file(self) -> None:
-        """AC-1.1: one agents entry per claude-code/agents/*.md file, writ-evaluator included."""
-        expected = ["- `%s` — %s" % entry for entry in agent_entries()]
-        entries = [l for l in self.text.splitlines() if l.startswith("- `writ-")]
-        self.assertEqual(entries, expected)
-        self.assertIn("writ-evaluator.md", [name for name, _ in agent_entries()])
+    def test_ac_1_1_sections_in_order(self) -> None:
+        """AC-1.1: Commands, Capability Map, Pipeline, Principles, in that order,
+        with the `/writ` entry line under Commands."""
+        lines = self.text.splitlines()
+        headings = [l for l in lines if l.startswith("## ")]
+        self.assertEqual(headings, ["## Commands", "## Capability Map", "## Pipeline", "## Principles"])
+        start = [i for i, l in enumerate(lines) if l.startswith('Start with `/writ "<what you want>"`')]
+        self.assertEqual(len(start), 1)
+        self.assertLess(lines.index("## Commands"), start[0])
+        self.assertLess(start[0], lines.index("## Capability Map"))
 
     def test_ac_1_1_pipeline_line(self) -> None:
         """AC-1.1: the pipeline line sits in its fence under ## Pipeline."""
@@ -303,12 +269,11 @@ class RealTemplateTests(TempRoot):
         self.assertFalse(data.endswith(b"\n\n"))
 
     def test_ac_1_1_stdout_line_one_is_pass(self) -> None:
-        """AC-1.1: stdout line 1 is pass; the summary counts commands and agents."""
+        """AC-1.1: stdout line 1 is pass; the summary counts the manifest commands checked."""
         self.assertEqual(self.result.returncode, 0, self.result.stdout + self.result.stderr)
         lines = self.lines(self.result)
         self.assertEqual(lines[0], "pass")
-        self.assertEqual(lines[-1], "gen-claude-md: pass (%d commands, %d agents)"
-                         % (len(manifest_commands()), len(agent_entries())))
+        self.assertEqual(lines[-1], "gen-claude-md: pass (%d commands)" % len(manifest_commands()))
 
     def test_ac_1_1_second_run_leaves_bytes_unchanged(self) -> None:
         """AC-1.1: a second run writes the same bytes."""
@@ -324,17 +289,15 @@ class RealTemplateTests(TempRoot):
 class FixtureLayoutTests(TempRoot):
     """AC-1.1: the exact output layout, from a small fixture."""
 
-    def test_ac_1_1_exact_bytes_escaping_and_agent_order(self) -> None:
-        """AC-1.1: layout per the technical spec; `|` escaped; agents sorted by file name."""
+    def test_ac_1_1_exact_bytes(self) -> None:
+        """AC-1.1: the exact layout; no fixture purpose reaches the output."""
         self.use_fixture()
         self.assertEqual(self.generate().decode("utf-8"), expected_fixture())
 
     def test_ac_1_1_render_matches_cli(self) -> None:
         """AC-1.1: render() returns the same text the CLI writes."""
         gen = load_module()
-        commands = [(n, p) for n, p in PIPELINE_ENTRIES]
-        agents = [("writ-alpha.md", "Alpha agent."), ("writ-beta.md", "Beta agent.")]
-        self.assertEqual(gen.render(commands, agents, claude_map()), expected_fixture())
+        self.assertEqual(gen.render(claude_map()), expected_fixture())
 
 
 # --- AC-1.2: --check ------------------------------------------------------------
@@ -363,20 +326,22 @@ class CheckModeTests(TempRoot):
         self.assertTrue(self.lines(result)[-1].startswith("gen-claude-md: pass ("))
         self.assertEqual(self.out.read_bytes(), before)
 
-    def test_ac_1_2_deleted_revert_row_is_one_missing_reason(self) -> None:
-        """AC-1.2: a deleted /revert row gives exactly one `missing revert` reason and exit 1."""
-        text = self.generate().decode("utf-8")
-        edited = "".join(l for l in text.splitlines(True) if not l.startswith("| `/revert` |"))
-        self.assertNotEqual(edited, text)
-        self.out.write_text(edited, encoding="utf-8")
+    def test_ac_1_2_new_manifest_command_needs_no_regeneration(self) -> None:
+        """AC-1.2: the template lists no commands, so a command added to the
+        manifest leaves the committed template current."""
+        before = self.generate()
+        text = self.manifest.read_text(encoding="utf-8")
+        self.manifest.write_text(text.replace("\ncommands:\n", "\ncommands:\n"
+                                              "  - name: zz-new\n    file: commands/zz-new.md\n"
+                                              "    purpose: \"A new command.\"\n", 1),
+                                 encoding="utf-8")
         result = self.run_cli("--check")
-        self.assertEqual(result.returncode, 1)
-        self.assertEqual(self.lines(result), [
-            "fail", "reason: missing revert", "gen-claude-md: fail (1 missing, 0 extra)"])
-        self.assertEqual(self.out.read_text(encoding="utf-8"), edited)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.lines(result)[0], "pass")
+        self.assertEqual(self.out.read_bytes(), before)
 
-    def test_ac_1_2_other_byte_difference_is_stale(self) -> None:
-        """AC-1.2: any other byte difference with the row set intact is `stale`."""
+    def test_ac_1_2_byte_difference_is_stale(self) -> None:
+        """AC-1.2: any byte difference is `stale`."""
         text = self.generate().decode("utf-8")
         self.out.write_text(text.replace("## Principles", "## Principles!"), encoding="utf-8")
         result = self.run_cli("--check")
@@ -392,16 +357,6 @@ class CheckModeTests(TempRoot):
         self.out.write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
         result = self.run_cli("--check")
         self.assertIn("reason: stale claude-code/CLAUDE.md", self.lines(result))
-
-    def test_ac_1_2_extra_row_and_rename(self) -> None:
-        """AC-1.2: a row with no manifest command is `extra`; a rename is missing plus extra."""
-        text = self.generate().decode("utf-8")
-        self.out.write_text(text.replace("| `/revert` |", "| `/undo` |"), encoding="utf-8")
-        result = self.run_cli("--check")
-        self.assertEqual(result.returncode, 1)
-        self.assertEqual(self.lines(result), [
-            "fail", "reason: missing revert", "reason: extra undo",
-            "gen-claude-md: fail (1 missing, 1 extra)"])
 
     def test_ac_1_2_absent_template(self) -> None:
         """AC-1.2: no committed template is `absent`, exit 1, and nothing is created."""
@@ -424,11 +379,11 @@ class ErrorPathTests(TempRoot):
         self.manifest.unlink()
         self.assert_unverifiable("manifest missing: .writ/manifest.yaml")
 
-    def test_ac_1_3_missing_agents_dir_is_unverifiable(self) -> None:
-        """AC-1.3: a missing claude-code/agents/ prints unverifiable and exits 0."""
+    def test_ac_1_3_agents_dir_is_not_an_input(self) -> None:
+        """AC-1.3: the template lists no agents, so no claude-code/agents/ still passes."""
         self.use_fixture()
-        shutil.rmtree(self.agents)
-        self.assert_unverifiable("agents missing: claude-code/agents")
+        self.assertFalse((self.root / "claude-code" / "agents").exists())
+        self.assertEqual(self.generate().decode("utf-8"), expected_fixture())
 
     def test_ac_1_3_unknown_flag_is_usage_error(self) -> None:
         """AC-1.3: an unknown flag prints usage on stderr, empty stdout, exit 2."""
@@ -453,28 +408,15 @@ class ErrorPathTests(TempRoot):
         self.assert_fail_untouched(["manifest knowledge missing purpose"])
         self.assert_fail_untouched(["manifest knowledge missing purpose"], "--check")
 
-    def test_ac_1_3_at_sign_outside_backticks(self) -> None:
-        """AC-1.3: a purpose with `@` outside backticks fails as an import token."""
+    def test_ac_1_3_at_sign_in_purpose_is_not_rendered(self) -> None:
+        """AC-1.3: purposes are not rendered, so `@` in one is no import token."""
         self.use_fixture(PIPELINE_ENTRIES + [("knowledge", "Load @notes.md first.")])
-        self.assert_fail_untouched(["import-token knowledge"])
-
-    def test_ac_1_3_at_sign_in_agent_description(self) -> None:
-        """AC-1.3: an agent description with `@` outside backticks fails too."""
-        self.use_fixture()
-        self.add_agent("writ-gamma.md", "writ-gamma", "Reads @docs/x.md.")
-        self.assert_fail_untouched(["import-token writ-gamma.md"])
+        self.assertEqual(self.generate().decode("utf-8"), expected_fixture())
 
     def test_ac_1_3_pipeline_command_absent_from_manifest(self) -> None:
         """AC-1.3: a pipeline command missing from the manifest fails and names it."""
         self.use_fixture([e for e in PIPELINE_ENTRIES if e[0] != "verify-spec"])
         self.assert_fail_untouched(["pipeline verify-spec"])
-
-    def test_ac_1_3_agent_without_description(self) -> None:
-        """AC-1.3: an agent file without name or description fails and names the file."""
-        self.use_fixture()
-        self.add_agent("writ-gamma.md", "writ-gamma", None)
-        self.add_agent("writ-delta.md", None, "Delta.")
-        self.assert_fail_untouched(["agent writ-delta.md", "agent writ-gamma.md"])
 
     def test_ac_1_3_manifest_validation_reasons(self) -> None:
         """AC-1.3: bad name, wrong file, and duplicate name each name the entry."""
@@ -517,7 +459,7 @@ class ErrorPathTests(TempRoot):
         self.assertEqual(lines[0], "fail")
         self.assertTrue(lines[1].startswith("reason: write "), lines)
         self.assertEqual(self.out.read_bytes(), SENTINEL)
-        self.assertEqual(sorted(p.name for p in folder.iterdir()), ["CLAUDE.md", "agents"])
+        self.assertEqual(sorted(p.name for p in folder.iterdir()), ["CLAUDE.md"])
 
 
 class ValueParserTests(unittest.TestCase):
@@ -546,23 +488,22 @@ class ValueParserTests(unittest.TestCase):
 class CapabilityMapTests(TempRoot):
     """2026-10-22-generated-platform-trees AC-2.3: the Claude Code capability
     map from scripts/gen-platform-trees.py fills the slot after the Commands
-    table; its inputs and failures follow the generator's check shape."""
+    section; its inputs and failures follow the generator's check shape."""
 
-    def test_ac_2_3_capability_map_between_commands_and_agents(self) -> None:
+    def test_ac_2_3_capability_map_between_commands_and_pipeline(self) -> None:
         """AC-2.3: `## Capability Map` with the Claude Code rows sits after the
-        Commands table and before `## Agents` in the real output."""
+        Commands section and before `## Pipeline` in the real output."""
         self.use_real_inputs()
         lines = self.generate().decode("utf-8").splitlines()
-        table = lines.index("| Command | File | Purpose |")
+        commands = lines.index("## Commands")
         heading = lines.index("## Capability Map")
-        agents = lines.index("## Agents")
-        self.assertLess(table, heading)
-        self.assertLess(heading, agents)
+        pipeline = lines.index("## Pipeline")
+        self.assertLess(commands, heading)
+        self.assertLess(heading, pipeline)
         expected = claude_map().splitlines()
         self.assertEqual(lines[heading:heading + len(expected)], expected)
         self.assertEqual(lines[heading - 1], "")
-        self.assertTrue(lines[heading - 2].startswith("| `/"), lines[heading - 2])
-        self.assertEqual(lines[heading + len(expected):heading + len(expected) + 2], ["", "## Agents"])
+        self.assertEqual(lines[heading + len(expected):heading + len(expected) + 2], ["", "## Pipeline"])
 
     def test_ac_2_3_write_prints_wrote_line(self) -> None:
         """AC-2.3: write mode prints `wrote claude-code/CLAUDE.md` between the
@@ -570,7 +511,7 @@ class CapabilityMapTests(TempRoot):
         self.use_fixture()
         result = self.run_cli()
         self.assertEqual(self.lines(result), [
-            "pass", "wrote claude-code/CLAUDE.md", "gen-claude-md: pass (6 commands, 2 agents)"])
+            "pass", "wrote claude-code/CLAUDE.md", "gen-claude-md: pass (6 commands)"])
 
     def test_ac_2_3_missing_adapter_is_unverifiable(self) -> None:
         """AC-2.3: a missing adapters/claude-code.md prints unverifiable and exits 0."""

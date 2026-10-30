@@ -33,7 +33,7 @@ generator `--check` calls are the only subprocesses.
   `verify-spec` and before `writ-design` (AC-2.1).
 - `test_catalogs`: `SKILL.md` renders `### Start here` before
   `### Planning & Specification` with a `/writ` row; `claude-code/CLAUDE.md`
-  has a `/writ` row and the "Start with" line above its Commands table;
+  has the "Start with" line under `## Commands` and lists no commands;
   `bash scripts/gen-skill.sh --check` and `gen-claude-md.py --check` exit 0
   with `pass` as the first stdout line (gen-skill.sh prints its `Parser:`
   line on stderr); `codex/AGENTS.md.template` has `### Start here` above
@@ -298,7 +298,7 @@ WRIT_ROW_PREFIX = "| `/writ` |"
 START_HERE = "### Start here"
 PLANNING = "### Planning & Specification"
 START_WITH = 'Start with `/writ "<what you want>"`'
-CLAUDE_MD_TABLE_HEADER = "| Command | File | Purpose |"
+CLAUDE_MD_MAP_HEADING = "## Capability Map"
 CODEX_WRIT_CELLS = ["`/writ`", "`.codex/commands/writ.md`"]
 ROUTES_HEADING = "### What `/writ` routes to"
 GUIDE_REL = ".writ/docs/prompting-guide.md"
@@ -400,12 +400,12 @@ def test_catalogs():
     rows = first_table(section(skill, START_HERE))
     assert any(row[0] == "`/writ`" for row in rows[1:]), "SKILL.md Start here table: %r" % rows
 
+    # The Claude Code template lists no commands (the skill listing does), so
+    # the Start with line is its only /writ registration.
     claude_md = read(CLAUDE_MD_REL).splitlines()
-    assert any(line.startswith(WRIT_ROW_PREFIX) for line in claude_md), (
-        "%s has no /writ row" % CLAUDE_MD_REL
-    )
-    assert first_prefixed(claude_md, START_WITH) < first_equal(claude_md, CLAUDE_MD_TABLE_HEADER), (
-        "%s: the Start with line is not above the Commands table" % CLAUDE_MD_REL
+    assert first_equal(claude_md, "## Commands") < first_prefixed(claude_md, START_WITH) \
+        < first_equal(claude_md, CLAUDE_MD_MAP_HEADING), (
+        "%s: the Start with line is not under ## Commands" % CLAUDE_MD_REL
     )
 
     for argv in CHECKS:

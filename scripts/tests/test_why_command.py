@@ -275,9 +275,9 @@ STRUCTURE_ROWS = (
     "command-structure:commands/why.md:heading:Confidence Tiers",
     "command-structure:commands/why.md:frontmatter:entry_level",
 )
+# claude-code/CLAUDE.md is generated too, but it lists no commands.
 GENERATED = (
     "SKILL.md",
-    "claude-code/CLAUDE.md",
     "codex/AGENTS.md.template",
     "cursor/plugin/commands/why.md",
     "plugins/writ/commands/why.md",
@@ -355,7 +355,8 @@ def test_registration():
         else:
             assert "/why" in body, "%s does not carry /why" % rel
     assert "Confidence Tiers" in source
-    for rel in ("SKILL.md", "claude-code/CLAUDE.md", "codex/AGENTS.md.template"):
+    # claude-code/CLAUDE.md lists no commands; the skill listing carries /why.
+    for rel in ("SKILL.md", "codex/AGENTS.md.template"):
         assert any(
             line.startswith(WHY_ROW_PREFIX) for line in read(rel).splitlines()
         ), "%s has no /why row" % rel
