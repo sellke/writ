@@ -1,6 +1,7 @@
 # Story 3: Run the Arms and Hand Off for Labeling
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 4542d78c3b510568f4c9717b41f319fcc5dbdd15
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
