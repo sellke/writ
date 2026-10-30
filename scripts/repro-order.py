@@ -105,10 +105,11 @@ def switch_value(repo: Path) -> Optional[str]:
     the line is absent. An existing but unreadable file is a usage error."""
     config = repo / CONFIG_REL
     try:
-        # exists() itself raises when `.writ/` cannot be searched.
-        if not config.exists():
-            return None
+        # Read directly rather than checking exists() first: on 3.14 exists()
+        # returns False for an unsearchable `.writ/` instead of raising.
         text = config.read_text(encoding="utf-8")
+    except (FileNotFoundError, NotADirectoryError):
+        return None
     except (OSError, UnicodeDecodeError) as exc:
         raise UsageError("cannot read %s (%s)" % (CONFIG_REL, exc))
     match = SWITCH_LINE.search(text)
