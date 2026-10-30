@@ -1,6 +1,6 @@
 # Gate Upgrade Removal Measurement
 
-> **Status:** In Progress
+> **Status:** In Progress — awaiting human labels (rating-handoff.md)
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
 > **Dependencies:** [2026-10-25-design-divergence, 2026-10-25-review-route-rigor, 2026-10-25-repro-first-bug-fixing]
