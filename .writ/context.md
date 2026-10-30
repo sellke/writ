@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-29T23:20:37Z
+> Last Updated: 2026-10-30T00:38:54Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-retro-fix-ladder — Retro Fix Ladder
-- **Status:** Complete (Phase 15 lane `writ/phase/15/2026-10-25-retro-fix-ladder`)
-- **Story:** 4 of 4 — all stories Completed ✅ (2026-10-29)
-- **Progress:** 27/27 tasks complete (100%)
+- **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
+- **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-gate-upgrade-removal-measurement`)
+- **Story:** 1 of 4 — Trial Harness: init and prepare (Completed ✅)
+- **Progress:** 7/28 tasks complete (25%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-retro-fix-ladder/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
 - **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-013 Heading level, exit-criterion quoting, and the example's result — retro-fix-ladder (Story 3, Small)
-- DEV-012 Single-event counting is split between Step 3 and Step 4 — retro-fix-ladder (Story 3, Small)
-- DEV-011 A second finding on the same rule is dismissed, with its reason on a `**Reason:**` line — retro-fix-ladder (Story 3, Small)
+- DEV-003 Extra `prepare` output lines, `tests.txt` written by `prepare`, and the compute-blocker reason — gate-upgrade-removal-measurement
+- DEV-002 `prepare` re-validates identity fields and requires yuss to be a work-tree top — gate-upgrade-removal-measurement
+- DEV-001 `init` takes an optional `--yuss` and records the before-snapshot — gate-upgrade-removal-measurement
 
 ## Open Issues
 
