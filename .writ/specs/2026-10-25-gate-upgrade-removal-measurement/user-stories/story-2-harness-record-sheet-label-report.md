@@ -1,6 +1,7 @@
 # Story 2: Trial Harness: record, sheet, label, and report
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 5935516ea2692c70cf97978a3f5e086165e2c53d
 > **Priority:** High
 > **Dependencies:** Story 1
 
