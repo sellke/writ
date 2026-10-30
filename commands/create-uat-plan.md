@@ -110,7 +110,7 @@ AskQuestion({
 })
 ```
 
-Exactly one option carries `(Recommended)`: `save` when a launch command was detected, otherwise move it to `skip`. **skip** writes no recipe and continues to today's all-human plan. `--check` shows the draft but asks nothing, saves nothing and runs nothing.
+Exactly one option carries `(Recommended)`: `save` when a launch command was detected, otherwise move it to `skip`. A non-interactive run (no question tool, or spawned by another command) takes the recommended option without asking and names it in the Step 5.3 report. **skip** writes no recipe and continues to today's all-human plan. `--check` shows the draft but asks nothing, saves nothing and runs nothing.
 
 **Validate** an existing recipe as below. Validate a draft before saving by writing it to `.writ/state/app-verification-draft.md` and passing that path as `--recipe`:
 
@@ -126,6 +126,8 @@ Line 1 `fail` (exit 1) means findings; the summary reads `app-verify: recipe inv
 
 Extract scenario source material from the spec package. Four categories, each producing a distinct scenario type.
 
+Read `{spec-folder}/drift-log.md` first when it exists. A DEV entry that records what the implementation did differently overrides the spec text it names: the scenario expects what was built, and its `**Source:**` line adds the DEV ID. Drift handling amends only `spec-lite.md`, never the technical spec, so the log wins where they disagree.
+
 #### Step 2.1: Extract Acceptance Criteria (→ happy path scenarios)
 
 For each **completed** story, read the `## Acceptance Criteria` section. Parse each criterion:
@@ -134,7 +136,7 @@ For each **completed** story, read the `## Acceptance Criteria` section. Parse e
 Given [precondition], when [action], then [expected result]
 ```
 
-Each acceptance criterion becomes one scenario. Preserve the Given/When/Then structure — it maps directly to Preconditions/Steps/Expected Result.
+Each acceptance criterion becomes one scenario, unless a passing automated test already exercises it: the story's What Was Built record or test results name the test, and the criterion needs no live run or human judgment. List those criteria in the plan's `## Covered by Tests` table (criterion, test selection to run) instead of writing a scenario. Preserve the Given/When/Then structure — it maps directly to Preconditions/Steps/Expected Result.
 
 **Parsing rules:**
 - Look for `- [x]` checkboxes (completed stories have all criteria checked)
@@ -245,6 +247,7 @@ Each scenario must satisfy these clarity criteria:
 3. **Concrete steps** — "Click the Submit button" not "Submit the form"; "Navigate to `/settings`" not "Go to settings"
 4. **No implementation jargon** — Avoid function names, class names, or internal architecture terms in steps and expected results (these belong only in the "What Was Built" enhancement notes, not in tester-facing content). The `**Feature:**` and `**Verification:**` lines are metadata, not tester steps
 5. **Numbered steps** — Always use ordered steps, even for single-step scenarios
+6. **Stable expectations** — An expected result states the pass condition (exit code, a verdict line, a visible state), never counts that change when tests are added, such as `7 passed, 302 deselected`
 
 #### Step 3.3: Group and Order Scenarios
 
@@ -361,6 +364,12 @@ Build the complete `uat-plan.md`:
 | Story 2: [title] | ⏳ Pending | — | Not yet complete |
 | Story 3: [title] | ✅ Covered | N | AC: X, Errors: Y, Shadow: Z, Edge: W |
 
+## Covered by Tests
+
+| Criterion | Test selection |
+|-----------|----------------|
+| AC-1.2 | `<command that runs the test>` |
+
 ---
 
 ## Story 1: [Title]
@@ -474,7 +483,7 @@ Not an error — Phase 4 enhancement is best-effort. Scenarios are still valid.
 This command succeeds when:
 
 1. **UAT plan file created** — `uat-plan.md` exists in `.writ/specs/{spec-folder}/` with scenario count, coverage summary, and story groupings
-2. **Scenarios generated** — structured scenarios exist for all completed stories, sourced from acceptance criteria, error maps, shadow paths, edge cases, and experience design
+2. **Scenarios generated** — every completed story's criteria are covered by structured scenarios (sourced from acceptance criteria, error maps, shadow paths, edge cases, and experience design) or by `## Covered by Tests` rows
 3. **Coverage reported** — the user received a completion report with scenario counts broken down by source type
 4. **"What Was Built" enhancement applied** — scenarios for stories with WWB records include concrete file paths and implementation references
 

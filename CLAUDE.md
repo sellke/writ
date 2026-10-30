@@ -21,18 +21,25 @@ Editing `commands/foo.md`, `.cursor/commands/foo.md`, and `.claude/commands/foo.
 There is no build step. The product is markdown, but `scripts/` carries a Python and bash test suite plus `eval.sh`, the repo's quality gate. **Python floor: 3.9** (the macOS system interpreter), declared in `pyproject.toml`; the suite must stay green from 3.9 up, so never rely on newer-only stdlib behavior (a 3.13-only `pathlib` assumption already bit once).
 
 ```bash
-# Python tests — `uv run` picks a supported interpreter and provides pytest
-uv run pytest                        # or: uv run --python 3.9 pytest to exercise the floor
+# Python tests, about 4 min each. Name both interpreters: bare `uv run pytest`
+# resolves to the 3.9 system Python on this machine, so it never tests a newer one.
+# --isolated keeps either run from replacing .venv.
+uv run --isolated --python 3.9 --with pytest pytest
+uv run --isolated --python 3.14 --with pytest pytest
 
-# Bash tests
+# Bash tests, about 12 min: longer than the Bash tool's 600 s limit, so start it
+# in the background and wait for the completion notice
 for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
 
 # Quality gate (does `git init` in a temp dir — run outside any sandbox)
 bash scripts/eval.sh                 # --check=<name> for one check
+bash scripts/eval.sh --report=<scratch path>   # read-only runs: the default writes .writ/state/eval-*.md into the tree
 
 # Recheck the third-party platform facts adapters rely on (dev-only; --live starts short CLI sessions)
 python3 scripts/eval-platform-facts.py [--live]
 ```
+
+Run pytest alone. `eval.sh`, the bash tests, other writes under `.writ/state/`, or `git worktree` changes in the same checkout while pytest runs make `test_smoke_leaves_repo_unchanged` and the `app-verify` tests fail.
 
 The install/update scripts can be tested:
 ```bash

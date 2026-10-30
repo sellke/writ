@@ -146,3 +146,39 @@
 
 **Scope:** Product (ships to all Writ users)
 **Target file:** commands/retro.md
+
+## 2026-10-30 — /create-uat-plan refreshed
+
+**Source:** `/retro` finding F10 (`.writ/retros/2026-10-30-phase-15.md`), Phase 15 run
+**Signals found:** 5 total, 4 actionable
+**Amendments applied:** 4 of 4 proposed
+
+**Changes:**
+- No scenario for a criterion a passing test already exercises; list it in `## Covered by Tests` (Confidence: High)
+  **Evidence:**
+  - Transcript: ~/.claude/projects/-Users-asellke-Projects-writ/615832eb-2a19-4b7c-aec1-7310dd0e9691/subagents/agent-a1bea5c3d59c23026.jsonl
+  - Observable signal: "The wiring tests, the full suite on both interpreters, the bash tests, and the quality gate all pass" (scenario title)
+  - Affected section: commands/create-uat-plan.md → "Step 2.1: Extract Acceptance Criteria (→ happy path scenarios)"; Step 5.1 template; Completion item 2
+- Expected results state pass conditions, not test counts (Confidence: High)
+  **Evidence:**
+  - Transcript: ~/.claude/projects/-Users-asellke-Projects-writ/615832eb-2a19-4b7c-aec1-7310dd0e9691/subagents/agent-a84f1601f73f68cab.jsonl
+  - Observable signal: "7 passed, 302 deselected" pinned as an expected result
+  - Affected section: commands/create-uat-plan.md → "Step 3.2: Apply Scenario Quality Rules"
+- Read drift-log.md before extracting; a DEV entry overrides the spec text it names (Confidence: High)
+  **Evidence:**
+  - Transcript: ~/.claude/projects/-Users-asellke-Projects-writ/615832eb-2a19-4b7c-aec1-7310dd0e9691/subagents/agent-a852055b4682f2e77.jsonl
+  - Observable signal: brief had to state "the drift log (DEV-001 to DEV-013) records where the build differs"
+  - Affected section: commands/create-uat-plan.md → "Phase 2: Content Extraction"
+- A non-interactive run takes the recommended recipe option and names it (Confidence: Medium)
+  **Evidence:**
+  - Transcript: ~/.claude/projects/-Users-asellke-Projects-writ/615832eb-2a19-4b7c-aec1-7310dd0e9691/subagents/agent-abd9526855dc636e9.jsonl
+  - Observable signal: "That makes \"skip\" the command's recommended answer"
+  - Affected section: commands/create-uat-plan.md → "Step 1.3: Verification Recipe"
+
+**Rejected:**
+- Plans embedded Python heredocs and helper scripts — reason: execution failure (covered by commands/create-uat-plan.md → "Terminal constraint": "never writes test code or check scripts")
+
+**Eval gate:** `bash scripts/eval.sh --check=refresh-evidence` PASS (0 findings); `scripts/tests/test_uat_plan_verification_hooks.sh` PASS; 473 related pytest cases PASS on 3.9; `gen-platform-trees.py --check` PASS. File 21,671 → 22,851 bytes, under the 24,960 budget.
+
+**Scope:** Product (ships to all Writ users)
+**Target file:** commands/create-uat-plan.md
