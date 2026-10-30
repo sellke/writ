@@ -1,6 +1,7 @@
 # Story 1: Trial Harness: init and prepare
 
 > **Status:** Completed ✅ (2026-10-29)
+> **Commit:** 2d1f3e50538d9be95f7d89b379f7214c8eca66b3
 > **Priority:** High
 > **Dependencies:** None
 
