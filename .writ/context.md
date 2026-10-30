@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-30T00:38:54Z
+> Last Updated: 2026-10-30T01:48:12Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
 - **Status:** In Progress (Phase 15 lane `writ/phase/15/2026-10-25-gate-upgrade-removal-measurement`)
-- **Story:** 1 of 4 — Trial Harness: init and prepare (Completed ✅)
-- **Progress:** 7/28 tasks complete (25%)
+- **Story:** 2 of 4 — Trial Harness: record, sheet, label, and report (Completed ✅)
+- **Progress:** 14/28 tasks complete (50%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-003 Extra `prepare` output lines, `tests.txt` written by `prepare`, and the compute-blocker reason — gate-upgrade-removal-measurement
-- DEV-002 `prepare` re-validates identity fields and requires yuss to be a work-tree top — gate-upgrade-removal-measurement
-- DEV-001 `init` takes an optional `--yuss` and records the before-snapshot — gate-upgrade-removal-measurement
+- DEV-006 `blinding:` report line, per-arm evidence fields, and excerpt rules — gate-upgrade-removal-measurement
+- DEV-005 Extra refusals in `record`, `sheet`, and `label` — gate-upgrade-removal-measurement
+- DEV-004 `snapshot` subcommand records the yuss after-snapshot — gate-upgrade-removal-measurement
 
 ## Open Issues
 

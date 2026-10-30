@@ -36,3 +36,36 @@
 - **Reason:** The arm procedures need `tests.txt`; keeping it free of `exit code:` lines preserves the spec's "`tested` rung out of reach" property.
 - **Resolution:** Auto-amended
 - **Spec amendment:** technical-spec § Subcommands `prepare` effect adds "writes `tests.txt` and `routes.json`"; § Routes: a compute blocker stores `gate0_reason: "unverifiable: no planned files"`. None needed in spec-lite.md.
+
+---
+
+## Story 2: Trial Harness: record, sheet, label, and report — Drift Report
+
+> Run: 2026-10-29
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-004] `snapshot` subcommand records the yuss after-snapshot
+- **Severity:** Small
+- **Spec said:** Contract Must Include 1 lists `init`, `prepare`, `record`, `sheet`, `label`, `report`. Business Rule 2 requires before and after yuss snapshots with recorded equality, and the report prints `yuss:`, but no subcommand records `after`.
+- **Implementation did:** `snapshot --trial FILE --yuss PATH` computes `after` the way `init --yuss` computes `before` (HEAD plus hashes, read-only) and stores `unchanged`. A null `before` is refused `no_before_snapshot`. Line 1 is `unverifiable` with `reason: yuss_changed` when yuss changed. `report` prints `yuss: unchanged|changed|not checked`.
+- **Reason:** Fills the gap DEV-001 named. Additive; no named interface changed.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Subcommands adds `snapshot --trial FILE --yuss PATH` (records `yuss_snapshot.after` and `unchanged`; refusals `no_before_snapshot`, `yuss_missing`); § Verdict output's `yuss:` line reads `unchanged`, `changed`, or `not checked`. None needed in spec-lite.md.
+
+#### [DEV-005] Extra refusals in `record`, `sheet`, and `label`
+- **Severity:** Small
+- **Spec said:** `record` refuses an inapplicable arm, an evidence mismatch, an origin mismatch, or unreadable output; `sheet` a missing arm or a recorded sheet; `label` a hash mismatch, a bad field, or an agent-like name.
+- **Implementation did:** Adds `not_prepared`, `no_verdict`, `bad_state`, `verifier_missing`, `state_dir_unresolved`, `state_dir_unwritable`, `unsafe_path` (identity re-check), `raw_missing` (raw output gone or its sha256 changed), `sheet_stale` (a `record` after `sheet` changed the finding IDs or the never-exercised set), `no_sheet`, and `sheet_unreadable`. `--labeled-by` is also refused when it holds a newline, CR, or backtick. Every arm uses one state rule: its own switch `on`, every other given switch `off`.
+- **Reason:** Each is stricter; valid input behaves as specified. `sheet_stale` (Gate 0 sketch A) stops labels landing on a finding set the sheet does not show.
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Subcommands refusal cells add the codes above; the `label` row adds "`sheet_stale` when the trial's finding IDs or never-exercised upgrades differ from the sheet". None needed in spec-lite.md.
+
+#### [DEV-006] `blinding:` report line, per-arm evidence fields, and excerpt rules
+- **Severity:** Small
+- **Spec said:** § Verdict output has no `blinding:` line, though Story 3 Notes require `trial-report.md` to repeat the honor-system caveat. § Schema's example arm entry is `{verdict, keys, states, raw, raw_sha256}`. Sheet excerpts are "the issue block or AC line from the raw output; for Gate 0 also the cited sketch line".
+- **Implementation did:** `report` prints `blinding: honor system — …` before `yuss:`; `--json` carries `sample`, `proxy`, and `blinding` without their prefixes. Arm entries add `exercised`, plus `verifier` (safety-fact line 1), `report` (`chose`/`skip`, never the line text), and `kind`/`repro_ac`/`at_parent`/`at_commit`/`repro_result` (repro). `sheet` stores `{path, body_sha256, seed, findings}`. Category-key excerpts include only blocks `parse_output` would key; the Gate 0 excerpt is the issue with its `**Avoided by:**` line, which is the sketch citation as the comparison reviewer wrote it; a no-match excerpt reads `(no matching block found in the raw output)`.
+- **Reason:** The report is committed verbatim as `trial-report.md`, so the caveat has to be a report line. The added fields hold words and validated IDs only (AC-2.5).
+- **Resolution:** Auto-amended
+- **Spec amendment:** technical-spec § Verdict output adds the `blinding:` line; § Schema notes the per-arm evidence fields and the `sheet` object; § Subcommands `sheet` row: "for Gate 0, the issue's `**Avoided by:**` line, which cites the sketch line". None needed in spec-lite.md.
