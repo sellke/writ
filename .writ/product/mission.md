@@ -1,10 +1,12 @@
 # Writ — Product Mission
 
 > Created: 2026-02-27
-> Last Updated: 2026-10-22
+> Last Updated: 2026-10-30
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — see ADR-010, ADR-011, ADR-012, ADR-013; 2026-10-20 refresh — see [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
-> Last Revision: 2026-10-22 — reconcile pass after Phase 13's human UAT: Phase 13 recorded as shipped in v0.43.0 and closed, with 173 of 176 UAT scenarios passing and the one regression fixed in PR #62. No new ADR.
+> Last Revision: 2026-10-30 — reconcile pass after `/implement-phase 15`: Phases 14 and 15 recorded as implemented and pending human validation, both unmerged; PR #62 recorded as open, so the Phase 13 regression fix is not in `main`; Phase 12 UAT counted (3 of 89 run); the land-and-validate queue named as the current work; Design Principle 8 (land before you add) added as an [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md) amendment.
+>
+> Earlier revision: 2026-10-22 — reconcile pass after Phase 13's human UAT: Phase 13 recorded as shipped in v0.43.0 and closed, with 173 of 176 UAT scenarios passing and the one regression fixed in PR #62. No new ADR.
 >
 > Earlier revision: 2026-10-21 — reconcile pass after `/implement-phase 13`: Phase 13 recorded as implemented, pending human UAT; `claude-agent-generator` recorded as inter-phase work; `/writ-design` and Claude Code's native `/design` stated as separate commands, with a matching non-goal.
 >
@@ -170,7 +172,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 - **Spec analysis:** `spec-analyze.py` flags contradictory, missing, and ambiguous acceptance criteria at lock; advisory.
 - **Escalation, not default:** two-agent default pipeline; Goal Cards emit platform-runnable `/goal` contracts.
 
-### Phase 12 — Behavioral Verification (◐ implemented and released, v0.40.0 — human UAT open)
+### Phase 12 — Behavioral Verification (◐ implemented and released, v0.40.0 — human UAT open, 3 of 89 scenarios run)
 
 - **Behavioral verification:** a per-project recipe (`.writ/docs/app-verification.md`, drafted by `/create-uat-plan`) names the project's own checks; UAT scenarios cite its feature IDs; Gate 4.5 runs the checks against the running app, records evidence, and leaves `prose-only`. An exit code decides, never an agent.
 - **Cross-family review panel:** opt-in, high-stakes only; findings raised by two or more vendors block. Kept only if it catches what the single-vendor evaluator misses ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)).
@@ -189,19 +191,19 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
   - CI runs `pytest` on the 3.9 floor and the bash tests.
   - `/design` is renamed `/writ-design`, so it no longer collides with Claude Code's native `/design`.
 - **Cuts:** the lean siblings, the dormant staging machinery, the friction-signal no-op lines, and links to Writ's own history in shipped commands are gone. `eval.sh` literal pins on commands fell from 207 to 144. `create-spec.md` shrank from 54,264 to 38,562 bytes.
-- All nine machine criteria pass, and 173 of 176 human UAT scenarios pass. One failure is tracked as an issue, two need OpenClaw, and the one regression UAT found is fixed in PR #62.
+- All nine machine criteria pass, and 173 of 176 human UAT scenarios pass. One failure is tracked as an issue, two need OpenClaw, and the one regression UAT found is fixed on PR #62, which is still open, so the fix is not in `main`.
 
-### Phases 14–16 (📋 committed, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
+### Phases 14–16 ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
 
-- **Phase 14, Front Door and Distribution:**
+- **Phase 14, Front Door and Distribution (◐ implemented, pending human validation, PR #63 open):**
   - One entry command that restates, classifies, and routes.
   - Plugin distribution for Cursor and Claude Code, with scripts inside the plugin.
   - Generated per-platform trees, with a CI check that fails on any platform term an adapter does not map.
-- **Phase 15, Code-Level Rigor:**
+- **Phase 15, Code-Level Rigor (◐ implemented, pending human validation, branch only):**
   - `/why`, answering from Writ's ledger first.
   - A `design-divergence` skill shared by `/prototype` and a usage-first Gate 0, with a blind trial deciding whether it stays.
   - A blast-radius safety fact at Gate 2.5, repro-first bug fixing, reviewer judgment filters, and `/retro`'s fix ladder.
-- **Phase 16, Verified Landing:**
+- **Phase 16, Verified Landing (📋 committed, gated):**
   - A read-only PR-readiness check, a verification ledger bound to the PR head SHA, and a `/ship` watch mode that drives a PR to merge-ready.
   - Starts after Phase 12's human UAT. Its own ADR decides the ceiling.
 
@@ -209,6 +211,6 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is implemented and released in v0.40.0:** Writ's verifiers so far checked Writ's own artifacts, and Phase 12 made one check the user's feature. Its three machinery criteria are met and the panel trial returned `keep`; the phase's own UAT plan is unticked, so human UAT is the open item, not more building. Inter-phase work since: `/retro` as a transcript review and the `gbrain-interop` removal (v0.41.0), and, in v0.42.0, the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59).
 
-**Phase 13 shipped in v0.43.0 and closed after human UAT** (2026-10-22). The same release carries the `claude-agent-generator` spec (Claude Code agents generated from the canonical `agents/`). **Phases 14–16 are committed** ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). Phase 13 subtracted and repaired before anything was added. Phase 14 gives Writ one front door and plugin distribution. Phase 15 extends the verifier from Writ's artifacts to the design and the fix. Phase 16 takes up verified landing once Phase 12's UAT gives it evidence.
+**Phase 13 shipped in v0.43.0 and closed after human UAT** (2026-10-22). The same release carries the `claude-agent-generator` spec (Claude Code agents generated from the canonical `agents/`). **Phases 14 and 15 are implemented and wait on human validation and merge; Phase 16 is committed and gated** ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). Nothing on the roadmap can start, so the current work is landing and validating what is built (the roadmap's *Current focus* section), under Design Principle 8: no new phase starts while two or more finished phases wait. Phase 13 subtracted and repaired before anything was added. Phase 14 gives Writ one front door and plugin distribution. Phase 15 extends the verifier from Writ's artifacts to the design and the fix. Phase 16 takes up verified landing once Phase 12's UAT gives it evidence.
 
 > **Parking lot (kept as candidates):** cross-project learning corpus, `/writ-design` Mode A modernization, eval Tier 2 expansion, `/implement-phase` orchestration hygiene (pilot story, standing orders, brief template), a decision-trail review, a measured-performance workflow, and formal verification (watch only). **Promoted into Phase 14:** Cursor plugin distribution and the empirical-fork rule. **Retired:** friction signals ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 16* section for the authoritative list.

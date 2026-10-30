@@ -2,6 +2,7 @@
 
 > **Date:** 2026-10-20
 > **Status:** Accepted
+> **Amended:** 2026-10-30 — Design Principle 8, land before you add (see § Amendments)
 > **Category:** Product Strategy
 > **Deciders:** @AdamSellke
 > **Evidence base:** [`2026-10-19-writ-vs-pstack-research.md`](../research/2026-10-19-writ-vs-pstack-research.md) (pstack 0.15.28 read at source), [`2026-10-19-prototype-visual-drafts-research.md`](../research/2026-10-19-prototype-visual-drafts-research.md), [`2026-09-05-goldilocks-assessment.md`](../product/2026-09-05-goldilocks-assessment.md)
@@ -130,9 +131,26 @@ Detect pstack and route design, review, and PR work to its skills.
 
 ## Review
 
-- **Phase 14 close:** keep or remove the front door. The question is whether it is the place work actually starts.
+- **Phase 14 close:** keep or remove the front door. The question is whether it is the place work actually starts. *Due as of 2026-10-30:* the acceptance pass (2026-10-24) found `/writ` matched its route on 10 of 20 real requests, below the bar of 16, and the Phase 15 run started from `/implement-phase` directly.
 - **Phase 15 close:** keep or remove each code-level upgrade and the `design-divergence` skill, on its measurement.
 - **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run.
+
+## Amendments
+
+### 2026-10-30 — Land before you add
+
+**Decision:** Add Design Principle 8 to the roadmap: no new phase starts while two or more finished phases wait on human validation or merge.
+
+**Evidence (reconcile pass, 2026-10-30):**
+- Phase 12 was released in v0.40.0 on 2026-10-02; 3 of its 89 UAT scenarios have been run since.
+- Phase 14 is implemented; [PR #63](https://github.com/sellke/writ/pull/63) has been open since 2026-10-24.
+- Phase 15 is implemented on a branch built on Phase 14's, with 201 UAT scenarios and two human ratings outstanding.
+- Two Phase 13 PRs are open: #61 (closure docs) and #62 (the fix for the one UAT regression), whose commits are in no other branch.
+- `main` is still v0.43.0.
+
+**Why:** Built work that nobody validates is not shipped, and every new phase adds to the queue. Principle 7 (subtract before you add) keeps the surface from growing; Principle 8 keeps unvalidated work from growing.
+
+**Consequence:** Phase 16, or any new phase, starts only once fewer than two finished phases wait. The roadmap's *Current focus* section lists the queue in order. Phase 16 keeps its own gate (Phase 12's UAT and one real-project `app-verify.py` run) on top of this rule.
 
 ## References
 
