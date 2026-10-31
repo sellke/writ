@@ -522,7 +522,9 @@ SAFETY_LINE = (
 SAFETY_SLOT = "### Safety Fact (only when safety_fact is on; format in the skill)"
 # 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 40234 -> 40682, +448 for the
 # Gate 1 bug-path line, so this spec's 1,800-byte Gate 2.5/3 allowance is unchanged.
-IMPLEMENT_STORY_CAP = 40682
+# 2026-10-31 (Phase 15 retro F1): 40682 -> 40759 (file 40677 -> 40759, +82) for the
+# Gate 3.5 Small drift clause naming drift-format's auto_amend_unapplied failure.
+IMPLEMENT_STORY_CAP = 40759
 RUNG_ORDER = ("claimed", "read", "traced", "tested", "reproduced")
 
 # Rung definitions only the skill may carry, compared normalized.
