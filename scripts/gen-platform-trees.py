@@ -984,6 +984,8 @@ DEV_ONLY_SCRIPTS = frozenset((
     "gen-claude-agents.py", "gen-codex-agent-tomls.py", "check-agent-parity.sh", "gen-skill.sh",
     # Temporary trial harness of 2026-10-25-design-divergence (D25); Story 6 removes it.
     "divergence-trial.py",
+    # Claude Code PreToolUse hook for Writ's own sessions (retro 2026-10-30 F5).
+    "zsh-guard.py",
 ))
 DEV_ONLY_PREFIXES = ("eval-", "_", "sweep-")
 SHIPPED_DATA = frozenset(("jev-thresholds.json",))

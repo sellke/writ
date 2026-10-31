@@ -88,6 +88,7 @@ CHECKS=(
   spawn-cap
   app-verify
   review-panel
+  size-pins
 )
 
 TOTAL_FINDINGS=0
@@ -4952,6 +4953,52 @@ check_review_panel() {
   require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
   require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
   require_literal "$PROJECT_ROOT/adapters/openclaw.md" '**Review panel (ADR-028): *(unverified)*.**' "adapters/openclaw.md must mark the review panel unverified."
+}
+
+check_size_pins() {
+  # Retro 2026-10-30-phase-15 F9: a byte cap on a commands/*.md file lives
+  # only in KNOWN_OVER_BUDGET (scripts/tests/test_governor_enforcement.py),
+  # with COMMAND_BYTE_BUDGET holding every file not listed there. A cap
+  # pinned in another test module is a second pin the next spec to touch the
+  # file trips without knowing it exists. scripts/eval-size-pins.py finds
+  # them; one add_finding per reason: line, located at its path:line. The
+  # summary is a note. A missing helper, a helper exit of 2 or more, or no
+  # verdict line is a run error.
+  local helper="$PROJECT_ROOT/scripts/eval-size-pins.py"
+  local remedy="Delete the pin. An over-budget command's cap is its KNOWN_OVER_BUDGET entry in scripts/tests/test_governor_enforcement.py; any other command is held at COMMAND_BYTE_BUDGET in scripts/eval-leanness.py."
+  local output rc=0 line verdict reasons=0 text
+
+  if [ ! -f "$helper" ]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-size-pins.py" "size-pins helper is missing." \
+      "Restore scripts/eval-size-pins.py (retro 2026-10-30-phase-15 F9)."
+    return
+  fi
+
+  output="$(python3 "$helper" --root "$PROJECT_ROOT" 2>&1)" || rc=$?
+  verdict="${output%%$'\n'*}"
+  if [ "$rc" -ge 2 ] || ! [[ "$verdict" =~ ^(pass|fail|unverifiable)$ ]]; then
+    RUN_ERRORS=$((RUN_ERRORS + 1))
+    add_finding "scripts/eval-size-pins.py" "size-pins helper failed to run (exit $rc): ${output##*$'\n'}" \
+      "Run python3 scripts/eval-size-pins.py for the error."
+    return
+  fi
+  while IFS= read -r line; do
+    case "$line" in
+      "reason: "*)
+        reasons=$((reasons + 1))
+        text="${line#reason: }"
+        add_finding "${text%% *}" "${text#* }" "$remedy"
+        ;;
+      size-pins:*)
+        add_note "NOTE [size-pins]: $line"
+        ;;
+    esac
+  done <<< "$output"
+  if [ "$verdict" != "pass" ] && [ "$reasons" -eq 0 ]; then
+    add_finding "scripts/eval-size-pins.py" "size-pins printed $verdict without a reason line." \
+      "Run python3 scripts/eval-size-pins.py and inspect its output."
+  fi
 }
 
 run_check() {

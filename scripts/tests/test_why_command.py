@@ -18,7 +18,7 @@ runs the command.
 - `test_step_headings`: six `### Step N:` headings numbered 1 to 6 (AC-1.3).
 - `test_handoff_shape`: the fixed heading and its four subsections in order,
   and the saved-record path pattern (AC-1.4).
-- `test_budgets`: under 200 lines and under 24,960 bytes.
+- `test_budgets`: under 200 lines. The byte cap is test_governor_enforcement.py's.
 - No test here covers AC-1.5: it is the dogfood fixture run (questions 1 to
   3) recorded in Story 1's What Was Built.
 - No test here covers AC-4.4: it is dogfood question 4 and the `/create-spec`
@@ -46,7 +46,6 @@ COMMAND_REL = "commands/why.md"
 COMMAND = REPO_ROOT / COMMAND_REL
 
 LINE_BUDGET = 200
-BYTE_BUDGET = 24960
 
 FRONTMATTER_KEYS = ("description", "problem", "outcome", "exit_criteria")
 EXIT_CRITERIA_COUNT = 3
@@ -240,12 +239,6 @@ def test_budgets():
         COMMAND_REL,
         len(body),
         LINE_BUDGET,
-    )
-    size = len(COMMAND.read_bytes())
-    assert size < BYTE_BUDGET, "%s is %d bytes; the budget is under %d" % (
-        COMMAND_REL,
-        size,
-        BYTE_BUDGET,
     )
 
 
