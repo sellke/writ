@@ -13,6 +13,10 @@
 
 > **AC IDs assigned through:** AC-3.5
 
+> **Verified by:** AC-3.3, AC-3.4 — the routing fixture run in What Was Built → Routing Fixture Run (AC-3.3, AC-3.4): 8 of 8 routes matched, so no rule-table correction was needed
+
+> **Verified by:** AC-3.5 — the full pytest, bash test loop, and `bash scripts/eval.sh` runs in What Was Built → Test Results: 2807 passed, 0 bash failures, 0 findings
+
 - [x] Given `scripts/eval-command-structure.py` `ROWS` has a `heading` row for `## Routing Rules` and a `frontmatter` row for `entry_level`, both against `commands/writ.md`, when `python3 scripts/eval-command-structure.py --root .` runs, then both rows report `PASS` and the helper's `self_test()` still passes. `[AC-3.1]`
 - [x] Given `.writ/issues/features/2026-10-13-in-your-own-words.md`, when this story is complete, then its last H2 is `## Resolution`, which names this spec, `/writ` Step 1 Restate as the absorbed restatement (it does not end the turn because it routes), and the date 2026-10-22, and its `spec_ref` line is `.writ/specs/2026-10-22-front-door/`. `[AC-3.2]`
 - [x] Given the eight requests in `technical-spec.md → ## Routing Fixture`, when Steps 1–3 of `commands/writ.md` are applied to each, stopping before the AskQuestion, then this story's What Was Built gives each request's restatement and proposed route beside its expected route. `[AC-3.3]`

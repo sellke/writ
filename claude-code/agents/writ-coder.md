@@ -142,6 +142,7 @@ After completing implementation, verify your own work before handing off:
 3. **If tests fail** — Fix the failures yourself, then re-run to confirm the fix.
 4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.
 5. **If issues are unfixable** — Flag them in your output so the pipeline knows what to expect at Gate 2.
+6. **Check criterion citations** — Name each criterion ID a test covers in that test's name or docstring. For a criterion only a run can show, such as a dogfood or fixture run, add `> **Verified by:** AC-N.M — <where the run is recorded>` below the story's `AC IDs assigned through` marker. Never write that no test covers an ID; `scripts/ac-trace.py` does not count that sentence as a citation.
 
 Keep self-verification lightweight: tests + typecheck only. Don't add coverage analysis, lint, or a build — those are Gate 2's job. Gate 2 also runs a **build smoke check** when the story changed source: a passing typecheck does not mean the framework boots, and a route collision breaks every deployment while passing every unit test that imports handlers as plain functions.
 

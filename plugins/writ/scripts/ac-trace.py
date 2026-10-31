@@ -34,6 +34,7 @@ contract this module is bound to.
 from __future__ import annotations
 
 import argparse
+import bisect
 import fnmatch
 import json
 import os
@@ -70,6 +71,25 @@ ID_RE = re.compile(r"^AC-(\d+)\.(\d+)$")
 BARE_ID = re.compile(r"(?<![\w-])AC-(\d+)\.(\d+)(?![\w-])")
 
 MARKER_LINE = re.compile(r"^> \*\*AC IDs assigned through:\*\*\s*(.*?)\s*$")
+# A criterion a run verifies instead of a test: IDs, a dash, then the evidence.
+VERIFIED_LINE = re.compile(r"^> \*\*Verified by:\*\*")
+VERIFIED_MARKER = re.compile(
+    r"^> \*\*Verified by:\*\*\s*(AC-\d+\.\d+(?:,\s*AC-\d+\.\d+)*)\s+(?:—|–|--|-)\s+(\S.*?)\s*$"
+)
+
+# A test-file sentence that disclaims coverage ("No test here covers AC-1.5")
+# is not a citation. Sentences end at . ! ? ; : before whitespace, a blank
+# line, a list bullet, or a triple quote. Grammar doc → Coverage disclaimers.
+SENTENCE_BREAK = re.compile(
+    r"[.!?;:](?=\s)|\n[ \t]*(?:#[ \t]*)?\n|\"\"\"|'''|\n[ \t]*(?:#[ \t]*)?[-*][ \t]"
+)
+COVERAGE_DISCLAIMER = re.compile(
+    r"\b(?:no|nothing)\b(?:\s+[\w`-]+){0,3}?\s+(?:covers?|cites?|verif(?:y|ies)|exercises?|pins?)\b"
+    r"|(?:\bnot|\bnever|n't)\s+(?:yet\s+)?(?:tested|covered|cited|pinned)\b"
+    r"|\buntested\b"
+    r"|\b(?:no|not\s+(?:a|an|any))\s+(?:\w+\s+)?tests?(?=\s*(?:here\b|[,.;:)]|$))",
+    re.IGNORECASE,
+)
 STATUS_LINE = re.compile(r"^> \*\*Status:\*\*\s*(.+?)\s*$")
 STORY_FILENAME = re.compile(r"^story-(\d+)-")
 CRITERION_LINE = re.compile(r"^- \[[ xX]\]\s")
@@ -83,6 +103,7 @@ SEVERITY: dict[str, str] = {
     "marker_violation": "blocking",
     "partial_adoption": "blocking",
     "legacy_story": "informational",
+    "run_verified": "informational",
 }
 
 # Test-shaped path patterns, verbatim from the grammar doc's "Test-shaped
@@ -159,6 +180,7 @@ def parse_story_file(path: Path) -> dict[str, Any]:
             break
 
     marker_matches: list[tuple[int, str]] = []
+    verified_lines: list[tuple[int, str]] = []
     ac_lines: list[tuple[int, str]] = []
     ac_bounds = _section_bounds(lines, "Acceptance Criteria")
     if ac_bounds:
@@ -168,6 +190,9 @@ def parse_story_file(path: Path) -> dict[str, Any]:
             marker_match = MARKER_LINE.match(line)
             if marker_match:
                 marker_matches.append((i + 1, marker_match.group(1)))
+                continue
+            if VERIFIED_LINE.match(line):
+                verified_lines.append((i + 1, line))
                 continue
             if CRITERION_LINE.match(line):
                 ac_lines.append((i + 1, line))
@@ -186,6 +211,7 @@ def parse_story_file(path: Path) -> dict[str, Any]:
         "path": path,
         "status": status,
         "marker_matches": marker_matches,
+        "verified_lines": verified_lines,
         "ac_lines": ac_lines,
         "task_lines": task_lines,
     }
@@ -354,6 +380,35 @@ def _task_citations(story: dict[str, Any]) -> dict[str, int]:
     return cites
 
 
+def _run_verified(story: dict[str, Any], findings: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """{id: {line, evidence}} from this story's `> **Verified by:**` lines.
+    A line without IDs or evidence, or an ID naming another story, is a
+    `marker_violation` and verifies nothing."""
+    number = story["number"]
+    path = story["path"]
+    verified: dict[str, dict[str, Any]] = {}
+    for line_no, line in story["verified_lines"]:
+        match = VERIFIED_MARKER.match(line)
+        if not match:
+            findings.append(_finding(
+                "marker_violation", story=number, id_str=None, file=path, line=line_no,
+                detail="malformed Verified by line: write `> **Verified by:** AC-N.M — <evidence>`",
+            ))
+            continue
+        evidence = match.group(2)
+        for id_str in (part.strip() for part in match.group(1).split(",")):
+            id_match = ID_RE.match(id_str)
+            assert id_match is not None  # VERIFIED_MARKER's grammar guarantees this shape
+            if int(id_match.group(1)) != number:
+                findings.append(_finding(
+                    "marker_violation", story=number, id_str=id_str, file=path, line=line_no,
+                    detail=f"Verified by names {id_str}, but this file is story {number}",
+                ))
+                continue
+            verified.setdefault(id_str, {"line": line_no, "evidence": evidence})
+    return verified
+
+
 # --- Citation scan outside .writ/ -------------------------------------------
 
 def _is_git_worktree(repo: Path) -> bool:
@@ -401,6 +456,26 @@ def _is_test_shaped(rel_path: Path) -> bool:
             return True
     basename = rel_path.name
     return any(fnmatch.fnmatch(basename, pattern) for pattern in TEST_BASENAME_GLOBS)
+
+
+def _sentence_breaks(text: str) -> tuple[list[int], list[int]]:
+    starts: list[int] = []
+    ends: list[int] = []
+    for match in SENTENCE_BREAK.finditer(text):
+        starts.append(match.start())
+        ends.append(match.end())
+    return starts, ends
+
+
+def _disclaims_coverage(text: str, breaks: tuple[list[int], list[int]],
+                        start: int, end: int) -> bool:
+    """True when the sentence holding text[start:end] disclaims coverage."""
+    starts, ends = breaks
+    before = bisect.bisect_right(ends, start)
+    after = bisect.bisect_left(starts, end)
+    low = ends[before - 1] if before else 0
+    high = starts[after] if after < len(starts) else len(text)
+    return COVERAGE_DISCLAIMER.search(text[low:high]) is not None
 
 
 def _under_repo(path: Path, repo: Path) -> bool:
@@ -508,18 +583,24 @@ def scan_repo_citations(repo: Path, own_slug: str | None = None) -> dict[str, An
             continue
         is_test = _is_test_shaped(rel)
         bucket = test_citations if is_test else source_citations
+        breaks = _sentence_breaks(text) if is_test else None
         owner: str | None = None
-        for line_no, line in enumerate(text.splitlines(), start=1):
+        offset = 0
+        for line_no, line in enumerate(text.splitlines(keepends=True), start=1):
             slugs = list(slug_re.finditer(line)) if slug_re and is_test else []
             for token_match in BARE_ID.finditer(line):
                 while slugs and slugs[0].start() < token_match.start():
                     owner = slugs.pop(0).group(0)
                 if owner is not None and owner != own_slug:
                     continue
+                if breaks is not None and _disclaims_coverage(
+                        text, breaks, offset + token_match.start(), offset + token_match.end()):
+                    continue
                 id_str = f"AC-{token_match.group(1)}.{token_match.group(2)}"
                 bucket.setdefault(id_str, []).append({"file": str(rel), "line": line_no})
             if slugs:
                 owner = slugs[-1].group(0)
+            offset += len(line)
 
     return {
         "test_citations": test_citations,
@@ -539,9 +620,22 @@ def _coverage_findings(
     definitions: dict[str, dict[str, Any]],
     task_citations: dict[str, list[dict[str, Any]]],
     test_citations: dict[str, list[dict[str, Any]]],
+    run_verified: dict[str, dict[str, Any]],
     stories_by_number: dict[int, dict[str, Any]],
     findings: list[dict[str, Any]],
 ) -> None:
+    for id_str, info in run_verified.items():
+        defined = id_str in definitions
+        findings.append(_finding(
+            "run_verified" if defined else "dangling_reference",
+            story=info["story"], id_str=id_str, file=info["file"], line=info["line"],
+            detail=(
+                f"{id_str} is verified by a run, not a test: {info['evidence']}" if defined
+                else f"{id_str} is named by a Verified by line but no criterion in the spec "
+                     f"defines it"
+            ),
+        ))
+
     for id_str, info in definitions.items():
         if id_str not in task_citations:
             findings.append(_finding(
@@ -552,7 +646,8 @@ def _coverage_findings(
             continue
 
         story = stories_by_number.get(info["story"])
-        if story is not None and _is_completed(story["status"]) and id_str not in test_citations:
+        if (story is not None and _is_completed(story["status"])
+                and id_str not in test_citations and id_str not in run_verified):
             findings.append(_finding(
                 "untested_criterion", story=info["story"], id_str=id_str,
                 file=info["file"], line=info["line"],
@@ -626,10 +721,16 @@ def check(spec_dir: Path, repo: Path) -> tuple[int, dict[str, Any]]:
                 {"file": str(story["path"]), "line": line_no}
             )
 
+    run_verified: dict[str, dict[str, Any]] = {}
+    for story in stories:
+        for id_str, info in _run_verified(story, findings).items():
+            run_verified.setdefault(id_str, {**info, "story": story["number"],
+                                             "file": story["path"]})
+
     scan = scan_repo_citations(repo, own_slug=spec_dir.resolve().name)
 
     _coverage_findings(definitions, task_citations, scan["test_citations"],
-                        stories_by_number, findings)
+                        run_verified, stories_by_number, findings)
 
     findings.sort(key=_sort_key)
     blocking = any(f["severity"] == "blocking" for f in findings)

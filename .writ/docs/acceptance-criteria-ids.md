@@ -71,7 +71,7 @@ inert.
 |---|---|---|
 | **Definition** | The trailing `TAG` group on a `- [ ]`/`- [x]` line inside `## Acceptance Criteria` | Only an end-anchored `TAG` match counts |
 | **Citation (task)** | The trailing `TAG` group on a task line inside `## Implementation Tasks` | Only an end-anchored `TAG` match counts |
-| **Citation (test)** | A bare `AC-<n>.<m>` token in a test-shaped file path (see below) | No backticks or trailing-anchor requirement — this is a bare token in a name/docstring, not a markdown line |
+| **Citation (test)** | A bare `AC-<n>.<m>` token in a test-shaped file path (see below) | No backticks or trailing-anchor requirement — this is a bare token in a name/docstring, not a markdown line. A token in a sentence that disclaims coverage is not a citation (see Coverage disclaimers) |
 | **Citation (source)** | The same bare token outside `.writ/`, in a path that is **not** test-shaped | Recorded, informational; does **not** satisfy coverage |
 | **Prose mention** | Any ID-shaped token that is not inside a `TAG` match on a criterion/task line, or not a bare token in a scanned file outside `.writ/` | Neither definition nor citation; ignored |
 
@@ -197,6 +197,42 @@ A path is test-shaped when it has:
 deliberately adds no config field to supply them — pattern classification above is the whole
 mechanism.
 
+### Coverage disclaimers
+
+A token in a sentence that says no test covers it is not a citation. "No test here covers
+AC-1.5" once satisfied the check, so an untested criterion read as tested.
+
+A sentence ends at `.`, `!`, `?`, `;`, or `:` before whitespace, at a blank line, at a list
+bullet, or at a triple quote, so it may wrap across lines. It disclaims coverage when it
+contains any of:
+
+- `no` or `nothing`, up to three words, then `cover`, `cite`, `verify`, `exercise`, or `pin`
+  ("No test here covers AC-1.5", "Nothing here verifies AC-2.1")
+- `not`, `never`, or `n't` before `tested`, `covered`, `cited`, or `pinned`, or the word
+  `untested`
+- `no test`, `not a test`, or `not any test`, optionally with one word before `test`, at the
+  end of the sentence or before `here` ("AC-3.5 is the verification run, not a test here")
+
+A sentence about negative behavior is still a citation: "AC-1.4: no request, no leak" and
+"AC-1.5: no test or eval check reads a lean file" both cite. Do not write a disclaimer to
+explain a missing test; use `Verified by:` below.
+
+## Run-Verified Criteria
+
+Some criteria are shown by a recorded run, not a test: a dogfood run, a fixture run, a full
+verification run. The story says so in its `## Acceptance Criteria` section, below the
+high-water marker, one line per piece of evidence:
+
+```markdown
+> **Verified by:** AC-1.5 — the dogfood run in What Was Built → Dogfood Fixture
+```
+
+- The IDs, a dash, then the evidence: where the run is recorded, so a reader can check it.
+- A listed ID needs no test citation; the checker reports it as `run_verified`, never as
+  tested.
+- A line with no IDs or no evidence, or an ID from another story, is a `marker_violation`.
+  An ID the spec does not define is a `dangling_reference`.
+
 ## Finding Codes
 
 Named codes, mirroring the style Check 4d already uses (`malformed_dependencies`,
@@ -205,12 +241,13 @@ Named codes, mirroring the style Check 4d already uses (`malformed_dependencies`
 | Code | Condition | Severity |
 |---|---|---|
 | `untasked_criterion` | A defined ID that no implementation task in the spec cites | **Blocking**, at any story status |
-| `untested_criterion` | Tasked, but no test citation, and the story reads `Completed ✅` | **Blocking** |
+| `untested_criterion` | Tasked, but no test citation and no `Verified by:` line, and the story reads `Completed ✅` | **Blocking** |
 | `dangling_reference` | A task or test cites an ID that no criterion in the spec defines | **Blocking** |
 | `duplicate_id` | The same ID appears on two criterion lines | **Blocking** |
 | `marker_violation` | An ID exceeds the marker, or the marker is missing/malformed while IDs are present | **Blocking** |
 | `partial_adoption` | Some criteria in a story carry IDs and others do not | **Blocking** |
 | `legacy_story` | Zero criteria in the story carry IDs | Informational, never blocking |
+| `run_verified` | A `Verified by:` line names the ID; the detail carries the evidence | Informational, never blocking |
 
 ### Severity reasoning
 
