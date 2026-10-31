@@ -15,6 +15,8 @@
 
 > **AC IDs assigned through:** AC-1.5
 
+> **Verified by:** AC-1.5 — dogfood fixture questions 1 to 3, answered and recorded in What Was Built → Dogfood Fixture (AC-1.5)
+
 - [x] Given `commands/why.md`, when its frontmatter is read, then it carries `name: why`, `description`, `problem`, `outcome`, `entry_level: high`, and exactly three `exit_criteria` entries, and the body has `## Overview`, `## Invocation`, `## Required Artifacts`, `## Confidence Tiers`, `## Command Process`, `## Integration with Writ`, `## Completion`, and `## References`, with `## Completion` immediately before `## References` `[AC-1.1]`
 - [x] Given `## Confidence Tiers`, when its first table is read, then the first column lists `Recorded`, `Stated`, `Corroborated`, `Inferred`, `Unknown` in that order, and the section states that code is not evidence of its own intent and that conflicting sources give the lower tier `[AC-1.2]`
 - [x] Given `## Command Process`, when its headings are read, then it has six `### Step N:` headings numbered 1 to 6; Step 2 names `refs/notes/writ`, `drift-log.md`, `What Was Built`, and `.writ/decision-records/`; Step 3 names `git log`; Step 4 reads MCP servers only when the strongest claim is below `Stated` and never prompts to connect or authorize one; and each step says what to do when its source is absent: a subject not found gets one natural-language question, and no `.writ/`, no git repository, or no connected MCP server is named in the answer and skipped `[AC-1.3]`

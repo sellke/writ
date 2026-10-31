@@ -544,7 +544,7 @@ Emphasis by feature type: data flow (APIs, auth, payments, integrations) → err
 
 #### Step 2.5: Plan User Stories
 
-Break the contract into user stories that each deliver standalone value, identify dependencies between them, and keep each to 5-7 implementation tasks max. Output the plan:
+Break the contract into user stories that each deliver standalone value, identify dependencies between them, and keep each to 5-7 implementation tasks max. Every story leaves every check green: none plans a check to fail or go stale until a later story, and a new command ships with its registration. Output the plan:
 
 ```
 Story Plan:

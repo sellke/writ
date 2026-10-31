@@ -15,6 +15,8 @@
 
 > **AC IDs assigned through:** AC-4.4
 
+> **Verified by:** AC-4.4 — dogfood fixture question 4 and the `/create-spec` Steps 1.1 and 1.2 run in What Was Built → Dogfood Fixture (AC-4.4), with the saved record `.writ/research/2026-10-25-why-writ-confirmation-four-options.md`
+
 - [x] Given `commands/create-spec.md` Phase 1, when its headings are read, then `#### Step 1.2: Read a `/why` Handoff` sits after Step 1.1 and before Step 1.3, and its section searches the conversation, a file the invocation names, and `.writ/research/*-why-*.md` records whose `Subject` or `Change` line shares a keyword with the feature idea, and says to skip the step when none is found `[AC-4.1]`
 - [x] Given that Step 1.2 section and `commands/why.md`, when the seam test compares them, then both contain the literal `## Preserve / Change / Avoid / Risk`, and Step 1.2 maps Preserve to Business Rules, Change to the Deliverable, Avoid to Scope Boundaries → Excluded, and Risk to Technical Concerns, keeping each item's tier and citing the record `[AC-4.2]`
 - [x] Given `scripts/tests/test_governor_enforcement.py`, when the full test suite runs, then `KNOWN_OVER_BUDGET["commands/create-spec.md"]` equals the file's measured overage, Step 1.2 added under 700 bytes, and a dated comment above the entry names this spec and the reason, matching the earlier entries' form `[AC-4.3]`
