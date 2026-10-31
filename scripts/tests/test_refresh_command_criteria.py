@@ -41,8 +41,6 @@ COMMAND = REPO_ROOT / "commands" / "refresh-command.md"
 LOG_FORMAT = REPO_ROOT / ".writ" / "docs" / "refresh-log-format.md"
 EVAL_SCRIPT = REPO_ROOT / "scripts" / "eval-refresh-evidence.py"
 
-BYTE_CEILING = 24960  # COMMAND_BYTE_BUDGET in scripts/eval-leanness.py
-
 TOKENS = ("no evidence", "eval failed", "execution failure", "skill not used")
 
 DESCRIPTION_LINE = (
@@ -285,12 +283,6 @@ def test_missing_token_message_lists_all_four():
 
 
 # -- AC-4.5: budget and pinned literals ------------------------------------
-
-
-def test_command_under_byte_ceiling():
-    """AC-4.5 — commands/refresh-command.md stays under the 24,960-byte command budget."""
-    size = len(COMMAND.read_bytes())
-    assert size < BYTE_CEILING, "%d bytes" % size
 
 
 @pytest.mark.parametrize("literal", COMMAND_PINS)

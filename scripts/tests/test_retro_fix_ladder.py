@@ -29,7 +29,6 @@ COMMAND = REPO_ROOT / "commands" / "retro.md"
 TABLE_HEADING = "# Rule-to-Enforcer Table"
 TABLE_HEADER = "| Rule | Written in | Enforcer | Rung | Proof | Since |"
 
-BYTE_CEILING = 24960  # COMMAND_BYTE_BUDGET in scripts/eval-leanness.py
 RUNGS = ["architecture", "types", "lint", "test", "docs"]
 LADDER_GRAMMAR = "<rung>: no (<reason>); ...; <rung>: yes"
 PROOF_PREFIX = "mistake <ref>; check "
@@ -317,16 +316,15 @@ def test_step4_reads_the_table_before_ranking() -> None:
 
 
 def test_retired_tokens_absent_and_pins_kept() -> None:
-    """AC-3.4: no friction-signal remnant, Step 7 keeps the two literals
-    `check_knowledge_consolidate` pins, and the file is under the byte
-    ceiling."""
+    """AC-3.4: no friction-signal remnant, and Step 7 keeps the two literals
+    `check_knowledge_consolidate` pins. The byte ceiling is
+    test_governor_enforcement.py's, the one size registry."""
     text = command_text()
     for token in BANNED:
         assert token not in text, token
     step7 = step(text, 7)
     for literal in STEP7_PINS:
         assert literal in step7, literal
-    assert len(COMMAND.read_bytes()) < BYTE_CEILING
 
 
 def test_frontmatter_keeps_description_and_adds_two_exit_criteria() -> None:

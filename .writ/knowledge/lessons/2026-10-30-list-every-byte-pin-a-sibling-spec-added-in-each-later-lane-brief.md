@@ -13,6 +13,10 @@ related_artifacts:
 
 A spec can leave a whole-file size cap behind in its own test module, not only in KNOWN_OVER_BUDGET. review-route-rigor pinned IMPLEMENT_STORY_CAP at the file size plus 5 bytes in scripts/tests/test_review_route_rigor.py, so the next lane's one-line Gate 1 addition broke it, and the brief had named only the governor pin. After each lane merges, grep the new tests for size assertions on shared command files and carry each pin, with its current value, into every later lane brief.
 
+## Update 2026-10-31
+
+Retro 2026-10-30-phase-15 F9 moved every command byte cap into KNOWN_OVER_BUDGET in scripts/tests/test_governor_enforcement.py and added `bash scripts/eval.sh --check=size-pins`, which fails on a cap pinned in any other test module. A lane brief now needs only the registry entry.
+
 ## Context
 
 Recorded at phase close from evidence-bound knowledge writeback.

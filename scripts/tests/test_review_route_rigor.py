@@ -520,9 +520,6 @@ SAFETY_LINE = (
     "`### Safety Fact` section, starting from `{blast_radius}`."
 )
 SAFETY_SLOT = "### Safety Fact (only when safety_fact is on; format in the skill)"
-# 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 40234 -> 40682, +448 for the
-# Gate 1 bug-path line, so this spec's 1,800-byte Gate 2.5/3 allowance is unchanged.
-IMPLEMENT_STORY_CAP = 40682
 RUNG_ORDER = ("claimed", "read", "traced", "tested", "reproduced")
 
 # Rung definitions only the skill may carry, compared normalized.
@@ -754,7 +751,8 @@ class EvaluatorHasNoSafetyFactTest(unittest.TestCase):
 
 class Gate3SafetyFactTest(unittest.TestCase):
     """Gate 3 runs the verifier, routes its reasons, and prints the report
-    lines; only Gate 3 runs it; the file stays under its byte cap.
+    lines; only Gate 3 runs it. The file's byte cap is its KNOWN_OVER_BUDGET
+    entry in test_governor_enforcement.py, the one size registry.
     [AC-4.4, AC-4.5]"""
 
     def setUp(self) -> None:
@@ -816,10 +814,6 @@ class Gate3SafetyFactTest(unittest.TestCase):
     def test_gate3_carries_no_ladder_text(self) -> None:
         self.assertNotIn(BLAST_REL, self.gate3)
         self.assertNotIn("app-verify-result-v1", self.gate3)
-
-    def test_implement_story_byte_cap(self) -> None:
-        size = len(IMPLEMENT_STORY.read_bytes())
-        self.assertLessEqual(size, IMPLEMENT_STORY_CAP)
 
 
 if __name__ == "__main__":
