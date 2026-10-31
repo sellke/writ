@@ -3,7 +3,9 @@
 
 Spec `2026-10-20-shipped-command-hygiene`, Story 2. Some literal pins on
 command files guarded structure, not wording: a heading, a frontmatter key, or
-a script call. A literal substring pin passes when the heading turns into
+a script call. The `lead` kind came later, for create-spec rules a step must
+open with: show the contract before the lock (bug 2026-10-22) and ask one
+discovery question at a time. A literal substring pin passes when the heading turns into
 prose or the call turns into a bare mention. The helper checks the structure
 instead, one table row per converted pin. Tests run the helper against temp
 roots through `--root`; the eval-level test copies `eval.sh`, the helper, and
@@ -28,7 +30,7 @@ from typing import Dict, List, Tuple
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER = REPO_ROOT / "scripts" / "eval-command-structure.py"
 EVAL_SH = REPO_ROOT / "scripts" / "eval.sh"
-KINDS = ("heading", "frontmatter", "invocation")
+KINDS = ("heading", "frontmatter", "invocation", "lead")
 
 
 def load_helper_module():
@@ -185,6 +187,84 @@ class InvocationKindTests(KindCase):
                                  "FAIL")
 
 
+class LeadKindTests(KindCase):
+    """A lead row passes when each matching step opens with the named
+    bold-labelled paragraph and fails when the prompt comes first."""
+
+    STEP = "#### Step 1.4b: Contract Decision\n\n"
+    RULE = "**Precondition:** the contract is shown.\n\n"
+    PROMPT = "```\nAskQuestion({ title: \"Contract Decision\" })\n```\n\n"
+
+    VALUE = "Step 1.4b | Precondition"
+
+    def test_passes_when_the_labelled_paragraph_opens_the_step(self):
+        text = self.STEP + self.RULE + self.PROMPT + "## Next\n"
+        self.assertEqual(self.check("lead", self.VALUE, text), "PASS")
+
+    def test_fails_when_the_prompt_comes_before_the_labelled_paragraph(self):
+        text = self.STEP + self.PROMPT + self.RULE
+        self.assertEqual(self.check("lead", self.VALUE, text), "FAIL")
+
+    def test_fails_when_the_label_is_prose_or_the_step_is_gone(self):
+        for text in (self.STEP + "Precondition: the contract is shown.\n",
+                     self.STEP + "**Note:** the contract is shown.\n",
+                     self.STEP + "The contract must be shown.\n\n" + self.RULE,
+                     "Step 1.4b: Contract Decision\n\n" + self.RULE,
+                     "```\n" + self.STEP + "```\n" + self.RULE,
+                     self.STEP):
+            with self.subTest(text=text):
+                self.assertEqual(self.check("lead", self.VALUE, text), "FAIL")
+
+    def test_a_value_without_heading_and_label_never_passes(self):
+        text = self.STEP + self.RULE
+        for value in ("Step 1.4b", "Step 1.4b | ", " | Precondition"):
+            with self.subTest(value=value):
+                self.assertEqual(self.check("lead", value, text), "FAIL")
+
+    def test_every_matching_step_needs_its_own_lead(self):
+        value = "Step 3: Phase 2 | Precondition"
+        first = "### Step 3: Phase 2 with Story 1\n\n" + self.RULE
+        second = "### Step 3: Phase 2 with spec_ref\n\n"
+        self.assertEqual(self.check("lead", value, first + second + self.RULE), "PASS")
+        self.assertEqual(self.check("lead", value, first + second + "Run.\n"), "FAIL")
+
+
+class CreateSpecLeadTests(unittest.TestCase):
+    """Bug 2026-10-22-create-spec-can-lock-an-unseen-contract and hygiene UAT
+    Scenario 29: every discovery step in create-spec.md opens with the
+    one-question-at-a-time rule, every lock point opens with the rule that
+    the contract was shown first, and the Contract Decision fits a
+    four-option prompt."""
+
+    def test_each_discovery_step_and_lock_point_has_a_lead_row(self):
+        module = load_helper_module()
+        values = {r.value for r in module.ROWS
+                  if r.file == "commands/create-spec.md" and r.kind == "lead"}
+        self.assertEqual(values, {
+            "Step 1.3: Discovery Conversation | One question at a time",
+            "Step 1: Shortened Discovery Conversation | One question at a time",
+            "Step 1.4b: Contract Decision | Precondition",
+            "Step 3: Phase 2 with Story 1 | Precondition",
+            "Step 3: Phase 2 with `spec_ref` | Precondition",
+        })
+
+    def test_both_source_modes_open_discovery_with_the_rule(self):
+        """The --from-prototype and --from-issue discovery steps share one
+        heading, so one row covers both; check there are two."""
+        text = (REPO_ROOT / "commands" / "create-spec.md").read_text(encoding="utf-8")
+        steps = re.findall(r"^#### Step 1: Shortened Discovery Conversation.*\n\n(.*)$",
+                           text, re.MULTILINE)
+        self.assertEqual(len(steps), 2)
+        for line in steps:
+            self.assertTrue(line.startswith("**One question at a time:**"), line)
+
+    def test_the_contract_decision_has_at_most_four_options(self):
+        text = (REPO_ROOT / "commands" / "create-spec.md").read_text(encoding="utf-8")
+        block = text[text.index('title: "Contract Decision"'):]
+        block = block[:block.index("\n})")]
+        self.assertLessEqual(len(re.findall(r"\{ id: \"", block)), 4)
+
+
 class OutputTests(KindCase):
     """PASS/FAIL TSV, a FAIL that names the row, exit codes."""
 
@@ -250,6 +330,12 @@ def mutate(row, text: str) -> str:
     if row.kind == "frontmatter":
         return re.sub(r"^%s:" % re.escape(row.value), row.value + "_renamed:", text,
                       flags=re.MULTILINE)
+    if row.kind == "lead":
+        # Push a blank-line-separated sentence ahead of each matching step's
+        # labelled paragraph, so the step no longer opens with it.
+        heading = row.value.rpartition(" | ")[0]
+        pattern = re.compile(r"^(#{1,6} %s.*\n\n)" % re.escape(heading), re.MULTILINE)
+        return pattern.sub(r"\1Do the step.\n\n", text)
     # invocation: every occurrence of the value (path plus subcommand) reduced to
     # a bare mention of the script's file name. Other mentions of the script,
     # such as a calibrated_against note, stay, so they cannot hide a weak row.
