@@ -629,7 +629,10 @@ KNOWN_OVER_BUDGET = {
     # adapter's `Plan Mode` row.
     # 2026-10-31 (merge of Phase 14 into Phase 15): 14209 and 14497 -> 15052, both
     # sides kept: the /why handoff step and the #62 contract-visibility changes.
-    "commands/create-spec.md": 15052,
+    # 2026-10-31 (retro 2026-10-30-phase-15.md F3): 15052 -> 15197, a disclosed
+    # increase. Step 2.5 gains one sentence: every story leaves every check
+    # green, and a new command ships with its registration. No new step or gate.
+    "commands/create-spec.md": 15197,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
