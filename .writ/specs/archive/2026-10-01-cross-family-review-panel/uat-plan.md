@@ -59,9 +59,9 @@
 - It states the line is also the consent to send story content to other vendors, and that it is never detected or offered for saving.
 - It points to `python3 scripts/review-panel.py status --repo . --origin "<session model>"`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: Supported Keys row (line 63) and `## Review Panel` show the example line; first match wins, `none`/no line = off, order kept, `duplicate_slug`, `over_cap`, `same_vendor`, `unknown_vendor`; consent, never detected or offered; points to the `status` command.
 
 **Implementation Reference:** Story 1 — `.writ/docs/config-format.md` (Supported Keys row, `## Review Panel`)
 
@@ -89,9 +89,9 @@ exit 0
 ```
 - The verdict is the first line and the `review-panel:` summary is the last.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: line 1 `pass`, last `review-panel: pass — 2 reviewers (gpt-5.6-sol-medium openai, cursor-grok-4.6-medium-fast xai)`; exit 0.
 
 **Implementation Reference:** Story 1 — `scripts/review-panel.py` (`status`, `resolve`)
 
@@ -114,9 +114,9 @@ exit 0
   `{"dropped": [], "platform": null, "reasons": [], "reviewers": [{"slug": "gpt-5.6-sol-medium", "vendor": "openai"}, {"slug": "cursor-grok-4.6-medium-fast", "vendor": "xai"}], "session_vendor": "anthropic", "summary": "review-panel: pass \u2014 2 reviewers (...)", "verdict": "pass"}`
 - `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: one JSON line, `"verdict": "pass"`, reviewers openai/xai, `session_vendor` anthropic, `platform` null, `dropped` []; exit 0.
 
 ---
 
@@ -148,9 +148,9 @@ exit 0
 - `cursor-grok-…` resolves to xai (longest prefix wins). A Claude session drops the Claude slug. The fourth valid slug is `over_cap`.
 - The full per-row table (`composer-` → cursor, `o1`…`o9` → openai, the `o`-plus-letter boundary) is covered by the unit tests: `uv run --python 3.9 pytest scripts/tests/test_review_panel.py -q` → `139 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly (3 reviewers; drops `same_vendor`, `duplicate_slug`, `unknown_vendor`, `over_cap`); exit 0. Unit tests (`uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_review_panel.py -q`): `143 passed`, not 139; tests were added later (92be99a, d89438c).
 
 ---
 
@@ -183,9 +183,9 @@ exit 0
   exit 0
   ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `unverifiable` / `reason: panel_disabled` / `review-panel: off — panel_disabled`, exit 0; step 2 `reason: malformed_config` / `review-panel: skipped — malformed_config`, exit 0.
 
 ---
 
@@ -211,9 +211,9 @@ exit 0
   ```
 - `openclaw` prints `pass`, then `reason: unverified_platform`, the same two `reviewer:` lines as Scenario 2, the `review-panel: pass — 2 reviewers (…)` summary, and `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: claude-code and codex each print `reason: platform_cannot_spawn_other_vendors` / `review-panel: skipped — platform cannot spawn other vendors`, exit 0; openclaw prints `pass`, `reason: unverified_platform`, both reviewer lines, the pass summary, exit 0.
 
 ---
 
@@ -234,9 +234,9 @@ exit 0
 - Step 1: argparse prints `review-panel.py status: error: the following arguments are required: --origin`, then `exit 2`.
 - Step 2: `review-panel: usage — repo is not a readable directory: <path>/nope`, then `exit 2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 argparse usage then `review-panel.py status: error: the following arguments are required: --origin`, exit 2; step 2 `review-panel: usage — repo is not a readable directory: <tmp>/nope`, exit 2.
 
 ---
 
@@ -259,9 +259,9 @@ exit 0
 - Step 2 shows one line in each adapter: `cursor.md` "available" (≤4 concurrent Tasks, `slug_rejected`), `claude-code.md` "unavailable", `codex.md` "unavailable by default", `openclaw.md` "*(unverified)*".
 - The roadmap's Feature 3 points to this spec, and no success criterion text changed.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: amendment covers additive authority, `gate3_route`/`--panel` stakes signal, matching rule, exclusions as instructions, consent line, removal trial. `rg` finds one line per adapter: cursor available (4 concurrent Tasks, `slug_rejected`), claude-code unavailable, codex unavailable by default, openclaw *(unverified)*. Roadmap Feature 3 links the spec; Story 1 commit cadb572 touched only the feature line (the criterion's later "✅ met 2026-10-02" suffix is from the Story 5 trial).
 
 **Implementation Reference:** Story 1 — ADR-028 Decision 3 amendment; `adapters/{cursor,claude-code,codex,openclaw}.md`; `.writ/product/roadmap.md`
 
@@ -287,9 +287,9 @@ review-panel: skipped — unknown_session_vendor
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `reason: unknown_session_vendor`, `review-panel: skipped — unknown_session_vendor`; exit 0.
 
 ---
 
@@ -315,9 +315,9 @@ review-panel: skipped — no_other_vendor (dropped: claude-sonnet-5-5-high same_
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `review-panel: skipped — no_other_vendor (dropped: claude-sonnet-5-5-high same_vendor, foo-1 unknown_vendor)`; exit 0.
 
 ---
 
@@ -341,9 +341,9 @@ review-panel: off — no_config_line
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: precondition is stale: e035f2e (2026-10-02, intended) opted this repo in, so `--repo .` now prints `pass` with 3 reviewers, exit 0. Behavior checked on a scratch copy of `.writ/config.md` with the line removed: `unverifiable` / `reason: no_config_line` / `review-panel: off — no_config_line`, exit 0.
 
 ---
 
@@ -368,9 +368,9 @@ exit 0
 - Step 2: the instructions say each checklist line ends with its `[AC-N.M]` tag, and the examples end with a tag such as `` `[AC-1.1]` ``.
 - Step 3 prints `gen-codex-agent-tomls: pass (0 stale, 0 missing, 0 orphan, 0 unmapped)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: all four files carry `- **Category:** [criterion/security/architecture/taste]`; review-agent.md:209 requires the trailing `[AC-N.M]` tag and examples end `` `[AC-1.1]` ``. TOML check prints `pass` then `gen-codex-agent-tomls: pass (0 stale, 0 missing, 0 orphan, 0 unmapped)`, exit 0 (the leading verdict line came with d0b68b0, agent CLI contract).
 
 **Implementation Reference:** Story 2 — `agents/review-agent.md`, `agents/evaluator-agent.md`, `claude-code/agents/writ-{reviewer,evaluator}.md`, `codex/agents/{review-agent,evaluator-agent}.toml`
 
@@ -398,9 +398,9 @@ exit 1
 ```
 - The primary's vendor is listed first.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: expected text is stale: lines 1-2 are now `fail` / `reason: block`, not `block` (d89438c, 2026-10-12, agent CLI contract, intended). Rest matches: `reason: consensus ac:AC-2.3`, `review-panel: block — AC-2.3 unmet (anthropic, openai)`, `block — 2 vendors, 1 consensus finding`, exit 1.
 
 ---
 
@@ -424,9 +424,9 @@ review-panel: pass — 2 vendors, 0 consensus findings
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `review-panel: advisory — AC-2.3 unmet (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`; exit 0.
 
 ---
 
@@ -447,9 +447,9 @@ exit 0
 - Step 1: `block`, `reason: consensus ac:AC-2.3`, `review-panel: block — AC-2.3 unmet (openai, xai)`, `review-panel: block — 3 vendors, 1 consensus finding`, `exit 1`.
 - Step 2: `block`, `reason: consensus security:app/api/pay.ts`, `review-panel: block — security app/api/pay.ts (openai, xai)`, `review-panel: block — 3 vendors, 1 consensus finding`, `exit 1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: expected text is stale: both steps open `fail` / `reason: block`, not `block` (d89438c, intended). Step 1 `block — AC-2.3 unmet (openai, xai)`, step 2 `block — security app/api/pay.ts (openai, xai)`, both `3 vendors, 1 consensus finding`, exit 1.
 
 ---
 
@@ -474,9 +474,9 @@ review-panel: pass — 3 vendors, 0 consensus findings
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: advisory architecture (xai) and security (openai) on app/api/pay.ts, `review-panel: pass — 3 vendors, 0 consensus findings`; exit 0.
 
 ---
 
@@ -500,9 +500,9 @@ exit 0
 ```
 - No `advisory` or `block` lines, even though two vendors returned identical text.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `pass`, `review-panel: pass — 3 vendors, 0 consensus findings`, no advisory or block lines; exit 0.
 
 ---
 
@@ -527,9 +527,9 @@ exit 0
 ```
 - The two OpenAI reviewers agree, but that is one vendor, so there is no block.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `review-panel: advisory — security app/api/pay.ts (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`; exit 0.
 
 ---
 
@@ -550,9 +550,9 @@ exit 0
 - Step 1: a `[AC-2.2, AC-2.3]` tag yields two keys: `review-panel: advisory — AC-2.2 unmet (openai)`, `review-panel: advisory — AC-2.3 unmet (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`, `exit 0`.
 - Step 2: only the real path is keyed (`N/A` is ignored, and a Location with trailing commentary normalizes to its path): `review-panel: advisory — security app/api/pay.ts (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`, `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 advisory `AC-2.2 unmet (openai)` and `AC-2.3 unmet (openai)`, `pass — 2 vendors, 0 consensus findings`, exit 0; step 2 only `advisory — security app/api/pay.ts (openai)`, `pass — 2 vendors, 0 consensus findings`, exit 0.
 
 **Implementation Reference:** Story 2 — DEV-003 (first backticked span; placeholder Locations never keyed)
 
@@ -574,9 +574,9 @@ exit 0
 - One object with `"verdict": "block"`, `"primary_verdict": "FAIL"`, `"vendors": ["anthropic", "openai"]`, and one finding `{"key": "ac:AC-2.3", "display": "AC-2.3 unmet", "classification": "consensus", "severity": "Critical", "vendors": ["anthropic", "openai"], "texts": [...]}`.
 - `texts` holds two entries, primary and `gpt-5.6-sol-medium`, each with that vendor's own checklist line ("…no test asserts the message…" and "…the handler returns a generic 500…"), so a false match is visible.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: JSON: `verdict` block, `primary_verdict` FAIL, `vendors` [anthropic, openai], one consensus finding `ac:AC-2.3`, severity Critical; `texts` hold primary "…no test asserts the message…" and gpt-5.6-sol-medium "…the handler returns a generic 500…"; tally exit 1.
 
 ---
 
@@ -602,9 +602,9 @@ review-panel: block — 2 vendors, 1 consensus finding
 exit 1
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: expected text is stale: lines 1-2 are now `fail` / `reason: block`, not `block` (d89438c, intended). Rest matches: `dropped gpt-5.6-sol-medium — malformed_output`, `block — AC-2.3 unmet (anthropic, xai)`, `block — 2 vendors, 1 consensus finding`, exit 1.
 
 ---
 
@@ -627,9 +627,9 @@ exit 1
 - Step 2: the same, but the drop line reads `— no_output`.
 - Step 3: a same-vendor reviewer is not a panel reviewer: `unverifiable`, `reason: no_usable_reviewer`, `review-panel: unverifiable — no_usable_reviewer`, `exit 0`, with no advisory line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `unverifiable`, `reason: no_usable_reviewer`, drop `— malformed_output`, exit 0; step 2 drop `— no_output`, exit 0; step 3 no drop or advisory line, `review-panel: unverifiable — no_usable_reviewer`, exit 0.
 
 **Implementation Reference:** Story 2 — DEV-004 (session-vendor reviewers merge into the primary)
 
@@ -650,9 +650,9 @@ exit 1
 **Expected Result:**
 - `review-panel: usage — primary output has no EVALUATION_RESULT / REVIEW_RESULT line` on stderr, then `exit 2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: stdout empty; stderr `review-panel: usage — primary output has no EVALUATION_RESULT / REVIEW_RESULT line`; exit 2.
 
 ---
 
@@ -676,9 +676,9 @@ review-panel: unverifiable — unknown_session_vendor
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `reason: unknown_session_vendor`, `review-panel: unverifiable — unknown_session_vendor`; exit 0.
 
 ---
 
