@@ -76,7 +76,7 @@ ls [platform_dir]/agents/*.md 2>/dev/null | wc -l
 
 **Shipped scripts and docs** — only when no other platform's `.writ-manifest` exists (they are shared by every platform install): for each manifest line whose path is `scripts/<file>` or `.writ/docs/<file>.md`, hash the local file (`shasum -a 256`). Equal to the line's hash: remove it. Different: keep it and list it. A file with no manifest line is the user's: leave it.
 
-**Audit-notes refspecs** — under the same condition, for each remote (`git remote`), look for the lines install adds for the git-notes audit trail (ADR-017): `+refs/notes/writ:refs/notes/origin-writ` and the pre-0.33 `+refs/notes/writ:refs/notes/writ` in `git config --get-all remote.<remote>.fetch`, and `refs/notes/writ` in `git config --get-all remote.<remote>.push`. Match whole lines only. Left behind, the push line makes a plain `git push` push only the notes.
+**Audit-notes refspecs** — under the same condition, for each remote (`git remote`), look for the lines install adds for the git-notes audit trail (ADR-017): `+refs/notes/writ:refs/notes/origin-writ` and the pre-0.33 `+refs/notes/writ:refs/notes/writ` in `git config --get-all remote.<remote>.fetch`, and `refs/notes/writ` in `git config --get-all remote.<remote>.push`, which earlier installs added. Match whole lines only. Left behind, the push line makes a plain `git push` push only the notes.
 
 ```
 AskQuestion({

@@ -12,6 +12,8 @@ the durable audit contract directly against the shipped files:
   - ship.md attaches to the surviving (landed) commit and has a nil-WWB fallback
   - install.sh guards refspec config behind the writ.auditNotes marker,
     idempotently, and removes Writ-added refspecs on opt-out
+  - install.sh adds no push refspec (it hijacks a plain `git push`), and
+    install.sh and update.sh remove the one earlier installs added
   - status.md surfaces the read line; the format doc + ADR-017 define the contract
 """
 
@@ -105,8 +107,16 @@ def scenario_install() -> None:
     emit("install-migrates-legacy-refspec",
          "legacy_fetch_regex" in inst,
          "install.sh must remove the pre-0.33 clobbering refspec on upgrade")
-    emit("install-push-refspec", "refs/notes/writ" in inst,
-         "install.sh must configure the refs/notes/writ push refspec")
+    emit("install-no-push-refspec",
+         'git config --add "remote.$remote.push"' not in inst,
+         "install.sh must not add a push refspec: it replaces push.default for a plain git push")
+    emit("install-migrates-push-refspec",
+         "legacy_push_regex" in inst,
+         "install.sh must remove the push refspec earlier installs added")
+    upd = read("scripts/update.sh")
+    emit("update-migrates-push-refspec",
+         "remove_notes_push_refspec" in upd and "'^refs/notes/writ$'" in upd,
+         "update.sh must remove the push refspec earlier installs added")
     emit("install-idempotent",
          has_all(inst, "--get-all", "grep -Fxq"),
          "install.sh must grep existing refspecs before adding (idempotent)")
