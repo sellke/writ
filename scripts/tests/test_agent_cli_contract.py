@@ -615,6 +615,8 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("review-panel.py", ["trial-report", "--trial", "{tmp}/trial.json"],
           {"trial.json": PANEL_TRIAL_KEEP}, "trial-report"),
     Smoke("scaffold-writ.py", ["scaffold", "--project", "{tmp}/proj"], {"proj/.keep": ""}),
+    Smoke("skill-target.py", ["check", "zz-smoke", "--platform", "claude", "--project",
+                              "{repo}"], {}),
     Smoke("spec-analyze.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),

@@ -142,7 +142,7 @@ Display the scan results grouped by action:
   ✅ Unchanged:  15 file(s)
 ```
 
-If everything is unchanged, report "Already up to date!" and stop.
+If everything is unchanged, still remove the audit-notes push refspec (Step 6, item 8), then report "Already up to date!" and stop.
 
 ### Step 5: Handle Customized Files
 
@@ -195,6 +195,7 @@ Apply in this order (mirror `scripts/update.sh`):
 5. **Skills** — `SKILL.md` overlay; sidecars install-once only
 6. **Stale files** — remove unmodified stale files; keep each modified stale file, in any category, with a warning. It is no longer shipped, so it gets no new baseline: it keeps its previous one (Step 7) and is flagged on every run
 7. **Platform-specific files** — same three-way logic as commands/agents
+8. **Audit-notes push refspec** — for each remote (`git remote`) whose `git config --get-all remote.<remote>.push` has the whole line `refs/notes/writ`, run `git config --unset-all remote.<remote>.push '^refs/notes/writ$'`. Earlier installs added it, and it makes a plain `git push` skip the branch (ADR-017)
 
 ### Step 7: Regenerate Manifest
 

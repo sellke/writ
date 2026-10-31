@@ -608,7 +608,28 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-22 (2026-10-22-generated-platform-trees Story 1): 13602 -> 13654; Step 1.3 names
     # the adapter's `Plan Mode` row.
     # 2026-10-25 (2026-10-25-why-command Story 4): 13654 -> 14209; Step 1.2 reads a /why handoff.
-    "commands/create-spec.md": 14209,
+    # 2026-10-22 (bug create-spec-can-lock-an-unseen-contract): 13602 -> 14065, a
+    # disclosed increase. Step 1.4b opens with a precondition that the full contract
+    # was printed as a visible message, Plan Mode or not; both --from Step 3s open
+    # with one that the lock happened at Step 1.4b; the --from Step 2s say to print
+    # the contract. The "more questions" option folded into "edit" so the prompt
+    # fits a four-option cap. No new step or gate. Acknowledged, not exempted.
+    # 2026-10-22 (hygiene UAT Scenario 29 re-run): 14065 -> 14632, a disclosed
+    # increase. A live run bundled three discovery questions into one AskUserQuestion
+    # call. Step 1.3 and both --from Step 1s now open with a "One question per
+    # prompt" rule (one question per message or AskQuestion call, never bundled),
+    # restoring the line the Phase 13 cut folded into a run-in clause. No new step
+    # or gate. Acknowledged, not exempted.
+    # 2026-10-22: 14632 -> 14445. The maintainer relaxed that rule to "One question
+    # at a time": a question whose answer could change the next is asked alone;
+    # independent bounded choices may share one AskQuestion prompt. The --from
+    # Step 1s now point to Step 1.3 instead of restating it.
+    # 2026-10-31 (merge of #62 into Phase 14): 14445 -> 14497. Both changes kept:
+    # Step 1.3 opens with the "One question at a time" rule and names the
+    # adapter's `Plan Mode` row.
+    # 2026-10-31 (merge of Phase 14 into Phase 15): 14209 and 14497 -> 15052, both
+    # sides kept: the /why handoff step and the #62 contract-visibility changes.
+    "commands/create-spec.md": 15052,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

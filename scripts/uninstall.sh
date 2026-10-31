@@ -466,7 +466,8 @@ fi
 
 # The refs/notes/writ sync refspecs install adds to .git/config (ADR-017) go
 # with the last install. Only Writ's exact lines are removed, from any remote,
-# including the pre-0.33 fetch line; the notes themselves stay.
+# including the pre-0.33 fetch line and the push line earlier installs added
+# (install.sh and update.sh now remove it); the notes themselves stay.
 NOTES_REFSPECS=()
 if [ "$LAST_INSTALL" = true ] && command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
   while IFS= read -r remote; do
