@@ -1384,8 +1384,9 @@ class SpecC4Tests(unittest.TestCase):
                       c4["reason"])
         self.assertIn("story-4-create-spec-reads-handoff's Review Outcome is shared with story 3",
                       c4["reason"])
-        self.assertNotIn("story-1", c4["reason"])
-        self.assertNotIn("story-2", c4["reason"])
+        # Stories 1 and 2 are not asserted: the commits-after-verdict half reads
+        # live history, so a later cross-cutting commit that touches a story file
+        # (721fea1 added a Verified by: marker to Story 1) would make this rot.
 
 if __name__ == "__main__":
     unittest.main()
