@@ -662,7 +662,9 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-29 (2026-10-25-review-route-rigor Story 3): 13769 -> 14116; Gate 2.5 blast-radius paragraph.
     # 2026-10-29 (2026-10-25-review-route-rigor Story 4): 14116 -> 15269; Gate 3 safety-fact inputs, verifier, routing, report line.
     # 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 15269 -> 15717; Gate 1 bug-path line.
-    "commands/implement-story.md": 15717,
+    # 2026-10-31 (Phase 15 retro F1): 15717 -> 15799; Gate 3.5 Small drift clause names
+    # drift-format's auto_amend_unapplied failure.
+    "commands/implement-story.md": 15799,
 }
 
 

@@ -340,7 +340,7 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 

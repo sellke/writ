@@ -3572,6 +3572,9 @@ check_exit_criteria() {
   require_literal "$implement_spec" "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts" "implement-spec.c3's verbatim criterion text must appear in the command frontmatter."
   require_literal "$helper" "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts" "implement-spec.c3's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
 
+  require_literal "$implement_spec" "each completed story carries its own Gate 3 Review Outcome, and no commit changed that story's code after its verdict without a second verdict" "implement-spec.c4's verbatim criterion text must appear in the command frontmatter."
+  require_literal "$helper" "each completed story carries its own Gate 3 Review Outcome, and no commit changed that story's code after its verdict without a second verdict" "implement-spec.c4's verbatim criterion text must appear in scripts/exit-criteria.py's CRITERION_TEXT."
+
   # Task 4.4: the rollup precedence and the four `impossible` trigger names.
   # Bound against each side's own exact wording (technical-spec.md's prose is
   # not forced to match exit-criteria.py's docstring verbatim -- Gate 0
