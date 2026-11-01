@@ -409,6 +409,33 @@ class TestScopeTests(unittest.TestCase):
         _, result = ti.authenticity(self.fx.root, tests=None)
         self.assertEqual(flagged_files(result), set())
 
+    def test_python_http_and_browser_drivers_are_out_of_scope(self) -> None:
+        """A Python end-to-end test drives the running app over HTTP and imports
+        no project source. The Phase 12 UAT (S26) found these blocked."""
+        drivers = {
+            "e2e/test_a.py": "from urllib.request import urlopen\n",
+            "e2e/test_b.py": "from urllib import request\n",
+            "e2e/test_c.py": "import json, http.client\n",
+            "e2e/test_d.py": "import requests\n",
+            "e2e/test_e.py": "import httpx as h\n",
+            "e2e/test_f.py": "from playwright.sync_api import sync_playwright\n",
+            "e2e/test_g.py": "from selenium import webdriver\n",
+        }
+        files = [self.fx.write(path, text + "def test_page():\n    assert True\n")
+                 for path, text in drivers.items()]
+        _, result = ti.authenticity(self.fx.root, tests=files)
+        self.assertEqual(flagged_files(result), set())
+        self.assertEqual(result["inspected"]["out_of_scope"], len(drivers))
+
+    def test_a_python_test_without_a_driver_is_still_judged(self) -> None:
+        """urllib.parse and a bare urllib import do not drive anything, and a
+        JS-style quoted 'requests' string is not a Python import."""
+        test = self.fx.write("tests/test_parse.py",
+                             "from urllib.parse import quote\nimport urllib\n"
+                             "NAME = 'requests'\ndef test_q():\n    assert quote('a')\n")
+        _, result = ti.authenticity(self.fx.root, tests=[test])
+        self.assertEqual(flagged_files(result), {"tests/test_parse.py"})
+
     def test_an_e2e_driver_import_does_not_excuse_a_unit_test(self) -> None:
         """Scope is decided by the driver import, so a unit test that happens
         to sit in a normal location and imports no driver is still judged."""

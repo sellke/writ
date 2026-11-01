@@ -145,23 +145,10 @@ idea cheaply, not to build it three times.
 
 #### Getting drafts that actually differ
 
-Asking one agent for "a few options" produces one idea three times. Models fixate
-on their own early output, and repeated samples from one prompt converge. Force
-the divergence instead:
-
-1. **Declare the axes first.** Name two or three *orthogonal* dimensions the
-   drafts must differ on — information density, navigation model, primary action
-   placement, progressive disclosure vs. everything-visible. Assign each draft a
-   distinct combination, and state it before generating anything.
-2. **Generate independently.** One subagent per draft. No shared scratch, no
-   draft seeing another. Shared context is how drafts collapse into each other.
-3. **Commit before rendering.** Each generator states its axis combination and
-   the trade-off it accepts, then renders.
-4. **Use ordinary personas, not visionary ones.** "A support rep who opens this
-   forty times a shift" beats "a world-class designer" — genius framing measurably
-   narrows output.
-5. **Three drafts, not five.** Rendering is not free. More than three rarely adds
-   a distinct option, and the user has to read all of them.
+`Read ${CLAUDE_PLUGIN_ROOT}/skills/design-divergence/SKILL.md` for how to get drafts that differ: axes
+declared first, one context per draft, a commitment before rendering, ordinary
+personas. This step owns when drafts are made, what a draft is, how they render,
+and the record. Default to three drafts.
 
 #### Render through the platform
 
@@ -210,6 +197,8 @@ Spawn the coding agent with extracted intent and codebase context.
 
 The change is done only when it is in the user's checkout. When the agent's result names a worktree path or a branch other than the current one, integrate it as the skill describes before Step 4, writing no temporary file outside the project (pipe the worktree's diff into `git apply`), then confirm with `git status` that the changed files are in this checkout.
 
+**Bug path:** record `git rev-parse HEAD` before spawning. When the agent's `### Repro` block names commits, bring them into this checkout with `git cherry-pick`, oldest first, as the integration skill's Ordered commits paragraph says, not through `git apply`. Then run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repro-order.py check --repo . --base <that SHA>` and put its output and the failing-then-passing output in the Step 5 summary; `fail` makes the summary "Prototype Complete (with issues)".
+
 **Required context to include in prompt:**
 - Change description and watch-outs
 - Full context scan output (tech stack, patterns, nearby rules, files to modify)
@@ -218,7 +207,7 @@ The change is done only when it is in the user's checkout. When the agent's resu
 
 **Principles to instruct:**
 
-1. **TDD** — tests first covering core behavior and obvious edge cases
+1. **TDD** — tests first covering core behavior and obvious edge cases. A bug fix follows the bug path in `${CLAUDE_PLUGIN_ROOT}/skills/tdd-cycle/SKILL.md`: a failing repro committed before the fix.
 2. **Match codebase** — follow existing patterns and conventions
 3. **Respect nearby rules** — don't bypass auth, skip validation, or ignore state transitions.
 4. **Don't ship only the happy path** — handle error, empty, and loading states.
@@ -339,3 +328,4 @@ A scope-escalation signal firing is also a valid outcome, not a failure. It is n
 
 - Standing instructions: [`${CLAUDE_PLUGIN_ROOT}/commands/_preamble.md`](${CLAUDE_PLUGIN_ROOT}/commands/_preamble.md)
 - Identity & Prime Directive: [`${CLAUDE_PLUGIN_ROOT}/system-instructions.md`](${CLAUDE_PLUGIN_ROOT}/system-instructions.md)
+- Divergence rules: [design-divergence](${CLAUDE_PLUGIN_ROOT}/skills/design-divergence/SKILL.md)

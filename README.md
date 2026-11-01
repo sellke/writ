@@ -43,7 +43,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 16 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 19 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -120,6 +120,7 @@ Feedback loop (/retro + /refresh-command):
 | `/create-issue` | Quick issue capture (<2 minutes) |
 | `/knowledge` | Capture durable project knowledge (decisions, conventions, glossary, lessons) into `.writ/knowledge/` |
 | `/research` | Systematic 4-phase research workflow |
+| `/why` | Answers why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim; when a change follows, ends with a Preserve / Change / Avoid / Risk list `/create-spec` reads |
 
 ### Implementation & Quality
 | Command | Purpose |
@@ -201,6 +202,9 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`subagent-result-completeness`](skills/subagent-result-completeness/SKILL.md) | Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early |
 | [`subagent-worktree-integration`](skills/subagent-worktree-integration/SKILL.md) | Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale |
 | [`plain-prose`](skills/plain-prose/SKILL.md) | Rewrite mannered prose in instructional markdown (commands, agents, skills, adapters) into plain, direct text that keeps every rule and literal |
+| [`design-divergence`](skills/design-divergence/SKILL.md) | Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context |
+| [`review-judgment-filters`](skills/review-judgment-filters/SKILL.md) | Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings |
+| [`blast-radius`](skills/blast-radius/SKILL.md) | Name the one fact a change is safe because of and push its evidence up a five-rung ladder |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 

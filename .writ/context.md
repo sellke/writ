@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-23T21:07:06Z
+> Last Updated: 2026-10-30T03:08:11Z
 
 ## Product Mission
 
@@ -8,24 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-22-plugin-distribution — Plugin Distribution
-- **Status:** Complete (5/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`, awaiting the phase merge)
-- **Story:** 5 of 5 — Smoke Test Across Five Targets, README Install Order, and Live-Run Evidence (Completed ✅)
-- **Progress:** 33/33 tasks complete (100%)
+- **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
+- **Status:** In Progress — awaiting human labels (rating-handoff.md) (Phase 15 lane `writ/phase/15/2026-10-25-gate-upgrade-removal-measurement`)
+- **Story:** 3 of 4 — Run the Arms and Hand Off for Labeling (Completed ✅); Story 4 waits on human labels
+- **Progress:** 21/28 tasks complete (75%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-22-plugin-distribution/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
-- **Knowledge:** .writ/knowledge/ (25 entries)
+- **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Knowledge:** .writ/knowledge/ (28 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- ⚠️ DEV-022 `### Cursor (plugin)` stays in the README when `cursor-plugin` fails — plugin-distribution (Story 5, flagged for review)
-- ⚠️ DEV-017 Cursor `agents/` prompt docs lack the frontmatter Cursor requires — plugin-distribution (Story 3, flagged for review)
-- ⚠️ DEV-006 `.writ/docs/` reference docs are absent in a plugin-only project — plugin-distribution (Story 2, flagged for review)
+- DEV-011 Removal-inventory corrections for Story 4, from the dependency specs' drift logs — gate-upgrade-removal-measurement
+- DEV-010 `tests.txt` written by hand for two stories — gate-upgrade-removal-measurement
+- DEV-009 `repro-stop.md` adds `Targets:` and a `Repro: none` form; failing output is indented — gate-upgrade-removal-measurement
 
 ## Open Issues
 

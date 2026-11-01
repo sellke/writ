@@ -30,7 +30,7 @@ your-project/
 ├── .cursor/
 │   ├── rules/
 │   │   └── writ.mdc               # Writ identity & rules (alwaysApply: true)
-│   ├── commands/                  # one file per `commands:` entry in .writ/manifest.yaml (33)
+│   ├── commands/                  # one file per `commands:` entry in .writ/manifest.yaml (34)
 │   │   ├── assess-spec.md         # /assess-spec
 │   │   ├── create-adr.md          # /create-adr
 │   │   ├── create-goal.md         # /create-goal
@@ -62,6 +62,7 @@ your-project/
 │   │   ├── uninstall-writ.md      # /uninstall-writ
 │   │   ├── update-writ.md         # /update-writ
 │   │   ├── verify-spec.md         # /verify-spec
+│   │   ├── why.md                 # /why
 │   │   ├── writ.md                # /writ
 │   │   └── writ-design.md         # /writ-design
 │   ├── agents/                    # one file per `agents:` entry in .writ/manifest.yaml (7)

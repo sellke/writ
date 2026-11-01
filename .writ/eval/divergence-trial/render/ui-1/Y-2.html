@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Progress</title>
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --panel: #ffffff;
+    --text: #1d2125;
+    --muted: #6b7280;
+    --line: #e3e5e8;
+    --accent: #2563eb;
+    --ns: #6b7280;
+    --ip: #2563eb;
+    --ok: #15803d;
+    --bl: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    padding-bottom: 56px;
+  }
+  .header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 16px;
+    padding: 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+  .header .updated { color: var(--muted); font-size: 13px; }
+  .header .counts { margin-left: auto; font-size: 14px; font-weight: 500; }
+  .header .counts .bl { color: var(--bl); }
+  .table-wrap { overflow-x: auto; padding: 12px 16px; }
+  .table {
+    min-width: 1180px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 44px 240px 52px 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+  }
+  .row:first-child { border-top: 0; }
+  .row.done { opacity: 0.42; }
+  .chip {
+    display: inline-block;
+    width: 32px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 3px 0;
+    border-radius: 4px;
+    color: #fff;
+  }
+  .chip.NS { background: var(--ns); }
+  .chip.IP { background: var(--ip); }
+  .chip.OK { background: var(--ok); }
+  .chip.BL { background: var(--bl); }
+  .title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+  }
+  .title .n { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+  .ratio { font-variant-numeric: tabular-nums; color: var(--muted); text-align: right; }
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(8, 104px);
+    gap: 6px;
+  }
+  .cell { text-align: center; }
+  .cell .g { font-size: 15px; line-height: 18px; display: block; }
+  .cell .g.pass { color: var(--ok); }
+  .cell .g.fail { color: var(--bl); }
+  .cell .g.none { color: #9ca3af; }
+  .cell .lbl {
+    font-size: 11px;
+    line-height: 13px;
+    color: var(--muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 39px;
+  }
+  .legend {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .legend .pass { color: var(--ok); }
+  .legend .fail { color: var(--bl); }
+  .legend .none { color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1>2026-10-20-spec-progress-view</h1>
+  <span class="updated">updated 2026-10-26 09:42</span>
+  <span class="counts">5 stories open · 19 criteria not passing · <span class="bl">1 blocked</span></span>
+</header>
+
+<div class="table-wrap">
+  <div class="table">
+
+    <!-- Blocked -->
+    <div class="row">
+      <span class="chip BL" title="Blocked">BL</span>
+      <div class="title" title="Story 5: Map test runner output to criteria"><span class="n">5</span>Map test runner output to criteria</div>
+      <div class="ratio">1/5</div>
+      <div class="strip">
+        <div class="cell" title="Reads pytest JUnit XML report"><span class="g pass">●</span><span class="lbl">Reads pytest JUnit XML report</span></div>
+        <div class="cell" title="Matches test name to criterion ID"><span class="g fail">✕</span><span class="lbl">Matches test name to criterion ID</span></div>
+        <div class="cell" title="Handles parametrized test IDs"><span class="g fail">✕</span><span class="lbl">Handles parametrized test IDs</span></div>
+        <div class="cell" title="Reports unmatched tests separately"><span class="g none">○</span><span class="lbl">Reports unmatched tests separately</span></div>
+        <div class="cell" title="Falls back to none when report missing"><span class="g none">○</span><span class="lbl">Falls back to none when report missing</span></div>
+      </div>
+    </div>
+
+    <!-- In Progress -->
+    <div class="row">
+      <span class="chip IP" title="In Progress">IP</span>
+      <div class="title" title="Story 3: Compute remaining counts"><span class="n">3</span>Compute remaining counts</div>
+      <div class="ratio">3/6</div>
+      <div class="strip">
+        <div class="cell" title="Counts stories not Completed"><span class="g pass">●</span><span class="lbl">Counts stories not Completed</span></div>
+        <div class="cell" title="Counts criteria without a passing test"><span class="g pass">●</span><span class="lbl">Counts criteria without a passing test</span></div>
+        <div class="cell" title="Counts Blocked stories"><span class="g pass">●</span><span class="lbl">Counts Blocked stories</span></div>
+        <div class="cell" title="Treats failing test as not passing"><span class="g fail">✕</span><span class="lbl">Treats failing test as not passing</span></div>
+        <div class="cell" title="Returns zeros for a finished spec"><span class="g none">○</span><span class="lbl">Returns zeros for a finished spec</span></div>
+        <div class="cell" title="Ignores stories with no criteria"><span class="g none">○</span><span class="lbl">Ignores stories with no criteria</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="chip IP" title="In Progress">IP</span>
+      <div class="title" title="Story 4: Render story table with status chips and aligned criteria columns"><span class="n">4</span>Render story table with status chips and aligned criteria columns</div>
+      <div class="ratio">2/7</div>
+      <div class="strip">
+        <div class="cell" title="Shows one row per story"><span class="g pass">●</span><span class="lbl">Shows one row per story</span></div>
+        <div class="cell" title="Chip uses 2-letter status tag"><span class="g pass">●</span><span class="lbl">Chip uses 2-letter status tag</span></div>
+        <div class="cell" title="Truncates long titles with ellipsis"><span class="g fail">✕</span><span class="lbl">Truncates long titles with ellipsis</span></div>
+        <div class="cell" title="Aligns criteria columns across rows"><span class="g none">○</span><span class="lbl">Aligns criteria columns across rows</span></div>
+        <div class="cell" title="Puts the full criterion label in the title attribute of each cell"><span class="g none">○</span><span class="lbl">Puts the full criterion label in the ti…</span></div>
+        <div class="cell" title="Sorts Blocked rows first"><span class="g none">○</span><span class="lbl">Sorts Blocked rows first</span></div>
+        <div class="cell" title="Dims rows with all criteria passing"><span class="g none">○</span><span class="lbl">Dims rows with all criteria passing</span></div>
+      </div>
+    </div>
+
+    <!-- Not Started -->
+    <div class="row">
+      <span class="chip NS" title="Not Started">NS</span>
+      <div class="title" title="Story 6: Refresh view on file change"><span class="n">6</span>Refresh view on file change</div>
+      <div class="ratio">0/4</div>
+      <div class="strip">
+        <div class="cell" title="Watches the spec folder for edits"><span class="g none">○</span><span class="lbl">Watches the spec folder for edits</span></div>
+        <div class="cell" title="Re-renders within 1 second of a save"><span class="g none">○</span><span class="lbl">Re-renders within 1 second of a save</span></div>
+        <div class="cell" title="Updates the timestamp in the header"><span class="g none">○</span><span class="lbl">Updates the timestamp in the header</span></div>
+        <div class="cell" title="Ignores files outside the spec folder"><span class="g none">○</span><span class="lbl">Ignores files outside the spec folder</span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="chip NS" title="Not Started">NS</span>
+      <div class="title" title="Story 7: Document the view in the README"><span class="n">7</span>Document the view in the README</div>
+      <div class="ratio">0/3</div>
+      <div class="strip">
+        <div class="cell" title="Adds a screenshot of the table"><span class="g none">○</span><span class="lbl">Adds a screenshot of the table</span></div>
+        <div class="cell" title="Explains each status tag"><span class="g none">○</span><span class="lbl">Explains each status tag</span></div>
+        <div class="cell" title="Explains the legend glyphs"><span class="g none">○</span><span class="lbl">Explains the legend glyphs</span></div>
+      </div>
+    </div>
+
+    <!-- Completed -->
+    <div class="row done">
+      <span class="chip OK" title="Completed">OK</span>
+      <div class="title" title="Story 1: Parse spec folder into story records"><span class="n">1</span>Parse spec folder into story records</div>
+      <div class="ratio">5/5</div>
+      <div class="strip">
+        <div class="cell" title="Finds every story-N file"><span class="g pass">●</span><span class="lbl">Finds every story-N file</span></div>
+        <div class="cell" title="Reads title from the first heading"><span class="g pass">●</span><span class="lbl">Reads title from the first heading</span></div>
+        <div class="cell" title="Reads status from the metadata block"><span class="g pass">●</span><span class="lbl">Reads status from the metadata block</span></div>
+        <div class="cell" title="Collects acceptance criteria in order"><span class="g pass">●</span><span class="lbl">Collects acceptance criteria in order</span></div>
+        <div class="cell" title="Rejects files with no criteria list"><span class="g pass">●</span><span class="lbl">Rejects files with no criteria list</span></div>
+      </div>
+    </div>
+
+    <div class="row done">
+      <span class="chip OK" title="Completed">OK</span>
+      <div class="title" title="Story 2: Read test links from story files"><span class="n">2</span>Read test links from story files</div>
+      <div class="ratio">4/4</div>
+      <div class="strip">
+        <div class="cell" title="Parses the Tests column in the AC table"><span class="g pass">●</span><span class="lbl">Parses the Tests column in the AC table</span></div>
+        <div class="cell" title="Accepts file::test node IDs"><span class="g pass">●</span><span class="lbl">Accepts file::test node IDs</span></div>
+        <div class="cell" title="Marks criteria with no link as none"><span class="g pass">●</span><span class="lbl">Marks criteria with no link as none</span></div>
+        <div class="cell" title="Warns on links to missing test files"><span class="g pass">●</span><span class="lbl">Warns on links to missing test files</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="legend">
+  <span><span class="pass">●</span> passing test</span>
+  <span><span class="fail">✕</span> failing test</span>
+  <span><span class="none">○</span> no test</span>
+</footer>
+
+</body>
+</html>

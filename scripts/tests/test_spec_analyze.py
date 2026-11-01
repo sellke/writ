@@ -201,5 +201,84 @@ class SpecAnalyzeTests(unittest.TestCase):
         self.assertTrue(SCRIPT.exists())
 
 
+def _planned_story(tasks: str = "", notes: str = "", built: str = "") -> str:
+    """CLEAN_STORY plus Implementation Tasks, Notes, and an optional What Was
+    Built record."""
+    text = CLEAN_STORY + "\n## Implementation Tasks\n\n- [ ] 1.1 Write the tests `[AC-1.1]`\n"
+    text += tasks + "\n## Notes\n\n- **Scope.** One command file.\n" + notes
+    if built:
+        text += "\n## What Was Built\n\n" + built
+    return text
+
+
+class PlannedRedWindowTests(unittest.TestCase):
+    """Phase 15 retro F3: the why-command spec planned two commits that
+    failed `gen-platform-trees.py --check` until Story 2. A story that plans
+    a check to fail or go stale until a later story fails the analysis."""
+
+    WINDOWS = (
+        ("story-1-x.md", _planned_story(tasks=(
+            "- [ ] 1.7 Verify. Expect `check_manifest` to report `commands/why.md` "
+            "unregistered and `gen-platform-trees.py --check` to report the plugin "
+            "trees stale until Story 2; every other check passes `[AC-1.1]`\n"))),
+        ("story-1-x.md", _planned_story(notes=(
+            "- **Known window.** Between this story and Story 2, `check_manifest` "
+            "and the generated-tree check fail. Story 2 clears both.\n"))),
+        ("story-2-x.md", _planned_story(notes=(
+            "- Against the committed tree, `--check` fails for the seven files\n"
+            "  until Story 3 runs.\n"))),
+    )
+
+    def _check(self, name: str, text: str) -> tuple[int, str]:
+        with TemporaryDirectory() as tmp:
+            spec = _write_spec(Path(tmp), {name: text})
+            findings = spec / "findings.json"
+            findings.write_text("[]", encoding="utf-8")
+            code, out, _err = _run(["check", "--spec", str(spec), "--findings", str(findings)])
+            return code, out
+
+    def test_planned_red_window_fails(self) -> None:
+        """Mutation: each window fails; the same story with the window
+        sentence replaced by an all-green plan passes."""
+        for name, text in self.WINDOWS:
+            with self.subTest(name=name, text=text):
+                code, out = self._check(name, text)
+                self.assertEqual(_verdict(out), "fail", out)
+                self.assertEqual(code, 1)
+                self.assertEqual(_reasons(out), ["planned_red_window"])
+                self.assertTrue(out.strip().splitlines()[-1].startswith("spec-analyze: fail"))
+        code, out = self._check("story-1-x.md", _planned_story(tasks=(
+            "- [ ] 1.7 Verify. Register the command in this story; every check "
+            "passes `[AC-1.1]`\n")))
+        self.assertEqual(_verdict(out), "pass", out)
+        self.assertEqual(code, 0)
+
+    def test_ordinary_story_references_pass(self) -> None:
+        """Not a window: a later story named without a failing check, a
+        failing check that waits on an earlier story (a dependency), an
+        ordering note, and a record of what happened."""
+        cases = (
+            ("story-1-x.md", _planned_story(notes=(
+                "- **Stale Claude Code row.** Until Story 2 changes the row, Step 4 "
+                "takes the file-write branch.\n"))),
+            ("story-2-x.md", _planned_story(notes=(
+                "- **Story 1 must exist first.** `eval.sh` fails until Story 1 "
+                "lands the script.\n"))),
+            ("story-1-x.md", _planned_story(notes=(
+                "- **Order matters.** Delete the files before Story 2, or the "
+                "governor test would fail.\n"))),
+            ("story-1-x.md", _planned_story(notes=(
+                "- Until Story 2 lands, the lint must warn, not fail, or the gate "
+                "breaks between stories.\n"))),
+            ("story-1-x.md", _planned_story(built=(
+                "- Bash tests: 1 FAIL, same orphan finding, stale until Story 2.\n"))),
+        )
+        for name, text in cases:
+            with self.subTest(name=name, text=text):
+                code, out = self._check(name, text)
+                self.assertEqual(_verdict(out), "pass", out)
+                self.assertEqual(code, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

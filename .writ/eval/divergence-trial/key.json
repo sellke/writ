@@ -1,0 +1,113 @@
+{
+  "briefs": {
+    "api-1": {
+      "X": {
+        "arm": "axes",
+        "drafts": [
+          2,
+          3,
+          1
+        ]
+      },
+      "Y": {
+        "arm": "naive",
+        "drafts": [
+          2,
+          3,
+          1
+        ]
+      }
+    },
+    "api-2": {
+      "X": {
+        "arm": "naive",
+        "drafts": [
+          3,
+          1,
+          2
+        ]
+      },
+      "Y": {
+        "arm": "axes",
+        "drafts": [
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    "data-model-1": {
+      "X": {
+        "arm": "naive",
+        "drafts": [
+          2,
+          1,
+          3
+        ]
+      },
+      "Y": {
+        "arm": "axes",
+        "drafts": [
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    "data-model-2": {
+      "X": {
+        "arm": "axes",
+        "drafts": [
+          2,
+          1,
+          3
+        ]
+      },
+      "Y": {
+        "arm": "naive",
+        "drafts": [
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    "ui-1": {
+      "X": {
+        "arm": "naive",
+        "drafts": [
+          2,
+          3,
+          1
+        ]
+      },
+      "Y": {
+        "arm": "axes",
+        "drafts": [
+          3,
+          1,
+          2
+        ]
+      }
+    },
+    "ui-2": {
+      "X": {
+        "arm": "naive",
+        "drafts": [
+          3,
+          2,
+          1
+        ]
+      },
+      "Y": {
+        "arm": "axes",
+        "drafts": [
+          1,
+          3,
+          2
+        ]
+      }
+    }
+  },
+  "schema": "divergence-trial-key-v1"
+}

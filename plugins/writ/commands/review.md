@@ -58,6 +58,8 @@ This scan determines which techniques to prioritize. Not every technique applies
 
 ### Step 3: Apply Review Techniques
 
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py switch --name reviewer-filters` and keep line 1 (`on` or `off`) for the Step 4 header. On `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/review-judgment-filters/SKILL.md` and apply it before Technique 4 assigns severities and before the Recommendation.
+
 Apply all applicable techniques. Prioritize depth over breadth: analyzing 3 critical paths fully catches more bugs than scanning 20 functions superficially.
 
 ---
@@ -180,6 +182,7 @@ Generate a structured markdown report:
 > Reviewed: YYYY-MM-DD
 > Scope: N files changed (+X, -Y) vs [base]
 > Spec: [path if --spec provided, else "Standalone review"]
+> Reviewer filters: on|off
 
 ## Architecture
 [ASCII diagram from Technique 5]

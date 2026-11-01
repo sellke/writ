@@ -14,7 +14,7 @@ this module implements against — criterion by criterion, no more and no less.
 
 This module is READ-ONLY. It never writes a file, and every git call it makes
 is one of the read-only subcommand families (`rev-parse`, `branch`, `log`,
-`merge-base`) — never anything that mutates the working tree or refs.
+`merge-base`, `diff-tree`) — never anything that mutates the working tree or refs.
 
 Subcommands:
   check --command {implement-phase,implement-spec} [--state PATH] [--spec DIR]
@@ -53,6 +53,7 @@ CRITERIA_BY_COMMAND: dict[str, tuple[str, ...]] = {
     ),
     "implement-spec": (
         "implement-spec.c1", "implement-spec.c2", "implement-spec.c3",
+        "implement-spec.c4",
     ),
 }
 
@@ -75,6 +76,7 @@ CRITERION_TEXT: dict[str, str] = {
     "implement-spec.c1": "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran",
     "implement-spec.c2": "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason",
     "implement-spec.c3": "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts",
+    "implement-spec.c4": "each completed story carries its own Gate 3 Review Outcome, and no commit changed that story's code after its verdict without a second verdict",
 }
 
 # The one criterion Story 1 classified structurally-unobservable, and the
@@ -86,6 +88,7 @@ UNOBSERVABLE_REASONS: dict[str, str] = {
 PRE_STORY_2_REASON = "record predates exit-criteria instrumentation"
 
 TERMINAL_STORY_STATUSES = {"complete", "completed", "skipped", "failed"}
+COMPLETED_STORY_STATUSES = {"complete", "completed"}
 
 
 class Impossible(Exception):
@@ -777,6 +780,141 @@ def _predicate_spec_c3(state: dict[str, Any]) -> dict[str, Any]:
     )
 
 
+_REVIEW_OUTCOME = re.compile(r"^#{2,4}[ \t]+Review Outcome\b.*$", re.MULTILINE)
+_SECTION_END = re.compile(r"^#{1,4}[ \t]", re.MULTILINE)
+_RESULT_LINE = re.compile(r"^\*\*Result:\*\*[ \t]*\S", re.MULTILINE)
+# A Gate 3 verdict line as `git log -G` sees it (POSIX ERE, one line).
+_RESULT_LINE_ERE = r"^\*\*Result:\*\*"
+_STORY_LIST = re.compile(r"(?i)\bstories[ \t]+(\d+(?:[ \t]*(?:,|and|&)[ \t]*\d+)+)")
+_STORY_NUMBER = re.compile(r"story-(\d+)")
+
+
+def _git_out(repo: Path, *args: str) -> list[str]:
+    proc = _git(repo, *args)
+    if proc.returncode != 0:
+        raise Impossible(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
+    return [line for line in proc.stdout.splitlines() if line.strip()]
+
+
+def _story_file(spec_dir: Path, story_id: str) -> Path | None:
+    """The state key is the story file stem; fall back to the story number."""
+    stories = spec_dir / "user-stories"
+    exact = stories / f"{story_id}.md"
+    if exact.is_file():
+        return exact
+    number = _STORY_NUMBER.search(story_id)
+    if not number:
+        return None
+    n = number.group(1)
+    matches = sorted(stories.glob(f"story-{n}-*.md")) + sorted(stories.glob(f"story-{n}.md"))
+    return matches[0] if len(matches) == 1 else None
+
+
+def _latest_review_outcome(text: str) -> str | None:
+    """The last `Review Outcome` section, up to the next heading."""
+    headings = list(_REVIEW_OUTCOME.finditer(text))
+    if not headings:
+        return None
+    start = headings[-1].end()
+    end = _SECTION_END.search(text, start)
+    return text[start:end.start() if end else len(text)]
+
+
+def _shared_with(section: str, own: str) -> list[str]:
+    """Other story numbers a sentence about review lists together with this
+    story ("Stories 3 and 4 were reviewed in one review-agent pass")."""
+    for sentence in re.split(r"(?<=[.;])\s+|\n", section):
+        if "review" not in sentence.lower():
+            continue
+        for match in _STORY_LIST.finditer(sentence):
+            numbers = set(re.findall(r"\d+", match.group(1)))
+            if own in numbers and len(numbers) > 1:
+                return sorted(numbers - {own}, key=int)
+    return []
+
+
+def _code_commit_after_verdict(top: Path, story_rel: str) -> tuple[str, str] | None:
+    """(late commit, verdict commit) when a commit after the story's newest
+    verdict commit modified the story file and a path outside `.writ/`. The
+    verdict commit is the newest one whose diff adds or removes a
+    `**Result:**` line in the story file; every story commit updates the
+    story file, which is what attributes a later commit to this story. A
+    later commit that writes a verdict into any story file was reviewed by
+    that story's Gate 3, so it never counts."""
+    verdicts = _git_out(top, "log", "--follow", "--format=%H", f"-G{_RESULT_LINE_ERE}", "--", story_rel)
+    if not verdicts:
+        return None  # verdict not committed yet: nothing can follow it
+    verdict = verdicts[0]
+    reviewed = set(_git_out(top, "log", "--format=%H", f"-G{_RESULT_LINE_ERE}", f"{verdict}..HEAD",
+                            "--", ":(glob)**/user-stories/story-*.md"))
+    # --diff-filter=M: a spec archive move renames the story file, edits nothing.
+    for sha in _git_out(top, "log", "--follow", "--diff-filter=M", "--format=%H",
+                        f"{verdict}..HEAD", "--", story_rel):
+        if sha in reviewed:
+            continue
+        paths = _git_out(top, "diff-tree", "--no-commit-id", "--name-only", "-r", sha)
+        if any(not path.startswith(".writ/") for path in paths):
+            return sha, verdict
+    return None
+
+
+def _predicate_spec_c4(state: dict[str, Any], spec_dir: Path, repo: Path) -> dict[str, Any]:
+    """implement-spec.c4: "each completed story carries its own Gate 3 Review
+    Outcome, and no commit changed that story's code after its verdict
+    without a second verdict"
+
+    evaluable-now (Phase 15 retro F6): story files and git history only. A
+    story's verdict is the last `Review Outcome` section with a `**Result:**`
+    line. It is shared when a sentence about review lists this story with
+    another ("Stories 3 and 4 were reviewed in one review-agent pass").
+    A code commit is one that changes the story file and a path outside
+    `.writ/` after the newest commit that wrote a `**Result:**` line, and
+    that writes no verdict of its own into any story file.
+    """
+    stories = state.get("stories")
+    completed = sorted(
+        story_id for story_id, record in (stories.items() if isinstance(stories, dict) else [])
+        if (record or {}).get("status") in COMPLETED_STORY_STATUSES
+    )
+    if not completed:
+        return _entry("implement-spec.c4", "met", evidence="no completed stories to check")
+
+    _require_git_repo(repo)
+    top = Path(_git_out(repo, "rev-parse", "--show-toplevel")[0]).resolve()
+    problems: list[str] = []
+    for story_id in completed:
+        path = _story_file(spec_dir, story_id)
+        if path is None:
+            problems.append(f"{story_id} story file not found")
+            continue
+        outcome = _latest_review_outcome(path.read_text(encoding="utf-8"))
+        if outcome is None or not _RESULT_LINE.search(outcome):
+            problems.append(f"{story_id} has no Gate 3 Review Outcome")
+            continue
+        number = _STORY_NUMBER.search(path.name)
+        others = _shared_with(outcome, number.group(1)) if number else []
+        if others:
+            problems.append(f"{story_id}'s Review Outcome is shared with story {', '.join(others)}")
+            continue
+        try:
+            story_rel = path.resolve().relative_to(top).as_posix()
+        except ValueError as exc:
+            raise Impossible(f"story file {path} is outside the repository {top}") from exc
+        late = _code_commit_after_verdict(top, story_rel)
+        if late:
+            problems.append(
+                f"{story_id} has code commit {late[0][:8]} after its verdict {late[1][:8]} "
+                "and no second verdict")
+
+    if problems:
+        return _entry("implement-spec.c4", "unmet", reason="; ".join(problems))
+    return _entry(
+        "implement-spec.c4", "met",
+        evidence=(f"{len(completed)}/{len(completed)} completed stories carry their own "
+                  "Gate 3 Review Outcome with no later code commit"),
+    )
+
+
 # --- Dispatch, per criterion, with fault isolation --------------------------
 
 def _safe_eval(criterion_id: str, fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:
@@ -810,7 +948,8 @@ def _eval_phase_criterion(criterion_id: str, bucket: str, state: dict[str, Any],
     raise Impossible(f"no predicate wired for classified criterion {criterion_id}")
 
 
-def _eval_spec_criterion(criterion_id: str, bucket: str, state: dict[str, Any]) -> dict[str, Any]:
+def _eval_spec_criterion(criterion_id: str, bucket: str, state: dict[str, Any],
+                         spec_dir: Path, repo: Path) -> dict[str, Any]:
     if bucket == "structurally-unobservable":
         if criterion_id not in UNOBSERVABLE_REASONS:
             raise Impossible(f"{criterion_id} is classified structurally-unobservable but has no recorded reason")
@@ -821,6 +960,8 @@ def _eval_spec_criterion(criterion_id: str, bucket: str, state: dict[str, Any]) 
         return _predicate_spec_c2(state)
     if criterion_id == "implement-spec.c3":
         return _predicate_spec_c3(state)
+    if criterion_id == "implement-spec.c4":
+        return _predicate_spec_c4(state, spec_dir, repo)
     raise Impossible(f"no predicate wired for classified criterion {criterion_id}")
 
 
@@ -865,7 +1006,7 @@ def _check_spec(args: argparse.Namespace, classification: dict[str, str], repo: 
     for criterion_id in CRITERIA_BY_COMMAND["implement-spec"]:
         bucket = classification[criterion_id]
         criteria_results.append(
-            _safe_eval(criterion_id, lambda cid=criterion_id, b=bucket: _eval_spec_criterion(cid, b, state))
+            _safe_eval(criterion_id, lambda cid=criterion_id, b=bucket: _eval_spec_criterion(cid, b, state, spec_dir, repo))
         )
 
     verdict = _rollup(criteria_results)

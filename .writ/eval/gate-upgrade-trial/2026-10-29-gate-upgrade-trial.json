@@ -1,0 +1,627 @@
+{
+  "acks": {},
+  "baseline": ".writ/eval/baselines/2026-09-07-claude-fable-5-1.json",
+  "labeled_by": null,
+  "origin": "claude-opus-5-5",
+  "schema": "gate-upgrade-trial-v1",
+  "sheet": {
+    "body_sha256": "784833be121d79e501f78aec61ccbf2bfd98aab53f932cbb2d207ddbbd4be8e0",
+    "findings": 6,
+    "path": ".writ/eval/gate-upgrade-trial/labeling-sheet.md",
+    "seed": 243777481
+  },
+  "stories": [
+    {
+      "arms": {
+        "gate0-divergence": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-2.4",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-2.5",
+              "severity": "Critical"
+            },
+            {
+              "key": "architecture:app/api/events/route.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-2-event-creation-payment-flow/gate0-divergence.md",
+          "raw_sha256": "afe3644466bdba439b360cb9a16916a4dc8c44d3ef14e20816232f4ce20e75be",
+          "report": "chose",
+          "states": {
+            "gate0-divergence": "on",
+            "repro-first": "off",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "off-1": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-2.4",
+              "severity": "Critical"
+            },
+            {
+              "key": "security:app/api/events/route.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-2-event-creation-payment-flow/off-1.md",
+          "raw_sha256": "61828d447ff3365b2b73f069b5d091e7dd3396f9d744d8ce054f84ba0fdb0729",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-2.4",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-2-event-creation-payment-flow/off-2.md",
+          "raw_sha256": "7a5464a33707e68f707b14bb5392e8504225c04f7517efe28db31aab7df0a369",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "repro-first": {
+          "at_commit": null,
+          "at_parent": null,
+          "exercised": false,
+          "keys": [],
+          "kind": "not-a-bug-fix",
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-2-event-creation-payment-flow/repro-first.md",
+          "raw_sha256": "0d6d60c9cc31f4bdc11a9c0baf5d3d3dd7fe6c6746e7d4e481483a34ec69a4e3",
+          "repro_ac": null,
+          "repro_result": null,
+          "states": {
+            "gate0-divergence": "off",
+            "repro-first": "on",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "reviewer-filters": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-2.4",
+              "severity": "Critical"
+            },
+            {
+              "key": "security:app/api/events/route.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-2-event-creation-payment-flow/reviewer-filters.md",
+          "raw_sha256": "c8950bfbec7db21a0394bdec175046287981272422f9c6753443d5432974c4d5",
+          "states": {
+            "reviewer-filters": "on",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "safety-fact": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-2.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-2.4",
+              "severity": "Critical"
+            },
+            {
+              "key": "architecture:app/dashboard/page.tsx",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-2-event-creation-payment-flow/safety-fact.md",
+          "raw_sha256": "63e172d90eea6fd336a17f54bf59e018e0a63c99bcdd3e0f59cda41515328e55",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "on"
+          },
+          "verdict": "FAIL",
+          "verifier": "pass"
+        }
+      },
+      "off_only": {
+        "gate0-divergence": 0,
+        "reviewer-filters": 0,
+        "safety-fact": 0
+      },
+      "parent_sha": "ae9e47e6a45fe95e44dcf3c44d597e2d9100f376",
+      "repro_kind": "not-a-bug-fix",
+      "routes": {
+        "gate0_route": "review-agent",
+        "gate3_route": "review-agent",
+        "planned_surface": "full-stack",
+        "surface": "full-stack"
+      },
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_commit": "79d79ae4a2fb18ba1b5318823f6dc2479f73fa7e",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow",
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-2-event-creation-payment-flow.md",
+      "upgrade_only": [
+        {
+          "id": "F05",
+          "key": "ac:AC-2.5",
+          "label": null,
+          "note": null,
+          "severity": "Critical",
+          "upgrade": "gate0-divergence"
+        },
+        {
+          "id": "F04",
+          "key": "architecture:app/api/events/route.ts",
+          "label": null,
+          "note": null,
+          "severity": "Major",
+          "upgrade": "gate0-divergence"
+        },
+        {
+          "id": "F03",
+          "key": "architecture:app/dashboard/page.tsx",
+          "label": null,
+          "note": null,
+          "severity": "Major",
+          "upgrade": "safety-fact"
+        }
+      ]
+    },
+    {
+      "arms": {
+        "off-1": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.2",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-23-quick-split-single-transaction--story-3-settlement-view-share-link/off-1.md",
+          "raw_sha256": "f6680d11d8dca0fb1d5c51609d46a9a873542067e06e571148fe9ccbe90c3836",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "security:#04f8c609b70e",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-23-quick-split-single-transaction--story-3-settlement-view-share-link/off-2.md",
+          "raw_sha256": "0b8cb5adf7ab6cbcd137b45291ea653de1fed55a60a464478dd1da3e540ecc0e",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "repro-first": {
+          "at_commit": null,
+          "at_parent": null,
+          "exercised": false,
+          "keys": [],
+          "kind": "not-a-bug-fix",
+          "raw": "2026-07-23-quick-split-single-transaction--story-3-settlement-view-share-link/repro-first.md",
+          "raw_sha256": "639ae01d0e34fa0f6d9be8a73c083e05a7076a8c520a4cf5d80a7962eda903e1",
+          "repro_ac": null,
+          "repro_result": null,
+          "states": {
+            "gate0-divergence": "off",
+            "repro-first": "on",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "reviewer-filters": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.2",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-23-quick-split-single-transaction--story-3-settlement-view-share-link/reviewer-filters.md",
+          "raw_sha256": "415baa53632b14ff0589b4319c474c4d9df7b94d87257e89a746237c455f42f8",
+          "states": {
+            "reviewer-filters": "on",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "safety-fact": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.2",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-23-quick-split-single-transaction--story-3-settlement-view-share-link/safety-fact.md",
+          "raw_sha256": "d4b640dd7727d930381ed47fba821b84e63bc368998dd14149e231700ac92711",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "on"
+          },
+          "verdict": "FAIL",
+          "verifier": "pass"
+        }
+      },
+      "off_only": {
+        "gate0-divergence": 0,
+        "reviewer-filters": 0,
+        "safety-fact": 0
+      },
+      "parent_sha": "81ed2e4ed0693fedf566b279c97f913483bd6891",
+      "repro_kind": "not-a-bug-fix",
+      "routes": {
+        "gate0_route": "evaluator-agent",
+        "gate3_route": "review-agent",
+        "planned_surface": "cross-component",
+        "surface": "full-stack"
+      },
+      "spec_folder": "2026-07-23-quick-split-single-transaction",
+      "story_commit": "8d97930a73bf2d7fd6c29323d5c395402c31095c",
+      "story_id": "2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link",
+      "story_path": ".writ/specs/archive/2026-07-23-quick-split-single-transaction/user-stories/story-3-settlement-view-share-link.md",
+      "upgrade_only": []
+    },
+    {
+      "arms": {
+        "gate0-divergence": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.3",
+              "severity": "Critical"
+            },
+            {
+              "key": "security:app/api/expenses/[id]/route.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-3-fee-sharing-pro-exemption/gate0-divergence.md",
+          "raw_sha256": "d46ed18cfa5b385e7b9399bc98da447dfc5c1361842a05f351c80174a085a1a7",
+          "report": "chose",
+          "states": {
+            "gate0-divergence": "on",
+            "repro-first": "off",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "off-1": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.3",
+              "severity": "Critical"
+            },
+            {
+              "key": "security:app/api/expenses/[id]/route.ts",
+              "severity": "Major"
+            },
+            {
+              "key": "security:lib/api-schemas.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-3-fee-sharing-pro-exemption/off-1.md",
+          "raw_sha256": "72064da948ea0506d203f0b13011206501a01926a669e53e8148f7400842bc1d",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-3-fee-sharing-pro-exemption/off-2.md",
+          "raw_sha256": "ade030a6079379b536cc371250cc151ef8921d79b4533b8647dd5951e12319b9",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "PAUSE"
+        },
+        "repro-first": {
+          "at_commit": null,
+          "at_parent": null,
+          "exercised": false,
+          "keys": [],
+          "kind": "not-a-bug-fix",
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-3-fee-sharing-pro-exemption/repro-first.md",
+          "raw_sha256": "1c3186d46c417455684519383db0dffb5f184fed310fb61c8b4d4933a96ade94",
+          "repro_ac": null,
+          "repro_result": null,
+          "states": {
+            "gate0-divergence": "off",
+            "repro-first": "on",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "reviewer-filters": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "security:app/api/expenses/[id]/route.ts",
+              "severity": "Major"
+            },
+            {
+              "key": "security:lib/api-schemas.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-3-fee-sharing-pro-exemption/reviewer-filters.md",
+          "raw_sha256": "88e39800fef9f4dc7a2af48cdcb0c4d8f4730c4292f7c51679b975508aa9ea64",
+          "states": {
+            "reviewer-filters": "on",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "safety-fact": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-3.3",
+              "severity": "Critical"
+            },
+            {
+              "key": "architecture:app/api/expenses/[id]/route.ts",
+              "severity": "Major"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-3-fee-sharing-pro-exemption/safety-fact.md",
+          "raw_sha256": "feb450b4d265dbd727a314e6d0d2a519f04c9d6cc0e471d881054462f877f098",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "on"
+          },
+          "verdict": "FAIL",
+          "verifier": "pass"
+        }
+      },
+      "off_only": {
+        "gate0-divergence": 0,
+        "reviewer-filters": 0,
+        "safety-fact": 0
+      },
+      "parent_sha": "f840c3fcc2d00ee7c797b8e5aaa015b4a54d0387",
+      "repro_kind": "not-a-bug-fix",
+      "routes": {
+        "gate0_route": "review-agent",
+        "gate3_route": "review-agent",
+        "planned_surface": "full-stack",
+        "surface": "full-stack"
+      },
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_commit": "c9350fca11ca673fab2000066e0118e369faffab",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption",
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-3-fee-sharing-pro-exemption.md",
+      "upgrade_only": [
+        {
+          "id": "F06",
+          "key": "architecture:app/api/expenses/[id]/route.ts",
+          "label": null,
+          "note": null,
+          "severity": "Major",
+          "upgrade": "safety-fact"
+        }
+      ]
+    },
+    {
+      "arms": {
+        "gate0-divergence": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-4.1",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-4.2",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-4-messaging-migration-quick-split-guard/gate0-divergence.md",
+          "raw_sha256": "cb8376c87bde464a01aeec9d02fd34eeabc4f2eeb3c06baab93cbfb39528fee3",
+          "report": "chose",
+          "states": {
+            "gate0-divergence": "on",
+            "repro-first": "off",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "off-1": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-4-messaging-migration-quick-split-guard/off-1.md",
+          "raw_sha256": "0336435fdfdbc6e24bced93f3b1926cfaee7c7233f90735934b22a3d29a0160b",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "off-2": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-4.2",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-4-messaging-migration-quick-split-guard/off-2.md",
+          "raw_sha256": "74f199c05b2150657d21581c423a407aa31a06c1567e8952962316a63fedd853",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "repro-first": {
+          "at_commit": null,
+          "at_parent": null,
+          "exercised": false,
+          "keys": [],
+          "kind": "not-a-bug-fix",
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-4-messaging-migration-quick-split-guard/repro-first.md",
+          "raw_sha256": "bdb1280754fce2fdd39588dcdd79ee16f13f2e8ac795a50b1d9e51c0dd5c6da5",
+          "repro_ac": null,
+          "repro_result": null,
+          "states": {
+            "gate0-divergence": "off",
+            "repro-first": "on",
+            "reviewer-filters": "off",
+            "safety-fact": "off"
+          },
+          "verdict": null
+        },
+        "reviewer-filters": {
+          "exercised": true,
+          "keys": [
+            {
+              "key": "ac:AC-4.2",
+              "severity": "Critical"
+            },
+            {
+              "key": "ac:AC-4.3",
+              "severity": "Critical"
+            }
+          ],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-4-messaging-migration-quick-split-guard/reviewer-filters.md",
+          "raw_sha256": "9c43c49bf08d68daa9b4b44dc107631f8cf1f280ccacdb7f3cebeca256aa175c",
+          "states": {
+            "reviewer-filters": "on",
+            "safety-fact": "off"
+          },
+          "verdict": "FAIL"
+        },
+        "safety-fact": {
+          "exercised": true,
+          "keys": [],
+          "raw": "2026-07-24-per-event-fee-revenue-model--story-4-messaging-migration-quick-split-guard/safety-fact.md",
+          "raw_sha256": "ee8fcd3f6dcaa8182da099a7959394390a3b0ec28fa26999eca9c17bf9473289",
+          "states": {
+            "reviewer-filters": "off",
+            "safety-fact": "on"
+          },
+          "verdict": "PASS",
+          "verifier": "pass"
+        }
+      },
+      "off_only": {
+        "gate0-divergence": 0,
+        "reviewer-filters": 0,
+        "safety-fact": 0
+      },
+      "parent_sha": "5dceffa6efcb8f585b6c282b81271d370e5105b6",
+      "repro_kind": "not-a-bug-fix",
+      "routes": {
+        "gate0_route": "review-agent",
+        "gate3_route": "review-agent",
+        "planned_surface": "full-stack",
+        "surface": "full-stack"
+      },
+      "spec_folder": "2026-07-24-per-event-fee-revenue-model",
+      "story_commit": "12eea11e766c9a9b282ce84fd55fc885fa6fdb40",
+      "story_id": "2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard",
+      "story_path": ".writ/specs/archive/2026-07-24-per-event-fee-revenue-model/user-stories/story-4-messaging-migration-quick-split-guard.md",
+      "upgrade_only": [
+        {
+          "id": "F02",
+          "key": "ac:AC-4.1",
+          "label": null,
+          "note": null,
+          "severity": "Critical",
+          "upgrade": "gate0-divergence"
+        },
+        {
+          "id": "F01",
+          "key": "ac:AC-4.3",
+          "label": null,
+          "note": null,
+          "severity": "Critical",
+          "upgrade": "reviewer-filters"
+        }
+      ]
+    }
+  ],
+  "upgrades": {
+    "gate0-divergence": {
+      "present": true
+    },
+    "repro-first": {
+      "present": true
+    },
+    "reviewer-filters": {
+      "present": true
+    },
+    "safety-fact": {
+      "present": true
+    }
+  },
+  "yuss_snapshot": {
+    "after": {
+      "head": "a5afd43585fec00e32df9786a5a2081483a26744",
+      "refs_sha256": "6afc25d2aea8170ae8e46ca903497c2ddd830d00e7edd82a030ba931b9a86d6d",
+      "status_sha256": "05697016414793c8d6610d07dd784baf00c0876878422560ac4010f848fb7039"
+    },
+    "before": {
+      "head": "a5afd43585fec00e32df9786a5a2081483a26744",
+      "refs_sha256": "6afc25d2aea8170ae8e46ca903497c2ddd830d00e7edd82a030ba931b9a86d6d",
+      "status_sha256": "05697016414793c8d6610d07dd784baf00c0876878422560ac4010f848fb7039"
+    },
+    "unchanged": true
+  }
+}

@@ -607,6 +607,7 @@ KNOWN_OVER_BUDGET = {
     # step, gate, AskQuestion block, and script call stays. cut-log.md lists every change.
     # 2026-10-22 (2026-10-22-generated-platform-trees Story 1): 13602 -> 13654; Step 1.3 names
     # the adapter's `Plan Mode` row.
+    # 2026-10-25 (2026-10-25-why-command Story 4): 13654 -> 14209; Step 1.2 reads a /why handoff.
     # 2026-10-22 (bug create-spec-can-lock-an-unseen-contract): 13602 -> 14065, a
     # disclosed increase. Step 1.4b opens with a precondition that the full contract
     # was printed as a visible message, Plan Mode or not; both --from Step 3s open
@@ -626,7 +627,12 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-31 (merge of #62 into Phase 14): 14445 -> 14497. Both changes kept:
     # Step 1.3 opens with the "One question at a time" rule and names the
     # adapter's `Plan Mode` row.
-    "commands/create-spec.md": 14497,
+    # 2026-10-31 (merge of Phase 14 into Phase 15): 14209 and 14497 -> 15052, both
+    # sides kept: the /why handoff step and the #62 contract-visibility changes.
+    # 2026-10-31 (retro 2026-10-30-phase-15.md F3): 15052 -> 15197, a disclosed
+    # increase. Step 2.5 gains one sentence: every story leaves every check
+    # green, and a new command ships with its registration. No new step or gate.
+    "commands/create-spec.md": 15197,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
@@ -648,7 +654,17 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 12013 -> 11533; Gate 0 no-op emit removed.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 11533 -> 11266;
     # calibrated_against no longer cites Writ's archived specs.
-    "commands/implement-story.md": 11266,
+    # 2026-10-26 (2026-10-25-design-divergence Story 3): 11266 -> 13474; Gate 0
+    # boundary-crossing divergence block (1994 bytes) plus its Overview clause,
+    # Pipeline Gate 0 row, and References link.
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 2): 13474 -> 13769; Gate 3
+    # reviewer-filters switch and report line.
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 3): 13769 -> 14116; Gate 2.5 blast-radius paragraph.
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 4): 14116 -> 15269; Gate 3 safety-fact inputs, verifier, routing, report line.
+    # 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 15269 -> 15717; Gate 1 bug-path line.
+    # 2026-10-31 (Phase 15 retro F1): 15717 -> 15799; Gate 3.5 Small drift clause names
+    # drift-format's auto_amend_unapplied failure.
+    "commands/implement-story.md": 15799,
 }
 
 

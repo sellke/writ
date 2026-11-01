@@ -8,6 +8,16 @@ Large-drift signal (`Overall Drift: Large` or `- **Severity:** Large`)
 implies a PAUSE verdict line (`REVIEW_RESULT: PAUSE` /
 `EVALUATION_RESULT: PAUSE`) in the story or `--review-output`. Does not decide accept / reject / modify-spec.
 
+`auto_amend_unapplied` (Phase 15 retro F1): when the drift log's
+`## Story N:` sections for this story hold a `- **Resolution:** Auto-amended`
+entry, the spec folder's `spec-lite.md` must have uncommitted changes (Gate
+3.5 runs before the story commit) or have been modified by a commit that also
+changed the story file, other than the commit that added it. Every story
+commit updates the story file, so that set is the story's commits without
+trusting a recorded SHA. When git cannot answer (no git work tree, or the
+story file outside it), the rule cannot run: `unverifiable`,
+`auto_amend_unverifiable`.
+
 `summary` (Story 4 of `2026-09-26-drift-arch-guards`) rolls a drift log up
 for the `/implement-spec` Step 4.2 report: it counts DEV entries by
 `- **Severity:**` across `## Story N:` sections (with `--since`, only
@@ -33,6 +43,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
@@ -75,6 +86,9 @@ DEV_TITLE = re.compile(r"^#### \[DEV-\d{3}\][ \t]+(.+?)[ \t]*$", re.MULTILINE)
 SEVERITY = re.compile(r"^- \*\*Severity:\*\*[ \t]*(Small|Medium|Large)\b",
                       re.MULTILINE)
 SINCE_FORMAT = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+AUTO_AMENDED = re.compile(r"^- \*\*Resolution:\*\*[ \t]*Auto-amended\b", re.MULTILINE)
+STORY_TITLE_NUM = re.compile(r"^#[ \t]+Story[ \t]+(\d+)\b", re.MULTILINE)
+STORY_FILE_NUM = re.compile(r"^story-(\d+)\b")
 
 
 class UsageError(Exception):
@@ -113,6 +127,55 @@ def _entries(text: str) -> List[Tuple[str, str]]:
 def _missing_fields(block: str) -> List[str]:
     present = {m.group(1) for m in FIELD_LINE.finditer(block)}
     return [name for name in REQUIRED_FIELDS if name not in present]
+
+
+def _story_number(story: Path, text: str) -> Optional[str]:
+    match = STORY_TITLE_NUM.search(text) or STORY_FILE_NUM.match(story.name)
+    return match.group(1) if match else None
+
+
+def _auto_amended_ids(log_text: str, number: Optional[str]) -> List[str]:
+    """`DEV-NNN` ids of `Auto-amended` entries under this story's sections."""
+    if number is None:
+        return []
+    return ["DEV-%s" % num
+            for story, section in _story_sections(log_text) if story == number
+            for num, block in _entries(section) if AUTO_AMENDED.search(block)]
+
+
+def _git_lines(root: Path, *args: str) -> Optional[List[str]]:
+    try:
+        proc = subprocess.run(["git", "-C", str(root), *args],
+                              capture_output=True, text=True)
+    except OSError:
+        return None
+    if proc.returncode != 0:
+        return None
+    return [line for line in proc.stdout.splitlines() if line.strip()]
+
+
+def _spec_lite_amended(story: Path, spec_dir: Path) -> Optional[bool]:
+    """Whether spec-lite.md changed for this story: uncommitted changes, or a
+    commit that modified it and also changed the story file, other than the
+    commit that added the story file. None when git cannot answer."""
+    top = _git_lines(spec_dir, "rev-parse", "--show-toplevel")
+    if not top:
+        return None
+    root = Path(top[0]).resolve()
+    try:
+        spec_lite = (spec_dir / "spec-lite.md").resolve().relative_to(root).as_posix()
+        story_rel = story.resolve().relative_to(root).as_posix()
+    except ValueError:
+        return None
+    dirty = _git_lines(root, "status", "--porcelain", "--", spec_lite)
+    if dirty:
+        return True
+    touched = _git_lines(root, "log", "--follow", "--format=%H", "--", story_rel)
+    added = _git_lines(root, "log", "--follow", "--diff-filter=A", "--format=%H", "--", story_rel)
+    modified = _git_lines(root, "log", "--follow", "--diff-filter=M", "--format=%H", "--", spec_lite)
+    if dirty is None or touched is None or added is None or modified is None:
+        return None
+    return bool((set(touched) - set(added)) & set(modified))
 
 
 def check(story: Optional[Path], drift_log: Optional[Path],
@@ -159,8 +222,30 @@ def check(story: Optional[Path], drift_log: Optional[Path],
     if large and not PAUSE_VERDICT.search(pause_haystack):
         reasons.append("large_drift_without_pause")
 
+    auto_ids: List[str] = []
+    amended: Optional[bool] = True
+    if log_text and drift_log is not None:
+        auto_ids = _auto_amended_ids(log_text, _story_number(story, story_text))
+        if auto_ids:
+            amended = _spec_lite_amended(story, drift_log.parent)
+            if amended is False:
+                reasons.append("auto_amend_unapplied")
+
     if reasons:
-        return _emit("fail", reasons, "drift-format: fail (format or PAUSE)")
+        parts = []
+        if any(r != "auto_amend_unapplied" for r in reasons):
+            parts.append("format or PAUSE")
+        if amended is False:
+            parts.append("Auto-amended %s left spec-lite.md unchanged" % ", ".join(auto_ids))
+        return _emit("fail", reasons, "drift-format: fail (%s)" % "; ".join(parts))
+
+    if amended is None:
+        return _emit(
+            "unverifiable",
+            ["auto_amend_unverifiable"],
+            "drift-format: unverifiable (Auto-amended %s unchecked: "
+            "git cannot read the spec folder)" % ", ".join(auto_ids),
+        )
 
     return _emit("pass", [], "drift-format: pass (entries well-formed)")
 

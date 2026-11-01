@@ -1,10 +1,10 @@
 # Writ — Product Roadmap
 
 > Based on Product Contract: 2026-02-27, refreshed 2026-07-10 (2026 harness audit — see ADR-010, ADR-011, ADR-012, ADR-013) and 2026-10-20 (pstack comparison — see [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md))
-> Last Updated: 2026-10-22
+> Last Updated: 2026-10-30
 > Cadence: Steady — ongoing improvement alongside real projects, compounding over months
 
-**Current status (2026-10-22):** Phases 1–11 and 13 closed. **Phase 12 (Behavioral Verification) is implemented and released in v0.40.0 (2026-10-02), pending human UAT**: all four success criteria are met — a fixture app exercises the full loop with machine-captured evidence, Gate 4.5's `prose-only` count dropped 2 → 1, the missing-evidence mutation reports `unmet`, and the cross-family panel's trial returned `keep` (6 of 8 panel-only findings valid on four stories). The phase's own UAT plan is unticked, so the open item is human UAT, not more building. **v0.41.0 (2026-10-12)** shipped inter-phase: `/retro` rewritten as a transcript review, and the consumer-less `gbrain-interop` skill removed. **v0.42.0 (2026-10-20)** shipped the **agent CLI contract** ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and **`/prototype` as the exploration workflow** (PR #59). **Phase 13 (Subtract and Repair) closed 2026-10-22, released in v0.43.0 (2026-10-21):** five specs (19 stories); all nine machine criteria pass, and 173 of 176 human UAT scenarios pass. names S9 fails and is tracked as an issue, S12 and S13 need OpenClaw, and the one regression UAT found (hygiene S29) is fixed in [PR #62](https://github.com/sellke/writ/pull/62). The `claude-agent-generator` spec shipped in the same release. **Phases 14–16 are committed** ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)): Front Door and Distribution, Code-Level Rigor, and Verified Landing, the last gated on Phase 12's human UAT. Candidates live in [Beyond Phase 16 (Parking Lot)](#beyond-phase-16-parking-lot).
+**Current status (2026-10-30):** Phases 1–11 and 13 are closed. v0.43.0 (2026-10-21) is the latest release, and `main` carries nothing newer. **Phase 12 (Behavioral Verification)** is implemented and released in v0.40.0; 3 of its 89 UAT scenarios have been run, so human UAT is the open item. **Phase 13 (Subtract and Repair)** shipped in v0.43.0 and closed after UAT (173 of 176 scenarios pass), but two of its PRs are open: [PR #61](https://github.com/sellke/writ/pull/61) (UAT closure docs) and [PR #62](https://github.com/sellke/writ/pull/62) (the fix for the one UAT regression), whose commits are in neither `main` nor the Phase 14 and 15 branches. **Phase 14 (Front Door and Distribution)** is implemented and waits on human validation in [PR #63](https://github.com/sellke/writ/pull/63). **Phase 15 (Code-Level Rigor)** is implemented on `phase/15-code-level-rigor`, built on Phase 14, and waits on two human ratings and its UAT. **Phase 16** stays gated on Phase 12's UAT. Nothing on the roadmap can start, so the current work is landing and validating what is built: see [Current focus](#current-focus-land-and-validate-2026-10-30). Inter-phase releases: v0.41.0 (2026-10-12) rewrote `/retro` as a transcript review and removed `gbrain-interop`; v0.42.0 (2026-10-20) shipped the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59). Candidates live in [Beyond Phase 16 (Parking Lot)](#beyond-phase-16-parking-lot).
 
 **Strategic frame (2026-10-20 refresh):** The first full pstack comparison ([research](../research/2026-10-19-writ-vs-pstack-research.md)) found Writ ahead on durable intent and on enforcement in code. It found Writ behind on four things: entry (32 commands), the last mile after a PR opens, rigor about the code itself, and Claude Code parity. Writ's surface was also past its own justified ceilings. The posture is now: **Writ owns the contract, the verifier, and the boundary, reached through one front door. It subtracts before it adds.**
 
@@ -44,6 +44,15 @@
 | 2026-07-10 | Strategic refresh from the 2026 harness audit (ADR-010 → ADR-013). |
 
 ---
+
+## Current focus: land and validate (2026-10-30)
+
+Built work from four phases waits on a person or a merge. Per Design Principle 8, no new phase starts until fewer than two finished phases wait. In order:
+
+1. **Phase 13 leftovers:** merge [PR #62](https://github.com/sellke/writ/pull/62), the `/create-spec` fix that shows the contract before the lock prompt (UAT hygiene S29), and [PR #61](https://github.com/sellke/writ/pull/61), the UAT closure docs, or fold both into PR #63.
+2. **Phase 14:** run the five checks the [acceptance pass](../eval/phase-14-acceptance/report.md) left for a person: Cursor, Codex Desktop, the GitHub marketplace install, an interactive Claude Code session in an installed project, and a colleague on a clean machine. Make the ADR-030 front-door call (routing matched 10 of 20 requests against a bar of 16). Merge PR #63.
+3. **Phase 15:** label findings F01–F06 and acknowledge Repro First ([handoff](../specs/2026-10-25-gate-upgrade-removal-measurement/rating-handoff.md)), and rate the divergence trial ([handoff](../specs/2026-10-25-design-divergence/rating-handoff.md)). Then run removal-measurement Story 4 and design-divergence Story 6, fix the surviving upgrades' known defects and the [retro](../retros/2026-10-30-phase-15.md)'s six issue drafts, run a UAT short list, and open the PR.
+4. **Phase 12:** run the open UAT (86 of 89 scenarios) and record one real-project `app-verify.py` run. That opens Phase 16's gate.
 
 ## Shipped Phases (condensed history)
 
@@ -544,7 +553,7 @@ them to blocking. (3) The two `prose-only` gates are the input to Phase 12.
 
 ---
 
-## Phase 12: Behavioral Verification — ◐ Implemented and released, v0.40.0 (2026-10-02) — human UAT open
+## Phase 12: Behavioral Verification — ◐ Implemented and released, v0.40.0 (2026-10-02) — human UAT open (3 of 89 scenarios run)
 
 **Goal:** A Writ verifier proves the user's feature works by driving the running
 app, not only that Writ's own artifacts are well formed. This is the evidence
@@ -588,9 +597,9 @@ model configuration for agents.
 Human UAT ran 2026-10-21 and 2026-10-22: 173 of 176 scenarios pass, across Claude Code, Cursor, and Codex.
 - **names S9 (Fail):** headless `claude -p` claimed the adapter "doesn't define canvas-preview", because installed projects get no `adapters/` folder. Tracked by [`2026-10-21-adapter-mappings-never-reach-installed-projects`](../issues/improvements/2026-10-21-adapter-mappings-never-reach-installed-projects.md); Phase 14's generated per-platform trees are the likely home.
 - **names S12, S13:** not runnable without OpenClaw.
-- **hygiene S29:** a regression in this phase's `create-spec` cut. The run locked a contract it never displayed. Fixed in [PR #62](https://github.com/sellke/writ/pull/62), which prints the contract before the lock prompt; the re-run passed on that fix. The re-run also produced [`create-spec-discovery-skips-plan-mode-on-claude-code`](../issues/improvements/2026-10-22-create-spec-discovery-skips-plan-mode-on-claude-code.md).
+- **hygiene S29:** a regression in this phase's `create-spec` cut. The run locked a contract it never displayed. Fixed on [PR #62](https://github.com/sellke/writ/pull/62), which prints the contract before the lock prompt; the re-run passed on that fix. As of 2026-10-30 the PR is open and unmerged, so the fix is in neither `main` nor the Phase 14 and 15 branches. The re-run also produced [`create-spec-discovery-skips-plan-mode-on-claude-code`](../issues/improvements/2026-10-22-create-spec-discovery-skips-plan-mode-on-claude-code.md).
 
-Records: the five `uat-plan.md` files, [verification-2026-10-22.md](verification-2026-10-22.md), and the lesson on parallel UAT agents sharing scratch files.
+Records: the five `uat-plan.md` files, [verification-2026-10-22.md](verification-2026-10-22.md), and the lesson on parallel UAT agents sharing scratch files. The closure docs themselves are on [PR #61](https://github.com/sellke/writ/pull/61), still open; they reach `main` today only through Phase 14's branch.
 
 **Goal:** Writ ships only what it uses and installs the same root contract on every platform. It fixes every defect the 2026-10-19 research found before anything new lands. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
 
@@ -649,7 +658,9 @@ New capability of any kind, and any change to gate behavior. Every item here rem
 
 ---
 
-## Phase 14: Front Door and Distribution (3-4 weeks) — 📋 Committed (2026-10-20)
+## Phase 14: Front Door and Distribution (3-4 weeks) — ◐ Implemented (2026-10-24), pending human validation — PR #63 open
+
+**Status (2026-10-30):** All five specs are Complete and integrated on `phase/14-front-door-and-distribution`; the phase state reads `IMPLEMENTED_PENDING_HUMAN_VALIDATION`. [PR #63](https://github.com/sellke/writ/pull/63) is open, with CI green. The [acceptance pass](../eval/phase-14-acceptance/report.md) (2026-10-24) found nine defects and all nine are fixed. Two items stay open: `/writ` matched its pre-registered route on 10 of 20 real requests, below the bar of 16, and five checks need a person before release. The ADR-030 review trigger for this phase (keep or remove the front door) is due.
 
 **Goal:** A new user goes from install to a correctly routed first task with one command, on Cursor or Claude Code, from one generated source. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
 
@@ -669,6 +680,7 @@ New capability of any kind, and any change to gate behavior. Every item here rem
   - roadmap work goes to `/implement-phase`
   - a "why" or "how" question goes to `/why` (Phase 15), or to `/research` until `/why` exists
   - a fork that running something could answer goes to `/prototype`, not to a question
+- Routing result (acceptance pass, 2026-10-24): missed, 10 of 20 against a bar of 16. Seven of the ten misses were clarifying questions about requests whose projects were absent.
 - The routed command's phases appear in the todo list, and a skipped phase shows as `skip: <reason>`.
 - Writ installs as a plugin in Cursor and in Claude Code. Scripts run from the plugin directory, and `/initialize` scaffolds `.writ/`. `install.sh` stays until both plugin installs pass the same smoke test.
 - Per-platform trees are generated from one source. CI fails when a command uses a platform term its adapter does not map, and when a generated tree is stale.
@@ -676,18 +688,18 @@ New capability of any kind, and any change to gate behavior. Every item here rem
 
 ### Features
 
-- [ ] **Front door** `Effort: M`
+- [x] **Front door** `Effort: M` — `2026-10-22-front-door`
   - Absorbs [`2026-10-13-in-your-own-words`](../issues/features/2026-10-13-in-your-own-words.md) as its restate step.
   - Absorbs the empirical-fork rule (promoted from the parking lot) as a routing rule.
-- [ ] **Plugin distribution** `Effort: M`
+- [x] **Plugin distribution** `Effort: M` — `2026-10-22-plugin-distribution`
   - Promoted from the parking lot.
   - Resolves [`2026-10-12-script-install-location`](../issues/improvements/2026-10-12-script-install-location.md).
   - Verify Claude Code's plugin format first (pstack research, Further Research 1).
-- [ ] **Generated trees and adapter coverage check** `Effort: S-M`: pstack's `generate-pstack-harness-trees.mjs` is the reference. This check is the structural fix for the `cursor-ide-browser` class of defect.
-- [ ] **Rendering-delegation rows** `Effort: S`
+- [x] **Generated trees and adapter coverage check** `Effort: S-M` — `2026-10-22-generated-platform-trees`: pstack's `generate-pstack-harness-trees.mjs` is the reference. This check is the structural fix for the `cursor-ide-browser` class of defect.
+- [x] **Rendering-delegation rows** `Effort: S` — `2026-10-22-rendering-delegation-rows`
   - Cursor, Codex, and OpenClaw rows for `/prototype`'s draft rendering.
   - First-party verification of the renderer `/prototype` delegates to on each platform (prototype research, Further Research 1 and 4). This concerns `/prototype` only: `/writ-design` and Claude Code's native `/design` stay separate, and neither delegates to the other.
-- [ ] **Prompting guide** `Effort: XS`: what a request should carry (goal, done check, proof), recipes, and pitfalls.
+- [x] **Prompting guide** `Effort: XS` — `2026-10-22-prompting-guide`: what a request should carry (goal, done check, proof), recipes, and pitfalls.
 
 ### Dependencies
 
@@ -701,7 +713,9 @@ Model routing, new verification, and any rewrite of the commands the front door 
 
 ---
 
-## Phase 15: Code-Level Rigor (2 weeks) — 📋 Committed (2026-10-20)
+## Phase 15: Code-Level Rigor (2 weeks) — ◐ Implemented (2026-10-30), pending human validation — branch, no PR
+
+**Status (2026-10-30):** Six specs are integrated on `phase/15-code-level-rigor`, which is built on Phase 14's branch; the phase state reads `IMPLEMENTED_PENDING_HUMAN_VALIDATION`. Four specs are Complete. Two wait on a person: `2026-10-25-design-divergence` (Story 6, after the blind rating) and `2026-10-25-gate-upgrade-removal-measurement` (Story 4, after the labels). Six of the eight success criteria below pass on the merged code; the divergence trial and the removal measurement are handed off. The six UAT plans hold 201 scenarios. Known defects to fix before the PR: on Python 3.14, `repro-order.py` treats an unreadable `.writ/` as having no config (`test_unsearchable_writ_dir` fails); Gate 0 ignores `--quick`; the `safety-fact: off` and `not on route` lines may not print; and `/implement-story` can lose a bug fix's repro commits at integration. The run's [retro](../retros/2026-10-30-phase-15.md) records 37 findings about the pipeline itself.
 
 **Goal:** Writ's verifier reaches the design and the fix on high-stakes routes, and Writ answers "why is this like this?" from its own ledger. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
 
@@ -736,12 +750,12 @@ Model routing, new verification, and any rewrite of the commands the front door 
 
 ### Features
 
-- [ ] **`/why`** `Effort: M`: ledger first, confidence tiers, a Preserve / Change / Avoid / Risk handoff.
-- [ ] **`design-divergence` skill and the usage-first Gate 0** `Effort: M`: includes the blind trial.
-- [ ] **Blast-radius safety fact at Gate 2.5** `Effort: S`
-- [ ] **Repro-first bug fixing in `tdd-cycle`** `Effort: S`: reaches both `/prototype` and `/implement-story`.
-- [ ] **Reviewer lead-judgment filters** `Effort: XS`
-- [ ] **`/retro` fix ladder and rule-to-enforcer table** `Effort: S`: replaces the retired friction-signal design. `/refresh-command` gains two of `reflect`'s synthesizer criteria:
+- [x] **`/why`** `Effort: M` — `2026-10-25-why-command`: ledger first, confidence tiers, a Preserve / Change / Avoid / Risk handoff.
+- [ ] **`design-divergence` skill and the usage-first Gate 0** `Effort: M` — `2026-10-25-design-divergence`: includes the blind trial. Stories 1–5 built; Story 6 waits on the blind rating.
+- [x] **Blast-radius safety fact at Gate 2.5** `Effort: S` — `2026-10-25-review-route-rigor`
+- [x] **Repro-first bug fixing in `tdd-cycle`** `Effort: S` — `2026-10-25-repro-first-bug-fixing`: reaches both `/prototype` and `/implement-story`.
+- [x] **Reviewer lead-judgment filters** `Effort: XS` — `2026-10-25-review-route-rigor`
+- [x] **`/retro` fix ladder and rule-to-enforcer table** `Effort: S` — `2026-10-25-retro-fix-ladder`: replaces the retired friction-signal design. `/refresh-command` gains two of `reflect`'s synthesizer criteria:
   - findings that existing guidance already covers count as execution failures, not missing rules
   - findings may only edit skills the transcript actually used
 
@@ -804,6 +818,7 @@ Autonomous merge, deploys, and release.
   - a pilot story run end to end before fan-out
   - a standing-orders register that grows when the orchestrator repeats an instruction
   - a brief template whose missing fields block a spawn
+  - Evidence from the Phase 15 run ([retro](../retros/2026-10-30-phase-15.md) F22): the lane brief grew from 2,962 to 6,323 characters as rules were added after incidents, and one lane report was dropped.
 - **Decision-trail review** `Effort: XS-S` — `/implement-phase`'s completion report gains an Attention section. The section comes from a review of `recommendation-log.md` by the opt-in panel, when one is configured.
 - **Measured-performance workflow** `Effort: S-M` — for perf work:
   - a baseline
@@ -857,3 +872,4 @@ Phases 13–16 total about 8–10 weeks at the estimates above. Phase 11's six s
 5. **Aplomb** — Agents should handle complexity with grace, not grind through checklists.
 6. **Opinionated by default** — Lead with the recommendation, explain why, then offer alternatives. Judgment, not menus.
 7. **Subtract before you add** — Each phase opens by removing what no longer earns its place: dormant code, null-result experiments, and references users cannot resolve. A phase that only adds says why nothing could be removed. *(Added 2026-10-20, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).)*
+8. **Land before you add** — No new phase starts while two or more finished phases wait on human validation or merge. Built work that nobody validates is not shipped, and each new phase adds to the queue. *(Added 2026-10-30, [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md) amendment.)*

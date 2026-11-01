@@ -249,6 +249,10 @@ On "Something else", follow up with a free-text question.
 
 Scan `.writ/specs/` for related specifications, analyze codebase architecture and patterns, and load `.writ/docs/tech-stack.md` and `.writ/docs/code-style.md` (written by `/initialize`; skip any that are absent). **Output:** a context summary; no files created.
 
+#### Step 1.2: Read a `/why` Handoff
+
+Look for a `## Preserve / Change / Avoid / Risk` section in this conversation, in a file the invocation names, and in `.writ/research/*-why-*.md` records whose `Subject` or `Change` line shares a keyword with the feature idea. Carry each one into the contract: Preserve into Business Rules, Change into the Deliverable, Avoid into Scope Boundaries → Excluded, Risk into Technical Concerns. Keep each item's tier and cite the record. Do not re-ask in discovery what the section settles. None found: skip this step.
+
 #### Step 1.3: Discovery Conversation (Plan Mode)
 
 **One question at a time:** when a question's answer could change what you ask next, ask it alone. Re-analyze, and re-scan the code if relevant, before the next question. Independent, bounded choices with a known option space (for example output format, empty-state behavior, test approach) may share one AskQuestion prompt; each still leads with a recommendation.
@@ -539,7 +543,7 @@ Emphasis by feature type: data flow (APIs, auth, payments, integrations) → err
 
 #### Step 2.5: Plan User Stories
 
-Break the contract into user stories that each deliver standalone value, identify dependencies between them, and keep each to 5-7 implementation tasks max. Output the plan:
+Break the contract into user stories that each deliver standalone value, identify dependencies between them, and keep each to 5-7 implementation tasks max. Every story leaves every check green: none plans a check to fail or go stale until a later story, and a new command ships with its registration. Output the plan:
 
 ```
 Story Plan:

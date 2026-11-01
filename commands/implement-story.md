@@ -51,7 +51,7 @@ gates:
 
 ## Overview
 
-Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
+Default is two Task spawns (`coding-agent`, `evaluator-agent`), and two Gate 0 sketch spawns on the boundary-crossing route, plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -82,7 +82,7 @@ One row per stage. The **Skill** column names what a stage loads; the `Read` is 
 | Stage | Name | Runs as | Skipped in | Skill |
 |---|---|---|---|---|
 | Step 2 | Load Context | inline | — | `story-context-assembly`; `dependency-context-loading` (dependency branch only) |
-| Gate 0 | Architecture Check | `arch-check.py` on default; `architecture-check-agent` on `--full-pipeline` | `--quick`, `--review-only` (agent); default is script-only | — |
+| Gate 0 | Architecture Check | `arch-check.py` on default; `architecture-check-agent` on `--full-pipeline`; two sketch spawns on the boundary-crossing route | `--quick`, `--review-only` (agent); default is script-only | `design-divergence` (boundary-crossing route) |
 | Gate 0.5 | Boundary Map | inline — data transformation | `--quick`, `--review-only`, `/prototype` | `boundary-map-computation` |
 | Gate 1 | Coding Agent | `coding-agent` — TDD | `--review-only` | `tdd-cycle` |
 | Gate 2 | Lint, Typecheck, Format & Build Smoke | inline — auto | — | — |
@@ -191,6 +191,24 @@ Spawn a **read-only** sub-agent before code: viability, integration risk, comple
 
 **Anchor confirmation (ADR-024):** a `floor` **ABORT** is provisional. Before presenting anything, re-run `architecture-check-agent` once at `anchor` (platform `inherit`) with the identical prompt, `spec_lite_content`, `fetched_context`, and `knowledge_context`. The anchor verdict stands: PROCEED/CAUTION continue as that verdict with no AskQuestion and no user-visible line; ABORT presents findings and asks proceed/modify/skip as above. A floor PROCEED/CAUTION is never re-run; `--quick`/`--review-only` skip Gate 0, so no escalation path exists there; a spawn error follows the existing **Agent crash** handling (§ Error Handling), not this branch — escalation fires only on a returned verdict. Iteration accounting: the floor attempt and its anchor re-run count as one attempt against `loop.max_iterations`; Gate 0 runs before the `review_cycle` counter exists and does not consume an iteration.
 
+**Design divergence (boundary-crossing route).** Each run prints a `gate0-divergence:` line and never blocks: no DEGRADED, AskQuestion, `review_cycle` increment, or retry.
+
+**Switch.** `- **Gate 0 Divergence:** off` in config prints `gate0-divergence: off (config)`. Absent or `on` means on; another value is on and prints `gate0-divergence: on (malformed: <value>)`.
+
+**Route.** Run on PROCEED, CAUTION, `unverifiable`, or an ABORT resolved as proceed; another ABORT prints `gate0-divergence: skip (arch-check abort)`. `--full-pipeline` or `--panel` qualifies. Otherwise run:
+
+```bash
+python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>] > .writ/state/boundary-<story-stem>.json
+python3 scripts/change-surface.py classify --changed <planned files>
+python3 scripts/boundary-map.py crossings --map .writ/state/boundary-<story-stem>.json --changed <planned files> --story <story-file> --surface <class>
+```
+
+`route: review-agent` qualifies; `evaluator-agent` prints `gate0-divergence: skip (route evaluator-agent)`. No planned files or usage, or a failed or `unverifiable` helper: `gate0-divergence: skip (unverifiable: <reason>)`.
+
+**Sketches.** `Read skills/design-divergence/SKILL.md`. Write 3 to 10 lines of caller usage from the ACs (or tasks) to `.writ/state/divergence-<story-stem>.md` before picking two axes from the skill's catalog. In one message, spawn two `readonly` sketches at `anchor`, each with the story, `spec_lite_for_coding`, the usage, its own axes, the caller as persona; neither sees the other. Each returns `COMMITMENT:`, `SKETCH:` (≤40 lines), `USAGE FIT:`; a spawn error or missing field prints `gate0-divergence: skip (sketch incomplete: <A|B>)`.
+
+**Choice.** Prefer unchanged usage, then fewer new public names (`sketches converged` if equal). Add sketch, usage, and reason to Gate 0 warnings as `design sketch (Gate 0 divergence)`; print `gate0-divergence: chose <A|B> (<axis combination>) — <why the other lost>`.
+
 ---
 
 #### Gate 0.5: Boundary Computation (File Ownership Map)
@@ -224,6 +242,8 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ski
 **When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking”.
 
 **Report:** files changed, tests written, deviations from plan, concerns.
+
+**Bug path:** record `git rev-parse HEAD` before the story's first Gate 1 spawn and reuse it on recodes. When the report's `### Repro` block names commits, run `python3 scripts/repro-order.py check --repo . --base <that SHA>` after integration and print its first line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
 
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; skip-with-warning marks the story `In Progress` with the note *"Gate 1 skipped after BLOCKED — review required."*
 
@@ -263,6 +283,8 @@ python3 scripts/boundary-map.py crossings --map .writ/state/boundary-<story-stem
 
 An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` with reason `unverifiable: <reason>`.
 
+**Blast radius.** When `gate3_route` names `review-agent`, run `python3 scripts/review-override.py switch --name safety-fact`. On `on`, run `python3 scripts/change-surface.py blast-radius --changed <files> --repo . > .writ/state/blast-radius-<story-stem>.json` and pass the file to Gate 3 as `blast_radius`. Otherwise `blast_radius` is `(none)`.
+
 ---
 
 #### Gate 3: Review Agent
@@ -271,7 +293,9 @@ An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` wi
 > **Skip in:** `--quick` mode
 > **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
 
-Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's own run of the story's tests (command, exit code, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's own run of the story's tests (`command:`, `exit code: N`, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+
+**Reviewer filters.** Once per story, run `python3 scripts/review-override.py switch --name reviewer-filters` and pass line 1 as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent`, panel reviewers, and any re-review. The story report prints `reviewer-filters: <on|off>`.
 
 **Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reasons` as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
@@ -280,7 +304,7 @@ Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `re
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
 
-Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`.
+Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`, `recorded_test_results`, `blast_radius`, `safety_fact` (`on` unless `blast_radius` is `(none)`).
 
 **Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
@@ -297,6 +321,14 @@ Show both the agent's claim and the script's measurement in the story report. Th
 - **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the review-loop recode path.
 - **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
+**Safety fact (`safety_fact` on).** Save the review and `recorded_test_results` to `.writ/state/gate3-review-<story-stem>.md` and `gate3-tests-<story-stem>.txt`; run `python3 scripts/review-override.py safety-fact --review-output <review> --repo . --blast-radius <blast_radius> --tests-output <tests>`. First match wins:
+
+- `safety_fact_contradicts_verdict` → Gate 3 FAIL.
+- `safety_fact_missing` or `safety_fact_below_floor` → re-spawn `review-agent` once, appending the `rung:`/`reason:` lines; re-verify (same Gate 3 attempt, no `review_cycle` increment). Still missing → BLOCKED escalation (`review-agent`, restart Gate 3). Still below floor → Gate 3 FAIL; the coder gets the `fact:`/`rung:` lines to add a test that exercises the fact.
+- `pass`, `unverifiable`, or exit not 0/1/2 → continue, print the reason, never `⚠️ DEGRADED`.
+
+A fail counts as a panel `block`: one increment; on PAUSE, accept recodes. Report `safety-fact: <measured> (claimed <claimed>) — <fact>`, else `safety-fact: off` or `safety-fact: not on route`.
+
 **Jev shadow (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, save the recorded test output (the story's targeted run, `recorded_test_results`, not the full suite), the story diff, and the Gate 3 agent's output under `.writ/state/` and run `python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests-output> --diff <diff> --review-output <review-output>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
 
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
@@ -307,7 +339,7 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
@@ -478,4 +510,4 @@ A story that cannot clear every gate is marked DEGRADED rather than Completed. T
 
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
-- Skills, each loaded at the stage the Pipeline table names: [story-context-assembly](../skills/story-context-assembly/SKILL.md), [dependency-context-loading](../skills/dependency-context-loading/SKILL.md), [boundary-map-computation](../skills/boundary-map-computation/SKILL.md), [tdd-cycle](../skills/tdd-cycle/SKILL.md), [change-surface-classification](../skills/change-surface-classification/SKILL.md), [drift-triage](../skills/drift-triage/SKILL.md), [project-context-snapshot](../skills/project-context-snapshot/SKILL.md), [what-was-built-authoring](../skills/what-was-built-authoring/SKILL.md), [story-commit-provenance](../skills/story-commit-provenance/SKILL.md)
+- Skills, each loaded at the stage the Pipeline table names: [story-context-assembly](../skills/story-context-assembly/SKILL.md), [dependency-context-loading](../skills/dependency-context-loading/SKILL.md), [design-divergence](../skills/design-divergence/SKILL.md), [boundary-map-computation](../skills/boundary-map-computation/SKILL.md), [tdd-cycle](../skills/tdd-cycle/SKILL.md), [change-surface-classification](../skills/change-surface-classification/SKILL.md), [drift-triage](../skills/drift-triage/SKILL.md), [project-context-snapshot](../skills/project-context-snapshot/SKILL.md), [what-was-built-authoring](../skills/what-was-built-authoring/SKILL.md), [story-commit-provenance](../skills/story-commit-provenance/SKILL.md)

@@ -105,9 +105,11 @@ These steps apply in the Writ source repo.
 | `lint-skill.sh` | check |  | commands/new-skill.md, commands/refresh-command.md, commands/update-writ.md |
 | `phase-state.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/status.md, commands/revert.md, commands/knowledge.md, adapters/claude-code.md |
 | `quality-config-audit.py` | data |  | commands/initialize.md, commands/status.md |
+| `repro-order.py` | check |  | commands/implement-story.md, commands/prototype.md, skills/tdd-cycle/SKILL.md |
 | `resolve-spec-reference.py` | data |  | commands/release.md, commands/ship.md |
+| `retro-check.py` | check |  | commands/retro.md |
 | `revert-resolve.py` | data |  | commands/revert.md, commands/implement-story.md |
-| `review-override.py` | check |  | commands/implement-story.md |
+| `review-override.py` | check |  | commands/implement-story.md, commands/review.md |
 | `review-panel.py` | check |  | commands/implement-story.md, adapters/claude-code.md, adapters/codex.md, adapters/cursor.md |
 | `roadmap-sync.py` | data |  | commands/release.md |
 | `scaffold-writ.py` | check |  | commands/initialize.md |
@@ -121,7 +123,7 @@ These steps apply in the Writ source repo.
 | `test-integrity.py` | data |  | commands/implement-story.md, agents/testing-agent.md, commands/status.md |
 | `verdict-provenance.py` | check |  | commands/implement-story.md |
 
-**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install. `gen-claude-md.py` is dev-only too: it builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`, which installed projects do not have. Four Writ-source generators and checks are dev-only for the same reason: `gen-claude-agents.py`, `gen-codex-agent-tomls.py`, and `check-agent-parity.sh` read and write `agents/`, `claude-code/agents/`, and `codex/agents/`, and `gen-skill.sh` renders the root `SKILL.md` from `.writ/manifest.yaml`. `/new-skill` and `/refresh-command` still call them, and skip the step in a project without them. They keep the check shape.
+**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install. `gen-claude-md.py` is dev-only too: it builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`, which installed projects do not have. Four Writ-source generators and checks are dev-only for the same reason: `gen-claude-agents.py`, `gen-codex-agent-tomls.py`, and `check-agent-parity.sh` read and write `agents/`, `claude-code/agents/`, and `codex/agents/`, and `gen-skill.sh` renders the root `SKILL.md` from `.writ/manifest.yaml`. `/new-skill` and `/refresh-command` still call them, and skip the step in a project without them. They keep the check shape. `zsh-guard.py` is dev-only too: a Claude Code `PreToolUse` hook for Writ's own sessions that blocks four zsh pitfalls in Bash commands. Its default mode keeps the check shape; its `--hook` mode exits 2 to block a call, because the hook contract reads exit 2 as a block.
 
 ### Notes
 
@@ -131,4 +133,7 @@ The Callers column names the main callers and is not complete. Before you change
 
 - `app-verify.py` — check. `touched` prints one `feature: <id>` line per matched feature between the verdict and the summary. A refused run prints `unverifiable` on line 1 and keeps `refused` in its summary and JSON. With `--json`, the verdict lines print as usual and one JSON object follows the summary as the last line. The network import is a readiness probe on the app it launched. The wait polls readiness until the recipe's ready timeout and stops its process group within the cleanup grace period.
 - `jev-judge.py` — check. The network path needs ADR-027's double opt-in. Retries on rate limits stop after `MAX_ATTEMPTS`. Calibration detail goes to stderr.
+- `repro-order.py` — check. On `pass` the `reason:` lines are informational, one per repro and fix commit (`reason: repro <sha> <subject> (<n> test file(s))`, `reason: fix <sha> <subject> (<n> source file(s))`); on `fail` each `reason:` line is a finding. `reason: repro-first value <v> read as on` can precede either. `- **Repro First:** off` in `.writ/config.md` prints `unverifiable` before any git call.
+- `review-override.py` — check. `switch` prints a state word, `on` or `off`, on line 1 instead of a verdict, then one `reason:` line, then the summary `review-override switch: <name> <state> (.writ/config.md)`. It always exits 0, except 2 for a usage error. This is a documented exception to the Check shape: the state word is the answer, as the `2026-10-25-review-route-rigor` spec defines it.
 - `review-panel.py` — check. A panel word that is not a verdict is the first `reason:` line: `tally` prints `fail` then `reason: block` on a consensus finding (exit 1), and `trial-report` prints `pass` then `reason: keep` or `reason: remove`. With `--json`, the object's `verdict` holds the panel word.
+- `spec-analyze.py` — check. Each structural `reason:` line is a bare code, printed once: `under_min_criteria`, `empty_criterion`, `unmeasurable_criterion`, or `planned_red_window` (a story's plan says a check fails or goes stale until a later story). `malformed_findings` covers the `--findings` file.

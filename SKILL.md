@@ -61,6 +61,7 @@ and is not installed.
 | `/plan-product` | `commands/plan-product.md` | Shape product strategy and roadmap artifacts through contract-first discovery. |
 | `/research` | `commands/research.md` | Run systematic research workflows and record recommendations. |
 | `/verify-spec` | `commands/verify-spec.md` | Validate spec integrity, status sync, completion evidence, and contract drift. |
+| `/why` | `commands/why.md` | Answer why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim. |
 | `/writ-design` | `commands/writ-design.md` | Create and compare visual references for Writ specifications. |
 
 ### Implementation & Quality
@@ -136,15 +137,18 @@ and is not installed.
 
 | Skill | Status | File | Description |
 |-------|--------|------|-------------|
+| `blast-radius` | `candidate` | `skills/blast-radius/SKILL.md` | Name the one fact a change is safe because of and push its evidence up a five-rung ladder. |
 | `boundary-map-computation` | `candidate` | `skills/boundary-map-computation/SKILL.md` | Compute an owned / readable / out-of-scope file ownership map from tasks, imports, and overlap data. |
 | `change-surface-classification` | `candidate` | `skills/change-surface-classification/SKILL.md` | Classify a change set as style-only, single-component, cross-component, or full-stack. |
 | `code-explanation` | `candidate` | `skills/code-explanation/SKILL.md` | Explain existing code — its purpose, mechanics, context, and complexity — at a depth proportional to the target. |
 | `conventional-commits` | `proven` | `skills/conventional-commits/SKILL.md` | Write Conventional Commits messages — type, scope, summary, body, and footers — from a diff, matching the project's existing convention when one exists. |
 | `dependency-context-loading` | `candidate` | `skills/dependency-context-loading/SKILL.md` | Load, filter, and truncate upstream stories' implementation records into dependency context. |
+| `design-divergence` | `candidate` | `skills/design-divergence/SKILL.md` | Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context. |
 | `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
 | `plain-prose` | `candidate` | `skills/plain-prose/SKILL.md` | Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries. |
 | `project-context-snapshot` | `candidate` | `skills/project-context-snapshot/SKILL.md` | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources. |
+| `review-judgment-filters` | `candidate` | `skills/review-judgment-filters/SKILL.md` | Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings. |
 | `safe-refactor-loop` | `candidate` | `skills/safe-refactor-loop/SKILL.md` | Change code structure without changing behavior — one verified, independently revertable commit per concern under a continuously green baseline. |
 | `story-commit-provenance` | `candidate` | `skills/story-commit-provenance/SKILL.md` | Record a completion commit SHA into a story file header idempotently and without amending it. |
 | `story-context-assembly` | `candidate` | `skills/story-context-assembly/SKILL.md` | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections. |

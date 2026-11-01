@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-10-22
+> Regenerated from mission.md on 2026-10-30
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-10-22
+> Last Updated: 2026-10-30
 
 ## Core Value
 
@@ -50,7 +50,7 @@ Code and methodology that score well on six production-grade criteria — audita
 
 **Phases 1–11:** Shipped and released. Phase 10 closed partially complete — the determinism half enforced, the byte goal withdrawn ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)). Phase 11 (Contract-and-Verifier Layer, v0.36.0) pruned the shared base under 10 KB, put scripts behind eight of ten `/implement-story` gates, and made the two-agent pipeline the default with `--full-pipeline` as the escalation.
 
-**Phase 12 — Behavioral Verification (◐ implemented and released in v0.40.0, human UAT open):** a per-project verification recipe (`.writ/docs/app-verification.md`), drafted by `/create-uat-plan`, names the project's own checks against the running app; Gate 4.5 runs them through `scripts/app-verify.py` and records evidence, and `exit-criteria.py` checks that the cited evidence exists. The opt-in cross-family review panel stays: its trial found 6 valid of 8 panel-only findings on the Phase 11 baseline set ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). All four success criteria are met; the phase's own UAT plan is unticked, so human UAT is the open item.
+**Phase 12 — Behavioral Verification (◐ implemented and released in v0.40.0, human UAT open, 3 of 89 scenarios run):** a per-project verification recipe (`.writ/docs/app-verification.md`), drafted by `/create-uat-plan`, names the project's own checks against the running app; Gate 4.5 runs them through `scripts/app-verify.py` and records evidence, and `exit-criteria.py` checks that the cited evidence exists. The opt-in cross-family review panel stays: its trial found 6 valid of 8 panel-only findings on the Phase 11 baseline set ([ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)). All four success criteria are met; the phase's own UAT plan is unticked, so human UAT is the open item.
 
 **Inter-phase work:**
 - Model delegation (v0.34.0).
@@ -60,12 +60,14 @@ Code and methodology that score well on six production-grade criteria — audita
 - The agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59), both in v0.42.0.
 - `claude-agent-generator`: Claude Code agents generated from the canonical `agents/` (v0.43.0, with Phase 13).
 
-**Phase 13 — Subtract and Repair (✅ shipped in v0.43.0, closed 2026-10-22):** Claude Code installs carry the Prime Directive, and the `CLAUDE.md` block is generated. Install, update, and uninstall keep the user's own and customized files, including `CLAUDE.md`. CI runs `pytest` and the bash tests. `/design` is renamed `/writ-design`. The lean siblings, the dormant staging machinery, and internal links in shipped commands are gone. All nine machine criteria pass, and 173 of 176 human UAT scenarios pass. One failure is tracked as an issue, two need OpenClaw, and the one regression UAT found is fixed in PR #62.
+**Phase 13 — Subtract and Repair (✅ shipped in v0.43.0, closed 2026-10-22):** Claude Code installs carry the Prime Directive, and the `CLAUDE.md` block is generated. Install, update, and uninstall keep the user's own and customized files, including `CLAUDE.md`. CI runs `pytest` and the bash tests. `/design` is renamed `/writ-design`. The lean siblings, the dormant staging machinery, and internal links in shipped commands are gone. All nine machine criteria pass, and 173 of 176 human UAT scenarios pass. One failure is tracked as an issue, two need OpenClaw, and the one regression UAT found is fixed on PR #62, which is still open, so the fix is not in `main`.
 
-**Phases 14–16 committed ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):**
-- **14, Front Door and Distribution:** one entry command, plugin installs, and generated per-platform trees with an adapter coverage check.
-- **15, Code-Level Rigor:** `/why`, the `design-divergence` skill shared with Gate 0, blast radius, repro-first bug fixing, and `/retro`'s fix ladder.
-- **16, Verified Landing:** a PR-readiness check and a ledger bound to the head SHA. Gated on Phase 12's UAT.
+**Phases 14–16 ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):**
+- **14, Front Door and Distribution (◐ implemented, pending human validation, PR #63 open):** one entry command, plugin installs, and generated per-platform trees with an adapter coverage check.
+- **15, Code-Level Rigor (◐ implemented on a branch, pending human validation):** `/why`, the `design-divergence` skill shared with Gate 0, blast radius, repro-first bug fixing, and `/retro`'s fix ladder.
+- **16, Verified Landing (📋 committed, gated):** a PR-readiness check and a ledger bound to the head SHA. Gated on Phase 12's UAT.
+
+**Current focus (2026-10-30):** land and validate. `main` is still v0.43.0. The queue, in order: Phase 13's open PRs #61 and #62; Phase 14's five person-run checks, the front-door review, and PR #63; Phase 15's labels and blind rating, its last two stories, a fix-up pass, and its PR; Phase 12's UAT. No new phase starts while two or more finished phases wait (Principle 8).
 
 ## What Writ Is Not Building
 
@@ -80,3 +82,4 @@ Opaque unbounded loop runners (Ralph deprecated), autonomous production delivery
 5. Aplomb — agents handle complexity with grace, not checklists
 6. Opinionated by default — lead with the recommendation, explain why, then offer alternatives
 7. Subtract before you add — each phase opens by removing what no longer earns its place
+8. Land before you add — no new phase starts while two or more finished phases wait on human validation or merge

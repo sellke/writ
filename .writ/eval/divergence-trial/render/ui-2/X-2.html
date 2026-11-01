@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>settings-form-save</title>
+<style>
+  :root {
+    --bg: #f6f6f7;
+    --panel: #ffffff;
+    --line: #dcdce0;
+    --text: #1d1d20;
+    --muted: #6b6b73;
+    --soft: #eeeef1;
+    --accent: #2f6fdb;
+    --accent-soft: #e6eefc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .slug { font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  h1 { font-size: 22px; margin: 4px 0 2px; }
+  .decided { font-size: 13px; color: var(--muted); }
+
+  .decision {
+    margin: 20px 0;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .chosen-line { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
+  .chosen-line .name { color: var(--accent); }
+  .rejections { list-style: none; margin: 0; padding: 0; }
+  .rejections li { padding: 6px 0; border-top: 1px solid var(--soft); font-size: 14px; }
+  .rejections li:first-child { border-top: none; }
+  .rejections .loser { font-weight: 600; text-decoration: line-through; color: var(--muted); }
+
+  .toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+  .tab {
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: none;
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: -1px;
+  }
+  .tab[aria-selected="true"] { background: var(--panel); border-color: var(--line); color: var(--text); font-weight: 600; }
+  .tab .mark { margin-right: 6px; }
+  .tab .mark.check { color: var(--accent); }
+  .tab.lost .label { text-decoration: line-through; }
+  .tabs[hidden] { display: none; }
+
+  .compare-toggle {
+    margin-bottom: 6px;
+    font: inherit;
+    font-size: 13px;
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    border-radius: 5px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .compare-toggle[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  .panes { display: grid; grid-template-columns: 1fr; gap: 16px; padding-top: 16px; }
+  .panes.split { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 760px) { .panes.split { grid-template-columns: 1fr; } }
+
+  .pane { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; min-width: 0; }
+  .pane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .pane-head select { font: inherit; font-size: 14px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+  .pane-title { font-weight: 600; }
+  .status { font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--soft); color: var(--muted); }
+  .status.won { background: var(--accent-soft); color: var(--accent); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); }
+
+  .frame { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .frame-bar { background: var(--soft); border-bottom: 1px solid var(--line); padding: 5px 10px; font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .frame iframe { display: block; width: 100%; height: 300px; border: 0; background: #fff; }
+  pre { margin: 0; padding: 12px; background: #f3f3f5; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; overflow-x: auto; line-height: 1.5; }
+</style>
+</head>
+<body>
+<main>
+  <header id="question-header"></header>
+  <section class="decision" id="decision-card"></section>
+  <section>
+    <div class="toolbar">
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <button class="compare-toggle" id="compare-toggle" aria-pressed="false">Compare two</button>
+    </div>
+    <div class="panes" id="panes"></div>
+  </section>
+</main>
+
+<script>
+// Inline previews stand in for each rendered-page url so the page needs no network.
+const previews = {
+  "prototype/settings-form-save/autosave-blur.html": `
+    <body style="font-family:system-ui;margin:16px;color:#222">
+      <h3 style="margin:0 0 12px">Notification settings</h3>
+      <label style="display:block;font-size:13px;margin-bottom:4px">Digest email</label>
+      <input value="weekly" style="width:220px;padding:6px;border:1px solid #bbb;border-radius:4px">
+      <span style="font-size:12px;color:#2a8a4a;margin-left:8px">Saved</span>
+      <label style="display:block;font-size:13px;margin:14px 0 4px">Quiet hours</label>
+      <input value="22:00 - 07:00" style="width:220px;padding:6px;border:1px solid #bbb;border-radius:4px">
+      <span style="font-size:12px;color:#888;margin-left:8px">Saving...</span>
+      <p style="font-size:12px;color:#888;margin-top:18px">Each field saves when you leave it.</p>
+    </body>`,
+  "prototype/settings-form-save/explicit-save.html": `
+    <body style="font-family:system-ui;margin:16px;color:#222">
+      <h3 style="margin:0 0 12px">Notification settings</h3>
+      <label style="display:block;font-size:13px;margin-bottom:4px">Digest email</label>
+      <input value="weekly" style="width:220px;padding:6px;border:1px solid #bbb;border-radius:4px">
+      <label style="display:block;font-size:13px;margin:14px 0 4px">Quiet hours</label>
+      <input value="22:00 - 07:00" style="width:220px;padding:6px;border:1px solid #bbb;border-radius:4px">
+      <div style="margin-top:18px;padding-top:12px;border-top:1px solid #ddd;display:flex;gap:8px;align-items:center">
+        <button style="padding:6px 14px;background:#2f6fdb;color:#fff;border:0;border-radius:4px">Save changes</button>
+        <button style="padding:6px 14px;background:#fff;border:1px solid #bbb;border-radius:4px">Discard</button>
+        <span style="font-size:12px;color:#a65b00">2 unsaved changes</span>
+      </div>
+    </body>`
+};
+
+const record = {
+  slug: "2026-10-12-settings-form-save",
+  question: "How should the settings form save?",
+  decidedAt: "2026-10-12",
+  candidates: [
+    {
+      name: "Autosave on blur",
+      sketch: { format: "rendered-page", url: "prototype/settings-form-save/autosave-blur.html" },
+      commitments: [
+        { text: "PATCH per field" },
+        { text: "No save button" },
+        { text: "Inline saved/saving status" }
+      ],
+      rejection: "Quiet-hours start and end must change together; per-field saves leave a half-applied window."
+    },
+    {
+      name: "Explicit Save button",
+      sketch: { format: "rendered-page", url: "prototype/settings-form-save/explicit-save.html" },
+      commitments: [
+        { text: "One PUT for the whole form" },
+        { text: "Dirty-state counter" },
+        { text: "Discard resets to server values" },
+        { text: "Server validates all fields at once" }
+      ],
+      rejection: null
+    },
+    {
+      name: "Optimistic save with undo",
+      sketch: {
+        format: "code",
+        language: "ts",
+        text:
+`async function onChange(field: Field, value: string) {
+  const prev = form.get(field);
+  form.set(field, value);              // apply locally first
+  toast.show("Saved", { undo: () => form.set(field, prev) });
+  try {
+    await api.patch("/settings", { [field]: value });
+  } catch {
+    form.set(field, prev);             // roll back on failure
+    toast.error("Could not save " + field);
+  }
+}`
+      },
+      commitments: [
+        { text: "Local state is the source of truth" },
+        { text: "Undo toast per change" },
+        { text: "Rollback on server error" }
+      ],
+      rejection: "Rollback after a failed PATCH races later edits; needs a version field the API does not have."
+    }
+  ]
+};
+
+const chosen = r => r.candidates.find(c => c.rejection === null);
+const losers = r => r.candidates.filter(c => c.rejection !== null);
+
+const el = (tag, attrs = {}, children = []) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "text") n.textContent = v;
+    else n.setAttribute(k, v);
+  }
+  for (const c of [].concat(children)) n.append(c);
+  return n;
+};
+
+// QuestionHeader
+document.getElementById("question-header").append(
+  el("div", { class: "slug", text: record.slug }),
+  el("h1", { text: record.question }),
+  el("div", { class: "decided", text: "Decided " + record.decidedAt })
+);
+
+// DecisionCard: ChosenLine + RejectionList
+const win = chosen(record);
+document.getElementById("decision-card").append(
+  el("p", { class: "chosen-line" }, ["Went with ", el("span", { class: "name", text: win.name })]),
+  el("ul", { class: "rejections" }, losers(record).map(l =>
+    el("li", {}, [el("span", { class: "loser", text: l.name }), ": " + l.rejection])
+  ))
+);
+
+// CandidatePane: CommitmentChips + SketchFrame
+function candidatePane(index, withPicker, onPick) {
+  const c = record.candidates[index];
+  const isWin = c.rejection === null;
+  const head = el("div", { class: "pane-head" });
+  if (withPicker) {
+    const sel = el("select", { "aria-label": "Draft" });
+    record.candidates.forEach((o, i) => {
+      const opt = el("option", { value: i, text: o.name });
+      if (i === index) opt.selected = true;
+      sel.append(opt);
+    });
+    sel.addEventListener("change", () => onPick(Number(sel.value)));
+    head.append(sel);
+  } else {
+    head.append(el("span", { class: "pane-title", text: c.name }));
+  }
+  head.append(el("span", { class: "status" + (isWin ? " won" : ""), text: isWin ? "Chosen" : "Rejected" }));
+
+  const chips = el("div", { class: "chips" }, c.commitments.map(m => el("span", { class: "chip", text: m.text })));
+
+  let frame;
+  if (c.sketch.format === "rendered-page") {
+    const iframe = el("iframe", { title: c.name, sandbox: "" });
+    iframe.srcdoc = previews[c.sketch.url] || "";
+    frame = el("div", { class: "frame" }, [el("div", { class: "frame-bar", text: c.sketch.url }), iframe]);
+  } else {
+    frame = el("div", { class: "frame" }, [
+      el("div", { class: "frame-bar", text: c.sketch.language }),
+      el("pre", {}, [el("code", { text: c.sketch.text })])
+    ]);
+  }
+  return el("div", { class: "pane", role: "tabpanel" }, [head, chips, frame]);
+}
+
+// CandidateTabs + CompareToggle
+const state = {
+  active: record.candidates.indexOf(win),
+  compare: false,
+  left: record.candidates.indexOf(win),
+  right: record.candidates.findIndex(c => c !== win)
+};
+
+const tabsEl = document.getElementById("tabs");
+const panesEl = document.getElementById("panes");
+const toggle = document.getElementById("compare-toggle");
+
+function render() {
+  tabsEl.innerHTML = "";
+  record.candidates.forEach((c, i) => {
+    const isWin = c.rejection === null;
+    const t = el("button", {
+      class: "tab" + (isWin ? "" : " lost"),
+      role: "tab",
+      "aria-selected": String(!state.compare && i === state.active)
+    }, [
+      el("span", { class: "mark" + (isWin ? " check" : ""), text: isWin ? "✓" : "✗" }),
+      el("span", { class: "label", text: c.name })
+    ]);
+    t.addEventListener("click", () => { state.active = i; state.compare = false; render(); });
+    tabsEl.append(t);
+  });
+
+  toggle.setAttribute("aria-pressed", String(state.compare));
+  toggle.textContent = state.compare ? "Single view" : "Compare two";
+
+  panesEl.innerHTML = "";
+  panesEl.classList.toggle("split", state.compare);
+  if (state.compare) {
+    panesEl.append(
+      candidatePane(state.left, true, i => { state.left = i; render(); }),
+      candidatePane(state.right, true, i => { state.right = i; render(); })
+    );
+  } else {
+    panesEl.append(candidatePane(state.active, false));
+  }
+}
+
+toggle.addEventListener("click", () => {
+  state.compare = !state.compare;
+  if (state.compare) {
+    state.left = state.active;
+    state.right = record.candidates.findIndex((_, i) => i !== state.active);
+  }
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
