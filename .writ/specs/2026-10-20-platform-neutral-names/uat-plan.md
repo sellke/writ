@@ -23,8 +23,10 @@
   ```bash
   REPO=/Users/asellke/Projects/writ          # read from, never installed into
   W=$(mktemp -d "${TMPDIR:-/tmp}/writ-uat.XXXXXX")
+  cd "$W"   # run every helper from the temp folder: an empty path then fails instead of writing to the Writ repo
   h()  { shasum -a 256 "$1" | cut -d' ' -f1; }
-  gc() { git -C "$1" -c user.name=t -c user.email=t@example.invalid add -A &&
+  gc() { case "$1" in "$W"/?*) ;; *) echo "gc: '$1' is not under $W; refusing" >&2; return 1;; esac
+         git -C "$1" -c user.name=t -c user.email=t@example.invalid add -A &&
          git -C "$1" -c user.name=t -c user.email=t@example.invalid commit -q -m "$2"; }
   EXCL=(--exclude=.git --exclude=.cursor --exclude=.claude --exclude=.codex --exclude='.writ-lanes-*'
         --exclude=__pycache__ --exclude=.venv --exclude=.pytest_cache)
@@ -93,9 +95,10 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
 - Step 3 prints `0`.
 - Step 4 prints `1 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 one line, the Figma MCP detection sentence; step 2 the three rows in order (Native artboard/design surface, `canvas-preview` (the adapter maps it), Neither) and the "Never degrade silently." sentence; step 3 `0`; step 4 `1 passed, 32 deselected`.
 
 **Implementation Reference:** Story 1 — `commands/prototype.md` (§ Step 2 Figma MCP detection; § Step 2.5 → Render through the platform). Three lines changed; the file is 336 lines.
 
@@ -125,9 +128,10 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
   and then `## Native Tool Availability`.
 - Step 2 prints `1 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: one row at `adapters/cursor.md:114`, text as expected, then `## Native Tool Availability`; step 2 `1 passed`.
 
 **Implementation Reference:** Story 1 — `adapters/cursor.md` § Native Tool Availability, last row of the table.
 
@@ -157,9 +161,10 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
   and then `## Tool Mapping (Cursor → Claude Code) > ### Quick Reference`.
 - Step 2 prints `1 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: one row at `adapters/claude-code.md:198`, text as expected, then `## Tool Mapping (Cursor → Claude Code) > ### Quick Reference`; step 2 `1 passed`.
 
 **Implementation Reference:** Story 1 — `adapters/claude-code.md` § Tool Mapping → Quick Reference.
 
@@ -194,9 +199,10 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
   in `## Quick Reference > ` (no subsection).
 - Step 2 prints `2 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: Codex row at `:146` in `## Tool Mapping (Cursor → Codex CLI) > ### Quick reference — orchestration primitives`; OpenClaw row at `:19` in `## Quick Reference > `; both texts as expected; step 2 `2 passed`.
 
 **Implementation Reference:** Story 1 — `adapters/codex.md`, `adapters/openclaw.md`. The OpenClaw row says "HTML file" where the technical spec's row text says "file" (DEV-001), so the spec's own `HTML` keyword test passes.
 
@@ -230,9 +236,10 @@ Error-map, shadow-path, and state-catalog items that an AC scenario already exer
 - Step 2 prints `1 passed`.
 - Step 3 prints `AssertionError: commands/prototype.md still names cursor-ide-browser`, `AssertionError: cursor-ide-browser outside adapters/cursor.md and record paths:`, the line `commands/prototype.md:<line>: The canvas is cursor-ide-browser.`, and `2 failed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `adapters/cursor.md` plus 10 paths under `.writ/{decision-records,issues,product,research,specs}/` only; step 2 `1 passed`; step 3 both AssertionErrors, `commands/prototype.md:338: The canvas is cursor-ide-browser.`, `2 failed`.
 
 **Implementation Reference:** Story 1 — the test builds the tool name from two parts so the test file is not a hit of its own grep. The record list counts all of `.writ/specs/` (DEV-004, flagged for review).
 
@@ -275,9 +282,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Each draft renders in Cursor's browser canvas, and the message says so.
 - The message does not say the drafts were unrendered.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Cursor): steps 1–4 (Cursor with the built-in browser tool on).
+- live run 2026-10-22 (maintainer, Cursor, browser tool on): three drafts with axes and trade-offs rendered in the browser canvas; the reply said so and did not say they were unrendered. Nothing was written to disk: proto-cursor has no .writ/prototypes/ and a clean git status. That matches adapters/cursor.md, where the canvas renders drafts and writes no files.
 
 **Implementation Reference:** Story 1 — `adapters/cursor.md` `canvas-preview` row; `commands/prototype.md` § Step 2.5.
 
@@ -304,9 +313,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - The same message says plainly that the drafts were not rendered.
 - The agent does not claim a canvas or a rendered page.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Cursor): steps 1–4, after Scenario 6 (browser tool turned off).
+- live run 2026-10-22 (maintainer, Cursor, browser tool off): each draft arrived as a written structural description; the reply said plainly the drafts were not rendered and claimed no canvas.
 
 ---
 
@@ -332,9 +343,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - The message says where each draft rendered.
 - The message does not say the drafts were unrendered.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Claude Code): steps 1–4 in a session with an artifact or preview tool.
+- live run 2026-10-22 (maintainer, Claude Code 2.1.308): three drafts rendered; the reply said where each rendered and did not say they were unrendered, and made no 'doesn't define canvas-preview' claim (contrast Scenario 9's headless run). On disk: draft-a/b/c.html under .writ/prototypes/2026-10-22-settings-page/, remote refs: 1, plus an extra compare.html. Codex added the same kind of comparison page in Scenario 10.
 
 **Implementation Reference:** Story 1 — `adapters/claude-code.md` `canvas-preview` row.
 
@@ -365,9 +378,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3 finds at least one line saying the drafts were not rendered.
 - No line claims an artifact or preview pane.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [ ] Pass  [x] Fail
 
 **Notes:** If the agent writes HTML files instead and names their paths, record that here; it is not a silent skip. Fail only if drafts arrive with no statement about how they were rendered, or with a claim of rendering that did not happen.
+
+needs live session (Claude Code): headless `claude -p` run; the agent may not start `claude` processes.
+- orchestrator-run 2026-10-21 @ b850e66 (claude -p 2.1.287, headless): exit 0, but the agent wrote three self-contained HTML drafts to .writ/prototypes/2026-10-21-settings-page/ instead of structural descriptions, and said 'The Claude Code adapter doesn't define canvas-preview, so I wrote plain HTML files instead.' No 'not rendered' line. The claim is wrong (the adapter does map it) because installed projects get no adapters/ folder: see .writ/issues/improvements/2026-10-21-adapter-mappings-never-reach-installed-projects.md. The fallback is reasonable; the expectation is not met.
 
 ---
 
@@ -394,9 +410,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 4 prints `remote refs: 1` (no stylesheet or script fetched from the network; CSS is inline).
 - After you pick a draft or stop, `exploration.md` is in the same folder.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Codex): steps 1–4.
+- blocked 2026-10-21: codex-cli 0.145.0 refuses the configured model gpt-6-astra ('requires a newer version of Codex'); no prototype ran. Upgrade Codex CLI and re-run.
+- run 2026-10-22, codex-cli 0.163.0, --sandbox workspace-write: wrote draft-a/b/c.html under .writ/prototypes/2026-10-22-settings-page/; remote refs: 1; exploration.md present. Reply said browser rendering was blocked (no local server, file URLs refused) instead of claiming a render. Deviations: Codex added an index.html comparison page (iframes the three drafts), so step 3 prints 4 files; the final reply linked only index.html, not each draft path (exploration.md names each file). Codex reported adapters/codex.md was not in the project, so it improvised the canvas-preview behavior (see issue adapter-mappings-never-reach-installed-projects).
 
 **Implementation Reference:** Story 1 — `adapters/codex.md` `canvas-preview` row. `codex/AGENTS.md.template` tells Codex to map tools via `adapters/codex.md`, which is not in an installed project (Known Gaps 1).
 
@@ -425,9 +444,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - The reply names no HTML file path as written.
 - Step 4 prints `No such file or directory`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Codex): steps 1–4 (`--sandbox read-only`).
+- blocked 2026-10-21: same Codex CLI version error as Scenario 10; no prototype ran.
+- run 2026-10-22, codex-cli 0.163.0, --sandbox read-only: three structural descriptions; reply says 'They were not rendered' and that it cannot save draft files or exploration.md; names no HTML path; ls prints 'No such file or directory'.
 
 ---
 
@@ -464,6 +486,7 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 **Status:** [ ] Pass  [ ] Fail
 
 **Notes:**
+not runnable here: no OpenClaw (maintainer, 2026-10-21)
 
 **Implementation Reference:** Story 1 — `adapters/openclaw.md` `canvas-preview` row. Story 1's notes say the OpenClaw and Codex rows have no runtime evidence behind them.
 
@@ -493,6 +516,7 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 **Status:** [ ] Pass  [ ] Fail
 
 **Notes:**
+not runnable here: no OpenClaw (maintainer, 2026-10-21)
 
 ---
 
@@ -517,9 +541,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - The agent says it stopped before drafting. No draft is shown or rendered.
 - Step 4 prints `No such file or directory`, or lists only an `exploration.md` that records the axes and that no draft was chosen. No `.html` file.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Claude Code): steps 1–4 (interactive, stop after the axes).
+- live run 2026-10-22 (maintainer, Claude Code 2.1.308): stopped at the axes; the agent said it stopped before drafting; no .html files written.
 
 ---
 
@@ -551,9 +577,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 5: `ls: commands/design.md: No such file or directory`, then `name: writ-design`.
 - Step 6: `1 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: `d36a283 feat(design)!: rename /design to /writ-design`; `commands/{design.md => writ-design.md} | 18 +-`; `similarity index 95%`, rename from/to, 9 removed and 9 added self-naming lines as listed; `BREAKING CHANGE: /design is renamed to /writ-design`; `ls: commands/design.md: No such file or directory`, `name: writ-design`; `1 passed`.
 
 **Implementation Reference:** Story 2 — `git mv commands/design.md commands/writ-design.md`. `/release` Step 1.2 reads the `BREAKING CHANGE` footer.
 
@@ -583,9 +610,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 4: `pass`, then one row: `` | `/writ-design` | `commands/writ-design.md` | Create and compare visual references for Writ specifications. | ``. It is the last row of the Planning & Specification table, right after `/verify-spec`.
 - Step 5: `2 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: manifest entry lines 184–188 as expected; `matches: 1`; `verify-spec`, `writ-design`, `sorted`; `pass` and the `SKILL.md:58` row, last in Planning & Specification after `/verify-spec`; `2 passed`.
 
 ---
 
@@ -610,7 +638,7 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
    ```bash
    git grep -n -I -E -e '(^|[^[:alnum:]_-])/design([^[:alnum:]_-]|$)' -e '(^|[^[:alnum:]_-])design\.md' -- \
      commands agents adapters scripts claude-code codex cursor SKILL.md README.md system-instructions.md \
-     .writ/manifest.yaml .writ/docs ':!.writ/docs/leanness-audit-2026-07-11.md' ':!.writ/docs/swot-2026-03-01.md'
+     .writ/manifest.yaml .writ/docs ':!.writ/docs/leanness-audit-2026-07-11.md' ':!.writ/docs/leanness-audit-2026-10-21.md' ':!.writ/docs/swot-2026-03-01.md'
    echo "exit $?"
    ```
 3. `uv run --python 3.9 pytest -q scripts/tests/test_platform_neutral_names.py -k "rename_class_references or status_allowlists or cursor_tree or codex_template_row or model_tiers_entry_level or eval_allowlist_rows"`
@@ -620,9 +648,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2 prints nothing, then `exit 1` (no match).
 - Step 3 prints `14 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 shows `writ-design` in every listed file (eval.sh rows at 621–626, one line later than recorded); step 3 `14 passed`. Step 2 printed one hit and `exit 0`: `.writ/docs/leanness-audit-2026-10-21.md:40` ("Claude Code now ships native `/design` artboards … kept separate from the native `/design`").
+That dated snapshot was added after this plan (7e69877, line last changed in b3ebd3d) and the line names the native command, not Writ's; the step's exclusions cover only the 2026-07-11 audit. Legitimate growth; intent holds.
+- maintainer sign-off 2026-10-21 (delegated): Pass accepted; the hit is the 2026-10-21 leanness audit naming Claude Code's native /design. Step 2 exclusion list updated.
 
 **Implementation Reference:** Story 2 — DEV-003 renamed the bare `design` in the `/status` Maintainer Note list too, which the inventory missed.
 
@@ -650,9 +681,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: `exit 0`, `- Findings: 0`, `- Run errors: 0`.
 - Step 4: `1 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: `pass`, `gen-claude-md: pass (32 commands, 8 agents)`; one line, `claude-code/CLAUDE.md:46` `/writ-design` row, no `/design` row; `exit 0`, `- Findings: 0`, `- Run errors: 0`; `1 passed`.
 
 **Implementation Reference:** Story 2 — before regenerating, `--check` printed `reason: missing writ-design`, `reason: extra design`, `gen-claude-md: fail (1 missing, 1 extra)`. Scenario 21 reproduces that.
 
@@ -684,9 +716,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: `1`, `1`.
 - Step 4: `4 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 nothing, `keep-class files in commit: 1`; step 2 `2`, `1`, `1`, `1`, `2` for the five files as listed; step 3 `1`, `1`; step 4 `4 passed`.
 
 ---
 
@@ -720,9 +753,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: `exit 0`, `- Findings: 0`. Eval does not notice, because `commands/design.md` no longer exists and the stale-row pass skips the row.
 - Step 4: `AssertionError: allowlist rows still name /design:`, the row from step 2, and `1 failed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `exit 0`, `- Findings: 0`; step 2 `625:mockups/README.md|/design|Written by /writ-design …` (line 625, not 624: one line of eval.sh growth); step 3 `exit 0`, `- Findings: 0`; step 4 `AssertionError: allowlist rows still name /design:`, the row, `1 failed`.
 
 **Implementation Reference:** Story 2 — `scripts/eval.sh` `check_referenced_paths` skips a row unless `commands/<cmd>.md` exists. `test_eval_allowlist_rows` requires every row's creating command to exist.
 
@@ -755,9 +789,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 1: `fail`, `reason: missing writ-design`, `reason: extra design`, `gen-claude-md: fail (1 missing, 1 extra)`, `exit 1`.
 - Step 2: `exit 1`, `fail`, `reason: SKILL.md drifts from .writ/manifest.yaml; run bash scripts/gen-skill.sh`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `fail`, `reason: missing writ-design`, `reason: extra design`, `gen-claude-md: fail (1 missing, 1 extra)`, `exit 1`; step 2 `exit 1`, `fail`, `reason: SKILL.md drifts from .writ/manifest.yaml; run bash scripts/gen-skill.sh`.
 
 ---
 
@@ -784,9 +819,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 4: Writ's flow starts and asks you to pick a mode: wireframe, attach, capture, compare, or review.
 - Step 5: the menu shows no Writ entry named `design`. If this Claude Code version has its own `/design`, Enter runs that command. If it does not, Claude Code reports no such command. In both cases Writ's mode list does not appear.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Record what `/design` did. Nobody has checked the native command in a live session; the spec's evidence for it is secondary reporting (`.writ/research/2026-10-19-prototype-visual-drafts-research.md` F5).
+
+needs live session (Claude Code): steps 1–5.
+- live run 2026-10-22 (maintainer, Claude Code 2.1.308): /writ-design menu showed Writ's entry and started Writ's mode prompt; /design showed no Writ entry and did not start Writ's mode list.
 
 ---
 
@@ -812,9 +850,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: Writ's flow starts and asks you to pick a mode.
 - Codex has no Writ slash commands; users ask it to follow `.codex/commands/writ-design.md`, which step 1 shows exists.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+needs live session (Cursor): steps 2–3.
+agent-run 2026-10-21 @ b850e66: step 1 printed `writ-design.md` twice and no `design.md`.
+- live run 2026-10-22 (maintainer, Cursor): after the upgrade, the /design menu showed no Writ command named design; /writ-design started Writ's flow and asked for a mode.
 
 ---
 
@@ -845,9 +886,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 1, for each of `cursor`, `claude`, `codex`: `exit 0`, `writ-design.md`, `1`, `0`.
 - Step 2: `PASS test_install_update_writ_design`, `exit 0`. The test also covers Scenarios 25 and 26.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 cursor, claude, codex each `exit 0`, `writ-design.md`, `1`, `0`; step 2 `PASS test_install_update_writ_design`, `exit 0`.
 
 ---
 
@@ -882,9 +924,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
   - `<platform> exit 0`, `    ✨ New:       commands/writ-design.md`, `  🗑  Removed: commands/design.md`
   - `writ-design.md`, `matches source`, `0`
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: cursor, claude, codex each: `design.md`; `dry exit 0`, `DRY RUN — No changes applied.`, `commands/design.md`; `design.md`, `manifest unchanged`; `exit 0`, `New:       commands/writ-design.md`, `Removed: commands/design.md`; `writ-design.md`, `matches source`, `0`.
 
 **Implementation Reference:** Story 3 — `scripts/update.sh` stale detection; no rename map. Scenarios 23, 30, and 36 reuse these projects and logs.
 
@@ -921,9 +964,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - No `Removed` line in either run.
 - Step 3: `install-time baseline kept`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: run 1 `exit 0`, `Stale (no longer shipped, locally modified — kept): commands/design.md`, `byte-identical`, `design.md`, `writ-design.md`; run 2 the same plus `Already up to date! (c6adaf2)`; no `Removed` line; `install-time baseline kept`.
 
 **Implementation Reference:** Story 3 — relies on `2026-10-20-ci-and-update-integrity`, which keeps and warns about a modified stale file in every category, including on the "Already up to date" path. Scenarios 30 and 39 reuse this project.
 
@@ -947,9 +991,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 1: `test_no_writ_design_reference PASSED`, `test_gate_fixture PASSED`, `test_gate_git_error PASSED`, `3 passed`.
 - Step 2: the fixture reports four lines (`commands/a.md` with the slash name, `commands/b.md` with the file name, `commands/f.md` where "native" appears elsewhere on the line, and `.writ/docs/other.md`) and ignores nine: a `design-system.md` path, `/writ-design`, "roadmap/design", a "native `/design`" line, `CHANGELOG.md`, two dated snapshots (one with a space in its path), and two `.writ/specs/` folders.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: `test_no_writ_design_reference PASSED`, `test_gate_fixture PASSED`, `test_gate_git_error PASSED`, `3 passed, 30 deselected`; `GATE_FIXTURE` (line 641) has the 4 reported entries and the 9 ignored ones exactly as listed.
 
 **Implementation Reference:** Story 3 — `writ_design_refs(root)`. The fixture's fourth reported line moved from a spec folder to `.writ/docs/other.md` (DEV-005), because the record list now covers all of `.writ/specs/` (DEV-004, flagged for review).
 
@@ -985,9 +1030,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: `AssertionError: 2 line(s) still name /design or commands/design.md outside the record list:`, then `README.md:<line>: Open `.claude/commands/design.md`.` and `commands/prototype.md:<line>: See `/design` for mockups.`, then `1 failed`.
 - No line for `adapters/claude-code.md`: a line that writes "native `/design`" passes.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `1 passed, 32 deselected`; step 3 `AssertionError: 2 line(s) still name /design or commands/design.md outside the record list:`, `README.md:386: Open .claude/commands/design.md.`, `commands/prototype.md:338: See /design for mockups.`, `1 failed`; no `adapters/claude-code.md` line.
 
 ---
 
@@ -1017,9 +1063,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: the canvas issue names `canvas-preview`, the four adapter rows and their mappings, the fallback clause, the three tests, and what is not done (no eval check for the general case). The collision issue names `/writ-design` with no alias, the two printed update lines, the two test files, and says nobody checked native `/design` shadowing in a live Claude Code session.
 - Step 3: `2 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 both issues `> **spec_ref:** .writ/specs/2026-10-20-platform-neutral-names/` and `## Resolution`; step 3 `2 passed`.
+needs maintainer judgment: step 2, read both `## Resolution` sections against the listed items (the agent found each one named).
+- maintainer judgment 2026-10-21: Pass (both Resolution sections reviewed in session).
 
 ---
 
@@ -1044,9 +1093,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
   `⚠️  Stale (no longer shipped, locally modified — kept): commands/design.md`
 - Step 3: the note says to type `/writ-design` from now on, that modes, flags (`--wireframe`, `--screenshot`, `--compare`), and output are unchanged, that a kept copy keeps answering `/design` in that project until deleted, and that Writ does not rewrite the user's own files.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: steps 1 and 2 print the same two lines (`Removed: commands/design.md`, `Stale (no longer shipped, locally modified — kept): commands/design.md`).
+needs maintainer judgment: step 3, read spec.md § Upgrade Note against the four points (the agent found each; the note now also names the two silent cases from Scenarios 33 and 41).
+- maintainer judgment 2026-10-21: Pass (Upgrade Note reviewed in session).
 
 ---
 
@@ -1070,9 +1122,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: no `FAIL` line; `<n> run, 0 failed` (45 run at Story 3).
 - Step 3: `exit 0`, `- Findings: 0`, `- Run errors: 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `2774 passed, 2 skipped`; step 2 `45 run, 0 failed` (stdin from /dev/null); step 3 `exit 0`, `- Findings: 0`, `- Run errors: 0`.
 
 ---
 
@@ -1099,9 +1152,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 1 prints one line number with `SRC_NEW="$SRC_OLD"`.
 - Step 2: `FAIL: AC-3.1 cursor: .cursor/commands/writ-design.md not installed`, then `exit 1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `118:SRC_NEW="$SRC_OLD"`; step 2 `FAIL: AC-3.1 cursor: .cursor/commands/writ-design.md not installed`, `exit 1`.
 
 ---
 
@@ -1128,9 +1182,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: `exit 0`, and only `    ✨ New:       commands/writ-design.md`. No `Removed` or `Stale` line.
 - Step 3: `untouched`, `design.md`, `writ-design.md`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The Upgrade Note does not mention this case (Known Gaps 2).
+
+agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, only `New:       commands/writ-design.md`; step 3 `untouched`, `design.md`, `writ-design.md`. The Upgrade Note at b850e66 now names this case ("The manifest never tracked the file").
 
 ---
 
@@ -1153,9 +1209,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: `❌ Writ doesn't appear to be installed for Claude Code in this project.`, `   Run install.sh --platform claude first.`, `exit 1`.
 - Step 3: `install exit 0`, `writ-design.md`, `0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** The technical spec's Shadow Paths row says the update installs `writ-design.md` here. What was built: `update.sh` refuses and `install.sh` does it. This plan expects the observed behavior.
+
+agent-run 2026-10-21 @ b850e66: step 2 `❌ Writ doesn't appear to be installed for Claude Code in this project.`, `Run install.sh --platform claude first.`, `exit 1`; step 3 `install exit 0`, `writ-design.md`, `0`.
 
 ---
 
@@ -1178,9 +1236,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: `❌ Failed to clone <W>/no-such-repo`, `   Check your network connection and try again.`, `exit 1`.
 - Step 3: `design.md`, `manifest unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 2 git's `fatal: repository '<W>/no-such-repo' does not exist`, then `❌ Failed to clone <W>/no-such-repo`, `Check your network connection and try again.`, `exit 1`; step 3 `design.md`, `manifest unchanged`.
 
 ---
 
@@ -1200,9 +1259,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 **Expected Result:**
 - `exit 0`, `0`, `✅ Already up to date! (<sha>)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: `exit 0`, `0`, `Already up to date! (c6adaf2)`.
 
 ---
 
@@ -1225,9 +1285,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: `exit 0`, `    ✨ New:       commands/writ-design.md`, `  ⚠️  Stale (no longer shipped, locally modified — kept): commands/design.md`. No `Removed` line.
 - Step 3: `byte-identical`, `design.md`, `writ-design.md`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, `New:       commands/writ-design.md`, `Stale (no longer shipped, locally modified — kept): commands/design.md`, no `Removed`; step 3 `byte-identical`, `design.md`, `writ-design.md`.
 
 ---
 
@@ -1256,9 +1317,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2: `exit 0` and only `  🗑  Removed: commands/design.md`.
 - Step 3: `user files unchanged`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, only `Removed: commands/design.md`; step 3 `user files unchanged`.
 
 ---
 
@@ -1284,9 +1346,12 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: Writ's mode list no longer appears for `/design`.
 - Step 4: `0`. With the file gone, no stale warning prints.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Step 2 is the Upgrade Note's claim ("including on Claude Code"). Nobody has verified whether a project command wins over a native `/design`. Record which one ran and the Claude Code version.
+
+needs live session (Claude Code): steps 1–4 (step 4 runs after the live steps).
+- live run 2026-10-22 (maintainer, Claude Code 2.1.308): the modified old design.md answered /design with Writ's old mode list; after rm of .claude/commands/design.md, /design no longer showed Writ's mode list.
 
 ---
 
@@ -1321,9 +1386,10 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 2, for each platform: `exit 0`, `    ✨ New:       commands/writ-design.md`, `  🗑  Removed: commands/design.md`, then `writ-design.md` only. Claude Code also prints `    🔄 Updated: CLAUDE.md (Writ block)`, and Codex `    🔄 Updated: AGENTS.md (Writ block)`. Other `Removed` lines for files this branch retired may also appear.
 - Step 3: one `/writ-design` row in each file and no `/design` row. (The `v0.42.0` block listed `` `/design` `` → `.claude/commands/design.md`.)
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:**
+agent-run 2026-10-21 @ b850e66: step 1 `commands/writ-design.md` (clone at b850e66), `commands/design.md` (v0.42.0 = 617037b); step 2 claude, cursor, codex each `exit 0`, `New:       commands/writ-design.md`, `Removed: commands/design.md`, `writ-design.md` only, plus `Updated: CLAUDE.md (Writ block)` (claude) and `Updated: AGENTS.md (Writ block)` (codex); step 3 `CLAUDE.md:47` and `AGENTS.md:25` `/writ-design` rows, no `/design` row.
 
 ---
 
@@ -1353,9 +1419,11 @@ An installed project has no `adapters/` folder: `install.sh` does not ship it (s
 - Step 3: `design.md`, `writ-design.md`, `0` (the manifest no longer tracks the old file).
 - Step 4: only `✅ Already up to date! (<sha>)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
 **Notes:** Pass means the behavior matches the above. It is a gap against the Upgrade Note, which promises a `Removed` line or a `Stale` warning: the old file stays on disk with no message, and on Claude Code `/design` keeps opening it (Known Gaps 2). Decide whether to accept it or file an issue.
+
+agent-run 2026-10-21 @ b850e66: step 2 `exit 0`, `Manifest predates shipped-only baselines and version 5712038 was not found upstream; files that differ from upstream are preserved this run.`, `New:       commands/writ-design.md`, no `Removed`/`Stale`; step 3 `design.md`, `writ-design.md`, `0`; step 4 only `Already up to date! (c6adaf2)`. The Upgrade Note at b850e66 now names this case.
 
 ---
 

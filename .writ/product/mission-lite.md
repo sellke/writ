@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-10-21
+> Regenerated from mission.md on 2026-10-22
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-10-21
+> Last Updated: 2026-10-22
 
 ## Core Value
 
@@ -58,9 +58,9 @@ Code and methodology that score well on six production-grade criteria — audita
 - Product-check direction (v0.40.0).
 - `/retro` as a transcript review, plus the `gbrain-interop` removal (v0.41.0).
 - The agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59), both in v0.42.0.
-- `claude-agent-generator`: Claude Code agents generated from the canonical `agents/` (unreleased, rides in the Phase 13 branch).
+- `claude-agent-generator`: Claude Code agents generated from the canonical `agents/` (v0.43.0, with Phase 13).
 
-**Phase 13 — Subtract and Repair (◐ implemented, pending human UAT, unreleased):** Claude Code installs carry the Prime Directive, and the `CLAUDE.md` block is generated. Install, update, and uninstall keep the user's own and customized files, including `CLAUDE.md`. CI runs `pytest` and the bash tests. `/design` is renamed `/writ-design`. The lean siblings, the dormant staging machinery, and internal links in shipped commands are gone. All nine machine criteria pass; 176 UAT scenarios and the first live CI run are handed off.
+**Phase 13 — Subtract and Repair (✅ shipped in v0.43.0, closed 2026-10-22):** Claude Code installs carry the Prime Directive, and the `CLAUDE.md` block is generated. Install, update, and uninstall keep the user's own and customized files, including `CLAUDE.md`. CI runs `pytest` and the bash tests. `/design` is renamed `/writ-design`. The lean siblings, the dormant staging machinery, and internal links in shipped commands are gone. All nine machine criteria pass, and 173 of 176 human UAT scenarios pass. One failure is tracked as an issue, two need OpenClaw, and the one regression UAT found is fixed in PR #62.
 
 **Phases 14–16 committed ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)):**
 - **14, Front Door and Distribution:** one entry command, plugin installs, and generated per-platform trees with an adapter coverage check.
