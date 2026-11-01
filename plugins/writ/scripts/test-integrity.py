@@ -461,8 +461,36 @@ def is_ignored_by_project(relative: str, patterns: list[str]) -> bool:
     return False
 
 
-def is_e2e_test(text: str) -> bool:
-    return any(spec in E2E_DRIVERS for spec in extract_specifiers(text))
+# Python modules that drive a running app over HTTP or through a browser. A
+# Python end-to-end test imports one of these and no project source.
+PY_E2E_DRIVERS = ("urllib.request", "http.client", "requests", "httpx",
+                  "playwright", "selenium")
+PY_DRIVER_IMPORT_RE = re.compile(
+    r"^[ \t]*(?:from[ \t]+([\w.]+)[ \t]+import[ \t]+(\([^)]*\)|[\w \t,]+)"
+    r"|import[ \t]+([\w. \t,]+?)(?:[ \t]+as[ \t]+\w+)?[ \t]*$)",
+    re.MULTILINE,
+)
+
+
+def python_imports(text: str) -> list[str]:
+    """Dotted names a Python file imports: `from a import b` yields `a` and `a.b`."""
+    names: list[str] = []
+    for match in PY_DRIVER_IMPORT_RE.finditer(text):
+        module, imported, plain = match.groups()
+        if module:
+            names.append(module)
+            names.extend(f"{module}.{n.split()[0]}" for n in imported.strip("()").split(",")
+                         if n.strip())
+        else:
+            names.extend(n.strip() for n in plain.split(",") if n.strip())
+    return names
+
+
+def is_e2e_test(text: str, python: bool = False) -> bool:
+    if any(spec in E2E_DRIVERS for spec in extract_specifiers(text)):
+        return True
+    return python and any(name == d or name.startswith(d + ".")
+                          for name in python_imports(text) for d in PY_E2E_DRIVERS)
 
 
 # --- Test discovery ----------------------------------------------------------
@@ -758,7 +786,7 @@ def authenticity(project: Path, tests: list[Path] | None) -> tuple[int, dict[str
             })
             continue
 
-        if is_e2e_test(text):
+        if is_e2e_test(text, python=test_file.suffix == ".py"):
             out_of_scope += 1
             continue
 
