@@ -745,10 +745,10 @@ EOF
     record_file_baseline "$target" "rules/writ.mdc" \
       "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
   fi
-  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
-    record_file_baseline "$target" "system-instructions.md" \
-      "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
-  fi
+  # Every platform ships system-instructions.md: CLAUDE.md imports it,
+  # writ.mdc carries it, and the Codex AGENTS.md block points to it.
+  record_file_baseline "$target" "system-instructions.md" \
+    "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
 
   # Writ block: the inner hash when it equals the template hash the merge
   # functions compare against. Otherwise the block was preserved: keep its
@@ -839,6 +839,7 @@ elif [ "$PLATFORM" = "claude" ]; then
   echo "  📖 System:    1 (system-instructions.md)"
 elif [ "$PLATFORM" = "codex" ]; then
   echo "  📄 AGENTS.md Writ block (.agents/skills/ for AgentSkills)"
+  echo "  📖 System:    1 (system-instructions.md)"
   echo "  🧩 Codex cfg: install-once .codex/config.toml when absent"
 fi
 echo "  🎯 Platform:  $PLATFORM_LABEL"
@@ -865,10 +866,27 @@ init_writ_workspace() {
     echo ""
     echo "  📁 Creating .writ/ directory structure..."
   fi
-  mkdir -p .writ/{specs,product,research,decision-records,docs,issues,explanations,state}
+  # The eleven PATHS of scripts/scaffold-writ.py; test_scaffold_writ.py fails on drift.
+  mkdir -p .writ/{specs,product,research,decision-records,docs,knowledge,state} .writ/issues/{bugs,features,improvements,goals}
 
-  if [ -f .gitignore ] && ! grep -q ".writ/state" .gitignore 2>/dev/null; then
-    printf '\n# Writ ephemeral state\n.writ/state/\n' >> .gitignore
+  # .gitignore, as scaffold-writ.py does it: created when absent; each missing
+  # entry appended in one write, under the comment unless the file has it.
+  # Lines compare trimmed and whole, one trailing "/" ignored.
+  local gi_entry gi_add="" gi_head=""
+  for gi_entry in ".writ/state/" ".writ-lanes-*/"; do
+    if ! awk -v e="${gi_entry%/}" '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); sub(/\/$/, "") } $0 == e { f = 1 } END { exit !f }' .gitignore 2>/dev/null; then
+      gi_add="$gi_add$gi_entry"$'\n'
+    fi
+  done
+  if [ -n "$gi_add" ]; then
+    if [ ! -f .gitignore ]; then
+      gi_head='# Writ ephemeral state'$'\n'
+    elif awk '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, "") } $0 == "# Writ ephemeral state" { f = 1 } END { exit !f }' .gitignore; then
+      if [ -n "$(tail -c 1 .gitignore)" ]; then gi_head=$'\n'; fi
+    else
+      gi_head=$'\n''# Writ ephemeral state'$'\n'
+    fi
+    printf '%s%s' "$gi_head" "$gi_add" >> .gitignore
   fi
 
   if [ -f ".cursor/rules/cc.mdc" ]; then
@@ -877,11 +895,14 @@ init_writ_workspace() {
   fi
 }
 
-# configure_audit_notes_sync — guarded, idempotent refs/notes/writ sync refspecs.
-# Configures the git-notes audit channel (ADR-017) to travel on clone/fetch/push.
-# Gated behind the writ.auditNotes opt-out marker (default true): when the marker
-# is false, adds nothing and removes any Writ-added refspecs (no residue). No-op
-# gracefully when not in a git repo or when no remote is configured.
+# configure_audit_notes_sync — guarded, idempotent refs/notes/writ fetch refspec.
+# Configures the git-notes audit channel (ADR-017) to arrive on clone/fetch.
+# Adds no push refspec: any remote.<name>.push line replaces push.default, so a
+# plain `git push` would push only the notes and never the branch. /ship and
+# /release push the notes explicitly. Gated behind the writ.auditNotes opt-out
+# marker (default true): when the marker is false, adds nothing and removes any
+# Writ-added refspecs (no residue). No-op gracefully when not in a git repo or
+# when no remote is configured.
 # Globals: DRY_RUN
 configure_audit_notes_sync() {
   local mode="${1:-apply}" # preview | apply
@@ -889,13 +910,14 @@ configure_audit_notes_sync() {
   # straight into refs/notes/writ with a '+' silently discards any local note
   # added since the last push; /ship and /release merge origin-writ in instead.
   local fetch_refspec="+refs/notes/writ:refs/notes/origin-writ"
-  local push_refspec="refs/notes/writ"
   # Anchored value regexes for --unset-all (only '+' is a regex metachar here).
   local fetch_regex='^\+refs/notes/writ:refs/notes/origin-writ$'
-  local push_regex='^refs/notes/writ$'
   # Pre-0.33 refspec, replaced by the line above. Removed on upgrade and on
   # opt-out so no repo keeps clobbering local notes on fetch.
   local legacy_fetch_regex='^\+refs/notes/writ:refs/notes/writ$'
+  # Push line earlier installs added. Removed on upgrade from every remote,
+  # whatever the opt-out says, because it hijacked a plain `git push`.
+  local legacy_push_regex='^refs/notes/writ$'
 
   if ! command -v git &>/dev/null || ! git rev-parse --is-inside-work-tree &>/dev/null; then
     echo "    ⏭️  Audit notes: not a git repository — skipping refs/notes/writ sync."
@@ -915,6 +937,19 @@ configure_audit_notes_sync() {
     return 0
   fi
 
+  # Before the opt-out branch, so enabled and opted-out repos both migrate.
+  local r
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    git config --get-all "remote.$r.push" 2>/dev/null | grep -Fxq "refs/notes/writ" || continue
+    if [ "$mode" = "preview" ]; then
+      echo "    🔀 Audit notes: would remove remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
+    else
+      git config --unset-all "remote.$r.push" "$legacy_push_regex" 2>/dev/null || true
+      echo "    🔀 Audit notes: removed remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
+    fi
+  done <<< "$(git remote 2>/dev/null || true)"
+
   if [ "$audit_enabled" = "false" ]; then
     if [ "$mode" = "preview" ]; then
       echo "    ⏭️  Audit notes: writ.auditNotes=false — would remove any refs/notes/writ refspecs on '$remote'."
@@ -924,22 +959,18 @@ configure_audit_notes_sync() {
     # refspec is cleared too — opting out must not leave a clobbering fetch.
     git config --unset-all "remote.$remote.fetch" "$fetch_regex" 2>/dev/null || true
     git config --unset-all "remote.$remote.fetch" "$legacy_fetch_regex" 2>/dev/null || true
-    git config --unset-all "remote.$remote.push" "$push_regex" 2>/dev/null || true
     echo "    🧹 Audit notes disabled (writ.auditNotes=false) — refs/notes/writ refspecs removed from '$remote'."
     return 0
   fi
 
   if [ "$mode" = "preview" ]; then
-    local have_fetch=no have_push=no
-    git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec" && have_fetch=yes
-    git config --get-all "remote.$remote.push" 2>/dev/null | grep -Fxq "$push_refspec" && have_push=yes
     if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "+refs/notes/writ:refs/notes/writ"; then
       echo "    🔀 Audit notes: would migrate the legacy fetch refspec on '$remote' (it discarded local notes on fetch)."
     fi
-    if [ "$have_fetch" = yes ] && [ "$have_push" = yes ]; then
-      echo "    ✓ Audit notes: refs/notes/writ sync already configured on '$remote' (idempotent — no change)."
+    if git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec"; then
+      echo "    ✓ Audit notes: refs/notes/writ fetch already configured on '$remote' (idempotent — no change)."
     else
-      echo "    📝 Audit notes: would add refs/notes/writ fetch/push refspecs to '$remote'."
+      echo "    📝 Audit notes: would add the refs/notes/writ fetch refspec to '$remote'."
     fi
     return 0
   fi
@@ -951,14 +982,11 @@ configure_audit_notes_sync() {
     echo "    🔀 Audit notes: migrated legacy fetch refspec (it discarded local notes on fetch)."
   fi
 
-  # Idempotently add each refspec (grep existing first — never duplicate).
+  # Idempotently add the refspec (grep existing first — never duplicate).
   if ! git config --get-all "remote.$remote.fetch" 2>/dev/null | grep -Fxq "$fetch_refspec"; then
     git config --add "remote.$remote.fetch" "$fetch_refspec"
   fi
-  if ! git config --get-all "remote.$remote.push" 2>/dev/null | grep -Fxq "$push_refspec"; then
-    git config --add "remote.$remote.push" "$push_refspec"
-  fi
-  echo "    📝 Audit notes: refs/notes/writ sync configured on '$remote'."
+  echo "    📝 Audit notes: refs/notes/writ fetch configured on '$remote'."
 }
 
 # ===========================================================================
@@ -981,8 +1009,11 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py)
-      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template, platform trees); not agent-facing. ADR-029.
+      return 1 ;;
+    gen-claude-agents.py|gen-codex-agent-tomls.py|check-agent-parity.sh|gen-skill.sh)
+      # Writ-source generators and checks: they read agents/, claude-code/agents/, codex/agents/, .writ/manifest.yaml, and SKILL.md, which no install has. ADR-031.
       return 1 ;;
   esac
   case "$base" in
@@ -1234,6 +1265,7 @@ if [ "$DRY_RUN" = true ]; then
       echo "  CLAUDE.md integration plan:"
       merge_claude_md preview
     elif [ "$PLATFORM" = "codex" ]; then
+      echo "  System:  system-instructions.md → always updated"
       echo "  AGENTS.md integration plan:"
       merge_agents_md preview
       echo "  Codex config seed plan:"
@@ -1298,6 +1330,7 @@ mkdir -p "$PLATFORM_DIR/commands" "$PLATFORM_DIR/agents"
 [ "$PLATFORM" = "cursor" ] && mkdir -p "$PLATFORM_DIR/rules"
 
 if [ -d "$WRIT_SRC/skills" ] && [ "$SKILL_COUNT" -gt 0 ]; then STEP_TOTAL=7; else STEP_TOTAL=6; fi
+[ "$PLATFORM" = "codex" ] && STEP_TOTAL=$((STEP_TOTAL + 1))
 STEP=0
 
 STEP=$((STEP + 1))
@@ -1346,6 +1379,9 @@ elif [ "$PLATFORM" = "codex" ]; then
   echo "  [$STEP/$STEP_TOTAL] Codex CLI config..."
   seed_codex_config apply
   writ_warn_agents_md_size
+  STEP=$((STEP + 1))
+  echo "  [$STEP/$STEP_TOTAL] System instructions..."
+  cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
 fi
 
 STEP=$((STEP + 1))
@@ -1421,7 +1457,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "CLAUDE.md" 2>/dev/null || true
     git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
-    git add "AGENTS.md" ".codex/config.toml" 2>/dev/null || true
+    git add "AGENTS.md" ".codex/config.toml" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   fi
   git add "$MANIFEST_FILE" 2>/dev/null || true
   [ -d .writ ] && git add .writ/ 2>/dev/null || true

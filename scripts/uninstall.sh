@@ -301,6 +301,64 @@ manifest_files() {
   [ -f "$PLATFORM_DIR/.writ-manifest" ] && grep -v '^#' "$PLATFORM_DIR/.writ-manifest" | grep -v '^$' | awk '{print $2}' || true
 }
 
+manifest_hash_for() {
+  [ -f "$PLATFORM_DIR/.writ-manifest" ] && awk -v p="$1" '!/^#/ && $2 == p { print $1; exit }' "$PLATFORM_DIR/.writ-manifest" || true
+}
+
+# Same as install.sh, so hashes compare against the manifest baselines.
+hash_file() {
+  if command -v shasum &>/dev/null; then
+    shasum -a 256 "$1" | cut -d' ' -f1
+  elif command -v sha256sum &>/dev/null; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    openssl dgst -sha256 "$1" | awk '{print $NF}'
+  fi
+}
+
+# Writes $1 minus the lines awk program $2 drops (array `drop`, filled on a
+# first pass over the file), keeping the file's mode. Deletes the file when
+# only whitespace remains. Sets REVERT_NOTE; leaves the file alone and sets
+# no note when nothing would be dropped.
+revert_ignore_lines() {
+  local file="$1" program="$2" tmp
+  REVERT_NOTE=""
+  [ -f "$file" ] || return 0
+  tmp=$(mktemp)
+  awk "
+    function norm(s) { sub(/\r\$/, \"\", s); gsub(/^[[:space:]]+|[[:space:]]+\$/, \"\", s); return s }
+    NR == FNR { t = norm(\$0); line[NR] = t; $program; next }
+    !(FNR in drop) { print }
+  " "$file" "$file" >"$tmp"
+  if [ "$(wc -l <"$tmp")" -eq "$(awk 'END { print NR }' "$file")" ]; then
+    rm -f "$tmp"
+    return 0
+  fi
+  if ! awk 'NF { found=1 } END { exit found ? 0 : 1 }' "$tmp"; then
+    rm -f "$tmp" "$file"
+    REVERT_NOTE="🗑  Removed: $file (empty after Writ lines removal)"
+    return 0
+  fi
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
+  REVERT_NOTE="🗑  Removed: $file Writ lines"
+}
+
+# The lines install.sh (and scaffold-writ.py) add to .gitignore: the comment,
+# the blank line install puts before it, and the two entries, which compare
+# trimmed with one trailing "/" ignored.
+revert_gitignore() {
+  revert_ignore_lines ".gitignore" '
+    e = t; sub(/\/$/, "", e)
+    if (t == "# Writ ephemeral state") { drop[NR] = 1; if (NR > 1 && line[NR - 1] == "") drop[NR - 1] = 1 }
+    else if (e == ".writ/state" || e == ".writ-lanes-*") drop[NR] = 1'
+}
+
+# The one line install.sh seeds .cursorindexingignore with.
+revert_cursorindexingignore() {
+  revert_ignore_lines ".cursorindexingignore" 'if (t == ".writ/specs/archive/**") drop[NR] = 1'
+}
+
 # ---------------------------------------------------------------------------
 # Inventory
 # ---------------------------------------------------------------------------
@@ -313,6 +371,7 @@ CODEX_EXTRA_COUNT=0
 CODEX_EXTRA_DESC=""
 CLAUDE_EXTRA_COUNT=0
 CLAUDE_EXTRA_DESC=""
+CODEX_CONFIG_UNMODIFIED=false
 
 for f in "$PLATFORM_DIR"/commands/*.md; do
   [ -f "$f" ] && CMD_COUNT=$((CMD_COUNT + 1))
@@ -344,29 +403,114 @@ elif [ "$PLATFORM" = "claude" ]; then
     CLAUDE_EXTRA_DESC="CLAUDE.md Writ block "
   fi
 elif [ "$PLATFORM" = "codex" ]; then
+  [ -f "$PLATFORM_DIR/system-instructions.md" ] && EXTRA_FILES+=("$PLATFORM_DIR/system-instructions.md")
   if [ -f "AGENTS.md" ]; then
     CODEX_EXTRA_COUNT=$((CODEX_EXTRA_COUNT + 1))
     CODEX_EXTRA_DESC="${CODEX_EXTRA_DESC}AGENTS.md Writ block "
   fi
+  # .codex/config.toml: removed when it still hashes to its install baseline,
+  # otherwise uninstall asks.
   if [ -f "$PLATFORM_DIR/config.toml" ]; then
     CODEX_EXTRA_COUNT=$((CODEX_EXTRA_COUNT + 1))
-    CODEX_EXTRA_DESC="${CODEX_EXTRA_DESC}$PLATFORM_DIR/config.toml (prompt) "
+    codex_config_baseline=$(manifest_hash_for ".codex/config.toml.baseline")
+    if [ -n "$codex_config_baseline" ] && [ "$(hash_file "$PLATFORM_DIR/config.toml")" = "$codex_config_baseline" ]; then
+      CODEX_CONFIG_UNMODIFIED=true
+      CODEX_EXTRA_DESC="${CODEX_EXTRA_DESC}$PLATFORM_DIR/config.toml "
+    else
+      CODEX_EXTRA_DESC="${CODEX_EXTRA_DESC}$PLATFORM_DIR/config.toml (prompt) "
+    fi
   fi
 fi
 
 HAS_MANIFEST=false
 [ -f "$PLATFORM_DIR/.writ-manifest" ] && HAS_MANIFEST=true
 
+# scripts/, .writ/docs/, and the ignore files are shared by every platform
+# install; they go only with the last one.
+OTHER_INSTALLS=()
+for other_dir in .cursor .claude .codex; do
+  [ "$other_dir" = "$PLATFORM_DIR" ] && continue
+  [ -f "$other_dir/.writ-manifest" ] && OTHER_INSTALLS+=("$other_dir")
+done
+LAST_INSTALL=true
+[ "${#OTHER_INSTALLS[@]}" -gt 0 ] && LAST_INSTALL=false
+
+# Shipped scripts and docs the manifest tracks: removed when the file still
+# hashes to its install baseline, kept and listed when the user changed it.
+# A file with no manifest line (a user's file install preserved) is not
+# touched. With --include-writ, .writ/docs/ goes with .writ/.
+SHARED_REMOVE=()
+SHARED_KEPT=()
+if [ "$HAS_MANIFEST" = true ] && [ "$LAST_INSTALL" = true ]; then
+  while read -r baseline_hash manifest_path; do
+    case "$manifest_path" in
+      scripts/*/*|.writ/docs/*/*|*..*) continue ;;
+      scripts/*) ;;
+      .writ/docs/*.md) [ "$INCLUDE_WRIT" = true ] && continue ;;
+      *) continue ;;
+    esac
+    [ -f "$manifest_path" ] && [ ! -L "$manifest_path" ] || continue
+    if [ "$(hash_file "$manifest_path")" = "$baseline_hash" ]; then
+      SHARED_REMOVE+=("$manifest_path")
+    else
+      SHARED_KEPT+=("$manifest_path")
+    fi
+  done <<< "$(grep -v '^#' "$PLATFORM_DIR/.writ-manifest" | grep -v '^$' || true)"
+fi
+
+# The ignore-file lines protect .writ/ content, so they go only with it.
+REVERT_IGNORES=false
+if [ "$INCLUDE_WRIT" = true ] && [ "$LAST_INSTALL" = true ]; then
+  REVERT_IGNORES=true
+fi
+
+# The refs/notes/writ sync refspecs install adds to .git/config (ADR-017) go
+# with the last install. Only Writ's exact lines are removed, from any remote,
+# including the pre-0.33 fetch line and the push line earlier installs added
+# (install.sh and update.sh now remove it); the notes themselves stay.
+NOTES_REFSPECS=()
+if [ "$LAST_INSTALL" = true ] && command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null; then
+  while IFS= read -r remote; do
+    [ -n "$remote" ] || continue
+    for refspec in "fetch +refs/notes/writ:refs/notes/origin-writ" "fetch +refs/notes/writ:refs/notes/writ" "push refs/notes/writ"; do
+      if git config --get-all "remote.$remote.${refspec%% *}" 2>/dev/null | grep -qxF -- "${refspec#* }"; then
+        NOTES_REFSPECS+=("remote.$remote.$refspec")
+      fi
+    done
+  done <<< "$(git remote 2>/dev/null || true)"
+fi
+
 echo "  Files to remove:"
 echo "    📋 Commands:  $CMD_COUNT"
 echo "    🤖 Agents:    $AGENT_COUNT"
 echo "    📜 Skills:    $SKILL_COUNT"
-EXTRAS_DESC="${EXTRA_FILES[*]:-${CODEX_EXTRA_DESC:-}}"
+EXTRAS_DESC="${EXTRA_FILES[*]:-}"
+if [ -n "$CODEX_EXTRA_DESC" ]; then
+  EXTRAS_DESC="${EXTRAS_DESC:+$EXTRAS_DESC }${CODEX_EXTRA_DESC% }"
+fi
 if [ -n "$CLAUDE_EXTRA_DESC" ]; then
   EXTRAS_DESC="${EXTRAS_DESC:+$EXTRAS_DESC }${CLAUDE_EXTRA_DESC% }"
 fi
 echo "    📄 Extras:    $((${#EXTRA_FILES[@]} + CODEX_EXTRA_COUNT + CLAUDE_EXTRA_COUNT)) (${EXTRAS_DESC:-none})"
 [ "$HAS_MANIFEST" = true ] && echo "    📌 Manifest:  1"
+if [ "${#SHARED_REMOVE[@]}" -gt 0 ]; then
+  echo "    🧰 Shipped scripts/docs (unmodified): ${#SHARED_REMOVE[@]}"
+fi
+[ "$REVERT_IGNORES" = true ] && echo "    🙈 Writ lines in .gitignore and .cursorindexingignore"
+if [ "${#NOTES_REFSPECS[@]}" -gt 0 ]; then
+  echo "    🔗 refs/notes/writ refspecs in .git/config: ${#NOTES_REFSPECS[@]}"
+fi
+if [ "${#SHARED_KEPT[@]}" -gt 0 ]; then
+  echo ""
+  echo "  Kept (modified since install):"
+  for f in "${SHARED_KEPT[@]}"; do
+    echo "    ⚡ $f"
+  done
+fi
+if [ "$LAST_INSTALL" = false ]; then
+  echo ""
+  echo "  Kept: scripts/, .writ/docs/, ignore files, and refs/notes/writ refspecs (still used by ${OTHER_INSTALLS[*]})"
+fi
 echo ""
 
 if [ "$INCLUDE_WRIT" = true ] && [ -d ".writ" ]; then
@@ -378,8 +522,9 @@ fi
 
 TOTAL=$((CMD_COUNT + AGENT_COUNT + SKILL_COUNT + ${#EXTRA_FILES[@]} + CODEX_EXTRA_COUNT + CLAUDE_EXTRA_COUNT))
 [ "$HAS_MANIFEST" = true ] && TOTAL=$((TOTAL + 1))
+TOTAL=$((TOTAL + ${#SHARED_REMOVE[@]}))
 
-if [ "$TOTAL" -eq 0 ]; then
+if [ "$TOTAL" -eq 0 ] && [ "${#NOTES_REFSPECS[@]}" -eq 0 ]; then
   echo "  Nothing to remove."
   exit 0
 fi
@@ -415,12 +560,28 @@ if [ "$DRY_RUN" = true ]; then
   fi
   if [ "$PLATFORM" = "codex" ]; then
     [ -f "AGENTS.md" ] && echo "  🗑  AGENTS.md Writ block"
-    [ -f "$PLATFORM_DIR/config.toml" ] && echo "  Would prompt: remove .codex/config.toml?"
+    if [ -f "$PLATFORM_DIR/config.toml" ]; then
+      if [ "$CODEX_CONFIG_UNMODIFIED" = true ]; then
+        echo "  🗑  $PLATFORM_DIR/config.toml (unmodified since install)"
+      else
+        echo "  Would prompt: remove .codex/config.toml?"
+      fi
+    fi
   fi
+  for f in ${SHARED_REMOVE[@]+"${SHARED_REMOVE[@]}"}; do
+    echo "  🗑  $f"
+  done
   [ "$HAS_MANIFEST" = true ] && echo "  🗑  $PLATFORM_DIR/.writ-manifest"
   if [ "$INCLUDE_WRIT" = true ] && [ -d ".writ" ]; then
     echo "  🗑  .writ/ (entire directory)"
   fi
+  if [ "$REVERT_IGNORES" = true ]; then
+    [ -f ".gitignore" ] && echo "  🗑  .gitignore Writ lines"
+    [ -f ".cursorindexingignore" ] && echo "  🗑  .cursorindexingignore Writ lines"
+  fi
+  for entry in ${NOTES_REFSPECS[@]+"${NOTES_REFSPECS[@]}"}; do
+    echo "  🗑  .git/config $entry"
+  done
   echo ""
   echo "  Would remove $TOTAL file(s)."
   echo "  .writ/ directory would be $([ "$INCLUDE_WRIT" = true ] && echo "REMOVED" || echo "preserved")."
@@ -494,9 +655,13 @@ if [ "$PLATFORM" = "codex" ]; then
   fi
 
   # `.codex/config.toml` is install-once and user-owned after install.
-  # Prompt on uninstall so Writ can clean fresh installs without silently
-  # deleting hand-authored Codex configuration.
-  if [ -f "$PLATFORM_DIR/config.toml" ]; then
+  # Unmodified since install: remove it. Otherwise prompt, so Writ never
+  # silently deletes hand-authored Codex configuration.
+  if [ "$CODEX_CONFIG_UNMODIFIED" = true ]; then
+    rm -f "$PLATFORM_DIR/config.toml"
+    echo "  🗑  Removed: .codex/config.toml (unmodified since install)"
+    REMOVED=$((REMOVED + 1))
+  elif [ -f "$PLATFORM_DIR/config.toml" ]; then
     printf '⚠️  .codex/config.toml is your Codex configuration (may contain user customizations). Remove it? [y/N] '
     read -r remove_codex_config || remove_codex_config=""
     case "$remove_codex_config" in
@@ -512,6 +677,14 @@ if [ "$PLATFORM" = "codex" ]; then
   fi
 fi
 
+if [ "${#SHARED_REMOVE[@]}" -gt 0 ]; then
+  for f in "${SHARED_REMOVE[@]}"; do
+    rm -f "$f"
+    REMOVED=$((REMOVED + 1))
+  done
+  rmdir scripts 2>/dev/null || true
+fi
+
 if [ "$HAS_MANIFEST" = true ]; then
   rm -f "$PLATFORM_DIR/.writ-manifest"
   REMOVED=$((REMOVED + 1))
@@ -524,6 +697,21 @@ rmdir "$PLATFORM_DIR" 2>/dev/null || true
 if [ "$INCLUDE_WRIT" = true ] && [ -d ".writ" ]; then
   rm -rf .writ
   echo "  🗑  Removed .writ/ directory"
+fi
+
+if [ "$REVERT_IGNORES" = true ]; then
+  revert_gitignore
+  [ -n "$REVERT_NOTE" ] && echo "  $REVERT_NOTE"
+  revert_cursorindexingignore
+  [ -n "$REVERT_NOTE" ] && echo "  $REVERT_NOTE"
+fi
+
+if [ "${#NOTES_REFSPECS[@]}" -gt 0 ]; then
+  for entry in "${NOTES_REFSPECS[@]}"; do
+    refspec="${entry#* }"
+    git config --unset-all "${entry%% *}" "^${refspec//+/\\+}\$" 2>/dev/null || true
+  done
+  echo "  🗑  Removed ${#NOTES_REFSPECS[@]} refs/notes/writ refspec(s) from .git/config (the notes stay)"
 fi
 
 echo "  🗑  Removed $REMOVED file(s)"
@@ -542,12 +730,21 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
   fi
   if [ "$INCLUDE_WRIT" = true ]; then
     git add -u ".writ/" 2>/dev/null || true
+  elif [ "${#SHARED_REMOVE[@]}" -gt 0 ]; then
+    git add -u ".writ/docs/" 2>/dev/null || true
+  fi
+  if [ "${#SHARED_REMOVE[@]}" -gt 0 ]; then
+    git add -u "scripts/" 2>/dev/null || true
+  fi
+  if [ "$REVERT_IGNORES" = true ]; then
+    git add -u ".gitignore" 2>/dev/null || true
+    git add -u ".cursorindexingignore" 2>/dev/null || true
   fi
 
   git commit -m "$(cat <<EOF
 chore: uninstall Writ ($PLATFORM_LABEL)
 
-Removed commands, agents, rules, and manifest.
+Removed commands, agents, rules, manifest, and unmodified shipped scripts and docs.
 $([ "$INCLUDE_WRIT" = true ] && echo "Also removed .writ/ directory." || echo ".writ/ directory preserved.")
 
 See: https://github.com/sellke/writ
@@ -565,7 +762,8 @@ echo ""
 if [ "$INCLUDE_WRIT" = true ]; then
   echo "  All Writ files including .writ/ have been removed."
 else
-  echo "  .writ/ directory preserved (specs, docs, ADRs intact)."
+  echo "  .writ/ directory preserved (specs, ADRs, research intact)."
+  echo "  Writ's lines in .gitignore and .cursorindexingignore stay with it."
   echo "  To also remove: rm -rf .writ"
 fi
 echo ""

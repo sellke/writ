@@ -1,0 +1,76 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Bash: {"command": "git ls-files | grep -v '^\\.claude/' | grep -v '^\\.writ/docs' | head -100; ls .writ 2>/dev/null; ls .writ/specs 2>/dev/null", "description": "List project files and existing specs"}
+TOOL_RESULT (error): Exit code 1
+.cursorindexingignore
+.gitignore
+CLAUDE.md
+README.md
+scripts/ac-trace.py
+scripts/app-verify.py
+scripts/arch-check.py
+scripts/arch-lint.py
+scripts/archive-sweep.py
+scripts/boundary-map.py
+scripts/build-smoke.py
+scripts/change-surface.py
+scripts/check-agent-parity.sh
+scripts/docs-check.py
+scripts/drift-format.py
+scripts/exit-criteria.py
+scripts/gen-claude-agents.py
+scripts/gen-codex-agent-tomls.py
+scripts/gen-skill.sh
+scripts/goal-emit.py
+scripts/jev-judge.py
+scripts/jev-thresholds.json
+scripts/knowledge-consolidate.py
+scripts/lint-skill.sh
+scripts/phase-state.py
+scripts/quality-conf …[1026 chars]
+TOOL_CALL Bash: {"command": "cat src/settings.py tests/test_settings.py README.md; ls .writ/docs .writ/state; cat .writ/docs/tech-stack.md .writ/docs/code-style.md 2>/dev/null | head -60", "description": "Read settings source, tests, and project docs"}
+TOOL_RESULT: """User settings for the demo app."""
+DEFAULTS = {"theme": "light", "page_size": 20}
+
+def get(name, overrides=None):
+    merged = dict(DEFAULTS, **(overrides or {}))
+    return merged[name]
+from src.settings import get
+
+def test_default_theme():
+    assert get("theme") == "light"
+# Demo app
+
+A tiny app used to test Writ installs.
+.writ/docs:
+acceptance-criteria-ids.md
+agent-cli-contract.md
+app-verification-format.md
+architecture-lint.md
+command-overlay.md
+component-contract.md
+config-format.md
+context-hint-format.md
+drift-report-format.md
+exit-criteria-classification.md
+gbrain-recipe.md
+git-no …[1028 chars]
+TOOL_CALL Write: {"file_path": "~/.claude/plans/a-reset-command-that-warm-horizon.md", "content": "# create-spec: settings reset command \u2014 discovery notes\n\n## Context scan\n- `src/settings.py`: `DEFAULTS = {\"theme\": \"light\", \"page_size\": 20}`; `get(name, overrides=None)` merges caller-supplied overrides over defaults per call.\n- No persistence layer, no settings store, no CLI or command entry point.\n- `tests/test_settings.py`: one test (`get(\"theme\") == \"light\"`).\n- `.writ/specs/`: none exist \u2192 no cross-spec overlap.\n- No `tech-stack.md` / `code-style.md`.\n\n## Open issue (blocking)\nNothing persists, so a reset has no state to act on. Where overrides live and how a \"command\" is invoked must be settled before a contract.\n"}
+TOOL_RESULT: File created successfully at: ~/.claude/plans/a-reset-command-that-warm-horizon.md (file state is current in your context — no need to Read it back)
+ASSISTANT: As written, the reset command has nothing to reset.
+
+**What's in the code now:**
+- `src/settings.py` has `DEFAULTS = {"theme": "light", "page_size": 20}` and `get(name, overrides=None)`.
+- The caller passes overrides in on each call, and they're merged over the defaults. Nothing is stored anywhere.
+- There's no command-line interface or other entry point where a "command" could live.
+- There are no existing specs, so nothing overlaps with this one.
+
+A reset only makes sense once user changes are saved somewhere. That has to be settled before I can write the contract.
+
+**Where should user changes to settings live?**
+
+1. **A JSON file on disk** (e.g. `settings.json`), plus a small CLI with `set`, `get` and `reset`. The reset deletes or rewrites that file. (Recommended)
+2. **An in-memory store in `src/settings.py`**, with a `reset()` function. It only lasts for one process, so a "command" here really means a function call.
+3. **Somewhere else** — tell me which store and how the command gets invoked.
+
+Option 1 is the smallest change that makes the reset real. It does mean the spec covers saving settings plus the CLI, not only the reset.
+[result] success turns=4 cost=0.2227142

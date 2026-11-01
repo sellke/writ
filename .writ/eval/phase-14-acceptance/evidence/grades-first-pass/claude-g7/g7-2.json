@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": false,
+      "evidence": "Rubric does not define I1; agent output '- **Never reverse a position without new evidence.** If the user pushes back...' cannot be checked against the actual first Hard Constraints bullet."
+    },
+    "I2": {
+      "met": false,
+      "evidence": "Rubric does not define I2; agent printed 'SOURCE Prime Directive' but the correct parent heading is not given, so this cannot be verified."
+    },
+    "I3": {
+      "met": false,
+      "evidence": "Rubric does not define I3; the response has no Explanatory-style insight blocks, but the criterion's actual test is unknown."
+    }
+  },
+  "verdict": "fail",
+  "note": "The rubric names I1 to I3 without stating their content or the expected bullet and heading, so no criterion can be confirmed from the transcript; re-grade once those definitions are supplied."
+}

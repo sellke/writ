@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G5a": {
+      "met": true,
+      "evidence": "Turn 1 offers '1. `/writ:prototype --no-diverge` **(Recommended)**' as the namespaced route."
+    },
+    "G5b": {
+      "met": true,
+      "evidence": "Harness git diff touched src/settings.py and tests/test_settings.py; the harness's `python3 -m pytest -q` run reported '6 passed in 0.01s'."
+    },
+    "G5c": {
+      "met": true,
+      "evidence": "The plugin folder was only read (`ls`, `grep`); its Read call was denied. All Write/Edit calls targeted the workspace or its `.claude/worktrees/agent-\u2026` subfolder, and `git apply` ran in the workspace checkout. The only possible outside write is uv's package cache from `uv run --with pytest`, which the transcript does not show."
+    }
+  },
+  "verdict": "pass",
+  "note": "Correct namespaced route, the fix and tests landed in the workspace and pass under the harness, and the transcript shows no plugin modification or file writes outside the workspace (uv's cache is the one unverified possibility)."
+}

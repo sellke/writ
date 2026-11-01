@@ -1,0 +1,3 @@
+ASSISTANT: NONE
+SOURCE NONE
+[turn.completed] usage={"input_tokens": 19044, "cached_input_tokens": 12160, "cache_write_input_tokens": 0, "output_tokens": 46, "reasoning_output_tokens": 36}

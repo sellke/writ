@@ -42,7 +42,7 @@ Create new Writ commands contract-first. No files are created until the develope
 
 #### Step 1.2: Switch to Plan Mode for Command Discovery
 
-After the context scan, switch to Plan Mode. Designing a new command is open-ended — the workflow it serves, how it fits with existing commands, what patterns to follow, where simplification exists — and multiple-choice options cannot capture it.
+After the context scan, switch to Plan Mode through the adapter's `Plan Mode` row. Designing a new command is open-ended — the workflow it serves, how it fits with existing commands, what patterns to follow, where simplification exists — and multiple-choice options cannot capture it.
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 

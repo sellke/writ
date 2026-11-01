@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed: `/research`' and '1. `/research` (Recommended)' match label `/research`."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal: A written comparison...', 'Problem: Nobody has checked...', and 'Done check: A research record covers both frameworks...' all appear before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "One route-confirmation block in text (no question tool call), options 1\u20136, last is '6. Not what I meant'; no separate clarifying question."
+    }
+  },
+  "verdict": "pass",
+  "note": "Routed correctly to /research with full restatement; the confirmation was given as an inline text list, not through the question tool."
+}

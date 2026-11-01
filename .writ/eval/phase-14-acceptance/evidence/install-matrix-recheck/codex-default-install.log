@@ -1,0 +1,173 @@
+⚡ Writ Installer (Codex CLI)
+==================
+
+📦 Using local writ: <tmp>/src
+
+  📋 Commands:  34
+  🤖 Agents:    8
+  📜 Skills:    16
+  📄 AGENTS.md Writ block (.agents/skills/ for AgentSkills)
+  📖 System:    1 (system-instructions.md)
+  🧩 Codex cfg: install-once .codex/config.toml when absent
+  🎯 Platform:  Codex CLI
+  📌 Version:   unknown
+
+Installing...
+  [1/8] Commands...
+  [2/8] Scripts & Writ docs...
+  [3/8] Agents...
+  [4/8] Skills...
+  [5/8] AGENTS.md integration...
+  [6/8] Codex CLI config...
+✨ Seeded: .codex/config.toml
+  [7/8] System instructions...
+  [8/8] Writing manifest...
+  🔗 Audit notes sync (refs/notes/writ)...
+    📝 Audit notes: refs/notes/writ sync configured on 'origin'.
+  🔎 Cursor indexing ignore (install-once)...
+✨ Seeded: .cursorindexingignore
+
+✅ Writ installed for Codex CLI! (version: unknown)
+
+  📋 Summary:
+     119 new file(s) installed
+     Skills: 16 new, 0 updated, 0 preserved
+
+  AGENTS.md: Writ block created
+  ✨ Seeded: .codex/config.toml
+
+  ✨ Seeded: .cursorindexingignore
+[main d0f9079] chore: install Writ development workflow (Codex CLI)
+ 125 files changed, 37870 insertions(+)
+ create mode 100644 .agents/skills/boundary-map-computation/SKILL.md
+ create mode 100644 .agents/skills/change-surface-classification/SKILL.md
+ create mode 100644 .agents/skills/code-explanation/SKILL.md
+ create mode 100644 .agents/skills/conventional-commits/SKILL.md
+ create mode 100644 .agents/skills/dependency-context-loading/SKILL.md
+ create mode 100644 .agents/skills/drift-triage/SKILL.md
+ create mode 100644 .agents/skills/error-rescue-mapping/SKILL.md
+ create mode 100644 .agents/skills/plain-prose/SKILL.md
+ create mode 100644 .agents/skills/project-context-snapshot/SKILL.md
+ create mode 100644 .agents/skills/safe-refactor-loop/SKILL.md
+ create mode 100644 .agents/skills/story-commit-provenance/SKILL.md
+ create mode 100644 .agents/skills/story-context-assembly/SKILL.md
+ create mode 100644 .agents/skills/subagent-result-completeness/SKILL.md
+ create mode 100644 .agents/skills/subagent-worktree-integration/SKILL.md
+ create mode 100644 .agents/skills/tdd-cycle/SKILL.md
+ create mode 100644 .agents/skills/what-was-built-authoring/SKILL.md
+ create mode 100644 .codex/.writ-manifest
+ create mode 100644 .codex/agents/architecture-check-agent.toml
+ create mode 100644 .codex/agents/coding-agent.toml
+ create mode 100644 .codex/agents/documentation-agent.toml
+ create mode 100644 .codex/agents/evaluator-agent.toml
+ create mode 100644 .codex/agents/review-agent.toml
+ create mode 100644 .codex/agents/testing-agent.toml
+ create mode 100644 .codex/agents/user-story-generator.toml
+ create mode 100644 .codex/agents/visual-qa-agent.toml
+ create mode 100644 .codex/commands/_preamble.md
+ create mode 100644 .codex/commands/assess-spec.md
+ create mode 100644 .codex/commands/create-adr.md
+ create mode 100644 .codex/commands/create-goal.md
+ create mode 100644 .codex/commands/create-issue.md
+ create mode 100644 .codex/commands/create-spec.md
+ create mode 100644 .codex/commands/create-uat-plan.md
+ create mode 100644 .codex/commands/edit-spec.md
+ create mode 100644 .codex/commands/implement-phase.md
+ create mode 100644 .codex/commands/implement-spec.md
+ create mode 100644 .codex/commands/implement-story.md
+ create mode 100644 .codex/commands/initialize.md
+ create mode 100644 .codex/commands/knowledge.md
+ create mode 100644 .codex/commands/migrate.md
+ create mode 100644 .codex/commands/new-command.md
+ create mode 100644 .codex/commands/new-skill.md
+ create mode 100644 .codex/commands/plan-product.md
+ create mode 100644 .codex/commands/prototype.md
+ create mode 100644 .codex/commands/refactor.md
+ create mode 100644 .codex/commands/refresh-command.md
+ create mode 100644 .codex/commands/reinstall-writ.md
+ create mode 100644 .codex/commands/release.md
+ create mode 100644 .codex/commands/research.md
+ create mode 100644 .codex/commands/retro.md
+ create mode 100644 .codex/commands/revert.md
+ create mode 100644 .codex/commands/review.md
+ create mode 100644 .codex/commands/security-audit.md
+ create mode 100644 .codex/commands/ship.md
+ create mode 100644 .codex/commands/status.md
+ create mode 100644 .codex/commands/uninstall-writ.md
+ create mode 100644 .codex/commands/update-writ.md
+ create mode 100644 .codex/commands/verify-spec.md
+ create mode 100644 .codex/commands/writ-design.md
+ create mode 100644 .codex/commands/writ.md
+ create mode 100644 .codex/config.toml
+ create mode 100644 .codex/system-instructions.md
+ create mode 100644 .cursorindexingignore
+ create mode 100644 .gitignore
+ create mode 100644 .writ/docs/acceptance-criteria-ids.md
+ create mode 100644 .writ/docs/agent-cli-contract.md
+ create mode 100644 .writ/docs/app-verification-format.md
+ create mode 100644 .writ/docs/architecture-lint.md
+ create mode 100644 .writ/docs/command-overlay.md
+ create mode 100644 .writ/docs/component-contract.md
+ create mode 100644 .writ/docs/config-format.md
+ create mode 100644 .writ/docs/context-hint-format.md
+ create mode 100644 .writ/docs/drift-report-format.md
+ create mode 100644 .writ/docs/exit-criteria-classification.md
+ create mode 100644 .writ/docs/gbrain-recipe.md
+ create mode 100644 .writ/docs/git-notes-audit-format.md
+ create mode 100644 .writ/docs/leanness-audit-2026-07-11.md
+ create mode 100644 .writ/docs/leanness-audit-2026-07-18.md
+ create mode 100644 .writ/docs/leanness-audit-2026-10-21.md
+ create mode 100644 .writ/docs/leanness-audit-format.md
+ create mode 100644 .writ/docs/model-tiers.md
+ create mode 100644 .writ/docs/phase-execution-state-format.md
+ create mode 100644 .writ/docs/prompting-guide.md
+ create mode 100644 .writ/docs/quality-signal-classification.md
+ create mode 100644 .writ/docs/recommendation-semantics.md
+ create mode 100644 .writ/docs/refresh-log-format.md
+ create mode 100644 .writ/docs/self-dogfooding.md
+ create mode 100644 .writ/docs/skills.md
+ create mode 100644 .writ/docs/spec-format.md
+ create mode 100644 .writ/docs/spec-lifecycle.md
+ create mode 100644 .writ/docs/startup-update-awareness.md
+ create mode 100644 .writ/docs/swot-2026-03-01.md
+ create mode 100644 .writ/docs/what-was-built-format.md
+ create mode 100644 AGENTS.md
+ create mode 100755 scripts/ac-trace.py
+ create mode 100755 scripts/app-verify.py
+ create mode 100755 scripts/arch-check.py
+ create mode 100755 scripts/arch-lint.py
+ create mode 100755 scripts/archive-sweep.py
+ create mode 100755 scripts/boundary-map.py
+ create mode 100755 scripts/build-smoke.py
+ create mode 100755 scripts/change-surface.py
+ create mode 100755 scripts/docs-check.py
+ create mode 100755 scripts/drift-format.py
+ create mode 100755 scripts/exit-criteria.py
+ create mode 100755 scripts/goal-emit.py
+ create mode 100755 scripts/jev-judge.py
+ create mode 100644 scripts/jev-thresholds.json
+ create mode 100755 scripts/knowledge-consolidate.py
+ create mode 100755 scripts/lint-skill.sh
+ create mode 100755 scripts/phase-state.py
+ create mode 100755 scripts/quality-config-audit.py
+ create mode 100755 scripts/resolve-spec-reference.py
+ create mode 100755 scripts/revert-resolve.py
+ create mode 100755 scripts/review-override.py
+ create mode 100755 scripts/review-panel.py
+ create mode 100755 scripts/roadmap-sync.py
+ create mode 100755 scripts/scaffold-writ.py
+ create mode 100755 scripts/spec-analyze.py
+ create mode 100755 scripts/spec-deps.py
+ create mode 100755 scripts/spec-status.py
+ create mode 100755 scripts/story-context.py
+ create mode 100755 scripts/story-deps.py
+ create mode 100755 scripts/supersession-writeback.py
+ create mode 100755 scripts/test-integrity.py
+ create mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+Usage:
+  In Codex CLI, restart sessions to reload AGENTS.md — try /create-spec, /implement-story
+
+⚡ So it is written. So it shall be built.
+exit=0

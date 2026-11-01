@@ -96,6 +96,29 @@ your-project/
     └── state/
 ```
 
+### Plugin
+
+Writ also installs as a Claude Code plugin from this repository: the marketplace file is `.claude-plugin/marketplace.json` at the repository root, and the plugin is `plugins/writ/`. `python3 scripts/gen-platform-trees.py` generates both from `commands/`, `agents/`, `skills/`, `scripts/`, `system-instructions.md`, and `VERSION`, and `--check` fails when either differs from a fresh render. Do not hand-edit them.
+
+```bash
+claude plugin marketplace add sellke/writ
+claude plugin install writ@writ
+```
+
+Under the plugin, commands and agents carry the `writ` namespace and scripts run from the plugin's own `scripts/`, so the project needs no `scripts/` folder. The plugin does not include the `.writ/docs/` reference docs that `install.sh` copies. A command that cites `.writ/docs/<name>.md` reads the project's copy, and a project with only the plugin has none.
+
+Platform facts, from the Verification Record of spec `2026-10-22-plugin-distribution`:
+
+- **Install.** `claude plugin marketplace add` takes a GitHub `owner/repo`, and `claude plugin install <plugin>@<marketplace>` installs at user scope unless `--scope` names another (docs read 2026-10-23, https://code.claude.com/docs/en/plugins/install.md). A local-path add and install of a scratch copy of this layout worked on Claude Code 2.1.309 on 2026-10-23 (same page). The install from `sellke/writ` itself has not run yet: a GitHub-sourced plugin runs from a cache copy, not in place (docs read 2026-10-23, https://code.claude.com/docs/en/plugins/loading.md).
+- **Validation.** On the generated tree, `claude plugin validate plugins/writ` exits 0 with warnings (the prompt-template docs in `agents/` have no frontmatter), and `claude plugin validate .` exits 0 with no warnings (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/cli-reference.md).
+- **Namespacing.** Plugin commands run as `/writ:<command>`, so the front door is `/writ:writ`, and plugin agents are `writ:<agent>`, for example `writ:writ-coder` (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/components.md). The generated commands spell every cross-reference this way.
+- **Scripts.** Claude Code substitutes `${CLAUDE_PLUGIN_ROOT}` in command, skill, and agent bodies but not in the Bash tool's environment, so the generated commands spell `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/<name>.py` inline (docs read 2026-10-23, https://code.claude.com/docs/en/plugins/manifest-reference.md).
+- **Prime Directive carrier.** `plugins/writ/output-styles/writ.md` with `force-for-plugin: true` and `keep-coding-instructions: true`; its body is the body of `system-instructions.md`. Observed on Claude Code 2.1.309 on 2026-10-23 in a scratch plugin: asked to quote the first Hard Constraints bullet, the session quoted it and named the Prime Directive as its source, and it named its persona Writ; with no carrier it answered `NONE` (https://code.claude.com/docs/en/output-styles.md).
+- **Carrier cost: your output style.** A forced style overrides your `outputStyle` while the plugin is enabled, and when another enabled plugin also forces a style, the first loaded wins (docs read 2026-10-23, https://code.claude.com/docs/en/output-styles.md). Observed on Claude Code 2.1.310 on 2026-10-24: with `"outputStyle": "Explanatory"` in the project's local settings, the Prime Directive still loaded in 3 of 3 headless runs.
+- **Carrier cost: subagents.** Output styles reach the main conversation and forks, not other subagents, so each Writ agent carries its own instructions in its body (docs read 2026-10-23, https://code.claude.com/docs/en/output-styles.md).
+- **Ignored agent keys.** Plugin agents ignore `permissionMode`, `hooks`, and `mcpServers`, and the field table marks `initialPrompt` ignored as well (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). All eight Writ agents set `permissionMode`, so the modes in [Permission Modes](#permission-modes) do not apply under the plugin; no Writ agent sets the other three. `isolation: worktree` and `memory: project` took effect in a scratch plugin agent on Claude Code 2.1.309 on 2026-10-23 (same page).
+- **Both installs in one project.** A project with an `install.sh` install and the plugin has both command sets, `/create-spec` from `.claude/commands/` and `/writ:create-spec` from the plugin, and a project command does not shadow the plugin command of the same name (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/components.md). Plugin agents rank lowest among same-named agents, but their names carry the `writ:` prefix, so `writ-coder` is the project's agent and `writ:writ-coder` the plugin's (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). Writ commands spawn agents from the prompt templates in `agents/`, not by name. Use one install path per project.
+
 ---
 
 ## Key Features Used
@@ -188,14 +211,25 @@ On Claude Code, native memory is **`CLAUDE.md`** (auto-loaded into every session
 |---|---|---|
 | `Task({ prompt })` | Automatic delegation to named subagent | Claude routes based on `description` field |
 | `Task({ readonly: true })` | `permissionMode: plan` + `disallowedTools: Write, Edit` | Enforced at tool level |
-| `AskQuestion()` | Formatted text with numbered options | No interactive UI |
+| `AskQuestion()` | `AskUserQuestion`: one to four questions, two to four options each; the user can always type another answer | Interactive sessions only (tool schema observed in Claude Code 2.1.310, 2026-10-24). If the platform has no question tool, as in headless `claude -p`, print the question as formatted text with numbered options. |
 | `codebase_search` | `Grep("pattern")` or `Bash("rg 'pattern'")` | Built-in Grep tool |
 | `file_search` | `Glob("**/pattern*")` | Built-in Glob tool |
-| `todo_write` | `Write(".writ/state/tracking.json")` | File-based |
+| `todo_write` | `TodoWrite` | Native todo list; phases mirror here. If the platform has no todo tool, as in headless `claude -p`, print the checklist in the reply. |
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Direct equivalent |
 | `list_dir` | `Glob("dir/*")` or `Bash("ls")` | Built-in Glob tool |
 | `canvas-preview` | An artifact, or the preview pane | One self-contained HTML page per draft. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `Plan Mode` | `EnterPlanMode`; present the contract proposal as the plan, opening with one line that approving it accepts the draft and runs nothing; after `ExitPlanMode` approval, lock with AskQuestion | If the platform has no toggle, say so and proceed read-only. |
+
+#### Verification record — 2026-10-22
+
+| Check | Platform & version | Observed | Source | Status |
+|---|---|---|---|---|
+| Publish one self-contained HTML draft as an artifact | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | The `Artifact` tool published `draft-a.html` (inline CSS, no network fetch, one labeled region per component) from the session scratchpad to a private claude.ai URL as version 1. Reading the URL back returned the page inside the viewer's document shell, and the Browser pane rendered the URL in the artifact viewer with all four labeled regions visible. | https://code.claude.com/docs/en/artifacts | verified 2026-10-22 |
+| Open the same draft in the preview (Browser) pane | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | `navigate` to the `file://` path opened the draft in the pane as a static snapshot; a screenshot of the local-file tab was refused, so that render was not inspected. Served from the scratchpad over `http://127.0.0.1` by a static file server, `navigate` rendered the page and a screenshot showed all four labeled regions. | https://code.claude.com/docs/en/desktop#preview-your-app | verified 2026-10-22 |
+| Native design surface reachable from a command run | Claude Code 2.1.308 (`claude --version`), desktop app session (Browser pane tools present) | The `Artifact` tool's read-only `quickstart` (intent `design`) listed the Claude Design type with a `type_url` and said to publish to that URL to start a canvas. Listed and addressable from inside the run without the user typing the native `/design` command; nothing was published and no canvas was created. | https://code.claude.com/docs/en/artifacts#draft-a-design-canvas | verified 2026-10-22 |
+| Headless run (`claude -p`): no-renderer path | Claude Code 2.1.308 (`claude --version`), desktop app session; `-p` not run, docs read 2026-10-22 | Not exercised in this run. The docs list `-p` from a terminal or script among the contexts where artifacts are off by default, so a headless `/prototype` run takes the row's no-renderer clause. | https://code.claude.com/docs/en/artifacts#availability | unverified 2026-10-22 |
+| Print mode (`claude -p`): tool set | Claude Code 2.1.310 (`claude --version`), `claude -p` init event, run 2026-10-24 | The init event's `tools` list held `Artifact` by default, so artifacts were not off for this account. `AskUserQuestion`, `TodoWrite`, `EnterPlanMode`, and `ExitPlanMode` were absent even when `--tools` named them or `--permission-mode plan` was set; `Glob` and `Grep` loaded only when `--tools` named them. | https://code.claude.com/docs/en/artifacts#availability | verified 2026-10-24 |
 
 ### Agent Paths
 
@@ -223,7 +257,9 @@ Use the writ-coder agent to implement this story.
 Use the writ-reviewer agent to review the implementation.
 ```
 
-### Structured Questions (no AskQuestion equivalent)
+### Structured Questions
+
+Interactive sessions use `AskUserQuestion`. A question that needs more than four options keeps the recommended one and the closest alternatives, and says the user can type any other. Headless runs (`claude -p`) have no question tool, so the question is printed as numbered text:
 
 ```
 **Feature Clarification - Round 1**

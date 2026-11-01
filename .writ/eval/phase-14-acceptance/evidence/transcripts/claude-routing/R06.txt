@@ -1,0 +1,53 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Glob: {"pattern": ".writ/product/*"}
+TOOL_RESULT: .writ/product/roadmap.md
+TOOL_CALL Glob: {"pattern": ".writ/docs/{startup-update-awareness,prompting-guide}.md"}
+TOOL_RESULT: .writ/docs/prompting-guide.md
+.writ/docs/startup-update-awareness.md
+TOOL_CALL Read: {"file_path": "<tmp>/ws/claude-routing-2/.writ/product/roadmap.md"}
+TOOL_RESULT: 1	# Roadmap
+2	
+3	## Phase 13: Settings validation — Complete
+4	
+5	- Reject unknown setting names with a clear error.
+6	
+7	## Phase 14: CSV export and import — Planned
+8	
+9	- Export all settings to a CSV file.
+10	- Import settings from a CSV file, with a dry-run preview.
+11	
+12	**Exit criteria:** a round trip through export and import leaves settings unchanged; tests pass.
+13	
+14	## Phase 15: Audit log — Planned
+15	
+16	- Record every settings change with a timestamp and the old and new value.
+17	
+TOOL_CALL Read: {"file_path": "<tmp>/ws/claude-routing-2/.writ/docs/startup-update-awareness.md"}
+TOOL_RESULT: 1	# Startup Update Awareness
+2	
+3	> **Status:** Normative. This is the procedure that lived in `system-instructions.md` → Startup Update Awareness until 2026-09-07, moved here under [ADR-026](../decision-records/adr-026-constraint-test-pruning.md) (every removed line is in [`pruned-instructions-ledger.md`](../decision-records/pruned-instructions-ledger.md)). The base keeps the trigger sentence and one pointer line to this file.
+4	> **Applies:** Cursor, Claude Code, Codex CLI. `scripts/install.sh` ships `.writ/docs/*.md`, so installed projects carry this file.
+5	> **Related:** [`commands/update …[4549 chars]
+ASSISTANT: ```
+Goal: A single self-contained web page shows your day in one place: today's email, calendar, tasks, and meeting notes.
+Problem: That information is spread across four separate tools, and none of the pieces exists yet. This repo holds a settings project, and its roadmap (Phases 13–15) doesn't include a dashboard.
+Done check: (not stated — see prompting-guide.md § What a request carries)
+Proof: (not stated — see prompting-guide.md § What a request carries)
+```
+
+**Proposed route: `/create-spec`.** The page needs four outside data sources, each with its own login, and it's a new build with no existing code to extend. Both of those are signals for a spec rather than a prototype. `/create-spec` also starts by asking you questions before it writes any files, which is what you asked for. `/prototype` would start building right away.
+
+The question the spec has to settle first is what "self-contained" means. There are two ways to do it:
+- **Snapshot:** your data is pulled when the page is generated and saved into a static HTML file.
+- **Live:** the page signs in to each service from your browser and loads the data when you open it.
+
+This session is already connected to Gmail, Google Calendar, Todoist and Granola, so the snapshot approach could work right away. If your sources are Microsoft 365, Notion, Otter, Fireflies or Circleback instead, you'll need to authorize them in your claude.ai connector settings first.
+
+**Route** — reply with a number:
+
+1. `/create-spec` (Recommended)
+2. `/prototype`: try different approaches, starting with snapshot vs. live
+3. `/prototype --no-diverge`: build one obvious version straight away
+4. `/research`: look into the options before deciding
+5. Not what I meant
+[result] success turns=5 cost=1.8655110000000001

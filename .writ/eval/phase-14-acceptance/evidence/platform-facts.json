@@ -1,0 +1,73 @@
+{
+  "versions": {
+    "claude": "2.1.310 (Claude Code)",
+    "codex": "codex-cli 0.163.0",
+    "cursor-agent": "not installed"
+  },
+  "facts": [
+    {
+      "id": "CC1",
+      "cli": "claude",
+      "row": "UAT plans and the acceptance harness",
+      "fact": "`claude --help` offers --tools, --setting-sources, --plugin-dir, --output-format, --no-session-persistence, and --permission-mode",
+      "status": "holds",
+      "observed": "all present"
+    },
+    {
+      "id": "CC2",
+      "cli": "claude",
+      "row": "README \u00a7 Claude Code (plugin)",
+      "fact": "`claude plugin install` installs at user scope by default",
+      "status": "holds",
+      "observed": "default user scope"
+    },
+    {
+      "id": "CC3",
+      "cli": "claude",
+      "row": "adapters/claude-code.md AskQuestion row (fallback)",
+      "fact": "Headless `claude -p` has no AskUserQuestion, TodoWrite, or EnterPlanMode, even when --tools names them; Glob, Grep, and Read load when named",
+      "status": "holds",
+      "observed": "loaded: Glob, Grep, Read"
+    },
+    {
+      "id": "CC4",
+      "cli": "claude",
+      "row": "adapters/claude-code.md Verification record, headless row",
+      "fact": "Headless `claude -p` loads the Artifact tool by default (2026-10-24 observation; account-dependent)",
+      "status": "holds",
+      "observed": "Artifact loaded"
+    },
+    {
+      "id": "CC5",
+      "cli": "claude",
+      "row": "plugin-distribution UAT S9 (inventory step)",
+      "fact": "The headless init event lists the loaded agents and slash commands, so the inventory check needs no interactive `/agents` screen",
+      "status": "holds",
+      "observed": "6 agents, 57 slash commands"
+    },
+    {
+      "id": "CX1",
+      "cli": "codex",
+      "row": "acceptance harness (codex exec)",
+      "fact": "`codex exec` offers --json, --ignore-user-config, and --sandbox; `codex exec resume` has no --sandbox, so a resumed turn sets sandbox_mode with -c",
+      "status": "holds",
+      "observed": "exec flags present; resume without --sandbox"
+    },
+    {
+      "id": "CX2",
+      "cli": "codex",
+      "row": "adapters/codex.md file_search and codebase_search rows",
+      "fact": "Codex calls shell commands (exec_command) and apply_patch; it has no Glob or Grep tool (model self-report, weaker than a platform record)",
+      "status": "holds",
+      "observed": "self-reported: apply_patch, clock__curr_time, create_goal, exec, exec_command, followup_task, get_goal, image_gen__imagegen, interrupt_agent, list_agents, list_mcp_resource_templates, list_mcp_resources"
+    },
+    {
+      "id": "CU1",
+      "cli": "cursor-agent",
+      "row": "adapters/cursor.md (all plugin and canvas rows)",
+      "fact": "A Cursor CLI is installed, so Cursor facts can be rechecked headless",
+      "status": "unverifiable",
+      "observed": "cursor-agent not installed"
+    }
+  ]
+}

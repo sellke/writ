@@ -51,7 +51,7 @@ Ask 2-3 questions MAX in a single message. Be conversational, not a checklist; t
 
 ### Step 3: Context Search (Only When Helpful)
 
-Use `Grep` to find relevant files when the issue mentions specific components or functionality.
+Use `codebase_search` to find relevant files when the issue mentions specific components or functionality.
 
 **Search when:**
 - User mentions a component/feature name
@@ -67,7 +67,7 @@ Max 3 files in the final issue.
 
 ### Step 4: Related Issues Check
 
-Quick scan of `.writ/issues/` with `Glob` for existing issues in the same area or with similar keywords. Include related ones in the Related Issues section.
+Quick scan of `.writ/issues/` with `file_search` for existing issues in the same area or with similar keywords. Include related ones in the Related Issues section.
 
 **Skip if:**
 - No `.writ/issues/` folder exists yet

@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G1a": {
+      "met": true,
+      "evidence": "Turn-2 reply begins \"Goal: `get(\"page_size\")` returns a default big enough...\", then \"Problem: `DEFAULTS[\"page_size\"]` is 20...\", then \"Done check: (not stated ...)\". No prose comes before these lines."
+    },
+    "G1b": {
+      "met": true,
+      "evidence": "\"Proposed: `/prototype --no-diverge`\" with a one-route justification. The numbered list marks this option \"(Recommended)\"; the others are only alternatives to choose from."
+    }
+  },
+  "verdict": "pass",
+  "note": "The reply opens with the labeled restatement and proposes one route, `/prototype --no-diverge`, before showing a pick list."
+}

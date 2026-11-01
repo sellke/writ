@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G5a": {
+      "met": true,
+      "evidence": "Turn 1: \"Proposed: `/writ:prototype --no-diverge`... 1. `/writ:prototype --no-diverge` (Recommended)\""
+    },
+    "G5b": {
+      "met": true,
+      "evidence": "Harness git diff touched src/settings.py and tests/test_settings.py; the harness's `python3 -m pytest -q` reported \"6 passed in 0.00s\"."
+    },
+    "G5c": {
+      "met": true,
+      "evidence": "plugin_hash_before=f1633fadd9c701ce after=f1633fadd9c701ce. Every Write/Edit targeted paths under <tmp>/ws/claude-plugin (including .claude/worktrees). The plugin folder was only read via cat/ls/grep, and `cp ... /dev/null` failed without writing anything."
+    }
+  },
+  "verdict": "pass",
+  "note": "The route was proposed correctly, the fix and tests landed and pass under the harness, and the plugin hash is unchanged; the only possible writes outside the workspace are uvx's own tool cache under ~/.local, which the transcript does not show and which was not an agent file write."
+}

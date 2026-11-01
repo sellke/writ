@@ -1,0 +1,162 @@
+⚡ Writ Uninstaller (Codex CLI)
+===================
+
+  Files to remove:
+    📋 Commands:  34
+    🤖 Agents:    8
+    📜 Skills:    16
+    📄 Extras:    3 (.codex/system-instructions.md AGENTS.md Writ block .codex/config.toml)
+    📌 Manifest:  1
+    🧰 Shipped scripts/docs (unmodified): 32
+    🙈 Writ lines in .gitignore and .cursorindexingignore
+    🔗 refs/notes/writ refspecs in .git/config: 2
+
+  ⚠️  --include-writ: Also removing .writ/ (29 files)
+     This includes specs, docs, ADRs, and all work artifacts.
+
+Removing...
+  🗑  Removed: AGENTS.md (empty after Writ block removal)
+  🗑  Removed: .codex/config.toml (unmodified since install)
+  🗑  Removed .writ/ directory
+  🗑  Removed: .gitignore (empty after Writ lines removal)
+  🗑  Removed: .cursorindexingignore (empty after Writ lines removal)
+  🗑  Removed 2 refs/notes/writ refspec(s) from .git/config (the notes stay)
+  🗑  Removed 94 file(s)
+[main 290653d] chore: uninstall Writ (Codex CLI)
+ 125 files changed, 37870 deletions(-)
+ delete mode 100644 .agents/skills/boundary-map-computation/SKILL.md
+ delete mode 100644 .agents/skills/change-surface-classification/SKILL.md
+ delete mode 100644 .agents/skills/code-explanation/SKILL.md
+ delete mode 100644 .agents/skills/conventional-commits/SKILL.md
+ delete mode 100644 .agents/skills/dependency-context-loading/SKILL.md
+ delete mode 100644 .agents/skills/drift-triage/SKILL.md
+ delete mode 100644 .agents/skills/error-rescue-mapping/SKILL.md
+ delete mode 100644 .agents/skills/plain-prose/SKILL.md
+ delete mode 100644 .agents/skills/project-context-snapshot/SKILL.md
+ delete mode 100644 .agents/skills/safe-refactor-loop/SKILL.md
+ delete mode 100644 .agents/skills/story-commit-provenance/SKILL.md
+ delete mode 100644 .agents/skills/story-context-assembly/SKILL.md
+ delete mode 100644 .agents/skills/subagent-result-completeness/SKILL.md
+ delete mode 100644 .agents/skills/subagent-worktree-integration/SKILL.md
+ delete mode 100644 .agents/skills/tdd-cycle/SKILL.md
+ delete mode 100644 .agents/skills/what-was-built-authoring/SKILL.md
+ delete mode 100644 .codex/.writ-manifest
+ delete mode 100644 .codex/agents/architecture-check-agent.toml
+ delete mode 100644 .codex/agents/coding-agent.toml
+ delete mode 100644 .codex/agents/documentation-agent.toml
+ delete mode 100644 .codex/agents/evaluator-agent.toml
+ delete mode 100644 .codex/agents/review-agent.toml
+ delete mode 100644 .codex/agents/testing-agent.toml
+ delete mode 100644 .codex/agents/user-story-generator.toml
+ delete mode 100644 .codex/agents/visual-qa-agent.toml
+ delete mode 100644 .codex/commands/_preamble.md
+ delete mode 100644 .codex/commands/assess-spec.md
+ delete mode 100644 .codex/commands/create-adr.md
+ delete mode 100644 .codex/commands/create-goal.md
+ delete mode 100644 .codex/commands/create-issue.md
+ delete mode 100644 .codex/commands/create-spec.md
+ delete mode 100644 .codex/commands/create-uat-plan.md
+ delete mode 100644 .codex/commands/edit-spec.md
+ delete mode 100644 .codex/commands/implement-phase.md
+ delete mode 100644 .codex/commands/implement-spec.md
+ delete mode 100644 .codex/commands/implement-story.md
+ delete mode 100644 .codex/commands/initialize.md
+ delete mode 100644 .codex/commands/knowledge.md
+ delete mode 100644 .codex/commands/migrate.md
+ delete mode 100644 .codex/commands/new-command.md
+ delete mode 100644 .codex/commands/new-skill.md
+ delete mode 100644 .codex/commands/plan-product.md
+ delete mode 100644 .codex/commands/prototype.md
+ delete mode 100644 .codex/commands/refactor.md
+ delete mode 100644 .codex/commands/refresh-command.md
+ delete mode 100644 .codex/commands/reinstall-writ.md
+ delete mode 100644 .codex/commands/release.md
+ delete mode 100644 .codex/commands/research.md
+ delete mode 100644 .codex/commands/retro.md
+ delete mode 100644 .codex/commands/revert.md
+ delete mode 100644 .codex/commands/review.md
+ delete mode 100644 .codex/commands/security-audit.md
+ delete mode 100644 .codex/commands/ship.md
+ delete mode 100644 .codex/commands/status.md
+ delete mode 100644 .codex/commands/uninstall-writ.md
+ delete mode 100644 .codex/commands/update-writ.md
+ delete mode 100644 .codex/commands/verify-spec.md
+ delete mode 100644 .codex/commands/writ-design.md
+ delete mode 100644 .codex/commands/writ.md
+ delete mode 100644 .codex/config.toml
+ delete mode 100644 .codex/system-instructions.md
+ delete mode 100644 .cursorindexingignore
+ delete mode 100644 .gitignore
+ delete mode 100644 .writ/docs/acceptance-criteria-ids.md
+ delete mode 100644 .writ/docs/agent-cli-contract.md
+ delete mode 100644 .writ/docs/app-verification-format.md
+ delete mode 100644 .writ/docs/architecture-lint.md
+ delete mode 100644 .writ/docs/command-overlay.md
+ delete mode 100644 .writ/docs/component-contract.md
+ delete mode 100644 .writ/docs/config-format.md
+ delete mode 100644 .writ/docs/context-hint-format.md
+ delete mode 100644 .writ/docs/drift-report-format.md
+ delete mode 100644 .writ/docs/exit-criteria-classification.md
+ delete mode 100644 .writ/docs/gbrain-recipe.md
+ delete mode 100644 .writ/docs/git-notes-audit-format.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-07-11.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-07-18.md
+ delete mode 100644 .writ/docs/leanness-audit-2026-10-21.md
+ delete mode 100644 .writ/docs/leanness-audit-format.md
+ delete mode 100644 .writ/docs/model-tiers.md
+ delete mode 100644 .writ/docs/phase-execution-state-format.md
+ delete mode 100644 .writ/docs/prompting-guide.md
+ delete mode 100644 .writ/docs/quality-signal-classification.md
+ delete mode 100644 .writ/docs/recommendation-semantics.md
+ delete mode 100644 .writ/docs/refresh-log-format.md
+ delete mode 100644 .writ/docs/self-dogfooding.md
+ delete mode 100644 .writ/docs/skills.md
+ delete mode 100644 .writ/docs/spec-format.md
+ delete mode 100644 .writ/docs/spec-lifecycle.md
+ delete mode 100644 .writ/docs/startup-update-awareness.md
+ delete mode 100644 .writ/docs/swot-2026-03-01.md
+ delete mode 100644 .writ/docs/what-was-built-format.md
+ delete mode 100644 AGENTS.md
+ delete mode 100755 scripts/ac-trace.py
+ delete mode 100755 scripts/app-verify.py
+ delete mode 100755 scripts/arch-check.py
+ delete mode 100755 scripts/arch-lint.py
+ delete mode 100755 scripts/archive-sweep.py
+ delete mode 100755 scripts/boundary-map.py
+ delete mode 100755 scripts/build-smoke.py
+ delete mode 100755 scripts/change-surface.py
+ delete mode 100755 scripts/docs-check.py
+ delete mode 100755 scripts/drift-format.py
+ delete mode 100755 scripts/exit-criteria.py
+ delete mode 100755 scripts/goal-emit.py
+ delete mode 100755 scripts/jev-judge.py
+ delete mode 100644 scripts/jev-thresholds.json
+ delete mode 100755 scripts/knowledge-consolidate.py
+ delete mode 100755 scripts/lint-skill.sh
+ delete mode 100755 scripts/phase-state.py
+ delete mode 100755 scripts/quality-config-audit.py
+ delete mode 100755 scripts/resolve-spec-reference.py
+ delete mode 100755 scripts/revert-resolve.py
+ delete mode 100755 scripts/review-override.py
+ delete mode 100755 scripts/review-panel.py
+ delete mode 100755 scripts/roadmap-sync.py
+ delete mode 100755 scripts/scaffold-writ.py
+ delete mode 100755 scripts/spec-analyze.py
+ delete mode 100755 scripts/spec-deps.py
+ delete mode 100755 scripts/spec-status.py
+ delete mode 100755 scripts/story-context.py
+ delete mode 100755 scripts/story-deps.py
+ delete mode 100755 scripts/supersession-writeback.py
+ delete mode 100755 scripts/test-integrity.py
+ delete mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+✅ Writ has been removed (Codex CLI).
+
+  All Writ files including .writ/ have been removed.
+
+  To reinstall:
+    bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
+
+⚡ So it is written. So it shall be built.
+exit=0

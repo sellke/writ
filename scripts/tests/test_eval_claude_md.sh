@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
-# Tests check_claude_md in eval.sh (Story 1 of 2026-10-20-claude-code-parity,
-# AC-1.5). Each case runs eval.sh in a temp root holding eval.sh, the
-# generator, the manifest, and claude-code/. Never touches the real template.
+# Tests check_claude_md in eval.sh. Each case runs eval.sh in a temp root
+# holding eval.sh, the generator, the platform-trees driver and the Claude
+# Code adapter it renders the capability map from (Story 2 of
+# 2026-10-22-generated-platform-trees), the manifest, and claude-code/
+# (Story 1 of 2026-10-20-claude-code-parity, AC-1.5). Never touches the real
+# template.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 EVAL="$REPO/scripts/eval.sh"
 GEN="$REPO/scripts/gen-claude-md.py"
+TREES="$REPO/scripts/gen-platform-trees.py"
+ADAPTER="$REPO/adapters/claude-code.md"
 REMEDY='python3 scripts/gen-claude-md.py'
 
 pass_count=0
@@ -29,9 +34,11 @@ new_root() {
   local root
   root="$(mktemp -d)"
   TMP_ROOTS+=("$root")
-  mkdir -p "$root/scripts" "$root/.writ" "$root/claude-code"
+  mkdir -p "$root/scripts" "$root/.writ" "$root/claude-code" "$root/adapters"
   cp "$EVAL" "$root/scripts/eval.sh"
   cp "$GEN" "$root/scripts/gen-claude-md.py"
+  cp "$TREES" "$root/scripts/gen-platform-trees.py"
+  cp "$ADAPTER" "$root/adapters/claude-code.md"
   cp "$REPO/.writ/manifest.yaml" "$root/.writ/manifest.yaml"
   cp -R "$REPO/claude-code/agents" "$root/claude-code/agents"
   python3 "$root/scripts/gen-claude-md.py" >/dev/null

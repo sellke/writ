@@ -1,0 +1,17 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Glob: {"pattern": ".writ/product/*"}
+TOOL_RESULT: No files found
+TOOL_CALL Glob: {"pattern": "**/roadmap*.md"}
+TOOL_RESULT: No files found
+ASSISTANT: ```
+Goal: Phase 14 of the product roadmap is implemented, with every spec in it built and its exit criteria met.
+Problem: Phase 14 can't be resolved. `.writ/product/roadmap.md` doesn't exist, and there's no roadmap anywhere in the repo, so there are no phase 14 features, specs or exit criteria to work from.
+Done check: (not stated: it would be phase 14's exit criteria from the roadmap, which is missing; see prompting-guide.md § What a request carries)
+```
+
+- **Routing blocked:** `/writ` only offers the `/implement-phase` route when a roadmap exists. Without one, "phase 14" has no contents, and none of the other routes can build it.
+- **Repo state:** two commits ("initial" and the Writ install), and no `.writ/product/` directory.
+- **Fix:** run `/plan-product` to create the roadmap, then run `/writ "Implement phase 14."` again.
+
+What is phase 14 supposed to deliver? If you describe it, or point me to where the roadmap lives (for example, another branch or an external doc), I'll restate and route from that.
+[result] success turns=3 cost=1.7557436000000002

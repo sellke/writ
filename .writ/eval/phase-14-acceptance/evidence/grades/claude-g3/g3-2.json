@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G3a": {
+      "met": true,
+      "evidence": "\"There's no roadmap file, so I can't route to `/implement-phase 14`.\" Routes offered are /create-spec, /prototype, /prototype --no-diverge, /research; /implement-phase is not among them."
+    },
+    "G3b": {
+      "met": true,
+      "evidence": "\"`.writ/product/roadmap.md` doesn't exist\" and \"`/plan-product` is the command that creates the roadmap.\""
+    }
+  },
+  "verdict": "pass",
+  "note": "Agent declined /implement-phase, stated the roadmap is missing, and named /plan-product as the command that creates it."
+}

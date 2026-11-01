@@ -103,6 +103,11 @@ Feedback loop (/retro + /refresh-command):
 
 ## Commands
 
+### Start here
+| Command | Purpose |
+|---------|---------|
+| `/writ` | **The front door.** Restates a request as a goal, a problem, and a done check, routes it to the command whose ceremony fits, confirms once, and runs it with its phases on the todo list. |
+
 ### Planning & Specification
 | Command | Purpose |
 |---------|---------|
@@ -157,7 +162,7 @@ Feedback loop (/retro + /refresh-command):
 | `/migrate` | Code Captain → Writ migration (preserves specs, stories, ADRs) |
 | `/update-writ` | Interactive update — pull latest, per-file control over customized files |
 | `/reinstall-writ` | Clean slate — remove all Writ files and install fresh from upstream |
-| `/uninstall-writ` | Remove Writ platform files (preserves `.writ/` directory) |
+| `/uninstall-writ` | Remove Writ platform files and the shipped scripts and `.writ/docs/` files you left unchanged. Keeps the rest of `.writ/`, files you changed, and the `.gitignore` lines that protect `.writ/` |
 
 ## Agents
 
@@ -212,7 +217,18 @@ Writ runs on any AI coding platform. Adapters translate tool calls:
 
 ## Quick Start
 
-Writ ships 32 commands, but you only need five to go from idea to PR:
+Type `/writ` followed by what you want:
+
+```
+/writ "users can't paste into the search box on Safari"
+→ Goal, Problem, Done check restated; route: /prototype --no-diverge (Recommended); one confirmation; then it runs.
+```
+
+New here? Read [`.writ/docs/prompting-guide.md`](.writ/docs/prompting-guide.md) (two minutes), then type `/writ` followed by what you want.
+
+### What `/writ` routes to
+
+Five commands take you from idea to PR:
 
 | Command | What it does |
 |---------|--------------|
@@ -222,7 +238,18 @@ Writ ships 32 commands, but you only need five to go from idea to PR:
 | `/ship` | Merge, split commits, open a PR. |
 | `/status` | See where everything stands — specs, branches, progress. |
 
-Everything else (planning, reviews, retros, releases) is there when you need it. Start here.
+Everything else (planning, reviews, retros, releases) is there when you need it; `/writ` picks the route for you.
+
+### Claude Code (plugin)
+
+```bash
+claude plugin marketplace add sellke/writ
+claude plugin install writ@writ
+```
+
+Then open your project in Claude Code and run `/writ:initialize`, which creates the `.writ/` workspace. Under the plugin every command carries the `writ:` prefix, so the front door is `/writ:writ "my feature"`. Scripts run from the plugin's own folder, so the project needs no `scripts/` copy. The plugin does not include the `.writ/docs/` reference docs that `install.sh` copies; [`adapters/claude-code.md`](adapters/claude-code.md) → Installation → Plugin lists what else differs.
+
+Smoke test: `claude-plugin pass` in [`scripts/tests/fixtures/plugin-smoke-results.txt`](scripts/tests/fixtures/plugin-smoke-results.txt), recorded by `bash scripts/tests/test_plugin_smoke.sh --record`.
 
 ### Cursor (one-line install)
 
@@ -238,7 +265,7 @@ This copies all commands, agents, rules, and system instructions into `.cursor/`
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --dry-run
 ```
 
-Then in Cursor chat: `/create-spec "my feature"`
+Then in Cursor chat: `/writ "my feature"`
 
 ### Updating
 
@@ -256,6 +283,21 @@ The updater uses a manifest (`.cursor/.writ-manifest`) to track what was install
 
 To reset a single file to upstream: delete it and re-run update.
 
+### Cursor (plugin)
+
+Status: local install; marketplace listing pending.
+
+From a clone of this repository, copy the plugin folder into Cursor's local plugins folder, then restart Cursor or run **Developer: Reload Window**:
+
+```bash
+git clone https://github.com/sellke/writ.git && cd writ
+rm -rf ~/.cursor/plugins/local/writ
+mkdir -p ~/.cursor/plugins/local/writ
+cp -R cursor/plugin/. ~/.cursor/plugins/local/writ/
+```
+
+The plugin ships no `scripts/`: its commands run `python3 scripts/<name>.py` in your project, so run the Cursor one-line install above as well. Smoke test: `cursor-plugin unverifiable` in [`scripts/tests/fixtures/plugin-smoke-results.txt`](scripts/tests/fixtures/plugin-smoke-results.txt), because the test runs no Cursor session; the Cursor UAT protocol has not run yet. Details: [`adapters/cursor.md`](adapters/cursor.md) → Plugin.
+
 ### Claude Code (one-line install)
 
 ```bash
@@ -268,7 +310,7 @@ This copies all commands and Claude Code–native agents (with YAML frontmatter)
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform claude --dry-run
 ```
 
-Then in Claude Code: `/create-spec "my feature"`
+Then in Claude Code: `/writ "my feature"`
 
 **Updating:**
 
@@ -282,13 +324,13 @@ bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/update
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex
 ```
 
-This copies commands into `.codex/commands/`, installs Codex-native TOML agents into `.codex/agents/`, merges a Writ block into `AGENTS.md`, seeds `.codex/config.toml` only if absent, and installs skills into `.agents/skills/`. Preview first with `--dry-run`:
+This copies commands into `.codex/commands/` and `system-instructions.md` into `.codex/`, installs Codex-native TOML agents into `.codex/agents/`, merges a Writ block that carries the Prime Directive into `AGENTS.md`, seeds `.codex/config.toml` only if absent, and installs skills into `.agents/skills/`. Preview first with `--dry-run`:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/sellke/writ/main/scripts/install.sh) --platform codex --dry-run
 ```
 
-Restart Codex after install so it reloads `AGENTS.md`, then ask it to follow `.codex/commands/create-spec.md` for `/create-spec "my feature"`.
+Restart Codex after install so it reloads `AGENTS.md`, then ask it to follow `.codex/commands/writ.md` for `/writ "my feature"`.
 
 Tested against Codex CLI as of May 2026; TOML schema may evolve — see [`adapters/codex.md`](adapters/codex.md).
 

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed: `/prototype`' and option '1. `/prototype` (Recommended)'. /prototype is in acceptable."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal: The session one presentation renders slide animations.' / 'Problem: No presentation...' / 'Done check: Opening the session one deck...' appear before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "Single confirmation with options 1-5, last is '5. Not what I meant'; posed as plain text ('Reply with a number.') rather than via the question tool."
+    }
+  },
+  "verdict": "pass",
+  "note": "Route /prototype matches an acceptable route, though the confirmation was given in text rather than through the question tool."
+}

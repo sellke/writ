@@ -1,0 +1,32 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Grep: {"pattern": "(?i)phase\\s*14", "path": ".writ/product/roadmap.md", "output_mode": "content", "-A": 25}
+TOOL_CALL Glob: {"pattern": ".claude/commands/implement-phase.md"}
+TOOL_RESULT: 7:## Phase 14: CSV export and import — Planned
+8-
+9-- Export all settings to a CSV file.
+10-- Import settings from a CSV file, with a dry-run preview.
+11-
+12-**Exit criteria:** a round trip through export and import leaves settings unchanged; tests pass.
+13-
+14-## Phase 15: Audit log — Planned
+15-
+16-- Record every settings change with a timestamp and the old and new value.
+TOOL_RESULT: .claude/commands/implement-phase.md
+ASSISTANT: Goal: Settings can be exported to a CSV file and imported back from one, and import offers a dry-run preview.
+Problem: Roadmap Phase 14 (CSV export and import) is Planned and not built. Settings can't be moved in or out as CSV, and nothing lets you preview an import before it applies.
+Done check: Exporting settings and then importing that file leaves the settings unchanged, and the test suite passes. These are the roadmap's exit criteria for Phase 14.
+Proof: Test output showing the round-trip test and the full suite passing.
+
+**Route**
+
+Proposed: `/implement-phase 14`. The request names Phase 14 and it matches `.writ/product/roadmap.md:7`, "Phase 14: CSV export and import — Planned".
+
+1. `/implement-phase 14` (Recommended)
+2. `/create-spec`
+3. `/prototype`
+4. `/prototype --no-diverge`
+5. `/research`
+6. Not what I meant
+
+Pick a number. Nothing has run yet.
+[result] success turns=3 cost=1.7730084

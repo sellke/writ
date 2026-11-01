@@ -41,6 +41,12 @@ and is not installed.
 
 ## Available Commands
 
+### Start here
+
+| Command | File | Purpose |
+|---------|------|---------|
+| `/writ` | `commands/writ.md` | Restate a request, route it to the fitting command, and run it with its phases on the todo list. |
+
 ### Planning & Specification
 
 | Command | File | Purpose |

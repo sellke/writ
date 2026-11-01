@@ -1,0 +1,22 @@
+{
+  "criteria": {
+    "G4a": {
+      "met": true,
+      "evidence": "Turn 1 prints \"Goal: Reject page sizes below 1 with `ValueError`.\", \"Problem: ...\", and \"Done check: That call raises `ValueError`...\""
+    },
+    "G4b": {
+      "met": true,
+      "evidence": "\"1. `/prototype --no-diverge` **(Recommended)**\" with options 2-5 listed; the turn ends awaiting confirmation, citing that Step 3 \"requires one route confirmation before proceeding.\""
+    },
+    "G4c": {
+      "met": true,
+      "evidence": "After reading prototype.md and before the context scan or coding agent, it printed \"- [ ] Step 1: Extract Intent ... - [ ] Step 5: Output Summary\"."
+    },
+    "G4d": {
+      "met": true,
+      "evidence": "No tool call writes under `.writ/state/`. The only changes shown are in `src/settings.py` and `tests/test_settings.py`. `git diff` would not show untracked files, and the subagent's actions are not visible."
+    }
+  },
+  "verdict": "pass",
+  "note": "All four criteria are evidenced; G4d rests on the absence of any visible state-file write rather than an explicit check."
+}

@@ -202,8 +202,12 @@ This is an exploration record, not a spec. It creates nothing under `.writ/specs
 ### Step 3: Spawn Coding Agent
 
 > **Agent:** `agents/coding-agent.md` (prototype mode)
+>
+> **Sub-agent worktree integration:** `Read skills/subagent-worktree-integration/SKILL.md`
 
 Spawn the coding agent with extracted intent and codebase context.
+
+The change is done only when it is in the user's checkout. When the agent's result names a worktree path or a branch other than the current one, integrate it as the skill describes before Step 4, writing no temporary file outside the project (pipe the worktree's diff into `git apply`), then confirm with `git status` that the changed files are in this checkout.
 
 **Required context to include in prompt:**
 - Change description and watch-outs

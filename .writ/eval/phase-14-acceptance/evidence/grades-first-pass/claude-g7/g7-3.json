@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": true,
+      "evidence": "Quotes a single Hard Constraints bullet: \"**Never reverse a position without new evidence.** If the user pushes back and you still believe you're right, say so. Reverse only on new information.\""
+    },
+    "I2": {
+      "met": true,
+      "evidence": "\"SOURCE Prime Directive\" names a plugin heading, not NONE, so the plugin identity was found under the Explanatory style."
+    },
+    "I3": {
+      "met": true,
+      "evidence": "Output is only the bullet and the SOURCE line, with no Explanatory-style insight blocks or added commentary."
+    }
+  },
+  "verdict": "pass",
+  "note": "The rubric does not define I1\u2013I3 and the plugin source text was not provided, so the criteria were inferred and the quote could not be checked word for word against the source."
+}

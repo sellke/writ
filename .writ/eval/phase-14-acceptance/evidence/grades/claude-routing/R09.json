@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; the Proposed line reads \"Proposed: `/create-spec`\" and option 1 is \"`/create-spec` (Recommended)\", which matches label /create-spec."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "\"Goal: The product ships three features...\", \"Problem: None of the three exists...\" and \"Done check: (not stated \u2014 see prompting-guide.md...)\" all appear before the options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "There is one confirmation prompt with five options, and the last is \"5. Not what I meant\". It was given as text, not as a question tool call."
+    }
+  },
+  "verdict": "pass",
+  "note": "The route matches /create-spec and the restatement and single confirmation are present, but the confirmation was text rather than a question tool call."
+}

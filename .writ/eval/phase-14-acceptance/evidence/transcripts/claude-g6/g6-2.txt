@@ -1,0 +1,6 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+ASSISTANT: - `todo_write` → `TodoWrite`
+- `AskQuestion` → formatted text with numbered options
+
+Both come from the **Capability Map** table in `CLAUDE.md`.
+[result] success turns=1 cost=0.0646116

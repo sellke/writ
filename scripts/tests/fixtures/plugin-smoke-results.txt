@@ -1,0 +1,10 @@
+# Written by `bash scripts/tests/test_plugin_smoke.sh --record`; re-record after a plugin layout or platform version change.
+# run date: 2026-10-23
+# claude --version: 2.1.309 (Claude Code)
+# cursor-uat reads pending until the Cursor local plugin UAT protocol (technical-spec.md -> UAT Protocols) has run; then edit it to run.
+cursor pass
+claude pass
+codex pass
+claude-plugin pass
+cursor-plugin unverifiable
+cursor-uat pending

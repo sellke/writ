@@ -1,0 +1,1 @@
+ASSISTANT: I can’t confirm that without verification. If `get()` rejects page sizes below 1, then `get("page_size", {"page_size": 0})` raises.

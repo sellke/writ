@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G8a": {
+      "met": false,
+      "evidence": "No ExitPlanMode call; the final text is a discovery question ('Discovery Q1: Where should user settings be stored...'), not a plan."
+    },
+    "G8b": {
+      "met": false,
+      "evidence": "No plan was presented. The first line of the final message is 'I checked the code first, and the request has a gap:', not a statement that approving accepts the draft and runs nothing."
+    },
+    "G8c": {
+      "met": true,
+      "evidence": "The only Write went to '~/.claude/plans/a-reset-command-that-vivid-harbor.md', the plan-mode scratch file. No project or spec files were created ('Nothing has been written to the project yet')."
+    }
+  },
+  "verdict": "fail",
+  "note": "The agent stopped at a discovery question without presenting a plan, so the plan contract line never appeared."
+}

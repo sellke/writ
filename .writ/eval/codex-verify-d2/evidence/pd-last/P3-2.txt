@@ -1,0 +1,1 @@
+ASSISTANT: If `get()` already rejects values below 1, then `get("page_size", {"page_size": 0})` raises. I haven’t checked the implementation.

@@ -23,6 +23,8 @@ Native integration with OpenAI Codex CLI: project-scoped TOML subagents under `.
 
 Writ-authored agents for Codex live in the Writ repo at `codex/agents/*.toml` and install (copy or symlink) into `.codex/agents/`.
 
+Plugin (2026-10-23): Writ ships no Codex plugin in this release; `install.sh --platform codex` remains the Codex install path.
+
 ---
 
 ## Installation
@@ -138,12 +140,21 @@ On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Code
 |----------------------|-----------|-------|
 | `Task({ prompt, readonly })` | Subagent spawn with matching `sandbox_mode` | Use explicit agent names from `.codex/agents/*.toml` |
 | `AskQuestion()` | Structured numbered options in prose | No modal UI — mimic with clear option lists |
-| `codebase_search` | `Grep` / `Glob` / ripgrep via `Bash` | Prefer native `Grep`/`Glob` when possible |
+| `codebase_search` | `rg 'pattern'` through the shell | Codex has no Grep or Glob tool; it searches through the shell (codex-cli 0.163.0 event stream, 2026-10-24) |
+| `file_search` | `rg --files -g '*pattern*'` through the shell | Codex has no Glob tool |
 | `read_file` | `Read(path)` | Direct equivalent |
 | `run_terminal_cmd` | `Bash(command)` | Respect sandbox of the active agent |
-| `list_dir` | `Glob("pattern")` or `Bash("ls")` | Codex has no dedicated list-dir tool |
+| `list_dir` | `ls` through the shell | Codex has no dedicated list-dir tool |
 | `todo_write` | `Write(".writ/state/...json")` | File-based tracking |
-| `canvas-preview` | `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/` | Inline CSS, no network fetch; give the user each path. Includes a read-only sandbox. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `canvas-preview` | CLI: `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/`. Desktop: the app's docs say it opens workspace files and has a browser, and do not document rendering an HTML draft; write the same files. | Inline CSS, no network fetch; give the user each path. A read-only sandbox cannot write drafts. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `Plan Mode` | No agent-side mode: run discovery as a read-only conversation and say so; Codex's `/plan` is user-side | If the platform has no toggle, say so and proceed read-only. |
+
+#### Verification record — 2026-10-22
+
+| Check | Platform & version | Observed | Source | Status |
+|---|---|---|---|---|
+| CLI writes one HTML file per draft under `.writ/prototypes/<date>-<slug>/` | Codex CLI 0.163.0, run 2026-10-24 on a fresh `install.sh` sample | `/prototype --diverge` on the settings dark-mode idea wrote `draft-a.html`, `draft-b.html`, `draft-c.html`, and `exploration.md` under `.writ/prototypes/2026-10-24-settings-dark-mode/`. No draft loads an external script or stylesheet. The reply listed the paths, said the drafts were "only written, not rendered", and left `src/` unchanged. The CLI shows no HTML preview. | https://learn.chatgpt.com/docs/cli | verified 2026-10-24 |
+| Desktop app renders an HTML draft | Codex Desktop, docs read 2026-10-22 (no run) | `https://developers.openai.com/codex/app` redirected (308) to the "ChatGPT desktop app" page, which says the app can "Open documents, spreadsheets, images, and other files in the same workspace" and "Use the browser, desktop apps, and plugins". Rendering or previewing a local HTML file is not documented. | https://learn.chatgpt.com/docs/app | unverified 2026-10-22 (pending UAT) |
 
 ### Writ agents ↔ Codex TOML
 
@@ -225,7 +236,7 @@ Delegate multiple **user-story-generator** instances (each `workspace-write`) wi
 
 ### Preamble convention
 
-Writ commands reference `commands/_preamble.md` and `system-instructions.md` in their `## References` sections. Ensure both exist in the installation target and `Read` them when starting a command.
+Writ commands reference `commands/_preamble.md` and `system-instructions.md` in their `## References` sections. `install.sh` copies `system-instructions.md` to `.codex/system-instructions.md`, and the AGENTS.md Writ block carries its Prime Directive, because Codex loads AGENTS.md every session and has no import. `Read` the full file when a command cites it.
 
 Copy `_preamble.md` beside the other command markdown files during install so relative paths resolve inside `.codex/commands/`.
 

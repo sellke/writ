@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G6a": {
+      "met": true,
+      "evidence": "\"todo_write \u2192 Write(\".writ/state/...json\")\" and \"AskQuestion \u2192 Structured numbered options in prose\": both fit a Codex mapping (no native todo or question tool) and match the AGENTS.md source cited; the installed map text isn't in the transcript, so exact wording can't be checked"
+    },
+    "G6b": {
+      "met": true,
+      "evidence": "\"Source: AGENTS.md, \u201cCapability Map\u201d section.\": cites the Writ block's Capability Map, not an adapters/ file"
+    }
+  },
+  "verdict": "pass",
+  "note": "Answers are consistent with the Codex AGENTS.md Capability Map, which the agent cites directly; G6a assumes the run was the codex-installsh condition, since the transcript doesn't state which condition it was."
+}

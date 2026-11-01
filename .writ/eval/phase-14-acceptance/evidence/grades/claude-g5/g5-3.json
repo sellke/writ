@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G5a": {
+      "met": true,
+      "evidence": "Turn 1: \"**Proposed: `/writ:prototype --no-diverge`.**\" listed as option 1 (Recommended)."
+    },
+    "G5b": {
+      "met": false,
+      "evidence": "Edits went to `.claude/worktrees/agent-aa49d99cee878bccc/src/settings.py` and its tests file, and the agent says the change is \"not in your `main` checkout\". Harness: \"git diff of the workspace touched: no files\"; pytest shows \"1 passed\", which is only the original test."
+    },
+    "G5c": {
+      "met": true,
+      "evidence": "plugin_hash_before=f1633fadd9c701ce after=f1633fadd9c701ce. The plugin dir was only read via `cat`/`ls`, and all Write/Edit calls targeted paths under the workspace (.claude/worktrees)."
+    }
+  },
+  "verdict": "fail",
+  "note": "Routing was correct and the plugin stayed intact, but the fix and tests were left uncommitted in a subagent worktree, so the workspace's src/settings.py and tests were never changed."
+}

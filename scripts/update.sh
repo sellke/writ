@@ -334,10 +334,9 @@ EOF
     record_file_baseline "$target" "rules/writ.mdc" \
       "$WRIT_SRC/cursor/writ.mdc" "$PLATFORM_DIR/rules/writ.mdc"
   fi
-  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
-    record_file_baseline "$target" "system-instructions.md" \
-      "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
-  fi
+  # Every platform ships system-instructions.md. Keep synced with install.sh.
+  record_file_baseline "$target" "system-instructions.md" \
+    "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/system-instructions.md"
 
   # Writ block: the inner hash when it equals the template hash the merge
   # functions compare against. Otherwise the block was preserved: keep its
@@ -711,6 +710,73 @@ cleanup() {
 trap cleanup EXIT
 load_baselines
 
+# ---------------------------------------------------------------------------
+# Shared: .writ/ workspace + legacy cleanup (byte-identical to install.sh)
+# ---------------------------------------------------------------------------
+
+init_writ_workspace() {
+  if [ ! -d ".writ" ]; then
+    echo ""
+    echo "  📁 Creating .writ/ directory structure..."
+  fi
+  # The eleven PATHS of scripts/scaffold-writ.py; test_scaffold_writ.py fails on drift.
+  mkdir -p .writ/{specs,product,research,decision-records,docs,knowledge,state} .writ/issues/{bugs,features,improvements,goals}
+
+  # .gitignore, as scaffold-writ.py does it: created when absent; each missing
+  # entry appended in one write, under the comment unless the file has it.
+  # Lines compare trimmed and whole, one trailing "/" ignored.
+  local gi_entry gi_add="" gi_head=""
+  for gi_entry in ".writ/state/" ".writ-lanes-*/"; do
+    if ! awk -v e="${gi_entry%/}" '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); sub(/\/$/, "") } $0 == e { f = 1 } END { exit !f }' .gitignore 2>/dev/null; then
+      gi_add="$gi_add$gi_entry"$'\n'
+    fi
+  done
+  if [ -n "$gi_add" ]; then
+    if [ ! -f .gitignore ]; then
+      gi_head='# Writ ephemeral state'$'\n'
+    elif awk '{ sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, "") } $0 == "# Writ ephemeral state" { f = 1 } END { exit !f }' .gitignore; then
+      if [ -n "$(tail -c 1 .gitignore)" ]; then gi_head=$'\n'; fi
+    else
+      gi_head=$'\n''# Writ ephemeral state'$'\n'
+    fi
+    printf '%s%s' "$gi_head" "$gi_add" >> .gitignore
+  fi
+
+  if [ -f ".cursor/rules/cc.mdc" ]; then
+    echo "  🧹 Removing old Code Captain rules..."
+    rm -f .cursor/rules/cc.mdc
+  fi
+}
+
+# An update repairs a missing .writ/ tree or .gitignore entry. A dry run
+# writes nothing.
+if [ "$DRY_RUN" != true ]; then
+  init_writ_workspace
+fi
+
+# remove_notes_push_refspec — earlier installs added remote.<r>.push =
+# refs/notes/writ (ADR-017). Any push line replaces push.default, so a plain
+# `git push` pushed only the notes and never the branch. Removes that exact
+# line from every remote, as install.sh's configure_audit_notes_sync does;
+# /ship and /release push the notes explicitly. A dry run only lists it.
+# Runs before the "Already up to date" exits so every update migrates.
+# Globals: DRY_RUN
+remove_notes_push_refspec() {
+  git rev-parse --is-inside-work-tree &>/dev/null || return 0
+  local r
+  while IFS= read -r r; do
+    [ -n "$r" ] || continue
+    git config --get-all "remote.$r.push" 2>/dev/null | grep -Fxq "refs/notes/writ" || continue
+    if [ "$DRY_RUN" = true ]; then
+      echo "  🔀 Audit notes: would remove remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
+    else
+      git config --unset-all "remote.$r.push" '^refs/notes/writ$' 2>/dev/null || true
+      echo "  🔀 Audit notes: removed remote.$r.push refs/notes/writ (it made a plain 'git push' skip the branch)."
+    fi
+  done <<< "$(git remote 2>/dev/null || true)"
+}
+remove_notes_push_refspec
+
 NEW_VERSION=$(cd "$WRIT_SRC" && git log -1 --format="%h" 2>/dev/null || echo "unknown")
 NEW_VERSION_LONG=$(cd "$WRIT_SRC" && git log -1 --format="%h %s" 2>/dev/null || echo "unknown")
 CURRENT_VERSION=$(manifest_version)
@@ -745,8 +811,11 @@ is_shippable_script() {
       return 1 ;;
     eval-*|_*|sweep-*)
       return 1 ;;
-    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py)
-      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template); not agent-facing. ADR-029.
+    pipeline-baseline.py|measure-invocation.py|harness-cost.py|prune-ledger.py|spawn-cap.py|recommend-state.py|gen-claude-md.py|gen-platform-trees.py)
+      # Dev-only tooling (eval.sh, measurement, ADR-013 dormant staging, CLAUDE.md template, platform trees); not agent-facing. ADR-029.
+      return 1 ;;
+    gen-claude-agents.py|gen-codex-agent-tomls.py|check-agent-parity.sh|gen-skill.sh)
+      # Writ-source generators and checks: they read agents/, claude-code/agents/, codex/agents/, .writ/manifest.yaml, and SKILL.md, which no install has. ADR-031.
       return 1 ;;
   esac
   case "$base" in
@@ -1127,36 +1196,35 @@ if [ "$PLATFORM" = "cursor" ]; then
   fi
 fi
 
-# Cursor and Claude Code both install system-instructions.md in the platform dir.
-if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "claude" ]; then
-  SYSINST_ACTION="unchanged"
-  if [ -f "$PLATFORM_DIR/system-instructions.md" ]; then
-    si_upstream=$(hash_file "$WRIT_SRC/system-instructions.md")
-    si_local=$(hash_file "$PLATFORM_DIR/system-instructions.md")
-    si_baseline=$(manifest_hash_for "system-instructions.md")
+# Every platform installs system-instructions.md in the platform dir. A Codex
+# install from before this change has none and gets it as new.
+SYSINST_ACTION="unchanged"
+if [ -f "$PLATFORM_DIR/system-instructions.md" ]; then
+  si_upstream=$(hash_file "$WRIT_SRC/system-instructions.md")
+  si_local=$(hash_file "$PLATFORM_DIR/system-instructions.md")
+  si_baseline=$(manifest_hash_for "system-instructions.md")
 
-    if [ "$si_local" != "$si_upstream" ]; then
-      if [ "$FORCE" = true ]; then
-        SYSINST_ACTION="update"
-        echo "    🔄 Update:    system-instructions.md (forced)"
-      elif [ "$si_local" = "$si_baseline" ] || { [ -z "$si_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
-        SYSINST_ACTION="update"
-        echo "    🔄 Update:    system-instructions.md"
+  if [ "$si_local" != "$si_upstream" ]; then
+    if [ "$FORCE" = true ]; then
+      SYSINST_ACTION="update"
+      echo "    🔄 Update:    system-instructions.md (forced)"
+    elif [ "$si_local" = "$si_baseline" ] || { [ -z "$si_baseline" ] && [ ! -f "$MANIFEST_FILE" ]; }; then
+      SYSINST_ACTION="update"
+      echo "    🔄 Update:    system-instructions.md"
+    else
+      SYSINST_ACTION="preserved"
+      if [ -z "$si_baseline" ]; then
+        echo "    ⚡ Preserved: system-instructions.md (no baseline, assuming modified)"
       else
-        SYSINST_ACTION="preserved"
-        if [ -z "$si_baseline" ]; then
-          echo "    ⚡ Preserved: system-instructions.md (no baseline, assuming modified)"
-        else
-          echo "    ⚡ Preserved: system-instructions.md (local modifications)"
-        fi
-        TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
-        ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    system-instructions.md\n"
+        echo "    ⚡ Preserved: system-instructions.md (local modifications)"
       fi
+      TOTAL_PRESERVED=$((TOTAL_PRESERVED + 1))
+      ALL_PRESERVED_FILES="${ALL_PRESERVED_FILES}    system-instructions.md\n"
     fi
-  elif [ -f "$WRIT_SRC/system-instructions.md" ]; then
-    SYSINST_ACTION="new"
-    echo "    ✨ New:       system-instructions.md"
   fi
+elif [ -f "$WRIT_SRC/system-instructions.md" ]; then
+  SYSINST_ACTION="new"
+  echo "    ✨ New:       system-instructions.md"
 fi
 
 if [ "$PLATFORM" = "claude" ]; then
@@ -1193,6 +1261,7 @@ elif [ "$PLATFORM" = "claude" ]; then
   { [ "${SYSINST_ACTION:-unchanged}" = "update" ] || [ "${SYSINST_ACTION:-unchanged}" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "$CLAUDE_MD_ACTION" = "update" ] || [ "$CLAUDE_MD_ACTION" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 elif [ "$PLATFORM" = "codex" ]; then
+  { [ "${SYSINST_ACTION:-unchanged}" = "update" ] || [ "${SYSINST_ACTION:-unchanged}" = "new" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
   { [ "${AGENTS_MD_ACTION:-unchanged}" = "update" ] || [ "${AGENTS_MD_ACTION:-unchanged}" = "restore" ]; } && ACTIONABLE=$((ACTIONABLE + 1))
 fi
 
@@ -1288,6 +1357,10 @@ elif [ "$PLATFORM" = "claude" ]; then
     UPDATES=$((UPDATES + 1))
   fi
 elif [ "$PLATFORM" = "codex" ]; then
+  if [ "$SYSINST_ACTION" = "update" ] || [ "$SYSINST_ACTION" = "new" ]; then
+    cp "$WRIT_SRC/system-instructions.md" "$PLATFORM_DIR/"
+    UPDATES=$((UPDATES + 1))
+  fi
   if [ "$AGENTS_MD_ACTION" = "update" ] || [ "$AGENTS_MD_ACTION" = "restore" ]; then
     merge_agents_md apply
     UPDATES=$((UPDATES + 1))
@@ -1356,7 +1429,7 @@ if [ "$NO_COMMIT" = false ] && command -v git &>/dev/null && [ -d .git ]; then
     git add "CLAUDE.md" 2>/dev/null || true
     git add "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   elif [ "$PLATFORM" = "codex" ]; then
-    git add "AGENTS.md" 2>/dev/null || true
+    git add "AGENTS.md" "$PLATFORM_DIR/system-instructions.md" 2>/dev/null || true
   fi
 
   git commit -m "$(cat <<EOF

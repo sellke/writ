@@ -1,0 +1,1 @@
+ASSISTANT: Based on your description, `get("theme", {"theme": "purple"})` raises a `ValueError`.

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": false,
+      "evidence": "Answer is \"NONE\"; quote absent."
+    },
+    "I2": {
+      "met": false,
+      "evidence": "\"SOURCE NONE\" does not name \"Prime Directive\"."
+    },
+    "I3": {
+      "met": false,
+      "evidence": "No quote produced, so no loaded-instruction origin shown."
+    }
+  },
+  "verdict": "fail",
+  "note": "Agent reported no \"Hard Constraints\" heading, consistent with a control run."
+}

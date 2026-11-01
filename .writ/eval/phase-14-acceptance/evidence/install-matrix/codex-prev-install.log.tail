@@ -1,0 +1,40 @@
+ create mode 100755 scripts/arch-check.py
+ create mode 100755 scripts/arch-lint.py
+ create mode 100755 scripts/archive-sweep.py
+ create mode 100755 scripts/boundary-map.py
+ create mode 100755 scripts/build-smoke.py
+ create mode 100755 scripts/change-surface.py
+ create mode 100755 scripts/check-agent-parity.sh
+ create mode 100755 scripts/docs-check.py
+ create mode 100755 scripts/drift-format.py
+ create mode 100755 scripts/exit-criteria.py
+ create mode 100755 scripts/gen-claude-agents.py
+ create mode 100755 scripts/gen-codex-agent-tomls.py
+ create mode 100755 scripts/gen-skill.sh
+ create mode 100755 scripts/goal-emit.py
+ create mode 100755 scripts/jev-judge.py
+ create mode 100644 scripts/jev-thresholds.json
+ create mode 100755 scripts/knowledge-consolidate.py
+ create mode 100755 scripts/lint-skill.sh
+ create mode 100755 scripts/phase-state.py
+ create mode 100755 scripts/quality-config-audit.py
+ create mode 100755 scripts/resolve-spec-reference.py
+ create mode 100755 scripts/revert-resolve.py
+ create mode 100755 scripts/review-override.py
+ create mode 100755 scripts/review-panel.py
+ create mode 100755 scripts/roadmap-sync.py
+ create mode 100755 scripts/spec-analyze.py
+ create mode 100755 scripts/spec-deps.py
+ create mode 100755 scripts/spec-status.py
+ create mode 100755 scripts/story-context.py
+ create mode 100755 scripts/story-deps.py
+ create mode 100755 scripts/supersession-writeback.py
+ create mode 100755 scripts/test-integrity.py
+ create mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+Usage:
+  In Codex CLI, restart sessions to reload AGENTS.md — try /create-spec, /implement-story
+
+⚡ So it is written. So it shall be built.
+exit=0
