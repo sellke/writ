@@ -1015,8 +1015,8 @@ The technical spec has an Error & Rescue Map but no Shadow Paths or Interaction 
    ```
 
 **Expected Result:**
-- Step 3: discovery asks one focused question at a time and pushes back where the request is unclear or conflicts with the code. `git status` shows no new file under `.writ/specs/` before the contract is locked.
-- Step 4: the contract shows Deliverable, Must Include, Hardest Constraint, Experience Design, Business Rules, Success Criteria, and Scope Boundaries; the Contract Decision prompt offers the five options.
+- Step 3: discovery asks one question per prompt when the answers depend on each other (independent bounded choices may share a prompt) and pushes back where the request is unclear or conflicts with the code. `git status` shows no new file under `.writ/specs/` before the contract is locked.
+- Step 4: the full contract is printed as a visible message before the Contract Decision prompt, in Plan Mode or not, and shows Deliverable, Must Include, Hardest Constraint, Experience Design, Business Rules, Success Criteria, and Scope Boundaries. The prompt offers four options (lock, edit or ask more questions, risks, blueprint), plus the free-text "Other" that Claude Code adds.
 - Step 6:
   - The package holds `spec.md`, `spec-lite.md`, `user-stories/README.md`, one or more `user-stories/story-N-*.md`, and `sub-specs/technical-spec.md`.
   - `spec.md` has a `Status` line and a `Dependencies` line (`[]` here).

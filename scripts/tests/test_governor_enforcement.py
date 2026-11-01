@@ -605,7 +605,23 @@ KNOWN_OVER_BUDGET = {
     # tracking step, why-this-step paragraphs, spec-lite budget breakdown), and the
     # Example Usage dialogue. Each cut removed coaching, not a byte goal; every
     # step, gate, AskQuestion block, and script call stays. cut-log.md lists every change.
-    "commands/create-spec.md": 13602,
+    # 2026-10-22 (bug create-spec-can-lock-an-unseen-contract): 13602 -> 14065, a
+    # disclosed increase. Step 1.4b opens with a precondition that the full contract
+    # was printed as a visible message, Plan Mode or not; both --from Step 3s open
+    # with one that the lock happened at Step 1.4b; the --from Step 2s say to print
+    # the contract. The "more questions" option folded into "edit" so the prompt
+    # fits a four-option cap. No new step or gate. Acknowledged, not exempted.
+    # 2026-10-22 (hygiene UAT Scenario 29 re-run): 14065 -> 14632, a disclosed
+    # increase. A live run bundled three discovery questions into one AskUserQuestion
+    # call. Step 1.3 and both --from Step 1s now open with a "One question per
+    # prompt" rule (one question per message or AskQuestion call, never bundled),
+    # restoring the line the Phase 13 cut folded into a run-in clause. No new step
+    # or gate. Acknowledged, not exempted.
+    # 2026-10-22: 14632 -> 14445. The maintainer relaxed that rule to "One question
+    # at a time": a question whose answer could change the next is asked alone;
+    # independent bounded choices may share one AskQuestion prompt. The --from
+    # Step 1s now point to Step 1.3 instead of restating it.
+    "commands/create-spec.md": 14445,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
