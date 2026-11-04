@@ -57,3 +57,19 @@
 - **Business rules:** [Human gate (rule 9), Commit order (rule 10), Removal (rule 11), Gate 0 and the blind trial (rule 12), Spec status (rule 13)] — from spec.md → Business Rules (Expanded)
 - **Experience:** [Error experience (an `unverifiable` upgrade is left untouched and named in the spec status)] — from spec.md → 🎯 Experience Design
 - **Technical:** technical-spec.md → ## Verdict Execution (Story 4) (commit order, Removal inventories, Repo state the outcome test asserts, Records); technical-spec.md → ## Interaction Edge Cases (Gate 0 / blind-trial rows, both review-route upgrades removed, two removals editing implement-story.md); technical-spec.md → ## Files in Scope (Story 4 rows)
+
+## What Was Built
+
+> Run: 2026-11-04 · Status: In Progress (task 4.6 held, drift-log DEV-013)
+
+- **Labels (task 4.1):** the maintainer delegated the labels and the Repro First ack to the assistant, after seeing each finding with its acceptance criteria and the cited yuss code. `labeled_by` reads `Adam Sellke (delegated to assistant)`, and every note says so (drift-log DEV-012).
+- **Report (task 4.2):** committed verbatim as `trial-report.md` with the labeled trial file in `ef0c418`, before any other edit. Gate 0 Divergence, Safety Fact, and Reviewer Filters keep. Repro First is unverifiable (`amendment_requested`).
+- **Removals (tasks 4.3, 4.4):** none. No verdict is `remove`, so no upgrade file was edited. `test_gate_upgrade_trial_outcome.py` passes against the live report.
+- **Records (task 4.5):** the roadmap Phase 15 "Removal measurement" line, the ADR-030 § Review note, and the spec status `In Progress — repro-first amendment_requested (trial-report.md)`.
+- **Harness (task 4.6):** kept. Repro First's `amend` ack needs a substitute-baseline run (DEV-013).
+
+### Gate record
+
+**REVIEW_RESULT:** PAUSE
+
+DEV-012 (Large) went to the maintainer, who resolved it on 2026-11-04: "Make your best assessment and act accordingly."
