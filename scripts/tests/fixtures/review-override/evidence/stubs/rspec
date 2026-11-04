@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Stub `rspec` for the review-override evidence tests. It prints the
+rspec output for STUB_MODE and exits with rspec's code. See _stub.py."""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from _stub import run  # noqa: E402
+
+MODES = {
+    "fail": (1, "F\n\nFailures:\n\n  1) parse_limit rejects a negative limit\n"
+                "     Failure/Error: expect(parse_limit(\"-1\")).to be_nil\n\n"
+                "Finished in 0.01 seconds\n1 example, 1 failure\n"),
+    "pass": (0, ".\n\nFinished in 0.01 seconds\n1 example, 0 failures\n"),
+    "outside": (1, "An error occurred while loading ./spec/limits_spec.rb.\n\n"
+                   "Finished in 0.00003 seconds\n"
+                   "0 examples, 0 failures, 1 error occurred outside of examples\n"),
+    # A failure count beside an error outside the examples is still broken.
+    "outside_fail": (1, "F\n\nAn error occurred in a `before(:suite)` hook.\n\n"
+                        "1 example, 1 failure, 1 error occurred outside of examples\n"),
+}
+
+if __name__ == "__main__":
+    sys.exit(run(MODES))

@@ -28,3 +28,77 @@
 - **Reason:** Stories 6 and 7 work from technical-spec.md, not from the ADR. Listing every test file in the ADR adds names that go stale.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** spec-lite.md, For Review Agents → Business Rules, gains: "ADR-032 § Removals names every product file, section, and config key, and points to technical-spec § Removals for test updates and regenerated trees (DEV-002)."
+
+---
+
+## Story 2: Evidence skill and the `evidence` subcommand — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-003] The run-level `no_test_runner` treats findings with no evidence as undecided ⚠️
+- **Severity:** Medium
+- **Spec said:** technical-spec § Error & Rescue Map: with no `Test Runner` line, "`test` findings `unverifiable no_test_runner`; when no finding can be decided otherwise, line 1 `unverifiable no_test_runner`". § Evidence outcomes: "A finding with no `Evidence:` block is `advisory (no_evidence)`".
+- **Implementation did:** Line 1 is `unverifiable no_test_runner` when all of these hold:
+  - there is no `Test Runner`;
+  - at least one finding passed selection;
+  - no `recorded`, `check`, or `security-path` finding reached a non-unverifiable outcome.
+
+  A selected finding with no evidence counts as undecided. So with no `Test Runner`, a FAIL whose only Major findings carry no evidence keeps the agent's FAIL (Gate 3 row 8). The same FAIL is downgraded to PASS (row 9) when a `Test Runner` exists or the runner token is unknown. `test_no_test_runner_leaves_the_call_unverifiable` fixes this reading.
+- **Reason:** The spec text supports both readings. The implementation's reading matches the Error experience bullet ("no `Test Runner` … the agent verdict stands"). A literal reading of "decided" would downgrade instead. The Gate 3 result differs between the two.
+- **Resolution:** ⚠️ Medium — logged, PASS (agent verdict stands on no Test Runner, per Experience Design)
+- **Spec amendment:** (if kept) technical-spec § Error & Rescue Map, Resolve the runner: "…when no `recorded`, `check`, or `security-path` finding reaches `confirmed` or `advisory`, line 1 is `unverifiable no_test_runner`; findings with no Evidence do not count as decided."
+
+#### [DEV-004] Finding lines end with ` at <location>`, and unverifiable findings print `advisory (unverifiable <reason>)`
+- **Severity:** Small
+- **Spec said:** technical-spec § Evidence Block Grammar: "Each per-finding line also prints the normalized Location". The § CLI example shows no location, and AC-2.3 lists `unverifiable <reason>`.
+- **Implementation did:** `finding F1: confirmed (test <path>, exit 1) at src/limits.py`, and `advisory (unverifiable <reason>) at …`, as in the § CLI example's F3 line.
+- **Reason:** It follows the grammar rule and the example's F3 form. Story 3 must parse the suffix.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI example: append ` at api/limits.py` to each `finding` line, and add "A finding without a Location omits the ` at` suffix."
+
+#### [DEV-005] The `evidence-gate` switch pattern uses `[ \t]*`, not `\s*`
+- **Severity:** Small
+- **Spec said:** `^\s*-\s*\*\*Evidence Gate:\*\*\s*(.*)$`
+- **Implementation did:** `^[ \t]*-[ \t]*\*\*Evidence Gate:\*\*[ \t]*(.*)$`
+- **Reason:** With `re.MULTILINE`, `\s*` crosses a newline, so an empty value would read the next line. Behavior otherwise matches.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI: use `^[ \t]*-[ \t]*\*\*Evidence Gate:\*\*[ \t]*(.*)$`.
+
+#### [DEV-006] Findings with malformed fields get specific reasons, not `no_evidence`
+- **Severity:** Small
+- **Spec said:** Error & Rescue, Parse issues: malformed fields → "Every finding `advisory (no_evidence)`; line 1 `pass`".
+- **Implementation did:** A missing Severity gives `advisory (low_severity none)`, and a missing Location gives `advisory (location_outside_change_set)`. Line 1 is still `pass`.
+- **Reason:** Same outcome, more specific reason codes. The skill lists both.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** Error & Rescue, Parse issues: "…each finding is advisory with the first selection rule it fails (`low_severity none`, `location_outside_change_set`, `no_claim`, `no_evidence`); line 1 `pass`."
+
+#### [DEV-007] The snapshot hashes every status path, records HEAD, and runs git with read-only flags
+- **Severity:** Small
+- **Spec said:** technical-spec § Tree Snapshot: status list, `diff HEAD --binary` hash, and a hash of each untracked file.
+- **Implementation did:** Four additions to the snapshot.
+  - It hashes the working-tree bytes of every status path, not only untracked ones.
+  - It records HEAD's commit (`rev-parse --verify -q HEAD`) and branch (`symbolic-ref -q HEAD`), and reports `(HEAD)` when only those differ.
+  - It adds `--no-optional-locks`, `core.fsmonitor=false`, `--no-ext-diff`, and `--no-textconv`.
+  - It diffs against the empty tree when there is no commit.
+- **Reason:** A strict superset that catches more cases, including a commit or checkout on a clean tree. It runs no git command that writes.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** § Tree Snapshot step 3: "Every path from step 1 is hashed…". Add step 4: "HEAD's commit and symbolic ref are recorded; a difference there alone is `repro_mutated_tree (HEAD)`." Add: "git runs with `--no-optional-locks` and no external diff or textconv."
+
+#### [DEV-008] The scoped command keeps `Test Runner` tokens through the runner word only
+- **Severity:** Small
+- **Spec said:** Runner Classification: `<runner> <path>` and similar forms. It does not say what happens to flags in the `Test Runner` value.
+- **Implementation did:** It keeps the prefix and the runner word, plus `test` for go and cargo and `run` for vitest. It drops later flags and strips a trailing `(detected: …)` note. `npm test` adds `--` before the scoped argument.
+- **Reason:** Arguments like `./...` or `tests` would widen the run past the repro file.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** Runner Classification: "`<runner>` is the `Test Runner` tokens through the runner word; later arguments are dropped."
+
+#### [DEV-009] The pytest test-failed class needs a failed count, not exit 1 alone
+- **Severity:** Small
+- **Spec said:** technical-spec § Runner Classification, pytest row: confirmed on "exit 1"; unverifiable on "exit 2 to 5".
+- **Implementation did:** It confirms on exit 1 only when the output has a `N failed` count with N ≥ 1. Exit 1 without one, such as a setup error (`1 error`) or an interpreter that cannot import pytest, is `collection_error`.
+- **Reason:** It meets the contract's rules that "Runners report a failing test and a broken test … differently" and "One broken repro makes that finding advisory". It matches the jest, vitest, and rspec rows, which already require a failed count. The review asked for this change (first review, Issue 1).
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Runner Classification, pytest row: Test-failed class "exit 1 and a summary with `N failed`, N ≥ 1"; Everything else "exit 1 without a failed count (setup errors, an interpreter without pytest), exit 2 to 5".

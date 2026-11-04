@@ -10,14 +10,20 @@ re-derive findings itself. [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
+import time
+import types
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -378,7 +384,8 @@ class Gate3WiringTests(unittest.TestCase):
 # empty stdout; `check` output is unchanged. [AC-1.1, AC-1.2, AC-1.3, AC-1.4]
 # ---------------------------------------------------------------------------
 
-SWITCH_KEYS = {"safety-fact": "Safety Fact", "reviewer-filters": "Reviewer Filters"}
+SWITCH_KEYS = {"safety-fact": "Safety Fact", "reviewer-filters": "Reviewer Filters",
+               "evidence-gate": "Evidence Gate"}
 
 
 def _switch_config(*lines: str) -> str:
@@ -1239,6 +1246,1285 @@ class SafetyFactLeavesOtherSubcommandsTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(proc.stdout.splitlines(),
                          _switch_expected("safety-fact", "on", "no_config"))
+
+
+
+# ---------------------------------------------------------------------------
+# Story 2 of `2026-11-04-evidence-gated-review`: the `evidence` subcommand and
+# the `evidence-gated-findings` skill. One test per Error & Rescue row and per
+# Evidence outcomes cell, plus the skill's registration. Each test copies the
+# fixture project into a temp git repo and writes its own `.writ/config.md`;
+# no test runs `evidence` against the Writ working tree.
+# [AC-2.1, AC-2.2, AC-2.3, AC-2.4, AC-2.5]
+# ---------------------------------------------------------------------------
+
+EV_FIXTURES = REPO_ROOT / "scripts" / "tests" / "fixtures" / "review-override" / "evidence"
+EV_PROJECT = EV_FIXTURES / "pytest-project"
+EV_STUBS = EV_FIXTURES / "stubs"
+EV_PYTEST = "%s -m pytest" % shlex.quote(sys.executable)
+EV_LOCATION = "`src/limits.py:3`"
+EV_AT = " at src/limits.py"
+EV_REPRO = "tests/test_limits_repro.py"
+EV_REPRO_FAIL = (
+    "from src.limits import parse_limit\n"
+    "\n"
+    "\n"
+    "def test_negative_limit_rejected():\n"
+    "    assert parse_limit(\"-1\") is None\n"
+)
+EV_REPRO_PASS = (
+    "from src.limits import parse_limit\n"
+    "\n"
+    "\n"
+    "def test_positive_limit():\n"
+    "    assert parse_limit(\"5\") == 5\n"
+)
+EV_REPRO_BROKEN = "def test_broken(:\n    pass\n"
+
+EV_SKILL_NAME = "evidence-gated-findings"
+EV_SKILL_REL = "skills/evidence-gated-findings/SKILL.md"
+# Cited by name, as shipped skills cite ADRs: an installed project has no ADR
+# files, so a relative link would not resolve in the generated plugin trees.
+EV_ADR_CITE = "(ADR-032)"
+# Reason codes the spec does not name. The skill lists each one (Story 2 Notes).
+EV_NEW_REASONS = (
+    "low_severity", "repro_passed", "recorded_passed", "check_passed",
+    "no_changed_file_named", "test_not_in_run", "no_recorded_run",
+    "no_gate2_record", "command_not_recorded", "command_not_found",
+    "not_security", "unknown_kind", "missing_test_block", "repro_write_failed",
+    "stopped_after_mutation",
+)
+
+
+def _ev_env(**extra: str) -> dict:
+    """The caller's env minus GIT_* and STUB_*, git config isolated, and the
+    stub runners first on PATH."""
+    env = {k: v for k, v in os.environ.items()
+           if not k.startswith("GIT_") and not k.startswith("STUB_")}
+    env.update({
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PATH": str(EV_STUBS) + os.pathsep + os.environ.get("PATH", ""),
+    })
+    env.update(extra)
+    return env
+
+
+def _ev_git(repo: Path, *args: str) -> str:
+    proc = subprocess.run(["git", "-C", str(repo), *args], capture_output=True,
+                          text=True, env=_ev_env())
+    if proc.returncode != 0:
+        raise AssertionError("git %s failed: %s" % (" ".join(args), proc.stderr))
+    return proc.stdout
+
+
+def _ev_config(runner: str | None, lines: tuple = ()) -> str:
+    body = ["# Writ Project Config", "", "## Conventions", "", "- **Default Branch:** main"]
+    if runner is not None:
+        body.append(("- **Test Runner:** %s" % runner).rstrip())
+    body.extend(lines)
+    return "\n".join(body) + "\n"
+
+
+def _ev_repo(root: Path, *, runner: str | None = EV_PYTEST, lines: tuple = (),
+             files: dict | None = None, git: bool = True) -> Path:
+    """Copy the fixture project to `root/repo`, write its config and any extra
+    files, then `git init` and commit everything (unless `git=False`)."""
+    repo = root / "repo"
+    shutil.copytree(str(EV_PROJECT), str(repo))
+    (repo / ".writ").mkdir()
+    (repo / ".writ" / "config.md").write_text(_ev_config(runner, lines), encoding="utf-8")
+    for rel, text in (files or {}).items():
+        path = repo / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    if git:
+        _ev_git(repo, "-c", "init.defaultBranch=main", "init", "-q")
+        _ev_git(repo, "add", "-A")
+        _ev_git(repo, "-c", "user.name=Evidence Test", "-c", "user.email=evidence@example.com",
+                "-c", "commit.gpgsign=false", "commit", "-q", "--no-verify", "-m", "base")
+    return repo
+
+
+def _ev_issue(issue: str = "`parse_limit()` accepts a negative limit", *,
+              location: str | None = EV_LOCATION, severity: str = "Major",
+              category: str = "criterion [AC-1.1]", evidence: str | None = None,
+              block: str | None = None, indent: str = "  ", extra: tuple = ()) -> list:
+    """One `### Issues Found` entry; `block` is the fenced code after Evidence."""
+    lines = ["- **Issue:** %s" % issue]
+    if location is not None:
+        lines.append("- **Location:** %s" % location)
+    lines += ["- **Severity:** %s" % severity, "- **Category:** %s" % category]
+    if evidence is not None:
+        lines.append("- **Evidence:** %s" % evidence)
+    if block is not None:
+        lines.append(indent + "```python")
+        lines.extend((indent + ln) if ln else "" for ln in block.splitlines())
+        lines.append(indent + "```")
+    lines.extend(extra)
+    lines.append("")
+    return lines
+
+
+def _ev_test(path: str = EV_REPRO, content: str = EV_REPRO_FAIL, **kwargs) -> list:
+    return _ev_issue(evidence="test `%s`" % path, block=content, **kwargs)
+
+
+def _ev_review(*issues: list, verdict: str | None = "FAIL",
+               heading: str | None = "### Issues Found") -> str:
+    lines: list = []
+    if verdict is not None:
+        lines += ["### EVALUATION_RESULT: %s" % verdict, ""]
+    lines += ["### Summary", "Fixture review.", ""]
+    if heading is not None:
+        lines += [heading, ""]
+        for issue in issues:
+            lines += issue
+    lines += ["### Drift Analysis", "", "**Overall Drift:** None", ""]
+    return "\n".join(lines) + "\n"
+
+
+def _ev_run(root: Path, repo: Path, review: str | None, *,
+            changed: tuple | None = ("src/limits.py",), tests: str | None = None,
+            checks: str | None = None, extra: tuple = (),
+            env: dict | None = None) -> subprocess.CompletedProcess:
+    """Run `evidence`. `review=None` points at a file that does not exist."""
+    review_path = root / "review.md"
+    if review is not None:
+        review_path.write_text(review, encoding="utf-8")
+    args = ["evidence", "--review-output", str(review_path), "--repo", str(repo)]
+    if changed is not None:
+        args += ["--changed", *changed]
+    if tests is not None:
+        (root / "tests-output.txt").write_text(tests, encoding="utf-8")
+        args += ["--tests-output", str(root / "tests-output.txt")]
+    if checks is not None:
+        (root / "gate2-checks.txt").write_text(checks, encoding="utf-8")
+        args += ["--checks", str(root / "gate2-checks.txt")]
+    args += list(extra)
+    return subprocess.run([sys.executable, str(SCRIPT), *args], capture_output=True,
+                          text=True, env=env if env is not None else _ev_env(),
+                          cwd=str(root), timeout=300)
+
+
+def _ev_summary(verdict: str, confirmed: int, advisory: int, unverifiable: int) -> str:
+    return ("review-override evidence: %s (%d confirmed, %d advisory, %d unverifiable)"
+            % (verdict, confirmed, advisory, unverifiable))
+
+
+def _ev_unverifiable(reason: str) -> list:
+    return ["unverifiable", "reason: %s" % reason,
+            "review-override evidence: unverifiable (%s)" % reason]
+
+
+def _ev_findings(stdout: str) -> dict:
+    """`finding F<n>:` lines keyed by F<n>, the text after the colon."""
+    found = {}
+    for line in stdout.splitlines():
+        match = re.match(r"^finding (F\d+): (.*)$", line)
+        if match:
+            found[match.group(1)] = match.group(2)
+    return found
+
+
+def _ev_argv(path: Path) -> list:
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def _ev_module():
+    spec = importlib.util.spec_from_file_location("review_override_under_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class EvidenceTestCase(unittest.TestCase):
+    """Shared assertions for the Story 2 `evidence` tests."""
+
+    def assert_output(self, proc: subprocess.CompletedProcess, expected: list) -> None:
+        self.assertEqual(proc.stdout.splitlines(), expected, proc.stdout + proc.stderr)
+        self.assertEqual(proc.returncode, 1 if expected[0] == "fail" else 0,
+                         proc.stdout + proc.stderr)
+
+    def assert_finding(self, proc: subprocess.CompletedProcess, key: str, text: str) -> None:
+        self.assertEqual(_ev_findings(proc.stdout).get(key), text, proc.stdout + proc.stderr)
+
+
+class EvidenceSkillRegistrationTests(unittest.TestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — the skill lints, carries
+    its frontmatter, sections, kinds, and reason codes, and is registered in
+    the manifest, the README, root `SKILL.md`, the config docs, and the
+    generated trees. [AC-2.1]"""
+
+    def skill_text(self) -> str:
+        path = REPO_ROOT / EV_SKILL_REL
+        self.assertTrue(path.is_file(), "%s missing" % EV_SKILL_REL)
+        return path.read_text(encoding="utf-8")
+
+    def test_skill_lints_pass(self) -> None:
+        """AC-2.1 — `lint-skill.sh` prints `pass` on line 1 and exits 0."""
+        self.skill_text()
+        proc = subprocess.run(["bash", str(REPO_ROOT / "scripts" / "lint-skill.sh"), EV_SKILL_REL],
+                              cwd=str(REPO_ROOT), capture_output=True, text=True)
+        self.assertEqual(proc.stdout.splitlines()[:1], ["pass"], proc.stdout + proc.stderr)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_skill_frontmatter_sections_kinds_and_reasons(self) -> None:
+        """AC-2.1 — frontmatter keys, the three sections in order, the four
+        kinds, the ADR-032 citation, and every reason code the spec leaves
+        unnamed."""
+        text = self.skill_text()
+        match = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.DOTALL)
+        self.assertIsNotNone(match, "no frontmatter")
+        front = dict(re.findall(r"^([\w-]+):\s*(.*)$", match.group(1), re.MULTILINE))
+        body = match.group(2)
+        self.assertEqual(front.get("name"), EV_SKILL_NAME)
+        self.assertTrue(front.get("description", "").strip('"'), front)
+        self.assertEqual(front.get("disable-model-invocation"), "true")
+        self.assertEqual(front.get("status"), "candidate")
+        self.assertIn("2026-11-04-evidence-gated-review", front.get("status_evidence", ""))
+        headings = [ln for ln in body.splitlines() if ln.startswith("## ")]
+        required = ["## Purpose", "## When to Use", "## How to Apply"]
+        for heading in required:
+            self.assertIn(heading, headings)
+        self.assertEqual([headings.index(h) for h in required],
+                         sorted(headings.index(h) for h in required))
+        for kind in ("test", "recorded", "check", "security-path"):
+            self.assertIn("`%s`" % kind, body)
+        self.assertIn(EV_ADR_CITE, body)
+        flat = " ".join(body.split())
+        self.assertIn("An import error at the top of the file, a syntax error, or a missing "
+                      "fixture is a broken repro", flat)
+        self.assertIn("an exception raised inside the test body counts as a test failure", flat)
+        self.assertNotIn("decision-records/", body)
+        for reason in EV_NEW_REASONS:
+            self.assertIn("`%s" % reason, body, reason)
+
+    def test_skill_registered_everywhere(self) -> None:
+        """AC-2.1 — manifest entry (alphabetical), README row and live count,
+        root `SKILL.md` row (alphabetical), the `Evidence Gate` config row and
+        section beside `Reviewer Filters`, and current generated trees."""
+        front = re.search(r'^description:\s*"(.*)"$', self.skill_text(), re.MULTILINE)
+        self.assertIsNotNone(front)
+        description = front.group(1)
+
+        manifest = (REPO_ROOT / ".writ" / "manifest.yaml").read_text(encoding="utf-8")
+        skills = manifest.split("\nskills:\n", 1)[1]
+        names = re.findall(r"^  - name:\s*(\S+)", skills, re.MULTILINE)
+        self.assertIn(EV_SKILL_NAME, names)
+        self.assertEqual(names, sorted(names))
+        entry = skills.split("  - name: %s\n" % EV_SKILL_NAME, 1)[1].split("\n  - name:", 1)[0]
+        self.assertIn("    file: %s" % EV_SKILL_REL, entry)
+        self.assertIn('    description: "%s"' % description, entry)
+        self.assertIn("    status: candidate", entry)
+        self.assertRegex(entry, r"    tags: \[[^\]]+\]")
+
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        table = readme.split("\n## Skills\n", 1)[1].split("\n## ", 1)[0]
+        rows = [ln for ln in table.splitlines() if ln.startswith("| [`")]
+        self.assertTrue(any(ln.startswith("| [`%s`](%s) |" % (EV_SKILL_NAME, EV_SKILL_REL))
+                            for ln in rows), rows)
+        count = re.search(r"(\d+) skills are live today", readme)
+        self.assertIsNotNone(count)
+        self.assertEqual(int(count.group(1)), len(rows))
+
+        catalog = (REPO_ROOT / "SKILL.md").read_text(encoding="utf-8")
+        catalog_rows = re.findall(r"^\| `([\w-]+)` \| `(?:candidate|proven|promoted)` \| `skills/",
+                                  catalog, re.MULTILINE)
+        self.assertIn("| `%s` | `candidate` | `%s` | %s |" % (EV_SKILL_NAME, EV_SKILL_REL,
+                                                            description), catalog)
+        self.assertEqual(catalog_rows, sorted(catalog_rows))
+
+        config_doc = (REPO_ROOT / ".writ" / "docs" / "config-format.md").read_text(encoding="utf-8")
+        self.assertRegex(config_doc, r"(?m)^\| `Evidence Gate` \| .*\[Evidence Gate\]\(#evidence-gate\)")
+        self.assertRegex(config_doc, r"(?m)^\| `Reviewer Filters` \| ")
+        self.assertIn("\n## Reviewer Filters\n", config_doc)
+        section = config_doc.split("\n## Evidence Gate\n", 1)
+        self.assertEqual(len(section), 2, "no ## Evidence Gate section")
+        section = section[1].split("\n## ", 1)[0]
+        self.assertIn("- **Evidence Gate:** off", section)
+        self.assertIn("python3 scripts/review-override.py switch --name evidence-gate --repo .",
+                      section)
+
+        for base in ("plugins/writ/skills", "cursor/plugin/skills"):
+            copy = REPO_ROOT / base / EV_SKILL_NAME / "SKILL.md"
+            self.assertTrue(copy.is_file(), "%s missing" % copy.relative_to(REPO_ROOT))
+        proc = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "gen-platform-trees.py"),
+                               "--check"], cwd=str(REPO_ROOT), capture_output=True, text=True)
+        self.assertEqual(proc.stdout.splitlines()[:1], ["pass"], proc.stdout + proc.stderr)
+
+
+class EvidenceEnvelopeTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — the switch, usage
+    errors, the review output read, the verdict gate, and the empty Issues
+    section. [AC-2.2]"""
+
+    def test_switch_off_any_case_runs_nothing(self) -> None:
+        """AC-2.2 — `Evidence Gate: off` in any case prints `unverifiable` with
+        `switch_off`, exits 0, and no repro runs."""
+        for value in ("off", "OFF", "Off"):
+            with self.subTest(value=value), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root, runner="jest",
+                                lines=("- **Evidence Gate:** %s" % value,))
+                argv = root / "argv.jsonl"
+                proc = _ev_run(root, repo, _ev_review(_ev_test("src/limits.test.js")),
+                               env=_ev_env(STUB_ARGV=str(argv)))
+                self.assert_output(proc, _ev_unverifiable("switch_off"))
+                self.assertEqual(_ev_argv(argv), [])
+                self.assertFalse((repo / "src" / "limits.test.js").exists())
+
+    def test_switch_absent_empty_on_or_malformed_proceeds(self) -> None:
+        """AC-2.2 — no line, an empty value, `on`, or a malformed value lets
+        the run proceed."""
+        for lines in ((), ("- **Evidence Gate:**",), ("- **Evidence Gate:** on",),
+                      ("- **Evidence Gate:** of",)):
+            with self.subTest(lines=lines), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root, lines=lines)
+                proc = _ev_run(root, repo, _ev_review())
+                self.assert_output(proc, ["pass", _ev_summary("pass", 0, 0, 0)])
+
+    def test_evidence_gate_switch_resolves(self) -> None:
+        """AC-2.2 — `switch --name evidence-gate` resolves the config line."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            _write_config(repo, _switch_config("- **Evidence Gate:** OFF"))
+            proc = _switch(["--name", "evidence-gate", "--repo", str(repo)])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.splitlines(),
+                         _switch_expected("evidence-gate", "off", "config_off"))
+
+    def test_missing_review_output_flag_is_usage_error(self) -> None:
+        """AC-2.2 — no `--review-output`: exit 2, stdout empty, usage on stderr."""
+        with TemporaryDirectory() as tmp:
+            proc = subprocess.run([sys.executable, str(SCRIPT), "evidence", "--repo", tmp],
+                                  capture_output=True, text=True, env=_ev_env())
+        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.stdout, "")
+        self.assertIn("usage:", proc.stderr)
+
+    def test_unknown_surface_is_usage_error(self) -> None:
+        """AC-2.2 — `--surface` other than `gate3` or `review`: exit 2, stdout empty."""
+        for value in ("gate2", "Review", ""):
+            with self.subTest(value=value), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root, git=False)
+                proc = _ev_run(root, repo, _ev_review(), extra=("--surface", value))
+                self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+                self.assertEqual(proc.stdout, "")
+                self.assertIn("usage:", proc.stderr)
+
+    def test_known_surfaces_and_later_story_flags_parse(self) -> None:
+        """AC-2.2 — `--surface gate3|review`, `--manifest-out`, `--prior`, and
+        `--timeout` parse; the manifest flags write nothing yet."""
+        for case in ("gate3", "review", "manifest"):
+            with self.subTest(case=case), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                out = root / "out"
+                extra = ("--surface", case) if case != "manifest" else (
+                    "--manifest-out", str(out / "evidence.json"),
+                    "--prior", str(out / "prior.json"), "--timeout", "30")
+                proc = _ev_run(root, repo, _ev_review(), extra=extra)
+                self.assert_output(proc, ["pass", _ev_summary("pass", 0, 0, 0)])
+                self.assertFalse(out.exists())
+
+    def test_missing_review_file_is_no_review_output(self) -> None:
+        """AC-2.2 — a missing or unreadable review file: `unverifiable`,
+        `no_review_output`, exit 0 (Nil shadow path)."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, None)
+            self.assert_output(proc, _ev_unverifiable("no_review_output"))
+            (root / "review.md").mkdir()
+            proc = _ev_run(root, repo, None)
+            self.assert_output(proc, _ev_unverifiable("no_review_output"))
+
+    def test_verdict_other_than_fail_is_verdict_not_fail(self) -> None:
+        """AC-2.2 — PASS, PAUSE, or no verdict line: `verdict_not_fail <verdict>`."""
+        for verdict, word in (("PASS", "PASS"), ("PAUSE", "PAUSE"), (None, "none")):
+            with self.subTest(verdict=verdict), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                proc = _ev_run(root, repo, _ev_review(_ev_test(), verdict=verdict))
+                self.assert_output(proc, _ev_unverifiable("verdict_not_fail %s" % word))
+                self.assertFalse((repo / "tests").exists())
+
+    def test_fail_with_empty_issues_passes_with_zero_counts(self) -> None:
+        """AC-2.2 — a FAIL with an empty or missing Issues Found section prints
+        `pass` and `0 confirmed, 0 advisory, 0 unverifiable` (Empty shadow path)."""
+        for heading in ("### Issues Found", "### Issues Found (if FAIL)", None):
+            with self.subTest(heading=heading), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                proc = _ev_run(root, repo, _ev_review(heading=heading))
+                self.assert_output(proc, ["pass", _ev_summary("pass", 0, 0, 0)])
+
+    def test_bold_fail_verdict_counts(self) -> None:
+        """AC-2.2 — `### REVIEW_RESULT: **FAIL**` reads as FAIL."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, _ev_review(verdict="**FAIL**"))
+            self.assert_output(proc, ["pass", _ev_summary("pass", 0, 0, 0)])
+
+
+class EvidenceSelectionTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — which findings are
+    evaluated, the finding keys, the Evidence field parse, the verdict line,
+    and the five-run cap. [AC-2.3]"""
+
+    def run_one(self, *issues: list, runner: str = "jest", changed: tuple = ("src/limits.py",),
+                **kwargs) -> tuple:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root, runner=runner)
+            argv = root / "argv.jsonl"
+            proc = _ev_run(root, repo, _ev_review(*issues), changed=changed,
+                           env=_ev_env(STUB_ARGV=str(argv)), **kwargs)
+            return proc, _ev_argv(argv)
+
+    def test_lower_severity_is_advisory_and_never_runs(self) -> None:
+        """AC-2.3 — Minor (or any non-Critical, non-Major) findings are advisory
+        and their repros never run."""
+        for severity in ("Minor", "Low", "Taste"):
+            with self.subTest(severity=severity):
+                proc, runs = self.run_one(_ev_test("src/limits.test.js", severity=severity))
+                self.assert_output(proc, [
+                    "pass", "finding F1: advisory (low_severity %s)%s" % (severity, EV_AT),
+                    _ev_summary("pass", 0, 1, 0)])
+                self.assertEqual(runs, [])
+
+    def test_location_outside_change_set_is_advisory(self) -> None:
+        """AC-2.3 — a Location outside `--changed`, or no Location at all, is
+        `advisory (location_outside_change_set)` and never runs."""
+        proc, runs = self.run_one(_ev_test("src/limits.test.js", location="`src/routes.py:5`"))
+        self.assert_finding(proc, "F1", "advisory (location_outside_change_set) at src/routes.py")
+        self.assertEqual(runs, [])
+        proc, runs = self.run_one(_ev_test("src/limits.test.js", location=None))
+        self.assert_finding(proc, "F1", "advisory (location_outside_change_set)")
+        proc, runs = self.run_one(_ev_test("src/limits.test.js"), changed=())
+        self.assert_finding(proc, "F1", "advisory (location_outside_change_set)" + EV_AT)
+        self.assertEqual(runs, [])
+
+    def test_location_normalizes_before_matching(self) -> None:
+        """AC-2.3 — `./src/limits.py:3-9` and a `./` changed path both match."""
+        proc, runs = self.run_one(_ev_test("src/limits.test.js", location="`./src/limits.py:3-9`"),
+                                  changed=("./src/limits.py",))
+        self.assert_finding(proc, "F1", "confirmed (test src/limits.test.js, exit 1)" + EV_AT)
+
+    def test_no_claim_is_advisory(self) -> None:
+        """AC-2.3 — no AC ID and a Category other than security or architecture
+        is `advisory (no_claim)`."""
+        for category in ("taste", "criterion", ""):
+            with self.subTest(category=category):
+                proc, runs = self.run_one(_ev_test("src/limits.test.js", category=category))
+                self.assert_finding(proc, "F1", "advisory (no_claim)" + EV_AT)
+                self.assertEqual(runs, [])
+
+    def test_claim_from_category_issue_or_location(self) -> None:
+        """AC-2.3 — `security`, `architecture`, or an AC ID in the Issue or
+        Location text is a claim."""
+        cases = (
+            {"category": "security"},
+            {"category": "Architecture"},
+            {"category": "criterion", "issue": "AC-2.3 is not met"},
+            {"category": "criterion", "location": "`src/limits.py:3` (AC-2.3)"},
+        )
+        for kwargs in cases:
+            with self.subTest(**kwargs):
+                proc, runs = self.run_one(_ev_test("src/limits.test.js", **kwargs))
+                self.assert_finding(proc, "F1", "confirmed (test src/limits.test.js, exit 1)" + EV_AT)
+
+    def test_no_evidence_is_advisory(self) -> None:
+        """AC-2.3 — a selected finding with no Evidence field is `advisory (no_evidence)`."""
+        proc, runs = self.run_one(_ev_issue(severity="Critical"))
+        self.assert_output(proc, ["pass", "finding F1: advisory (no_evidence)" + EV_AT,
+                                  _ev_summary("pass", 0, 1, 0)])
+
+    def test_unknown_kind_and_missing_test_block(self) -> None:
+        """AC-2.3 — an unknown kind word and a `test` field with no fenced
+        block are unverifiable with their own reasons."""
+        proc, runs = self.run_one(_ev_issue(evidence="screenshot `shot.png`"),
+                                  _ev_issue(evidence="test `src/limits.test.js`"))
+        self.assert_finding(proc, "F1", "advisory (unverifiable unknown_kind screenshot)" + EV_AT)
+        self.assert_finding(proc, "F2", "advisory (unverifiable missing_test_block)" + EV_AT)
+        self.assertEqual(runs, [])
+
+    def test_keys_follow_output_order(self) -> None:
+        """AC-2.3 — keys run F1 to Fn in output order across every severity."""
+        proc, runs = self.run_one(_ev_issue(severity="Minor"),
+                                  _ev_test("src/limits.test.js", severity="Critical"),
+                                  _ev_issue(severity="Major", category="taste"))
+        self.assert_output(proc, [
+            "fail",
+            "finding F1: advisory (low_severity Minor)" + EV_AT,
+            "finding F2: confirmed (test src/limits.test.js, exit 1)" + EV_AT,
+            "finding F3: advisory (no_claim)" + EV_AT,
+            "reason: confirmed F2",
+            _ev_summary("fail", 1, 2, 0)])
+
+    def test_field_names_ignore_case_and_bold(self) -> None:
+        """AC-2.3 — `Severity:` and `evidence:` without bold, any case, still parse."""
+        issue = ["- **Issue:** negative limit", "- Location: `src/limits.py:3`",
+                 "- severity: major", "- CATEGORY: criterion [AC-1.1]",
+                 "- evidence: test `src/limits.test.js`", "  ```js",
+                 "  test('x', () => {})", "  ```", ""]
+        proc, runs = self.run_one(issue)
+        self.assert_finding(proc, "F1", "confirmed (test src/limits.test.js, exit 1)" + EV_AT)
+
+    def test_second_evidence_field_is_ignored(self) -> None:
+        """AC-2.3 — a second Evidence field is ignored with `extra_evidence F<n>`."""
+        issue = _ev_test("src/limits.test.js",
+                         extra=("- **Evidence:** test `src/other.test.js`",
+                                "  ```js", "  x", "  ```"))
+        proc, runs = self.run_one(issue)
+        self.assert_output(proc, [
+            "fail", "finding F1: confirmed (test src/limits.test.js, exit 1)" + EV_AT,
+            "reason: extra_evidence F1", "reason: confirmed F1", _ev_summary("fail", 1, 0, 0)])
+        self.assertEqual(runs, [["src/limits.test.js"]])
+
+    def test_comment_lines_in_an_unindented_block_do_not_end_the_section(self) -> None:
+        """AC-2.3 — `# comment` lines inside a fence are code, not headings."""
+        content = "# arrange\nfrom src.limits import parse_limit\n\n\n# act and assert\n" \
+                  "def test_negative_limit_rejected():\n    assert parse_limit(\"-1\") is None\n"
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, _ev_review(_ev_test(content=content, indent=""),
+                                                  _ev_issue()))
+            self.assert_output(proc, [
+                "fail", "finding F1: confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT),
+                "finding F2: advisory (no_evidence)" + EV_AT, "reason: confirmed F1",
+                _ev_summary("fail", 1, 1, 0)])
+
+    def test_line_one_is_fail_only_with_a_confirmed_finding(self) -> None:
+        """AC-2.3 — line 1 `fail` (exit 1) when a finding is confirmed, `pass`
+        (exit 0) when none is."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root, runner="jest")
+            proc = _ev_run(root, repo, _ev_review(_ev_test("src/limits.test.js")),
+                           env=_ev_env(STUB_MODE="pass"))
+            self.assert_output(proc, [
+                "pass", "finding F1: advisory (repro_passed)" + EV_AT, _ev_summary("pass", 0, 1, 0)])
+
+    def test_five_run_cap(self) -> None:
+        """AC-2.3 — at most five `test` or `check` runs per call; later ones are
+        `unverifiable repro_cap`; `recorded` costs no run."""
+        issues = [_ev_test("src/a%d.test.js" % n) for n in range(1, 6)]
+        issues.append(_ev_issue(evidence="check `lint src/limits.py`"))
+        issues.append(_ev_test("src/a7.test.js"))
+        issues.append(_ev_issue(evidence="recorded `tests/test_limits.py::test_negative`"))
+        tests = "command: pytest\nexit code: 1\nFAILED tests/test_limits.py::test_negative\n"
+        proc, runs = self.run_one(*issues, tests=tests, checks="lint\n")
+        found = _ev_findings(proc.stdout)
+        for n in range(1, 6):
+            self.assertEqual(found["F%d" % n],
+                             "confirmed (test src/a%d.test.js, exit 1)%s" % (n, EV_AT))
+        self.assertEqual(found["F6"], "advisory (unverifiable repro_cap)" + EV_AT)
+        self.assertEqual(found["F7"], "advisory (unverifiable repro_cap)" + EV_AT)
+        self.assertEqual(found["F8"], "confirmed (recorded tests/test_limits.py::test_negative, "
+                                      "exit 1)" + EV_AT)
+        self.assertEqual(len(runs), 5)
+        self.assertEqual(proc.stdout.splitlines()[-1], _ev_summary("fail", 6, 0, 2))
+
+
+class EvidenceRecordedTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — the `recorded` kind
+    against the `recorded_test_results` text. [AC-2.3]"""
+
+    def run_recorded(self, test_id: str, tests: str | None) -> subprocess.CompletedProcess:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            return _ev_run(root, repo, _ev_review(_ev_issue(evidence="recorded `%s`" % test_id)),
+                           tests=tests)
+
+    def test_failed_in_a_failing_run_is_confirmed(self) -> None:
+        """AC-2.3 — exit non-zero and the test named as failed: confirmed."""
+        cases = (
+            ("tests/test_limits.py::test_negative",
+             "FAILED tests/test_limits.py::test_negative - assert -1 is None"),
+            ("tests/test_limits.py::test_negative", "tests/test_limits.py::test_negative FAILED"),
+            ("tests/test_limits.py::LimitTests::test_negative",
+             "FAILED tests/test_limits.py::LimitTests::test_negative"),
+            ("tests/test_limits.py::test_negative", "FAILED tests/test_limits.py::test_negative[-1]"),
+        )
+        for test_id, line in cases:
+            with self.subTest(line=line):
+                tests = "command: python3 -m pytest\nexit code: 1\n%s\n1 failed\n" % line
+                proc = self.run_recorded(test_id, tests)
+                self.assert_output(proc, [
+                    "fail", "finding F1: confirmed (recorded %s, exit 1)%s" % (test_id, EV_AT),
+                    "reason: confirmed F1", _ev_summary("fail", 1, 0, 0)])
+
+    def test_passed_is_advisory(self) -> None:
+        """AC-2.3 — the test is in the recorded run and passed: `recorded_passed`."""
+        cases = (
+            "command: python3 -m pytest tests/test_limits.py\nexit code: 0\n2 passed\n",
+            "command: python3 -m pytest -v\nexit code: 1\n"
+            "tests/test_limits.py::test_negative PASSED\ntests/test_other.py::test_x FAILED\n",
+            # A FAILED line in a run that exited 0 does not confirm.
+            "command: python3 -m pytest\nexit code: 0\nFAILED tests/test_limits.py::test_negative\n",
+        )
+        for tests in cases:
+            with self.subTest(tests=tests):
+                proc = self.run_recorded("tests/test_limits.py::test_negative", tests)
+                self.assert_finding(proc, "F1", "advisory (recorded_passed)" + EV_AT)
+                self.assertEqual(proc.stdout.splitlines()[0], "pass")
+
+    def test_absent_from_the_run_is_unverifiable(self) -> None:
+        """AC-2.3 — the test is not in the recorded run: `test_not_in_run`; a
+        longer name that only starts with the cited one does not count."""
+        tests = ("command: python3 -m pytest tests/test_other.py\nexit code: 1\n"
+                 "FAILED tests/test_limits.py::test_negative_two\n")
+        proc = self.run_recorded("tests/test_limits.py::test_negative", tests)
+        self.assert_finding(proc, "F1", "advisory (unverifiable test_not_in_run)" + EV_AT)
+
+    def test_no_recorded_run_is_unverifiable(self) -> None:
+        """AC-2.3 — no `--tests-output`, or a file with no `exit code:` line:
+        `no_recorded_run`."""
+        for tests in (None, "FAILED tests/test_limits.py::test_negative\n"):
+            with self.subTest(tests=tests):
+                proc = self.run_recorded("tests/test_limits.py::test_negative", tests)
+                self.assert_finding(proc, "F1", "advisory (unverifiable no_recorded_run)" + EV_AT)
+
+
+class EvidenceCheckTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — the `check` kind runs
+    only a Gate 2 recorded command and confirms on a changed file in its
+    output. [AC-2.3]"""
+
+    def run_check(self, command: str, checks: str | None = "lint\n", **env: str) -> tuple:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            argv = root / "argv.jsonl"
+            proc = _ev_run(root, repo, _ev_review(_ev_issue(evidence="check `%s`" % command)),
+                           checks=checks, env=_ev_env(STUB_ARGV=str(argv), **env),
+                           extra=("--timeout", "1") if env.get("STUB_SLEEP") else ())
+            return proc, _ev_argv(argv), repo
+
+    def test_names_a_changed_file_is_confirmed(self) -> None:
+        """AC-2.3 — a recorded command that exits non-zero and names a changed
+        file, relative or absolute, is confirmed."""
+        for mode in ("names", "absolute"):
+            with self.subTest(mode=mode):
+                proc, runs, _ = self.run_check("lint src/limits.py", STUB_MODE=mode)
+                self.assert_output(proc, [
+                    "fail", "finding F1: confirmed (check lint src/limits.py, exit 1)" + EV_AT,
+                    "reason: confirmed F1", _ev_summary("fail", 1, 0, 0)])
+                self.assertEqual(runs, [["src/limits.py"]])
+
+    def test_exit_zero_or_no_changed_file_is_advisory(self) -> None:
+        """AC-2.3 — exit 0 is `check_passed`; a non-zero exit that names no
+        changed file is `no_changed_file_named`."""
+        proc, runs, _ = self.run_check("lint src/limits.py", STUB_MODE="clean")
+        self.assert_finding(proc, "F1", "advisory (check_passed)" + EV_AT)
+        proc, runs, _ = self.run_check("lint src/limits.py", STUB_MODE="other")
+        self.assert_finding(proc, "F1", "advisory (no_changed_file_named)" + EV_AT)
+
+    def test_no_record_or_unrecorded_command_never_runs(self) -> None:
+        """AC-2.3 — no `--checks` is `no_gate2_record`; a command that does not
+        start with a recorded command, token by token, is `command_not_recorded`."""
+        proc, runs, _ = self.run_check("lint src/limits.py", checks=None)
+        self.assert_finding(proc, "F1", "advisory (unverifiable no_gate2_record)" + EV_AT)
+        self.assertEqual(runs, [])
+        for record in ("ruff check\n", "lint --strict\n", "lin\n", "\n"):
+            with self.subTest(record=record):
+                proc, runs, _ = self.run_check("lint src/limits.py", checks=record)
+                self.assert_finding(proc, "F1",
+                                    "advisory (unverifiable command_not_recorded)" + EV_AT)
+                self.assertEqual(runs, [])
+        proc, runs, _ = self.run_check("lint --strict src/limits.py",
+                                       checks="ruff check\nlint --strict\n", STUB_MODE="names")
+        self.assert_finding(proc, "F1",
+                            "confirmed (check lint --strict src/limits.py, exit 1)" + EV_AT)
+
+    def test_missing_command_binary_is_unverifiable(self) -> None:
+        """AC-2.3 — a recorded command whose binary is missing is `command_not_found`."""
+        proc, runs, _ = self.run_check("/nonexistent/bin/lint src/limits.py",
+                                       checks="/nonexistent/bin/lint\n")
+        self.assert_finding(proc, "F1", "advisory (unverifiable command_not_found)" + EV_AT)
+
+    def test_timeout_is_unverifiable(self) -> None:
+        """AC-2.3 — a check that outlives `--timeout` is `unverifiable timeout <s>`."""
+        start = time.monotonic()
+        proc, runs, _ = self.run_check("lint src/limits.py", STUB_SLEEP="30")
+        self.assertLess(time.monotonic() - start, 20)
+        self.assert_finding(proc, "F1", "advisory (unverifiable timeout 1)" + EV_AT)
+
+
+class EvidenceSecurityPathTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — the `security-path` kind
+    confirms on two resolving citations with the sink in the change set. [AC-2.3]"""
+
+    def run_path(self, evidence: str, *, category: str = "security",
+                 severity: str = "Major") -> subprocess.CompletedProcess:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            (root / "outside.py").write_text("x = 1\n", encoding="utf-8")
+            return _ev_run(root, repo, _ev_review(_ev_issue(
+                evidence=evidence, category=category, severity=severity)))
+
+    def test_resolving_citations_are_confirmed(self) -> None:
+        """AC-2.3 — Category security, Major or Critical, both citations
+        resolve, sink in the change set: confirmed, with no run."""
+        for severity in ("Major", "Critical"):
+            for evidence in ("security-path source `src/routes.py:5` sink `src/limits.py:3`",
+                             "security-path source: src/routes.py:5 sink: src/limits.py:3"):
+                with self.subTest(severity=severity, evidence=evidence):
+                    proc = self.run_path(evidence, severity=severity)
+                    self.assert_output(proc, [
+                        "fail", "finding F1: confirmed (security-path source src/routes.py:5 "
+                                "sink src/limits.py:3)" + EV_AT,
+                        "reason: confirmed F1", _ev_summary("fail", 1, 0, 0)])
+
+    def test_bad_citation_is_unverifiable(self) -> None:
+        """AC-2.3 — a citation that does not resolve is `bad_citation <token>`."""
+        cases = (
+            ("security-path source src/routes.py:99 sink src/limits.py:3", "src/routes.py:99"),
+            ("security-path source src/routes.py:5 sink src/missing.py:1", "src/missing.py:1"),
+            ("security-path source ../outside.py:1 sink src/limits.py:3", "../outside.py:1"),
+            ("security-path source src/routes.py sink src/limits.py:3", "src/routes.py"),
+            ("security-path sink src/limits.py:3", "source"),
+        )
+        for evidence, token in cases:
+            with self.subTest(evidence=evidence):
+                proc = self.run_path(evidence)
+                self.assert_finding(proc, "F1",
+                                    "advisory (unverifiable bad_citation %s)%s" % (token, EV_AT))
+
+    def test_sink_outside_change_set_is_advisory(self) -> None:
+        """AC-2.3 — a sink outside the change set is
+        `advisory (location_outside_change_set)` (a Story 2 decision)."""
+        proc = self.run_path("security-path source src/limits.py:3 sink src/routes.py:5")
+        self.assert_finding(proc, "F1", "advisory (location_outside_change_set)" + EV_AT)
+
+    def test_not_security_is_unverifiable(self) -> None:
+        """AC-2.3 — `security-path` on a non-security finding is `not_security`."""
+        proc = self.run_path("security-path source src/routes.py:5 sink src/limits.py:3",
+                             category="criterion [AC-1.1]")
+        self.assert_finding(proc, "F1", "advisory (unverifiable not_security)" + EV_AT)
+
+
+class EvidenceRunnerTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — `test` repros through
+    the real pytest fixture and the stub runners: each runner's test-failed
+    class, runner detection, and repro path rules. [AC-2.4]"""
+
+    def run_test(self, *issues: list, runner: str | None = EV_PYTEST, files: dict | None = None,
+                 extra: tuple = (), **env: str) -> tuple:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root, runner=runner, files=files)
+            argv = root / "argv.jsonl"
+            proc = _ev_run(root, repo, _ev_review(*issues), extra=extra,
+                           env=_ev_env(STUB_ARGV=str(argv), **env))
+            leftovers = sorted(p.relative_to(repo).as_posix() for p in repo.rglob("*")
+                               if ".git" not in p.relative_to(repo).parts
+                               and "__pycache__" not in p.parts)
+            return proc, _ev_argv(argv), leftovers
+
+    def test_pytest_failure_is_confirmed(self) -> None:
+        """AC-2.4 — a real pytest repro that fails on exit 1 is confirmed, the
+        repro and its created parent are gone after (Happy shadow path)."""
+        proc, _, leftovers = self.run_test(_ev_test())
+        self.assert_output(proc, [
+            "fail", "finding F1: confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT),
+            "reason: confirmed F1", _ev_summary("fail", 1, 0, 0)])
+        self.assertNotIn(EV_REPRO, leftovers)
+        self.assertNotIn("tests", leftovers)
+
+    def test_pytest_pass_is_advisory(self) -> None:
+        """AC-2.4 — a pytest repro that passes is `advisory (repro_passed)`."""
+        proc, _, leftovers = self.run_test(_ev_test(content=EV_REPRO_PASS))
+        self.assert_output(proc, ["pass", "finding F1: advisory (repro_passed)" + EV_AT,
+                                  _ev_summary("pass", 0, 1, 0)])
+        self.assertNotIn(EV_REPRO, leftovers)
+
+    def test_pytest_collection_error_is_unverifiable(self) -> None:
+        """AC-2.4 — a repro with a syntax error (pytest exit 2) is
+        `unverifiable collection_error`."""
+        proc, _, leftovers = self.run_test(_ev_test(content=EV_REPRO_BROKEN))
+        self.assert_output(proc, [
+            "pass", "finding F1: advisory (unverifiable collection_error)" + EV_AT,
+            _ev_summary("pass", 0, 0, 1)])
+        self.assertNotIn(EV_REPRO, leftovers)
+
+    def test_pytest_setup_error_is_unverifiable(self) -> None:
+        """AC-2.4 — a repro that errors in setup (a missing fixture: pytest
+        exit 1 with `1 error`, no failed count) is `collection_error`."""
+        content = "def test_x(no_such_fixture):\n    assert True\n"
+        proc, _, leftovers = self.run_test(_ev_test(content=content))
+        self.assert_output(proc, [
+            "pass", "finding F1: advisory (unverifiable collection_error)" + EV_AT,
+            _ev_summary("pass", 0, 0, 1)])
+        self.assertNotIn(EV_REPRO, leftovers)
+
+    def test_pytest_exit_one_needs_a_failed_count(self) -> None:
+        """AC-2.4 — pytest confirms only on exit 1 with a failed count; an
+        interpreter without pytest also exits 1 and is `collection_error`."""
+        module = _ev_module()
+        self.assertEqual(module._classify("pytest", 1, "python3: No module named pytest\n"),
+                         ("unverifiable", "collection_error"))
+        self.assertEqual(module._classify("pytest", 1, "=== 1 error in 0.01s ===\n"),
+                         ("unverifiable", "collection_error"))
+        self.assertEqual(module._classify("pytest", 1, "=== 1 failed, 2 passed in 0.02s ===\n"),
+                         ("confirmed", ""))
+
+    def test_repro_is_deleted_when_the_run_raises(self) -> None:
+        """AC-2.4 — an unexpected exception or an interrupt during the run
+        still deletes the repro, then propagates."""
+        module = _ev_module()
+        for error in (RuntimeError("boom"), KeyboardInterrupt()):
+            with self.subTest(error=type(error).__name__), TemporaryDirectory() as tmp:
+                repo = _ev_repo(Path(tmp)).resolve()
+                finding = module.Finding("F1")
+                finding.block = EV_REPRO_FAIL
+                runner, _ = module._detect_runner(EV_PYTEST, repo)
+                run = module.EvidenceRun(repo, module._git_root(repo), {"src/limits.py"},
+                                         runner, "", None, 5)
+
+                def raising(*args, **kwargs):
+                    self.assertTrue((repo / EV_REPRO).is_file())
+                    raise error
+
+                with mock.patch.object(module, "_run_bounded", raising):
+                    with self.assertRaises(type(error)):
+                        run.test(finding, EV_REPRO)
+                self.assertFalse((repo / EV_REPRO).exists())
+
+    def test_interrupted_run_kills_the_process_group(self) -> None:
+        """AC-2.4 — an interrupt while waiting kills the runner's own session
+        group, so no runner outlives the call."""
+        module = _ev_module()
+
+        class InterruptedProc:
+            pid = 0
+
+            def communicate(self, timeout=None):
+                raise KeyboardInterrupt
+
+        fake = types.SimpleNamespace(Popen=lambda *args, **kwargs: InterruptedProc(),
+                                     DEVNULL=subprocess.DEVNULL, PIPE=subprocess.PIPE,
+                                     STDOUT=subprocess.STDOUT,
+                                     TimeoutExpired=subprocess.TimeoutExpired)
+        killed: list = []
+        with mock.patch.object(module, "subprocess", fake), \
+                mock.patch.object(module, "_kill_group", killed.append):
+            with self.assertRaises(KeyboardInterrupt):
+                module._run_bounded(["runner"], Path("."), 5)
+        self.assertEqual(len(killed), 1)
+
+    def test_existing_parent_stays(self) -> None:
+        """AC-2.4 — a repro beside existing files leaves its directory in place."""
+        proc, _, leftovers = self.run_test(_ev_test("src/test_limits_repro.py"))
+        self.assert_finding(proc, "F1", "confirmed (test src/test_limits_repro.py, exit 1)" + EV_AT)
+        self.assertIn("src/limits.py", leftovers)
+        self.assertNotIn("src/test_limits_repro.py", leftovers)
+
+    def test_stub_runner_classes(self) -> None:
+        """AC-2.4 — jest, vitest, go test, cargo test, rspec, and `npm test`:
+        confirmed only in the runner's test-failed class, advisory on a pass,
+        otherwise `collection_error`; each run gets the scoped command."""
+        cases = (
+            ("jest", "src/limits.test.js", ["src/limits.test.js"],
+             {"fail": "confirmed (test src/limits.test.js, exit 1)", "pass": "advisory (repro_passed)",
+              "broken": "advisory (unverifiable collection_error)",
+              "suite_error": "advisory (unverifiable collection_error)",
+              "no_tests": "advisory (unverifiable collection_error)"}),
+            ("vitest", "src/limits.test.ts", ["run", "src/limits.test.ts"],
+             {"fail": "confirmed (test src/limits.test.ts, exit 1)", "pass": "advisory (repro_passed)",
+              "broken": "advisory (unverifiable collection_error)",
+              "error_first": "advisory (unverifiable collection_error)",
+              "no_tests": "advisory (unverifiable collection_error)"}),
+            ("go test ./...", "pkg/limits_test.go", ["test", "./pkg"],
+             {"fail": "confirmed (test pkg/limits_test.go, exit 1)", "pass": "advisory (repro_passed)",
+              "build": "advisory (unverifiable collection_error)",
+              "setup": "advisory (unverifiable collection_error)",
+              "mixed": "advisory (unverifiable collection_error)"}),
+            ("cargo test", "tests/limits_repro.rs", ["test", "--test", "limits_repro"],
+             {"fail": "confirmed (test tests/limits_repro.rs, exit 101)",
+              "pass": "advisory (repro_passed)",
+              "compile": "advisory (unverifiable collection_error)",
+              "mixed": "advisory (unverifiable collection_error)"}),
+            ("rspec", "spec/limits_spec.rb", ["spec/limits_spec.rb"],
+             {"fail": "confirmed (test spec/limits_spec.rb, exit 1)", "pass": "advisory (repro_passed)",
+              "outside": "advisory (unverifiable collection_error)",
+              "outside_fail": "advisory (unverifiable collection_error)"}),
+            ("npm test", "src/limits.test.js", ["test", "--", "src/limits.test.js"],
+             {"fail": "confirmed (test src/limits.test.js, exit 1)", "pass": "advisory (repro_passed)"}),
+        )
+        package = {"package.json": json.dumps({"scripts": {"test": "jest"}})}
+        for runner, path, args, modes in cases:
+            for mode, expected in modes.items():
+                with self.subTest(runner=runner, mode=mode):
+                    proc, runs, leftovers = self.run_test(_ev_test(path), runner=runner,
+                                                          files=package, STUB_MODE=mode)
+                    self.assert_finding(proc, "F1", expected + EV_AT)
+                    self.assertEqual(runs, [args])
+                    self.assertNotIn(path, leftovers)
+                    top = path.split("/")[0]
+                    if top != "src":
+                        self.assertNotIn(top, leftovers)
+
+    def test_detection_skips_prefixes_and_scopes_the_command(self) -> None:
+        """AC-2.4 — detection skips `uv run`, `poetry run`, `bundle exec`,
+        `npx`, `pnpm`, `yarn`, and `python* -m`, drops a `(detected: …)` note,
+        and builds each runner's scoped command."""
+        module = _ev_module()
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "package.json").write_text(
+                json.dumps({"scripts": {"test": "vitest --silent"}}), encoding="utf-8")
+            cases = (
+                ("pytest -q tests", "tests/test_x.py", ["pytest", "tests/test_x.py"]),
+                ("uv run pytest", "test_x.py", ["uv", "run", "pytest", "test_x.py"]),
+                ("poetry run pytest", "a/b_test.py", ["poetry", "run", "pytest", "a/b_test.py"]),
+                ("python3 -m pytest", "t/test_a.py", ["python3", "-m", "pytest", "t/test_a.py"]),
+                ("python -m pytest", "t/test_a.py", ["python", "-m", "pytest", "t/test_a.py"]),
+                ("/usr/bin/python3.9 -m pytest", "t/test_a.py",
+                 ["/usr/bin/python3.9", "-m", "pytest", "t/test_a.py"]),
+                (EV_PYTEST, "t/test_a.py", [sys.executable, "-m", "pytest", "t/test_a.py"]),
+                ("npx jest", "a.test.js", ["npx", "jest", "a.test.js"]),
+                ("pnpm jest --ci", "a.spec.ts", ["pnpm", "jest", "a.spec.ts"]),
+                ("yarn vitest", "a.test.ts", ["yarn", "vitest", "run", "a.test.ts"]),
+                ("vitest run --reporter=dot", "a.test.ts", ["vitest", "run", "a.test.ts"]),
+                ("bundle exec rspec", "spec/a_spec.rb", ["bundle", "exec", "rspec", "spec/a_spec.rb"]),
+                ("go test ./...", "x_test.go", ["go", "test", "./."]),
+                ("go test -race", "a/b/x_test.go", ["go", "test", "./a/b"]),
+                ("cargo test --all", "tests/it.rs", ["cargo", "test", "--test", "it"]),
+                ("jest (detected: package.json scripts.test)", "a.test.js", ["jest", "a.test.js"]),
+                ("npm test", "a.test.ts", ["npm", "test", "--", "run", "a.test.ts"]),
+                ("npm run test", "a.test.ts", ["npm", "run", "test", "--", "run", "a.test.ts"]),
+            )
+            for value, path, want in cases:
+                with self.subTest(value=value):
+                    runner, reason = module._detect_runner(value, repo)
+                    self.assertEqual(reason, "")
+                    self.assertEqual(module._scoped_command(runner, path), want)
+            for value, reason in (("make test", "unknown_runner make"),
+                                  ("go build", "unknown_runner go"),
+                                  ("cargo bench", "unknown_runner cargo"),
+                                  ("uv run", "unknown_runner uv"),
+                                  ("pytest 'unbalanced", "unknown_runner pytest")):
+                with self.subTest(value=value):
+                    self.assertEqual(module._detect_runner(value, repo), (None, reason))
+            (repo / "package.json").unlink()
+            self.assertEqual(module._detect_runner("npm test", repo), (None, "unknown_runner npm"))
+
+    def test_runner_file_patterns(self) -> None:
+        """AC-2.4 — each runner's own test-file pattern decides `not_a_test_path`."""
+        module = _ev_module()
+        good = {
+            "pytest": ("test_a.py", "tests/test_a.py", "pkg/a_test.py"),
+            "jest": ("a.test.js", "src/a.spec.tsx", "src/__tests__/a.js"),
+            "vitest": ("a.test.ts", "a.spec.mjs", "__tests__/deep/a.ts"),
+            "go": ("pkg/a_test.go", "a_test.go"),
+            "cargo": ("tests/a.rs", "crates/x/tests/it.rs"),
+            "rspec": ("spec/a_spec.rb", "a_spec.rb"),
+        }
+        bad = {
+            "pytest": ("tests/a.py", "test_a.txt", "tests/conftest.py"),
+            "jest": ("src/a.js", "tests/a.js"),
+            "vitest": ("src/a.ts",),
+            "go": ("pkg/a.go", "_test.go"),
+            "cargo": ("src/a.rs", "tests/sub/a.rs", "a.rs"),
+            "rspec": ("spec/a.rb", "a_spec.py"),
+        }
+        for kind, paths in good.items():
+            for path in paths:
+                with self.subTest(kind=kind, path=path):
+                    self.assertTrue(module._test_path_ok(kind, path))
+        for kind, paths in bad.items():
+            for path in paths:
+                with self.subTest(kind=kind, path=path):
+                    self.assertFalse(module._test_path_ok(kind, path))
+
+    def test_unknown_runner_is_unverifiable(self) -> None:
+        """AC-2.4 — `Test Runner: make test` makes the finding `unknown_runner make`."""
+        proc, runs, leftovers = self.run_test(_ev_test(), runner="make test")
+        self.assert_output(proc, [
+            "pass", "finding F1: advisory (unverifiable unknown_runner make)" + EV_AT,
+            _ev_summary("pass", 0, 0, 1)])
+        self.assertNotIn("tests", leftovers)
+
+    def test_no_test_runner_leaves_the_call_unverifiable(self) -> None:
+        """AC-2.4 — no `Test Runner` line (or an empty one) and nothing decided
+        otherwise: line 1 `unverifiable no_test_runner`."""
+        for runner in (None, ""):
+            with self.subTest(runner=runner):
+                proc, runs, leftovers = self.run_test(_ev_test(), _ev_issue(severity="Critical"),
+                                                      runner=runner)
+                self.assert_output(proc, _ev_unverifiable("no_test_runner"))
+                self.assertNotIn("tests", leftovers)
+
+    def test_no_test_runner_with_a_decided_finding_still_decides(self) -> None:
+        """AC-2.4 — with no `Test Runner`, the `test` finding is
+        `no_test_runner` but a decided `security-path` finding sets line 1."""
+        proc, runs, leftovers = self.run_test(
+            _ev_test(), _ev_issue(category="security",
+                                  evidence="security-path source src/routes.py:5 sink src/limits.py:3"),
+            runner=None)
+        self.assert_output(proc, [
+            "fail", "finding F1: advisory (unverifiable no_test_runner)" + EV_AT,
+            "finding F2: confirmed (security-path source src/routes.py:5 sink src/limits.py:3)"
+            + EV_AT, "reason: confirmed F2", _ev_summary("fail", 1, 0, 1)])
+
+    def test_no_test_runner_with_only_minor_findings_passes(self) -> None:
+        """AC-2.4 — no `Test Runner` and no selected finding: `pass`."""
+        proc, runs, leftovers = self.run_test(_ev_test(severity="Minor"), runner=None)
+        self.assert_output(proc, ["pass", "finding F1: advisory (low_severity Minor)" + EV_AT,
+                                  _ev_summary("pass", 0, 1, 0)])
+
+    def test_missing_runner_binary_is_runner_not_found(self) -> None:
+        """AC-2.4 — a known runner whose binary is missing is project-level
+        `runner_not_found`; nothing is written (Upstream error shadow path)."""
+        proc, runs, leftovers = self.run_test(_ev_test(), runner="/nonexistent/bin/pytest")
+        self.assert_output(proc, _ev_unverifiable("runner_not_found"))
+        self.assertNotIn("tests", leftovers)
+
+    def test_timeout_kills_the_process_group(self) -> None:
+        """AC-2.4 — a run past `--timeout` is `unverifiable timeout <s>`, its
+        process group is killed, and the repro is deleted."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root, runner="jest")
+            argv = root / "argv.jsonl"
+            start = time.monotonic()
+            proc = _ev_run(root, repo, _ev_review(_ev_test("src/limits.test.js")),
+                           extra=("--timeout", "1"),
+                           env=_ev_env(STUB_ARGV=str(argv), STUB_SLEEP="30"))
+            self.assertLess(time.monotonic() - start, 20)
+            self.assert_output(proc, [
+                "pass", "finding F1: advisory (unverifiable timeout 1)" + EV_AT,
+                _ev_summary("pass", 0, 0, 1)])
+            self.assertFalse((repo / "src" / "limits.test.js").exists())
+            child = int(Path(str(argv) + ".child").read_text(encoding="utf-8"))
+            alive = True
+            for _ in range(100):
+                try:
+                    os.kill(child, 0)
+                except ProcessLookupError:
+                    alive = False
+                    break
+                time.sleep(0.1)
+            self.assertFalse(alive, "child %d of the timed-out runner survived" % child)
+
+    def test_path_exists_on_disk_or_declared_earlier(self) -> None:
+        """AC-2.4 — a path already on disk, or one an earlier finding declared,
+        is `path_exists`; the existing file is untouched."""
+        existing = "tests/test_existing.py"
+        proc, runs, leftovers = self.run_test(_ev_test(existing), _ev_test(), _ev_test(),
+                                              files={existing: "x = 1\n"})
+        self.assert_finding(proc, "F1", "advisory (unverifiable path_exists)" + EV_AT)
+        self.assert_finding(proc, "F2", "confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT))
+        self.assert_finding(proc, "F3", "advisory (unverifiable path_exists)" + EV_AT)
+        self.assertIn(existing, leftovers)
+
+    def test_path_outside_repo_is_unverifiable(self) -> None:
+        """AC-2.4 — an absolute path, or one that resolves outside the repo, is
+        `path_outside_repo`; nothing is written."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            absolute = str(root / "test_abs.py")
+            proc = _ev_run(root, repo, _ev_review(_ev_test("../test_outside.py"),
+                                                  _ev_test(absolute)))
+            self.assert_finding(proc, "F1", "advisory (unverifiable path_outside_repo)" + EV_AT)
+            self.assert_finding(proc, "F2", "advisory (unverifiable path_outside_repo)" + EV_AT)
+            self.assertFalse((root / "test_outside.py").exists())
+            self.assertFalse((root / "test_abs.py").exists())
+
+    def test_not_a_test_path_is_unverifiable(self) -> None:
+        """AC-2.4 — a path outside the runner's test-file pattern is
+        `not_a_test_path`; nothing is written."""
+        cases = ((EV_PYTEST, "tests/limits_repro.py"), ("jest", "src/limits_repro.js"),
+                 ("go test", "pkg/limits.go"), ("cargo test", "src/limits_repro.rs"),
+                 ("rspec", "spec/limits.rb"))
+        for runner, path in cases:
+            with self.subTest(runner=runner):
+                proc, runs, leftovers = self.run_test(_ev_test(path), runner=runner)
+                self.assert_finding(proc, "F1", "advisory (unverifiable not_a_test_path)" + EV_AT)
+                self.assertEqual(runs, [])
+                self.assertNotIn(path, leftovers)
+                top = path.split("/")[0]
+                if top != "src":
+                    self.assertNotIn(top, leftovers)
+
+    def test_repro_write_failure_is_unverifiable(self) -> None:
+        """AC-2.4 — a repro whose parent is a file cannot be written:
+        `repro_write_failed`, no run."""
+        proc, runs, leftovers = self.run_test(_ev_test("src/limits.py/test_x.py"))
+        self.assert_finding(proc, "F1", "advisory (unverifiable repro_write_failed)" + EV_AT)
+
+
+class EvidenceTreeSnapshotTests(EvidenceTestCase):
+    """Story 2 of `2026-11-04-evidence-gated-review` — the git snapshot around
+    each run: mutation stops the call, a failed delete counts as mutation,
+    no git is `no_git`, and `evidence` writes nothing else. [AC-2.5]"""
+
+    WRITE_X = ("from pathlib import Path\n\n\n"
+               "def test_writes():\n"
+               "    Path(\"src/x.py\").write_text(\"y = 2\\n\")\n"
+               "    assert False\n")
+    APPEND_LIMITS = ("from pathlib import Path\n\n\n"
+                     "def test_appends():\n"
+                     "    with open(\"src/limits.py\", \"a\") as handle:\n"
+                     "        handle.write(\"# changed\\n\")\n"
+                     "    assert False\n")
+
+    def test_new_file_outside_repro_is_repro_mutated_tree(self) -> None:
+        """AC-2.5 — a repro that writes `src/x.py`: line 1 `fail`, first reason
+        `repro_mutated_tree src/x.py`, no later repro runs, nothing restored."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, _ev_review(
+                _ev_test(content=self.WRITE_X), _ev_test("tests/test_second.py"),
+                _ev_issue(category="security",
+                          evidence="security-path source src/routes.py:5 sink src/limits.py:3")))
+            self.assert_output(proc, [
+                "fail", "finding F1: advisory (unverifiable repro_mutated_tree)" + EV_AT,
+                "finding F2: advisory (unverifiable stopped_after_mutation)" + EV_AT,
+                "finding F3: confirmed (security-path source src/routes.py:5 sink src/limits.py:3)"
+                + EV_AT,
+                "reason: repro_mutated_tree src/x.py", "reason: confirmed F3",
+                _ev_summary("fail", 1, 0, 2)])
+            self.assertEqual((repo / "src" / "x.py").read_text(encoding="utf-8"), "y = 2\n")
+            self.assertFalse((repo / EV_REPRO).exists())
+            self.assertFalse((repo / "tests" / "test_second.py").exists())
+
+    def test_tracked_file_change_is_repro_mutated_tree(self) -> None:
+        """AC-2.5 — editing a clean tracked file, or an already-modified one,
+        is `repro_mutated_tree <path>`; the edit stays."""
+        for dirty in (False, True):
+            with self.subTest(dirty=dirty), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                limits = repo / "src" / "limits.py"
+                if dirty:
+                    limits.write_text(limits.read_text(encoding="utf-8") + "# wip\n",
+                                      encoding="utf-8")
+                before = limits.read_text(encoding="utf-8")
+                proc = _ev_run(root, repo, _ev_review(_ev_test(content=self.APPEND_LIMITS)))
+                self.assertEqual(proc.stdout.splitlines()[0], "fail", proc.stdout + proc.stderr)
+                self.assertEqual(proc.returncode, 1)
+                self.assertIn("reason: repro_mutated_tree src/limits.py", proc.stdout)
+                self.assertEqual(limits.read_text(encoding="utf-8"), before + "# changed\n")
+
+    def test_check_with_fix_flag_is_repro_mutated_tree(self) -> None:
+        """AC-2.5 — a `check` that writes files (a fix flag) is caught by the snapshot."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, _ev_review(_ev_issue(evidence="check `lint --fix src/limits.py`")),
+                           checks="lint\n", env=_ev_env(STUB_MODE="clean", STUB_WRITE="src/limits.py"))
+            self.assert_output(proc, [
+                "fail", "finding F1: advisory (unverifiable repro_mutated_tree)" + EV_AT,
+                "reason: repro_mutated_tree src/limits.py", _ev_summary("fail", 0, 0, 1)])
+
+    def test_head_move_is_repro_mutated_tree(self) -> None:
+        """AC-2.5 — a run that moves HEAD on a clean tree (a commit, or a
+        branch switch) is `repro_mutated_tree (HEAD)`."""
+        commands = (
+            '["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "--allow-empty", "-qm", "x"]',
+            '["git", "checkout", "-q", "-b", "other"]',
+        )
+        for command in commands:
+            content = ("import subprocess\n\n\n"
+                       "def test_moves_head():\n"
+                       "    subprocess.run(%s, check=True)\n"
+                       "    assert False\n" % command)
+            with self.subTest(command=command), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                proc = _ev_run(root, repo, _ev_review(_ev_test(content=content)))
+                self.assert_output(proc, [
+                    "fail", "finding F1: advisory (unverifiable repro_mutated_tree)" + EV_AT,
+                    "reason: repro_mutated_tree (HEAD)", _ev_summary("fail", 0, 0, 1)])
+
+    def test_ignored_writes_do_not_count(self) -> None:
+        """AC-2.5 — a write to a git-ignored path is not a mutation."""
+        content = ("from pathlib import Path\n\n\n"
+                   "def test_cache():\n"
+                   "    Path(\"src/__pycache__\").mkdir(exist_ok=True)\n"
+                   "    Path(\"src/__pycache__/junk.txt\").write_text(\"x\")\n"
+                   "    assert False\n")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, _ev_review(_ev_test(content=content)))
+            self.assert_finding(proc, "F1", "confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT))
+            self.assertEqual(proc.stdout.splitlines()[0], "fail")
+            self.assertNotIn("repro_mutated_tree", proc.stdout)
+
+    @unittest.skipIf(os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+                     "needs POSIX permissions and a non-root user")
+    def test_undeletable_repro_is_repro_mutated_tree(self) -> None:
+        """AC-2.5 — a repro that cannot be deleted (its parent made read-only)
+        is `fail` with `repro_mutated_tree <path>`."""
+        path = "tests/ro/test_ro_repro.py"
+        content = ("import os\n\n"
+                   "os.chmod(os.path.dirname(os.path.abspath(__file__)), 0o555)\n\n\n"
+                   "def test_locked():\n"
+                   "    assert False\n")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            try:
+                proc = _ev_run(root, repo, _ev_review(_ev_test(path, content=content)))
+                self.assert_output(proc, [
+                    "fail", "finding F1: advisory (unverifiable repro_mutated_tree)" + EV_AT,
+                    "reason: repro_mutated_tree %s" % path, _ev_summary("fail", 0, 0, 1)])
+            finally:
+                ro = repo / "tests" / "ro"
+                if ro.exists():
+                    os.chmod(str(ro), 0o755)
+
+    def test_no_git_is_unverifiable(self) -> None:
+        """AC-2.5 — a repo with no git, or no `git` binary, is `unverifiable
+        no_git`; nothing is written."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root, git=False)
+            proc = _ev_run(root, repo, _ev_review(_ev_test()),
+                           env=_ev_env(GIT_CEILING_DIRECTORIES=str(root)))
+            self.assert_output(proc, _ev_unverifiable("no_git"))
+            self.assertFalse((repo / "tests").exists())
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            proc = _ev_run(root, repo, _ev_review(_ev_test()), env=_ev_env(PATH=str(EV_STUBS)))
+            self.assert_output(proc, _ev_unverifiable("no_git"))
+            self.assertFalse((repo / "tests").exists())
+
+    def test_run_writes_no_state_and_no_git_data(self) -> None:
+        """AC-2.5 — without `--manifest-out`, nothing lands under `.writ/state/`;
+        the git index, HEAD, and status are what they were."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            status_args = ("--no-optional-locks", "status", "--porcelain=v1",
+                           "--untracked-files=all")
+            status = _ev_git(repo, *status_args)
+            head = _ev_git(repo, "rev-parse", "HEAD")
+            index = (repo / ".git" / "index").read_bytes()
+            proc = _ev_run(root, repo, _ev_review(_ev_test(), _ev_test("tests/test_two.py",
+                                                                       content=EV_REPRO_PASS)))
+            self.assertEqual(proc.stdout.splitlines()[0], "fail", proc.stdout + proc.stderr)
+            self.assertFalse((repo / ".writ" / "state").exists())
+            self.assertEqual((repo / ".git" / "index").read_bytes(), index)
+            self.assertEqual(_ev_git(repo, "rev-parse", "HEAD"), head)
+            self.assertEqual(_ev_git(repo, *status_args), status)
 
 
 if __name__ == "__main__":

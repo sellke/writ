@@ -43,7 +43,7 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 19 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 20 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
@@ -195,6 +195,7 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`change-surface-classification`](skills/change-surface-classification/SKILL.md) | Classify a change set as style-only, single-component, cross-component, or full-stack |
 | [`dependency-context-loading`](skills/dependency-context-loading/SKILL.md) | Load, filter, and truncate upstream stories' implementation records into dependency context |
 | [`drift-triage`](skills/drift-triage/SKILL.md) | Triage implementation deviations by severity and route each to amend, warn, or pause |
+| [`evidence-gated-findings`](skills/evidence-gated-findings/SKILL.md) | Back a Critical or Major review finding with evidence a script can run or check, so the finding can block a verdict |
 | [`project-context-snapshot`](skills/project-context-snapshot/SKILL.md) | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources |
 | [`story-commit-provenance`](skills/story-commit-provenance/SKILL.md) | Record a completion commit SHA into a story file header idempotently and without amending it |
 | [`story-context-assembly`](skills/story-context-assembly/SKILL.md) | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections |

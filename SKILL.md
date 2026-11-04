@@ -146,6 +146,7 @@ and is not installed.
 | `design-divergence` | `candidate` | `skills/design-divergence/SKILL.md` | Generate structurally different alternatives for a UI, an API shape, or a data model by declaring axes first and drafting each one in an independent context. |
 | `drift-triage` | `candidate` | `skills/drift-triage/SKILL.md` | Triage implementation deviations by severity and route each to amend, warn, or pause. |
 | `error-rescue-mapping` | `candidate` | `skills/error-rescue-mapping/SKILL.md` | Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly. |
+| `evidence-gated-findings` | `candidate` | `skills/evidence-gated-findings/SKILL.md` | Back a Critical or Major review finding with evidence a script can run or check, so the finding can block a verdict. |
 | `plain-prose` | `candidate` | `skills/plain-prose/SKILL.md` | Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries. |
 | `project-context-snapshot` | `candidate` | `skills/project-context-snapshot/SKILL.md` | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources. |
 | `review-judgment-filters` | `candidate` | `skills/review-judgment-filters/SKILL.md` | Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings. |

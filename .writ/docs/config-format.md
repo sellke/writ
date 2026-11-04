@@ -64,6 +64,7 @@
 | `Gate 0 Divergence` | implement-story (Gate 0) | On by default; `off` disables the boundary-crossing-route sketches; see [Gate 0 Divergence](#gate-0-divergence) |
 | `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
 | `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
+| `Evidence Gate` | implement-story (Gate 3), review | On by default; `off` lets the reviewer's verdict block without executed evidence; see [Evidence Gate](#evidence-gate) |
 | `Repro First` | tdd-cycle, coding-agent, prototype, implement-story (Gate 1) | `off` turns off the repro-first bug path; absent or `on` keeps it; see [Repro First](#repro-first) |
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
@@ -172,6 +173,22 @@ Gate 3 reviewers and `/review` apply. It follows the same rules as
 case turns it off; any other value means on with
 `reason: malformed_value <value>`. The key must match the case shown.
 `python3 scripts/review-override.py switch --name reviewer-filters --repo .`
+prints the state.
+
+## Evidence Gate
+
+```markdown
+- **Evidence Gate:** off
+```
+
+`- **Evidence Gate:** on|off` turns off evidence gating for the whole story.
+With the gate on, a Gate 3 or `/review` finding blocks only when it carries
+executed evidence (`skills/evidence-gated-findings/SKILL.md`). With `off`, the
+reviewer's verdict blocks as written, and the evidence step runs nothing. It
+follows the same rules as `Safety Fact`: no line, an empty value, or `on`
+means on; only `off` in any case turns it off; any other value means on with
+`reason: malformed_value <value>`. The key must match the case shown.
+`python3 scripts/review-override.py switch --name evidence-gate --repo .`
 prints the state.
 
 ## Repro First

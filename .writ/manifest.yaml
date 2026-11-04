@@ -301,6 +301,11 @@ skills:
     description: "Map a data-flow feature's failure modes into Error & Rescue, Shadow Path, and edge-case tables, flagging unplanned handling explicitly."
     status: candidate
     tags: [spec, error-handling, review]
+  - name: evidence-gated-findings
+    file: skills/evidence-gated-findings/SKILL.md
+    description: "Back a Critical or Major review finding with evidence a script can run or check, so the finding can block a verdict."
+    status: candidate
+    tags: [review, evidence, testing]
   - name: plain-prose
     file: skills/plain-prose/SKILL.md
     description: "Detect and rewrite mannered prose in instructional markdown — commands, agents, skills, adapters — into plain, direct text that keeps every rule, literal, and structure the file carries."
