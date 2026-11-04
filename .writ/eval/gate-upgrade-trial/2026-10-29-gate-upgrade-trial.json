@@ -1,7 +1,9 @@
 {
-  "acks": {},
+  "acks": {
+    "repro-first": "amend"
+  },
   "baseline": ".writ/eval/baselines/2026-09-07-claude-fable-5-1.json",
-  "labeled_by": null,
+  "labeled_by": "Adam Sellke (delegated to assistant)",
   "origin": "claude-opus-5-5",
   "schema": "gate-upgrade-trial-v1",
   "sheet": {
@@ -177,24 +179,24 @@
         {
           "id": "F05",
           "key": "ac:AC-2.5",
-          "label": null,
-          "note": null,
+          "label": "invalid",
+          "note": "Assistant-assessed, maintainer-delegated. Code records the refund then deletes, as AC-2.5 says, and the spec's own schema chose cascade. The lost ledger is a spec contradiction.",
           "severity": "Critical",
           "upgrade": "gate0-divergence"
         },
         {
           "id": "F04",
           "key": "architecture:app/api/events/route.ts",
-          "label": null,
-          "note": null,
+          "label": "valid",
+          "note": "Assistant-assessed, maintainer-delegated. The server charges with no fee-acceptance signal, which lets the F03 paths charge. The acceptFee sketch avoids it. Overlaps F03.",
           "severity": "Major",
           "upgrade": "gate0-divergence"
         },
         {
           "id": "F03",
           "key": "architecture:app/dashboard/page.tsx",
-          "label": null,
-          "note": null,
+          "label": "valid",
+          "note": "Assistant-assessed, maintainer-delegated. Three entry points and the fail-open path skip the fork, so a saved card is charged from a modal that shows no price.",
           "severity": "Major",
           "upgrade": "safety-fact"
         }
@@ -450,8 +452,8 @@
         {
           "id": "F06",
           "key": "architecture:app/api/expenses/[id]/route.ts",
-          "label": null,
-          "note": null,
+          "label": "valid",
+          "note": "Assistant-assessed, maintainer-delegated. PUT and participant removal can re-split the platform fee onto Pro users with no platform-fee check, against the spec's server-side rule.",
           "severity": "Major",
           "upgrade": "safety-fact"
         }
@@ -581,16 +583,16 @@
         {
           "id": "F02",
           "key": "ac:AC-4.1",
-          "label": null,
-          "note": null,
+          "label": "valid",
+          "note": "Assistant-assessed, maintainer-delegated. The Unlimited Events gate still implies deleting to make room, and 402s on direct-entry paths get a generic toast. Both sketch lines avoid it.",
           "severity": "Critical",
           "upgrade": "gate0-divergence"
         },
         {
           "id": "F01",
           "key": "ac:AC-4.3",
-          "label": null,
-          "note": null,
+          "label": "valid",
+          "note": "Assistant-assessed, maintainer-delegated. premium-features.md still states the delete-to-make-room hard block as current free-tier behavior in the Event Archiving rationale.",
           "severity": "Critical",
           "upgrade": "reviewer-filters"
         }

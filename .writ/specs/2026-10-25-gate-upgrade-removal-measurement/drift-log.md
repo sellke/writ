@@ -126,3 +126,18 @@
 - **Reason:** The pipeline never edits a sibling's spec.md, so the corrections live in drift logs; Story 4 must read them to avoid a partial removal that a wiring test catches or a bullet that points at a deleted heading.
 - **Resolution:** Auto-amended
 - **Spec amendment:** technical-spec § Verdict Execution → Removal inventories: "Apply each inventory as amended by its spec's drift log (see this spec's DEV-011)." None needed in spec-lite.md.
+
+## Story 4: Act on the Labeled Trial — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Large
+
+### Deviations
+
+#### [DEV-012] The labels are the assistant's assessments, delegated by the maintainer
+- **Severity:** Large
+- **Spec said:** Business Rules 5 and 9: only a human labels. The implementing agent never fills `labeling-sheet.md` and never runs `label`.
+- **Implementation did:** The maintainer was shown each finding with its acceptance criteria and the cited yuss code at the story commit. They answered "I'm unsure. Make your best assessment and act accordingly." The assistant then filled all six labels and the Repro First ack (F01–F04 and F06 `valid`, F05 `invalid`, ack `amend`). Every note opens with "Assistant-assessed, maintainer-delegated". The assistant ran `label --labeled-by "Adam Sellke (delegated to assistant)"`. It never opened the trial JSON or the raw outputs before labeling.
+- **Reason:** The maintainer's explicit decision. The verdicts now rest on a model's judgment of model-raised findings, which is weaker evidence than an independent human label. Gate 0 keeps on F02 and F04 alone, so F05's label does not change any verdict.
+- **Resolution:** Accepted by user (2026-11-04). The labels stand. The maintainer can relabel by refilling the sheet and re-running `label` and `report` before any removal edit.
+- **Spec amendment:** N/A — deviation accepted as-is
