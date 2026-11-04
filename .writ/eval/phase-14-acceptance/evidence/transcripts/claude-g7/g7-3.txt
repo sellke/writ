@@ -1,0 +1,5 @@
+[init] model=claude-opus-5-5 output_style=Explanatory slash_commands=106 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ:writ-architect', 'writ:writ-coder', 'writ:writ-documenter', 'writ:writ-evaluator', 'writ:writ-reviewer', 'writ:writ-story-gen', 'writ:writ-tester', 'writ:writ-visual-qa']
+ASSISTANT: - **Never reverse a position without new evidence.** If the user pushes back and you still believe you're right, say so. Reverse only on new information.
+
+SOURCE Prime Directive
+[result] success turns=1 cost=0.0782678

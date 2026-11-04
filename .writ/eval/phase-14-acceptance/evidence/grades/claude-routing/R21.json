@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed: `/prototype --no-diverge`' and option '1. `/prototype --no-diverge` (Recommended)' match the label exactly."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal:', 'Problem:', and 'Done check:' lines appear before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "A single text confirmation lists options 1\u20135 with '5. Not what I meant' last. The follow-up ask for the task locations comes with a proposed route, so it is not a route-less clarifying question."
+    }
+  },
+  "verdict": "pass",
+  "note": "The agent proposed the exact `/prototype --no-diverge` route with a correct restatement and one confirmation ending in 'Not what I meant', though it used inline text rather than the question tool."
+}

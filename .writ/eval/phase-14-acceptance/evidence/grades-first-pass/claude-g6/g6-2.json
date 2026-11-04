@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G6a": {
+      "met": true,
+      "evidence": "\"`todo_write` \u2192 `TodoWrite`\" and \"`AskQuestion` \u2192 formatted text with numbered options\"; these are Claude Code mappings, consistent with the claude-installsh condition. The transcript has no tool output showing the map contents, so the match is inferred from the specific, non-generic wording."
+    },
+    "G6b": {
+      "met": true,
+      "evidence": "\"Both come from the **Capability Map** table in `CLAUDE.md`.\" No `adapters/` file is cited."
+    }
+  },
+  "verdict": "pass",
+  "note": "The answer gives two Claude Code mappings and cites the CLAUDE.md Capability Map, but the transcript has no file reads, so the exact match to the installed block is assumed rather than shown."
+}

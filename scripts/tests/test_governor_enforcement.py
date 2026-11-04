@@ -605,6 +605,8 @@ KNOWN_OVER_BUDGET = {
     # tracking step, why-this-step paragraphs, spec-lite budget breakdown), and the
     # Example Usage dialogue. Each cut removed coaching, not a byte goal; every
     # step, gate, AskQuestion block, and script call stays. cut-log.md lists every change.
+    # 2026-10-22 (2026-10-22-generated-platform-trees Story 1): 13602 -> 13654; Step 1.3 names
+    # the adapter's `Plan Mode` row.
     # 2026-10-22 (bug create-spec-can-lock-an-unseen-contract): 13602 -> 14065, a
     # disclosed increase. Step 1.4b opens with a precondition that the full contract
     # was printed as a visible message, Plan Mode or not; both --from Step 3s open
@@ -621,7 +623,10 @@ KNOWN_OVER_BUDGET = {
     # at a time": a question whose answer could change the next is asked alone;
     # independent bounded choices may share one AskQuestion prompt. The --from
     # Step 1s now point to Step 1.3 instead of restating it.
-    "commands/create-spec.md": 14445,
+    # 2026-10-31 (merge of #62 into Phase 14): 14445 -> 14497. Both changes kept:
+    # Step 1.3 opens with the "One question at a time" rule and names the
+    # adapter's `Plan Mode` row.
+    "commands/create-spec.md": 14497,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361

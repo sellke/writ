@@ -253,7 +253,7 @@ Scan `.writ/specs/` for related specifications, analyze codebase architecture an
 
 **One question at a time:** when a question's answer could change what you ask next, ask it alone. Re-analyze, and re-scan the code if relevant, before the next question. Independent, bounded choices with a known option space (for example output format, empty-state behavior, test approach) may share one AskQuestion prompt; each still leads with a recommendation.
 
-After the context scan, run discovery in Plan Mode; the user controls when to switch. Before speaking, silently list what is missing or ambiguous across four areas:
+After the context scan, run discovery in Plan Mode, entered through the adapter's `Plan Mode` row; the user controls when to switch back. Before speaking, silently list what is missing or ambiguous across four areas:
 
 - **Experience:** entry point, happy path, key interaction moments, feedback/confirmation, error/empty/loading states, responsive behavior
 - **Business rules:** permissions and access control, validation rules and limits, state transitions and lifecycle, time-based rules, pricing/billing, domain edge cases, compliance

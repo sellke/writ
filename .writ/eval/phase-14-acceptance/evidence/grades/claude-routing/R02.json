@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": false,
+      "evidence": "No question tool call and no 'Proposed:' line; agent says \"I'm not routing until I know the target\" and asks a clarifying question, which counts as a W1 miss (expected /prototype --no-diverge)."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "Labeled 'Goal: (not stated...)', 'Problem: A routine is failing...', 'Done check: (not stated)' lines appear before the question."
+    },
+    "W3": {
+      "met": false,
+      "evidence": "No confirmation question tool call; plain-text clarifying question with no 'Not what I meant' option."
+    }
+  },
+  "verdict": "fail",
+  "note": "Agent asked a clarifying question instead of proposing a route, missing W1 and W3."
+}

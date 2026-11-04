@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G2a": {
+      "met": true,
+      "evidence": "Turn 2: \"The route needs `.claude/commands/prototype.md`, and that file is still missing.\""
+    },
+    "G2b": {
+      "met": true,
+      "evidence": "\"Run `/update-writ` to restore it, then run `/writ` again with the same request.\""
+    },
+    "G2c": {
+      "met": true,
+      "evidence": "Only Glob in turn 2; \"No files were changed.\" No edits to src/ or tests/ in either turn."
+    }
+  },
+  "verdict": "pass",
+  "note": "Agent named the missing file after route selection, pointed to /update-writ, and made no edits."
+}

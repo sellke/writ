@@ -64,7 +64,7 @@ cat .codex/.writ-manifest 2>/dev/null
 |---|---|---|---|---|
 | `cursor` | `.cursor` | `commands` | `agents` | `rules/writ.mdc`, `system-instructions.md` |
 | `claude` | `.claude` | `commands` | `claude-code/agents` | `.claude/system-instructions.md`, `CLAUDE.md` (project root) |
-| `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `AGENTS.md` Writ block, `.codex/config.toml` baseline hash, `.agents/skills/` |
+| `codex` | `.codex` | `commands` | `codex/agents` (`*.toml`) | `.codex/system-instructions.md`, `AGENTS.md` Writ block, `.codex/config.toml` baseline hash, `.agents/skills/` |
 
 ### Step 2: Fetch Latest Upstream
 
@@ -108,7 +108,7 @@ if local_hash != baseline_hash AND local_hash != upstream_hash:
 
 **Apply same logic to runtime scripts** (project-root `scripts/`; mirror `scripts/install.sh` / `scripts/update.sh`):
 
-Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, `recommend-state.py`; ADR-029), the dev-only Claude Code template generator (`gen-claude-md.py`), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, `gen-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
+Ship every top-level `*.py` and `*.sh` in upstream `scripts/` **except** lifecycle installers (`install.sh`, `update.sh`, `uninstall.sh`, `unlink.sh`, `migrate.sh`), eval tooling (`eval.sh`, `eval-*`), internal modules (`_*`), dev sweep utilities (`sweep-*`), dev-only measurement and eval helpers (`pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, `recommend-state.py`; ADR-029), the dev-only Claude Code template generator (`gen-claude-md.py`), the Writ-source generators and checks (`gen-claude-agents.py`, `gen-codex-agent-tomls.py`, `check-agent-parity.sh`, `gen-skill.sh`; ADR-031), and npm publish artifacts (`publish-writ-runtime.sh`, `writ-runtime-readme.md`). This includes all command-invoked runtime scripts (`story-context.py`, `spec-deps.py`, `phase-state.py`, `lint-skill.sh`, etc.). Python and shell scripts are copied executable (`chmod 755`).
 
 **Apply same logic to Writ reference docs** (project-root `.writ/docs/*.md`):
 
@@ -117,7 +117,7 @@ Ship every upstream markdown doc under `.writ/docs/` except `recommended-deliver
 **Apply same logic to platform-specific files:**
 - Cursor: `rules/writ.mdc`, `system-instructions.md` (upstream sources: `cursor/writ.mdc`, `system-instructions.md`)
 - Claude Code: `.claude/system-instructions.md` (upstream source: `system-instructions.md`), `CLAUDE.md` (upstream source: `claude-code/CLAUDE.md`)
-- Codex CLI: `AGENTS.md` Writ block only (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
+- Codex CLI: `.codex/system-instructions.md` (upstream source: `system-instructions.md`; an install that lacks it gets it as new), and the `AGENTS.md` Writ block (markers `<!-- writ:start -->` / `<!-- writ:end -->`); `.codex/config.toml` is install-once and never overwritten by update. See [`adapters/codex.md`](../adapters/codex.md).
 
 **Skills overlay:** folder-aware, `SKILL.md` hash-tracked. Sidecar files inside a skill folder are install-once: copied on first install, never overwritten on update (same as `install.sh` / `update.sh`).
 
@@ -142,7 +142,7 @@ Display the scan results grouped by action:
   ✅ Unchanged:  15 file(s)
 ```
 
-If everything is unchanged, report "Already up to date!" and stop.
+If everything is unchanged, still remove the audit-notes push refspec (Step 6, item 8), then report "Already up to date!" and stop.
 
 ### Step 5: Handle Customized Files
 
@@ -195,6 +195,7 @@ Apply in this order (mirror `scripts/update.sh`):
 5. **Skills** — `SKILL.md` overlay; sidecars install-once only
 6. **Stale files** — remove unmodified stale files; keep each modified stale file, in any category, with a warning. It is no longer shipped, so it gets no new baseline: it keeps its previous one (Step 7) and is flagged on every run
 7. **Platform-specific files** — same three-way logic as commands/agents
+8. **Audit-notes push refspec** — for each remote (`git remote`) whose `git config --get-all remote.<remote>.push` has the whole line `refs/notes/writ`, run `git config --unset-all remote.<remote>.push '^refs/notes/writ$'`. Earlier installs added it, and it makes a plain `git push` skip the branch (ADR-017)
 
 ### Step 7: Regenerate Manifest
 

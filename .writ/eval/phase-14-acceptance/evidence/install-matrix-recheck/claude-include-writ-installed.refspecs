@@ -1,0 +1,3 @@
+remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+remote.origin.fetch +refs/notes/writ:refs/notes/origin-writ
+remote.origin.push refs/notes/writ

@@ -1,0 +1,18 @@
+{
+  "platform": "claude",
+  "manifest_header": {
+    "baselines": "shipped",
+    "mode": "copy",
+    "platform": "claude",
+    "version": "1f83680",
+    "date": "2026-10-24T15:28:52Z",
+    "source": "https://github.com/owner/writ.git"
+  },
+  "entries": 125,
+  "mismatch": [],
+  "missing_on_disk": [],
+  "no_source": [],
+  "expected_not_installed": [],
+  "installed_not_expected": [],
+  "ok": true
+}

@@ -1,0 +1,166 @@
+⚡ Writ Installer (Cursor)
+==================
+
+📦 Using local writ: <tmp>/src
+
+  📋 Commands:  34
+  🤖 Agents:    8
+  📜 Skills:    16
+  📜 Rules:     1 (writ.mdc)
+  📖 System:    1 (system-instructions.md)
+  🎯 Platform:  Cursor
+  📌 Version:   unknown
+
+Installing...
+  [1/7] Commands...
+  [2/7] Scripts & Writ docs...
+  [3/7] Agents...
+  [4/7] Skills...
+  [5/7] Rules...
+  [6/7] System instructions...
+  [7/7] Writing manifest...
+  🔗 Audit notes sync (refs/notes/writ)...
+    📝 Audit notes: refs/notes/writ sync configured on 'origin'.
+  🔎 Cursor indexing ignore (install-once)...
+✨ Seeded: .cursorindexingignore
+
+✅ Writ installed for Cursor! (version: unknown)
+
+  📋 Summary:
+     119 new file(s) installed
+     Skills: 16 new, 0 updated, 0 preserved
+
+  ✨ Seeded: .cursorindexingignore
+[main dfff88a] chore: install Writ development workflow (Cursor)
+ 124 files changed, 37709 insertions(+)
+ create mode 100644 .cursor/.writ-manifest
+ create mode 100644 .cursor/agents/architecture-check-agent.md
+ create mode 100644 .cursor/agents/coding-agent.md
+ create mode 100644 .cursor/agents/documentation-agent.md
+ create mode 100644 .cursor/agents/evaluator-agent.md
+ create mode 100644 .cursor/agents/review-agent.md
+ create mode 100644 .cursor/agents/testing-agent.md
+ create mode 100644 .cursor/agents/user-story-generator.md
+ create mode 100644 .cursor/agents/visual-qa-agent.md
+ create mode 100644 .cursor/commands/_preamble.md
+ create mode 100644 .cursor/commands/assess-spec.md
+ create mode 100644 .cursor/commands/create-adr.md
+ create mode 100644 .cursor/commands/create-goal.md
+ create mode 100644 .cursor/commands/create-issue.md
+ create mode 100644 .cursor/commands/create-spec.md
+ create mode 100644 .cursor/commands/create-uat-plan.md
+ create mode 100644 .cursor/commands/edit-spec.md
+ create mode 100644 .cursor/commands/implement-phase.md
+ create mode 100644 .cursor/commands/implement-spec.md
+ create mode 100644 .cursor/commands/implement-story.md
+ create mode 100644 .cursor/commands/initialize.md
+ create mode 100644 .cursor/commands/knowledge.md
+ create mode 100644 .cursor/commands/migrate.md
+ create mode 100644 .cursor/commands/new-command.md
+ create mode 100644 .cursor/commands/new-skill.md
+ create mode 100644 .cursor/commands/plan-product.md
+ create mode 100644 .cursor/commands/prototype.md
+ create mode 100644 .cursor/commands/refactor.md
+ create mode 100644 .cursor/commands/refresh-command.md
+ create mode 100644 .cursor/commands/reinstall-writ.md
+ create mode 100644 .cursor/commands/release.md
+ create mode 100644 .cursor/commands/research.md
+ create mode 100644 .cursor/commands/retro.md
+ create mode 100644 .cursor/commands/revert.md
+ create mode 100644 .cursor/commands/review.md
+ create mode 100644 .cursor/commands/security-audit.md
+ create mode 100644 .cursor/commands/ship.md
+ create mode 100644 .cursor/commands/status.md
+ create mode 100644 .cursor/commands/uninstall-writ.md
+ create mode 100644 .cursor/commands/update-writ.md
+ create mode 100644 .cursor/commands/verify-spec.md
+ create mode 100644 .cursor/commands/writ-design.md
+ create mode 100644 .cursor/commands/writ.md
+ create mode 100644 .cursor/rules/writ.mdc
+ create mode 100644 .cursor/skills/boundary-map-computation/SKILL.md
+ create mode 100644 .cursor/skills/change-surface-classification/SKILL.md
+ create mode 100644 .cursor/skills/code-explanation/SKILL.md
+ create mode 100644 .cursor/skills/conventional-commits/SKILL.md
+ create mode 100644 .cursor/skills/dependency-context-loading/SKILL.md
+ create mode 100644 .cursor/skills/drift-triage/SKILL.md
+ create mode 100644 .cursor/skills/error-rescue-mapping/SKILL.md
+ create mode 100644 .cursor/skills/plain-prose/SKILL.md
+ create mode 100644 .cursor/skills/project-context-snapshot/SKILL.md
+ create mode 100644 .cursor/skills/safe-refactor-loop/SKILL.md
+ create mode 100644 .cursor/skills/story-commit-provenance/SKILL.md
+ create mode 100644 .cursor/skills/story-context-assembly/SKILL.md
+ create mode 100644 .cursor/skills/subagent-result-completeness/SKILL.md
+ create mode 100644 .cursor/skills/subagent-worktree-integration/SKILL.md
+ create mode 100644 .cursor/skills/tdd-cycle/SKILL.md
+ create mode 100644 .cursor/skills/what-was-built-authoring/SKILL.md
+ create mode 100644 .cursor/system-instructions.md
+ create mode 100644 .cursorindexingignore
+ create mode 100644 .gitignore
+ create mode 100644 .writ/docs/acceptance-criteria-ids.md
+ create mode 100644 .writ/docs/agent-cli-contract.md
+ create mode 100644 .writ/docs/app-verification-format.md
+ create mode 100644 .writ/docs/architecture-lint.md
+ create mode 100644 .writ/docs/command-overlay.md
+ create mode 100644 .writ/docs/component-contract.md
+ create mode 100644 .writ/docs/config-format.md
+ create mode 100644 .writ/docs/context-hint-format.md
+ create mode 100644 .writ/docs/drift-report-format.md
+ create mode 100644 .writ/docs/exit-criteria-classification.md
+ create mode 100644 .writ/docs/gbrain-recipe.md
+ create mode 100644 .writ/docs/git-notes-audit-format.md
+ create mode 100644 .writ/docs/leanness-audit-2026-07-11.md
+ create mode 100644 .writ/docs/leanness-audit-2026-07-18.md
+ create mode 100644 .writ/docs/leanness-audit-2026-10-21.md
+ create mode 100644 .writ/docs/leanness-audit-format.md
+ create mode 100644 .writ/docs/model-tiers.md
+ create mode 100644 .writ/docs/phase-execution-state-format.md
+ create mode 100644 .writ/docs/prompting-guide.md
+ create mode 100644 .writ/docs/quality-signal-classification.md
+ create mode 100644 .writ/docs/recommendation-semantics.md
+ create mode 100644 .writ/docs/refresh-log-format.md
+ create mode 100644 .writ/docs/self-dogfooding.md
+ create mode 100644 .writ/docs/skills.md
+ create mode 100644 .writ/docs/spec-format.md
+ create mode 100644 .writ/docs/spec-lifecycle.md
+ create mode 100644 .writ/docs/startup-update-awareness.md
+ create mode 100644 .writ/docs/swot-2026-03-01.md
+ create mode 100644 .writ/docs/what-was-built-format.md
+ create mode 100755 scripts/ac-trace.py
+ create mode 100755 scripts/app-verify.py
+ create mode 100755 scripts/arch-check.py
+ create mode 100755 scripts/arch-lint.py
+ create mode 100755 scripts/archive-sweep.py
+ create mode 100755 scripts/boundary-map.py
+ create mode 100755 scripts/build-smoke.py
+ create mode 100755 scripts/change-surface.py
+ create mode 100755 scripts/docs-check.py
+ create mode 100755 scripts/drift-format.py
+ create mode 100755 scripts/exit-criteria.py
+ create mode 100755 scripts/goal-emit.py
+ create mode 100755 scripts/jev-judge.py
+ create mode 100644 scripts/jev-thresholds.json
+ create mode 100755 scripts/knowledge-consolidate.py
+ create mode 100755 scripts/lint-skill.sh
+ create mode 100755 scripts/phase-state.py
+ create mode 100755 scripts/quality-config-audit.py
+ create mode 100755 scripts/resolve-spec-reference.py
+ create mode 100755 scripts/revert-resolve.py
+ create mode 100755 scripts/review-override.py
+ create mode 100755 scripts/review-panel.py
+ create mode 100755 scripts/roadmap-sync.py
+ create mode 100755 scripts/scaffold-writ.py
+ create mode 100755 scripts/spec-analyze.py
+ create mode 100755 scripts/spec-deps.py
+ create mode 100755 scripts/spec-status.py
+ create mode 100755 scripts/story-context.py
+ create mode 100755 scripts/story-deps.py
+ create mode 100755 scripts/supersession-writeback.py
+ create mode 100755 scripts/test-integrity.py
+ create mode 100755 scripts/verdict-provenance.py
+  📦 Git commit created.
+
+Usage:
+  In Cursor chat, try: /initialize, /create-spec, /implement-story
+
+⚡ So it is written. So it shall be built.
+exit=0

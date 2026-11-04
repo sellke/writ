@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed: `/prototype --no-diverge`' and option 1 '`/prototype --no-diverge` (Recommended)' exactly match label `/prototype --no-diverge`."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal: The presentation ends with a thank-you slide...', 'Problem: The deck has no closing slide...', 'Done check: The last slide reads \"Thank you\"...' appear before the options list."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "One text-based confirmation with options 1\u20136 ending in '6. Not what I meant'; it also asks for the presentation path and contact details inside the same reply, but it still proposes a route."
+    }
+  },
+  "verdict": "pass",
+  "note": "Route matches exactly and the restatement is complete; the confirmation was plain text rather than a question tool call, and it bundled requests for the presentation path and contact details."
+}

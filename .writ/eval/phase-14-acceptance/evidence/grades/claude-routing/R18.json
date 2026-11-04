@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call was made. The Proposed line reads \"Proposed: `/implement-phase 14`\", and option 1 is \"`/implement-phase 14` (Recommended)\". Both match the label."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "\"Goal:\", \"Problem:\" and \"Done check:\" lines appear before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "There is one confirmation prompt (\"Pick a number. Nothing has run yet.\") listing six options, and the last is \"6. Not what I meant\"."
+    }
+  },
+  "verdict": "pass",
+  "note": "The route matches the label exactly; the confirmation was given as a text list instead of a question tool call, which W1 explicitly allows."
+}

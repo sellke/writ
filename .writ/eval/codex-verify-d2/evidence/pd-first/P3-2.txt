@@ -1,0 +1,1 @@
+ASSISTANT: I haven’t verified that behavior, so I can’t confirm that `get("page_size", {"page_size": 0})` raises. I’ll respect your request not to read files.

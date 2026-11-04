@@ -1,0 +1,165 @@
+{
+  "about": "Routing set for /writ, labeled from commands/writ.md ## Routing Rules before any run. Requests come from the maintainer's past Claude Code sessions in personal projects, lightly edited to remove client, company, and personal names. Label = the route the table implies; acceptable = a second route the table also supports, decided before the run.",
+  "labeled_by": "orchestrating agent, 2026-10-24, from the routing table only",
+  "workspace": "a small sample app with Writ installed by install.sh --platform claude from tag v0.44.0-rc.1, plus .writ/product/roadmap.md naming Phase 14; the requests' own projects are not present",
+  "items": [
+    {
+      "id": "R01",
+      "request": "How can I make this routine more autonomous? I still need to manually allow things.",
+      "label": "/prototype",
+      "acceptable": [
+        "/research"
+      ],
+      "why": "Names a goal and asks for options, not how something works."
+    },
+    {
+      "id": "R02",
+      "request": "This routine appears to be broken. Can you investigate and see what we need to do to get this fixed?",
+      "label": "/prototype --no-diverge",
+      "acceptable": [],
+      "why": "A bug."
+    },
+    {
+      "id": "R03",
+      "request": "Should I just force a sync from Cursor or would it make more sense to install the launchd job?",
+      "label": "/prototype",
+      "acceptable": [
+        "/research"
+      ],
+      "why": "A fork that trying both could settle."
+    },
+    {
+      "id": "R04",
+      "request": "Do we know why today's ingestion routine was skipped? Let's run it now.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [
+        "/research"
+      ],
+      "why": "A failure to diagnose and fix; the why serves the fix."
+    },
+    {
+      "id": "R05",
+      "request": "Let's add light and dark mode and use our design plugin.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [
+        "/prototype"
+      ],
+      "why": "A change with one obvious shape; no escalation signal stated."
+    },
+    {
+      "id": "R06",
+      "request": "I want to build a self-contained web page that uses my email, calendar, task list, and meeting notes to create a daily dashboard. Ask me a few questions about it first.",
+      "label": "/create-spec",
+      "acceptable": [
+        "/prototype"
+      ],
+      "why": "A capability with new integrations, a new-dependency signal."
+    },
+    {
+      "id": "R07",
+      "request": "gbrain should be completely uninstalled to avoid confusion with our current brain.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [],
+      "why": "A change with one obvious shape."
+    },
+    {
+      "id": "R08",
+      "request": "What sort of mods can I create to make my use of Claude Desktop look and feel more like a Cursor session?",
+      "label": "/prototype",
+      "acceptable": [],
+      "why": "Asks for options; direction unsettled."
+    },
+    {
+      "id": "R09",
+      "request": "Build three first: changed files plus checkpoints, the Ask/Agent toggle, and the problems pane.",
+      "label": "/create-spec",
+      "acceptable": [],
+      "why": "Three capabilities users will rely on; more than one change."
+    },
+    {
+      "id": "R10",
+      "request": "I want to support animations in the slides for session one. How can we fix this repo and enable the rendering for the session one presentation?",
+      "label": "/create-spec",
+      "acceptable": [
+        "/prototype"
+      ],
+      "why": "A capability with a rendering dependency, beyond one obvious change."
+    },
+    {
+      "id": "R12",
+      "request": "I want to make sure the colors are aligned to our branding. I also want the title slide's brain to more closely resemble the reference animation, with data coming in and out.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [
+        "/prototype"
+      ],
+      "why": "A change with a stated target; the reference fixes its shape."
+    },
+    {
+      "id": "R13",
+      "request": "Please add a thank-you slide at the very end of the presentation with my contact information.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [],
+      "why": "A change with one obvious shape."
+    },
+    {
+      "id": "R14",
+      "request": "Writ content can't go in the CLAUDE.md that ships with the app's installer. Add a separate CLAUDE.md for developers that supports Writ without shipping it.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [],
+      "why": "A change with one obvious shape."
+    },
+    {
+      "id": "R15",
+      "request": "Hold up. I want to use our existing app as the prototype for building this business operating system.",
+      "label": "/prototype",
+      "acceptable": [
+        "/create-spec"
+      ],
+      "why": "Direction unsettled."
+    },
+    {
+      "id": "R16",
+      "request": "The brain should probably reside in the cloud as well, don't you think?",
+      "label": "/prototype",
+      "acceptable": [
+        "/research"
+      ],
+      "why": "Direction unsettled; asks for a judgment, which must not be plain agreement."
+    },
+    {
+      "id": "R17",
+      "request": "pstack has become a formidable framework for AI-enabled software development. Conduct a thorough comparison and analysis against Writ.",
+      "label": "/research",
+      "acceptable": [],
+      "why": "Asks how something works and compares."
+    },
+    {
+      "id": "R18",
+      "request": "Implement phase 14.",
+      "label": "/implement-phase 14",
+      "acceptable": [],
+      "why": "Names a roadmap phase."
+    },
+    {
+      "id": "R20",
+      "request": "Getting page not found when attempting to open the dashboard in Chrome.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [],
+      "why": "A bug."
+    },
+    {
+      "id": "R21",
+      "request": "The ingestion task's permission mode keeps getting reset to unset, while the dashboard task keeps its setting. Something is specifically clearing this task. Let's fix this.",
+      "label": "/prototype --no-diverge",
+      "acceptable": [],
+      "why": "A bug."
+    },
+    {
+      "id": "R23",
+      "request": "Why can't we just run it locally? I can wake the machine up.",
+      "label": "/research",
+      "acceptable": [],
+      "why": "Asks why something is the way it is."
+    }
+  ]
+}

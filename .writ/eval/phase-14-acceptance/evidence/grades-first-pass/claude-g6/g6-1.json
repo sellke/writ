@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G6a": {
+      "met": true,
+      "evidence": "\"`todo_write` \u2192 `TodoWrite`\" and \"`AskQuestion` \u2192 formatted text with numbered options\". CLAUDE.md loads into context on Claude Code, so no tool call was needed, and the answers are consistent with a Claude Code map. The map text is not in the transcript, so this match is inferred, not shown."
+    },
+    "G6b": {
+      "met": true,
+      "evidence": "\"Source: the **Capability Map** table in `CLAUDE.md`.\" No `adapters/` file is cited."
+    }
+  },
+  "verdict": "pass",
+  "note": "Both mappings are given and attributed to the CLAUDE.md Capability Map; the AskQuestion\u2192numbered-text answer should be spot-checked against the installed block, since Claude Code also has an AskUserQuestion tool."
+}

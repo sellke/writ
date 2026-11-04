@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G5a": {
+      "met": true,
+      "evidence": "Turn 1: \"**Route.** I recommend `/writ:prototype --no-diverge`.\" listed as option 1 (Recommended)."
+    },
+    "G5b": {
+      "met": true,
+      "evidence": "Edit to src/settings.py adds `if name == \"page_size\" and value < 1: raise ValueError(...)`; tests/test_settings.py gains 5 tests. Harness: git diff touched src/settings.py and tests/test_settings.py; `python3 -m pytest -q` \u2192 6 passed."
+    },
+    "G5c": {
+      "met": true,
+      "evidence": "The plugin dir was only read (`ls`, `grep`, `cat` of prototype.md and SKILL.md). All writes were to the workspace or its `.claude/worktrees/agent-\u2026` subfolder, which was removed with `git worktree remove --force` and `branch -D`. The only outside side effect is uv's own package cache from `uv run --with pytest`, which is tooling, not an agent file write."
+    }
+  },
+  "verdict": "pass",
+  "note": "Namespaced route proposed, fix and tests landed in the main checkout with a green suite, and the plugin folder was never written to."
+}

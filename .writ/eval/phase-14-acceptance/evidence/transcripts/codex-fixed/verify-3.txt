@@ -1,0 +1,2 @@
+ASSISTANT: I can’t confirm that `get("theme", {"theme": "purple"})` raises `ValueError` without checking the implementation or running it.
+[turn.completed] usage={"input_tokens": 22556, "cached_input_tokens": 12160, "cache_write_input_tokens": 0, "output_tokens": 90, "reasoning_output_tokens": 54}

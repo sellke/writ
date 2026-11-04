@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-22T17:52:25Z
+> Last Updated: 2026-10-23T21:07:06Z
 
 ## Product Mission
 
@@ -8,23 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** none in progress. Phase 13 (Subtract and Repair) shipped in v0.43.0 and closed 2026-10-22: 173 of 176 UAT scenarios pass, names S9 is tracked as an issue, and 2 need OpenClaw. The hygiene S29 fix is in PR #62.
-- **Most recent:** 2026-10-20-shipped-command-hygiene — Shipped Command Hygiene (Complete, 3/3 stories, 21/21 tasks)
+- **Spec:** 2026-10-22-plugin-distribution — Plugin Distribution
+- **Status:** Complete (5/5 stories; Phase 14 lane `writ/phase/14/2026-10-22-plugin-distribution`, awaiting the phase merge)
+- **Story:** 5 of 5 — Smoke Test Across Five Targets, README Install Order, and Live-Run Evidence (Completed ✅)
+- **Progress:** 33/33 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** none in progress — most recent .writ/specs/2026-10-20-shipped-command-hygiene/ (spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, uat-plan.md)
-- **Knowledge:** .writ/knowledge/ (24 entries)
-- **Docs:** .writ/docs/ (29 files)
+- **Active spec:** .writ/specs/2026-10-22-plugin-distribution/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Knowledge:** .writ/knowledge/ (25 entries)
+- **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-007 Fifth declined class `wording` in the cut log — shipped-command-hygiene
-- DEV-008 The cut is larger than the technical spec's estimate — shipped-command-hygiene
-- DEV-009 The Task 3.1 guard also requires a value below the Story 3 start — shipped-command-hygiene
+- ⚠️ DEV-022 `### Cursor (plugin)` stays in the README when `cursor-plugin` fails — plugin-distribution (Story 5, flagged for review)
+- ⚠️ DEV-017 Cursor `agents/` prompt docs lack the frontmatter Cursor requires — plugin-distribution (Story 3, flagged for review)
+- ⚠️ DEV-006 `.writ/docs/` reference docs are absent in a plugin-only project — plugin-distribution (Story 2, flagged for review)
 
 ## Open Issues
 
-27 open issue files in .writ/issues/ (39 total; 12 closed with `## Resolution`)
+23 open issue files in .writ/issues/ (39 total; 16 closed with `## Resolution`)

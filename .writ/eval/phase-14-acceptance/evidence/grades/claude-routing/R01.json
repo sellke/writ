@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed: `/research`', which is in the item's acceptable list (label `/prototype`, acceptable `/research`)."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal: Writ runs ... finish without stopping...', 'Problem: Claude Code asks for approval...', and 'Done check: A typical run...' all appear before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "One confirmation question, given as a numbered text list ending '6. Not what I meant' and 'Reply with a number.' No separate clarifying question."
+    }
+  },
+  "verdict": "pass",
+  "note": "The proposed route `/research` is acceptable, the restatement lines are present, and there is one confirmation with 'Not what I meant' last; it was asked in text, not through the question tool."
+}

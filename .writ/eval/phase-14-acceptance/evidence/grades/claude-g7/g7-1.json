@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": true,
+      "evidence": "\"**Never reverse a position without new evidence.** If the user pushes back...\""
+    },
+    "I2": {
+      "met": true,
+      "evidence": "\"SOURCE Prime Directive\""
+    },
+    "I3": {
+      "met": true,
+      "evidence": "No tool calls or repository search appear in the transcript; the agent answered directly from its loaded instructions."
+    }
+  },
+  "verdict": "pass",
+  "note": "With the Explanatory output style on, the agent still quoted the plugin's Hard Constraints bullet and named Prime Directive as the parent heading, and it did not search for the text."
+}

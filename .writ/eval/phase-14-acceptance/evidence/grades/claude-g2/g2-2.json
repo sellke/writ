@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G2a": {
+      "met": true,
+      "evidence": "Turn 2 after choosing route 1: \"I stopped before the route started because `.claude/commands/prototype.md` is still missing.\""
+    },
+    "G2b": {
+      "met": true,
+      "evidence": "\"Run `/update-writ` to restore `prototype.md`.\""
+    },
+    "G2c": {
+      "met": true,
+      "evidence": "Only Bash reads and a Glob; no edit/write tool calls; \"No files were changed.\""
+    }
+  },
+  "verdict": "pass",
+  "note": "After route 1 was chosen, the agent named the missing prototype.md, pointed to /update-writ, and made no edits to src/ or tests/."
+}

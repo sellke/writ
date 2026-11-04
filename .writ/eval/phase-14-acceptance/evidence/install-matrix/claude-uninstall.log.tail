@@ -1,0 +1,40 @@
+ delete mode 100644 .claude/commands/revert.md
+ delete mode 100644 .claude/commands/review.md
+ delete mode 100644 .claude/commands/security-audit.md
+ delete mode 100644 .claude/commands/ship.md
+ delete mode 100644 .claude/commands/status.md
+ delete mode 100644 .claude/commands/uninstall-writ.md
+ delete mode 100644 .claude/commands/update-writ.md
+ delete mode 100644 .claude/commands/verify-spec.md
+ delete mode 100644 .claude/commands/writ-design.md
+ delete mode 100644 .claude/commands/writ.md
+ delete mode 100644 .claude/skills/boundary-map-computation/SKILL.md
+ delete mode 100644 .claude/skills/change-surface-classification/SKILL.md
+ delete mode 100644 .claude/skills/code-explanation/SKILL.md
+ delete mode 100644 .claude/skills/conventional-commits/SKILL.md
+ delete mode 100644 .claude/skills/dependency-context-loading/SKILL.md
+ delete mode 100644 .claude/skills/drift-triage/SKILL.md
+ delete mode 100644 .claude/skills/error-rescue-mapping/SKILL.md
+ delete mode 100644 .claude/skills/plain-prose/SKILL.md
+ delete mode 100644 .claude/skills/project-context-snapshot/SKILL.md
+ delete mode 100644 .claude/skills/safe-refactor-loop/SKILL.md
+ delete mode 100644 .claude/skills/story-commit-provenance/SKILL.md
+ delete mode 100644 .claude/skills/story-context-assembly/SKILL.md
+ delete mode 100644 .claude/skills/subagent-result-completeness/SKILL.md
+ delete mode 100644 .claude/skills/subagent-worktree-integration/SKILL.md
+ delete mode 100644 .claude/skills/tdd-cycle/SKILL.md
+ delete mode 100644 .claude/skills/what-was-built-authoring/SKILL.md
+ delete mode 100644 .claude/system-instructions.md
+ delete mode 100644 CLAUDE.md
+  📦 Git commit created.
+
+✅ Writ has been removed (Claude Code).
+
+  .writ/ directory preserved (specs, docs, ADRs intact).
+  To also remove: rm -rf .writ
+
+  To reinstall:
+    bash <(curl -s https://raw.githubusercontent.com/owner/writ/main/scripts/install.sh) --platform claude
+
+⚡ So it is written. So it shall be built.
+exit=0

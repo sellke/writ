@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": false,
+      "evidence": "No question tool call; the route came from the text: \"Proposed: `/create-spec`\" and \"1. `/create-spec` (Recommended)\". Neither matches the label `/prototype --no-diverge` or the acceptable `/prototype`."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "\"Goal: Users can switch between light and dark mode...\", \"Problem: The settings layer stores a `theme` value...\", \"Done check: Setting theme to \\\"dark\\\" or \\\"light\\\" visibly changes the app...\" all appear before the route options."
+    },
+    "W3": {
+      "met": false,
+      "evidence": "The question tool was never called. The options appear only as a markdown list ending \"5. Not what I meant\". The ordering is right, but no confirmation question was actually asked."
+    }
+  },
+  "verdict": "fail",
+  "note": "The agent recommended `/create-spec` rather than `/prototype --no-diverge` or `/prototype`, and it presented the options as plain text instead of calling the question tool."
+}

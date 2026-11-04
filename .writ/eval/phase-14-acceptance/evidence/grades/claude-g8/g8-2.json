@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G8a": {
+      "met": false,
+      "evidence": "No ExitPlanMode call; final text ends with a clarifying question (\"Where should user changes to settings live?\") rather than a plan."
+    },
+    "G8b": {
+      "met": false,
+      "evidence": "No plan was presented; first line of final text is \"As written, the reset command has nothing to reset.\" There is no statement that approval accepts the draft and runs nothing."
+    },
+    "G8c": {
+      "met": false,
+      "evidence": "Write to ~/.claude/plans/a-reset-command-that-warm-horizon.md \u2014 \"File created successfully\". This is the plan-mode scratch file, but the criterion says no file is written."
+    }
+  },
+  "verdict": "fail",
+  "note": "The agent stopped at a blocking clarification instead of presenting a plan, so the contract line never appeared, and it wrote a plan-notes file."
+}

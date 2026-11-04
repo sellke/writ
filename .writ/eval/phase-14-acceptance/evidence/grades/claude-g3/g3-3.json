@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G3a": {
+      "met": true,
+      "evidence": "No route proposed; \"Routing blocked: `/writ` only offers the `/implement-phase` route when a roadmap exists.\""
+    },
+    "G3b": {
+      "met": true,
+      "evidence": "\"`.writ/product/roadmap.md` doesn't exist\" and \"Fix: run `/plan-product` to create the roadmap\""
+    }
+  },
+  "verdict": "pass",
+  "note": "Agent withheld /implement-phase, stated the roadmap is missing, and named /plan-product as the way to create it."
+}

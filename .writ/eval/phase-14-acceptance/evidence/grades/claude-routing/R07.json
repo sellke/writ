@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed:' line reads \"Proposed: `/prototype --no-diverge`\", which exactly matches the label."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal:', 'Problem:', and 'Done check:' lines appear before the route options and 'Which route?'"
+    },
+    "W3": {
+      "met": true,
+      "evidence": "One plain-text confirmation ('Which route?') with options 1\u20136, the last being '6. Not what I meant'; no clarifying question without a route."
+    }
+  },
+  "verdict": "pass",
+  "note": "Route matches `/prototype --no-diverge` exactly; the confirmation was asked in plain text, not through the question tool."
+}

@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G3a": {
+      "met": true,
+      "evidence": "\"`/implement-phase 14` can't be offered.\" Proposed: \"`/plan-product` to create the roadmap\" (option 1, Recommended)."
+    },
+    "G3b": {
+      "met": true,
+      "evidence": "Restatement: \".writ/product/roadmap.md does not exist, so there is no Phase 14 to match.\" Reply: \"`/plan-product`... it's the command that creates the roadmap.\""
+    }
+  },
+  "verdict": "pass",
+  "note": "Agent detected the missing roadmap, declined to route to /implement-phase, and recommended /plan-product as the command that creates it."
+}

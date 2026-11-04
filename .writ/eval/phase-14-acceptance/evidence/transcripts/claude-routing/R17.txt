@@ -1,0 +1,34 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Glob: {"pattern": ".writ/{product/roadmap.md,docs/startup-update-awareness.md,docs/prompting-guide.md}"}
+TOOL_RESULT: .writ/docs/prompting-guide.md
+.writ/docs/startup-update-awareness.md
+.writ/product/roadmap.md
+TOOL_CALL Glob: {"pattern": ".claude/commands/research.md"}
+TOOL_RESULT: .claude/commands/research.md
+TOOL_CALL Read: {"file_path": "<tmp>/ws/claude-routing-4/.writ/docs/startup-update-awareness.md"}
+TOOL_RESULT: 1	# Startup Update Awareness
+2	
+3	> **Status:** Normative. This is the procedure that lived in `system-instructions.md` → Startup Update Awareness until 2026-09-07, moved here under [ADR-026](../decision-records/adr-026-constraint-test-pruning.md) (every removed line is in [`pruned-instructions-ledger.md`](../decision-records/pruned-instructions-ledger.md)). The base keeps the trigger sentence and one pointer line to this file.
+4	> **Applies:** Cursor, Claude Code, Codex CLI. `scripts/install.sh` ships `.writ/docs/*.md`, so installed projects carry this file.
+5	> **Related:** [`commands/update …[4549 chars]
+ASSISTANT: Goal: A written comparison of pstack and Writ: how each works, where each is stronger, and what Writ should adopt, ignore, or answer.
+Problem: Nobody has checked pstack's claimed strengths against Writ's real design, so we can't tell whether it beats Writ or where Writ falls behind.
+Done check: A research record covers both frameworks on the same dimensions (workflow model, spec/contract handling, agent orchestration, verification/TDD gates, autonomy limits, platform reach, install/update story). It ends with a ranked list of recommendations for Writ.
+Proof: (not stated, see prompting-guide.md § What a request carries). My proposal: cite pstack's public docs or source for each claim, and cite Writ's own command/agent files for each counter-claim.
+
+Before you pick:
+- I can't verify that pstack is "formidable" yet. I'll treat it as a claim to test, not a premise.
+- This session has no Write or Bash tool, so `/research` can't save its record under `.writ/research/`. I can give the findings in chat, or you can re-run with write access.
+- The startup update check was skipped because it needs network and write access. Nothing else is affected.
+
+**Route**
+
+Proposed: `/research`. This is a comparison and analysis question with no code change, so it fits the "how does it work / why" row.
+
+1. `/research` (Recommended)
+2. `/prototype`
+3. `/prototype --no-diverge`
+4. `/create-spec`
+5. `/implement-phase <N>` (the roadmap has no phase that matches this request)
+6. Not what I meant
+[result] success turns=4 cost=1.8443019999999999

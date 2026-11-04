@@ -1,0 +1,1 @@
+ASSISTANT: If `get()` rejects page sizes below 1, that call raises. I haven’t verified the implementation.

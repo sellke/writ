@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
-"""Generate claude-code/CLAUDE.md from .writ/manifest.yaml and claude-code/agents/*.md.
+"""Generate claude-code/CLAUDE.md from .writ/manifest.yaml, claude-code/agents/*.md,
+and the Claude Code capability map.
 
     python3 scripts/gen-claude-md.py           # write claude-code/CLAUDE.md
     python3 scripts/gen-claude-md.py --check   # compare with the committed file, write nothing
 
 Dev-only (installed projects have no manifest); never hand-edit the template.
-Check shape: line 1 `pass`/`fail`/`unverifiable`, `reason:` lines, then
-`gen-claude-md: <verdict> (<detail>)`. Reasons: `manifest <detail>`,
-`import-token <name>` (`@` outside backticks), `pipeline <name>`, `agent <file>`,
-`write <error>`; --check adds `missing|extra <name>` and `stale|absent
-claude-code/CLAUDE.md`. A missing input is `unverifiable`. Exit 0 pass or
-unverifiable, 1 fail, 2 usage. Nothing is written when any reason exists.
+The `{capability_map}` slot after the Commands table (spec
+`2026-10-22-generated-platform-trees`, Rule 7) is filled by
+`capability_map("claude-code", root)` from scripts/gen-platform-trees.py,
+loaded by path because its name has a hyphen; it renders
+adapters/claude-code.md's tool table. `python3 scripts/gen-platform-trees.py`
+runs this generator after the adapters and every sub-generator check.
+
+Check shape: line 1 `pass`/`fail`/`unverifiable`, `reason:` lines, `wrote
+claude-code/CLAUDE.md` after a write, then `gen-claude-md: <verdict>
+(<detail>)`. Reasons: `manifest <detail>`, `import-token <name>` (`@` outside
+backticks in a purpose, an agent description, or the map, named
+`capability-map`), `pipeline <name>`, `agent <file>`, `capability-map
+<reason>` (the adapter table did not parse: `malformed adapters/claude-code.md:<line>`,
+`empty …`, `section <heading> in …`), `write <error>`; --check adds
+`missing|extra <name>` and `stale|absent claude-code/CLAUDE.md`. A missing
+input (the manifest, the agents dir, the driver, or the adapter) is
+`unverifiable`. Exit 0 pass or unverifiable, 1 fail, 2 usage. Nothing is
+written when any reason exists.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import re
 import sys
@@ -26,6 +40,9 @@ from typing import Dict, List, Optional, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_REL = ".writ/manifest.yaml"
 AGENTS_REL = "claude-code/agents"
+TREES_REL = "scripts/gen-platform-trees.py"
+ADAPTER_REL = "adapters/claude-code.md"
+PLATFORM = "claude-code"
 OUT_REL = "claude-code/CLAUDE.md"
 PIPELINE = ("plan-product", "create-spec", "implement-spec", "verify-spec", "release")
 PHASE = "implement-phase"
@@ -46,9 +63,12 @@ Writ's root contract (Prime Directive, interaction rules, model tiers) loads fro
 
 Run Writ commands by reading the command file and following its workflow:
 
+Start with `/writ "<what you want>"`: it restates the request and routes it to the right command.
+
 | Command | File | Purpose |
 |---------|------|---------|
 {rows}
+{capability_map}
 ## Agents
 
 Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:
@@ -137,27 +157,47 @@ def read_agents(folder: Path) -> Tuple[Pairs, List[str]]:
     return agents, reasons
 
 
-def render(commands: Pairs, agents: Pairs) -> str:
-    """The template bytes: LF only, one final newline, `|` escaped."""
+def read_capability_map(root: Path) -> Tuple[str, List[str]]:
+    """(the Claude Code `## Capability Map` section rendered by
+    scripts/gen-platform-trees.py, `capability-map <reason>` reasons when the
+    adapter table did not parse)."""
+    spec = importlib.util.spec_from_file_location("gen_platform_trees", root / TREES_REL)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    try:
+        return module.capability_map(PLATFORM, root), []
+    except ValueError as err:
+        return "", ["capability-map " + reason for reason in str(err).split("; ")]
+
+
+def render(commands: Pairs, agents: Pairs, capability_map: str) -> str:
+    """The template bytes: LF only, one final newline, `|` escaped; the map
+    section (one trailing newline) sits in its slot after the Commands table."""
     rows = "".join("| `/%s` | `.claude/commands/%s.md` | %s |\n" % (n, n, p.replace("|", "\\|"))
                    for n, p in commands)
     items = "".join("- `%s` — %s\n" % (f, d.replace("|", "\\|")) for f, d in agents)
     pipeline = " → ".join("/" + name for name in PIPELINE)
-    return TEMPLATE.format(rows=rows, agents=items, pipeline=pipeline, phase=PHASE)
+    return TEMPLATE.format(rows=rows, capability_map=capability_map, agents=items,
+                           pipeline=pipeline, phase=PHASE)
 
 
-def render_reasons(commands: Pairs, agents: Pairs) -> List[str]:
-    """`import-token` for an `@` outside backticks; `pipeline` for a name not in the manifest."""
+def render_reasons(commands: Pairs, agents: Pairs, capability_map: str = "") -> List[str]:
+    """`import-token` for an `@` outside backticks (in a purpose, an agent
+    description, or the map); `pipeline` for a name not in the manifest."""
     reasons = ["import-token %s" % name for name, text in commands + agents
                if "@" in CODE_SPAN.sub("", text)]
+    if "@" in CODE_SPAN.sub("", capability_map):
+        reasons.append("import-token capability-map")
     names = {name for name, _ in commands}
     return reasons + ["pipeline %s" % n for n in PIPELINE + (PHASE,) if names and n not in names]
 
 
-def finish(verdict: str, reasons: List[str], detail: str) -> int:
+def finish(verdict: str, reasons: List[str], detail: str, wrote: Tuple[str, ...] = ()) -> int:
     print(verdict)
     for reason in reasons:
         print("reason: " + reason)
+    for path in wrote:
+        print("wrote " + path)
     print("gen-claude-md: %s (%s)" % (verdict, detail))
     return 1 if verdict == "fail" else 0
 
@@ -191,7 +231,7 @@ def write(out: Path, text: str, detail: str) -> int:
         if tmp and os.path.exists(tmp):
             os.unlink(tmp)
         return finish("fail", ["write %s" % err], "1 write")
-    return finish("pass", [], detail)
+    return finish("pass", [], detail, (OUT_REL,))
 
 
 def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
@@ -211,17 +251,22 @@ def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
     folder = root / AGENTS_REL
     if not folder.is_dir() or not any(folder.glob("*.md")):
         unverifiable.append("agents missing: " + AGENTS_REL)
+    if not (root / TREES_REL).is_file():
+        unverifiable.append("platform-trees missing: " + TREES_REL)
+    if not (root / ADAPTER_REL).is_file():
+        unverifiable.append("adapter missing: " + ADAPTER_REL)
     if unverifiable:
         return finish("unverifiable", unverifiable, "inputs missing")
 
     commands, reasons = read_commands(manifest)
     agents, agent_reasons = read_agents(folder)
-    reasons += agent_reasons + render_reasons(commands, agents)
+    capability_map, map_reasons = read_capability_map(root)
+    reasons += agent_reasons + map_reasons + render_reasons(commands, agents, capability_map)
     if reasons:
         kinds = [r.split(" ", 1)[0] for r in reasons]
         return finish("fail", reasons, ", ".join(
             "%d %s" % (kinds.count(k), k) for k in dict.fromkeys(kinds)))
-    text = render(commands, agents)
+    text = render(commands, agents, capability_map)
     detail = "%d commands, %d agents" % (len(commands), len(agents))
     out = root / OUT_REL
     if args.check:

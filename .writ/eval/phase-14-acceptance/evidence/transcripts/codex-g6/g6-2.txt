@@ -1,0 +1,5 @@
+ASSISTANT: todo_write → Write(".writ/state/...json")
+AskQuestion → Structured numbered options in prose
+
+Source: AGENTS.md, “Capability Map” section.
+[turn.completed] usage={"input_tokens": 18077, "cached_input_tokens": 12160, "cache_write_input_tokens": 0, "output_tokens": 36, "reasoning_output_tokens": 0}

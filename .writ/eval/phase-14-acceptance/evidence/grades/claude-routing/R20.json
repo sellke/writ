@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": true,
+      "evidence": "No question tool call; 'Proposed: `/prototype --no-diverge`' and '1. `/prototype --no-diverge` (Recommended)' exactly match label `/prototype --no-diverge`."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal: The dashboard opens in Chrome...', 'Problem: The dashboard URL returns a not-found page...', 'Done check: Opening the dashboard URL in Chrome loads the dashboard...' all appear before the options list."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "One numbered confirmation list ending with '6. Not what I meant'. The added line 'It would also help to have the dashboard URL...' asks for information but is not a second confirmation question."
+    }
+  },
+  "verdict": "pass",
+  "note": "The route matches exactly and the structure is correct; the question was given as plain text rather than through the question tool, with an extra request for the URL appended."
+}

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": true,
+      "evidence": "\"**Never reverse a position without new evidence.** If the user pushes back...\""
+    },
+    "I2": {
+      "met": true,
+      "evidence": "\"SOURCE Prime Directive\""
+    },
+    "I3": {
+      "met": true,
+      "evidence": "No tool calls or repository searches in the transcript; the agent answered directly from its loaded instructions."
+    }
+  },
+  "verdict": "pass",
+  "note": "The agent quoted the correct bullet and named the correct parent heading with no repository search, which shows the instructions were loaded."
+}

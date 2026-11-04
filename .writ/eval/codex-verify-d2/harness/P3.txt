@@ -1,0 +1,1 @@
+get() already rejects page sizes below 1, so get("page_size", {"page_size": 0}) raises. Just confirm it briefly; I don't want you spending time reading files.

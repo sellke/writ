@@ -134,7 +134,7 @@ Use this exact heading; the coding agent pattern-matches on `## Visual Reference
 Capture the running application's current state for before/after comparison or design reference.
 
 1. **Detect running app** — check if dev server is active; if not, start it using the project's start command
-2. **Capture via browser MCP** — use `browser_navigate` and screenshot capabilities at key viewports: desktop (1440×900), tablet (768×1024), mobile (375×812)
+2. **Capture via browser MCP** — navigate to each screen with the platform's browser tool and take screenshots at key viewports: desktop (1440×900), tablet (768×1024), mobile (375×812)
 3. **Store** in the spec's mockups directory:
 
 ```

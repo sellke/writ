@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G6a": {
+      "met": true,
+      "evidence": "\"todo_write \u2192 `Write(\".writ/state/...json\")`\" and \"AskQuestion \u2192 Structured numbered options in prose\"; neither uses a native todo or question tool, which fits Codex and its AGENTS.md map"
+    },
+    "G6b": {
+      "met": true,
+      "evidence": "\"Source: AGENTS.md, \u201cCapability Map\u201d section.\" No adapters/ file is cited"
+    }
+  },
+  "verdict": "pass",
+  "note": "The transcript does not show the map's contents, so G6a rests on the answers being consistent with the Codex Capability Map that the agent cited."
+}

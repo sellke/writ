@@ -1,0 +1,36 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Glob: {"pattern": ".claude/settings*.json"}
+TOOL_RESULT: No files found
+TOOL_CALL Grep: {"pattern": "(?i)routine", "output_mode": "files_with_matches", "head_limit": 20}
+TOOL_RESULT: Found 9 files
+.writ/docs/spec-lifecycle.md
+.writ/docs/phase-execution-state-format.md
+.writ/docs/leanness-audit-format.md
+.claude/skills/code-explanation/SKILL.md
+.claude/commands/status.md
+.claude/commands/plan-product.md
+.claude/commands/implement-phase.md
+.claude/commands/create-spec.md
+.claude/commands/create-adr.md
+TOOL_CALL Glob: {"pattern": ".writ/product/roadmap.md"}
+TOOL_RESULT: .writ/product/roadmap.md
+ASSISTANT: Goal: Writ runs (for example `/implement-phase --recommend`) finish without stopping for manual tool-permission approvals, and the human approval points that are meant to stay (merge, PR, release) still stay.
+Problem: Claude Code asks for approval on each tool call that isn't pre-approved. This repo has no `.claude/settings.json` or `settings.local.json`, so nothing is pre-approved, and every Bash/Edit/Write call that isn't allowed by default stops the run.
+Done check: A typical run of the routine finishes without a permission prompt for routine actions. Destructive or outward-facing actions are still gated.
+Proof: (not stated; see prompting-guide.md § What a request carries)
+
+I'm assuming "this routine" means a Writ command run inside Claude Code. If you meant a scheduled or cloud routine, or a `/create-goal` loop, pick option 6.
+
+**Route**
+
+Proposed: `/research`. You're asking how to do it. The answer depends on which prompts actually fire: permission allowlists, permission modes, or hooks. That should be researched before any settings file is written.
+
+1. `/research` **(Recommended)**
+2. `/prototype --no-diverge`: write a `.claude/settings.json` allowlist directly
+3. `/prototype`: try several permission setups and compare them
+4. `/create-spec`
+5. `/implement-phase <N>`
+6. Not what I meant
+
+Reply with a number.
+[result] success turns=4 cost=1.7992131999999998

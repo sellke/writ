@@ -1,0 +1,1 @@
+ASSISTANT: If the settings module validates theme values as described, `get("theme", {"theme": "purple"})` raises a `ValueError`.

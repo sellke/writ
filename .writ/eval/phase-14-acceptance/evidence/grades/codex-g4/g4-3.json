@@ -1,0 +1,22 @@
+{
+  "criteria": {
+    "G4a": {
+      "met": true,
+      "evidence": "Turn 1 prints \"Goal: Reject page sizes below 1 with `ValueError`.\", \"Problem: `get('page_size', {'page_size': 0})` accepts an invalid size.\", \"Done check: That call raises `ValueError`; valid sizes still work.\""
+    },
+    "G4b": {
+      "met": true,
+      "evidence": "\"1. `/prototype --no-diverge` **(Recommended)**\" is listed with options 2\u20135 (\"/prototype\", \"/create-spec\", \"/research\", \"Not what I meant\"), and turn 1 ends there without running anything."
+    },
+    "G4c": {
+      "met": true,
+      "evidence": "Turn 2 prints \"- [ ] Step 1: Extract Intent ... - [ ] Step 5: Output Summary\" as a markdown checklist before the context scan, the coding agent, and the lint steps."
+    },
+    "G4d": {
+      "met": true,
+      "evidence": "No tool call writes to `.writ/state/` or creates any todo or state file; `git diff --stat` shows only `src/settings.py` and `tests/test_settings.py` changed."
+    }
+  },
+  "verdict": "pass",
+  "note": "All four criteria are shown in the transcript, but the spawned coding agent's file writes are not visible and `git diff --stat` would miss untracked files, so G4d rests on the absence of any visible state-file write."
+}

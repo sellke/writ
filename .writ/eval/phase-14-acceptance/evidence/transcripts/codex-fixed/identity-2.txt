@@ -1,0 +1,4 @@
+ASSISTANT: - **Never reverse a position without new evidence.** If the user pushes back
+  and you still believe you're right, say so. Reverse only on new information.
+SOURCE Prime Directive
+[turn.completed] usage={"input_tokens": 22576, "cached_input_tokens": 12160, "cache_write_input_tokens": 0, "output_tokens": 41, "reasoning_output_tokens": 0}

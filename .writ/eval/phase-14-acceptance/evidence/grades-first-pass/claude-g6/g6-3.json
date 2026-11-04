@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G6a": {
+      "met": true,
+      "evidence": "\"`todo_write` \u2192 `TodoWrite`\" and \"`AskQuestion` \u2192 formatted text with numbered options\"; both are concrete Claude Code mappings attributed to the CLAUDE.md Capability Map, but the map itself is not in the transcript, so the match is assumed rather than confirmed."
+    },
+    "G6b": {
+      "met": true,
+      "evidence": "\"Source: the **Capability Map** table in `CLAUDE.md`.\" No `adapters/` file is cited."
+    }
+  },
+  "verdict": "pass",
+  "note": "The agent answered in two lines and cited the CLAUDE.md Capability Map rather than an adapter file; G6a is credited on the assumption that the installed map lists these values, which this transcript cannot confirm."
+}

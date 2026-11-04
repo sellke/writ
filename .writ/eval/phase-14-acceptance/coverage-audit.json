@@ -1,0 +1,1999 @@
+{
+  "base": "9e7eab5",
+  "claims": [
+    {
+      "id": "C1",
+      "unit": "README.md",
+      "claim": "Quick Start: `/writ \"users can't paste into the search box on Safari\"` restates Goal, Problem, and Done check, proposes `/prototype --no-diverge (Recommended)`, asks one confirmation, then runs.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S1",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S11",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S12",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C2",
+      "unit": "README.md",
+      "claim": "Claude Code plugin: `claude plugin marketplace add sellke/writ` then `claude plugin install writ@writ` installs Writ (user scope, cache copy).",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S2",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C3",
+      "unit": "README.md",
+      "claim": "Claude Code plugin: run `/writ:initialize` to create the `.writ/` workspace.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S6",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C4",
+      "unit": "README.md",
+      "claim": "Claude Code plugin: every command carries the `writ:` prefix, so the front door is `/writ:writ`.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S4",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C5",
+      "unit": "README.md",
+      "claim": "Claude Code plugin: scripts run from the plugin's own folder, so the project needs no `scripts/` copy.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S4",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C6",
+      "unit": "README.md",
+      "claim": "Claude Code plugin: the `.writ/docs/` reference docs that install.sh copies are not included (DEV-006).",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C7",
+      "unit": "README.md",
+      "claim": "Cursor plugin: copying `cursor/plugin/.` to `~/.cursor/plugins/local/writ` and reloading loads Writ's rule, commands, and skills.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S5",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C8",
+      "unit": "README.md",
+      "claim": "Cursor plugin: commands run `python3 scripts/<name>.py` in the project, so the user also runs the Cursor one-line install.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S5",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C9",
+      "unit": "README.md",
+      "claim": "Cursor (install.sh): after the one-line install, `/writ \"my feature\"` in Cursor chat runs the front door.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S12",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C10",
+      "unit": "README.md",
+      "claim": "Claude Code (install.sh): after the one-line install, `/writ \"my feature\"` runs the front door.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S1",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S12",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C11",
+      "unit": "README.md",
+      "claim": "Codex: after install and a restart, asking Codex to follow `.codex/commands/writ.md` runs `/writ \"my feature\"`.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C12",
+      "unit": "README.md",
+      "claim": "Install sections are ordered by the recorded smoke results; a failing Cursor plugin target removes the `### Cursor (plugin)` subsection.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C13",
+      "unit": "README.md",
+      "claim": "Quick Start points a new user to `.writ/docs/prompting-guide.md` before the route table.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "prompting-guide S5",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S8",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S12",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C14",
+      "unit": ".writ/docs/prompting-guide.md",
+      "claim": "Every install.sh project gets `.writ/docs/prompting-guide.md`.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "prompting-guide S7",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C15",
+      "unit": ".writ/docs/prompting-guide.md",
+      "claim": "The guide reads in two minutes and covers the three request parts, five recipes with routes, and five pitfalls, with no links.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "prompting-guide S1",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S2",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S3",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S4",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S6",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C16",
+      "unit": "commands/writ.md",
+      "claim": "`/writ` restates a request as labeled Goal, Problem, Done check, and Proof lines in Writ's words, and names a missing part instead of asking for it.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S1",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S2",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S8",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S11",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S14",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C17",
+      "unit": "commands/writ.md",
+      "claim": "The labeled lines print first every time, even when the session already holds context (rule added in 1dcb44c after UAT).",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S14",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C18",
+      "unit": "commands/writ.md",
+      "claim": "`/writ` routes by the six-row table: a bug to `/prototype --no-diverge`, a capability to `/create-spec`, an unsettled idea to `/prototype`, a named phase to `/implement-phase <N>`, a why question to `/research`, a fork to `/prototype` with the fork named; a rename stays on `--no-diverge`.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S1",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S2",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S3",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S4",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S5",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S6",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S7",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S8",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S15",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C19",
+      "unit": "commands/writ.md",
+      "claim": "One confirmation: the proposed route first with `(Recommended)`, every other table route as an option, `Not what I meant` last.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S1",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S10",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S11",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "low"
+    },
+    {
+      "id": "C20",
+      "unit": "commands/writ.md",
+      "claim": "Picking `Not what I meant` asks one free-text question, then restates and routes again.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S3",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C21",
+      "unit": "commands/writ.md",
+      "claim": "After confirmation, the routed command's phase headings go on the native todo list before it runs, with skipped phases marked `skip: <reason>`.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S9",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C22",
+      "unit": "commands/writ.md",
+      "claim": "Where the adapter maps `todo_write` to a file write (Codex), `/writ` prints the phases as a markdown checklist and writes nothing.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C23",
+      "unit": "commands/writ.md",
+      "claim": "`/writ` writes nothing under `.writ/` itself.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S1",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S11",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C24",
+      "unit": "commands/writ.md",
+      "claim": "With no request `/writ` asks \"What do you want to do?\"; with no goal it asks one natural-language question before routing.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S10",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C25",
+      "unit": "commands/writ.md",
+      "claim": "With no roadmap, the restatement says so and names `/plan-product`, and `/implement-phase` is not offered.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S10",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C26",
+      "unit": "commands/writ.md",
+      "claim": "When the routed command file is missing (partial install), `/writ` names the file and `/update-writ` and does not improvise the workflow.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S10",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C27",
+      "unit": "commands/writ.md",
+      "claim": "`/writ @file` reads an issue file as the request, and `--from-issue <path>` travels to `/create-spec`.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C28",
+      "unit": "commands/writ.md",
+      "claim": "Headless `claude -p \"/writ ...\"` restates and proposes a route as a numbered list and runs nothing.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S11",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "low"
+    },
+    {
+      "id": "C29",
+      "unit": "commands/writ.md",
+      "claim": "Under the Claude Code plugin, the routed command (`/writ:prototype`, `/writ:create-spec`) runs to completion in a plugin-only project, including commands that cite `.writ/docs/` files the plugin does not ship.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C30",
+      "unit": "commands/initialize.md",
+      "claim": "Under the plugin, `/writ:initialize` Step 0 runs `scaffold-writ.py` from the plugin root before detection, reports each created line, and stops on a failing scaffold.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S6",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C31",
+      "unit": "commands/initialize.md",
+      "claim": "In an install.sh project or under the Cursor plugin, Step 0 runs `python3 scripts/scaffold-writ.py` from the project's `scripts/`.",
+      "platforms": [
+        "claude-code",
+        "cursor",
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S6",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C32",
+      "unit": "commands/initialize.md",
+      "claim": "Greenfield detection counts the `.writ/` tree Step 0 created as boilerplate, so a new project is not read as brownfield.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S6",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C33",
+      "unit": "commands/create-spec.md",
+      "claim": "On Claude Code, `/create-spec` discovery enters Plan Mode by itself through `EnterPlanMode`, presents the contract as the plan, and asks the Contract Decision after plan exit.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S6",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S2",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C34",
+      "unit": "commands/plan-product.md, commands/new-command.md",
+      "claim": "`/plan-product` and `/new-command` discovery enter Plan Mode through the adapter's `Plan Mode` row.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S2",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C35",
+      "unit": "adapters/cursor.md, adapters/codex.md, adapters/openclaw.md",
+      "claim": "Plan Mode on other platforms: Cursor asks the user to switch to Plan Mode and waits; Codex and OpenClaw run discovery as a read-only conversation and say so.",
+      "platforms": [
+        "cursor",
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S2",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S8",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C36",
+      "unit": "adapters/claude-code.md",
+      "claim": "The Plan Mode row tells the agent to open the contract plan with one line saying approval accepts the draft and runs nothing (47137a1).",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S8",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C37",
+      "unit": "adapters/claude-code.md",
+      "claim": "`todo_write` maps to the native `TodoWrite` list, so routed phases mirror there and no tracking file is written.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C38",
+      "unit": "adapters/claude-code.md",
+      "claim": "On Claude Code desktop, `/prototype --diverge` drafts render as an artifact or in the Browser pane.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "rendering-delegation-rows S3",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "rendering-delegation-rows S1",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "rendering-delegation-rows S2",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C39",
+      "unit": "adapters/claude-code.md",
+      "claim": "Under the plugin, read-only agent spawns stay read-only (the adapter's `Task({ readonly: true })` row maps them to `permissionMode: plan` plus `disallowedTools` and says \"Enforced at tool level\"), although the adapter says plugin agents ignore `permissionMode`.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S1",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C40",
+      "unit": "adapters/claude-code.md",
+      "claim": "With install.sh and the plugin in one project, both command sets exist and a project command does not shadow the plugin's.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "low"
+    },
+    {
+      "id": "C41",
+      "unit": "adapters/claude-code.md",
+      "claim": "The plugin's Prime Directive carrier holds when the user has their own output style or another plugin forces one; the adapter warns that the user's style is overridden and the first loaded forced style wins.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C42",
+      "unit": "adapters/claude-code.md",
+      "claim": "A headless `claude -p` `/prototype` run has artifacts off and takes the no-renderer path.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "rendering-delegation-rows S1",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C43",
+      "unit": "adapters/codex.md",
+      "claim": "Codex CLI `/prototype --diverge` writes one self-contained HTML file per draft under `.writ/prototypes/<date>-<slug>/` and says the drafts were not rendered.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "rendering-delegation-rows S8",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "rendering-delegation-rows S5",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C44",
+      "unit": "adapters/codex.md",
+      "claim": "Codex Desktop: rendering an HTML draft is not documented, so the agent writes the same files.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "rendering-delegation-rows S8",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "rendering-delegation-rows S6",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C45",
+      "unit": "adapters/codex.md",
+      "claim": "`file_search` maps to `Glob(\"**/pattern*\")`, a built-in Glob tool, on Codex.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S2",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S1",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C46",
+      "unit": "adapters/cursor.md",
+      "claim": "An install.sh Cursor project gets 33 commands in `.cursor/commands/`, `writ.md` among them.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C47",
+      "unit": "adapters/cursor.md",
+      "claim": "Cursor plugin agents carry generated `name` and `description` frontmatter and Cursor lists them as agents (DEV-017 fix, d8b9f17).",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S5",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C48",
+      "unit": "adapters/cursor.md",
+      "claim": "On Cursor, `/prototype` writes one HTML file per draft; the Browser tool renders a draft only from an allowlisted served origin; otherwise the agent says the drafts were not rendered.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "rendering-delegation-rows S7",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "rendering-delegation-rows S4",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "rendering-delegation-rows S5",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C49",
+      "unit": "adapters/openclaw.md",
+      "claim": "OpenClaw: `canvas-preview` writes one HTML file per draft and sends each path; `Task({ readonly: true })` adds a no-modify constraint to the prompt; Plan Mode runs as a read-only conversation.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "rendering-delegation-rows S5",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "rendering-delegation-rows S6",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S2",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C50",
+      "unit": "claude-code/CLAUDE.md",
+      "claim": "The installed CLAUDE.md Writ block says \"Start with `/writ`\" above the Commands table and lists `/writ`.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S22",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C51",
+      "unit": "claude-code/CLAUDE.md",
+      "claim": "The installed CLAUDE.md carries the Claude Code Capability Map, and the installed agent resolves Writ's capability names from it with no `adapters/` present.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S22",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S8",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S9",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C52",
+      "unit": "claude-code/CLAUDE.md",
+      "claim": "The installed map's `AskQuestion` row (formatted numbered text, \"No interactive UI\") matches Claude Code.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C53",
+      "unit": "codex/AGENTS.md.template",
+      "claim": "The AGENTS.md Writ block lists all 33 commands with `/writ` first under \"Start here\", the 8 agents, and the 16 skills, with their install paths.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S12",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S13",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S23",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C54",
+      "unit": "codex/AGENTS.md.template",
+      "claim": "The AGENTS.md block carries the Codex Capability Map and names no `adapters/` path, so a Codex agent maps tools without adapter files.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S12",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S14",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S23",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "rendering-delegation-rows S8",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C55",
+      "unit": "codex/AGENTS.md.template, scripts/install.sh",
+      "claim": "A Codex install gives the agent Writ's identity and Prime Directive: the AGENTS.md block says \"Read bundled `system-instructions.md` for Writ identity\".",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C56",
+      "unit": "codex/AGENTS.md.template",
+      "claim": "The Writ block stays under 16 KiB, inside Codex's 32 KiB default AGENTS.md budget.",
+      "platforms": [
+        "codex"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S12",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C57",
+      "unit": "cursor/writ.mdc",
+      "claim": "The generated `.cursor/rules/writ.mdc` (alwaysApply) still carries the whole of `system-instructions.md`, so Cursor sessions keep the Prime Directive.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S7",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S21",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C58",
+      "unit": "cursor/writ.mdc",
+      "claim": "The rule carries the Cursor Capability Map, and a Cursor agent resolves Writ's capability names from it.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S8",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S21",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C59",
+      "unit": "commands/create-issue.md, commands/writ-design.md",
+      "claim": "`/create-issue` and `/writ-design` name neutral capabilities (`codebase_search`, `file_search`, the platform's browser tool) that each platform's map resolves.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S17",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S16",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C60",
+      "unit": "commands/status.md",
+      "claim": "`/status` may suggest `/writ` among its next actions.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C61",
+      "unit": "SKILL.md",
+      "claim": "SKILL.md lists `/writ` first under \"Start here\", regenerated from the manifest.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S14",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C62",
+      "unit": ".writ/manifest.yaml",
+      "claim": "`/writ` is registered in the `entry` category (\"Start here\"), and every catalog regenerates from it.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C63",
+      "unit": ".writ/docs/model-tiers.md",
+      "claim": "`/writ` declares `entry_level: high`.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "front-door S13",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S14",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C64",
+      "unit": ".writ/docs/agent-cli-contract.md",
+      "claim": "`scaffold-writ.py` follows the check-shape CLI contract (verdict line, reason lines, summary).",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S6",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C65",
+      "unit": "scripts/install.sh",
+      "claim": "install.sh creates the eleven `.writ/` directories and adds `.writ/state/` and `.writ-lanes-*/` to `.gitignore`, byte for byte as scaffold-writ.py does.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S10",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C66",
+      "unit": "scripts/install.sh",
+      "claim": "install.sh does not ship `gen-platform-trees.py` into projects.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S20",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S21",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C67",
+      "unit": "scripts/install.sh",
+      "claim": "`install.sh --platform claude` gives the agent the Prime Directive through the CLAUDE.md Writ block's `@.claude/system-instructions.md` import.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "high"
+    },
+    {
+      "id": "C68",
+      "unit": "scripts/update.sh",
+      "claim": "update.sh repairs a missing `.writ/` directory or `.gitignore` entry on every non-dry run and leaves the `.gitignore` change uncommitted.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S10",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C69",
+      "unit": "scripts/update.sh",
+      "claim": "update.sh keeps `gen-platform-trees.py` out of updated projects.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S20",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C70",
+      "unit": "scripts/unlink.sh",
+      "claim": "unlink.sh's shippable-script rule matches install.sh and update.sh.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S20",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C71",
+      "unit": "scripts/scaffold-writ.py",
+      "claim": "`scaffold-writ.py scaffold` creates the tree, a second run creates nothing, and `--check` writes nothing.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S6",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S10",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C72",
+      "unit": "scripts/gen-platform-trees.py",
+      "claim": "Maintainer: `--check` fails on a stale, missing, orphan, unmapped, or vendor hit, and write mode regenerates every platform tree and both plugins.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S3",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S4",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S5",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S10",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S11",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S14",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S15",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S16",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S18",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S4",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C73",
+      "unit": "scripts/gen-claude-md.py",
+      "claim": "Maintainer: gen-claude-md renders the \"Start with `/writ`\" line and the capability map into `claude-code/CLAUDE.md`, and `--check` passes.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S9",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S13",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C74",
+      "unit": "scripts/eval.sh, scripts/eval-command-structure.py, scripts/eval-leanness.py",
+      "claim": "Maintainer: eval.sh reports each platform-trees reason as one finding, pins `writ.md`'s Routing Rules heading and `entry_level`, skips `plugins/` for leanness, and reports 0 findings on the branch.",
+      "platforms": [
+        "all"
+      ],
+      "scenarios": [
+        {
+          "ref": "generated-platform-trees S19",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "generated-platform-trees S25",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S14",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S15",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "front-door S16",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "prompting-guide S9",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C75",
+      "unit": "plugins/writ/",
+      "claim": "The forced output style `output-styles/writ.md` carries the Prime Directive: a plugin session quotes the first Hard Constraints bullet and names its persona Writ; without the plugin it has none.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S2",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S4",
+          "class": "text",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    },
+    {
+      "id": "C76",
+      "unit": "plugins/writ/",
+      "claim": "Only the eight generated `writ:*` agents load; the prompt-template docs and `_preamble.md` register nothing; 33 commands and 16 skills load.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S4",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": false,
+      "impact": "medium"
+    },
+    {
+      "id": "C77",
+      "unit": "plugins/writ/",
+      "claim": "The plugin passes `claude plugin validate` (warnings only: eight no-frontmatter prompt docs and a missing icon).",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S4",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C78",
+      "unit": "plugins/writ/",
+      "claim": "Under the plugin, commands that call scripts act on the user's project, not on the plugin folder.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S3",
+          "class": "text",
+          "status": "open"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C79",
+      "unit": "plugins/writ/",
+      "claim": "No dev-only script (install, update, eval, gen-platform-trees) ships in the plugin.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S4",
+          "class": "text",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C80",
+      "unit": "cursor/plugin/",
+      "claim": "In a Cursor plugin session `rules/writ.mdc` (byte-equal to `cursor/writ.mdc`) loads always-apply and the Prime Directive is visible (V76).",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S5",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C81",
+      "unit": "cursor/plugin/",
+      "claim": "`/writ` and the other commands from `commands/` appear in Cursor (V77).",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S5",
+          "class": "behavior",
+          "status": "open"
+        },
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "medium"
+    },
+    {
+      "id": "C82",
+      "unit": "cursor/plugin/",
+      "claim": "`.cursor-plugin/plugin.json` carries name and version from VERSION and no component path field, so Cursor discovers the default folders.",
+      "platforms": [
+        "cursor"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S8",
+          "class": "structural",
+          "status": "pass"
+        }
+      ],
+      "gap": true,
+      "impact": "low"
+    },
+    {
+      "id": "C83",
+      "unit": ".claude-plugin/marketplace.json",
+      "claim": "The repository root is a Claude Code marketplace named `writ` that lists plugin `writ` at `./plugins/writ`.",
+      "platforms": [
+        "claude-code"
+      ],
+      "scenarios": [
+        {
+          "ref": "plugin-distribution S2",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S9",
+          "class": "behavior",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S4",
+          "class": "structural",
+          "status": "pass"
+        },
+        {
+          "ref": "plugin-distribution S3",
+          "class": "behavior",
+          "status": "open"
+        }
+      ],
+      "gap": false,
+      "impact": "high"
+    }
+  ],
+  "docs_only_facts": [
+    {
+      "fact": "Plugin agents ignore `permissionMode`, `hooks`, and `mcpServers`, and `initialPrompt` is ignored too; the adapter concludes the read-only modes do not apply under the plugin.",
+      "source": "adapters/claude-code.md § Installation > Plugin, \"Ignored agent keys\"; plugin-distribution record V15, V16 (docs read 2026-10-23); live check V66 unverified"
+    },
+    {
+      "fact": "A forced plugin output style overrides the user's `outputStyle`, and the first loaded forced style wins.",
+      "source": "adapters/claude-code.md § Plugin, \"Carrier cost: your output style\"; record V42 (docs)"
+    },
+    {
+      "fact": "Output styles reach the main conversation and forks, not other subagents.",
+      "source": "adapters/claude-code.md § Plugin, \"Carrier cost: subagents\"; record V44 (docs)"
+    },
+    {
+      "fact": "`claude plugin install writ@writ` installs at user scope by default.",
+      "source": "README.md § Claude Code (plugin); adapters/claude-code.md § Plugin, \"Install\"; record V28 (docs). Every UAT install used `--scope local`"
+    },
+    {
+      "fact": "A GitHub-sourced plugin runs from a cache copy, not in place.",
+      "source": "adapters/claude-code.md § Plugin, \"Install\"; record V34 (docs); V73 pending UAT"
+    },
+    {
+      "fact": "Plugin agents rank lowest among same-named agents.",
+      "source": "adapters/claude-code.md § Plugin, \"Both installs in one project\"; record V14 (docs)"
+    },
+    {
+      "fact": "`${CLAUDE_PLUGIN_ROOT}` is not in the Bash tool's environment, so commands spell the path inline.",
+      "source": "adapters/claude-code.md § Plugin, \"Scripts\"; record V08 (docs). Inline substitution was observed (V58, V82); the environment claim was not"
+    },
+    {
+      "fact": "Headless `claude -p` has artifacts off, so `/prototype` takes the no-renderer path.",
+      "source": "adapters/claude-code.md Verification record 2026-10-22, row 4 (unverified 2026-10-22)"
+    },
+    {
+      "fact": "Claude Code has no interactive `AskQuestion` UI; use formatted numbered text.",
+      "source": "adapters/claude-code.md § Quick Reference, `AskQuestion()` row (no source, no record row); now shipped in the installed CLAUDE.md Capability Map. Front-door S10 observed the native question widget"
+    },
+    {
+      "fact": "A Cursor plugin copied to `~/.cursor/plugins/local/<name>` loads after a restart or Reload Window; a symlink loads only when its target is inside that folder; a marketplace install of the same name wins.",
+      "source": "adapters/cursor.md § Plugin table, row V50 (docs read 2026-10-23); live rows V76 to V78 pending UAT"
+    },
+    {
+      "fact": "Cursor discovers `rules/`, `skills/`, `agents/`, and `commands/` by default, every `.md` in `commands/` included.",
+      "source": "adapters/cursor.md § Plugin table, row V48 (docs); plugin-distribution drift log DEV-004"
+    },
+    {
+      "fact": "`${CURSOR_PLUGIN_ROOT}` expands only in MCP server fields, so the Cursor plugin ships no `scripts/`.",
+      "source": "adapters/cursor.md § Plugin table, rows V49 (docs) and V79 (pending UAT)"
+    },
+    {
+      "fact": "Cursor agent files need YAML frontmatter with `name` and `description`.",
+      "source": "adapters/cursor.md § Plugin table, row V80 (docs); drift log DEV-017, DEV-018. install.sh's `.cursor/agents/` copies still have no frontmatter, per DEV-017's resolution"
+    },
+    {
+      "fact": "Cursor lists a marketplace plugin only after manual review; team marketplaces need Teams or Enterprise; a multi-plugin repo uses a root `.cursor-plugin/marketplace.json`.",
+      "source": "adapters/cursor.md § Plugin table, rows V51 to V53 (docs)"
+    },
+    {
+      "fact": "Which copy Cursor uses when install.sh's `.cursor/` and the plugin both define a command or rule.",
+      "source": "adapters/cursor.md § Plugin table, unnumbered row (unverified 2026-10-23, pending UAT)"
+    },
+    {
+      "fact": "Cursor's Browser tool opens only allowlisted origins, and no Canvas tool renders a local HTML file.",
+      "source": "adapters/cursor.md `canvas-preview` row and Verification record 2026-10-22 (both rows unverified, pending UAT)"
+    },
+    {
+      "fact": "On Cursor the agent asks the user to switch to Plan Mode and waits.",
+      "source": "adapters/cursor.md `Plan Mode` row (no source, no record row)"
+    },
+    {
+      "fact": "Codex has no agent-side plan mode; Codex's `/plan` is user-side.",
+      "source": "adapters/codex.md `Plan Mode` row and § Built-in Codex Commands vs Writ Commands (links the slash-command reference; no record row)"
+    },
+    {
+      "fact": "Codex has a built-in Glob tool for `file_search` and Grep/Glob for `codebase_search`.",
+      "source": "adapters/codex.md § Quick reference (orchestration primitives), `file_search` row (added in Phase 14 as a parity repair) and `codebase_search` row (no source, no record row)"
+    },
+    {
+      "fact": "Codex `todo_write` is a file write under `.writ/state/`.",
+      "source": "adapters/codex.md § Quick reference (orchestration primitives), `todo_write` row (no source); it decides `/writ` Step 4's checklist branch on Codex"
+    },
+    {
+      "fact": "Codex Desktop docs do not document rendering a local HTML draft.",
+      "source": "adapters/codex.md Verification record 2026-10-22, Desktop row (unverified, pending UAT)"
+    },
+    {
+      "fact": "Codex's default AGENTS.md budget is 32 KiB.",
+      "source": "adapters/codex.md § AGENTS.md layering (links the config-advanced docs); install.sh `writ_warn_agents_md_size`"
+    },
+    {
+      "fact": "OpenClaw has `read`, `write`, `edit`, `apply_patch`, and `message(action=send, media=<path>)`; no agent-side plan mode.",
+      "source": "adapters/openclaw.md Verification record 2026-10-22 (unverified, no deployment); `Plan Mode` row (no source)"
+    }
+  ]
+}

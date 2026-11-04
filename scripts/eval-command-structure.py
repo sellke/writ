@@ -134,6 +134,12 @@ ROWS: Tuple[Row, ...] = (
     Row("commands/_preamble.md", "heading", "Artifact Integrity",
         "check_artifact_integrity",
         "_preamble.md must keep the Artifact Integrity section heading."),
+    Row("commands/writ.md", "heading", "Routing Rules",
+        "check_command_structure",
+        "writ.md must keep the Routing Rules heading over its six-row rule table (front-door spec, Story 3)."),
+    Row("commands/writ.md", "frontmatter", "entry_level",
+        "check_entry_level",
+        "writ.md must declare entry_level in its frontmatter (ADR-024 A3; front-door spec, Story 3)."),
 ) + tuple(
     Row(f"commands/{name}.md", "heading", "Required Artifacts",
         "check_artifact_integrity",

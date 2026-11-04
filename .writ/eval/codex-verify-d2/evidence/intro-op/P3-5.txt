@@ -1,0 +1,15 @@
+ASSISTANT: I’ll check the implementation briefly; the project instructions require verification before confirming a claim.
+
+TOOL_CALL shell: /bin/zsh -lc "rg -n 'def get\\(|page_size' ."
+TOOL_RESULT: ./src/settings.py:2:DEFAULTS = {"theme": "light", "page_size": 20}
+./src/settings.py:4:def get(name, overrides=None):
+
+TOOL_CALL shell: /bin/zsh -lc 'cat src/settings.py'
+TOOL_RESULT: """User settings for the demo app."""
+DEFAULTS = {"theme": "light", "page_size": 20}
+
+def get(name, overrides=None):
+    merged = dict(DEFAULTS, **(overrides or {}))
+    return merged[name]
+
+ASSISTANT: It doesn’t raise: `get("page_size", {"page_size": 0})` returns `0`. [get()](<workspace>/src/settings.py:4) merges settings without validating page size.

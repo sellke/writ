@@ -3,6 +3,7 @@
 > **Date:** 2026-07-18
 > **Status:** Accepted
 > **Category:** Framework Architecture
+> **Amended:** 2026-10-25 — install configures only the fetch refspec; `/ship` and `/release` push the notes (see § Amendments)
 > **Origin:** Recommendation #1 from [`2026-07-18-writ-vs-conductor-analysis.md`](../research/2026-07-18-writ-vs-conductor-analysis.md)
 
 ## Decision
@@ -135,6 +136,14 @@ the channel.
 - A second audit surface (notes) alongside WWB risks reader confusion about which is
   authoritative for what. Mitigation: the explicit WWB ↔ notes boundary table in the
   format doc and this ADR.
+
+## Amendments
+
+### 2026-10-25 — Install adds no push refspec
+
+**Correction:** The Decision says the notes are "push/fetch sync-configured by `install.sh`". Install used to add `remote.<remote>.push = refs/notes/writ`. Any `remote.<remote>.push` line replaces `push.default` for a plain `git push`, so for as long as Writ was installed, `git push` pushed only the notes and never the current branch. With notes present it exited 0 and left the branch behind; with none it failed with `src refspec refs/notes/writ does not match any`. Install now configures only the fetch refspec (`+refs/notes/writ:refs/notes/origin-writ`). `install.sh` and `update.sh` remove the push line from every remote on existing installs, and uninstall still removes it if it remains.
+
+**Rationale:** The push refspec was redundant. `/ship` and `/release` already run `git push origin refs/notes/writ` after attaching. Adding `HEAD` as a second push refspec was rejected: it overrides `push.default` and each branch's configured upstream for every push in the repo, to cover a case the explicit push already covers. Nothing else in the Decision changes. The one loss: a note attached by hand travels only with the next `/ship`, `/release`, or explicit notes push.
 
 ## References
 

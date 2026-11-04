@@ -1,0 +1,58 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Bash: {"command": "git ls-files | grep -v '^\\.claude/\\|^\\.writ/docs\\|^scripts/' | head -50; ls .writ .writ/specs 2>/dev/null; cat .writ/docs/tech-stack.md .writ/docs/code-style.md 2>/dev/null | head -60", "description": "List project files and Writ docs"}
+TOOL_RESULT: .cursorindexingignore
+.gitignore
+CLAUDE.md
+README.md
+src/settings.py
+tests/test_settings.py
+.writ:
+docs
+state
+TOOL_CALL Bash: {"command": "cat src/settings.py tests/test_settings.py README.md; ls -R .writ | head -30", "description": "Read source, tests, README"}
+TOOL_RESULT: """User settings for the demo app."""
+DEFAULTS = {"theme": "light", "page_size": 20}
+
+def get(name, overrides=None):
+    merged = dict(DEFAULTS, **(overrides or {}))
+    return merged[name]
+from src.settings import get
+
+def test_default_theme():
+    assert get("theme") == "light"
+# Demo app
+
+A tiny app used to test Writ installs.
+docs
+state
+
+.writ/docs:
+acceptance-criteria-ids.md
+agent-cli-contract.md
+app-verification-format.md
+architecture-lint.md
+command-overlay.md
+component-contract.md
+config-format.md
+context-hint-format.md
+drift-report-format.md
+exit-criteria-classification.md
+gbrain-reci …[954 chars]
+TOOL_CALL Write: {"file_path": "~/.claude/plans/a-reset-command-that-rippling-lecun.md", "content": "# /create-spec \u2014 settings reset command (discovery in progress)\n\n## Context scan\n- `src/settings.py`: module-level `DEFAULTS = {\"theme\": \"light\", \"page_size\": 20}` and `get(name, overrides=None)`, which merges the overrides the caller passes in over DEFAULTS.\n- No persistence, no mutable settings store, no CLI or command layer. Overrides only exist while a call runs.\n- `tests/test_settings.py`: one pytest test (`get(\"theme\") == \"light\"`).\n- `.writ/specs/`: none, so there are no cross-spec overlaps. No tech-stack.md or code-style.md.\n\n## Blocking finding\nNothing is stored, so a reset has nothing to restore yet. The spec first has to define where user settings live: a store or file, and a way to set values. A reset only means something after that exists.\n\n## Open question (Q1)\nWhere should user-set values live so that reset has something to clear?\n\n## Status\nPhase 1 discovery. No contract yet, no files created.\n"}
+TOOL_RESULT: File created successfully at: ~/.claude/plans/a-reset-command-that-rippling-lecun.md (file state is current in your context — no need to Read it back)
+ASSISTANT: The app has nothing to reset yet:
+
+- `src/settings.py` holds only a constant `DEFAULTS` and a `get(name, overrides)` function. The caller passes overrides in and they disappear once the call returns.
+- There's no stored user setting, no way to set a value, and no command layer.
+
+So the spec has to include somewhere for user settings to live before a reset can mean anything.
+
+**Q1: Where should user-set values live?**
+
+1. In-memory store in `settings.py`, with `set(name, value)` and `reset()` functions and per-process state. Smallest change, easy to test. **(Recommended)**
+2. A JSON file on disk (e.g. `~/.demo-app/settings.json`), with `set` and `reset` writing to it. Values survive restarts.
+3. Keep the current stateless design, where `reset()` just returns a copy of `DEFAULTS`. This is close to a no-op, and I'd argue against it.
+4. Something else (describe it).
+
+A second question will follow: should "command" mean a Python function, or a CLI entry point such as `python -m src.settings reset`?
+[result] success turns=4 cost=0.387504

@@ -242,12 +242,12 @@ review time — one validator, identical rules everywhere.
 
 Use `/new-skill <name>` to scaffold a new skill with the role convention (verb-phrase description, `disable-model-invocation: true` frontmatter, boundary lint enforced at authoring time); `/refresh-command` includes a boundary check that lints existing skills. The command:
 
-1. Validates the name (kebab-case, unique across all primitives).
+1. Validates the name with `scripts/skill-target.py`: kebab-case, and unique across all primitives. In the Writ source repository it checks `.writ/manifest.yaml`; in a project that installed Writ with `install.sh` or a plugin, which has no manifest, it checks the installed commands, agents, and skills.
 2. Coaches you toward verb-phrase descriptions (showing examples of role-shape and workflow-shape phrasings to avoid).
 3. Runs `scripts/lint-skill.sh` against the captured frontmatter — re-prompts on rejection, never writes a half-shaped skill.
-4. Generates `skills/<name>/SKILL.md` with `disable-model-invocation: true`, `status: candidate` (the born lifecycle state), and the standard sections.
-5. Appends a `skills:` entry to `.writ/manifest.yaml` (alphabetical).
-6. Regenerates the root `SKILL.md` catalog via `scripts/gen-skill.sh`.
+4. Generates the SKILL.md (`skills/<name>/SKILL.md` in the Writ source repository; `.claude/skills/`, `.cursor/skills/`, or `.agents/skills/` in an installed project) with `disable-model-invocation: true`, `status: candidate` (the born lifecycle state), and the standard sections.
+5. In the Writ source repository, appends a `skills:` entry to `.writ/manifest.yaml` (alphabetical). An installed project has no manifest, and the command creates none.
+6. In the Writ source repository, regenerates the root `SKILL.md` catalog via `scripts/gen-skill.sh`. Installs do not ship that script, so elsewhere the step is skipped.
 
 The boundary lint is the contract — same script, same grammar, same exit codes whether the lint runs at authoring time (`/new-skill`) or at review time (`/refresh-command --lint-skills`). No divergence.
 
@@ -414,6 +414,6 @@ To prevent drift, name what skills aren't:
 - **Authoring tool:** [`commands/new-skill.md`](../../commands/new-skill.md)
 - **Review tool:** [`commands/refresh-command.md`](../../commands/refresh-command.md) → Phase 5 (Skills Boundary Lint)
 - **Lint grammar:** [`scripts/lint-skill.sh`](../../scripts/lint-skill.sh)
-- **Catalog generator:** [`scripts/gen-skill.sh`](../../scripts/gen-skill.sh)
+- **Catalog generator:** [`scripts/gen-skill.sh`](../../scripts/gen-skill.sh) (Writ source repository only)
 - **Required-skills convention source:** this document, [`required_skills:` frontmatter convention](#required_skills-frontmatter-convention) (moved from [`system-instructions.md`](../../system-instructions.md) → Skills on 2026-09-07; the base keeps a pointer line)
 - **Self-dogfooding pattern:** [`.writ/docs/self-dogfooding.md`](./self-dogfooding.md) → Skills section

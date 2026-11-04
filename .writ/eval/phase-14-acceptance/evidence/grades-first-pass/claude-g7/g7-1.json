@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "I1": {
+      "met": false,
+      "evidence": "Criterion text not included in the rubric; transcript shows a quoted bullet ('Never reverse a position without new evidence...') but there is no reference text to check it against verbatim."
+    },
+    "I2": {
+      "met": false,
+      "evidence": "Criterion text not included; transcript prints 'SOURCE Prime Directive' but the expected heading is not given in the rubric."
+    },
+    "I3": {
+      "met": false,
+      "evidence": "Criterion text not included; the output has no Explanatory-style insight blocks, but without the criterion I cannot confirm this is what I3 tests."
+    }
+  },
+  "verdict": "fail",
+  "note": "The rubric names I1 to I3 without defining them, so no criterion can be confirmed; the output looks consistent with plugin identity holding (a clean quote, SOURCE Prime Directive, no Explanatory-style additions), so please supply the I1 to I3 definitions and I will regrade."
+}

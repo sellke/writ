@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": false,
+      "evidence": "No question tool call; 'Proposed: `/research`' and '1. `/research` (Recommended)' \u2014 label is `/prototype`, no acceptable alternates."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal:', 'Problem:', and 'Done check:' lines appear before the route options."
+    },
+    "W3": {
+      "met": true,
+      "evidence": "Single route confirmation with options 1\u20135, last being '5. Not what I meant'."
+    }
+  },
+  "verdict": "fail",
+  "note": "The agent proposed /research instead of the labeled /prototype route, though the restatement and question format were correct."
+}

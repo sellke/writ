@@ -1,0 +1,14 @@
+{
+  "criteria": {
+    "G6a": {
+      "met": true,
+      "evidence": "\"`todo_write` \u2192 `TodoWrite`\" and \"`AskQuestion` \u2192 formatted text with numbered options\" match the CLAUDE.md Capability Map."
+    },
+    "G6b": {
+      "met": true,
+      "evidence": "\"Both come from the **Capability Map** table in `CLAUDE.md`.\" No adapters/ file cited."
+    }
+  },
+  "verdict": "pass",
+  "note": "Both mappings match the installed CLAUDE.md Capability Map and the cited source is that map, not an adapters/ file."
+}

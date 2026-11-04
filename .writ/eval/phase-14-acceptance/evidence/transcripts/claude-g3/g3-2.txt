@@ -1,0 +1,53 @@
+[init] model=claude-opus-5-5 output_style=default slash_commands=107 agents=['claude', 'claude-code-guide', 'Explore', 'general-purpose', 'Plan', 'statusline-setup', 'writ-architect', 'writ-coder', 'writ-documenter', 'writ-evaluator', 'writ-reviewer', 'writ-story-gen', 'writ-tester', 'writ-visual-qa']
+TOOL_CALL Glob: {"pattern": ".writ/product/*"}
+TOOL_RESULT: No files found
+TOOL_CALL Grep: {"pattern": "(?i)phase\\s*14", "path": ".writ", "output_mode": "content"}
+TOOL_RESULT: .writ/docs/leanness-audit-2026-10-21.md:41:| Install via `install.sh` copy (native displacement test) | Cursor and Claude Code both have plugin marketplaces, and a peer project (pstack) installs through them. | **keep** for now | Roadmap Phase 14, plugin distribution |
+.writ/docs/leanness-audit-2026-10-21.md:42:| Front door (Phase 14) vs `/status` "what to do next" | The two will overlap once the front door exists. Settle it in the front-door spec, not here. | **defer** | Roadmap Phase 14, front door |
+TOOL_CALL Glob: {"pattern": "**/roadmap*.md"}
+TOOL_RESULT: No files found
+TOOL_CALL Glob: {"pattern": ".writ/*"}
+TOOL_RESULT: No files found
+TOOL_CALL Glob: {"pattern": ".writ/**/*"}
+TOOL_RESULT: .writ/docs/acceptance-criteria-ids.md
+.writ/docs/agent-cli-contract.md
+.writ/docs/app-verification-format.md
+.writ/docs/architecture-lint.md
+.writ/docs/command-overlay.md
+.writ/docs/component-contract.md
+.writ/docs/config-format.md
+.writ/docs/context-hint-format.md
+.writ/docs/drift-report-format.md
+.writ/docs/exit-criteria-classification.md
+.writ/docs/gbrain-recipe.md
+.writ/docs/git-notes-audit-format.md
+.writ/docs/leanness-audit-2026-07-11.md
+.writ/docs/leanness-audit-2026-07-18.md
+.writ/docs/leanness-audit-2026-10-21.md
+.writ/docs/leanness-audit-format.md
+.writ/docs/model-tiers.md
+.writ/docs …[989 chars]
+ASSISTANT: ```
+Goal: Phase 14 of the Writ roadmap is built, and its exit criteria pass.
+Problem: Phase 14's features aren't built yet, and there is no roadmap that says what Phase 14 contains.
+Done check: Every spec in Phase 14 is implemented, and `/implement-phase 14` reports that the exit criteria pass.
+Proof: (not stated — see prompting-guide.md § What a request carries)
+```
+
+**There's no roadmap file, so I can't route to `/implement-phase 14`.**
+- `.writ/product/roadmap.md` doesn't exist. I searched the whole repo for `roadmap*.md` and found nothing.
+- Phase 14 shows up in only one place: `.writ/docs/leanness-audit-2026-10-21.md:41-42`. It mentions two items, "plugin distribution" and "front door". That's two passing mentions, not a phase definition with features and exit criteria.
+- `/plan-product` is the command that creates the roadmap. Once it exists, `/implement-phase 14` becomes available.
+
+**Route**
+
+None of the routes I can offer fits this request, so none is marked as recommended. The right next step is `/plan-product`, but it isn't one of the routes I can hand off to from here.
+
+1. `/create-spec`: write a spec for one Phase 14 item, such as plugin distribution, using the audit notes as the only source.
+2. `/prototype`: try one Phase 14 idea as a throwaway, with options.
+3. `/prototype --no-diverge`: make a single change with one obvious shape.
+4. `/research`: look into what Phase 14 was meant to cover.
+5. Not what I meant.
+
+If you want the full phase, run `/plan-product` first to write the roadmap, then `/writ "Implement phase 14."` again.
+[result] success turns=6 cost=1.8216254000000003

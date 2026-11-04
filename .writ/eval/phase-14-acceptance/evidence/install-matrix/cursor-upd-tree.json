@@ -1,0 +1,18 @@
+{
+  "platform": "cursor",
+  "manifest_header": {
+    "baselines": "shipped",
+    "mode": "copy",
+    "platform": "cursor",
+    "version": "1f83680",
+    "date": "2026-10-24T15:30:20Z",
+    "source": "file://<tmp>/src-rc"
+  },
+  "entries": 125,
+  "mismatch": [],
+  "missing_on_disk": [],
+  "no_source": [],
+  "expected_not_installed": [],
+  "installed_not_expected": [],
+  "ok": true
+}

@@ -175,7 +175,7 @@ Once selected, apply the posture for the entire discovery and contract phase.
 
 #### Step 1.2: Switch to Plan Mode for Product Discovery
 
-**After context scan and initial product direction selection, run discovery in Plan Mode.** Product strategy is open-ended and needs discussion rather than multiple-choice questions.
+**After context scan and initial product direction selection, run discovery in Plan Mode through the adapter's `Plan Mode` row.** Product strategy is open-ended and needs discussion rather than multiple-choice questions.
 
 > **Design principle (ADR-001):** Use AskQuestion when you know the option space. Use Plan Mode when you need to discover it.
 

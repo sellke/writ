@@ -85,7 +85,9 @@ PROTOTYPES_DIR = ".writ/prototypes/<date>-<slug>/"
 
 # (adapter, heading chain to the tool table, keywords the row must contain)
 ADAPTER_TABLES = [
-    ("adapters/cursor.md", ("## Native Tool Availability",), (CURSOR_TOOL,)),
+    # The Cursor docs (rendering-delegation rows, 2026-10-22) document no canvas
+    # that renders a local HTML file, so the row names the HTML-file floor.
+    ("adapters/cursor.md", ("## Native Tool Availability",), (PROTOTYPES_DIR, "HTML")),
     (
         "adapters/claude-code.md",
         ("## Tool Mapping (Cursor → Claude Code)", "### Quick Reference"),
@@ -246,6 +248,8 @@ def test_adapter_canvas_row(adapter, headings, keywords):
         assert keyword in row, "%s: row lacks %r" % (adapter, keyword)
     assert cells(row)[-1].endswith(DEGRADATION_CLAUSE), "%s: last cell must end with %r" % (
         adapter, DEGRADATION_CLAUSE)
+    # A row states facts; only the adapter's verification record says "verified".
+    assert "verified" not in row, "%s: the row must not say 'verified'" % adapter
 
 
 def test_cursor_ide_browser_confined():
@@ -514,13 +518,23 @@ def test_status_allowlists():
     """AC-2.3: both command allowlists in `commands/status.md` name
     `writ-design` where the old name stood."""
     text = read("commands/status.md")
-    quick = [line for line in text.splitlines() if line.startswith("`/create-spec`, ")]
+    # The slash list opens with the front door (`/writ`), so anchor on the
+    # `/create-spec` token rather than the line start.
+    quick = [
+        line for line in text.splitlines()
+        if line.startswith("`/") and "`/create-spec`, " in line
+    ]
     assert len(quick) == 1, quick
     listed = re.findall(r"`([^`]+)`", quick[0])
     assert "/writ-design" in listed and OLD_SLASH not in listed, listed
 
     note = section(text, "## Maintainer Note: Command Allowlist")
-    bare = [line for line in note.splitlines() if line.startswith("`create-spec`, ")]
+    # The bare list opens with `writ` too, so anchor on the `create-spec`
+    # token rather than the line start.
+    bare = [
+        line for line in note.splitlines()
+        if line.startswith("`") and "`create-spec`, " in line
+    ]
     assert len(bare) == 1, bare
     listed = re.findall(r"`([^`]+)`", bare[0])
     assert "writ-design" in listed and OLD_NAME not in listed, listed
@@ -531,8 +545,13 @@ def test_cursor_tree():
     `writ-design.md` in sorted position (last, `└──`), lists one file per
     manifest command with the count in its header, and keeps the comment
     column aligned."""
-    manifest = sorted(
-        Path(str(entry["file"])).name for entry in manifest_commands(read(".writ/manifest.yaml")))
+    # Sorted by command name, as the manifest is: `writ` precedes `writ-design`
+    # by name while `writ.md` would follow `writ-design.md` by file name.
+    manifest = [
+        Path(str(entry["file"])).name
+        for entry in sorted(
+            manifest_commands(read(".writ/manifest.yaml")), key=lambda e: str(e["name"]))
+    ]
     tree = section(read("adapters/cursor.md"), "## Directory Structure").splitlines()
     start = next(i for i, line in enumerate(tree) if line.startswith("│   ├── commands/"))
     assert "(%d)" % len(manifest) in tree[start], tree[start]
@@ -774,3 +793,243 @@ def test_issue_resolution(rel, phrases):
 
     refs = [line for line in lines if line.startswith("> **spec_ref:**")]
     assert refs == ["> **spec_ref:** %s" % SPEC_DIR], "%s: %s" % (rel, refs)
+
+
+# ---------------------------------------------------------------------------
+# Verification records (Story 1 of 2026-10-22-rendering-delegation-rows): the
+# section that holds each adapter's tool table also carries a dated
+# `#### Verification record` whose rows cite a first-party `https://` source
+# and a status in the anchored grammar. Naming the spec here keeps the AC
+# citations below attributed to it.
+# ---------------------------------------------------------------------------
+
+RECORD_HEADING = re.compile(r"^#### Verification record — \d{4}-\d{2}-\d{2}$")
+# technical-spec.md → Verification Record Format. Anchored at both ends: a
+# version or a reason outside the two parentheticals fails.
+STATUS_GRAMMAR = re.compile(
+    r"^(verified|unverified) \d{4}-\d{2}-\d{2}( \((pending UAT|no deployment)\))?$"
+)
+RECORD_COLUMNS = ["Check", "Platform & version", "Observed", "Source", "Status"]
+
+# (adapter, heading chain to the section that holds its tool table): the
+# record lives in the same section as the `canvas-preview` row, so the
+# chain is the one ADAPTER_TABLES already names. Story 1 covered
+# `claude-code`; Story 2 (AC-2.2) covers the other three.
+VERIFICATION_RECORDS = [(adapter, headings) for adapter, headings, _ in ADAPTER_TABLES]
+
+
+def verification_record(text: str, *headings: str) -> List[str]:
+    """The table under the first `#### Verification record — YYYY-MM-DD`
+    heading inside the section `headings` names; `[]` when that section has
+    no such heading. `first_table` on the section itself returns the tool
+    table, so the search starts after the record heading."""
+    lines = section(text, *headings).splitlines()
+    for i, line in enumerate(lines):
+        if RECORD_HEADING.match(line):
+            return first_table("\n".join(lines[i + 1:]))
+    return []
+
+
+
+
+def check_record(adapter: str, table: List[str]) -> None:
+    """Assert the record table's shape: the five record columns, at least one
+    data row, five cells per row, a Status in the anchored grammar, and a
+    Source starting with `https://`. Every message names the adapter and the
+    failing cell."""
+    assert cells(table[0]) == RECORD_COLUMNS, "%s: record columns are %s" % (
+        adapter, cells(table[0]))
+    rows = table[2:]
+    assert rows, "%s: verification record has no data row" % adapter
+    for row in rows:
+        row_cells = cells(row)
+        assert len(row_cells) == len(RECORD_COLUMNS), "%s: record row has %d cells: %r" % (
+            adapter, len(row_cells), row)
+        source, status = row_cells[3], row_cells[4]
+        assert STATUS_GRAMMAR.match(status), "%s: Status %r does not match the status grammar" % (
+            adapter, status)
+        assert source.startswith("https://"), "%s: Source %r does not start with https://" % (
+            adapter, source)
+
+
+@pytest.mark.parametrize(
+    "adapter, headings",
+    VERIFICATION_RECORDS,
+    ids=[Path(a).stem for a, _ in VERIFICATION_RECORDS],
+)
+def test_verification_records(adapter, headings):
+    """AC-1.3, AC-1.5, AC-2.2, AC-2.5, AC-3.1: the adapter's tool-table section holds a dated
+    verification record whose table has the five record columns and at
+    least one data row; every Status cell matches the anchored status
+    grammar and every Source cell starts with `https://`. No network: the
+    source is checked for its prefix only."""
+    table = verification_record(read(adapter), *headings)
+    assert table, "%s: no '#### Verification record — YYYY-MM-DD' heading with a table under %s" % (
+        adapter, headings[-1])
+    check_record(adapter, table)
+
+
+CLAUDE_CODE_RECORD = (
+    "adapters/claude-code.md",
+    ("## Tool Mapping (Cursor → Claude Code)", "### Quick Reference"),
+)
+CLAUDE_CODE_DOCS = "https://code.claude.com/docs/"
+VERSION = re.compile(r"\b\d+\.\d+\.\d+\b")
+
+
+def record_row(table: List[str], word: str) -> List[str]:
+    """The one record row whose Check cell contains `word` (case-insensitive)."""
+    hits = [cells(row) for row in table[2:] if word in cells(row)[0].lower()]
+    assert len(hits) == 1, "expected one record row with %r in Check, found %d" % (word, len(hits))
+    return hits[0]
+
+
+def test_claude_code_record_checks():
+    """AC-1.1, AC-1.2: the Claude Code record has one row each for the
+    artifact attempt, the preview pane, the native design surface, and the
+    headless no-renderer path. Every Source is a Claude Code docs page and
+    every Platform cell names a version and the session kind; the headless
+    row names the no-renderer clause."""
+    table = verification_record(read(CLAUDE_CODE_RECORD[0]), *CLAUDE_CODE_RECORD[1])
+    rows = [record_row(table, w) for w in ("artifact", "preview", "native design surface", "headless")]
+    for row in rows:
+        assert row[3].startswith(CLAUDE_CODE_DOCS), "Source %r is not a Claude Code docs page" % row[3]
+        assert VERSION.search(row[1]), "Platform cell %r names no version" % row[1]
+        assert "desktop" in row[1] or "terminal" in row[1], "Platform cell %r names no session kind" % row[1]
+    assert "no-renderer" in rows[3][2], "headless row does not name the no-renderer clause"
+
+
+def test_claude_code_canvas_row_states_facts():
+    """AC-1.4: the Claude Code `canvas-preview` row keeps `artifact`,
+    `preview pane`, and the degradation clause, and says nothing about
+    verification; status lives in the record."""
+    text = read(CLAUDE_CODE_RECORD[0])
+    row = [line for line in text.splitlines() if line.startswith(CANVAS_ROW_PREFIX)]
+    assert len(row) == 1, "expected one canvas-preview row, found %d" % len(row)
+    assert "artifact" in row[0] and "preview pane" in row[0], row[0]
+    assert cells(row[0])[-1].endswith(DEGRADATION_CLAUSE), row[0]
+    assert "verified" not in row[0], row[0]
+
+
+RENDERING_SPEC = ".writ/specs/2026-10-22-rendering-delegation-rows"
+UAT_HEADING = "## UAT Protocols (maintainer, Story 2 writes; `/create-uat-plan` derives scenarios)"
+UAT_FIELDS = ("- **Precondition:**", "- **Run:**", "- **Look for:**", "- **On pass", "- **On fail")
+SAMPLE_IDEA = '"a settings page with a dark-mode toggle"'
+
+
+def canvas_row(text: str) -> str:
+    rows = [line for line in text.splitlines() if line.startswith(CANVAS_ROW_PREFIX)]
+    assert len(rows) == 1, "expected one canvas-preview row, found %d" % len(rows)
+    return rows[0]
+
+
+def test_cursor_row_names_the_floor():
+    """AC-2.1: the Cursor pages the record cites document no canvas that
+    renders a local HTML file, so the Cursor row names the HTML-file floor,
+    drops the old tool name, and keeps the degradation clause; the record's
+    Sources are Cursor docs pages."""
+    text = read("adapters/cursor.md")
+    row = canvas_row(text)
+    assert CURSOR_TOOL not in row, row
+    assert PROTOTYPES_DIR in row and "HTML" in row, row
+    assert cells(row)[-1].endswith(DEGRADATION_CLAUSE), row
+    table = verification_record(text, "## Native Tool Availability")
+    sources = [cells(r)[3] for r in table[2:]]
+    assert sources and all(s.startswith("https://cursor.com/docs/") for s in sources), sources
+
+
+def test_codex_row_has_cli_and_desktop_clauses():
+    """AC-2.3: the Codex row's mapping cell reads a "CLI:" clause and then a
+    "Desktop:" clause; the CLI clause keeps the HTML-file floor text."""
+    mapping = cells(canvas_row(read("adapters/codex.md")))[1]
+    cli = "CLI: `Write` one self-contained HTML file per draft to `%s`." % PROTOTYPES_DIR
+    assert mapping.startswith(cli), mapping
+    assert " Desktop: " in mapping, mapping
+
+
+@pytest.mark.parametrize("platform", ["Cursor", "Codex Desktop"])
+def test_uat_protocol(platform):
+    """AC-2.4: each UAT protocol states a precondition, a `--diverge` run on
+    the shared sample idea, what to look for, and the record edit on pass and
+    on fail; the on-pass edit writes `verified <date>` in Status and the
+    version in the Platform & version cell."""
+    body = section(read(RENDERING_SPEC + "/sub-specs/technical-spec.md"), UAT_HEADING, "### " + platform)
+    for field in UAT_FIELDS:
+        assert field in body, "%s protocol lacks %r" % (platform, field)
+    lines = body.splitlines()
+    run = [l for l in lines if l.startswith("- **Run:**")][0]
+    assert "--diverge " + SAMPLE_IDEA in run, run
+    on_pass = [l for l in lines if l.startswith("- **On pass")][0]
+    assert "`verified <date>`" in on_pass and "Platform & version" in on_pass, on_pass
+
+
+RECORD_HEADER = "| Check | Platform & version | Observed | Source | Status |\n|---|---|---|---|---|\n"
+
+
+@pytest.mark.parametrize(
+    "row, message",
+    [
+        (
+            "| Render | Cursor 2.3 | not documented | not documented | unverified 2026-10-22 (pending UAT) |",
+            "cursor: Source 'not documented' does not start with https://",
+        ),
+        (
+            "| Render | Cursor 2.3 | rendered | https://cursor.com/docs/ | verified |",
+            "cursor: Status 'verified' does not match the status grammar",
+        ),
+        (
+            "| Render | Cursor 2.3 | rendered | https://cursor.com/docs/ | verified 2026-10-22, Cursor 2.3 |",
+            "cursor: Status 'verified 2026-10-22, Cursor 2.3' does not match the status grammar",
+        ),
+    ],
+    ids=["source-not-documented", "status-without-date", "status-with-version"],
+)
+def test_check_record_rejects_bad_cells(row, message):
+    """AC-3.1, AC-3.2: `check_record` rejects a Source of `not documented`
+    and a Status without a date or with a version appended, naming the
+    adapter and the failing cell; a record with no data row is rejected too."""
+    with pytest.raises(AssertionError) as err:
+        check_record("cursor", (RECORD_HEADER + row).splitlines())
+    assert str(err.value).startswith(message), str(err.value)
+    with pytest.raises(AssertionError, match="cursor: verification record has no data row"):
+        check_record("cursor", RECORD_HEADER.splitlines())
+
+
+def test_prototype_render_table_reconciled():
+    """AC-3.3, AC-3.4: no recorded observation contradicts a Step 2.5
+    render-table row, so `commands/prototype.md` keeps its three labels in
+    order, names no vendor tool, and the spec's drift log has no DEV entry
+    for a render-table change."""
+    text = read("commands/prototype.md")
+    assert CURSOR_TOOL not in text
+    render = section(text, "### Step 2.5: Diverge & Choose", "#### Render through the platform")
+    labels = [cells(row)[0] for row in first_table(render)[2:]]
+    assert labels == [
+        "Native artboard/design surface",
+        "`canvas-preview` (the adapter maps it)",
+        "Neither",
+    ], labels
+    titles = [l for l in read(RENDERING_SPEC + "/drift-log.md").splitlines() if l.startswith("#### [DEV-")]
+    assert not any("prototype.md" in t or "Step 2.5" in t for t in titles), (
+        "drift log has a Step 2.5 entry but commands/prototype.md is unchanged: %s" % titles)
+
+
+def test_issue_verification_note():
+    """AC-3.5: the origin issue's `## Resolution` section ends with a
+    `### Verification` subsection naming this spec and each adapter's
+    recorded status."""
+    lines = read(ISSUE_RESOLUTIONS[0][0]).splitlines()
+    body = lines[lines.index("## Resolution") + 1:]
+    assert body.count("### Verification") == 1, body
+    note = "\n".join(body[body.index("### Verification") + 1:])
+    assert "`2026-10-22-rendering-delegation-rows`" in note
+    for adapter, statuses in (
+        ("adapters/claude-code.md", ("verified 2026-10-22",)),
+        ("adapters/cursor.md", ("unverified 2026-10-22 (pending UAT)",)),
+        ("adapters/codex.md", ("CLI clause verified 2026-10-24", "unverified 2026-10-22 (pending UAT)")),
+        ("adapters/openclaw.md", ("unverified 2026-10-22 (no deployment)",)),
+    ):
+        line = [l for l in note.splitlines() if l.startswith("- `%s`" % adapter)]
+        assert len(line) == 1, "%s: expected one status line, found %d" % (adapter, len(line))
+        for status in statuses:
+            assert status in line[0], line[0]

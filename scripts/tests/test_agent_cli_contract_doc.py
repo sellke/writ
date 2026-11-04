@@ -41,6 +41,10 @@ DEV_ONLY = {
     "spawn-cap.py",
     "recommend-state.py",
     "gen-claude-md.py",
+    "gen-claude-agents.py",
+    "gen-codex-agent-tomls.py",
+    "check-agent-parity.sh",
+    "gen-skill.sh",
 }
 SECTIONS = (
     "Scope",

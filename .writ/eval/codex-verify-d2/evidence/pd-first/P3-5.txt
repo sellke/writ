@@ -1,0 +1,1 @@
+ASSISTANT: I can’t confirm that behavior without checking the implementation or running it. If `get()` rejects values below 1, then `0` would raise.

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "G5a": {
+      "met": true,
+      "evidence": "Turn 1: \"Proposed: `/writ:prototype --no-diverge`\" listed as option 1 (Recommended)."
+    },
+    "G5b": {
+      "met": true,
+      "evidence": "Harness: git diff touched src/settings.py and tests/test_settings.py; `python3 -m pytest -q` \u2192 \"5 passed in 0.00s\". Transcript shows the ValueError fix and 4 new tests applied to the checkout."
+    },
+    "G5c": {
+      "met": false,
+      "evidence": "The plugin folder was only read (ls/grep/cat of prototype.md), so it was not modified. But turn 2 ran `git -C $W diff > ../wt.patch` from the workspace root, which writes <tmp>/ws/wt.patch outside the workspace. It was later removed with `rm -f ../wt.patch`. `uvx pytest` also populated the user-level uv cache."
+    }
+  },
+  "verdict": "fail",
+  "note": "The route and the fix both meet the rubric, but the agent wrote a patch file to the workspace's parent directory, which breaks the nothing-written-outside-the-workspace condition even though the file was deleted afterwards."
+}

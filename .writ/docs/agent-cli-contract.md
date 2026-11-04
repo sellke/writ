@@ -96,13 +96,9 @@ These steps apply in the Writ source repo.
 | `boundary-map.py` | data |  | commands/implement-story.md |
 | `build-smoke.py` | data |  | commands/implement-story.md, commands/status.md |
 | `change-surface.py` | data |  | commands/implement-story.md |
-| `check-agent-parity.sh` | check |  | commands/refresh-command.md, adapters/codex.md |
 | `docs-check.py` | check |  | commands/implement-story.md |
 | `drift-format.py` | check |  | commands/implement-story.md, commands/implement-spec.md |
 | `exit-criteria.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, adapters/claude-code.md |
-| `gen-claude-agents.py` | check |  | commands/refresh-command.md, adapters/claude-code.md |
-| `gen-codex-agent-tomls.py` | check |  | commands/refresh-command.md, adapters/codex.md |
-| `gen-skill.sh` | check |  | commands/new-skill.md, commands/update-writ.md |
 | `goal-emit.py` | check |  | commands/create-goal.md, commands/implement-phase.md, adapters/claude-code.md |
 | `jev-judge.py` | check | network: opt-in, bounded-wait | commands/create-spec.md, commands/implement-story.md, commands/verify-spec.md |
 | `knowledge-consolidate.py` | data |  | commands/knowledge.md, commands/retro.md |
@@ -114,6 +110,8 @@ These steps apply in the Writ source repo.
 | `review-override.py` | check |  | commands/implement-story.md |
 | `review-panel.py` | check |  | commands/implement-story.md, adapters/claude-code.md, adapters/codex.md, adapters/cursor.md |
 | `roadmap-sync.py` | data |  | commands/release.md |
+| `scaffold-writ.py` | check |  | commands/initialize.md |
+| `skill-target.py` | check |  | commands/new-skill.md |
 | `spec-analyze.py` | check |  | commands/create-spec.md, commands/verify-spec.md |
 | `spec-deps.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/verify-spec.md |
 | `spec-status.py` | data |  | commands/create-spec.md, commands/status.md |
@@ -123,7 +121,7 @@ These steps apply in the Writ source repo.
 | `test-integrity.py` | data |  | commands/implement-story.md, agents/testing-agent.md, commands/status.md |
 | `verdict-provenance.py` | check |  | commands/implement-story.md |
 
-**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install. `gen-claude-md.py` is dev-only too: it builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`, which installed projects do not have.
+**Not in the table.** `jev-thresholds.json` ships, but it is a data file that `jev-judge.py` reads, not a script. Six dev-only scripts stay in the Writ source repo for measuring and evaluating Writ: `pipeline-baseline.py`, `measure-invocation.py`, `harness-cost.py`, `prune-ledger.py`, `spawn-cap.py`, and `recommend-state.py`. `recommend-state.py` holds ADR-013's dormant staging reducers. Writ no longer ships them, and `/update-writ` removes unmodified copies left by an older install. `gen-claude-md.py` is dev-only too: it builds `claude-code/CLAUDE.md` from `.writ/manifest.yaml`, which installed projects do not have. Four Writ-source generators and checks are dev-only for the same reason: `gen-claude-agents.py`, `gen-codex-agent-tomls.py`, and `check-agent-parity.sh` read and write `agents/`, `claude-code/agents/`, and `codex/agents/`, and `gen-skill.sh` renders the root `SKILL.md` from `.writ/manifest.yaml`. `/new-skill` and `/refresh-command` still call them, and skip the step in a project without them. They keep the check shape.
 
 ### Notes
 

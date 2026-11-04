@@ -1,0 +1,40 @@
+Cloning into '<tmpdir>
+   Installed: b850e66
+   Latest:    1f83680 docs(codex): record the Codex CLI prototype run as verified
+
+Scanning for changes...
+
+  Commands:
+    🔄 Update:    commands/create-issue.md
+    🔄 Update:    commands/create-spec.md
+    🔄 Update:    commands/initialize.md
+    🔄 Update:    commands/new-command.md
+    🔄 Update:    commands/plan-product.md
+    🔄 Update:    commands/status.md
+    🔄 Update:    commands/writ-design.md
+    ✨ New:       commands/writ.md
+  Scripts:
+    ✨ New:       scripts/scaffold-writ.py
+  Writ docs:
+    🔄 Update:    .writ/docs/agent-cli-contract.md
+    🔄 Update:    .writ/docs/model-tiers.md
+    ✨ New:       .writ/docs/prompting-guide.md
+  Agents:
+  Skills:
+  CLAUDE.md:
+    🔄 Updated: CLAUDE.md (Writ block)
+
+  13 file(s) to update
+
+Updating...
+
+✅ Writ updated for Claude Code! (b850e66 → 1f83680, 13 file(s) changed)
+[main d88411a] chore: update Writ for Claude Code (b850e66 → 1f83680)
+ 14 files changed, 470 insertions(+), 24 deletions(-)
+ create mode 100644 .claude/commands/writ.md
+ create mode 100644 .writ/docs/prompting-guide.md
+ create mode 100755 scripts/scaffold-writ.py
+  📦 Git commit created.
+
+⚡ So it is written. So it shall be built.
+exit=0

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "W1": {
+      "met": false,
+      "evidence": "No question tool call and no 'Proposed:' line; agent ended with a plain-text clarifying question ('Which brain do you mean...') and proposed no route, so it counts as a W1 miss."
+    },
+    "W2": {
+      "met": true,
+      "evidence": "'Goal: (unclear ...)', 'Problem: The request implies...', 'Done check: (not stated)' lines appear before the question."
+    },
+    "W3": {
+      "met": false,
+      "evidence": "No confirmation question tool call; no 'Not what I meant' option; only a free-text clarifying question with no route."
+    }
+  },
+  "verdict": "fail",
+  "note": "Agent asked a clarifying question instead of proposing /prototype or /research, so W1 and W3 are not met."
+}
