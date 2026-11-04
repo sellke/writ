@@ -731,11 +731,11 @@ Model routing, new verification, and any rewrite of the commands the front door 
   - Reads Writ's ledger first (ADRs, drift logs, specs, What Was Built records, git notes), then git history, then available MCPs.
   - Gives every claim a confidence tier.
   - When a change follows, ends with Preserve / Change / Avoid / Risk, and `/create-spec` discovery reads that list.
-- **Design divergence:**
+- **Design divergence:** *(removed 2026-11-04 by the divergence trial below)*
   - `skills/design-divergence/SKILL.md` has two live callers: `/prototype` Step 2.5, and Gate 0 on the boundary-crossing route.
   - The Gate 0 route writes the caller's usage first, then produces two independent sketches on declared axes.
   - The skill covers API shapes and data models as well as UI.
-- **Divergence trial:** declared-axes generation against a naive "give me three options" prompt, rated blind for structural distinctness. The trial also records whether render-only drafts were enough. The skill stays only if declared axes win.
+- **Divergence trial:** declared-axes generation against a naive "give me three options" prompt, rated blind for structural distinctness. The trial also records whether render-only drafts were enough. The skill stays only if declared axes win. *Run 2026-11-04 ([trial-report.md](../specs/2026-10-25-design-divergence/trial-report.md)): not met. Declared axes won 2 of 6 briefs (4 needed), distinct 17 vs 16; render-only drafts were enough on 6 of 6. The skill and its Gate 0 wiring are removed.*
 - **Gate 2.5:** on the review-agent route, it names the one fact the change is safe because of and the evidence rung that fact reached.
 - **`tdd-cycle` for bugs:** a failing repro on the surface where the bug shows, committed before the fix, with failing-then-passing output in the report.
 - **Reviewer prompts** carry lead-judgment filters:
@@ -746,12 +746,12 @@ Model routing, new verification, and any rewrite of the commands the front door 
   - Orders fixes as architecture, then types, then a lint, then a test, then docs.
   - Proves each new check fails on a real past mistake.
   - Keeps a rule-to-enforcer table.
-- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed. *Measured 2026-11-04 ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)): Gate 0 Divergence kept, Safety Fact kept, Reviewer Filters kept, Repro First held (never exercised; held for a substitute baseline).*
+- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed. *Measured 2026-11-04 ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)): Gate 0 Divergence kept here but removed by the divergence trial, Safety Fact kept, Reviewer Filters kept, Repro First held (never exercised; held for a substitute baseline).*
 
 ### Features
 
 - [x] **`/why`** `Effort: M` — `2026-10-25-why-command`: ledger first, confidence tiers, a Preserve / Change / Avoid / Risk handoff.
-- [ ] **`design-divergence` skill and the usage-first Gate 0** `Effort: M` — `2026-10-25-design-divergence`: includes the blind trial. Stories 1–5 built; Story 6 waits on the blind rating.
+- [ ] **`design-divergence` skill and the usage-first Gate 0** `Effort: M` — `2026-10-25-design-divergence`: includes the blind trial. Closed — Not Implemented (2026-11-04): the blind trial said remove, and Story 6 removed the skill and its Gate 0 wiring.
 - [x] **Blast-radius safety fact at Gate 2.5** `Effort: S` — `2026-10-25-review-route-rigor`
 - [x] **Repro-first bug fixing in `tdd-cycle`** `Effort: S` — `2026-10-25-repro-first-bug-fixing`: reaches both `/prototype` and `/implement-story`.
 - [x] **Reviewer lead-judgment filters** `Effort: XS` — `2026-10-25-review-route-rigor`
