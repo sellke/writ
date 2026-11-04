@@ -1,6 +1,7 @@
 # Story 2: Evidence skill and the `evidence` subcommand
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** 68bfb55bdd24008f5f52c9433fdc88894ca34692
 > **Priority:** High
 > **Dependencies:** Story 1
 
