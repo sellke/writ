@@ -6,6 +6,7 @@
 > **Dependencies:** []
 > **Phase:** 15 — Code-Level Rigor ([roadmap](../../product/roadmap.md), [ADR-030](../../decision-records/adr-030-contract-verifier-boundary-front-door.md))
 > **Origin:** Phase 15 decomposition, authored with `/create-spec --recommend` (source mode `standard`). Research [F3](../../research/2026-10-19-writ-vs-pstack-research.md) names pstack's `blast-radius` and `interrogate` as the reference. Decisions: [`recommendation-log.md`](recommendation-log.md).
+> **Superseded by:** [2026-11-04-evidence-gated-review](../2026-11-04-evidence-gated-review/spec.md)
 
 ## Specification Contract
 
