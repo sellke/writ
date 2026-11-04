@@ -24,4 +24,4 @@
 
 - `commands/create-spec.md`: `--from-prototype` Step 0
 - `commands/prototype.md`: Step 2.5 "Record the decision"
-- `.writ/specs/2026-10-25-design-divergence/trial-report.md`: the verdict
+- `.writ/specs/archive/2026-10-25-design-divergence/trial-report.md`: the verdict
