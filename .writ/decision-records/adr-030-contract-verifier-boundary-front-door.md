@@ -133,6 +133,13 @@ Detect pstack and route design, review, and PR work to its skills.
 
 - **Phase 14 close:** keep or remove the front door. The question is whether it is the place work actually starts. *Due as of 2026-10-30:* the acceptance pass (2026-10-24) found `/writ` matched its route on 10 of 20 real requests, below the bar of 16, and the Phase 15 run started from `/implement-phase` directly.
 - **Phase 15 close:** keep or remove each code-level upgrade and the `design-divergence` skill, on its measurement.
+  - *Removal measurement, 2026-11-04* ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)). Stories (yuss): `2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow`, `2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption`, `2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard`, and `2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link`.
+    - **Gate 0 Divergence:** keep. Exercised on 3 of 4 stories; 2 of its 3 upgrade-only findings were valid.
+    - **Safety Fact:** keep. 4 of 4; 2 of 2 valid.
+    - **Reviewer Filters:** keep. 4 of 4; 1 of 1 valid.
+    - **Repro First:** unverifiable. Never exercised: all four stories are feature work, so no bug-fix path ran. The ack is `amend`, so the upgrade stays unchanged until a substitute baseline of bug-fix stories is added.
+    - **Caveats:** four stories and one run per upgrade arm, so one valid catch keeps an upgrade. The Gate 0 and Repro First arms are retrospective proxies, not replays. The labels are the assistant's assessments, made at the maintainer's request (drift-log DEV-012), so the measurement rests on a model judging model-raised findings.
+    - **Gate 0 and the blind trial:** the design-divergence note below records the blind trial's outcome (Business Rule 12).
 - **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run.
 
 ## Amendments

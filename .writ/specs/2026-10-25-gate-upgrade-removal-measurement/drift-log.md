@@ -141,3 +141,11 @@
 - **Reason:** The maintainer's explicit decision. The verdicts now rest on a model's judgment of model-raised findings, which is weaker evidence than an independent human label. Gate 0 keeps on F02 and F04 alone, so F05's label does not change any verdict.
 - **Resolution:** Accepted by user (2026-11-04). The labels stand. The maintainer can relabel by refilling the sheet and re-running `label` and `report` before any removal edit.
 - **Spec amendment:** N/A — deviation accepted as-is
+
+#### [DEV-013] The trial harness stays while Repro First waits on a substitute baseline ⚠️
+- **Severity:** Medium
+- **Spec said:** AC-4.5 and task 4.6: delete the harness, its tests, and its fixtures once the report commit exists.
+- **Implementation did:** Kept the harness, tests, and fixtures. Tasks 4.1–4.5 are done. Story 4 stays In Progress on task 4.6 alone.
+- **Reason:** The Repro First ack is `amend` (Business Rule 7). The spec stays open until `/edit-spec` adds a substitute baseline, which needs bug-fix stories, and measuring that baseline needs this harness. Deleting it now would mean restoring it from history to finish the spec.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review. Task 4.6 runs once Repro First has a `keep` or `remove` verdict.

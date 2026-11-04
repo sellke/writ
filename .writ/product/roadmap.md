@@ -746,7 +746,7 @@ Model routing, new verification, and any rewrite of the commands the front door 
   - Orders fixes as architecture, then types, then a lint, then a test, then docs.
   - Proves each new check fails on a real past mistake.
   - Keeps a rule-to-enforcer table.
-- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed.
+- **Removal measurement:** on the Phase 11 baseline story set, each gate upgrade catches at least one defect the current gates passed. Any upgrade that does not is removed. *Measured 2026-11-04 ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)): Gate 0 Divergence kept, Safety Fact kept, Reviewer Filters kept, Repro First held (never exercised; held for a substitute baseline).*
 
 ### Features
 
