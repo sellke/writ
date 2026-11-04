@@ -46,6 +46,7 @@
 - The reviewer never chooses the executable. Each run has a 120 s timeout, and each call allows at most five runs.
 - The coder commits a confirmed repro byte-for-byte and never edits it. Disputes go to the loop cap and then to the user.
 - `Evidence Gate: off` restores the agent verdict for the whole story.
+- ADR-032 § Removals names every product file, section, and config key, and points to technical-spec § Removals for test updates and regenerated trees (DEV-002).
 
 **Experience Design:**
 - Entry: Gate 3 and `/review`, unchanged.

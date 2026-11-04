@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-10-30T03:08:11Z
+> Last Updated: 2026-11-04T18:42:17Z
 
 ## Product Mission
 
@@ -8,25 +8,24 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
-- **Status:** In Progress — awaiting human labels (rating-handoff.md) (Phase 15 lane `writ/phase/15/2026-10-25-gate-upgrade-removal-measurement`)
-- **Story:** 3 of 4 — Run the Arms and Hand Off for Labeling (Completed ✅); Story 4 waits on human labels
-- **Progress:** 21/28 tasks complete (75%)
+- **Spec:** 2026-11-04-evidence-gated-review — Evidence-Gated Review
+- **Status:** Not Started (spec.md header); Story 1 of 7 completed on branch `phase/15-code-level-rigor`
+- **Story:** 1 of 7 — ADR-032 and the review-surface inventory (Completed ✅); next is Story 2 — Evidence skill and the `evidence` subcommand (Not Started)
+- **Progress:** 7/48 tasks complete (15%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
-- **Knowledge:** .writ/knowledge/ (28 entries)
+- **Active spec:** .writ/specs/2026-11-04-evidence-gated-review/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-011 Removal-inventory corrections for Story 4, from the dependency specs' drift logs — gate-upgrade-removal-measurement
-- DEV-010 `tests.txt` written by hand for two stories — gate-upgrade-removal-measurement
-- DEV-009 `repro-stop.md` adds `Targets:` and a `Repro: none` form; failing output is indented — gate-upgrade-removal-measurement
+- DEV-002 ADR-032 Removals points to technical-spec.md for test files and generated trees — evidence-gated-review
+- DEV-001 The reviewer filters stay; the spec no longer removes them — evidence-gated-review
 
 ## Open Issues
 
-23 open issue files in .writ/issues/ (39 total; 16 closed with `## Resolution`)
+25 open issue files in .writ/issues/ (41 total; 16 closed with `## Resolution`)

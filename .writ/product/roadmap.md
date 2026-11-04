@@ -758,6 +758,7 @@ Model routing, new verification, and any rewrite of the commands the front door 
 - [x] **`/retro` fix ladder and rule-to-enforcer table** `Effort: S` — `2026-10-25-retro-fix-ladder`: replaces the retired friction-signal design. `/refresh-command` gains two of `reflect`'s synthesizer criteria:
   - findings that existing guidance already covers count as execution failures, not missing rules
   - findings may only edit skills the transcript actually used
+- [ ] **Evidence-gated review** `Effort: M` — `2026-11-04-evidence-gated-review`: a Gate 3 or `/review` finding blocks only on executed evidence; removes the review panel and raises the Safety Fact floor to `tested` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)).
 
 ### Dependencies
 
