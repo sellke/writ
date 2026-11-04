@@ -1,6 +1,7 @@
 # Story 3: Gate 3 wiring for evidence-gated findings
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** b02c15065401dc57af2c5f59a2ea9eeb5e434842
 > **Priority:** High
 > **Dependencies:** Story 2
 
