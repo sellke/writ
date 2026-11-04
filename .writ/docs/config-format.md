@@ -61,7 +61,6 @@
 | `Writ Specs` | status | Path to spec folder (default: `.writ/specs/`) |
 | `Writ Issues` | status | Path to issues folder (default: `.writ/issues/`) |
 | `Review Panel` | implement-story (Gate 3) | Opt-in cross-vendor reviewer slugs; see [Review Panel](#review-panel) |
-| `Gate 0 Divergence` | implement-story (Gate 0) | On by default; `off` disables the boundary-crossing-route sketches; see [Gate 0 Divergence](#gate-0-divergence) |
 | `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
 | `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
 | `Repro First` | tdd-cycle, coding-agent, prototype, implement-story (Gate 1) | `off` turns off the repro-first bug path; absent or `on` keeps it; see [Repro First](#repro-first) |
@@ -131,19 +130,6 @@ the vendor table does not know (`unknown_vendor`) are dropped too.
 prints which reviewers are active, which were dropped, and why. See
 [ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)
 Decision 3.
-
-## Gate 0 Divergence
-
-```markdown
-- **Gate 0 Divergence:** off
-```
-
-`- **Gate 0 Divergence:** on|off` under `## Conventions` turns off the
-design sketches `/implement-story` Gate 0 runs on the boundary-crossing route.
-It is never detected or offered for saving. No line, or `on`, means on. Any
-other value also means on, and Gate 0 prints
-`gate0-divergence: on (malformed: <value>)`, so a typo never disables the
-sketches. Only Gate 0 reads the line; `/prototype` is unaffected.
 
 ## Safety Fact
 

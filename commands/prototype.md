@@ -6,7 +6,7 @@ outcome: "The idea sits in front of the user as something real - code-portable d
 entry_level: high
 exit_criteria:
   - "no spec folder, story file, or task list was created under .writ/specs/ for this change"
-  - "when drafts were generated: each names the axis combination it commits to and is built from the project's own components, framework, and tokens, and exploration.md records the chosen draft plus why each rejected one lost"
+  - "when drafts were generated: each names what it commits to and is built from the project's own components, framework, and tokens, and exploration.md records the chosen draft plus why each rejected one lost"
   - "when code was written: tests covering the changed behavior and its error, empty, and loading paths exist, and the linter and typechecker ran with any remaining errors itemized in the summary"
   - "every scope-escalation signal that fired - over 5 files, schema change, new dependency, core architecture, low existing coverage - is named in the summary next to the /create-spec --from-prototype offer"
 ---
@@ -144,10 +144,7 @@ idea cheaply, not to build it three times.
 
 #### Getting drafts that actually differ
 
-`Read skills/design-divergence/SKILL.md` for how to get drafts that differ: axes
-declared first, one context per draft, a commitment before rendering, ordinary
-personas. This step owns when drafts are made, what a draft is, how they render,
-and the record. Default to three drafts.
+Ask for up to three drafts and state what each commits to.
 
 #### Render through the platform
 
@@ -163,20 +160,20 @@ Each adapter maps `canvas-preview` to its own tool and states what to do when it
 
 #### Present and choose
 
-Show the drafts together with their axis commitments, not one at a time —
+Show the drafts together with what each commits to, not one at a time —
 comparison is the whole point. Then:
 
 ```
 🎨 Three takes on [idea]
-  A — [axis combination] · [the trade-off it accepts]
-  B — [axis combination] · [the trade-off it accepts]
-  C — [axis combination] · [the trade-off it accepts]
+  A — [what it commits to] · [the trade-off it accepts]
+  B — [what it commits to] · [the trade-off it accepts]
+  C — [what it commits to] · [the trade-off it accepts]
 
-Pick one to build, ask for a fourth on a different axis, or stop here with the decision recorded.
+Pick one to build, ask for a fourth that commits to something else, or stop here with the decision recorded.
 ```
 
-**Record the decision.** Write `.writ/prototypes/<date>-<slug>/exploration.md`: the
-axes, one row per draft, the chosen draft, and **why each rejected draft lost**.
+**Record the decision.** Write `.writ/prototypes/<date>-<slug>/exploration.md`: one
+row per draft with what it commits to, the chosen draft, and **why each rejected draft lost**.
 Keep the rendered drafts beside it. The rejected alternatives are the durable
 part — they are the "what else did we consider" that `/create-spec --from-prototype`
 carries into the spec contract, and the thing nobody can reconstruct six months on.
@@ -201,7 +198,7 @@ The change is done only when it is in the user's checkout. When the agent's resu
 **Required context to include in prompt:**
 - Change description and watch-outs
 - Full context scan output (tech stack, patterns, nearby rules, files to modify)
-- The chosen draft and its axis commitment if Step 2.5 ran — the agent builds that direction, not a fresh interpretation
+- The chosen draft and what it commits to if Step 2.5 ran — the agent builds that direction, not a fresh interpretation
 - Design tokens reference if available
 
 **Principles to instruct:**
@@ -245,7 +242,7 @@ Ready to commit.
 
 ```
 ✅ Direction Chosen — [idea]
-Drafts: 3 · Chose: [B — axis combination] · Record: .writ/prototypes/[date]-[slug]/exploration.md
+Drafts: 3 · Chose: [B — what it commits to] · Record: .writ/prototypes/[date]-[slug]/exploration.md
 Rejected: [A — why it lost] · [C — why it lost]
 Nothing built. /create-spec --from-prototype when you want the rest.
 ```
@@ -327,4 +324,3 @@ A scope-escalation signal firing is also a valid outcome, not a failure. It is n
 
 - Standing instructions: [`commands/_preamble.md`](_preamble.md)
 - Identity & Prime Directive: [`system-instructions.md`](../system-instructions.md)
-- Divergence rules: [design-divergence](../skills/design-divergence/SKILL.md)

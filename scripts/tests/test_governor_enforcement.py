@@ -664,7 +664,10 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 15269 -> 15717; Gate 1 bug-path line.
     # 2026-10-31 (Phase 15 retro F1): 15717 -> 15799; Gate 3.5 Small drift clause names
     # drift-format's auto_amend_unapplied failure.
-    "commands/implement-story.md": 15799,
+    # 2026-11-04 (2026-10-25-design-divergence Story 6): 15799 -> 13591; the blind trial
+    # said remove, so the Gate 0 divergence block, Overview clause, Pipeline cells, and
+    # References link are gone.
+    "commands/implement-story.md": 13591,
 }
 
 
