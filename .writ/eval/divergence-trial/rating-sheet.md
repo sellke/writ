@@ -175,11 +175,11 @@ Trade-off: the exit code names only one blocker; a caller that wants every type 
 
 ### Rating: api-1
 
-distinct_X:
-distinct_Y:
-more_distinct:
-render_only_enough:
-note:
+distinct_X: 2
+distinct_Y: 3
+more_distinct: Y
+render_only_enough: yes
+note: Assistant-rated, maintainer-delegated. X2 and X3 share one read and the same exit codes; X1 adds probe calls. Y: bitmask, several-code with scoped reruns, precedence.
 
 ## Brief api-2 (medium: api)
 
@@ -360,11 +360,11 @@ Trade-off: the developer gets no partial answer when any one source is down, so 
 
 ### Rating: api-2
 
-distinct_X:
-distinct_Y:
-more_distinct:
-render_only_enough:
-note:
+distinct_X: 2
+distinct_Y: 3
+more_distinct: Y
+render_only_enough: yes
+note: Assistant-rated, maintainer-delegated. X2 and X3 store the same inline-cited record; X1 is a linked JSON graph. Y varies call shape and failure: handle plus reads, partial, raise.
 
 ## Brief data-model-1 (medium: data-model)
 
@@ -532,11 +532,11 @@ Trade-off: a head must be recorded with its patch-id before it can read VERIFIED
 
 ### Rating: data-model-1
 
-distinct_X:
-distinct_Y:
-more_distinct:
-render_only_enough:
-note:
+distinct_X: 2
+distinct_Y: 3
+more_distinct: Y
+render_only_enough: yes
+note: Assistant-rated, maintainer-delegated. X1 and X2 are one append-only log, SQLite vs JSONL; X3 adds per-PR files. Y: derive at read, stored status, event log with projection.
 
 ## Brief data-model-2 (medium: data-model)
 
@@ -706,11 +706,11 @@ Trade-off: one enforcer per rule; a rule checked by both a lint rule and a test 
 
 ### Rating: data-model-2
 
-distinct_X:
-distinct_Y:
-more_distinct:
-render_only_enough:
-note:
+distinct_X: 3
+distinct_Y: 3
+more_distinct: Y
+render_only_enough: yes
+note: Assistant-rated, maintainer-delegated. X: nested doc, normalized tables, tables plus events. Y: pure event log, linked snapshot with soft delete, flat table; wider history models.
 
 ## Brief ui-1 (medium: ui)
 
@@ -868,11 +868,11 @@ Trade-off: No collapsing, filtering, or sorting by what is left, so finished sto
 
 ### Rating: ui-1
 
-distinct_X:
-distinct_Y:
-more_distinct:
-render_only_enough:
-note:
+distinct_X: 3
+distinct_Y: 3
+more_distinct: X
+render_only_enough: yes
+note: Assistant-rated, maintainer-delegated. X: criterion matrix, remaining-work list, status cards. Y1 and Y2 share the compact one-row-per-story form; Y3 is cards.
 
 ## Brief ui-2 (medium: ui)
 
@@ -1028,8 +1028,8 @@ Trade-off: the per-commitment table sits behind a second view, so seeing which c
 
 ### Rating: ui-2
 
-distinct_X:
-distinct_Y:
-more_distinct:
-render_only_enough:
-note:
+distinct_X: 3
+distinct_Y: 3
+more_distinct: X
+render_only_enough: yes
+note: Assistant-rated, maintainer-delegated. X: matrix with drawer, tabs with compare, columns. Y keeps side-by-side columns in all three and varies only disclosure.

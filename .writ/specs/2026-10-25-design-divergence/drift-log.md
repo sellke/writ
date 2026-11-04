@@ -127,3 +127,18 @@
 - **Reason:** These checks guard the committed record after Story 6 deletes the harness.
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** None needed in spec-lite.md.
+
+## Story 6: Act on the Blind Verdict — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Large
+
+### Deviations
+
+#### [DEV-012] The blind ratings are the assistant's, delegated by the maintainer
+- **Severity:** Large
+- **Spec said:** Business Rule 12: the maintainer rates. No agent fills `rating-sheet.md` or runs `rate`.
+- **Implementation did:** The maintainer asked the assistant to make its best assessment of the trial judgments. A separate blind agent rated all six briefs. It read only `rating-sheet.md`, the briefs, and the UI renders, never `raw/`, `key.json`, or the trial JSON. The assistant spot-checked ui-2 against the sheet, wrote the 30 fields, and ran `rate --rated-by "Adam Sellke (delegated to assistant)"`. Every note opens with "Assistant-rated, maintainer-delegated".
+- **Reason:** The maintainer's explicit decision. A model judged the structural distinctness of model-written drafts, which is weaker evidence than a human rating.
+- **Resolution:** Accepted by user (2026-11-04). The ratings stand, and the report says `remove`: axes won 2 of 6 briefs, distinct 17 vs 16.
+- **Spec amendment:** N/A — deviation accepted as-is

@@ -98,6 +98,49 @@
     "key": "key.json",
     "key_sha256": "f31d4cc81c3eed478f6e9f7f5ec08e00172a3243c2e7cfc41cabda38284720be"
   },
-  "rated_by": null,
-  "ratings": null
+  "rated_by": "Adam Sellke (delegated to assistant)",
+  "ratings": {
+    "api-1": {
+      "distinct_X": 2,
+      "distinct_Y": 3,
+      "more_distinct": "Y",
+      "render_only_enough": "yes",
+      "note": "Assistant-rated, maintainer-delegated. X2 and X3 share one read and the same exit codes; X1 adds probe calls. Y: bitmask, several-code with scoped reruns, precedence."
+    },
+    "api-2": {
+      "distinct_X": 2,
+      "distinct_Y": 3,
+      "more_distinct": "Y",
+      "render_only_enough": "yes",
+      "note": "Assistant-rated, maintainer-delegated. X2 and X3 store the same inline-cited record; X1 is a linked JSON graph. Y varies call shape and failure: handle plus reads, partial, raise."
+    },
+    "data-model-1": {
+      "distinct_X": 2,
+      "distinct_Y": 3,
+      "more_distinct": "Y",
+      "render_only_enough": "yes",
+      "note": "Assistant-rated, maintainer-delegated. X1 and X2 are one append-only log, SQLite vs JSONL; X3 adds per-PR files. Y: derive at read, stored status, event log with projection."
+    },
+    "data-model-2": {
+      "distinct_X": 3,
+      "distinct_Y": 3,
+      "more_distinct": "Y",
+      "render_only_enough": "yes",
+      "note": "Assistant-rated, maintainer-delegated. X: nested doc, normalized tables, tables plus events. Y: pure event log, linked snapshot with soft delete, flat table; wider history models."
+    },
+    "ui-1": {
+      "distinct_X": 3,
+      "distinct_Y": 3,
+      "more_distinct": "X",
+      "render_only_enough": "yes",
+      "note": "Assistant-rated, maintainer-delegated. X: criterion matrix, remaining-work list, status cards. Y1 and Y2 share the compact one-row-per-story form; Y3 is cards."
+    },
+    "ui-2": {
+      "distinct_X": 3,
+      "distinct_Y": 3,
+      "more_distinct": "X",
+      "render_only_enough": "yes",
+      "note": "Assistant-rated, maintainer-delegated. X: matrix with drawer, tabs with compare, columns. Y keeps side-by-side columns in all three and varies only disclosure."
+    }
+  }
 }
