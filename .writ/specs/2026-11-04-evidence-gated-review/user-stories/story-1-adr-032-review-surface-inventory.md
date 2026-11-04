@@ -1,6 +1,7 @@
 # Story 1: ADR-032 and the review-surface inventory
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** e8839f7c9f68350ca506475d26ccdabd539cd9f5
 > **Priority:** High
 > **Dependencies:** None
 
