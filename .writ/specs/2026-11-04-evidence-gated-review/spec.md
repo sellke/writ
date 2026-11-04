@@ -6,9 +6,9 @@
 > **Dependencies:** []
 > **Phase:** 15 — Code-Level Rigor ([roadmap](../../product/roadmap.md), [ADR-030](../../decision-records/adr-030-contract-verifier-boundary-front-door.md))
 > **Origin:** Promoted from issue: [`2026-11-03-minimize-adversarial-review-surface`](../../issues/improvements/2026-11-03-minimize-adversarial-review-surface.md)
-> **Amends:** [2026-10-25-review-route-rigor](../2026-10-25-review-route-rigor/spec.md), [2026-10-25-gate-upgrade-removal-measurement](../2026-10-25-gate-upgrade-removal-measurement/spec.md)
+> **Amends:** [2026-10-25-review-route-rigor](../2026-10-25-review-route-rigor/spec.md)
 
-The amendment is partial in both cases. From `review-route-rigor` it replaces the reviewer filters and the `traced` floor. From `gate-upgrade-removal-measurement` it takes over the keep or remove verdict for Safety Fact and Reviewer Filters. The trial still decides Gate 0 Divergence and Repro First.
+The amendment is partial. From `review-route-rigor` it replaces the `traced` floor only. The reviewer filters stay, because the `2026-10-25-gate-upgrade-removal-measurement` trial kept them (see the Amendment below). That trial's verdicts stand.
 
 ## Specification Contract
 
@@ -124,6 +124,26 @@ The contract above is the locked text. Package generation found four places wher
    - Each removal stays revertable on its own.
 4. **`ADR-NNN` (Business Rule 6).** The next free number is `ADR-032`.
 
+### Amendment (2026-11-04, during /implement-spec)
+
+The user decided to keep the reviewer filters. The rest of the contract stands: evidence gating, the review panel removal, and the Safety Fact floor raise to `tested`.
+
+**Evidence.** The removal measurement in [`trial-report.md`](../2026-10-25-gate-upgrade-removal-measurement/trial-report.md) (commit `ef0c418`) recorded Reviewer Filters `keep`: 1 valid upgrade-only catch on 4 stories. The catch is F01, Critical, `ac:AC-4.3`: a stale doc claim that still described the old behavior as current. The same trial kept Safety Fact, which fits with raising its floor. That spec's verdicts stand. This spec takes over none of them.
+
+**What stays.** `skills/review-judgment-filters/`, the `reviewer-filters` switch, the `Reviewer Filters` config key, the agents' `reviewer_filters` input row and `Read` line, Gate 3's "Reviewer filters." paragraph, and `/review`'s Step 3 filters `Read` and switch line.
+
+**Contract items this overrides:**
+1. **Deliverable.** "The reviewer judgment filters and the review panel are removed" now reads: the review panel is removed.
+2. **Must Include 1.** "It replaces `skills/review-judgment-filters/`" no longer holds. The new skill sits beside it.
+3. **Must Include 6.** The Reviewer Filters bullet is dropped. The panel and floor bullets stand. The ledger bullet stands as corrected above.
+4. **Must Include 8.** The roadmap's filters criterion stays. Only the traced-floor criterion changes.
+5. **Success Criteria, shipped-file scan.** The filter names are dropped. The scan covers the panel names only: `Review Panel` and `--panel`.
+6. **Scope Boundaries, Included.** "removal of the filters" is dropped. The panel removal stays.
+7. **Recommendations, story 5.** It no longer removes the filters. Corrections item 3 already split its work into Story 6 (the floor) and Story 7 (the panel).
+8. **Cross-Spec Overlap, the `/edit-spec` precondition.** Void. That spec's Story 4 already ran and removed nothing. This spec no longer amends it.
+
+The rest of this package follows the Amendment.
+
 ## Experience Design
 
 ### Who uses it
@@ -225,7 +245,7 @@ A finding with no `Evidence:` block is `advisory (no_evidence)`.
 - `/review` has no Major severity. For `security-path`, High counts as Major+.
 - Recommendation: "Do not ship" and "Ship with caution" need at least one confirmed Critical or High finding. Otherwise the report says the code is ready to ship and lists the unconfirmed findings under the Recommendation as worth a look.
 - Available kinds are `test` and `security-path`. `recorded` and `check` are `unverifiable kind_unavailable` because `/review` has no recorded run and no Gate 2.
-- The header line `> Evidence gate: on|off|unverifiable (<reason>)` replaces `> Reviewer filters: on|off`.
+- The header line `> Evidence gate: on|off|unverifiable (<reason>)` sits beside `> Reviewer filters: on|off`. Both lines stay in the header.
 
 ### Switch
 
@@ -234,11 +254,12 @@ A finding with no `Evidence:` block is `advisory (no_evidence)`.
 
 ### Removals
 
-- **Reviewer Filters.** The skill folder, its manifest entry, the README and root `SKILL.md` rows, the `config-format.md` row and section, the `reviewer-filters` switch, the agents' input row and `Read` line, Gate 3's paragraph and report line, and `/review`'s Step 3 line are all removed.
+- **Reviewer Filters.** Kept (Amendment).
 - **Review panel.** These are removed:
   - `review-panel.py` `status`, `tally`, and their helpers
   - `--panel` and its conflict rule
   - the Gate 3 panel paragraph and the `review-panel:` report line
+  - the words "panel reviewers" in Gate 3's "Reviewer filters." paragraph
   - the `Review Panel` config row and section
   - the four adapter "Review panel (ADR-028)" paragraphs
   - the `eval.sh` `review-panel` check
@@ -251,7 +272,7 @@ A finding with no `Evidence:` block is `advisory (no_evidence)`.
 
 ### Story 1: ADR-032 and the review-surface inventory
 
-`.writ/decision-records/adr-032-evidence-gated-review.md` records the decision: findings block only on executed evidence. Its inventory table has one row per adversarial-review surface: Gate 0 architecture check, Gate 0 divergence, evaluator-agent, review-agent, reviewer filters, Safety Fact, review panel, `/review`, Jev shadow, `/security-audit`, spec analysis, visual-qa-agent, and the discovery challenge prompts. Each row gives the fact the surface tries to establish, its cost (spawns, instruction bytes), and a verdict (keep, replace, demote, or remove) with a one-line reason.
+`.writ/decision-records/adr-032-evidence-gated-review.md` records the decision: findings block only on executed evidence. Its inventory table has one row per adversarial-review surface: Gate 0 architecture check, Gate 0 divergence, evaluator-agent, review-agent, reviewer filters, Safety Fact, review panel, `/review`, Jev shadow, `/security-audit`, spec analysis, visual-qa-agent, and the discovery challenge prompts. Each row gives the fact the surface tries to establish, its cost (spawns, instruction bytes), and a verdict (keep, replace, demote, or remove) with a one-line reason. The reviewer filters row reads keep and cites the removal trial (`trial-report.md`, commit `ef0c418`).
 
 ADR-028 gets an `Amended by: ADR-032` line covering the panel. The roadmap's Phase 15 Features list gains an unchecked line for this spec.
 
@@ -275,24 +296,22 @@ Gate 3 in `commands/implement-story.md` runs `evidence` on an agent FAIL and app
 
 `commands/review.md` Step 3 reads the skill. Technique 4 records evidence per Critical or High row under a `## Evidence` section keyed by FM ID. Step 4 runs `evidence --surface review --changed <diff files>`, applies § /review, and writes the header line. The Outcome interpretation table counts confirmed findings only. Pytest covers the report parser and the severity mapping.
 
-### Story 6: Remove the reviewer filters; raise the Safety Fact floor
+### Story 6: Raise the Safety Fact floor to `tested`
 
-Precondition: `/edit-spec` has narrowed `2026-10-25-gate-upgrade-removal-measurement` to Gate 0 Divergence and Repro First. The first task checks this and stops with a blocker if it has not happened.
-
-The story then makes every Reviewer Filters removal and the Safety Fact floor change listed in § Removals, and updates the tests that assert on them. Generated trees are rebuilt. A scan test proves `review-judgment-filters` and `reviewer-filters` appear only in ADRs, specs, and other history.
+The story makes the Safety Fact floor change listed in § Removals and updates the tests that assert the `traced` floor. Generated trees are rebuilt. It removes nothing and adds no scan test. The reviewer filters stay (Amendment).
 
 ### Story 7: Remove the review panel; close out the roadmap
 
-The story makes every panel removal listed in § Removals, with the leftover-config and `--panel` messages. It updates `test_review_panel.py`, `test_panel_trial_outcome.py` (the panel paragraph's absence now matches ADR-032, and the trial record stays guarded), `test_eval_shipped_refs.py`, `test_agent_cli_contract.py`, and the other tests that name the panel. It also deletes this repo's own `- **Review Panel:**` line from `.writ/config.md`, so Writ's self-runs do not print the leftover-config line.
+The story makes every panel removal listed in § Removals, with the leftover-config and `--panel` messages. It removes the words "panel reviewers" from Gate 3's "Reviewer filters." paragraph in `commands/implement-story.md` and updates the `test_review_route_rigor.py` assertion that names them. It updates `test_review_panel.py`, `test_panel_trial_outcome.py` (the panel paragraph's absence now matches ADR-032, and the trial record stays guarded), `test_eval_shipped_refs.py`, `test_agent_cli_contract.py`, and the other tests that name the panel. It writes the shipped-file scan test, for the panel names only. It also deletes this repo's own `- **Review Panel:**` line from `.writ/config.md`, so Writ's self-runs do not print the leftover-config line.
 
-It checks off this spec's roadmap line. It replaces Phase 15's "Reviewer prompts carry lead-judgment filters" criterion, with the evidence-gated wording. It adds the `tested` floor to the Gate 2.5 criterion ("the evidence rung that fact reached, at or above `tested`"). It records ADR-032 in the roadmap's Phase 15 status.
+It checks off this spec's roadmap line. It leaves Phase 15's "Reviewer prompts carry lead-judgment filters" criterion as written. It adds the `tested` floor to the Gate 2.5 criterion ("the evidence rung that fact reached, at or above `tested`"). It records ADR-032 in the roadmap's Phase 15 status.
 
 ## Implementation Approach
 
 - **Script before prose.** Stories 2 and 4 write their pytest before the subcommand. Stories 3 and 5 write the wiring tests before editing the command files.
 - **One script.** `evidence` lives in `scripts/review-override.py` beside `check`, `switch`, and `safety-fact`. It reuses `_inside`, `_cite_ok`, `_read_text`, `_emit`, and the `VERDICT_LINE` pattern. Finding parsing follows `review-panel.py` `_issue_entries` and `normalize_location`. Copy the patterns, not the import: Story 7 trims `review-panel.py`.
 - **The skill owns the how.** Gate 3 and `/review` own when the step runs and what its result does. Agent bodies get one `Read` line and one output field.
-- **Byte budget.** `commands/implement-story.md` is over its per-invocation budget. Across Stories 3, 4, 6, and 7, its net change must be zero or negative. The panel and filter removals free more bytes than the evidence wiring adds.
+- **Byte budget.** `commands/implement-story.md` is over its per-invocation budget. Across Stories 3, 4, and 7, and Story 6 if it touches the file, its net change must be zero or negative. Story 7's panel removals, including the "panel reviewers" trim, must free at least what the evidence wiring adds.
 - **Regenerate, never hand-edit.** After any change to `agents/`, `commands/`, or `skills/`, run `python3 scripts/gen-platform-trees.py` and commit the trees in the same story.
 - **Python 3.9 floor.** No `match`, no runtime `X | Y` unions, no 3.10+ `pathlib` or `str` methods. Use `from __future__ import annotations` as the other scripts do. `subprocess.run` with `timeout=` and `shell=False`. The `Test Runner` value is split with `shlex.split`.
-- **Story order.** 1 → 2 → 3 → 4, with 5 after 2, then 6 after 4 and 5, then 7 after 6. Stories 3, 4, 6, and 7 all edit Gate 3 of `commands/implement-story.md`, so they run in sequence.
+- **Story order.** 1 → 2 → 3 → 4, with 5 after 2, then 6 after 4 and 5, then 7 after 6. Stories 3, 4, and 7 edit Gate 3 of `commands/implement-story.md`, so they run in sequence. Story 6 edits `scripts/review-override.py` and `scripts/tests/test_review_override.py` after Stories 4 and 5 have edited them.

@@ -44,7 +44,7 @@
 
 **Byte budget**
 - `commands/implement-story.md` is 40,759 bytes at authoring, before Story 3. Re-run `wc -c` at the start of task 4.6, because Story 3 edits the file first.
-- Net change across Stories 3, 4, 6, and 7 must be zero or less (`spec.md` → `## Implementation Approach` → Byte budget; `technical-spec.md` → `## Byte Budget`). Keep the recode brief addition short.
+- Net change across the stories that edit it (3, 4, and 7) must be zero or less (`spec.md` → `## Implementation Approach` → Byte budget; `technical-spec.md` → `## Byte Budget`). Keep the recode brief addition short.
 
 **Gaps found at generation, resolved in the spec (2026-11-04)**
 - **A passing re-review used to skip `--prior`.** Now `--prior` runs on every agent verdict when a manifest exists (`spec.md` → `### Gate 3 decision`, row 3a; `### Repro as regression test`).

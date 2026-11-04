@@ -157,39 +157,37 @@ python3 scripts/review-override.py evidence --review-output .writ/state/gate3-re
 
 ## Removals
 
-### Reviewer Filters (Story 6)
+### Safety Fact floor (Story 6)
+
+This is a change, not a removal. The reviewer filters stay (spec.md → Amendment). Line numbers are from 2026-11-04; re-grep before editing.
 
 | File | Change |
 |---|---|
-| `skills/review-judgment-filters/` | delete the folder |
-| `.writ/manifest.yaml`, `README.md` (Skills table), `SKILL.md` | remove the entry or row |
-| `.writ/docs/config-format.md` | remove the `Reviewer Filters` row and section |
-| `scripts/review-override.py` | remove the `reviewer-filters` entry from `SWITCH_LINES`; set `FLOOR = "tested"`; update the docstring line 48 floor text |
-| `agents/evaluator-agent.md`, `agents/review-agent.md` | remove the `reviewer_filters` input row and the conditional `Read` line |
-| `commands/implement-story.md` | remove the Gate 3 "Reviewer filters." paragraph and the `reviewer-filters:` report mention |
-| `commands/review.md` | remove the Step 3 switch line (the header line was already replaced in Story 5) |
-| `skills/blast-radius/SKILL.md` | change "The floor is `traced`" to `tested`; change the re-review `safety_fact_below_floor` advice to "cite a test from the recorded run; only the coder can add one"; remove "The floor is `traced` for this reason" from the `reproduced` section |
-| Tests | update `test_review_route_rigor.py`, `test_review_override.py`, `test_repro_first_wiring.py`, `test_governor_enforcement.py`, `test_gate_upgrade_trial.py`, and `test_gate_upgrade_trial_outcome.py` so they stop asserting on the filters. Those last two follow the narrowed trial spec. |
-| Generated trees | `python3 scripts/gen-platform-trees.py` removes `cursor/plugin/skills/review-judgment-filters/` and the copied lines |
+| `scripts/review-override.py` | set `FLOOR = "tested"` (line 276). In the module docstring, change the `Floor:` line (lines 43 to 44, "Floor: `traced`") and the output example `(measured <m>, floor traced)` (line 48) to `tested`. The printed line already uses `FLOOR`. |
+| `skills/blast-radius/SKILL.md` | Evidence Ladder (lines 34 to 35): "The floor is `traced`" becomes `tested`. On a re-review (line 119): the `safety_fact_below_floor` advice becomes "the measured rung is under `tested`. Cite a test from the recorded run; only the coder can add one." The `reproduced` section has no floor sentence today. |
+| Tests | `test_review_override.py`: `_sf_expected` prints `floor traced` (line 731). `SafetyFactVerdictTests` cases that expect `pass` at measured `traced` (`TRACED` evidence, for example `test_pass_prints_contract_lines`, `test_holds_no_with_fail_or_pause_passes`, `test_overclaim_alone_is_not_a_reason`, `test_underclaim_prints_measured`) now expect `safety_fact_below_floor traced`, or switch to `tested` evidence. `test_below_floor_alone`'s docstring names the `traced` floor. No other test under `scripts/tests/` asserts the floor. The `reviewer-filters` tests do not change. |
+| Generated trees | `python3 scripts/gen-platform-trees.py` rewrites `cursor/plugin/skills/blast-radius/SKILL.md`, `plugins/writ/skills/blast-radius/SKILL.md`, and `plugins/writ/scripts/review-override.py` |
+
+`commands/implement-story.md` and `agents/review-agent.md` carry no `traced` floor wording. The Gate 3 safety-fact paragraph says "below floor" without naming the rung.
 
 ### Review panel (Story 7)
 
 | File | Change |
 |---|---|
 | `scripts/review-panel.py` | remove `status`, `tally`, `resolve`, `config_value`, `slug_vendor`, `origin_vendor`, `load_tally`, `cmd_tally`, `cmd_status`, and their parser entries. Keep `_prepare_run`, `PrepareError`, `parse_output`, `trial_key`, `_key_order`, `normalize_location`, `_issue_entries`, and the trial subcommands. |
-| `commands/implement-story.md` | remove the `--panel` invocation row and its conflict rule, the `--panel` qualifier in Gate 0's Route line, the "Review panel (opt-in)" paragraph, the panel `block` clause in Gate 3.5 § A, "A fail counts as a panel `block`" in the safety-fact paragraph (rewrite it to "A fail is one review-loop increment"), the `review-panel:` report line, and the panel mention in the default spawn count. Add the leftover-config line and the `--panel` rejection. |
+| `commands/implement-story.md` | remove the `--panel` invocation row and its conflict rule, the `--panel` qualifier in Gate 0's Route line, the "Review panel (opt-in)" paragraph, the panel `block` clause in Gate 3.5 § A, "A fail counts as a panel `block`" in the safety-fact paragraph (rewrite it to "A fail is one review-loop increment"), the `review-panel:` report line, the panel mention in the default spawn count, and the words "panel reviewers" in Gate 3's "Reviewer filters." paragraph (the paragraph stays). Add the leftover-config line and the `--panel` rejection. |
 | `.writ/docs/config-format.md` | remove the `Review Panel` row and section; add a one-line "Removed keys" entry pointing to ADR-032 |
 | `.writ/config.md` (this repo only; does not ship) | delete the `- **Review Panel:**` line |
 | `adapters/claude-code.md`, `codex.md`, `cursor.md`, `openclaw.md` | remove the "Review panel (ADR-028)" paragraph |
 | `.writ/docs/agent-cli-contract.md` | update the `review-panel.py` row to the remaining subcommands |
 | `scripts/eval.sh` | remove `review-panel` from the check list and delete its function |
-| Tests | update `test_review_panel.py` (drop the status and tally cases, keep the parser and trial cases), `test_panel_trial_outcome.py` (`test_panel_wiring_matches_the_verdict` expects the paragraph absent once ADR-032 is accepted; the record checks stay), `test_eval_shipped_refs.py`, `test_agent_cli_contract.py`, `test_harness_cuts.py`, `test_governor_enforcement.py`, and `test_design_divergence_wiring.py` |
+| Tests | update `test_review_panel.py` (drop the status and tally cases, keep the parser and trial cases), `test_panel_trial_outcome.py` (`test_panel_wiring_matches_the_verdict` expects the paragraph absent once ADR-032 is accepted; the record checks stay), `test_eval_shipped_refs.py`, `test_agent_cli_contract.py`, `test_harness_cuts.py`, `test_governor_enforcement.py`, `test_design_divergence_wiring.py`, and `test_review_route_rigor.py` (`Gate3WiringTest` asserts "panel reviewers" in the reviewer-filters paragraph); add `ShippedPanelScanTests` to `test_evidence_gate_wiring.py` |
 
 `review-panel.py` has no shipped caller after Story 7. Moving it out of the shipped set is left for when the gate-upgrade-trial harness is deleted, which is that spec's Story 4.
 
 ## Byte Budget
 
-`commands/implement-story.md` is over its per-invocation budget (`.writ/docs/leanness-audit-2026-10-21.md`). Each story that edits it prints the byte count before and after, using `wc -c`, in its What Was Built record. The total from Stories 3, 4, 6, and 7 must be ≤ 0. The panel paragraph alone is about 1,100 bytes.
+`commands/implement-story.md` is over its per-invocation budget (`.writ/docs/leanness-audit-2026-10-21.md`). Each story that edits it prints the byte count before and after, using `wc -c`, in its What Was Built record. Stories 3, 4, and 7 edit it. Story 6 does not plan to; it records the counts only if it does. The total across these stories must be ≤ 0. Story 7's panel removals, including the "panel reviewers" trim, must free at least what Stories 3 and 4 add. The panel paragraph alone is about 1,100 bytes. The reviewer filters free nothing, because they stay.
 
 ## Error & Rescue Map
 
@@ -236,5 +234,5 @@ python3 scripts/review-override.py evidence --review-output .writ/state/gate3-re
 - `scripts/tests/test_review_override.py` gains an `EvidenceTests` class. Fixtures go under `scripts/tests/fixtures/review-override/evidence/`: a tiny pytest project with `Test Runner: python3 -m pytest`, plus stub runners written as Python scripts that print jest, vitest, go, cargo, and rspec output and exit with set codes.
 - There is one test per row of § Error & Rescue Map and § Evidence outcomes. Each runs on Python 3.9 and 3.14.
 - A replay test in `scripts/tests/test_evidence_gate_wiring.py` feeds a saved evaluator FAIL output, with and without a confirmed repro, through `evidence`. It asserts the Gate 3 decision row.
-- A scan test fails when any of the following appear in `commands/`, `agents/`, `skills/`, `adapters/`, `claude-code/`, `cursor/`, `plugins/`, `README.md`, or `SKILL.md` after Story 7: `review-judgment-filters`, `reviewer-filters`, `Reviewer Filters`, `Review Panel`, or `--panel`. The one allowed exception is the leftover-config and rejection lines that point to ADR-032.
+- Story 7 writes a scan test, `ShippedPanelScanTests` in `scripts/tests/test_evidence_gate_wiring.py`. It fails when `Review Panel` or `--panel` appears in `commands/`, `agents/`, `skills/`, `adapters/`, `claude-code/`, `cursor/`, `plugins/`, `codex/`, `README.md`, or `SKILL.md`. It skips `.writ/`. A match is allowed only on a line containing `removed (ADR-032)`: the leftover-config and rejection lines. The filter names are not scanned, because the filters stay.
 - Full gates: `uv run --isolated --python 3.9 --with pytest pytest`, `uv run --isolated --python 3.14 --with pytest pytest`, the bash suite in the background, `python3 scripts/gen-platform-trees.py --check`, and `bash scripts/eval.sh`. Run pytest on its own (CLAUDE.md).

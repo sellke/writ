@@ -5,7 +5,7 @@
 
 ## For Coding Agents
 
-**Deliverable:** Gate 3 and `/review` findings block only with executed evidence. The reviewer filters and the review panel are removed. The Safety Fact floor becomes `tested`.
+**Deliverable:** Gate 3 and `/review` findings block only with executed evidence. The review panel is removed. The reviewer filters stay (spec.md → Amendment). The Safety Fact floor becomes `tested`.
 
 **Implementation Approach:**
 - `review-override.py evidence` sits beside `check`, `switch`, and `safety-fact`. It reuses `_inside`, `_cite_ok`, and `_emit`, and copies the `review-panel.py` parser patterns rather than importing them.
@@ -14,8 +14,8 @@
 - Gate 3 order: `check` → `safety-fact` → `evidence`. The decision table is in spec.md § Gate 3 decision.
 
 **Files in Scope:**
-- `scripts/review-override.py`: `evidence` subcommand, `evidence-gate` switch, `FLOOR = "tested"`, `reviewer-filters` removed
-- `skills/evidence-gated-findings/SKILL.md`: new. `skills/review-judgment-filters/`: deleted
+- `scripts/review-override.py`: `evidence` subcommand, `evidence-gate` switch, `FLOOR = "tested"`
+- `skills/evidence-gated-findings/SKILL.md`: new. `skills/blast-radius/SKILL.md`: floor wording
 - `commands/implement-story.md` Gate 3, `commands/review.md`, `agents/evaluator-agent.md`, `agents/review-agent.md`
 - `scripts/review-panel.py`: `status`/`tally` removed, trial helpers kept
 - `.writ/docs/config-format.md`, `adapters/*.md`, `scripts/eval.sh`, `.writ/decision-records/adr-032-evidence-gated-review.md`
@@ -25,7 +25,7 @@
 - Collection error, timeout, unknown runner, or bad path → that finding is `unverifiable` (advisory).
 - Tree changed after a run → `fail repro_mutated_tree` → BLOCKED.
 
-**Line Budget Constraints:** `implement-story.md` must have a net byte change ≤ 0 across Stories 3, 4, 6, and 7.
+**Line Budget Constraints:** `implement-story.md` must have a net byte change ≤ 0 across the stories that edit it (3, 4, and 7).
 
 ---
 
@@ -37,7 +37,7 @@
 3. A tree mutation is BLOCKED and names the paths. The repro file is always deleted. `[AC-2.5]`
 4. On re-review, a missing, modified, or still-failing prior repro fails Gate 3. `[AC-4.2, AC-4.3]`
 5. `/review` shows unconfirmed Critical and High findings as `Medium (unconfirmed)`, and says not-ready only on confirmed findings. `[AC-5.1, AC-5.2]`
-6. Filters and panel are gone from shipped files. A leftover `Review Panel` line and `--panel` point to ADR-032. `[AC-6.2, AC-7.4]`
+6. The panel is gone from shipped files. A leftover `Review Panel` line and `--panel` point to ADR-032. `[AC-7.4]`
 7. `safety-fact` on a traced-only section returns `safety_fact_below_floor`. `[AC-6.3]`
 
 **Business Rules:**
@@ -61,7 +61,7 @@
 **Success Criteria:**
 1. Pytest on Python 3.9 and 3.14 covers each evidence kind: confirmed, unconfirmed, broken, no runner, mutation, prior removed or modified, bad security citation.
 2. A replay fixture proves both Gate 3 decision outcomes.
-3. A scan test finds no filter or panel names outside ADRs and history.
+3. A scan test finds no panel names (`Review Panel`, `--panel`) in shipped files, except on lines that point to ADR-032.
 4. `eval.sh`, the bash suite, and `gen-platform-trees.py --check` pass.
 
 **Shadow Paths to Verify:**

@@ -11,7 +11,7 @@
 | 3 | [Gate 3 wiring for evidence-gated findings](story-3-gate-3-wiring.md) | Not Started | High | 6 | 0/6 |
 | 4 | [Confirmed repros become regression tests](story-4-repro-as-regression-test.md) | Not Started | High | 7 | 0/7 |
 | 5 | [Evidence gating in `/review`](story-5-review-evidence-gating.md) | Not Started | Medium | 7 | 0/7 |
-| 6 | [Remove the reviewer filters and raise the Safety Fact floor](story-6-remove-filters-raise-floor.md) | Not Started | Medium | 7 | 0/7 |
+| 6 | [Raise the Safety Fact floor to `tested`](story-6-raise-safety-fact-floor.md) | Not Started | Medium | 7 | 0/7 |
 | 7 | [Remove the review panel and close out the roadmap](story-7-remove-panel-close-roadmap.md) | Not Started | Medium | 7 | 0/7 |
 
 **Total:** 7 stories, 48 tasks, 35 acceptance criteria.
@@ -27,7 +27,7 @@
 - **Story 2** builds the skill and `review-override.py evidence`. Stories 3 and 5 both call it.
 - **Stories 3 and 4** both edit Gate 3 of `commands/implement-story.md` and must run in that order.
 - **Story 5** edits only `commands/review.md` and the review surface of the script. It can run in parallel with Stories 3 and 4.
-- **Story 6** has a precondition outside this spec. `/edit-spec` must first narrow `2026-10-25-gate-upgrade-removal-measurement` to Gate 0 Divergence and Repro First. If that hasn't happened, the story's first task stops with a blocker.
-- **Story 7** runs last. Its scan extends Story 6's scan test.
+- **Story 6** raises the Safety Fact floor. It follows Stories 4 and 5, which also edit `scripts/review-override.py`. The reviewer filters stay (spec.md → Amendment).
+- **Story 7** runs last. It removes the panel and writes the shipped-file scan test for the panel names.
 
 Gate 0 text in `commands/implement-story.md` (Story 7 removes the `--panel` route qualifier) overlaps `2026-10-25-design-divergence`. Land Story 7 after that spec's Story 6, or rebase onto it.

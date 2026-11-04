@@ -34,12 +34,12 @@
 - **Story 2 comes first.** This story calls `review-override.py evidence`, uses `switch --name evidence-gate`, and reads `skills/evidence-gated-findings/SKILL.md`. None of these exist yet.
 - **Open choice: the agent Read condition.** The spec says the agents get a "conditional" Read line but does not name the condition. This story uses an `evidence_gate` input. Gate 3 resolves it once per story with `review-override.py switch --name evidence-gate` and passes it to every Gate 3 spawn. Confirm before task 3.4.
 - **Re-review rows wait for Story 4.** The `repro_removed`, `repro_modified`, and `repro_still_failing` states need `--prior`. This story maps the `fail (<reason>)` line. Its tests do not assert those rows.
-- **Placement pin.** `scripts/tests/test_review_route_rigor.py` (`test_conditional_line_follows_filters_line`) requires the safety-fact Read line to sit two lines after the reviewer-filters Read line. Put the evidence Read after the safety-fact line in `review-agent.md`, or that test fails. Story 6 rewrites this pin.
+- **Placement pin.** `scripts/tests/test_review_route_rigor.py` (`test_conditional_line_follows_filters_line`) requires the safety-fact Read line to sit two lines after the reviewer-filters Read line. Put the evidence Read after the safety-fact line in `review-agent.md`, or that test fails. The pin stays, because the filters stay (spec.md → Amendment).
 - **Row 3 re-spawns.** A `review-agent` re-spawn can change the agent output. Run `evidence` on the output Gate 3 holds after row 3 resolves.
 - **Gate 2 scope.** The spec names lint and typecheck commands only. Gate 2 also runs arch-lint commands. Those are not saved, so a `check` repro cannot run them.
 - **Scope of the "When to FAIL" edit.** Task 3.4 aligns those bullets with the new severity text. The spec names only the Severity Definitions. Without this, the agent gets two conflicting rules.
 - **Test isolation.** The replay must not run in the live checkout. A repro writes into the repo, and the tree snapshot would see it. Do not run pytest while `eval.sh` or other writes to `.writ/state/` run in the same checkout.
-- **Byte budget.** `commands/implement-story.md` measured 40759 bytes at authoring (2026-11-04). This story adds bytes. Stories 3, 4, 6, and 7 must net to zero or less (spec.md → ## Implementation Approach → Byte budget). Stories 6 and 7 carry the cuts. Re-measure before task 3.1.
+- **Byte budget.** `commands/implement-story.md` measured 40759 bytes at authoring (2026-11-04). This story adds bytes. The stories that edit it (3, 4, and 7) must net to zero or less (spec.md → ## Implementation Approach → Byte budget). Story 7 carries the cuts. Re-measure before task 3.1.
 - **Overlap.** `2026-10-25-design-divergence` also edits `commands/implement-story.md`, in Gate 0 only. If it has landed, rebase on it (spec.md → ## Specification Contract → Cross-Spec Overlap).
 
 ## Definition of Done
