@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-04T20:09:36Z
+> Last Updated: 2026-11-04T21:31:52Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-04-evidence-gated-review — Evidence-Gated Review
-- **Status:** Not Started (spec.md header); Stories 1 and 2 of 7 completed on branch `phase/15-code-level-rigor`
-- **Story:** 2 of 7 — Evidence skill and the `evidence` subcommand (Completed ✅); next is Story 3 — Gate 3 wiring for evidence-gated findings (Not Started)
-- **Progress:** 14/48 tasks complete (29%)
+- **Status:** Not Started (spec.md header); Stories 1, 2, and 3 of 7 completed on branch `phase/15-code-level-rigor`
+- **Story:** 3 of 7 — Gate 3 wiring for evidence-gated findings (Completed ✅); next is Story 4 — Confirmed repros become regression tests (Not Started). Story 5 — Evidence gating in `/review` (Not Started) is also unblocked.
+- **Progress:** 20/48 tasks complete (42%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-011 Gate 3 passes `--timeout 60` — evidence-gated-review (Small)
+- DEV-010 Byte budget: Story 4 has about 170 bytes left — evidence-gated-review (Medium)
 - DEV-009 The pytest test-failed class needs a failed count, not exit 1 alone — evidence-gated-review (Small)
-- DEV-008 The scoped command keeps `Test Runner` tokens through the runner word only — evidence-gated-review (Small)
-- DEV-007 The snapshot hashes every status path, records HEAD, and runs git with read-only flags — evidence-gated-review (Small)
 
 ## Open Issues
 

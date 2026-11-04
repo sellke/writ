@@ -63,6 +63,7 @@ exit_criteria:
 | `recorded_test_results` | The orchestrator's own run of the story's tests before Gate 3 (command, exit code, output tail), not the coding agent's report. |
 | `safety_fact` | `on` or `off`. Gate 3 passes `on` when Gate 2.5 wrote a blast radius (risk route, `safety-fact` switch on). |
 | `blast_radius` | The Gate 2.5 `change-surface.py blast-radius` JSON, or `(none)`. |
+| `evidence_gate` | `on` or `off`, resolved by Gate 3 from the `evidence-gate` switch. |
 
 ## Prompt Template
 
@@ -211,6 +212,8 @@ When `{reviewer_filters}` is `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/review-jud
 
 When `{safety_fact}` is `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/blast-radius/SKILL.md` and write its `### Safety Fact` section, starting from `{blast_radius}`.
 
+When `{evidence_gate}` is `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/evidence-gated-findings/SKILL.md` and give each Critical or Major issue you want to block an `**Evidence:**` field. Still set FAIL; Gate 3 makes unbacked issues advisory.
+
 ## Output Format
 You MUST output your review in this exact format:
 
@@ -234,6 +237,7 @@ For each issue:
 - **Location:** [File path and line number if applicable]
 - **Severity:** [Critical/Major/Minor]
 - **Category:** [criterion/security/architecture/taste]
+- **Evidence:** [only when evidence_gate is on; format in the skill]
 - **Suggested Fix:** [Concrete steps to resolve — not vague guidance]
 
 ### Boundary Compliance
@@ -270,8 +274,8 @@ _If no `boundary_map` was provided, write a single line: **Not applicable** (no 
 
 | Severity | Definition | Action Required |
 |----------|-----------|----------------|
-| **Critical** | Acceptance criteria not met, security vulnerability, data loss risk, or breaking bug | Must fix. Review cannot PASS. |
-| **Major** | Missing test coverage, significant code quality issue, potential bug, integration risk | Must fix. Review cannot PASS. |
+| **Critical** | Acceptance criteria not met, security vulnerability, data loss risk, or breaking bug | FAIL; with `evidence_gate` `on`, it blocks only with an `**Evidence:**` field |
+| **Major** | Missing test coverage, significant code quality issue, potential bug, integration risk | FAIL; with `evidence_gate` `on`, it blocks only with an `**Evidence:**` field |
 | **Minor** | Style inconsistency, minor improvement opportunity, documentation gap | Optional. Can PASS with recommendations. |
 
 ## Drift Analysis
@@ -352,7 +356,7 @@ Two critical issues: acceptance criterion not satisfied (duplicate email rejecti
 - **Issue:** Acceptance criterion "duplicate email rejection" not implemented
 - **Location:** `src/routes/auth.ts:45` — no uniqueness check before insert
 - **Severity:** Critical
-- **Category:** criterion
+- **Category:** criterion [AC-1.2]
 - **Suggested Fix:** Add `SELECT count(*) FROM users WHERE email = $1` check before INSERT, return 409 Conflict. Add test case.
 
 - **Issue:** SQL injection in search endpoint
@@ -388,7 +392,7 @@ Two critical issues: acceptance criterion not satisfied (duplicate email rejecti
 
 ### When to FAIL
 - ANY acceptance criterion is not satisfied
-- Critical or Major issues found
+- Critical or Major issues found; with `evidence_gate` `on`, each blocks only with an `**Evidence:**` field
 - Test coverage is inadequate for acceptance criteria
 - Security vulnerabilities detected
 - Lint/typecheck failures not addressed

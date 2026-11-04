@@ -102,3 +102,55 @@
 - **Reason:** It meets the contract's rules that "Runners report a failing test and a broken test … differently" and "One broken repro makes that finding advisory". It matches the jest, vitest, and rspec rows, which already require a failed count. The review asked for this change (first review, Issue 1).
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** technical-spec § Runner Classification, pytest row: Test-failed class "exit 1 and a summary with `N failed`, N ≥ 1"; Everything else "exit 1 without a failed count (setup errors, an interpreter without pytest), exit 2 to 5".
+
+---
+
+## Story 3: Gate 3 wiring for evidence-gated findings — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-010] Byte budget: Story 4 has about 170 bytes left
+- **Severity:** Medium
+- **Spec said:** spec.md → Implementation Approach → Byte budget: the net change to `commands/implement-story.md` across Stories 3, 4, and 7 is ≤ 0, and "Story 7's panel removals … must free at least what Stories 3 and 4 add."
+- **Implementation did:** Story 3 is now +1180 (40759 → 41939), down from +1419 after the five cuts:
+  - the check bullet shortened
+  - `--repo .` dropped
+  - the duplicated contradicts bullet dropped
+  - the FAIL-only sentence dropped
+  - the stale architecture/security/taste sentence dropped
+
+  Story 7's measured panel removals are about 1,500 bytes gross:
+  - paragraph: 1,179
+  - Invocation row: 120
+  - usage clause: 40
+  - Overview: 36
+  - Gate 3.5 clause: 70
+  - smaller mentions: 47
+  - the "panel `block`" rewording: about 25
+
+  After its two removal messages, about 1,350 net. That leaves Story 4 about 170 bytes. Story 4's minimum additions are larger:
+  - ` --manifest-out .writ/state/evidence-<story-stem>.json`: 54 bytes
+  - the `--prior` form: about 49
+  - row 3a: about 110
+  - the `## Evidence repros` recode brief with its no-edit line: about 200
+  - the manifest paths in the re-review's recorded run: about 80
+
+  Roughly 450 to 500 bytes, so the spec total lands near +300.
+- **Reason:** Story 3 now fits its share. The spec constraint still fails at Story 7 unless Story 4 cuts or the spec is amended.
+- **Resolution:** ⚠️ Medium — logged, PASS. Carried to Story 4 (apply the reviewer's −219 bytes of binding cuts) and Story 7; if the net is still above 0 at Story 7, the user decides.
+  1. Bind `<manifest>` once, as the save line now binds `<review>` and `<tests>`, so `--manifest-out` and `--prior` do not repeat the path (about −45).
+  2. Bind `<checks>` in the Gate 2 sentence and use it in the command (about −24).
+  3. Make the Gate 3 save unconditional, so the Jev shadow can reuse `<review>` and `<tests>`. This cuts its 177-byte "save the recorded test output (…) under `.writ/state/`" clause and 76-byte argument list down to the diff save (about −150). `test_jev_shadow_hooks.sh` pins "targeted run" and "not the full suite", so those pins move with it.
+  4. Amend the byte-budget rule if the user accepts a small positive net.
+- **Spec amendment:** None yet. If Stories 4 and 7 cannot reach net ≤ 0, the user decides whether to amend spec.md → Implementation Approach → Byte budget.
+
+#### [DEV-011] Gate 3 passes `--timeout 60`
+- **Severity:** Small
+- **Spec said:** technical-spec § Gate 3 Wiring's command has no `--timeout`, so the default is 120 s.
+- **Implementation did:** `--timeout 60`, so five runs fit the 600 s tool limit (Story 2's note).
+- **Reason:** Cosmetic. Spec intent is preserved.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Gate 3 Wiring: drop `--repo .` from the command and add `--timeout 60`. Add "`--repo` defaults to `.`; Gate 3 passes `--timeout 60` so five runs fit a 600 s tool call."

@@ -792,13 +792,16 @@ class Gate3SafetyFactTest(unittest.TestCase):
         self.assertIn("`safety_fact` (`on` unless `blast_radius` is `(none)`)", same_inputs[0])
 
     def test_unverifiable_is_not_degraded(self) -> None:
-        paragraph = slice_between(self.gate3, "**Safety fact", "**Jev shadow")
+        paragraph = slice_between(self.gate3, "**Safety fact", "**Evidence.**")
         self.assertIn("never `⚠️ DEGRADED`", paragraph)
 
     def test_contradicts_routes_before_re_review(self) -> None:
-        paragraph = slice_between(self.gate3, "**Safety fact", "**Jev shadow")
-        self.assertLess(paragraph.index("safety_fact_contradicts_verdict"),
-                        paragraph.index("safety_fact_missing"))
+        """2026-11-04 (2026-11-04-evidence-gated-review Story 3): the contradicts
+        bullet moved into Gate 3's decision table as row 2, ahead of row 3
+        (missing or below floor)."""
+        table = slice_between(self.gate3, "**Evidence.**", "**Jev shadow")
+        self.assertLess(table.index("safety_fact_contradicts_verdict"),
+                        table.index("safety_fact_missing"))
 
     def test_verifier_runs_only_in_gate3(self) -> None:
         self.assertEqual(self.text.count("review-override.py safety-fact"), 1)

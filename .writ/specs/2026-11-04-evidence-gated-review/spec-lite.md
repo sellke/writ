@@ -25,6 +25,7 @@
 - Switch pattern is `^[ \t]*-[ \t]*\*\*Evidence Gate:\*\*[ \t]*(.*)$`. Malformed fields get the first selection reason they fail.
 - The snapshot hashes every status path, records HEAD (`repro_mutated_tree (HEAD)`), and runs git read-only.
 - The scoped command keeps `Test Runner` tokens through the runner word. pytest confirms only on exit 1 with `N failed`.
+- Gate 3 calls `evidence` with `--timeout 60` (five runs fit a 600 s tool call) and relies on the `--repo .` default (DEV-011).
 
 **Error Handling:**
 - No `Test Runner` or no git → `unverifiable`, and the agent FAIL stands.

@@ -368,8 +368,9 @@ class Gate3WiringTests(unittest.TestCase):
         gate3 = text[start:end]
         self.assertIn("Verify the claim, don't trust it.", gate3)
         self.assertIn("scripts/review-override.py check", gate3)
-        self.assertIn("FAIL-only", gate3)
-        self.assertIn("does not force PASS", gate3)
+        # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): "FAIL-only" and
+        # "does not force PASS" went with the sentence; the bullet says "no override".
+        self.assertIn("→ no override", gate3)
         self.assertIn("⚠️ DEGRADED", gate3)
         self.assertIn("not", gate3.lower())
 
