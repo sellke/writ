@@ -220,3 +220,91 @@
 - **Resolution:** ⚠️ Medium — logged, PASS.
 - **Spec amendment:** None. Story 4's re-review check (`repro_removed`) only covers repros listed in a manifest; this one never entered one.
 
+---
+
+## Story 4: Confirmed repros become regression tests — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-019] The no-edit line is shorter
+- **Severity:** Small
+- **Spec said:** technical-spec § Gate 3 Wiring: "Create this file with this exact content and do not edit it. Make it pass."
+- **Implementation did:** "Create it exactly; do not edit it. Make it pass." (`commands/implement-story.md:332`)
+- **Reason:** Byte budget. The instruction is the same.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Gate 3 Wiring: the instruction line reads "Create it exactly; do not edit it. Make it pass."
+
+#### [DEV-020] A run that changed the tree writes no manifest
+- **Severity:** Small
+- **Spec said:** § Manifest: write on confirmation. It does not mention mutation.
+- **Implementation did:** No entry is written when `run.mutated` is set.
+- **Reason:** A mutation is a BLOCKED escalation (now row 1), not a recode.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Manifest: "A run that ends with `repro_mutated_tree` writes nothing."
+
+#### [DEV-021] What `repro_removed` and `repro_modified` cover
+- **Severity:** Small
+- **Spec said:** `repro_removed` means not in `--changed`. `repro_modified` means the hash differs.
+- **Implementation did:** `repro_removed` also covers a file gone from disk. `repro_modified` also covers a directory, an unreadable file, non-UTF-8 content, and a symlink that resolves outside the repo.
+- **Reason:** Each case gets the more accurate reason. Recode 1 added tests for the directory, Latin-1, and outside-symlink cases, and S19 is killed.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Manifest: "`repro_removed`: not in `--changed`, or gone from disk. `repro_modified`: the normalized SHA-256 differs, or the path is not a readable UTF-8 file inside the repo."
+
+#### [DEV-022] Manifest entries are validated lexically
+- **Severity:** Small
+- **Spec said:** A manifest that is missing or has the wrong schema gives `bad_manifest`.
+- **Implementation did:** An entry without a string `sha256`, with an absolute or `..` path, or (since recode 1) with a `content` that is not a string also gives `bad_manifest`.
+- **Reason:** A planted symlink cannot turn a valid manifest into `bad_manifest`.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Error & Rescue Map, `--prior` row: add "or an entry without `sha256`, with a path outside the repo, or with a `content` that is not a string".
+
+#### [DEV-023] The prior-only output form on PASS and PAUSE
+- **Severity:** Small
+- **Spec said:** On PASS or PAUSE, line 1 is `pass` with `reason: prior_ok`, or `fail`. The summary is not specified.
+- **Implementation did:** The summary is `review-override evidence: <state> (<first reason>)`. Recode 1 limited this path to PASS and PAUSE, closing F2.
+- **Reason:** No findings are evaluated on this path, so there are no counts.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI: "On PASS or PAUSE with `--prior`, the summary is `review-override evidence: pass (prior_ok)` or `fail (<first reason>)`."
+
+#### [DEV-024] `no_review_output` is checked before the manifest
+- **Severity:** Small
+- **Spec said:** The `--prior` checks run "before anything else".
+- **Implementation did:** The switch and an unreadable review output are checked first.
+- **Reason:** Without a review there is no verdict to route on, and both outcomes are run-level `unverifiable`.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Manifest: "after the switch and the review-output read, these checks run before anything else".
+
+#### [DEV-025] Gate 3 byte cuts
+- **Severity:** Small
+- **Spec said:** technical-spec § Gate 3 Wiring shows `--repo .`. The Story 3 save was conditional.
+- **Implementation did:** `--repo .` is dropped from `check` and `safety-fact`, `<checks>` is bound once, and the save runs on every verdict, which the Jev shadow reuses.
+- **Reason:** Byte budget (DEV-010).
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Gate 3 Wiring: "Save the review and the recorded run on every verdict. `--repo` defaults to `.`."
+
+#### [DEV-026] ⚠️ The tree-mutation row is first, ahead of every other row
+- **Severity:** Medium
+- **Spec said:** spec.md § Gate 3 decision orders the rows `check`, contradicts, safety-fact, 3a, PASS/PAUSE, switch off, then `repro_mutated_tree` at row 6. technical-spec § Interaction Edge Cases says "Agent FAIL, and check also fails: Row 1 wins". The contract's Hardest Constraint says a tree mutation is BLOCKED.
+- **Implementation did:** `commands/implement-story.md:321` makes `repro_mutated_tree` → BLOCKED row 1. Spec rows 1 to 3 become 2 to 4, 3a becomes 4a, 4 and 5 become 5 and 6, and the old row 6 is gone. The mirrors and `test_a_tree_mutation_outranks_every_row` follow.
+- **Reason:** The contract outranks the expanded rules. The table and the `blocked (...)` report line now agree for a mutation combined with a prior failure (probe B). The change in Story 3 routing is limited to an evidence run that mutated the tree: it now BLOCKs even when `check` fails or the safety fact is below floor. Both outcomes still block, so contract Business Rule 4 (check and safety-fact keep their semantics) holds in effect.
+- **Resolution:** Fixed in the command. The spec.md amendment is pending; the orchestrator logs it. Flagged for review.
+- **Spec amendment:** spec.md § Gate 3 decision: put the mutation row first, renumber to 1, 2, 3, 4, 4a, 5, 6, 7, 8, 9, and add "A tree mutation outranks every row (Hardest Constraint)." technical-spec § Interaction Edge Cases, "Agent FAIL, and check also fails": "Row 2 wins, unless `evidence` reports `repro_mutated_tree`, which is BLOCKED (row 1)." Story 4's AC and tasks still say "row 3a"; update them to 4a or note the relabel.
+
+#### [DEV-027] Manifest entries carry the normalized `content`, and a row 4a brief reads it
+- **Severity:** Small
+- **Spec said:** technical-spec § Manifest lists finding, path, sha256, kind, and location. The recode brief carries "the exact content".
+- **Implementation did:** Each new entry stores `content`, the normalized repro, which hashes to `sha256`. On row 4a, the brief takes the repros from `<manifest>`. `content` is optional when loaded, so the manifest this story's own Gate 3 wrote, which has no `content`, stays valid.
+- **Reason:** Without it, a row 4a recode for `repro_removed` or `repro_modified` had no source for the repro (iteration-1 Recommendation 3). The field is additive and backward compatible.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § Manifest: add `"content": "<normalized repro>"` to the example entry and the sentence "`content` is optional; a row 4a recode brief restores the repro from it."
+
+#### [DEV-028] A run-level stop after a failed prior check prints `fail`
+- **Severity:** Small
+- **Spec said:** The technical-spec § CLI table makes `no_git`, `runner_not_found`, and `verdict_not_fail` run-level `unverifiable`. § Manifest says each prior failure "makes line 1 `fail`".
+- **Implementation did:** On gate3 with prior failures, `_run_level` prints `fail`, then the prior reasons, then the stop's reason, and the summary names the first prior reason. With no prior failures, the output is unchanged.
+- **Reason:** It resolves the two rules in favor of AC-4.2 (F1, F2).
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI, `unverifiable` row: "…unless a `--prior` check failed: then line 1 is `fail`, with the prior reasons, then the run-level reason."

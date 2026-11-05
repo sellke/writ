@@ -20,17 +20,12 @@
 - `scripts/review-panel.py`: `status`/`tally` removed, trial helpers kept
 - `.writ/docs/config-format.md`, `adapters/*.md`, `scripts/eval.sh`, `.writ/decision-records/adr-032-evidence-gated-review.md`
 
-**Story 2 output and detection (DEV-004 to DEV-009):**
-- Finding lines end ` at <location>`; an unverifiable finding prints `advisory (unverifiable <reason>)`.
-- Switch pattern is `^[ \t]*-[ \t]*\*\*Evidence Gate:\*\*[ \t]*(.*)$`. Malformed fields get the first selection reason they fail.
-- The snapshot hashes every status path, records HEAD (`repro_mutated_tree (HEAD)`), and runs git read-only.
-- The scoped command keeps `Test Runner` tokens through the runner word. pytest confirms only on exit 1 with `N failed`.
-- Gate 3 calls `evidence` with `--timeout 60` (five runs fit a 600 s tool call) and relies on the `--repo .` default (DEV-011).
-
-**Story 5 `/review` surface (DEV-012 to DEV-017):**
-- Keys are FM IDs; line 2 is `evidence-gate: <value>`; finding lines end `; severity <mapped>`. Block Category wins; first registry row per ID wins (`duplicate_row`).
-- A tree mutation is run-level `unverifiable (repro_mutated_tree …)`, and Step 4 stops before any Recommendation. `/review` passes `--timeout 60`.
-- `/review` always asks before a repro run; a decline, headless run, or no answer is `unverifiable (untrusted_branch)`. Gate `off` skips the question.
+**As built (drift-log DEV-004 to DEV-028):**
+- Output: gate3 finding lines end ` at <location>`; `/review` uses FM keys, line 2 `evidence-gate: <value>`, and `; severity <mapped>`. Unverifiable findings print `advisory (unverifiable <reason>)`.
+- Detection: the switch regex uses `[ \t]*`; the scoped command keeps `Test Runner` tokens through the runner word; pytest confirms only on exit 1 with `N failed`. Both surfaces pass `--timeout 60`.
+- Snapshot: hashes every status path, records HEAD, runs git read-only. Gate 3 row 1 is `repro_mutated_tree` → BLOCKED (DEV-026); `/review` stops before any Recommendation.
+- `/review` always asks before a repro run; a decline, headless run, or no answer is `unverifiable (untrusted_branch)`; gate `off` skips the question.
+- Manifest entries carry normalized `content` beside `sha256`. Only PASS and PAUSE take the prior-only path; prior failures survive a later run-level stop as `fail`.
 
 **Error Handling:**
 - No `Test Runner` or no git → `unverifiable`, and the agent FAIL stands.

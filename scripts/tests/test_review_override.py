@@ -10,6 +10,7 @@ re-derive findings itself. [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -1620,17 +1621,17 @@ class EvidenceEnvelopeTests(EvidenceTestCase):
                 self.assertIn("usage:", proc.stderr)
 
     def test_known_surfaces_and_later_story_flags_parse(self) -> None:
-        """AC-2.2 — `--surface gate3|review`, `--manifest-out`, `--prior`, and
-        `--timeout` parse; the manifest flags write nothing yet. `review`
-        (Story 5) adds its header line and finds no registry here."""
+        """AC-2.2 — `--surface gate3|review`, `--manifest-out`, and `--timeout`
+        parse; with nothing confirmed, `--manifest-out` writes nothing. `review`
+        (Story 5) adds its header line and finds no registry here. `--prior`
+        has behavior since Story 4 (`EvidenceManifestTests`)."""
         for case in ("gate3", "review", "manifest"):
             with self.subTest(case=case), TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 repo = _ev_repo(root)
                 out = root / "out"
                 extra = ("--surface", case) if case != "manifest" else (
-                    "--manifest-out", str(out / "evidence.json"),
-                    "--prior", str(out / "prior.json"), "--timeout", "30")
+                    "--manifest-out", str(out / "evidence.json"), "--timeout", "30")
                 proc = _ev_run(root, repo, _ev_review(), extra=extra)
                 header = ["evidence-gate: on"] if case == "review" else []
                 self.assert_output(proc, ["pass"] + header + [_ev_summary("pass", 0, 0, 0)])
@@ -2951,6 +2952,503 @@ class ReviewSurfaceMappingTests(ReviewSurfaceTestCase):
             runner="jest", STUB_WRITE="src/limits.py")
         self.assert_output(proc, _rv_unverifiable("repro_mutated_tree src/limits.py"))
         self.assertEqual(runs, [["src/a1.test.js"]])
+
+
+# ---------------------------------------------------------------------------
+# Story 4 of `2026-11-04-evidence-gated-review`: confirmed repros become
+# regression tests. `--manifest-out` records each confirmed `test` repro in an
+# `evidence-manifest-v1` file, written atomically and merged with an existing
+# one. `--prior` checks each recorded repro first, on any verdict: still in
+# `--changed`, unmodified after normalization, and named by a recorded run
+# that exited 0. Same fixture project and stubs as Story 2.
+# [AC-4.1, AC-4.2, AC-4.3, AC-4.4]
+# ---------------------------------------------------------------------------
+
+MF_SCHEMA = "evidence-manifest-v1"
+MF_STEM = "story-9-replay"
+MF_NAME = "evidence-%s.json" % MF_STEM
+# EV_REPRO_FAIL is already in normal form: LF endings, no trailing whitespace,
+# one final newline. So its plain SHA-256 is the normalized one.
+MF_SHA = hashlib.sha256(EV_REPRO_FAIL.encode("utf-8")).hexdigest()
+MF_ENTRY = {"finding": "F1", "path": EV_REPRO, "sha256": MF_SHA, "kind": "test",
+            "location": "src/limits.py:3", "content": EV_REPRO_FAIL}
+MF_RUN_OK = "command: python3 -m pytest %s\nexit code: 0\n1 passed in 0.01s\n" % EV_REPRO
+MF_CHANGED = ("src/limits.py", EV_REPRO)
+MF_PRIOR_OK = ["pass", "reason: prior_ok", "review-override evidence: pass (prior_ok)"]
+
+
+def _mf_doc(*repros: dict, story: str = MF_STEM) -> dict:
+    return {"schema": MF_SCHEMA, "story": story, "repros": list(repros)}
+
+
+def _mf_write(path: Path, doc) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+def _mf_read(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _mf_prior_fail(*reasons: str) -> list:
+    """Output on a PASS or PAUSE verdict when `--prior` checks fail: only the
+    prior checks ran, so the summary names the first reason."""
+    return (["fail"] + ["reason: %s" % r for r in reasons]
+            + ["review-override evidence: fail (%s)" % reasons[0]])
+
+
+class EvidenceManifestTests(EvidenceTestCase):
+    """Story 4 of `2026-11-04-evidence-gated-review` — the `--manifest-out`
+    write and the `--prior` checks. [AC-4.1, AC-4.2, AC-4.3, AC-4.4]"""
+
+    def prior_repo(self, root: Path, content: str | None = EV_REPRO_FAIL, *,
+                   runner: str | None = EV_PYTEST, repros: tuple = (MF_ENTRY,),
+                   files: dict | None = None, git: bool = True) -> tuple:
+        """The fixture repo with the repro on disk as the coder created it
+        (uncommitted, exact bytes), and a manifest outside the repo."""
+        repo = _ev_repo(root, runner=runner, files=files, git=git)
+        if content is not None:
+            (repo / EV_REPRO).parent.mkdir(parents=True, exist_ok=True)
+            (repo / EV_REPRO).write_bytes(content.encode("utf-8"))
+        return repo, _mf_write(root / "state" / MF_NAME, _mf_doc(*repros))
+
+    def run_prior(self, root: Path, repo: Path, manifest: Path, verdict: str, *issues: list,
+                  changed: tuple = MF_CHANGED, tests: str | None = MF_RUN_OK,
+                  env: dict | None = None) -> subprocess.CompletedProcess:
+        return _ev_run(root, repo, _ev_review(*issues, verdict=verdict), changed=changed,
+                       tests=tests, extra=("--prior", str(manifest)), env=env)
+
+    # --- the manifest write ------------------------------------------------
+
+    def test_confirmed_test_repro_writes_one_entry(self) -> None:
+        """AC-4.1 — one entry per confirmed `test` repro: finding key, path,
+        normalized SHA-256, kind, Location, and the normalized `content` a
+        row 4a recode brief restores it from. An advisory repro and a
+        confirmed `recorded` finding get none, the output is unchanged, and
+        no temporary file is left beside the manifest."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            manifest = root / "state" / MF_NAME
+            tests = ("command: python3 -m pytest\nexit code: 1\n"
+                     "FAILED tests/test_limits.py::test_negative\n1 failed\n")
+            review = _ev_review(_ev_test(), _ev_test("tests/test_two.py", content=EV_REPRO_PASS),
+                                _ev_issue(evidence="recorded `tests/test_limits.py::test_negative`"))
+            proc = _ev_run(root, repo, review, tests=tests,
+                           extra=("--manifest-out", str(manifest)))
+            self.assert_output(proc, [
+                "fail", "finding F1: confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT),
+                "finding F2: advisory (repro_passed)" + EV_AT,
+                "finding F3: confirmed (recorded tests/test_limits.py::test_negative, exit 1)"
+                + EV_AT,
+                "reason: confirmed F1", "reason: confirmed F3", _ev_summary("fail", 2, 1, 0)])
+            self.assertEqual(_mf_read(manifest), _mf_doc(MF_ENTRY))
+            self.assertEqual([p.name for p in manifest.parent.iterdir()], [MF_NAME])
+
+    def test_manifest_hash_is_of_the_normalized_repro(self) -> None:
+        """AC-4.1, AC-4.2 — a fenced repro with trailing whitespace and extra
+        blank lines at the end is recorded with the clean file's SHA-256 and
+        its normalized text as `content`."""
+        messy = ("from src.limits import parse_limit \t\n"
+                 "\n"
+                 "\n"
+                 "def test_negative_limit_rejected():  \n"
+                 "    assert parse_limit(\"-1\") is None\n\n\n")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            manifest = root / "state" / MF_NAME
+            proc = _ev_run(root, repo, _ev_review(_ev_test(content=messy)),
+                           extra=("--manifest-out", str(manifest)))
+            self.assertIn("reason: confirmed F1", proc.stdout, proc.stdout + proc.stderr)
+            self.assertEqual(_mf_read(manifest), _mf_doc(MF_ENTRY))
+
+    def test_one_normalization_for_the_write_and_the_compare(self) -> None:
+        """AC-4.1, AC-4.2 — CRLF endings, trailing whitespace, and a missing or
+        repeated final newline hash as the clean file does; a change inside a
+        line, to indentation, or a dropped blank line does not."""
+        module = _ev_module()
+        same = (EV_REPRO_FAIL.replace("\n", "\r\n"), EV_REPRO_FAIL.replace("\n", " \t\n"),
+                EV_REPRO_FAIL.rstrip("\n"), EV_REPRO_FAIL + "\n\n\n",
+                EV_REPRO_FAIL.replace("\n", "  \r\n").rstrip())
+        for text in same:
+            with self.subTest(text=text):
+                self.assertEqual(module._normalized_sha256(text), MF_SHA)
+        for text in (EV_REPRO_FAIL.replace("-1", "-2"),
+                     EV_REPRO_FAIL.replace("    assert", "        assert"),
+                     EV_REPRO_FAIL.replace("\n\n\n", "\n\n", 1)):
+            with self.subTest(text=text):
+                self.assertNotEqual(module._normalized_sha256(text), MF_SHA)
+
+    def test_merge_keeps_earlier_entries_and_replaces_the_same_path(self) -> None:
+        """AC-4.1 — an existing manifest keeps its other entries and its story
+        in place; a new confirmation at a recorded path replaces that entry,
+        and one at a new path is appended."""
+        earlier = {"finding": "F2", "path": "tests/test_earlier_repro.py", "sha256": "a" * 64,
+                   "kind": "test", "location": "src/routes.py:5"}
+        stale = dict(MF_ENTRY, finding="F3", sha256="b" * 64, location="src/limits.py:9")
+        for existing in ((earlier,), (earlier, stale)):
+            with self.subTest(existing=len(existing)), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                manifest = _mf_write(root / "state" / MF_NAME,
+                                     _mf_doc(*existing, story="story-9-earlier"))
+                proc = _ev_run(root, repo, _ev_review(_ev_test()),
+                               extra=("--manifest-out", str(manifest)))
+                self.assertIn("reason: confirmed F1", proc.stdout, proc.stdout + proc.stderr)
+                self.assertEqual(_mf_read(manifest),
+                                 _mf_doc(earlier, MF_ENTRY, story="story-9-earlier"))
+
+    def test_no_new_confirmation_leaves_the_file_unchanged(self) -> None:
+        """AC-4.1 — a run that confirms no `test` repro leaves an existing
+        manifest byte for byte, and creates none when there is none."""
+        raw = b'{"schema":"evidence-manifest-v1","story":"x","repros":[]}'
+        for existing in (True, False):
+            with self.subTest(existing=existing), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                manifest = root / "state" / MF_NAME
+                if existing:
+                    manifest.parent.mkdir()
+                    manifest.write_bytes(raw)
+                proc = _ev_run(root, repo, _ev_review(_ev_test(content=EV_REPRO_PASS)),
+                               extra=("--manifest-out", str(manifest)))
+                self.assert_output(proc, ["pass", "finding F1: advisory (repro_passed)" + EV_AT,
+                                          _ev_summary("pass", 0, 1, 0)])
+                if existing:
+                    self.assertEqual(manifest.read_bytes(), raw)
+                else:
+                    self.assertFalse(manifest.parent.exists())
+
+    def test_unwritable_manifest_adds_manifest_write_failed(self) -> None:
+        """AC-4.1 — a manifest that cannot be written (its parent is a file, or
+        its path is a directory) adds `reason: manifest_write_failed`; line 1,
+        the exit code, and the summary stay, and no temporary file is left."""
+        for case in ("parent_is_file", "path_is_dir"):
+            with self.subTest(case=case), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo = _ev_repo(root)
+                state = root / "state"
+                state.mkdir()
+                if case == "parent_is_file":
+                    (state / "blocker").write_text("", encoding="utf-8")
+                    manifest = state / "blocker" / MF_NAME
+                else:
+                    manifest = state / MF_NAME
+                    manifest.mkdir()
+                proc = _ev_run(root, repo, _ev_review(_ev_test()),
+                               extra=("--manifest-out", str(manifest)))
+                self.assert_output(proc, [
+                    "fail", "finding F1: confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT),
+                    "reason: confirmed F1", "reason: manifest_write_failed",
+                    _ev_summary("fail", 1, 0, 0)])
+                left = sorted(p.name for p in state.iterdir())
+                self.assertEqual(left, ["blocker"] if case == "parent_is_file" else [MF_NAME])
+
+    def test_tree_mutation_writes_no_manifest(self) -> None:
+        """AC-4.1 — a run that changed the tree is a BLOCKED escalation, not a
+        recode, so not even the confirmed repro before it is recorded."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            manifest = root / "state" / MF_NAME
+            proc = _ev_run(root, repo, _ev_review(
+                _ev_test(), _ev_test("tests/test_second.py",
+                                     content=EvidenceTreeSnapshotTests.WRITE_X)),
+                extra=("--manifest-out", str(manifest)))
+            self.assertEqual(proc.stdout.splitlines()[:2], [
+                "fail", "finding F1: confirmed (test %s, exit 1)%s" % (EV_REPRO, EV_AT)],
+                proc.stdout + proc.stderr)
+            self.assertIn("reason: repro_mutated_tree src/x.py", proc.stdout)
+            self.assertFalse(manifest.parent.exists())
+
+    # --- the --prior checks ------------------------------------------------
+
+    def test_removed_repro_fails_on_every_verdict(self) -> None:
+        """AC-4.2 — a recorded path missing from `--changed`, or gone from disk:
+        line 1 `fail` with `reason: repro_removed <path>`, on PASS, PAUSE, and
+        FAIL alike."""
+        reason = "repro_removed %s" % EV_REPRO
+        for verdict in ("PASS", "PAUSE", "FAIL"):
+            for case in ("not_in_changed", "deleted"):
+                with self.subTest(verdict=verdict, case=case), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    deleted = case == "deleted"
+                    repo, manifest = self.prior_repo(root, None if deleted else EV_REPRO_FAIL)
+                    proc = self.run_prior(root, repo, manifest, verdict,
+                                          changed=MF_CHANGED if deleted else ("src/limits.py",))
+                    self.assert_output(proc, _mf_prior_fail(reason) if verdict != "FAIL" else [
+                        "fail", "reason: " + reason, _ev_summary("fail", 0, 0, 0)])
+
+    def test_modified_repro_fails(self) -> None:
+        """AC-4.2 — a recorded repro whose normalized content differs from the
+        manifest: `reason: repro_modified <path>`, on any verdict."""
+        weakened = EV_REPRO_FAIL.replace("is None", "== -1")
+        for verdict in ("PASS", "FAIL"):
+            with self.subTest(verdict=verdict), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root, weakened)
+                proc = self.run_prior(root, repo, manifest, verdict)
+                reason = "repro_modified %s" % EV_REPRO
+                self.assert_output(proc, _mf_prior_fail(reason) if verdict == "PASS" else [
+                    "fail", "reason: " + reason, _ev_summary("fail", 0, 0, 0)])
+
+    def test_a_path_that_is_not_the_recorded_file_is_modified(self) -> None:
+        """AC-4.2 — a directory at the path, or a file that is not UTF-8
+        (Latin-1 bytes of the recorded text): `repro_modified <path>`."""
+        latin = EV_REPRO_FAIL + "# caf\u00e9\n"
+        for case in ("directory", "latin1"):
+            with self.subTest(case=case), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                # The Latin-1 file holds the recorded text, so only a strict
+                # UTF-8 read tells it apart.
+                entry = (dict(MF_ENTRY, sha256=_ev_module()._normalized_sha256(latin))
+                         if case == "latin1" else MF_ENTRY)
+                repo, manifest = self.prior_repo(root, None, repros=(entry,))
+                target = repo / EV_REPRO
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if case == "directory":
+                    target.mkdir()
+                else:
+                    target.write_bytes(latin.encode("latin-1"))
+                proc = self.run_prior(root, repo, manifest, "PASS")
+                self.assert_output(proc, _mf_prior_fail("repro_modified %s" % EV_REPRO))
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "needs os.symlink")
+    def test_outside_symlink_with_the_recorded_content_is_modified(self) -> None:
+        """AC-4.2 — a symlink at the path to a file outside the repo with the
+        recorded content: `repro_modified <path>`. The outside file is never
+        read as the repro."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo, manifest = self.prior_repo(root, None)
+            outside = root / "outside_repro.py"
+            outside.write_text(EV_REPRO_FAIL, encoding="utf-8")
+            (repo / "tests").mkdir()
+            os.symlink(str(outside), str(repo / EV_REPRO))
+            proc = self.run_prior(root, repo, manifest, "PASS")
+            self.assert_output(proc, _mf_prior_fail("repro_modified %s" % EV_REPRO))
+
+    def test_run_level_stop_after_the_prior_checks_keeps_the_prior_failure(self) -> None:
+        """AC-4.2 — on FAIL, a run-level stop after the prior checks (runner
+        binary missing, a runner that cannot start, no git) still gives line 1
+        `fail`: the prior reasons, then the run-level reason, and the summary
+        names the first prior reason."""
+        removed = "repro_removed %s" % EV_REPRO
+        cases = (("missing_runner", "/nonexistent/bin/pytest", None, True, "runner_not_found"),
+                 ("runner_cannot_start", "bin/pytest", {"bin/pytest": "not a program\n"}, True,
+                  "runner_not_found"),
+                 ("no_git", EV_PYTEST, None, False, "no_git"))
+        for name, runner, files, git, reason in cases:
+            with self.subTest(case=name), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root, runner=runner, files=files, git=git)
+                if files:
+                    os.chmod(str(repo / "bin" / "pytest"), 0o755)
+                proc = self.run_prior(root, repo, manifest, "FAIL",
+                                      _ev_test("tests/test_second_repro.py"),
+                                      changed=("src/limits.py",),
+                                      env=_ev_env(GIT_CEILING_DIRECTORIES=str(root)))
+                self.assert_output(proc, ["fail", "reason: " + removed, "reason: " + reason,
+                                          "review-override evidence: fail (%s)" % removed])
+                self.assertFalse((repo / "tests" / "test_second_repro.py").exists())
+
+    def test_unread_verdict_is_verdict_not_fail_with_prior(self) -> None:
+        """AC-4.2 — only PASS or PAUSE takes the prior-only path. No verdict
+        line, or one the script cannot read (`**REVIEW_RESULT:** FAIL` without
+        a heading), is `verdict_not_fail none`, as without `--prior`; a failed
+        prior check still makes line 1 `fail`, so it cannot pass as row 9."""
+        unread = "**REVIEW_RESULT:** FAIL\n\n### Summary\nOne issue.\n"
+        for review in (_ev_review(verdict=None), unread):
+            with self.subTest(review=review[:24]), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root)
+                flags = ("--prior", str(manifest))
+                proc = _ev_run(root, repo, review, changed=MF_CHANGED, tests=MF_RUN_OK,
+                               extra=flags)
+                self.assert_output(proc, _ev_unverifiable("verdict_not_fail none"))
+                proc = _ev_run(root, repo, review, changed=("src/limits.py",), tests=MF_RUN_OK,
+                               extra=flags)
+                removed = "repro_removed %s" % EV_REPRO
+                self.assert_output(proc, ["fail", "reason: " + removed,
+                                          "reason: verdict_not_fail none",
+                                          "review-override evidence: fail (%s)" % removed])
+
+    def test_manifest_without_content_stays_valid(self) -> None:
+        """AC-4.4 — `content` is optional: an entry written before it existed
+        still checks out (`prior_ok`); a `content` that is not a string is
+        `bad_manifest`."""
+        old = {k: v for k, v in MF_ENTRY.items() if k != "content"}
+        for entry, expected in ((old, MF_PRIOR_OK),
+                                (dict(MF_ENTRY, content=7), _ev_unverifiable("bad_manifest"))):
+            with self.subTest(entry=sorted(entry)), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root, repros=(entry,))
+                self.assert_output(self.run_prior(root, repo, manifest, "PASS"), expected)
+
+    def test_line_endings_and_trailing_whitespace_are_not_a_change(self) -> None:
+        """AC-4.2 — CRLF endings, trailing whitespace, and the final newline
+        alone do not count: with a passing recorded run, `pass` and
+        `reason: prior_ok`."""
+        for text in (EV_REPRO_FAIL.replace("\n", "\r\n"), EV_REPRO_FAIL.replace("\n", "  \n"),
+                     EV_REPRO_FAIL.rstrip("\n"), EV_REPRO_FAIL + "\n\n"):
+            with self.subTest(text=text), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root, text)
+                self.assert_output(self.run_prior(root, repo, manifest, "PASS"), MF_PRIOR_OK)
+
+    def test_still_failing_when_the_run_misses_the_path_or_did_not_exit_0(self) -> None:
+        """AC-4.3 — a recorded run that does not name the repro's path, has no
+        `exit code: 0` line, or is missing: `reason: repro_still_failing <path>`."""
+        runs = ("command: python3 -m pytest tests/test_limits.py\nexit code: 0\n1 passed\n",
+                "command: python3 -m pytest %s\nexit code: 1\n1 failed\n" % EV_REPRO,
+                "command: python3 -m pytest %s\n1 passed\n" % EV_REPRO,
+                None)
+        for tests in runs:
+            with self.subTest(tests=tests), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root)
+                proc = self.run_prior(root, repo, manifest, "PAUSE", tests=tests)
+                self.assert_output(proc, _mf_prior_fail("repro_still_failing %s" % EV_REPRO))
+
+    def test_passing_repro_prints_no_reason_line(self) -> None:
+        """AC-4.3 — the recorded run names the path and exits 0: no reason line
+        for it. On PASS or PAUSE that is `pass` with `prior_ok`; on FAIL the
+        new findings decide, as they do without `--prior`."""
+        for verdict in ("PASS", "PAUSE", "FAIL"):
+            with self.subTest(verdict=verdict), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root)
+                proc = self.run_prior(root, repo, manifest, verdict)
+                self.assert_output(proc, MF_PRIOR_OK if verdict != "FAIL" else [
+                    "pass", _ev_summary("pass", 0, 0, 0)])
+
+    def test_fail_verdict_evaluates_new_findings_after_the_prior_checks(self) -> None:
+        """AC-4.2 — on FAIL, the prior reasons print first and new findings are
+        then evaluated as usual."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo, manifest = self.prior_repo(root)
+            proc = self.run_prior(root, repo, manifest, "FAIL",
+                                  _ev_test("tests/test_second_repro.py"),
+                                  changed=("src/limits.py",))
+            self.assert_output(proc, [
+                "fail", "finding F1: confirmed (test tests/test_second_repro.py, exit 1)" + EV_AT,
+                "reason: repro_removed %s" % EV_REPRO, "reason: confirmed F1",
+                _ev_summary("fail", 1, 0, 0)])
+
+    def test_pass_or_pause_runs_only_the_prior_checks(self) -> None:
+        """AC-4.2 — on PASS or PAUSE no new finding is evaluated or run, and
+        `--prior` writes nothing: git index, HEAD, status, and the manifest
+        bytes are unchanged."""
+        for verdict in ("PASS", "PAUSE"):
+            with self.subTest(verdict=verdict), TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                repo, manifest = self.prior_repo(root, runner="jest")
+                status_args = ("--no-optional-locks", "status", "--porcelain=v1",
+                               "--untracked-files=all")
+                status = _ev_git(repo, *status_args)
+                index = (repo / ".git" / "index").read_bytes()
+                before = manifest.read_bytes()
+                argv = root / "argv.jsonl"
+                proc = self.run_prior(root, repo, manifest, verdict,
+                                      _ev_test("src/limits.test.js"),
+                                      env=_ev_env(STUB_ARGV=str(argv)))
+                self.assert_output(proc, MF_PRIOR_OK)
+                self.assertEqual(_ev_argv(argv), [])
+                self.assertEqual((repo / ".git" / "index").read_bytes(), index)
+                self.assertEqual(_ev_git(repo, *status_args), status)
+                self.assertEqual(manifest.read_bytes(), before)
+
+    def test_each_repro_reports_its_first_failing_check_in_manifest_order(self) -> None:
+        """AC-4.2, AC-4.3 — removed, then modified, then still failing: one
+        reason per repro, in manifest order; a passing repro adds none."""
+        def entry(path: str) -> dict:
+            return dict(MF_ENTRY, path=path)
+        repros = (entry("tests/test_c_repro.py"), entry("tests/test_a_repro.py"), MF_ENTRY,
+                  entry("tests/test_b_repro.py"))
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo, manifest = self.prior_repo(root, repros=repros)
+            (repo / "tests" / "test_c_repro.py").write_text(EV_REPRO_FAIL, encoding="utf-8")
+            (repo / "tests" / "test_b_repro.py").write_text(EV_REPRO_PASS, encoding="utf-8")
+            changed = ("src/limits.py", EV_REPRO, "tests/test_b_repro.py", "tests/test_c_repro.py")
+            proc = self.run_prior(root, repo, manifest, "PASS", changed=changed)
+            self.assert_output(proc, _mf_prior_fail(
+                "repro_still_failing tests/test_c_repro.py", "repro_removed tests/test_a_repro.py",
+                "repro_modified tests/test_b_repro.py"))
+
+    def test_bad_manifest_is_unverifiable_and_the_verdict_stands(self) -> None:
+        """AC-4.4 — a `--prior` manifest that is missing, unreadable, not JSON,
+        not `evidence-manifest-v1`, or holds a malformed repro: `unverifiable`
+        with `reason: bad_manifest`, exit 0, and nothing runs."""
+        cases = {
+            "missing": None,
+            "directory": "dir",
+            "not_json": "{",
+            "wrong_schema": dict(_mf_doc(MF_ENTRY), schema="evidence-manifest-v0"),
+            "no_schema": {"repros": [MF_ENTRY]},
+            "not_an_object": [MF_ENTRY],
+            "repros_not_a_list": dict(_mf_doc(), repros=MF_ENTRY),
+            "entry_without_sha256": _mf_doc({"path": EV_REPRO, "kind": "test"}),
+            "entry_outside_the_repo": _mf_doc(dict(MF_ENTRY, path="../outside_repro.py")),
+            "absolute_entry": _mf_doc(dict(MF_ENTRY, path="/tmp/test_x_repro.py")),
+        }
+        for verdict in ("FAIL", "PASS"):
+            for name, doc in cases.items():
+                with self.subTest(verdict=verdict, case=name), TemporaryDirectory() as tmp:
+                    root = Path(tmp)
+                    repo, manifest = self.prior_repo(root, runner="jest")
+                    manifest.unlink()
+                    if doc == "dir":
+                        manifest.mkdir()
+                    elif isinstance(doc, str):
+                        manifest.write_text(doc, encoding="utf-8")
+                    elif doc is not None:
+                        _mf_write(manifest, doc)
+                    argv = root / "argv.jsonl"
+                    proc = self.run_prior(root, repo, manifest, verdict,
+                                          _ev_test("src/limits.test.js"),
+                                          env=_ev_env(STUB_ARGV=str(argv)))
+                    self.assert_output(proc, _ev_unverifiable("bad_manifest"))
+                    self.assertEqual(_ev_argv(argv), [])
+
+    def test_switch_off_runs_no_prior_check(self) -> None:
+        """AC-4.2 — with `Evidence Gate: off`, `--prior` checks nothing:
+        `unverifiable` with `switch_off`, even for a removed repro."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo, manifest = self.prior_repo(root, None)
+            (repo / ".writ" / "config.md").write_text(
+                _ev_config(EV_PYTEST, ("- **Evidence Gate:** off",)), encoding="utf-8")
+            proc = self.run_prior(root, repo, manifest, "PASS")
+            self.assert_output(proc, _ev_unverifiable("switch_off"))
+
+    def test_round_trip_through_the_written_manifest(self) -> None:
+        """AC-4.1, AC-4.2, AC-4.3 — the manifest a confirmed FAIL writes under
+        `.writ/state/` guards the repro on re-review: absent, `repro_removed`;
+        created from the brief (here with CRLF endings) and passing, `prior_ok`,
+        and the manifest is left as it was."""
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root)
+            manifest = repo / ".writ" / "state" / MF_NAME
+            flags = ("--manifest-out", str(manifest), "--prior", str(manifest))
+            first = _ev_run(root, repo, _ev_review(_ev_test()), extra=flags[:2])
+            self.assertIn("reason: confirmed F1", first.stdout, first.stdout + first.stderr)
+            self.assertEqual(_mf_read(manifest), _mf_doc(MF_ENTRY))
+            written = manifest.read_bytes()
+
+            missing = _ev_run(root, repo, _ev_review(verdict="PASS"), tests=MF_RUN_OK, extra=flags)
+            self.assert_output(missing, _mf_prior_fail("repro_removed %s" % EV_REPRO))
+
+            (repo / "tests").mkdir()
+            (repo / EV_REPRO).write_bytes(EV_REPRO_FAIL.replace("\n", "\r\n").encode("utf-8"))
+            again = _ev_run(root, repo, _ev_review(verdict="PASS"), changed=MF_CHANGED,
+                            tests=MF_RUN_OK, extra=flags)
+            self.assert_output(again, MF_PRIOR_OK)
+            self.assertEqual(manifest.read_bytes(), written)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@
 | 1 | [ADR-032 and the review-surface inventory](story-1-adr-032-review-surface-inventory.md) | Completed ✅ | High | 7 | 7/7 |
 | 2 | [Evidence skill and the `evidence` subcommand](story-2-evidence-skill-and-subcommand.md) | Completed ✅ | High | 7 | 7/7 |
 | 3 | [Gate 3 wiring for evidence-gated findings](story-3-gate-3-wiring.md) | Completed ✅ | High | 6 | 6/6 |
-| 4 | [Confirmed repros become regression tests](story-4-repro-as-regression-test.md) | Not Started | High | 7 | 0/7 |
+| 4 | [Confirmed repros become regression tests](story-4-repro-as-regression-test.md) | Completed ✅ | High | 7 | 7/7 |
 | 5 | [Evidence gating in `/review`](story-5-review-evidence-gating.md) | Completed ✅ | Medium | 7 | 7/7 |
 | 6 | [Raise the Safety Fact floor to `tested`](story-6-raise-safety-fact-floor.md) | Not Started | Medium | 7 | 0/7 |
 | 7 | [Remove the review panel and close out the roadmap](story-7-remove-panel-close-roadmap.md) | Not Started | Medium | 7 | 0/7 |

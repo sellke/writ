@@ -75,8 +75,26 @@ line 1 `fail`, stops later runs, and restores nothing. Prints line 1
 <a> advisory, <u> unverifiable)`. A run-level `unverifiable` (`switch_off`,
 `no_review_output`, `verdict_not_fail <verdict>`, `no_git`,
 `runner_not_found`, `no_test_runner`) prints no finding lines. Git runs are
-read-only. `--prior` and `--manifest-out` are accepted and do nothing yet.
-Exit 0 pass/unverifiable, 1 fail, 2 usage.
+read-only. Exit 0 pass/unverifiable, 1 fail, 2 usage.
+
+Story 4: `--manifest-out` merges each confirmed `test` repro (finding key,
+path, SHA-256 of the normalized content, kind `test`, Location) into an
+`evidence-manifest-v1` file, written atomically: an entry with the same path
+is replaced, the rest stay, and a run with no confirmed `test` repro or with
+a tree change writes nothing. A failed write adds `manifest_write_failed` and
+leaves line 1 as it is. Each entry also holds the normalized repro as
+`content`, which older manifests lack. `--prior MANIFEST` checks each
+recorded repro before any finding, on any verdict: `repro_removed <path>`
+(not in `--changed`, or gone), `repro_modified <path>` (normalized SHA-256
+differs), `repro_still_failing <path>` (`--tests-output` does not name it or
+has no `exit code: 0` line). Normalized means CRLF as LF, trailing whitespace
+stripped per line, one final newline. Each failure is a `reason:` line and
+makes line 1 `fail`, also when the run then stops run-level (`no_git`,
+`runner_not_found`, `verdict_not_fail`): the stop's reason follows, and the
+summary names the first prior reason. Only on PASS or PAUSE do these checks
+run alone: line 1 `pass` with `prior_ok`, or `fail`. A missing, unreadable,
+or malformed manifest is run-level `unverifiable` with `bad_manifest`.
+`--prior` reads file bytes and the recorded run only.
 
 `--surface review` (Story 5) reads a `/review` report instead: the Failure
 Modes Registry rows, keyed by FM ID, each bound to its `#### FM-NNN` block
@@ -468,10 +486,18 @@ def _traced_ok(repo: Path, tokens: List[str], union: Optional[Set[str]]) -> bool
     return False
 
 
-def _tested_ok(repo: Path, token: str, tests_text: Optional[str]) -> bool:
-    if tests_text is None or "::" not in token:
+def _run_names_ok(tests_text: Optional[str], cited: str) -> bool:
+    """The recorded run has an `exit code: 0` line and names `cited`. The
+    `tested` rung and the `--prior` repro check share this rule."""
+    if tests_text is None:
         return False
     if not any(line.strip() == "exit code: 0" for line in tests_text.splitlines()):
+        return False
+    return cited in tests_text or posixpath.normpath(cited) in tests_text
+
+
+def _tested_ok(repo: Path, token: str, tests_text: Optional[str]) -> bool:
+    if tests_text is None or "::" not in token:
         return False
     cited, _, names = token.partition("::")
     target = _inside(repo, cited)
@@ -484,7 +510,7 @@ def _tested_ok(repo: Path, token: str, tests_text: Optional[str]) -> bool:
         name = PARAM_ID.sub("", name)
         if not name or name not in body:
             return False
-    return cited in tests_text or posixpath.normpath(cited) in tests_text
+    return _run_names_ok(tests_text, cited)
 
 
 def _reproduced_ok(repo: Path, token: str) -> bool:
@@ -583,6 +609,7 @@ GIT_TIMEOUT = 60
 KILL_GRACE = 5
 DIFF_KEY = "\0diff"  # snapshot key for the `git diff HEAD` hash; never a path
 HEAD_KEY = "\0head"  # snapshot key for HEAD's commit and branch; never a path
+MANIFEST_SCHEMA = "evidence-manifest-v1"  # Story 4: confirmed `test` repros
 
 # Issue parsing copies the `_issue_entries` / `normalize_location` patterns
 # from review-panel.py rather than importing them (that file is being trimmed).
@@ -742,9 +769,10 @@ def _evidence_findings(lines: Sequence[str], surface: str = "gate3") -> List[Fin
     return findings
 
 
-def _normalize_location(raw: str) -> Optional[str]:
+def _normalize_location(raw: str, line: bool = False) -> Optional[str]:
     """Path from a `**Location:**` value: the first backticked span (else the
-    first word), without leading `./`, trailing `:line[-line]`, or whitespace."""
+    first word), without leading `./`, trailing `:line[-line]` (kept with
+    `line`, as the manifest records it), or whitespace."""
     raw = raw.strip()
     if not raw or raw.strip("*_[]").lower() in PLACEHOLDER_LOCATIONS:
         return None
@@ -753,7 +781,8 @@ def _normalize_location(raw: str) -> Optional[str]:
     path = path.strip().rstrip(",;")
     while path.startswith("./"):
         path = path[2:]
-    path = TRAILING_LINE_NO.sub("", path).strip()
+    if not line:
+        path = TRAILING_LINE_NO.sub("", path).strip()
     if not path or path.lower() in PLACEHOLDER_LOCATIONS:
         return None
     return posixpath.normpath(path)
@@ -1171,6 +1200,7 @@ class EvidenceRun:
         self.runs = 0
         self.declared: Set[str] = set()
         self.mutated: List[str] = []
+        self.confirmed: List[Tuple[Finding, str]] = []  # `test` repros, for the manifest
 
     def test(self, finding: Finding, rest: str) -> Outcome:
         """Write the fenced repro at its path, run it scoped, delete it, and
@@ -1242,6 +1272,7 @@ class EvidenceRun:
             return Outcome("unverifiable", "timeout %d" % self.timeout)
         state, reason = _classify(self.runner.kind, code, output)
         if state == "confirmed":
+            self.confirmed.append((finding, rel))
             return Outcome(state, "test %s, exit %d" % (rel, code))
         return Outcome(state, reason)
 
@@ -1299,6 +1330,131 @@ def _read_checks(path: Optional[Path]) -> Optional[List[List[str]]]:
     return commands
 
 
+def _normalized(text: str) -> str:
+    """`text` with CRLF as LF, trailing whitespace stripped from each line,
+    and exactly one final newline."""
+    lines = [line.rstrip() for line in text.replace("\r\n", "\n").split("\n")]
+    return "\n".join(lines).rstrip("\n") + "\n"
+
+
+def _normalized_sha256(text: str) -> str:
+    """SHA-256 of the normalized `text`. The manifest write and the `--prior`
+    compare both hash this form."""
+    return hashlib.sha256(_normalized(text).encode("utf-8")).hexdigest()
+
+
+def _manifest_path_ok(raw: Any) -> bool:
+    """A relative path that stays inside the repo on its face. Checked without
+    touching the disk, so a symlink planted at the path cannot turn the
+    manifest into `bad_manifest`; `_prior_reasons` resolves it."""
+    if not isinstance(raw, str) or not raw or os.path.isabs(raw):
+        return False
+    rel = posixpath.normpath(raw)
+    return rel not in (".", "..") and not rel.startswith("../")
+
+
+def _load_manifest(path: Optional[Path]) -> Optional[dict]:
+    """A readable `evidence-manifest-v1` document whose every repro has a
+    `sha256` string, a repo-relative `path`, and, when present, a `content`
+    string (older manifests have none); None otherwise."""
+    text = _read_text(path)
+    if text is None:
+        return None
+    try:
+        doc = json.loads(text)
+    except (ValueError, RecursionError):  # malformed, or nested past the recursion limit
+        return None
+    repros = doc.get("repros") if isinstance(doc, dict) else None
+    if not isinstance(repros, list) or doc.get("schema") != MANIFEST_SCHEMA:
+        return None
+    for entry in repros:
+        if not (isinstance(entry, dict) and isinstance(entry.get("sha256"), str)
+                and _manifest_path_ok(entry.get("path"))
+                and isinstance(entry.get("content", ""), str)):
+            return None
+    return doc
+
+
+def _prior_reasons(doc: dict, repo: Path, change_set: Set[str],
+                   tests_text: Optional[str]) -> List[str]:
+    """One reason per recorded repro that fails, from its first failing check:
+    `repro_removed` (not in the change set, or gone from disk),
+    `repro_modified` (the normalized SHA-256 differs, or the path is no longer
+    a readable file inside the repo), `repro_still_failing` (the recorded run
+    does not name it, or did not exit 0). Reads file bytes and the recorded
+    run only; nothing runs."""
+    reasons: List[str] = []
+    for entry in doc["repros"]:
+        rel = posixpath.normpath(entry["path"])
+        if rel not in change_set or not os.path.lexists(str(repo / rel)):
+            reasons.append("repro_removed %s" % rel)
+            continue
+        target = _inside(repo, rel)
+        text: Optional[str] = None
+        if target is not None and target.is_file():
+            try:
+                text = target.read_bytes().decode("utf-8")
+            except (OSError, UnicodeDecodeError):
+                text = None
+        if text is None or _normalized_sha256(text) != entry["sha256"]:
+            reasons.append("repro_modified %s" % rel)
+        elif not _run_names_ok(tests_text, rel):
+            reasons.append("repro_still_failing %s" % rel)
+    return reasons
+
+
+# Copied from review-panel.py rather than imported (Story 7 trims that file).
+def _write_json_atomic(path: Path, doc: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(".%s.tmp" % path.name)
+    tmp.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(str(tmp), str(path))
+
+
+def _write_manifest(path: Path, confirmed: Sequence[Tuple[Finding, str]]) -> bool:
+    """Merge each confirmed `test` repro into the manifest at `path` and write
+    it atomically: an entry with the same path is replaced in place, the rest
+    stay. `content` is the normalized repro, so a row 4a recode can restore
+    it. A file that is not a valid manifest starts over. False when the write
+    fails; the temporary file is removed."""
+    stem = path.stem  # evidence-<story-stem>
+    story = stem[len("evidence-"):] if stem.startswith("evidence-") else stem
+    doc = _load_manifest(path) or {"schema": MANIFEST_SCHEMA, "story": story, "repros": []}
+    repros = list(doc["repros"])
+    for finding, rel in confirmed:
+        content = _normalized(finding.block or "")
+        entry = {"finding": finding.key, "path": rel, "content": content,
+                 "sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(), "kind": "test",
+                 "location": _normalize_location(finding.fields.get("location", ""), line=True)}
+        at = next((i for i, old in enumerate(repros)
+                   if posixpath.normpath(old["path"]) == rel), None)
+        if at is None:
+            repros.append(entry)
+        else:
+            repros[at] = entry
+    doc["repros"] = repros
+    try:
+        _write_json_atomic(path, doc)
+    except OSError:
+        try:
+            path.with_name(".%s.tmp" % path.name).unlink()
+        except OSError:
+            pass
+        return False
+    return True
+
+
+def _run_level(reason: str, prior_reasons: Sequence[str], review: bool) -> int:
+    """A run-level stop after the `--prior` checks. On gate3 a failed prior
+    check still decides: line 1 `fail` with the prior reasons, then this
+    reason, and the summary names the first prior reason. Otherwise the
+    stop is run-level `unverifiable`, as without `--prior`."""
+    if prior_reasons and not review:
+        return _emit("fail", list(prior_reasons) + [reason],
+                     "review-override evidence: fail (%s)" % prior_reasons[0])
+    return _evidence_unverifiable(reason, review)
+
+
 def _evidence_unverifiable(reason: str, review: bool = False) -> int:
     # On `--surface review`, line 2 is the `/review` header's evidence-gate value.
     header: List[str] = []
@@ -1311,7 +1467,8 @@ def _evidence_unverifiable(reason: str, review: bool = False) -> int:
 
 def evidence(review_output: Path, repo: Path, changed: Sequence[str],
              tests_output: Optional[Path], checks: Optional[Path], timeout: int,
-             surface: str = "gate3") -> int:
+             surface: str = "gate3", prior: Optional[Path] = None,
+             manifest_out: Optional[Path] = None) -> int:
     repo = repo.resolve()
     review = surface == "review"
     if _resolve_switch("evidence-gate", repo)[0] == "off":
@@ -1319,17 +1476,29 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
     text = _read_text(review_output)
     if text is None or not text.strip():
         return _evidence_unverifiable("no_review_output", review)
+    change_set = {rel for rel in (_rel(repo, p) for p in changed) if rel}
+    tests_text = _read_text(tests_output)
+    prior_reasons: List[str] = []
+    if prior is not None:  # re-review: earlier confirmed repros are checked first
+        doc = _load_manifest(prior)
+        if doc is None:
+            return _evidence_unverifiable("bad_manifest", review)
+        prior_reasons = _prior_reasons(doc, repo, change_set, tests_text)
     duplicates: List[str] = []  # /review registry rows that repeat an FM ID
     if review:  # /review writes no verdict
         findings, duplicates = _review_findings(text.splitlines())
     else:
         match = VERDICT_LINE.search(text)
         verdict = match.group(1).upper() if match else "none"
-        if verdict != "FAIL":
-            return _evidence_unverifiable("verdict_not_fail %s" % verdict)
+        if verdict in ("PASS", "PAUSE") and prior is not None:
+            # A PASS or PAUSE has nothing to downgrade: only the prior checks run.
+            state = "fail" if prior_reasons else "pass"
+            shown = prior_reasons or ["prior_ok"]
+            return _emit(state, shown, "review-override evidence: %s (%s)" % (state, shown[0]))
+        if verdict != "FAIL":  # an unread verdict never takes the prior-only path
+            return _run_level("verdict_not_fail %s" % verdict, prior_reasons, review)
         findings = _evidence_findings(text.splitlines())
 
-    change_set = {rel for rel in (_rel(repo, p) for p in changed) if rel}
     blocking = REVIEW_SEVERITIES if review else BLOCKING_SEVERITIES
     outcomes: Dict[str, Outcome] = {}
     kinds: Dict[str, str] = {}  # evidence kind of each finding that passed selection
@@ -1360,12 +1529,11 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
     if needs_runner or (not review and "check" in kinds.values()):
         top = _git_root(repo)
         if top is None:
-            return _evidence_unverifiable("no_git", review)
+            return _run_level("no_git", prior_reasons, review)
     if needs_runner and not _executable(runner.base[0], repo):
-        return _evidence_unverifiable("runner_not_found", review)
+        return _run_level("runner_not_found", prior_reasons, review)
 
     run = EvidenceRun(repo, top, change_set, runner, runner_reason, _read_checks(checks), timeout)
-    tests_text = _read_text(tests_output)
     for finding in findings:
         if finding.key not in kinds:
             continue
@@ -1388,7 +1556,7 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
         else:
             outcome = Outcome("unverifiable", "unknown_kind %s" % kind)
         if outcome.state == "abort":
-            return _evidence_unverifiable(outcome.detail, review)
+            return _run_level(outcome.detail, prior_reasons, review)
         outcomes[finding.key] = outcome
     if review and run.mutated:
         # No row's evidence can be trusted after the tree changed, so every
@@ -1397,7 +1565,7 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
 
     counts = {"confirmed": 0, "advisory": 0, "unverifiable": 0}
     lines: List[str] = ["evidence-gate: on"] if review else []
-    reasons: List[str] = []
+    reasons: List[str] = list(prior_reasons)
     for finding in findings:
         outcome = outcomes[finding.key]
         counts[outcome.state] += 1
@@ -1418,11 +1586,15 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
         if outcome.state == "confirmed":
             reasons.append("confirmed %s" % finding.key)
     reasons.extend("duplicate_row %s" % key for key in duplicates)
+    # A tree change is a BLOCKED escalation, not a recode: record nothing.
+    if manifest_out is not None and run.confirmed and not run.mutated:
+        if not _write_manifest(manifest_out, run.confirmed):
+            reasons.append("manifest_write_failed")  # line 1 stays; the brief still carries them
     if run.mutated:
         reasons.insert(0, "repro_mutated_tree %s" % " ".join(run.mutated))
     decided = any(kinds[key] in ("recorded", "check", "security-path")
                   and outcomes[key].state != "unverifiable" for key in kinds)
-    if run.mutated or counts["confirmed"]:
+    if run.mutated or counts["confirmed"] or prior_reasons:
         verdict = "fail"
     elif not runner_value and kinds and not decided:
         # No Test Runner and nothing decided by another kind: the agent FAIL stands.
@@ -1471,8 +1643,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="`review` reads a /review report (registry rows and FM-NNN blocks)")
     e.add_argument("--tests-output", type=Path, default=None)
     e.add_argument("--checks", type=Path, default=None)
-    e.add_argument("--prior", type=Path, default=None, help="accepted; does nothing yet")
-    e.add_argument("--manifest-out", type=Path, default=None, help="accepted; does nothing yet")
+    e.add_argument("--prior", type=Path, default=None,
+                   help="evidence-manifest-v1 file: check its repros first, on any verdict")
+    e.add_argument("--manifest-out", type=Path, default=None,
+                   help="merge each confirmed `test` repro into this manifest")
     e.add_argument("--timeout", type=_positive_int, default=DEFAULT_TIMEOUT,
                    help="seconds per run (default %d)" % DEFAULT_TIMEOUT)
     return parser
@@ -1492,7 +1666,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                            args.tests_output)
     if args.action == "evidence":
         return evidence(args.review_output, args.repo, args.changed, args.tests_output,
-                        args.checks, args.timeout, args.surface)
+                        args.checks, args.timeout, args.surface, args.prior, args.manifest_out)
     return check(args.spec, args.repo, args.story, args.new_files, args.tests)
 
 

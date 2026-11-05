@@ -672,7 +672,14 @@ KNOWN_OVER_BUDGET = {
     # `evidence`, and carries the nine-row decision table and report line, less five
     # Gate 3 cuts. The spec requires Stories 3, 4, and 7 to net <= 0 against 40759
     # bytes; the design-divergence removal (-2208) landed separately and does not count.
-    "commands/implement-story.md": 14771,
+    # 2026-11-04 (2026-11-04-evidence-gated-review Story 4): 14771 -> 14969 (+198);
+    # Gate 3 binds `<manifest>`, writes it with `--manifest-out`, runs `--prior` on
+    # every verdict once it exists (row 4a), recodes with `## Evidence repros` (on
+    # row 4a, from `<manifest>`), adds manifest paths to `recorded_test_results`, and
+    # puts the tree-mutation row first (DEV-026). Offsets: `<checks>` bound once, the
+    # save made unconditional so the Jev shadow reuses `<review>` and `<tests>`, and
+    # `--repo .` dropped from `check` and `safety-fact`. Stories 3 + 4: +1378.
+    "commands/implement-story.md": 14969,
 }
 
 

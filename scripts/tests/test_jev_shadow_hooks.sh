@@ -22,13 +22,21 @@ SHADOW_LINES="$(printf '%s\n' "$GATE3" | grep -F 'jev-judge.py ac-shadow' || tru
   || fail "Gate 3 must carry exactly one ac-shadow line"
 for needle in \
   'If `python3 scripts/jev-judge.py status` prints `pass`' \
-  'python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests-output> --diff <diff> --review-output <review-output>' \
-  "the story's targeted run, \`recorded_test_results\`, not the full suite" \
+  'python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests> --diff <diff> --review-output <review>' \
   'story-report note' \
   'never changes PASS/FAIL/PAUSE' \
   'never counts toward the review loop' \
   'never marks the story `⚠️ DEGRADED`'; do
   printf '%s\n' "$SHADOW_LINES" | grep -Fq "$needle" || fail "ac-shadow line must say: $needle"
+done
+# 2026-11-04 (2026-11-04-evidence-gated-review Story 4): Gate 3 saves the review
+# and recorded run on every verdict, so ac-shadow reuses <review> and <tests>.
+# <tests> is the story's targeted run, not the full suite.
+for needle in \
+  "\`recorded_test_results\` = the orchestrator's run (\`command:\`, \`exit code: N\`, output tail) of the story's tests" \
+  'Save the review to `<review>` = `.writ/state/gate3-review-<story-stem>.md`' \
+  '`recorded_test_results` to `<tests>` = `.writ/state/gate3-tests-<story-stem>.txt`'; do
+  printf '%s\n' "$GATE3" | grep -Fq "$needle" || fail "Gate 3 must say: $needle"
 done
 python3 - "$STORY_CMD" <<'PY' || fail "the ac-shadow line must follow the review-override block inside Gate 3"
 import sys

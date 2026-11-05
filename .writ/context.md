@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-05T00:03:42Z
+> Last Updated: 2026-11-05T02:02:17Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-04-evidence-gated-review — Evidence-Gated Review
-- **Status:** Not Started (spec.md header); Stories 1, 2, 3, and 5 of 7 completed on branch `phase/15-code-level-rigor`
-- **Story:** 5 of 7 — Evidence gating in `/review` (Completed ✅); next is Story 4 — Confirmed repros become regression tests (Not Started). Story 6 waits on Story 4.
-- **Progress:** 27/48 tasks complete (56%)
+- **Status:** Not Started (spec.md header); Stories 1 to 5 of 7 completed on branch `phase/15-code-level-rigor`
+- **Story:** 4 of 7 — Confirmed repros become regression tests (Completed ✅); next is Story 6 — Raise the Safety Fact floor to `tested` (Not Started). Story 7 waits on Story 6.
+- **Progress:** 34/48 tasks complete (71%)
 
 ## Artifact Map
 
@@ -23,10 +23,10 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-018 A confirmed repro was not committed: the user's decision overtook it — evidence-gated-review (Medium)
-- DEV-017 `/review` passes `--timeout 60` — evidence-gated-review (Small)
-- DEV-016 `/review` always asks before the evidence run (`untrusted_branch`) — evidence-gated-review (Medium)
+- DEV-028 A run-level stop after a failed prior check prints `fail` — evidence-gated-review (Small)
+- DEV-027 Manifest entries carry the normalized `content`, and a row 4a brief reads it — evidence-gated-review (Small)
+- DEV-026 The tree-mutation row is first, ahead of every other row — evidence-gated-review (Medium)
 
 ## Open Issues
 
-25 open issue files in .writ/issues/ (41 total; 16 closed with `## Resolution`)
+26 open issue files in .writ/issues/ (42 total; 16 closed with `## Resolution`)

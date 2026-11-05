@@ -152,3 +152,9 @@ These reasons are stable:
 | `bad_citation <token>` | A `security-path` citation does not resolve |
 | `repro_mutated_tree` | This run changed a file outside the repro; the story is blocked |
 | `stopped_after_mutation` | Not run, because an earlier run changed the tree |
+| `repro_removed <path>` | Re-review: a manifest repro is not in the change set, or is gone |
+| `repro_modified <path>` | Re-review: a manifest repro's normalized content changed |
+| `repro_still_failing <path>` | Re-review: the recorded run does not name the manifest repro, or did not exit 0 |
+| `bad_manifest` | The `--prior` manifest is missing, unreadable, or malformed; the agent verdict stands |
+| `manifest_write_failed` | The manifest could not be written; the recode brief still carries the repros |
+| `prior_ok` | Re-review on PASS or PAUSE: every manifest repro checked out |

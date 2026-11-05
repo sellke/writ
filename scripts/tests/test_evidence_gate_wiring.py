@@ -8,11 +8,9 @@ FAIL and applies the spec's nine-row Gate 3 decision.
   review and the recorded run on every agent FAIL, whether or not
   `safety_fact` is on [AC-3.3].
 - Gate 3 runs `check`, then `safety-fact`, then `evidence`, and lists the
-  nine rows of spec.md § Gate 3 decision in order, first match wins
-  [AC-3.1]. Row 3a is Story 4's and is not asserted here.
+  rows of spec.md § Gate 3 decision in order, first match wins [AC-3.1].
 - Every State Catalog report line matches exactly one documented
-  `evidence-gate:` form [AC-3.2]. The re-review rows need `--prior`
-  (Story 4) and are not asserted.
+  `evidence-gate:` form [AC-3.2].
 - Both Gate 3 agents take `evidence_gate`, read the skill only when it is
   `on`, carry one `**Evidence:**` field after `**Category:**`, and say a
   Critical or Major issue blocks only with evidence; the `reviewer_filters`
@@ -22,11 +20,20 @@ FAIL and applies the spec's nine-row Gate 3 decision.
   fixture project, then through the decision rows [AC-3.5]. Nothing runs in
   the Writ checkout.
 
+Story 4 of `2026-11-04-evidence-gated-review` adds the `--prior` row (4a),
+the `<manifest>` binding, `--prior` on every verdict once the manifest
+exists, the `## Evidence repros` recode brief, and manifest paths in the
+re-review's recorded run, plus a re-review replay [AC-4.5]. The Gate 3 save
+is unconditional now, so Story 3's save condition moved with it. Its recode
+(DEV-026) moved the tree-mutation row to the top: the contract's Hardest
+Constraint makes any mutation BLOCKED, ahead of every other row.
+
 Run: uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_evidence_gate_wiring.py
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shlex
@@ -55,6 +62,14 @@ EVIDENCE_COMMAND = re.compile(r"`(python3 scripts/review-override\.py evidence [
 GATE2_CHECKS = "`.writ/state/gate2-checks-<story-stem>.txt`"
 GATE3_REVIEW = ".writ/state/gate3-review-<story-stem>.md"
 GATE3_TESTS = "gate3-tests-<story-stem>.txt"
+MANIFEST = ".writ/state/evidence-<story-stem>.json"
+PRIOR_CLAUSE = "(once `<manifest>` exists: any verdict, with `--prior <manifest>`)"
+PRIOR_FLAG = re.compile(r"`(--prior <manifest>)`")
+PRIOR_REASONS = ("repro_removed", "repro_modified", "repro_still_failing")
+RECORDED_RUN_DEF = "of the story's tests and each path in `<manifest>` = `%s`" % MANIFEST
+REPROS_HEADING = "`## Evidence repros`"
+NO_EDIT = "Create it exactly; do not edit it. Make it pass."
+BRIEF_SOURCE = "(row 4a: from `<manifest>`)"
 
 EVIDENCE_LINE = (
     "When `{evidence_gate}` is `on`, `Read skills/evidence-gated-findings/SKILL.md` "
@@ -95,22 +110,25 @@ GENERATED_AGENTS = (
     "codex/agents/review-agent.toml",
 )
 
-# spec.md → ## Business Rules (Expanded) → ### Gate 3 decision, rows 1 to 9:
-# (terms in the condition cell, terms in the result cell).
-DECISION_ROWS: Dict[int, Tuple[Tuple[str, ...], Tuple[str, ...]]] = {
-    1: (("`check`", "`fail`"), ("FAIL", "recode")),
-    2: (("safety_fact_contradicts_verdict",), ("FAIL", "recode")),
-    3: (("safety_fact_missing", "safety_fact_below_floor"), ("routing",)),
-    4: (("PASS", "PAUSE"), ("that verdict",)),
-    5: (("`evidence_gate` `off`",), ("FAIL stands",)),
-    6: (("repro_mutated_tree",), ("BLOCKED escalation", "restart Gate 3")),
-    7: (("line 1 `fail`",), ("FAIL", "recode", "`confirmed`")),
-    8: (("line 1 `unverifiable`", "exit 2"), ("FAIL stands", "never `⚠️ DEGRADED`")),
-    9: (("line 1 `pass`",), ("PASS",)),
+# spec.md → ## Business Rules (Expanded) → ### Gate 3 decision, with the
+# Story 4 recode's order (DEV-026): the tree-mutation row first, then spec
+# rows 1 to 3 as 2 to 4, row 3a as 4a, and rows 4 and 5 as 5 and 6. Rows 7 to
+# 9 keep their numbers. (terms in the condition cell, terms in the result cell)
+DECISION_ROWS: Dict[str, Tuple[Tuple[str, ...], Tuple[str, ...]]] = {
+    "1": (("repro_mutated_tree",), ("BLOCKED escalation", "restart Gate 3")),
+    "2": (("`check`", "`fail`"), ("FAIL", "recode")),
+    "3": (("safety_fact_contradicts_verdict",), ("FAIL", "recode")),
+    "4": (("safety_fact_missing", "safety_fact_below_floor"), ("routing",)),
+    "4a": (tuple("`%s`" % r for r in PRIOR_REASONS), ("FAIL", "recode")),
+    "5": (("PASS", "PAUSE"), ("that verdict",)),
+    "6": (("`evidence_gate` `off`",), ("FAIL stands",)),
+    "7": (("line 1 `fail`",), ("FAIL", "recode", "`confirmed`")),
+    "8": (("line 1 `unverifiable`", "exit 2"), ("FAIL stands", "never `⚠️ DEGRADED`")),
+    "9": (("line 1 `pass`",), ("PASS",)),
 }
+ROW_ORDER = ["1", "2", "3", "4", "4a", "5", "6", "7", "8", "9"]
 
-# spec.md → ## Experience Design → ### State Catalog, one example line per
-# state Story 3 wires. The re-review rows wait for `--prior` (Story 4).
+# spec.md → ## Experience Design → ### State Catalog, one example line per state.
 STATE_CATALOG = (
     ("agent PASS", "evidence-gate: not run (PASS)"),
     ("agent PAUSE", "evidence-gate: not run (PAUSE)"),
@@ -119,6 +137,7 @@ STATE_CATALOG = (
     ("FAIL, no Test Runner", "evidence-gate: unverifiable (no_test_runner)"),
     ("FAIL, helper missing or exit 2", "evidence-gate: unverifiable (runner_not_found)"),
     ("a repro changed the tree", "evidence-gate: blocked (repro_mutated_tree src/x.py)"),
+    ("re-review, prior repro removed", "evidence-gate: fail (repro_removed tests/x_repro.py)"),
     ("switch off", "evidence-gate: off"),
 )
 
@@ -216,39 +235,47 @@ def evidence_reasons(lines: List[str]) -> List[str]:
     return [l[len("reason: "):] for l in lines if l.startswith("reason: ")]
 
 
+def prior_failed(reasons: List[str]) -> bool:
+    return any(r.split()[0] in PRIOR_REASONS for r in reasons if r.split())
+
+
 def gate3_decision(*, verdict: str, evidence: List[str], check: str = "pass",
-                   safety: Optional[str] = None, evidence_gate: str = "on") -> Tuple[str, int]:
-    """spec.md § Gate 3 decision, rows 1 to 9, first match wins.
-    Returns (Gate 3 result, row)."""
-    if check == "fail":
-        return "FAIL", 1
-    if safety == "safety_fact_contradicts_verdict":
-        return "FAIL", 2
-    if safety in ("safety_fact_missing", "safety_fact_below_floor"):
-        return "safety-fact routing", 3
-    if verdict in ("PASS", "PAUSE"):
-        return verdict, 4
-    if evidence_gate == "off":
-        return "FAIL", 5
+                   safety: Optional[str] = None, evidence_gate: str = "on") -> Tuple[str, str]:
+    """The Gate 3 decision table in `commands/implement-story.md` (DECISION_ROWS),
+    first match wins. Returns (Gate 3 result, row)."""
     reasons = evidence_reasons(evidence)
     if reasons and reasons[0].startswith("repro_mutated_tree"):
-        return "BLOCKED", 6
+        return "BLOCKED", "1"
+    if check == "fail":
+        return "FAIL", "2"
+    if safety == "safety_fact_contradicts_verdict":
+        return "FAIL", "3"
+    if safety in ("safety_fact_missing", "safety_fact_below_floor"):
+        return "safety-fact routing", "4"
+    if prior_failed(reasons):
+        return "FAIL", "4a"
+    if verdict in ("PASS", "PAUSE"):
+        return verdict, "5"
+    if evidence_gate == "off":
+        return "FAIL", "6"
     line1 = evidence[0] if evidence else ""
     if line1 == "fail":
-        return "FAIL", 7
+        return "FAIL", "7"
     if line1 == "pass":
-        return "PASS", 9
-    return "FAIL", 8
+        return "PASS", "9"
+    return "FAIL", "8"
 
 
 def gate3_report_line(*, verdict: str, evidence: List[str], evidence_gate: str = "on") -> str:
     if evidence_gate == "off":
         return "evidence-gate: off"
-    if verdict in ("PASS", "PAUSE"):
-        return "evidence-gate: not run (%s)" % verdict
     reasons = evidence_reasons(evidence)
     if reasons and reasons[0].startswith("repro_mutated_tree"):
         return "evidence-gate: blocked (%s)" % reasons[0]
+    if prior_failed(reasons[:1]):
+        return "evidence-gate: fail (%s)" % reasons[0]
+    if verdict in ("PASS", "PAUSE"):
+        return "evidence-gate: not run (%s)" % verdict
     if not evidence or evidence[0] not in ("pass", "fail"):
         return "evidence-gate: unverifiable (%s)" % (reasons[0] if reasons else "helper")
     counts = re.search(r"\((\d+ confirmed, \d+ advisory, \d+ unverifiable)\)$", evidence[-1])
@@ -282,12 +309,18 @@ class Gate2SaveTest(unittest.TestCase):
         self.assertIn("one per line", lines[0])
 
     def test_evidence_reads_the_gate2_record(self) -> None:
-        self.assertIn("--checks %s" % GATE2_CHECKS.strip("`"), evidence_command())
+        """Gate 2 binds `<checks>` once; the evidence command reads it (Story 4)."""
+        self.assertIn("`<checks>` = %s" % GATE2_CHECKS, gate2())
+        self.assertEqual(read(IMPLEMENT_STORY).count(GATE2_CHECKS.strip("`")), 1)
+        argv = shlex.split(evidence_command())
+        self.assertEqual(argv[argv.index("--checks") + 1], "<checks>")
 
 
 class Gate3SaveTest(unittest.TestCase):
-    """Gate 3 saves the review and recorded run on every agent FAIL, whether
-    or not `safety_fact` is on. [AC-3.3]"""
+    """Gate 3 saves the review and recorded run on every verdict, so every
+    agent FAIL has them whether or not `safety_fact` is on. Story 4 made the
+    save unconditional: `--prior` also runs on PASS and PAUSE, and the Jev
+    shadow reuses the two files. [AC-3.3]"""
 
     def test_save_is_not_inside_the_safety_fact_paragraph(self) -> None:
         paragraphs = [p for p in gate3().split("\n\n")
@@ -295,10 +328,15 @@ class Gate3SaveTest(unittest.TestCase):
         self.assertEqual(len(paragraphs), 1, paragraphs)
         save = paragraphs[0]
         self.assertFalse(save.startswith("**Safety fact"), save)
-        self.assertIn("agent FAIL", save)
-        self.assertIn("`safety_fact` on", save)
+        self.assertTrue(save.startswith("Save the review to `<review>`"), save)
+        self.assertNotIn("agent FAIL", save)  # no condition: every verdict
         self.assertIn("`recorded_test_results`", save)
         self.assertLess(gate3().index(save), gate3().index("**Safety fact"))
+
+    def test_jev_shadow_reuses_the_saved_files(self) -> None:
+        jev = [l for l in gate3().splitlines() if "jev-judge.py ac-shadow" in l]
+        self.assertEqual(len(jev), 1, jev)
+        self.assertIn("--tests-output <tests> --diff <diff> --review-output <review>", jev[0])
 
     def test_save_binds_the_placeholders_and_re_saves(self) -> None:
         """`<review>` and `<tests>` name the saved paths; a re-spawn re-saves."""
@@ -361,17 +399,33 @@ class Gate3DecisionTest(unittest.TestCase):
     def setUp(self) -> None:
         self.rows = table_rows(evidence_block())
 
-    def test_nine_rows_numbered_in_order(self) -> None:
-        self.assertEqual([r[0] for r in self.rows], [str(n) for n in range(1, 10)])
+    def test_rows_numbered_in_order(self) -> None:
+        """Rows 1 to 9, with Story 4's `--prior` row 4a between 4 and 5."""
+        self.assertEqual([r[0] for r in self.rows], ROW_ORDER)
+
+    def test_a_tree_mutation_outranks_every_row(self) -> None:
+        """DEV-026: the contract's Hardest Constraint makes any tree mutation
+        BLOCKED. Row 1 is the only row naming `repro_mutated_tree`, so a FAIL
+        re-review with a failed prior check, or a `check` fail, and a mutation
+        is BLOCKED, not a recode. [AC-3.1, AC-4.5]"""
+        named = [r[0] for r in self.rows if "repro_mutated_tree" in r[1]]
+        self.assertEqual(named, ["1"])
+        mutated = ["fail", "reason: repro_mutated_tree src/x.py",
+                   "reason: repro_removed %s" % REPRO, "review-override evidence: fail (x)"]
+        self.assertEqual(gate3_decision(verdict="FAIL", evidence=mutated), ("BLOCKED", "1"))
+        self.assertEqual(gate3_decision(verdict="FAIL", evidence=mutated, check="fail"),
+                         ("BLOCKED", "1"))
+        self.assertEqual(gate3_report_line(verdict="FAIL", evidence=mutated),
+                         "evidence-gate: blocked (repro_mutated_tree src/x.py)")
 
     def test_each_row_names_its_condition_and_result(self) -> None:
         for row in self.rows:
-            number = int(row[0])
-            condition, result = DECISION_ROWS[number]
+            label = row[0]
+            condition, result = DECISION_ROWS[label]
             for term in condition:
-                self.assertIn(term, row[1], "row %d condition: %r" % (number, row))
+                self.assertIn(term, row[1], "row %s condition: %r" % (label, row))
             for term in result:
-                self.assertIn(term, row[2], "row %d result: %r" % (number, row))
+                self.assertIn(term, row[2], "row %s result: %r" % (label, row))
 
 
 # ---------------------------------------------------------------------------
@@ -393,10 +447,10 @@ class Gate3ReportLineTest(unittest.TestCase):
         """`off` follows `evidence_gate`, on every verdict, and leads the list."""
         sentence = next(l for l in evidence_block().splitlines() if l.startswith("Report `"))
         self.assertIn(OFF_CLAUSE, sentence)
-        self.assertNotIn("(row 5)", sentence)
+        self.assertNotIn("(row ", sentence)
         self.assertEqual(report_forms()[0], "evidence-gate: off")
         rows = {r[0]: r for r in table_rows(evidence_block())}
-        self.assertNotIn("switch_off", rows["5"][1])
+        self.assertNotIn("switch_off", rows["6"][1])
 
     def test_report_mirror_prints_off_on_every_verdict(self) -> None:
         for verdict, evidence in (("PASS", []), ("PAUSE", []),
@@ -584,9 +638,9 @@ def evaluator_fail(*, with_repro: bool) -> str:
     return "\n".join(lines)
 
 
-class ReplayTest(unittest.TestCase):
-    """A saved evaluator FAIL, with and without a confirmed `test` repro, run
-    through the documented `evidence` command and the decision rows. [AC-3.5]"""
+class ReplayCase(unittest.TestCase):
+    """A temp `git init` copy of the fixture project, and the documented
+    `evidence` command run in it."""
 
     def setUp(self) -> None:
         self._tmp = TemporaryDirectory()
@@ -604,29 +658,34 @@ class ReplayTest(unittest.TestCase):
             "-c", "commit.gpgsign=false", "commit", "-q", "--no-verify", "-m", "base")
         self.assertNotEqual(self.repo.resolve(), REPO_ROOT.resolve())
 
-    def run_gate3_evidence(self, review: str) -> Tuple[List[str], int]:
+    def run_gate3_evidence(self, review: str, *, tests: str = RECORDED_RUN,
+                           changed: Tuple[str, ...] = tuple(CHANGED)) -> Tuple[List[str], int]:
         """Save the Gate 3 inputs where Gate 3 saves them, then run the
-        documented command with its placeholders filled in."""
+        documented command with its placeholders filled in, adding the
+        documented `--prior` flag once the manifest exists."""
         state = self.repo / ".writ" / "state"
         state.mkdir(parents=True, exist_ok=True)
         review_rel = GATE3_REVIEW.replace("<story-stem>", STORY_STEM)
         tests_rel = ".writ/state/" + GATE3_TESTS.replace("<story-stem>", STORY_STEM)
+        checks_rel = GATE2_CHECKS.strip("`").replace("<story-stem>", STORY_STEM)
+        manifest_rel = MANIFEST.replace("<story-stem>", STORY_STEM)
         (self.repo / review_rel).write_text(review, encoding="utf-8")
-        (self.repo / tests_rel).write_text(RECORDED_RUN, encoding="utf-8")
-        (state / ("gate2-checks-%s.txt" % STORY_STEM)).write_text("", encoding="utf-8")
+        (self.repo / tests_rel).write_text(tests, encoding="utf-8")
+        (self.repo / checks_rel).write_text("", encoding="utf-8")
 
+        tokens = shlex.split(evidence_command())
+        if (self.repo / manifest_rel).exists():
+            tokens += shlex.split(PRIOR_FLAG.findall(evidence_block().split("\n\n")[0])[0])
+        fill = {"<review>": [review_rel], "<tests>": [tests_rel], "<files>": list(changed),
+                "<checks>": [checks_rel], "<manifest>": [manifest_rel]}
         argv: List[str] = []
-        for token in shlex.split(evidence_command()):
+        for token in tokens:
             if token == "python3":
                 argv.append(sys.executable)
             elif token == "scripts/review-override.py":
                 argv.append(str(SCRIPT))
-            elif token == "<review>":
-                argv.append(review_rel)
-            elif token == "<tests>":
-                argv.append(tests_rel)
-            elif token == "<files>":
-                argv.extend(CHANGED)
+            elif token in fill:
+                argv.extend(fill[token])
             else:
                 argv.append(token.replace("<story-stem>", STORY_STEM))
         self.assertFalse([t for t in argv if "<" in t], argv)
@@ -634,6 +693,11 @@ class ReplayTest(unittest.TestCase):
                               env=replay_env(), timeout=300)
         self.assertIn(proc.returncode, (0, 1), proc.stdout + proc.stderr)
         return proc.stdout.splitlines(), proc.returncode
+
+
+class ReplayTest(ReplayCase):
+    """A saved evaluator FAIL, with and without a confirmed `test` repro, run
+    through the documented `evidence` command and the decision rows. [AC-3.5]"""
 
     def test_fail_without_evidence_becomes_pass_with_advisory_findings(self) -> None:
         """AC-3.5 — no Evidence blocks: row 9, PASS, every finding advisory."""
@@ -644,7 +708,7 @@ class ReplayTest(unittest.TestCase):
             "F1": "advisory (no_evidence) at src/limits.py",
             "F2": "advisory (no_evidence) at src/routes.py",
         })
-        self.assertEqual(gate3_decision(verdict="FAIL", evidence=out), ("PASS", 9))
+        self.assertEqual(gate3_decision(verdict="FAIL", evidence=out), ("PASS", "9"))
         report = gate3_report_line(verdict="FAIL", evidence=out)
         self.assertEqual(report, "evidence-gate: 0 confirmed, 2 advisory, 0 unverifiable")
         self.assertEqual(len(matching_forms(report)), 1, report)
@@ -658,7 +722,7 @@ class ReplayTest(unittest.TestCase):
         self.assertEqual(findings["F1"], "confirmed (test %s, exit 1) at src/limits.py" % REPRO)
         self.assertEqual(findings["F2"], "advisory (no_evidence) at src/routes.py")
         self.assertIn("reason: confirmed F1", out)
-        self.assertEqual(gate3_decision(verdict="FAIL", evidence=out), ("FAIL", 7))
+        self.assertEqual(gate3_decision(verdict="FAIL", evidence=out), ("FAIL", "7"))
         confirmed = [k for k, v in findings.items() if v.startswith("confirmed")]
         self.assertEqual(confirmed, ["F1"])
         report = gate3_report_line(verdict="FAIL", evidence=out)
@@ -667,12 +731,139 @@ class ReplayTest(unittest.TestCase):
         self.assertFalse((self.repo / REPRO).exists(), "the repro was left on disk")
 
     def test_the_decision_rows_outrank_evidence(self) -> None:
-        """AC-3.5 — the same confirmed run under rows 1, 4, and 5."""
+        """AC-3.5 — the same confirmed run under rows 2, 5, and 6."""
         out, _ = self.run_gate3_evidence(evaluator_fail(with_repro=True))
-        self.assertEqual(gate3_decision(verdict="FAIL", evidence=out, check="fail"), ("FAIL", 1))
-        self.assertEqual(gate3_decision(verdict="PASS", evidence=[]), ("PASS", 4))
+        self.assertEqual(gate3_decision(verdict="FAIL", evidence=out, check="fail"), ("FAIL", "2"))
+        self.assertEqual(gate3_decision(verdict="PASS", evidence=[]), ("PASS", "5"))
         self.assertEqual(gate3_decision(verdict="FAIL", evidence=out, evidence_gate="off"),
-                         ("FAIL", 5))
+                         ("FAIL", "6"))
+
+
+# ---------------------------------------------------------------------------
+# Story 4 of `2026-11-04-evidence-gated-review`: confirmed repros become
+# regression tests. Gate 3 binds `<manifest>`, passes `--manifest-out` always
+# and `--prior` on every verdict once the manifest exists, recodes on row 4a,
+# hands the coder `## Evidence repros`, and runs every manifest path in the
+# re-review's recorded run. [AC-4.5]
+# ---------------------------------------------------------------------------
+
+PASS_REVIEW = "### EVALUATION_RESULT: PASS\n\n### Summary\nEvery criterion holds.\n"
+RE_REVIEW_RUN = (
+    "command: python3 -m pytest tests/test_limits.py %s\n"
+    "exit code: 0\n"
+    "2 passed in 0.01s\n" % REPRO
+)
+
+
+class RecodeBriefTest(unittest.TestCase):
+    """The recode brief, the manifest binding, `--prior`, row 4a, and the
+    re-review's recorded run in Gate 3. [AC-4.5]"""
+
+    def test_recode_brief_carries_evidence_repros_and_the_no_edit_line(self) -> None:
+        """AC-4.5 — one sentence, after the decision table so it covers every
+        recode the table names (rows 4a and 7): each `confirmed` `test` repro's
+        finding, path, fenced content, and the no-edit instruction. A row 4a
+        recode takes them from the `<manifest>` entry, which holds `content`."""
+        lines = [l for l in read(IMPLEMENT_STORY).splitlines() if REPROS_HEADING in l]
+        self.assertEqual(len(lines), 1, lines)
+        brief = lines[0]
+        self.assertTrue(brief.startswith("Recode briefs add %s:" % REPROS_HEADING), brief)
+        for term in ("each `confirmed` `test` repro's %s finding, path, fenced content"
+                     % BRIEF_SOURCE, '"%s"' % NO_EDIT):
+            self.assertIn(term, brief)
+        block = evidence_block().splitlines()
+        self.assertIn(brief, block)
+        last_row = max(i for i, l in enumerate(block) if l.startswith("| "))
+        self.assertGreater(block.index(brief), last_row)
+
+    def test_manifest_is_bound_once_and_always_passed_as_manifest_out(self) -> None:
+        """AC-4.5 — `<manifest>` names the manifest path once; the evidence
+        command writes to it, and adds `--prior` only once it exists."""
+        self.assertEqual(read(IMPLEMENT_STORY).count(MANIFEST), 1)
+        self.assertIn("`<manifest>` = `%s`" % MANIFEST, gate3())
+        argv = shlex.split(evidence_command())
+        self.assertEqual(argv[argv.index("--manifest-out") + 1], "<manifest>")
+        self.assertNotIn("--prior", argv)
+
+    def test_prior_runs_on_every_verdict_once_the_manifest_exists(self) -> None:
+        """AC-4.5 — spec.md § Gate 3 decision row 3a: once the manifest
+        exists, every run, the FAIL case included, adds `--prior <manifest>`,
+        and the step runs on PASS and PAUSE too."""
+        opening = evidence_block().split("\n\n")[0]
+        self.assertIn("On an agent FAIL " + PRIOR_CLAUSE + ", after", opening)
+        self.assertEqual(PRIOR_FLAG.findall(opening), ["--prior <manifest>"])
+
+    def test_re_review_recorded_run_includes_every_manifest_path(self) -> None:
+        """AC-4.5 — `recorded_test_results` is defined, before any Gate 3
+        spawn, as the run of the story's tests and every manifest path, so a
+        failing repro makes the whole recorded run non-zero."""
+        defs = [l for l in gate3().splitlines() if "`recorded_test_results` = " in l]
+        self.assertEqual(len(defs), 1, defs)
+        self.assertIn(RECORDED_RUN_DEF, defs[0])
+        self.assertLess(gate3().index(defs[0]), gate3().index("**Risk route:**"))
+
+    def test_row_4a_follows_row_4_and_recodes(self) -> None:
+        """AC-4.5 — row 4a names the three `--prior` reasons and recodes,
+        ahead of row 5, so an agent PASS or PAUSE recodes too."""
+        rows = table_rows(evidence_block())
+        labels = [r[0] for r in rows]
+        self.assertEqual(labels.index("4a"), labels.index("4") + 1)
+        self.assertLess(labels.index("4a"), labels.index("5"))
+        self.assertEqual(gate3_decision(verdict="PASS", evidence=[
+            "fail", "reason: repro_modified %s" % REPRO, "review-override evidence: fail (x)"]),
+            ("FAIL", "4a"))
+
+    def test_generated_copies_carry_the_wiring(self) -> None:
+        for rel in ("cursor/plugin/commands/implement-story.md",
+                    "plugins/writ/commands/implement-story.md"):
+            text = read(REPO_ROOT / rel)
+            for term in (REPROS_HEADING, NO_EDIT, PRIOR_CLAUSE, BRIEF_SOURCE,
+                         "--manifest-out <manifest>", RECORDED_RUN_DEF):
+                self.assertIn(term, text, rel)
+
+
+class ReReviewReplayTest(ReplayCase):
+    """The documented command writes the manifest on a confirmed repro, then
+    guards the repro on the re-review's PASS. [AC-4.5]"""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.manifest = self.repo / MANIFEST.replace("<story-stem>", STORY_STEM)
+        out, _ = self.run_gate3_evidence(evaluator_fail(with_repro=True))
+        self.assertEqual(out[0], "fail", out)
+
+    def test_confirmed_repro_lands_in_the_manifest(self) -> None:
+        """AC-4.5 — the first FAIL records F1's repro at `<manifest>`, with the
+        content a row 4a brief restores it from."""
+        doc = json.loads(self.manifest.read_text(encoding="utf-8"))
+        self.assertEqual(doc["schema"], "evidence-manifest-v1")
+        self.assertEqual([(r["finding"], r["path"], r["kind"], r["content"])
+                          for r in doc["repros"]], [("F1", REPRO, "test", REPRO_BODY)])
+
+    def test_re_review_pass_with_the_repro_in_place_stays_pass(self) -> None:
+        """AC-4.5 — the coder created the repro from the brief and the recorded
+        run names it and exits 0: row 5, PASS."""
+        (self.repo / "tests").mkdir(exist_ok=True)
+        (self.repo / REPRO).write_text(REPRO_BODY, encoding="utf-8")
+        out, code = self.run_gate3_evidence(PASS_REVIEW, tests=RE_REVIEW_RUN,
+                                            changed=tuple(CHANGED) + (REPRO,))
+        self.assertEqual(out, ["pass", "reason: prior_ok",
+                               "review-override evidence: pass (prior_ok)"])
+        self.assertEqual(code, 0)
+        self.assertEqual(gate3_decision(verdict="PASS", evidence=out), ("PASS", "5"))
+        self.assertEqual(gate3_report_line(verdict="PASS", evidence=out),
+                         "evidence-gate: not run (PASS)")
+
+    def test_re_review_pass_without_the_repro_recodes(self) -> None:
+        """AC-4.5 — the coder dropped the repro: row 4a, FAIL on a PASS, and
+        the report line is the re-review `fail (<reason>)` form."""
+        out, code = self.run_gate3_evidence(PASS_REVIEW, tests=RE_REVIEW_RUN)
+        self.assertEqual(out[:2], ["fail", "reason: repro_removed %s" % REPRO], out)
+        self.assertEqual(code, 1)
+        self.assertEqual(gate3_decision(verdict="PASS", evidence=out), ("FAIL", "4a"))
+        report = gate3_report_line(verdict="PASS", evidence=out)
+        self.assertEqual(report, "evidence-gate: fail (repro_removed %s)" % REPRO)
+        self.assertEqual(len(matching_forms(report)), 1, report)
 
 
 # ---------------------------------------------------------------------------
