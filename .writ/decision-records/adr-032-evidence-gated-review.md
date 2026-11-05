@@ -36,7 +36,7 @@ What holds on 2026-11-04:
 - Phase 12 added the cross-family review panel (ADR-028 Decision 3). A panel block needs two vendors to raise the same finding. The panel is available only on Cursor; OpenClaw is unverified.
 - The origin issue asks for an inventory of every surface where a model argues with a change, with a keep, replace, demote, or remove verdict for each.
 - The removal trial reported over the four Phase 11 baseline stories: Gate 0 Divergence keep (2 valid upgrade-only catches), Safety Fact keep (2), Reviewer Filters keep (1), Repro First unverifiable (never exercised). The labels are the assistant's, made at the maintainer's request (that spec's [`drift-log.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/drift-log.md) DEV-012). One valid catch keeps an upgrade, which the report calls a low bar. Those verdicts stand.
-- The design-divergence blind trial reported `remove` the same day: declared axes won 2 of 6 briefs, and 4 were needed ([`trial-report.md`](../specs/2026-10-25-design-divergence/trial-report.md)). That spec's Story 6 acts on it.
+- The design-divergence blind trial reported `remove` the same day: declared axes won 2 of 6 briefs, and 4 were needed ([`trial-report.md`](../specs/archive/2026-10-25-design-divergence/trial-report.md)). That spec's Story 6 acts on it.
 - `commands/implement-story.md` is 40,759 bytes and over its per-invocation budget ([`leanness-audit-2026-10-21.md`](../docs/leanness-audit-2026-10-21.md)).
 
 A model's reading decides verdicts that a test could decide. The panel adds spawns to referee those readings with other models' votes.
@@ -186,5 +186,5 @@ Stories 6 and 7 also update the tests that assert on the changed or removed text
 - [`2026-11-04-evidence-gated-review`](../specs/2026-11-04-evidence-gated-review/spec.md): the spec and its § Amendment; [`technical-spec.md`](../specs/2026-11-04-evidence-gated-review/sub-specs/technical-spec.md) § Removals, § Error & Rescue Map
 - [`2026-10-25-gate-upgrade-removal-measurement`](../specs/2026-10-25-gate-upgrade-removal-measurement/spec.md) and its [`trial-report.md`](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md): the removal trial that kept the filters, Safety Fact, and Gate 0 divergence
 - [`2026-10-25-review-route-rigor`](../specs/2026-10-25-review-route-rigor/spec.md): the spec that added the filters and the `traced` floor
-- [`2026-10-25-design-divergence`](../specs/2026-10-25-design-divergence/spec.md) and its [`trial-report.md`](../specs/2026-10-25-design-divergence/trial-report.md): the blind trial that decides Gate 0 divergence
+- [`2026-10-25-design-divergence`](../specs/archive/2026-10-25-design-divergence/spec.md) and its [`trial-report.md`](../specs/archive/2026-10-25-design-divergence/trial-report.md): the blind trial that decides Gate 0 divergence
 - [Phase 12 panel `trial-report.md`](../specs/archive/2026-10-01-cross-family-review-panel/trial-report.md): the panel trial

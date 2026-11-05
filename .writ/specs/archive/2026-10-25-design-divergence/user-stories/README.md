@@ -9,7 +9,7 @@
 | 3 | [Gate 0 Usage-First Divergence and the Gate 0 Divergence Switch](story-3-gate-0-usage-first-divergence.md) | Completed ✅ | High | Story 1 | 7 | 7/7 |
 | 4 | [Divergence Trial Harness](story-4-divergence-trial-harness.md) | Completed ✅ | Medium | None | 7 | 7/7 |
 | 5 | [Trial Inputs, Generation, Blinding, and Rating Handoff](story-5-trial-inputs-run-and-handoff.md) | Completed ✅ | Medium | Story 1, Story 4 | 7 | 7/7 |
-| 6 | [Act on the Blind Verdict (Human-Gated)](story-6-act-on-blind-verdict.md) | Not Started | Medium | Story 2, Story 3, Story 5 | 7 | 0/7 |
+| 6 | [Act on the Blind Verdict (Human-Gated)](story-6-act-on-blind-verdict.md) | Completed ✅ | Medium | Story 2, Story 3, Story 5 | 7 | 7/7 |
 
 **Total:** 6 stories, 41 tasks, 29 acceptance criteria.
 

@@ -1063,7 +1063,7 @@ Story 3 stops at `rating-handoff.md`. Whether each upgrade stays rests on one pe
 - **After labeling.** Scenario 22 passed, in the same shell (`$B` and `$W/report-before.txt` are set).
 
 **Steps:**
-1. `grep '^upgrade:' "$W/report-before.txt"; head -1 "$REPO/.writ/specs/2026-10-25-design-divergence/trial-report.md" 2>&1`
+1. `grep '^upgrade:' "$W/report-before.txt"; head -1 "$REPO/.writ/specs/archive/2026-10-25-design-divergence/trial-report.md" 2>&1`
 2. Run the line for each upgrade whose verdict is `remove`:
    - gate0-divergence: `(cd "$REPO" && rg -n 'Gate 0 Divergence|Design divergence \(boundary-crossing route\)' commands .writ/docs; grep -cE '^\*\*(Switch|Route|Sketches|Choice)\.\*\*' commands/implement-story.md; git diff --stat "$B"..HEAD -- scripts/tests/test_review_override.py | tail -1; grep -n 'status_evidence' skills/design-divergence/SKILL.md 2>&1 | cut -c1-200)`
    - safety-fact: `(cd "$REPO" && ls -d skills/blast-radius 2>&1; rg -n 'Safety Fact' commands agents .writ/docs; grep -c '^## Recorded Test Results' agents/review-agent.md)`

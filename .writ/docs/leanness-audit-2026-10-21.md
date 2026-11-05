@@ -40,7 +40,7 @@ From `python3 scripts/eval-leanness.py` (`metrics` block).
 | `commands/writ-design.md` Mode A (Excalidraw) | Claude Code now ships native `/design` artboards (secondary reporting). Mode A's hand-authored Excalidraw is a 2024 technique. | **defer** | Roadmap parking lot, "`/writ-design` Mode A modernization" (kept separate from the native `/design`) |
 | Install via `install.sh` copy (native displacement test) | Cursor and Claude Code both have plugin marketplaces, and a peer project (pstack) installs through them. | **keep** for now | Roadmap Phase 14, plugin distribution |
 | Front door (Phase 14) vs `/status` "what to do next" | The two will overlap once the front door exists. Settle it in the front-door spec, not here. | **defer** | Roadmap Phase 14, front door |
-| `skills/` | No change in Phase 13. `design-divergence` is planned as the 17th skill in Phase 15, with a removal trial. | **keep** | — |
+| `skills/` | No change in Phase 13. A design divergence skill is planned as the 17th skill in Phase 15, with a removal trial (removed 2026-11-04 by that trial). | **keep** | — |
 
 ## Recommend-Only Guarantee
 

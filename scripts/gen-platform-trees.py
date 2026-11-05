@@ -982,8 +982,6 @@ DEV_ONLY_SCRIPTS = frozenset((
     "pipeline-baseline.py", "measure-invocation.py", "harness-cost.py", "prune-ledger.py",
     "spawn-cap.py", "recommend-state.py", "gen-claude-md.py", "gen-platform-trees.py",
     "gen-claude-agents.py", "gen-codex-agent-tomls.py", "check-agent-parity.sh", "gen-skill.sh",
-    # Temporary trial harness of 2026-10-25-design-divergence (D25); Story 6 removes it.
-    "divergence-trial.py",
     # Claude Code PreToolUse hook for Writ's own sessions (retro 2026-10-30 F5).
     "zsh-guard.py",
 ))

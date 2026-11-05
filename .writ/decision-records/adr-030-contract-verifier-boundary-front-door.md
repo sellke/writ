@@ -140,6 +140,11 @@ Detect pstack and route design, review, and PR work to its skills.
     - **Repro First:** unverifiable. Never exercised: all four stories are feature work, so no bug-fix path ran. The ack is `amend`, so the upgrade stays unchanged until a substitute baseline of bug-fix stories is added.
     - **Caveats:** four stories and one run per upgrade arm, so one valid catch keeps an upgrade. The Gate 0 and Repro First arms are retrospective proxies, not replays. The labels are the assistant's assessments, made at the maintainer's request (drift-log DEV-012), so the measurement rests on a model judging model-raised findings.
     - **Gate 0 and the blind trial:** the design-divergence note below records the blind trial's outcome (Business Rule 12).
+  - *Divergence trial, 2026-11-04* ([trial-report.md](../specs/archive/2026-10-25-design-divergence/trial-report.md)): **remove**.
+    - Declared axes won 2 of 6 briefs; keeping the skill needed 4. Distinct-structure count: 17 for the axes arm, 16 for the naive arm.
+    - Render-only drafts were enough to choose a direction on 6 of 6 briefs (ui 2 of 2).
+    - **Caveats:** six briefs and one rater make a small sample, not a general result. The ratings are a blind agent's, made at the maintainer's request (design-divergence drift-log DEV-012).
+    - **Gate 0:** removal-measurement Business Rule 12 applies, so the skill and its Gate 0 wiring are removed together, overriding that measurement's Gate 0 keep. `/prototype` Step 2.5 now asks for up to three drafts and what each commits to.
 - **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run.
 
 ## Amendments

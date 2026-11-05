@@ -142,3 +142,11 @@
 - **Reason:** The maintainer's explicit decision. A model judged the structural distinctness of model-written drafts, which is weaker evidence than a human rating.
 - **Resolution:** Accepted by user (2026-11-04). The ratings stand, and the report says `remove`: axes won 2 of 6 briefs, distinct 17 vs 16.
 - **Spec amendment:** N/A — deviation accepted as-is
+
+#### [DEV-013] `/prototype` loses its other "axis" wording too ⚠️
+- **Severity:** Medium
+- **Spec said:** AC-6.3: Step 2.5 reads "Ask for up to three drafts and state what each commits to", and the exit criterion says "what it commits to".
+- **Implementation did:** Also rewrote the other places `/prototype` assumes declared axes, to say what each draft commits to: the present-and-choose lines and template, the fourth-draft offer, the exploration.md record line, the coding-agent handoff line, and the summary line. Rephrased one dated line in `.writ/docs/leanness-audit-2026-10-21.md` so it no longer names the skill by its identifier, because the AC-6.3 scan covers `.writ/docs`. Deleted `scripts/tests/test_design_divergence_wiring.py`, which tested only the removed wiring.
+- **Reason:** Once the skill is gone, nothing defines "axis combination". Leaving those placeholders would point at a removed procedure.
+- **Resolution:** Flagged for review
+- **Spec amendment:** N/A — flagged for post-implementation review

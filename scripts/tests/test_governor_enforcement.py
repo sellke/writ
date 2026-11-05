@@ -664,13 +664,15 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 15269 -> 15717; Gate 1 bug-path line.
     # 2026-10-31 (Phase 15 retro F1): 15717 -> 15799; Gate 3.5 Small drift clause names
     # drift-format's auto_amend_unapplied failure.
-    # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): 15799 -> 16979 (+1180);
+    # 2026-11-04 (2026-10-25-design-divergence Story 6): 15799 -> 13591; the blind trial
+    # said remove, so the Gate 0 divergence block, Overview clause, Pipeline cells, and
+    # References link are gone.
+    # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): 13591 -> 14771 (+1180);
     # Gate 2 saves its check commands, Gate 3 resolves the evidence-gate switch, runs
     # `evidence`, and carries the nine-row decision table and report line, less five
-    # Gate 3 cuts. The spec requires Stories 3, 4, and 7 to net <= 0. Story 7's
-    # measured panel removals free about 1,500 bytes, about 1,350 after its two
-    # removal messages, which leaves Story 4 about 170.
-    "commands/implement-story.md": 16979,
+    # Gate 3 cuts. The spec requires Stories 3, 4, and 7 to net <= 0 against 40759
+    # bytes; the design-divergence removal (-2208) landed separately and does not count.
+    "commands/implement-story.md": 14771,
 }
 
 
