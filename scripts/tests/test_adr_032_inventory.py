@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Checks for Story 1 of spec `2026-11-04-evidence-gated-review`.
 [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
+Story 7 adds the roadmap close-out checks [AC-7.5].
 
 The story ships records, not code, so these checks read the files directly:
 
@@ -493,7 +494,7 @@ ADR_032_ROADMAP_LINK = "[ADR-032](../decision-records/adr-032-evidence-gated-rev
 
 
 class RoadmapCloseOutTest(unittest.TestCase):
-    """AC-7.5: Story 7 closes out Phase 15. The filters criterion is unchanged,
+    """[AC-7.5] Story 7 closes out Phase 15. The filters criterion is unchanged,
     the Gate 2.5 criterion names the `tested` floor, and the status line cites
     ADR-032."""
 
