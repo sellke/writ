@@ -1,6 +1,7 @@
 # Story 6: Raise the Safety Fact floor to `tested`
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** 6af93b432efcc4f8cd426797902fe127112f5647
 > **Priority:** Medium
 > **Dependencies:** Story 4, Story 5
 
