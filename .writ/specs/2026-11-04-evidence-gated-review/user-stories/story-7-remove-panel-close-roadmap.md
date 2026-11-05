@@ -1,6 +1,7 @@
 # Story 7: Remove the review panel and close out the roadmap
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** 95560fdff88cc5f7c34eaf9cda1914020243072e
 > **Priority:** Medium
 > **Dependencies:** Story 6
 
