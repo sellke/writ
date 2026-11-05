@@ -43,3 +43,7 @@ LLM-judgment review surfaces, mostly added or grown in Phase 15 with pstack `int
 - Sequence after `.writ/specs/2026-10-25-gate-upgrade-removal-measurement/`. It is waiting on human labels and will issue keep/remove verdicts for `Reviewer Filters` and `Safety Fact`; reuse its findings data instead of re-measuring.
 - Out of scope unless decided otherwise: discovery-time "challenge" prompts in `/plan-product` (Premise Challenge), `/create-spec`, `/new-command`, `/edit-spec`. They interrogate the user's idea, not code, and have no empirical substitute.
 - Risk: some reviewer catches (design smell, missing case nobody wrote a test for) have no mechanical equivalent. The audit should name those and keep them, not cut by default.
+
+## Resolution
+
+2026-11-04, spec `2026-11-04-evidence-gated-review` (Complete, on `phase/15-code-level-rigor`, PR #64), recorded in [ADR-032](../../decision-records/adr-032-evidence-gated-review.md). The inventory is ADR-032 § Review-Surface Inventory: twelve surfaces, each with a keep, demote, replace, or remove verdict and its spawn and byte cost. Outcome: a Gate 3 or `/review` finding blocks only on executed evidence (`review-override.py evidence`); the review panel is removed; the Safety Fact floor rose from `traced` to `tested`; the reviewer filters stay, kept by the removal trial on one valid catch. Not done: surfaces that run before code exists (Gate 0, the discovery prompts) were kept by scope, as the Notes above expected.

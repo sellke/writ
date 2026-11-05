@@ -1,22 +1,22 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-05T04:09:23Z
+> Last Updated: 2026-11-05T15:16:43Z
 
 ## Product Mission
 
-Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns three things and delegates or deletes the rest: the contract (spec, acceptance and exit criteria, stakes), the verifier (scripts that re-derive verdicts about the code and the running app), and the boundary (what an agent may not do without a human). Users reach all three through one front door that restates, classifies, and routes each request.
+Writ is the thin, portable methodology layer on top of capable AI harnesses. It owns three things and delegates or deletes the rest: the contract (spec, acceptance and exit criteria, stakes), the verifier (scripts that re-derive verdicts about the code and the running app), and the boundary (when an agent stops and asks a person: on reasonable doubt, not on principle, per ADR-033). Users reach all three through one front door, `/writ`, that restates, classifies, and routes each request.
 
 ## Active Spec
 
-- **Spec:** 2026-11-04-evidence-gated-review — Evidence-Gated Review
-- **Status:** Not Started (spec.md header); all 7 stories completed on branch `phase/15-code-level-rigor`
-- **Story:** 7 of 7 — Remove the review panel and close out the roadmap (Completed ✅)
-- **Progress:** 48/48 tasks complete (100%)
+- **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
+- **Status:** In Progress — task 4.6 waits on the Repro First substitute baseline (drift-log DEV-013); the trial kept Gate 0 Divergence, Safety Fact, and Reviewer Filters and held Repro First
+- **Story:** 4 of 4 — Act on the Labeled Trial (In Progress, 6/7 tasks)
+- **Progress:** 27/28 tasks complete; the branch is `phase/15-code-level-rigor`, PR #64 (draft)
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-11-04-evidence-gated-review/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md
+- **Product:** roadmap.md, mission.md, mission-lite.md (reconciled 2026-11-05; Phase 17 committed, ADR-033)
+- **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, trial-report.md, rating-handoff.md
 - **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
@@ -29,4 +29,4 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Open Issues
 
-26 open issue files in .writ/issues/ (42 total; 16 closed with `## Resolution`)
+24 open issue files in .writ/issues/ (42 total; 18 closed with `## Resolution`)

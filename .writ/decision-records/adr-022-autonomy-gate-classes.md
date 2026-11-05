@@ -5,6 +5,7 @@
 > **Category:** Autonomy & Governance
 > **Extends:** [ADR-013](adr-013-recommended-autonomous-delivery.md) — classifies decisions within its evidence-based select-or-pause boundary; does not replace it
 > **Origin:** `/plan-product` Phase 10 discovery (2026-08-11) — maintainer decision on human-gate placement
+> **Superseded in part:** 2026-11-05 by [ADR-033](adr-033-doubt-gated-autonomy.md) — the gate-class table; the reversibility precondition stands
 
 ## Decision
 

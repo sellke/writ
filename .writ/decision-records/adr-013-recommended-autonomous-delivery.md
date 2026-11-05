@@ -5,6 +5,7 @@
 > Deciders: Adam (product owner)
 > Supersedes: Conflicting portions of [ADR-010](adr-010-supervised-autonomy-ceiling.md)
 > Governs: `2026-07-10-recommended-autonomous-delivery`, `2026-07-17-recommend-redistribution`
+> Superseded in part: 2026-11-05 by [ADR-033](adr-033-doubt-gated-autonomy.md) — `--recommend` as the only autonomous mode; the audit requirements and the evidence precedence stand
 
 ## Context
 

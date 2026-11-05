@@ -31,3 +31,7 @@ The seven Claude Code agent definitions in `claude-code/agents/` are 45 to 79 li
 - `agents/*.md` - the canonical agents
 - `scripts/check-agent-parity.sh` - presence-only parity check
 - `scripts/gen-codex-agent-tomls.py` - the existing generate-from-canonical pattern
+
+## Resolution
+
+2026-10-20, spec `2026-10-20-claude-agent-generator` (Complete, released in v0.43.0). `scripts/gen-claude-agents.py` generates every `claude-code/agents/writ-*.md` from `agents/*.md` plus a per-agent frontmatter overlay; `--check` and an eval check fail on drift, and `check-agent-parity.sh` compares content, not only file presence.

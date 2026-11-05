@@ -8,7 +8,7 @@
 > **Evidence base:** [`2026-10-19-writ-vs-pstack-research.md`](../research/2026-10-19-writ-vs-pstack-research.md) (pstack 0.15.28 read at source), [`2026-10-19-prototype-visual-drafts-research.md`](../research/2026-10-19-prototype-visual-drafts-research.md), [`2026-09-05-goldilocks-assessment.md`](../product/2026-09-05-goldilocks-assessment.md)
 > **Supersedes:** [ADR-025](adr-025-friction-signals.md) Decisions 1, 3, and 6 (the signal file, the nudge, and the `Signal:` evidence bridge) and its 2026-12-02 review
 > **Amends:** [ADR-029](adr-029-agent-cli-contract.md) review trigger, which now reads `/retro` findings instead of friction signals
-> **Keeps:** [ADR-010](adr-010-supervised-autonomy-ceiling.md), [ADR-013](adr-013-recommended-autonomous-delivery.md), and [ADR-022](adr-022-autonomy-gate-classes.md) unchanged. Phase 16 decides the autonomy ceiling in its own ADR.
+> **Keeps:** [ADR-010](adr-010-supervised-autonomy-ceiling.md), [ADR-013](adr-013-recommended-autonomous-delivery.md), and [ADR-022](adr-022-autonomy-gate-classes.md) unchanged at the time of writing. *2026-11-05: [ADR-033](adr-033-doubt-gated-autonomy.md) supersedes ADR-022's gate-class table and ADR-013's flag-scoped autonomy, and is the ceiling ADR this record left to Phase 16.*
 > **Respects:** [ADR-015](adr-015-leanness-self-governance.md) (leanness), [ADR-020](adr-020-component-contract.md) (one outcome per command), [ADR-023](adr-023-stakes-proportional-diligence.md) (stakes triage), [ADR-024](adr-024-model-delegation.md) (family-locked tiers), [ADR-028](adr-028-behavioral-verification-and-cross-family-panels.md) (runtime boundary)
 
 ## Decision
@@ -145,7 +145,7 @@ Detect pstack and route design, review, and PR work to its skills.
     - Render-only drafts were enough to choose a direction on 6 of 6 briefs (ui 2 of 2).
     - **Caveats:** six briefs and one rater make a small sample, not a general result. The ratings are a blind agent's, made at the maintainer's request (design-divergence drift-log DEV-012).
     - **Gate 0:** removal-measurement Business Rule 12 applies, so the skill and its Gate 0 wiring are removed together, overriding that measurement's Gate 0 keep. `/prototype` Step 2.5 now asks for up to three drafts and what each commits to.
-- **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run.
+- **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run. *Written 2026-11-05 as [ADR-033](adr-033-doubt-gated-autonomy.md), ahead of Phase 16 and citing the 2026-10-31 agent UAT run; the real-project run stays Phase 16's gate, and Phase 17 now runs first.*
 
 ## Amendments
 
@@ -163,6 +163,14 @@ Detect pstack and route design, review, and PR work to its skills.
 **Why:** Built work that nobody validates is not shipped, and every new phase adds to the queue. Principle 7 (subtract before you add) keeps the surface from growing; Principle 8 keeps unvalidated work from growing.
 
 **Consequence:** Phase 16, or any new phase, starts only once fewer than two finished phases wait. The roadmap's *Current focus* section lists the queue in order. Phase 16 keeps its own gate (Phase 12's UAT and one real-project `app-verify.py` run) on top of this rule.
+
+### 2026-11-05 — Ceiling ADR written early; Phase 17 added
+
+**Decision:** [ADR-033](adr-033-doubt-gated-autonomy.md) replaces the gate-class table this record kept with one rule, ask on doubt, and commits Phase 17 (Doubt-Gated Autonomy) ahead of Phase 16. Phase 16's merge step is now defined by that rule.
+
+**Evidence (reconcile pass, 2026-11-05):** the land-and-validate queue was worked by handing the gated steps back to agents (Phase 12's UAT, the removal-trial labels, the divergence ratings), and Phase 14 merged with its five person checks unrecorded. The gates by category were delays, not decisions.
+
+**Consequence:** § Keeps and § Review are annotated above. The front-door review stays open; the recommendation on record is keep, with its confirm step doubt-gated.
 
 ## References
 
