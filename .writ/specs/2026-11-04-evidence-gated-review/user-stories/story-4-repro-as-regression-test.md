@@ -1,6 +1,7 @@
 # Story 4: Confirmed repros become regression tests
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** b6fea0071bb848c4c968c727cee29686fdc5b6b0
 > **Priority:** High
 > **Dependencies:** Story 3
 
