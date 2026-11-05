@@ -33,7 +33,7 @@ when the section is required and what a failed check does to the verdict.
 The ladder runs from weakest to strongest. The ladder is not cumulative: each
 rung's evidence stands on its own, so a fact can reach `tested` without a `read`
 line. The measured rung is the highest rung whose evidence checks out. The floor
-is `traced`.
+is `tested`.
 
 | # | Rung | Meaning | Evidence line |
 |---|---|---|---|
@@ -117,7 +117,7 @@ A re-review arrives with the script's `rung:` and `reason:` lines appended. Fix
 what fell:
 
 - `safety_fact_missing <item>`: write the section, or the named field.
-- `safety_fact_below_floor <measured>`: the measured rung is under `traced`.
-  Trace the callers and cite them, or cite a test from the recorded run.
+- `safety_fact_below_floor <measured>`: the measured rung is under `tested`.
+  Cite a test from the recorded run; only the coder can add one.
 - A `rung:` line whose measured rung is below your claim: a citation did not
   check out. Correct the path, the line, or the test name.

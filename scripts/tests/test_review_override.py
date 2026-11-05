@@ -10,6 +10,7 @@ re-derive findings itself. [AC-1.1, AC-1.2, AC-1.3, AC-1.4, AC-1.5]
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import json
@@ -637,6 +638,9 @@ SF_TESTS_OK = "\n".join([
     "1 passed in 0.01s",
 ]) + "\n"
 SF_RESULT = "evidence/app-verify/parse/result.json"
+# Measures `tested` against SF_TESTS_OK; the floor since Story 6 of
+# `2026-11-04-evidence-gated-review`.
+SF_TESTED = ("- tested: tests/test_lib.py::test_rejects_empty",)
 
 
 def _sf_repo(root: Path) -> Path:
@@ -737,7 +741,7 @@ def _sf_expected(verdict: str, claimed: str, measured: str, fact: str,
         "rung: claimed=%s measured=%s" % (claimed, measured),
         "fact: %s" % fact,
         *["reason: %s" % r for r in reasons],
-        "review-override safety-fact: %s (measured %s, floor traced)" % (verdict, measured),
+        "review-override safety-fact: %s (measured %s, floor tested)" % (verdict, measured),
     ]
 
 
@@ -857,13 +861,16 @@ class SafetyFactRungTests(unittest.TestCase):
                 self.assertEqual(self.measure(evidence, blast=blast), "traced")
 
     def test_traced_existence_only_when_blast_path_missing(self) -> None:
-        """AC-4.2 — a `--blast-radius` path that does not exist is unreadable, not unverifiable."""
+        """AC-4.2 — a `--blast-radius` path that does not exist is unreadable, not unverifiable.
+        The measured `traced` sits under the `tested` floor (AC-6.5)."""
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             repo = _sf_repo(root)
             proc = _sf_run(root, repo, _sf_review(evidence=("- traced: src/other.py:1 — x",)),
                            extra=["--blast-radius", str(root / "missing.json")])
-            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertEqual(proc.stdout.splitlines()[0], "fail", proc.stdout)
+            self.assertIn("reason: safety_fact_below_floor traced", proc.stdout.splitlines())
             self.assertEqual(_sf_measured(proc.stdout), "traced")
 
     def test_traced_none_accepted_only_with_pass_and_empty_union(self) -> None:
@@ -1026,9 +1033,14 @@ class SafetyFactRungTests(unittest.TestCase):
 class SafetyFactVerdictTests(unittest.TestCase):
     """Story 4 of `2026-10-25-review-route-rigor` — pass, each fail reason on
     its own, table order, the overclaim line, unreadable input, usage.
-    [AC-4.1, AC-4.3]"""
+    [AC-4.1, AC-4.3]
+
+    Story 6 of `2026-11-04-evidence-gated-review` raised the floor to `tested`:
+    a case that passed at measured `traced` now cites `TESTED` evidence, or
+    keeps `TRACED` and expects `safety_fact_below_floor traced`. [AC-6.5]"""
 
     TRACED = ("- read: src/lib.py:2", "- traced: src/caller.py:3 — passes [1, 2]")
+    TESTED = SF_TESTED
 
     def run_review(self, review: str | None, **kwargs) -> subprocess.CompletedProcess:
         with TemporaryDirectory() as tmp:
@@ -1041,17 +1053,17 @@ class SafetyFactVerdictTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0 if expected[0] == "pass" else 1)
 
     def test_pass_prints_contract_lines(self) -> None:
-        """AC-4.3 — section present, measured `traced`, `Holds: yes` → pass, exit 0."""
-        proc = self.run_review(_sf_review(evidence=self.TRACED))
-        self.assert_output(proc, _sf_expected("pass", "traced", "traced", SF_FACT, []))
+        """AC-4.3 — section present, measured `tested`, `Holds: yes` → pass, exit 0."""
+        proc = self.run_review(_sf_review(rung="tested", evidence=self.TESTED), tests=SF_TESTS_OK)
+        self.assert_output(proc, _sf_expected("pass", "tested", "tested", SF_FACT, []))
 
     def test_holds_no_with_fail_or_pause_passes(self) -> None:
         """AC-4.3 — `Holds: no` agrees with a FAIL or PAUSE verdict."""
         for verdict in ("FAIL", "PAUSE", "**FAIL**"):
             with self.subTest(verdict=verdict):
-                proc = self.run_review(_sf_review(holds="no", verdict=verdict,
-                                                  evidence=self.TRACED))
-                self.assert_output(proc, _sf_expected("pass", "traced", "traced", SF_FACT, []))
+                proc = self.run_review(_sf_review(holds="no", verdict=verdict, rung="tested",
+                                                  evidence=self.TESTED), tests=SF_TESTS_OK)
+                self.assert_output(proc, _sf_expected("pass", "tested", "tested", SF_FACT, []))
 
     def test_missing_section(self) -> None:
         """AC-4.3 — no `Safety Fact` heading: missing section, and nothing is measured."""
@@ -1064,11 +1076,13 @@ class SafetyFactVerdictTests(unittest.TestCase):
         """AC-4.3 — `##` to `######` open the section; `#` and trailing words do not."""
         for heading in ("## Safety Fact", "###### Safety Fact", "### Safety Fact  "):
             with self.subTest(heading=heading):
-                proc = self.run_review(_sf_review(heading=heading, evidence=self.TRACED))
+                proc = self.run_review(_sf_review(heading=heading, rung="tested",
+                                                  evidence=self.TESTED), tests=SF_TESTS_OK)
                 self.assertEqual(proc.stdout.splitlines()[0], "pass", proc.stdout)
         for heading in ("# Safety Fact", "### Safety Facts", "### Safety Fact (draft)"):
             with self.subTest(heading=heading):
-                proc = self.run_review(_sf_review(heading=heading, evidence=self.TRACED))
+                proc = self.run_review(_sf_review(heading=heading, rung="tested",
+                                                  evidence=self.TESTED), tests=SF_TESTS_OK)
                 self.assertIn("reason: safety_fact_missing section", proc.stdout.splitlines())
 
     def test_section_ends_at_next_heading(self) -> None:
@@ -1081,36 +1095,40 @@ class SafetyFactVerdictTests(unittest.TestCase):
         """AC-4.3 — an empty Fact is `safety_fact_missing fact`; evidence still measures."""
         for fact in ("", None):
             with self.subTest(fact=fact):
-                proc = self.run_review(_sf_review(fact=fact, evidence=self.TRACED))
-                self.assert_output(proc, _sf_expected("fail", "traced", "traced", "(none)",
+                proc = self.run_review(_sf_review(fact=fact, rung="tested",
+                                                  evidence=self.TESTED), tests=SF_TESTS_OK)
+                self.assert_output(proc, _sf_expected("fail", "tested", "tested", "(none)",
                                                       ["safety_fact_missing fact"]))
 
     def test_missing_holds_alone(self) -> None:
         """AC-4.3 — Holds not `yes`/`no` is `safety_fact_missing holds`."""
         for holds in ("maybe", "yes | no", "", None):
             with self.subTest(holds=holds):
-                proc = self.run_review(_sf_review(holds=holds, evidence=self.TRACED))
-                self.assert_output(proc, _sf_expected("fail", "traced", "traced", SF_FACT,
+                proc = self.run_review(_sf_review(holds=holds, rung="tested",
+                                                  evidence=self.TESTED), tests=SF_TESTS_OK)
+                self.assert_output(proc, _sf_expected("fail", "tested", "tested", SF_FACT,
                                                       ["safety_fact_missing holds"]))
 
     def test_missing_rung_alone(self) -> None:
         """AC-4.3 — Rung not one of the five is `safety_fact_missing rung`; claimed prints `none`."""
         for rung in ("solid", "", None):
             with self.subTest(rung=rung):
-                proc = self.run_review(_sf_review(rung=rung, evidence=self.TRACED))
-                self.assert_output(proc, _sf_expected("fail", "none", "traced", SF_FACT,
+                proc = self.run_review(_sf_review(rung=rung, evidence=self.TESTED),
+                                       tests=SF_TESTS_OK)
+                self.assert_output(proc, _sf_expected("fail", "none", "tested", SF_FACT,
                                                       ["safety_fact_missing rung"]))
 
     def test_missing_items_one_line_each_in_order(self) -> None:
         """AC-4.3 — every missing item gets its own line: fact, holds, rung."""
-        proc = self.run_review(_sf_review(fact="", holds=None, rung="?", evidence=self.TRACED))
+        proc = self.run_review(_sf_review(fact="", holds=None, rung="?", evidence=self.TESTED),
+                               tests=SF_TESTS_OK)
         self.assert_output(proc, _sf_expected(
-            "fail", "none", "traced", "(none)",
+            "fail", "none", "tested", "(none)",
             ["safety_fact_missing fact", "safety_fact_missing holds",
              "safety_fact_missing rung"]))
 
     def test_below_floor_alone(self) -> None:
-        """AC-4.3 — measured `read` under the `traced` floor."""
+        """AC-4.3 — measured `read` under the `tested` floor."""
         proc = self.run_review(_sf_review(rung="read", evidence=("- read: src/lib.py:2",)))
         self.assert_output(proc, _sf_expected("fail", "read", "read", SF_FACT,
                                               ["safety_fact_below_floor read"]))
@@ -1126,23 +1144,25 @@ class SafetyFactVerdictTests(unittest.TestCase):
         """AC-4.3 — `Holds: no` with a PASS verdict contradicts it."""
         for verdict in ("PASS", "pass"):
             with self.subTest(verdict=verdict):
-                proc = self.run_review(_sf_review(holds="no", verdict=verdict,
-                                                  evidence=self.TRACED))
-                self.assert_output(proc, _sf_expected("fail", "traced", "traced", SF_FACT,
+                proc = self.run_review(_sf_review(holds="no", verdict=verdict, rung="tested",
+                                                  evidence=self.TESTED), tests=SF_TESTS_OK)
+                self.assert_output(proc, _sf_expected("fail", "tested", "tested", SF_FACT,
                                                       ["safety_fact_contradicts_verdict"]))
 
     def test_contradicts_when_no_verdict_line(self) -> None:
         """AC-4.3 — `Holds: no` with no FAIL or PAUSE verdict found is treated as a contradiction."""
-        proc = self.run_review(_sf_review(holds="no", verdict=None, evidence=self.TRACED))
-        self.assert_output(proc, _sf_expected("fail", "traced", "traced", SF_FACT,
+        proc = self.run_review(_sf_review(holds="no", verdict=None, rung="tested",
+                                          evidence=self.TESTED), tests=SF_TESTS_OK)
+        self.assert_output(proc, _sf_expected("fail", "tested", "tested", SF_FACT,
                                               ["safety_fact_contradicts_verdict"]))
 
     def test_evaluation_result_verdict_is_read(self) -> None:
         """AC-4.3 — the verdict comes from the first REVIEW_RESULT or EVALUATION_RESULT heading."""
-        review = _sf_review(holds="no", verdict=None, evidence=self.TRACED)
-        proc = self.run_review("### EVALUATION_RESULT: FAIL\n\n" + review)
+        review = _sf_review(holds="no", verdict=None, rung="tested", evidence=self.TESTED)
+        proc = self.run_review("### EVALUATION_RESULT: FAIL\n\n" + review, tests=SF_TESTS_OK)
         self.assertEqual(proc.stdout.splitlines()[0], "pass", proc.stdout)
-        proc = self.run_review("## REVIEW_RESULT: PASS\n\n### REVIEW_RESULT: FAIL\n\n" + review)
+        proc = self.run_review("## REVIEW_RESULT: PASS\n\n### REVIEW_RESULT: FAIL\n\n" + review,
+                               tests=SF_TESTS_OK)
         self.assertIn("reason: safety_fact_contradicts_verdict", proc.stdout.splitlines())
 
     def test_every_reason_in_table_order(self) -> None:
@@ -1155,17 +1175,19 @@ class SafetyFactVerdictTests(unittest.TestCase):
              "safety_fact_contradicts_verdict"]))
 
     def test_overclaim_alone_is_not_a_reason(self) -> None:
-        """AC-4.3 — claimed `tested`, measured `traced`: the rung line shows both, verdict pass."""
-        proc = self.run_review(_sf_review(rung="tested", evidence=self.TRACED))
-        self.assert_output(proc, _sf_expected("pass", "tested", "traced", SF_FACT, []))
+        """AC-4.3 — claimed `reproduced`, measured `tested`: the rung line shows both, verdict pass."""
+        proc = self.run_review(_sf_review(rung="reproduced", evidence=self.TESTED),
+                               tests=SF_TESTS_OK)
+        self.assert_output(proc, _sf_expected("pass", "reproduced", "tested", SF_FACT, []))
 
     def test_underclaim_prints_measured(self) -> None:
-        """AC-4.3 — claimed `read` with `traced` evidence measures `traced` and passes."""
-        proc = self.run_review(_sf_review(rung="read", evidence=self.TRACED))
-        self.assert_output(proc, _sf_expected("pass", "read", "traced", SF_FACT, []))
+        """AC-4.3 — claimed `read` with `tested` evidence measures `tested` and passes."""
+        proc = self.run_review(_sf_review(rung="read", evidence=self.TESTED), tests=SF_TESTS_OK)
+        self.assert_output(proc, _sf_expected("pass", "read", "tested", SF_FACT, []))
 
     def test_fields_case_insensitive_bold_optional(self) -> None:
-        """AC-4.3 — `Fact:`, `**holds:**`, `RUNG:`, `**Rung**:` and `- Traced:` all parse."""
+        """AC-4.3 — `Fact:`, `**holds:**`, `RUNG:`, `**Rung**:` and `- Traced:` all parse.
+        The measured `traced` sits under the `tested` floor (AC-6.5)."""
         review = "\n".join([
             "### REVIEW_RESULT: PASS", "", "### Safety Fact",
             "fact: %s" % SF_FACT,
@@ -1177,12 +1199,13 @@ class SafetyFactVerdictTests(unittest.TestCase):
             "",
         ]) + "\n"
         proc = self.run_review(review)
-        self.assert_output(proc, _sf_expected("pass", "traced", "traced", SF_FACT, []))
+        self.assert_output(proc, _sf_expected("fail", "traced", "traced", SF_FACT,
+                                              ["safety_fact_below_floor traced"]))
 
     def test_first_field_occurrence_wins(self) -> None:
         """AC-4.3 — a second `Holds:` line in the section is ignored."""
-        review = _sf_review(evidence=self.TRACED + ("**Holds:** no",))
-        proc = self.run_review(review)
+        review = _sf_review(rung="tested", evidence=self.TESTED + ("**Holds:** no",))
+        proc = self.run_review(review, tests=SF_TESTS_OK)
         self.assertEqual(proc.stdout.splitlines()[0], "pass", proc.stdout)
 
     def test_unreadable_review_output_is_unverifiable(self) -> None:
@@ -1224,7 +1247,8 @@ class SafetyFactVerdictTests(unittest.TestCase):
             root = Path(tmp)
             repo = _sf_repo(root)
             proc = _sf_run(root, None, _sf_review(evidence=self.TRACED), cwd=repo)
-            self.assert_output(proc, _sf_expected("pass", "traced", "traced", SF_FACT, []))
+            self.assert_output(proc, _sf_expected("fail", "traced", "traced", SF_FACT,
+                                                  ["safety_fact_below_floor traced"]))
             proc = _sf_run(root, None, _sf_review(evidence=self.TRACED), cwd=root)
             self.assertEqual(_sf_measured(proc.stdout), "claimed")
 
@@ -1249,6 +1273,118 @@ class SafetyFactLeavesOtherSubcommandsTests(unittest.TestCase):
         self.assertEqual(proc.stdout.splitlines(),
                          _switch_expected("safety-fact", "on", "no_config"))
 
+
+# ---------------------------------------------------------------------------
+# Story 6 of `2026-11-04-evidence-gated-review`: the Safety Fact floor moves
+# from `traced` to `tested`. A section measured `traced` now falls below the
+# floor; a section measured `tested` keeps exactly the reasons it had. The
+# floor wording in the script, the skill, and their generated copies names
+# `tested`. [AC-6.1, AC-6.2, AC-6.3, AC-6.4]
+# ---------------------------------------------------------------------------
+
+class SafetyFactTestedFloorTests(unittest.TestCase):
+    """Story 6 of `2026-11-04-evidence-gated-review` — `safety-fact` measures
+    against the `tested` floor. [AC-6.3, AC-6.4]"""
+
+    def run_lines(self, review: str) -> tuple:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _sf_repo(root)
+            proc = _sf_run(root, repo, review, tests=SF_TESTS_OK)
+        return proc.returncode, proc.stdout.splitlines()
+
+    def test_traced_section_is_below_the_floor(self) -> None:
+        """AC-6.3 — highest accepted rung `traced` prints `safety_fact_below_floor traced`."""
+        for evidence in (("- traced: src/caller.py:3 — passes [1, 2]",),
+                         ("- read: src/lib.py:2", "- traced: src/caller.py:3 — passes [1, 2]")):
+            with self.subTest(evidence=evidence):
+                code, lines = self.run_lines(_sf_review(evidence=evidence))
+                self.assertEqual(lines[:2], ["fail", "rung: claimed=traced measured=traced"])
+                self.assertIn("reason: safety_fact_below_floor traced", lines)
+                self.assertEqual(code, 1)
+
+    def test_tested_section_keeps_every_other_reason(self) -> None:
+        """AC-6.4 — measured `tested`: no `safety_fact_below_floor` line, and the
+        other reason lines are unchanged from before the floor moved."""
+        cases = (
+            ({}, []),
+            ({"holds": "no", "verdict": "FAIL"}, []),
+            ({"holds": "no", "verdict": "PASS"}, ["safety_fact_contradicts_verdict"]),
+            ({"fact": ""}, ["safety_fact_missing fact"]),
+            ({"holds": None}, ["safety_fact_missing holds"]),
+            ({"rung": "high"}, ["safety_fact_missing rung"]),
+            ({"fact": "", "holds": "maybe", "rung": None},
+             ["safety_fact_missing fact", "safety_fact_missing holds",
+              "safety_fact_missing rung"]),
+            ({"holds": "no", "rung": "high", "verdict": None},
+             ["safety_fact_missing rung", "safety_fact_contradicts_verdict"]),
+        )
+        for overrides, expected in cases:
+            with self.subTest(overrides=overrides):
+                kwargs = dict({"rung": "tested", "evidence": SF_TESTED}, **overrides)
+                code, lines = self.run_lines(_sf_review(**kwargs))
+                self.assertIn("measured=tested", lines[1])
+                self.assertEqual([l for l in lines if l.startswith("reason: ")],
+                                 ["reason: %s" % r for r in expected])
+                self.assertEqual(lines[0], "fail" if expected else "pass")
+                self.assertEqual(code, 1 if expected else 0)
+
+
+class SafetyFactFloorWordingTests(unittest.TestCase):
+    """Story 6 of `2026-11-04-evidence-gated-review` — the shipped floor
+    wording names `tested`, in the source and in its generated copies.
+    [AC-6.1, AC-6.2]"""
+
+    SCRIPTS = ("scripts/review-override.py", "plugins/writ/scripts/review-override.py")
+    SKILLS = ("skills/blast-radius/SKILL.md", "cursor/plugin/skills/blast-radius/SKILL.md",
+              "plugins/writ/skills/blast-radius/SKILL.md")
+    # `floor` then `traced` within a few characters: `FLOOR = "traced"`,
+    # "Floor: `traced`", "floor traced)", "The floor is `traced`".
+    # `traced` named as the floor, in either order ("floor is `traced`", "`traced` is the floor").
+    TRACED_FLOOR = re.compile(
+        r"floor\W{0,4}(?:is\s+)?`?traced\b|\btraced`?\W{0,4}(?:is\s+)?(?:the\s+)?floor",
+        re.IGNORECASE)
+
+    @staticmethod
+    def flat(text: str) -> str:
+        return " ".join(text.split())
+
+    @staticmethod
+    def bullet(text: str, prefix: str) -> str:
+        """The bullet starting with `prefix`, joined with its indented continuation lines."""
+        lines = text.splitlines()
+        start = next(i for i, line in enumerate(lines) if line.startswith(prefix))
+        body = [lines[start]]
+        for line in lines[start + 1:]:
+            if not line.startswith("  "):
+                break
+            body.append(line)
+        return " ".join(part.strip() for part in body)
+
+    def test_script_floor_is_tested(self) -> None:
+        """AC-6.1, AC-6.2 — `FLOOR = "tested"`, the docstring `Floor:` line, and the
+        output example name `tested`, in the script and its plugin copy."""
+        for rel in self.SCRIPTS:
+            with self.subTest(path=rel):
+                raw = (REPO_ROOT / rel).read_text(encoding="utf-8")
+                self.assertRegex(raw, re.compile(r'^FLOOR = "tested"$', re.MULTILINE))
+                doc = self.flat(ast.get_docstring(ast.parse(raw)) or "")
+                self.assertIn("Floor: `tested`.", doc)
+                self.assertIn("(measured <m>, floor tested)", doc)
+                self.assertIsNone(self.TRACED_FLOOR.search(self.flat(raw)))
+
+    def test_skill_floor_is_tested(self) -> None:
+        """AC-6.1, AC-6.2 — the Evidence Ladder floor sentence and the re-review
+        `safety_fact_below_floor` advice name `tested`, in the skill and both copies."""
+        for rel in self.SKILLS:
+            with self.subTest(path=rel):
+                raw = (REPO_ROOT / rel).read_text(encoding="utf-8")
+                self.assertIn("The floor is `tested`.", self.flat(raw))
+                self.assertIsNone(self.TRACED_FLOOR.search(self.flat(raw)))
+                advice = self.bullet(raw, "- `safety_fact_below_floor")
+                self.assertIn("the measured rung is under `tested`. Cite a test from the "
+                              "recorded run; only the coder can add one.", self.flat(advice))
+                self.assertNotRegex(advice.lower(), r"\btrac")
 
 
 # ---------------------------------------------------------------------------

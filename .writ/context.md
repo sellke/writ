@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-05T02:02:17Z
+> Last Updated: 2026-11-05T02:57:26Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-04-evidence-gated-review — Evidence-Gated Review
-- **Status:** Not Started (spec.md header); Stories 1 to 5 of 7 completed on branch `phase/15-code-level-rigor`
-- **Story:** 4 of 7 — Confirmed repros become regression tests (Completed ✅); next is Story 6 — Raise the Safety Fact floor to `tested` (Not Started). Story 7 waits on Story 6.
-- **Progress:** 34/48 tasks complete (71%)
+- **Status:** Not Started (spec.md header); Stories 1 to 6 of 7 completed on branch `phase/15-code-level-rigor`
+- **Story:** 6 of 7 — Raise the Safety Fact floor to `tested` (Completed ✅); next is Story 7 — Remove the review panel and close out the roadmap (Not Started).
+- **Progress:** 41/48 tasks complete (85%)
 
 ## Artifact Map
 

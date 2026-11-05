@@ -42,11 +42,11 @@ it has at least one `- <rung>: <value>` line and every such line checks out
 (`claimed` needs only a non-empty Fact). Cited paths resolve against `--repo`;
 absolute paths and paths resolving outside it are rejected. The ladder is not
 cumulative; measured is the highest accepted rung (`none` if none). Floor:
-`traced`. Prints line 1 `pass`/`fail`/`unverifiable`,
+`tested`. Prints line 1 `pass`/`fail`/`unverifiable`,
 `rung: claimed=<c> measured=<m>`, `fact: <fact>`, `reason:` lines in order
 (`safety_fact_missing <section|fact|holds|rung>`,
 `safety_fact_below_floor <measured>`, `safety_fact_contradicts_verdict`),
-then `review-override safety-fact: <verdict> (measured <m>, floor traced)`.
+then `review-override safety-fact: <verdict> (measured <m>, floor tested)`.
 An unreadable review output is `unverifiable` with
 `review_output_unreadable`. Exit 0 pass/unverifiable, 1 fail, 2 usage.
 
@@ -344,7 +344,7 @@ def switch(name: str, repo: Path) -> int:
 # ---------------------------------------------------------------------------
 
 RUNGS = ("claimed", "read", "traced", "tested", "reproduced")
-FLOOR = "traced"
+FLOOR = "tested"
 APP_VERIFY_SCHEMA = "app-verify-result-v1"
 
 SAFETY_HEADING = re.compile(r"^#{2,6}\s*Safety Fact\s*$")
