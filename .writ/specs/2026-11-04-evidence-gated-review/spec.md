@@ -144,6 +144,11 @@ The user decided to keep the reviewer filters. The rest of the contract stands: 
 
 The rest of this package follows the Amendment.
 
+**Post-implementation amendments (2026-11-04, user-approved).** Three expanded rules were corrected to match what shipped:
+- `### Gate 3 decision`: the `repro_mutated_tree` row moved to row 1, ahead of the `check`, `safety-fact`, and prior-repro rows, because the Hardest Constraint makes any tree mutation BLOCKED (DEV-026). The old row 3a is now 4a.
+- `### /review`: the consent step and the mutation stop (DEV-016, DEV-012).
+- technical-spec `### Review panel (Story 7)`: `slug_vendor` and `origin_vendor` are kept (DEV-029).
+
 ## Experience Design
 
 ### Who uses it
@@ -191,16 +196,18 @@ The order is `check`, then `safety-fact`, then `evidence`. Results are read in t
 
 | # | Condition | Result |
 |---|---|---|
-| 1 | `check` line 1 is `fail` | FAIL → recode (unchanged) |
-| 2 | `safety-fact` reason `safety_fact_contradicts_verdict` | FAIL → recode (unchanged; the reviewer wrote PASS) |
-| 3 | `safety-fact` missing or below floor | existing re-review / BLOCKED / FAIL routing (unchanged) |
-| 3a | A manifest from an earlier Gate 3 attempt on this story exists, and `evidence --prior` fails (`repro_removed`, `repro_modified`, `repro_still_failing`) | FAIL → recode, on any agent verdict |
-| 4 | Agent verdict PASS or PAUSE | that verdict; `evidence` runs only the `--prior` checks when a manifest exists |
-| 5 | `evidence-gate` switch `off` | the agent's FAIL stands |
-| 6 | `evidence` reason `repro_mutated_tree` | BLOCKED escalation (`evaluator-agent` or `review-agent`, restart Gate 3) |
+| 1 | `evidence` reason `repro_mutated_tree` | BLOCKED escalation (`evaluator-agent` or `review-agent`, restart Gate 3) |
+| 2 | `check` line 1 is `fail` | FAIL → recode (unchanged) |
+| 3 | `safety-fact` reason `safety_fact_contradicts_verdict` | FAIL → recode (unchanged; the reviewer wrote PASS) |
+| 4 | `safety-fact` missing or below floor | existing re-review / BLOCKED / FAIL routing (unchanged) |
+| 4a | A manifest from an earlier Gate 3 attempt on this story exists, and `evidence --prior` fails (`repro_removed`, `repro_modified`, `repro_still_failing`) | FAIL → recode, on any agent verdict |
+| 5 | Agent verdict PASS or PAUSE | that verdict; `evidence` runs only the `--prior` checks when a manifest exists |
+| 6 | `evidence-gate` switch `off` | the agent's FAIL stands |
 | 7 | `evidence` line 1 `fail` | FAIL → recode with confirmed findings |
 | 8 | `evidence` line 1 `unverifiable` | the agent's FAIL stands; reason printed; not `⚠️ DEGRADED` |
 | 9 | `evidence` line 1 `pass` | PASS; every finding printed as advisory |
+
+Row 1 comes first because the contract's Hardest Constraint makes any tree mutation BLOCKED, whatever the other rows say. A mutation can only come from an `evidence` run, so PASS and PAUSE routing does not change (drift-log DEV-026).
 
 `safety-fact` reads the agent's own verdict line, not the verdict after the evidence step. A reviewer that writes `Holds: no` must FAIL, and the issue it raises at that location needs evidence like any other.
 
@@ -246,6 +253,8 @@ A finding with no `Evidence:` block is `advisory (no_evidence)`.
 - Recommendation: "Do not ship" and "Ship with caution" need at least one confirmed Critical or High finding. Otherwise the report says the code is ready to ship and lists the unconfirmed findings under the Recommendation as worth a look.
 - Available kinds are `test` and `security-path`. `recorded` and `check` are `unverifiable kind_unavailable` because `/review` has no recorded run and no Gate 2.
 - The header line `> Evidence gate: on|off|unverifiable (<reason>)` sits beside `> Reviewer filters: on|off`. Both lines stay in the header.
+- Consent: the evidence step runs the branch's own test code in the user's working tree, so `/review` asks before every run. A decline, a headless run where nobody can be asked, or no answer skips the run and writes `> Evidence gate: unverifiable (untrusted_branch)`; every severity stays as written. With the gate `off`, `/review` asks nothing. The user chose always-ask over an author-email rule, because a commit's author email can be forged (drift-log DEV-016).
+- A tree mutation during the run stops `/review` before any Recommendation or `/ship` hand-off, until the user decides (drift-log DEV-012).
 
 ### Switch
 

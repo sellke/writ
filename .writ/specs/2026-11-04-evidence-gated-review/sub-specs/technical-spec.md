@@ -174,7 +174,7 @@ This is a change, not a removal. The reviewer filters stay (spec.md → Amendmen
 
 | File | Change |
 |---|---|
-| `scripts/review-panel.py` | remove `status`, `tally`, `resolve`, `config_value`, `slug_vendor`, `origin_vendor`, `load_tally`, `cmd_tally`, `cmd_status`, and their parser entries. Keep `_prepare_run`, `PrepareError`, `parse_output`, `trial_key`, `_key_order`, `normalize_location`, `_issue_entries`, and the trial subcommands. |
+| `scripts/review-panel.py` | remove `status`, `tally`, `resolve`, `config_value`, `load_tally`, `cmd_tally`, `cmd_status`, and their parser entries. Keep `_prepare_run`, `PrepareError`, `parse_output`, `trial_key`, `_key_order`, `normalize_location`, `_issue_entries`, the trial subcommands, and `slug_vendor` and `origin_vendor`, which `trial-record` calls (drift-log DEV-029). |
 | `commands/implement-story.md` | remove the `--panel` invocation row and its conflict rule, the `--panel` qualifier in Gate 0's Route line, the "Review panel (opt-in)" paragraph, the panel `block` clause in Gate 3.5 § A, "A fail counts as a panel `block`" in the safety-fact paragraph (rewrite it to "A fail is one review-loop increment"), the `review-panel:` report line, the panel mention in the default spawn count, and the words "panel reviewers" in Gate 3's "Reviewer filters." paragraph (the paragraph stays). Add the leftover-config line and the `--panel` rejection. |
 | `.writ/docs/config-format.md` | remove the `Review Panel` row and section; add a one-line "Removed keys" entry pointing to ADR-032 |
 | `.writ/config.md` (this repo only; does not ship) | delete the `- **Review Panel:**` line |
@@ -226,7 +226,7 @@ This is a change, not a removal. The reviewer filters stay (spec.md → Amendmen
 | A repro fails for an unrelated reason the runner reports as a test failure (a wrong assertion) | It is confirmed. The coder cannot satisfy it, so the loop reaches its cap and the user decides (Business Rule 5). |
 | A `check` command that writes files (`eslint --fix`) | The snapshot catches it: `repro_mutated_tree`, BLOCKED. The skill tells reviewers never to use fix flags. |
 | A `recorded` test failed and the agent already FAILed on it | It is confirmed at no run cost. This is the common evaluator case. |
-| Agent FAIL, and `check` also fails | Row 1 wins. `evidence` still runs, so its lines are in the report, but it does not change the FAIL. |
+| Agent FAIL, and `check` also fails | Row 2 wins, unless the `evidence` run changed the tree (row 1). `evidence` still runs, so its lines are in the report, but it does not change the FAIL. |
 | `--review-only` | `evidence` runs the same way. A confirmed finding ends the run as FAIL; nothing confirmed ends it as PASS. There is no recode. |
 
 ## Test Plan
