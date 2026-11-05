@@ -1338,9 +1338,8 @@ class SafetyFactFloorWordingTests(unittest.TestCase):
     SCRIPTS = ("scripts/review-override.py", "plugins/writ/scripts/review-override.py")
     SKILLS = ("skills/blast-radius/SKILL.md", "cursor/plugin/skills/blast-radius/SKILL.md",
               "plugins/writ/skills/blast-radius/SKILL.md")
-    # `floor` then `traced` within a few characters: `FLOOR = "traced"`,
-    # "Floor: `traced`", "floor traced)", "The floor is `traced`".
-    # `traced` named as the floor, in either order ("floor is `traced`", "`traced` is the floor").
+    # `traced` named as the floor, in either order: `FLOOR = "traced"`, "Floor: `traced`",
+    # "floor traced)", "The floor is `traced`", "`traced` is the floor".
     TRACED_FLOOR = re.compile(
         r"floor\W{0,4}(?:is\s+)?`?traced\b|\btraced`?\W{0,4}(?:is\s+)?(?:the\s+)?floor",
         re.IGNORECASE)
