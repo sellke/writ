@@ -50,6 +50,7 @@
     "./agents/writ-evaluator.md",
     "./agents/writ-reviewer.md",
     "./agents/writ-story-gen.md",
+    "./agents/writ-supervisor.md",
     "./agents/writ-tester.md",
     "./agents/writ-visual-qa.md"
   ]

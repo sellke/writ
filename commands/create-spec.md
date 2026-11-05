@@ -28,77 +28,41 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 - `/create-spec` — discover and create a full contract-first spec package
 - `/create-spec --from-prototype` — formalize recent prototype work into a spec with Story 1 already complete
 - `/create-spec --from-issue <path>` — promote a `.writ/issues/` issue or Goal Card into a spec, pre-populating discovery from it (see § `--from-issue` Mode)
-- `/create-spec --recommend [idea]` — autonomously author and lock a complete spec package from evidence, then stop (does not implement)
+- `/create-spec --recommend [idea]` — accepted for older scripts and Goal Cards; prints `--recommend is the default now (Doubt Rule)` once and runs as below
 
-## Recommended Mode (`--recommend`)
+## Authoring From Evidence
 
-Parse `--recommend` exactly once at command entry. Store `recommend_mode` and
-choose one branch before discovery or file creation.
+This command decides on evidence and asks only on doubt: every bounded choice below goes through the preamble's **Doubt Rule**. It is how a seeded run from `/implement-phase` and an interactive run behave alike.
 
-**Normal branch (authoritative): when `--recommend` is absent, follow every
-existing phase, prompt, terminal constraint, and next-step behavior below
-verbatim.**
+### Invocation Matrix
 
-`--recommend` makes spec authoring autonomous: the command still runs
-contract-first discovery, but it auto-adopts the evidence-backed contract and
-its planning choices instead of stopping at each routine gate, and records the
-rationale. It is invokable standalone and is also the mode
-`/implement-phase --recommend` passes down when it authors missing specs.
-
-**Terminal scope:** `--recommend` produces a locked, validated spec package and
-**stops**. It never triggers `/implement-spec` or any implementation. Autonomous
-implementation across a phase belongs to `/implement-phase --recommend`, which
-calls `/implement-spec` per spec after the packages exist.
-
-### Authoritative `--recommend` Invocation Matrix
-
-Validate the complete invocation before creating files, updating an issue, or
-launching discovery:
+Validate the complete invocation before creating files, updating an issue, or launching discovery:
 
 | Invocation | Result |
 |---|---|
-| `/create-spec --recommend [one-idea]` | Supported; source mode `standard` |
-| `/create-spec --recommend --from-issue <one-path>` | Supported; source mode `from-issue` |
-| `/create-spec --recommend --from-prototype` | Supported; source mode `from-prototype` |
-| `/create-spec --recommend` with no idea | Supported only when exactly one unambiguous feature candidate resolves from context; otherwise pause with a bounded selection before discovery |
-| `/create-spec --recommend --quick` | Reject: full spec package generation is mandatory |
-| `/create-spec --recommend --force` | Reject: recommended authoring never overwrites ownership or completion evidence |
-| `--recommend` with multiple source modes | Reject: select exactly one of standard, `--from-issue`, or `--from-prototype` |
-| `--recommend` with multiple issue paths or multiple free-form source arguments | Reject: one invocation authors exactly one spec |
+| `/create-spec [one-idea]` | Supported; source mode `standard` |
+| `/create-spec --from-issue <one-path>` | Supported; source mode `from-issue` |
+| `/create-spec --from-prototype` | Supported; source mode `from-prototype` |
+| `/create-spec` with no idea | Supported; Step 1.0 resolves the feature |
+| `/create-spec --quick` | Reject: full spec package generation is mandatory |
+| `/create-spec --force` | Reject: authoring never overwrites ownership or completion evidence |
+| Multiple source modes | Reject: select exactly one of standard, `--from-issue`, or `--from-prototype` |
+| Multiple issue paths or multiple free-form source arguments | Reject: one invocation authors exactly one spec |
 
 On rejection, print the supported forms above and stop before mutation.
 
-### Autonomous Authoring Boundary
+### Decisions
 
-`--recommend` overrides the routine human gates of Phase 1 — not the
-accountability floor:
+- **Discovery (Step 1.3)** runs only while intent is open: the idea, its source (an issue, a prototype record, or a seed from `/implement-phase`), and the codebase do not settle the Deliverable, Must Include, and Business Rules. Once they do, write the contract from that evidence. Never invent what a source does not say.
+- **Feature selection (Step 1.0):** `site: direction`. One unambiguous candidate from context is the recommendation; none means no recommendation, so it asks.
+- **Contract lock (Step 1.4b):** `site: direction`. Print the contract first, always. A passing check locks it and prints `Locked: <reason>`; otherwise the Contract Decision question runs.
+- **Visual references (Step 1.5):** `site: choice`. Recommend `none`, or `generate` for a UI-bearing spec with no assets supplied.
+- **Story decomposition and sub-spec set:** `site: plan`. Technical-spec always; database, api, and ui sub-specs when the data-flow and UI heuristics apply.
+- **Cross-spec overlap (Step 1.3b):** a blocking conflict sets `conflict: true`, so it asks; an advisory note does not.
 
-- **Auto-adopt** — record each material decision in `{spec}/recommendation-log.md`
-  (decision, evidence, material alternatives, risk/reversibility, result; never
-  private chain-of-thought or transcript content):
-  - *Feature selection (Step 1.0):* use the provided `[idea]`; with no idea and
-    exactly one unambiguous candidate from context, adopt it, otherwise pause.
-  - *Contract lock (Step 1.4b):* auto-lock the evidence-backed contract. Do
-    **not** present the lock/edit/risks/blueprint choice. The lock is
-    justified by discovery and codebase evidence and recorded. Silence is not
-    justification.
-  - *Story decomposition and sub-spec set:* choose from contract scope and
-    codebase evidence (technical-spec always; database/api/ui sub-specs when the
-    data-flow/UI heuristics apply).
-  - *Visual references (Step 1.5):* auto-resolve without prompting — default to
-    `none`, or `generate` when the spec is UI-bearing and no assets were supplied.
-  - *Source pre-population:* `--from-issue`/`--from-prototype` context is adopted
-    without re-litigating the shortened-discovery offers.
-- **Pause (bounded question or actionable blocker):** no idea and no single
-  unambiguous candidate; conflicting or technically infeasible requirements
-  (core-contract ambiguity, not the lock itself); a cross-spec overlap that is
-  a blocking conflict rather than an advisory note.
+Record each acted-on decision in `{spec}/recommendation-log.md`: decision, evidence, material alternatives, risk and reversibility, result; never private chain-of-thought or transcript content. With `--from-issue`, the `spec_ref` writeback still applies.
 
-After the contract is auto-locked, run the ordinary Phase 2 generation steps and,
-before finishing, write `{spec}/recommendation-log.md` capturing the autonomous
-decisions above. When invoked with `--from-issue`, the ordinary `spec_ref`
-writeback still applies. Then stop — the locked, validated package is the
-deliverable.
+**Terminal scope:** this command produces a locked, validated spec package and **stops**. It never triggers `/implement-spec`; `/implement-phase` implements the specs it authors.
 
 ## Command Process
 
@@ -221,7 +185,7 @@ Only that line changes; the issue is never deleted or archived. **If the spec_re
 
 #### Step 1.0: Feature Selection (if not provided)
 
-**If user didn't specify a feature idea, use AskQuestion immediately:**
+**If user didn't specify a feature idea,** run the Doubt Rule (`site: direction`, see Authoring From Evidence); when it asks, use this AskQuestion:
 
 ```
 AskQuestion({
@@ -325,7 +289,7 @@ Keyword matching, not semantic analysis; false positives are acceptable (the use
 - Consider: sequencing these specs, declaring a dependency, or coordinating the shared area
 ```
 
-Print it as a visible message, then discuss refinements (in Plan Mode when the run uses it). When the user approves, confirm with AskQuestion.
+Print it as a visible message, then discuss refinements (in Plan Mode when the run uses it). Then run the Doubt Rule on the lock (`site: direction`): a passing check locks it; otherwise confirm with AskQuestion.
 
 #### Step 1.4b: Contract Decision (Agent Mode)
 
@@ -356,7 +320,7 @@ AskQuestion({
 
 #### Step 1.5: Visual References (Optional)
 
-**After contract lock, before creating files**, if the spec involves any user-facing UI, ask:
+**After contract lock, before creating files**, if the spec involves any user-facing UI, run the Doubt Rule (`site: choice`); when it asks, ask:
 
 ```
 AskQuestion({
@@ -387,7 +351,7 @@ AskQuestion({
 
 ### Phase 2: Spec Package Creation (Post-Agreement Only)
 
-**Triggered only after user confirms contract with 'yes'**
+**Triggered only after the contract is locked:** the user chose 'yes', or the Doubt Rule passed on the lock.
 
 #### Step 2.2: Determine Current Date
 
@@ -593,10 +557,10 @@ After stories exist and Step 2.6a has validated IDs, run one analysis pass — *
 then run item 1 only over the stories listed in `<out>.escalate.json` and merge into `<out>` (the
 `--findings` file). Otherwise, or if it exits 1 or 2, run item 1 over every story.
 
-**Jev setup (once).** If `status` reports `no_config_line` in an interactive run (not `--recommend`), ask one AskQuestion titled "Jev judgment provider"
+**Jev setup (once).** If `status` reports `no_config_line` in an interactive run started from this command (not seeded by `/implement-phase`), ask one AskQuestion titled "Jev judgment provider"
 (text: "export the key in your shell; never paste a key into chat"): TypeSafe direct / Vercel AI Gateway / Not now / Never → `python3 scripts/jev-judge.py setup --provider`
 `typesafe` / `vercel-gateway` / nothing / `none`; print its export line and take the Otherwise path this run. A key pasted anyway: write it nowhere; tell the user to rotate it.
-`--recommend`, non-interactive, or `none`: one `jev:` note. `no_api_key`: note `jev: unverifiable (no_api_key) — export <VAR>`; no re-prompt.
+Seeded, non-interactive, or `none`: one `jev:` note. `no_api_key`: note `jev: unverifiable (no_api_key) — export <VAR>`; no re-prompt.
 
 1. **LLM pass (orchestrator, not the script).** Read the generated stories’ acceptance criteria and look for contradiction, gap, and ambiguity, grounded in exit-criteria grammar (observable, named outcomes). Write a JSON array of `{code, story, summary, ac_ids?}` finding objects (`code` is `contradiction`, `gap`, or `ambiguity`) to a per-run path under `.writ/state/` (gitignored); write `[]` if you cannot judge. Do not add an API key to `scripts/spec-analyze.py`, create a new agent file, or change how `/implement-story` spawns agents. If you skip the pass, omit `--findings` below.
 2. **Verify the claim, don't trust it.**

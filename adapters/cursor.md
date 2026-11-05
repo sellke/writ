@@ -176,12 +176,12 @@ Preserve stable option identity across display, selection, rationale, and resume
 Adapters map interaction mechanics only; they do not choose recommendation policy.
 Equivalent observable semantics are required: recommendation label or disclosed equivalence, classified pause, concise rationale, and same-session continuation after an answer.
 
-In `--recommend` mode, consume the policy result by selecting its stable option
+When the doubt check passes, consume the policy result by selecting its stable option
 identity automatically or by rendering its bounded pause unchanged. Show the
 policy's decision, evidence, material alternatives, risk, reversibility,
 selection source, and result/artifact summary without exposing private
 chain-of-thought or transcript content. After a required answer, return control
-to the active command in the same session with recommendation mode retained.
+to the active command in the same session.
 Cursor permission, authentication, and unavailable-tool failures remain hard
 platform blockers.
 

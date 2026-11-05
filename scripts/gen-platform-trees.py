@@ -635,10 +635,10 @@ CODEX_VERIFY = (
 # Codex loads AGENTS.md every session and has no import, so the Writ block
 # carries the Prime Directive itself: the obligation line, the Hard
 # Constraints, and the Recommendation Semantics, byte for byte. The
-# `--recommend` rules stay in the installed file, which keeps the template
-# under CODEX_TEMPLATE_CAP.
+# Initiative and Doubt rules stay in the installed file, which keeps the
+# template under CODEX_TEMPLATE_CAP.
 CODEX_IDENTITY_POINTER = (
-    "The `--recommend` rules and the rest of Writ's system instructions are in "
+    "The Initiative and Doubt rules and the rest of Writ's system instructions are in "
     "`.codex/system-instructions.md`. Read it when a command cites `system-instructions.md`.")
 # The hand-maintained file's paragraph, verbatim (story 3 Notes -> Built-ins literal).
 CODEX_BUILTINS = (
@@ -780,7 +780,7 @@ def codex_prime_directive(root: Path) -> str:
         return source[start:end].rstrip("\n")
 
     return "\n\n".join([
-        part("## Prime Directive", "### Recommended Delivery Exception"),
+        part("## Prime Directive", "### Initiative and Doubt"),
         part("### Recommendation Semantics", "## Interaction Tool Selection"),
         CODEX_IDENTITY_POINTER,
     ])

@@ -272,7 +272,7 @@ CLEAN_SUMMARY = CHECK_SUMMARY % ("pass", 0, 0, 0, 0, 0)
 MANIFEST_KEYS = ["name", "version", "description", "author", "repository", "license",
                  "commands", "agents"]
 CLAUDE_AGENT_NAMES = ("architect", "coder", "documenter", "evaluator", "reviewer",
-                      "story-gen", "tester", "visual-qa")
+                      "story-gen", "supervisor", "tester", "visual-qa")
 
 
 def copy_sources(dest: Path) -> Path:

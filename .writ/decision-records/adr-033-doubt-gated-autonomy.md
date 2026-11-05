@@ -2,6 +2,7 @@
 
 > **Date:** 2026-11-05
 > **Status:** Accepted
+> **Amended:** 2026-11-05 — what the Phase 17 build changed (see § Amendments)
 > **Category:** Autonomy & Governance
 > **Deciders:** @AdamSellke
 > **Origin:** `/plan-product --reconcile` (2026-11-05). The maintainer's direction: a person's time and judgment are called on only when there is reasonable doubt about the right answer; the harness takes initiative and keeps itself honest; a supervisor checks subagent work; Jev makes the first-pass call on whether a person is needed.
@@ -118,6 +119,17 @@ Roadmap Phase 17, Doubt-Gated Autonomy, in this order:
 **Success criteria:** asks per phase run fall against the Phase 15 transcripts as the baseline; a script finds zero autonomous decisions without a log entry; the supervisor catches at least one F6-class shortcut on a Phase 15 transcript replay; the bytes retired from `_preamble.md`, `system-instructions.md`, and the recommend branches are counted in the phase close; `bash scripts/eval.sh` passes with its pins updated.
 
 **Review:** at Phase 17 close, per site: ask rate before and after, overrides, and any autonomous decision later reverted. Reopen this record if an autonomous decision on an irreversible act is overridden, or if the fallback table fires on most decisions in a project (the oracle is unconfigured there, and the rule is doing nothing).
+
+## Amendments
+
+### 2026-11-05 — The Phase 17 build
+
+Phase 17 was built the same day on `phase/17-doubt-gated-autonomy`, ahead of the Principle 8 queue at the maintainer's direction. Four points of the decision changed in the build:
+
+1. **Jev shadows until its own record says otherwise.** Point 2 expected Jev to make the first-pass call. On 98 of the maintainer's past answers to bounded questions in this repository (88 taken as recommended, 10 overridden), Jev's score did not separate them: the threshold fitted on the dev half (0.38, zero overrides acted on) acted on 2 overrides in 16 on the held-out half, no better than the 10% base rate. `doubt-calibrate` therefore writes a threshold only when the held-out half shows no override it would have acted on, and it refused here ([report](../eval/doubt-calibration/report.md)). Jev still runs first on every decision the rules pass, and its score is logged; the decision's kind decides until the labels support it. Five of the ten overrides were scope or direction calls, which the fallback asks; five were reversible method choices, which it acts on and logs.
+2. **The fallback site for scope is `direction`, not "contract".** Point 1's three ADR-022 classes became sites: `direction` (scope, priorities, what gets built, a contract lock) and `design` (taste) ask without a calibrated judgment; `merge` and `release` always ask; `choice`, `route`, `plan`, and `destructive` act when the rules pass. Decisions about method, not scope, were where the labeled data said a person was not needed.
+3. **The supervisor runs at the anchor tier, and `subagent-result-completeness` stays.** Point 3 said floor tier. `.writ/docs/model-tiers.md` puts any agent that judges another agent's output at `anchor`, as the evaluator is. The completeness skill checks the verdict shape of gate agents inside a story at no spawn cost; the supervisor checks story and lane reports, so the two do not overlap. The supervisor runs once per story in `/implement-spec` and once per lane in `/implement-phase`, never both for one story. Removal measurement on Phase 15's lane 1: replayed blind on the lane report Phase 15's orchestrator merged (`exit-criteria.py`: `met`), it returned `ESCALATE`, naming the missing coding-agent run, two stories sharing one Gate 3 review, and three verify tasks ticked over a failed run ([trial](../eval/supervisor-trial/report.md)). It stays. The trial cost about 141k tokens, mostly a full-suite and `eval.sh` re-run in a clone; the prompt now re-runs only targeted checks.
+4. **`--recommend` is an accepted no-op, not an error.** Goal Cards and scripts that pass it keep working; it prints one line and runs the default. Without a configured judgment provider, a seeded `/create-spec` now asks at the contract lock where `--recommend` used to lock silently. That is the fallback this record chose, and the price of not acting looser without evidence.
 
 ## References
 

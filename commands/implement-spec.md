@@ -187,6 +187,7 @@ before assuming concurrency.
 #### Step 3.3: Update State After Each Story
 
 After each `/implement-story` completes:
+- **Supervise the result first.** Spawn `supervisor-agent` (fresh context, read-only) with the story's report verbatim, the story file, and the commit range the story produced. It re-derives each claim from git, the story file, the drift log, and Writ's checkers, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → record the story as reported. `RERUN` → run `/implement-story {id}` once more; a second `RERUN` is a story failure. `ESCALATE` → a story failure, with the claims table as its reason. A missing result line is a mid-task stop: resume the supervisor once and ask for its result. In Phase-Orchestrated Lane Mode, skip this step: `/implement-phase` supervises the lane's result.
 - **Update execution state file with result** — this is a required disk
   write: update the story's `stories.{id}` entry in
   `.writ/state/execution-{timestamp}.json` immediately, before dispatching
@@ -196,7 +197,7 @@ After each `/implement-story` completes:
 - Log: pass/fail, review iterations, test count, coverage
 - **Regenerate `.writ/context.md`** — full rewrite using the schema defined in `implement-story.md` Step 2 (including the `## Artifact Map` + Integrity line), reflecting the updated story progress. Each write replaces the entire file.
 
-**On story failure:** Present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
+**On story failure:** run the Doubt Rule (`site: plan`; recommend skipping only the failed story's dependents when `story-deps.py` shows independent stories remain, otherwise retry once). When it asks, present remaining issues and offer: retry, skip (continue with independent stories), skip with all dependents, or abort.
 
 **On dependency blocked:** Present the dependency chain and offer: skip, attempt anyway (dependencies incomplete), retry failed dependency, or abort.
 

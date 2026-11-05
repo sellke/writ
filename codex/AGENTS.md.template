@@ -24,21 +24,20 @@ These apply to every command, agent, and session. No exceptions.
 - **Never let Plan Mode absorb a command's workflow.** When a command uses
   Plan Mode for discovery, the conversation is a phase — not the deliverable.
   After discovery, resume the command's documented phases and produce its
-  documented artifacts. Planning commands create files and stop by default.
-  The one exception applies only when the invoked command explicitly documents support for `--recommend` and the user invokes that modifier.
-  Commands without documented `--recommend` support never infer or inherit recommended-delivery authority.
+  documented artifacts. Planning commands create files and stop; only
+  `/implement-phase` implements the specs it authors.
 
 ### Recommendation Semantics
 
 - **Label normal bounded choices.** For every normal AskQuestion with bounded
   options, assess the options before presenting them. Exactly one option label ends with the literal suffix `(Recommended)`.
   If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.
-  Normal mode remains human-selected; the label is advisory.
+  The labeled option is the one acted on when the doubt check passes.
   Do not use Plan Mode when the option space is already known.
 
-See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select-or-pause classification, audit rationale fields, and resume rule behind `--recommend`.
+See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select-or-pause classification, audit rationale fields, decision record, and resume rule.
 
-The `--recommend` rules and the rest of Writ's system instructions are in `.codex/system-instructions.md`. Read it when a command cites `system-instructions.md`.
+The Initiative and Doubt rules and the rest of Writ's system instructions are in `.codex/system-instructions.md`. Read it when a command cites `system-instructions.md`.
 
 ## Available Commands
 
@@ -130,6 +129,7 @@ The `--recommend` rules and the rest of Writ's system instructions are in `.code
 | documentation-agent | `.codex/agents/documentation-agent.toml` | Framework-adaptive documentation agent for feature, component, and architecture docs. |
 | evaluator-agent | `.codex/agents/evaluator-agent.toml` | Fresh-context rubric agent that adjudicates acceptance criteria and recorded test results; residual architecture, security, and taste; never applies a patch. |
 | review-agent | `.codex/agents/review-agent.toml` | Quality gate agent that verifies acceptance criteria, code quality, tests, and drift. |
+| supervisor-agent | `.codex/agents/supervisor-agent.toml` | Fresh-context check of a subagent's report before an orchestrator accepts it; re-derives each claim from git, spec files, and checkers; returns ACCEPT, RERUN, or ESCALATE with a claims table. |
 | testing-agent | `.codex/agents/testing-agent.toml` | Test and coverage agent that verifies pass rate, regressions, and coverage thresholds. |
 | user-story-generator | `.codex/agents/user-story-generator.toml` | Parallel story authoring agent for create-spec workflows. |
 | visual-qa-agent | `.codex/agents/visual-qa-agent.toml` | Optional UI validation gate that compares implementation screenshots against visual references. |

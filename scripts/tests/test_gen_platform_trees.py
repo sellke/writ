@@ -1009,7 +1009,7 @@ def test_codex_template_carries_prime_directive(gen):
     import, so the Writ block carries the Prime Directive itself. The section
     holds the obligation line, the Hard Constraints, and the Recommendation
     Semantics byte for byte from system-instructions.md, leaves the
-    `--recommend` rules to the installed file, and names that file."""
+    Initiative and Doubt rules to the installed file, and names that file."""
     text = gen.render_codex_template(REPO_ROOT)
     source = read("system-instructions.md")
 
@@ -1018,12 +1018,12 @@ def test_codex_template_carries_prime_directive(gen):
         return source[start:source.index(upto, start)]
 
     section = text[text.index("## Prime Directive\n"):text.index("## Available Commands")]
-    assert sub("### Hard Constraints", "### Recommended Delivery Exception") in section
+    assert sub("### Hard Constraints", "### Initiative and Doubt") in section
     assert sub("### Recommendation Semantics", "## Interaction Tool Selection").rstrip("\n") in section
     obligation = source.splitlines()[source.splitlines().index("## Prime Directive") + 2]
     assert obligation.startswith("Writ's first obligation is accurate assessment")
     assert section.splitlines()[2] == obligation
-    assert "### Recommended Delivery Exception" not in section
+    assert "### Initiative and Doubt" not in section
     assert "`.codex/system-instructions.md`" in section
     assert "Read bundled" not in text
 

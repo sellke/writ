@@ -89,6 +89,8 @@ Look for these patterns in the event lists. Report a pattern only when the trans
 | **Token sink** | turns with very large input or tool output for little progress, from `message.usage` or output size; long wall-clock gaps between tool calls | ignore patterns, smaller or split docs, output caps on noisy commands |
 | **Writ command defect** | a Writ command step confused the agent, was skipped, or failed | `/writ:refresh-command <command>`, or an Improvement Request upstream |
 
+**Decisions.** When `.writ/state/doubt-log.jsonl` exists, read the rows in the window: count asks and acts per `site`. A user correction that reverses a decision logged `act` is a User correction finding; label that decision with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py doubt-label --id <id> --outcome overridden`. An ask the transcript shows answered with no `doubt-label` gets one now: `as_recommended` when the person took the recommended option, else `overridden`. These labels are what `doubt-calibrate` fits from.
+
 Count occurrences. Three occurrences make a pattern (ADR-014). A single silent patch or stale-guidance event counts on its own. A user correction or mistake against a rule whose enforcer is `none` in the rule table counts on its own, as a Repeated mistake. Keep single corrections and mistakes until Step 4 has read the table.
 
 ### Step 4: Rank by Severity

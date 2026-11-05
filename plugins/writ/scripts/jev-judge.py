@@ -37,6 +37,24 @@ Subcommands:
   shadow-report [--log P] [--repo .]
                       Agreement, false passes, and the ADR-027 promotion rule
                       over the shadow log. Reads the log only; no network.
+  doubt --record F [--log P] [--repo .] [--backend B]
+                      Does a decision need a person? `pass` = act on the
+                      recommended option (exit 0); `fail` = ask (exit 1).
+                      Rules first, no network: merge and release always ask;
+                      an act that is not git-revertable, no recommendation,
+                      conflicting evidence, or no evidence asks. Then one Jev
+                      Noul when the provider is enabled; with a calibrated
+                      ask threshold, p >= ask asks. Without one, the fallback
+                      asks for `contract` and `design` and acts elsewhere.
+                      Appends one row to <repo>/.writ/state/doubt-log.jsonl.
+  doubt-label --id ID --outcome {as_recommended,overridden} [--log P]
+                      Record what the person did with a logged decision.
+  doubt-calibrate [--log P] [--extra F ...] [--live] [--save F] [--write]
+                  [--out F] [--repo .]
+                      Fit the ask threshold from labeled decisions (the log's
+                      labels plus --extra JSONL). --live scores examples with
+                      no p (double opt-in). --write writes
+                      <repo>/.writ/doubt-thresholds.json after a scored run.
   calibrate --fixtures DIR [--live] [--write-thresholds] [--backend B]
             [--recordings DIR] [--repo .]
                       Story 4. Score recorded spec-findings responses (one per
@@ -57,7 +75,7 @@ Prints one verdict line (`pass` / `fail` / `unverifiable`), optional
 `reason:` lines, then a summary line last.
 
 Exit 0: `pass` or `unverifiable`.
-Exit 1: `fail` (malformed response).
+Exit 1: `fail` (malformed response; for `doubt`, ask a person).
 Exit 2: usage.
 
 Key handling: this script never prints, logs, or writes a key value. The
@@ -1819,6 +1837,432 @@ def calibrate(args: argparse.Namespace, environ: Mapping[str, str],
     return _emit("pass", reasons, summary)
 
 
+# --------------------------------------------------------------------------
+# doubt, doubt-label, doubt-calibrate (ADR-033): does a decision need a person?
+# --------------------------------------------------------------------------
+
+DOUBT_LOG = ".writ/state/doubt-log.jsonl"
+DOUBT_PROJECT_THRESHOLDS = ".writ/doubt-thresholds.json"
+DOUBT_SITES = ("choice", "route", "plan", "direction", "design", "destructive", "merge",
+               "release")
+# Without a calibrated judgment these sites ask; every other site acts.
+# `direction`: scope, priorities, what gets built, a contract lock. `design`: taste.
+DOUBT_FALLBACK_ASK = ("direction", "design")
+# These sites ask whatever the judgment says.
+DOUBT_ALWAYS_ASK = {"merge": "no_verification_ledger", "release": "outward"}
+DOUBT_OUTCOMES = ("as_recommended", "overridden")
+DOUBT_QUESTION = "needs_person"
+DOUBT_MIN_LABELS = 30
+DOUBT_RULE = (
+    "split by id hash into dev and test; both must hold an override and an accepted "
+    "decision (else no_holdout); ask = the lowest p of any dev override, rounded down to "
+    "0.01; act only when p < ask; written only when dev acts on at least one decision "
+    "(else unseparated) and test acts on no override (else holdout_false_act)")
+RECOMMENDED_SUFFIX = "(Recommended)"
+
+
+class DoubtRecord(NamedTuple):
+    site: str
+    question: str
+    options: List[Dict[str, str]]
+    recommended: str  # "" when the caller has no recommendation
+    evidence: List[str]
+    reversible: bool
+    conflict: bool
+
+
+def _strip_recommended(label: str) -> str:
+    label = label.strip()
+    if label.endswith(RECOMMENDED_SUFFIX):
+        return label[: -len(RECOMMENDED_SUFFIX)].rstrip()
+    return label
+
+
+def parse_doubt_record(data: Any) -> DoubtRecord:
+    """Validate a decision record. A malformed record is the caller's bug: exit 2."""
+    if not isinstance(data, dict):
+        raise UsageError("--record must hold a JSON object")
+    site = data.get("site", "choice")
+    if site not in DOUBT_SITES:
+        raise UsageError("--record site must be one of %s" % ", ".join(DOUBT_SITES))
+    question = data.get("question")
+    if not isinstance(question, str) or not question.strip():
+        raise UsageError("--record question must be a non-empty string")
+    options: List[Dict[str, str]] = []
+    raw_options = data.get("options")
+    if not isinstance(raw_options, list):
+        raise UsageError("--record options must be a list")
+    for item in raw_options:
+        if isinstance(item, str):
+            options.append({"label": _strip_recommended(item), "description": ""})
+        elif isinstance(item, dict) and isinstance(item.get("label"), str):
+            desc = item.get("description", "")
+            options.append({"label": _strip_recommended(item["label"]),
+                            "description": desc if isinstance(desc, str) else ""})
+        else:
+            raise UsageError("--record options must be strings or {label, description} objects")
+    if len(options) < 2:
+        raise UsageError("--record options must name at least two options")
+    recommended = data.get("recommended") or ""
+    if not isinstance(recommended, str):
+        raise UsageError("--record recommended must be a string")
+    recommended = _strip_recommended(recommended)
+    if recommended and recommended not in [o["label"] for o in options]:
+        raise UsageError("--record recommended must be one of the option labels")
+    evidence = data.get("evidence", [])
+    if not isinstance(evidence, list) or not all(isinstance(e, str) for e in evidence):
+        raise UsageError("--record evidence must be a list of strings")
+    reversible = data.get("reversible")
+    if not isinstance(reversible, bool):
+        raise UsageError("--record reversible must be true or false")
+    conflict = data.get("conflict", False)
+    if not isinstance(conflict, bool):
+        raise UsageError("--record conflict must be true or false")
+    return DoubtRecord(site, question.strip(), options, recommended,
+                       [e.strip() for e in evidence if e.strip()], reversible, conflict)
+
+
+def doubt_rule(rec: DoubtRecord) -> Optional[str]:
+    """The deterministic half: the first reason a person must be asked, else None."""
+    if rec.site in DOUBT_ALWAYS_ASK:
+        return DOUBT_ALWAYS_ASK[rec.site]
+    if not rec.reversible:
+        return "not_revertable"
+    if not rec.recommended:
+        return "no_recommendation"
+    if rec.conflict:
+        return "conflicting_evidence"
+    if not rec.evidence:
+        return "no_evidence"
+    return None
+
+
+def doubt_request(question: str, options: Sequence[Mapping[str, str]], recommended: str,
+                  evidence: Sequence[str]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """One Noul over one decision. jev-1.13 reads literally, so the question names
+    each state path it reads and puts both outcomes in full. Any change to this
+    wording changes every request and needs `doubt-calibrate --live` again."""
+    decision: Dict[str, Any] = {
+        "question": question,
+        "options": [{"label": o["label"], "description": o.get("description", "")}
+                    for o in options],
+        "recommended": recommended,
+    }
+    if evidence:
+        decision["evidence"] = list(evidence)
+    questions = {DOUBT_QUESTION: _noul(
+        "An assistant must settle the choice in `decision.question` for the person it "
+        "works for, and it recommends the option named in `decision.recommended`. Should "
+        "it stop and ask the person before acting, because the person may well want a "
+        "different option from `decision.options`?",
+        "Ask first. The right option turns on something only the person can settle: "
+        "their priorities, taste, scope, budget, or a fact the question does not state, "
+        "or two options are close enough that the person's preference decides. A "
+        "reasonable person could pick an option other than `decision.recommended`.",
+        "Act without asking. `decision.recommended` follows from what the decision "
+        "states, the other options in `decision.options` are clearly worse, riskier, or "
+        "out of scope, and a reasonable person would pick `decision.recommended`.")}
+    return {"decision": decision}, questions
+
+
+def _doubt_threshold(repo: Path, backend: Optional[Backend]
+                     ) -> Tuple[Optional[float], List[str], str]:
+    """(ask threshold or None, informational reasons, where it came from).
+
+    A project file written by `doubt-calibrate --write` wins over the shipped
+    `doubt` block in jev-thresholds.json. A threshold fitted to another backend
+    or model is not applied: the decision falls back instead."""
+    project = repo / DOUBT_PROJECT_THRESHOLDS
+    if project.is_file():
+        data: Any = _read_json_object(project, DOUBT_PROJECT_THRESHOLDS)
+        where = "project"
+    else:
+        try:
+            shipped, _reasons = load_thresholds()
+        except ThresholdsError as exc:
+            raise UsageError("thresholds: %s" % exc)
+        data = shipped.get("doubt")
+        where = "shipped"
+    if not isinstance(data, dict) or data.get("calibrated") is not True:
+        return None, ["doubt_uncalibrated"], where
+    ask = data.get("ask")
+    if not _unit_interval(ask):
+        raise UsageError("thresholds: doubt.ask must be a number in [0, 1] (%s)" % where)
+    if backend is None:
+        return float(ask), [], where
+    if data.get("backend") != backend.name or data.get("model") != backend.model:
+        return None, ["uncalibrated_thresholds"], where
+    return float(ask), [], where
+
+
+def _doubt_id(rec: DoubtRecord) -> str:
+    seed = canonical_body({"q": rec.question, "o": rec.options, "r": rec.recommended,
+                           "t": time.time_ns(), "pid": os.getpid()})
+    return request_hash(seed)[:12]
+
+
+def doubt(args: argparse.Namespace, environ: Mapping[str, str],
+          transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
+    """pass = act on the recommended option; fail = ask a person. Every call is
+    logged, so an answer can be labeled later and thresholds refit from it."""
+    rec = parse_doubt_record(_read_json_object(args.record, "--record"))
+    log: Path = args.log if args.log is not None else args.repo / DOUBT_LOG
+    row: Dict[str, Any] = {
+        "kind": "decision", "id": _doubt_id(rec),
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "site": rec.site, "question": rec.question, "options": rec.options,
+        "recommended": rec.recommended, "evidence": rec.evidence,
+        "reversible": rec.reversible, "conflict": rec.conflict,
+        "p": None, "ask": None, "backend": None, "model": None}
+    info: List[str] = []
+    rule = doubt_rule(rec)
+    if rule is not None:
+        act, source, reason = False, "rules", rule
+    else:
+        sel = _select_backend(args.repo, args.backend, environ)
+        threshold, t_info, _where = _doubt_threshold(args.repo, sel.backend or sel.named)
+        p: Optional[float] = None
+        if sel.backend is not None:
+            state, questions = doubt_request(rec.question, rec.options, rec.recommended,
+                                             rec.evidence)
+            j = judge(state, questions, sel.backend, environ, transport=transport,
+                      sleep=sleep)
+            answer = (j.answers or {}).get(DOUBT_QUESTION) if j.verdict == "pass" else None
+            value = answer.get("noul") if isinstance(answer, dict) else None
+            if _unit_interval(value):
+                p = float(value)
+                row.update(backend=sel.backend.name, model=j.model or sel.backend.model)
+            else:
+                info.append("jev_%s" % _primary(j.reasons))
+            info += [r for r in j.reasons if r in INFORMATIONAL]
+        else:
+            info += ["jev_%s" % r for r in sel.reasons[:1]]
+        row["p"] = p
+        if p is not None and threshold is not None:
+            row["ask"] = threshold
+            act = p < threshold
+            source, reason = "jev", ("jev_clear" if act else "jev_doubt")
+        else:
+            info += t_info if p is not None else []
+            act = rec.site not in DOUBT_FALLBACK_ASK
+            source = "fallback"
+            reason = "fallback_act" if act else "fallback_%s" % rec.site
+    row.update(verdict="act" if act else "ask", source=source, reason=reason)
+    _append_row(log, row)
+    tail = "id=%s site=%s source=%s" % (row["id"], rec.site, source)
+    if row["p"] is not None:
+        tail += " p=%.2f" % row["p"]
+    if row["ask"] is not None:
+        tail += " ask=%.2f" % row["ask"]
+    verdict = "pass" if act else "fail"
+    return _emit(verdict, [reason] + info, "jev-judge: %s (%s) %s %s" % (
+        verdict, "act" if act else "ask", reason, tail))
+
+
+def read_doubt_log(log: Path) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, str]]:
+    """Decision rows by id, and the last label per id. Unreadable lines are skipped."""
+    decisions: Dict[str, Dict[str, Any]] = {}
+    labels: Dict[str, str] = {}
+    try:
+        lines = log.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return decisions, labels
+    except (OSError, UnicodeDecodeError) as exc:
+        raise UsageError("--log unreadable: %s (%s)" % (log, type(exc).__name__))
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(row, dict) or not isinstance(row.get("id"), str):
+            continue
+        if row.get("kind") == "decision":
+            decisions[row["id"]] = row
+        elif row.get("kind") == "label" and row.get("outcome") in DOUBT_OUTCOMES:
+            labels[row["id"]] = row["outcome"]
+    return decisions, labels
+
+
+def doubt_label(args: argparse.Namespace) -> int:
+    """Record what the person did with an asked (or acted-on) decision."""
+    log: Path = args.log if args.log is not None else args.repo / DOUBT_LOG
+    decisions, _labels = read_doubt_log(log)
+    if args.id not in decisions:
+        raise UsageError("--id %s is not a decision in %s" % (args.id, log))
+    _append_row(log, {"kind": "label", "id": args.id, "outcome": args.outcome,
+                      "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
+    return _emit("pass", ["labeled"], "jev-judge: pass (labeled) id=%s outcome=%s site=%s" % (
+        args.id, args.outcome, decisions[args.id].get("site")))
+
+
+class DoubtExample(NamedTuple):
+    id: str
+    question: str
+    options: List[Dict[str, str]]
+    recommended: str
+    evidence: List[str]
+    outcome: str
+    p: Optional[float]
+    model: Optional[str]
+
+
+def _doubt_split(example_id: str) -> str:
+    return "dev" if int(request_hash(example_id.encode("utf-8"))[:8], 16) % 2 == 0 else "test"
+
+
+def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
+    out: List[DoubtExample] = []
+    decisions, labels = read_doubt_log(log)
+    for rid, outcome in labels.items():
+        row = decisions.get(rid)
+        if row is None or not row.get("recommended"):
+            continue
+        p = row.get("p")
+        out.append(DoubtExample(rid, row.get("question", ""), row.get("options") or [],
+                                row["recommended"], row.get("evidence") or [], outcome,
+                                float(p) if _unit_interval(p) else None, row.get("model")))
+    for path in extras:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError) as exc:
+            raise UsageError("--extra unreadable: %s (%s)" % (path, type(exc).__name__))
+        for n, line in enumerate(lines, 1):
+            try:
+                row = json.loads(line)
+                rec = parse_doubt_record(dict(row, reversible=True))
+            except (ValueError, UsageError) as exc:
+                raise UsageError("--extra %s line %d: %s" % (path, n, exc))
+            if row.get("outcome") not in DOUBT_OUTCOMES or not rec.recommended:
+                raise UsageError("--extra %s line %d: outcome must be one of %s"
+                                 % (path, n, ", ".join(DOUBT_OUTCOMES)))
+            rid = str(row.get("id") or request_hash(line.encode("utf-8"))[:12])
+            p = row.get("p")
+            out.append(DoubtExample(rid, rec.question, rec.options, rec.recommended,
+                                    rec.evidence, row["outcome"],
+                                    float(p) if _unit_interval(p) else None, row.get("model")))
+    return out
+
+
+def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
+                    transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
+    """Fit the ask threshold from labeled decisions (DOUBT_RULE). Network only with
+    --live, which scores examples that carry no p (double opt-in)."""
+    log: Path = args.log if args.log is not None else args.repo / DOUBT_LOG
+    examples = _doubt_examples(log, args.extra or [])
+    live_tail, failures = "", 0
+    backend: Optional[Backend] = None
+    if args.live:
+        if environ.get(REPLAY_ENV, ""):
+            raise UsageError("--live scores with real responses; unset %s first" % REPLAY_ENV)
+        res = resolve(args.repo, environ)
+        if res.verdict != "pass":
+            return _emit("unverifiable", res.reasons, "jev-judge: unverifiable (%s) backend=%s"
+                         % (res.reasons[0], res.backend.name if res.backend else "none"))
+        backend = res.backend
+        scored_now = 0
+        for i, ex in enumerate(examples):
+            if ex.p is not None:
+                continue
+            state, questions = doubt_request(ex.question, ex.options, ex.recommended,
+                                             ex.evidence)
+            j = judge(state, questions, backend, environ, transport=transport, sleep=sleep)
+            answer = (j.answers or {}).get(DOUBT_QUESTION) if j.verdict == "pass" else None
+            value = answer.get("noul") if isinstance(answer, dict) else None
+            if not _unit_interval(value):
+                failures += 1
+                continue
+            examples[i] = ex._replace(p=float(value), model=j.model or backend.model)
+            scored_now += 1
+        live_tail = " scored_now=%d failed=%d" % (scored_now, failures)
+    if args.save is not None:
+        try:
+            args.save.parent.mkdir(parents=True, exist_ok=True)
+            with args.save.open("w", encoding="utf-8") as fh:
+                for ex in examples:
+                    fh.write(json.dumps({"id": ex.id, "question": ex.question,
+                                         "options": ex.options, "recommended": ex.recommended,
+                                         "evidence": ex.evidence, "outcome": ex.outcome,
+                                         "p": ex.p, "model": ex.model}, sort_keys=True) + "\n")
+        except OSError as exc:
+            raise UsageError("--save not writable: %s (%s)" % (args.save, type(exc).__name__))
+
+    scored = [ex for ex in examples if ex.p is not None]
+    base = "labels=%d scored=%d%s" % (len(examples), len(scored), live_tail)
+    if len(scored) < DOUBT_MIN_LABELS:
+        return _emit("unverifiable", ["too_few_labels"],
+                     "jev-judge: unverifiable (too_few_labels) %s min=%d written=0"
+                     % (base, DOUBT_MIN_LABELS))
+    models = {ex.model for ex in scored}
+    if len(models) != 1 or None in models:
+        return _emit("unverifiable", ["mixed_models"],
+                     "jev-judge: unverifiable (mixed_models) %s models=%d written=0"
+                     % (base, len(models)))
+    model = next(iter(models))
+    split = {ex.id: _doubt_split(ex.id) for ex in scored}
+
+    def has_both(name: str) -> bool:
+        rows = [ex for ex in scored if split[ex.id] == name]
+        return any(ex.outcome == "overridden" for ex in rows) and any(
+            ex.outcome == "as_recommended" for ex in rows)
+
+    if not (has_both("dev") and has_both("test")):
+        return _emit("unverifiable", ["no_holdout"],
+                     "jev-judge: unverifiable (no_holdout) %s written=0" % base)
+    fit = "dev"
+    overrides = [ex.p for ex in scored
+                 if split[ex.id] == fit and ex.outcome == "overridden"]
+    ask = _floor2(min(o for o in overrides if o is not None))
+
+    def tally(rows: Sequence[DoubtExample]) -> Dict[str, int]:
+        acts = [ex for ex in rows if ex.p is not None and ex.p < ask]
+        return {"decisions": len(rows),
+                "acted": len(acts),
+                "acted_as_recommended": sum(1 for ex in acts if ex.outcome == "as_recommended"),
+                "false_acts": sum(1 for ex in acts if ex.outcome == "overridden"),
+                "asked": len(rows) - len(acts),
+                "overridden": sum(1 for ex in rows if ex.outcome == "overridden")}
+
+    names = ["dev", "test"]
+    splits = {name: tally([ex for ex in scored if split[ex.id] == name]) for name in names}
+    for ex in sorted(scored, key=lambda e: e.p or 0.0):
+        print("doubt-calibrate: id=%s split=%s outcome=%s p=%.3f" % (
+            ex.id, split[ex.id], ex.outcome, ex.p or 0.0), file=sys.stderr)
+    for name, counts in splits.items():
+        print("doubt-calibrate: split=%s %s" % (
+            name, " ".join("%s=%d" % kv for kv in counts.items())), file=sys.stderr)
+    if splits["dev"]["acted"] == 0:
+        return _emit("unverifiable", ["unseparated"],
+                     "jev-judge: unverifiable (unseparated) %s ask=%.2f written=0" % (base, ask))
+    if splits["test"]["false_acts"] > 0:
+        return _emit("unverifiable", ["holdout_false_act"],
+                     "jev-judge: unverifiable (holdout_false_act) %s ask=%.2f test_acted=%d/%d "
+                     "test_false_acts=%d written=0" % (
+                         base, ask, splits["test"]["acted"], splits["test"]["decisions"],
+                         splits["test"]["false_acts"]))
+    written = 0
+    if args.write:
+        backend = backend or _calibration_backend(args.repo, environ)
+        out = args.out if args.out is not None else args.repo / DOUBT_PROJECT_THRESHOLDS
+        data = {"calibrated": True, "backend": backend.name if backend else None,
+                "model": model, "calibrated_on": time.strftime("%Y-%m-%d", time.gmtime()),
+                "ask": ask, "rule": DOUBT_RULE, "fit_split": fit,
+                "labels": len(scored), "splits": splits}
+        _write_json(out, data)
+        written = 1
+    headline = "test"
+    h = splits[headline]
+    return _emit("pass", ["scored"], "jev-judge: pass (scored) %s fit=%s ask=%.2f "
+                 "%s_acted=%d/%d %s_false_acts=%d model=%s written=%d" % (
+                     base, fit, ask, headline, h["acted"], h["decisions"], headline,
+                     h["false_acts"], model, written))
+
+
+def _calibration_backend(repo: Path, environ: Mapping[str, str]) -> Optional[Backend]:
+    """The configured backend, for the record, when scores came from --extra."""
+    value = _config_value(repo)
+    return BACKENDS.get(value) if value else None
+
+
 class _Parser(argparse.ArgumentParser):
     """argparse that redacts invalid-choice and unrecognized-argument values in its errors.
 
@@ -1889,6 +2333,38 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
     p.add_argument("--log", type=Path, default=None,
                    help="shadow log (default <repo>/.writ/state/jev-shadow.jsonl)")
+    p = sub.add_parser("doubt",
+                       help="decide whether a decision needs a person: pass = act, fail = ask")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--record", type=Path, required=True,
+                   help="decision record JSON: site, question, options, recommended, "
+                        "evidence, reversible, conflict")
+    p.add_argument("--log", type=Path, default=None,
+                   help="decision log (default <repo>/.writ/state/doubt-log.jsonl)")
+    p.add_argument("--backend", choices=sorted(BACKENDS),
+                   help="replay only: pick the backend whose request shape to replay")
+    p = sub.add_parser("doubt-label",
+                       help="record what the person did with a logged decision")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--id", required=True)
+    p.add_argument("--outcome", required=True, choices=DOUBT_OUTCOMES)
+    p.add_argument("--log", type=Path, default=None,
+                   help="decision log (default <repo>/.writ/state/doubt-log.jsonl)")
+    p = sub.add_parser("doubt-calibrate",
+                       help="fit the doubt ask threshold from labeled decisions")
+    p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
+    p.add_argument("--log", type=Path, default=None,
+                   help="decision log (default <repo>/.writ/state/doubt-log.jsonl)")
+    p.add_argument("--extra", type=Path, action="append", default=None,
+                   help="more labeled decisions, JSONL with an outcome field (repeatable)")
+    p.add_argument("--live", action="store_true",
+                   help="score examples that carry no p (double opt-in)")
+    p.add_argument("--save", type=Path, default=None,
+                   help="write every example with its score as JSONL")
+    p.add_argument("--write", action="store_true",
+                   help="after a scored run, write the threshold file")
+    p.add_argument("--out", type=Path, default=None,
+                   help="threshold file (default <repo>/.writ/doubt-thresholds.json)")
     return parser
 
 
@@ -1920,6 +2396,12 @@ def main(argv: Optional[List[str]] = None,
             return calibrate(args, env, transport, sleep or time.sleep)
         if args.action == "shadow-report":
             return shadow_report(args)
+        if args.action == "doubt":
+            return doubt(args, env, transport, sleep or time.sleep)
+        if args.action == "doubt-label":
+            return doubt_label(args)
+        if args.action == "doubt-calibrate":
+            return doubt_calibrate(args, env, transport, sleep or time.sleep)
     except UsageError as exc:
         print("error: %s" % exc, file=sys.stderr)
         return 2

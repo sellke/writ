@@ -80,6 +80,7 @@ your-project/
 │   │   ├── writ-documenter.md        # inherit, acceptEdits
 │   │   ├── writ-evaluator.md         # read-only, persistent memory
 │   │   ├── writ-story-gen.md         # haiku model, worktree
+│   │   ├── writ-supervisor.md        # read-only, checks subagent reports
 │   │   └── writ-visual-qa.md         # read-only
 │   ├── commands/                      # Writ command workflows
 │   │   ├── create-spec.md
@@ -116,7 +117,7 @@ Platform facts, from the Verification Record of spec `2026-10-22-plugin-distribu
 - **Prime Directive carrier.** `plugins/writ/output-styles/writ.md` with `force-for-plugin: true` and `keep-coding-instructions: true`; its body is the body of `system-instructions.md`. Observed on Claude Code 2.1.309 on 2026-10-23 in a scratch plugin: asked to quote the first Hard Constraints bullet, the session quoted it and named the Prime Directive as its source, and it named its persona Writ; with no carrier it answered `NONE` (https://code.claude.com/docs/en/output-styles.md).
 - **Carrier cost: your output style.** A forced style overrides your `outputStyle` while the plugin is enabled, and when another enabled plugin also forces a style, the first loaded wins (docs read 2026-10-23, https://code.claude.com/docs/en/output-styles.md). Observed on Claude Code 2.1.310 on 2026-10-24: with `"outputStyle": "Explanatory"` in the project's local settings, the Prime Directive still loaded in 3 of 3 headless runs.
 - **Carrier cost: subagents.** Output styles reach the main conversation and forks, not other subagents, so each Writ agent carries its own instructions in its body (docs read 2026-10-23, https://code.claude.com/docs/en/output-styles.md).
-- **Ignored agent keys.** Plugin agents ignore `permissionMode`, `hooks`, and `mcpServers`, and the field table marks `initialPrompt` ignored as well (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). All eight Writ agents set `permissionMode`, so the modes in [Permission Modes](#permission-modes) do not apply under the plugin; no Writ agent sets the other three. `isolation: worktree` and `memory: project` took effect in a scratch plugin agent on Claude Code 2.1.309 on 2026-10-23 (same page).
+- **Ignored agent keys.** Plugin agents ignore `permissionMode`, `hooks`, and `mcpServers`, and the field table marks `initialPrompt` ignored as well (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). All nine Writ agents set `permissionMode`, so the modes in [Permission Modes](#permission-modes) do not apply under the plugin; no Writ agent sets the other three. `isolation: worktree` and `memory: project` took effect in a scratch plugin agent on Claude Code 2.1.309 on 2026-10-23 (same page).
 - **Both installs in one project.** A project with an `install.sh` install and the plugin has both command sets, `/create-spec` from `.claude/commands/` and `/writ:create-spec` from the plugin, and a project command does not shadow the plugin command of the same name (Claude Code 2.1.309, 2026-10-23, https://code.claude.com/docs/en/plugins/components.md). Plugin agents rank lowest among same-named agents, but their names carry the `writ:` prefix, so `writ-coder` is the project's agent and `writ:writ-coder` the plugin's (docs read 2026-10-23, https://code.claude.com/docs/en/sub-agents.md). Writ commands spawn agents from the prompt templates in `agents/`, not by name. Use one install path per project.
 
 ---
@@ -153,7 +154,7 @@ Agents learn across sessions. The review agent remembers patterns it's seen, the
 
 ### Model Selection
 
-The eight Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-evaluator`, `writ-reviewer`, `writ-tester`, `writ-documenter`, `writ-story-gen`, `writ-visual-qa`) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value, set in the `scripts/gen-claude-agents.py` overlay. The table resolves the tiers:
+The nine Claude-native agents under `claude-code/agents/` (`writ-architect`, `writ-coder`, `writ-evaluator`, `writ-reviewer`, `writ-supervisor`, `writ-tester`, `writ-documenter`, `writ-story-gen`, `writ-visual-qa`) carry their `model_tier` ([ADR-024](../.writ/decision-records/adr-024-model-delegation.md); contract text in `system-instructions.md` § Model Tiers) as a static `model:` frontmatter value, set in the `scripts/gen-claude-agents.py` overlay. The table resolves the tiers:
 
 | Origin source | `anchor` | `floor` | escalation |
 |---|---|---|---|
@@ -168,6 +169,7 @@ The eight Claude-native agents under `claude-code/agents/` (`writ-architect`, `w
 | writ-coder | `anchor` | `inherit` |
 | writ-evaluator | `anchor` | `inherit` |
 | writ-reviewer | `anchor` | `inherit` |
+| writ-supervisor | `anchor` | `inherit` |
 | writ-tester | `anchor` | `inherit` |
 | writ-documenter | `anchor` | `inherit` |
 | writ-visual-qa | `anchor` | `inherit` |
@@ -182,6 +184,7 @@ The eight Claude-native agents under `claude-code/agents/` (`writ-architect`, `w
 | writ-coder | `acceptEdits` | Auto-accept file changes (TDD flow) |
 | writ-evaluator | `plan` | Read-only evaluation, cannot modify |
 | writ-reviewer | `plan` | Read-only review, cannot modify |
+| writ-supervisor | `plan` | Read-only check of a subagent's report, cannot modify |
 | writ-tester | `acceptEdits` | May need to fix tests |
 | writ-documenter | `acceptEdits` | Creates/updates doc files |
 | writ-story-gen | `acceptEdits` | Creates story files |
@@ -240,6 +243,7 @@ Commands name agents by canonical path, as in `> **Agent:** agents/coding-agent.
 | `agents/documentation-agent.md` | `.claude/agents/writ-documenter.md` |
 | `agents/evaluator-agent.md` | `.claude/agents/writ-evaluator.md` |
 | `agents/review-agent.md` | `.claude/agents/writ-reviewer.md` |
+| `agents/supervisor-agent.md` | `.claude/agents/writ-supervisor.md` |
 | `agents/testing-agent.md` | `.claude/agents/writ-tester.md` |
 | `agents/user-story-generator.md` | `.claude/agents/writ-story-gen.md` |
 | `agents/visual-qa-agent.md` | `.claude/agents/writ-visual-qa.md` |
@@ -283,12 +287,12 @@ Preserve stable option identity across display, selection, rationale, and resume
 Adapters map interaction mechanics only; they do not choose recommendation policy.
 Equivalent observable semantics are required: recommendation label or disclosed equivalence, classified pause, concise rationale, and same-session continuation after an answer.
 
-In `--recommend` mode, map the policy's selected stable identity to the numbered
+When the doubt check passes, map the policy's selected stable identity to the numbered
 option, or render its classified bounded pause with missing evidence and a safe
 next action. Show the concise decision, evidence, material alternatives, risk,
 reversibility, selection source, and result/artifact fields; do not expose
 private chain-of-thought or transcript content. After a required reply, continue
-the active top-level session automatically with recommendation mode retained and
+the active top-level session automatically and
 do not ask the completed question again. Persistent or cross-session resumption
 belongs to the neutral orchestration contract, not this interaction adapter.
 Sandbox, authentication, permission, and unavailable-capability failures remain
@@ -441,7 +445,7 @@ If none of these hold, the condition is not-met: continue the run rather than
 stopping, and never treat a pause as something to route around.
 ```
 
-Clause (b) must stand on its own in the condition text; the checker does not report it. `implement-phase.md` and `implement-spec.md` invoke the checker late (Step 4.1c / the completion step), while a retained `AskQuestion`, such as Step 2.3's execute/edit/abort confirmation, can occur before the checker has run. A condition that only names "exits 0" and mentions the pause as an aside is the anti-pattern the spec's "What `/goal` showed" section warns against. Naming all three states keeps the hook compatible with `on_exhaustion: halt_reported` and the Autonomy Gate Classes.
+Clause (b) must stand on its own in the condition text; the checker does not report it. `implement-phase.md` and `implement-spec.md` invoke the checker late (Step 4.1c / the completion step), while a retained `AskQuestion`, such as Step 2.3's execute/edit/abort confirmation, can occur before the checker has run. A condition that only names "exits 0" and mentions the pause as an aside is the anti-pattern the spec's "What `/goal` showed" section warns against. Naming all three states keeps the hook compatible with `on_exhaustion: halt_reported` and the Doubt Rule.
 
 **Single-slot behavior.** Registering a goal removes every existing top-level prompt Stop hook. Goals cannot nest: if `/implement-phase` holds a goal, calls `/implement-spec`, and `/implement-spec` also registers one, "the innermost silently destroys the outer, and clears leaving nothing behind." So only the outermost running command may hold a goal. `/implement-story`, the innermost loop of the three, must never register one.
 
@@ -551,12 +555,13 @@ execution lane (branch + worktree), quarantines terminal failures while independ
 specs continue, and reconciles state read-only on resume. Map it to Claude Code as
 the orchestrator session driving one `/implement-spec` worker per lane.
 
-Recommended autonomy is a separate supported path on two commands.
-`/create-spec --recommend` authors and locks one spec package from evidence, then
-stops; it never implements. `/implement-phase --recommend` runs the phase end to
-end: it authors any missing specs via `/create-spec --recommend`, implements the
-phase's specs through the isolated lanes above, and ends at the completion report
-with manual UAT handoff. It never merges, opens PRs, or releases.
+Every question these commands would ask goes through the Doubt Rule
+(`commands/_preamble.md`), so a phase runs end to end when the evidence carries
+it: `/implement-phase` authors any missing specs through `/create-spec`,
+implements them through the isolated lanes above, has the `writ-supervisor`
+agent check each lane's report before it merges, and ends at the completion
+report with the UAT handoff. It never merges to the default branch, opens PRs,
+or releases.
 
 ---
 

@@ -1075,13 +1075,16 @@ check_autonomy_governance() {
   require_literal "$mission_lite" "both ending short of merge/PR/release" "The lite mission must preserve the merge/PR/release boundary for both recommended commands."
   require_literal "$ralph_adr" "[ADR-013]" "ADR-012 must distinguish Ralph retirement from bounded recommended delivery."
 
-  require_literal "$system" 'only when the invoked command explicitly documents support for `--recommend`' "The system policy must limit the exception to commands that explicitly support --recommend."
-  require_literal "$system" "observable evidence and durable audit summaries" "The system policy must require observable evidence and durable audit summaries."
-  require_literal "$system" "Retain the human production boundary" "The system policy must retain the human production boundary (no --recommend merge/PR/release) per ADR-013 as revised."
-  require_literal "$system" '`--recommend` lives on exactly two commands' "The system policy must scope --recommend to exactly two commands (create-spec + implement-phase)."
+  # ADR-033 (2026-11-05): one doubt rule replaces the --recommend exception.
+  require_literal "$system" 'The doubt check (`jev-judge.py doubt`)' "The system policy must route every question through the doubt check (ADR-033)."
+  require_literal "$system" "record the decision, evidence, alternatives, reversibility, and" "The system policy must record every automatic decision with its evidence and alternatives."
+  require_literal "$system" "Release stays a person's call" "The system policy must keep merge, release, tag, and publish behind a person's answer (ADR-033)."
+  require_literal "$system" "Ask only on reasonable doubt" "The system policy must ask a person only on reasonable doubt (ADR-033)."
   require_literal "$system" "branch protection, required checks, authentication, or authorization" "The system policy must preserve platform protection and authentication boundaries."
   require_literal "$system" "exclude private chain-of-thought" "The system policy must keep audit summaries free of private reasoning."
-  require_literal "$cursor_rule" 'only when the invoked command explicitly documents support for `--recommend`' "The Cursor rule mirror must preserve the narrow recommended-delivery exception."
+  require_literal "$system" "it never" "The system policy must keep autonomy bounded: no unattended loop."
+  require_literal "$cursor_rule" 'The doubt check (`jev-judge.py doubt`)' "The Cursor rule mirror must carry the doubt rule."
+  forbid_literal "$system" '`--recommend` lives on exactly two commands' "system-instructions still scopes autonomy to --recommend; ADR-033 makes initiative the default."
 
   forbid_literal "$phase_spec" "human *in the loop* at contract level" "Phase 6 still contains the superseded contract-level human gate."
   forbid_literal "$phase_spec" "never auto-decided" "Phase 6 still contains unconditional User Challenge decision language."
@@ -1110,7 +1113,7 @@ check_recommendation_semantics() {
 
   require_literal "$system" 'Exactly one option label ends with the literal suffix `(Recommended)`.' "Normal bounded questions must label exactly one recommendation."
   require_literal "$system" 'If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.' "Equivalent options must remain unlabeled and be disclosed."
-  require_literal "$system" 'Normal mode remains human-selected; the label is advisory.' "Recommendation labels must not change normal interactive control."
+  require_literal "$system" 'The labeled option is the one acted on when the doubt check passes.' "The recommendation label must name the option a passing doubt check acts on (ADR-033)."
   require_literal "$semantics_doc" 'Option order, affirmative wording, and user inactivity are never evidence.' "Recommendation evidence must not come from presentation or inactivity."
   require_literal "$semantics_doc" 'governance and safety eligibility → locked artifacts → current repository or provider state → project conventions → simplicity and reversibility' "Recommendation evidence precedence must be domain-scoped and deterministic."
   require_literal "$semantics_doc" 'Conflicting authoritative evidence pauses the decision.' "Conflicting authoritative evidence must pause."
@@ -1122,8 +1125,8 @@ check_recommendation_semantics() {
   require_literal "$semantics_doc" 'choices, and a safe next action.' "Recommendation pauses must provide bounded choices and a safe next action."
   require_literal "$semantics_doc" 'Decision, Evidence, Alternatives, Risk, Reversibility, Selection source, and Result/artifact' "Concise recommendation rationale fields must be explicit."
   require_literal "$semantics_doc" 'Never include private chain-of-thought or transcript content.' "Recommendation rationale must exclude private reasoning and transcripts."
-  require_literal "$semantics_doc" 'continue automatically in the same session with recommendation mode retained and do not repeat the answered decision' "Required answers must resume recommendation mode without repeated decisions."
-  require_literal "$semantics_doc" 'Story 3 owns durable logging, execution state, reconciliation, and cross-session resumption.' "Story 2 must not claim Story 3 persistence mechanics."
+  require_literal "$semantics_doc" 'continue automatically in the same session and do not repeat the answered decision' "Required answers must resume without repeating the answered decision."
+  require_literal "$semantics_doc" 'The durable record is the decision log' "The semantics doc must name the durable decision record (ADR-033)."
 
   require_literal "$cursor_rule" 'Exactly one option label ends with the literal suffix `(Recommended)`.' "The Cursor rule mirror must include the recommendation label contract."
   require_literal "$cursor_rule" 'See `.writ/docs/recommendation-semantics.md`' "The Cursor rule mirror must carry the same pointer to the moved recommendation semantics as the base (Prime Directive mirror, Business Rule 8 of 2026-09-07-phase11-stage2-prune-the-base)."
@@ -1189,20 +1192,20 @@ def fenced_after(text, anchor, language):
         raise ValueError(f"missing {language} block after {anchor}")
     return match.group(1)
 
-create_rows = table_after(create, "### Authoritative `--recommend` Invocation Matrix")
+create_rows = table_after(create, "### Invocation Matrix")
 
 for invocation in (
-    "`/create-spec --recommend [one-idea]`",
-    "`/create-spec --recommend --from-issue <one-path>`",
-    "`/create-spec --recommend --from-prototype`",
+    "`/create-spec [one-idea]`",
+    "`/create-spec --from-issue <one-path>`",
+    "`/create-spec --from-prototype`",
 ):
     emit("create-valid-" + invocation.strip("`").replace(" ", "_"), create_rows.get(invocation, "").startswith("Supported"), f"{invocation} is not a supported structured matrix row")
 
 for invocation in (
-    "`/create-spec --recommend --quick`",
-    "`/create-spec --recommend --force`",
-    "`--recommend` with multiple source modes",
-    "`--recommend` with multiple issue paths or multiple free-form source arguments",
+    "`/create-spec --quick`",
+    "`/create-spec --force`",
+    "Multiple source modes",
+    "Multiple issue paths or multiple free-form source arguments",
 ):
     outcome = create_rows.get(invocation, "")
     mutation_sentinel = not outcome.startswith("Reject")
@@ -1210,8 +1213,8 @@ for invocation in (
 
 emit(
     "create-fail-before-mutation",
-    0 <= create.find("Validate the complete invocation") < create.find("### Autonomous Authoring Boundary"),
-    "create-spec invocation validation must precede the first recommended mutation phase",
+    0 <= create.find("Validate the complete invocation") < create.find("### Decisions"),
+    "create-spec invocation validation must precede its decision list",
 )
 emit(
     "create-terminal-scope",
@@ -1219,9 +1222,9 @@ emit(
     "recommended authoring must stop before implementation and never trigger /implement-spec",
 )
 emit(
-    "normal-mode-isolation",
-    0 <= create.find("Normal branch (authoritative)") < create.find("### Authoritative `--recommend` Invocation Matrix"),
-    "normal behavior must branch before recommended authoring",
+    "authoring-before-process",
+    0 <= create.find("## Authoring From Evidence") < create.find("## Command Process"),
+    "the doubt-gated authoring rules must precede the command process",
 )
 
 try:
@@ -2066,15 +2069,16 @@ PY
   done < "$scenario_output"
   rm -f "$scenario_output"
 
-  require_literal "$preamble" 'planning commands create files and stop' "The preamble must preserve the default planning stop boundary."
+  require_literal "$preamble" 'Planning commands create files and stop' "The preamble must preserve the default planning stop boundary."
 
-  require_literal "$create_spec" 'Parse `--recommend` exactly once at command entry.' "Create-spec must parse recommendation mode once at entry."
-  require_literal "$create_spec" 'Normal branch (authoritative): when `--recommend` is absent, follow every' "Create-spec must preserve normal behavior behind an explicit branch."
-  require_literal "$create_spec" '`/create-spec --recommend --from-issue <one-path>`' "Create-spec must support one issue source in recommendation mode."
-  require_literal "$create_spec" '`/create-spec --recommend --from-prototype`' "Create-spec must support prototype source in recommendation mode."
-  require_literal "$create_spec" '`/create-spec --recommend --quick`' "Create-spec must reject recommend plus quick."
-  require_literal "$create_spec" '`/create-spec --recommend --force`' "Create-spec must reject recommend plus force."
-  require_literal "$create_spec" 'multiple source modes' "Create-spec must reject multiple source modes."
+  # ADR-033 (2026-11-05): no recommend branch; every bounded choice goes through the Doubt Rule.
+  require_literal "$create_spec" 'every bounded choice below goes through the preamble' "Create-spec must route its bounded choices through the Doubt Rule (ADR-033)."
+  require_literal "$create_spec" '`/create-spec --from-issue <one-path>`' "Create-spec must support one issue source."
+  require_literal "$create_spec" '`/create-spec --from-prototype`' "Create-spec must support the prototype source."
+  require_literal "$create_spec" '`/create-spec --quick` | Reject' "Create-spec must reject --quick."
+  require_literal "$create_spec" '`/create-spec --force` | Reject' "Create-spec must reject --force."
+  require_literal "$create_spec" 'Multiple source modes' "Create-spec must reject multiple source modes."
+  forbid_literal "$create_spec" 'Parse `--recommend` exactly once' "Create-spec still carries a recommend-mode branch; ADR-033 makes initiative the default."
   require_literal "$create_spec" 'Validate the complete invocation before' "Create-spec must validate invocation before file, issue, or state mutation."
   require_literal "$create_spec" 'recommendation-log.md' "Create-spec must create the tracked recommendation audit."
   require_literal "$create_spec" 'never triggers `/implement-spec`' "Create-spec recommended authoring must stop before implementation."

@@ -68,12 +68,12 @@ REQUIRED_ARTIFACTS_COMMANDS = (
 )
 
 ROWS: Tuple[Row, ...] = (
-    Row("commands/_preamble.md", "heading", "Narrow Recommended-Delivery Exception",
+    Row("commands/_preamble.md", "heading", "Doubt Rule",
         "check_recommended_spec_implementation",
-        "_preamble.md must keep the heading that defines the narrow recommended-planning exception."),
-    Row("commands/create-spec.md", "heading", "Authoritative `--recommend` Invocation Matrix",
+        "_preamble.md must keep the heading that says when a command asks a person (ADR-033)."),
+    Row("commands/create-spec.md", "heading", "Invocation Matrix",
         "check_recommended_spec_implementation",
-        "create-spec.md must keep the heading over its fail-before-mutation --recommend invocation matrix."),
+        "create-spec.md must keep the heading over its fail-before-mutation invocation matrix."),
     Row("commands/status.md", "invocation", "scripts/spec-status.py is-complete",
         "check_spec_status",
         "status.md must invoke the shared format-tolerant detector, not only name it."),

@@ -4,7 +4,7 @@
 # anchor/floor vocabulary with no hardcoded "fast" and no advisory carrier.
 #
 # Asserts (AC-2.1 .. AC-2.5):
-#   (a) `model_tier:` appears exactly 8 times under agents/, one per file, with
+#   (a) `model_tier:` appears exactly once per agent under agents/, with
 #       the value the spec's "Tier derivation applied" table assigns by name;
 #       visual-qa-agent.md keeps its value inside the yaml fence (no `---`)
 #   (b) no `"fast"` and no `model_tier: capability` under agents/;
@@ -41,8 +41,8 @@ ltrim() {
 
 # Spec authority: spec.md -> "Tier derivation applied". Two parallel lists
 # (macOS bash 3.2 has no associative arrays).
-AGENT_NAMES=(coding-agent review-agent testing-agent visual-qa-agent documentation-agent evaluator-agent architecture-check-agent user-story-generator)
-AGENT_TIERS=(anchor       anchor       anchor        anchor          anchor              anchor          floor                    floor)
+AGENT_NAMES=(coding-agent review-agent testing-agent visual-qa-agent documentation-agent evaluator-agent supervisor-agent architecture-check-agent user-story-generator)
+AGENT_TIERS=(anchor       anchor       anchor        anchor          anchor              anchor          anchor           floor                    floor)
 
 expected_tier_for() {  # $1 agent name -> prints tier or nothing
   local i
@@ -55,9 +55,9 @@ expected_tier_for() {  # $1 agent name -> prints tier or nothing
   return 1
 }
 
-# ----- (a) eight declarations, by name, from the derivation table -----
+# ----- (a) one declaration per agent, by name, from the derivation table -----
 total=$(grep -rn 'model_tier:' agents/ | wc -l | tr -d ' ')
-[ "$total" = 8 ] || fail "(a) expected exactly 8 'model_tier:' hits under agents/, got $total"
+[ "$total" = "${#AGENT_NAMES[@]}" ] || fail "(a) expected exactly ${#AGENT_NAMES[@]} 'model_tier:' hits under agents/, got $total"
 
 for ((i = 0; i < ${#AGENT_NAMES[@]}; i++)); do
   name="${AGENT_NAMES[$i]}"
@@ -117,9 +117,9 @@ while IFS= read -r raw; do
       ;;
   esac
 done < <(manifest_agents_block)
-[ "$seen" = 8 ] || fail "(c) expected 8 manifest agent entries, parsed $seen"
+[ "$seen" = "${#AGENT_NAMES[@]}" ] || fail "(c) expected ${#AGENT_NAMES[@]} manifest agent entries, parsed $seen"
 tiers_in_manifest=$(manifest_agents_block | grep -c 'model_tier:' || true)
-[ "$tiers_in_manifest" = 8 ] || fail "(c) expected 8 model_tier lines in the manifest agents block, got $tiers_in_manifest"
+[ "$tiers_in_manifest" = "${#AGENT_NAMES[@]}" ] || fail "(c) expected ${#AGENT_NAMES[@]} model_tier lines in the manifest agents block, got $tiers_in_manifest"
 
 # ----- (d) /new-command scaffolds entry_level -----
 n=$(grep -c 'entry_level:' commands/new-command.md || true)

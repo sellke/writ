@@ -1,12 +1,12 @@
 ---
 name: writ
-description: "Restate a request in Writ's own words, pick the command whose ceremony fits, confirm once, and run it with its phases on the todo list. The one command a new user needs."
-problem: "Writ ships 32 commands and a user has to know which one fits before typing anything, so work starts at the wrong level of ceremony or not at all."
+description: "Restate a request in Writ's own words, pick the command whose ceremony fits, confirm only on doubt, and run it with its phases on the todo list. The one command a new user needs."
+problem: "Writ ships 34 commands and a user has to know which one fits before typing anything, so work starts at the wrong level of ceremony or not at all."
 outcome: "The request is restated as goal, problem, and done check, routed to exactly one existing command at the fitting ceremony, and that command runs with its phases mirrored in the todo list; nothing is written beyond what the routed command writes."
 entry_level: high
 exit_criteria:
   - "the restatement names a goal, a problem, and a done check, or names which of them the request lacks by the prompting guide's part names"
-  - "exactly one route from the rule table was proposed, confirmed through one AskQuestion, and the routed command's file was read and followed"
+  - "exactly one route from the rule table was proposed, then taken on a passing doubt check or confirmed through one AskQuestion, and the routed command's file was read and followed"
   - "the todo list carries the routed command's phase headings before its first phase runs, and every skipped phase reads skip: <reason>"
   - "no file under .writ/ was created by this command itself"
 ---
@@ -15,9 +15,9 @@ exit_criteria:
 
 ## Overview
 
-The front door. Type what you want. `/writ` restates it as a goal, a problem, and a done check, picks the one command whose ceremony fits, asks once, and runs that command with its phases on the todo list.
+The front door. Type what you want. `/writ` restates it as a goal, a problem, and a done check, picks the one command whose ceremony fits, asks only when the route is in doubt, and runs that command with its phases on the todo list.
 
-`/writ` is a router: one rule table, one confirmation, a handoff. It does not plan, specify, or build. The routed command does, and `/writ` adds nothing to that command's workflow. Under a Claude Code plugin the command reads `/writ:writ`.
+`/writ` is a router: one rule table, at most one confirmation, a handoff. It does not plan, specify, or build. The routed command does, and `/writ` adds nothing to that command's workflow. Under a Claude Code plugin the command reads `/writ:writ`.
 
 ## Invocation
 
@@ -71,9 +71,14 @@ Apply `## Routing Rules` to the restatement. The table is the only classifier. T
 
 Hold one route and a one-line reason for it. Run nothing yet.
 
-### Step 3: Confirm
+### Step 3: Confirm on Doubt
 
-Exactly one AskQuestion, with at most four options: a question tool may hold no more (Claude Code's takes two to four). The proposed route carries the `(Recommended)` label per `system-instructions.md` § Recommendation Semantics; the two other routes closest to the request follow; `Not what I meant` is last. The prompt names the routes left out, so the user can ask for one through `Not what I meant`.
+Run the preamble's **Doubt Rule** on the route: `site: route`, the route as the recommendation, the two closest other routes as the alternatives, and as evidence the routing-table row that fit and the tie-break that decided, if one did. When two rows fit and no tie-break decides, set `conflict: true`.
+
+- **`pass`:** print the restatement, then `Route: <route> — <one-line reason>`, and go to Step 4. The person can still redirect by replying.
+- **Otherwise:** confirm with exactly one AskQuestion, as below.
+
+The AskQuestion has at most four options: a question tool may hold no more (Claude Code's takes two to four). The proposed route carries the `(Recommended)` label per `system-instructions.md` § Recommendation Semantics; the two other routes closest to the request follow; `Not what I meant` is last. The prompt names the routes left out, so the user can ask for one through `Not what I meant`.
 
 ```
 AskQuestion({
@@ -122,7 +127,7 @@ Routed command file missing (a partial install): name the missing file and `/upd
 This command succeeds when:
 
 1. **Restatement shown**: Goal, Problem, Done check, and Proof when evidence was named, with any missing part named by the guide's terms.
-2. **One route confirmed**: one AskQuestion, one route taken from the table.
+2. **One route taken**: from the table, on a passing doubt check or through one AskQuestion.
 3. **Phases mirrored**: the routed command's headings on the todo list, skipped ones marked `skip: <reason>`.
 4. **Routed command ran**: its file read and followed with the restatement as input.
 

@@ -63,7 +63,8 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
 - **Self-improving** — `/refresh-command` turns session friction into cited command diffs. Every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use. `/retro` reads a run's transcripts and proposes fixes to the agent's environment in a fixed order — architecture, types, lint, test, docs — and each new check must fail on a real past mistake.
-- **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)). Phase 17 retires the flag: initiative becomes the default, a decision log replaces the permission, and a person is asked only on reasonable doubt ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)).
+- **Initiative, asked only on doubt** — Every question a command would ask is a decision. `scripts/jev-judge.py doubt` decides it from three signals: the evidence behind the recommended option, whether the act is git-revertable, and a calibrated Jev judgment. A pass acts and logs; anything else asks one bounded question. Without a calibrated judgment, scope and taste questions still reach you and method choices do not. Merge, release, tag, and publish always wait for you. Every decision lands in `.writ/state/doubt-log.jsonl`; your answers become labels that `doubt-calibrate` fits from, and a threshold is written only when held-out decisions show no override it would have acted on ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)).
+- **A supervisor over subagent work** — Before `/implement-spec` accepts a story or `/implement-phase` merges a lane, a fresh-context `supervisor-agent` re-derives each claim in the report from git, the spec's files, and Writ's checkers, and returns ACCEPT, RERUN, or ESCALATE with a claims table.
 - **Optional judgment provider** — TypeSafe's Jev model (direct or via the Vercel AI Gateway) can pre-judge acceptance criteria during `/create-spec` and `/verify-spec` spec analysis, and logs a shadow verdict beside the Gate 3 evaluator. It is off by default and requires a double opt-in: a `Judgment Provider` line in `.writ/config.md` *and* the backend's API key. Below its calibrated threshold, an answer falls back to the normal path; no Jev answer decides a gate or skips a spawn ([ADR-027](.writ/decision-records/adr-027-optional-judgment-provider.md)). Set it up with `python3 scripts/jev-judge.py setup`.
 - **Native-memory interop** — markdown stays canonical while adapters document how to ride each platform's native memory; external knowledge indexes (e.g., GBrain via MCP) are consumers
 - **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI, plus an OpenClaw mapping guide
@@ -112,13 +113,13 @@ Feedback loop (/retro + /refresh-command):
 ### Start here
 | Command | Purpose |
 |---------|---------|
-| `/writ` | **The front door.** Restates a request as a goal, a problem, and a done check, routes it to the command whose ceremony fits, confirms once, and runs it with its phases on the todo list. |
+| `/writ` | **The front door.** Restates a request as a goal, a problem, and a done check, routes it to the command whose ceremony fits, confirms only when the route is in doubt, and runs it with its phases on the todo list. |
 
 ### Planning & Specification
 | Command | Purpose |
 |---------|---------|
 | `/plan-product` | Product planning with contract-first approach |
-| `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory; Jev pre-judges first when enabled). `--recommend` authors and locks the package autonomously from evidence, then stops — it never implements. |
+| `/create-spec` | Feature specification with structured clarification. After stories exist, `spec-analyze.py` notes contradictory, missing, or ambiguous criteria (advisory; Jev pre-judges first when enabled). Authors from evidence when the source settles intent, and runs discovery only while it is open; the lock reaches you on doubt. It stops at the locked package and never implements. |
 | `/edit-spec` | Safely modify existing specifications |
 | `/writ-design` | Visual design companion — wireframes, mockup management, screenshot capture, visual comparison |
 | `/create-adr` | Architecture Decision Records (auto-researches first) |
@@ -132,7 +133,7 @@ Feedback loop (/retro + /refresh-command):
 | Command | Purpose |
 |---------|---------|
 | `/prototype` | **Lightweight executor.** No spec needed — describe the change, answer 2-3 questions, ship with TDD + lint. Auto-detects when to escalate to `/create-spec`. |
-| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. `--recommend` runs the phase end-to-end (auto-authoring missing specs via `/create-spec --recommend`), ending at the completion report with manual UAT handoff. |
+| `/implement-phase` | **Phase orchestrator.** Reads a roadmap phase, resolves features to specs, sequences by dependency, loops `/implement-spec` → `/create-uat-plan` per spec, and verifies exit criteria. The layer above `/implement-spec`. Runs the phase end to end, asking only on doubt; a supervisor checks each lane's report before it merges. Ends at the completion report with the UAT handoff. |
 | `/implement-spec` | **Spec orchestrator.** Reads a spec, validates the story dependency graph (blocking gate — cycles, missing/duplicate/self references), resolves parallel batches, calls `/implement-story` per story. End-to-end uninterrupted execution. |
 | `/implement-story` | **Per-story executor.** Default: arch-check script → boundary map → coding (TDD) → lint → evaluator → drift → test-integrity → docs-check (two Task spawns). `--full-pipeline` is the six-agent SDLC. `--quick` is coding only. `--review-only` is evaluator only. |
 | `/refactor` | Scoped refactoring — file analysis, deduplication, dead code removal, pattern modernization, type strengthening. Verified after every change. |
@@ -173,7 +174,7 @@ Feedback loop (/retro + /refresh-command):
 
 ## Agents
 
-Default `/implement-story` spawns two of these. The rest run on `--full-pipeline`. Each declares a `model_tier` (`anchor` or `floor`) in its Agent Configuration block, derived by two questions and resolved by the platform adapter at spawn — see [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention.
+Default `/implement-story` spawns two of these. The orchestrators add the supervisor once per story or lane. The rest run on `--full-pipeline`. Each declares a `model_tier` (`anchor` or `floor`) in its Agent Configuration block, derived by two questions and resolved by the platform adapter at spawn — see [`.writ/docs/model-tiers.md`](.writ/docs/model-tiers.md) for the full convention.
 
 | Agent | Role | Default spawn |
 |-------|------|---------------|
@@ -185,6 +186,7 @@ Default `/implement-story` spawns two of these. The rest run on `--full-pipeline
 | Documentation Agent | Framework-adaptive docs (VitePress, Docusaurus, README, etc.) | `--full-pipeline` |
 | Visual QA | Optional UI validation — compares implementation screenshots against mockups | `--full-pipeline` |
 | User Story Generator | Parallel story file creation during `/create-spec` | `/create-spec` |
+| Supervisor | Re-derives each claim in a subagent's report before it is accepted (ACCEPT/RERUN/ESCALATE, read-only) | `/implement-spec` per story, `/implement-phase` per lane |
 
 ## Skills
 
@@ -231,7 +233,7 @@ Type `/writ` followed by what you want:
 
 ```
 /writ "users can't paste into the search box on Safari"
-→ Goal, Problem, Done check restated; route: /prototype --no-diverge (Recommended); one confirmation; then it runs.
+→ Goal, Problem, Done check restated; route: /prototype --no-diverge; it runs, and asks first only when the route is in doubt.
 ```
 
 New here? Read [`.writ/docs/prompting-guide.md`](.writ/docs/prompting-guide.md) (two minutes), then type `/writ` followed by what you want.
@@ -379,7 +381,7 @@ When Writ runs, it creates a `.writ/` directory in your project:
 │       │   └── story-N-*.md  # 5-7 tasks each
 │       ├── drift-log.md      # Spec amendment record (auto-generated)
 │       ├── uat-plan.md       # Human UAT scenarios (from /create-uat-plan)
-│       ├── recommendation-log.md  # Decision audit for --recommend runs
+│       ├── recommendation-log.md  # Decisions made without asking, with their evidence
 │       └── sub-specs/        # Technical deep-dives
 ├── product/                  # Product planning docs
 ├── decision-records/         # Architecture Decision Records
@@ -416,9 +418,9 @@ When Writ runs, it creates a `.writ/` directory in your project:
 
 ## Where Writ is going
 
-The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Shipped through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Next, in order:
+The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Shipped through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Phase 17, Doubt-Gated Autonomy, is built on its own branch: one rule replaces the human gates by category, Jev runs first on every decision, and a supervisor checks subagent reports. Next:
 
-- **Phase 17 — Doubt-Gated Autonomy.** One rule replaces the human gates by category: decide, act, record; ask only on reasonable doubt. Jev makes the first-pass call on whether a person is needed, a supervisor agent re-derives every subagent report before an orchestrator trusts it, and `--recommend` retires because initiative is the default ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)).
+- **Calibrate Jev on real decisions.** On 98 of the maintainer's past answers, Jev could not yet tell which ones the person would change, so it shadows and the decision's kind decides. Each answered question becomes a label; once a held-out half of them shows no override it would have acted on, Jev decides.
 - **Phase 16 — Verified Landing.** A read-only PR-readiness check, a verification ledger bound to the PR head, and a `/ship` watch mode that drives a PR to merge-ready and, with the ledger green and doubt low, merges it. Release, tag, and publish stay asks.
 - **After that:** command consolidation, measured by what is still invoked directly once the front door asks only on doubt, and a parking lot that earns its way in one phase at a time.
 
