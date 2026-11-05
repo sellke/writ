@@ -131,6 +131,17 @@ Phase 17 was built the same day on `phase/17-doubt-gated-autonomy`, ahead of the
 3. **The supervisor runs at the anchor tier, and `subagent-result-completeness` stays.** Point 3 said floor tier. `.writ/docs/model-tiers.md` puts any agent that judges another agent's output at `anchor`, as the evaluator is. The completeness skill checks the verdict shape of gate agents inside a story at no spawn cost; the supervisor checks story and lane reports, so the two do not overlap. The supervisor runs once per story in `/implement-spec` and once per lane in `/implement-phase`, never both for one story. Removal measurement on Phase 15's lane 1: replayed blind on the lane report Phase 15's orchestrator merged (`exit-criteria.py`: `met`), it returned `ESCALATE`, naming the missing coding-agent run, two stories sharing one Gate 3 review, and three verify tasks ticked over a failed run ([trial](../eval/supervisor-trial/report.md)). It stays. The trial cost about 141k tokens, mostly a full-suite and `eval.sh` re-run in a clone; the prompt now re-runs only targeted checks.
 4. **`--recommend` is an accepted no-op, not an error.** Goal Cards and scripts that pass it keep working; it prints one line and runs the default. Without a configured judgment provider, a seeded `/create-spec` now asks at the contract lock where `--recommend` used to lock silently. That is the fallback this record chose, and the price of not acting looser without evidence.
 
+### 2026-11-05 — Jev scores confidence in the recommendation
+
+Point 2 had Jev answer whether a decision needs a person. That question asks two things at once: whether the recommendation is right, and whether the choice is the person's to make. The calibration labels record only whether the person took the recommendation. Jev now answers that directly: its p is its confidence that the recommended option is right, sound on the evidence and the option the person would choose. A score above the calibrated threshold acts; at or below it, Writ asks. The maintainer's five confidence bands map onto that one cut: high and medium-high act, medium and below ask, and the labels place the line between them.
+
+On the same 98 answers, with the person's request and the assistant's reasoning attached as evidence, the confidence score ranked overrides as more doubtful than accepted decisions 80% of the time, against 66% for the first question with no evidence ([report](../eval/doubt-calibration/report.md)). It passed the held-out check once (20 of 47 acted on, no override) and failed on an identical repeat (27 acted on, 1 override): Jev's scores moved by up to 0.11 between runs. No threshold is written, and Jev still shadows. Two changes follow:
+
+- **Scores carry the question's name.** Log rows, scored files, and thresholds record `judgment: recommendation_holds`. A score or threshold from another question is ignored, so a reworded question never calibrates on its predecessor's scale.
+- **Evidence includes the request.** A decision record's `evidence` names what the person asked for when it bears on the choice, because the calibration data carried it.
+
+Open: the calibration rule fits a threshold to one scoring, and a live decision is scored again with the same noise. A threshold that holds has to clear that noise.
+
 ## References
 
 - [ADR-010](adr-010-supervised-autonomy-ceiling.md), [ADR-013](adr-013-recommended-autonomous-delivery.md), [ADR-022](adr-022-autonomy-gate-classes.md): the records this one supersedes in part

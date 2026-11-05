@@ -49,8 +49,8 @@ Mode discovery is not a bounded choice and is not gated.
 |---|---|
 | `merge`, `release` (tag, publish, deploy) | Always |
 | Any | Not git-revertable; no recommendation, no evidence, or conflicting evidence |
-| `direction` (scope, priorities, contract lock), `design` (taste) | Jev is uncalibrated, or its p reaches the threshold |
-| `choice`, `route`, `plan`, `destructive` | Jev is calibrated and its p reaches the threshold |
+| `direction` (scope, priorities, contract lock), `design` (taste) | Jev is uncalibrated, or its confidence is not above the threshold |
+| `choice`, `route`, `plan`, `destructive` | Jev is calibrated and its confidence is not above the threshold |
 
 No script on hand: ask for `direction`, `design`, `merge`, and `release`; act otherwise.
 

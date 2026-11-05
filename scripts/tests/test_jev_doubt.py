@@ -73,11 +73,11 @@ class Fake:
     def __call__(self, url: str, headers: Dict[str, str], payload: bytes):
         self.calls += 1
         body = json.loads(payload.decode("utf-8"))
-        assert set(body["questions"]) == {"needs_person"}
+        assert set(body["questions"]) == {jev.DOUBT_QUESTION}
         assert body["state"]["decision"]["question"]
         if self.status != 200:
             return jev.HttpResponse(self.status, {}, b"{}")
-        answer = {"model": MODEL, "answers": {"needs_person": {"noul": self.p}}}
+        answer = {"model": MODEL, "answers": {jev.DOUBT_QUESTION: {"noul": self.p}}}
         return jev.HttpResponse(200, {}, json.dumps(answer).encode("utf-8"))
 
 
@@ -160,7 +160,8 @@ def test_uncalibrated_provider_shadows_and_logs_p(tmp_path, capsys):
     assert fake.calls == 1
     row = _log_rows(repo)[-1]
     assert row["p"] == pytest.approx(0.91) and row["model"] == MODEL
-    assert row["ask"] is None and row["source"] == "fallback"
+    assert row["judgment"] == jev.DOUBT_QUESTION
+    assert row["act"] is None and row["source"] == "fallback"
 
 
 def test_transport_failure_falls_back(tmp_path, capsys):
@@ -177,38 +178,41 @@ def test_transport_failure_falls_back(tmp_path, capsys):
 # --------------------------------------------------------------------------
 
 
-def _calibrated(repo: Path, ask: float = 0.4, model: str = MODEL,
-                backend: str = "vercel-gateway") -> None:
+def _calibrated(repo: Path, act: float = 0.6, model: str = MODEL,
+                backend: str = "vercel-gateway", judgment: Optional[str] = None) -> None:
     (repo / ".writ" / "doubt-thresholds.json").write_text(json.dumps({
-        "calibrated": True, "backend": backend, "model": model, "ask": ask}),
-        encoding="utf-8")
+        "calibrated": True, "backend": backend, "model": model, "act": act,
+        "judgment": judgment or jev.DOUBT_QUESTION}), encoding="utf-8")
 
 
-def test_calibrated_low_p_acts_on_a_direction_decision(tmp_path, capsys):
+def test_calibrated_high_confidence_acts_on_a_direction_decision(tmp_path, capsys):
     repo = _repo(tmp_path, "vercel-gateway")
     _calibrated(repo)
     rc, lines = _run(capsys, repo, ["doubt", "--record", str(_record(tmp_path, site="direction"))],
-                     env=ENABLED, transport=Fake(p=0.2))
+                     env=ENABLED, transport=Fake(p=0.8))
     assert rc == 0 and lines[0] == "pass"
     assert "reason: jev_clear" in lines
-    assert "p=0.20 ask=0.40" in lines[-1]
+    assert "p=0.80 act=0.60" in lines[-1]
 
 
-def test_calibrated_high_p_asks_on_a_choice(tmp_path, capsys):
+@pytest.mark.parametrize("p", [0.4, 0.6])
+def test_calibrated_confidence_at_or_below_the_threshold_asks(tmp_path, capsys, p):
     repo = _repo(tmp_path, "vercel-gateway")
     _calibrated(repo)
     rc, lines = _run(capsys, repo, ["doubt", "--record", str(_record(tmp_path))],
-                     env=ENABLED, transport=Fake(p=0.6))
+                     env=ENABLED, transport=Fake(p=p))
     assert rc == 1 and lines[0] == "fail"
     assert "reason: jev_doubt" in lines
     assert _log_rows(repo)[-1]["source"] == "jev"
 
 
-def test_threshold_for_another_model_is_not_applied(tmp_path, capsys):
+@pytest.mark.parametrize("kwargs", [{"model": "some-other-model"},
+                                    {"judgment": "needs_person"}])
+def test_threshold_for_another_model_or_question_is_not_applied(tmp_path, capsys, kwargs):
     repo = _repo(tmp_path, "vercel-gateway")
-    _calibrated(repo, model="some-other-model")
+    _calibrated(repo, **kwargs)
     rc, lines = _run(capsys, repo, ["doubt", "--record", str(_record(tmp_path, site="direction"))],
-                     env=ENABLED, transport=Fake(p=0.01))
+                     env=ENABLED, transport=Fake(p=0.99))
     assert rc == 1
     assert "reason: fallback_direction" in lines
     assert "reason: uncalibrated_thresholds" in lines
@@ -271,9 +275,11 @@ def _ids_for(split: str, count: int, prefix: str) -> List[str]:
     return out
 
 
-def _example(rid: str, outcome: str, p: Optional[float], model: str = MODEL) -> Dict[str, Any]:
+def _example(rid: str, outcome: str, p: Optional[float], model: str = MODEL,
+             judgment: Optional[str] = None) -> Dict[str, Any]:
     return {"id": rid, "question": "Q %s?" % rid, "options": ["A", "B"], "recommended": "A",
-            "evidence": [], "outcome": outcome, "p": p, "model": model}
+            "evidence": [], "outcome": outcome, "p": p, "model": model,
+            "judgment": judgment or jev.DOUBT_QUESTION}
 
 
 def _extra(tmp_path: Path, rows: List[Dict[str, Any]]) -> Path:
@@ -282,12 +288,13 @@ def _extra(tmp_path: Path, rows: List[Dict[str, Any]]) -> Path:
     return path
 
 
-def _separable(dev_override_p: float = 0.6, test_override_p: float = 0.7) -> List[Dict[str, Any]]:
+def _separable(dev_override_p: float = 0.4, test_override_p: float = 0.3) -> List[Dict[str, Any]]:
+    """Accepted decisions score high; overrides score low."""
     rows: List[Dict[str, Any]] = []
     for i, rid in enumerate(_ids_for("dev", 16, "acc-dev")):
-        rows.append(_example(rid, "as_recommended", 0.1 + 0.01 * i))
+        rows.append(_example(rid, "as_recommended", 0.9 - 0.01 * i))
     for i, rid in enumerate(_ids_for("test", 16, "acc-test")):
-        rows.append(_example(rid, "as_recommended", 0.1 + 0.01 * i))
+        rows.append(_example(rid, "as_recommended", 0.9 - 0.01 * i))
     rows += [_example(r, "overridden", dev_override_p) for r in _ids_for("dev", 2, "ovr-dev")]
     rows += [_example(r, "overridden", test_override_p) for r in _ids_for("test", 2, "ovr-test")]
     return rows
@@ -299,14 +306,15 @@ def test_calibrate_writes_a_threshold_that_holds_out(tmp_path, capsys):
     rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(extra), "--write"])
     assert rc == 0 and lines[0] == "pass", lines
     written = json.loads((repo / ".writ" / "doubt-thresholds.json").read_text(encoding="utf-8"))
-    assert written["calibrated"] is True and written["ask"] == pytest.approx(0.6)
+    assert written["calibrated"] is True and written["act"] == pytest.approx(0.4)
+    assert written["judgment"] == jev.DOUBT_QUESTION
     assert written["backend"] == "vercel-gateway" and written["model"] == MODEL
     assert written["splits"]["test"]["false_acts"] == 0
 
 
 def test_calibrate_refuses_a_held_out_false_act(tmp_path, capsys):
     repo = _repo(tmp_path)
-    extra = _extra(tmp_path, _separable(dev_override_p=0.6, test_override_p=0.15))
+    extra = _extra(tmp_path, _separable(dev_override_p=0.4, test_override_p=0.85))
     rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(extra), "--write"])
     assert rc == 0 and lines[0] == "unverifiable"
     assert "reason: holdout_false_act" in lines
@@ -333,6 +341,16 @@ def test_calibrate_rejects_mixed_models(tmp_path, capsys):
     rows[0]["model"] = "other"
     rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows))])
     assert lines[0] == "unverifiable" and "reason: mixed_models" in lines
+
+
+def test_calibrate_ignores_scores_from_another_question(tmp_path, capsys):
+    """A p the current question did not produce counts as unscored, so a reworded
+    question never calibrates on its predecessor's scale."""
+    repo = _repo(tmp_path)
+    rows = [dict(r, judgment="needs_person") for r in _separable()]
+    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows))])
+    assert lines[0] == "unverifiable" and "reason: too_few_labels" in lines
+    assert "scored=0" in lines[-1]
 
 
 def test_calibrate_reads_labels_from_the_log(tmp_path, capsys):
@@ -362,9 +380,10 @@ def test_calibrate_live_without_provider_sends_nothing(tmp_path, capsys):
 
 def test_request_names_the_state_paths_it_reads():
     state, questions = jev.doubt_request("Q?", [{"label": "A"}, {"label": "B"}], "A", ["e"])
-    question = questions["needs_person"]
+    question = questions[jev.DOUBT_QUESTION]
     assert question["type"] == "noul"
-    for path in ("`decision.question`", "`decision.recommended`", "`decision.options`"):
+    for path in ("`decision.question`", "`decision.recommended`", "`decision.options`",
+                 "`decision.evidence`"):
         assert path in question["instructions"]
     assert state == {"decision": {"question": "Q?", "recommended": "A", "evidence": ["e"],
                                   "options": [{"label": "A", "description": ""},

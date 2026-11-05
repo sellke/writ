@@ -39,7 +39,7 @@
 | `question` | string | The question you would otherwise ask. |
 | `options` | list of strings, or `{label, description}` objects; at least two | The bounded options. A `(Recommended)` suffix is stripped. |
 | `recommended` | string | The label of the option you would act on; empty when you have none. |
-| `evidence` | list of strings | Observable facts behind the recommendation, highest precedence first. Empty means no evidence. |
+| `evidence` | list of strings | Observable facts behind the recommendation, highest precedence first, including what the person asked for when it bears on the choice. Empty means no evidence. |
 | `reversible` | boolean, required | The act passes the reversibility precondition: git-revertable, restore path recorded first. |
 | `conflict` | boolean | Authoritative evidence conflicts. Default `false`. |
 
@@ -56,8 +56,8 @@
 ## How the check decides
 
 1. **Rules, no network.** `merge` and `release` always ask. Any site asks when `reversible` is false, `recommended` is empty, `conflict` is true, or `evidence` is empty.
-2. **Jev, when the provider is enabled** (`jev-judge.py status` prints `pass`). One Noul asks whether the person may well want a different option. Its p is logged on every call.
-3. **A calibrated threshold decides both ways.** With one (`.writ/doubt-thresholds.json`, written by `doubt-calibrate --write`), p below it acts and p at or above it asks, on every site the rules passed.
+2. **Jev, when the provider is enabled** (`jev-judge.py status` prints `pass`). One Noul scores Jev's confidence that the recommendation is right: sound on the evidence, and the option the person would choose. Its p is logged on every call, with the name of the question that produced it.
+3. **A calibrated threshold decides both ways.** With one (`.writ/doubt-thresholds.json`, written by `doubt-calibrate --write`), p above it acts and p at or below it asks, on every site the rules passed. A threshold fitted to another question, backend, or model is not applied.
 4. **Otherwise the site decides.** `direction` and `design` ask; `choice`, `route`, `plan`, and `destructive` act.
 
-`doubt-calibrate` fits the threshold from labeled decisions and writes it only when a held-out half of them shows no override it would have acted on. On Writ's own 98 past answers it did not, so until a project's own labels show otherwise, Jev's p is logged and the site decides.
+`doubt-calibrate` fits the threshold from labeled decisions and writes it only when a held-out half of them shows no override it would have acted on. On Writ's own 98 past answers the confidence question passed once and failed on an identical repeat, because Jev's scores move a little between runs. So until a project's own labels show otherwise, Jev's p is logged and the site decides.

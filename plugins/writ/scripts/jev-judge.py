@@ -43,17 +43,18 @@ Subcommands:
                       Rules first, no network: merge and release always ask;
                       an act that is not git-revertable, no recommendation,
                       conflicting evidence, or no evidence asks. Then one Jev
-                      Noul when the provider is enabled; with a calibrated
-                      ask threshold, p >= ask asks. Without one, the fallback
-                      asks for `contract` and `design` and acts elsewhere.
+                      Noul when the provider is enabled: p is its confidence
+                      that the recommendation is right. With a calibrated
+                      act threshold, p > act acts. Without one, the fallback
+                      asks for `direction` and `design` and acts elsewhere.
                       Appends one row to <repo>/.writ/state/doubt-log.jsonl.
   doubt-label --id ID --outcome {as_recommended,overridden} [--log P]
                       Record what the person did with a logged decision.
   doubt-calibrate [--log P] [--extra F ...] [--live] [--save F] [--write]
                   [--out F] [--repo .]
-                      Fit the ask threshold from labeled decisions (the log's
+                      Fit the act threshold from labeled decisions (the log's
                       labels plus --extra JSONL). --live scores examples with
-                      no p (double opt-in). --write writes
+                      no p from the current question (double opt-in). --write writes
                       <repo>/.writ/doubt-thresholds.json after a scored run.
   calibrate --fixtures DIR [--live] [--write-thresholds] [--backend B]
             [--recordings DIR] [--repo .]
@@ -91,6 +92,7 @@ import fnmatch
 import hashlib
 import http.client
 import json
+import math
 import os
 import re
 import socket
@@ -1563,6 +1565,10 @@ def _floor2(value: float) -> float:
     return float(int(round(value * 100, 6))) / 100  # 0.29 stays 0.29
 
 
+def _ceil2(value: float) -> float:
+    return float(math.ceil(round(value * 100, 6))) / 100  # 0.29 stays 0.29
+
+
 def choose_band(records: Sequence[Scored], code: str) -> Dict[str, float]:
     """Emit/escalate for one class from the fit records (see SELECTION_RULE).
 
@@ -1839,6 +1845,7 @@ def calibrate(args: argparse.Namespace, environ: Mapping[str, str],
 
 # --------------------------------------------------------------------------
 # doubt, doubt-label, doubt-calibrate (ADR-033): does a decision need a person?
+# Jev scores its confidence that the recommendation is right; low confidence asks.
 # --------------------------------------------------------------------------
 
 DOUBT_LOG = ".writ/state/doubt-log.jsonl"
@@ -1851,12 +1858,14 @@ DOUBT_FALLBACK_ASK = ("direction", "design")
 # These sites ask whatever the judgment says.
 DOUBT_ALWAYS_ASK = {"merge": "no_verification_ledger", "release": "outward"}
 DOUBT_OUTCOMES = ("as_recommended", "overridden")
-DOUBT_QUESTION = "needs_person"
+# The Noul's name. A p, a log row, and a threshold count only under the name they
+# were scored with: a reworded question gets a new name, and older scores rescore.
+DOUBT_QUESTION = "recommendation_holds"
 DOUBT_MIN_LABELS = 30
 DOUBT_RULE = (
     "split by id hash into dev and test; both must hold an override and an accepted "
-    "decision (else no_holdout); ask = the lowest p of any dev override, rounded down to "
-    "0.01; act only when p < ask; written only when dev acts on at least one decision "
+    "decision (else no_holdout); act = the highest p of any dev override, rounded up to "
+    "0.01; act only when p > act; written only when dev acts on at least one decision "
     "(else unseparated) and test acts on no override (else holdout_false_act)")
 RECOMMENDED_SUFFIX = "(Recommended)"
 
@@ -1939,9 +1948,10 @@ def doubt_rule(rec: DoubtRecord) -> Optional[str]:
 
 def doubt_request(question: str, options: Sequence[Mapping[str, str]], recommended: str,
                   evidence: Sequence[str]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """One Noul over one decision. jev-1.13 reads literally, so the question names
-    each state path it reads and puts both outcomes in full. Any change to this
-    wording changes every request and needs `doubt-calibrate --live` again."""
+    """One Noul over one decision: p is Jev's confidence that the recommendation is
+    right. jev-1.13 reads literally, so the question names each state path it reads
+    and puts both outcomes in full. Any change to this wording changes every request:
+    rename DOUBT_QUESTION and run `doubt-calibrate --live` again."""
     decision: Dict[str, Any] = {
         "question": question,
         "options": [{"label": o["label"], "description": o.get("description", "")}
@@ -1952,26 +1962,26 @@ def doubt_request(question: str, options: Sequence[Mapping[str, str]], recommend
         decision["evidence"] = list(evidence)
     questions = {DOUBT_QUESTION: _noul(
         "An assistant must settle the choice in `decision.question` for the person it "
-        "works for, and it recommends the option named in `decision.recommended`. Should "
-        "it stop and ask the person before acting, because the person may well want a "
-        "different option from `decision.options`?",
-        "Ask first. The right option turns on something only the person can settle: "
-        "their priorities, taste, scope, budget, or a fact the question does not state, "
-        "or two options are close enough that the person's preference decides. A "
-        "reasonable person could pick an option other than `decision.recommended`.",
-        "Act without asking. `decision.recommended` follows from what the decision "
-        "states, the other options in `decision.options` are clearly worse, riskier, or "
-        "out of scope, and a reasonable person would pick `decision.recommended`.")}
+        "works for. It recommends the option named in `decision.recommended`, on the "
+        "grounds listed in `decision.evidence`. Is the recommendation right: sound on "
+        "that evidence, and the option the person would choose from `decision.options`?",
+        "Right. `decision.recommended` follows from `decision.evidence`, including what "
+        "the person asked for, and it is better than every other option in "
+        "`decision.options`. The person would choose it.",
+        "Not settled. The recommendation misreads the evidence or the person's request, "
+        "another option in `decision.options` is as good or better, or the choice turns "
+        "on the person's priorities, taste, or scope, which the evidence does not state. "
+        "The person could well choose another option.")}
     return {"decision": decision}, questions
 
 
 def _doubt_threshold(repo: Path, backend: Optional[Backend]
                      ) -> Tuple[Optional[float], List[str], str]:
-    """(ask threshold or None, informational reasons, where it came from).
+    """(act threshold or None, informational reasons, where it came from).
 
     A project file written by `doubt-calibrate --write` wins over the shipped
-    `doubt` block in jev-thresholds.json. A threshold fitted to another backend
-    or model is not applied: the decision falls back instead."""
+    `doubt` block in jev-thresholds.json. A threshold fitted to another question,
+    backend, or model is not applied: the decision falls back instead."""
     project = repo / DOUBT_PROJECT_THRESHOLDS
     if project.is_file():
         data: Any = _read_json_object(project, DOUBT_PROJECT_THRESHOLDS)
@@ -1985,14 +1995,16 @@ def _doubt_threshold(repo: Path, backend: Optional[Backend]
         where = "shipped"
     if not isinstance(data, dict) or data.get("calibrated") is not True:
         return None, ["doubt_uncalibrated"], where
-    ask = data.get("ask")
-    if not _unit_interval(ask):
-        raise UsageError("thresholds: doubt.ask must be a number in [0, 1] (%s)" % where)
+    if data.get("judgment") != DOUBT_QUESTION:
+        return None, ["uncalibrated_thresholds"], where
+    act = data.get("act")
+    if not _unit_interval(act):
+        raise UsageError("thresholds: doubt.act must be a number in [0, 1] (%s)" % where)
     if backend is None:
-        return float(ask), [], where
+        return float(act), [], where
     if data.get("backend") != backend.name or data.get("model") != backend.model:
         return None, ["uncalibrated_thresholds"], where
-    return float(ask), [], where
+    return float(act), [], where
 
 
 def _doubt_id(rec: DoubtRecord) -> str:
@@ -2013,7 +2025,7 @@ def doubt(args: argparse.Namespace, environ: Mapping[str, str],
         "site": rec.site, "question": rec.question, "options": rec.options,
         "recommended": rec.recommended, "evidence": rec.evidence,
         "reversible": rec.reversible, "conflict": rec.conflict,
-        "p": None, "ask": None, "backend": None, "model": None}
+        "judgment": None, "p": None, "act": None, "backend": None, "model": None}
     info: List[str] = []
     rule = doubt_rule(rec)
     if rule is not None:
@@ -2031,7 +2043,8 @@ def doubt(args: argparse.Namespace, environ: Mapping[str, str],
             value = answer.get("noul") if isinstance(answer, dict) else None
             if _unit_interval(value):
                 p = float(value)
-                row.update(backend=sel.backend.name, model=j.model or sel.backend.model)
+                row.update(judgment=DOUBT_QUESTION, backend=sel.backend.name,
+                           model=j.model or sel.backend.model)
             else:
                 info.append("jev_%s" % _primary(j.reasons))
             info += [r for r in j.reasons if r in INFORMATIONAL]
@@ -2039,8 +2052,8 @@ def doubt(args: argparse.Namespace, environ: Mapping[str, str],
             info += ["jev_%s" % r for r in sel.reasons[:1]]
         row["p"] = p
         if p is not None and threshold is not None:
-            row["ask"] = threshold
-            act = p < threshold
+            row["act"] = threshold
+            act = p > threshold
             source, reason = "jev", ("jev_clear" if act else "jev_doubt")
         else:
             info += t_info if p is not None else []
@@ -2052,8 +2065,8 @@ def doubt(args: argparse.Namespace, environ: Mapping[str, str],
     tail = "id=%s site=%s source=%s" % (row["id"], rec.site, source)
     if row["p"] is not None:
         tail += " p=%.2f" % row["p"]
-    if row["ask"] is not None:
-        tail += " ask=%.2f" % row["ask"]
+    if row["act"] is not None:
+        tail += " act=%.2f" % row["act"]
     verdict = "pass" if act else "fail"
     return _emit(verdict, [reason] + info, "jev-judge: %s (%s) %s %s" % (
         verdict, "act" if act else "ask", reason, tail))
@@ -2106,6 +2119,12 @@ class DoubtExample(NamedTuple):
     model: Optional[str]
 
 
+def _current_p(row: Mapping[str, Any]) -> Optional[float]:
+    """A row's p, when the current question produced it; else None (rescore)."""
+    p = row.get("p")
+    return float(p) if row.get("judgment") == DOUBT_QUESTION and _unit_interval(p) else None
+
+
 def _doubt_split(example_id: str) -> str:
     return "dev" if int(request_hash(example_id.encode("utf-8"))[:8], 16) % 2 == 0 else "test"
 
@@ -2117,10 +2136,9 @@ def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
         row = decisions.get(rid)
         if row is None or not row.get("recommended"):
             continue
-        p = row.get("p")
         out.append(DoubtExample(rid, row.get("question", ""), row.get("options") or [],
                                 row["recommended"], row.get("evidence") or [], outcome,
-                                float(p) if _unit_interval(p) else None, row.get("model")))
+                                _current_p(row), row.get("model")))
     for path in extras:
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
@@ -2136,17 +2154,17 @@ def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
                 raise UsageError("--extra %s line %d: outcome must be one of %s"
                                  % (path, n, ", ".join(DOUBT_OUTCOMES)))
             rid = str(row.get("id") or request_hash(line.encode("utf-8"))[:12])
-            p = row.get("p")
             out.append(DoubtExample(rid, rec.question, rec.options, rec.recommended,
-                                    rec.evidence, row["outcome"],
-                                    float(p) if _unit_interval(p) else None, row.get("model")))
+                                    rec.evidence, row["outcome"], _current_p(row),
+                                    row.get("model")))
     return out
 
 
 def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
                     transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
-    """Fit the ask threshold from labeled decisions (DOUBT_RULE). Network only with
-    --live, which scores examples that carry no p (double opt-in)."""
+    """Fit the act threshold from labeled decisions (DOUBT_RULE). Network only with
+    --live, which scores examples that carry no p from the current question
+    (double opt-in)."""
     log: Path = args.log if args.log is not None else args.repo / DOUBT_LOG
     examples = _doubt_examples(log, args.extra or [])
     live_tail, failures = "", 0
@@ -2182,6 +2200,8 @@ def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
                     fh.write(json.dumps({"id": ex.id, "question": ex.question,
                                          "options": ex.options, "recommended": ex.recommended,
                                          "evidence": ex.evidence, "outcome": ex.outcome,
+                                         "judgment": DOUBT_QUESTION if ex.p is not None
+                                         else None,
                                          "p": ex.p, "model": ex.model}, sort_keys=True) + "\n")
         except OSError as exc:
             raise UsageError("--save not writable: %s (%s)" % (args.save, type(exc).__name__))
@@ -2211,10 +2231,10 @@ def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
     fit = "dev"
     overrides = [ex.p for ex in scored
                  if split[ex.id] == fit and ex.outcome == "overridden"]
-    ask = _floor2(min(o for o in overrides if o is not None))
+    act = _ceil2(max(o for o in overrides if o is not None))
 
     def tally(rows: Sequence[DoubtExample]) -> Dict[str, int]:
-        acts = [ex for ex in rows if ex.p is not None and ex.p < ask]
+        acts = [ex for ex in rows if ex.p is not None and ex.p > act]
         return {"decisions": len(rows),
                 "acted": len(acts),
                 "acted_as_recommended": sum(1 for ex in acts if ex.outcome == "as_recommended"),
@@ -2232,12 +2252,12 @@ def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
             name, " ".join("%s=%d" % kv for kv in counts.items())), file=sys.stderr)
     if splits["dev"]["acted"] == 0:
         return _emit("unverifiable", ["unseparated"],
-                     "jev-judge: unverifiable (unseparated) %s ask=%.2f written=0" % (base, ask))
+                     "jev-judge: unverifiable (unseparated) %s act=%.2f written=0" % (base, act))
     if splits["test"]["false_acts"] > 0:
         return _emit("unverifiable", ["holdout_false_act"],
-                     "jev-judge: unverifiable (holdout_false_act) %s ask=%.2f test_acted=%d/%d "
+                     "jev-judge: unverifiable (holdout_false_act) %s act=%.2f test_acted=%d/%d "
                      "test_false_acts=%d written=0" % (
-                         base, ask, splits["test"]["acted"], splits["test"]["decisions"],
+                         base, act, splits["test"]["acted"], splits["test"]["decisions"],
                          splits["test"]["false_acts"]))
     written = 0
     if args.write:
@@ -2245,15 +2265,15 @@ def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
         out = args.out if args.out is not None else args.repo / DOUBT_PROJECT_THRESHOLDS
         data = {"calibrated": True, "backend": backend.name if backend else None,
                 "model": model, "calibrated_on": time.strftime("%Y-%m-%d", time.gmtime()),
-                "ask": ask, "rule": DOUBT_RULE, "fit_split": fit,
+                "judgment": DOUBT_QUESTION, "act": act, "rule": DOUBT_RULE, "fit_split": fit,
                 "labels": len(scored), "splits": splits}
         _write_json(out, data)
         written = 1
     headline = "test"
     h = splits[headline]
-    return _emit("pass", ["scored"], "jev-judge: pass (scored) %s fit=%s ask=%.2f "
+    return _emit("pass", ["scored"], "jev-judge: pass (scored) %s fit=%s act=%.2f "
                  "%s_acted=%d/%d %s_false_acts=%d model=%s written=%d" % (
-                     base, fit, ask, headline, h["acted"], h["decisions"], headline,
+                     base, fit, act, headline, h["acted"], h["decisions"], headline,
                      h["false_acts"], model, written))
 
 
@@ -2351,7 +2371,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--log", type=Path, default=None,
                    help="decision log (default <repo>/.writ/state/doubt-log.jsonl)")
     p = sub.add_parser("doubt-calibrate",
-                       help="fit the doubt ask threshold from labeled decisions")
+                       help="fit the doubt act threshold from labeled decisions")
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
     p.add_argument("--log", type=Path, default=None,
                    help="decision log (default <repo>/.writ/state/doubt-log.jsonl)")
