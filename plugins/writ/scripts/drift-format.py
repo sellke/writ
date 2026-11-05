@@ -8,6 +8,12 @@ Large-drift signal (`Overall Drift: Large` or `- **Severity:** Large`)
 implies a PAUSE verdict line (`REVIEW_RESULT: PAUSE` /
 `EVALUATION_RESULT: PAUSE`) in the story or `--review-output`. Does not decide accept / reject / modify-spec.
 
+A drift log is spec-wide, so its Large signal counts only inside this
+story's `## Story N:` sections (N from the story's `# Story N` title, else
+its `story-N` file name). A log with no story sections, or a story with no
+number, counts whole. A Large signal in the story text or `--review-output`
+always counts.
+
 `auto_amend_unapplied` (Phase 15 retro F1): when the drift log's
 `## Story N:` sections for this story hold a `- **Resolution:** Auto-amended`
 entry, the spec folder's `spec-lite.md` must have uncommitted changes (Gate
@@ -134,6 +140,16 @@ def _story_number(story: Path, text: str) -> Optional[str]:
     return match.group(1) if match else None
 
 
+def _story_log_text(log_text: str, number: Optional[str]) -> str:
+    """The drift-log text whose Large signal binds this story: its own
+    `## Story N:` sections. A log with no story sections, or a story whose
+    number is unknown, counts whole."""
+    sections = _story_sections(log_text)
+    if not sections or number is None:
+        return log_text
+    return "\n".join(section for story, section in sections if story == number)
+
+
 def _auto_amended_ids(log_text: str, number: Optional[str]) -> List[str]:
     """`DEV-NNN` ids of `Auto-amended` entries under this story's sections."""
     if number is None:
@@ -196,9 +212,11 @@ def check(story: Optional[Path], drift_log: Optional[Path],
     review_text = _read(review_output) if review_output is not None else ""
     pause_haystack = "%s\n%s" % (story_text, review_text or "")
 
+    number = _story_number(story, story_text)
     large = any(
         LARGE_SIGNAL.search(text)
-        for text in (log_text or "", story_text, review_text or "")
+        for text in (_story_log_text(log_text or "", number), story_text,
+                     review_text or "")
     )
 
     if not log_text and not large:
@@ -225,7 +243,7 @@ def check(story: Optional[Path], drift_log: Optional[Path],
     auto_ids: List[str] = []
     amended: Optional[bool] = True
     if log_text and drift_log is not None:
-        auto_ids = _auto_amended_ids(log_text, _story_number(story, story_text))
+        auto_ids = _auto_amended_ids(log_text, number)
         if auto_ids:
             amended = _spec_lite_amended(story, drift_log.parent)
             if amended is False:

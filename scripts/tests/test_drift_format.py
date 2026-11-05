@@ -635,5 +635,139 @@ class AutoAmendTests(unittest.TestCase):
         self.assertIn("auto_amend_unapplied", _reasons(out))
 
 
+# --- A drift log's Large signal binds only its own story's sections ----------
+
+PAUSED = "Pipeline paused — accepted by user"
+
+# Spec-wide log: Story 1 logged a Large drift (paused and resolved in Story
+# 1's record); Story 2 logged only a Medium one.
+SPEC_WIDE_LOG = (
+    "# Drift Log\n\n> Spec: .writ/specs/x/\n> Created: 2026-11-04\n\n---\n\n"
+    "## Story 1: Paused Story — Drift Report\n\n> Run: 2026-11-04\n"
+    "> Overall Drift: Large\n\n### Deviations\n\n"
+    + _entry("001", PAUSED, "Large")
+    + "\n---\n\n"
+    "## Story 2: Later Story — Drift Report\n\n> Run: 2026-11-04\n"
+    "> Overall Drift: Medium\n\n### Deviations\n\n"
+    + _entry("002", "Flagged for review", "Medium")
+)
+
+# Story 1's Large entry with no `## Story N:` sections (an older single-story log).
+UNSECTIONED_LOG = (
+    "# Drift Log\n\n> Overall Drift: Large\n\n" + _entry("001", PAUSED, "Large")
+)
+
+PASS_REVIEW = "### REVIEW_RESULT: PASS\n"
+
+
+def _story_text(num: int, extra: str = "") -> str:
+    return "# Story %d: Fixture\n\n> **Status:** In Progress\n%s" % (num, extra)
+
+
+class LargeScopeTests(unittest.TestCase):
+    """`large_drift_without_pause` reads the drift log's Large signal from the
+    checked story's own `## Story N:` sections only. The story text and
+    `--review-output` count as before; an unsectioned log counts whole."""
+
+    def _check(self, story_text: str, log_text: str, review_text: "str | None" = None,
+               name: str = "story.md") -> "tuple[int, str]":
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            story = root / name
+            log = root / "drift-log.md"
+            story.write_text(story_text, encoding="utf-8")
+            log.write_text(log_text, encoding="utf-8")
+            args = ["check", "--story", str(story), "--drift-log", str(log)]
+            if review_text is not None:
+                review = root / "review.txt"
+                review.write_text(review_text, encoding="utf-8")
+                args += ["--review-output", str(review)]
+            return _run(args)
+
+    def test_later_story_does_not_inherit_an_earlier_large(self) -> None:
+        for review in (None, PASS_REVIEW):
+            code, out = self._check(_story_text(2), SPEC_WIDE_LOG, review)
+            self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+
+    def test_story_with_no_section_does_not_inherit_an_earlier_large(self) -> None:
+        code, out = self._check(_story_text(3), SPEC_WIDE_LOG, PASS_REVIEW)
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+
+    def test_large_story_without_pause_still_fails(self) -> None:
+        code, out = self._check(_story_text(1), SPEC_WIDE_LOG, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertEqual(_reasons(out), ["large_drift_without_pause"])
+
+    def test_large_story_with_pause_passes(self) -> None:
+        code, out = self._check(_story_text(1, "\n**REVIEW_RESULT:** PAUSE\n"),
+                                SPEC_WIDE_LOG)
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+
+    def test_large_in_a_later_run_of_the_same_story_fails(self) -> None:
+        rerun = (
+            "\n---\n\n## Story 2: Later Story — Drift Report\n\n> Run: 2026-11-05\n"
+            "> Overall Drift: Large\n\n### Deviations\n\n"
+            + _entry("003", PAUSED, "Large")
+        )
+        code, out = self._check(_story_text(2), SPEC_WIDE_LOG + rerun, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_story_number_from_file_name(self) -> None:
+        untitled = "> **Status:** In Progress\n"
+        code, out = self._check(untitled, SPEC_WIDE_LOG, name="story-2-later.md")
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+        code, out = self._check(untitled, SPEC_WIDE_LOG, name="story-1-paused.md")
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_unknown_story_number_counts_the_whole_log(self) -> None:
+        code, out = self._check("> **Status:** In Progress\n", SPEC_WIDE_LOG,
+                                name="notes.md")
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_review_output_large_still_counts(self) -> None:
+        code, out = self._check(_story_text(2), SPEC_WIDE_LOG,
+                                "### Drift Analysis\n\n**Overall Drift:** Large\n")
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_story_text_large_still_counts(self) -> None:
+        code, out = self._check(_story_text(2, "\n> Overall Drift: Large\n"),
+                                SPEC_WIDE_LOG, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_unsectioned_log_counts_whole(self) -> None:
+        code, out = self._check(_story_text(2), UNSECTIONED_LOG, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertEqual(_reasons(out), ["large_drift_without_pause"])
+
+    def test_repro_evidence_gated_review_story_6(self) -> None:
+        """The 2026-11-04 run: Story 1's paused Large DEV-001 failed Stories
+        2 through 7. Story 6 logged no drift and must pass; Story 1 without
+        its PAUSE line must still fail."""
+        rel = Path("2026-11-04-evidence-gated-review")
+        for root in (REPO_ROOT / ".writ" / "specs", REPO_ROOT / ".writ" / "specs" / "archive"):
+            if (root / rel / "drift-log.md").is_file():
+                spec = root / rel
+                break
+        else:
+            self.skipTest("evidence-gated-review spec not in this checkout")
+        log = (spec / "drift-log.md").read_text(encoding="utf-8")
+        stories = spec / "user-stories"
+        story6 = (stories / "story-6-raise-safety-fact-floor.md").read_text(encoding="utf-8")
+        code, out = self._check(story6, log, PASS_REVIEW)
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+        story1 = (stories / "story-1-adr-032-review-surface-inventory.md").read_text(
+            encoding="utf-8")
+        unpaused = "\n".join(ln for ln in story1.splitlines()
+                             if ln.strip() != "**REVIEW_RESULT:** PAUSE")
+        self.assertNotEqual(unpaused, story1.rstrip("\n"))
+        code, out = self._check(unpaused, log, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+
 if __name__ == "__main__":
     unittest.main()
