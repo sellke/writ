@@ -264,22 +264,15 @@ def test_label_rejects_an_unknown_id(tmp_path, capsys):
 # --------------------------------------------------------------------------
 
 
-def _ids_for(split: str, count: int, prefix: str) -> List[str]:
-    out: List[str] = []
-    n = 0
-    while len(out) < count:
-        candidate = "%s-%d" % (prefix, n)
-        if jev._doubt_split(candidate) == split:
-            out.append(candidate)
-        n += 1
-    return out
-
-
-def _example(rid: str, outcome: str, p: Optional[float], model: str = MODEL,
+def _example(rid: str, outcome: str, draws: List[float], model: Optional[str] = MODEL,
              judgment: Optional[str] = None) -> Dict[str, Any]:
     return {"id": rid, "question": "Q %s?" % rid, "options": ["A", "B"], "recommended": "A",
-            "evidence": [], "outcome": outcome, "p": p, "model": model,
+            "evidence": [], "outcome": outcome, "draws": list(draws), "model": model,
             "judgment": judgment or jev.DOUBT_QUESTION}
+
+
+def _draws(p: float) -> List[float]:
+    return [p] * jev.DOUBT_DRAWS
 
 
 def _extra(tmp_path: Path, rows: List[Dict[str, Any]]) -> Path:
@@ -288,80 +281,139 @@ def _extra(tmp_path: Path, rows: List[Dict[str, Any]]) -> Path:
     return path
 
 
-def _separable(dev_override_p: float = 0.4, test_override_p: float = 0.3) -> List[Dict[str, Any]]:
-    """Accepted decisions score high; overrides score low."""
-    rows: List[Dict[str, Any]] = []
-    for i, rid in enumerate(_ids_for("dev", 16, "acc-dev")):
-        rows.append(_example(rid, "as_recommended", 0.9 - 0.01 * i))
-    for i, rid in enumerate(_ids_for("test", 16, "acc-test")):
-        rows.append(_example(rid, "as_recommended", 0.9 - 0.01 * i))
-    rows += [_example(r, "overridden", dev_override_p) for r in _ids_for("dev", 2, "ovr-dev")]
-    rows += [_example(r, "overridden", test_override_p) for r in _ids_for("test", 2, "ovr-test")]
+def _separable(override_draws: Optional[List[List[float]]] = None,
+               accepted: int = 30) -> List[Dict[str, Any]]:
+    """Accepted decisions score 0.90 down to 0.61; four overrides score 0.4."""
+    rows = [_example("acc-%d" % i, "as_recommended", _draws(0.9 - 0.01 * i))
+            for i in range(accepted)]
+    for i, draws in enumerate(override_draws or [_draws(0.4)] * 4):
+        rows.append(_example("ovr-%d" % i, "overridden", draws))
     return rows
 
 
-def test_calibrate_writes_a_threshold_that_holds_out(tmp_path, capsys):
-    repo = _repo(tmp_path, "vercel-gateway")
-    extra = _extra(tmp_path, _separable())
-    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(extra), "--write"])
+def _calibrate(capsys, tmp_path: Path, rows: List[Dict[str, Any]], *flags: str,
+               provider: Optional[str] = None):
+    repo = _repo(tmp_path, provider)
+    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows))]
+                     + list(flags))
+    return repo, rc, lines
+
+
+def test_calibrate_writes_a_threshold_above_every_override_draw(tmp_path, capsys):
+    """A live decision is scored once, with fresh noise: the threshold clears the
+    highest score any override got on any draw, not its first or its mean."""
+    overrides = [[0.3, 0.5, 0.4], [0.5, 0.45, 0.5], [0.42] * 3, [0.38] * 3]
+    repo, rc, lines = _calibrate(capsys, tmp_path, _separable(overrides), "--write",
+                                 provider="vercel-gateway")
     assert rc == 0 and lines[0] == "pass", lines
     written = json.loads((repo / ".writ" / "doubt-thresholds.json").read_text(encoding="utf-8"))
-    assert written["calibrated"] is True and written["act"] == pytest.approx(0.4)
-    assert written["judgment"] == jev.DOUBT_QUESTION
+    assert written["calibrated"] is True and written["act"] == pytest.approx(0.5)
+    assert written["judgment"] == jev.DOUBT_QUESTION and written["draws"] == jev.DOUBT_DRAWS
     assert written["backend"] == "vercel-gateway" and written["model"] == MODEL
-    assert written["splits"]["test"]["false_acts"] == 0
+    assert written["overrides"] == 4 and written["slipped"] == 0
+    assert written["false_act_bound"] <= jev.DOUBT_MAX_FALSE_ACT
 
 
-def test_calibrate_refuses_a_held_out_false_act(tmp_path, capsys):
-    repo = _repo(tmp_path)
-    extra = _extra(tmp_path, _separable(dev_override_p=0.4, test_override_p=0.85))
-    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(extra), "--write"])
-    assert rc == 0 and lines[0] == "unverifiable"
-    assert "reason: holdout_false_act" in lines
+@pytest.mark.parametrize("overrides,verdict", [
+    ([_draws(0.4)] * 4, "pass"),
+    # One override scores above the others: a threshold fitted without it acts on
+    # it, and one slip in four lifts the bound past the cap.
+    ([_draws(0.45)] + [_draws(0.4)] * 3, "unverifiable"),
+], ids=["no override slips", "one override slips"])
+def test_calibrate_bounds_overrides_left_out_of_the_fit(tmp_path, capsys, overrides, verdict):
+    repo, rc, lines = _calibrate(capsys, tmp_path, _separable(overrides, accepted=26),
+                                 "--write")
+    assert rc == 0 and lines[0] == verdict, lines
+    assert ("slipped=%d" % (verdict == "unverifiable")) in lines[-1]
+    assert (repo / ".writ" / "doubt-thresholds.json").exists() == (verdict == "pass")
+    if verdict != "pass":
+        assert "reason: false_act_bound" in lines
+
+
+def test_calibrate_refuses_when_too_few_acts_bound_the_share(tmp_path, capsys):
+    """No override slips, but Jev acts on so few accepted decisions that four
+    overrides cannot bound the false-act share under the cap."""
+    repo, rc, lines = _calibrate(capsys, tmp_path, _separable([_draws(0.85)] * 4), "--write")
+    assert lines[0] == "unverifiable" and "reason: false_act_bound" in lines
+    assert "slipped=0" in lines[-1]
     assert not (repo / ".writ" / "doubt-thresholds.json").exists()
 
 
+def test_calibrate_counts_each_draw_of_an_accepted_decision(tmp_path, capsys):
+    """An accepted decision above the threshold on one draw in three acts a third
+    of the time live, so it counts as a third of an act."""
+    rows = [_example("acc-%d" % i, "as_recommended", [0.9, 0.3, 0.3]) for i in range(30)]
+    rows += [_example("ovr-%d" % i, "overridden", _draws(0.4)) for i in range(4)]
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, rows)
+    assert "acted=10.0/30" in lines[-1], lines
+
+
+def test_calibrate_needs_every_draw(tmp_path, capsys):
+    """Examples scored fewer than DOUBT_DRAWS times are not calibration examples."""
+    rows = [dict(r, draws=r["draws"][:1]) for r in _separable()]
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, rows)
+    assert lines[0] == "unverifiable" and "reason: too_few_labels" in lines
+    assert "scored=0" in lines[-1]
+
+
 def test_calibrate_needs_enough_labels(tmp_path, capsys):
-    repo = _repo(tmp_path)
-    extra = _extra(tmp_path, _separable()[:10])
-    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(extra)])
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, _separable()[-10:])
     assert lines[0] == "unverifiable" and "reason: too_few_labels" in lines
 
 
-def test_calibrate_needs_overrides_in_both_splits(tmp_path, capsys):
-    repo = _repo(tmp_path)
-    rows = [r for r in _separable() if not r["id"].startswith("ovr-test")]
-    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows))])
-    assert lines[0] == "unverifiable" and "reason: no_holdout" in lines
+def test_calibrate_needs_an_override(tmp_path, capsys):
+    rows = [r for r in _separable() if r["outcome"] == "as_recommended"]
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, rows)
+    assert lines[0] == "unverifiable" and "reason: no_override" in lines
+
+
+def test_calibrate_refuses_when_no_accepted_decision_clears_the_threshold(tmp_path, capsys):
+    rows = _separable([_draws(0.95)] * 4)
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, rows)
+    assert lines[0] == "unverifiable" and "reason: unseparated" in lines
 
 
 def test_calibrate_rejects_mixed_models(tmp_path, capsys):
-    repo = _repo(tmp_path)
     rows = _separable()
     rows[0]["model"] = "other"
-    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows))])
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, rows)
     assert lines[0] == "unverifiable" and "reason: mixed_models" in lines
 
 
 def test_calibrate_ignores_scores_from_another_question(tmp_path, capsys):
-    """A p the current question did not produce counts as unscored, so a reworded
-    question never calibrates on its predecessor's scale."""
-    repo = _repo(tmp_path)
+    """A score the current question did not produce counts as unscored, so a
+    reworded question never calibrates on its predecessor's scale."""
     rows = [dict(r, judgment="needs_person") for r in _separable()]
-    rc, lines = _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows))])
+    _repo_, _rc, lines = _calibrate(capsys, tmp_path, rows)
     assert lines[0] == "unverifiable" and "reason: too_few_labels" in lines
     assert "scored=0" in lines[-1]
 
 
 def test_calibrate_reads_labels_from_the_log(tmp_path, capsys):
-    """A logged decision with a p and a label is a calibration example."""
+    """A logged decision with a p and a label is a calibration example with one draw."""
     repo = _repo(tmp_path, "vercel-gateway")
     _run(capsys, repo, ["doubt", "--record", str(_record(tmp_path))], env=ENABLED,
          transport=Fake(p=0.3))
     rid = _log_rows(repo)[-1]["id"]
     _run(capsys, repo, ["doubt-label", "--id", rid, "--outcome", "overridden"])
     examples = jev._doubt_examples(repo / ".writ" / "state" / "doubt-log.jsonl", [])
-    assert [(e.id, e.outcome, e.p) for e in examples] == [(rid, "overridden", pytest.approx(0.3))]
+    assert [(e.id, e.outcome, e.draws) for e in examples] == [
+        (rid, "overridden", [pytest.approx(0.3)])]
+
+
+def test_calibrate_live_scores_each_example_until_it_has_every_draw(tmp_path, capsys):
+    rows = [_example("new", "overridden", [], model=None),
+            _example("partial", "as_recommended", [0.7, 0.8])]
+    repo = _repo(tmp_path, "vercel-gateway")
+    saved = tmp_path / "scored.jsonl"
+    fake = Fake(p=0.6)
+    _run(capsys, repo, ["doubt-calibrate", "--extra", str(_extra(tmp_path, rows)), "--live",
+                        "--save", str(saved)], env=ENABLED, transport=fake)
+    assert fake.calls == jev.DOUBT_DRAWS + (jev.DOUBT_DRAWS - 2)
+    out = {r["id"]: r for r in map(json.loads, saved.read_text(encoding="utf-8").splitlines())}
+    assert out["new"]["draws"] == _draws(0.6)
+    assert out["partial"]["draws"] == [0.7, 0.8] + [0.6] * (jev.DOUBT_DRAWS - 2)
+    assert {r["judgment"] for r in out.values()} == {jev.DOUBT_QUESTION}
 
 
 def test_calibrate_live_refuses_replay(tmp_path, capsys):
@@ -376,6 +428,15 @@ def test_calibrate_live_without_provider_sends_nothing(tmp_path, capsys):
     fake = Fake(p=0.1)
     rc, lines = _run(capsys, repo, ["doubt-calibrate", "--live"], transport=fake)
     assert lines[0] == "unverifiable" and fake.calls == 0
+
+
+@pytest.mark.parametrize("successes,trials,expected", [
+    (0, 10, 1 - 0.05 ** 0.1),  # closed form when nothing slipped
+    (1, 10, 0.3942),
+    (3, 3, 1.0),
+])
+def test_binomial_upper_bound(successes, trials, expected):
+    assert jev._binomial_upper(successes, trials, 0.95) == pytest.approx(expected, abs=1e-3)
 
 
 def test_request_names_the_state_paths_it_reads():

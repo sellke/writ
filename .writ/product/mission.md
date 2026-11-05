@@ -87,7 +87,7 @@ Normal `/implement-phase` runs an entire roadmap phase after one confirmation �
 
 Phase 17 ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md), built on its own branch) makes initiative the default. Every question a command would ask is a decision, and `jev-judge.py doubt` decides it: rules first (merge and release always ask; an act that is not git-revertable, or a recommendation without evidence, asks), then Jev ([ADR-027](../decision-records/adr-027-optional-judgment-provider.md)), then, without a calibrated threshold, the decision's kind: scope, priorities, and taste reach a person; method choices do not. A supervisor agent re-derives every story and lane report before an orchestrator accepts it. `--recommend` survives only as an accepted no-op. What makes the autonomy accountable is the record: the decision log, the supervisor's claims table, and Phase 16's verification ledger bound to the PR head. Opaque unbounded loops remain out of scope.
 
-**Jev is first in line, not yet in charge.** Jev scores its confidence that a recommendation is right. On 98 of the maintainer's past answers, that score with the evidence attached ranked overrides as more doubtful than accepted decisions 80% of the time, against 66% for the first question Writ asked it. It passed the held-out check once and failed it on an identical repeat, because the scores move between runs ([report](../eval/doubt-calibration/report.md)). So Jev shadows, its score is logged, and every answered question becomes a label. `doubt-calibrate` writes a threshold only when a held-out half shows no override it would have acted on.
+**Jev is first in line, not yet in charge.** Jev scores its confidence that a recommendation is right. On 98 of the maintainer's past answers, that score with the evidence attached ranked overrides as more doubtful than accepted decisions 80% of the time, against 66% for the first question Writ asked it. Scored three times per decision, it would act on 34 to 46 of the 88 accepted decisions, and about 2 to 3% of its acts would be ones the maintainer overrode. `doubt-calibrate` writes a threshold only when that share is at most 10% at a 95% upper bound, and with 10 overrides the bound sits at the cap: 7.8% on one run, 10.4% on another ([report](../eval/doubt-calibration/report.md)). So Jev shadows, its score is logged, and every answered question becomes a label.
 
 ### Self-Improvement With Evidence
 
@@ -198,7 +198,7 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
   - The `design-divergence` skill lost its blind trial and is removed; `/prototype` keeps its drafts without it.
 - **Phase 17, Doubt-Gated Autonomy (◐ implemented on `phase/17-doubt-gated-autonomy`, not merged):**
   - One rule replaces the gate-class table: decide, act, record; ask only on reasonable doubt.
-  - Jev runs first on every decision; until a threshold passes a held-out check, it shadows and the decision's kind decides. On Writ's own 98 past answers it did not pass.
+  - Jev runs first on every decision; until a threshold bounds its false acts under 10%, it shadows and the decision's kind decides. On Writ's own 98 past answers the bound sits at the cap.
   - A supervisor agent re-derives every subagent report before an orchestrator trusts it.
   - `--recommend` retires; every run writes a decision log; overrides recalibrate the thresholds; `/writ` and `/create-uat-plan` ask only on doubt.
 - **Phase 16, Verified Landing (📋 committed, after Phase 17):**

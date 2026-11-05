@@ -142,6 +142,16 @@ On the same 98 answers, with the person's request and the assistant's reasoning 
 
 Open: the calibration rule fits a threshold to one scoring, and a live decision is scored again with the same noise. A threshold that holds has to clear that noise.
 
+### 2026-11-05 — Calibration bounds the false-act share over repeated scores
+
+The held-out rule was a coin flip by construction: with 10 overrides split 6 and 4, it passed exactly when the highest-scoring override landed in the dev half, 50% of the time over 20,000 random splits of one run's scores. `doubt-calibrate` now uses one rule on all labels:
+
+- **Each decision is scored 3 times**, and the threshold is the highest draw of any override, rounded up to 0.01. Jev acts only above it.
+- **Leave one out.** An override slips when any of its draws is above the threshold fitted to the other overrides.
+- **The false-act share is bounded.** Overrides × slip rate, against accepted decisions × the share of their draws above the threshold, estimates the share of Jev's acts the person would have overridden. A threshold is written only when that share is at most 10% with the slip rate at its one-sided 95% upper bound. The maintainer set the 10% cap.
+
+On the 98 answers, two runs agree on the estimate (1 of 10 overrides slips; 2 to 3% of acts would be overrides) and split on the verdict: one passed with a 7.8% bound, one refused at 10.4%, and all six draws pooled refuse at 10.4% ([report](../eval/doubt-calibration/report.md)). One override's occasional high draw (0.57 against a mean of 0.48) decides whether the threshold sits at 0.49 or 0.57. No threshold is written, and Jev still shadows. With these data no rule can show the share under 10%; more overrides can. A threshold from each override's mean plus a margin from noise pooled over all decisions is steadier on these scores, but it was found after seeing them, so it waits for new labels.
+
 ## References
 
 - [ADR-010](adr-010-supervised-autonomy-ceiling.md), [ADR-013](adr-013-recommended-autonomous-delivery.md), [ADR-022](adr-022-autonomy-gate-classes.md): the records this one supersedes in part

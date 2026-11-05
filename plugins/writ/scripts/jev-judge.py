@@ -53,8 +53,11 @@ Subcommands:
   doubt-calibrate [--log P] [--extra F ...] [--live] [--save F] [--write]
                   [--out F] [--repo .]
                       Fit the act threshold from labeled decisions (the log's
-                      labels plus --extra JSONL). --live scores examples with
-                      no p from the current question (double opt-in). --write writes
+                      labels plus --extra JSONL), each scored 3 times by the
+                      current question. --live adds the missing scores (double
+                      opt-in). The threshold clears every override's scores; a
+                      leave-one-out check bounds how many of Jev's acts the
+                      person would have overridden. --write writes
                       <repo>/.writ/doubt-thresholds.json after a scored run.
   calibrate --fixtures DIR [--live] [--write-thresholds] [--backend B]
             [--recordings DIR] [--repo .]
@@ -1862,11 +1865,21 @@ DOUBT_OUTCOMES = ("as_recommended", "overridden")
 # were scored with: a reworded question gets a new name, and older scores rescore.
 DOUBT_QUESTION = "recommendation_holds"
 DOUBT_MIN_LABELS = 30
+# A live decision is scored once, and Jev's scores move between runs, so each
+# calibration decision is scored this many times and the threshold clears them all.
+DOUBT_DRAWS = 3
+# Of the decisions Jev acts on, at most this share may be ones the person would have
+# overridden, with the slip rate at its one-sided upper bound at this confidence.
+DOUBT_MAX_FALSE_ACT = 0.10
+DOUBT_CONFIDENCE = 0.95
 DOUBT_RULE = (
-    "split by id hash into dev and test; both must hold an override and an accepted "
-    "decision (else no_holdout); act = the highest p of any dev override, rounded up to "
-    "0.01; act only when p > act; written only when dev acts on at least one decision "
-    "(else unseparated) and test acts on no override (else holdout_false_act)")
+    "score every decision %d times; act = the highest draw of any override, rounded up "
+    "to 0.01; act only when p > act; an override slips when any of its draws is above "
+    "the act fitted to the other overrides; false-act share = overrides x slip rate / "
+    "(that + accepted decisions x the share of their draws above act); written only when "
+    "an accepted draw is above act (else unseparated) and the share is at most %.2f "
+    "with the slip rate at its one-sided %d%% upper bound (else false_act_bound)"
+    % (DOUBT_DRAWS, DOUBT_MAX_FALSE_ACT, int(round(DOUBT_CONFIDENCE * 100))))
 RECOMMENDED_SUFFIX = "(Recommended)"
 
 
@@ -2115,18 +2128,39 @@ class DoubtExample(NamedTuple):
     recommended: str
     evidence: List[str]
     outcome: str
-    p: Optional[float]
+    draws: List[float]  # Jev's p on each scoring of this decision
     model: Optional[str]
 
 
-def _current_p(row: Mapping[str, Any]) -> Optional[float]:
-    """A row's p, when the current question produced it; else None (rescore)."""
+def _current_draws(row: Mapping[str, Any]) -> List[float]:
+    """A row's scores, when the current question produced them; else [] (rescore).
+    A scored file carries `draws`; a decision log row carries its one live `p`."""
+    if row.get("judgment") != DOUBT_QUESTION:
+        return []
+    draws = row.get("draws")
+    if isinstance(draws, list) and draws and all(_unit_interval(d) for d in draws):
+        return [float(d) for d in draws]
     p = row.get("p")
-    return float(p) if row.get("judgment") == DOUBT_QUESTION and _unit_interval(p) else None
+    return [float(p)] if _unit_interval(p) else []
 
 
-def _doubt_split(example_id: str) -> str:
-    return "dev" if int(request_hash(example_id.encode("utf-8"))[:8], 16) % 2 == 0 else "test"
+def _binomial_upper(successes: int, trials: int, confidence: float) -> float:
+    """One-sided Clopper-Pearson upper bound on a rate seen `successes` of `trials`."""
+    if successes >= trials:
+        return 1.0
+
+    def at_most(rate: float) -> float:
+        return sum(math.comb(trials, k) * rate ** k * (1 - rate) ** (trials - k)
+                   for k in range(successes + 1))
+
+    lo, hi = successes / trials, 1.0
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if at_most(mid) > 1 - confidence:
+            lo = mid
+        else:
+            hi = mid
+    return hi
 
 
 def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
@@ -2138,7 +2172,7 @@ def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
             continue
         out.append(DoubtExample(rid, row.get("question", ""), row.get("options") or [],
                                 row["recommended"], row.get("evidence") or [], outcome,
-                                _current_p(row), row.get("model")))
+                                _current_draws(row), row.get("model")))
     for path in extras:
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
@@ -2155,7 +2189,7 @@ def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
                                  % (path, n, ", ".join(DOUBT_OUTCOMES)))
             rid = str(row.get("id") or request_hash(line.encode("utf-8"))[:12])
             out.append(DoubtExample(rid, rec.question, rec.options, rec.recommended,
-                                    rec.evidence, row["outcome"], _current_p(row),
+                                    rec.evidence, row["outcome"], _current_draws(row),
                                     row.get("model")))
     return out
 
@@ -2163,8 +2197,8 @@ def _doubt_examples(log: Path, extras: Sequence[Path]) -> List[DoubtExample]:
 def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
                     transport: Optional[Transport], sleep: Callable[[float], None]) -> int:
     """Fit the act threshold from labeled decisions (DOUBT_RULE). Network only with
-    --live, which scores examples that carry no p from the current question
-    (double opt-in)."""
+    --live, which scores each example until it holds DOUBT_DRAWS scores from the
+    current question (double opt-in)."""
     log: Path = args.log if args.log is not None else args.repo / DOUBT_LOG
     examples = _doubt_examples(log, args.extra or [])
     live_tail, failures = "", 0
@@ -2179,18 +2213,23 @@ def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
         backend = res.backend
         scored_now = 0
         for i, ex in enumerate(examples):
-            if ex.p is not None:
-                continue
-            state, questions = doubt_request(ex.question, ex.options, ex.recommended,
-                                             ex.evidence)
-            j = judge(state, questions, backend, environ, transport=transport, sleep=sleep)
-            answer = (j.answers or {}).get(DOUBT_QUESTION) if j.verdict == "pass" else None
-            value = answer.get("noul") if isinstance(answer, dict) else None
-            if not _unit_interval(value):
-                failures += 1
-                continue
-            examples[i] = ex._replace(p=float(value), model=j.model or backend.model)
-            scored_now += 1
+            draws, model = list(ex.draws), ex.model
+            while len(draws) < DOUBT_DRAWS:
+                state, questions = doubt_request(ex.question, ex.options, ex.recommended,
+                                                 ex.evidence)
+                j = judge(state, questions, backend, environ, transport=transport,
+                          sleep=sleep)
+                answer = (j.answers or {}).get(DOUBT_QUESTION) if j.verdict == "pass" else None
+                value = answer.get("noul") if isinstance(answer, dict) else None
+                if not _unit_interval(value):
+                    failures += 1
+                    break
+                now = j.model or backend.model
+                if model != now:  # scores from another model do not mix: start over
+                    draws, model = [], now
+                draws.append(float(value))
+                scored_now += 1
+            examples[i] = ex._replace(draws=draws, model=model)
         live_tail = " scored_now=%d failed=%d" % (scored_now, failures)
     if args.save is not None:
         try:
@@ -2200,81 +2239,75 @@ def doubt_calibrate(args: argparse.Namespace, environ: Mapping[str, str],
                     fh.write(json.dumps({"id": ex.id, "question": ex.question,
                                          "options": ex.options, "recommended": ex.recommended,
                                          "evidence": ex.evidence, "outcome": ex.outcome,
-                                         "judgment": DOUBT_QUESTION if ex.p is not None
-                                         else None,
-                                         "p": ex.p, "model": ex.model}, sort_keys=True) + "\n")
+                                         "judgment": DOUBT_QUESTION if ex.draws else None,
+                                         "draws": ex.draws, "model": ex.model},
+                                        sort_keys=True) + "\n")
         except OSError as exc:
             raise UsageError("--save not writable: %s (%s)" % (args.save, type(exc).__name__))
 
-    scored = [ex for ex in examples if ex.p is not None]
+    scored = [ex for ex in examples if len(ex.draws) >= DOUBT_DRAWS]
     base = "labels=%d scored=%d%s" % (len(examples), len(scored), live_tail)
     if len(scored) < DOUBT_MIN_LABELS:
         return _emit("unverifiable", ["too_few_labels"],
-                     "jev-judge: unverifiable (too_few_labels) %s min=%d written=0"
-                     % (base, DOUBT_MIN_LABELS))
+                     "jev-judge: unverifiable (too_few_labels) %s min=%d draws=%d written=0"
+                     % (base, DOUBT_MIN_LABELS, DOUBT_DRAWS))
     models = {ex.model for ex in scored}
     if len(models) != 1 or None in models:
         return _emit("unverifiable", ["mixed_models"],
                      "jev-judge: unverifiable (mixed_models) %s models=%d written=0"
                      % (base, len(models)))
     model = next(iter(models))
-    split = {ex.id: _doubt_split(ex.id) for ex in scored}
+    overrides = [ex for ex in scored if ex.outcome == "overridden"]
+    accepted = [ex for ex in scored if ex.outcome == "as_recommended"]
+    if not overrides:
+        return _emit("unverifiable", ["no_override"],
+                     "jev-judge: unverifiable (no_override) %s written=0" % base)
+    highs = [max(ex.draws) for ex in overrides]
+    act = _ceil2(max(highs))
+    # Leave one out: would a threshold fitted without this override act on it?
+    slipped = 0
+    for i, ex in enumerate(overrides):
+        others = highs[:i] + highs[i + 1:]
+        if not others or max(ex.draws) > _ceil2(max(others)):
+            slipped += 1
+    # A live decision gets one draw: its chance of acting is its share of draws above act.
+    acted = sum(sum(1 for d in ex.draws if d > act) / len(ex.draws) for ex in accepted)
+    n = len(overrides)
+    slip_bound = _binomial_upper(slipped, n, DOUBT_CONFIDENCE)
 
-    def has_both(name: str) -> bool:
-        rows = [ex for ex in scored if split[ex.id] == name]
-        return any(ex.outcome == "overridden" for ex in rows) and any(
-            ex.outcome == "as_recommended" for ex in rows)
+    def share(rate: float) -> float:
+        false = n * rate
+        return false / (false + acted) if false + acted > 0 else 1.0
 
-    if not (has_both("dev") and has_both("test")):
-        return _emit("unverifiable", ["no_holdout"],
-                     "jev-judge: unverifiable (no_holdout) %s written=0" % base)
-    fit = "dev"
-    overrides = [ex.p for ex in scored
-                 if split[ex.id] == fit and ex.outcome == "overridden"]
-    act = _ceil2(max(o for o in overrides if o is not None))
-
-    def tally(rows: Sequence[DoubtExample]) -> Dict[str, int]:
-        acts = [ex for ex in rows if ex.p is not None and ex.p > act]
-        return {"decisions": len(rows),
-                "acted": len(acts),
-                "acted_as_recommended": sum(1 for ex in acts if ex.outcome == "as_recommended"),
-                "false_acts": sum(1 for ex in acts if ex.outcome == "overridden"),
-                "asked": len(rows) - len(acts),
-                "overridden": sum(1 for ex in rows if ex.outcome == "overridden")}
-
-    names = ["dev", "test"]
-    splits = {name: tally([ex for ex in scored if split[ex.id] == name]) for name in names}
-    for ex in sorted(scored, key=lambda e: e.p or 0.0):
-        print("doubt-calibrate: id=%s split=%s outcome=%s p=%.3f" % (
-            ex.id, split[ex.id], ex.outcome, ex.p or 0.0), file=sys.stderr)
-    for name, counts in splits.items():
-        print("doubt-calibrate: split=%s %s" % (
-            name, " ".join("%s=%d" % kv for kv in counts.items())), file=sys.stderr)
-    if splits["dev"]["acted"] == 0:
+    point, bound = share(slipped / n), share(slip_bound)
+    for ex in sorted(scored, key=lambda e: max(e.draws)):
+        print("doubt-calibrate: id=%s outcome=%s draws=%s" % (
+            ex.id, ex.outcome, ",".join("%.3f" % d for d in ex.draws)), file=sys.stderr)
+    stats = "act=%.2f acted=%.1f/%d overrides=%d slipped=%d false_act_share=%.3f bound=%.3f" % (
+        act, acted, len(accepted), n, slipped, point, bound)
+    print("doubt-calibrate: %s slip_bound=%.3f max=%.2f" % (
+        stats, slip_bound, DOUBT_MAX_FALSE_ACT), file=sys.stderr)
+    if acted == 0:
         return _emit("unverifiable", ["unseparated"],
-                     "jev-judge: unverifiable (unseparated) %s act=%.2f written=0" % (base, act))
-    if splits["test"]["false_acts"] > 0:
-        return _emit("unverifiable", ["holdout_false_act"],
-                     "jev-judge: unverifiable (holdout_false_act) %s act=%.2f test_acted=%d/%d "
-                     "test_false_acts=%d written=0" % (
-                         base, act, splits["test"]["acted"], splits["test"]["decisions"],
-                         splits["test"]["false_acts"]))
+                     "jev-judge: unverifiable (unseparated) %s %s written=0" % (base, stats))
+    if bound > DOUBT_MAX_FALSE_ACT:
+        return _emit("unverifiable", ["false_act_bound"],
+                     "jev-judge: unverifiable (false_act_bound) %s %s max=%.2f written=0" % (
+                         base, stats, DOUBT_MAX_FALSE_ACT))
     written = 0
     if args.write:
         backend = backend or _calibration_backend(args.repo, environ)
         out = args.out if args.out is not None else args.repo / DOUBT_PROJECT_THRESHOLDS
         data = {"calibrated": True, "backend": backend.name if backend else None,
                 "model": model, "calibrated_on": time.strftime("%Y-%m-%d", time.gmtime()),
-                "judgment": DOUBT_QUESTION, "act": act, "rule": DOUBT_RULE, "fit_split": fit,
-                "labels": len(scored), "splits": splits}
+                "judgment": DOUBT_QUESTION, "act": act, "rule": DOUBT_RULE,
+                "labels": len(scored), "draws": DOUBT_DRAWS, "overrides": n,
+                "slipped": slipped, "accepted": len(accepted), "acted": round(acted, 2),
+                "false_act_share": round(point, 4), "false_act_bound": round(bound, 4)}
         _write_json(out, data)
         written = 1
-    headline = "test"
-    h = splits[headline]
-    return _emit("pass", ["scored"], "jev-judge: pass (scored) %s fit=%s act=%.2f "
-                 "%s_acted=%d/%d %s_false_acts=%d model=%s written=%d" % (
-                     base, fit, act, headline, h["acted"], h["decisions"], headline,
-                     h["false_acts"], model, written))
+    return _emit("pass", ["scored"], "jev-judge: pass (scored) %s %s model=%s written=%d" % (
+        base, stats, model, written))
 
 
 def _calibration_backend(repo: Path, environ: Mapping[str, str]) -> Optional[Backend]:
@@ -2378,9 +2411,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--extra", type=Path, action="append", default=None,
                    help="more labeled decisions, JSONL with an outcome field (repeatable)")
     p.add_argument("--live", action="store_true",
-                   help="score examples that carry no p (double opt-in)")
+                   help="score each example until it holds %d scores (double opt-in)"
+                        % DOUBT_DRAWS)
     p.add_argument("--save", type=Path, default=None,
-                   help="write every example with its score as JSONL")
+                   help="write every example with its scores as JSONL")
     p.add_argument("--write", action="store_true",
                    help="after a scored run, write the threshold file")
     p.add_argument("--out", type=Path, default=None,
