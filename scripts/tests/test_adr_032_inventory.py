@@ -21,8 +21,8 @@ The story ships records, not code, so these checks read the files directly:
   as removed, and no other part of the ADR says the filters are removed. The
   pruned-instructions ledger has no row for any of it [AC-1.4].
 - ADR-028's header block has an `Amended by` line that links ADR-032 and
-  covers the review panel. Roadmap Phase 15's Features list has one unchecked
-  line for this spec [AC-1.5].
+  covers the review panel. Roadmap Phase 15's Features list has one line for
+  this spec [AC-1.5]; Story 7 checked it off.
 
 Run: uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_adr_032_inventory.py
 """
@@ -99,9 +99,11 @@ NON_FILE_ROWS = ("Tests", "Generated trees")
 # floor constant, written in code spans in the ADR.
 REMOVED_CODE_NAMES = (
     "Review Panel", "--panel", "review-panel:", "review-panel",
-    "status", "tally", "resolve", "config_value", "slug_vendor",
-    "origin_vendor", "load_tally", "cmd_tally", "cmd_status", "FLOOR",
+    "status", "tally", "resolve", "config_value",
+    "load_tally", "cmd_tally", "cmd_status", "FLOOR",
 )
+# Story 7 kept these because `trial-record` calls them (drift-log DEV-029).
+KEPT_PANEL_NAMES = ("slug_vendor", "origin_vendor")
 # Removed paragraphs, named by their bold titles, and the trimmed words.
 REMOVED_PARAGRAPHS = ("Review panel (opt-in)", "Review panel (ADR-028)", "panel reviewers")
 FLOOR_HEADING = "### Safety Fact floor (Story 6)"
@@ -126,8 +128,9 @@ FILTER_REMOVAL_CLAIMS = (
 LEDGER_FILES = ("system-instructions.md", "commands/_preamble.md")
 LEDGER_FORBIDDEN = ("review panel", "review-panel", "adr-032", "evidence-gated")
 
+# Story 7 checked the line off when the spec's last story landed.
 ROADMAP_LINE = re.compile(
-    r"^- \[ \] \*\*[^*]+\*\* `Effort: (XS|S|M|L|XL)` — `" + re.escape(SPEC_ID) + r"`(:|$)")
+    r"^- \[x\] \*\*[^*]+\*\* `Effort: (XS|S|M|L|XL)` — `" + re.escape(SPEC_ID) + r"`(:|$)")
 
 
 # ---------------------------------------------------------------------------
@@ -379,6 +382,14 @@ class RemovalListTest(unittest.TestCase):
     def setUp(self) -> None:
         self.removals = section(read(ADR), "## Removals")
 
+    def test_names_the_vendor_helpers_as_kept(self) -> None:
+        row = [l for l in self.removals.splitlines() if l.startswith("| `scripts/review-panel.py` |")]
+        self.assertEqual(len(row), 1, row)
+        removed, _, kept = row[0].partition("Kept")
+        for name in KEPT_PANEL_NAMES:
+            self.assertNotIn("`%s`" % name, removed, name)
+            self.assertIn("`%s`" % name, kept, name)
+
     def test_technical_spec_tables_are_parsed(self) -> None:
         self.assertGreaterEqual(len(technical_spec_files()), 12)
 
@@ -452,12 +463,12 @@ class Adr028AmendedByTest(unittest.TestCase):
 
 
 class RoadmapLineTest(unittest.TestCase):
-    """AC-1.5: Phase 15's Features list has one unchecked line for this spec.
+    """AC-1.5: Phase 15's Features list has one line for this spec.
 
-    Story 7 checks the line off; it updates this assertion when it does.
+    Story 7 checked the line off (AC-7.5), so the line is now `- [x]`.
     """
 
-    def test_phase_15_features_list_the_spec_once_unchecked(self) -> None:
+    def test_phase_15_features_list_the_spec_once_checked(self) -> None:
         text = read(ROADMAP)
         phase = [line for line in text.splitlines() if line.startswith("## Phase 15:")]
         self.assertEqual(len(phase), 1, phase)
@@ -466,6 +477,43 @@ class RoadmapLineTest(unittest.TestCase):
         self.assertEqual(len(lines), 1, lines)
         self.assertRegex(lines[0], ROADMAP_LINE)
         self.assertNotIn("filters", lines[0].lower())
+
+
+FILTERS_CRITERION = (
+    "- **Reviewer prompts** carry lead-judgment filters:\n"
+    "  - all nits means the code is fine\n"
+    "  - trace the call site before accepting a hypothetical\n"
+    "  - be slow to dismiss security findings\n"
+)
+GATE_25_CRITERION = (
+    "- **Gate 2.5:** on the review-agent route, it names the one fact the change is "
+    "safe because of and the evidence rung that fact reached, at or above `tested`."
+)
+ADR_032_ROADMAP_LINK = "[ADR-032](../decision-records/adr-032-evidence-gated-review.md)"
+
+
+class RoadmapCloseOutTest(unittest.TestCase):
+    """AC-7.5: Story 7 closes out Phase 15. The filters criterion is unchanged,
+    the Gate 2.5 criterion names the `tested` floor, and the status line cites
+    ADR-032."""
+
+    def setUp(self) -> None:
+        text = read(ROADMAP)
+        phase = [line for line in text.splitlines() if line.startswith("## Phase 15:")]
+        self.assertEqual(len(phase), 1, phase)
+        self.phase = section(text, phase[0])
+
+    def test_filters_criterion_is_unchanged(self) -> None:
+        self.assertIn(FILTERS_CRITERION, self.phase)
+
+    def test_gate_25_criterion_names_the_tested_floor(self) -> None:
+        lines = [l for l in self.phase.splitlines() if l.startswith("- **Gate 2.5:**")]
+        self.assertEqual(lines, [GATE_25_CRITERION])
+
+    def test_status_line_cites_adr_032(self) -> None:
+        status = [l for l in self.phase.splitlines() if l.startswith("**Status (")]
+        self.assertEqual(len(status), 1, status)
+        self.assertIn(ADR_032_ROADMAP_LINK, status[0])
 
 
 if __name__ == "__main__":

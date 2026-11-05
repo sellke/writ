@@ -87,7 +87,6 @@ CHECKS=(
   goal-emit
   spawn-cap
   app-verify
-  review-panel
   size-pins
 )
 
@@ -4906,56 +4905,6 @@ check_spawn_cap() {
         ;;
     esac
   done <<< "$output"
-}
-
-check_review_panel() {
-  # Spec 2026-10-01-cross-family-review-panel Story 3. Helper missing, a
-  # `status` that does not parse, or a tally fixture with the wrong exit is a
-  # finding; the status summary stays a note (the panel is opt-in, so `off`
-  # is the expected verdict in this repo). The pins hold the Gate 3 wiring and
-  # each adapter's panel row.
-  local helper="$PROJECT_ROOT/scripts/review-panel.py"
-  local fixtures="$PROJECT_ROOT/scripts/tests/fixtures/review-panel"
-  local story="$PROJECT_ROOT/commands/implement-story.md"
-  local output rc=0
-
-  if [ ! -f "$helper" ]; then
-    add_finding "scripts/review-panel.py" "review-panel helper is missing." \
-      "Restore scripts/review-panel.py so status and tally can run."
-    return
-  fi
-
-  output="$(python3 "$helper" status --repo "$PROJECT_ROOT" --origin "Claude Opus" 2>&1)" || rc=$?
-  if [ "$rc" -ne 0 ]; then
-    add_finding "scripts/review-panel.py" "review-panel.py status exited $rc: ${output##*$'\n'}" \
-      "Fix the review-panel.py CLI so status --repo . --origin NAME parses."
-  else
-    add_note "NOTE [review-panel]: ${output##*$'\n'}"
-  fi
-
-  rc=0
-  python3 "$helper" tally --origin "Claude Opus" --primary "$fixtures/primary-fail-ac23.md" \
-    --reviewer "gpt-5.6-sol-medium=$fixtures/panel-ac23.md" >/dev/null 2>&1 || rc=$?
-  if [ "$rc" -ne 1 ]; then
-    add_finding "scripts/review-panel.py" "tally on the two-vendor AC-2.3 fixture exited $rc, not 1 (block)." \
-      "A finding raised by two vendors must block: restore tally's consensus rule."
-  fi
-
-  rc=0
-  python3 "$helper" tally --origin "Claude Opus" --primary "$fixtures/primary-pass.md" \
-    --reviewer "gpt-5.6-sol-medium=$fixtures/panel-ac23.md" >/dev/null 2>&1 || rc=$?
-  if [ "$rc" -ne 0 ]; then
-    add_finding "scripts/review-panel.py" "tally on the one-vendor AC-2.3 fixture exited $rc, not 0 (advisory)." \
-      "A finding raised by one vendor is advisory: restore tally's consensus rule."
-  fi
-
-  require_literal "$story" '**Review panel (opt-in).**' "$(relpath "$story") Gate 3 must carry the opt-in review panel paragraph."
-  require_literal "$story" '`fail` (`reason: block`) is a Gate 3 FAIL' "$(relpath "$story") must make a panel block a Gate 3 FAIL."
-  require_literal "$story" '| `/implement-story story-3 --panel` |' "$(relpath "$story") Invocation table must carry the --panel row."
-  require_literal "$PROJECT_ROOT/adapters/cursor.md" '**Review panel (ADR-028): available.**' "adapters/cursor.md must state the review panel is available."
-  require_literal "$PROJECT_ROOT/adapters/claude-code.md" '**Review panel (ADR-028): unavailable.**' "adapters/claude-code.md must state the review panel is unavailable."
-  require_literal "$PROJECT_ROOT/adapters/codex.md" '**Review panel (ADR-028): unavailable by default.**' "adapters/codex.md must state the review panel is unavailable by default."
-  require_literal "$PROJECT_ROOT/adapters/openclaw.md" '**Review panel (ADR-028): *(unverified)*.**' "adapters/openclaw.md must mark the review panel unverified."
 }
 
 check_size_pins() {

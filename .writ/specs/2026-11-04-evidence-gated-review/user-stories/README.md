@@ -12,7 +12,7 @@
 | 4 | [Confirmed repros become regression tests](story-4-repro-as-regression-test.md) | Completed ✅ | High | 7 | 7/7 |
 | 5 | [Evidence gating in `/review`](story-5-review-evidence-gating.md) | Completed ✅ | Medium | 7 | 7/7 |
 | 6 | [Raise the Safety Fact floor to `tested`](story-6-raise-safety-fact-floor.md) | Completed ✅ | Medium | 7 | 7/7 |
-| 7 | [Remove the review panel and close out the roadmap](story-7-remove-panel-close-roadmap.md) | Not Started | Medium | 7 | 0/7 |
+| 7 | [Remove the review panel and close out the roadmap](story-7-remove-panel-close-roadmap.md) | Completed ✅ | Medium | 7 | 7/7 |
 
 **Total:** 7 stories, 48 tasks, 35 acceptance criteria.
 

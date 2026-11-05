@@ -388,8 +388,9 @@ class AgentWiringTest(unittest.TestCase):
 
 class Gate3WiringTest(unittest.TestCase):
     """Gate 3 resolves the switch once, passes `reviewer_filters` to every
-    spawn (panel reviewers and re-reviews included), and prints the report
-    line. Gate 0 and Step 4 stay untouched. [AC-2.2, AC-2.3]"""
+    spawn (re-reviews included), and prints the report line. Gate 0 and Step 4
+    stay untouched. [AC-2.2, AC-2.3] Story 7 of evidence-gated-review removed
+    the panel, so the paragraph no longer names panel reviewers (ADR-032)."""
 
     def setUp(self) -> None:
         self.text = read(IMPLEMENT_STORY)
@@ -405,7 +406,7 @@ class Gate3WiringTest(unittest.TestCase):
         paragraph = self._switch_paragraph()
         self.assertIn("`reviewer_filters`", paragraph)
         self.assertIn("every Gate 3 spawn", paragraph)
-        self.assertIn("panel reviewers", paragraph)
+        self.assertNotIn("panel reviewers", paragraph)
         self.assertIn("re-review", paragraph)
 
     def test_gate3_prints_report_line(self) -> None:

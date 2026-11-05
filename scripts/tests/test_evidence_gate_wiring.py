@@ -1069,5 +1069,161 @@ class ReviewWiringTests(unittest.TestCase):
             self.assertIn(EVIDENCE_HEADER, text, rel)
 
 
+# ---------------------------------------------------------------------------
+# Story 7: the review panel is removed (ADR-032) [AC-7.2, AC-7.4]
+# ---------------------------------------------------------------------------
+
+LEFTOVER_LINE = "`review-panel: removed (ADR-032)`"
+PANEL_REJECTION = "`--panel was removed (ADR-032)`"
+# The one allowance: a panel token may appear only on a line that points to ADR-032.
+PANEL_POINTER = "removed (ADR-032)"
+PANEL_TOKENS = ("Review Panel", "--panel")
+# technical-spec.md → ## Test Plan: the shipped surfaces the scan reads.
+SHIPPED_DIRS = ("commands", "agents", "skills", "adapters", "claude-code", "cursor",
+                "plugins", "codex")
+SHIPPED_FILES = ("README.md", "SKILL.md")
+
+
+def panel_scan(root: Path) -> Tuple[int, List[str]]:
+    """Scan the shipped paths under `root` for the panel tokens.
+
+    Returns (files read, hits). A hit is `path:line: text` for a line that
+    names a token and lacks `removed (ADR-032)`. No `.writ/` directory is
+    read, at the root or nested. Undecodable files are skipped: a binary asset
+    holds no instruction line."""
+    files: List[Path] = []
+    for rel in SHIPPED_DIRS:
+        for dirpath, dirnames, filenames in os.walk(str(root / rel)):
+            dirnames[:] = sorted(d for d in dirnames if d != ".writ")
+            files.extend(Path(dirpath) / name for name in sorted(filenames))
+    files.extend(root / rel for rel in SHIPPED_FILES if (root / rel).is_file())
+    read_count = 0
+    hits: List[str] = []
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        read_count += 1
+        for number, line in enumerate(text.splitlines(), 1):
+            if any(token in line for token in PANEL_TOKENS) and PANEL_POINTER not in line:
+                hits.append("%s:%d: %s" % (path.relative_to(root).as_posix(), number,
+                                           line.strip()[:160]))
+    return read_count, hits
+
+
+def plant(root: Path, rel: str, text: str) -> None:
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+class PanelRemovalWiringTest(unittest.TestCase):
+    """AC-7.2 — `commands/implement-story.md` keeps no panel wiring, keeps the
+    "Reviewer filters." paragraph, and carries the two ADR-032 pointers as its
+    only lines containing `removed (ADR-032)`."""
+
+    def setUp(self) -> None:
+        self.text = read(IMPLEMENT_STORY)
+        self.lines = self.text.splitlines()
+
+    def test_only_the_two_pointer_lines_mention_the_panel(self) -> None:
+        pointers = [l for l in self.lines if PANEL_POINTER in l]
+        self.assertEqual(len(pointers), 2, pointers)
+        self.assertEqual(sum(LEFTOVER_LINE in l for l in pointers), 1, pointers)
+        self.assertEqual(sum(PANEL_REJECTION in l for l in pointers), 1, pointers)
+        panel = [l for l in self.lines if "panel" in l.lower()]
+        self.assertEqual(panel, pointers)
+
+    def test_invocation_has_no_panel_row_and_rejects_the_flag(self) -> None:
+        inv = slice_between(self.text, "## Invocation", "## Pipeline")
+        rows = [l for l in inv.splitlines() if l.startswith("|") and "--panel" in l]
+        self.assertEqual(rows, [])
+        self.assertNotIn("conflicts with `--quick`", inv)
+        self.assertIn(PANEL_REJECTION, inv)
+        self.assertIn("stop with a usage error before any gate; pick no winner", inv)
+
+    def test_leftover_config_line_replaces_the_panel_paragraph_in_gate3(self) -> None:
+        self.assertNotIn("**Review panel (opt-in).**", self.text)
+        self.assertNotIn("review-panel.py", self.text)
+        self.assertEqual(self.text.count(LEFTOVER_LINE), 1)
+        self.assertEqual(gate3().count(LEFTOVER_LINE), 1)
+
+    def test_safety_fact_fail_is_one_review_loop_increment(self) -> None:
+        paragraphs = [p for p in gate3().split("\n\n") if "`safety-fact: <measured>" in p]
+        self.assertEqual(len(paragraphs), 1, paragraphs)
+        self.assertIn("A fail is one review-loop increment.", paragraphs[0])
+        self.assertNotIn("panel", paragraphs[0])
+
+    def test_overview_gate0_gate35_and_report_name_no_panel(self) -> None:
+        blocks = {
+            "Overview": slice_between(self.text, "## Overview", "## Required Artifacts"),
+            "Gate 0": slice_between(self.text, "#### Gate 0: Architecture Check",
+                                    "#### Gate 0.5:"),
+            "Gate 3.5": slice_between(self.text, "#### Gate 3.5:", "#### Gate 4:"),
+            "Step 4": slice_between(self.text, "### Step 4: Story Completion",
+                                    "## Error Handling"),
+        }
+        for name, block in blocks.items():
+            self.assertTrue(block, name)
+            self.assertNotIn("panel", block.lower(), name)
+        self.assertNotIn("`review-panel:`", blocks["Step 4"])
+
+    def test_reviewer_filters_paragraph_stays_without_panel_reviewers(self) -> None:
+        paragraphs = [p for p in gate3().split("\n\n") if p.startswith("**Reviewer filters.**")]
+        self.assertEqual(len(paragraphs), 1, paragraphs)
+        paragraph = paragraphs[0]
+        self.assertNotIn("panel", paragraph)
+        for phrase in ("python3 scripts/review-override.py switch --name reviewer-filters",
+                       "`reviewer_filters`", "every Gate 3 spawn", "re-review",
+                       "`reviewer-filters: <on|off>`"):
+            self.assertIn(phrase, paragraph, phrase)
+
+
+class ShippedPanelScanTests(unittest.TestCase):
+    """AC-7.4 — no shipped file names `Review Panel` or `--panel` except on a
+    line containing `removed (ADR-032)`. `.writ/` is skipped, and a token
+    planted in a temp root fails the scan."""
+
+    def test_shipped_files_name_the_panel_only_beside_adr_032(self) -> None:
+        for rel in SHIPPED_DIRS + SHIPPED_FILES:
+            self.assertTrue((REPO_ROOT / rel).exists(), rel)
+        read_count, hits = panel_scan(REPO_ROOT)
+        self.assertGreater(read_count, 100)
+        self.assertEqual(hits, [], "\n".join(hits))
+
+    def test_a_planted_token_fails_the_scan(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plant(root, "commands/x.md", "- **Review Panel:** gpt-5.6-sol-medium\n")
+            plant(root, "plugins/writ/commands/y.md", "ok\nRun `/implement-story story-3 --panel`.\n")
+            read_count, hits = panel_scan(root)
+        self.assertEqual(read_count, 2)
+        self.assertEqual(hits, [
+            "commands/x.md:1: - **Review Panel:** gpt-5.6-sol-medium",
+            "plugins/writ/commands/y.md:2: Run `/implement-story story-3 --panel`.",
+        ])
+
+    def test_pointer_lines_pass_and_writ_is_skipped(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plant(root, "commands/x.md",
+                  "A `- **Review Panel:**` line prints `review-panel: removed (ADR-032)`.\n"
+                  "`--panel` stops with `--panel was removed (ADR-032)`.\n")
+            plant(root, "README.md", "No panel tokens here.\n")
+            plant(root, ".writ/config.md", "- **Review Panel:** gpt-5.6-sol-medium\n")
+            plant(root, "cursor/plugin/.writ/docs/z.md", "- **Review Panel:** x\n")
+            read_count, hits = panel_scan(root)
+        self.assertEqual(hits, [])
+        self.assertEqual(read_count, 2)
+
+    def test_a_pointer_must_be_exact(self) -> None:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plant(root, "skills/s/SKILL.md", "`--panel` was removed (see ADR-032).\n")
+            _, hits = panel_scan(root)
+        self.assertEqual(hits, ["skills/s/SKILL.md:1: `--panel` was removed (see ADR-032)."])
+
+
 if __name__ == "__main__":
     unittest.main()

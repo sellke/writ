@@ -15,4 +15,3 @@
 - **Changelog:** CHANGELOG.md
 - **Writ Specs:** .writ/specs/
 - **Writ Issues:** .writ/issues/
-- **Review Panel:** gpt-5.6-sol-medium, cursor-grok-4.6-medium-fast, gemini-3.8-flash-high

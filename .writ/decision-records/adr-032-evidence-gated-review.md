@@ -131,7 +131,7 @@ This is a change, not a removal.
 
 | File | Removed or changed |
 |---|---|
-| `scripts/review-panel.py` | the `status` and `tally` subcommands and their helpers `resolve`, `config_value`, `slug_vendor`, `origin_vendor`, `load_tally`, `cmd_tally`, and `cmd_status`, with their parser entries. Kept for the gate-upgrade-trial harness: `_prepare_run`, `PrepareError`, `parse_output`, `trial_key`, `_key_order`, `normalize_location`, `_issue_entries`, and the trial subcommands |
+| `scripts/review-panel.py` | the `status` and `tally` subcommands and their helpers `resolve`, `config_value`, `load_tally`, `cmd_tally`, and `cmd_status`, with their parser entries. Kept for the gate-upgrade-trial harness: `_prepare_run`, `PrepareError`, `parse_output`, `trial_key`, `_key_order`, `normalize_location`, `_issue_entries`, and the trial subcommands. Kept because `trial-record` calls them: `slug_vendor` and `origin_vendor` |
 | `commands/implement-story.md` | the `--panel` invocation row and its conflict rule; the `--panel` qualifier in Gate 0's Route line; the **Review panel (opt-in)** paragraph; the panel `block` clause in Gate 3.5 § A; "A fail counts as a panel `block`" in the safety-fact paragraph, which becomes "A fail is one review-loop increment"; the `review-panel:` report line; the panel in the default spawn count; the words "panel reviewers" in Gate 3's **Reviewer filters.** paragraph, which stays |
 | `.writ/docs/config-format.md` | the `Review Panel` row and section; a "Removed keys" line points to this record |
 | `.writ/config.md` (this repo only; does not ship) | the `- **Review Panel:**` line |

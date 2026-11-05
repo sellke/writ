@@ -51,7 +51,7 @@ gates:
 
 ## Overview
 
-Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
+Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/implement-spec`.
 
@@ -71,9 +71,8 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/implement-story story-3 --full-pipeline` | Six spawn sites: architecture-check, coding, review, testing, optional visual-qa, documentation |
 | `/implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
 | `/implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
-| `/implement-story story-3 --panel` | Convene the review panel at Gate 3 regardless of route (needs the config line) |
 
-`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive, and `--panel` conflicts with `--quick`: on a conflict, stop with a usage error before any gate; pick no winner.
+`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive: on a conflict, stop with a usage error before any gate; pick no winner. `--panel` stops: `--panel was removed (ADR-032)`.
 
 ## Pipeline
 
@@ -277,13 +276,13 @@ An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` wi
 
 Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's run (`command:`, `exit code: N`, output tail) of the story's tests and each path in `<manifest>` = `.writ/state/evidence-<story-stem>.json`, not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
-**Reviewer filters.** Once per story, run `python3 scripts/review-override.py switch --name reviewer-filters` and pass line 1 as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent`, panel reviewers, and any re-review. The story report prints `reviewer-filters: <on|off>`.
+**Reviewer filters.** Once per story, run `python3 scripts/review-override.py switch --name reviewer-filters` and pass line 1 as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent` and any re-review. The story report prints `reviewer-filters: <on|off>`.
 
 **Evidence gate.** Likewise pass line 1 of `python3 scripts/review-override.py switch --name evidence-gate` as `evidence_gate` to every Gate 3 spawn.
 
 **Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reasons` as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
-**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `fail` (`reason: block`) is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+A `Review Panel` config line prints only `review-panel: removed (ADR-032)` once per story.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/review-agent.md`
@@ -312,7 +311,7 @@ Save the review to `<review>` = `.writ/state/gate3-review-<story-stem>.md` (re-s
 - `safety_fact_missing` or `safety_fact_below_floor` → re-spawn `review-agent` once, appending the `rung:`/`reason:` lines; re-verify (same Gate 3 attempt, no `review_cycle` increment). Still missing → BLOCKED escalation (`review-agent`, restart Gate 3). Still below floor → Gate 3 FAIL; the coder gets the `fact:`/`rung:` lines to add a test that exercises the fact.
 - `pass`, `unverifiable`, or exit not 0/1/2 → continue, print the reason, never `⚠️ DEGRADED`.
 
-A fail counts as a panel `block`: one increment; on PAUSE, accept recodes. Report `safety-fact: <measured> (claimed <claimed>) — <fact>`, else `safety-fact: off` or `safety-fact: not on route`.
+A fail is one review-loop increment. Report `safety-fact: <measured> (claimed <claimed>) — <fact>`, else `safety-fact: off` or `safety-fact: not on route`.
 
 **Evidence.** On an agent FAIL (once `<manifest>` exists: any verdict, with `--prior <manifest>`), after `check`, `safety-fact`, and any re-spawn, run `python3 scripts/review-override.py evidence --review-output <review> --changed <files> --tests-output <tests> --checks <checks> --manifest-out <manifest> --timeout 60`. First match wins, on any verdict:
 
@@ -343,7 +342,7 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
@@ -450,7 +449,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:`, `review-panel:`, and `arch-lint:` lines, and next action (`/ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` and `arch-lint:` lines, and next action (`/ship`)
 
 **Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 

@@ -17,7 +17,7 @@
 - `scripts/review-override.py`: `evidence` subcommand, `evidence-gate` switch, `FLOOR = "tested"`
 - `skills/evidence-gated-findings/SKILL.md`: new. `skills/blast-radius/SKILL.md`: floor wording
 - `commands/implement-story.md` Gate 3, `commands/review.md`, `agents/evaluator-agent.md`, `agents/review-agent.md`
-- `scripts/review-panel.py`: `status`/`tally` removed, trial helpers kept
+- `scripts/review-panel.py`: `status`/`tally` removed, trial helpers kept, including `slug_vendor` and `origin_vendor`, which `trial-record` calls (DEV-029)
 - `.writ/docs/config-format.md`, `adapters/*.md`, `scripts/eval.sh`, `.writ/decision-records/adr-032-evidence-gated-review.md`
 
 **As built (drift-log DEV-004 to DEV-028):**

@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 """Tests for scripts/review-panel.py (spec `2026-10-01-cross-family-review-panel`).
 
-Story 1: the `- **Review Panel:**` config line, the fixed vendor table, and
-`status` (kept / dropped reviewers, every off or skip reason, platforms,
-`--json`, usage exits). [AC-1.2, AC-1.3, AC-1.4]
+Story 7 of `2026-11-04-evidence-gated-review` removed the panel's `status`
+and `tally` path, the `Review Panel` config key, its docs, and its Gate 3
+wiring (ADR-032). What stays, and is tested here: the vendor table that
+`trial-record` uses, the Gate 3 output parser that
+`.writ/eval/gate-upgrade-trial/gate-upgrade-trial.py` loads by path, the
+ADR-028 records, and the retrospective trial subcommands. The trimmed script
+and the cleaned docs are checked too. [AC-7.1, AC-7.3]
 """
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
-import os
 import re
-import shutil
 import subprocess
 import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -42,19 +45,10 @@ def _run(*args: str) -> Tuple[int, List[str]]:
     return proc.returncode, proc.stdout.splitlines()
 
 
-def _repo(tmp: Path, config_line: Optional[str]) -> Path:
-    writ = tmp / ".writ"
-    writ.mkdir(parents=True, exist_ok=True)
-    lines = ["# Writ Project Config", "", "## Conventions", "",
-             "- **Default Branch:** main"]
-    if config_line is not None:
-        lines.append(config_line)
-    (writ / "config.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return tmp
-
 
 class VendorTableTests(unittest.TestCase):
-    """One test per table row, plus the boundaries. [AC-1.3]"""
+    """One test per table row, plus the boundaries. [AC-1.3] `trial-record`
+    still resolves vendors through this table after Story 7."""
 
     @classmethod
     def setUpClass(cls):
@@ -115,198 +109,125 @@ class VendorTableTests(unittest.TestCase):
         self.assertIsNone(self.rp.origin_vendor("Claude vs GPT"))
 
 
-class StatusPassTests(unittest.TestCase):
-    """[AC-1.2]"""
-
-    def test_pass_lists_kept_and_dropped_reviewers(self):
-        line = ("- **Review Panel:** gpt-5.6-sol-medium, claude-opus-5-thinking-high, "
-                "gpt-5.6-sol-medium, foo-1, cursor-grok-4.6-medium-fast, "
-                "gemini-3.8-flash-high, composer-2.5-fast")
-        with TemporaryDirectory() as tmp:
-            repo = _repo(Path(tmp), line)
-            rc, out = _run("status", "--repo", str(repo), "--origin", ORIGIN)
-        self.assertEqual(rc, 0)
-        self.assertEqual(out[0], "pass")
-        self.assertIn("reviewer: gpt-5.6-sol-medium openai", out)
-        self.assertIn("reviewer: cursor-grok-4.6-medium-fast xai", out)
-        self.assertIn("reviewer: gemini-3.8-flash-high google", out)
-        self.assertIn("dropped: claude-opus-5-thinking-high same_vendor", out)
-        self.assertIn("dropped: gpt-5.6-sol-medium duplicate_slug", out)
-        self.assertIn("dropped: foo-1 unknown_vendor", out)
-        self.assertIn("dropped: composer-2.5-fast over_cap", out)
-        self.assertTrue(out[-1].startswith("review-panel: pass — 3 reviewers"), out[-1])
-
-    def test_kept_order_follows_config_order(self):
-        line = "- **Review Panel:** gemini-3.8-flash-high, gpt-5.6-sol-medium"
-        with TemporaryDirectory() as tmp:
-            rc, out = _run("status", "--repo", str(_repo(Path(tmp), line)),
-                           "--origin", ORIGIN)
-        reviewers = [l for l in out if l.startswith("reviewer: ")]
-        self.assertEqual(reviewers, ["reviewer: gemini-3.8-flash-high google",
-                                     "reviewer: gpt-5.6-sol-medium openai"])
-
-    def test_first_matching_line_wins(self):
-        with TemporaryDirectory() as tmp:
-            repo = _repo(Path(tmp), "- **Review Panel:** gpt-5.6-sol-medium\n"
-                                    "- **Review Panel:** none")
-            rc, out = _run("status", "--repo", str(repo), "--origin", ORIGIN)
-        self.assertEqual(out[0], "pass")
-
-    def test_json_shape(self):
-        line = "- **Review Panel:** gpt-5.6-sol-medium, claude-opus-5-thinking-high"
-        with TemporaryDirectory() as tmp:
-            rc, out = _run("status", "--repo", str(_repo(Path(tmp), line)),
-                           "--origin", ORIGIN, "--json")
-        self.assertEqual(rc, 0)
-        self.assertEqual(len(out), 1)
-        payload = json.loads(out[0])
-        self.assertEqual(payload["verdict"], "pass")
-        self.assertEqual(payload["session_vendor"], "anthropic")
-        self.assertEqual(payload["reviewers"],
-                         [{"slug": "gpt-5.6-sol-medium", "vendor": "openai"}])
-        self.assertEqual(payload["dropped"],
-                         [{"slug": "claude-opus-5-thinking-high", "reason": "same_vendor"}])
-        self.assertTrue(payload["summary"].startswith("review-panel: pass"))
-
-
-class StatusUnverifiableTests(unittest.TestCase):
-    """Every off or skip condition prints exactly one reason. [AC-1.4]"""
-
-    def _status(self, config_line, *extra, origin=ORIGIN):
-        with TemporaryDirectory() as tmp:
-            repo = _repo(Path(tmp), config_line)
-            return _run("status", "--repo", str(repo), "--origin", origin, *extra)
-
-    def _assert_reason(self, out, reason):
-        self.assertEqual(out[0], "unverifiable")
-        reasons = [l for l in out if l.startswith("reason: ")]
-        self.assertEqual(reasons, ["reason: %s" % reason])
-        self.assertTrue(out[-1].startswith("review-panel: "), out[-1])
-
-    def test_no_config_line(self):
-        rc, out = self._status(None)
-        self.assertEqual(rc, 0)
-        self._assert_reason(out, "no_config_line")
-        self.assertEqual(out[-1], "review-panel: off — no_config_line")
-
-    def test_missing_config_file_is_no_config_line(self):
-        with TemporaryDirectory() as tmp:
-            rc, out = _run("status", "--repo", tmp, "--origin", ORIGIN)
-        self.assertEqual(rc, 0)
-        self._assert_reason(out, "no_config_line")
-
-    def test_none_disables_case_insensitive(self):
-        for value in ("none", "None", "NONE"):
-            rc, out = self._status("- **Review Panel:** %s" % value)
-            self.assertEqual(rc, 0)
-            self._assert_reason(out, "panel_disabled")
-            self.assertEqual(out[-1], "review-panel: off — panel_disabled")
-
-    def test_empty_list_is_malformed(self):
-        for value in ("", " , ,"):
-            rc, out = self._status("- **Review Panel:** %s" % value)
-            self.assertEqual(rc, 0)
-            self._assert_reason(out, "malformed_config")
-            self.assertEqual(out[-1], "review-panel: skipped — malformed_config")
-
-    def test_unknown_session_vendor(self):
-        rc, out = self._status("- **Review Panel:** gpt-5.6-sol-medium",
-                               origin="Mystery Model 9")
-        self.assertEqual(rc, 0)
-        self._assert_reason(out, "unknown_session_vendor")
-        self.assertEqual(out[-1], "review-panel: skipped — unknown_session_vendor")
-
-    def test_no_other_vendor_lists_drops(self):
-        rc, out = self._status("- **Review Panel:** claude-opus-5-thinking-high, foo-1")
-        self.assertEqual(rc, 0)
-        self._assert_reason(out, "no_other_vendor")
-        self.assertIn("dropped: claude-opus-5-thinking-high same_vendor", out)
-        self.assertIn("dropped: foo-1 unknown_vendor", out)
-        self.assertEqual(out[-1], "review-panel: skipped — no_other_vendor (dropped: "
-                         "claude-opus-5-thinking-high same_vendor, foo-1 unknown_vendor)")
-
-    def test_platform_claude_code_and_codex_skip(self):
-        for platform in ("claude-code", "codex"):
-            rc, out = self._status("- **Review Panel:** gpt-5.6-sol-medium",
-                                   "--platform", platform)
-            self.assertEqual(rc, 0)
-            self._assert_reason(out, "platform_cannot_spawn_other_vendors")
-            self.assertEqual(out[-1], "review-panel: skipped — platform cannot "
-                             "spawn other vendors")
-
-    def test_platform_cursor_is_pass(self):
-        rc, out = self._status("- **Review Panel:** gpt-5.6-sol-medium",
-                               "--platform", "cursor")
-        self.assertEqual((rc, out[0]), (0, "pass"))
-        self.assertNotIn("reason: unverified_platform", out)
-
-    def test_platform_openclaw_is_pass_plus_unverified(self):
-        rc, out = self._status("- **Review Panel:** gpt-5.6-sol-medium",
-                               "--platform", "openclaw")
-        self.assertEqual((rc, out[0]), (0, "pass"))
-        self.assertIn("reason: unverified_platform", out)
-        self.assertIn("reviewer: gpt-5.6-sol-medium openai", out)
-
-    def test_no_config_line_wins_over_platform(self):
-        rc, out = self._status(None, "--platform", "claude-code")
-        self._assert_reason(out, "no_config_line")
-
-
-class StatusUsageTests(unittest.TestCase):
-    """[AC-1.4]"""
-
-    def test_missing_origin_exits_2(self):
-        with TemporaryDirectory() as tmp:
-            rc, _ = _run("status", "--repo", tmp)
-        self.assertEqual(rc, 2)
-
-    def test_unreadable_repo_exits_2(self):
-        with TemporaryDirectory() as tmp:
-            rc, _ = _run("status", "--repo", str(Path(tmp) / "missing"),
-                         "--origin", ORIGIN)
-        self.assertEqual(rc, 2)
-
-    @unittest.skipIf(os.name != "posix" or os.geteuid() == 0, "needs POSIX non-root")
-    def test_unreadable_repo_directory_exits_2(self):
-        with TemporaryDirectory() as tmp:
-            repo = _repo(Path(tmp) / "repo", "- **Review Panel:** gpt-5.6-sol-medium")
-            repo.chmod(0)
-            try:
-                rc, _ = _run("status", "--repo", str(repo), "--origin", ORIGIN)
-            finally:
-                repo.chmod(0o755)
-        self.assertEqual(rc, 2)
-
-    def test_undecodable_config_exits_2(self):
-        with TemporaryDirectory() as tmp:
-            repo = _repo(Path(tmp), None)
-            (repo / ".writ" / "config.md").write_bytes(b"- **Review Panel:** \xff\xfe\n")
-            rc, _ = _run("status", "--repo", str(repo), "--origin", ORIGIN)
-        self.assertEqual(rc, 2)
-
-    def test_unknown_platform_exits_2(self):
-        with TemporaryDirectory() as tmp:
-            rc, _ = _run("status", "--repo", tmp, "--origin", ORIGIN,
-                         "--platform", "vscode")
-        self.assertEqual(rc, 2)
-
-
 def _read(rel: str) -> str:
     return (REPO_ROOT / rel).read_text(encoding="utf-8")
 
 
-class ConfigDocTests(unittest.TestCase):
-    """AC-1.1 — config-format.md documents the line, its rules, and consent."""
+# --------------------------------------------------------------------------
+# Story 7 of `2026-11-04-evidence-gated-review`: the panel's `status` and
+# `tally` path and its docs are gone (ADR-032).
+# --------------------------------------------------------------------------
 
-    def test_review_panel_section(self):
+KEPT_SUBCOMMANDS = ("trial-init", "trial-prepare", "trial-record", "trial-label",
+                    "trial-report")
+GATE_UPGRADE_TRIAL = REPO_ROOT / ".writ" / "eval" / "gate-upgrade-trial" / "gate-upgrade-trial.py"
+# The names gate-upgrade-trial.py reuses, plus the two helpers parse_output calls.
+REUSED_NAMES = ("_prepare_run", "parse_output", "trial_key", "_key_order", "PrepareError",
+                "normalize_location", "_issue_entries")
+PANEL_ADAPTERS = ("adapters/openclaw.md", "adapters/codex.md", "adapters/claude-code.md",
+                  "adapters/cursor.md")
+
+
+def _subcommands(module) -> List[str]:
+    parser = module.build_parser()
+    subparsers = [a for a in parser._actions if isinstance(a, argparse._SubParsersAction)]
+    return sorted(subparsers[0].choices)
+
+
+class TrimmedScriptTests(unittest.TestCase):
+    """AC-7.1 — gate-upgrade-trial.py still loads the script by path, the parser
+    has no `status` or `tally`, and every `trial-*` subcommand parses."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rp = _load_module()
+
+    def test_gate_upgrade_trial_loads_the_script_with_its_reused_names(self):
+        spec = importlib.util.spec_from_file_location("gate_upgrade_trial_s7", GATE_UPGRADE_TRIAL)
+        harness = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(harness)
+        self.assertEqual(Path(harness.REVIEW_PANEL).resolve(), SCRIPT.resolve())
+        module = harness.load_review_panel()
+        for name in REUSED_NAMES:
+            self.assertTrue(hasattr(module, name), name)
+
+    def test_parser_has_no_status_or_tally(self):
+        names = _subcommands(self.rp)
+        self.assertNotIn("status", names)
+        self.assertNotIn("tally", names)
+        self.assertEqual(names, sorted(KEPT_SUBCOMMANDS))
+
+    def test_removed_subcommands_are_usage_errors(self):
+        for argv in (("status", "--repo", ".", "--origin", ORIGIN),
+                     ("tally", "--origin", ORIGIN, "--primary", "primary.md")):
+            rc, out = _run(*argv)
+            self.assertEqual((rc, out), (2, []), argv[0])
+
+    def test_every_trial_subcommand_parses(self):
+        parser = self.rp.build_parser()
+        argvs = {
+            "trial-init": ["--baseline", "b.json", "--out", "t.json"],
+            "trial-prepare": ["--trial", "t.json", "--yuss", "yuss", "--story", "s"],
+            "trial-record": ["--trial", "t.json", "--story", "s", "--arm", "panel",
+                             "--origin", ORIGIN, "--primary", "p.md",
+                             "--reviewer", "gpt-5.6-sol-medium=r.md"],
+            "trial-label": ["--trial", "t.json", "--story", "s", "--key", "ac:AC-1.1",
+                            "--label", "valid", "--note", "n"],
+            "trial-report": ["--trial", "t.json", "--json"],
+        }
+        self.assertEqual(sorted(argvs), sorted(KEPT_SUBCOMMANDS))
+        for name, rest in argvs.items():
+            with self.subTest(subcommand=name):
+                self.assertTrue(callable(parser.parse_args([name] + rest).func))
+
+    def test_docstring_names_no_removed_subcommand_or_key(self):
+        doc = self.rp.__doc__
+        for word in ("Review Panel", "--panel", "status", "tally"):
+            self.assertNotIn(word, doc, word)
+        for name in KEPT_SUBCOMMANDS:
+            self.assertIn(name, doc, name)
+
+
+class PanelRemovedFromDocsTests(unittest.TestCase):
+    """AC-7.3 — the adapters, config-format.md, agent-cli-contract.md, eval.sh,
+    and this repo's `.writ/config.md` carry no panel wiring."""
+
+    def test_no_adapter_has_a_panel_paragraph(self):
+        for rel in PANEL_ADAPTERS:
+            self.assertNotIn("Review panel (ADR-028)", _read(rel), rel)
+
+    def test_config_format_has_no_panel_key_and_one_removed_keys_line(self):
         doc = _read(".writ/docs/config-format.md")
-        self.assertIn("| `Review Panel` |", doc)
-        section = doc.split("## Review Panel", 1)[1].split("\n## ", 1)[0]
-        for phrase in ("- **Review Panel:** <slug>[, <slug>…]", "first matching line wins",
-                       "`none`", "case-insensitive", "keep their order", "`duplicate_slug`",
-                       "`over_cap`", "consent to send story content",
-                       "review-panel.py status"):
-            self.assertIn(phrase, section, phrase)
+        self.assertNotIn("| `Review Panel` |", doc)
+        self.assertNotRegex(doc, r"(?m)^#+ Review Panel\b")
+        self.assertNotIn("(#review-panel)", doc)
+        removed = [line for line in doc.splitlines() if "Removed keys" in line]
+        self.assertEqual(len(removed), 1, removed)
+        self.assertIn("`Review Panel`", removed[0])
+        self.assertIn("ADR-032", removed[0])
+
+    def test_cli_contract_row_and_bullet_name_only_kept_subcommands(self):
+        lines = _read(".writ/docs/agent-cli-contract.md").splitlines()
+        row = [l for l in lines if l.startswith("| `review-panel.py` |")]
+        bullet = [l for l in lines if l.startswith("- `review-panel.py` —")]
+        self.assertEqual((len(row), len(bullet)), (1, 1), (row, bullet))
+        for line in row + bullet:
+            self.assertIsNone(re.search(r"\b(status|tally)\b", line), line)
+            named = set(re.findall(r"\btrial-[a-z]+\b", line))
+            self.assertTrue(named, line)
+            self.assertLessEqual(named, set(KEPT_SUBCOMMANDS), line)
+        callers = row[0].strip().strip("|").split("|")[3]
+        self.assertNotIn("commands/", callers)
+        self.assertNotIn("adapters/", callers)
+
+    def test_eval_has_no_review_panel_check(self):
+        text = _read("scripts/eval.sh")
+        self.assertNotRegex(text, r"(?m)^  review-panel$")
+        self.assertNotIn("check_review_panel", text)
+
+    def test_repo_config_has_no_review_panel_line(self):
+        self.assertNotRegex(_read(".writ/config.md"), r"(?mi)^- \*\*Review Panel:\*\*")
 
 
 class ProductAmendmentTests(unittest.TestCase):
@@ -323,20 +244,6 @@ class ProductAmendmentTests(unittest.TestCase):
                       "retrospective trial"):
             self.assertIn(point, decision3, point)
 
-    def test_each_adapter_has_one_panel_row(self):
-        rows = {
-            "adapters/cursor.md": "**Review panel (ADR-028): available.**",
-            "adapters/claude-code.md": "**Review panel (ADR-028): unavailable.**",
-            "adapters/codex.md": "**Review panel (ADR-028): unavailable by default.**",
-            "adapters/openclaw.md": "**Review panel (ADR-028): *(unverified)*.**",
-        }
-        for path, row in rows.items():
-            text = _read(path)
-            self.assertEqual(text.count("**Review panel (ADR-028):"), 1, path)
-            self.assertIn(row, text, path)
-        self.assertIn("`slug_rejected`", _read("adapters/cursor.md"))
-        self.assertIn("`sessions_spawn`", _read("adapters/openclaw.md"))
-
     def test_roadmap_feature_3_points_to_spec(self):
         roadmap = _read(".writ/product/roadmap.md")
         feature = [l for l in roadmap.splitlines()
@@ -346,28 +253,13 @@ class ProductAmendmentTests(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------
-# Story 2 of `2026-10-01-cross-family-review-panel`: `tally`, the output
-# parser, the matching rule, and the mutation fixtures.
+# Story 2 of `2026-10-01-cross-family-review-panel`: the Gate 3 output parser.
+# Its `tally` consumer is gone (ADR-032); gate-upgrade-trial.py and the trial
+# subcommands still read finding keys through it.
 # --------------------------------------------------------------------------
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "review-panel"
 OPENAI = "gpt-5.6-sol-medium"
-OPENAI_2 = "gpt-5.6-terra-medium"
-XAI = "cursor-grok-4.6-medium-fast"
-
-
-def _fx(name: str) -> str:
-    return str(FIXTURES / name)
-
-
-def _tally(primary: str, *reviewers: Tuple[str, str], origin: str = ORIGIN,
-           json_out: bool = False) -> Tuple[int, List[str]]:
-    args = ["tally", "--origin", origin, "--primary", _fx(primary)]
-    for slug, name in reviewers:
-        args += ["--reviewer", "%s=%s" % (slug, _fx(name))]
-    if json_out:
-        args.append("--json")
-    return _run(*args)
 
 
 class ParserTests(unittest.TestCase):
@@ -489,445 +381,6 @@ class TaggedOutputContractTests(unittest.TestCase):
         unchecked = sample.replace("- [x]", "- [ ]")
         parsed = _load_module().parse_output("### REVIEW_RESULT: FAIL\n" + unchecked)
         self.assertEqual(set(parsed.findings), {"ac:AC-1.1", "ac:AC-1.2"})
-
-
-class TallyVerdictTests(unittest.TestCase):
-    """AC-2.3, AC-2.4 — combination, printed lines, exit codes, drops, JSON."""
-
-    def test_primary_and_one_panel_vendor_on_same_ac_blocks(self):
-        rc, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"))
-        self.assertEqual(rc, 1)
-        # Agent CLI contract check shape: `fail` on line 1, the panel word on
-        # the first `reason:` line.
-        self.assertEqual(out[:2], ["fail", "reason: block"])
-        self.assertIn("review-panel: block — AC-2.3 unmet (anthropic, openai)", out)
-        self.assertTrue(out[-1].startswith("review-panel: block — 2 vendors, 1 consensus"),
-                        out[-1])
-
-    def test_single_panel_vendor_is_advisory_and_passes(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-ac23.md"))
-        self.assertEqual(rc, 0)
-        self.assertEqual(out[0], "pass")
-        self.assertIn("review-panel: advisory — AC-2.3 unmet (openai)", out)
-        self.assertEqual(out[-1], "review-panel: pass — 2 vendors, 0 consensus findings")
-
-    def test_primary_only_key_is_not_printed(self):
-        rc, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-security-pay.md"))
-        self.assertEqual(rc, 0)
-        self.assertFalse(any("AC-2.3" in line for line in out), out)
-        self.assertIn("review-panel: advisory — security app/api/pay.ts (openai)", out)
-
-    def test_no_keys_is_pass(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-minor-security-pay.md"))
-        self.assertEqual((rc, out[0]), (0, "pass"))
-        self.assertEqual(out[-1], "review-panel: pass — 2 vendors, 0 consensus findings")
-
-    def test_vendor_order_primary_first_then_reviewer_order(self):
-        rc, out = _tally("primary-pass.md", (XAI, "panel-ac23.md"), (OPENAI, "panel-ac23.md"))
-        self.assertEqual(rc, 1)
-        self.assertIn("review-panel: block — AC-2.3 unmet (xai, openai)", out)
-
-    def test_malformed_reviewer_dropped_and_rest_counted(self):
-        rc, out = _tally("primary-fail-ac23.md", (XAI, "malformed.md"),
-                         (OPENAI, "panel-ac23.md"))
-        self.assertEqual(rc, 1)
-        self.assertIn("review-panel: dropped %s — malformed_output" % XAI, out)
-        self.assertIn("review-panel: block — AC-2.3 unmet (anthropic, openai)", out)
-
-    def test_missing_or_empty_reviewer_output_dropped_no_output(self):
-        with TemporaryDirectory() as tmp:
-            empty = Path(tmp) / "empty.md"
-            empty.write_text("", encoding="utf-8")
-            rc, out = _run("tally", "--origin", ORIGIN, "--primary", _fx("primary-pass.md"),
-                           "--reviewer", "%s=%s" % (OPENAI, empty),
-                           "--reviewer", "%s=%s" % (XAI, Path(tmp) / "missing.md"))
-        self.assertEqual(rc, 0)
-        self.assertIn("review-panel: dropped %s — no_output" % OPENAI, out)
-        self.assertIn("review-panel: dropped %s — no_output" % XAI, out)
-        self.assertEqual(out[0], "unverifiable")
-
-    def test_zero_usable_reviewers_is_unverifiable(self):
-        rc, out = _tally("primary-fail-ac23.md", (OPENAI, "malformed.md"))
-        self.assertEqual(rc, 0)
-        self.assertEqual(out[0], "unverifiable")
-        self.assertIn("reason: no_usable_reviewer", out)
-        self.assertEqual(out[-1], "review-panel: unverifiable — no_usable_reviewer")
-
-    def test_unknown_vendor_reviewer_dropped(self):
-        rc, out = _tally("primary-pass.md", ("foo-1", "panel-ac23.md"))
-        self.assertIn("review-panel: dropped foo-1 — unknown_vendor", out)
-        self.assertEqual(out[0], "unverifiable")
-
-    def test_unknown_session_vendor_is_unverifiable(self):
-        rc, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"),
-                         origin="Mystery Model 9")
-        self.assertEqual(rc, 0)
-        self.assertEqual(out[0], "unverifiable")
-        self.assertIn("reason: unknown_session_vendor", out)
-
-    def test_malformed_primary_exits_2(self):
-        rc, _ = _tally("malformed.md", (OPENAI, "panel-ac23.md"))
-        self.assertEqual(rc, 2)
-
-    def test_missing_primary_exits_2(self):
-        rc, _ = _run("tally", "--origin", ORIGIN, "--primary", _fx("nope.md"),
-                     "--reviewer", "%s=%s" % (OPENAI, _fx("panel-ac23.md")))
-        self.assertEqual(rc, 2)
-
-    def test_reviewer_without_equals_exits_2(self):
-        rc, _ = _run("tally", "--origin", ORIGIN, "--primary", _fx("primary-pass.md"),
-                     "--reviewer", _fx("panel-ac23.md"))
-        self.assertEqual(rc, 2)
-
-    def test_json_has_per_key_vendors_and_original_text(self):
-        rc, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"),
-                         (XAI, "panel-security-pay.md"), json_out=True)
-        self.assertEqual(rc, 1)
-        self.assertEqual(len(out), 1)
-        payload = json.loads(out[0])
-        self.assertEqual(payload["verdict"], "block")
-        findings = {f["key"]: f for f in payload["findings"]}
-        ac = findings["ac:AC-2.3"]
-        self.assertEqual(ac["classification"], "consensus")
-        self.assertEqual(ac["vendors"], ["anthropic", "openai"])
-        sources = {t["source"]: t for t in ac["texts"]}
-        self.assertIn("no test asserts the message", sources["primary"]["text"])
-        self.assertIn("generic 500", sources[OPENAI]["text"])
-        sec = findings["security:app/api/pay.ts"]
-        self.assertEqual(sec["classification"], "advisory")
-        self.assertEqual(sec["severity"], "Critical")
-        self.assertIn("Card number is written", sec["texts"][0]["text"])
-        self.assertEqual(payload["primary_verdict"], "FAIL")
-
-
-class TallyMutationTests(unittest.TestCase):
-    """AC-2.5 — the mutation fixtures: one vendor never blocks, two always do."""
-
-    def test_single_vendor_finding_never_blocks(self):
-        for fixture in ("panel-ac23.md", "panel-security-pay.md", "panel-architecture-pay.md",
-                        "panel-multi-id.md"):
-            rc, out = _tally("primary-pass.md", (OPENAI, fixture))
-            self.assertEqual(rc, 0, fixture)
-            self.assertEqual(out[0], "pass", fixture)
-            self.assertFalse(any(l.startswith("review-panel: block") for l in out),
-                             (fixture, out))
-
-    def test_two_vendor_ac_finding_always_blocks(self):
-        for primary, reviewers in (
-            ("primary-fail-ac23.md", ((OPENAI, "panel-ac23.md"),)),
-            ("primary-fail-ac23.md", ((XAI, "panel-multi-id.md"),)),
-            ("primary-pass.md", ((OPENAI, "panel-ac23.md"), (XAI, "panel-multi-id.md"))),
-        ):
-            rc, out = _tally(primary, *reviewers)
-            self.assertEqual(rc, 1, (primary, reviewers, out))
-            self.assertTrue(any(l.startswith("review-panel: block — AC-2.3 unmet") for l in out))
-
-    def test_two_panel_vendors_block_when_primary_passed(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-security-pay.md"),
-                         (XAI, "panel-security-pay-b.md"))
-        self.assertEqual(rc, 1)
-        self.assertIn("review-panel: block — security app/api/pay.ts (openai, xai)", out)
-
-    def test_same_file_different_category_is_no_consensus(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-security-pay.md"),
-                         (XAI, "panel-architecture-pay.md"))
-        self.assertEqual(rc, 0)
-        self.assertIn("review-panel: advisory — security app/api/pay.ts (openai)", out)
-        self.assertIn("review-panel: advisory — architecture app/api/pay.ts (xai)", out)
-
-    def test_minor_security_from_two_vendors_is_no_consensus(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-minor-security-pay.md"),
-                         (XAI, "panel-minor-security-pay.md"))
-        self.assertEqual((rc, out[0]), (0, "pass"))
-        self.assertFalse(any("advisory" in l or "block — security" in l for l in out))
-
-    def test_two_reviewers_same_vendor_count_once(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-ac23.md"),
-                         (OPENAI_2, "panel-ac23.md"))
-        self.assertEqual(rc, 0)
-        self.assertIn("review-panel: advisory — AC-2.3 unmet (openai)", out)
-        self.assertEqual(out[-1], "review-panel: pass — 2 vendors, 0 consensus findings")
-
-    def test_reviewer_with_session_vendor_does_not_fake_consensus(self):
-        rc, out = _tally("primary-fail-ac23.md", ("claude-opus-5-thinking-high", "panel-ac23.md"))
-        self.assertEqual(rc, 0)
-        self.assertFalse(any(l.startswith("review-panel: block — AC") for l in out), out)
-        self.assertEqual(out[0], "unverifiable")
-        self.assertIn("reason: no_usable_reviewer", out)
-
-    def test_session_vendor_reviewer_key_is_never_advisory(self):
-        rc, out = _tally("primary-pass.md", ("claude-opus-5-thinking-high", "panel-ac23.md"),
-                         (OPENAI, "panel-minor-security-pay.md"))
-        self.assertEqual((rc, out[0]), (0, "pass"))
-        self.assertFalse(any("advisory" in l for l in out), out)
-
-    def test_placeholder_locations_from_two_vendors_never_block(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "panel-subheadings-na.md"),
-                         (XAI, "panel-subheadings-na.md"))
-        self.assertEqual(rc, 1)
-        self.assertEqual([l for l in out if l.startswith("review-panel: block — ")
-                          and "consensus" not in l],
-                         ["review-panel: block — security app/api/pay.ts (openai, xai)"])
-
-    def test_malformed_reviewer_dropped_others_still_count(self):
-        rc, out = _tally("primary-pass.md", (OPENAI, "malformed.md"),
-                         (XAI, "panel-ac23.md"))
-        self.assertEqual(rc, 0)
-        self.assertIn("review-panel: dropped %s — malformed_output" % OPENAI, out)
-        self.assertIn("review-panel: advisory — AC-2.3 unmet (xai)", out)
-
-
-# --------------------------------------------------------------------------
-# Story 3 of `2026-10-01-cross-family-review-panel`: the Gate 3 panel
-# paragraph, the `--panel` row, the `review-panel:` report entry, the
-# `check_review_panel` eval pins (each shown to bite), and the ratchet
-# disclosure.
-# --------------------------------------------------------------------------
-
-STORY_CMD = "commands/implement-story.md"
-PANEL_OPENER = "**Review panel (opt-in).**"
-
-
-def _paragraphs(text: str) -> List[str]:
-    return [p.strip() for p in text.split("\n\n")]
-
-
-def _panel_paragraph(rel: str) -> str:
-    found = [p for p in _paragraphs(_read(rel)) if p.startswith(PANEL_OPENER)]
-    assert len(found) == 1, "%s: expected one panel paragraph, got %d" % (rel, len(found))
-    return found[0]
-
-
-def _gate3(rel: str) -> str:
-    text = _read(rel)
-    start = text.index("#### Gate 3: Review Agent")
-    return text[start:text.index("#### Gate 3.5:", start)]
-
-
-class Gate3PanelPlacementTests(unittest.TestCase):
-    """One inline paragraph, placed in Gate 3, no heading or spawn marker. [AC-3.1]"""
-
-    def test_command_carries_exactly_one_opener(self):
-        self.assertEqual(_read(STORY_CMD).count(PANEL_OPENER), 1)
-
-    def test_default_paragraph_directly_follows_the_risk_route(self):
-        paras = _paragraphs(_gate3(STORY_CMD))
-        at = next(i for i, p in enumerate(paras) if p.startswith(PANEL_OPENER))
-        self.assertTrue(paras[at - 1].startswith("**Risk route:**"))
-        self.assertTrue(paras[at + 1].startswith("**`--full-pipeline`:**"))
-
-    def test_paragraph_wording_follows_the_technical_spec(self):
-        para = _panel_paragraph(STORY_CMD)
-        for phrase in (
-            "review-panel.py status --repo . --origin \"<origin>\" --platform <origin platform>",
-            "prints `pass`", "Gate 3 spawns `review-agent`", "`--panel` is set",
-            "beside the Gate 3 agent in the same message", "same prompt and inputs",
-            "`readonly`", "`model: <slug>`",
-            "`.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*`",
-            "one `review-panel: dropped` line",
-            "After `review-override.py`, run `python3 scripts/review-panel.py tally",
-        ):
-            self.assertIn(phrase, para)
-
-    def test_no_heading_spawn_marker_or_gates_entry_is_added(self):
-        para = _panel_paragraph(STORY_CMD)
-        self.assertNotIn("\n", para)
-        self.assertNotIn("Task(", para)
-        frontmatter = _read(STORY_CMD).split("\n---\n", 1)[0]
-        self.assertNotIn("panel", frontmatter.lower())
-
-    def test_spawn_cap_still_passes(self):
-        proc = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "scripts" / "spawn-cap.py"), "check",
-             "--command", str(REPO_ROOT / STORY_CMD), "--repo", str(REPO_ROOT)],
-            capture_output=True, text=True,
-        )
-        self.assertEqual(proc.returncode, 0, proc.stdout)
-        self.assertEqual(proc.stdout.splitlines()[0], "pass")
-
-
-class Gate3PanelCombinationTests(unittest.TestCase):
-    """How a tally verdict combines with the Gate 3 agent's. [AC-3.2]"""
-
-    def test_block_is_one_gate3_fail(self):
-        para = _panel_paragraph(STORY_CMD)
-        self.assertIn("`fail` (`reason: block`) is a Gate 3 FAIL", para)
-        self.assertIn("one loop increment even if the agent also failed", para)
-        self.assertIn("on PAUSE, Gate 3.5 lists the block lines and accept still recodes", para)
-        self.assertIn("under `--review-only` it ends the run", para)
-        gate35 = _read(STORY_CMD).split("#### Gate 3.5:", 1)[1].split("#### Gate 4:", 1)[0]
-        self.assertIn("with a Gate 3 panel `block`, list its lines, and accept still recodes",
-                      gate35)
-
-    def test_every_other_verdict_prints_and_continues(self):
-        self.assertIn(
-            "`advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue",
-            _panel_paragraph(STORY_CMD),
-        )
-
-    def test_panel_never_overrides_or_degrades(self):
-        para = _panel_paragraph(STORY_CMD)
-        self.assertIn("The panel can only add blocks", para)
-        self.assertIn("never changes the Gate 3 agent's verdict", para)
-        self.assertIn("never marks a story `⚠️ DEGRADED`", para)
-
-    def test_two_fail_escalation_counts_a_block(self):
-        # A block is a Gate 3 FAIL, and the control flow counts a Gate 3 FAIL
-        # from either agent, so escalation needs no extra sentence.
-        self.assertIn("Gate 3 FAIL (either agent) increments it", _read(STORY_CMD))
-        self.assertIn("two-fail escalation", _panel_paragraph(STORY_CMD))
-
-    def test_tally_fixtures_match_the_combination_rule(self):
-        code, out = _tally("primary-fail-ac23.md", (OPENAI, "panel-ac23.md"))
-        self.assertEqual((code, out[:2]), (1, ["fail", "reason: block"]))
-        code, out = _tally("primary-pass.md", (OPENAI, "panel-ac23.md"))
-        self.assertEqual((code, out[0]), (0, "pass"))
-
-
-class InvocationAndReportTests(unittest.TestCase):
-    """The `--panel` row, the `--quick` conflict, item 8, the no-config path. [AC-3.3]"""
-
-    def test_panel_row_in_the_invocation_table(self):
-        rows = [ln for ln in _read(STORY_CMD).splitlines()
-                if ln.startswith("| `/implement-story story-3 --panel` |")]
-        self.assertEqual(len(rows), 1)
-        self.assertIn("regardless of route (needs the config line)", rows[0])
-
-    def test_quick_conflict_is_a_usage_error_before_any_gate(self):
-        self.assertIn(
-            "`--panel` conflicts with `--quick`: on a conflict, stop with a usage "
-            "error before any gate", _read(STORY_CMD),
-        )
-
-    def test_report_names_the_panel_lines(self):
-        self.assertIn("the `gate3-route:`, `review-panel:`, and `arch-lint:` lines",
-                      _read(STORY_CMD))
-
-    def test_no_config_line_runs_no_new_step(self):
-        para = _panel_paragraph(STORY_CMD)
-        self.assertTrue(para.startswith(
-            PANEL_OPENER + " Only with a `- **Review Panel:**` line in `.writ/config.md`:"
-        ))
-        gate3 = _gate3(STORY_CMD)
-        self.assertEqual(gate3.count("review-panel.py"), para.count("review-panel.py"))
-        with TemporaryDirectory() as tmp:
-            code, out = _run("status", "--repo", str(_repo(Path(tmp), None)),
-                             "--origin", ORIGIN, "--platform", "cursor")
-        self.assertEqual(code, 0)
-        self.assertEqual(out[-1], "review-panel: off — no_config_line")
-
-
-EVAL = REPO_ROOT / "scripts" / "eval.sh"
-ADAPTERS = ("cursor", "claude-code", "codex", "openclaw")
-
-
-class EvalPinMutationTests(unittest.TestCase):
-    """check_review_panel passes on the real files, and one mutation per pin
-    or probe turns it into exactly one finding. [AC-3.4]"""
-
-    def _root(self, tmp: str) -> Path:
-        root = Path(tmp)
-        for rel in ("scripts/eval.sh", "scripts/review-panel.py", STORY_CMD,
-                    *("adapters/%s.md" % name for name in ADAPTERS)):
-            (root / rel).parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(REPO_ROOT / rel, root / rel)
-        shutil.copytree(FIXTURES, root / "scripts/tests/fixtures/review-panel")
-        (root / ".writ").mkdir()
-        return root
-
-    def _check(self, root: Path) -> Tuple[int, str]:
-        proc = subprocess.run(
-            ["bash", str(root / "scripts" / "eval.sh"), "--check=review-panel",
-             "--report=eval-report.md"],
-            cwd=root, capture_output=True, text=True,
-        )
-        return proc.returncode, (root / "eval-report.md").read_text(encoding="utf-8")
-
-    def _cut(self, path: Path, literal: str) -> None:
-        text = path.read_text(encoding="utf-8")
-        self.assertIn(literal, text, "the mutation must hit the pinned text")
-        path.write_text(text.replace(literal, "", 1), encoding="utf-8")
-
-    def _assert_bites(self, mutate, message: str) -> None:
-        with TemporaryDirectory() as tmp:
-            root = self._root(tmp)
-            mutate(root)
-            code, report = self._check(root)
-        self.assertEqual(code, 1, report)
-        self.assertIn(message, report)
-        self.assertIn("- Findings: 1", report)
-
-    def test_registered_in_checks(self):
-        self.assertRegex(EVAL.read_text(encoding="utf-8"), r"(?m)^  review-panel$")
-
-    def test_real_files_pass_with_status_as_a_note(self):
-        with TemporaryDirectory() as tmp:
-            code, report = self._check(self._root(tmp))
-        self.assertEqual(code, 0, report)
-        self.assertIn("- Findings: 0", report)
-        self.assertIn("NOTE [review-panel]: review-panel: off — no_config_line", report)
-
-    def test_missing_helper_bites(self):
-        self._assert_bites(lambda root: (root / "scripts/review-panel.py").unlink(),
-                           "review-panel helper is missing.")
-
-    def test_status_usage_error_bites(self):
-        stub = ('import sys\nif sys.argv[1] == "status":\n'
-                '    print("error: bad status args")\n    raise SystemExit(2)\n'
-                'raise SystemExit(1 if "primary-fail" in " ".join(sys.argv) else 0)\n')
-        self._assert_bites(
-            lambda root: (root / "scripts/review-panel.py").write_text(stub, encoding="utf-8"),
-            "review-panel.py status exited 2: error: bad status args")
-
-    def test_status_crash_bites(self):
-        # `status` only ever exits 0 or 2; a traceback (exit 1) must not pass as a note.
-        stub = ('import sys\nif sys.argv[1] == "status":\n'
-                '    raise RuntimeError("boom")\n'
-                'raise SystemExit(1 if "primary-fail" in " ".join(sys.argv) else 0)\n')
-        self._assert_bites(
-            lambda root: (root / "scripts/review-panel.py").write_text(stub, encoding="utf-8"),
-            "review-panel.py status exited 1: RuntimeError: boom")
-
-    def test_consensus_probe_bites(self):
-        fx = "scripts/tests/fixtures/review-panel/"
-        self._assert_bites(
-            lambda root: shutil.copy2(root / (fx + "primary-pass.md"),
-                                      root / (fx + "primary-fail-ac23.md")),
-            "two-vendor AC-2.3 fixture exited 0, not 1")
-
-    def test_single_vendor_probe_bites(self):
-        fx = "scripts/tests/fixtures/review-panel/"
-        self._assert_bites(
-            lambda root: shutil.copy2(root / (fx + "primary-fail-ac23.md"),
-                                      root / (fx + "primary-pass.md")),
-            "one-vendor AC-2.3 fixture exited 1, not 0")
-
-    def test_command_pins_bite(self):
-        pins = (
-            (PANEL_OPENER, "%s Gate 3 must carry the opt-in review panel paragraph."),
-            ("`fail` (`reason: block`) is a Gate 3 FAIL",
-             "%s must make a panel block a Gate 3 FAIL."),
-            ("| `/implement-story story-3 --panel` |",
-             "%s Invocation table must carry the --panel row."),
-        )
-        for literal, message in pins:
-            with self.subTest(pin=literal):
-                self._assert_bites(lambda root: self._cut(root / STORY_CMD, literal),
-                                   message % STORY_CMD)
-
-    def test_adapter_row_pins_bite(self):
-        for name, label, message in (
-            ("cursor", "available.", "must state the review panel is available."),
-            ("claude-code", "unavailable.", "must state the review panel is unavailable."),
-            ("codex", "unavailable by default.",
-             "must state the review panel is unavailable by default."),
-            ("openclaw", "*(unverified)*.", "must mark the review panel unverified."),
-        ):
-            rel = "adapters/%s.md" % name
-            with self.subTest(adapter=name):
-                self._assert_bites(
-                    lambda root: self._cut(root / rel, "**Review panel (ADR-028): %s**" % label),
-                    "%s %s" % (rel, message))
 
 
 class RatchetDisclosureTests(unittest.TestCase):

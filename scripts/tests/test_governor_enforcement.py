@@ -679,7 +679,13 @@ KNOWN_OVER_BUDGET = {
     # puts the tree-mutation row first (DEV-026). Offsets: `<checks>` bound once, the
     # save made unconditional so the Jev shadow reuses `<review>` and `<tests>`, and
     # `--repo .` dropped from `check` and `safety-fact`. Stories 3 + 4: +1378.
-    "commands/implement-story.md": 14969,
+    # 2026-11-04 (2026-11-04-evidence-gated-review Story 7): 14969 -> 13591 (-1378);
+    # ADR-032 removes the review panel: the `--panel` row and conflict clause, the
+    # Gate 3 panel paragraph, the `review-panel:` report entry, and the panel clauses
+    # in the Overview, the reviewer-filters paragraph, the safety-fact sentence, and
+    # Gate 3.5, less the leftover-config line and the `--panel` rejection. Stories
+    # 3 + 4 + 7: net 0 (file 39929 -> 38551 bytes, at most 40759).
+    "commands/implement-story.md": 13591,
 }
 
 

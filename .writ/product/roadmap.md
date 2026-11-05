@@ -715,7 +715,7 @@ Model routing, new verification, and any rewrite of the commands the front door 
 
 ## Phase 15: Code-Level Rigor (2 weeks) — ◐ Implemented (2026-10-30), pending human validation — branch, no PR
 
-**Status (2026-10-30):** Six specs are integrated on `phase/15-code-level-rigor`, which is built on Phase 14's branch; the phase state reads `IMPLEMENTED_PENDING_HUMAN_VALIDATION`. Four specs are Complete. Two wait on a person: `2026-10-25-design-divergence` (Story 6, after the blind rating) and `2026-10-25-gate-upgrade-removal-measurement` (Story 4, after the labels). Six of the eight success criteria below pass on the merged code; the divergence trial and the removal measurement are handed off. The six UAT plans hold 201 scenarios. Known defects to fix before the PR: on Python 3.14, `repro-order.py` treats an unreadable `.writ/` as having no config (`test_unsearchable_writ_dir` fails); Gate 0 ignores `--quick`; the `safety-fact: off` and `not on route` lines may not print; and `/implement-story` can lose a bug fix's repro commits at integration. The run's [retro](../retros/2026-10-30-phase-15.md) records 37 findings about the pipeline itself.
+**Status (2026-10-30):** Six specs are integrated on `phase/15-code-level-rigor`, which is built on Phase 14's branch; the phase state reads `IMPLEMENTED_PENDING_HUMAN_VALIDATION`. Four specs are Complete. Two wait on a person: `2026-10-25-design-divergence` (Story 6, after the blind rating) and `2026-10-25-gate-upgrade-removal-measurement` (Story 4, after the labels). Six of the eight success criteria below pass on the merged code; the divergence trial and the removal measurement are handed off. The six UAT plans hold 201 scenarios. Known defects to fix before the PR: on Python 3.14, `repro-order.py` treats an unreadable `.writ/` as having no config (`test_unsearchable_writ_dir` fails); Gate 0 ignores `--quick`; the `safety-fact: off` and `not on route` lines may not print; and `/implement-story` can lose a bug fix's repro commits at integration. The run's [retro](../retros/2026-10-30-phase-15.md) records 37 findings about the pipeline itself. On 2026-11-04, `2026-11-04-evidence-gated-review` made Gate 3 and `/review` findings block only on executed evidence, removed the review panel, and raised the Safety Fact floor to `tested` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)).
 
 **Goal:** Writ's verifier reaches the design and the fix on high-stakes routes, and Writ answers "why is this like this?" from its own ledger. Per [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md).
 
@@ -736,7 +736,7 @@ Model routing, new verification, and any rewrite of the commands the front door 
   - The Gate 0 route writes the caller's usage first, then produces two independent sketches on declared axes.
   - The skill covers API shapes and data models as well as UI.
 - **Divergence trial:** declared-axes generation against a naive "give me three options" prompt, rated blind for structural distinctness. The trial also records whether render-only drafts were enough. The skill stays only if declared axes win. *Run 2026-11-04 ([trial-report.md](../specs/archive/2026-10-25-design-divergence/trial-report.md)): not met. Declared axes won 2 of 6 briefs (4 needed), distinct 17 vs 16; render-only drafts were enough on 6 of 6. The skill and its Gate 0 wiring are removed.*
-- **Gate 2.5:** on the review-agent route, it names the one fact the change is safe because of and the evidence rung that fact reached.
+- **Gate 2.5:** on the review-agent route, it names the one fact the change is safe because of and the evidence rung that fact reached, at or above `tested`.
 - **`tdd-cycle` for bugs:** a failing repro on the surface where the bug shows, committed before the fix, with failing-then-passing output in the report.
 - **Reviewer prompts** carry lead-judgment filters:
   - all nits means the code is fine
@@ -758,7 +758,7 @@ Model routing, new verification, and any rewrite of the commands the front door 
 - [x] **`/retro` fix ladder and rule-to-enforcer table** `Effort: S` — `2026-10-25-retro-fix-ladder`: replaces the retired friction-signal design. `/refresh-command` gains two of `reflect`'s synthesizer criteria:
   - findings that existing guidance already covers count as execution failures, not missing rules
   - findings may only edit skills the transcript actually used
-- [ ] **Evidence-gated review** `Effort: M` — `2026-11-04-evidence-gated-review`: a Gate 3 or `/review` finding blocks only on executed evidence; removes the review panel and raises the Safety Fact floor to `tested` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)).
+- [x] **Evidence-gated review** `Effort: M` — `2026-11-04-evidence-gated-review`: a Gate 3 or `/review` finding blocks only on executed evidence; removes the review panel and raises the Safety Fact floor to `tested` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)).
 
 ### Dependencies
 

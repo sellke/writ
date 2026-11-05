@@ -106,12 +106,10 @@ class VerdictAgreementTests(unittest.TestCase):
             self.assertNotIn(status, STATUS_FOR_VERDICT.values())
 
     def test_panel_wiring_matches_the_verdict(self):
-        verdict = _verdict()
-        if verdict not in STATUS_FOR_VERDICT:
-            self.skipTest("verdict %r is not acted on" % verdict)
+        """ADR-032 removed the panel after the trial, so the paragraph is absent
+        whatever verdict the report printed (evidence-gated-review, Story 7). [AC-7.2]"""
         for command in COMMAND_FILES:
-            present = PANEL_PARAGRAPH in command.read_text(encoding="utf-8")
-            self.assertEqual(present, verdict == "keep", command.name)
+            self.assertNotIn(PANEL_PARAGRAPH, command.read_text(encoding="utf-8"), command.name)
 
     def test_adr_and_roadmap_record_the_verdict(self):
         if _verdict() not in STATUS_FOR_VERDICT:

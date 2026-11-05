@@ -100,9 +100,10 @@ MIXED_TESTS = (
 )
 
 # eval.sh checks that pinned a lean file. Each now pins the default files only.
-# check_product_check_direction, the other one, was deleted by Story 2 of the
-# shipped-command-hygiene spec (its pins were wording only).
-EVAL_CHECKS = ("check_review_panel",)
+# check_product_check_direction was deleted by Story 2 of the
+# shipped-command-hygiene spec (its pins were wording only), and
+# check_review_panel by Story 7 of evidence-gated-review (ADR-032), so none is left.
+EVAL_CHECKS = ()
 
 # Files Story 2 deletes.
 STORY2_DELETED = (
@@ -201,6 +202,9 @@ class NoTestReadsALeanFileTest(unittest.TestCase):
 
     def test_ac_1_5_eval_checks_pin_no_lean_file(self):
         text = (REPO_ROOT / "scripts" / "eval.sh").read_text(encoding="utf-8")
+        # 2026-11-04 (evidence-gated-review Story 7): check_review_panel is gone, so
+        # EVAL_CHECKS is empty; keep a whole-file guard so a lean pin cannot return.
+        self.assertNotIn(".lean.md", text)
         for name in EVAL_CHECKS:
             with self.subTest(check=name):
                 body = shell_function_body(text, name)

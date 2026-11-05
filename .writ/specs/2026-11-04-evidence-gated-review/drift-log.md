@@ -308,3 +308,20 @@
 - **Reason:** It resolves the two rules in favor of AC-4.2 (F1, F2).
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** technical-spec § CLI, `unverifiable` row: "…unless a `--prior` check failed: then line 1 is `fail`, with the prior reasons, then the run-level reason."
+
+---
+
+## Story 7: Remove the review panel and close out the roadmap — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-029] `slug_vendor` and `origin_vendor` kept for `trial-record`
+- **Severity:** Small
+- **Spec said:** technical-spec.md § Removals → Review panel (Story 7) lists `slug_vendor` and `origin_vendor` for removal, and ADR-032 § Removals recorded them as removed. The locked contract says only the `status`/`tally` path goes and the trial subcommands stay; spec-lite says "trial helpers kept".
+- **Implementation did:** Kept both functions and `VendorTableTests`. `cmd_trial_record` calls them (`scripts/review-panel.py:527`, `:542`), so removing them would break a kept subcommand. ADR-032's Removals row now lists them as kept, and `test_adr_032_inventory.py::RemovalListTest::test_names_the_vendor_helpers_as_kept` checks it.
+- **Reason:** The technical-spec table and the ADR record were wrong; the code follows the contract.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md Files in Scope: "`scripts/review-panel.py`: `status`/`tally` removed, trial helpers kept, including `slug_vendor` and `origin_vendor`, which `trial-record` calls (DEV-029)". technical-spec.md § Removals still lists them; the user amends it.

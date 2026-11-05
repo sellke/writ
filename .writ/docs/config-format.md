@@ -60,11 +60,12 @@
 | `Changelog` | release | Path to the changelog file |
 | `Writ Specs` | status | Path to spec folder (default: `.writ/specs/`) |
 | `Writ Issues` | status | Path to issues folder (default: `.writ/issues/`) |
-| `Review Panel` | implement-story (Gate 3) | Opt-in cross-vendor reviewer slugs; see [Review Panel](#review-panel) |
 | `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
 | `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
 | `Evidence Gate` | implement-story (Gate 3), review | On by default; `off` lets the reviewer's verdict block without executed evidence; see [Evidence Gate](#evidence-gate) |
 | `Repro First` | tdd-cycle, coding-agent, prototype, implement-story (Gate 1) | `off` turns off the repro-first bug path; absent or `on` keeps it; see [Repro First](#repro-first) |
+
+**Removed keys:** `Review Panel` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). A leftover line prints `review-panel: removed (ADR-032)` once per story and does nothing else.
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
 > itself; supervised multi-spec execution runs through `/implement-phase` and needs
@@ -111,26 +112,6 @@
 
 Detected values may be used and recorded in the current execution capability
 snapshot, but are never silently saved to `.writ/config.md`.
-
-## Review Panel
-
-```markdown
-- **Review Panel:** gpt-5.6-sol-medium, cursor-grok-4.6-medium-fast
-```
-
-`- **Review Panel:** <slug>[, <slug>…]` names Cursor model slugs from vendors
-other than the session's. It is never detected or offered for saving: the
-line is also the consent to send story content to those vendors, so only the
-developer writes it. The first matching line wins; `none`
-(case-insensitive), or no line, means the panel is off and Gate 3 runs
-exactly as before. Slugs keep their order; a repeated slug is dropped
-(`duplicate_slug`), and slugs after the third kept reviewer are dropped
-(`over_cap`). Slugs from the session's vendor (`same_vendor`) or with a prefix
-the vendor table does not know (`unknown_vendor`) are dropped too.
-`python3 scripts/review-panel.py status --repo . --origin "<session model>"`
-prints which reviewers are active, which were dropped, and why. See
-[ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)
-Decision 3.
 
 ## Safety Fact
 

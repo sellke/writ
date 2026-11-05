@@ -529,9 +529,6 @@ def panel_trial_setup(tmp: Path) -> None:
     (tmp / "runs").mkdir()
 
 
-PANEL_FX = "{repo}/scripts/tests/fixtures/review-panel/"
-
-
 def _trial_story(n: int, panel_only: list) -> dict:
     return {"story_id": "s/story-%d" % n, "spec_folder": "s",
             "story_path": ".writ/specs/s/user-stories/story-%d.md" % n,
@@ -602,16 +599,13 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("repro-order.py", ["check", "--repo", "{repo}", "--base", "HEAD"], {}),
     Smoke("review-override.py", ["check", "--spec", SPEC, "--repo", "{repo}",
                                  "--story", STORY], {}),
-    Smoke("review-panel.py", ["status", "--repo", "{tmp}", "--origin", "claude"], {}),
+    # `status` and `tally` are gone (ADR-032); `trial-init` is the default smoke now.
     Smoke("review-panel.py", ["trial-init", "--baseline", "{repo}/scripts/tests/fixtures/"
                               "review-panel/trial/mini-baseline.json", "--out",
-                              "{tmp}/trial.json"], {}, "trial-init"),
+                              "{tmp}/trial.json"], {}),
     Smoke("review-panel.py", ["trial-prepare", "--trial", "{tmp}/trial.json", "--yuss",
                               "{tmp}/yuss", "--story", "s/story-1", "--tmp-root",
                               "{tmp}/runs"], {}, "trial-prepare", panel_trial_setup),
-    Smoke("review-panel.py", ["tally", "--origin", "Claude Fable 5.1", "--primary",
-                              PANEL_FX + "primary-fail-ac23.md", "--reviewer",
-                              "gpt-5.6-sol-medium=" + PANEL_FX + "panel-ac23.md"], {}, "tally"),
     Smoke("review-panel.py", ["trial-report", "--trial", "{tmp}/trial.json"],
           {"trial.json": PANEL_TRIAL_KEEP}, "trial-report"),
     Smoke("scaffold-writ.py", ["scaffold", "--project", "{tmp}/proj"], {"proj/.keep": ""}),
