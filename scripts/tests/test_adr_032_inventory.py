@@ -62,17 +62,18 @@ INVENTORY_HEADER = ["Surface", "Fact it tries to establish",
 VERDICTS = ("keep", "replace", "demote", "remove")
 
 # One row per surface named in AC-1.2, with the verdict spec.md sets:
-# - keep: spec.md Scope Boundaries → Excluded (Gate 0, /security-audit,
+# - keep: spec.md Scope Boundaries → Excluded (Gate 0 arch check, /security-audit,
 #   visual-qa-agent, the Jev shadow, create-spec Step 2.6c, discovery prompts),
 #   and the reviewer filters, which spec.md → Amendment (2026-11-04) keeps on
 #   the removal trial's verdict.
-# - remove: spec.md Business Rules (Expanded) → Removals (the review panel).
+# - remove: spec.md Business Rules (Expanded) → Removals (the review panel), and
+#   Gate 0 divergence, which design-divergence Story 6 removed on 2026-11-04.
 # - demote: Gate 3 agents and /review stay, but an unbacked finding becomes
 #   advisory (spec.md Deliverable, Must Include 3 and 5).
 # - replace: the Safety Fact floor `traced` (a reading rung) becomes `tested`.
 EXPECTED_VERDICTS = (
     ("gate 0 architecture check", "keep"),
-    ("gate 0 divergence", "keep"),
+    ("gate 0 divergence", "remove"),  # design-divergence Story 6, merged a6a8e8c
     ("evaluator-agent", "demote"),
     ("review-agent", "demote"),
     ("reviewer filters", "keep"),
