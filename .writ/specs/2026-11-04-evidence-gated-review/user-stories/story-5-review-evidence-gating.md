@@ -1,6 +1,7 @@
 # Story 5: Evidence gating in `/review`
 
 > **Status:** Completed ✅ (2026-11-04)
+> **Commit:** 70163485a9d67a42e171570b9b6754dd05b577f4
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
