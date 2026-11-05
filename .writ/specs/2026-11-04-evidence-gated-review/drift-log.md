@@ -154,3 +154,69 @@
 - **Reason:** Cosmetic. Spec intent is preserved.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** technical-spec § Gate 3 Wiring: drop `--repo .` from the command and add `--timeout 60`. Add "`--repo` defaults to `.`; Gate 3 passes `--timeout 60` so five runs fit a 600 s tool call."
+
+---
+
+## Story 5: Evidence gating in `/review` — Drift Report
+
+> Run: 2026-11-04
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-012] A tree mutation on `/review` is run-level `unverifiable`, and the command stops on the reason
+- **Severity:** Small (Medium in iteration 1; the stop added in recode 1 restores BLOCKED)
+- **Spec said:** Contract Hardest Constraint: "the result is BLOCKED with `repro_mutated_tree`." technical-spec § CLI: line 1 `fail` when the tree changed, with that reason first.
+- **Implementation did:** `--surface review` prints `unverifiable` and `evidence-gate: unverifiable (repro_mutated_tree <paths>)` with that reason, exit 0, and no finding lines (`scripts/review-override.py:1393`). Step 4's first rule stops on the reason and holds back the Recommendation and `/ship` until the user decides (`commands/review.md:192`). "First rule that matches" is now pinned.
+- **Reason:** The contract's BLOCKED is a human gate keyed on the reason, as on Gate 3 (decision row 6), and the stop provides it. Only technical-spec § CLI's line-1 word differs.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI: "On `--surface review`, a tree change prints line 1 `unverifiable` with `reason: repro_mutated_tree <paths>` and no finding lines; `/review` stops on that reason until the user decides."
+
+#### [DEV-013] With no `Test Runner`, `/review` stays run-level unless a `security-path` row reaches confirmed or advisory
+- **Severity:** Small
+- **Spec said:** § /review: run-level `unverifiable` includes "`no_test_runner` with no `security-path` rows".
+- **Implementation did:** DEV-003's rule. A run whose `security-path` rows are all unverifiable stays run-level, and its severities stay as written. `test_no_test_runner_with_an_advisory_security_path_row` covers the advisory side (kills M24).
+- **Reason:** It is consistent with Gate 3. A broken citation does not flip every other row to gated.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** § /review: replace "`no_test_runner` with no `security-path` rows" with "`no_test_runner` when no `security-path` row reaches `confirmed` or `advisory`".
+
+#### [DEV-014] `/review` output form: line 2 is the header value, and finding lines end `; severity <mapped>`
+- **Severity:** Small
+- **Spec said:** technical-spec § CLI shows only the Gate 3 form. Task 5.5 gives no format for the mapped severity.
+- **Implementation did:** Line 2 is `evidence-gate: on|off|unverifiable (<reason>)`. Each `finding FM-NNN:` line ends `; severity <word>`, where the word is the cell's first word, or `Medium (unconfirmed)`.
+- **Reason:** Step 4 reads both mechanically, and the intent is kept.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI: "On `--surface review`, line 2 is `evidence-gate: on|off|unverifiable (<reason>)`, and each `finding FM-NNN:` line ends `; severity <mapped>`."
+
+#### [DEV-015] Registry and block binding rules the spec leaves open
+- **Severity:** Small
+- **Spec said:** technical-spec § /review form shows a block with its own Category. The spec does not say which Category wins, or what a repeated block or row does.
+- **Implementation did:** The block's Category wins, with the registry's as fallback, and the registry's Severity always wins. A second block for an ID adds `reason: extra_evidence FM-NNN`. A repeated registry row is dropped with `reason: duplicate_row FM-NNN`.
+- **Reason:** These follow the Gate 3 parsing rules, and the intent is kept.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § /review form: "The block's Category wins over the registry's; the registry's Severity always wins. A second block for an ID is ignored with `reason: extra_evidence FM-NNN`, and a repeated registry row with `reason: duplicate_row FM-NNN`."
+
+#### [DEV-016] `/review` always asks before the evidence run (`untrusted_branch`)
+- **Severity:** Medium
+- **Spec said:** § /review lists the run-level `unverifiable` reasons as `no_review_output`, `no_git`, and `no_test_runner`. It has no consent step.
+- **Implementation did:** Step 4 asks with AskQuestion before every run. A decline, a headless run, or no answer skips the run, writes `unverifiable (untrusted_branch)`, and leaves every severity as written (`commands/review.md:182`). The iteration-2 email rule (`%ae`, `user.email`, `<base>`) is removed.
+- **Reason:** The user decided twice on 2026-11-04. First, "ask unless it's yours". Then, after the forged-author finding, "always ask". This adds a behavior and a reason code the spec lacks. Issue 1 is its one open edge: the question also fires with the gate `off`.
+- **Resolution:** ⚠️ Medium — logged, PASS. User-approved on 2026-11-04 (two decisions: ask unless yours, then always ask).
+- **Spec amendment:** § /review: "With the evidence gate `on`, `/review` asks before every evidence run. A decline, a headless run, or no answer gives `unverifiable (untrusted_branch)`, and every severity stays as written."
+
+#### [DEV-017] `/review` passes `--timeout 60`
+- **Severity:** Small
+- **Spec said:** technical-spec § CLI default timeout is 120 s. DEV-011 set 60 s for Gate 3.
+- **Implementation did:** The Step 4 command passes `--timeout 60`, pinned by `test_step4_runs_evidence_on_the_draft_then_maps_severities`.
+- **Reason:** Five runs fit a 600 s tool call, as on Gate 3.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** technical-spec § CLI: "`/review` passes `--timeout 60`, as Gate 3 does (DEV-011)."
+
+#### [DEV-018] A confirmed repro was not committed: the user's decision overtook it
+- **Severity:** Medium
+- **Spec said:** Business Rules: the coder commits a confirmed repro byte for byte and never edits it; disputes go to the loop cap and then to the user.
+- **Implementation did:** The iteration-2 repro `scripts/tests/test_review_trust_rule_repro.py` was confirmed, but it asserted `"every commit"`, which encodes the email rule. The user then replaced that rule with always-ask. The orchestrator did not commit the repro. Its other intent (no answer or headless = decline) is pinned by `test_step4_always_asks_before_running_repros`, and the iteration-3 reviewer agreed.
+- **Reason:** A repro that asserts a rule the user removed cannot pass without restoring the removed rule. That is a user decision, not a coder dispute.
+- **Resolution:** ⚠️ Medium — logged, PASS.
+- **Spec amendment:** None. Story 4's re-review check (`repro_removed`) only covers repros listed in a manifest; this one never entered one.
+

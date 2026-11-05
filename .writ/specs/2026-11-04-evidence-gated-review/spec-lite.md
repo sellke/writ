@@ -27,6 +27,11 @@
 - The scoped command keeps `Test Runner` tokens through the runner word. pytest confirms only on exit 1 with `N failed`.
 - Gate 3 calls `evidence` with `--timeout 60` (five runs fit a 600 s tool call) and relies on the `--repo .` default (DEV-011).
 
+**Story 5 `/review` surface (DEV-012 to DEV-017):**
+- Keys are FM IDs; line 2 is `evidence-gate: <value>`; finding lines end `; severity <mapped>`. Block Category wins; first registry row per ID wins (`duplicate_row`).
+- A tree mutation is run-level `unverifiable (repro_mutated_tree …)`, and Step 4 stops before any Recommendation. `/review` passes `--timeout 60`.
+- `/review` always asks before a repro run; a decline, headless run, or no answer is `unverifiable (untrusted_branch)`. Gate `off` skips the question.
+
 **Error Handling:**
 - No `Test Runner` or no git → `unverifiable`, and the agent FAIL stands.
 - Collection error, timeout, unknown runner, or bad path → that finding is `unverifiable` (advisory).

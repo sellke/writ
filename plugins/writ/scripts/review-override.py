@@ -75,8 +75,19 @@ line 1 `fail`, stops later runs, and restores nothing. Prints line 1
 <a> advisory, <u> unverifiable)`. A run-level `unverifiable` (`switch_off`,
 `no_review_output`, `verdict_not_fail <verdict>`, `no_git`,
 `runner_not_found`, `no_test_runner`) prints no finding lines. Git runs are
-read-only. `--surface review`, `--prior`, and `--manifest-out` are accepted
-and do nothing yet. Exit 0 pass/unverifiable, 1 fail, 2 usage.
+read-only. `--prior` and `--manifest-out` are accepted and do nothing yet.
+Exit 0 pass/unverifiable, 1 fail, 2 usage.
+
+`--surface review` (Story 5) reads a `/review` report instead: the Failure
+Modes Registry rows, keyed by FM ID, each bound to its `#### FM-NNN` block
+under `## Evidence`. Critical and High rows are evaluated; any Category can
+confirm; there is no verdict check; `recorded` and `check` are `unverifiable
+kind_unavailable`. Line 2 is `evidence-gate: on|off|unverifiable (<reason>)`
+for the report header. Each finding line ends `; severity <mapped>`: an
+unconfirmed Critical or High row maps to `Medium (unconfirmed)`. A run-level
+`unverifiable`, a tree mutation included, prints no finding lines, so every
+severity stays as written. A registry row that repeats an FM ID is dropped
+with `reason: duplicate_row FM-NNN`.
 """
 
 from __future__ import annotations
@@ -588,6 +599,17 @@ AC_ID = re.compile(r"AC-\d+\.\d+")
 PLACEHOLDER_LOCATIONS = frozenset({"n/a", "na", "none", "-", "—", "–", "not applicable"})
 TRAILING_LINE_NO = re.compile(r":\d+(?:-\d+)?$")
 
+# `--surface review`: severities from the Failure Modes Registry table,
+# evidence from `#### FM-NNN` blocks under `## Evidence` (spec § /review).
+REVIEW_SEVERITIES = ("Critical", "High")  # no Major in /review; High counts as Major+
+REVIEW_UNAVAILABLE = ("recorded", "check")  # /review has no recorded run and no Gate 2
+UNCONFIRMED = "Medium (unconfirmed)"
+REGISTRY_HEADING = re.compile(r"^(#{1,6})\s*Failure Modes Registry\b", re.IGNORECASE)
+EVIDENCE_HEADING = re.compile(r"^(#{1,6})\s*Evidence\s*$", re.IGNORECASE)
+FM_HEADING = re.compile(r"^#{1,6}\s*(FM-\d+)\b", re.IGNORECASE)
+FM_ID = re.compile(r"^FM-\d+$", re.IGNORECASE)
+TABLE_RULE = re.compile(r"^\|?[\s:|-]+\|?$")
+
 TEST_RUNNER_LINE = re.compile(r"^[ \t]*-[ \t]*\*\*Test Runner:\*\*[ \t]*(.*)$", re.MULTILINE)
 RUNNER_NOTE = re.compile(r"\s+\(.*$")  # `jest (detected: package.json scripts.test)`
 RUNNER_WORDS = {"pytest": "pytest", "py.test": "pytest", "jest": "jest",
@@ -626,6 +648,7 @@ class Finding:
         self.block: Optional[str] = None   # the fenced file after a `test` Evidence field
         self.wants_block = False
         self.extra_evidence = False
+        self.bound = False  # /review: the registry row has an `#### FM-NNN` block
 
 
 class Outcome(NamedTuple):
@@ -654,12 +677,15 @@ def _evidence_parts(value: str) -> Tuple[str, str]:
     return parts[0].strip("*").lower(), (parts[1].strip() if len(parts) > 1 else "")
 
 
-def _evidence_findings(lines: Sequence[str]) -> List[Finding]:
-    """Issues under `### Issues Found` with their first Evidence field and, for
-    `test`, the first fenced block after it. Lines inside any fence are never
-    read as headings or fields, so a `# comment` in a repro is code."""
+def _evidence_findings(lines: Sequence[str], surface: str = "gate3") -> List[Finding]:
+    """Issues under `### Issues Found` (on `review`, `#### FM-NNN` blocks under
+    `## Evidence`) with their first Evidence field and, for `test`, the first
+    fenced block after it. Lines inside any fence are never read as headings
+    or fields, so a `# comment` in a repro is code."""
+    review = surface == "review"
+    section = EVIDENCE_HEADING if review else ISSUES_HEADING
     findings: List[Finding] = []
-    issues_level = 0  # heading depth of the open Issues Found section; 0 = outside
+    issues_level = 0  # heading depth of the open section; 0 = outside
     current: Optional[Finding] = None
     fence: Optional[Tuple[str, int, int]] = None  # (char, length, indent) of the open fence
     block: Optional[List[str]] = None
@@ -683,16 +709,19 @@ def _evidence_findings(lines: Sequence[str]) -> List[Finding]:
             continue
         heading = HEADING_LEVEL.match(line)
         if heading:
-            issues = ISSUES_HEADING.match(line)
+            issues = section.match(line)
             if issues:
                 issues_level = len(issues.group(1))
             elif issues_level and len(heading.group(1)) <= issues_level:
                 issues_level = 0
-            current = None
+            block_id = FM_HEADING.match(line) if review and issues_level else None
+            current = Finding(block_id.group(1).upper()) if block_id else None
+            if current is not None:
+                findings.append(current)
             continue
         if not issues_level:
             continue
-        start = ISSUE_START.match(line)
+        start = None if review else ISSUE_START.match(line)
         if start:
             current = Finding("F%d" % (len(findings) + 1))
             current.fields["issue"] = start.group(1)
@@ -728,6 +757,77 @@ def _normalize_location(raw: str) -> Optional[str]:
     if not path or path.lower() in PLACEHOLDER_LOCATIONS:
         return None
     return posixpath.normpath(path)
+
+
+def _registry_rows(lines: Sequence[str]) -> List[Tuple[str, str, str]]:
+    """(ID, Category, Severity) of each `FM-NNN` row in the Failure Modes
+    Registry table. Columns are found by header name, else taken as the first
+    three. Fenced lines are skipped."""
+    rows: List[Tuple[str, str, str]] = []
+    level = 0  # heading depth of the open registry section; 0 = outside
+    columns: Optional[Tuple[int, ...]] = None
+    fence = ""
+    for line in lines:
+        mark = FENCE.match(line)
+        if fence:
+            if (mark and mark.group(2)[0] == fence[0] and len(mark.group(2)) >= len(fence)
+                    and not mark.group(3).strip()):
+                fence = ""
+            continue
+        if mark:
+            fence = mark.group(2)
+            continue
+        heading = HEADING_LEVEL.match(line)
+        if heading:
+            opened = REGISTRY_HEADING.match(line)
+            if opened:
+                level, columns = len(opened.group(1)), None
+            elif level and len(heading.group(1)) <= level:
+                level = 0
+            continue
+        if not level or not line.lstrip().startswith("|") or TABLE_RULE.match(line.strip()):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if columns is None:  # the header row
+            names = [_word(cell) for cell in cells]
+            columns = tuple(names.index(name) if name in names else i
+                            for i, name in enumerate(("id", "category", "severity")))
+            continue
+        if len(cells) <= max(columns):
+            continue
+        key = re.sub(r"[`*_]", "", cells[columns[0]]).strip().upper()
+        if FM_ID.match(key):
+            rows.append((key, cells[columns[1]], cells[columns[2]]))
+    return rows
+
+
+def _review_findings(lines: Sequence[str]) -> Tuple[List[Finding], List[str]]:
+    """Registry rows in table order, each bound to the first `#### FM-NNN`
+    block with its ID, and the IDs of later rows that repeat an ID (dropped).
+    The registry gives the Severity; the block gives the Location and
+    Evidence, and its Category, when it has one, wins."""
+    blocks: Dict[str, Finding] = {}
+    for block in _evidence_findings(lines, surface="review"):
+        if block.key in blocks:
+            blocks[block.key].extra_evidence = True  # a second block for a row is ignored
+        else:
+            blocks[block.key] = block
+    findings: List[Finding] = []
+    duplicates: List[str] = []
+    for key, category, severity in _registry_rows(lines):
+        if any(f.key == key for f in findings):
+            duplicates.append(key)
+            continue
+        finding = Finding(key)
+        block = blocks.get(key)
+        if block is not None:
+            finding.fields.update(block.fields)
+            finding.block, finding.extra_evidence = block.block, block.extra_evidence
+            finding.bound = True
+        finding.fields["severity"] = severity
+        finding.fields.setdefault("category", category)
+        findings.append(finding)
+    return findings, duplicates
 
 
 def _rel(repo: Path, raw: str) -> Optional[str]:
@@ -1199,35 +1299,52 @@ def _read_checks(path: Optional[Path]) -> Optional[List[List[str]]]:
     return commands
 
 
-def _evidence_unverifiable(reason: str) -> int:
-    return _emit("unverifiable", [reason], "review-override evidence: unverifiable (%s)" % reason)
+def _evidence_unverifiable(reason: str, review: bool = False) -> int:
+    # On `--surface review`, line 2 is the `/review` header's evidence-gate value.
+    header: List[str] = []
+    if review:
+        state = "off" if reason == "switch_off" else "unverifiable (%s)" % reason
+        header = ["evidence-gate: %s" % state]
+    return _emit("unverifiable", [reason], "review-override evidence: unverifiable (%s)" % reason,
+                 details=header)
 
 
 def evidence(review_output: Path, repo: Path, changed: Sequence[str],
-             tests_output: Optional[Path], checks: Optional[Path], timeout: int) -> int:
+             tests_output: Optional[Path], checks: Optional[Path], timeout: int,
+             surface: str = "gate3") -> int:
     repo = repo.resolve()
+    review = surface == "review"
     if _resolve_switch("evidence-gate", repo)[0] == "off":
-        return _evidence_unverifiable("switch_off")
+        return _evidence_unverifiable("switch_off", review)
     text = _read_text(review_output)
     if text is None or not text.strip():
-        return _evidence_unverifiable("no_review_output")
-    match = VERDICT_LINE.search(text)
-    verdict = match.group(1).upper() if match else "none"
-    if verdict != "FAIL":
-        return _evidence_unverifiable("verdict_not_fail %s" % verdict)
+        return _evidence_unverifiable("no_review_output", review)
+    duplicates: List[str] = []  # /review registry rows that repeat an FM ID
+    if review:  # /review writes no verdict
+        findings, duplicates = _review_findings(text.splitlines())
+    else:
+        match = VERDICT_LINE.search(text)
+        verdict = match.group(1).upper() if match else "none"
+        if verdict != "FAIL":
+            return _evidence_unverifiable("verdict_not_fail %s" % verdict)
+        findings = _evidence_findings(text.splitlines())
 
-    findings = _evidence_findings(text.splitlines())
     change_set = {rel for rel in (_rel(repo, p) for p in changed) if rel}
+    blocking = REVIEW_SEVERITIES if review else BLOCKING_SEVERITIES
     outcomes: Dict[str, Outcome] = {}
     kinds: Dict[str, str] = {}  # evidence kind of each finding that passed selection
     for finding in findings:
         severity = _first_word(finding.fields.get("severity", "")).capitalize()
         location = _normalize_location(finding.fields.get("location", ""))
-        if severity not in BLOCKING_SEVERITIES:
+        if severity not in blocking:
             outcomes[finding.key] = Outcome("advisory", "low_severity %s" % (severity or "none"))
+        elif review and not finding.bound and change_set:
+            # A row with no block has no Location to test. With diff files it is
+            # just unevidenced; with none, nothing can be inside the diff.
+            kinds[finding.key] = ""
         elif location is None or location not in change_set:
             outcomes[finding.key] = Outcome("advisory", "location_outside_change_set")
-        elif not _has_claim(finding):
+        elif not review and not _has_claim(finding):  # on /review the evidence is the claim
             outcomes[finding.key] = Outcome("advisory", "no_claim")
         else:
             kinds[finding.key] = _evidence_parts(finding.fields.get("evidence", ""))[0]
@@ -1240,12 +1357,12 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
     # Project-level checks run before anything is written.
     needs_runner = runner is not None and "test" in kinds.values()
     top = None
-    if needs_runner or "check" in kinds.values():
+    if needs_runner or (not review and "check" in kinds.values()):
         top = _git_root(repo)
         if top is None:
-            return _evidence_unverifiable("no_git")
+            return _evidence_unverifiable("no_git", review)
     if needs_runner and not _executable(runner.base[0], repo):
-        return _evidence_unverifiable("runner_not_found")
+        return _evidence_unverifiable("runner_not_found", review)
 
     run = EvidenceRun(repo, top, change_set, runner, runner_reason, _read_checks(checks), timeout)
     tests_text = _read_text(tests_output)
@@ -1256,6 +1373,8 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
         rest = _evidence_parts(finding.fields.get("evidence", ""))[1]
         if kind == "":
             outcome = Outcome("advisory", "no_evidence")
+        elif review and kind in REVIEW_UNAVAILABLE:
+            outcome = Outcome("unverifiable", "kind_unavailable")
         elif kind == "recorded":
             outcome = _recorded_outcome(rest, tests_text)
         elif kind == "security-path":
@@ -1269,11 +1388,15 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
         else:
             outcome = Outcome("unverifiable", "unknown_kind %s" % kind)
         if outcome.state == "abort":
-            return _evidence_unverifiable(outcome.detail)
+            return _evidence_unverifiable(outcome.detail, review)
         outcomes[finding.key] = outcome
+    if review and run.mutated:
+        # No row's evidence can be trusted after the tree changed, so every
+        # severity stays as written, as on any run-level unverifiable.
+        return _evidence_unverifiable("repro_mutated_tree %s" % " ".join(run.mutated), review)
 
     counts = {"confirmed": 0, "advisory": 0, "unverifiable": 0}
-    lines: List[str] = []
+    lines: List[str] = ["evidence-gate: on"] if review else []
     reasons: List[str] = []
     for finding in findings:
         outcome = outcomes[finding.key]
@@ -1283,11 +1406,18 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
                  else "advisory (%s%s)" % (word, outcome.detail))
         location = _normalize_location(finding.fields.get("location", ""))
         at = " at %s" % location if location else ""
-        lines.append("finding %s: %s%s" % (finding.key, shown, at))
+        mapped = ""
+        if review:  # spec § /review: unconfirmed Critical and High become Medium (unconfirmed)
+            severity = _first_word(finding.fields.get("severity", "")).capitalize() or "none"
+            if severity in REVIEW_SEVERITIES and outcome.state != "confirmed":
+                severity = UNCONFIRMED
+            mapped = "; severity %s" % severity
+        lines.append("finding %s: %s%s%s" % (finding.key, shown, at, mapped))
         if finding.extra_evidence:
             reasons.append("extra_evidence %s" % finding.key)
         if outcome.state == "confirmed":
             reasons.append("confirmed %s" % finding.key)
+    reasons.extend("duplicate_row %s" % key for key in duplicates)
     if run.mutated:
         reasons.insert(0, "repro_mutated_tree %s" % " ".join(run.mutated))
     decided = any(kinds[key] in ("recorded", "check", "security-path")
@@ -1296,7 +1426,7 @@ def evidence(review_output: Path, repo: Path, changed: Sequence[str],
         verdict = "fail"
     elif not runner_value and kinds and not decided:
         # No Test Runner and nothing decided by another kind: the agent FAIL stands.
-        return _evidence_unverifiable("no_test_runner")
+        return _evidence_unverifiable("no_test_runner", review)
     else:
         verdict = "pass"
     summary = ("review-override evidence: %s (%d confirmed, %d advisory, %d unverifiable)"
@@ -1338,7 +1468,7 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--repo", type=Path, default=Path("."))
     e.add_argument("--changed", nargs="*", default=[])
     e.add_argument("--surface", choices=("gate3", "review"), default="gate3",
-                   help="`review` is accepted; it changes nothing yet")
+                   help="`review` reads a /review report (registry rows and FM-NNN blocks)")
     e.add_argument("--tests-output", type=Path, default=None)
     e.add_argument("--checks", type=Path, default=None)
     e.add_argument("--prior", type=Path, default=None, help="accepted; does nothing yet")
@@ -1362,7 +1492,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                            args.tests_output)
     if args.action == "evidence":
         return evidence(args.review_output, args.repo, args.changed, args.tests_output,
-                        args.checks, args.timeout)
+                        args.checks, args.timeout, args.surface)
     return check(args.spec, args.repo, args.story, args.new_files, args.tests)
 
 

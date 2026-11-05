@@ -675,5 +675,208 @@ class ReplayTest(unittest.TestCase):
                          ("FAIL", 5))
 
 
+# ---------------------------------------------------------------------------
+# Story 5: `/review` evidence gating. `commands/review.md` reads the skill
+# after the filters Read, records `#### FM-NNN` blocks, runs `evidence
+# --surface review` on the draft, and counts confirmed findings only. The
+# reviewer filters stay (spec.md → Amendment). [AC-5.2, AC-5.4, AC-5.5]
+# ---------------------------------------------------------------------------
+
+REVIEW_COMMAND = REPO_ROOT / "commands" / "review.md"
+REVIEW_GENERATED = ("cursor/plugin/commands/review.md", "plugins/writ/commands/review.md")
+FILTERS_PARAGRAPH = (
+    "Run `python3 scripts/review-override.py switch --name reviewer-filters` and keep "
+    "line 1 (`on` or `off`) for the Step 4 header. On `on`, "
+    "`Read skills/review-judgment-filters/SKILL.md` and apply it before Technique 4 "
+    "assigns severities and before the Recommendation."
+)
+FILTERS_HEADER = "> Reviewer filters: on|off"
+EVIDENCE_HEADER = "> Evidence gate: on|off|unverifiable (<reason>)"
+REVIEW_EVIDENCE_COMMAND = re.compile(r"python3 scripts/review-override\.py evidence [^`\n]*")
+UNCONFIRMED = "`Medium (unconfirmed)`"
+UNTRUSTED_HEADER = "`> Evidence gate: unverifiable (untrusted_branch)`"
+SKILL = REPO_ROOT / "skills" / "evidence-gated-findings" / "SKILL.md"
+
+
+class ReviewWiringTests(unittest.TestCase):
+    """`commands/review.md` wires the evidence gate beside the reviewer
+    filters. [AC-5.2, AC-5.4, AC-5.5]"""
+
+    def setUp(self) -> None:
+        self.text = read(REVIEW_COMMAND)
+        self.opening = slice_between(self.text, "### Step 3:", "#### Technique 1")
+        self.technique4 = slice_between(self.text, "#### Technique 4", "#### Technique 5")
+        self.step4 = slice_between(self.text, "### Step 4:", "### Step 5:")
+        self.completion = slice_between(self.text, "## Completion", "## References")
+        for name in ("opening", "technique4", "step4", "completion"):
+            self.assertTrue(getattr(self, name), "%s not found in commands/review.md" % name)
+
+    def template(self) -> List[str]:
+        """The Step 4 report template, between its markdown fence lines."""
+        lines = self.step4.splitlines()
+        start = lines.index("```markdown")
+        end = lines.index("```", start + 1)
+        return lines[start + 1:end]
+
+    def test_step3_reads_the_evidence_skill_after_the_filters_read(self) -> None:
+        """AC-5.5 — Step 3 resolves the `evidence-gate` switch and, on `on`,
+        reads the evidence skill, on a line after the filters Read."""
+        lines = self.opening.splitlines()
+        filters = [i for i, l in enumerate(lines) if "`Read skills/review-judgment-filters/" in l]
+        evidence = [i for i, l in enumerate(lines) if "`Read %s`" % SKILL_REL in l]
+        self.assertEqual(len(filters), 1, lines)
+        self.assertEqual(len(evidence), 1, lines)
+        self.assertLess(filters[0], evidence[0])
+        self.assertIn(SWITCH_COMMAND, lines[evidence[0]])
+        self.assertIn("On `on`", lines[evidence[0]])
+        self.assertEqual(len([l for l in self.text.splitlines() if SKILL_REL in l]), 1)
+
+    def test_filters_read_switch_line_and_header_sentence_stay(self) -> None:
+        """AC-5.5 — the `reviewer-filters` switch line, the filters Read, and
+        the sentence that feeds the Step 4 filters header are unchanged."""
+        self.assertIn(FILTERS_PARAGRAPH, self.opening.splitlines())
+
+    def test_header_has_both_lines_side_by_side(self) -> None:
+        """AC-5.4 — the template header carries `> Evidence gate:` on the line
+        after `> Reviewer filters:`, and Step 4 fills it from the run."""
+        template = self.template()
+        self.assertIn(FILTERS_HEADER, template)
+        self.assertIn(EVIDENCE_HEADER, template)
+        self.assertEqual(template.index(EVIDENCE_HEADER), template.index(FILTERS_HEADER) + 1)
+        self.assertIn("`> Evidence gate:`", self.step4)
+
+    def test_step4_runs_evidence_on_the_draft_then_maps_severities(self) -> None:
+        """AC-5.2, AC-5.4 — Step 4 writes the draft, runs `evidence --surface
+        review` on it with the diff files, then maps each row: unconfirmed
+        Critical or High rows become `Medium (unconfirmed)` and keep their ID
+        and description; a run-level `unverifiable` changes no severity."""
+        commands = REVIEW_EVIDENCE_COMMAND.findall(self.text)
+        self.assertEqual(len(commands), 1, commands)
+        tokens = shlex.split(commands[0])
+        self.assertEqual(tokens[tokens.index("--surface") + 1], "review")
+        self.assertEqual(tokens[tokens.index("--review-output") + 1],
+                         ".writ/state/review-[branch-name].md")
+        self.assertEqual(tokens[tokens.index("--timeout") + 1], "60")
+        self.assertTrue(commands[0].endswith(" --changed <diff files>"), commands[0])
+        flat = " ".join(self.step4.split())
+        self.assertIn("the Step 1 scope's changed files as `<diff files>`", flat)
+        draft = flat.index("draft")
+        run = flat.index(commands[0])
+        mapping = flat.index(UNCONFIRMED)
+        template = flat.index("```markdown")
+        self.assertLess(draft, run)
+        self.assertLess(run, mapping)
+        self.assertLess(mapping, template)
+        self.assertIn("keeps its ID and description", flat)
+        self.assertRegex(flat, r"`unverifiable`: leave every severity as written")
+        self.assertRegex(flat, r"Summary line .*after this step")
+
+    def test_report_template_has_the_evidence_section_after_the_registry(self) -> None:
+        """AC-5.5 — the template's `## Evidence` section sits between the
+        Failure Modes Registry and the Recommendation."""
+        headings = [l for l in self.template() if l.startswith("## ")]
+        for heading in ("## Failure Modes Registry", "## Evidence", "## Recommendation"):
+            self.assertIn(heading, headings)
+        self.assertEqual(headings.index("## Evidence"),
+                         headings.index("## Failure Modes Registry") + 1)
+        self.assertEqual(headings.index("## Recommendation"), headings.index("## Evidence") + 1)
+
+    def test_technique4_records_one_block_per_critical_or_high_row(self) -> None:
+        """AC-5.2 — Technique 4 records one `#### FM-NNN` block per Critical or
+        High row under `## Evidence`; any category can confirm, only `test` and
+        `security-path` apply, and the Location must be in the diff."""
+        flat = " ".join(self.technique4.split())
+        for phrase in ("`#### FM-NNN`", "`## Evidence`", "Critical or High row",
+                       "read High where the skill says Major",
+                       "Any category can confirm", "`test` and `security-path`",
+                       "a file in the diff", UNCONFIRMED):
+            self.assertIn(phrase, flat)
+
+    def test_recommendation_and_outcome_table_count_confirmed_findings(self) -> None:
+        """AC-5.2, AC-5.5 — the Recommendation and every Outcome row count
+        confirmed findings only; with none, the report is ready to ship and
+        lists the `Medium (unconfirmed)` rows as worth a look."""
+        recommendation = [l for l in self.step4.splitlines()
+                          if l.startswith("**Recommendation section:**")]
+        self.assertEqual(len(recommendation), 1)
+        for phrase in ("confirmed", UNCONFIRMED, "worth a look", "ready to ship"):
+            self.assertIn(phrase, recommendation[0])
+        outcome = slice_between(self.completion, "**Outcome interpretation", "A review with zero")
+        self.assertIn("evidence step", outcome.splitlines()[0])
+        rows = {r[1].split(" — ")[0]: r[0] for r in table_rows(outcome)}
+        self.assertEqual(sorted(rows), ["Code is ready to ship", "Do not ship", "Ship with caution"])
+        for result, findings in rows.items():
+            self.assertIn("confirmed", findings.lower(), result)
+        self.assertIn("critical", rows["Do not ship"].lower())
+        self.assertIn("high", rows["Ship with caution"].lower())
+        ready = [r for r in table_rows(outcome) if r[1].startswith("Code is ready to ship")][0]
+        self.assertIn(UNCONFIRMED, ready[1])
+        self.assertIn("worth a look", ready[1])
+
+    def test_step4_always_asks_before_running_repros(self) -> None:
+        """AC-5.4 — before every run, Step 4 asks with AskQuestion, saying the
+        branch's own test code runs in the user's working tree. A decline, a
+        headless run where nobody can be asked, or no answer each skip the run,
+        write `untrusted_branch` in the header, and leave every severity as
+        written. No author-email rule remains."""
+        flat = " ".join(self.step4.split())
+        before = flat[:flat.index(REVIEW_EVIDENCE_COMMAND.findall(self.text)[0])]
+        self.assertIn("Before every run, ask with AskQuestion", before)
+        ask = before[before.index("AskQuestion"):]
+        self.assertIn("the branch's own test code in the user's working tree", ask)
+        sentence = [s for s in re.split(r"(?<=\.) ", before) if UNTRUSTED_HEADER in s]
+        self.assertEqual(len(sentence), 1, before)
+        for phrase in ("declines", "headless", "no answer", "skip the run",
+                       "leave every severity as written"):
+            self.assertIn(phrase, sentence[0])
+        for gone in ("%ae", "user.email", "<base>"):
+            self.assertNotIn(gone, self.step4)
+
+    def test_step4_stops_on_a_tree_mutation(self) -> None:
+        """AC-5.4 — a `repro_mutated_tree` result stops `/review` before the
+        `unverifiable` rule: the user is told what changed and that nothing was
+        restored, and no Recommendation or `/ship` follows until they decide."""
+        bullets = [l for l in self.step4.splitlines() if l.startswith("- ")]
+        mutation = [i for i, l in enumerate(bullets) if l.startswith("- `reason: repro_mutated_tree")]
+        unverifiable = [i for i, l in enumerate(bullets) if l.startswith("- `unverifiable`")]
+        self.assertEqual(len(mutation), 1, bullets)
+        self.assertEqual(len(unverifiable), 1, bullets)
+        self.assertLess(mutation[0], unverifiable[0])
+        line = bullets[mutation[0]]
+        for phrase in ("stop", "nothing was restored", "Recommendation", "`/ship`"):
+            self.assertIn(phrase, line)
+        # Line 1 is `unverifiable` on a mutation, so the order decides the rule.
+        self.assertIn("apply the first rule that matches", self.step4)
+
+    def test_gate_off_or_unverifiable_counts_rows_as_written(self) -> None:
+        """AC-5.4 — with the gate `off` or `unverifiable`, the Recommendation and
+        the Outcome table count every Critical and High row as written."""
+        recommendation = [l for l in self.step4.splitlines()
+                          if l.startswith("**Recommendation section:**")][0]
+        outcome = slice_between(self.completion, "**Outcome interpretation", "A review with zero")
+        for text in (recommendation, " ".join(outcome.split())):
+            self.assertRegex(text, r"`off` or `unverifiable`, every Critical and High row "
+                                   r"counts as written")
+
+    def test_skill_names_kind_unavailable_and_defers_to_review(self) -> None:
+        """AC-5.5 — the evidence skill lists `kind_unavailable` in its reason
+        table and says `/review` has its own blocking rules in its command."""
+        text = read(SKILL)
+        self.assertRegex(text, r"(?m)^\| `kind_unavailable` \| ")
+        blocking = slice_between(text, "### Which findings can block", "### ")
+        self.assertIn("`/review`", blocking)
+        self.assertIn("`commands/review.md`", blocking)
+
+    def test_generated_copies_carry_the_wiring(self) -> None:
+        """AC-5.4, AC-5.5 — the regenerated command copies carry the evidence
+        Read, the run, and both header lines."""
+        for rel in REVIEW_GENERATED:
+            text = read(REPO_ROOT / rel)
+            self.assertIn(SKILL_REL, text, rel)
+            self.assertIn("review-override.py evidence --surface review", text, rel)
+            self.assertIn(FILTERS_HEADER, text, rel)
+            self.assertIn(EVIDENCE_HEADER, text, rel)
+
+
 if __name__ == "__main__":
     unittest.main()

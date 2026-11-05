@@ -181,15 +181,23 @@ prints the state.
 - **Evidence Gate:** off
 ```
 
-`- **Evidence Gate:** on|off` turns off evidence gating for the whole story.
-With the gate on, a Gate 3 or `/review` finding blocks only when it carries
-executed evidence (`skills/evidence-gated-findings/SKILL.md`). With `off`, the
-reviewer's verdict blocks as written, and the evidence step runs nothing. It
-follows the same rules as `Safety Fact`: no line, an empty value, or `on`
-means on; only `off` in any case turns it off; any other value means on with
-`reason: malformed_value <value>`. The key must match the case shown.
+`- **Evidence Gate:** on|off` turns off evidence gating for a whole story or
+`/review` run. With the gate on, a Gate 3 or `/review` finding blocks only when
+it carries executed evidence (`skills/evidence-gated-findings/SKILL.md`). With
+`off`, the reviewer's verdict blocks as written, and the evidence step runs
+nothing. It follows the same rules as `Safety Fact`: no line, an empty value,
+or `on` means on; only `off` in any case turns it off; any other value means on
+with `reason: malformed_value <value>`. The key must match the case shown.
 `python3 scripts/review-override.py switch --name evidence-gate --repo .`
 prints the state.
+
+On `/review`, a Critical or High finding without confirmed evidence reads
+`Medium (unconfirmed)`, so it cannot make the Recommendation "Do not ship" or
+"Ship with caution". `/review` asks before it runs the branch's test code. A
+decline, a headless run, or no answer writes
+`> Evidence gate: unverifiable (untrusted_branch)` and leaves every severity as
+written. With `off`, `/review` asks nothing, downgrades no finding, and writes
+`> Evidence gate: off`.
 
 ## Repro First
 

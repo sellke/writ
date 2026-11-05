@@ -1621,7 +1621,8 @@ class EvidenceEnvelopeTests(EvidenceTestCase):
 
     def test_known_surfaces_and_later_story_flags_parse(self) -> None:
         """AC-2.2 — `--surface gate3|review`, `--manifest-out`, `--prior`, and
-        `--timeout` parse; the manifest flags write nothing yet."""
+        `--timeout` parse; the manifest flags write nothing yet. `review`
+        (Story 5) adds its header line and finds no registry here."""
         for case in ("gate3", "review", "manifest"):
             with self.subTest(case=case), TemporaryDirectory() as tmp:
                 root = Path(tmp)
@@ -1631,7 +1632,8 @@ class EvidenceEnvelopeTests(EvidenceTestCase):
                     "--manifest-out", str(out / "evidence.json"),
                     "--prior", str(out / "prior.json"), "--timeout", "30")
                 proc = _ev_run(root, repo, _ev_review(), extra=extra)
-                self.assert_output(proc, ["pass", _ev_summary("pass", 0, 0, 0)])
+                header = ["evidence-gate: on"] if case == "review" else []
+                self.assert_output(proc, ["pass"] + header + [_ev_summary("pass", 0, 0, 0)])
                 self.assertFalse(out.exists())
 
     def test_missing_review_file_is_no_review_output(self) -> None:
@@ -2526,6 +2528,429 @@ class EvidenceTreeSnapshotTests(EvidenceTestCase):
             self.assertEqual((repo / ".git" / "index").read_bytes(), index)
             self.assertEqual(_ev_git(repo, "rev-parse", "HEAD"), head)
             self.assertEqual(_ev_git(repo, *status_args), status)
+
+
+# ---------------------------------------------------------------------------
+# Story 5 of `2026-11-04-evidence-gated-review`: `evidence --surface review`
+# reads a `/review` report. Severities come from the Failure Modes Registry
+# table and evidence from `#### FM-NNN` blocks under `## Evidence`. Line 2 is
+# the report header's `evidence-gate:` value, and each finding line ends with
+# the row's mapped severity. Same fixture project and stubs as Story 2.
+# [AC-5.1, AC-5.2, AC-5.3, AC-5.4]
+# ---------------------------------------------------------------------------
+
+RV_UNCONFIRMED = "Medium (unconfirmed)"
+RV_SECURITY = "security-path source `src/routes.py:5` sink `src/limits.py:3`"
+RV_SECURITY_SHOWN = "security-path source src/routes.py:5 sink src/limits.py:3"
+RV_REGISTRY_HEADER = "| ID | Category | Severity | Description | Status |"
+
+
+def _rv_block(fm: str, *, location: str | None = EV_LOCATION, category: str | None = None,
+              evidence: str | None = None, block: str | None = None, indent: str = "  ",
+              severity: str | None = None) -> list:
+    """One `#### FM-NNN` evidence block; `block` is the fenced file after Evidence."""
+    lines = ["#### %s" % fm]
+    if location is not None:
+        lines.append("- **Location:** %s" % location)
+    if severity is not None:
+        lines.append("- **Severity:** %s" % severity)
+    if category is not None:
+        lines.append("- **Category:** %s" % category)
+    if evidence is not None:
+        lines.append("- **Evidence:** %s" % evidence)
+    if block is not None:
+        lines.append(indent + "```python")
+        lines.extend((indent + ln) if ln else "" for ln in block.splitlines())
+        lines.append(indent + "```")
+    return lines + [""]
+
+
+def _rv_test(fm: str, path: str = EV_REPRO, content: str = EV_REPRO_FAIL, **kwargs) -> list:
+    return _rv_block(fm, evidence="test `%s`" % path, block=content, **kwargs)
+
+
+def _rv_report(rows: tuple, *blocks: list, evidence_heading: str | None = "## Evidence",
+               table: list | None = None, verdict: str | None = None) -> str:
+    """A `/review` report. `rows` are (ID, Category, Severity); `table`
+    replaces the whole registry table when a test needs other columns."""
+    lines = ["# Code Review: feature", "", "> Reviewed: 2026-11-04", "> Reviewer filters: on", ""]
+    if verdict is not None:
+        lines += ["### REVIEW_RESULT: %s" % verdict, ""]
+    lines += ["## Failure Modes Registry", ""]
+    if table is None:
+        table = [RV_REGISTRY_HEADER, "|---|---|---|---|---|"]
+        table += ["| %s | %s | %s | Fixture finding %s | Unresolved |" % (fm, category, severity, fm)
+                  for fm, category, severity in rows]
+    lines += table + ["**Summary:** fixture", ""]
+    if evidence_heading is not None:
+        lines += [evidence_heading, ""]
+        for block in blocks:
+            lines += block
+    lines += ["## Recommendation", "", "Draft.", ""]
+    return "\n".join(lines) + "\n"
+
+
+def _rv_output(verdict: str, findings: list, reasons: list, counts: tuple) -> list:
+    """Expected `--surface review` output for a run that evaluated the rows."""
+    return ([verdict, "evidence-gate: on"] + ["finding %s: %s" % pair for pair in findings]
+            + ["reason: %s" % reason for reason in reasons] + [_ev_summary(verdict, *counts)])
+
+
+def _rv_unverifiable(reason: str, header: str | None = None) -> list:
+    """Expected run-level output: no finding lines, so no row is downgraded."""
+    return ["unverifiable", "evidence-gate: %s" % (header or "unverifiable (%s)" % reason),
+            "reason: %s" % reason, "review-override evidence: unverifiable (%s)" % reason]
+
+
+class ReviewSurfaceTestCase(EvidenceTestCase):
+    """Runs `evidence --surface review` on a `/review` report in a temp git repo."""
+
+    def assert_finding(self, proc: subprocess.CompletedProcess, key: str, text: str) -> None:
+        found = dict(re.findall(r"(?m)^finding (FM-\d+): (.*)$", proc.stdout))
+        self.assertEqual(found.get(key), text, proc.stdout + proc.stderr)
+
+    def run_review(self, report: str | None, *, runner: str | None = EV_PYTEST,
+                   lines: tuple = (), git: bool = True, changed: tuple = ("src/limits.py",),
+                   tests: str | None = None, checks: str | None = None, **env: str) -> tuple:
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = _ev_repo(root, runner=runner, lines=lines, git=git)
+            argv = root / "argv.jsonl"
+            proc = _ev_run(root, repo, report, changed=changed, tests=tests, checks=checks,
+                           extra=("--surface", "review"),
+                           env=_ev_env(STUB_ARGV=str(argv), GIT_CEILING_DIRECTORIES=str(root),
+                                       **env))
+            leftovers = sorted(p.relative_to(repo).as_posix() for p in repo.rglob("*")
+                               if ".git" not in p.relative_to(repo).parts
+                               and "__pycache__" not in p.parts)
+            return proc, _ev_argv(argv), leftovers
+
+
+class ReviewSurfaceParseTests(ReviewSurfaceTestCase):
+    """Story 5 of `2026-11-04-evidence-gated-review` — the registry table and
+    `#### FM-NNN` block parse on `--surface review`. [AC-5.1]"""
+
+    def test_severity_column_is_read(self) -> None:
+        """AC-5.1 — each row's Severity cell decides whether it is evaluated:
+        a Critical or High row with no block maps to `Medium (unconfirmed)`, a
+        Medium or Low row keeps its severity; every row keeps its ID."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Shadow path", "**High**"),
+                ("FM-003", "Interaction", "Medium"), ("FM-004", "Error handling", "Low"))
+        proc, runs, _ = self.run_review(_rv_report(rows))
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED),
+            ("FM-002", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED),
+            ("FM-003", "advisory (low_severity Medium); severity Medium"),
+            ("FM-004", "advisory (low_severity Low); severity Low"),
+        ], [], (0, 4, 0)))
+
+    def test_columns_are_found_by_header_name(self) -> None:
+        """AC-5.1 — the ID and Severity columns are found by header name, in
+        any order, and a row whose ID cell is not `FM-NNN` is skipped."""
+        table = ["| Severity | ID | Description | Category |", "|---|---|---|---|",
+                 "| Low | FM-001 | x | Error handling |", "| Critical | `FM-002` | y | Error handling |",
+                 "| Critical | total | z | Error handling |"]
+        proc, runs, _ = self.run_review(
+            _rv_report((), _rv_test("FM-002", "src/limits.test.js"), table=table), runner="jest")
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "advisory (low_severity Low); severity Low"),
+            ("FM-002", "confirmed (test src/limits.test.js, exit 1)%s; severity Critical" % EV_AT),
+        ], ["confirmed FM-002"], (1, 1, 0)))
+
+    def test_block_binds_to_its_row_by_id(self) -> None:
+        """AC-5.1 — `#### FM-NNN` blocks bind to their rows by ID, in any
+        order; a block whose ID has no registry row is ignored, and a second
+        block for one row is ignored with `extra_evidence FM-NNN`."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Security", "High"))
+        proc, runs, leftovers = self.run_review(_rv_report(
+            rows,
+            _rv_block("FM-009", category="security", evidence=RV_SECURITY),
+            _rv_block("FM-002", category="security", evidence=RV_SECURITY),
+            _rv_test("FM-001", content=EV_REPRO_PASS),
+            _rv_test("FM-002", "tests/test_second.py")))
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "advisory (repro_passed)%s; severity %s" % (EV_AT, RV_UNCONFIRMED)),
+            ("FM-002", "confirmed (%s)%s; severity High" % (RV_SECURITY_SHOWN, EV_AT)),
+        ], ["extra_evidence FM-002", "confirmed FM-002"], (1, 1, 0)))
+        self.assertNotIn(EV_REPRO, leftovers)
+
+    def test_row_without_a_block_is_no_evidence(self) -> None:
+        """AC-5.1 — a Critical or High row with no block, or with a block that
+        has no Evidence field, is `advisory (no_evidence)`; a block outside
+        `## Evidence` binds to nothing."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Shadow path", "High"))
+        proc, runs, _ = self.run_review(_rv_report(rows, _rv_block("FM-002")))
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED),
+            ("FM-002", "advisory (no_evidence)%s; severity %s" % (EV_AT, RV_UNCONFIRMED)),
+        ], [], (0, 2, 0)))
+        proc, runs, _ = self.run_review(_rv_report(
+            rows, _rv_test("FM-001", "src/limits.test.js"), evidence_heading="## Notes"),
+            runner="jest")
+        self.assert_finding(proc, "FM-001", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED)
+        self.assertEqual(runs, [])
+
+    def test_only_critical_and_high_rows_run(self) -> None:
+        """AC-5.1 — Medium, Low, and Major (not a `/review` severity) rows never
+        run, even with a failing repro; Critical and High rows do."""
+        severities = ("Medium", "Low", "Major", "Critical", "High")
+        rows = tuple(("FM-00%d" % n, "Error handling", s) for n, s in enumerate(severities, 1))
+        blocks = [_rv_test("FM-00%d" % n, "src/a%d.test.js" % n) for n in range(1, 6)]
+        proc, runs, _ = self.run_review(_rv_report(rows, *blocks), runner="jest")
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "advisory (low_severity Medium)%s; severity Medium" % EV_AT),
+            ("FM-002", "advisory (low_severity Low)%s; severity Low" % EV_AT),
+            ("FM-003", "advisory (low_severity Major)%s; severity Major" % EV_AT),
+            ("FM-004", "confirmed (test src/a4.test.js, exit 1)%s; severity Critical" % EV_AT),
+            ("FM-005", "confirmed (test src/a5.test.js, exit 1)%s; severity High" % EV_AT),
+        ], ["confirmed FM-004", "confirmed FM-005"], (2, 3, 0)))
+        self.assertEqual(runs, [["src/a4.test.js"], ["src/a5.test.js"]])
+
+    def test_empty_changed_is_location_outside_change_set(self) -> None:
+        """AC-5.1 — with no diff files, every Critical and High row, with a
+        block or without one, is `advisory (location_outside_change_set)` and
+        nothing runs (Error & Rescue Map, `/review` row). With diff files, a
+        block whose Location is not among them is outside too."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Shadow path", "High"),
+                ("FM-003", "Security", "Critical"))
+        report = _rv_report(rows, _rv_test("FM-001", "src/limits.test.js"),
+                            _rv_block("FM-003", category="security", evidence=RV_SECURITY))
+        proc, runs, _ = self.run_review(report, runner="jest", changed=())
+        outside = "advisory (location_outside_change_set)"
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "%s%s; severity %s" % (outside, EV_AT, RV_UNCONFIRMED)),
+            ("FM-002", "%s; severity %s" % (outside, RV_UNCONFIRMED)),
+            ("FM-003", "%s%s; severity %s" % (outside, EV_AT, RV_UNCONFIRMED)),
+        ], [], (0, 3, 0)))
+        self.assertEqual(runs, [])
+        proc, runs, _ = self.run_review(report, runner="jest", changed=("src/routes.py",))
+        self.assert_finding(proc, "FM-001", "%s%s; severity %s" % (outside, EV_AT, RV_UNCONFIRMED))
+        self.assert_finding(proc, "FM-002", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED)
+        self.assertEqual(runs, [])
+
+    def test_report_without_a_registry_passes_with_zero_counts(self) -> None:
+        """AC-5.1 — no Failure Modes Registry, or one with no rows: `pass`,
+        `0 confirmed, 0 advisory, 0 unverifiable`."""
+        for report in ("# Code Review: feature\n\nNo failure modes in scope.\n", _rv_report(())):
+            with self.subTest(report=report[:40]):
+                proc, runs, _ = self.run_review(report)
+                self.assert_output(proc, _rv_output("pass", [], [], (0, 0, 0)))
+
+    def test_duplicate_registry_row_keeps_the_first(self) -> None:
+        """AC-5.1 — a second registry row with the same FM ID is dropped with
+        `reason: duplicate_row FM-NNN`; the first row keeps its outcome."""
+        rows = (("FM-001", "Security", "Critical"), ("FM-001", "Error handling", "Low"),
+                ("FM-001", "Error handling", "High"))
+        proc, runs, _ = self.run_review(_rv_report(rows, _rv_block("FM-001", evidence=RV_SECURITY)))
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "confirmed (%s)%s; severity Critical" % (RV_SECURITY_SHOWN, EV_AT)),
+        ], ["confirmed FM-001", "duplicate_row FM-001", "duplicate_row FM-001"], (1, 0, 0)))
+
+    def test_registry_severity_wins_over_a_block_severity(self) -> None:
+        """AC-5.1 — a block's own `**Severity:** Critical` does not lift a
+        Medium registry row: it stays `low_severity Medium` and never runs."""
+        rows = (("FM-001", "Error handling", "Medium"),)
+        proc, runs, _ = self.run_review(_rv_report(
+            rows, _rv_test("FM-001", "src/limits.test.js", severity="Critical")), runner="jest")
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "advisory (low_severity Medium)%s; severity Medium" % EV_AT),
+        ], [], (0, 1, 0)))
+        self.assertEqual(runs, [])
+
+    def test_fenced_registry_lines_are_not_rows(self) -> None:
+        """AC-5.1 — a table line inside a fence in the registry section is not
+        a row."""
+        table = [RV_REGISTRY_HEADER, "|---|---|---|---|---|",
+                 "| FM-001 | Error handling | Low | x | Unresolved |", "```",
+                 "| FM-009 | Error handling | Critical | y | Unresolved |", "```"]
+        proc, runs, _ = self.run_review(_rv_report((), table=table))
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "advisory (low_severity Low); severity Low"),
+        ], [], (0, 1, 0)))
+
+    def test_mapped_severity_prints_the_word_not_the_cell(self) -> None:
+        """AC-5.1 — a bold `**High**` cell that confirms prints `severity High`,
+        and a bold `**Low**` cell prints `severity Low`."""
+        rows = (("FM-001", "Security", "**High**"), ("FM-002", "Error handling", "**Low**"))
+        proc, runs, _ = self.run_review(_rv_report(rows, _rv_block("FM-001", evidence=RV_SECURITY)))
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "confirmed (%s)%s; severity High" % (RV_SECURITY_SHOWN, EV_AT)),
+            ("FM-002", "advisory (low_severity Low); severity Low"),
+        ], ["confirmed FM-001"], (1, 1, 0)))
+
+    def test_fenced_lines_never_open_a_block(self) -> None:
+        """AC-5.1 — a `# FM-002` comment inside an unindented repro is code: it
+        neither opens a block nor ends the Evidence section."""
+        content = "# FM-002 is the same bug\n" + EV_REPRO_FAIL
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Error handling", "High"))
+        proc, runs, _ = self.run_review(_rv_report(rows, _rv_test("FM-001", content=content,
+                                                                  indent="")))
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "confirmed (test %s, exit 1)%s; severity Critical" % (EV_REPRO, EV_AT)),
+            ("FM-002", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED),
+        ], ["confirmed FM-001"], (1, 1, 0)))
+
+
+class ReviewSurfaceMappingTests(ReviewSurfaceTestCase):
+    """Story 5 of `2026-11-04-evidence-gated-review` — the kind rules, the
+    per-row mapped severity, and the switch on `--surface review`.
+    [AC-5.2, AC-5.3, AC-5.4]"""
+
+    def test_confirmed_test_row_keeps_its_severity(self) -> None:
+        """AC-5.2 — a real pytest repro that fails confirms a Critical row with
+        Category `Error handling`; the row keeps its severity, line 1 is
+        `fail`, exit 1, and the repro is deleted."""
+        rows = (("FM-001", "Error handling", "Critical"),)
+        proc, runs, leftovers = self.run_review(_rv_report(rows, _rv_test("FM-001")))
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "confirmed (test %s, exit 1)%s; severity Critical" % (EV_REPRO, EV_AT)),
+        ], ["confirmed FM-001"], (1, 0, 0)))
+        self.assertNotIn(EV_REPRO, leftovers)
+        self.assertNotIn("tests", leftovers)
+
+    def test_no_row_reports_no_claim(self) -> None:
+        """AC-5.2 — rows carry no AC IDs, and any category can confirm: no row
+        reports `no_claim` on this surface."""
+        for category in ("Shadow path", "Interaction", "Architecture", "taste", ""):
+            with self.subTest(category=category):
+                rows = (("FM-001", category, "High"),)
+                proc, runs, _ = self.run_review(
+                    _rv_report(rows, _rv_test("FM-001", "src/limits.test.js")), runner="jest")
+                self.assertNotIn("no_claim", proc.stdout)
+                self.assert_finding(proc, "FM-001", "confirmed (test src/limits.test.js, exit 1)"
+                                                    "%s; severity High" % EV_AT)
+
+    def test_unconfirmed_rows_map_to_medium_unconfirmed(self) -> None:
+        """AC-5.1, AC-5.2 — a passing repro and a per-row unverifiable both map a
+        Critical or High row to `Medium (unconfirmed)`; line 1 `pass`, exit 0."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Shadow path", "High"),
+                ("FM-003", "Interaction", "Critical"))
+        proc, runs, _ = self.run_review(_rv_report(
+            rows, _rv_test("FM-001", content=EV_REPRO_PASS),
+            _rv_test("FM-002", "src/repro.py"),
+            _rv_block("FM-003", evidence="screenshot `shot.png`")))
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "advisory (repro_passed)%s; severity %s" % (EV_AT, RV_UNCONFIRMED)),
+            ("FM-002", "advisory (unverifiable not_a_test_path)%s; severity %s"
+             % (EV_AT, RV_UNCONFIRMED)),
+            ("FM-003", "advisory (unverifiable unknown_kind screenshot)%s; severity %s"
+             % (EV_AT, RV_UNCONFIRMED)),
+        ], [], (0, 1, 2)))
+
+    def test_recorded_and_check_are_kind_unavailable(self) -> None:
+        """AC-5.3 — `recorded` and `check` blocks are `unverifiable
+        kind_unavailable` and map to `Medium (unconfirmed)`, even with a failing
+        recorded run and a recorded Gate 2 command; nothing runs."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Shadow path", "High"))
+        report = _rv_report(rows,
+                            _rv_block("FM-001", evidence="recorded `tests/test_limits.py::test_neg`"),
+                            _rv_block("FM-002", evidence="check `lint src/limits.py`"))
+        tests = "command: pytest\nexit code: 1\nFAILED tests/test_limits.py::test_neg\n"
+        proc, runs, _ = self.run_review(report, runner="jest", tests=tests, checks="lint\n",
+                                        STUB_MODE="names")
+        unavailable = "advisory (unverifiable kind_unavailable)%s; severity %s" % (EV_AT,
+                                                                                   RV_UNCONFIRMED)
+        self.assert_output(proc, _rv_output("pass", [("FM-001", unavailable),
+                                                     ("FM-002", unavailable)], [], (0, 0, 2)))
+        self.assertEqual(runs, [])
+
+    def test_security_path_confirms_a_high_row(self) -> None:
+        """AC-5.3 — `security-path` confirms a High row (High counts as Major+).
+        The block's Category is used, or the registry's when the block has
+        none, and it must be security."""
+        rows = (("FM-001", "Security", "High"), ("FM-002", "Error handling", "High"),
+                ("FM-003", "Error handling", "Critical"))
+        proc, runs, _ = self.run_review(_rv_report(
+            rows, _rv_block("FM-001", evidence=RV_SECURITY),
+            _rv_block("FM-002", evidence=RV_SECURITY),
+            _rv_block("FM-003", category="security", evidence=RV_SECURITY)))
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "confirmed (%s)%s; severity High" % (RV_SECURITY_SHOWN, EV_AT)),
+            ("FM-002", "advisory (unverifiable not_security)%s; severity %s"
+             % (EV_AT, RV_UNCONFIRMED)),
+            ("FM-003", "confirmed (%s)%s; severity Critical" % (RV_SECURITY_SHOWN, EV_AT)),
+        ], ["confirmed FM-001", "confirmed FM-003"], (2, 0, 1)))
+
+    def test_no_verdict_check_on_this_surface(self) -> None:
+        """AC-5.2 — `/review` writes no verdict: a report with no verdict line,
+        or with a PASS line, is still evaluated."""
+        rows = (("FM-001", "Error handling", "Critical"),)
+        for verdict in (None, "PASS"):
+            with self.subTest(verdict=verdict):
+                proc, runs, _ = self.run_review(_rv_report(
+                    rows, _rv_test("FM-001", "src/limits.test.js"), verdict=verdict), runner="jest")
+                self.assert_output(proc, _rv_output("fail", [
+                    ("FM-001", "confirmed (test src/limits.test.js, exit 1)%s; severity Critical"
+                     % EV_AT)], ["confirmed FM-001"], (1, 0, 0)))
+
+    def test_switch_off_prints_off_and_runs_nothing(self) -> None:
+        """AC-5.4 — `Evidence Gate: off`: line 2 is `evidence-gate: off`, there
+        are no finding lines, so no row is downgraded, and no repro runs."""
+        rows = (("FM-001", "Error handling", "Critical"),)
+        for value in ("off", "OFF"):
+            with self.subTest(value=value):
+                proc, runs, leftovers = self.run_review(
+                    _rv_report(rows, _rv_test("FM-001", "src/limits.test.js")), runner="jest",
+                    lines=("- **Evidence Gate:** %s" % value,))
+                self.assert_output(proc, _rv_unverifiable("switch_off", header="off"))
+                self.assertEqual(runs, [])
+                self.assertNotIn("src/limits.test.js", leftovers)
+
+    def test_run_level_unverifiable_leaves_every_severity(self) -> None:
+        """AC-5.4 — no Test Runner and no `security-path` row, no git, a missing
+        runner binary, or no review output: line 1 `unverifiable`, the reason
+        in the header line, and no finding lines, so every severity stays."""
+        report = _rv_report((("FM-001", "Error handling", "Critical"),
+                             ("FM-002", "Shadow path", "High")), _rv_test("FM-001"))
+        cases = (
+            ("no_test_runner", report, {"runner": None}),
+            ("no_git", report, {"git": False}),
+            ("runner_not_found", report, {"runner": "/nonexistent/bin/pytest"}),
+            ("no_review_output", None, {}),
+        )
+        for reason, text, kwargs in cases:
+            with self.subTest(reason=reason):
+                proc, runs, leftovers = self.run_review(text, **kwargs)
+                self.assert_output(proc, _rv_unverifiable(reason))
+                self.assertNotIn("tests", leftovers)
+
+    def test_no_test_runner_with_a_decided_security_path_row(self) -> None:
+        """AC-5.1, AC-5.3 — with no Test Runner, a confirmed `security-path` row
+        decides the run: the `test` row is a per-row `unverifiable
+        no_test_runner` and maps to `Medium (unconfirmed)`."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Security", "High"))
+        proc, runs, _ = self.run_review(_rv_report(
+            rows, _rv_test("FM-001"), _rv_block("FM-002", evidence=RV_SECURITY)), runner=None)
+        self.assert_output(proc, _rv_output("fail", [
+            ("FM-001", "advisory (unverifiable no_test_runner)%s; severity %s"
+             % (EV_AT, RV_UNCONFIRMED)),
+            ("FM-002", "confirmed (%s)%s; severity High" % (RV_SECURITY_SHOWN, EV_AT)),
+        ], ["confirmed FM-002"], (1, 0, 1)))
+
+    def test_no_test_runner_with_an_advisory_security_path_row(self) -> None:
+        """AC-5.1, AC-5.3 — with no Test Runner, an advisory `security-path` row
+        (sink outside the diff) also decides the run: line 1 `pass`, and the
+        unevidenced Critical row maps to `Medium (unconfirmed)`."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Security", "High"))
+        proc, runs, _ = self.run_review(_rv_report(rows, _rv_block(
+            "FM-002", evidence="security-path source `src/limits.py:3` sink `src/routes.py:5`")),
+            runner=None)
+        self.assert_output(proc, _rv_output("pass", [
+            ("FM-001", "advisory (no_evidence); severity %s" % RV_UNCONFIRMED),
+            ("FM-002", "advisory (location_outside_change_set)%s; severity %s"
+             % (EV_AT, RV_UNCONFIRMED)),
+        ], [], (0, 2, 0)))
+
+    def test_tree_mutation_is_run_level_unverifiable(self) -> None:
+        """AC-5.4 — a repro run that changes a tracked file is run-level
+        `unverifiable (repro_mutated_tree <paths>)`: no finding lines, so every
+        severity stays as written, and no later repro runs."""
+        rows = (("FM-001", "Error handling", "Critical"), ("FM-002", "Shadow path", "High"))
+        proc, runs, _ = self.run_review(_rv_report(
+            rows, _rv_test("FM-001", "src/a1.test.js"), _rv_test("FM-002", "src/a2.test.js")),
+            runner="jest", STUB_WRITE="src/limits.py")
+        self.assert_output(proc, _rv_unverifiable("repro_mutated_tree src/limits.py"))
+        self.assertEqual(runs, [["src/a1.test.js"]])
 
 
 if __name__ == "__main__":

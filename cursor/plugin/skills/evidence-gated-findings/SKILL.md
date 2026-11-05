@@ -39,7 +39,8 @@ The script evaluates an issue only when all three hold:
   its Category is `security` or `architecture`.
 
 Any other issue is advisory, whatever evidence it carries. Issues are keyed F1
-to Fn in the order they appear.
+to Fn in the order they appear. `/review` has its own rules, which
+`commands/review.md` states.
 
 ### The Evidence field
 
@@ -148,6 +149,7 @@ These reasons are stable:
 | `command_not_recorded` | The `check` does not start with a recorded command |
 | `command_not_found` | The executable of the `check` is missing |
 | `not_security` | A `security-path` on an issue whose Category is not `security` |
+| `kind_unavailable` | On `/review`, a `recorded` or `check` field: there is no recorded run and no Gate 2 |
 | `bad_citation <token>` | A `security-path` citation does not resolve |
 | `repro_mutated_tree` | This run changed a file outside the repro; the story is blocked |
 | `stopped_after_mutation` | Not run, because an earlier run changed the tree |

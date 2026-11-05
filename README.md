@@ -136,7 +136,7 @@ Feedback loop (/retro + /refresh-command):
 ### Shipping & Review
 | Command | Purpose |
 |---------|---------|
-| `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. |
+| `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. With the Evidence Gate on, it asks before running the branch's tests. After the run, a Critical or High finding that no failing test or cited input-to-sink path confirms reads `Medium (unconfirmed)`. |
 | `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → (optional `/ship --test`) → split commits → create PR with structured body, optional inline spec health, and auto-labels. |
 
 ### Validation & Release
