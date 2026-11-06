@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-r"""PR readiness check (Story 2 of `2026-11-06-pr-ready-and-ledger`).
+r"""PR readiness check (Stories 2 and 3 of `2026-11-06-pr-ready-and-ledger`).
 
 Judges a saved `gh` snapshot of one pull request and reports every reason it
 is not ready to merge, typed by class, with one exit code per class. It reads
-only the snapshot file. It makes no network call, writes nothing, and never
-sleeps or loops.
+only the snapshot file, the verification ledger, and local git. It makes no
+network call, writes nothing, and never sleeps or loops.
 
 CLI:
-  pr-ready.py check --snapshot FILE [--repo DIR]
+  pr-ready.py check --snapshot FILE [--repo DIR] [--json]
 
   --snapshot  a pr-ready-snapshot/1 file written by the commands below
-  --repo      the checkout the snapshot belongs to (default .)
+  --repo      the checkout the snapshot belongs to (default .): its
+              .writ/state/verify-ledger.json and git objects feed the ledger
+              gate
+  --json      print one JSON object instead of the verdict lines
 
 Snapshot (pr-ready-snapshot/1): {"schema": "pr-ready-snapshot/1",
 "view": <stdout of gh pr view>, "threads": <stdout of gh api graphql>}.
@@ -50,7 +53,11 @@ Blocker classes, in order, with their exit codes:
       review_required     reviewDecision REVIEW_REQUIRED
       not_open <STATE>    state is not OPEN
       behind              merge state BEHIND
-      merge_state_blocked merge state BLOCKED, no other blocker, no pending check
+      not_verified        the ledger does not read VERIFIED for the head:
+                          `not_verified head <short>: <first ledger reason>`, or
+                          `not_verified ledger_unreadable (<detail>)`
+      merge_state_blocked merge state BLOCKED, no other blocker but
+                          not_verified, no pending check
 Unknowns, in order:
   mergeable_unknown                 mergeable or merge state UNKNOWN
   checks_pending <name>[, <name>]   a check is still running
@@ -63,7 +70,7 @@ Output (check shape):
   reason: <class>: <detail>          every blocker, class order
   reason: unknown: <code> [detail]   every unknown
   pr-ready: <verdict> (<summary>)
-Summaries: `pr-ready: pass (PR <n> head <short>)`,
+Summaries: `pr-ready: pass (PR <n> head <short>, ledger VERIFIED)`,
 `pr-ready: fail (PR <n> head <short>, blockers: <classes>; exit <code>)`,
 `pr-ready: unverifiable (PR <n> head <short>, unknown: <codes>)`.
 A thread prints as `<id> <path|?>:<line|?> by <login|?>`, plus ` outdated`.
@@ -72,12 +79,31 @@ printed snapshot strings are escaped (`\n`, `\x1b`, `\u2028`), so each
 `reason:` line stays one line.
 
 Verdict: `fail` when a blocker holds; else `unverifiable` when an unknown
-holds; else `pass`. Exit 0 pass or unverifiable; 3, 4, 5, or 6 for `fail`,
-the first class present; 2 for a usage error or a snapshot that cannot be
-judged (missing, not JSON, wrong schema, GraphQL errors, a missing or
-mistyped field, an unrecognized enum value, PR numbers that differ): stdout
-empty, cause on stderr after `pr-ready: `. The script never exits 1 on
-purpose, so exit 1 means it crashed.
+holds; else `pass`, which needs the ledger to read VERIFIED. Exit 0 pass or
+unverifiable; 3, 4, 5, or 6 for `fail`, the first class present; 2 for a
+usage error, a snapshot that cannot be judged (missing, not JSON, wrong
+schema, GraphQL errors, a missing or mistyped field, an unrecognized enum
+value, PR numbers that differ), or a `verify-ledger.py` that cannot be
+loaded: stdout empty, cause on stderr after `pr-ready: `. The script never
+exits 1 on purpose, so exit 1 means it crashed.
+
+Ledger gate: the script loads `verify-ledger.py` from its own directory on
+first use and calls `ledger_check(repo, pr=view.number, head=view.headRefOid)`
+(no base: the ledger uses the PR's latest row's `base_ref`). VERIFIED means
+the exact head, or a same-PR `git patch-id --verbatim` match. A missing or
+broken `verify-ledger.py` exits 2 with `pr-ready: cannot load
+verify-ledger.py (<cause>)`. An unreadable ledger file is not exit 2: it is
+the `not_verified ledger_unreadable` gate, so the other blockers still print.
+
+--json: all of stdout is one object, the exit code is the text run's, and
+the exit-2 paths are unchanged:
+  {"verdict": "fail", "exit": 6, "pr": 66, "head": "<40 hex headRefOid>",
+   "blockers": [{"class": "merge_gates", "detail": "not_verified head ..."}],
+   "unknowns": [{"code": "checks_pending", "detail": "ci/test"}],
+   "ledger": {"verdict": "fail", "reasons": ["patch_id_mismatch ..."]}}
+A detail is the text after `reason: <class>: ` (or `reason: unknown:
+<code> `), so a merge_gates detail starts with its gate token. Strings are
+JSON-escaped, not escaped as in the text output.
 
 Stdlib only, Python 3.9.
 """
@@ -85,6 +111,7 @@ Stdlib only, Python 3.9.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import sys
@@ -114,8 +141,16 @@ CONTEXT_FAILING = ("FAILURE", "ERROR")
 CLASSES = ("conflicts", "unresolved_threads", "failing_checks", "merge_gates")
 CLASS_EXIT = {"conflicts": 3, "unresolved_threads": 4, "failing_checks": 5, "merge_gates": 6}
 
+LEDGER_SCRIPT = "verify-ledger.py"
+UNREADABLE = "ledger_unreadable"
+
+
 class SnapshotError(Exception):
     """The snapshot cannot be judged (exit 2)."""
+
+
+class LedgerLoadError(Exception):
+    """The sibling `verify-ledger.py` cannot be loaded (exit 2)."""
 
 
 class Result(NamedTuple):
@@ -125,7 +160,7 @@ class Result(NamedTuple):
     head: str
     blockers: List[Tuple[str, str]]   # (class, detail), class order
     unknowns: List[Tuple[str, str]]   # (code, detail); detail may be ""
-    ledger: Optional[Dict[str, Any]]  # the ledger gate's answer (Story 3); None without it
+    ledger: Optional[Dict[str, Any]]  # {verdict, reasons} from the ledger gate; None without it
 
 
 # ---------------------------------------------------------------------------
@@ -341,9 +376,14 @@ def _checks(rollup: List[Dict[str, Any]]) -> Tuple[List[str], List[str]]:
     return failing, pending
 
 
-def evaluate(snap: Dict[str, Any], ledger: Optional[Callable[..., Any]] = None) -> Result:
-    """Judge a validated snapshot. `ledger` is the ledger gate Story 3 adds;
-    this story leaves it None."""
+LedgerGate = Callable[[int, str], Tuple[str, List[str]]]
+
+
+def evaluate(snap: Dict[str, Any], ledger: Optional[LedgerGate] = None) -> Result:
+    """Judge a validated snapshot. `ledger(pr, head)` returns the ledger's
+    ("pass" | "fail", reasons); the CLI always passes one (`ledger_gate`).
+    Without it no `not_verified` gate is judged and a `pass` summary does not
+    claim `ledger VERIFIED`."""
     view = snap["view"]
     pull = snap["threads"]["data"]["repository"]["pullRequest"]
     review = pull["reviewThreads"]
@@ -370,8 +410,18 @@ def evaluate(snap: Dict[str, Any], ledger: Optional[Callable[..., Any]] = None) 
         gates.append("not_open %s" % view["state"])
     if merge_state == "BEHIND":
         gates.append("behind")
+    # `not_verified` is Writ's record, not GitHub's: it never explains BLOCKED.
     explained = bool(blockers or gates or pending)
     ledger_info: Optional[Dict[str, Any]] = None
+    if ledger is not None:
+        answer, reasons = ledger(pr, head)
+        ledger_info = {"verdict": answer, "reasons": list(reasons)}
+        if answer != "pass":
+            first = reasons[0] if reasons else "no reason given"
+            if first.startswith(UNREADABLE + " "):
+                gates.append("not_verified %s" % first)
+            else:
+                gates.append("not_verified head %s: %s" % (head[:SHORT], first))
     # Computed last, from the other blockers and pending checks only.
     if merge_state == "BLOCKED" and not explained:
         gates.append("merge_state_blocked")
@@ -413,9 +463,77 @@ def render(result: Result) -> List[str]:
     elif result.verdict == "unverifiable":
         lines.append("pr-ready: unverifiable (%s, unknown: %s)"
                      % (where, ", ".join(code for code, _ in result.unknowns)))
+    elif result.ledger is not None:
+        lines.append("pr-ready: pass (%s, ledger VERIFIED)" % where)
     else:
         lines.append("pr-ready: pass (%s)" % where)
     return lines
+
+
+def to_json(result: Result) -> str:
+    """The `--json` object: one line, keys sorted. `json.dumps` escapes control
+    characters and non-ASCII itself, so details are not run through `printable`."""
+    return json.dumps({
+        "verdict": result.verdict,
+        "exit": result.exit,
+        "pr": result.pr,
+        "head": result.head,
+        "blockers": [{"class": cls, "detail": detail} for cls, detail in result.blockers],
+        "unknowns": [{"code": code, "detail": detail} for code, detail in result.unknowns],
+        "ledger": result.ledger,
+    }, sort_keys=True)
+
+
+# ---------------------------------------------------------------------------
+# Ledger gate
+# ---------------------------------------------------------------------------
+
+_LEDGER_MODULE: List[Any] = []
+
+
+def _load_sibling(name: str, module_name: str) -> Any:
+    path = Path(__file__).resolve().parent / name
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError("no loader for %s" % path)
+    module = importlib.util.module_from_spec(spec)
+    saved = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True  # loading the sibling writes no __pycache__
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = saved
+    return module
+
+
+def _verify_ledger() -> Any:
+    """`verify-ledger.py` from this script's own directory, loaded on first use."""
+    if not _LEDGER_MODULE:
+        try:
+            module = _load_sibling(LEDGER_SCRIPT, "verify_ledger_for_pr_ready")
+        except Exception as exc:  # a missing file, a syntax error, anything at import
+            raise LedgerLoadError("%s: %s" % (type(exc).__name__, exc))
+        for name in ("ledger_check", "LedgerError"):
+            if not hasattr(module, name):
+                raise LedgerLoadError("it defines no %s" % name)
+        _LEDGER_MODULE.append(module)
+    return _LEDGER_MODULE[0]
+
+
+def ledger_gate(repo: Path) -> LedgerGate:
+    """The ledger gate for `evaluate`. An unreadable or malformed ledger file
+    (`LedgerError`) reads as `fail` with a `ledger_unreadable (<detail>)` reason,
+    so the other blockers still print."""
+    module = _verify_ledger()
+
+    def gate(pr: int, head: str) -> Tuple[str, List[str]]:
+        try:
+            answer, reasons = module.ledger_check(repo, pr=pr, head=head)
+        except module.LedgerError as exc:
+            return "fail", ["%s (%s)" % (UNREADABLE, exc)]
+        return answer, list(reasons)
+
+    return gate
 
 
 # ---------------------------------------------------------------------------
@@ -430,6 +548,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--snapshot", type=Path, required=True, help="the snapshot file")
     c.add_argument("--repo", type=Path, default=Path("."),
                    help="the checkout the snapshot belongs to (default .)")
+    c.add_argument("--json", action="store_true",
+                   help="print one JSON object instead of the verdict lines")
     return parser
 
 
@@ -453,8 +573,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("pr-ready: snapshot %s: %s" % (printable(str(args.snapshot)), printable(str(exc))),
               file=sys.stderr)
         return 2
-    result = evaluate(snap)
-    print("\n".join(render(result)))
+    try:
+        gate = ledger_gate(args.repo)
+    except LedgerLoadError as exc:
+        print("pr-ready: cannot load %s (%s)" % (LEDGER_SCRIPT, printable(str(exc))),
+              file=sys.stderr)
+        return 2
+    result = evaluate(snap, gate)
+    print(to_json(result) if args.json else "\n".join(render(result)))
     return result.exit
 
 

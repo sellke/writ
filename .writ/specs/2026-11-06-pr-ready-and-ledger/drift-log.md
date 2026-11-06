@@ -83,3 +83,18 @@
 - **Reason:** A hostile snapshot could put a long or crafted value in an enum field. Printing containers by type only keeps that text off stderr; the value still passes through `printable`.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** spec-lite.md → For Coding Agents → Error Handling notes the bounded form.
+
+## Story 3: Ledger gate and machine output — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-009] `evaluate` takes a `(pr, head)` gate that wraps `ledger_check`, and the loader checks the module and writes no bytecode
+- **Severity:** Small
+- **Spec said:** technical-spec § S2 Evaluation: "Story 3 passes the loaded `ledger_check`" to `evaluate(snapshot, ledger)`. § S3: a missing file or a load error exits 2, loaded with the `scripts/exit-criteria.py` `_load_sibling` pattern.
+- **Implementation did:** `ledger_gate(repo)` returns `gate(pr, head)`, which calls `ledger_check(repo, pr=..., head=...)` and maps `LedgerError` to `("fail", ["ledger_unreadable (<detail>)"])`; `evaluate` prints that reason as `not_verified ledger_unreadable (...)`. A loaded module without `ledger_check` or `LedgerError` is a load error (exit 2, `it defines no ledger_check`). `_load_sibling` sets `sys.dont_write_bytecode` while it runs the module, so a check writes no `__pycache__`.
+- **Reason:** `evaluate` stays pure and free of the ledger module's exception type. The Gate 3 review found that the plain load pattern wrote `__pycache__/verify-ledger.*.pyc` beside the script under a default Python, against Business Rule 1 ("writes nothing"). The CLI output, JSON shape, and exit codes are as specified.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach names `ledger_gate` and the bytecode guard.

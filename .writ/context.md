@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T21:10:00Z
+> Last Updated: 2026-11-06T22:00:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-pr-ready-and-ledger — PR Ready and Verification Ledger
 - **Status:** In Progress — Phase 16 lane `writ/phase/16/2026-11-06-pr-ready-and-ledger`
-- **Story:** 3 of 3 — Ledger gate and machine output (Not Started)
-- **Progress:** 14/20 tasks complete (70%)
+- **Story:** 3 of 3 — Ledger gate and machine output (Completed ✅)
+- **Progress:** 20/20 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-009 `evaluate` takes a `(pr, head)` gate that wraps `ledger_check`, and the loader checks the module and writes no bytecode — pr-ready-and-ledger (Small)
 - DEV-008 A rejected snapshot value prints in a bounded form — pr-ready-and-ledger (Small)
 - DEV-007 The contract test's AC-ID guard accepts a later spec's IDs, and two tests are appended — pr-ready-and-ledger (Small)
-- DEV-006 A missing key in the comments chain reads as null — pr-ready-and-ledger (Small)
 
 ## Open Issues
 

@@ -12,7 +12,7 @@
 - `pr-ready.py check --snapshot <f> [--repo .] [--json]`. Exit 0 pass/unverifiable, 2 usage or bad snapshot, 3 conflicts, 4 unresolved_threads, 5 failing_checks, 6 merge_gates (first class present), never 1.
 - Ledger: `<repo>/.writ/state/verify-ledger.json`, schema `verify-ledger/1`, one writer (`record`), `mkstemp` + `os.replace`.
 - Patch-id: `git patch-id --verbatim` over a pinned `git diff` (technical-spec § Patch-id, plus `-c diff.suppressBlankEmpty=false --inter-hunk-context=0 --indent-heuristic --ignore-submodules=none --submodule=short`, run without `GIT_DIFF_OPTS`/`GIT_EXTERNAL_DIFF`; DEV-001), passed as bytes; null when unsupported, empty, or no merge base.
-- `pr-ready.py` loads `verify-ledger.py` from its own directory and calls `ledger_check(repo, pr, head)` (Story 3).
+- `pr-ready.py` loads `verify-ledger.py` from its own directory (with `sys.dont_write_bytecode` set, so no `__pycache__` is written) and calls `ledger_check(repo, pr, head)` through `ledger_gate(repo)`, a `(pr, head)` wrapper that maps `LedgerError` to `fail` with `ledger_unreadable (<detail>)`; a module without `ledger_check` or `LedgerError` is a load error, exit 2 (Story 3, DEV-009).
 
 **Files in Scope:**
 - `scripts/verify-ledger.py`, `scripts/pr-ready.py`: new

@@ -3,9 +3,12 @@
 `2026-11-06-pr-ready-and-ledger`).
 
 Every case runs `pr-ready.py check --snapshot <fixture> --repo <tmp>` against
-a snapshot under `scripts/tests/fixtures/pr-ready/`, with `--repo` an empty
-temp dir. Each fixture is a full `pr-ready-snapshot/1` object for PR 66 at
-head 3ddc8c8 that differs from `clean.json` in the fields its name says.
+a snapshot under `scripts/tests/fixtures/pr-ready/`, with `--repo` a temp dir
+whose `.writ/state/verify-ledger.json` holds one row for PR 66 at head 3ddc8c8,
+so the ledger gate Story 3 adds reads VERIFIED. Each fixture is a full
+`pr-ready-snapshot/1` object for PR 66 at that head that differs from
+`clean.json` in the fields its name says. Story 3's tests are appended at the
+end of the file under their own comment.
 
 - Each blocker fixture prints `fail`, one `<class>: <detail>` reason line per
   blocker, a `pr-ready: fail (` summary, and the class's exit code 3-6
@@ -84,6 +87,9 @@ UNKNOWNS: Dict[str, List[str]] = {
     "head-moved": ["unknown: head_moved 3ddc8c8 9f1e2a7"],
     "unstable-unexplained": ["unknown: merge_state_unexplained UNSTABLE"],
 }
+GATE_TOKENS = ("not_verified", "draft", "changes_requested", "review_required", "not_open",
+               "behind", "merge_state_blocked")
+JSON_KEYS = ["blockers", "exit", "head", "ledger", "pr", "unknowns", "verdict"]
 CLASS_EXIT = {"conflicts": 3, "unresolved_threads": 4, "failing_checks": 5, "merge_gates": 6}
 BAD_SNAPSHOTS = {
     "not-json.txt": "not JSON",
@@ -132,7 +138,7 @@ def summary(verdict: str, exit_code: int, reasons: List[str]) -> str:
     if verdict == "unverifiable":
         codes = [line.split(" ")[1] for line in reasons if line.startswith("unknown: ")]
         return "pr-ready: unverifiable (PR 66 head %s, unknown: %s)" % (SHORT, ", ".join(codes))
-    return "pr-ready: pass (PR 66 head %s)" % SHORT
+    return "pr-ready: pass (PR 66 head %s, ledger VERIFIED)" % SHORT
 
 
 class PrReadyCase(unittest.TestCase):
@@ -140,7 +146,14 @@ class PrReadyCase(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
         self.repo = self.tmp / "repo"
-        self.repo.mkdir()
+        state = self.repo / ".writ" / "state"
+        state.mkdir(parents=True)
+        # An exact-head row needs no git, so a plain dir is enough (Story 3).
+        (state / "verify-ledger.json").write_text(json.dumps({
+            "schema": "verify-ledger/1",
+            "rows": [{"pr": 66, "head": HEAD, "patch_id": None, "base_ref": "main",
+                      "merge_base": None, "recorded_at": "2026-11-06T00:00:00Z",
+                      "evidence": [{"command": "pytest", "exit": 0}]}]}), encoding="utf-8")
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
@@ -160,6 +173,26 @@ class PrReadyCase(unittest.TestCase):
         expected.append(last if last is not None else summary(verdict, exit_code, reasons))
         self.assertEqual(result.stdout.splitlines(), expected, result.stderr)
         self.assertEqual(result.returncode, exit_code, result.stdout + result.stderr)
+
+    def assertJson(self, args: List[str], cwd: Path) -> dict:
+        """Run `args` as text and with `--json`; check the object against the text run."""
+        text = run_pr_ready(args, cwd)
+        machine = run_pr_ready(args + ["--json"], cwd)
+        self.assertEqual(machine.returncode, text.returncode, machine.stderr)
+        self.assertEqual(len(machine.stdout.splitlines()), 1, machine.stdout)
+        payload = json.loads(machine.stdout)
+        self.assertEqual(sorted(payload), JSON_KEYS)
+        self.assertEqual(payload["exit"], text.returncode)
+        self.assertEqual(payload["verdict"], text.stdout.splitlines()[0])
+        self.assertRegex(payload["head"], r"^[0-9a-f]{40}\Z")
+        for item in payload["blockers"]:
+            self.assertEqual(sorted(item), ["class", "detail"])
+            if item["class"] == "merge_gates":
+                self.assertTrue(item["detail"].startswith(GATE_TOKENS), item)
+        for item in payload["unknowns"]:
+            self.assertEqual(sorted(item), ["code", "detail"])
+        self.assertEqual(sorted(payload["ledger"]), ["reasons", "verdict"])
+        return payload
 
     def assertUnjudgeable(self, result: subprocess.CompletedProcess, cause: str) -> None:
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
@@ -477,6 +510,292 @@ class ContractTests(unittest.TestCase):
         self.assertIn("reason: merge_gates: draft", lines)
         self.assertTrue(lines[-1].startswith("pr-ready: fail ("))
         self.assertEqual(result.returncode, 6)
+
+
+# ---------------------------------------------------------------------------
+# Story 3 of `2026-11-06-pr-ready-and-ledger`: ledger gate and --json
+#
+# - A clean snapshot whose head has a `verify-ledger.py record` row passes
+#   with `ledger VERIFIED`; a one-byte change to that head exits 6 with
+#   `merge_gates: not_verified head <short>: patch_id_mismatch ...` [AC-3.1].
+# - An unchanged rebase passes through `verified_patch_id`; a whitespace-only
+#   re-indent exits 6 [AC-3.2].
+# - An unreadable ledger is `not_verified ledger_unreadable (...)` beside the
+#   other blockers, and the exit follows class order [AC-3.3].
+# - `--json` prints one object with seven keys for every fixture and the
+#   AC-3.1 repo [AC-3.4].
+# - The script loads `verify-ledger.py` from its own directory; copied alone
+#   it exits 2 [AC-3.5].
+# ---------------------------------------------------------------------------
+
+LEDGER_SCRIPT = REPO_ROOT / "scripts" / "verify-ledger.py"
+APP_BASE = "".join("# header line %d\n" % i for i in range(12)) + \
+    "\n\ndef add(a, b):\n    total = a - b\n\n    return total\n"
+APP_H = APP_BASE.replace("    total = a - b", "    total = a + b")
+
+
+def git(repo: Path, *args: str) -> str:
+    proc = subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c",
+                           "user.email=t@example.com", "-c", "commit.gpgsign=false", *args],
+                          capture_output=True, encoding="utf-8", env=ENV, timeout=60)
+    if proc.returncode != 0:
+        raise AssertionError("git %s failed: %s" % (" ".join(args), proc.stderr))
+    return proc.stdout.strip()
+
+
+def commit(repo: Path, files: Dict[str, str], message: str) -> str:
+    for rel, text in files.items():
+        (repo / rel).write_text(text, encoding="utf-8")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", message)
+    return git(repo, "rev-parse", "HEAD")
+
+
+class LedgerRepoCase(PrReadyCase):
+    """A temp git repo whose feature head H has a real `verify-ledger.py record`
+    row for PR 66. Holds no tests, so subclasses do not rerun each other's."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.git_repo = self.tmp / "git"
+        self.git_repo.mkdir()
+        git(self.git_repo, "init", "-q")
+        git(self.git_repo, "checkout", "-q", "-b", "main")
+        # Keep the ledger out of `git add -A`, or a branch switch would drop it.
+        (self.git_repo / ".git" / "info" / "exclude").write_text(".writ/\n", encoding="utf-8")
+        self.base = commit(self.git_repo, {"app.py": APP_BASE}, "chore: base")
+        git(self.git_repo, "checkout", "-q", "-b", "feature")
+        self.head = commit(self.git_repo, {"app.py": APP_H}, "feat: add")
+        recorded = subprocess.run(
+            [sys.executable, str(LEDGER_SCRIPT), "record", "--pr", "66", "--head", self.head,
+             "--base", "main", "--evidence", "0", "pytest", "--repo", str(self.git_repo)],
+            capture_output=True, encoding="utf-8", env=ENV, timeout=60)
+        self.assertEqual(recorded.stdout.splitlines()[:1], ["pass"], recorded.stderr)
+
+    def snapshot_for(self, head: str, name: str = "clean") -> Path:
+        snap = load_fixture(name)
+        snap["view"]["headRefOid"] = head
+        snap["threads"]["data"]["repository"]["pullRequest"]["headRefOid"] = head
+        return self.write_snapshot(snap, "snap-%s-%s.json" % (name, head[:7]))
+
+    def gate_args(self, head: str, name: str = "clean") -> List[str]:
+        return ["check", "--snapshot", str(self.snapshot_for(head, name)),
+                "--repo", str(self.git_repo)]
+
+    def gate(self, head: str, name: str = "clean", *extra: str) -> subprocess.CompletedProcess:
+        return run_pr_ready(self.gate_args(head, name) + list(extra), self.tmp)
+
+    def branch_commit(self, name: str, app: str, message: str) -> str:
+        git(self.git_repo, "checkout", "-q", "-b", name, self.base)
+        sha = commit(self.git_repo, {"app.py": app}, message)
+        git(self.git_repo, "checkout", "-q", "feature")
+        return sha
+
+
+class LedgerGateTests(LedgerRepoCase):
+    def test_verified_head_passes_and_a_changed_head_exits_6(self) -> None:
+        """A verified clean head passes with `ledger VERIFIED`; a one-byte change exits 6 with not_verified. [AC-3.1]"""
+        self.assertRun(self.gate(self.head), "pass", 0, [],
+                       "pr-ready: pass (PR 66 head %s, ledger VERIFIED)" % self.head[:7])
+        changed = self.branch_commit("one-byte", APP_BASE.replace("a - b", "a * b"), "feat: mul")
+        result = self.gate(changed)
+        lines = result.stdout.splitlines()
+        self.assertEqual(len(lines), 3, result.stdout + result.stderr)
+        self.assertEqual(lines[0], "fail")
+        self.assertRegex(lines[1], r"^reason: merge_gates: not_verified head %s: "
+                         r"patch_id_mismatch %s patch-id [0-9a-f]{7} matches no verified row "
+                         r"for PR 66\Z" % (changed[:7], changed[:7]))
+        self.assertEqual(lines[2], "pr-ready: fail (PR 66 head %s, blockers: merge_gates; "
+                         "exit 6)" % changed[:7])
+        self.assertEqual(result.returncode, 6)
+
+    def test_rebase_passes_and_reindent_exits_6(self) -> None:
+        """An unchanged rebase passes through verified_patch_id; a whitespace-only re-indent exits 6. [AC-3.2]"""
+        reindent = self.branch_commit(
+            "reindent", APP_H.replace("    total = a + b", "  total = a + b"), "feat: ws")
+        result = self.gate(reindent)
+        self.assertEqual(result.stdout.splitlines()[0], "fail", result.stdout + result.stderr)
+        self.assertIn("reason: merge_gates: not_verified head %s: patch_id_mismatch"
+                      % reindent[:7], result.stdout)
+        self.assertEqual(result.returncode, 6)
+        git(self.git_repo, "checkout", "-q", "main")
+        commit(self.git_repo, {"app.py": "# new top\n" + APP_BASE}, "chore: top")
+        git(self.git_repo, "checkout", "-q", "feature")
+        git(self.git_repo, "rebase", "-q", "main")
+        rebased = git(self.git_repo, "rev-parse", "HEAD")
+        self.assertNotEqual(rebased, self.head)
+        self.assertRun(self.gate(rebased), "pass", 0, [],
+                       "pr-ready: pass (PR 66 head %s, ledger VERIFIED)" % rebased[:7])
+        payload = json.loads(self.gate(rebased, "clean", "--json").stdout)
+        self.assertEqual(payload["ledger"]["reasons"],
+                         ["verified_patch_id %s matches %s" % (rebased[:7], self.head[:7])])
+
+    def test_blocked_with_only_not_verified_prints_both(self) -> None:
+        """`not_verified` never explains GitHub BLOCKED: both gates print, not_verified first. [AC-3.1]"""
+        changed = self.branch_commit("other", APP_BASE.replace("a - b", "a * b"), "feat: mul")
+        result = self.gate(changed, "blocked-unexplained")
+        reasons = [l for l in result.stdout.splitlines() if l.startswith("reason: ")]
+        self.assertEqual(len(reasons), 2, result.stdout + result.stderr)
+        self.assertTrue(reasons[0].startswith("reason: merge_gates: not_verified head %s: "
+                                              % changed[:7]), reasons)
+        self.assertEqual(reasons[1], "reason: merge_gates: merge_state_blocked")
+        self.assertEqual(result.returncode, 6)
+
+    def test_unreadable_ledger_keeps_other_blockers(self) -> None:
+        """A malformed ledger prints not_verified ledger_unreadable beside unresolved_threads; exit 4, not 2. [AC-3.3]"""
+        ledger = self.git_repo / ".writ" / "state" / "verify-ledger.json"
+        ledger.write_text('{"schema": "x"}', encoding="utf-8")
+        result = self.gate(self.head, "unresolved-thread")
+        lines = result.stdout.splitlines()
+        self.assertEqual(lines[0], "fail", result.stdout + result.stderr)
+        self.assertEqual(lines[1], "reason: " + THREAD)
+        self.assertRegex(lines[2], r"^reason: merge_gates: not_verified ledger_unreadable \(.+\)\Z")
+        self.assertEqual(len(lines), 4, lines)
+        self.assertEqual(result.returncode, 4)
+        payload = json.loads(self.gate(self.head, "unresolved-thread", "--json").stdout)
+        self.assertEqual(payload["exit"], 4)
+        self.assertEqual(payload["ledger"]["verdict"], "fail")
+        self.assertTrue(payload["ledger"]["reasons"][0].startswith("ledger_unreadable ("))
+
+    def test_json_on_the_ledger_repo(self) -> None:
+        """`--json` on the AC-3.1 repo: the verified head passes, a changed head exits 6 with a not_verified detail. [AC-3.4]"""
+        payload = self.assertJson(self.gate_args(self.head), self.tmp)
+        self.assertEqual((payload["verdict"], payload["exit"], payload["pr"], payload["head"]),
+                         ("pass", 0, 66, self.head))
+        self.assertEqual(payload["ledger"]["verdict"], "pass")
+        self.assertEqual((payload["blockers"], payload["unknowns"]), ([], []))
+        changed = self.branch_commit("one-byte", APP_BASE.replace("a - b", "a * b"), "feat: mul")
+        payload = self.assertJson(self.gate_args(changed), self.tmp)
+        self.assertEqual((payload["verdict"], payload["exit"], payload["head"]),
+                         ("fail", 6, changed))
+        self.assertEqual([b["class"] for b in payload["blockers"]], ["merge_gates"])
+        self.assertTrue(payload["blockers"][0]["detail"].startswith(
+            "not_verified head %s: patch_id_mismatch " % changed[:7]))
+        self.assertEqual(payload["ledger"]["verdict"], "fail")
+
+
+class JsonTests(PrReadyCase):
+    def test_every_fixture(self) -> None:
+        """`--json` over every fixture: one object, seven keys, full head, item shapes, the text run's exit; exit-2 cases print nothing. [AC-3.4]"""
+        missing = ["check", "--snapshot", str(self.tmp / "missing.json"), "--repo",
+                   str(self.repo), "--json"]
+        self.assertEqual(run_pr_ready(missing, self.tmp).returncode, 2)
+        self.assertEqual(run_pr_ready(missing, self.tmp).stdout, "")
+        for path in sorted(FIXTURES.iterdir()):
+            with self.subTest(fixture=path.name):
+                args = ["check", "--snapshot", str(path), "--repo", str(self.repo)]
+                if path.name in BAD_SNAPSHOTS:
+                    result = run_pr_ready(args + ["--json"], self.tmp)
+                    self.assertEqual((result.returncode, result.stdout), (2, ""))
+                    self.assertTrue(result.stderr.startswith("pr-ready: "), result.stderr)
+                    continue
+                payload = self.assertJson(args, self.tmp)
+                self.assertEqual((payload["pr"], payload["head"]), (66, HEAD))
+                self.assertEqual(payload["ledger"]["verdict"], "pass")
+
+    def test_json_detail_matches_text_and_is_not_escaped(self) -> None:
+        """Each JSON detail is the text after `reason: <class>: `; hostile text is JSON-escaped, not printable-escaped. [AC-3.4]"""
+        payload = self.assertJson(["check", "--snapshot", str(fixture("all-four")), "--repo",
+                                   str(self.repo)], self.tmp)
+        self.assertEqual(payload["blockers"], [
+            {"class": "conflicts", "detail": "mergeable CONFLICTING (merge state DIRTY)"},
+            {"class": "unresolved_threads", "detail": THREAD.split(": ", 1)[1]},
+            {"class": "failing_checks", "detail": "test FAILURE"},
+            {"class": "merge_gates", "detail": "draft"}])
+        self.assertEqual(payload["exit"], 3)
+        unknown = self.assertJson(["check", "--snapshot", str(fixture("checks-pending")),
+                                   "--repo", str(self.repo)], self.tmp)
+        self.assertEqual(unknown["unknowns"], [{"code": "checks_pending",
+                                                "detail": "test, ci/eval"}])
+        raw = run_pr_ready(["check", "--snapshot", str(fixture("hostile-thread")), "--repo",
+                            str(self.repo), "--json"], self.tmp).stdout
+        hostile = json.loads(raw)
+        self.assertIn("\n", hostile["blockers"][0]["detail"])
+        self.assertNotIn("IGNORE-PREVIOUS-MARKER", raw)
+        self.assertTrue(all(ord(ch) < 128 for ch in raw), raw)
+        self.assertEqual(len(raw.splitlines()), 1)
+
+    def test_no_ledger_row_is_not_verified(self) -> None:
+        """A clean snapshot in a dir with no ledger reads `not_verified head <short>: no_rows PR 66`, exit 6. [AC-3.1]"""
+        empty = self.tmp / "empty"
+        empty.mkdir()
+        result = run_pr_ready(["check", "--snapshot", str(fixture("clean")), "--repo",
+                               str(empty)], self.tmp)
+        self.assertRun(result, "fail", 6, ["merge_gates: not_verified head %s: no_rows PR 66"
+                                           % SHORT])
+
+
+class SiblingLoadTests(LedgerRepoCase):
+    def test_copy_with_and_without_the_ledger(self) -> None:
+        """Copied with verify-ledger.py it gives the same line 1 and exit; copied alone it exits 2 `cannot load verify-ledger.py`. [AC-3.5]"""
+        both = self.tmp / "both"
+        alone = self.tmp / "alone"
+        for folder, names in ((both, ("pr-ready.py", "verify-ledger.py")),
+                              (alone, ("pr-ready.py",))):
+            folder.mkdir()
+            for name in names:
+                (folder / name).write_bytes((REPO_ROOT / "scripts" / name).read_bytes())
+        args = self.gate_args(self.head)
+        original = run_pr_ready(args, self.tmp)
+        copied = run_pr_ready(args, self.tmp, both / "pr-ready.py")
+        self.assertEqual((copied.stdout.splitlines()[0], copied.returncode),
+                         (original.stdout.splitlines()[0], original.returncode))
+        self.assertEqual((copied.stdout.splitlines()[0], copied.returncode), ("pass", 0))
+        for extra in ([], ["--json"]):
+            with self.subTest(extra=extra):
+                lonely = run_pr_ready(args + extra, self.tmp, alone / "pr-ready.py")
+                self.assertEqual(lonely.returncode, 2, lonely.stdout + lonely.stderr)
+                self.assertEqual(lonely.stdout, "")
+                self.assertTrue(lonely.stderr.startswith(
+                    "pr-ready: cannot load verify-ledger.py ("), lonely.stderr)
+                self.assertEqual(len(lonely.stderr.splitlines()), 1, lonely.stderr)
+        self.assertEqual(run_pr_ready(["--help"], self.tmp, alone / "pr-ready.py").returncode, 0)
+
+    def test_broken_sibling_exits_2(self) -> None:
+        """A sibling `verify-ledger.py` that fails to import, or lacks `ledger_check`, exits 2 with the cause. [AC-3.5]"""
+        args = self.gate_args(self.head)
+        for text, cause in (("def (\n", "SyntaxError"), ("X = 1\n", "it defines no ledger_check")):
+            with self.subTest(cause=cause):
+                folder = self.tmp / ("broken-%d" % len(cause))
+                folder.mkdir()
+                (folder / "pr-ready.py").write_bytes(SCRIPT.read_bytes())
+                (folder / "verify-ledger.py").write_text(text, encoding="utf-8")
+                result = run_pr_ready(args, self.tmp, folder / "pr-ready.py")
+                self.assertEqual((result.returncode, result.stdout), (2, ""), result.stderr)
+                self.assertTrue(result.stderr.startswith(
+                    "pr-ready: cannot load verify-ledger.py ("), result.stderr)
+                self.assertIn(cause, result.stderr)
+
+    def test_check_writes_no_bytecode(self) -> None:
+        """Loading the sibling writes no bytecode cache, beside the script or under a pycache prefix. [AC-3.5]"""
+        folder = self.tmp / "bin"
+        folder.mkdir()
+        for name in ("pr-ready.py", "verify-ledger.py"):
+            (folder / name).write_bytes((REPO_ROOT / "scripts" / name).read_bytes())
+        prefix = self.tmp / "pycache-prefix"
+        env = {k: v for k, v in ENV.items() if k != "PYTHONDONTWRITEBYTECODE"}
+        env["PYTHONPYCACHEPREFIX"] = str(prefix)
+        result = subprocess.run([sys.executable, str(folder / "pr-ready.py"), *self.gate_args(
+            self.head)], cwd=str(self.tmp), capture_output=True, encoding="utf-8", env=env,
+            timeout=60)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((folder / "__pycache__").exists())
+        # The prefix also catches the interpreter's own stdlib caches; only ours count.
+        self.assertEqual(list(prefix.rglob("verify*ledger*.pyc")) if prefix.exists() else [], [])
+
+    def test_notes_name_json_and_the_ledger(self) -> None:
+        """The pr-ready.py Notes entry names --json and the ledger requirement; the plugin copies match. [AC-3.5]"""
+        doc = CONTRACT_DOC.read_text(encoding="utf-8")
+        note = [line for line in doc.splitlines() if line.startswith("- `pr-ready.py` ")]
+        self.assertEqual(len(note), 1)
+        self.assertIn("`--json` prints one object (`verdict`, `exit`, `pr`, `head` as full "
+                      "40-hex, `blockers`, `unknowns`, `ledger`) instead of the verdict lines, "
+                      "with the same exit code.", note[0])
+        self.assertIn("`pass` requires `verify-ledger.py`, loaded from the same directory, to "
+                      "read VERIFIED for the snapshot's head.", note[0])
+        for name in ("pr-ready.py", "verify-ledger.py"):
+            self.assertEqual((REPO_ROOT / "plugins" / "writ" / "scripts" / name).read_bytes(),
+                             (REPO_ROOT / "scripts" / name).read_bytes())
 
 
 if __name__ == "__main__":
