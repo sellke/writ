@@ -38,6 +38,8 @@ Every script that a command, agent, or skill tells an agent to run (`scripts/*.p
 
 The full contract and the per-script classification table are in [`.writ/docs/agent-cli-contract.md`](../docs/agent-cli-contract.md).
 
+*Amended 2026-11-06 by [2026-11-06-pr-ready-and-ledger](../specs/2026-11-06-pr-ready-and-ledger/spec.md):* A check tool may give each class of `fail` its own exit code of 3 or higher when its classification note says so. Exit 0 and 2 keep their meaning, and the tool never exits 1 on purpose, so exit 1 still reads as a crash. `pr-ready.py` is the first: 3 conflicts, 4 unresolved threads, 5 failing checks, 6 merge gates. When several hold, the code is the first in that order. Callers still read line 1 first.
+
 ### Contribution
 
 - No script has a `contribute`, `report`, or `submit` subcommand. No tool files issues, opens PRs, or posts to `sellke/writ`.
