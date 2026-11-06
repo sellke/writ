@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.45.0] - 2026-11-06
+
+**Generated story tasks stop prescribing implementation.** This release carries the lean story tasks spec. ([spec](.writ/specs/2026-11-06-lean-story-tasks/spec.md))
+
+### Added
+- **`oversized_task` finding.** `ac-trace.py check` reports each task over 50 words in a `Not Started` story. It is informational and never changes the exit code. ([Story 1](.writ/specs/2026-11-06-lean-story-tasks/user-stories/story-1-oversized-task-finding.md))
+- **Lean-tasks trial report.** One archived spec was implemented twice, from its original stories and from regenerated ones. The regenerated stories used 28% fewer words, needed one fewer review iteration, and did not carry the prescription that led to a data-loss bug. Sample of one; verdict `lean-tasks: keep`. ([report](.writ/specs/2026-11-06-lean-story-tasks/trial-report.md))
+
+### Changed
+- **Story tasks name files and contracts, not internals.** The story generator tells tasks to name every file they create or change and any external contract they fix, to leave function names, signatures, and step order to the coding agent, to stay at or under 50 words, and to put gotchas in Notes. `/create-spec` Step 2.6a regenerates a story that has an `oversized_task`. ([Story 2](.writ/specs/2026-11-06-lean-story-tasks/user-stories/story-2-lean-task-rules.md))
+- **No generic Definition of Done.** New stories no longer carry the five boilerplate checkboxes. `/verify-spec` Check 1d no longer requires the section, and Check 3b checks it only when a story has one, so existing stories are checked as before. ([Story 3](.writ/specs/2026-11-06-lean-story-tasks/user-stories/story-3-drop-generic-dod.md))
+- **Business rules are stated once.** The contract template numbers its Business Rules. The expanded section, technical spec, and story hints cite `Business Rule N` instead of restating the rule. ([Story 4](.writ/specs/2026-11-06-lean-story-tasks/user-stories/story-4-rules-stated-once.md))
+- `commands/create-spec.md` is 48 bytes smaller; `commands/verify-spec.md` is unchanged.
+
+### Known Issues
+- `story-context.py` does not resolve `Business Rule N` hints yet. Specs whose stories cite rules by bold name lose that context if `/edit-spec` regenerates their stories.
+
+### Internal
+- Byte-ledger tests no longer pin a later file size; a later change to `create-spec.md` or `verify-spec.md` needs only a new dated ledger entry.
+- Phase 16 specs (`pr-ready-and-ledger`, `ship-watch-and-merge`), the `archived-dependencies-resolve` spec, and two issues are recorded. None is implemented in this release.
+
 ## [0.44.0] - 2026-11-06
 
 **One front door, plugin installs, review that blocks only on evidence, and commands that ask only on doubt.** This release carries Phase 14 (Front Door and Distribution), Phase 15 (Code-Level Rigor), Phase 17 (Doubt-Gated Autonomy), and a Phase 13 follow-up fix.
