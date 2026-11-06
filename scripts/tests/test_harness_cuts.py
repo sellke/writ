@@ -808,5 +808,198 @@ class EvalLifecycleScenariosInvertedTest(unittest.TestCase):
             self.assertRegex(checks, r"(?m)^  %s$" % re.escape(name))
 
 
+# Story 2 of 2026-11-06-lean-story-tasks: lean task rules in the story
+# generator and Step 2.6a. ac-trace credits the tokens below to that spec.
+
+STORY_GENERATOR = "agents/user-story-generator.md"
+STORY_GENERATOR_COPIES = ("claude-code/agents/writ-story-gen.md",
+                          "cursor/plugin/agents/user-story-generator.md")
+
+RULE_FILES_AND_CONTRACTS = "Name every file the task creates or changes, and any external contract it fixes"
+RULE_NO_INTERNALS = "Do not prescribe internal function names, signatures, or step order"
+RULE_WORD_CAP = "At most 50 words per task, not counting the task number and AC tag"
+RULE_NOTES = "gotchas, and environment constraints go in Notes"
+SECOND_FAILURE_LINE = "`story=N task N.M words=W`"
+
+
+def task_rules(text: str) -> str:
+    return section(text, "Rules for tasks:\n", "\n## Notes")
+
+
+def task_quality_guideline(text: str) -> str:
+    return section(text, "### Implementation Tasks\n", "\n### Notes Section")
+
+
+def step_2_6a_item(number: int) -> str:
+    lines = [line for line in step_2_6a().splitlines() if line.startswith("%d. " % number)]
+    if len(lines) != 1:
+        raise RuntimeError("Step 2.6a has %d item %d lines" % (len(lines), number))
+    return lines[0]
+
+
+def step_2_9() -> str:
+    return section(read(CREATE_SPEC), "#### Step 2.9: Final Package Review", "\n## Completion")
+
+
+class LeanTaskRulesTest(unittest.TestCase):
+    """AC-2.1, AC-2.2: the generator's task rules and its Implementation
+    Tasks quality guideline say what a task names, what it leaves out, how
+    long it may be, and where gotchas go."""
+
+    def test_ac_2_1_rules_name_files_and_contracts_not_internals(self):
+        """AC-2.1"""
+        rules = task_rules(read(STORY_GENERATOR))
+        self.assertIn(RULE_FILES_AND_CONTRACTS, rules)
+        self.assertIn(RULE_NO_INTERNALS, rules)
+
+    def test_ac_2_2_rules_cap_each_task_at_50_words(self):
+        """AC-2.2"""
+        self.assertIn(RULE_WORD_CAP, task_rules(read(STORY_GENERATOR)))
+
+    def test_ac_2_2_rules_send_gotchas_and_constraints_to_notes(self):
+        """AC-2.2"""
+        self.assertIn(RULE_NOTES, task_rules(read(STORY_GENERATOR)))
+
+    def test_ac_2_1_ac_2_2_quality_guideline_says_the_same(self):
+        """AC-2.1, AC-2.2"""
+        guideline = task_quality_guideline(read(STORY_GENERATOR))
+        for phrase in ("any external contract it fixes", "never internal function names",
+                       "At most 50 words", "Notes"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, guideline)
+
+    def test_ac_2_4_generated_copies_carry_the_rules(self):
+        """AC-2.4"""
+        for rel in STORY_GENERATOR_COPIES:
+            with self.subTest(file=rel):
+                text = read(rel)
+                self.assertIn(RULE_WORD_CAP, text)
+                self.assertIn(RULE_FILES_AND_CONTRACTS, text)
+
+
+class Step26aOversizedTaskTest(unittest.TestCase):
+    """AC-2.3: an `oversized_task` finding fails its story in Step 2.6a, the
+    one anchor regeneration applies unchanged, and Step 2.9 lists a second
+    failure's task numbers and word counts."""
+
+    def test_ac_2_3_item_2_fails_a_story_with_an_oversized_task(self):
+        """AC-2.3"""
+        item = step_2_6a_item(2)
+        self.assertIn("`oversized_task`", item)
+        self.assertIn("fails its story", item)
+
+    def test_ac_2_3_item_3_regenerates_once_at_anchor(self):
+        """AC-2.3"""
+        item = step_2_6a_item(3)
+        self.assertIn("spawn one regeneration with the identical prompt at `anchor`", item)
+        self.assertIn("re-check once", item)
+        self.assertIn("A passing story is never regenerated.", item)
+
+    def test_ac_2_3_step_2_9_lists_second_failure_word_counts(self):
+        """AC-2.3"""
+        text = step_2_9()
+        self.assertIn("`oversized_task`", text)
+        self.assertIn(SECOND_FAILURE_LINE, text)
+
+
+# Story 3 of 2026-11-06-lean-story-tasks: new stories carry no generic
+# Definition of Done, and /verify-spec checks one only when a story has it.
+# ac-trace credits the tokens below to that spec.
+
+VERIFY_SPEC = "commands/verify-spec.md"
+CREATE_SPEC_COPIES = ("cursor/plugin/commands/create-spec.md",
+                      "plugins/writ/commands/create-spec.md")
+VERIFY_SPEC_COPIES = ("cursor/plugin/commands/verify-spec.md",
+                      "plugins/writ/commands/verify-spec.md")
+DOD_HEADING = "## Definition of Done"
+CHECK_3B_CONDITION = 'If story status is "Completed ✅" and the story has a Definition of Done:'
+CHECK_3B_NO_DOD = "No Definition of Done → no finding"
+# File sizes when Story 3 started. A change from either needs a dated ledger
+# line that starts from that file's Story 3 overage: Story 3's own line for
+# create-spec.md (14169 -> 14121), or a later story's line. Any end value: a
+# later line may move the file again, and the governor test asserts the live
+# total exactly. Same form as test_rule_citations.py DATED_LEDGER_LINE_FROM.
+SIZE_AT_STORY_3_START = {CREATE_SPEC: 39129, VERIFY_SPEC: 35778}
+DATED_LEDGER_LINE_FROM = r"(?m)^\s*# \d{4}-\d{2}-\d{2}\b.*: %d -> \d+\b"
+
+
+def story_contents_sentence(text: str) -> str:
+    step = section(text, "#### Step 2.6:", "#### Step 2.6a:")
+    lines = [line for line in step.splitlines() if line.startswith("Each story file should contain:")]
+    if len(lines) != 1:
+        raise RuntimeError("Step 2.6 has %d story-contents sentences" % len(lines))
+    return lines[0]
+
+
+def check_1d(text: str) -> str:
+    return section(text, "**1d. Required sections present:**", "\n---")
+
+
+def check_3b(text: str) -> str:
+    return section(text, "**3b. Definition of Done verification", "**3c. ")
+
+
+class NoGenericDefinitionOfDoneTest(unittest.TestCase):
+    """AC-3.1 to AC-3.5: the story template and Step 2.6 emit no Definition
+    of Done, /verify-spec 1d does not require one, 3b checks one only when
+    present, and any byte change to the two commands is in the ledger."""
+
+    def test_ac_3_1_template_has_no_definition_of_done(self):
+        """AC-3.1"""
+        for rel in (STORY_GENERATOR,) + STORY_GENERATOR_COPIES:
+            with self.subTest(file=rel):
+                text = read(rel)
+                self.assertNotIn(DOD_HEADING, text)
+                for heading in ("## Implementation Tasks", "## Notes", "## Context for Agents"):
+                    self.assertIn(heading, text)
+
+    def test_ac_3_1_from_prototype_story_1_checks_no_definition_of_done(self):
+        """AC-3.1: --from-prototype Story 1 comes from the same template, so
+        its Step 3 asks for checked tasks only."""
+        step = section(read(CREATE_SPEC), "#### Step 3: Phase 2 with Story 1 Marked",
+                       "#### Step 3: Phase 2 with `spec_ref`")
+        self.assertNotIn("Definition of Done", step)
+        self.assertIn("has every Implementation Task (`- [x] [task]`) checked", step)
+
+    def test_ac_3_2_story_contents_sentence_names_no_definition_of_done(self):
+        """AC-3.2"""
+        for rel in (CREATE_SPEC,) + CREATE_SPEC_COPIES:
+            with self.subTest(file=rel):
+                sentence = story_contents_sentence(read(rel))
+                self.assertNotIn("definition of done", sentence.lower())
+                self.assertIn('technical notes, **and a "## Context for Agents" section', sentence)
+
+    def test_ac_3_3_check_1d_does_not_require_definition_of_done(self):
+        """AC-3.3"""
+        for rel in (VERIFY_SPEC,) + VERIFY_SPEC_COPIES:
+            with self.subTest(file=rel):
+                block = check_1d(read(rel))
+                self.assertNotIn("Definition of Done", block)
+                for name in ("User Story", "Acceptance Criteria", "Implementation Tasks"):
+                    self.assertIn(name, block)
+
+    def test_ac_3_4_check_3b_runs_only_when_a_definition_of_done_exists(self):
+        """AC-3.4"""
+        for rel in (VERIFY_SPEC,) + VERIFY_SPEC_COPIES:
+            with self.subTest(file=rel):
+                text = read(rel)
+                block = check_3b(text)
+                self.assertIn(CHECK_3B_CONDITION, block)
+                self.assertIn(CHECK_3B_NO_DOD, block)
+                self.assertIn("flag as incomplete DoD", block)
+                self.assertIn("[WARN-1] Unchecked Definition of Done", text)
+
+    def test_ac_3_5_byte_changes_are_in_the_ledger(self):
+        """AC-3.5"""
+        recorded = known_over_budget()
+        ledger = read(GOVERNOR_TEST)
+        for rel, start in SIZE_AT_STORY_3_START.items():
+            with self.subTest(file=rel):
+                size = len((REPO_ROOT / rel).read_bytes())
+                self.assertEqual(recorded[rel], size - COMMAND_BYTE_BUDGET)
+                if size != start:
+                    self.assertRegex(ledger, DATED_LEDGER_LINE_FROM % (start - COMMAND_BYTE_BUDGET))
+
+
 if __name__ == "__main__":
     unittest.main()

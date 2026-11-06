@@ -25,7 +25,7 @@ problem: "Writing story files one at a time inside the create-spec conversation 
 outcome: "One story file at this instance's assigned path, carrying its own criteria, tasks, and context hints that index into the spec rather than copying it."
 exit_criteria:
   - "<spec_folder>/<story_filename> exists and is the only path this instance wrote — sibling instances own their own files"
-  - "that file holds 3 to 5 Given/When/Then acceptance criteria and 5 to 7 implementation tasks, the first writing tests and the last verifying them"
+  - "that file holds 3 to 5 Given/When/Then acceptance criteria and 5 to 7 implementation tasks of at most 50 words each, the first writing tests and the last verifying them"
   - "its Context for Agents section names spec sections, error map rows, or shadow paths instead of reproducing their text, and Status reads Not Started"
   - "every acceptance criterion carries a trailing `[AC-N.M]` tag, the `> **AC IDs assigned through:**` marker equals the highest ID present, and every criterion ID is cited by at least one implementation task"
 ```
@@ -138,18 +138,24 @@ one criterion (e.g. `` `[AC-{story_number}.1, AC-{story_number}.3]` ``). Every c
 defined above must be cited by at least one task below — an ID with no citing task is
 exactly the `untasked_criterion` finding Story 2's checker reports:
 
-- [ ] {story_number}.1 Write tests for [specific component] `[AC-{story_number}.n]`
-- [ ] {story_number}.2 [Implementation step] `[AC-{story_number}.n]`
-- [ ] {story_number}.3 [Implementation step] `[AC-{story_number}.n]`
-- [ ] {story_number}.4 [Implementation step] `[AC-{story_number}.n]`
+- [ ] {story_number}.1 Write tests in [test file] for [behavior] `[AC-{story_number}.n]`
+- [ ] {story_number}.2 [What changes, in which files] `[AC-{story_number}.n]`
+- [ ] {story_number}.3 [What changes, in which files] `[AC-{story_number}.n]`
+- [ ] {story_number}.4 [What changes, in which files] `[AC-{story_number}.n]`
 - [ ] {story_number}.5 Verify acceptance criteria are met `[AC-{story_number}.n]`
 - [ ] {story_number}.6 Verify all tests pass `[AC-{story_number}.n]`
 
 Rules for tasks:
 - Always start with writing tests
 - Always end with verification tasks
-- Keep tasks focused and achievable
-- Reference specific files/components from codebase context
+- Name every file the task creates or changes, and any external contract it fixes:
+  CLI flags, a file format, exit or reason codes, a function another story or spec calls
+- Do not prescribe internal function names, signatures, or step order. The coding agent
+  decides internal structure
+- At most 50 words per task, not counting the task number and AC tag. `/create-spec`
+  Step 2.6a regenerates a story with a longer task
+- Probed facts, gotchas, and environment constraints go in Notes, not in tasks
+- A task may cite a business rule by number (`Business Rule N`) but never paraphrases it
 - Fill each `[AC-{story_number}.n]` placeholder with the actual criterion ordinal(s) that
   task satisfies — never leave the literal placeholder `n` in the written file
 
@@ -157,16 +163,9 @@ Rules for tasks:
 
 Include:
 - Technical considerations specific to this story
+- Probed facts, gotchas, and environment constraints the tasks rely on
 - Potential risks or challenges
 - Integration points with other stories (if dependencies exist)
-
-## Definition of Done
-
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
 
 ## Context for Agents
 
@@ -176,7 +175,7 @@ Format (include only categories with relevant content):
 
 - **Error map rows:** [Operation 1, Operation 2] — from technical-spec.md error map, or spec.md → Error Experience
 - **Shadow paths:** [Path name 1, Path name 2] — from technical-spec.md shadow paths, or spec.md → Happy Path Flow
-- **Business rules:** [Rule 1 (brief summary), Rule 2 (brief summary)] — from spec.md → Business Rules section
+- **Business rules:** [Business Rule 1, Business Rule 3] — numbers from the spec.md contract's Business Rules; never restate a rule
 - **Experience:** [Element 1 (detail), Element 2 (detail)] — from spec.md → Experience Design section
 
 **Selection criteria:**
@@ -186,7 +185,7 @@ Format (include only categories with relevant content):
 - Experience: Only include UX elements this story implements (error states, loading, feedback, empty states)
 
 **Quality rules:**
-- Be specific with names (use exact operation/path/rule names from spec)
+- Be specific with names (use exact operation and path names, and rule numbers, from spec)
 - Be concise (only what's directly relevant to this story)
 - Be accurate (reference content that actually exists)
 - Use empty brackets [] if a category has no relevant content
@@ -261,7 +260,11 @@ Each agent instance produces:
 
 ### Implementation Tasks
 - Must be achievable in a focused work session
-- Should reference actual files/components when known
+- Must name every file it creates or changes and any external contract it fixes;
+  never internal function names, signatures, or step order
+- At most 50 words, not counting the task number and AC tag; gotchas and constraints
+  go in Notes
+- May cite a business rule by number; never paraphrase it
 - Must include test-first and verification tasks
 - Should not exceed 7 tasks (split story if needed)
 - Every task line ends with a trailing tag citing the criterion ID(s) it satisfies; every

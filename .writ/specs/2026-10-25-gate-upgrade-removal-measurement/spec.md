@@ -3,7 +3,7 @@
 > **Status:** In Progress — repro-first amendment_requested (trial-report.md)
 > **Created:** 2026-10-25
 > **Owner:** @AdamSellke
-> **Dependencies:** [2026-10-25-design-divergence, 2026-10-25-review-route-rigor, 2026-10-25-repro-first-bug-fixing]
+> **Dependencies:** [2026-10-25-review-route-rigor, 2026-10-25-repro-first-bug-fixing]
 > **Phase:** 15 — Code-Level Rigor ([roadmap](../../product/roadmap.md), [ADR-030](../../decision-records/adr-030-contract-verifier-boundary-front-door.md))
 > **Origin:** Roadmap Phase 15 success criterion "Removal measurement" and ADR-030 § Consequences ("Each upgrade is kept only if a removal measurement on the Phase 11 baseline set shows it catching something the current gates passed"). Reuses the Phase 12 panel trial pattern ([`archive/2026-10-01-cross-family-review-panel`](../archive/2026-10-01-cross-family-review-panel/spec.md), [`trial-report.md`](../archive/2026-10-01-cross-family-review-panel/trial-report.md)). Authored with `/create-spec --recommend`; decisions in [`recommendation-log.md`](recommendation-log.md).
 

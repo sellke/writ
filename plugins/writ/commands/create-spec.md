@@ -119,7 +119,7 @@ Build on the Step 0 draft plus discovery answers; print it as a visible message,
 
 **Precondition:** the Step 2 contract is locked at the Step 1.4b Contract Decision.
 
-Run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/writ:implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/writ:prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
+Run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/writ:implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/writ:prototype`), and has every Implementation Task (`- [x] [task]`) checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
 
 ---
 
@@ -267,9 +267,9 @@ Keyword matching, not semantic analysis; false positives are acceptable (the use
 - **Error experience:** [What failure looks like to the user — not the system]
 
 **📋 Business Rules:**
-- [Key rule 1 — e.g., "Only workspace admins can invite members"]
-- [Key rule 2 — e.g., "Free tier limited to 3 projects"]
-- [Edge cases or domain-specific constraints discovered during conversation]
+1. [Key rule — e.g., "Only workspace admins can invite members"]
+2. [Key rule — e.g., "Free tier limited to 3 projects"]
+3. [Edge cases or domain-specific constraints discovered during conversation]
 
 **Success Criteria:** [How we'll know it's working correctly]
 
@@ -403,7 +403,7 @@ Prefix `@`, strip spaces, and consult no external user directory. Unset or empty
   - **Supersession banners:** if the locked contract says this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on) as a markdown link — link text the prior spec's folder name, target its relative `spec.md` path (e.g. `Amends:` → `2026-07-11-leanness-guardian` → `../2026-07-11-leanness-guardian/spec.md`). Step 2.4b writes the reverse pointer; convention in [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners).
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
-- **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
+- **Business rules** — detail per contract rule, cited as `Business Rule N` (permissions, validation, state transitions, edge cases, compliance); never restate the rule
 - **Detailed requirements** — expanded from clarification responses
 - **Implementation approach** — technical strategy based on codebase analysis
 
@@ -415,7 +415,7 @@ If the new spec's header has an `> **Amends:**` or `> **Extends:**` line, write 
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md
 ```
 
-It parses every link target on the line (there may be several, e.g. a spec **and** an ADR), resolves each against the new spec's folder, and writes or updates a `Superseded by:` line (link text the new folder name, target its relative `spec.md`) in each resolvable target's header, never duplicating it and leaving every other line — including the target's `> **Status:**` — untouched. Non-spec targets (e.g. an ADR) are reported under `skipped_other` and get no reverse pointer; broken paths or missing targets are reported under `broken`. **This step never blocks or fails spec package creation** — proceed to Step 2.5 regardless and surface any `broken` entries as an informational note.
+It parses every link target on the line, resolves each against the new spec's folder, and writes or updates a `Superseded by:` line in each resolvable target's header, never duplicating it and leaving every other line — including the target's `> **Status:**` — untouched. Non-spec targets (e.g. an ADR) are reported under `skipped_other` and get no reverse pointer; broken paths or missing targets are reported under `broken`. **This step never blocks or fails spec package creation** — proceed to Step 2.5 regardless and surface any `broken` entries as an informational note.
 
 **spec-lite.md** — condensed version for AI context with agent-specific sections. **Hard limit: under 100 lines.** Format:
 
@@ -524,7 +524,7 @@ For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier res
 - `spec_content` — full text of `spec.md`
 - `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise `""`, and add to the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')." (Step 2.8 may still be running in parallel.)
 
-Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, definition of done, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
+Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
 
 **Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `${CLAUDE_PLUGIN_ROOT}/agents/user-story-generator.md`; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
 
@@ -534,11 +534,11 @@ Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
 
 After **all** generators return, and before Step 2.6b:
 
-1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder (no story is Completed yet, and a repo-wide scan would misattribute other specs' `dangling_reference`s); `/writ:verify-spec` keeps `--repo .`.
-2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
+1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder, so other specs' `dangling_reference`s stay out; `/writ:verify-spec` keeps `--repo .`.
+2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`. Any `oversized_task` finding fails its story.
 3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9. A passing story is never regenerated.
 
-Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file follows the normal error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
+Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file follows the normal error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration.
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 
@@ -582,13 +582,14 @@ After all subagents complete, create `user-stories/README.md` with: stories summ
 
 #### Step 2.8: Generate Technical Sub-Specs
 
-Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories.
+Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories and cites contract rules as `Business Rule N`; never restate a rule.
 
 **Error Mapping (Required for Data Flow Features):** include when the spec touches API routes, auth flows, payments, file operations, or external integrations; skip for pure UI/CSS, docs, config, or internal refactors; when in doubt, include it. `Read ${CLAUDE_PLUGIN_ROOT}/skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables and the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline.
 
 #### Step 2.9: Final Package Review
 
-Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps. If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as **notes**; they never fail this review or block the package.
+Present the complete package: file tree, story and task counts, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps. If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as **notes**; they never fail this review or block the package.
+List each story still failing Step 2.6a and each `oversized_task` as `story=N task N.M words=W`.
 Add one note: `jev: <J>/<T> stories judged, <M> escalated` from `spec-findings`, else `jev: <verdict> (<reason>)`.
 
 ## Completion

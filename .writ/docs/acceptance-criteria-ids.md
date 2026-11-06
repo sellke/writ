@@ -248,6 +248,7 @@ Named codes, mirroring the style Check 4d already uses (`malformed_dependencies`
 | `partial_adoption` | Some criteria in a story carry IDs and others do not | **Blocking** |
 | `legacy_story` | Zero criteria in the story carry IDs | Informational, never blocking |
 | `run_verified` | A `Verified by:` line names the ID; the detail carries the evidence | Informational, never blocking |
+| `oversized_task` | A task line in a story whose status is exactly `Not Started` has more than 50 words, after stripping the checkbox, the `N.M` number, and the trailing tag; the detail reads `task N.M has W words (limit 50)`, or `task at line L has W words (limit 50)` for an unnumbered task | Informational, never blocking |
 
 ### Severity reasoning
 

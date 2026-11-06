@@ -26,6 +26,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
 MODULE_PATH = Path(__file__).resolve().parent.parent / "ac-trace.py"
 _spec = importlib.util.spec_from_file_location("ac_trace", MODULE_PATH)
@@ -35,17 +36,18 @@ _spec.loader.exec_module(ac)  # type: ignore[union-attr]
 
 # --- Fixture builders --------------------------------------------------------
 
-def write_story(root: Path, number: int, *, status: str = "Not Started",
+def write_story(root: Path, number: int, *, status: str | None = "Not Started",
                  marker_lines: list[str] | None = None,
                  ac_lines: tuple[str, ...] = (),
                  task_lines: tuple[str, ...] = ()) -> Path:
     """Write one disposable `story-N-*.md` under `root/user-stories/`,
     mirroring the real shape: status header, marker line(s) (or none),
-    checkbox criterion lines, checkbox task lines."""
+    checkbox criterion lines, checkbox task lines. `status=None` omits the
+    Status line."""
     lines = [
         f"# Story {number}: Fixture",
         "",
-        f"> **Status:** {status}",
+        *([f"> **Status:** {status}"] if status is not None else []),
         "> **Priority:** High",
         "> **Dependencies:** None",
         "",
@@ -1219,6 +1221,152 @@ class StoryFileParsingEdgeCaseTests(unittest.TestCase):
             )
             story = ac.parse_story_file(path)
             self.assertIsNone(story["status"])
+
+
+# --- oversized_task (Story 1 of `2026-11-06-lean-story-tasks`) --------------
+
+def _words(count: int) -> str:
+    return " ".join(f"w{i}" for i in range(1, count + 1))
+
+
+def _oversize_spec(repo: Path, *, status: str | None = "Not Started",
+                   third_task: str | None = None, cited: bool = True) -> Path:
+    """A one-criterion story 1 whose third task line is `third_task`. With
+    `cited=False` no task cites AC-1.1, so the run has a blocking finding."""
+    spec = make_spec(repo)
+    tag = " `[AC-1.1]`" if cited else ""
+    tasks = [f"- [ ] 1.1 Write the tests.{tag}", "- [ ] 1.2 Implement the change."]
+    if third_task is not None:
+        tasks.append(third_task)
+    write_story(
+        spec, 1, status=status,
+        marker_lines=["> **AC IDs assigned through:** AC-1.1"],
+        ac_lines=("- [ ] Given a fixture criterion. `[AC-1.1]`",),
+        task_lines=tuple(tasks),
+    )
+    return spec
+
+
+class OversizedTaskTests(unittest.TestCase):
+    """Story 1 of `2026-11-06-lean-story-tasks`: informational `oversized_task`
+    for each task over 50 words in a `Not Started` story (Business Rule 2)."""
+
+    def _oversized(self, third_task: str | None, **kwargs: Any) -> list[dict]:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _oversize_spec(repo, third_task=third_task, **kwargs)
+            _, result = run_check(spec, repo)
+            return findings_for(result, "oversized_task")
+
+    def test_51_word_task_reports_informational_finding_ac_1_1(self) -> None:
+        """AC-1.1: a 51-word task 1.3 yields one informational finding."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _oversize_spec(repo, third_task=f"- [ ] 1.3 {_words(51)} `[AC-1.1]`")
+            exit_code, result = run_check(spec, repo)
+            found = findings_for(result, "oversized_task")
+            self.assertEqual(len(found), 1, result)
+            finding = found[0]
+            self.assertEqual(finding["severity"], "informational")
+            self.assertEqual(finding["detail"], "task 1.3 has 51 words (limit 50)")
+            self.assertEqual(finding["story"], 1)
+            self.assertIsNone(finding["id"])
+            story_file = spec / "user-stories" / "story-1-fixture.md"
+            self.assertEqual(finding["file"], str(story_file))
+            lines = story_file.read_text(encoding="utf-8").splitlines()
+            self.assertTrue(lines[finding["line"] - 1].startswith("- [ ] 1.3 "))
+            self.assertEqual(exit_code, 0, result)
+
+    def test_50_word_task_reports_nothing_ac_1_2(self) -> None:
+        """AC-1.2: exactly 50 words is within the limit."""
+        self.assertEqual(self._oversized(f"- [ ] 1.3 {_words(50)} `[AC-1.1]`"), [])
+
+    def test_empty_task_counts_zero_words(self) -> None:
+        """AC-1.2: a task line that is only a checkbox and tag counts 0 words."""
+        self.assertEqual(ac._task_word_count("- [ ] `[AC-1.1]`"), 0)
+        self.assertEqual(ac._task_word_count("- [ ] 1.3 `[AC-1.1]`"), 0)
+
+    def test_inline_code_counts_its_words_and_tag_is_stripped(self) -> None:
+        """AC-1.2: strip checkbox, number, tag; inline code counts as its words."""
+        self.assertEqual(
+            ac._task_word_count("- [x] 1.3 Run `uv run pytest -q` now. `[AC-1.1, AC-1.2]`"), 6)
+        self.assertEqual(ac._task_word_count("- [ ] 1.3 No tag on this line"), 5)
+
+    def test_51_words_without_tag_fires(self) -> None:
+        """AC-1.1: a task with no AC tag counts the whole line after the number."""
+        found = self._oversized(f"- [ ] 1.3 {_words(51)}")
+        self.assertEqual([f["detail"] for f in found], ["task 1.3 has 51 words (limit 50)"])
+
+    def test_other_statuses_report_nothing_ac_1_3(self) -> None:
+        """AC-1.3: In Progress, Completed ✅, and an absent status emit nothing."""
+        long_task = f"- [ ] 1.3 {_words(60)} `[AC-1.1]`"
+        for status in ("In Progress", "Completed ✅", None):
+            with self.subTest(status=status):
+                self.assertEqual(self._oversized(long_task, status=status), [])
+
+    def test_no_tasks_section_reports_nothing_ac_1_3(self) -> None:
+        """AC-1.3: a Not Started story with no Implementation Tasks section."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = make_spec(repo)
+            folder = spec / "user-stories"
+            folder.mkdir(parents=True)
+            (folder / "story-1-fixture.md").write_text(
+                "# Story 1: Fixture\n\n> **Status:** Not Started\n\n## Acceptance Criteria\n\n"
+                f"> **AC IDs assigned through:** AC-1.1\n\n- [ ] {_words(60)} `[AC-1.1]`\n",
+                encoding="utf-8",
+            )
+            _, result = run_check(spec, repo)
+            self.assertEqual(findings_for(result, "oversized_task"), [])
+            self.assertEqual(codes(result), ["untasked_criterion"])
+
+    def test_exit_code_and_schema_unchanged_ac_1_4(self) -> None:
+        """AC-1.4: exit code equals the 50-word run's, clean or blocking; schema holds."""
+        for cited in (True, False):
+            runs = []
+            for count in (50, 51):
+                with self.subTest(cited=cited, words=count), TemporaryDirectory() as tmp:
+                    repo = Path(tmp)
+                    spec = _oversize_spec(
+                        repo, third_task=f"- [ ] 1.3 {_words(count)}", cited=cited)
+                    exit_code, payload = run_cli(
+                        "check", "--spec", str(spec), "--repo", str(repo))
+                    self.assertEqual(payload["schema"], "ac-trace-check-v1")
+                    runs.append(exit_code)
+            self.assertEqual(runs[0], runs[1])
+            self.assertEqual(runs[0], 0 if cited else 1)
+
+    def test_unnumbered_task_detail_names_line_ac_1_5(self) -> None:
+        """AC-1.5: an unnumbered 60-word task reads `task at line L has 60 words`."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _oversize_spec(repo, third_task=f"- [ ] {_words(60)} `[AC-1.1]`")
+            _, result = run_check(spec, repo)
+            found = findings_for(result, "oversized_task")
+            self.assertEqual(len(found), 1, result)
+            line = found[0]["line"]
+            self.assertEqual(found[0]["detail"], f"task at line {line} has 60 words (limit 50)")
+            lines = (spec / "user-stories" / "story-1-fixture.md").read_text(
+                encoding="utf-8").splitlines()
+            self.assertEqual(lines[line - 1], f"- [ ] {_words(60)} `[AC-1.1]`")
+
+    def test_each_oversized_task_reports_in_line_order(self) -> None:
+        """AC-1.1: one finding per over-long task, in file order."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = make_spec(repo)
+            write_story(
+                spec, 1,
+                marker_lines=["> **AC IDs assigned through:** AC-1.1"],
+                ac_lines=("- [ ] Given a fixture criterion. `[AC-1.1]`",),
+                task_lines=(f"- [ ] 1.1 {_words(55)} `[AC-1.1]`", "- [ ] 1.2 Short.",
+                            f"- [ ] 1.3 {_words(70)}"),
+            )
+            _, result = run_check(spec, repo)
+            self.assertEqual(
+                [f["detail"] for f in findings_for(result, "oversized_task")],
+                ["task 1.1 has 55 words (limit 50)", "task 1.3 has 70 words (limit 50)"],
+            )
 
 
 if __name__ == "__main__":

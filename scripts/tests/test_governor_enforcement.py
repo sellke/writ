@@ -635,7 +635,11 @@ KNOWN_OVER_BUDGET = {
     # 2026-11-05 (ADR-033, Phase 17): 15197 -> 14169; the --recommend branch, its
     # matrix, and its authoring boundary become one doubt-gated "Authoring From
     # Evidence" section that every run follows.
-    "commands/create-spec.md": 14169,
+    # 2026-11-06 (2026-11-06-lean-story-tasks Story 3): 14169 -> 14121; a shrink.
+    # Step 2.6 and --from-prototype Step 3 no longer name a Definition of Done,
+    # since the story template stopped emitting one. Re-pinned down because
+    # total_overage is asserted exactly.
+    "commands/create-spec.md": 14121,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
