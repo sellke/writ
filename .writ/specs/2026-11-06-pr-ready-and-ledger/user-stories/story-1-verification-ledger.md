@@ -1,6 +1,7 @@
 # Story 1: Verification ledger
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 23ba716cbee840cffc4dc99a93e7a9bc3b7c0488
 > **Priority:** High
 > **Dependencies:** None
 
