@@ -1,6 +1,7 @@
 # Story 1: Gate declarations and evidence
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 00fde67a07d760f8070e48b9e489f943cf141976
 > **Priority:** High
 > **Dependencies:** None
 
