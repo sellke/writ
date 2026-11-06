@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T23:40:00Z
+> Last Updated: 2026-11-07T01:10:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-lean-story-pipeline — Lean Story Pipeline (branch `spec/lean-story-pipeline`, worktree `.claude/worktrees/lean-story-pipeline`)
 - **Status:** In Progress — `/implement-spec` run started 2026-11-06T22:24:40Z
-- **Story:** 1 of 6 — Gate declarations and evidence (Completed ✅); next: Story 2, demote gates with no recorded catch
-- **Progress:** 6/40 tasks complete
+- **Story:** 2 of 6 — Demote gates with no recorded catch (Completed ✅); next: Story 3, `story-gate.py` runner
+- **Progress:** 12/40 tasks complete
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
+- DEV-007 Demoted sections lost their default-path clauses; Gate 0 agent block now precedes its script — lean-story-pipeline (Small)
+- DEV-006 Kept gates read `path: default` instead of having no `path:` line — lean-story-pipeline (Small)
 - DEV-005 Gate 4 authenticity finding on the ADR-032 repro recorded as a false positive — lean-story-pipeline (Medium)
-- DEV-004 Contract Business Rule 3 names Gate 0 Divergence, which no longer exists — lean-story-pipeline (Small)
-- DEV-003 `KNOWN_OVER_BUDGET` raised in Story 1 without asking the maintainer first — lean-story-pipeline (Medium)
 
 ## Open Issues
 

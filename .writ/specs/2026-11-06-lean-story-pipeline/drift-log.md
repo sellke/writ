@@ -63,3 +63,28 @@
 - DEV-003: the temporary `KNOWN_OVER_BUDGET` raise stands; Story 2 or 3 brings `implement-story.md` to 38551 bytes or less and tightens the pin.
 - DEV-005: Gate 4 authenticity finding recorded as a false positive.
 
+---
+
+## Story 2: Demote gates with no recorded catch — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-006] Kept gates read `path: default` instead of having no `path:` line
+- **Severity:** Small
+- **Spec said:** Story 2 AC-2.2: a kept gate's `gates:` entry "has no `path:` line".
+- **Implementation did:** The seven kept entries keep Story 1's explicit `path: default`; the AC-2.2 test accepts absent or `default`.
+- **Reason:** Story 1 followed the technical-spec example (`path: default  # absent means default`), and `verdict-provenance.py` treats absent and `default` the same.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: kept entries read `path: default` (absent also means default).
+
+#### [DEV-007] Demoted sections lost their default-path clauses; Gate 0 agent block now precedes its script block
+- **Severity:** Small
+- **Spec said:** Story 2 task 2.2: move each demoted section "unchanged in content".
+- **Implementation did:** Removed the default, `--quick`, and `--review-only` clauses the move made false, and put Gate 0's agent block before its `arch-check.py` verify block. Full-pipeline behavior is unchanged (section diff against `dd07441`).
+- **Reason:** Business Rules (Expanded) Rule 2 and AC-2.3 require default-path wording to become full-pipeline wording; leaving the clauses would tell an orchestrator to run the scripts on default.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: demoted sections drop only default/`--quick`/`--review-only` clauses.
+

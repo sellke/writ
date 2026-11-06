@@ -56,3 +56,8 @@ Each source below was read on 2026-11-06.
 - **Rule 3 producers** (`gate0_5_boundary`, `gate2_5_surface`, `gate2_build`): `gate3_review` leaves the default path, read from the `gates:` frontmatter. `gate2_build` also needs `sole_catches == 0 over 20 default-path records`.
 - **`gate1_coding`**: every other entry leaves the default path, read from the `gates:` frontmatter.
 - **Demoted gates** (`gate0_arch`, `gate4_5_behavior`, `gate5_docs`): this file still reads `none recorded` for the gate on 2027-05-06. A `full-pipeline` run writes no `story-gate` record, so this file is the only place a later catch can be recorded.
+
+## Notes after Story 2 (2026-11-06)
+
+- `gate4_5_behavior`: with Gate 4.5 off the default path, the Safety Fact `reproduced` rung (sourced from a Gate 4.5 `app-verify-result-v1` file, `skills/blast-radius/SKILL.md`) is unreachable on default. The Safety Fact floor (`tested`) is unaffected, so this is not a Business Rule 3 input.
+
