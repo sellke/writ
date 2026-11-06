@@ -105,7 +105,7 @@ These steps apply in the Writ source repo.
 | `knowledge-consolidate.py` | data |  | commands/knowledge.md, commands/retro.md |
 | `lint-skill.sh` | check |  | commands/new-skill.md, commands/refresh-command.md, commands/update-writ.md |
 | `phase-state.py` | data |  | commands/implement-phase.md, commands/implement-spec.md, commands/status.md, commands/revert.md, commands/knowledge.md, adapters/claude-code.md |
-| `pr-ready.py` | check |  | none shipped yet; /ship --watch (spec 2026-11-06-ship-watch-and-merge) |
+| `pr-ready.py` | check |  | scripts/jev-judge.py |
 | `quality-config-audit.py` | data |  | commands/initialize.md, commands/status.md |
 | `repro-order.py` | check |  | commands/implement-story.md, commands/prototype.md, skills/tdd-cycle/SKILL.md |
 | `resolve-spec-reference.py` | data |  | commands/release.md, commands/ship.md |

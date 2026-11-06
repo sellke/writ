@@ -8,7 +8,7 @@
 **Deliverable:** `/ship` opens a PR without asking and records ledger rows; `/ship --watch` works the PR to merge-ready one pass at a time and merges when `pr-ready.py` passes for the exact head and `jev-judge.py doubt` passes; release, tag, and publish still ask.
 
 **Implementation Approach:**
-- `jev-judge.py`: `merge` leaves `DOUBT_ALWAYS_ASK`, joins `DOUBT_FALLBACK_ASK`. Record fields `pr`, `head_sha`, `snapshot`. `merge_rule` runs `pr-ready.py check --snapshot <s> --repo <r> --json` (subprocess, timeout) and maps the JSON. No separate ledger call.
+- `jev-judge.py`: `merge` leaves `DOUBT_ALWAYS_ASK`, joins `DOUBT_FALLBACK_ASK`. Record fields `pr`, `head_sha`, `snapshot`. `merge_rule` resolves `--repo`, runs `pr-ready.py check --snapshot <s> --repo <r> --json` (subprocess, timeout), and maps the JSON; the info token is pr-ready's first class or code normalized to `[a-z0-9_]` (≤ 40 chars); a `head_sha` with surrounding whitespace or a blank `snapshot` exits 2 (DEV-001). No separate ledger call.
 - `ship.md`: Steps 1–5 route asks through the Doubt Rule; `--test` runs Test Runner + `Eval Command` and calls `verify-ledger.py record` after `gh pr create`; Step 7 is the watch pass; the merge uses `gh pr merge <n> --match-head-commit <head>`.
 - State under `.writ/state/ship/` (`branch-<slug>.json`, `watch-pr-<n>.json`, `threads-pr-<n>.json`, `reply-pr-<n>.json`, `run-<id>.log`, `merge-record-pr-<n>.json`); snapshot at `.writ/state/pr-ready/pr-<n>.json`.
 

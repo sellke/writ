@@ -39,8 +39,10 @@ These apply to every command, agent, and session. No exceptions.
   decides: `pass` acts, anything else asks one bounded question. Label the
   answer with `doubt-label`. The command line and the rule are in
   `commands/_preamble.md` → Doubt Rule.
-- **Release stays a person's call.** Merging, releasing, tagging, and
-  publishing wait for a person's answer.
+- **Release stays a person's call.** Releasing, tagging, and publishing wait
+  for a person's answer. A merge waits too unless `pr-ready.py` passes for the
+  PR's exact head, which needs the verification ledger to read VERIFIED,
+  and the doubt check passes.
   Nothing bypasses branch protection, required checks, authentication, or authorization.
 - **Stay resumable and bounded.** Persist state before yielding or attempting
   external mutations, then reconcile repository and provider reality before

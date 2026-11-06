@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T17:22:00Z
+> Last Updated: 2026-11-06T18:15:54Z
 
 ## Product Mission
 
@@ -8,25 +8,23 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-11-06-pr-ready-and-ledger — PR Ready and Verification Ledger
-- **Status:** Complete — Phase 16 lane `writ/phase/16/2026-11-06-pr-ready-and-ledger`, awaiting the phase merge
-- **Story:** 3 of 3 complete (last: Ledger gate and machine output)
-- **Progress:** 20/20 tasks complete (100%)
+- **Spec:** 2026-11-06-ship-watch-and-merge — Ship Watch and Merge
+- **Status:** In Progress — Phase 16 lane `writ/phase/16/2026-11-06-ship-watch-and-merge`
+- **Story:** 1 of 4 complete (last: The merge rule re-derives readiness)
+- **Progress:** 7/27 tasks complete (26%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-11-06-pr-ready-and-ledger/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, recommendation-log.md
+- **Active spec:** .writ/specs/2026-11-06-ship-watch-and-merge/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, recommendation-log.md
 - **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-010 The Story 2 review repro ships as its own test file — pr-ready-and-ledger (Small)
-- DEV-009 `evaluate` takes a `(pr, head)` gate that wraps `ledger_check`, and the loader checks the module and writes no bytecode — pr-ready-and-ledger (Small)
-- DEV-008 A rejected snapshot value prints in a bounded form — pr-ready-and-ledger (Small)
+- DEV-001 The merge rule validates a little more than the technical spec, and resolves `--repo` first — ship-watch-and-merge (Small)
 
 ## Open Issues
 
-25 open issue files in .writ/issues/ (43 total; 18 closed with `## Resolution`)
+27 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`)
