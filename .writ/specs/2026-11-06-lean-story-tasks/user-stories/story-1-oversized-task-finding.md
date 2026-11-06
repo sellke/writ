@@ -1,6 +1,7 @@
 # Story 1: `oversized_task` finding in ac-trace
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 55eab7541727c6009444109e7c95ba2dd2e1d0e5
 > **Priority:** High
 > **Dependencies:** None
 
