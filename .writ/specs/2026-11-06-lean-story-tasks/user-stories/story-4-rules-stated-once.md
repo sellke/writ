@@ -14,6 +14,7 @@
 ## Acceptance Criteria
 
 > **AC IDs assigned through:** AC-4.5
+> **Verified by:** AC-4.5 — the full pytest runs and `bash scripts/eval.sh` in What Was Built → Test Results: 4261 passed on Python 3.9 and 3.14, eval.sh exit 0, `gen-platform-trees.py --check` pass
 
 - [x] Given the business-rules bullet in `commands/create-spec.md` Step 2.4, when Step 2.4 is read, then it adds detail per Business Rule number and does not restate contract rule text `[AC-4.1]`
 - [x] Given `commands/create-spec.md` Step 2.8, the business-rule hint in `agents/user-story-generator.md`, and `.writ/docs/context-hint-format.md`, when each is read, then each cites rules as `Business Rule N` and none restates rule text `[AC-4.2]`
