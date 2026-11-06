@@ -1,6 +1,7 @@
 # Story 2: Lean task rules in the story generator and Step 2.6a
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 2edfc73315fd78baaa1075c433ba2ecd836601fc
 > **Priority:** High
 > **Dependencies:** Story 1
 
