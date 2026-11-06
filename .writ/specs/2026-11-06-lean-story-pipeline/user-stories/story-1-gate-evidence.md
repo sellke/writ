@@ -14,6 +14,7 @@
 ## Acceptance Criteria
 
 > **AC IDs assigned through:** AC-1.5
+> **Verified by:** AC-1.5 — `git diff -U0 40b1a7c 31d8c29 -- commands/implement-story.md` (10 insertion hunks at lines 30–87, inside `gates:`, 0 removals), recorded in What Was Built → Review Outcome
 
 - [x] Given a `gates:` entry in `commands/implement-story.md` that lacks `catches:`, `evidence:`, or `kill_when:`, when `verdict-provenance.py check` runs, then it reports `missing_catches`, `missing_evidence`, or `missing_kill_when` for that gate `[AC-1.1]`
 - [x] Given a `gates:` entry whose `path:` is neither `default` nor `full-pipeline`, when the check runs, then it reports `unknown_path_value` for that gate, and an entry with no `path:` produces no finding `[AC-1.2]`
@@ -102,6 +103,7 @@
 - **Boundary Compliance:** Owned changes in scope; generated mirrors, the repro, and the `test_repro_first_wiring.py` narrowing justified; the `KNOWN_OVER_BUDGET` raise approved by the maintainer
 - **Safety fact:** measured `tested` (claimed `tested`)
 - **Evidence gate:** iteration 1 `1 confirmed`; iteration 2 `prior_ok`
+- **AC-1.5 (frontmatter-only):** `git diff -U0 40b1a7c 31d8c29 -- commands/implement-story.md` shows 10 insertion hunks at lines 30–87, all inside `gates:` (closing `---` at line 88), 0 removed lines; confirmed by both Gate 3 reviews and the supervisor
 
 ### Deviations from Spec
 
