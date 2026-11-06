@@ -1,6 +1,7 @@
 # Story 4: The watch merges on a green ledger
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 54c997edf20d8388652acdd089372a2188c727ec
 > **Priority:** High
 > **Dependencies:** Story 1, Story 3
 
