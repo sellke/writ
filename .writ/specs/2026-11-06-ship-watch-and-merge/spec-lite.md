@@ -19,7 +19,7 @@
 - `scripts/eval-loop-bounds.py`, `scripts/eval-leanness.py`, `scripts/eval-command-structure.py`, four `adapters/*.md` — registration
 - `scripts/tests/test_governor_enforcement.py` (re-pin), `scripts/tests/test_harness_cuts.py` (Story 4 pins; the AC-3.3 frontmatter test renamed `..._are_pinned`, plus a `--watch` merge-claim test — DEV-009), `.writ/docs/config-format.md` (`Eval Command`)
 - `scripts/tests/test_eval_leanness.sh`, `scripts/tests/test_gen_platform_trees.py`, `scripts/tests/fixtures/platform-trees/parity-no-file-search/codex.md` — fixtures for the sixth loop command and the `re-enter` row (DEV-006)
-- `.writ/docs/agent-cli-contract.md` — Callers cells of the two new rows only
+- `.writ/docs/agent-cli-contract.md` — Callers cells of the two new rows only; the `CALLERS` constants in `scripts/tests/test_pr_ready.py` and `scripts/tests/test_verify_ledger.py` follow them (DEV-011)
 
 **Error Handling:**
 - pr-ready missing / exit 1 or 2 / timeout / non-JSON → `merge_unverifiable` → ask

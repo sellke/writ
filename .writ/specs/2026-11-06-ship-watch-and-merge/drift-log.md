@@ -113,3 +113,18 @@
 - **Reason:** The Gate 3 review found that no fetch runs between the merge and Step 6, and `gh pr merge` without `--delete-branch` updates no local ref, so Step 6.1's squash row resolved `origin/<base>` to `pre_merge_base` and the audit note would have overwritten the previous PR's note. No pinned Step 6 literal changed.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach names the landed-SHA rule and the repro file.
+
+## Spec close-out — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-011] The first spec's contract tests follow the Callers cells
+- **Severity:** Small
+- **Spec said:** Reconciliation 8: this spec edits only the Callers cells of the `pr-ready.py` and `verify-ledger.py` rows in `.writ/docs/agent-cli-contract.md`; `scripts/pr-ready.py` and the ledger script are out of scope.
+- **Implementation did:** `scripts/tests/test_pr_ready.py` and `scripts/tests/test_verify_ledger.py` pinned the placeholder Callers text (`none shipped yet; /ship --watch (spec 2026-11-06-ship-watch-and-merge)`). Their `CALLERS` constants now read `commands/ship.md, scripts/jev-judge.py` and `commands/ship.md`. The scripts are unchanged.
+- **Reason:** Stories 1-3 changed the cells as the reconciliation says; the full pytest run at close-out failed both pins (the per-story targeted sets did not include these files). The placeholder string also named this spec's slug, which `ac-trace.py` would read as an owner for later tokens in those files; `ac-trace.py check` reports 0 findings for both Phase 16 specs after the change.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope names the two test constants.

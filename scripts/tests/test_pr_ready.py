@@ -48,7 +48,8 @@ FIXTURES = REPO_ROOT / "scripts" / "tests" / "fixtures" / "pr-ready"
 CONTRACT_DOC = REPO_ROOT / ".writ" / "docs" / "agent-cli-contract.md"
 CONTRACT_TEST = REPO_ROOT / "scripts" / "tests" / "test_agent_cli_contract.py"
 ADR = REPO_ROOT / ".writ" / "decision-records" / "adr-029-agent-cli-contract.md"
-CALLERS = "none shipped yet; /ship --watch (spec 2026-11-06-ship-watch-and-merge)"
+# The Callers cell as the second Phase 16 spec left it (its Reconciliation 8).
+CALLERS = "commands/ship.md, scripts/jev-judge.py"
 HEAD = "3ddc8c8f0e1d2c3b4a5968778695a4b3c2d1e0f9"
 SHORT = HEAD[:7]
 
