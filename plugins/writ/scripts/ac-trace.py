@@ -8,7 +8,9 @@ implementation task, and — once its story reads `Completed ✅` — by a test,
 and whether every task/test citation resolves to a criterion that still
 exists. This is the executable reference `/verify-spec` Check 3e/3f names;
 the command file describes the contract, this script decides it, so a human
-and an agent reach the same verdict.
+and an agent reach the same verdict. It also reports, informationally, each
+task over 50 words in a `Not Started` story (`oversized_task`, Business
+Rule 2 of `2026-11-06-lean-story-tasks`).
 
 This module is READ-ONLY: it never writes a file, and the only git
 subcommands it invokes are `rev-parse` and `check-ignore` (the latter
@@ -19,8 +21,8 @@ Subcommand:
   check --spec PATH [--repo .]
 
 Prints exactly one JSON object to stdout, schema `ac-trace-check-v1`.
-Exit 0: ran correctly, no blocking findings (informational `legacy_story`
-        entries may still be present).
+Exit 0: ran correctly, no blocking findings (informational `legacy_story`,
+        `run_verified`, and `oversized_task` entries may still be present).
 Exit 1: ran correctly, at least one blocking finding.
 Exit 2: could not run correctly — usage error, missing `user-stories/`, or
         an unreadable/malformed story file. Never a silent skip that would
@@ -95,6 +97,13 @@ STORY_FILENAME = re.compile(r"^story-(\d+)-")
 CRITERION_LINE = re.compile(r"^- \[[ xX]\]\s")
 HEADING_LINE = re.compile(r"^##\s+\S")
 
+# Business Rule 2 (`2026-11-06-lean-story-tasks`): a task in a `Not Started`
+# story may hold at most this many words. Counting strips the checkbox, an
+# optional leading `N.M` number, and the trailing TAG.
+TASK_WORD_LIMIT = 50
+TASK_CHECKBOX = re.compile(r"^- \[[ xX]\]\s*")
+TASK_NUMBER = re.compile(r"^(\d+\.\d+)(?!\S)\s*")
+
 SEVERITY: dict[str, str] = {
     "untasked_criterion": "blocking",
     "untested_criterion": "blocking",
@@ -104,6 +113,7 @@ SEVERITY: dict[str, str] = {
     "partial_adoption": "blocking",
     "legacy_story": "informational",
     "run_verified": "informational",
+    "oversized_task": "informational",
 }
 
 # Test-shaped path patterns, verbatim from the grammar doc's "Test-shaped
@@ -378,6 +388,41 @@ def _task_citations(story: dict[str, Any]) -> dict[str, int]:
         for id_str in (part.strip() for part in tag_match.group(1).split(",")):
             cites.setdefault(id_str, line_no)
     return cites
+
+
+def _task_number_and_words(line: str) -> tuple[str | None, int]:
+    """(`N.M` task number or None, word count) for one task line, per
+    Business Rule 2: drop the checkbox, the number, and the trailing TAG,
+    then split on whitespace. Inline code counts as the words it holds."""
+    rest = TASK_CHECKBOX.sub("", line, count=1)
+    number = None
+    number_match = TASK_NUMBER.match(rest)
+    if number_match:
+        number = number_match.group(1)
+        rest = rest[number_match.end():]
+    rest = TAG.sub("", rest)
+    return number, len(rest.split())
+
+
+def _task_word_count(line: str) -> int:
+    return _task_number_and_words(line)[1]
+
+
+def _oversized_tasks(story: dict[str, Any], findings: list[dict[str, Any]]) -> None:
+    """Informational `oversized_task` for each task over TASK_WORD_LIMIT words,
+    only in a story whose status is exactly `Not Started`. A missing status
+    or tasks section emits nothing, so finished work is never re-flagged."""
+    if (story["status"] or "").strip() != "Not Started":
+        return
+    for line_no, line in story["task_lines"]:
+        number, words = _task_number_and_words(line)
+        if words <= TASK_WORD_LIMIT:
+            continue
+        label = f"task {number}" if number else f"task at line {line_no}"
+        findings.append(_finding(
+            "oversized_task", story=story["number"], id_str=None, file=story["path"],
+            line=line_no, detail=f"{label} has {words} words (limit {TASK_WORD_LIMIT})",
+        ))
 
 
 def _run_verified(story: dict[str, Any], findings: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -701,6 +746,7 @@ def check(spec_dir: Path, repo: Path) -> tuple[int, dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     definitions: dict[str, dict[str, Any]] = {}
     for story in stories:
+        _oversized_tasks(story, findings)
         local_defs = _analyze_story(story, findings)
         for id_str, line_no in local_defs.items():
             if id_str in definitions:
