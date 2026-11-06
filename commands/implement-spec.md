@@ -8,6 +8,7 @@ exit_criteria:
   - "scripts/story-deps.py validate returned status ok for the full story graph before the first story ran"
   - "no story remains pending in .writ/state/execution-<timestamp>.json - each is complete, skipped with its blocking chain, or failed with a reason"
   - "one typecheck plus full test suite ran after the final story, separate from the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the post-run story counts"
+  - "each completed story carries its own Gate 3 Review Outcome, and no commit changed that story's code after its verdict without a second verdict"
 loop:
   unit: "story"
   max_iterations: 12

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Progress</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #6e7781;
+    --line: #d8dee4;
+    --soft: #f3f4f6;
+    --accent: #2f6fde;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 16px; }
+  .progress { margin-bottom: 28px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .bar { height: 10px; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--accent); }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .story { border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; margin-bottom: 10px; }
+  .story-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; font-weight: 600; }
+  .story-id { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tag { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--soft); color: var(--fg); white-space: nowrap; }
+  .tag.blocked { border-color: var(--fg); }
+  .tag.progress { border-color: var(--accent); color: var(--accent); background: #fff; }
+  ul.failing { list-style: none; margin: 8px 0 0; padding: 0; }
+  ul.failing li { padding: 3px 0 3px 18px; position: relative; }
+  ul.failing li::before { content: "\25CB"; position: absolute; left: 0; color: var(--muted); }
+  .passing-note { margin-top: 6px; font-size: 13px; color: var(--muted); }
+  details { margin-top: 28px; }
+  summary { cursor: pointer; font-size: 16px; font-weight: 600; }
+  .done-line { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .done-line:first-of-type { margin-top: 10px; }
+  .done-note { color: var(--muted); font-size: 13px; margin-left: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>/why command: answer why-questions from the ledger</h1>
+
+  <section class="progress" aria-label="Criteria with a passing test">
+    <div class="progress-label"><span>Criteria with a passing test</span><span>13 of 21 (62%)</span></div>
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="21" aria-valuenow="13"><div style="width:62%"></div></div>
+  </section>
+
+  <section>
+    <h2>Left to do: 3 stories, 8 criteria</h2>
+
+    <div class="story">
+      <div class="story-line"><span class="tag blocked">Blocked</span><span class="story-id">S4</span><span>Read a /why handoff in /create-spec Step 1.2</span></div>
+      <ul class="failing">
+        <li>Handoff file path is detected when /why ran in the same session</li>
+        <li>Preserve / Change / Avoid / Risk items appear as spec constraints</li>
+        <li>Missing or malformed handoff falls back to the normal discovery flow</li>
+      </ul>
+      <div class="passing-note">+1 criterion already passing</div>
+    </div>
+
+    <div class="story">
+      <div class="story-line"><span class="tag progress">In Progress</span><span class="story-id">S3</span><span>Route why-or-how questions from /writ to /why</span></div>
+      <ul class="failing">
+        <li>"How should I change X" questions route to /why before /create-spec</li>
+        <li>Routing decision is shown once and confirmed before running</li>
+      </ul>
+      <div class="passing-note">+3 criteria already passing</div>
+    </div>
+
+    <div class="story">
+      <div class="story-line"><span class="tag">Not Started</span><span class="story-id">S5</span><span>Query connected MCP servers as a third evidence source</span></div>
+      <ul class="failing">
+        <li>Servers are queried only after ledger and git history</li>
+        <li>Claims sourced from MCP carry the lowest confidence tier</li>
+        <li>No server connected produces no error and no empty section</li>
+      </ul>
+      <div class="passing-note">+0 criteria already passing</div>
+    </div>
+  </section>
+
+  <details>
+    <summary>Done: 2 stories</summary>
+    <div class="done-line"><span class="story-id">S1</span><span>Answer from the Writ ledger with confidence tiers</span><span class="done-note">all criteria passing</span></div>
+    <div class="done-line"><span class="story-id">S2</span><span>Fall back to git history when the ledger is silent</span><span class="done-note">all criteria passing</span></div>
+  </details>
+</main>
+</body>
+</html>

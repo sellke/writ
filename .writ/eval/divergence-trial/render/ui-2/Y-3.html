@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exploration Record</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --rail-bg: #f4f4f5;
+    --text: #18181b;
+    --muted: #52525b;
+    --faint: #a1a1aa;
+    --line: #d4d4d8;
+    --soft: #e4e4e7;
+    --accent: #2563eb;
+    --accent-soft: #dbeafe;
+    --rail-w: 300px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  /* Verdict rail */
+  .rail {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: var(--rail-w);
+    background: var(--rail-bg);
+    border-right: 1px solid var(--line);
+    padding: 20px 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .rail h1 { font-size: 17px; margin: 0 0 2px; line-height: 1.3; }
+  .rail .date { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+  .rail .question { margin: 0; color: var(--text); }
+  .rail .question b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 2px; }
+  .rail .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+  .chosen-line {
+    margin: 0;
+    padding: 10px 12px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+  }
+  .chosen-line strong { color: var(--accent); }
+  .loss-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .loss-list li { padding: 8px 12px; background: var(--bg); border: 1px solid var(--soft); border-radius: 2px; }
+  .loss-list strong { color: var(--muted); }
+  .view-switch { display: flex; flex-direction: column; gap: 2px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); }
+  .view-switch button {
+    font: inherit;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .view-switch button[aria-current="true"] {
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  /* Main pane */
+  .main {
+    margin-left: var(--rail-w);
+    padding: 20px 24px 40px;
+    min-width: 0;
+  }
+  .view[hidden] { display: none; }
+
+  /* Compare view */
+  .columns {
+    display: grid;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .col {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg);
+  }
+  .col.is-chosen { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .col-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--soft);
+  }
+  .col-head h2 { font-size: 15px; margin: 0 auto 0 0; }
+  .badge {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .badge.chosen { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .badge.lost { background: var(--soft); color: var(--muted); }
+
+  .frame { border-bottom: 1px solid var(--soft); background: #fafafa; }
+  .frame.page { width: 320px; height: 260px; overflow: hidden; margin: 12px auto; border: 1px solid var(--line); background: #fff; }
+  .frame.page .scaled { width: 640px; height: 520px; transform: scale(.5); transform-origin: 0 0; }
+  .frame.page-wrap { padding: 0; }
+  .scale-note { font-size: 11px; color: var(--faint); text-align: center; margin: -6px 0 10px; }
+  .code {
+    margin: 0;
+    padding: 10px 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.55;
+    counter-reset: ln;
+  }
+  .code .ln { display: flex; }
+  .code .ln::before {
+    counter-increment: ln;
+    content: counter(ln);
+    flex: 0 0 34px;
+    text-align: right;
+    padding-right: 10px;
+    color: var(--faint);
+    user-select: none;
+  }
+  .code .ln span { white-space: pre-wrap; word-break: break-word; flex: 1; padding-right: 10px; }
+
+  .commitments { padding: 10px 12px 4px; }
+  .commitments h3, .loss-note h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; font-weight: 600; }
+  .commitments ul { margin: 0; padding-left: 18px; }
+  .commitments li { margin-bottom: 3px; }
+  .loss-note { margin: 8px 12px 12px; padding: 8px 10px; background: var(--rail-bg); border-radius: 2px; }
+  .loss-note p { margin: 0; }
+
+  /* Reasons view */
+  .reason-table { border-collapse: collapse; width: 100%; max-width: 900px; margin-bottom: 24px; }
+  .reason-table th, .reason-table td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  .reason-table thead th { background: var(--rail-bg); font-size: 13px; }
+  .reason-table thead th.chosen-col { background: var(--accent-soft); }
+  .reason-table td.kept { font-weight: 600; }
+  .reason-table td.dropped { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+  .reason-table td.na { color: var(--faint); font-style: italic; }
+  .reason-table td.chosen-col { background: #f5f8ff; }
+  .choice { max-width: 900px; }
+  .choice h2 { font-size: 15px; margin: 0 0 6px; }
+  .choice p { margin: 0 0 12px; }
+  .choice ul { margin: 0; padding-left: 18px; color: var(--muted); }
+  .choice li { margin-bottom: 4px; }
+  .view-title { font-size: 13px; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+
+  @media (max-width: 760px) {
+    :root { --rail-w: 220px; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="rail" id="rail"></aside>
+<main class="main">
+  <section class="view" id="view-compare"></section>
+  <section class="view" id="view-reasons" hidden></section>
+</main>
+
+<script>
+const record = {
+  title: "Spec overview: what shows first",
+  date: "2026-10-14",
+  question: "What should a spec's overview page show first so a developer returning to it knows the next step in under 10 seconds?",
+  chosenId: "a",
+  choiceReason: "It was the only draft that kept the next step above the fold and every story on one screen, and it states each story's status in words, so it still reads in a grayscale screenshot pasted into a PR.",
+  drafts: [
+    {
+      id: "a",
+      label: "Story table",
+      kind: "page",
+      chosen: true,
+      commitments: [
+        "Next step shown above the fold",
+        "Every story visible on one screen",
+        "Story status as text, not color alone",
+        "Blocked stories show their blocker",
+        "Drop: Progress bar per story"
+      ],
+      artifact:
+        '<div style="font:14px -apple-system,Segoe UI,sans-serif;color:#18181b;padding:22px;height:520px;background:#fff">' +
+        '<div style="font-size:20px;font-weight:600">status-command-rewrite</div>' +
+        '<div style="color:#52525b;margin-bottom:14px">5 of 9 stories done</div>' +
+        '<div style="border:2px solid #2563eb;padding:10px 12px;margin-bottom:16px;border-radius:4px"><b>Next:</b> Story 6 - add --json output. Run <code>/implement-story 6</code></div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:14px">' +
+        '<tr style="text-align:left;border-bottom:1px solid #d4d4d8"><th style="padding:5px">#</th><th>Story</th><th>Status</th><th>Blocker</th></tr>' +
+        [["1","Parse spec folder","done",""],["2","Read story frontmatter","done",""],["3","Detect active lane","done",""],["4","Plain-text renderer","done",""],["5","Config summary","done",""],["6","--json output","next",""],["7","Lane conflict warning","blocked","Story 6"],["8","Stale batch detection","todo",""],["9","Docs update","blocked","Story 7"]]
+          .map(r => '<tr style="border-bottom:1px solid #e4e4e7"><td style="padding:5px">' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td style="color:#52525b">' + r[3] + '</td></tr>').join("") +
+        '</table></div>'
+    },
+    {
+      id: "b",
+      label: "Kanban board",
+      kind: "page",
+      chosen: false,
+      lostBecause: "The next step had no fixed place; with 9 stories, the developer had to scan three columns to find it, and blocked cards were marked only by color.",
+      commitments: [
+        "Every story visible on one screen",
+        "Progress bar per story",
+        "Status as column position",
+        "Drop: Next step shown above the fold",
+        "Drop: Story status as text, not color alone"
+      ],
+      artifact:
+        '<div style="font:14px -apple-system,Segoe UI,sans-serif;color:#18181b;padding:22px;height:520px;background:#fff">' +
+        '<div style="font-size:20px;font-weight:600;margin-bottom:14px">status-command-rewrite</div>' +
+        '<div style="display:flex;gap:12px">' +
+        [["To do",[["Stale batch detection",0,""],["Lane conflict warning",0,"#fca5a5"],["Docs update",0,"#fca5a5"]]],
+         ["In progress",[["--json output",30,""]]],
+         ["Done",[["Parse spec folder",100,""],["Read story frontmatter",100,""],["Detect active lane",100,""],["Plain-text renderer",100,""],["Config summary",100,""]]]]
+          .map(c => '<div style="flex:1;background:#f4f4f5;padding:8px;border-radius:4px"><div style="font-weight:600;margin-bottom:8px">' + c[0] + '</div>' +
+            c[1].map(k => '<div style="background:' + (k[2] || '#fff') + ';border:1px solid #d4d4d8;border-radius:3px;padding:6px;margin-bottom:6px;font-size:13px">' + k[0] +
+              '<div style="height:5px;background:#e4e4e7;margin-top:5px"><div style="height:5px;width:' + k[1] + '%;background:#2563eb"></div></div></div>').join("") +
+            '</div>').join("") +
+        '</div></div>'
+    },
+    {
+      id: "c",
+      label: "Next-step line",
+      kind: "code",
+      chosen: false,
+      lostBecause: "Printing only the next step and blockers hid the stories still left, so the developer ran a second command to answer \"how much remains?\"",
+      commitments: [
+        "Next step shown above the fold",
+        "Works in a terminal as plain text",
+        "Blocked stories show their blocker",
+        "Drop: Every story visible on one screen"
+      ],
+      artifact:
+`function renderStatus(spec: Spec): string {
+  const next = spec.stories.find(
+    s => s.status !== "done" && !s.blockedBy
+  )
+  if (!next) return "All stories done. Run /verify-spec."
+
+  const lines = [
+    \`Next: Story \${next.n} - \${next.title}\`,
+    \`Run:  /implement-story \${next.n}\`,
+  ]
+  for (const s of spec.stories.filter(s => s.blockedBy)) {
+    lines.push(\`Blocked: Story \${s.n} waits on \${s.blockedBy}\`)
+  }
+  return lines.join("\\n")
+}`
+    }
+  ]
+};
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+const DROP = "Drop: ";
+const isDrop = c => c.startsWith(DROP);
+const base = c => isDrop(c) ? c.slice(DROP.length) : c;
+const chosen = record.drafts.find(d => d.id === record.chosenId);
+const losers = record.drafts.filter(d => !d.chosen);
+
+let view = "compare";
+
+function renderRail() {
+  document.getElementById("rail").innerHTML =
+    '<div>' +
+      '<h1>' + esc(record.title) + '</h1>' +
+      '<p class="date">' + esc(record.date) + '</p>' +
+      '<p class="question"><b>Question</b>' + esc(record.question) + '</p>' +
+    '</div>' +
+    '<p class="chosen-line"><strong>Chose ' + esc(chosen.label) + ':</strong> ' + esc(record.choiceReason) + '</p>' +
+    '<div><p class="section-label">Other drafts</p><ul class="loss-list">' +
+      losers.map(d => '<li><strong>' + esc(d.label) + ' lost:</strong> ' + esc(d.lostBecause) + '</li>').join("") +
+    '</ul></div>' +
+    '<nav class="view-switch">' +
+      '<button data-view="compare" aria-current="' + (view === "compare") + '">Compare</button>' +
+      '<button data-view="reasons" aria-current="' + (view === "reasons") + '">Reasons</button>' +
+    '</nav>';
+  document.querySelectorAll(".view-switch button").forEach(b =>
+    b.addEventListener("click", () => setView(b.dataset.view)));
+}
+
+function renderArtifact(d) {
+  if (d.kind === "page") {
+    return '<div class="frame page"><div class="scaled">' + d.artifact + '</div></div><p class="scale-note">Rendered at 50%</p>';
+  }
+  return '<div class="frame"><pre class="code">' +
+    d.artifact.split("\n").map(l => '<div class="ln"><span>' + (esc(l) || " ") + '</span></div>').join("") +
+    '</pre></div>';
+}
+
+function renderCompare() {
+  const n = record.drafts.length;
+  const el = document.getElementById("view-compare");
+  el.innerHTML =
+    '<div class="columns" style="grid-template-columns: repeat(' + n + ', minmax(330px, 1fr))">' +
+    record.drafts.map(d =>
+      '<article class="col' + (d.chosen ? ' is-chosen' : '') + '">' +
+        '<header class="col-head"><h2>' + esc(d.label) + '</h2>' +
+          '<span class="badge">' + esc(d.kind) + '</span>' +
+          (d.chosen ? '<span class="badge chosen">Chosen</span>' : '<span class="badge lost">Lost</span>') +
+        '</header>' +
+        renderArtifact(d) +
+        '<div class="commitments"><h3>Commitments</h3><ul>' +
+          d.commitments.map(c => '<li>' + esc(c) + '</li>').join("") +
+        '</ul></div>' +
+        (d.chosen ? '' : '<div class="loss-note"><h3>Lost because</h3><p>' + esc(d.lostBecause) + '</p></div>') +
+      '</article>'
+    ).join("") +
+    '</div>';
+}
+
+function renderReasons() {
+  const merged = [];
+  record.drafts.forEach(d => d.commitments.forEach(c => {
+    const b = base(c);
+    if (!merged.includes(b)) merged.push(b);
+  }));
+  function cell(d, b) {
+    if (d.commitments.includes(b)) return ["kept", "kept"];
+    if (d.commitments.includes(DROP + b)) return ["dropped", "dropped"];
+    return ["na", "not addressed"];
+  }
+  const el = document.getElementById("view-reasons");
+  el.innerHTML =
+    '<p class="view-title">Commitments across drafts</p>' +
+    '<table class="reason-table"><thead><tr><th>Commitment</th>' +
+      record.drafts.map(d => '<th' + (d.chosen ? ' class="chosen-col"' : '') + '>' + esc(d.label) + (d.chosen ? ' (chosen)' : '') + '</th>').join("") +
+    '</tr></thead><tbody>' +
+      merged.map(b => '<tr><td>' + esc(b) + '</td>' +
+        record.drafts.map(d => { const c = cell(d, b); return '<td class="' + c[0] + (d.chosen ? ' chosen-col' : '') + '">' + c[1] + '</td>'; }).join("") +
+      '</tr>').join("") +
+    '</tbody></table>' +
+    '<div class="choice"><h2>Why ' + esc(chosen.label) + '</h2>' +
+      '<p>' + esc(record.choiceReason) + '</p>' +
+      '<ul>' + losers.map(d => '<li><strong>' + esc(d.label) + ' lost:</strong> ' + esc(d.lostBecause) + '</li>').join("") + '</ul>' +
+    '</div>';
+}
+
+function setView(v) {
+  view = v;
+  document.getElementById("view-compare").hidden = v !== "compare";
+  document.getElementById("view-reasons").hidden = v !== "reasons";
+  renderRail();
+}
+
+renderCompare();
+renderReasons();
+setView(view);
+</script>
+</body>
+</html>

@@ -1015,6 +1015,9 @@ is_shippable_script() {
     gen-claude-agents.py|gen-codex-agent-tomls.py|check-agent-parity.sh|gen-skill.sh)
       # Writ-source generators and checks: they read agents/, claude-code/agents/, codex/agents/, .writ/manifest.yaml, and SKILL.md, which no install has. ADR-031.
       return 1 ;;
+    zsh-guard.py)
+      # Claude Code PreToolUse hook for Writ's own sessions (zsh pitfalls, retro 2026-10-30 F5); no command runs it. ADR-031.
+      return 1 ;;
   esac
   case "$base" in
     *.py|*.sh)

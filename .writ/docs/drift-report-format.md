@@ -7,7 +7,7 @@
 
 When implementation deviates from spec, the deviation is recorded in `drift-log.md` rather than modifying the original spec files. This preserves the original contract while documenting how reality refined it. The drift log is **append-only** — existing entries are never modified or deleted.
 
-**Core invariant:** `spec.md` and `spec-lite.md` are never changed by the pipeline. `drift-log.md` is the sole amendment record.
+**Core invariant:** `spec.md` is never changed by the pipeline. A `Small` deviation amends `spec-lite.md` in the story's own commits; every deviation is recorded in `drift-log.md`.
 
 ## File Location & Lifecycle
 
@@ -90,7 +90,7 @@ Severity is judged against `spec.md`'s `## Specification Contract` first; it out
 
 | Severity | Spec Amendment |
 |----------|---------------|
-| `Small` | **Required.** Describe the amendment (e.g., "Rename `validateInput` → `validateRegistrationData` in spec") |
+| `Small` | **Required.** Describe the amendment (e.g., "Rename `validateInput` → `validateRegistrationData` in spec") and apply it to `spec-lite.md` in the story's own commits. `scripts/drift-format.py check` fails with `auto_amend_unapplied` when a story logs `Auto-amended` entries and leaves `spec-lite.md` unchanged. |
 | `Medium` | **Optional.** Include if the deviation suggests a spec update; otherwise write `N/A — flagged for post-implementation review` |
 | `Large` | Based on resolution: the amendment text if spec was modified, `N/A — deviation accepted as-is` if accepted, or `N/A — implementation revised to match spec` if rejected |
 

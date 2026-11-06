@@ -40,6 +40,8 @@ exit_criteria:
 | `contract_content` | The `## Specification Contract` section of `spec.md`, heading through the line before the next `## ` heading, verbatim. The drift reference: outranks `spec-lite.md` when they disagree. Empty string when absent; then use `spec_lite_content` alone. |
 | `knowledge_context` | **Optional.** Loaded `.writ/knowledge/` entries. Empty string when none match. |
 | `boundary_map` | **Optional.** Gate 0.5 ownership block. If empty/omitted, skip boundary lines. |
+| `reviewer_filters` | `on` or `off`, resolved by Gate 3 from the `reviewer-filters` switch. |
+| `evidence_gate` | `on` or `off`, resolved by Gate 3 from the `evidence-gate` switch. |
 
 ## Prompt Template
 
@@ -86,6 +88,10 @@ If `boundary_map` is empty, whitespace-only, or `(none)`, ignore this section.
 ## Residual Scan (not a general quality tour)
 Scan only for residual architecture, security, and taste. Do not expand into a full code-quality, coverage, or integration tour.
 
+When `{reviewer_filters}` is `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/review-judgment-filters/SKILL.md` and apply it before you set EVALUATION_RESULT.
+
+When `{evidence_gate}` is `on`, `Read ${CLAUDE_PLUGIN_ROOT}/skills/evidence-gated-findings/SKILL.md` and give each Critical or Major issue you want to block an `**Evidence:**` field. Still set FAIL; Gate 3 makes unbacked issues advisory.
+
 ## Output Format
 
 ### EVALUATION_RESULT: [PASS/FAIL/PAUSE]
@@ -111,6 +117,7 @@ Every FAIL issue carries Location and Severity. Suggested Fix is optional and is
 - **Location:** [file path and line if applicable]
 - **Severity:** [Critical/Major/Minor]
 - **Category:** [criterion/security/architecture/taste]
+- **Evidence:** [only when evidence_gate is on; format in the skill]
 - **Suggested Fix:** [optional; report-only; never applied]
 
 ### Drift Analysis
@@ -132,8 +139,8 @@ Every FAIL issue carries Location and Severity. Suggested Fix is optional and is
 
 | Severity | Definition | Action Required |
 |----------|-----------|----------------|
-| **Critical** | An acceptance criterion is unmet, or residual security is exploitable | FAIL |
-| **Major** | Recorded tests do not support a claimed criterion, or residual architecture is unsound | FAIL |
+| **Critical** | An acceptance criterion is unmet, or residual security is exploitable | FAIL; with `evidence_gate` `on`, it blocks only with an `**Evidence:**` field |
+| **Major** | Recorded tests do not support a claimed criterion, or residual architecture is unsound | FAIL; with `evidence_gate` `on`, it blocks only with an `**Evidence:**` field |
 | **Minor** | Residual taste only | Optional; can PASS |
 
 ## Drift Analysis
@@ -194,7 +201,7 @@ One acceptance criterion is unmet. Recorded test results do not cover the claime
 - **Issue:** Acceptance criterion X is not satisfied
 - **Location:** `path/to/file:12`
 - **Severity:** Critical
-- **Category:** criterion
+- **Category:** criterion [AC-1.2]
 ```
 
 ### On PAUSE (Large Drift)
@@ -221,7 +228,7 @@ Large drift: implementation changed a constraint named in spec-lite.
 ### When to FAIL
 - Any acceptance criterion is not satisfied
 - Recorded test results contradict a claimed criterion
-- Critical or Major residual architecture or security
+- Critical or Major residual architecture or security; with `evidence_gate` `on`, each blocks only with an `**Evidence:**` field
 
 ### When to PAUSE
 - Overall Drift is Large → PAUSE rather than FAIL

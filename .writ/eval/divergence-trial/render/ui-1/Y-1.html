@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Progress</title>
+<style>
+  :root {
+    --bg: #f6f6f7;
+    --panel: #ffffff;
+    --text: #1f2328;
+    --muted: #6b7078;
+    --faint: #a3a8b0;
+    --line: #e2e4e8;
+    --accent: #2f6fdb;
+    --accent-soft: #e6eefb;
+    --gray-soft: #eef0f2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+
+  .remaining {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 12px;
+  }
+  .remaining .counts { font-size: 15px; font-weight: 600; }
+  .remaining .counts .sep { color: var(--faint); font-weight: 400; margin: 0 4px; }
+  .remaining .updated { color: var(--muted); font-size: 12px; }
+
+  .strips { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .story + .story { border-top: 1px solid var(--line); }
+
+  .row {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr) auto 40px;
+    align-items: center; gap: 12px;
+    width: 100%; padding: 10px 14px;
+    background: none; border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  }
+  .row:hover { background: #fafafb; }
+  .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px; white-space: nowrap; justify-self: start;
+  }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .chip.Blocked { background: var(--text); color: #fff; }
+  .chip.InProgress { background: var(--accent-soft); color: var(--accent); }
+  .chip.NotStarted { background: var(--gray-soft); color: var(--muted); }
+  .chip.Completed { background: transparent; color: var(--faint); padding-left: 0; }
+
+  .titlecol { min-width: 0; }
+  .title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .title .sid { color: var(--muted); font-weight: 400; margin-right: 6px; }
+  .blocked-note { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .blocked-note b { color: var(--text); font-weight: 600; }
+
+  .dots { display: flex; gap: 4px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--accent); }
+  .dot.pass { background: var(--accent); }
+  .fraction { font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); font-size: 13px; }
+
+  .story.done .row { padding-top: 5px; padding-bottom: 5px; color: var(--faint); }
+  .story.done .title { font-weight: 400; }
+  .story.done .title .sid { color: var(--faint); }
+  .story.done .dot { width: 7px; height: 7px; border-width: 1.5px; border-color: var(--faint); }
+  .story.done .dot.pass { background: var(--faint); }
+  .story.done .fraction { color: var(--faint); font-size: 12px; }
+
+  .detail { display: none; padding: 2px 14px 12px 130px; }
+  .story.open .detail { display: block; }
+  .crit { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; padding: 5px 0; border-top: 1px dashed var(--line); }
+  .crit:first-child { border-top: 0; }
+  .mark { font-weight: 700; text-align: center; }
+  .crit.pass .mark { color: var(--accent); }
+  .crit.fail .mark { color: var(--text); }
+  .crit .text { display: block; }
+  .crit .test { display: block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--muted); }
+  .crit .test.none { font-family: inherit; font-style: italic; }
+  .crit .cid { color: var(--muted); margin-right: 6px; }
+
+  @media (max-width: 600px) {
+    .row { grid-template-columns: 92px minmax(0, 1fr) 36px; gap: 8px; }
+    .dots { grid-column: 2; grid-row: 2; }
+    .fraction { grid-column: 3; grid-row: 1; }
+    .detail { padding-left: 14px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="spec-name"></h1>
+  <section class="remaining" aria-label="What is left">
+    <div class="counts" id="counts"></div>
+    <div class="updated" id="updated"></div>
+  </section>
+  <section class="strips" id="strips" aria-label="Stories"></section>
+</main>
+
+<script>
+  // Sample data source. In use this would read the spec's current state.
+  function loadSpec() {
+    return {
+      name: "2026-10-25-why-command",
+      updatedAt: new Date(Date.now() - 7 * 60 * 1000).toISOString(),
+      stories: [
+        { id: "S1", title: "Ledger-first lookup: answer from decision records before git", status: "Completed", blockedBy: null, criteria: [
+          { id: "AC1", text: "Reads ADRs in .writ/decision-records before any other source", testName: "test_why_reads_adrs_first", passing: true },
+          { id: "AC2", text: "Cites the ADR file path for each ledger-sourced claim", testName: "test_why_cites_adr_path", passing: true },
+          { id: "AC3", text: "Falls through to git history when no ADR matches", testName: "test_why_ledger_miss_falls_through", passing: true },
+          { id: "AC4", text: "Ignores superseded ADRs unless asked", testName: "test_why_skips_superseded", passing: true }
+        ]},
+        { id: "S2", title: "Confidence tier on every claim (Recorded, Inferred, Guess)", status: "InProgress", blockedBy: null, criteria: [
+          { id: "AC1", text: "Every claim in the answer carries exactly one tier label", testName: "test_every_claim_has_tier", passing: true },
+          { id: "AC2", text: "Claims from ADRs are tagged Recorded", testName: "test_adr_claims_recorded", passing: true },
+          { id: "AC3", text: "Claims from commit messages alone are tagged Inferred", testName: "test_commit_claims_inferred", passing: false },
+          { id: "AC4", text: "Answer with only Guess-tier claims says so in its first line", testName: null, passing: false },
+          { id: "AC5", text: "Tier legend appears once at the end of the answer", testName: "test_tier_legend_once", passing: true },
+          { id: "AC6", text: "MCP-sourced claims name the server they came from", testName: null, passing: false }
+        ]},
+        { id: "S3", title: "Route why-or-how questions from /writ to /why", status: "Completed", blockedBy: null, criteria: [
+          { id: "AC1", text: "\"Why is X like this\" routes to /why", testName: "test_route_why_question", passing: true },
+          { id: "AC2", text: "\"How do I change X\" routes to /why with a change follow-up", testName: "test_route_how_change", passing: true },
+          { id: "AC3", text: "Feature requests still route to /create-spec", testName: "test_feature_request_unchanged", passing: true }
+        ]},
+        { id: "S4", title: "Read a /why handoff in /create-spec Step 1.2", status: "Blocked", blockedBy: "Handoff file format not settled (S5)", criteria: [
+          { id: "AC1", text: "Detects a handoff file in the spec's working folder", testName: "test_detects_handoff_file", passing: true },
+          { id: "AC2", text: "Seeds discovery with the Preserve and Avoid lists", testName: "test_seeds_preserve_avoid", passing: false },
+          { id: "AC3", text: "Shows the handoff's Risk items as open questions", testName: null, passing: false },
+          { id: "AC4", text: "Proceeds normally when no handoff exists", testName: "test_no_handoff_noop", passing: true },
+          { id: "AC5", text: "Rejects a handoff older than the last commit on the file", testName: null, passing: false }
+        ]},
+        { id: "S5", title: "Preserve / Change / Avoid / Risk list when a change follows", status: "NotStarted", blockedBy: null, criteria: [
+          { id: "AC1", text: "List appears only when the question implies a change", testName: null, passing: false },
+          { id: "AC2", text: "Each item links back to the claim it rests on", testName: null, passing: false },
+          { id: "AC3", text: "Writes the list to a handoff file /create-spec can read", testName: null, passing: false },
+          { id: "AC4", text: "Empty sections are omitted, not printed blank", testName: null, passing: false }
+        ]}
+      ]
+    };
+  }
+
+  var ORDER = { Blocked: 0, InProgress: 1, NotStarted: 2, Completed: 3 };
+  var LABEL = { Blocked: "Blocked", InProgress: "In progress", NotStarted: "Not started", Completed: "Completed" };
+  var STORE_KEY = "spec-progress-open";
+
+  function remaining(spec) {
+    var r = { stories: 0, criteria: 0, blocked: 0 };
+    spec.stories.forEach(function (s) {
+      if (s.status !== "Completed") r.stories++;
+      if (s.status === "Blocked") r.blocked++;
+      s.criteria.forEach(function (c) { if (!c.passing) r.criteria++; });
+    });
+    return r;
+  }
+
+  function passCount(story) {
+    var p = 0;
+    story.criteria.forEach(function (c) { if (c.passing) p++; });
+    return { passing: p, total: story.criteria.length };
+  }
+
+  function readOpen(specName) {
+    try {
+      var all = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+      return all[specName] || {};
+    } catch (e) { return {}; }
+  }
+  function writeOpen(specName, open) {
+    try {
+      var all = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+      all[specName] = open;
+      localStorage.setItem(STORE_KEY, JSON.stringify(all));
+    } catch (e) {}
+  }
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many); }
+
+  function relTime(iso) {
+    var mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return mins + " min ago";
+    var h = Math.round(mins / 60);
+    return h + " h ago";
+  }
+
+  function RemainingBar(r, updatedAt) {
+    var counts = document.getElementById("counts");
+    counts.innerHTML = "";
+    var parts = [
+      plural(r.stories, "story open", "stories open"),
+      plural(r.criteria, "criterion failing", "criteria failing"),
+      r.blocked + " blocked"
+    ];
+    parts.forEach(function (p, i) {
+      if (i) counts.appendChild(el("span", "sep", "·"));
+      counts.appendChild(el("span", null, p));
+    });
+    var t = new Date(updatedAt);
+    document.getElementById("updated").textContent =
+      "Updated " + relTime(updatedAt) + " (" + t.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + ")";
+  }
+
+  function StatusChip(status) { return el("span", "chip " + status, LABEL[status]); }
+
+  function CriteriaDots(criteria) {
+    var d = el("span", "dots");
+    criteria.forEach(function (c) {
+      var dot = el("span", "dot" + (c.passing ? " pass" : ""));
+      dot.title = c.id + (c.passing ? " passing" : " failing");
+      d.appendChild(dot);
+    });
+    return d;
+  }
+
+  function PassFraction(pc) { return el("span", "fraction", pc.passing + "/" + pc.total); }
+
+  function StoryDetail(story) {
+    var box = el("div", "detail");
+    var rows = story.criteria.slice().sort(function (a, b) { return (a.passing ? 1 : 0) - (b.passing ? 1 : 0); });
+    rows.forEach(function (c) {
+      var r = el("div", "crit " + (c.passing ? "pass" : "fail"));
+      r.appendChild(el("span", "mark", c.passing ? "✓" : "✗"));
+      var body = el("div");
+      var text = el("span", "text");
+      text.appendChild(el("span", "cid", c.id));
+      text.appendChild(document.createTextNode(c.text));
+      body.appendChild(text);
+      body.appendChild(c.testName ? el("span", "test", c.testName) : el("span", "test none", "no test yet"));
+      r.appendChild(body);
+      box.appendChild(r);
+    });
+    return box;
+  }
+
+  function SpecProgressPage(spec) {
+    document.getElementById("spec-name").textContent = spec.name;
+    RemainingBar(remaining(spec), spec.updatedAt);
+
+    var open = readOpen(spec.name);
+    var strips = document.getElementById("strips");
+    strips.innerHTML = "";
+
+    var stories = spec.stories.slice().sort(function (a, b) { return ORDER[a.status] - ORDER[b.status]; });
+    stories.forEach(function (s) {
+      var wrap = el("div", "story" + (s.status === "Completed" ? " done" : "") + (open[s.id] ? " open" : ""));
+      var row = el("button", "row");
+      row.type = "button";
+      row.setAttribute("aria-expanded", open[s.id] ? "true" : "false");
+
+      row.appendChild(StatusChip(s.status));
+      var tc = el("span", "titlecol");
+      var title = el("span", "title");
+      title.appendChild(el("span", "sid", s.id));
+      title.appendChild(document.createTextNode(s.title));
+      title.title = s.title;
+      tc.appendChild(title);
+      if (s.status === "Blocked" && s.blockedBy) {
+        var note = el("span", "blocked-note");
+        note.appendChild(el("b", null, "Blocked: "));
+        note.appendChild(document.createTextNode(s.blockedBy));
+        tc.appendChild(note);
+      }
+      row.appendChild(tc);
+      row.appendChild(CriteriaDots(s.criteria));
+      row.appendChild(PassFraction(passCount(s)));
+
+      row.addEventListener("click", function () {
+        var state = readOpen(spec.name);
+        var isOpen = !wrap.classList.contains("open");
+        wrap.classList.toggle("open", isOpen);
+        row.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        if (isOpen) state[s.id] = true; else delete state[s.id];
+        writeOpen(spec.name, state);
+      });
+
+      wrap.appendChild(row);
+      wrap.appendChild(StoryDetail(s));
+      strips.appendChild(wrap);
+    });
+  }
+
+  function refresh() { SpecProgressPage(loadSpec()); }
+  refresh();
+  window.addEventListener("focus", refresh);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

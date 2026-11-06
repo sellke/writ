@@ -1,0 +1,2 @@
+fail
+reason: safety_fact_below_floor — rung untested

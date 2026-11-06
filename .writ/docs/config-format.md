@@ -60,7 +60,12 @@
 | `Changelog` | release | Path to the changelog file |
 | `Writ Specs` | status | Path to spec folder (default: `.writ/specs/`) |
 | `Writ Issues` | status | Path to issues folder (default: `.writ/issues/`) |
-| `Review Panel` | implement-story (Gate 3) | Opt-in cross-vendor reviewer slugs; see [Review Panel](#review-panel) |
+| `Safety Fact` | implement-story (Gate 2.5, Gate 3) | On by default; `off` turns off the blast radius and the safety-fact section; see [Safety Fact](#safety-fact) |
+| `Reviewer Filters` | implement-story (Gate 3), review | On by default; `off` turns off the reviewer lead-judgment filters; see [Reviewer Filters](#reviewer-filters) |
+| `Evidence Gate` | implement-story (Gate 3), review | On by default; `off` lets the reviewer's verdict block without executed evidence; see [Evidence Gate](#evidence-gate) |
+| `Repro First` | tdd-cycle, coding-agent, prototype, implement-story (Gate 1) | `off` turns off the repro-first bug path; absent or `on` keeps it; see [Repro First](#repro-first) |
+
+**Removed keys:** `Review Panel` ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). A leftover line prints `review-panel: removed (ADR-032)` once per story and does nothing else.
 
 > The former autonomous CLI-loop configuration keys are retired along with the loop
 > itself; supervised multi-spec execution runs through `/implement-phase` and needs
@@ -108,25 +113,77 @@
 Detected values may be used and recorded in the current execution capability
 snapshot, but are never silently saved to `.writ/config.md`.
 
-## Review Panel
+## Safety Fact
 
 ```markdown
-- **Review Panel:** gpt-5.6-sol-medium, cursor-grok-4.6-medium-fast
+- **Safety Fact:** off
 ```
 
-`- **Review Panel:** <slug>[, <slug>…]` names Cursor model slugs from vendors
-other than the session's. It is never detected or offered for saving: the
-line is also the consent to send story content to those vendors, so only the
-developer writes it. The first matching line wins; `none`
-(case-insensitive), or no line, means the panel is off and Gate 3 runs
-exactly as before. Slugs keep their order; a repeated slug is dropped
-(`duplicate_slug`), and slugs after the third kept reviewer are dropped
-(`over_cap`). Slugs from the session's vendor (`same_vendor`) or with a prefix
-the vendor table does not know (`unknown_vendor`) are dropped too.
-`python3 scripts/review-panel.py status --repo . --origin "<session model>"`
-prints which reviewers are active, which were dropped, and why. See
-[ADR-028](../decision-records/adr-028-behavioral-verification-and-cross-family-panels.md)
-Decision 3.
+`- **Safety Fact:** on|off` turns off the `/implement-story` Gate 2.5 blast
+radius and the Gate 3 safety-fact section and verifier. It is never detected
+or offered for saving. No line, an empty value, or `on` means on. Only `off`
+in any case turns it off; surrounding whitespace is ignored. Any other value
+also means on and resolves with `reason: malformed_value <value>`. The first
+matching line wins. The key must match the case shown.
+`python3 scripts/review-override.py switch --name safety-fact --repo .`
+prints the state.
+
+## Reviewer Filters
+
+```markdown
+- **Reviewer Filters:** off
+```
+
+`- **Reviewer Filters:** on|off` turns off the lead-judgment filters that the
+Gate 3 reviewers and `/review` apply. It follows the same rules as
+`Safety Fact`: no line, an empty value, or `on` means on; only `off` in any
+case turns it off; any other value means on with
+`reason: malformed_value <value>`. The key must match the case shown.
+`python3 scripts/review-override.py switch --name reviewer-filters --repo .`
+prints the state.
+
+## Evidence Gate
+
+```markdown
+- **Evidence Gate:** off
+```
+
+`- **Evidence Gate:** on|off` turns off evidence gating for a whole story or
+`/review` run. With the gate on, a Gate 3 or `/review` finding blocks only when
+it carries executed evidence (`skills/evidence-gated-findings/SKILL.md`). With
+`off`, the reviewer's verdict blocks as written, and the evidence step runs
+nothing. It follows the same rules as `Safety Fact`: no line, an empty value,
+or `on` means on; only `off` in any case turns it off; any other value means on
+with `reason: malformed_value <value>`. The key must match the case shown.
+`python3 scripts/review-override.py switch --name evidence-gate --repo .`
+prints the state.
+
+On `/review`, a Critical or High finding without confirmed evidence reads
+`Medium (unconfirmed)`, so it cannot make the Recommendation "Do not ship" or
+"Ship with caution". `/review` asks before it runs the branch's test code. A
+decline, a headless run, or no answer writes
+`> Evidence gate: unverifiable (untrusted_branch)` and leaves every severity as
+written. With `off`, `/review` asks nothing, downgrades no finding, and writes
+`> Evidence gate: off`.
+
+## Repro First
+
+```markdown
+- **Repro First:** off
+```
+
+`- **Repro First:** on|off` under `## Conventions` turns off the repro-first
+bug path. It is never detected or offered for saving. No line, an empty value,
+or `on` means on. Only `off` in any case turns it off. Any other value also
+means on, and `python3 scripts/repro-order.py check --base <rev>` prints
+`reason: repro-first value <value> read as on`. The first matching line wins.
+The key must match the case shown. With `off`, the bug path in
+`skills/tdd-cycle/SKILL.md` is skipped and the ordinary cycle runs, so a bug
+fix still starts from a failing test. The coding agent's `### Repro` block
+reads `Repro: off`. Neither `/prototype` nor `/implement-story` runs the check,
+and the ordered-commits cherry-pick rule does not apply. Run by hand,
+`python3 scripts/repro-order.py check --base <rev>` prints `unverifiable` and
+`reason: repro-first off` and exits 0 before reading git.
 
 ## Rules
 

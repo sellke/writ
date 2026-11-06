@@ -121,9 +121,15 @@ class Story1BoundaryTests(unittest.TestCase):
             with self.subTest(edits=edits):
                 self.assertFalse(story1_wording_holds(with_edits(edits)))
 
-    def test_verify_spec_did_not_grow(self):
-        """AC-1.5 — verify-spec.md stays at or below its pre-story 35858 bytes."""
-        self.assertLessEqual(len((COMMANDS / "verify-spec.md").read_bytes()), 35858)
+    def test_verify_spec_shrink_is_disclosed(self):
+        """AC-1.5 — the governor ledger records Story 1 shrinking verify-spec.md.
+        The file's byte cap is its KNOWN_OVER_BUDGET entry, the one size
+        registry, so this test reads the dated line instead of a byte count."""
+        text = (REPO_ROOT / "scripts" / "tests" / "test_governor_enforcement.py").read_text(
+            encoding="utf-8")
+        marker = "Updated 2026-10-02 (spec 2026-10-01-product-check-direction, Story 1):"
+        self.assertIn(marker, text)
+        self.assertIn("verify-spec.md 10898 -> 10818", text.split(marker, 1)[1])
 
 
 class Story2CompletionLineTests(unittest.TestCase):

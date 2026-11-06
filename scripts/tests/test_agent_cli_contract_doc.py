@@ -45,6 +45,7 @@ DEV_ONLY = {
     "gen-codex-agent-tomls.py",
     "check-agent-parity.sh",
     "gen-skill.sh",
+    "zsh-guard.py",
 }
 SECTIONS = (
     "Scope",

@@ -37,6 +37,8 @@ where that "kept vs. discarded" decision becomes auditable.
 - **Unevidenced proposals are rejected**, not applied, and the rejection is
   recorded with reason `no evidence`.
 - **Eval-failing proposals are rejected** with reason `eval failed`.
+- **Covered signals are rejected** with reason `execution failure`; **skill
+  amendments the cited run did not read** are rejected with reason `skill not used`.
 - **Privacy (Prime Directive):** evidence references transcript IDs/paths and
   short observable signals only — never chain-of-thought, prompts, or verbatim
   private transcript bodies. Transcript bodies live outside the repository and are
@@ -89,9 +91,9 @@ Every `/refresh-command` completion writes exactly one entry, regardless of outc
 | **Amendments applied** | `K of M proposed` | How many proposals passed the evidence gate and were applied |
 | **Changes** | Bulleted list | Each applied amendment with title, confidence, and its **Evidence** block |
 | **Evidence** | Structured 3-part block | Transcript ID/path + short observable signal + affected section. **Mandatory** for every applied amendment. |
-| **Rejected** | Bulleted list | Each rejected candidate with a reason token (`no evidence` / `eval failed`). Omit the section if nothing was rejected. |
+| **Rejected** | Bulleted list | Each rejected candidate with a reason token (`no evidence` / `eval failed` / `execution failure` / `skill not used`). Omit the section if nothing was rejected. |
 | **Scope** | `Local only` | Amendments are applied to the project's local command copy. |
-| **Target file** | `commands/[command].md` | The command file that was modified. |
+| **Target file** | `commands/[command].md[, skills/<name>/SKILL.md]` | The command file that was modified, and each skill amended. |
 
 ### The Evidence block (mandatory for applied amendments)
 
@@ -101,14 +103,16 @@ Each applied amendment carries an `**Evidence:**` block with exactly three parts
 |---|---|---|
 | **Transcript** | `agent-transcripts/<uuid>/<uuid>.jsonl` (or `.../subagents/<sub-uuid>.jsonl`), or a transcript ID | Identifies the session the signal came from. The file may be absent on this machine — the ID citation still stands; a body is never required. |
 | **Observable signal** | A single short quoted line | A factual quote of a correction, retry, override, or error. **Never** reasoning, a prompt, or a private body. |
-| **Affected section** | `commands/[command].md → "[section]"` | Anchors the change to a real section of the target command file. |
+| **Affected section** | `commands/[command].md → "[section]"` or `skills/<name>/SKILL.md → "[section]"` | Anchors the change to a real section of the target command or skill file. |
 
 ### Rejection reasons
 
 | Reason token | Meaning |
 |---|---|
 | `no evidence` | The proposal could not cite a transcript ID/path plus a short observable signal. Rejected before any file write. |
-| `eval failed` | The proposal was evidenced but failed the pre-merge eval gate (`bash scripts/eval.sh --check=refresh-evidence`, plus the structural Tier 2 check for high-traffic commands). |
+| `eval failed` | The proposal was evidenced but failed the pre-merge eval gate (`bash scripts/eval.sh --check=refresh-evidence`, plus the structural Tier 2 check for high-traffic commands, and `bash scripts/lint-skill.sh` for a skill amendment). |
+| `execution failure` | The command file or a skill it reads already requires the skipped behavior. No rule text is proposed. The entry names the covering section. |
+| `skill not used` | The proposal targets `skills/<name>/SKILL.md`, but the command file does not contain that path, or the cited transcript is unreadable here or shows no read or invocation of that skill. The entry names the skill and the transcript. |
 
 ### The no-op exemption
 

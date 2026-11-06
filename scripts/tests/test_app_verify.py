@@ -304,6 +304,16 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(recipe.artifacts, ["test-results/"])
         self.assertIsNone(recipe.after)
 
+    def test_backticked_pattern_lists_split_into_clean_globs(self) -> None:
+        """Unwrapping the whole list first left `*a*`` and ``*b*`, so a Never
+        list in backticks matched nothing and Safety failed open."""
+        text = VALID_RECIPE.replace(
+            "- **Never:** *prod*", "- **Never:** `*prod*`, `*neon.tech*`").replace(
+            "- **Allowed:** *dev-branch-host*", "- **Allowed:** `*dev-branch-host*`")
+        variable = av.parse_recipe(text).variables[0]
+        self.assertEqual(variable.allowed, ["*dev-branch-host*"])
+        self.assertEqual(variable.never, ["*prod*", "*neon.tech*"])
+
 
 class InstallOverlayGuardTests(unittest.TestCase):
     """AC-1.4 — Writ never ships the project-authored recipe path."""

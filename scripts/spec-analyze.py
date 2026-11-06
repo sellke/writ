@@ -12,6 +12,10 @@ Subcommand:
 Prints one verdict line (`pass` / `fail` / `unverifiable`), optional
 `reason:` lines, then a summary line last.
 
+Structural reasons: `under_min_criteria`, `empty_criterion`,
+`unmeasurable_criterion`, and `planned_red_window` (a story plans a check
+to fail or go stale until a later story).
+
 Exit 0: ran, no blocking helper defect (`pass` or `unverifiable`).
 Exit 1: `fail`.
 Exit 2: usage.
@@ -40,6 +44,16 @@ VAGUE_THEN = frozenset((
     "looks good",
     "it looks good",
 ))
+
+# planned_red_window: a story plans a check to fail or go stale until a
+# later story, so the commits between them are red (Phase 15 retro F3). Only
+# the plan is read; from `## What Was Built` on, the file records what ran.
+STORY_NUMBER = re.compile(r"^story-(\d+)-")
+RECORD_HEADING = re.compile(r"^##\s+What Was Built\b")
+UNIT_START = re.compile(r"^\s*(?:[-*+>]|\d+\.|#)")
+SENTENCE_END = re.compile(r"[.!?;]\**\s+")
+RED_WORD = re.compile(r"\b(?<!not )(?<!never )(?<!n't )(?:fail\w*|stale)\b", re.IGNORECASE)
+LATER_STORY = re.compile(r"\b(?:until|between this story and)\s+story\s+(\d+)\b", re.IGNORECASE)
 
 
 class UsageError(Exception):
@@ -86,6 +100,30 @@ def _then_clause(body: str) -> str:
     return parts[1].strip().rstrip(".").strip().lower()
 
 
+def _planned_red_window(path: Path, text: str) -> bool:
+    """True when a sentence in the story's plan names a failing or stale
+    check and a later story that clears it."""
+    match = STORY_NUMBER.match(path.name)
+    if not match:
+        return False
+    own = int(match.group(1))
+    units: List[str] = []
+    for line in text.splitlines():
+        if RECORD_HEADING.match(line):
+            break
+        if not units or not line.strip() or UNIT_START.match(line):
+            units.append(line.strip())
+        else:
+            units[-1] += " " + line.strip()
+    for unit in units:
+        for sentence in SENTENCE_END.split(unit):
+            if not RED_WORD.search(sentence):
+                continue
+            if any(int(m.group(1)) > own for m in LATER_STORY.finditer(sentence)):
+                return True
+    return False
+
+
 def _structural(spec: Path) -> Tuple[Optional[List[str]], Optional[str]]:
     files = _story_files(spec)
     if files is None:
@@ -107,6 +145,8 @@ def _structural(spec: Path) -> Tuple[Optional[List[str]], Optional[str]]:
             then = _then_clause(body)
             if then in VAGUE_THEN:
                 reasons.append("unmeasurable_criterion")
+        if _planned_red_window(path, text):
+            reasons.append("planned_red_window")
     # Stable unique order.
     seen = set()
     ordered: List[str] = []

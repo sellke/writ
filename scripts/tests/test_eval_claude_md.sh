@@ -40,7 +40,6 @@ new_root() {
   cp "$TREES" "$root/scripts/gen-platform-trees.py"
   cp "$ADAPTER" "$root/adapters/claude-code.md"
   cp "$REPO/.writ/manifest.yaml" "$root/.writ/manifest.yaml"
-  cp -R "$REPO/claude-code/agents" "$root/claude-code/agents"
   python3 "$root/scripts/gen-claude-md.py" >/dev/null
   printf "%s" "$root"
 }
@@ -63,31 +62,16 @@ section "$ROOT" | awk 'NF {print; exit}' | grep -Fxq 'PASS' || fail "fresh: clau
 section "$ROOT" | grep -Fq 'gen-claude-md: pass (' || fail "fresh: summary line should be a note"
 ok "fresh template -> PASS, exit 0"
 
-# AC-1.5: delete the /revert row -> one finding naming /revert and the remedy.
-ROOT="$(new_root)"
-grep -q '^| `/revert` |' "$ROOT/claude-code/CLAUDE.md" || fail "fixture: no /revert row"
-grep -v '^| `/revert` |' "$ROOT/claude-code/CLAUDE.md" > "$ROOT/edited" && mv "$ROOT/edited" "$ROOT/claude-code/CLAUDE.md"
-rc="$(run_check "$ROOT")"
-[ "$rc" -eq 1 ] || fail "deleted row: expected exit 1, got $rc"
-section "$ROOT" | grep -Fxq 'FAIL (1 finding(s))' || fail "deleted row: expected exactly one finding"
-finding="$(section "$ROOT" | grep -F 'manifest command /revert is missing from the Claude Code template.' || true)"
-[ -n "$finding" ] || fail "deleted row: finding must name /revert"
-[[ "$finding" == *"Run $REMEDY and commit claude-code/CLAUDE.md."* ]] || fail "deleted row: finding must carry the remedy '$REMEDY'"
-ok "deleted /revert row -> one finding naming /revert with the remedy"
-
-# AC-1.5: add a manifest command without regenerating -> one finding naming it.
+# AC-1.5: the template lists no commands, so a new manifest command needs no regeneration.
 ROOT="$(new_root)"
 awk '{print} /^commands:$/ {print "  - name: zz-new"; print "    file: commands/zz-new.md"; print "    purpose: \"A new command.\""}' \
   "$REPO/.writ/manifest.yaml" > "$ROOT/.writ/manifest.yaml"
 rc="$(run_check "$ROOT")"
-[ "$rc" -eq 1 ] || fail "new command: expected exit 1, got $rc"
-section "$ROOT" | grep -Fxq 'FAIL (1 finding(s))' || fail "new command: expected exactly one finding"
-finding="$(section "$ROOT" | grep -F 'manifest command /zz-new is missing from the Claude Code template.' || true)"
-[ -n "$finding" ] || fail "new command: finding must name /zz-new"
-[[ "$finding" == *"$REMEDY"* ]] || fail "new command: finding must carry the remedy '$REMEDY'"
-ok "new manifest command -> one finding naming /zz-new with the remedy"
+[ "$rc" -eq 0 ] || fail "new command: expected exit 0, got $rc"
+section "$ROOT" | awk 'NF {print; exit}' | grep -Fxq 'PASS' || fail "new command: claude-md section should PASS"
+ok "new manifest command -> PASS (the template lists no commands)"
 
-# Any other byte difference -> one stale finding.
+# Any byte difference -> one stale finding.
 ROOT="$(new_root)"
 printf '\nhand edit\n' >> "$ROOT/claude-code/CLAUDE.md"
 rc="$(run_check "$ROOT")"

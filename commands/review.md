@@ -57,6 +57,10 @@ This scan determines which techniques to prioritize. Not every technique applies
 
 ### Step 3: Apply Review Techniques
 
+Run `python3 scripts/review-override.py switch --name reviewer-filters` and keep line 1 (`on` or `off`) for the Step 4 header. On `on`, `Read skills/review-judgment-filters/SKILL.md` and apply it before Technique 4 assigns severities and before the Recommendation.
+
+Run `python3 scripts/review-override.py switch --name evidence-gate`. On `on`, `Read skills/evidence-gated-findings/SKILL.md` before Technique 4.
+
 Apply all applicable techniques. Prioritize depth over breadth: analyzing 3 critical paths fully catches more bugs than scanning 20 functions superficially.
 
 ---
@@ -152,6 +156,8 @@ Aggregate all findings from Techniques 1–3 into a single prioritized list:
 
 I recommend addressing all Critical and High items before shipping. Medium items are worth noting in the PR but shouldn't block merge. Low items are informational.
 
+**Evidence.** With the evidence gate `on`, give each Critical or High row one `#### FM-NNN` block in the report's `## Evidence` section, holding the skill's **Location**, **Category**, and **Evidence** fields; read High where the skill says Major. The Location must be a file in the diff. Any category can confirm. Only the `test` and `security-path` kinds apply: `/review` has no recorded run and no Gate 2. Step 4 reports a Critical or High row without confirmed evidence as `Medium (unconfirmed)`.
+
 ---
 
 #### Technique 5: Architecture Diagram
@@ -171,7 +177,23 @@ Annotate each failure point with its registry ID and rescue status.
 
 ### Step 4: Produce Report
 
-Generate a structured markdown report:
+Write the report below to `.writ/state/review-[branch-name].md` as a draft, through its `## Evidence` section.
+
+Before every run, ask with AskQuestion, saying that the evidence step runs the branch's own test code in the user's working tree. If the user declines, cannot be asked (a headless run), or gives no answer, skip the run, write `> Evidence gate: unverifiable (untrusted_branch)`, and leave every severity as written. With the evidence gate `off`, skip the question: the step runs nothing and prints `evidence-gate: off`.
+
+Run it on the draft, with the Step 1 scope's changed files as `<diff files>`:
+
+```bash
+python3 scripts/review-override.py evidence --surface review --review-output .writ/state/review-[branch-name].md --timeout 60 --changed <diff files>
+```
+
+Write the value on line 2 (`evidence-gate: <value>`) into the `> Evidence gate:` header line. Then apply the first rule that matches:
+
+- `reason: repro_mutated_tree <paths>`: stop. Tell the user the evidence run changed those paths and nothing was restored. Write no Recommendation and do not hand off to `/ship` until they decide.
+- `pass` or `fail`: give each registry row the severity its `finding FM-NNN:` line ends with. A Critical or High row without confirmed evidence becomes `Medium (unconfirmed)` and keeps its ID and description.
+- `unverifiable`: leave every severity as written.
+
+Write the Summary line and the Recommendation last, from the severities after this step.
 
 ```markdown
 # Code Review: [branch-name]
@@ -179,6 +201,8 @@ Generate a structured markdown report:
 > Reviewed: YYYY-MM-DD
 > Scope: N files changed (+X, -Y) vs [base]
 > Spec: [path if --spec provided, else "Standalone review"]
+> Reviewer filters: on|off
+> Evidence gate: on|off|unverifiable (<reason>)
 
 ## Architecture
 [ASCII diagram from Technique 5]
@@ -193,15 +217,18 @@ Generate a structured markdown report:
 [Table from Technique 3, or "No user-facing interactions in scope"]
 
 ## Failure Modes Registry
-[Aggregated table from Technique 4]
+[Aggregated table from Technique 4, with the severities after the evidence step]
 **Summary:** N findings — X critical, Y high, Z medium, W low
 
+## Evidence
+[One `#### FM-NNN` block per Critical or High row, from Technique 4]
+
 ## Recommendation
-**The critical gap is [most important finding] because [concrete impact].**
+**The critical gap is [most important confirmed finding] because [concrete impact].**
 [Code-level guidance for addressing it, not just "fix this".]
 ```
 
-**Recommendation section:** open with the single most important finding and why it matters; do not bury it in the tables. If no critical/high findings: state the code is ready to ship.
+**Recommendation section:** open with the single most important confirmed finding and why it matters; do not bury it in the tables. With the evidence gate `off` or `unverifiable`, every Critical and High row counts as written. With no confirmed Critical or High finding, state the code is ready to ship and list the `Medium (unconfirmed)` rows under the Recommendation as worth a look.
 
 ### Step 5: Integration with /ship
 
@@ -213,13 +240,13 @@ Save the report to `.writ/state/review-[branch-name].md` (create `.writ/state/` 
 
 This command succeeds when the review report is saved to `.writ/state/review-[branch-name].md` and contains all applicable sections (Error & Rescue Map, Shadow Paths, Interaction Edge Cases, Failure Modes Registry, Recommendation).
 
-**Outcome interpretation:**
+**Outcome interpretation** (count the registry after the Step 4 evidence step; with the evidence gate `off` or `unverifiable`, every Critical and High row counts as written):
 
 | Findings | Recommendation |
 |----------|----------------|
-| No critical or high findings | Code is ready to ship — state this explicitly |
-| High findings only | Ship with caution — address before merge if possible |
-| Any critical findings | Do not ship — critical gaps must be resolved first |
+| No confirmed critical or high findings | Code is ready to ship — state this explicitly, and list the `Medium (unconfirmed)` rows as worth a look |
+| Confirmed high findings only | Ship with caution — address before merge if possible |
+| Any confirmed critical findings | Do not ship — critical gaps must be resolved first |
 
 A review with zero findings is a valid outcome, not an error. If the diff is trivial (e.g., docs-only, config change), a short report stating "no failure modes in scope" is sufficient.
 

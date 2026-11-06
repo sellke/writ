@@ -7,8 +7,8 @@
 ## Purpose
 
 `commands/implement-phase.md`, `commands/implement-spec.md`, and
-`commands/implement-story.md` declare 10 `exit_criteria` between them. This
-document sorts each of the 10 into exactly one of three buckets and records the
+`commands/implement-story.md` declare 11 `exit_criteria` between them. This
+document sorts each of the 11 into exactly one of three buckets and records the
 evidence for the call:
 
 - **evaluable-now** — a predicate can read existing disk/git state today and
@@ -43,12 +43,13 @@ excluded` rather than omitted, per Acceptance Criterion 3.
 | `implement-spec.c1` | implement-spec | needs-run-record | The claim is "before the first story ran" — a before/after clause a post-hoc read cannot recover without a timestamped record |
 | `implement-spec.c2` | implement-spec | evaluable-now | Per-story terminal status (complete/skipped+chain/failed+reason) is already written to `execution-<ts>.json` by current instrumentation |
 | `implement-spec.c3` | implement-spec | needs-run-record | The claim is "ran after the final story" — the same before/after gap as c1, closed by a `postRun` record instead of a `preflight` one |
+| `implement-spec.c4` | implement-spec | evaluable-now | Each completed story's `Review Outcome` is in its story file, and git history orders its verdict commit against later commits that changed the story's code |
 | `implement-story.c1` | implement-story | Scope: excluded | Already disk-checkable from the story header; no unattended loop to gate |
 | `implement-story.c2` | implement-story | Scope: excluded | Already disk-checkable from the story footer + README; no unattended loop to gate |
 | `implement-story.c3` | implement-story | Scope: excluded | Reads a best-effort record whose authoring rule forbids blocking on it; also innermost loop, self-terminating |
 
-Bucket counts: **evaluable-now: 3** (`implement-phase.c1`, `implement-phase.c2`,
-`implement-spec.c2`) · **needs-run-record: 3** (`implement-phase.c3`,
+Bucket counts: **evaluable-now: 4** (`implement-phase.c1`, `implement-phase.c2`,
+`implement-spec.c2`, `implement-spec.c4`) · **needs-run-record: 3** (`implement-phase.c3`,
 `implement-spec.c1`, `implement-spec.c3`) · **structurally-unobservable: 1**
 (`implement-phase.c4`) · **excluded: 3** (`implement-story.c1`–`c3`).
 
@@ -271,6 +272,30 @@ and `postRun.at`. `typecheck: "skipped"` counts only with a non-empty
 
 ---
 
+## `implement-spec.c4`
+
+> "each completed story carries its own Gate 3 Review Outcome, and no commit
+> changed that story's code after its verdict without a second verdict"
+
+**Bucket:** evaluable-now
+
+**Evidence:** Added from the Phase 15 retro (finding F6): lanes reviewed two
+stories in one Gate 3 pass and edited code after PASS, and this checker still
+returned `met`. Both halves read what already exists. For each story the run
+record marks `complete`, the story file must hold a `Review Outcome` section
+with a `**Result:**` line, and its last such section must not list this story
+with another in a sentence about review ("Stories 3 and 4 were reviewed in one
+review-agent pass"). Git then orders the verdict: the verdict commit is the
+newest commit whose diff adds or removes a `**Result:**` line in the story
+file, and any later commit that changes the story file and a path outside
+`.writ/` is a code commit without a second verdict, unless that commit
+writes a `**Result:**` line into some story file: a later story's commit is
+reviewed by that story's own verdict, even when it edits this story's file. A
+completed story with no story file is `unmet`; a `--repo` that is not a git
+repository makes this criterion `impossible`.
+
+---
+
 ## `implement-story.c1`
 
 > "the story file header reads Status: Completed and carries a > **Commit:**
@@ -359,6 +384,6 @@ support rather than to a criterion directly. No gap in either direction (Task
 1.6). `terminalStatus` and `haltReported` exist to support the
 rollup and `impossible`-trigger machinery described in `spec.md` § Rollup rules
 and technical-spec.md § `impossible` triggers, not to directly evidence any of
-the 10 criteria — `implement-phase.c4` in particular stays
+the 11 criteria — `implement-phase.c4` in particular stays
 structurally-unobservable rather than being read against `terminalStatus` (see
 that entry's evidence above).

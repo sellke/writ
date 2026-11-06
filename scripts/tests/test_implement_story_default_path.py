@@ -195,12 +195,15 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         gate3 = _section(self.text, "#### Gate 3: Review Agent", "#### Gate 3.5:")
         self.assertIn("Verify the claim, don't trust it.", gate3)
         self.assertIn("scripts/review-override.py check", gate3)
-        self.assertIn("FAIL-only", gate3)
-        self.assertIn("does not force PASS", gate3)
+        # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): the FAIL-only
+        # sentence went; a check pass is "no override", and the decision table
+        # (row 9) can now wash an agent FAIL.
+        self.assertIn("→ no override", gate3)
+        override = next(line for line in gate3.splitlines() if "→ no override" in line)
+        self.assertIn("never `⚠️ DEGRADED`", override)
         self.assertIn("⚠️ DEGRADED", gate3)
         self.assertIn("evaluator-agent", gate3)
         self.assertIn("review-agent", gate3)
-        self.assertIn("does not wash", gate3.lower())
         self.assertIn("EVALUATION_RESULT", gate3)
         self.assertIn("REVIEW_RESULT", gate3)
         self.assertIn("`--quick`", gate3)

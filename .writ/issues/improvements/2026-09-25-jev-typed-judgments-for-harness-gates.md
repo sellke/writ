@@ -54,3 +54,7 @@ Candidates, ranked by frequency × cost × how cleanly the answer set is defined
 - **Wrong tool for:** generation (coding-agent, story generation, PR and changelog prose); the Large-drift accept/reject decision and User Challenges (human class under ADR-022); visual QA; the evaluator's open-ended security and taste scan.
 - **Fix first:** Gate 2.5's `change-surface.py` output never reaches the evaluator on the default path. Wire it in or drop it before building on it.
 - **Jev constraints** (jev-1.13 jaggedness doc): literal reading, poor counting and numeric comparison, and accuracy that degrades with large irrelevant state. Slice diffs per AC; keep arithmetic and counting in code.
+
+## Status (2026-11-05)
+
+Partial. The pilot spec `2026-09-25-jev-judgment-pilot` shipped in v0.38.0 ([ADR-027](../../decision-records/adr-027-optional-judgment-provider.md)): the opt-in provider, spec-findings at `/create-spec` Step 2.6c with calibrated thresholds, and the Gate 3 shadow, which holds 2 of the 30 stories its promotion rule needs. The remaining sites move to roadmap Phase 17 under [ADR-033](../../decision-records/adr-033-doubt-gated-autonomy.md): a `doubt` site that decides whether a decision needs a person, with the ADR-022 class table as the fallback. The evaluator-skip stays under ADR-027's promotion rule. This issue stays open until Phase 17 closes it.

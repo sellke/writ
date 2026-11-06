@@ -6,7 +6,7 @@ outcome: "The idea sits in front of the user as something real - code-portable d
 entry_level: high
 exit_criteria:
   - "no spec folder, story file, or task list was created under .writ/specs/ for this change"
-  - "when drafts were generated: each names the axis combination it commits to and is built from the project's own components, framework, and tokens, and exploration.md records the chosen draft plus why each rejected one lost"
+  - "when drafts were generated: each names what it commits to and is built from the project's own components, framework, and tokens, and exploration.md records the chosen draft plus why each rejected one lost"
   - "when code was written: tests covering the changed behavior and its error, empty, and loading paths exist, and the linter and typechecker ran with any remaining errors itemized in the summary"
   - "every scope-escalation signal that fired - over 5 files, schema change, new dependency, core architecture, low existing coverage - is named in the summary next to the /create-spec --from-prototype offer"
 ---
@@ -145,23 +145,7 @@ idea cheaply, not to build it three times.
 
 #### Getting drafts that actually differ
 
-Asking one agent for "a few options" produces one idea three times. Models fixate
-on their own early output, and repeated samples from one prompt converge. Force
-the divergence instead:
-
-1. **Declare the axes first.** Name two or three *orthogonal* dimensions the
-   drafts must differ on — information density, navigation model, primary action
-   placement, progressive disclosure vs. everything-visible. Assign each draft a
-   distinct combination, and state it before generating anything.
-2. **Generate independently.** One subagent per draft. No shared scratch, no
-   draft seeing another. Shared context is how drafts collapse into each other.
-3. **Commit before rendering.** Each generator states its axis combination and
-   the trade-off it accepts, then renders.
-4. **Use ordinary personas, not visionary ones.** "A support rep who opens this
-   forty times a shift" beats "a world-class designer" — genius framing measurably
-   narrows output.
-5. **Three drafts, not five.** Rendering is not free. More than three rarely adds
-   a distinct option, and the user has to read all of them.
+Ask for up to three drafts and state what each commits to.
 
 #### Render through the platform
 
@@ -177,20 +161,20 @@ Each adapter maps `canvas-preview` to its own tool and states what to do when it
 
 #### Present and choose
 
-Show the drafts together with their axis commitments, not one at a time —
+Show the drafts together with what each commits to, not one at a time —
 comparison is the whole point. Then:
 
 ```
 🎨 Three takes on [idea]
-  A — [axis combination] · [the trade-off it accepts]
-  B — [axis combination] · [the trade-off it accepts]
-  C — [axis combination] · [the trade-off it accepts]
+  A — [what it commits to] · [the trade-off it accepts]
+  B — [what it commits to] · [the trade-off it accepts]
+  C — [what it commits to] · [the trade-off it accepts]
 
-Pick one to build, ask for a fourth on a different axis, or stop here with the decision recorded.
+Pick one to build, ask for a fourth that commits to something else, or stop here with the decision recorded.
 ```
 
-**Record the decision.** Write `.writ/prototypes/<date>-<slug>/exploration.md`: the
-axes, one row per draft, the chosen draft, and **why each rejected draft lost**.
+**Record the decision.** Write `.writ/prototypes/<date>-<slug>/exploration.md`: one
+row per draft with what it commits to, the chosen draft, and **why each rejected draft lost**.
 Keep the rendered drafts beside it. The rejected alternatives are the durable
 part — they are the "what else did we consider" that `/create-spec --from-prototype`
 carries into the spec contract, and the thing nobody can reconstruct six months on.
@@ -210,15 +194,17 @@ Spawn the coding agent with extracted intent and codebase context.
 
 The change is done only when it is in the user's checkout. When the agent's result names a worktree path or a branch other than the current one, integrate it as the skill describes before Step 4, writing no temporary file outside the project (pipe the worktree's diff into `git apply`), then confirm with `git status` that the changed files are in this checkout.
 
+**Bug path:** record `git rev-parse HEAD` before spawning. When the agent's `### Repro` block names commits, bring them into this checkout with `git cherry-pick`, oldest first, as the integration skill's Ordered commits paragraph says, not through `git apply`. Then run `python3 scripts/repro-order.py check --repo . --base <that SHA>` and put its output and the failing-then-passing output in the Step 5 summary; `fail` makes the summary "Prototype Complete (with issues)".
+
 **Required context to include in prompt:**
 - Change description and watch-outs
 - Full context scan output (tech stack, patterns, nearby rules, files to modify)
-- The chosen draft and its axis commitment if Step 2.5 ran — the agent builds that direction, not a fresh interpretation
+- The chosen draft and what it commits to if Step 2.5 ran — the agent builds that direction, not a fresh interpretation
 - Design tokens reference if available
 
 **Principles to instruct:**
 
-1. **TDD** — tests first covering core behavior and obvious edge cases
+1. **TDD** — tests first covering core behavior and obvious edge cases. A bug fix follows the bug path in `skills/tdd-cycle/SKILL.md`: a failing repro committed before the fix.
 2. **Match codebase** — follow existing patterns and conventions
 3. **Respect nearby rules** — don't bypass auth, skip validation, or ignore state transitions.
 4. **Don't ship only the happy path** — handle error, empty, and loading states.
@@ -257,7 +243,7 @@ Ready to commit.
 
 ```
 ✅ Direction Chosen — [idea]
-Drafts: 3 · Chose: [B — axis combination] · Record: .writ/prototypes/[date]-[slug]/exploration.md
+Drafts: 3 · Chose: [B — what it commits to] · Record: .writ/prototypes/[date]-[slug]/exploration.md
 Rejected: [A — why it lost] · [C — why it lost]
 Nothing built. /create-spec --from-prototype when you want the rest.
 ```

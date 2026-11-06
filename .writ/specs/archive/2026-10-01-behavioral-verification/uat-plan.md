@@ -62,9 +62,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Implementation Reference:** Story 1 — `.writ/docs/app-verification-format.md`
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: six sections listed; `- **Key:** value` settings; `ID | Feature | Paths | Check` table, kebab-case unique IDs, backticked command or `human-only: <reason>`; Patterns section calls Allowed/Never/Paths shell-style globs; Safety says names only, never secret values; Worked Example plus pointer to `scripts/tests/fixtures/app-verify/recipe-pass.md`.
 
 ---
 
@@ -87,9 +87,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Implementation Reference:** Story 1 — `scripts/app-verify.py` (`validate`)
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: both steps print `pass` on line 1 (agent CLI contract, c336f9d, intended), then `app-verify: recipe valid — 2 features (1 check, 1 human-only)`, exit=0; JSON has schema app-verify-v1, verdict valid, findings [], features ["home", "oauth"].
 
 ---
 
@@ -111,9 +111,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 1 prints `app-verify: recipe invalid — missing_section (Safety)` then `exit=1`.
 - Step 2 reports `71 passed`. That count includes one test per finding code (`missing_section`, `missing_launch_command`, `missing_ready`, `missing_safety`, `bad_feature_row`, `duplicate_feature_id`, `bad_feature_id`, `secret_value`, `bad_timeout`).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 `fail` / `reason: missing_section (Safety)` / `app-verify: recipe invalid — missing_section (Safety)`, exit=1. Step 2 `78 passed` on 3.9 (71 at spec time; tests added by c336f9d and 319131c); all nine finding codes have tests.
 
 ---
 
@@ -134,9 +134,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 1 prints `No such file or directory`. The format doc ships to projects, but a project-authored recipe must never come from Writ.
 - Step 2 lists the file.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `ls .writ/docs/app-verification.md` -> No such file or directory; app-verification-format.md listed.
 
 ---
 
@@ -163,9 +163,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Implementation Reference:** Story 1 — ADR-028, `roadmap.md`, `mission.md`, `mission-lite.md`
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: ADR-028 Decision 1 names `.writ/docs/app-verification.md` drafted by /create-uat-plan, Decision 2 records Features 1 and 2 merged, runtime-boundary paragraph present. Roadmap Phase 12: one merged feature, fixture-app criterion (yuss.app only as outside the phase), no /initialize recipe. Mission files agree. Only `verify-<app>` hit is ADR-028's *Superseded wording*.
 
 ---
 
@@ -184,9 +184,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 **Expected Result:**
 - Prints `app-verify: unverifiable (no_recipe)` then `exit=2`. Exit 2 (nothing to check) is distinct from exit 1 (recipe has defects).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: prints `unverifiable` / `reason: no_recipe` / `app-verify: unverifiable (no_recipe)`, exit=0. Expected exit 2 is stale: c336f9d (agent CLI contract) made unverifiable exit 0; still distinct from invalid (`fail`, exit 1).
 
 ---
 
@@ -217,7 +217,7 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** Needs a person: interactive question (headless `claude -p` has no AskUserQuestion; the run took the recommended Save and said so). agent-run 2026-10-31 @ 319131c, scratch greeter project: non-interactive parts held. Draft had the six sections, Launch `python3 app.py` from the README, backticked pytest checks for the two features with tests, `admin-google-sign-in` as `human-only: no check yet`; validated before save; no test file or check script written (git status: recipe, evidence, plan only). The draft text was written and validated but not printed in the chat output.
 
 ---
 
@@ -241,9 +241,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 3 output is identical to step 1, and no new `evidence/` folder exists.
 - Step 4 shows no draft and asks no recipe question. It validates the existing recipe and goes straight to scenario generation.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c, scratch project (headless): `--check` printed a scenario-count report with `app-verify: recipe valid — 3 features (2 check, 1 human-only)`, no question, no app launch (port never listened); `git status --porcelain` identical before/after, evidence files unchanged. Plain run: no draft, no question, ran validate then went to scenario generation (`app-verify: 2/2 pass — evidence/uat/`).
 
 ---
 
@@ -267,9 +267,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Every scenario reads `**Feature:** none` and `**Verification:** human — recipe invalid`.
 - The final report tells you to fix the recipe and run the command again.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c, scratch project (headless), `## Safetee` committed: run printed `app-verify: recipe invalid — missing_section (Safety)`; `git diff` on the recipe empty; 9/9 scenarios `**Feature:** none` and `**Verification:** human — recipe invalid`; report says rename the heading to `## Safety` and re-run. No app launched.
 
 ---
 
@@ -292,9 +292,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Steps 1, 2 and 3 each print `35`.
 - Step 4 prints a JSON object with `"verdict": "met"` and `"evidence": "no machine scenarios: 2026-10-01-behavioral-verification"`, then `exit=0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: spec now archived, ran against `.writ/specs/archive/2026-10-01-behavioral-verification`. Counts 35/35/35; check-uat `"verdict": "met"`, `"evidence": "no machine scenarios: 2026-10-01-behavioral-verification"`, exit=0.
 
 ---
 
@@ -319,9 +319,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - The report shows one `app-verify:` summary line and the count of machine and human scenarios. The app launched once for all machine features, not once per feature.
 - Step 4: the same machine scenario is now `[x] Fail`. It is not rewritten as human.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c, scratch project (headless): machine scenarios `machine — evidence: evidence/uat/<id>/result.json` ticked `[x] Pass`, human-only ones `human — no check yet` unticked; result.json verdicts `pass`; one `run` call with `--features greeting-text,greet-page`. After uppercasing the /greet page: greet-page scenarios 1, 2, 9 `[x] Fail`, still machine; report `4 machine (1 pass, 3 fail), 5 human` + `app-verify: 1/2 fail — greet-page (exit 1) — evidence/uat/greet-page/`. First run's report paraphrased the summary line ("2 of 2 passed").
 
 ---
 
@@ -344,9 +344,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 2 prints `21399 commands/create-uat-plan.md`.
 - Step 3 prints `No such file or directory`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: hook test ends `All create-uat-plan verification hook assertions passed.`, exit=0; second-to-last `... 22851 bytes < 24960, no recipe`. File 22851 bytes (21399 at spec time; grown by c336f9d, 615865f, 33e05b5), still under budget. No lean twin; the `no twin` clause left the test when 49f347f deleted lean siblings.
 
 ---
 
@@ -369,9 +369,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Every Feature Map row reads `human-only: no check yet`.
 - After Skip, no `.writ/docs/app-verification.md` exists, and `uat-plan.md` is fully populated. Every scenario is `**Verification:** human — no recipe`, and the plan is not a stub.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c, no-harness scratch project (headless, Skip given in the prompt since no question tool): no `.writ/docs/app-verification.md`; plan has 6 scenarios, all `**Feature:** none` / `human — no recipe`, not a stub. A `--check` run showed the draft with every feature `human-only: no check yet` "because there's no test harness". The literal `ℹ️ No test harness found` line was not printed in either run.
 
 ---
 
@@ -394,9 +394,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Scenarios that would have been machine scenarios read `**Verification:** human — refused`, with Status unticked.
 - The app never started.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c, scratch project (headless) with `DATABASE_URL=postgres://prod-host/db` exported: `app-verify: refused (DATABASE_URL matches a Never pattern)`, value absent from transcript and plan; the 4 would-be machine scenarios read `human — refused`, unticked; port 18731 never listened (polled every 0.5 s), no new evidence.
 
 ---
 
@@ -422,9 +422,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Steps 2 and 3 each print `app-verify: no mapped features touched by this story` then `exit=0`. The human-only row is never printed.
 - Step 4 prints `app-verify: unverifiable (no_recipe)` then `exit=2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 `pass` / `feature: home` / `app-verify: 1 mapped feature touched by this story`, exit=0 (bare `home` replaced by `feature: home` in c336f9d). Steps 2, 3 print `app-verify: no mapped features touched by this story`, exit=0, oauth never printed. Step 4 `app-verify: unverifiable (no_recipe)`, exit=0 (was 2 before c336f9d).
 
 ---
 
@@ -452,9 +452,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Implementation Reference:** Story 3 — `scripts/app-verify.py` (`run`), `scripts/tests/fixtures/app-verify/app.py`, `check_home.py`
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `pass` then `app-verify: 1/1 pass — evidence/uat/; human-only — oauth (third-party consent screen)`, exit=0. home/ has result.json, stdout.log, stderr.log, home-body.txt; _launch/ has both logs. result.json: schema app-verify-result-v1, exit_code 0, verdict pass, 64-char recipe_sha256, truncated both false, artifacts []. Step 4 `app-verify: 1/1 pass — evidence/only-home/`, exit=0.
 
 ---
 
@@ -478,9 +478,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 2 prints `fail`.
 - Step 3 prints `pass`. One failing feature does not hide the other's result.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `app-verify: 1/2 fail — broken (exit 1) — evidence/fail/broken/`, exit=1 (plus `fail` line 1 and a `reason:` line). broken verdict `fail`, home verdict `pass`.
 
 ---
 
@@ -507,9 +507,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 3 prints `app-verify: 1/1 pass — evidence/allowed/` then `exit=0`. A value in the process environment wins over the env file.
 - Step 4 prints nothing. The env file is read but never written.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `app-verify: refused (APP_VERIFY_FIXTURE_DB matches a Never pattern)`, no value printed, exit=0 (exit 2 is stale; c336f9d made refused `unverifiable`/0). evidence/refused absent. With env var fixture-dev-host: `app-verify: 1/1 pass — evidence/allowed/`, exit=0. fixture.env unchanged in git status.
 
 ---
 
@@ -531,9 +531,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 2 prints `app-verify: refused (instance_already_running)` then `exit=2`.
 - Step 3: the server you started was not stopped by the script. It only stops processes it started itself.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: manual server on 8765, run printed `app-verify: refused (instance_already_running)`, exit=0 (was 2 before c336f9d); no evidence written. Manual server PID still alive and listening afterwards; stopped by me, port released.
 
 ---
 
@@ -554,9 +554,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 1 prints `app-verify: human-only — oauth (third-party consent screen)` then `exit=2`.
 - Step 2 prints `app-verify: unverifiable (unknown_feature: nope)` then `exit=2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 `app-verify: human-only — oauth (third-party consent screen)` (reason: no_runnable_features); step 2 `app-verify: unverifiable (unknown_feature: nope)`. Both exit=0 (expected 2 is stale, c336f9d); nothing written to the spec folder.
 
 ---
 
@@ -578,9 +578,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - After about 2 seconds, step 1 prints `app-verify: fail (not_ready 2s) — evidence/nr/_launch/` then `exit=1`.
 - Step 2 shows only `_launch/`, which holds `stdout.log` and `stderr.log`. No feature folder exists, because no check ran.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: after 2.1 s, `app-verify: fail (not_ready 2s) — evidence/nr/_launch/`, exit=1. evidence/nr holds only _launch/ with stdout.log and stderr.log.
 
 ---
 
@@ -601,9 +601,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 1 prints `no fixture process`.
 - Step 2 prints `port free`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `no fixture process`; `port free`.
 
 ---
 
@@ -626,9 +626,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 2 reports `71 passed` on Python 3.9.
 - Step 3 prints `no fixture process`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 selects 7, 7 passed (test_launch_exited, test_check_timeout_kills_its_group, test_artifacts_copied_too_large_and_missing, test_failing_after_command_is_a_note, ...). Step 2 `78 passed` on 3.9 (71 at spec time; tests added later). Step 3 `no fixture process`.
 
 ---
 
@@ -649,9 +649,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 1 selects at least one test, and it passes.
 - Step 2 shows that a non-POSIX platform exits 2 with `unverifiable (unsupported_platform)` before anything launches.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 `1 passed, 77 deselected`. Step 2: app-verify.py:595 returns `app-verify: unverifiable (unsupported_platform)` before loading the recipe; exit code is now 0, not 2 (c336f9d).
 
 ---
 
@@ -679,9 +679,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Implementation Reference:** Story 4 — `commands/implement-story.md`, `commands/implement-story.lean.md`
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: Gate 4.5 runs `touched` then `run ... --run-label story-N --features <touched ids, comma-joined>`, no Task, no question; branches on line 1 (`pass` continue, `fail` Gate 1 recode on shared cap, `unverifiable` or no `feature:` line relays and continues, not DEGRADED); `--quick` skips, `--review-only` fail ends run. implement-story.lean.md no longer exists (deleted by 49f347f), so step 2 found both lines in implement-story.md only.
 
 ---
 
@@ -704,9 +704,10 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 2 holds `<id>/result.json` with `"verdict": "pass"`, plus `_launch/` logs.
 - Step 3: Gate 4.5 reports a fail, the story goes back to Gate 1 for recode, and the iteration counts toward the 3-iteration cap.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [ ] Pass  [x] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c, scratch greeter project, headless default pipeline. Steps 1-2 held: story 3 Gate 4.5 ran `touched` then `run --run-label story-3`, `app-verify: 2/2 pass — evidence/story-3/`, no question; `evidence/story-3/{greeting-text,greet-page}/result.json` verdict pass plus `_launch/`. But Gate 3 first blocked on `test_imports_no_source` for the urllib-driven `e2e/test_greet_page.py` (test-integrity.py E2E_DRIVERS lists no Python HTTP client), so completion needed a human override.
+Step 3 failed: with `/greet` broken, story 4's Gate 4.5 printed `app-verify: 1/1 fail — greet-page (exit 1) — evidence/story-4/greet-page/`, but the orchestrator did not recode at Gate 1; it stopped and asked the user, offering DEGRADED/skip options (and Gate 4 hit the same `test_imports_no_source` on `e2e/test_health.py`).
 
 ---
 
@@ -730,9 +731,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - The review-loop paragraph lists the shared-counter sites as Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, and **Gate 4.5 script fail**. A visual-QA FAIL is not one of them.
 - The visual-QA agent describes its FAIL as notes only.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `--full-pipeline` visual-qa-agent spawns after the script, mismatches are story-report notes that never fail the gate or count toward the loop. Pipeline row matches exactly. Review-loop paragraph lists Gate 3 FAIL, Gate 3.5 Reject, Gate 3.5 Modify spec, Gate 4.5 script fail. visual-qa-agent.md:134,149 FAIL is advisory notes.
 
 ---
 
@@ -755,9 +756,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 2 shows only `gate4_5_behavior`, with `script: scripts/app-verify.py` in the frontmatter. `gate4_5_visual` does not appear.
 - Step 3 exits 0. That test also proves a fixture with two prose-only gates is a blocking finding.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: `note: prose_only_count: 1 (cap 1)`, `gates: 10 entries, headings: 10, script: 9, prose-only: 1, findings: 0`, exit=0 (plus `pass` line 1). Only gate4_5_behavior with `script: scripts/app-verify.py`; no gate4_5_visual. test_eval_verdict_provenance.sh exit=0, includes `two prose-only gates -> exit 1`.
 
 ---
 
@@ -777,9 +778,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Rule 6 in `agents/coding-agent.md` applies when a recipe exists and a story adds user-facing behavior that no Feature Map row covers. It says to write a check in the project's own test harness and add a matching row (ID, feature, paths, check). It also says the check's exit code is the verdict and the agent never grades the result.
 - The regenerated Codex TOML carries the same rule.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: Rule 6 at agents/coding-agent.md:121 and codex/agents/coding-agent.toml:126, identical text: recipe exists + uncovered user-facing behavior -> write a check in the project's harness, add a row (ID, feature, paths, check); exit code is the verdict, agent never grades.
 
 ---
 
@@ -804,9 +805,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 3 reports all passed.
 - Step 4 shows the dated re-pin comments for `DEFAULT_SHA256["implement-story"]` and `KNOWN_OVER_BUDGET["commands/implement-story.md"]`. The over-budget overage went down (11110 → 11103), not up.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: spawn-cap `pass (default spawn sites at or under cap)`, exit=0. Lean twin and test_lean_commands.py were deleted by 49f347f (harness-cuts), so step 2 and the DEFAULT_SHA256 pin no longer exist; remaining two test files 68 passed on 3.9; test_governor_enforcement.py:646 keeps the dated `11110 -> 11103` KNOWN_OVER_BUDGET comment.
 
 ---
 
@@ -828,9 +829,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Steps 1 and 2 each print `app-verify: unverifiable (no_recipe)` then `exit=2`.
 - Step 3 confirms that exit 2 means "relay the line and continue, not DEGRADED". So a story in a project without a recipe completes as it did before Phase 12.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: both steps print `unverifiable` / `reason: no_recipe` / `app-verify: unverifiable (no_recipe)`, exit=0 (exit 2 stale, c336f9d). Gate 4.5 `unverifiable` bullet: relay the line and continue, not DEGRADED.
 
 ---
 
@@ -860,9 +861,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 
 **Implementation Reference:** Story 5 — `scripts/exit-criteria.py` (`check-uat`, evidence half of `implement-phase.c2`)
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 `app-verify: 1/1 pass — evidence/uat/; human-only — oauth (third-party consent screen)`. Step 3 verdict met, outcome pass, `1/1 machine scenarios cite passing evidence`, exit=0. Step 5 verdict unmet, outcome missing, `evidence missing: s32.tthn / Scenario 1 (evidence/uat/home/result.json)`, exit=1.
 
 ---
 
@@ -886,9 +887,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 3: `"outcome": "outside_spec"`, with a reason starting `evidence outside spec folder:`, then `exit=1`.
 - Every reason names the spec folder and `Scenario 1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 not_pass `evidence not pass: s32.tthn / Scenario 1 (...: verdict 'fail')`; step 2 unreadable `evidence unreadable: ... : JSONDecodeError)`; step 3 outside_spec `evidence outside spec folder: s32.tthn / Scenario 1 (../outside.json)`. All exit=1.
 
 ---
 
@@ -913,9 +914,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 3: `"verdict": "impossible"` and `"reason": "spec folder not found: /nonexistent-spec"`, then `exit=2`. There is no traceback.
 - Step 4: the row reads `evaluable-now (split: presence + ordering + evidence)`, and the section has an **Evidence — evidence half** paragraph.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: legacy `met` / `legacy plan: s34.uH45`, exit=0; archived spec `met` / `no machine scenarios: 2026-10-01-behavioral-verification`, exit=0; missing spec `impossible` / `spec folder not found: /nonexistent-spec`, exit=2, no traceback. Bucket row `evaluable-now (split: presence + ordering + evidence)`; section has **Evidence — evidence half**.
 
 ---
 
@@ -942,9 +943,9 @@ Deduplication: the Error Map rows *Read recipe* and *Validate recipe* are listed
 - Step 4: `2109 passed, 1 skipped` (or more, if tests were added later).
 - Step 5: `no fixture process`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 319131c: step 1 exit=0, `## app-verify` PASS with note `fixture pass/fail/refused runs and the missing-evidence mutation checked on port 50014`, Findings 0, Run errors 0 (report written to temp via --report). Step 2 exit=0 incl. `stub app-verify.py that always exits 0 -> add_finding, exit 1`. Step 3 Findings 0, Run errors 0. Step 4 (isolated 3.9) `4027 passed, 7 skipped`. Step 5 `no fixture process`.
 
 ---
 

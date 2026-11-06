@@ -11,7 +11,7 @@
 </pre>
 
 **AI-powered development workflow framework**<br>
-Contract-first specs · Two-agent default · Script-backed gates · Opinionated by default
+Contract-first specs · Script-backed gates · Evidence-gated review · One front door
 
 ⚡ *A writ is a written command by an authority--you. The framework executes them.*
 
@@ -31,6 +31,8 @@ Each stage is a markdown command file that AI agents follow precisely. The frame
 
 The deeper goal: **code and methodology that doesn't degrade as projects, teams, and AI platforms churn around them.** Specs, decisions, and accumulated knowledge live as plain-text markdown in git — designed to survive any tooling shift.
 
+Writ owns three things and delegates or deletes the rest ([ADR-030](.writ/decision-records/adr-030-contract-verifier-boundary-front-door.md)): the **contract** (the spec, its acceptance and exit criteria, and the stakes of each decision), the **verifier** (scripts that re-derive verdicts about the code and the running app, not only about Writ's own artifacts), and the **boundary** (when an agent stops and asks a person). Users reach all three through one front door, `/writ`.
+
 ## Three Primitives — Verb / Noun / Tool
 
 Writ has three first-class building blocks. Each plays a distinct role and the boundary between them is enforced by tooling, not just discipline.
@@ -43,13 +45,16 @@ Writ has three first-class building blocks. Each plays a distinct role and the b
 
 > Workflow → command. Role → agent. Capability → skill.
 
-Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 16 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
+Composition is acyclic: commands spawn agents; commands and agents wield skills; skills don't call commands or chain other skills. See [`.writ/docs/skills.md`](.writ/docs/skills.md) for the full skills explainer and [ADR-009](.writ/decision-records/adr-009-command-agent-skill-boundary.md) for the rationale. The skills foundation shipped in `2026-05-03-skills-foundation`; 19 skills are live today (see [Skills](#skills) below), each carrying a candidate → proven → promoted lifecycle.
 
 ## Key Features
 
 - **Contract-first specifications** — No code until requirements are agreed upon
-- **Two-agent default, six-agent escalation** — `/implement-story` ships with a coding agent and a fresh-context evaluator. Architecture-check, review, testing, visual QA, and documentation spawn only on `--full-pipeline` (or after two consecutive evaluator FAILs); a story that crosses its boundary map gets the review agent instead of the evaluator. `scripts/spawn-cap.py` keeps the default at two Task spawns.
-- **Script-backed quality gates** — Default `/implement-story` re-derives architecture, boundary, architecture-lint, review-override, test-integrity, drift format, and docs verdicts from `scripts/*.py`. Gate 1 (coding) and Gate 4.5 (visual QA) stay `prose-only`. **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
+- **Two-agent default, six-agent escalation** — `/implement-story` ships with a coding agent and a fresh-context evaluator. Architecture-check, review, testing, visual QA, and documentation spawn only on `--full-pipeline` (or after two consecutive evaluator FAILs); a story that crosses its boundary map gets the review agent instead of the evaluator. The default path is two Task spawns.
+- **Script-backed quality gates** — Default `/implement-story` re-derives architecture, boundary, architecture-lint, review-override, test-integrity, drift format, and docs verdicts from `scripts/*.py`. Gate 1 (coding) and Gate 4.5 declare `prose-only`; when the project has a verification recipe (`.writ/docs/app-verification.md`), Gate 4.5's verdict comes from `scripts/app-verify.py` driving the running app. **Eval Tier 1** (`scripts/eval.sh`, enforced via GitHub Actions on every PR) adds required-section validation, broken-reference detection, length sanity, and anti-sycophancy phrase scanning across `.writ/` artifacts.
+- **Evidence-gated review** — A Gate 3 or `/review` finding blocks only when it carries executed evidence: a failing test the reviewer wrote, a recorded failure, a static check, or a resolved source-to-sink path. `scripts/review-override.py evidence` runs it, and a confirmed repro is committed as a regression test ([ADR-032](.writ/decision-records/adr-032-evidence-gated-review.md)).
+- **Rigor about the code, not only the artifacts** — On the review route, Gate 2.5 names the one fact a change is safe because of and the evidence rung it reached (floor: `tested`). Bug fixes commit a failing repro before the fix, and `scripts/repro-order.py` checks the order. Reviewers carry lead-judgment filters.
+- **`/why` from the ledger** — Answers why code is the way it is from ADRs, drift logs, specs, What Was Built records, and git notes first, then git history, then connected MCP servers, with a confidence tier on every claim.
 - **Spec assessment** — `/assess-spec` flags sizing, complexity, and context accumulation risks before you build. Recommends specific decomposition strategies. Runs automatically as a pre-flight check in `/implement-spec`.
 - **Machine-evaluable exit criteria** — `scripts/exit-criteria.py` is a read-only checker that re-derives `met`/`unmet`/`unknown`/`impossible` for each `/implement-phase` and `/implement-spec` exit criterion from state on disk, instead of trusting the run's own self-report (`/implement-story`'s criteria are out of scope — already disk-checkable from the story file itself). Its verdict governs completion reports and (on Claude Code) the `/goal` Stop hook.
 - **Cross-story continuity** — "What Was Built" records capture implementation reality from review outputs and automatically pass to downstream stories, so integration code matches what was actually built, not just what was planned
@@ -57,10 +62,9 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
 - **Deterministic context assembly** — `/implement-story`'s context-hint resolution runs through one script (`scripts/story-context.py`) instead of three drifting prose/code implementations, with an empirically derived `fetched_context` budget (21,000 bytes) that truncates by relevance and warns rather than loading unbounded context
 - **Parallel execution** — Independent stories run simultaneously with dependency resolution
 - **Opinionated guidance** — Commands lead with recommendations, challenge premises, and push for the best version of every idea
-- **Self-improving** — `/refresh-command` turns session friction into cited command diffs. Every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use.
-- **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)).
+- **Self-improving** — `/refresh-command` turns session friction into cited command diffs. Every refinement carries transcript evidence and must pass an eval gate to merge. Commands get better through use. `/retro` reads a run's transcripts and proposes fixes to the agent's environment in a fixed order — architecture, types, lint, test, docs — and each new check must fail on a real past mistake.
+- **Evidence-backed autonomy, deliberately bounded** — `--recommend` lives on exactly two commands: `/create-spec --recommend` autonomously authors and locks a spec package then stops; `/implement-phase --recommend` runs a roadmap phase end-to-end, ending at the completion report with manual UAT handoff. Every automatic choice is recorded in a durable recommendation log. Neither flow merges, opens PRs, or releases — production stays a human decision ([ADR-013](.writ/decision-records/adr-013-recommended-autonomous-delivery.md)). Phase 17 retires the flag: initiative becomes the default, a decision log replaces the permission, and a person is asked only on reasonable doubt ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)).
 - **Optional judgment provider** — TypeSafe's Jev model (direct or via the Vercel AI Gateway) can pre-judge acceptance criteria during `/create-spec` and `/verify-spec` spec analysis, and logs a shadow verdict beside the Gate 3 evaluator. It is off by default and requires a double opt-in: a `Judgment Provider` line in `.writ/config.md` *and* the backend's API key. Below its calibrated threshold, an answer falls back to the normal path; no Jev answer decides a gate or skips a spawn ([ADR-027](.writ/decision-records/adr-027-optional-judgment-provider.md)). Set it up with `python3 scripts/jev-judge.py setup`.
-- **Measured, not assumed** — `scripts/pipeline-baseline.py` replays stories in isolation with validated token counts and price-weighted cost (`scripts/harness-cost.py`), so harness changes are kept or reverted on evidence.
 - **Native-memory interop** — markdown stays canonical while adapters document how to ride each platform's native memory; external knowledge indexes (e.g., GBrain via MCP) are consumers
 - **Platform adapters** — Native support for Cursor, Claude Code, and Codex CLI, plus an OpenClaw mapping guide
 
@@ -78,11 +82,13 @@ Composition is acyclic: commands spawn agents; commands and agents wield skills;
                                                     Per story (/implement-story) — default:
                               ┌─ Arch-check script (no architecture-check agent)
                               ├─ Boundary map (Gate 0.5)
-                              ├─ Coding agent (TDD) + loads `.writ/knowledge/` and "What Was Built"
+                              ├─ Coding agent (TDD; a bug fix commits its failing repro first)
                               ├─ Lint / build-smoke
-                              ├─ Evaluator agent (fresh-context rubric) + review-override.py
+                              ├─ Safety fact (Gate 2.5, review route: one fact, evidence rung ≥ tested)
+                              ├─ Evaluator agent (fresh-context rubric) — a finding blocks only on executed evidence
                               ├─ Drift (Small → auto-amend spec-lite)
                               ├─ test-integrity.py (no testing agent)
+                              ├─ app-verify.py (Gate 4.5, when the project has a verification recipe)
                               └─ docs-check.py (no documentation agent)
                          --full-pipeline adds architecture-check, review, testing,
                          visual QA, and documentation agents. Two consecutive
@@ -92,8 +98,8 @@ Lightweight path (/prototype) — no spec required:
    Describe change → [Visual Preview] → Coding Agent (TDD) → Lint → Done
                                               ↑ complexity? → escalate to /create-spec
 
-Phase path (/implement-phase — roadmap-driven, supervised, Cursor-native):
-   /plan-product → /implement-phase N → /create-uat-plan (per spec, auto) → manual UAT → /ship
+Phase path (/implement-phase — roadmap-driven, supervised):
+   /plan-product → /implement-phase N → /create-uat-plan (per spec, auto) → UAT (machine where a recipe exists, a person where none can) → /ship
                         ↑ loops /implement-spec per spec, sequences by cross-spec dependency,
                           fresh isolated lane per spec, quarantine on failure, resume-safe
 
@@ -120,6 +126,7 @@ Feedback loop (/retro + /refresh-command):
 | `/create-issue` | Quick issue capture (<2 minutes) |
 | `/knowledge` | Capture durable project knowledge (decisions, conventions, glossary, lessons) into `.writ/knowledge/` |
 | `/research` | Systematic 4-phase research workflow |
+| `/why` | Answers why code is the way it is from the ledger, git history, and MCP servers, with a confidence tier on every claim; when a change follows, ends with a Preserve / Change / Avoid / Risk list `/create-spec` reads |
 
 ### Implementation & Quality
 | Command | Purpose |
@@ -135,7 +142,7 @@ Feedback loop (/retro + /refresh-command):
 ### Shipping & Review
 | Command | Purpose |
 |---------|---------|
-| `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. |
+| `/review` | **Pre-landing code review.** Error & rescue maps, shadow path tracing, interaction edge cases, failure modes registry, mandatory architecture diagrams. Produces judgment, not checklists. With the Evidence Gate on, it asks before running the branch's tests. After the run, a Critical or High finding that no failing test or cited input-to-sink path confirms reads `Medium (unconfirmed)`. |
 | `/ship` | **Unified shipping workflow.** Detect conventions → merge default branch → (optional `/ship --test`) → split commits → create PR with structured body, optional inline spec health, and auto-labels. |
 
 ### Validation & Release
@@ -194,6 +201,7 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`change-surface-classification`](skills/change-surface-classification/SKILL.md) | Classify a change set as style-only, single-component, cross-component, or full-stack |
 | [`dependency-context-loading`](skills/dependency-context-loading/SKILL.md) | Load, filter, and truncate upstream stories' implementation records into dependency context |
 | [`drift-triage`](skills/drift-triage/SKILL.md) | Triage implementation deviations by severity and route each to amend, warn, or pause |
+| [`evidence-gated-findings`](skills/evidence-gated-findings/SKILL.md) | Back a Critical or Major review finding with evidence a script can run or check, so the finding can block a verdict |
 | [`project-context-snapshot`](skills/project-context-snapshot/SKILL.md) | Regenerate a whole-file project context snapshot from product, spec, drift, and issue sources |
 | [`story-commit-provenance`](skills/story-commit-provenance/SKILL.md) | Record a completion commit SHA into a story file header idempotently and without amending it |
 | [`story-context-assembly`](skills/story-context-assembly/SKILL.md) | Assemble the targeted context payload each pipeline agent receives — parsed hints, knowledge entries, and role-specific spec-lite sections |
@@ -201,6 +209,8 @@ Reusable capabilities — tools any command or agent can `Read` and apply at the
 | [`subagent-result-completeness`](skills/subagent-result-completeness/SKILL.md) | Tell a spawned gate agent's complete verdict apart from a mid-task stop, and recover when it stops early |
 | [`subagent-worktree-integration`](skills/subagent-worktree-integration/SKILL.md) | Reconcile a spawned agent's isolated git worktree with the orchestrator's own checkout, and detect when that worktree is stale |
 | [`plain-prose`](skills/plain-prose/SKILL.md) | Rewrite mannered prose in instructional markdown (commands, agents, skills, adapters) into plain, direct text that keeps every rule and literal |
+| [`review-judgment-filters`](skills/review-judgment-filters/SKILL.md) | Separate findings that change a verdict from nits and untraced hypotheticals, without dismissing security findings |
+| [`blast-radius`](skills/blast-radius/SKILL.md) | Name the one fact a change is safe because of and push its evidence up a five-rung ladder |
 
 Skills are explicitly invoked via `Read skills/<name>/SKILL.md`. Writ-authored skills set `disable-model-invocation: true` so platforms don't ambient-load them — every load is traceable. Authored via `/new-skill`; boundary-linted via `scripts/lint-skill.sh` (also run by `/refresh-command --lint-skills`).
 
@@ -402,17 +412,35 @@ When Writ runs, it creates a `.writ/` directory in your project:
 6. **Self-improving** — Commands get better through use. `/refresh-command` + `/retro` close the feedback loop.
 7. **Platform-agnostic** — Markdown instructions work anywhere AI agents run.
 8. **Durable substrate** — Specs, decisions, and accumulated knowledge live as plain-text markdown in git. Survives projects, teams, and AI platform churn.
+9. **Ask on doubt, not on principle** — The harness decides, acts, and records. A person is asked only when evidence, reversibility, or a calibrated judgment says the answer is in doubt ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)).
+
+## Where Writ is going
+
+The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Shipped through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Next, in order:
+
+- **Phase 17 — Doubt-Gated Autonomy.** One rule replaces the human gates by category: decide, act, record; ask only on reasonable doubt. Jev makes the first-pass call on whether a person is needed, a supervisor agent re-derives every subagent report before an orchestrator trusts it, and `--recommend` retires because initiative is the default ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)).
+- **Phase 16 — Verified Landing.** A read-only PR-readiness check, a verification ledger bound to the PR head, and a `/ship` watch mode that drives a PR to merge-ready and, with the ledger green and doubt low, merges it. Release, tag, and publish stay asks.
+- **After that:** command consolidation, measured by what is still invoked directly once the front door asks only on doubt, and a parking lot that earns its way in one phase at a time.
+
+The standing rule is subtraction: each phase opens by removing what no longer earns its place, and no new phase starts while two finished ones wait on a person.
 
 ## Developing Writ
 
 This repo uses Writ to build Writ. Product source lives in `commands/`, `agents/`, `skills/`, `adapters/`, `scripts/`, and `cursor/`. `.cursor/`, `.claude/`, and `.codex/` are symlinks back to it, so edits are live immediately. Don't run `install.sh` on this repo. See [`.writ/docs/self-dogfooding.md`](.writ/docs/self-dogfooding.md).
 
-The product is markdown, but `scripts/` carries a Python and bash test suite plus the quality gate. The Python floor is 3.9.
+The product is markdown, but `scripts/` carries a Python and bash test suite plus the quality gate. The Python floor is 3.9, and the suite must stay green from 3.9 up. Run pytest alone: `eval.sh` or the bash tests in the same tree make its smoke test fail.
 
 ```bash
-uv run pytest                                                        # Python tests (uv run --python 3.9 pytest for the floor)
-for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done   # Bash tests
-bash scripts/eval.sh                                                 # Quality gate; --check=<name> for one check
+# Python tests, about 4 min each. Name both interpreters: a bare `uv run pytest`
+# resolves to the 3.9 system Python, so it never tests a newer one.
+uv run --isolated --python 3.9 --with pytest pytest
+uv run --isolated --python 3.14 --with pytest pytest
+
+# Bash tests, about 12 min
+for t in scripts/tests/test_*.sh; do bash "$t" || echo "FAIL $t"; done
+
+# Quality gate; --check=<name> for one check, --report=<path> for a read-only run
+bash scripts/eval.sh
 ```
 
 `eval.sh` runs `git init` in a temp directory, so run it outside any sandbox. It also runs on every PR via GitHub Actions.

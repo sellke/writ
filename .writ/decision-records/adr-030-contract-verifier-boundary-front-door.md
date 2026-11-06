@@ -2,12 +2,13 @@
 
 > **Date:** 2026-10-20
 > **Status:** Accepted
+> **Amended:** 2026-10-30 — Design Principle 8, land before you add (see § Amendments)
 > **Category:** Product Strategy
 > **Deciders:** @AdamSellke
 > **Evidence base:** [`2026-10-19-writ-vs-pstack-research.md`](../research/2026-10-19-writ-vs-pstack-research.md) (pstack 0.15.28 read at source), [`2026-10-19-prototype-visual-drafts-research.md`](../research/2026-10-19-prototype-visual-drafts-research.md), [`2026-09-05-goldilocks-assessment.md`](../product/2026-09-05-goldilocks-assessment.md)
 > **Supersedes:** [ADR-025](adr-025-friction-signals.md) Decisions 1, 3, and 6 (the signal file, the nudge, and the `Signal:` evidence bridge) and its 2026-12-02 review
 > **Amends:** [ADR-029](adr-029-agent-cli-contract.md) review trigger, which now reads `/retro` findings instead of friction signals
-> **Keeps:** [ADR-010](adr-010-supervised-autonomy-ceiling.md), [ADR-013](adr-013-recommended-autonomous-delivery.md), and [ADR-022](adr-022-autonomy-gate-classes.md) unchanged. Phase 16 decides the autonomy ceiling in its own ADR.
+> **Keeps:** [ADR-010](adr-010-supervised-autonomy-ceiling.md), [ADR-013](adr-013-recommended-autonomous-delivery.md), and [ADR-022](adr-022-autonomy-gate-classes.md) unchanged at the time of writing. *2026-11-05: [ADR-033](adr-033-doubt-gated-autonomy.md) supersedes ADR-022's gate-class table and ADR-013's flag-scoped autonomy, and is the ceiling ADR this record left to Phase 16.*
 > **Respects:** [ADR-015](adr-015-leanness-self-governance.md) (leanness), [ADR-020](adr-020-component-contract.md) (one outcome per command), [ADR-023](adr-023-stakes-proportional-diligence.md) (stakes triage), [ADR-024](adr-024-model-delegation.md) (family-locked tiers), [ADR-028](adr-028-behavioral-verification-and-cross-family-panels.md) (runtime boundary)
 
 ## Decision
@@ -130,9 +131,46 @@ Detect pstack and route design, review, and PR work to its skills.
 
 ## Review
 
-- **Phase 14 close:** keep or remove the front door. The question is whether it is the place work actually starts.
+- **Phase 14 close:** keep or remove the front door. The question is whether it is the place work actually starts. *Due as of 2026-10-30:* the acceptance pass (2026-10-24) found `/writ` matched its route on 10 of 20 real requests, below the bar of 16, and the Phase 15 run started from `/implement-phase` directly.
 - **Phase 15 close:** keep or remove each code-level upgrade and the `design-divergence` skill, on its measurement.
-- **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run.
+  - *Removal measurement, 2026-11-04* ([trial-report.md](../specs/2026-10-25-gate-upgrade-removal-measurement/trial-report.md)). Stories (yuss): `2026-07-24-per-event-fee-revenue-model/story-2-event-creation-payment-flow`, `2026-07-24-per-event-fee-revenue-model/story-3-fee-sharing-pro-exemption`, `2026-07-24-per-event-fee-revenue-model/story-4-messaging-migration-quick-split-guard`, and `2026-07-23-quick-split-single-transaction/story-3-settlement-view-share-link`.
+    - **Gate 0 Divergence:** keep. Exercised on 3 of 4 stories; 2 of its 3 upgrade-only findings were valid.
+    - **Safety Fact:** keep. 4 of 4; 2 of 2 valid.
+    - **Reviewer Filters:** keep. 4 of 4; 1 of 1 valid.
+    - **Repro First:** unverifiable. Never exercised: all four stories are feature work, so no bug-fix path ran. The ack is `amend`, so the upgrade stays unchanged until a substitute baseline of bug-fix stories is added.
+    - **Caveats:** four stories and one run per upgrade arm, so one valid catch keeps an upgrade. The Gate 0 and Repro First arms are retrospective proxies, not replays. The labels are the assistant's assessments, made at the maintainer's request (drift-log DEV-012), so the measurement rests on a model judging model-raised findings.
+    - **Gate 0 and the blind trial:** the design-divergence note below records the blind trial's outcome (Business Rule 12).
+  - *Divergence trial, 2026-11-04* ([trial-report.md](../specs/archive/2026-10-25-design-divergence/trial-report.md)): **remove**.
+    - Declared axes won 2 of 6 briefs; keeping the skill needed 4. Distinct-structure count: 17 for the axes arm, 16 for the naive arm.
+    - Render-only drafts were enough to choose a direction on 6 of 6 briefs (ui 2 of 2).
+    - **Caveats:** six briefs and one rater make a small sample, not a general result. The ratings are a blind agent's, made at the maintainer's request (design-divergence drift-log DEV-012).
+    - **Gate 0:** removal-measurement Business Rule 12 applies, so the skill and its Gate 0 wiring are removed together, overriding that measurement's Gate 0 keep. `/prototype` Step 2.5 now asks for up to three drafts and what each commits to.
+- **Phase 16 start:** write the ceiling ADR, citing Phase 12's UAT result and one real-project `app-verify.py` run. *Written 2026-11-05 as [ADR-033](adr-033-doubt-gated-autonomy.md), ahead of Phase 16 and citing the 2026-10-31 agent UAT run; the real-project run stays Phase 16's gate, and Phase 17 now runs first.*
+
+## Amendments
+
+### 2026-10-30 — Land before you add
+
+**Decision:** Add Design Principle 8 to the roadmap: no new phase starts while two or more finished phases wait on human validation or merge.
+
+**Evidence (reconcile pass, 2026-10-30):**
+- Phase 12 was released in v0.40.0 on 2026-10-02; 3 of its 89 UAT scenarios have been run since.
+- Phase 14 is implemented; [PR #63](https://github.com/sellke/writ/pull/63) has been open since 2026-10-24.
+- Phase 15 is implemented on a branch built on Phase 14's, with 201 UAT scenarios and two human ratings outstanding.
+- Two Phase 13 PRs are open: #61 (closure docs) and #62 (the fix for the one UAT regression), whose commits are in no other branch.
+- `main` is still v0.43.0.
+
+**Why:** Built work that nobody validates is not shipped, and every new phase adds to the queue. Principle 7 (subtract before you add) keeps the surface from growing; Principle 8 keeps unvalidated work from growing.
+
+**Consequence:** Phase 16, or any new phase, starts only once fewer than two finished phases wait. The roadmap's *Current focus* section lists the queue in order. Phase 16 keeps its own gate (Phase 12's UAT and one real-project `app-verify.py` run) on top of this rule.
+
+### 2026-11-05 — Ceiling ADR written early; Phase 17 added
+
+**Decision:** [ADR-033](adr-033-doubt-gated-autonomy.md) replaces the gate-class table this record kept with one rule, ask on doubt, and commits Phase 17 (Doubt-Gated Autonomy) ahead of Phase 16. Phase 16's merge step is now defined by that rule.
+
+**Evidence (reconcile pass, 2026-11-05):** the land-and-validate queue was worked by handing the gated steps back to agents (Phase 12's UAT, the removal-trial labels, the divergence ratings), and Phase 14 merged with its five person checks unrecorded. The gates by category were delays, not decisions.
+
+**Consequence:** § Keeps and § Review are annotated above. The front-door review stays open; the recommendation on record is keep, with its confirm step doubt-gated.
 
 ## References
 

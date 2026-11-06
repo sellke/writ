@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exploration Record</title>
+<style>
+  :root {
+    --bg: #f6f6f7;
+    --panel: #ffffff;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --line: #d9dbe0;
+    --soft: #eef0f3;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  .summary {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .summary .id { color: var(--muted); font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .summary .text { flex: 1 1 420px; }
+  .summary .winner { font-weight: 600; white-space: nowrap; }
+  .summary .winner span { color: var(--accent); }
+
+  .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 640px; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--soft); vertical-align: middle; }
+  th.axis-head, td.axis {
+    text-align: left;
+    width: 32%;
+    color: var(--text);
+    font-weight: 400;
+  }
+  th.axis-head { color: var(--muted); font-size: 12px; font-weight: 500; vertical-align: bottom; }
+  td.axis { color: #374151; }
+  td.cell { text-align: center; }
+
+  .col-winner { border-left: 2px solid var(--accent); border-right: 2px solid var(--accent); }
+  thead .col-winner { border-top: 2px solid var(--accent); border-top-left-radius: 6px; border-top-right-radius: 6px; }
+  tr.loss .col-winner { border-bottom: 2px solid var(--accent); }
+
+  .opt-head {
+    all: unset;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    text-align: left;
+    border-radius: 6px;
+    padding: 4px;
+  }
+  .opt-head:hover .thumb, .opt-head:focus-visible .thumb { border-color: var(--accent); }
+  .opt-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .opt-title { display: flex; gap: 6px; align-items: baseline; margin-bottom: 6px; }
+  .opt-key {
+    display: inline-block; min-width: 20px; text-align: center;
+    font-size: 12px; font-weight: 700; border-radius: 4px;
+    background: var(--soft); color: var(--text); padding: 1px 5px;
+  }
+  .col-winner .opt-key { background: var(--accent); color: #fff; }
+  .opt-name { font-weight: 600; font-size: 13px; }
+
+  .thumb {
+    position: relative;
+    height: 110px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .thumb .scaled {
+    position: absolute; top: 0; left: 0;
+    width: 400%;
+    transform: scale(0.25);
+    transform-origin: top left;
+    pointer-events: none;
+  }
+  .thumb pre {
+    margin: 0; padding: 6px 8px;
+    font-size: 9px; line-height: 1.35;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #374151; background: #fafafa; height: 100%;
+    white-space: pre; overflow: hidden;
+  }
+
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: #4b5563; }
+  .col-winner .dot { background: var(--accent); }
+
+  tr.loss td { border-bottom: none; font-size: 13px; vertical-align: top; }
+  tr.loss td.axis { color: var(--muted); font-size: 12px; font-weight: 500; }
+  tr.loss td.cell { text-align: left; color: #374151; }
+  .chosen { color: var(--accent); font-weight: 600; }
+
+  .drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(17, 24, 39, 0.35);
+    display: none; z-index: 10;
+  }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(760px, 100%);
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    box-shadow: -8px 0 24px rgba(0,0,0,0.08);
+    display: none; flex-direction: column; z-index: 11;
+  }
+  .drawer.open, .drawer-backdrop.open { display: flex; }
+  .drawer-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
+  }
+  .drawer-head h2 { margin: 0; font-size: 15px; }
+  .drawer-head button {
+    border: 1px solid var(--line); background: #fff; border-radius: 6px;
+    padding: 4px 10px; font: inherit; cursor: pointer;
+  }
+  .drawer-body { flex: 1; overflow: auto; padding: 16px; }
+  .drawer-body .live { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fff; }
+  .drawer-body pre {
+    margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 6px;
+    background: #fafafa; font-size: 13px; line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto;
+  }
+
+  /* sample page styles used inside artifacts */
+  .sp { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2328; padding: 20px; font-size: 14px; }
+  .sp h3 { margin: 0 0 12px; font-size: 16px; }
+  .sp .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; }
+  .sp .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #eef0f3; color: #374151; }
+  .sp .bar { height: 6px; background: #eef0f3; border-radius: 3px; width: 140px; overflow: hidden; }
+  .sp .bar i { display: block; height: 100%; background: #6b7280; }
+  .sp .meta { color: #6b7280; font-size: 12px; }
+  .sp .group { margin-bottom: 14px; }
+  .sp .group h4 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; }
+</style>
+</head>
+<body>
+<main>
+  <section class="summary" id="summary"></section>
+  <div class="table-wrap">
+    <table id="matrix">
+      <thead><tr id="header-row"></tr></thead>
+      <tbody id="body-rows"></tbody>
+    </table>
+  </div>
+</main>
+
+<div class="drawer-backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+  <div class="drawer-head">
+    <h2 id="drawer-title"></h2>
+    <button type="button" id="drawer-close">Close</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<script>
+const exploration = {
+  id: "proto/2026-10-12-spec-list-progress",
+  summary: "Show story progress for each spec on the /status spec list, so a developer can see which spec needs attention without opening it.",
+  options: [
+    {
+      key: "A",
+      name: "Count badge",
+      artifact: {
+        type: "page",
+        screenshot: "spec-list-badge.png",
+        liveHtml:
+          '<div class="sp"><h3>Specs</h3>' +
+          '<div class="row"><div><strong>why-command</strong><div class="meta">4 stories</div></div><span class="badge">4 / 4 done</span></div>' +
+          '<div class="row"><div><strong>design-divergence</strong><div class="meta">6 stories</div></div><span class="badge">2 / 6 done</span></div>' +
+          '<div class="row"><div><strong>code-level-rigor</strong><div class="meta">5 stories</div></div><span class="badge">0 / 5 done</span></div>' +
+          '<div class="row"><div><strong>lane-merge-guard</strong><div class="meta">3 stories</div></div><span class="badge">1 / 3 done</span></div>' +
+          '</div>'
+      },
+      commitments: [
+        "One row per spec",
+        "Progress as a done / total count",
+        "Fits an 80-column terminal render",
+        "Uses only data in story frontmatter"
+      ]
+    },
+    {
+      key: "B",
+      name: "Progress bar",
+      artifact: {
+        type: "page",
+        screenshot: "spec-list-bar.png",
+        liveHtml:
+          '<div class="sp"><h3>Specs</h3>' +
+          '<div class="row"><div><strong>why-command</strong><div class="meta">4 / 4 stories</div></div><div class="bar"><i style="width:100%"></i></div></div>' +
+          '<div class="row"><div><strong>design-divergence</strong><div class="meta">2 / 6 stories &middot; blocked: Story 3</div></div><div class="bar"><i style="width:33%"></i></div></div>' +
+          '<div class="row"><div><strong>code-level-rigor</strong><div class="meta">0 / 5 stories</div></div><div class="bar"><i style="width:0%"></i></div></div>' +
+          '<div class="row"><div><strong>lane-merge-guard</strong><div class="meta">1 / 3 stories</div></div><div class="bar"><i style="width:33%"></i></div></div>' +
+          '</div>'
+      },
+      commitments: [
+        "One row per spec",
+        "Progress as a done / total count",
+        "Progress as a visual bar",
+        "Names the blocking story",
+        "Uses only data in story frontmatter"
+      ]
+    },
+    {
+      key: "C",
+      name: "Grouped by state",
+      artifact: {
+        type: "code",
+        snippet:
+`def render_spec_list(specs):
+    groups = {"blocked": [], "in progress": [], "done": []}
+    for s in specs:
+        groups[state_of(s)].append(s)
+    for name in ("blocked", "in progress", "done"):
+        if not groups[name]:
+            continue
+        print(name.upper())
+        for s in groups[name]:
+            done = sum(1 for st in s.stories if st.status == "done")
+            line = f"  {s.slug:<24} {done}/{len(s.stories)}"
+            if name == "blocked":
+                line += f"  blocked by {s.blocker}"
+            print(line)
+
+def state_of(spec):
+    if spec.blocker:
+        return "blocked"
+    if all(st.status == "done" for st in spec.stories):
+        return "done"
+    return "in progress"`
+      },
+      commitments: [
+        "Specs grouped by state",
+        "Progress as a done / total count",
+        "Names the blocking story",
+        "Fits an 80-column terminal render",
+        "Needs a new blocker field"
+      ]
+    }
+  ],
+  verdict: {
+    winner: "B",
+    losses: [
+      { key: "A", oneLine: "A count alone hid that design-divergence was stuck on one story." },
+      { key: "C", oneLine: "Grouping needed a new blocker field in every story file; out of scope." }
+    ]
+  }
+};
+
+function axes(e) {
+  const seen = new Set();
+  const out = [];
+  for (const o of e.options) {
+    for (const c of o.commitments) {
+      if (!seen.has(c)) { seen.add(c); out.push(c); }
+    }
+  }
+  return out;
+}
+
+function el(tag, attrs, children) {
+  const n = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    if (k === "class") n.className = attrs[k];
+    else if (k === "text") n.textContent = attrs[k];
+    else if (k === "html") n.innerHTML = attrs[k];
+    else n.setAttribute(k, attrs[k]);
+  }
+  (children || []).forEach(c => n.appendChild(c));
+  return n;
+}
+
+function render(e) {
+  const winner = e.options.find(o => o.key === e.verdict.winner);
+  const colClass = o => o.key === e.verdict.winner ? "cell col-winner" : "cell";
+
+  // SummaryRow
+  const summary = document.getElementById("summary");
+  summary.appendChild(el("div", { class: "text" }, [
+    el("div", { class: "id", text: e.id }),
+    el("div", { text: e.summary })
+  ]));
+  summary.appendChild(el("div", { class: "winner", html: 'Winner: <span>' + winner.key + '</span> ' + winner.name }));
+
+  // HeaderRow
+  const header = document.getElementById("header-row");
+  header.appendChild(el("th", { class: "axis-head", text: "Committed to" }));
+  for (const o of e.options) {
+    const btn = el("button", { class: "opt-head", type: "button", "aria-label": "Open draft " + o.key + " " + o.name });
+    btn.appendChild(el("div", { class: "opt-title" }, [
+      el("span", { class: "opt-key", text: o.key }),
+      el("span", { class: "opt-name", text: o.name })
+    ]));
+    const thumb = el("div", { class: "thumb" });
+    if (o.artifact.type === "page") {
+      thumb.appendChild(el("div", { class: "scaled", html: o.artifact.liveHtml }));
+    } else {
+      thumb.appendChild(el("pre", { text: o.artifact.snippet }));
+    }
+    btn.appendChild(thumb);
+    btn.addEventListener("click", () => openDrawer(o));
+    header.appendChild(el("th", { class: colClass(o) }, [btn]));
+  }
+
+  // AxisRows
+  const body = document.getElementById("body-rows");
+  for (const axis of axes(e)) {
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "axis", text: axis }));
+    for (const o of e.options) {
+      const td = el("td", { class: colClass(o) });
+      if (o.commitments.includes(axis)) {
+        td.appendChild(el("span", { class: "dot", "aria-label": "yes", role: "img" }));
+      }
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  }
+
+  // LossRow
+  const loss = el("tr", { class: "loss" });
+  loss.appendChild(el("td", { class: "axis", text: "Why it lost" }));
+  for (const o of e.options) {
+    const td = el("td", { class: colClass(o) });
+    if (o.key === e.verdict.winner) {
+      td.appendChild(el("span", { class: "chosen", text: "chosen" }));
+    } else {
+      const l = e.verdict.losses.find(x => x.key === o.key);
+      td.textContent = l ? l.oneLine : "";
+    }
+    loss.appendChild(td);
+  }
+  body.appendChild(loss);
+}
+
+// ArtifactDrawer
+const drawer = document.getElementById("drawer");
+const backdrop = document.getElementById("backdrop");
+let lastFocus = null;
+
+function openDrawer(o) {
+  lastFocus = document.activeElement;
+  document.getElementById("drawer-title").textContent = o.key + " — " + o.name;
+  const b = document.getElementById("drawer-body");
+  b.innerHTML = "";
+  if (o.artifact.type === "page") {
+    b.appendChild(el("div", { class: "live", html: o.artifact.liveHtml }));
+  } else {
+    b.appendChild(el("pre", { text: o.artifact.snippet }));
+  }
+  drawer.classList.add("open");
+  backdrop.classList.add("open");
+  document.getElementById("drawer-close").focus();
+}
+function closeDrawer() {
+  drawer.classList.remove("open");
+  backdrop.classList.remove("open");
+  if (lastFocus) lastFocus.focus();
+}
+document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+backdrop.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeDrawer(); });
+
+render(exploration);
+</script>
+</body>
+</html>

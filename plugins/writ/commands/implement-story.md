@@ -52,7 +52,7 @@ gates:
 
 ## Overview
 
-Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts (and opt-in Gate 3 panel reviewers) — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
+Default is two Task spawns (`coding-agent`, `evaluator-agent`) plus Stage 2b scripts — not the six-agent path. `--full-pipeline` is that hatch. The Pipeline table is the stage list.
 
 This is the **per-story execution engine**. For full spec execution with dependency resolution and parallel batching, use `/writ:implement-spec`.
 
@@ -72,9 +72,8 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/writ:implement-story story-3 --full-pipeline` | Six spawn sites: architecture-check, coding, review, testing, optional visual-qa, documentation |
 | `/writ:implement-story story-3 --quick` | `coding-agent` only (+ scripts); no evaluator |
 | `/writ:implement-story story-3 --review-only` | `evaluator-agent` only (+ scripts); no coding. FAIL ends the run; no recode; no silent `--full-pipeline` |
-| `/writ:implement-story story-3 --panel` | Convene the review panel at Gate 3 regardless of route (needs the config line) |
 
-`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive, and `--panel` conflicts with `--quick`: on a conflict, stop with a usage error before any gate; pick no winner.
+`--full-pipeline`, `--quick`, `--review-only` are mutually exclusive: on a conflict, stop with a usage error before any gate; pick no winner. `--panel` stops: `--panel was removed (ADR-032)`.
 
 ## Pipeline
 
@@ -226,6 +225,8 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ${C
 
 **Report:** files changed, tests written, deviations from plan, concerns.
 
+**Bug path:** record `git rev-parse HEAD` before the story's first Gate 1 spawn and reuse it on recodes. When the report's `### Repro` block names commits, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repro-order.py check --repo . --base <that SHA>` after integration and print its first line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
+
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; skip-with-warning marks the story `In Progress` with the note *"Gate 1 skipped after BLOCKED — review required."*
 
 ---
@@ -234,7 +235,7 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ${C
 
 **Runs inline — no sub-agent needed.**
 
-Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `prettier --check` · **Python:** `mypy`, `ruff`, `black --check` · **Rust:** `cargo check`, `cargo clippy`, `cargo fmt --check`.
+Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `prettier --check` · **Python:** `mypy`, `ruff`, `black --check` · **Rust:** `cargo check`, `cargo clippy`, `cargo fmt --check`. Save the lint and typecheck commands that ran, not the auto-fixes, to `<checks>` = `.writ/state/gate2-checks-<story-stem>.txt`, one per line.
 
 **On failure:** auto-fix (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); re-run; typecheck fail → coding agent; still failing → flag for review.
 
@@ -264,6 +265,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/boundary-map.py crossings --map .writ/stat
 
 An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` with reason `unverifiable: <reason>`.
 
+**Blast radius.** When `gate3_route` names `review-agent`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py switch --name safety-fact`. On `on`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/change-surface.py blast-radius --changed <files> --repo . > .writ/state/blast-radius-<story-stem>.json` and pass the file to Gate 3 as `blast_radius`. Otherwise `blast_radius` is `(none)`.
+
 ---
 
 #### Gate 3: Review Agent
@@ -272,16 +275,20 @@ An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` wi
 > **Skip in:** `--quick` mode
 > **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
 
-Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's own run of the story's tests (command, exit code, output tail), not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's run (`command:`, `exit code: N`, output tail) of the story's tests and each path in `<manifest>` = `.writ/state/evidence-<story-stem>.json`, not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+
+**Reviewer filters.** Once per story, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py switch --name reviewer-filters` and pass line 1 as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent` and any re-review. The story report prints `reviewer-filters: <on|off>`.
+
+**Evidence gate.** Likewise pass line 1 of `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py switch --name evidence-gate` as `evidence_gate` to every Gate 3 spawn.
 
 **Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reasons` as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
-**Review panel (opt-in).** Only with a `- **Review Panel:**` line in `.writ/config.md`: run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-panel.py status --repo . --origin "<origin>" --platform <origin platform>`; when it prints `pass` and Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, spawn each listed reviewer beside the Gate 3 agent in the same message: same prompt and inputs, `readonly`, `model: <slug>`, plus one line not to open `.env*`, `*.pem`, `*.key`, `*secret*`, `*credential*` files. Drop any reviewer the platform rejects or that returns nothing, with one `review-panel: dropped` line. After `review-override.py`, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-panel.py tally --origin "<origin>" --primary <out> --reviewer <slug>=<out> …`. `fail` (`reason: block`) is a Gate 3 FAIL (one loop increment even if the agent also failed; on PAUSE, Gate 3.5 lists the block lines and accept still recodes; under `--review-only` it ends the run). `advisory`, `pass`, `unverifiable`, `skipped`, `off`: print the lines and continue. The panel can only add blocks; it never changes the Gate 3 agent's verdict and never marks a story `⚠️ DEGRADED`.
+A `Review Panel` config line prints only `review-panel: removed (ADR-032)` once per story.
 
 **`--full-pipeline`:**
 > **Agent:** `${CLAUDE_PLUGIN_ROOT}/agents/review-agent.md`
 
-Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`.
+Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_content`, `contract_content`, optional `knowledge_context`, `change_surface` (Gate 2.5), **`boundary_map`**, optional `boundary_overlap_summary`, `recorded_test_results`, `blast_radius`, `safety_fact` (`on` unless `blast_radius` is `(none)`).
 
 **Results:** **PASS** → continue (Small/Medium drift ok) · **FAIL** → Gate 1 recode · **PAUSE** → Large drift; Gate 3.5 § A owns options. Two-fail: Pipeline control flow.
 
@@ -290,15 +297,43 @@ Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_
 **Verify the claim, don't trust it.** After the Gate 3 agent returns, run:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py check --spec <spec-folder> --repo . --story <story-file> [--new-files <story's new files>] [--tests <story's test files>]
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py check --spec <spec-folder> --story <story-file> [--new-files <story's new files>] [--tests <story's test files>]
 ```
 
-Show both the agent's claim and the script's measurement in the story report. The override is **FAIL-only**: a script `pass` or `unverifiable` does not force PASS and does not wash an evaluator FAIL. Architecture, security, and taste stay with `evaluator-agent` on default and `review-agent` on `--full-pipeline`.
+Show both the agent's claim and the script's measurement in the story report.
 
 - **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the review-loop recode path.
-- **script `pass` or any `unverifiable` verdict** → the agent's FAIL or PAUSE stands. The pipeline continues on an agent PASS; the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
+- **script `pass` or any `unverifiable` verdict** → no override; print the reason; never `⚠️ DEGRADED`.
 
-**Jev shadow (opt-in).** If `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py status` prints `pass`, save the recorded test output (the story's targeted run, `recorded_test_results`, not the full suite), the story diff, and the Gate 3 agent's output under `.writ/state/` and run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests-output> --diff <diff> --review-output <review-output>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
+Save the review to `<review>` = `.writ/state/gate3-review-<story-stem>.md` (re-save on re-spawn) and `recorded_test_results` to `<tests>` = `.writ/state/gate3-tests-<story-stem>.txt`.
+
+**Safety fact (`safety_fact` on).** Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py safety-fact --review-output <review> --blast-radius <blast_radius> --tests-output <tests>`. First match wins:
+
+- `safety_fact_missing` or `safety_fact_below_floor` → re-spawn `review-agent` once, appending the `rung:`/`reason:` lines; re-verify (same Gate 3 attempt, no `review_cycle` increment). Still missing → BLOCKED escalation (`review-agent`, restart Gate 3). Still below floor → Gate 3 FAIL; the coder gets the `fact:`/`rung:` lines to add a test that exercises the fact.
+- `pass`, `unverifiable`, or exit not 0/1/2 → continue, print the reason, never `⚠️ DEGRADED`.
+
+A fail is one review-loop increment. Report `safety-fact: <measured> (claimed <claimed>) — <fact>`, else `safety-fact: off` or `safety-fact: not on route`.
+
+**Evidence.** On an agent FAIL (once `<manifest>` exists: any verdict, with `--prior <manifest>`), after `check`, `safety-fact`, and any re-spawn, run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/review-override.py evidence --review-output <review> --changed <files> --tests-output <tests> --checks <checks> --manifest-out <manifest> --timeout 60`. First match wins, on any verdict:
+
+| # | When | Gate 3 |
+|---|---|---|
+| 1 | `repro_mutated_tree` | BLOCKED escalation (Gate 3 agent, restart Gate 3) |
+| 2 | `check` `fail` | FAIL → recode |
+| 3 | `safety_fact_contradicts_verdict` | FAIL → recode |
+| 4 | `safety_fact_missing` or `safety_fact_below_floor` | its routing above |
+| 4a | `repro_removed`, `repro_modified`, `repro_still_failing` | FAIL → recode |
+| 5 | agent PASS or PAUSE | that verdict |
+| 6 | `evidence_gate` `off` | the FAIL stands |
+| 7 | line 1 `fail` | FAIL → recode with the `confirmed` findings |
+| 8 | line 1 `unverifiable`, exit 2, or no helper | the FAIL stands; never `⚠️ DEGRADED` |
+| 9 | line 1 `pass` | PASS |
+
+Recode briefs add `## Evidence repros`: each `confirmed` `test` repro's (row 4a: from `<manifest>`) finding, path, fenced content, and "Create it exactly; do not edit it. Make it pass."
+
+Report `evidence-gate: <state>`: `off` when `evidence_gate` is off, on any verdict; else `not run (PASS|PAUSE)`, `blocked (<reason>)`, `fail (<reason>)` (re-review), `unverifiable (<reason>)`, or `<c> confirmed, <a> advisory, <u> unverifiable`; then `evidence-gate advisory: F<n> <Issue> (<reason>)` per advisory finding.
+
+**Jev shadow (opt-in).** If `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py status` prints `pass`, save the story diff to `.writ/state/` and run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests> --diff <diff> --review-output <review>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
 
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
@@ -308,7 +343,7 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered; with a Gate 3 panel `block`, list its lines, and accept still recodes). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
 
 `Read ${CLAUDE_PLUGIN_ROOT}/skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
@@ -415,7 +450,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:`, `review-panel:`, and `arch-lint:` lines, and next action (`/writ:ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` and `arch-lint:` lines, and next action (`/writ:ship`)
 
 **Item 3 — the snapshot.** `Read ${CLAUDE_PLUGIN_ROOT}/skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 

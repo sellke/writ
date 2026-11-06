@@ -8,6 +8,7 @@
 > **Deciders:** @AdamSellke
 > **Part of:** `/plan-product --reconcile` 2026-10-01 (Phase 12: Behavioral Verification)
 > **Origin:** pstack comparison (2026-10-01) against [`2026-09-05-goldilocks-assessment.md`](../product/2026-09-05-goldilocks-assessment.md) §1 and §2.3
+> **Amended by:** [ADR-032](adr-032-evidence-gated-review.md) (2026-11-04): removes the review panel, Decision 3 and the panel cases in Decision 4. A Gate 3 finding blocks only on executed evidence. Decisions 1 and 2 stand.
 
 ## Decision
 

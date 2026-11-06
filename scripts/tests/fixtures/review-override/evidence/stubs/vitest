@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+"""Stub `vitest` for the review-override evidence tests. It prints the
+vitest output for STUB_MODE and exits with vitest's code. See _stub.py."""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from _stub import run  # noqa: E402
+
+MODES = {
+    "fail": (1, " ❯ src/limits.test.ts (1 test | 1 failed) 3ms\n"
+                "   × parse_limit > rejects a negative limit 2ms\n\n"
+                " Test Files  1 failed (1)\n      Tests  1 failed (1)\n"),
+    "pass": (0, " ✓ src/limits.test.ts (1 test) 1ms\n\n"
+                " Test Files  1 passed (1)\n      Tests  1 passed (1)\n"),
+    "broken": (1, "Error: Cannot find module './limits'\n\n"
+                  " Test Files  1 failed (1)\n      Tests  no tests\n"),
+    "error_first": (1, "Error: Cannot find module './limits'\n\n"
+                       " Test Files  1 failed (1)\n      Tests  1 failed (1)\n"),
+    "no_tests": (1, "No test files found, exiting with code 1\n"),
+}
+
+if __name__ == "__main__":
+    sys.exit(run(MODES))

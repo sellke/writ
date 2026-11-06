@@ -66,7 +66,7 @@ Apply `## Routing Rules` to the restatement. The table is the only classifier. T
 - **Tie-break.** When the cues for `/prototype --no-diverge` and `/create-spec` both fire, `/prototype`'s escalation signals decide: over 5 files, a schema change, a new dependency, core architecture, or low existing coverage → `/create-spec`. None of them → `/prototype --no-diverge`. A signal counts here only when the request states it or the restatement can name it; an unstated file count is not a signal, because `/prototype` counts files when it runs and escalates itself.
 - **Empirical fork.** Ask: could a throwaway run answer this faster than asking the user? If yes, the route is `/prototype` with the fork named as the thing to try, and the confirmation says so. Never answer a fork with a question.
 - **Roadmap work.** Match the named phase or feature in `.writ/product/roadmap.md` and route `/implement-phase <N>`; the confirmation shows the matched phase. Roadmap absent: the route is not offered (see Required Artifacts).
-- **Why or how.** Route `/research`. The confirmation notes that `/why` takes this route when it ships.
+- **Why or how.** Route `/why`. A question about something outside the project, such as a library, a standard, or a vendor, routes `/research`.
 - **Flags travel with the route.** `--no-diverge` from the second row; `--from-issue <path>` when the request is an issue file and the route is `/create-spec`; `@file` when the request is a file and the route is `/prototype`.
 
 Hold one route and a one-line reason for it. Run nothing yet.
@@ -114,7 +114,7 @@ Routed command file missing (a partial install): name the missing file and `/upd
 | A bug, or a change with one obvious shape (see tie-break) | `/prototype --no-diverge` |
 | A capability users will rely on, or any `/prototype` escalation signal: over 5 files, schema change, new dependency, core architecture, low existing coverage | `/create-spec` |
 | Names a phase or feature in `.writ/product/roadmap.md` | `/implement-phase <N>` |
-| Asks why something is the way it is, or how something works | `/research` (`/why` takes this route when it ships) |
+| Asks why something in this project is the way it is, or how it works | `/why` (a question about something outside the project: `/research`) |
 | A fork that a throwaway run could answer faster than a question | `/prototype`, with the fork named as the thing to try |
 
 ## Completion

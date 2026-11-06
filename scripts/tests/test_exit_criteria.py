@@ -111,6 +111,7 @@ class ClassificationParserTests(unittest.TestCase):
             "implement-spec.c1": "needs-run-record",
             "implement-spec.c2": "evaluable-now",
             "implement-spec.c3": "needs-run-record",
+            "implement-spec.c4": "evaluable-now",
             "implement-story.c1": "excluded",
             "implement-story.c2": "excluded",
             "implement-story.c3": "excluded",
@@ -122,7 +123,7 @@ class ClassificationParserTests(unittest.TestCase):
         counts: dict[str, int] = {}
         for bucket in registry.values():
             counts[bucket] = counts.get(bucket, 0) + 1
-        self.assertEqual(counts["evaluable-now"], 3)
+        self.assertEqual(counts["evaluable-now"], 4)
         self.assertEqual(counts["needs-run-record"], 3)
         self.assertEqual(counts["structurally-unobservable"], 1)
         self.assertEqual(counts["excluded"], 3)
@@ -831,7 +832,12 @@ class SpecCheckTests(unittest.TestCase):
         c3 = self._c3_for({"typecheck": "fail", "typecheckReason": "mypy errors"})
         self.assertEqual(c3["verdict"], "unmet")
 
-    def test_all_three_criteria_met_gives_overall_met_and_exit_0(self) -> None:
+    def test_all_four_criteria_met_gives_overall_met_and_exit_0(self) -> None:
+        # implement-spec.c4 reads the completed story's file and git history.
+        git(self.repo, "init", "-q", "-b", "main")
+        write(self.spec_dir / "user-stories" / "story-1-x.md",
+              "# Story 1: X\n\n> **Status:** Completed\n" + REVIEW_OUTCOME)
+        commit_all(self.repo, "feat: story 1 (Story 1)")
         write_spec_state(
             self.state_path,
             preflight={"storyDepsValidated": True, "at": "2026-01-01T00:00:00Z"},
@@ -1168,6 +1174,219 @@ class CheckUatTests(unittest.TestCase):
         code, payload = self._run()
         self.assertEqual(code, 2)
         self.assertEqual(payload["verdict"], "impossible")
+
+
+# --- Phase 15 retro F6: implement-spec.c4, one Gate 3 verdict per story -------
+
+REVIEW_OUTCOME = (
+    "\n## What Was Built\n\n### Review Outcome\n\n**Result:** PASS\n\n"
+    "- **Iteration count:** 1 iteration(s)\n- gate3-route: review-agent\n"
+)
+SECOND_VERDICT = "\n### Review Outcome\n\n**Result:** PASS\n\n- **Iteration count:** 2 iteration(s)\n"
+
+
+class SpecC4Tests(unittest.TestCase):
+    """implement-spec.c4: each completed story carries its own Gate 3 Review
+    Outcome, and no commit changes that story's code after its verdict
+    without a second verdict."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        git(self.repo, "init", "-q", "-b", "main")
+        self.spec_dir = self.repo / ".writ" / "specs" / "2026-10-30-x"
+        for num, slug in ((1, "a"), (2, "b")):
+            write(self._story(num), "# Story %d: %s\n\n> **Status:** Not Started\n" % (num, slug))
+        write(self.repo / "src" / "app.py", "app = 1\n")
+        commit_all(self.repo, "docs(specs): author the spec")
+        self.state_path = self.repo / "execution.json"
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _story(self, num: int) -> Path:
+        slug = {1: "a", 2: "b"}[num]
+        return self.spec_dir / "user-stories" / ("story-%d-%s.md" % (num, slug))
+
+    def _complete(self, num: int, outcome: str = REVIEW_OUTCOME,
+                  code_file: str = "") -> str:
+        """What /implement-story commits: code plus the story file and its
+        verdict, then the .writ/-only commit that records the SHA."""
+        write(self.repo / (code_file or "src/story%d.py" % num), "story = %d\n" % num)
+        story = self._story(num)
+        text = story.read_text(encoding="utf-8").replace("Not Started", "Completed")
+        write(story, text + outcome)
+        sha = commit_all(self.repo, "feat: story %d (Story %d)" % (num, num))
+        write(story, story.read_text(encoding="utf-8").replace(
+            "> **Status:** Completed\n", "> **Status:** Completed\n> **Commit:** %s\n" % sha))
+        commit_all(self.repo, "docs: record Story %d commit SHA" % num)
+        return sha
+
+    def _c4(self, stories: "dict[str, Any] | None" = None, repo: "Path | None" = None) -> dict:
+        if stories is None:
+            stories = {"story-1-a": {"status": "complete"}, "story-2-b": {"status": "complete"}}
+        write_spec_state(self.state_path, stories=stories)
+        _code, payload = run_cli(
+            "check", "--command", "implement-spec",
+            "--spec", str(self.spec_dir), "--state", str(self.state_path),
+            "--repo", str(repo or self.repo), "--classification", str(REAL_CLASSIFICATION_PATH),
+        )
+        return next(c for c in payload["criteria"] if c["id"] == "implement-spec.c4")
+
+    def test_each_story_with_its_own_verdict_is_met(self) -> None:
+        self._complete(1)
+        self._complete(2)
+        c4 = self._c4()
+        self.assertEqual(c4["verdict"], "met", c4)
+        self.assertIn("2/2", c4["evidence"])
+
+    def test_story_without_a_review_outcome_is_unmet(self) -> None:
+        self._complete(1, outcome="\n## What Was Built\n\n- Built it.\n")
+        self._complete(2)
+        c4 = self._c4()
+        self.assertEqual(c4["verdict"], "unmet", c4)
+        self.assertIn("story-1-a has no Gate 3 Review Outcome", c4["reason"])
+        self.assertNotIn("story-2-b", c4["reason"])
+
+    def test_review_outcome_without_a_result_line_is_unmet(self) -> None:
+        self._complete(1, outcome="\n### Review Outcome\n\n- **Iteration count:** 1\n")
+        c4 = self._c4({"story-1-a": {"status": "complete"}})
+        self.assertEqual(c4["verdict"], "unmet", c4)
+        self.assertIn("story-1-a has no Gate 3 Review Outcome", c4["reason"])
+
+    def test_shared_review_is_unmet(self) -> None:
+        shared = REVIEW_OUTCOME + "Stories 1 and 2 were reviewed in one review-agent pass.\n"
+        self._complete(1, outcome=shared)
+        self._complete(2, outcome=shared)
+        c4 = self._c4()
+        self.assertEqual(c4["verdict"], "unmet", c4)
+        self.assertIn("story-1-a's Review Outcome is shared with story 2", c4["reason"])
+        self.assertIn("story-2-b's Review Outcome is shared with story 1", c4["reason"])
+
+    def test_naming_other_stories_is_not_a_shared_review(self) -> None:
+        self._complete(1, outcome=REVIEW_OUTCOME + (
+            "- **Boundary Compliance:** Story 2's files untouched.\n"
+            "- Stories 2 and 3 own the review fixtures.\n"))
+        c4 = self._c4({"story-1-a": {"status": "complete"}})
+        self.assertEqual(c4["verdict"], "met", c4)
+
+    def test_mutation_code_commit_after_the_verdict_flips_met_to_unmet(self) -> None:
+        verdict = self._complete(1)
+        self.assertEqual(self._c4({"story-1-a": {"status": "complete"}})["verdict"], "met")
+        write(self.repo / "src" / "story1.py", "story = 'edited after PASS'\n")
+        story = self._story(1)
+        write(story, story.read_text(encoding="utf-8") + "\n- [x] One more task\n")
+        late = commit_all(self.repo, "fix: tweak story 1 (Story 1)")
+        c4 = self._c4({"story-1-a": {"status": "complete"}})
+        self.assertEqual(c4["verdict"], "unmet", c4)
+        self.assertIn("story-1-a has code commit %s after its verdict %s"
+                      % (late[:8], verdict[:8]), c4["reason"])
+
+    def test_second_verdict_after_the_code_commit_is_met(self) -> None:
+        self._complete(1)
+        write(self.repo / "src" / "story1.py", "story = 'edited after PASS'\n")
+        story = self._story(1)
+        write(story, story.read_text(encoding="utf-8") + "\n- [x] One more task\n")
+        commit_all(self.repo, "fix: tweak story 1 (Story 1)")
+        write(story, story.read_text(encoding="utf-8") + SECOND_VERDICT)
+        commit_all(self.repo, "docs: re-review story 1 (Story 1)")
+        c4 = self._c4({"story-1-a": {"status": "complete"}})
+        self.assertEqual(c4["verdict"], "met", c4)
+
+    def test_later_story_editing_shared_code_is_reviewed_by_its_own_verdict(self) -> None:
+        self._complete(1)
+        self._complete(2, code_file="src/story1.py")
+        c4 = self._c4()
+        self.assertEqual(c4["verdict"], "met", c4)
+
+    def test_later_storys_commit_touching_this_story_file_is_reviewed_by_its_verdict(self) -> None:
+        """Story 2's commit fixes a line in Story 1's file and code; Story 2's
+        own Gate 3 verdict, written in that commit, reviewed it."""
+        self._complete(1)
+        story1 = self._story(1)
+        write(story1, story1.read_text(encoding="utf-8") + "\n> Note: renamed by Story 2.\n")
+        self._complete(2, code_file="src/story1.py")
+        c4 = self._c4()
+        self.assertEqual(c4["verdict"], "met", c4)
+
+    def test_only_completed_stories_are_checked(self) -> None:
+        self._complete(1)
+        for status in ({"status": "pending"},
+                       {"status": "skipped", "blockedBy": ["story-1-a"]},
+                       {"status": "failed", "reason": "flaky"}):
+            with self.subTest(status=status):
+                c4 = self._c4({"story-1-a": {"status": "complete"}, "story-2-b": status})
+                self.assertEqual(c4["verdict"], "met", c4)
+                self.assertIn("1/1", c4["evidence"])
+
+    def test_story_file_is_found_by_number_when_the_state_key_is_short(self) -> None:
+        self._complete(1)
+        c4 = self._c4({"story-1": {"status": "completed"}})
+        self.assertEqual(c4["verdict"], "met", c4)
+
+    def test_missing_story_file_is_unmet(self) -> None:
+        c4 = self._c4({"story-9-z": {"status": "complete"}})
+        self.assertEqual(c4["verdict"], "unmet", c4)
+        self.assertIn("story-9-z story file not found", c4["reason"])
+
+    def test_not_a_git_repo_is_impossible_and_isolated(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec_dir = repo / "spec"
+            write(spec_dir / "user-stories" / "story-1-a.md",
+                  "# Story 1: a\n\n> **Status:** Completed\n" + REVIEW_OUTCOME)
+            state = repo / "execution.json"
+            write_spec_state(state, stories={"story-1-a": {"status": "complete"}})
+            code, payload = run_cli(
+                "check", "--command", "implement-spec", "--spec", str(spec_dir),
+                "--state", str(state), "--repo", str(repo),
+                "--classification", str(REAL_CLASSIFICATION_PATH),
+            )
+        by_id = {c["id"]: c for c in payload["criteria"]}
+        self.assertEqual(by_id["implement-spec.c4"]["verdict"], "impossible")
+        self.assertEqual(by_id["implement-spec.c2"]["verdict"], "met")
+        self.assertEqual(code, 2)
+
+    def test_criteria_array_lists_c4_after_c3(self) -> None:
+        self._complete(1)
+        write_spec_state(self.state_path, stories={"story-1-a": {"status": "complete"}})
+        _code, payload = run_cli(
+            "check", "--command", "implement-spec", "--spec", str(self.spec_dir),
+            "--state", str(self.state_path), "--repo", str(self.repo),
+            "--classification", str(REAL_CLASSIFICATION_PATH),
+        )
+        self.assertEqual([c["id"] for c in payload["criteria"]], [
+            "implement-spec.c1", "implement-spec.c2", "implement-spec.c3", "implement-spec.c4",
+        ])
+
+    def test_c4_criterion_text_is_byte_identical_to_the_command(self) -> None:
+        text = (REPO_ROOT / "commands" / "implement-spec.md").read_text(encoding="utf-8")
+        frontmatter = text.split("---\n", 2)[1]
+        line = '  - "%s"' % ec.CRITERION_TEXT["implement-spec.c4"]
+        self.assertIn(line, frontmatter.splitlines())
+
+    def test_retro_proof_why_command_shared_review(self) -> None:
+        """The Phase 15 retro's F6 proof: Stories 3 and 4 of the why-command
+        spec shared one review-agent pass."""
+        rel = "2026-10-25-why-command"
+        for root in (REPO_ROOT / ".writ" / "specs", REPO_ROOT / ".writ" / "specs" / "archive"):
+            if (root / rel / "user-stories").is_dir():
+                spec_dir = root / rel
+                break
+        else:
+            self.skipTest("why-command spec not in this checkout")
+        self.spec_dir = spec_dir
+        stories = {p.stem: {"status": "complete"}
+                   for p in sorted((spec_dir / "user-stories").glob("story-*.md"))}
+        c4 = self._c4(stories, repo=REPO_ROOT)
+        self.assertEqual(c4["verdict"], "unmet", c4)
+        self.assertIn("story-3-front-door-route's Review Outcome is shared with story 4",
+                      c4["reason"])
+        self.assertIn("story-4-create-spec-reads-handoff's Review Outcome is shared with story 3",
+                      c4["reason"])
+        # Stories 1 and 2 are not asserted: the commits-after-verdict half reads
+        # live history, so a later cross-cutting commit that touches a story file
+        # (721fea1 added a Verified by: marker to Story 1) would make this rot.
 
 if __name__ == "__main__":
     unittest.main()

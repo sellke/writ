@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Progress</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1f2328;
+    --muted: #656d76;
+    --line: #d8dee4;
+    --soft: #f6f8fa;
+    --accent: #2f7d4f;
+    --accent-soft: #e3f1e8;
+    --gray-chip: #eaeef2;
+    --blue-chip: #dde7f3;
+    --blue-text: #2b4a6f;
+    --red-chip: #f6e0e0;
+    --red-text: #8a2b2b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 20px; margin: 0 0 6px; font-weight: 600; }
+  .summary { color: var(--muted); margin: 0 0 20px; font-variant-numeric: tabular-nums; }
+  .summary b { color: var(--text); font-weight: 600; }
+  .grid-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  thead th { background: var(--soft); font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  th.ac, td.ac { text-align: center; width: 44px; padding: 8px 4px; }
+  th.passing, td.passing { text-align: right; width: 72px; font-variant-numeric: tabular-nums; }
+  td.story .id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); margin-right: 6px; }
+  .chip {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 12px; font-weight: 500; white-space: nowrap;
+  }
+  .chip.not-started { background: var(--gray-chip); color: var(--muted); }
+  .chip.in-progress { background: var(--blue-chip); color: var(--blue-text); }
+  .chip.completed { background: var(--accent-soft); color: var(--accent); }
+  .chip.blocked { background: var(--red-chip); color: var(--red-text); }
+  .cell {
+    position: relative; display: inline-block; width: 16px; height: 16px;
+    border-radius: 3px; vertical-align: middle; cursor: default; outline: none;
+  }
+  .cell.pass { background: var(--accent); border: 2px solid var(--accent); }
+  .cell.fail { background: transparent; border: 2px solid #8c959f; }
+  .cell:focus-visible { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+  .tip {
+    display: none; position: absolute; bottom: calc(100% + 8px); left: 50%;
+    transform: translateX(-50%); width: 240px; padding: 8px 10px;
+    background: var(--text); color: #fff; border-radius: 4px;
+    font-size: 12px; line-height: 1.4; text-align: left; z-index: 10;
+    pointer-events: none;
+  }
+  .tip .tip-head { display: block; color: #c9d1d9; margin-bottom: 2px; }
+  .cell:hover .tip, .cell:focus .tip { display: block; }
+  tbody tr:first-child .tip { bottom: auto; top: calc(100% + 8px); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 16px; color: var(--muted); font-size: 12px; align-items: center; }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .cell { width: 12px; height: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="page-title"></h1>
+  <p class="summary" id="summary-line"></p>
+  <div class="grid-wrap">
+    <table id="grid">
+      <thead><tr id="grid-head"></tr></thead>
+      <tbody id="grid-body"></tbody>
+    </table>
+  </div>
+  <div class="legend" id="legend">
+    <span class="item"><span class="cell pass" aria-hidden="true"></span> passing test</span>
+    <span class="item"><span class="cell fail" aria-hidden="true"></span> no passing test</span>
+    <span class="item"><span class="chip not-started">Not Started</span></span>
+    <span class="item"><span class="chip in-progress">In Progress</span></span>
+    <span class="item"><span class="chip completed">Completed</span></span>
+    <span class="item"><span class="chip blocked">Blocked</span></span>
+  </div>
+</main>
+<script>
+  var MAX_AC = 8;
+
+  var spec = {
+    title: "2026-10-25 why-command",
+    stories: [
+      { id: "S1", title: "Ledger lookup for decisions", status: "Completed", criteria: [
+        { index: 1, text: "Finds an ADR whose title matches the question's subject", testPassing: true },
+        { index: 2, text: "Falls back to .writ/knowledge entries when no ADR matches", testPassing: true },
+        { index: 3, text: "Cites the file path of every ledger source used", testPassing: true },
+        { index: 4, text: "Returns 'no ledger record' instead of guessing", testPassing: true }
+      ]},
+      { id: "S2", title: "Git history fallback", status: "Completed", criteria: [
+        { index: 1, text: "Runs git log -S on the named symbol when the ledger is silent", testPassing: true },
+        { index: 2, text: "Quotes the commit SHA and subject for each cited change", testPassing: true },
+        { index: 3, text: "Limits history search to 200 commits by default", testPassing: true },
+        { index: 4, text: "Marks claims from commit messages as Inferred, not Recorded", testPassing: true },
+        { index: 5, text: "Handles a shallow clone without failing", testPassing: true }
+      ]},
+      { id: "S3", title: "Route why-or-how questions from /writ", status: "In Progress", criteria: [
+        { index: 1, text: "/writ routes 'why is X ...' questions to /why", testPassing: true },
+        { index: 2, text: "/writ keeps 'how do I build X' requests on /create-spec", testPassing: true },
+        { index: 3, text: "Ambiguous questions get one confirmation prompt", testPassing: false },
+        { index: 4, text: "Routing table lists /why with its trigger phrases", testPassing: true },
+        { index: 5, text: "No route change for existing commands", testPassing: false },
+        { index: 6, text: "Router eval covers ten sample questions", testPassing: false }
+      ]},
+      { id: "S4", title: "create-spec reads a /why handoff", status: "In Progress", criteria: [
+        { index: 1, text: "Step 1.2 detects a handoff file in .writ/scratch", testPassing: true },
+        { index: 2, text: "Preserve / Change / Avoid / Risk items seed the discovery questions", testPassing: false },
+        { index: 3, text: "Missing handoff file does not change Step 1.2 output", testPassing: false }
+      ]},
+      { id: "S5", title: "Confidence tier on every claim", status: "Blocked", criteria: [
+        { index: 1, text: "Each claim is tagged Recorded, Inferred, or Unknown", testPassing: false },
+        { index: 2, text: "Tier legend appears once at the end of the answer", testPassing: false },
+        { index: 3, text: "MCP-sourced claims never exceed Inferred", testPassing: false },
+        { index: 4, text: "Eval check fails an answer with an untagged claim", testPassing: false },
+        { index: 5, text: "Tier wording matches system-instructions.md", testPassing: false },
+        { index: 6, text: "Unknown claims name what evidence would settle them", testPassing: false },
+        { index: 7, text: "Docs page lists the three tiers with one example each", testPassing: false }
+      ]},
+      { id: "S6", title: "MCP source adapter", status: "Not Started", criteria: [
+        { index: 1, text: "Queries connected MCP servers only after ledger and git", testPassing: false },
+        { index: 2, text: "Skips MCP step cleanly when no server is connected", testPassing: false },
+        { index: 3, text: "Treats MCP results as data, never instructions", testPassing: false },
+        { index: 4, text: "Records which server supplied each claim", testPassing: false }
+      ]}
+    ]
+  };
+
+  function cellState(story, column) {
+    var c = story.criteria[column - 1];
+    if (!c) return "none";
+    return c.testPassing ? "pass" : "fail";
+  }
+
+  function totals(spec) {
+    var t = { storiesDone: 0, storyCount: spec.stories.length, passing: 0, criteriaCount: 0, blocked: 0 };
+    spec.stories.forEach(function (s) {
+      if (s.status === "Completed") t.storiesDone++;
+      if (s.status === "Blocked") t.blocked++;
+      t.criteriaCount += s.criteria.length;
+      s.criteria.forEach(function (c) { if (c.testPassing) t.passing++; });
+    });
+    return t;
+  }
+
+  function statusClass(status) {
+    return status.toLowerCase().replace(/\s+/g, "-");
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function StatusChip(status) {
+    return el("span", "chip " + statusClass(status), status);
+  }
+
+  function CriterionTooltip(criterion, state) {
+    var tip = el("span", "tip");
+    tip.setAttribute("role", "tooltip");
+    tip.appendChild(el("span", "tip-head", "AC" + criterion.index + " · " + (state === "pass" ? "passing test" : "no passing test")));
+    tip.appendChild(document.createTextNode(criterion.text));
+    return tip;
+  }
+
+  function render(spec) {
+    document.getElementById("page-title").textContent = spec.title;
+    document.title = spec.title;
+
+    var t = totals(spec);
+    var sum = document.getElementById("summary-line");
+    sum.innerHTML = "";
+    [["Stories done ", t.storiesDone + "/" + t.storyCount],
+     [" · Criteria passing ", t.passing + "/" + t.criteriaCount],
+     [" · Blocked ", String(t.blocked)]].forEach(function (p) {
+      sum.appendChild(document.createTextNode(p[0]));
+      sum.appendChild(el("b", null, p[1]));
+    });
+
+    var head = document.getElementById("grid-head");
+    head.appendChild(el("th", null, "Story"));
+    head.appendChild(el("th", null, "Status"));
+    for (var i = 1; i <= MAX_AC; i++) head.appendChild(el("th", "ac", "AC" + i));
+    head.appendChild(el("th", "passing", "Passing"));
+
+    var body = document.getElementById("grid-body");
+    spec.stories.forEach(function (story) {
+      var tr = el("tr");
+      var tdStory = el("td", "story");
+      tdStory.appendChild(el("span", "id", story.id));
+      tdStory.appendChild(document.createTextNode(story.title));
+      tr.appendChild(tdStory);
+
+      var tdStatus = el("td");
+      tdStatus.appendChild(StatusChip(story.status));
+      tr.appendChild(tdStatus);
+
+      var passCount = 0;
+      for (var col = 1; col <= MAX_AC; col++) {
+        var td = el("td", "ac");
+        var state = cellState(story, col);
+        if (state !== "none") {
+          var c = story.criteria[col - 1];
+          if (state === "pass") passCount++;
+          var sq = el("span", "cell " + state);
+          sq.tabIndex = 0;
+          sq.setAttribute("aria-label", story.id + " AC" + c.index + ": " + (state === "pass" ? "passing test" : "no passing test") + ". " + c.text);
+          sq.appendChild(CriterionTooltip(c, state));
+          td.appendChild(sq);
+        }
+        tr.appendChild(td);
+      }
+
+      tr.appendChild(el("td", "passing", passCount + "/" + story.criteria.length));
+      body.appendChild(tr);
+    });
+  }
+
+  render(spec);
+</script>
+</body>
+</html>

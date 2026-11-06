@@ -59,9 +59,9 @@
 - It states the line is also the consent to send story content to other vendors, and that it is never detected or offered for saving.
 - It points to `python3 scripts/review-panel.py status --repo . --origin "<session model>"`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: Supported Keys row (line 63) and `## Review Panel` show the example line; first match wins, `none`/no line = off, order kept, `duplicate_slug`, `over_cap`, `same_vendor`, `unknown_vendor`; consent, never detected or offered; points to the `status` command.
 
 **Implementation Reference:** Story 1 — `.writ/docs/config-format.md` (Supported Keys row, `## Review Panel`)
 
@@ -89,9 +89,9 @@ exit 0
 ```
 - The verdict is the first line and the `review-panel:` summary is the last.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: line 1 `pass`, last `review-panel: pass — 2 reviewers (gpt-5.6-sol-medium openai, cursor-grok-4.6-medium-fast xai)`; exit 0.
 
 **Implementation Reference:** Story 1 — `scripts/review-panel.py` (`status`, `resolve`)
 
@@ -114,9 +114,9 @@ exit 0
   `{"dropped": [], "platform": null, "reasons": [], "reviewers": [{"slug": "gpt-5.6-sol-medium", "vendor": "openai"}, {"slug": "cursor-grok-4.6-medium-fast", "vendor": "xai"}], "session_vendor": "anthropic", "summary": "review-panel: pass \u2014 2 reviewers (...)", "verdict": "pass"}`
 - `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: one JSON line, `"verdict": "pass"`, reviewers openai/xai, `session_vendor` anthropic, `platform` null, `dropped` []; exit 0.
 
 ---
 
@@ -148,9 +148,9 @@ exit 0
 - `cursor-grok-…` resolves to xai (longest prefix wins). A Claude session drops the Claude slug. The fourth valid slug is `over_cap`.
 - The full per-row table (`composer-` → cursor, `o1`…`o9` → openai, the `o`-plus-letter boundary) is covered by the unit tests: `uv run --python 3.9 pytest scripts/tests/test_review_panel.py -q` → `139 passed`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly (3 reviewers; drops `same_vendor`, `duplicate_slug`, `unknown_vendor`, `over_cap`); exit 0. Unit tests (`uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_review_panel.py -q`): `143 passed`, not 139; tests were added later (92be99a, d89438c).
 
 ---
 
@@ -183,9 +183,9 @@ exit 0
   exit 0
   ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `unverifiable` / `reason: panel_disabled` / `review-panel: off — panel_disabled`, exit 0; step 2 `reason: malformed_config` / `review-panel: skipped — malformed_config`, exit 0.
 
 ---
 
@@ -211,9 +211,9 @@ exit 0
   ```
 - `openclaw` prints `pass`, then `reason: unverified_platform`, the same two `reviewer:` lines as Scenario 2, the `review-panel: pass — 2 reviewers (…)` summary, and `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: claude-code and codex each print `reason: platform_cannot_spawn_other_vendors` / `review-panel: skipped — platform cannot spawn other vendors`, exit 0; openclaw prints `pass`, `reason: unverified_platform`, both reviewer lines, the pass summary, exit 0.
 
 ---
 
@@ -234,9 +234,9 @@ exit 0
 - Step 1: argparse prints `review-panel.py status: error: the following arguments are required: --origin`, then `exit 2`.
 - Step 2: `review-panel: usage — repo is not a readable directory: <path>/nope`, then `exit 2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 argparse usage then `review-panel.py status: error: the following arguments are required: --origin`, exit 2; step 2 `review-panel: usage — repo is not a readable directory: <tmp>/nope`, exit 2.
 
 ---
 
@@ -259,9 +259,9 @@ exit 0
 - Step 2 shows one line in each adapter: `cursor.md` "available" (≤4 concurrent Tasks, `slug_rejected`), `claude-code.md` "unavailable", `codex.md` "unavailable by default", `openclaw.md` "*(unverified)*".
 - The roadmap's Feature 3 points to this spec, and no success criterion text changed.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: amendment covers additive authority, `gate3_route`/`--panel` stakes signal, matching rule, exclusions as instructions, consent line, removal trial. `rg` finds one line per adapter: cursor available (4 concurrent Tasks, `slug_rejected`), claude-code unavailable, codex unavailable by default, openclaw *(unverified)*. Roadmap Feature 3 links the spec; Story 1 commit cadb572 touched only the feature line (the criterion's later "✅ met 2026-10-02" suffix is from the Story 5 trial).
 
 **Implementation Reference:** Story 1 — ADR-028 Decision 3 amendment; `adapters/{cursor,claude-code,codex,openclaw}.md`; `.writ/product/roadmap.md`
 
@@ -287,9 +287,9 @@ review-panel: skipped — unknown_session_vendor
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `reason: unknown_session_vendor`, `review-panel: skipped — unknown_session_vendor`; exit 0.
 
 ---
 
@@ -315,9 +315,9 @@ review-panel: skipped — no_other_vendor (dropped: claude-sonnet-5-5-high same_
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `review-panel: skipped — no_other_vendor (dropped: claude-sonnet-5-5-high same_vendor, foo-1 unknown_vendor)`; exit 0.
 
 ---
 
@@ -341,9 +341,9 @@ review-panel: off — no_config_line
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: precondition is stale: e035f2e (2026-10-02, intended) opted this repo in, so `--repo .` now prints `pass` with 3 reviewers, exit 0. Behavior checked on a scratch copy of `.writ/config.md` with the line removed: `unverifiable` / `reason: no_config_line` / `review-panel: off — no_config_line`, exit 0.
 
 ---
 
@@ -368,9 +368,9 @@ exit 0
 - Step 2: the instructions say each checklist line ends with its `[AC-N.M]` tag, and the examples end with a tag such as `` `[AC-1.1]` ``.
 - Step 3 prints `gen-codex-agent-tomls: pass (0 stale, 0 missing, 0 orphan, 0 unmapped)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: all four files carry `- **Category:** [criterion/security/architecture/taste]`; review-agent.md:209 requires the trailing `[AC-N.M]` tag and examples end `` `[AC-1.1]` ``. TOML check prints `pass` then `gen-codex-agent-tomls: pass (0 stale, 0 missing, 0 orphan, 0 unmapped)`, exit 0 (the leading verdict line came with d0b68b0, agent CLI contract).
 
 **Implementation Reference:** Story 2 — `agents/review-agent.md`, `agents/evaluator-agent.md`, `claude-code/agents/writ-{reviewer,evaluator}.md`, `codex/agents/{review-agent,evaluator-agent}.toml`
 
@@ -398,9 +398,9 @@ exit 1
 ```
 - The primary's vendor is listed first.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: expected text is stale: lines 1-2 are now `fail` / `reason: block`, not `block` (d89438c, 2026-10-12, agent CLI contract, intended). Rest matches: `reason: consensus ac:AC-2.3`, `review-panel: block — AC-2.3 unmet (anthropic, openai)`, `block — 2 vendors, 1 consensus finding`, exit 1.
 
 ---
 
@@ -424,9 +424,9 @@ review-panel: pass — 2 vendors, 0 consensus findings
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `review-panel: advisory — AC-2.3 unmet (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`; exit 0.
 
 ---
 
@@ -447,9 +447,9 @@ exit 0
 - Step 1: `block`, `reason: consensus ac:AC-2.3`, `review-panel: block — AC-2.3 unmet (openai, xai)`, `review-panel: block — 3 vendors, 1 consensus finding`, `exit 1`.
 - Step 2: `block`, `reason: consensus security:app/api/pay.ts`, `review-panel: block — security app/api/pay.ts (openai, xai)`, `review-panel: block — 3 vendors, 1 consensus finding`, `exit 1`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: expected text is stale: both steps open `fail` / `reason: block`, not `block` (d89438c, intended). Step 1 `block — AC-2.3 unmet (openai, xai)`, step 2 `block — security app/api/pay.ts (openai, xai)`, both `3 vendors, 1 consensus finding`, exit 1.
 
 ---
 
@@ -474,9 +474,9 @@ review-panel: pass — 3 vendors, 0 consensus findings
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: advisory architecture (xai) and security (openai) on app/api/pay.ts, `review-panel: pass — 3 vendors, 0 consensus findings`; exit 0.
 
 ---
 
@@ -500,9 +500,9 @@ exit 0
 ```
 - No `advisory` or `block` lines, even though two vendors returned identical text.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `pass`, `review-panel: pass — 3 vendors, 0 consensus findings`, no advisory or block lines; exit 0.
 
 ---
 
@@ -527,9 +527,9 @@ exit 0
 ```
 - The two OpenAI reviewers agree, but that is one vendor, so there is no block.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `review-panel: advisory — security app/api/pay.ts (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`; exit 0.
 
 ---
 
@@ -550,9 +550,9 @@ exit 0
 - Step 1: a `[AC-2.2, AC-2.3]` tag yields two keys: `review-panel: advisory — AC-2.2 unmet (openai)`, `review-panel: advisory — AC-2.3 unmet (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`, `exit 0`.
 - Step 2: only the real path is keyed (`N/A` is ignored, and a Location with trailing commentary normalizes to its path): `review-panel: advisory — security app/api/pay.ts (openai)`, `review-panel: pass — 2 vendors, 0 consensus findings`, `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 advisory `AC-2.2 unmet (openai)` and `AC-2.3 unmet (openai)`, `pass — 2 vendors, 0 consensus findings`, exit 0; step 2 only `advisory — security app/api/pay.ts (openai)`, `pass — 2 vendors, 0 consensus findings`, exit 0.
 
 **Implementation Reference:** Story 2 — DEV-003 (first backticked span; placeholder Locations never keyed)
 
@@ -574,9 +574,9 @@ exit 0
 - One object with `"verdict": "block"`, `"primary_verdict": "FAIL"`, `"vendors": ["anthropic", "openai"]`, and one finding `{"key": "ac:AC-2.3", "display": "AC-2.3 unmet", "classification": "consensus", "severity": "Critical", "vendors": ["anthropic", "openai"], "texts": [...]}`.
 - `texts` holds two entries, primary and `gpt-5.6-sol-medium`, each with that vendor's own checklist line ("…no test asserts the message…" and "…the handler returns a generic 500…"), so a false match is visible.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: JSON: `verdict` block, `primary_verdict` FAIL, `vendors` [anthropic, openai], one consensus finding `ac:AC-2.3`, severity Critical; `texts` hold primary "…no test asserts the message…" and gpt-5.6-sol-medium "…the handler returns a generic 500…"; tally exit 1.
 
 ---
 
@@ -602,9 +602,9 @@ review-panel: block — 2 vendors, 1 consensus finding
 exit 1
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: expected text is stale: lines 1-2 are now `fail` / `reason: block`, not `block` (d89438c, intended). Rest matches: `dropped gpt-5.6-sol-medium — malformed_output`, `block — AC-2.3 unmet (anthropic, xai)`, `block — 2 vendors, 1 consensus finding`, exit 1.
 
 ---
 
@@ -627,9 +627,9 @@ exit 1
 - Step 2: the same, but the drop line reads `— no_output`.
 - Step 3: a same-vendor reviewer is not a panel reviewer: `unverifiable`, `reason: no_usable_reviewer`, `review-panel: unverifiable — no_usable_reviewer`, `exit 0`, with no advisory line.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `unverifiable`, `reason: no_usable_reviewer`, drop `— malformed_output`, exit 0; step 2 drop `— no_output`, exit 0; step 3 no drop or advisory line, `review-panel: unverifiable — no_usable_reviewer`, exit 0.
 
 **Implementation Reference:** Story 2 — DEV-004 (session-vendor reviewers merge into the primary)
 
@@ -650,9 +650,9 @@ exit 1
 **Expected Result:**
 - `review-panel: usage — primary output has no EVALUATION_RESULT / REVIEW_RESULT line` on stderr, then `exit 2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: stdout empty; stderr `review-panel: usage — primary output has no EVALUATION_RESULT / REVIEW_RESULT line`; exit 2.
 
 ---
 
@@ -676,9 +676,9 @@ review-panel: unverifiable — unknown_session_vendor
 exit 0
 ```
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: output matches exactly: `reason: unknown_session_vendor`, `review-panel: unverifiable — unknown_session_vendor`; exit 0.
 
 ---
 
@@ -704,9 +704,10 @@ exit 0
 - The paragraph opens "Only with a `- **Review Panel:**` line in `.writ/config.md`:", runs `status --platform <origin platform>`, triggers when Gate 3 spawns `review-agent` (risk route, `--full-pipeline`, or two-fail escalation) or `--panel` is set, and spawns reviewers in the same message with the same prompt, `readonly`, `model: <slug>`, and the `.env*`/`*.pem`/`*.key`/`*secret*`/`*credential*` exclusion line. It prints `review-panel: dropped` for rejected or empty reviewers and runs `tally` after `review-override.py`.
 - There is no new heading and no new `Task(` marker naming an agent.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: `rg -c` -> `implement-story.md:1`; the lean file no longer exists (deleted on purpose in 49f347f, harness-cuts, 2026-10-20), so the lean expectations are stale and rg exits 2 on the missing path.
+Default file: paragraph at line 302, directly after `**Risk route:**` (300), with the opener, `status --platform`, the trigger list, same-message spawn, `readonly`, `model: <slug>`, exclusion line, `review-panel: dropped`, and tally after `review-override.py`. No new heading; no `Task(` in the file.
 
 **Implementation Reference:** Story 3 — `commands/implement-story.md` (line ~278), `commands/implement-story.lean.md` (line ~241); DEV-005 trigger wording
 
@@ -731,9 +732,10 @@ exit 0
 - It says the panel can only add blocks, never changes the Gate 3 agent's verdict, and never marks a story `⚠️ DEGRADED`.
 - Two-fail escalation is named in the trigger, so the panel still runs once `review-agent` is primary.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: Line 302 now reads "`fail` (`reason: block`) is a Gate 3 FAIL" (wording changed by d89438c, agent CLI contract; behavior unchanged): one loop increment, PAUSE lists block lines and accept recodes, `--review-only` ends the run.
+advisory/pass/unverifiable/skipped/off continue; "only add blocks … never marks a story `⚠️ DEGRADED`"; two-fail escalation named in the trigger; Gate 3.5 § A (line 342) has the panel-block clause.
 
 ---
 
@@ -754,9 +756,10 @@ exit 0
 - Step 1: an Invocation row `` `/implement-story story-3 --panel` `` saying "Convene the review panel at Gate 3 regardless of route (needs the config line)" in both files. The default file's mutual-exclusion sentence adds "`--panel` conflicts with `--quick`: on a conflict, stop with a usage error before any gate". The lean row itself states the `--quick` usage error.
 - Step 2: Step 4 item 8's report list names `review-panel:` lines (beside `gate3-route:` in the default file).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: Default file only (lean file deleted in 49f347f): Invocation row at line 74 with the exact wording; line 76 "`--panel` conflicts with `--quick`: on a conflict, stop with a usage error before any gate".
+Step 4 item 8 (line 449) names `gate3-route:`, `review-panel:`, and `arch-lint:`. Its eval pin was dropped in 6bf0ded; the text remains.
 
 ---
 
@@ -777,9 +780,10 @@ exit 0
 - The only `review-panel.py` call is behind the opening clause "Only with a `- **Review Panel:**` line", so with no line nothing extra runs.
 - In the optional live run, the report has no `review-panel:` lines and Gate 3 spawns and verdicts look the same as before this spec.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: `review-panel.py` is invoked only on line 302 (`status` and `tally`), both behind "Only with a `- **Review Panel:**` line". The optional Cursor live run was not done.
+This repo now carries the line (e035f2e, 2026-10-02), so it no longer meets the precondition itself.
 
 ---
 
@@ -801,9 +805,10 @@ exit 0
 - The report shows `## review-panel`, `PASS`, a note `review-panel: off — no_config_line`, and `Findings: 0` (observed 2026-10-01).
 - In optional step 3, the check reports a finding naming the lean file. The recorded mutation set is also exercised by `uv run pytest scripts/tests/test_review_panel.py -q -k EvalPinMutation`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: `eval.sh --check=review-panel --report=<tmp>` exit 0, under 1 s: `## review-panel` PASS, `Findings: 0`. The note reads `review-panel: pass — 3 reviewers (…)`, not `off — no_config_line`, because e035f2e opted this repo in (intended).
+Optional step 3 via `pytest -k EvalPinMutation` (py3.9): 9 passed. The manual lean-file mutation cannot run; that file is gone.
 
 **Implementation Reference:** Story 3 — `scripts/eval.sh` `check_review_panel` (registered after `app-verify`)
 
@@ -826,9 +831,10 @@ exit 0
 - Step 1 shows `"commands/implement-story.md": 12013` with a dated comment naming `2026-10-01-cross-family-review-panel` Story 3 (11103 → 12013, rebased on the behavioral-verification spec's 11103), ending "Inline prose, no new step, gate, or spawn site. Acknowledged, not exempted."
 - Step 2 passes.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: The pin is now 15717 after later disclosed re-pins. The Story 3 disclosure (11103 -> 12013, naming 2026-10-01-cross-family-review-panel Story 3, ending "Inline prose, no new step, gate, or spawn site. Acknowledged, not exempted.") is intact at lines 562-569 and 649.
+`test_governor_enforcement.py` (py3.9): 58 passed. `test_lean_commands.py` was deleted in 49f347f.
 
 ---
 
@@ -856,7 +862,9 @@ exit 0
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:** Not exercised by any automated test: the Gate 3 wiring is prose, and only its pins and the script are tested.
+**Notes:** Needs a person: live Cursor run with real GPT/Grok spend; an agent session cannot spawn other-vendor reviewers.
+
+Not exercised by any automated test: the Gate 3 wiring is prose, and only its pins and the script are tested.
 
 ---
 
@@ -879,7 +887,7 @@ exit 0
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** Needs a person: needs a live Cursor run to see the platform reject a slug at spawn time.
 
 ---
 
@@ -901,7 +909,7 @@ exit 0
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** Needs a person: needs a full `/implement-story` run through Gate 3 in a Claude Code scratch project. Supporting check (agent-run 2026-10-31 @ 8608004): `status --platform claude-code` prints `review-panel: skipped — platform cannot spawn other vendors`, exit 0.
 
 ---
 
@@ -920,9 +928,9 @@ exit 0
 **Expected Result:**
 - The command stops with a usage error naming the conflict before Gate 0/1 runs. No files change and no agents spawn.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: headless `claude -p "/implement-story story-1 --panel --quick"` (Claude Code 2.1.310, scratch copy of the clone): 1 turn, no tool calls, reply "Usage error: `--panel` conflicts with `--quick`, so I stopped before any gate ran"; `git status` clean. Cursor not tried.
 
 ---
 
@@ -955,9 +963,10 @@ exit 0
 - Step 2: `review-panel: usage — refusing to overwrite <path>/trial.json without --force`, `exit 2`.
 - `$T/trial.json` has `"schema": "panel-trial-v1"` and each story's `story_id`, `story_path`, `spec_folder`, `story_commit`, `parent_sha`, with empty `arms`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 exit 0 with the four story lines and `review-panel: trial initialized — 4 stories, no arms recorded`; line 1 is now `pass`, not `initialized` (92be99a, agent CLI contract).
+Step 2: `review-panel: usage — refusing to overwrite …/trial.json without --force`, exit 2. JSON has `schema: panel-trial-v1`, the five story fields, and `arms: {}`.
 
 ---
 
@@ -978,9 +987,11 @@ exit 0
 - Step 1: `6 passed` (observed).
 - The test builds a throwaway two-commit stand-in repo. It asserts `checkout/`, `diff.patch`, `story.md`, and `contract.md` (the `## Specification Contract` section only) are written under `<tmp-root>/writ-panel-trial-<spec>--<story>/`, and that the stand-in's HEAD, refs, and `git status --porcelain` are identical before and after.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:** The real yuss is exercised only in Story 5 (Scenario 45).
+**Notes:** agent-run 2026-10-31 @ 8608004: `pytest -k TrialPrepare` (py3.9): 6 passed, 137 deselected. The test asserts `checkout/`, `diff.patch`, `story.md`, and `contract.md` (contract section only) under `writ-panel-trial-2026-01-01-alpha--story-1-api/`, and identical HEAD, `for-each-ref`, and `status --porcelain` before and after.
+
+The real yuss is exercised only in Story 5 (Scenario 45).
 
 ---
 
@@ -1004,9 +1015,9 @@ exit 0
 - Step 2: `review-panel: usage — 2026-01-02-beta/story-2-ui: story_commit 2222222222222222222222222222222222222222 unreachable in <path>`, `exit 2`.
 - Step 3: no such directory (nothing written).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `… story-1-api: yuss path missing: …/missing`, exit 2; step 2 `… story-2-ui: story_commit 2222…2222 unreachable in <clone>`, exit 2; step 3 `ls: …/runs: No such file or directory`.
 
 ---
 
@@ -1031,9 +1042,12 @@ exit 0
 - Steps 1 and 3 print `recorded` and `review-panel: recorded <id> <arm> — 0 keys, 0 panel-only findings`.
 - Step 4: three raw files per story under `.writ/state/panel-trial/<spec>--<story>/` (`evaluator-primary.md`, `panel-primary.md`, `panel-gpt-5.6-sol-medium.md`). The grep prints `0`: no diff markers or reviewer prose in the trial JSON.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:** Fixed 2026-10-01: `_plural` printed "0 keies" until it learned that only a consonant before "y" takes "-ies". Pinned by `test_plural_only_turns_consonant_y_into_ies` and `test_record_summary_reads_zero_keys`.
+**Notes:** agent-run 2026-10-31 @ 8608004: steps 1 and 3 print `review-panel: recorded <id> <arm> — 0 keys, 0 panel-only findings`; step 2 prints `— 1 key, 1 panel-only finding`; line 1 is `pass`, not `recorded` (92be99a).
+Step 4: 12 raw files (3 per story) under `.writ/state/panel-trial/<spec>--<story>/`; grep prints `0`. `.writ/state/` is gitignored (`.gitignore:2`).
+
+Fixed 2026-10-01: `_plural` printed "0 keies" until it learned that only a consonant before "y" takes "-ies". Pinned by `test_plural_only_turns_consonant_y_into_ies` and `test_record_summary_reads_zero_keys`.
 
 ---
 
@@ -1054,9 +1068,9 @@ exit 0
 - Step 1: `review-panel: usage — the evaluator arm takes no --reviewer`, `exit 2`.
 - Step 2: `review-panel: usage — the panel arm needs at least one --reviewer`, `exit 2`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `review-panel: usage — the evaluator arm takes no --reviewer`, exit 2; step 2 `review-panel: usage — the panel arm needs at least one --reviewer`, exit 2; trial.json byte-identical afterwards.
 
 ---
 
@@ -1081,9 +1095,9 @@ exit 0
 - Step 3: `review-panel: usage — --note must be one line of at most 200 characters, no code block`, `exit 2`.
 - Step 4: `labeled`, `review-panel: labeled 2026-01-01-alpha/story-1-api ac:AC-2.3 invalid`, `exit 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: steps 1-3 print the three expected usage lines, each exit 2, and trial.json stays byte-identical; step 4 `review-panel: labeled 2026-01-01-alpha/story-1-api ac:AC-2.3 invalid`, exit 0 (line 1 `pass`, not `labeled`, per 92be99a).
 
 ---
 
@@ -1109,9 +1123,12 @@ exit 0
 - Step 4: `keep`, per-story lines, the caveat, and `review-panel: keep — 1 valid of 1 panel-only finding, 4 stories`.
 - Every run exits 0.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:** Per DEV-007, any unlabeled finding or missing arm makes the result `unverifiable`, even when a `valid` label already exists.
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 `unverifiable`, 8 `missing_arm` reasons, 4 `arms=none` lines, caveat, `unverifiable — 4 stories missing an arm`; step 2 `unverifiable — 1 unlabeled` with the expected story line.
+Step 3 `remove — 0 valid of 1 panel-only finding, 4 stories`; step 4 `keep — 1 valid of 1 …`; all exit 0. Steps 3-4 line 1 is now `pass` plus `reason: remove|keep` (d89438c).
+
+Per DEV-007, any unlabeled finding or missing arm makes the result `unverifiable`, even when a `valid` label already exists.
 
 ---
 
@@ -1137,9 +1154,9 @@ exit 0
 **Expected Result:**
 - The file exists under the gitignored `.writ/state/`, and nothing was written in yuss.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: record review. Story 5 AC-5.1 [x] and What Was Built say "yuss HEAD and status unchanged" (b6aa714). The snapshot file lives in gitignored `.writ/state/` and is not part of the record, so this pass rests on the record's claim.
 
 ---
 
@@ -1159,9 +1176,12 @@ exit 0
 **Expected Result:**
 - `pass`, one `reviewer: <slug> <vendor>` line per reviewer, no unexpected `dropped:` lines, and a `review-panel: pass — N reviewers (…)` summary.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:** Keep this line uncommitted until the verdict. On `remove`, delete it (Scenario 53).
+**Notes:** agent-run 2026-10-31 @ 8608004: trial JSON panel arms (29713a9) list gpt-5.6-sol-medium, cursor-grok-4.6-medium-fast, and gemini-3.8-flash-high under origin Claude Opus 5.5; the same line was committed after the verdict (e035f2e follows b6aa714).
+Re-run `status --platform cursor` on that line: `pass`, three `reviewer:` lines, `review-panel: pass — 3 reviewers (…)`, no `dropped:`.
+
+Keep this line uncommitted until the verdict. On `remove`, delete it (Scenario 53).
 
 ---
 
@@ -1180,9 +1200,9 @@ exit 0
 **Expected Result:**
 - Output matches Scenario 35 step 1: the four yuss story IDs and `review-panel: trial initialized — 4 stories, no arms recorded`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: `.writ/eval/panel-trial/2026-10-02-panel-trial.json` (29713a9) has `schema: panel-trial-v1` and the four story IDs in the baseline `selection` order, the same as Scenario 35's output.
 
 ---
 
@@ -1202,9 +1222,9 @@ exit 0
 - Each run prints `prepared`, `checkout:`, `diff:`, `story:`, `contract:` paths under `$TMPDIR/writ-panel-trial-<spec>--<story>/`, and `review-panel: prepared <id> <sha12>`.
 - Any exit 2 names the story (missing path, unreachable commit, parent beyond depth 2, or no contract section) and writes nothing. Stop and resolve it before continuing.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: the record shows prepare's exit-2 path firing (3 of 4 stories lacked `## Specification Contract`), fixed before continuing (85181c7, drift DEV-010), and all four stories then got arms in 29713a9.
 
 ---
 
@@ -1225,9 +1245,9 @@ exit 0
 **Expected Result:**
 - `recorded` and `review-panel: recorded <id> evaluator — N key(s), M panel-only finding(s)`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: all four `evaluator` arms are recorded in the trial JSON (origin Claude Opus 5.5, `reviewers: []`, verdicts FAIL/FAIL/FAIL/PASS). The JSON holds no text, so the "historical, not re-run" input labeling cannot be checked from it.
 
 ---
 
@@ -1249,9 +1269,11 @@ exit 0
 - `recorded`, any `review-panel: dropped <slug> — <reason>` lines, and `review-panel: recorded <id> panel — N keys, M panel-only findings`.
 - Raw copies appear under `.writ/state/panel-trial/<spec>--<story>/`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:** Record which reviewers were dropped. A dropped reviewer weakens the arm but does not invalidate it.
+**Notes:** agent-run 2026-10-31 @ 8608004: all four `panel` arms are recorded with the three reviewers, and `dropped: []` in every arm (no reviewer dropped). Raw copies are gitignored; `git log --all --name-only` shows 0 `.writ/state/` paths ever committed.
+
+Record which reviewers were dropped. A dropped reviewer weakens the arm but does not invalidate it.
 
 ---
 
@@ -1274,9 +1296,9 @@ exit 0
 - Step 2 prints `0`.
 - Step 3 shows only the trial JSON (and the uncommitted config line); raw outputs stay ignored.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: re-ran step 2 on the committed JSON: `0`. 29713a9 holds only the JSON and `trial-report.md`; no `.writ/state/` path appears in any commit. yuss unchanged per Story 5 What Was Built (record claim; step 1 cannot be re-run without yuss).
 
 ---
 
@@ -1299,7 +1321,8 @@ exit 0
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** Needs a person: honesty of the labels. agent-run 2026-10-31 @ 8608004: 8/8 labeled, `unlabeled=0`, longest note 161 chars, AC-4.2/AC-4.3 confound noted.
+For review: `security:…/fee-share/route.ts` is labeled valid although its note says "severity is lower than Critical", and the evaluator arm raised `architecture:` on the same file; the note does not say whether it is the same issue.
 
 ---
 
@@ -1321,9 +1344,9 @@ exit 0
 - `git log -1 --stat` shows exactly those two files.
 - This commit precedes any keep, remove, or status commit (it is the permanent record if the script is later deleted).
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: 29713a9 `--stat` shows exactly the trial JSON and `trial-report.md`; its first line is `keep` and it carries the caveat line. Its parent 85181c7 is a harness fix; b6aa714 (keep) and e035f2e (config line) come after.
 
 ---
 
@@ -1346,9 +1369,10 @@ exit 0
 - The panel paragraph, `--panel` row, report entry, config doc entry, adapter rows, `check_review_panel`, `status`/`tally`, tests, and pins all remain.
 - Step 4: `PASS`, `Findings: 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: b6aa714 amends ADR-028 with the date, four story IDs, the 6 valid keys, and the caveat; marks roadmap criterion 4 met with a trial-report link; sets spec `Complete`; Story 5 `Completed ✅`.
+All wiring is still present at 8608004 (paragraph, `--panel` row, report entry, config-format, 4 adapter rows, `CHECKS` entry, script, tests). `eval.sh --check=review-panel`: PASS, Findings 0.
 
 ---
 
@@ -1375,7 +1399,7 @@ exit 0
 
 **Status:** [ ] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** N/A — branch not taken: the verdict was `keep` (trial-report.md, 29713a9).
 
 ---
 
@@ -1398,9 +1422,10 @@ exit 0
 - The outcome test passes only when the trial file validates and the `trial-report.md` verdict matches `spec.md` (`keep` ↔ `Complete`, `remove` ↔ `Closed — Not Implemented`). The panel paragraph must be present for `keep` and absent for `remove`.
 - Everything is green, and eval reports `Findings: 0`.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: step 1 N/A (keep); step 2: config line kept (e035f2e); step 3: `test_panel_trial_outcome.py` added in b6aa714, now 8 passed and 1 skipped (remove-only case). The record has no suite numbers for b6aa714, so step 4 was re-run at 8608004:
+py3.9 3949 passed/7 skipped (262 s), py3.14 3949 passed/7 skipped (287 s), both with `--ignore=scripts/tests/test_app_verify.py` (port 8765 busy); 53 bash tests, 0 FAIL (854 s); `eval.sh --report=<tmp>` Findings 0 (162 s).
 
 ---
 
@@ -1421,9 +1446,10 @@ exit 0
 - The commit adding `trial-report.md` is older than any commit that removed panel wiring.
 - The verdict and status agree.
 
-**Status:** [ ] Pass  [ ] Fail
+**Status:** [x] Pass  [ ] Fail
 
-**Notes:**
+**Notes:** agent-run 2026-10-31 @ 8608004: `git log -S'Review panel (opt-in)'` shows only 6590a93 (the addition), so no commit removed panel wiring. `trial-report.md` was added in 29713a9 and moved to `archive/` in 4d649c4.
+Its first line `keep` agrees with spec.md `> **Status:** Complete`. The step 1 path is stale after the archive move.
 
 ---
 

@@ -607,6 +607,7 @@ KNOWN_OVER_BUDGET = {
     # step, gate, AskQuestion block, and script call stays. cut-log.md lists every change.
     # 2026-10-22 (2026-10-22-generated-platform-trees Story 1): 13602 -> 13654; Step 1.3 names
     # the adapter's `Plan Mode` row.
+    # 2026-10-25 (2026-10-25-why-command Story 4): 13654 -> 14209; Step 1.2 reads a /why handoff.
     # 2026-10-22 (bug create-spec-can-lock-an-unseen-contract): 13602 -> 14065, a
     # disclosed increase. Step 1.4b opens with a precondition that the full contract
     # was printed as a visible message, Plan Mode or not; both --from Step 3s open
@@ -626,7 +627,12 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-31 (merge of #62 into Phase 14): 14445 -> 14497. Both changes kept:
     # Step 1.3 opens with the "One question at a time" rule and names the
     # adapter's `Plan Mode` row.
-    "commands/create-spec.md": 14497,
+    # 2026-10-31 (merge of Phase 14 into Phase 15): 14209 and 14497 -> 15052, both
+    # sides kept: the /why handoff step and the #62 contract-visibility changes.
+    # 2026-10-31 (retro 2026-10-30-phase-15.md F3): 15052 -> 15197, a disclosed
+    # increase. Step 2.5 gains one sentence: every story leaves every check
+    # green, and a new command ships with its registration. No new step or gate.
+    "commands/create-spec.md": 15197,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
@@ -648,7 +654,38 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 12013 -> 11533; Gate 0 no-op emit removed.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 11533 -> 11266;
     # calibrated_against no longer cites Writ's archived specs.
-    "commands/implement-story.md": 11266,
+    # 2026-10-26 (2026-10-25-design-divergence Story 3): 11266 -> 13474; Gate 0
+    # boundary-crossing divergence block (1994 bytes) plus its Overview clause,
+    # Pipeline Gate 0 row, and References link.
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 2): 13474 -> 13769; Gate 3
+    # reviewer-filters switch and report line.
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 3): 13769 -> 14116; Gate 2.5 blast-radius paragraph.
+    # 2026-10-29 (2026-10-25-review-route-rigor Story 4): 14116 -> 15269; Gate 3 safety-fact inputs, verifier, routing, report line.
+    # 2026-10-29 (2026-10-25-repro-first-bug-fixing Story 4): 15269 -> 15717; Gate 1 bug-path line.
+    # 2026-10-31 (Phase 15 retro F1): 15717 -> 15799; Gate 3.5 Small drift clause names
+    # drift-format's auto_amend_unapplied failure.
+    # 2026-11-04 (2026-10-25-design-divergence Story 6): 15799 -> 13591; the blind trial
+    # said remove, so the Gate 0 divergence block, Overview clause, Pipeline cells, and
+    # References link are gone.
+    # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): 13591 -> 14771 (+1180);
+    # Gate 2 saves its check commands, Gate 3 resolves the evidence-gate switch, runs
+    # `evidence`, and carries the nine-row decision table and report line, less five
+    # Gate 3 cuts. The spec requires Stories 3, 4, and 7 to net <= 0 against 40759
+    # bytes; the design-divergence removal (-2208) landed separately and does not count.
+    # 2026-11-04 (2026-11-04-evidence-gated-review Story 4): 14771 -> 14969 (+198);
+    # Gate 3 binds `<manifest>`, writes it with `--manifest-out`, runs `--prior` on
+    # every verdict once it exists (row 4a), recodes with `## Evidence repros` (on
+    # row 4a, from `<manifest>`), adds manifest paths to `recorded_test_results`, and
+    # puts the tree-mutation row first (DEV-026). Offsets: `<checks>` bound once, the
+    # save made unconditional so the Jev shadow reuses `<review>` and `<tests>`, and
+    # `--repo .` dropped from `check` and `safety-fact`. Stories 3 + 4: +1378.
+    # 2026-11-04 (2026-11-04-evidence-gated-review Story 7): 14969 -> 13591 (-1378);
+    # ADR-032 removes the review panel: the `--panel` row and conflict clause, the
+    # Gate 3 panel paragraph, the `review-panel:` report entry, and the panel clauses
+    # in the Overview, the reviewer-filters paragraph, the safety-fact sentence, and
+    # Gate 3.5, less the leftover-config line and the `--panel` rejection. Stories
+    # 3 + 4 + 7: net 0 (file 39929 -> 38551 bytes, at most 40759).
+    "commands/implement-story.md": 13591,
 }
 
 

@@ -33,7 +33,6 @@ ISSUES = REPO_ROOT / ".writ" / "issues"
 FIXTURE_SCAN_ISSUE = ISSUES / "bugs" / "2026-09-26-ac-trace-scans-fixture-ac-tokens.md"
 
 RULE = "a line exactly `## Resolution`"
-STATUS_BYTE_CEILING = 24211 + 300
 
 
 def read(path: Path) -> str:
@@ -123,10 +122,8 @@ class CreateIssueClosingNoteTests(unittest.TestCase):
 
 
 class StatusBudgetTests(unittest.TestCase):
-    """[AC-2.4] The edit fits inside status.md's byte budget."""
-
-    def test_status_grew_by_at_most_300_bytes(self) -> None:
-        self.assertLessEqual(len(STATUS.read_bytes()), STATUS_BYTE_CEILING)
+    """[AC-2.4] The edit fits inside status.md's byte budget. The byte cap
+    itself is test_governor_enforcement.py's, the one size registry."""
 
     def test_status_has_no_over_budget_entry(self) -> None:
         tree = ast.parse(read(GOVERNOR_TEST))

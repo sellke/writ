@@ -16,8 +16,9 @@ Registration section (Story 2):
 
 - The old command file is now `commands/writ-design.md` and names itself
   `writ-design`.
-- The manifest entry, `SKILL.md`, and the generated `claude-code/CLAUDE.md`
-  name `writ-design`; no alias keeps the old name.
+- The manifest entry and `SKILL.md` name `writ-design`; the generated
+  `claude-code/CLAUDE.md` lists no commands and never names the old one;
+  no alias keeps the old name.
 - The rename-class lines in technical-spec.md → Reference Inventory, and the
   five `referenced_paths_allowlist` rows in `scripts/eval.sh`, name
   `/writ-design`.
@@ -436,15 +437,14 @@ def test_skill_catalog():
 
 def test_claude_md_generated():
     """AC-2.4: `gen-claude-md.py --check` passes, and the generated
-    `claude-code/CLAUDE.md` lists `/writ-design` and not the old name."""
+    `claude-code/CLAUDE.md` never names the old command. It lists no
+    commands, so `/writ-design` reaches Claude Code through the skill listing."""
     proc = run(sys.executable, "scripts/gen-claude-md.py", "--check")
     first = proc.stdout.splitlines()[0] if proc.stdout else ""
     assert proc.returncode == 0 and first == "pass", "gen-claude-md.py --check exit %d:\n%s%s" % (
         proc.returncode, proc.stdout, proc.stderr)
 
     text = read("claude-code/CLAUDE.md")
-    row = "| `/writ-design` | `.claude/commands/writ-design.md` | %s |" % DESIGN_PURPOSE
-    assert row in text.splitlines(), "claude-code/CLAUDE.md lacks %r" % row
     stray = [line for line in text.splitlines() if OLD_COMMAND.search(line)]
     assert stray == [], "claude-code/CLAUDE.md still names %s:\n%s" % (OLD_SLASH, "\n".join(stray))
 
@@ -574,7 +574,8 @@ def test_codex_template_row():
     text = read("codex/AGENTS.md.template")
     rows = first_table(section(text, "## Available Commands", "### Planning & Specification"))[2:]
     commands = [cells(row)[0] for row in rows]
-    assert commands[-2:] == ["`/verify-spec`", "`/writ-design`"], commands
+    # `/why` (why-command spec, Story 2) sorts between the two.
+    assert commands[-3:] == ["`/verify-spec`", "`/why`", "`/writ-design`"], commands
     assert cells(rows[-1]) == [
         "`/writ-design`", "`.codex/commands/writ-design.md`", DESIGN_PURPOSE], rows[-1]
 

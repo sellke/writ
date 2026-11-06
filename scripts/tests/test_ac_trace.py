@@ -1033,6 +1033,160 @@ class CitationScanTests(unittest.TestCase):
             self.assertEqual(found[0]["id"], "AC-3.9")
 
 
+# --- Coverage disclaimers and the Verified by: marker ------------------------
+# Phase 15 retro F2: a test docstring reading "No test here covers AC-1.5"
+# satisfied ac-trace, so an untested criterion read as tested.
+
+def _disclaimer_repo(repo: Path, test_text: str, *,
+                     extra_markers: tuple[str, ...] = ()) -> Path:
+    """A Completed story 3 with AC-3.1 and AC-3.2 tasked, and one test file
+    holding `test_text` as its only citation of either."""
+    spec = make_spec(repo)
+    write_story(
+        spec, 3, status="Completed ✅",
+        marker_lines=["> **AC IDs assigned through:** AC-3.2", *extra_markers],
+        ac_lines=("- [x] First criterion. `[AC-3.1]`", "- [x] Second criterion. `[AC-3.2]`"),
+        task_lines=("- [x] 3.1 Implement both. `[AC-3.1, AC-3.2]`",),
+    )
+    (repo / "tests").mkdir(exist_ok=True)
+    (repo / "tests" / "test_thing.py").write_text(test_text, encoding="utf-8")
+    return spec
+
+
+def _untested_ids(result: dict) -> list[str]:
+    return sorted(f["id"] for f in findings_for(result, "untested_criterion"))
+
+
+class CoverageDisclaimerTests(unittest.TestCase):
+    DISCLAIMERS = (
+        '"""- No test here covers AC-3.1 or AC-3.2: they are the recorded run."""\n',
+        '"""No test covers AC-3.1. Nothing here verifies AC-3.2."""\n',
+        '"""AC-3.1 is the verification run\n  (`uv run --python 3.9 pytest`, the bash loop),\n'
+        '  not a test here. AC-3.2 is not tested here."""\n',
+        "# AC-3.1 and AC-3.2 are untested; see the story.\n",
+    )
+
+    def test_disclaimer_is_not_a_citation(self) -> None:
+        """Mutation: each disclaimer shape leaves both IDs untested; the same
+        file with the negation removed covers both."""
+        for text in self.DISCLAIMERS:
+            with self.subTest(text=text), TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                spec = _disclaimer_repo(repo, text)
+                exit_code, result = run_check(spec, repo)
+                self.assertEqual(exit_code, 1, result)
+                self.assertEqual(_untested_ids(result), ["AC-3.1", "AC-3.2"])
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(repo, '"""This test covers AC-3.1 and AC-3.2."""\n')
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(result["findings"], [])
+
+    def test_negative_behavior_sentences_still_cite(self) -> None:
+        """A test of negative behavior is still a citation: the negation is
+        about the code under test, not about test coverage."""
+        texts = (
+            '"""AC-3.1 -- the command prints no output and never prompts. [AC-3.2]"""\n',
+            "# Key set, no config line: disabled, no request, no leak [AC-3.1, AC-3.2]\n",
+            '"""AC-3.1: no test or eval check reads a lean file. AC-3.2 nil case: no '
+            'test_*.sh files means zero tests."""\n',
+            '"""A repro that changes only `.writ/` has no test file. [AC-3.1, AC-3.2]"""\n',
+            '"""No test here covers the network path.\n\nAC-3.1 and AC-3.2 cover the parser."""\n',
+        )
+        for text in texts:
+            with self.subTest(text=text), TemporaryDirectory() as tmp:
+                repo = Path(tmp)
+                spec = _disclaimer_repo(repo, text)
+                exit_code, result = run_check(spec, repo)
+                self.assertEqual(exit_code, 0, result)
+                self.assertEqual(result["findings"], [])
+
+    def test_disclaimer_of_undefined_id_does_not_dangle(self) -> None:
+        """A disclaimer cites nothing, so naming a deleted ID is not a
+        dangling reference."""
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(
+                repo, '"""AC-3.1 and AC-3.2 are covered. No test here covers AC-3.9."""\n')
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(findings_for(result, "dangling_reference"), [])
+
+
+class RunVerifiedMarkerTests(unittest.TestCase):
+    MARKER = "> **Verified by:** AC-3.1, AC-3.2 — the dogfood run in What Was Built"
+
+    def test_marker_reports_run_verified_not_untested(self) -> None:
+        """Mutation: without the marker both IDs are untested; with it both
+        are reported run_verified (informational) and the spec exits 0."""
+        disclaimer = '"""No test here covers AC-3.1 or AC-3.2."""\n'
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(repo, disclaimer)
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            self.assertEqual(_untested_ids(result), ["AC-3.1", "AC-3.2"])
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(repo, disclaimer, extra_markers=(self.MARKER,))
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 0, result)
+            self.assertEqual(_untested_ids(result), [])
+            found = findings_for(result, "run_verified")
+            self.assertEqual([f["id"] for f in found], ["AC-3.1", "AC-3.2"])
+            for finding in found:
+                self.assertEqual(finding["severity"], "informational")
+                self.assertIn("the dogfood run in What Was Built", finding["detail"])
+                self.assertIn("not a test", finding["detail"])
+
+    def test_marker_covers_only_the_ids_it_names(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(
+                repo, "# nothing cited\n",
+                extra_markers=("> **Verified by:** AC-3.1 — the recorded run",))
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            self.assertEqual(_untested_ids(result), ["AC-3.2"])
+
+    def test_marker_without_evidence_is_marker_violation(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(repo, "# nothing cited\n",
+                                    extra_markers=("> **Verified by:** AC-3.1, AC-3.2",))
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            found = findings_for(result, "marker_violation")
+            self.assertEqual(len(found), 1)
+            self.assertEqual(found[0]["severity"], "blocking")
+            self.assertIn("Verified by", found[0]["detail"])
+            self.assertEqual(_untested_ids(result), ["AC-3.1", "AC-3.2"])
+
+    def test_marker_naming_another_story_is_marker_violation(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(
+                repo, '"""AC-3.1 and AC-3.2 are covered."""\n',
+                extra_markers=("> **Verified by:** AC-2.1 — a run",))
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            found = findings_for(result, "marker_violation")
+            self.assertEqual([f["id"] for f in found], ["AC-2.1"])
+            self.assertEqual(findings_for(result, "run_verified"), [])
+
+    def test_marker_naming_undefined_id_dangles(self) -> None:
+        with TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            spec = _disclaimer_repo(
+                repo, '"""AC-3.1 and AC-3.2 are covered."""\n',
+                extra_markers=("> **Verified by:** AC-3.9 — a run",))
+            exit_code, result = run_check(spec, repo)
+            self.assertEqual(exit_code, 1, result)
+            found = findings_for(result, "dangling_reference")
+            self.assertEqual([f["id"] for f in found], ["AC-3.9"])
+
+
 # --- Story-file parsing edge cases -------------------------------------------
 
 class StoryFileParsingEdgeCaseTests(unittest.TestCase):

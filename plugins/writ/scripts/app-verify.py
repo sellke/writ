@@ -263,7 +263,8 @@ def _parse_safety(lines: list[tuple[int, str]], recipe: Recipe,
             recipe.variables.append(Variable(name=value))
         elif key in ("allowed", "never") and recipe.variables:
             target = recipe.variables[-1].allowed if key == "allowed" else recipe.variables[-1].never
-            target.extend(_split_list(value))
+            # Split before unwrapping: `*a*`, `*b*` must not lose its outer backticks first.
+            target.extend(_split_list(setting.group("value")))
         elif key == "env file" and value:
             recipe.env_file = value
     if not recipe.variables and recipe.safety_none_reason is None:

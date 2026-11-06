@@ -50,7 +50,7 @@ Weak: `How does auth work?`
 
 Strong: `Why do sessions expire after one hour on staging but never locally? Done when the answer names the setting that differs and where each environment sets it. Proof: the two values, quoted from their files.`
 
-Route: `/research` (`/why` replaces it when it ships)
+Route: `/why` (`/research` for a question about something outside the project)
 
 ## Pitfalls
 

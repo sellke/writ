@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec Progress</title>
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #656d76;
+    --border: #d8dee4;
+    --accent: #2f6fdb;
+    --green: #1a7f37;
+    --green-bg: #e6f4ea;
+    --red: #cf222e;
+    --red-bg: #fdecec;
+    --amber: #9a6700;
+    --amber-bg: #fff4d6;
+    --gray: #57606a;
+    --gray-bg: #eef0f2;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { margin-bottom: 24px; }
+  h1 { font-size: 22px; margin: 0 0 2px; }
+  .folder { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--muted); }
+  .tally { margin: 12px 0 8px; font-weight: 600; }
+  .remaining { margin: 0; padding-left: 18px; color: var(--text); }
+  .remaining li { margin: 2px 0; }
+  .story {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+  }
+  .card-head h2 { font-size: 16px; margin: 0; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .badge.completed { color: var(--green); background: var(--green-bg); }
+  .badge.in-progress { color: var(--amber); background: var(--amber-bg); }
+  .badge.blocked { color: var(--red); background: var(--red-bg); }
+  .badge.not-started { color: var(--gray); background: var(--gray-bg); }
+  .blocked-note {
+    margin: 0; padding: 10px 16px; background: var(--red-bg); color: var(--red);
+    border-bottom: 1px solid var(--border); font-size: 14px;
+  }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; background: #fafbfc; }
+  tr:last-child td { border-bottom: none; }
+  td.mark { white-space: nowrap; width: 80px; font-weight: 600; }
+  td.test { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; color: var(--text); }
+  td.test.none { font-family: inherit; color: var(--muted); font-style: italic; }
+  td.run { white-space: nowrap; color: var(--muted); font-size: 13px; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); }
+  .nontest { color: var(--gray); }
+  .card-foot {
+    padding: 8px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted);
+    background: #fafbfc;
+  }
+  .card-foot strong { color: var(--accent); }
+  @media (max-width: 600px) {
+    th, td { padding: 8px 10px; }
+    .card-head { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>/why command</h1>
+    <div class="folder">.writ/specs/2026-10-25-why-command/</div>
+    <p class="tally">11 of 19 criteria pass · 2 of 5 stories done · refreshed Oct 26, 2026 10:42</p>
+    <ul class="remaining">
+      <li>Story 3: 1 criterion failing, 1 untested</li>
+      <li>Story 4: 1 criterion failing, 2 untested</li>
+      <li>Story 5: 3 criteria untested</li>
+    </ul>
+  </header>
+
+  <section class="story-list">
+
+    <article class="story">
+      <div class="card-head">
+        <h2>Story 1 — Answer from the Writ ledger first</h2>
+        <span class="badge completed">Completed</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Result</th><th>Criterion</th><th>Test</th><th>Last run</th></tr></thead>
+          <tbody>
+            <tr><td class="mark pass">✓ pass</td><td>Searches ADRs, specs, and knowledge entries before any other source</td><td class="test">test_why_reads_ledger_first</td><td class="run">Oct 26, 09:58</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>Cites the file path and heading for every ledger claim</td><td class="test">test_ledger_citations_have_paths</td><td class="run">Oct 26, 09:58</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>Tags each claim with a confidence tier: recorded, inferred, or unknown</td><td class="test">test_confidence_tier_on_each_claim</td><td class="run">Oct 26, 09:58</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>Says "no record found" instead of guessing when the ledger has nothing</td><td class="test">test_empty_ledger_reports_no_record</td><td class="run">Oct 26, 09:58</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot"><strong>4/4</strong> passing</div>
+    </article>
+
+    <article class="story">
+      <div class="card-head">
+        <h2>Story 2 — Fall back to git history</h2>
+        <span class="badge completed">Completed</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Result</th><th>Criterion</th><th>Test</th><th>Last run</th></tr></thead>
+          <tbody>
+            <tr><td class="mark pass">✓ pass</td><td>Runs git log and blame on the named file only when the ledger has no answer</td><td class="test">test_git_fallback_after_ledger_miss</td><td class="run">Oct 26, 09:58</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>Quotes the commit SHA and subject line for each git-sourced claim</td><td class="test">test_git_claims_cite_sha</td><td class="run">Oct 26, 09:58</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>Marks git-sourced claims as inferred, never recorded</td><td class="test">test_git_claims_are_inferred</td><td class="run">Oct 26, 09:58</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot"><strong>3/3</strong> passing</div>
+    </article>
+
+    <article class="story">
+      <div class="card-head">
+        <h2>Story 3 — Route why-or-how questions to /why</h2>
+        <span class="badge in-progress">In Progress</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Result</th><th>Criterion</th><th>Test</th><th>Last run</th></tr></thead>
+          <tbody>
+            <tr><td class="mark pass">✓ pass</td><td>/writ routes "why is X like this" questions to /why</td><td class="test">test_writ_routes_why_question</td><td class="run">Oct 26, 10:31</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>/writ routes "how did we end up with X" questions to /why</td><td class="test">test_writ_routes_how_question</td><td class="run">Oct 26, 10:31</td></tr>
+            <tr><td class="mark pass">✓ pass</td><td>Feature requests that start with "why don't we" still route to /create-spec</td><td class="test">test_why_dont_we_goes_to_spec</td><td class="run">Oct 26, 10:31</td></tr>
+            <tr><td class="mark fail">✗ fail</td><td>Shows a Preserve / Change / Avoid / Risk list when the question implies a change</td><td class="test">test_change_question_emits_pcar_list</td><td class="run">Oct 26, 10:31</td></tr>
+            <tr><td class="mark nontest">– none</td><td>Asks one clarifying question when the subject of the question is ambiguous</td><td class="test none">no test</td><td class="run">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot"><strong>3/5</strong> passing</div>
+    </article>
+
+    <article class="story">
+      <div class="card-head">
+        <h2>Story 4 — /create-spec reads a /why handoff</h2>
+        <span class="badge blocked">Blocked</span>
+      </div>
+      <p class="blocked-note">Blocked by Story 3: the handoff format depends on the Preserve / Change / Avoid / Risk list, which still fails test_change_question_emits_pcar_list.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Result</th><th>Criterion</th><th>Test</th><th>Last run</th></tr></thead>
+          <tbody>
+            <tr><td class="mark pass">✓ pass</td><td>Step 1.2 of /create-spec checks for a /why handoff file in the spec folder</td><td class="test">test_create_spec_detects_handoff</td><td class="run">Oct 26, 10:31</td></tr>
+            <tr><td class="mark fail">✗ fail</td><td>Copies the Preserve items into the spec's constraints section</td><td class="test">test_preserve_items_become_constraints</td><td class="run">Oct 26, 10:31</td></tr>
+            <tr><td class="mark nontest">– none</td><td>Copies the Risk items into the spec's open questions section</td><td class="test none">no test</td><td class="run">—</td></tr>
+            <tr><td class="mark nontest">– none</td><td>Proceeds without error when no handoff file exists</td><td class="test none">no test</td><td class="run">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot"><strong>1/4</strong> passing</div>
+    </article>
+
+    <article class="story">
+      <div class="card-head">
+        <h2>Story 5 — Query connected MCP servers last</h2>
+        <span class="badge not-started">Not Started</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Result</th><th>Criterion</th><th>Test</th><th>Last run</th></tr></thead>
+          <tbody>
+            <tr><td class="mark nontest">– none</td><td>Queries connected MCP servers only after ledger and git both come up empty</td><td class="test none">no test</td><td class="run">—</td></tr>
+            <tr><td class="mark nontest">– none</td><td>Names the server and the tool call behind each MCP-sourced claim</td><td class="test none">no test</td><td class="run">—</td></tr>
+            <tr><td class="mark nontest">– none</td><td>Skips MCP lookup with a one-line note when no servers are connected</td><td class="test none">no test</td><td class="run">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-foot"><strong>0/3</strong> passing</div>
+    </article>
+
+  </section>
+</main>
+</body>
+</html>

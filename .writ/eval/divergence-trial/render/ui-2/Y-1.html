@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exploration Record</title>
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --panel: #ffffff;
+    --ink: #1d2125;
+    --muted: #5d6670;
+    --faint: #9aa2ab;
+    --line: #dde1e5;
+    --soft: #eef0f2;
+    --accent: #2563c9;
+    --accent-soft: #e6eefb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 40px; }
+  h1 { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  h2 { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 32px 0 10px; }
+
+  /* DecisionBanner */
+  .banner {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .question { font-size: 20px; font-weight: 600; margin: 0 0 12px; }
+  .chosen-line { margin: 0 0 10px; }
+  .chosen-line b { color: var(--accent); }
+  .loss-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--soft); }
+  .loss-list li { padding: 6px 0; border-bottom: 1px solid var(--soft); color: var(--muted); }
+  .loss-list li b { color: var(--ink); font-weight: 600; }
+
+  /* Shared column layout */
+  .cols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  /* CommitmentGrid: subgrid keeps rows level across columns */
+  .grid { grid-template-rows: auto repeat(4, auto) auto; }
+  .gcol {
+    grid-row: 1 / -1;
+    display: grid;
+    grid-template-rows: subgrid;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .gcol.is-chosen { border-color: var(--accent); }
+  .ghead {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px 12px; background: var(--soft); font-weight: 600;
+  }
+  .is-chosen .ghead { background: var(--accent-soft); }
+  .badge {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  }
+  .badge.chosen { background: var(--accent); color: #fff; }
+  .badge.lost { border: 1px solid var(--faint); color: var(--muted); }
+  .crow { padding: 8px 12px; border-top: 1px solid var(--soft); }
+  .crow.pad { color: var(--faint); }
+  .lossnote { padding: 8px 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); min-height: 2.4em; }
+  .lossnote b { color: var(--ink); }
+
+  /* DraftBodies */
+  .body {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .body.is-chosen { border-color: var(--accent); }
+  .body-head { padding: 8px 12px; background: var(--soft); font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; }
+  .is-chosen .body-head { background: var(--accent-soft); }
+  .kind { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .render {
+    height: 260px;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+  }
+  .render iframe {
+    width: 800px; height: 650px;
+    border: 0;
+    transform: scale(.4);
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  .code {
+    margin: 0; padding: 12px;
+    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre-wrap; word-break: break-word;
+    background: #fafbfc;
+  }
+
+  /* RecordFooter */
+  footer {
+    margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 13px;
+    display: flex; flex-wrap: wrap; gap: 6px 24px;
+  }
+  footer code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); }
+
+  /* Stacked below 720px: draft order, winner first */
+  @media (max-width: 719px) {
+    .cols { grid-template-columns: minmax(0, 1fr); }
+    .grid { grid-template-rows: none; }
+    .gcol { grid-row: auto; grid-template-rows: none; display: block; }
+    .is-chosen { order: -1; }
+    .question { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <h1>Spec progress in /status &middot; 2026-09-30</h1>
+
+  <!-- DecisionBanner -->
+  <section class="banner">
+    <p class="question">How should /status show progress for a spec that has stories in flight?</p>
+    <p class="chosen-line"><b>Chose B &mdash; Story table:</b> it shows which story is blocked, which the other two hide behind a single number.</p>
+    <ul class="loss-list">
+      <li><b>A &mdash; Progress bar</b> lost: a 60% bar does not say which story is stuck or why.</li>
+      <li><b>C &mdash; One-line summary</b> lost: fits a terminal, but drops the blocked-story reason that users asked for.</li>
+    </ul>
+  </section>
+
+  <!-- CommitmentGrid -->
+  <h2>Commitments</h2>
+  <div class="cols grid">
+    <div class="gcol">
+      <div class="ghead">A &mdash; Progress bar <span class="badge lost">lost</span></div>
+      <div class="crow">One bar per spec, percent of stories done</div>
+      <div class="crow">Reads story status from spec.md frontmatter</div>
+      <div class="crow">Needs 60+ columns of width</div>
+      <div class="crow pad">&mdash;</div>
+      <div class="lossnote"><b>Lost:</b> a 60% bar does not say which story is stuck or why.</div>
+    </div>
+    <div class="gcol is-chosen">
+      <div class="ghead">B &mdash; Story table <span class="badge chosen">chosen</span></div>
+      <div class="crow">One row per story: status, owner agent, last commit</div>
+      <div class="crow">Reads each story file plus git log</div>
+      <div class="crow">Needs 80+ columns; truncates titles below that</div>
+      <div class="crow">Blocked rows show the gate that failed</div>
+      <div class="lossnote"></div>
+    </div>
+    <div class="gcol">
+      <div class="ghead">C &mdash; One-line summary <span class="badge lost">lost</span></div>
+      <div class="crow">Single line: "4/7 done, 1 blocked"</div>
+      <div class="crow">Reads story status from spec.md frontmatter</div>
+      <div class="crow">Fits any width</div>
+      <div class="crow">Blocked count only, no reason</div>
+      <div class="lossnote"><b>Lost:</b> fits a terminal, but drops the blocked-story reason that users asked for.</div>
+    </div>
+  </div>
+
+  <!-- DraftBodies -->
+  <h2>Drafts</h2>
+  <div class="cols">
+    <div class="body">
+      <div class="body-head">A &mdash; Progress bar <span class="kind">page</span></div>
+      <div class="render">
+        <iframe scrolling="no" title="Draft A render" srcdoc="<html><body style='margin:0;padding:40px;font:22px system-ui,sans-serif;color:#1d2125;background:#fff'><div style='font-size:16px;color:#5d6670;text-transform:uppercase;letter-spacing:.05em'>Active spec</div><div style='font-size:30px;font-weight:600;margin:6px 0 28px'>2026-09-12-status-progress</div><div style='height:34px;background:#eef0f2;border-radius:6px;overflow:hidden'><div style='width:57%;height:100%;background:#2563c9'></div></div><div style='margin-top:14px;color:#5d6670'>4 of 7 stories done &middot; 57%</div><div style='margin-top:60px;font-size:16px;color:#9aa2ab'>Next: run /implement-spec to continue</div></body></html>"></iframe>
+      </div>
+    </div>
+    <div class="body is-chosen">
+      <div class="body-head">B &mdash; Story table <span class="kind">page</span></div>
+      <div class="render">
+        <iframe scrolling="no" title="Draft B render" srcdoc="<html><body style='margin:0;padding:40px;font:20px system-ui,sans-serif;color:#1d2125;background:#fff'><div style='font-size:28px;font-weight:600;margin-bottom:20px'>2026-09-12-status-progress</div><table style='width:100%;border-collapse:collapse;font-size:19px'><tr style='color:#5d6670;text-align:left'><th style='padding:8px 0'>Story</th><th>Status</th><th>Agent</th><th>Commit</th></tr><tr style='border-top:1px solid #dde1e5'><td style='padding:8px 0'>1 Read story files</td><td>done</td><td>coder</td><td>a91f3c0</td></tr><tr style='border-top:1px solid #dde1e5'><td style='padding:8px 0'>2 Parse git log</td><td>done</td><td>coder</td><td>b27e811</td></tr><tr style='border-top:1px solid #dde1e5'><td style='padding:8px 0'>3 Render table</td><td>done</td><td>coder</td><td>c04d9a2</td></tr><tr style='border-top:1px solid #dde1e5'><td style='padding:8px 0'>4 Width fallback</td><td>done</td><td>coder</td><td>d55b170</td></tr><tr style='border-top:1px solid #dde1e5;color:#2563c9;font-weight:600'><td style='padding:8px 0'>5 Blocked reasons</td><td>blocked</td><td>reviewer</td><td>gate: tests</td></tr><tr style='border-top:1px solid #dde1e5;color:#5d6670'><td style='padding:8px 0'>6 Docs</td><td>todo</td><td>&mdash;</td><td>&mdash;</td></tr><tr style='border-top:1px solid #dde1e5;color:#5d6670'><td style='padding:8px 0'>7 Eval check</td><td>todo</td><td>&mdash;</td><td>&mdash;</td></tr></table></body></html>"></iframe>
+      </div>
+    </div>
+    <div class="body">
+      <div class="body-head">C &mdash; One-line summary <span class="kind">code</span></div>
+<pre class="code">def summary_line(spec):
+    stories = load_stories(spec.path)
+    done = sum(s.status == "done" for s in stories)
+    blocked = sum(s.status == "blocked" for s in stories)
+    line = f"{spec.slug}: {done}/{len(stories)} done"
+    if blocked:
+        line += f", {blocked} blocked"
+    return line
+
+# Output:
+# 2026-09-12-status-progress: 4/7 done, 1 blocked</pre>
+    </div>
+  </div>
+
+  <!-- RecordFooter -->
+  <footer>
+    <span>Recorded 2026-09-30</span>
+    <span>Chosen draft shipped on <code>prototype/status-story-table</code> at <code>e3b7a46</code></span>
+  </footer>
+
+</main>
+</body>
+</html>

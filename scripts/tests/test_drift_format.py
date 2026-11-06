@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import unittest
@@ -235,7 +236,9 @@ class DriftFormatTests(unittest.TestCase):
     def test_pass_small_entry_with_large_in_title(self) -> None:
         code, out = self._check(STORY_NO_PAUSE, SMALL_TITLED_LARGE)
         self.assertEqual(code, 0, out)
-        self.assertEqual(_verdict(out), "pass")
+        # No Large signal fired. The fixture sits outside a git work tree, so
+        # its Auto-amended entry is the one thing left unchecked.
+        self.assertEqual(_reasons(out), ["auto_amend_unverifiable"])
 
     def test_fail_pause_in_prose_is_not_a_verdict(self) -> None:
         code, out = self._check(STORY_PAUSE_PROSE, DOCUMENTED_LARGE)
@@ -446,6 +449,324 @@ class DriftSummaryWiringTests(unittest.TestCase):
             "never changes the checker verdict, the banner, or any story status",
             step,
         )
+
+
+# --- Phase 15 retro F1: an `Auto-amended` entry must amend spec-lite.md ------
+
+_GIT_ENV = dict(os.environ, GIT_AUTHOR_NAME="Test", GIT_AUTHOR_EMAIL="t@example.com",
+                GIT_COMMITTER_NAME="Test", GIT_COMMITTER_EMAIL="t@example.com")
+
+
+def _git(repo: Path, *args: str) -> str:
+    proc = subprocess.run(["git", "-C", str(repo), "-c", "commit.gpgsign=false", *args],
+                          capture_output=True, text=True, env=_GIT_ENV)
+    if proc.returncode != 0:
+        raise AssertionError("git %s failed: %s" % (" ".join(args), proc.stderr))
+    return proc.stdout.strip()
+
+
+def _commit(repo: Path, message: str) -> str:
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", message)
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def _story_section(story: int, *entries: str) -> str:
+    return ("\n---\n\n## Story %d: Fixture — Drift Report\n\n> Run: 2026-10-30\n"
+            "> Overall Drift: Small\n\n### Deviations\n\n%s" % (story, "\n".join(entries)))
+
+
+def _entry(num: str, resolution: str, severity: str = "Small") -> str:
+    return (
+        "#### [DEV-%s] Renamed a helper\n"
+        "- **Severity:** %s\n"
+        "- **Spec said:** validateInput\n"
+        "- **Implementation did:** validateRegistrationData\n"
+        "- **Reason:** Naming only\n"
+        "- **Resolution:** %s\n"
+        "- **Spec amendment:** Rename validateInput in spec-lite.md\n" % (num, severity, resolution)
+    )
+
+
+AUTO = "Auto-amended (Small)."
+LOG_HEADER = "# Drift Log\n\n> Spec: .writ/specs/x/\n> Created: 2026-10-30\n"
+
+
+class AutoAmendTests(unittest.TestCase):
+    """`auto_amend_unapplied`: a story whose drift entries say `Auto-amended`
+    must change spec-lite.md, in its own commits or uncommitted at Gate 3.5."""
+
+    def setUp(self) -> None:
+        self._tmp = TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        _git(self.repo, "init", "-q")
+        self.spec = self.repo / ".writ" / "specs" / "2026-10-30-x"
+        self.stories = self.spec / "user-stories"
+        self.stories.mkdir(parents=True)
+        self.spec_lite = self.spec / "spec-lite.md"
+        self.spec_lite.write_text("# Spec Lite\n\nUse validateInput.\n", encoding="utf-8")
+        self.log = self.spec / "drift-log.md"
+        self.log.write_text(LOG_HEADER, encoding="utf-8")
+        self.story1 = self._story(1)
+        self.story2 = self._story(2)
+        _commit(self.repo, "docs(specs): author the spec")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _story(self, num: int) -> Path:
+        path = self.stories / ("story-%d-fixture.md" % num)
+        path.write_text("# Story %d: Fixture\n\n> **Status:** Not Started\n" % num,
+                        encoding="utf-8")
+        return path
+
+    def _log(self, *sections: str) -> None:
+        self.log.write_text(LOG_HEADER + "".join(sections), encoding="utf-8")
+
+    def _work(self, story: Path, *, amend: bool) -> None:
+        """What /implement-story does by Gate 3.5: code, story file, and,
+        when `amend`, the spec-lite.md amendment."""
+        (self.repo / "app.py").write_text("x = %r\n" % story.name, encoding="utf-8")
+        with story.open("a", encoding="utf-8") as fh:
+            fh.write("\n## What Was Built\n")
+        if amend:
+            with self.spec_lite.open("a", encoding="utf-8") as fh:
+                fh.write("Use validateRegistrationData.\n")
+
+    def _check(self, story: Path) -> "tuple[int, str]":
+        return _run(["check", "--story", str(story), "--drift-log", str(self.log)])
+
+    def test_fail_when_story_commit_leaves_spec_lite_unchanged(self) -> None:
+        self._log(_story_section(1, _entry("001", AUTO)))
+        self._work(self.story1, amend=False)
+        _commit(self.repo, "feat: story 1 (Story 1)")
+        code, out = self._check(self.story1)
+        self.assertEqual(code, 1, out)
+        self.assertEqual(out.splitlines()[0], "fail")
+        self.assertEqual(_reasons(out), ["auto_amend_unapplied"])
+        self.assertIn("DEV-001", out.splitlines()[-1])
+
+    def test_pass_when_story_commit_changes_spec_lite(self) -> None:
+        self._log(_story_section(1, _entry("001", AUTO)))
+        self._work(self.story1, amend=True)
+        _commit(self.repo, "feat: story 1 (Story 1)")
+        code, out = self._check(self.story1)
+        self.assertEqual((code, out.splitlines()[0]), (0, "pass"), out)
+
+    def test_mutation_reverting_the_amendment_flips_pass_to_fail(self) -> None:
+        """Gate 3.5 runs before the story commit: the amendment is uncommitted.
+        Undo it and the same check must fail."""
+        self._log(_story_section(1, _entry("001", AUTO), _entry("002", AUTO)))
+        self._work(self.story1, amend=True)
+        code, out = self._check(self.story1)
+        self.assertEqual((code, out.splitlines()[0]), (0, "pass"), out)
+        _git(self.repo, "checkout", "--", str(self.spec_lite))
+        code, out = self._check(self.story1)
+        self.assertEqual(code, 1, out)
+        self.assertIn("auto_amend_unapplied", _reasons(out))
+        self.assertIn("DEV-001, DEV-002", out.splitlines()[-1])
+
+    def test_spec_scaffold_commit_does_not_count_as_the_amendment(self) -> None:
+        """spec-lite.md was added with the story file; that is create-spec's
+        commit, not the story's."""
+        self._log(_story_section(1, _entry("001", AUTO)))
+        _commit(self.repo, "docs: log drift")
+        code, out = self._check(self.story1)
+        self.assertEqual(code, 1, out)
+        self.assertIn("auto_amend_unapplied", _reasons(out))
+
+    def test_other_storys_amendment_does_not_count(self) -> None:
+        self._log(_story_section(1, _entry("001", AUTO)))
+        self._work(self.story2, amend=True)
+        _commit(self.repo, "feat: story 2 (Story 2)")
+        self._work(self.story1, amend=False)
+        _commit(self.repo, "feat: story 1 (Story 1)")
+        code, out = self._check(self.story1)
+        self.assertEqual(code, 1, out)
+        self.assertIn("auto_amend_unapplied", _reasons(out))
+
+    def test_only_this_storys_entries_are_checked(self) -> None:
+        self._log(_story_section(1, _entry("001", AUTO)))
+        self._work(self.story2, amend=False)
+        _commit(self.repo, "feat: story 2 (Story 2)")
+        code, out = self._check(self.story2)
+        self.assertEqual((code, out.splitlines()[0]), (0, "pass"), out)
+
+    def test_flagged_for_review_needs_no_amendment(self) -> None:
+        self._log(_story_section(1, _entry("001", "Flagged for review", "Medium")))
+        self._work(self.story1, amend=False)
+        _commit(self.repo, "feat: story 1 (Story 1)")
+        code, out = self._check(self.story1)
+        self.assertEqual((code, out.splitlines()[0]), (0, "pass"), out)
+
+    def test_format_failure_and_unapplied_amendment_are_both_reported(self) -> None:
+        broken = _entry("002", AUTO).replace("- **Reason:** Naming only\n", "")
+        self._log(_story_section(1, _entry("001", AUTO), broken))
+        code, out = self._check(self.story1)
+        self.assertEqual(code, 1, out)
+        self.assertEqual(_reasons(out), ["malformed_entry", "auto_amend_unapplied"])
+
+    def test_outside_a_git_work_tree_is_unverifiable(self) -> None:
+        with TemporaryDirectory() as tmp:
+            story = Path(tmp) / "story-1-fixture.md"
+            log = Path(tmp) / "drift-log.md"
+            story.write_text("# Story 1: Fixture\n", encoding="utf-8")
+            log.write_text(LOG_HEADER + _story_section(1, _entry("001", AUTO)),
+                           encoding="utf-8")
+            code, out = _run(["check", "--story", str(story), "--drift-log", str(log)])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.splitlines()[0], "unverifiable")
+        self.assertEqual(_reasons(out), ["auto_amend_unverifiable"])
+
+    def test_retro_proof_why_command_story_1(self) -> None:
+        """The Phase 15 retro's F1 proof: Story 1 logged two Auto-amended
+        entries and its commit left spec-lite.md unchanged."""
+        rel = Path("2026-10-25-why-command")
+        for root in (REPO_ROOT / ".writ" / "specs", REPO_ROOT / ".writ" / "specs" / "archive"):
+            if (root / rel / "drift-log.md").is_file():
+                spec = root / rel
+                break
+        else:
+            self.skipTest("why-command spec not in this checkout")
+        code, out = _run(["check", "--story",
+                          str(spec / "user-stories" / "story-1-why-command-file.md"),
+                          "--drift-log", str(spec / "drift-log.md")])
+        self.assertEqual(code, 1, out)
+        self.assertIn("auto_amend_unapplied", _reasons(out))
+
+
+# --- A drift log's Large signal binds only its own story's sections ----------
+
+PAUSED = "Pipeline paused — accepted by user"
+
+# Spec-wide log: Story 1 logged a Large drift (paused and resolved in Story
+# 1's record); Story 2 logged only a Medium one.
+SPEC_WIDE_LOG = (
+    "# Drift Log\n\n> Spec: .writ/specs/x/\n> Created: 2026-11-04\n\n---\n\n"
+    "## Story 1: Paused Story — Drift Report\n\n> Run: 2026-11-04\n"
+    "> Overall Drift: Large\n\n### Deviations\n\n"
+    + _entry("001", PAUSED, "Large")
+    + "\n---\n\n"
+    "## Story 2: Later Story — Drift Report\n\n> Run: 2026-11-04\n"
+    "> Overall Drift: Medium\n\n### Deviations\n\n"
+    + _entry("002", "Flagged for review", "Medium")
+)
+
+# Story 1's Large entry with no `## Story N:` sections (an older single-story log).
+UNSECTIONED_LOG = (
+    "# Drift Log\n\n> Overall Drift: Large\n\n" + _entry("001", PAUSED, "Large")
+)
+
+PASS_REVIEW = "### REVIEW_RESULT: PASS\n"
+
+
+def _story_text(num: int, extra: str = "") -> str:
+    return "# Story %d: Fixture\n\n> **Status:** In Progress\n%s" % (num, extra)
+
+
+class LargeScopeTests(unittest.TestCase):
+    """`large_drift_without_pause` reads the drift log's Large signal from the
+    checked story's own `## Story N:` sections only. The story text and
+    `--review-output` count as before; an unsectioned log counts whole."""
+
+    def _check(self, story_text: str, log_text: str, review_text: "str | None" = None,
+               name: str = "story.md") -> "tuple[int, str]":
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            story = root / name
+            log = root / "drift-log.md"
+            story.write_text(story_text, encoding="utf-8")
+            log.write_text(log_text, encoding="utf-8")
+            args = ["check", "--story", str(story), "--drift-log", str(log)]
+            if review_text is not None:
+                review = root / "review.txt"
+                review.write_text(review_text, encoding="utf-8")
+                args += ["--review-output", str(review)]
+            return _run(args)
+
+    def test_later_story_does_not_inherit_an_earlier_large(self) -> None:
+        for review in (None, PASS_REVIEW):
+            code, out = self._check(_story_text(2), SPEC_WIDE_LOG, review)
+            self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+
+    def test_story_with_no_section_does_not_inherit_an_earlier_large(self) -> None:
+        code, out = self._check(_story_text(3), SPEC_WIDE_LOG, PASS_REVIEW)
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+
+    def test_large_story_without_pause_still_fails(self) -> None:
+        code, out = self._check(_story_text(1), SPEC_WIDE_LOG, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertEqual(_reasons(out), ["large_drift_without_pause"])
+
+    def test_large_story_with_pause_passes(self) -> None:
+        code, out = self._check(_story_text(1, "\n**REVIEW_RESULT:** PAUSE\n"),
+                                SPEC_WIDE_LOG)
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+
+    def test_large_in_a_later_run_of_the_same_story_fails(self) -> None:
+        rerun = (
+            "\n---\n\n## Story 2: Later Story — Drift Report\n\n> Run: 2026-11-05\n"
+            "> Overall Drift: Large\n\n### Deviations\n\n"
+            + _entry("003", PAUSED, "Large")
+        )
+        code, out = self._check(_story_text(2), SPEC_WIDE_LOG + rerun, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_story_number_from_file_name(self) -> None:
+        untitled = "> **Status:** In Progress\n"
+        code, out = self._check(untitled, SPEC_WIDE_LOG, name="story-2-later.md")
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+        code, out = self._check(untitled, SPEC_WIDE_LOG, name="story-1-paused.md")
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_unknown_story_number_counts_the_whole_log(self) -> None:
+        code, out = self._check("> **Status:** In Progress\n", SPEC_WIDE_LOG,
+                                name="notes.md")
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_review_output_large_still_counts(self) -> None:
+        code, out = self._check(_story_text(2), SPEC_WIDE_LOG,
+                                "### Drift Analysis\n\n**Overall Drift:** Large\n")
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_story_text_large_still_counts(self) -> None:
+        code, out = self._check(_story_text(2, "\n> Overall Drift: Large\n"),
+                                SPEC_WIDE_LOG, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
+
+    def test_unsectioned_log_counts_whole(self) -> None:
+        code, out = self._check(_story_text(2), UNSECTIONED_LOG, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertEqual(_reasons(out), ["large_drift_without_pause"])
+
+    def test_repro_evidence_gated_review_story_6(self) -> None:
+        """The 2026-11-04 run: Story 1's paused Large DEV-001 failed Stories
+        2 through 7. Story 6 logged no drift and must pass; Story 1 without
+        its PAUSE line must still fail."""
+        rel = Path("2026-11-04-evidence-gated-review")
+        for root in (REPO_ROOT / ".writ" / "specs", REPO_ROOT / ".writ" / "specs" / "archive"):
+            if (root / rel / "drift-log.md").is_file():
+                spec = root / rel
+                break
+        else:
+            self.skipTest("evidence-gated-review spec not in this checkout")
+        log = (spec / "drift-log.md").read_text(encoding="utf-8")
+        stories = spec / "user-stories"
+        story6 = (stories / "story-6-raise-safety-fact-floor.md").read_text(encoding="utf-8")
+        code, out = self._check(story6, log, PASS_REVIEW)
+        self.assertEqual((code, _verdict(out)), (0, "pass"), out)
+        story1 = (stories / "story-1-adr-032-review-surface-inventory.md").read_text(
+            encoding="utf-8")
+        unpaused = "\n".join(ln for ln in story1.splitlines()
+                             if ln.strip() != "**REVIEW_RESULT:** PAUSE")
+        self.assertNotEqual(unpaused, story1.rstrip("\n"))
+        code, out = self._check(unpaused, log, PASS_REVIEW)
+        self.assertEqual(code, 1, out)
+        self.assertIn("large_drift_without_pause", _reasons(out))
 
 
 if __name__ == "__main__":

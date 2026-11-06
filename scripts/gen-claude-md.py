@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Generate claude-code/CLAUDE.md from .writ/manifest.yaml, claude-code/agents/*.md,
-and the Claude Code capability map.
+"""Generate claude-code/CLAUDE.md from the Claude Code capability map, after
+checking .writ/manifest.yaml.
 
     python3 scripts/gen-claude-md.py           # write claude-code/CLAUDE.md
     python3 scripts/gen-claude-md.py --check   # compare with the committed file, write nothing
 
 Dev-only (installed projects have no manifest); never hand-edit the template.
-The `{capability_map}` slot after the Commands table (spec
+The template lists no commands and no agents: Claude Code's skill listing
+shows each `.claude/commands/*.md` and its Agent tool shows each agent's
+description every session, so repeating them here only costs context. The
+manifest is still read so the Pipeline section names real commands.
+The `{capability_map}` slot after the Commands section (spec
 `2026-10-22-generated-platform-trees`, Rule 7) is filled by
 `capability_map("claude-code", root)` from scripts/gen-platform-trees.py,
 loaded by path because its name has a hyphen; it renders
@@ -15,14 +19,12 @@ runs this generator after the adapters and every sub-generator check.
 
 Check shape: line 1 `pass`/`fail`/`unverifiable`, `reason:` lines, `wrote
 claude-code/CLAUDE.md` after a write, then `gen-claude-md: <verdict>
-(<detail>)`. Reasons: `manifest <detail>`, `import-token <name>` (`@` outside
-backticks in a purpose, an agent description, or the map, named
-`capability-map`), `pipeline <name>`, `agent <file>`, `capability-map
+(<detail>)`. Reasons: `manifest <detail>`, `import-token capability-map`
+(`@` outside backticks in the map), `pipeline <name>`, `capability-map
 <reason>` (the adapter table did not parse: `malformed adapters/claude-code.md:<line>`,
 `empty …`, `section <heading> in …`), `write <error>`; --check adds
-`missing|extra <name>` and `stale|absent claude-code/CLAUDE.md`. A missing
-input (the manifest, the agents dir, the driver, or the adapter) is
-`unverifiable`. Exit 0 pass or unverifiable, 1 fail, 2 usage. Nothing is
+`stale|absent claude-code/CLAUDE.md`. A missing input (the manifest, the
+driver, or the adapter) is `unverifiable`. Exit 0 pass or unverifiable, 1 fail, 2 usage. Nothing is
 written when any reason exists.
 """
 
@@ -39,7 +41,6 @@ from typing import Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_REL = ".writ/manifest.yaml"
-AGENTS_REL = "claude-code/agents"
 TREES_REL = "scripts/gen-platform-trees.py"
 ADAPTER_REL = "adapters/claude-code.md"
 PLATFORM = "claude-code"
@@ -47,7 +48,6 @@ OUT_REL = "claude-code/CLAUDE.md"
 PIPELINE = ("plan-product", "create-spec", "implement-spec", "verify-spec", "release")
 PHASE = "implement-phase"
 NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
-ROW_RE = re.compile(r"^\| `/([a-z0-9-]+)` \|", re.M)
 CODE_SPAN = re.compile(r"(`+).*?\1")
 Pairs = List[Tuple[str, str]]
 
@@ -61,19 +61,11 @@ Writ's root contract (Prime Directive, interaction rules, model tiers) loads fro
 
 ## Commands
 
-Run Writ commands by reading the command file and following its workflow:
-
 Start with `/writ "<what you want>"`: it restates the request and routes it to the right command.
 
-| Command | File | Purpose |
-|---------|------|---------|
-{rows}
+Writ commands live in `.claude/commands/` and its subagents in `.claude/agents/`; Claude Code lists both every session. To run a command, read its file and follow its workflow.
+
 {capability_map}
-## Agents
-
-Writ uses Claude Code's native subagent system. Agents are defined in `.claude/agents/`:
-
-{agents}
 ## Pipeline
 
 ```
@@ -139,24 +131,6 @@ def read_commands(text: str) -> Tuple[Pairs, List[str]]:
     return commands, reasons
 
 
-def read_agents(folder: Path) -> Tuple[Pairs, List[str]]:
-    """(file name, description) per agent file, plus `agent <file>` reasons."""
-    agents: Pairs = []
-    reasons: List[str] = []
-    for path in sorted(folder.glob("*.md")):
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            text = ""
-        end = text.find("\n---\n", 4) if text.startswith("---\n") else -1
-        keys = dict(re.findall(r"^(name|description):(.*)$", text[4:end], re.M)) if end > 0 else {}
-        description = parse_value(keys.get("description", ""))
-        if not parse_value(keys.get("name", "")) or not description:
-            reasons.append("agent %s" % path.name)
-        agents.append((path.name, description or ""))
-    return agents, reasons
-
-
 def read_capability_map(root: Path) -> Tuple[str, List[str]]:
     """(the Claude Code `## Capability Map` section rendered by
     scripts/gen-platform-trees.py, `capability-map <reason>` reasons when the
@@ -170,22 +144,17 @@ def read_capability_map(root: Path) -> Tuple[str, List[str]]:
         return "", ["capability-map " + reason for reason in str(err).split("; ")]
 
 
-def render(commands: Pairs, agents: Pairs, capability_map: str) -> str:
-    """The template bytes: LF only, one final newline, `|` escaped; the map
-    section (one trailing newline) sits in its slot after the Commands table."""
-    rows = "".join("| `/%s` | `.claude/commands/%s.md` | %s |\n" % (n, n, p.replace("|", "\\|"))
-                   for n, p in commands)
-    items = "".join("- `%s` — %s\n" % (f, d.replace("|", "\\|")) for f, d in agents)
+def render(capability_map: str) -> str:
+    """The template bytes: LF only, one final newline; the map section (one
+    trailing newline) sits in its slot after the Commands section."""
     pipeline = " → ".join("/" + name for name in PIPELINE)
-    return TEMPLATE.format(rows=rows, capability_map=capability_map, agents=items,
-                           pipeline=pipeline, phase=PHASE)
+    return TEMPLATE.format(capability_map=capability_map, pipeline=pipeline, phase=PHASE)
 
 
-def render_reasons(commands: Pairs, agents: Pairs, capability_map: str = "") -> List[str]:
-    """`import-token` for an `@` outside backticks (in a purpose, an agent
-    description, or the map); `pipeline` for a name not in the manifest."""
-    reasons = ["import-token %s" % name for name, text in commands + agents
-               if "@" in CODE_SPAN.sub("", text)]
+def render_reasons(commands: Pairs, capability_map: str = "") -> List[str]:
+    """`import-token` for an `@` outside backticks in the map; `pipeline` for
+    a name not in the manifest."""
+    reasons = []  # type: List[str]
     if "@" in CODE_SPAN.sub("", capability_map):
         reasons.append("import-token capability-map")
     names = {name for name, _ in commands}
@@ -202,17 +171,10 @@ def finish(verdict: str, reasons: List[str], detail: str, wrote: Tuple[str, ...]
     return 1 if verdict == "fail" else 0
 
 
-def check(out: Path, text: str, names: List[str], detail: str) -> int:
+def check(out: Path, text: str, detail: str) -> int:
     if not out.is_file():
         return finish("fail", ["absent " + OUT_REL], "1 absent")
-    committed = out.read_bytes()
-    rows = list(dict.fromkeys(ROW_RE.findall(committed.decode("utf-8", "replace"))))
-    missing = [n for n in names if n not in rows]
-    extra = [n for n in rows if n not in names]
-    if missing or extra:
-        reasons = ["missing " + n for n in missing] + ["extra " + n for n in extra]
-        return finish("fail", reasons, "%d missing, %d extra" % (len(missing), len(extra)))
-    if committed != text.encode("utf-8"):
+    if out.read_bytes() != text.encode("utf-8"):
         return finish("fail", ["stale " + OUT_REL], "1 stale")
     return finish("pass", [], detail)
 
@@ -238,7 +200,7 @@ def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
     parser = argparse.ArgumentParser(
         prog="gen-claude-md.py", allow_abbrev=False,
         description="Generate or check claude-code/CLAUDE.md from .writ/manifest.yaml "
-                    "and claude-code/agents/*.md. Dev-only; never shipped.")
+                    "and adapters/claude-code.md. Dev-only; never shipped.")
     parser.add_argument("--check", action="store_true",
                         help="compare with the committed file, write nothing; exit 0 pass, 1 fail")
     args = parser.parse_args(argv)
@@ -248,9 +210,6 @@ def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
         manifest = (root / MANIFEST_REL).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         unverifiable.append("manifest missing: " + MANIFEST_REL)
-    folder = root / AGENTS_REL
-    if not folder.is_dir() or not any(folder.glob("*.md")):
-        unverifiable.append("agents missing: " + AGENTS_REL)
     if not (root / TREES_REL).is_file():
         unverifiable.append("platform-trees missing: " + TREES_REL)
     if not (root / ADAPTER_REL).is_file():
@@ -259,18 +218,17 @@ def main(argv: Optional[List[str]] = None, root: Path = ROOT) -> int:
         return finish("unverifiable", unverifiable, "inputs missing")
 
     commands, reasons = read_commands(manifest)
-    agents, agent_reasons = read_agents(folder)
     capability_map, map_reasons = read_capability_map(root)
-    reasons += agent_reasons + map_reasons + render_reasons(commands, agents, capability_map)
+    reasons += map_reasons + render_reasons(commands, capability_map)
     if reasons:
         kinds = [r.split(" ", 1)[0] for r in reasons]
         return finish("fail", reasons, ", ".join(
             "%d %s" % (kinds.count(k), k) for k in dict.fromkeys(kinds)))
-    text = render(commands, agents, capability_map)
-    detail = "%d commands, %d agents" % (len(commands), len(agents))
+    text = render(capability_map)
+    detail = "%d commands" % len(commands)
     out = root / OUT_REL
     if args.check:
-        return check(out, text, [name for name, _ in commands], detail)
+        return check(out, text, detail)
     return write(out, text, detail)
 
 

@@ -123,9 +123,7 @@ ERR="$(awk '/^## Error Handling/{f=1} /^## Integration with Writ/{f=0} f' "$CMD"
 for heading in '**No test harness detected:**' '**Recipe invalid:**' '**Safety refused:**'; do
   printf '%s\n' "$ERR" | grep -Fq -- "$heading" || fail "Error Handling must cover $heading"
 done
-size="$(wc -c < "$CMD" | tr -d ' ')"
-[ "$size" -lt 24960 ] || fail "create-uat-plan.md is $size bytes (budget 24960)"
 [ ! -e "$REPO/.writ/docs/app-verification.md" ] || fail "the Writ repo must not carry a project recipe"
-ok "boundary sentence, exit criterion, error handling, $size bytes < 24960, no recipe"
+ok "boundary sentence, exit criterion, error handling, no recipe"
 
 echo "All create-uat-plan verification hook assertions passed."

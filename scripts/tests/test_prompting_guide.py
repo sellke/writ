@@ -64,7 +64,7 @@ RECIPES = [
     ("### A bug or a small change", "/prototype --no-diverge", None),
     ("### A feature", "/create-spec", None),
     ("### Roadmap work", "/implement-phase", None),
-    ("### A why or how question", "/research", None),
+    ("### A why or how question", "/why", None),
 ]
 RECIPE_LABELS = ("Weak:", "Strong:", "Route:")
 
@@ -179,7 +179,8 @@ def test_recipes():
                 forbidden,
             )
         if heading == "### A why or how question":
-            assert "/why" in route, "%r route %r does not mention /why" % (heading, route)
+            assert "/research" in route, "%r route %r does not name /research" % (heading, route)
+    assert "when it ships" not in text(), "the guide still says 'when it ships'"
 
 
 def test_no_internal_links():

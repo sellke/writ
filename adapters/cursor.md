@@ -30,7 +30,7 @@ your-project/
 ├── .cursor/
 │   ├── rules/
 │   │   └── writ.mdc               # Writ identity & rules (alwaysApply: true)
-│   ├── commands/                  # one file per `commands:` entry in .writ/manifest.yaml (33)
+│   ├── commands/                  # one file per `commands:` entry in .writ/manifest.yaml (34)
 │   │   ├── assess-spec.md         # /assess-spec
 │   │   ├── create-adr.md          # /create-adr
 │   │   ├── create-goal.md         # /create-goal
@@ -62,6 +62,7 @@ your-project/
 │   │   ├── uninstall-writ.md      # /uninstall-writ
 │   │   ├── update-writ.md         # /update-writ
 │   │   ├── verify-spec.md         # /verify-spec
+│   │   ├── why.md                 # /why
 │   │   ├── writ.md                # /writ
 │   │   └── writ-design.md         # /writ-design
 │   ├── agents/                    # one file per `agents:` entry in .writ/manifest.yaml (7)
@@ -249,8 +250,6 @@ The review agent specifies `readonly: true`. Cursor enforces this at the tool le
 ### Parallel Agent Limits
 
 Cursor supports up to 4 concurrent `Task()` sub-agents in a single message. More than 4 stories are batched (first 4, then next 4) by the `create-spec` command's Step 2.6.
-
-**Review panel (ADR-028): available.** The `Task` tool's `model` accepts the listed slugs across vendors, so each reviewer `review-panel.py status` keeps spawns at its own slug beside the Gate 3 agent; panel plus primary stays within 4 concurrent Tasks. A slug missing from the run-time list is dropped `slug_rejected`.
 
 ## Command Workflow Integrity
 
