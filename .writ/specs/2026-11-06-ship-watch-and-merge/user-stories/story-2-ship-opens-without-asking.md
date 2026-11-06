@@ -112,3 +112,12 @@
   - Spec said: cut it in Story 2. Reality: kept until Story 4 by the byte floor. Resolution: Auto-amended spec-lite.md
 - **[DEV-003] The Doubt Rule call is stated once, in a `### Decisions` subsection** — Severity: Small
   - Spec said: each decision names `doubt --record` and `doubt-label`. Reality: each names its record file, site, options, and recommendation; the calls are stated once. Resolution: Auto-amended spec-lite.md
+
+### Review Outcome — close-out repair `b3d8d16`
+
+**Result:** PASS
+
+- **What it covers:** commit `b3d8d16` changes the `CALLERS` constant in `scripts/tests/test_verify_ledger.py` to the `verify-ledger.py` Callers cell this story filled (DEV-011). The full pytest run at spec close-out had failed that pin.
+- **Verdict source:** a spawned read-only `evaluator-agent`, run as `--review-only` on `b3d8d16` (implement-spec Step 4.1, "Fix in place"): the contract test still checks row shape, position, Notes, and smoke entry with only the Callers value changed; neither script changed; `ac-trace.py check` reports no findings for either Phase 16 spec; `pytest -q` on the two contract test files, 67 passed (Python 3.9).
+- **Iteration count:** 1 iteration(s)
+- **Drift:** Small (DEV-011)
