@@ -700,7 +700,11 @@ KNOWN_OVER_BUDGET = {
     # kill_when (spec Business Rule 1). Frontmatter only; no body change. The
     # Gate 3 recode replaced the gate3_5_drift citation (+50). The spec's
     # Stories 2-3 shrink the file below 38551 (Success Criteria).
-    "commands/implement-story.md": 16566,
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 2): 16566 -> 16168 (file
+    # 41526 -> 41128); Gates 0, 4.5 and 5 move under the --full-pipeline heading
+    # and lose their default-path text. Still temporary: 2577 bytes above 38551,
+    # which Story 3 closes when the runner replaces the per-script blocks.
+    "commands/implement-story.md": 16168,
 }
 
 

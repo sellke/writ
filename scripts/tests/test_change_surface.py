@@ -602,8 +602,10 @@ class Gate25BlastRadiusTextTests(unittest.TestCase):
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
         start = text.index("#### Gate 2.5:")
         self.gate = text[start:text.index("#### Gate 3:", start)]
+        # 2026-11-06-lean-story-pipeline Story 2: Gate 0 moved under the
+        # --full-pipeline heading, where Gate 4.5 follows it.
         g0 = text.index("#### Gate 0:")
-        self.gate0 = text[g0:text.index("#### Gate 0.5:", g0)]
+        self.gate0 = text[g0:text.index("#### Gate 4.5:", g0)]
 
     def test_gate_2_5_names_switch_command_file_and_input(self) -> None:
         for needle in ("review-override.py switch --name safety-fact",

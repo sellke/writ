@@ -414,7 +414,8 @@ class Gate3WiringTest(unittest.TestCase):
 
     def test_switch_only_in_gate3(self) -> None:
         self.assertEqual(self.text.count(SWITCH_COMMAND), 1)
-        gate0 = slice_between(self.text, "#### Gate 0: Architecture Check", "#### Gate 0.5:")
+        # 2026-11-06-lean-story-pipeline Story 2: Gate 4.5 follows Gate 0.
+        gate0 = slice_between(self.text, "#### Gate 0: Architecture Check", "#### Gate 4.5:")
         step4 = slice_between(self.text, "### Step 4: Story Completion", "## Error Handling")
         self.assertTrue(gate0 and step4)
         for name, block in (("Gate 0", gate0), ("Step 4", step4)):
@@ -807,7 +808,7 @@ class Gate3SafetyFactTest(unittest.TestCase):
     def test_verifier_runs_only_in_gate3(self) -> None:
         self.assertEqual(self.text.count("review-override.py safety-fact"), 1)
         self.assertEqual(self.gate3.count("review-override.py safety-fact"), 1)
-        for start, end in (("#### Gate 0: Architecture Check", "#### Gate 0.5:"),
+        for start, end in (("#### Gate 0: Architecture Check", "#### Gate 4.5:"),
                            ("#### Gate 2.5:", "#### Gate 3: Review Agent"),
                            ("### Step 4: Story Completion", "## Error Handling")):
             block = slice_between(self.text, start, end)

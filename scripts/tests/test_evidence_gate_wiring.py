@@ -1158,8 +1158,9 @@ class PanelRemovalWiringTest(unittest.TestCase):
     def test_overview_gate0_gate35_and_report_name_no_panel(self) -> None:
         blocks = {
             "Overview": slice_between(self.text, "## Overview", "## Required Artifacts"),
+            # Story 2 of 2026-11-06-lean-story-pipeline: Gate 4.5 follows Gate 0.
             "Gate 0": slice_between(self.text, "#### Gate 0: Architecture Check",
-                                    "#### Gate 0.5:"),
+                                    "#### Gate 4.5:"),
             "Gate 3.5": slice_between(self.text, "#### Gate 3.5:", "#### Gate 4:"),
             "Step 4": slice_between(self.text, "### Step 4: Story Completion",
                                     "## Error Handling"),

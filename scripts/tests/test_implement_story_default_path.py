@@ -36,6 +36,17 @@ PAIR_COUNTS_ONCE = (
     "the floor attempt and its anchor re-run count as one attempt "
     "against `loop.max_iterations`"
 )
+# 2026-11-06-lean-story-pipeline Story 2: gates with no recorded catch
+# (gate-evidence.md) moved under this heading; the rest stay in Step 3.
+FULL_PIPELINE_HEADING = "### Full-Pipeline Gates (`--full-pipeline` only)"
+STEP3_HEADING = "### Step 3: Run Pipeline"
+DEMOTED = frozenset({"gate0_arch", "gate4_5_behavior", "gate5_docs"})
+HEADING_TO_ID = {
+    "0": "gate0_arch", "0.5": "gate0_5_boundary", "1": "gate1_coding",
+    "2": "gate2_build", "2.5": "gate2_5_surface", "3": "gate3_review",
+    "3.5": "gate3_5_drift", "4": "gate4_tests", "4.5": "gate4_5_behavior",
+    "5": "gate5_docs",
+}
 
 
 def _section(text: str, start: str, end: str | None = None) -> str:
@@ -59,6 +70,42 @@ def _default_agent_markers(text: str) -> list[str]:
         if line.strip():
             last_nonempty = line
     return out
+
+
+def _gate_paths(text: str) -> dict[str, str | None]:
+    """`gates:` frontmatter id -> its `path:` value (None when absent)."""
+    front = text.split("\n---\n", 1)[0]
+    block = front.split("\ngates:\n", 1)[1]
+    paths: dict[str, str | None] = {}
+    current = None
+    for line in block.splitlines():
+        m = re.match(r"^  - id: (\S+)$", line)
+        if m:
+            current = m.group(1)
+            paths[current] = None
+            continue
+        m = re.match(r"^    path: (\S+)$", line)
+        if m and current:
+            paths[current] = m.group(1)
+    return paths
+
+
+def _gate_parents(text: str) -> dict[str, str]:
+    """Each `#### Gate N` heading's id -> the `###` heading it sits under."""
+    parents: dict[str, str] = {}
+    parent = ""
+    in_fence = False
+    for line in text.split("\n---\n", 1)[1].splitlines():
+        if line.startswith("```"):
+            in_fence = not in_fence
+        if in_fence:
+            continue
+        if line.startswith("### ") or line.startswith("## "):
+            parent = line
+        m = re.match(r"^#### Gate (\d+(?:\.\d+)?)\b", line)
+        if m:
+            parents[HEADING_TO_ID[m.group(1)]] = parent
+    return parents
 
 
 def _stems_in(line: str) -> set[str]:
@@ -113,12 +160,12 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertEqual(default_stems, ALLOWED_DEFAULT_STEMS)
 
         pipe = _section(self.text, "## Pipeline", "## Command Process")
+        # Story 2 (2026-11-06-lean-story-pipeline): Gates 0, 4.5 and 5 are
+        # skipped on every path but --full-pipeline, where agent and script run.
         g0 = next(ln for ln in pipe.splitlines() if ln.startswith("| Gate 0 |"))
         self.assertIn("arch-check.py", g0)
         self.assertIn("architecture-check-agent", g0)
-        self.assertIn("--full-pipeline", g0)
-        self.assertIn("--quick", g0)
-        self.assertIn("--review-only", g0)
+        self.assertIn("| all but `--full-pipeline` |", g0)
         g3 = next(ln for ln in pipe.splitlines() if ln.startswith("| Gate 3 |"))
         self.assertIn("evaluator-agent", g3)
         self.assertIn("review-agent", g3)
@@ -129,13 +176,15 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("--full-pipeline", g4)
         g45 = next(ln for ln in pipe.splitlines() if ln.startswith("| Gate 4.5 |"))
         self.assertIn("app-verify.py", g45)
-        self.assertIn("--full-pipeline", g45)
         self.assertIn("visual-qa", g45)
-        self.assertIn("--quick", g45)
+        self.assertIn("| all but `--full-pipeline` |", g45)
         g5 = next(ln for ln in pipe.splitlines() if ln.startswith("| Gate 5 |"))
         self.assertIn("docs-check.py", g5)
         self.assertIn("documentation-agent", g5)
-        self.assertIn("--full-pipeline", g5)
+        self.assertIn("| all but `--full-pipeline` |", g5)
+        for row in (pipe.splitlines()):
+            if row.startswith("| Gate ") and row not in (g0, g45, g5):
+                self.assertNotIn("all but `--full-pipeline`", row)
 
         for note_start in (
             "**Sub-agent completeness:**",
@@ -210,7 +259,7 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("`--review-only`", gate3)
         self.assertIn("`--full-pipeline`", gate3)
 
-        gate4 = _section(self.text, "#### Gate 4: Testing Agent", "#### Gate 4.5:")
+        gate4 = _section(self.text, "#### Gate 4: Testing Agent", FULL_PIPELINE_HEADING)
         self.assertIn("coding-agent", gate4)
         self.assertIn("restarting **Gate 1**", gate4)
         self.assertIn("testing-agent", gate4)
@@ -222,7 +271,7 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("  - id: gate3_review\n    script: scripts/review-override.py", self.text)
         self.assertEqual(self.text.count("#### Gate 3: Review Agent"), 1)
 
-        gate0 = _section(self.text, "#### Gate 0: Architecture Check", "#### Gate 0.5:")
+        gate0 = _section(self.text, "#### Gate 0: Architecture Check", "#### Gate 4.5:")
         self.assertIn("scripts/arch-check.py check", gate0)
         self.assertIn("--planned", gate0)
         self.assertIn("never on ABORT", gate0)
@@ -251,8 +300,6 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("shared review-loop cap", gate45)
         self.assertIn("**not** marked `⚠️ DEGRADED`", gate45)
         self.assertIn("no mapped features", gate45)
-        self.assertIn("`--review-only`", gate45)
-        self.assertIn("`--quick`", gate45)
         self.assertIn("never asks a question", gate45)
         self.assertNotIn("Task(", gate45)
         self.assertEqual(_default_agent_markers(gate45), [])
@@ -262,18 +309,23 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
         self.assertIn("never fail", full)
         self.assertIn("count toward the review loop", full)
         self.assertIn("--features <touched ids, comma-joined>", gate45)
+        # Story 2: Gate 4.5 runs only under --full-pipeline, so its old
+        # --quick skip and --review-only clauses are gone; a script still
+        # decides and a fail still recodes on the shared cap (asserted above).
+        self.assertNotIn("Skip in", gate45)
+        self.assertNotIn("`--review-only`", gate45)
         flow = _section(self.text, "**Control flow:**", "## Command Process")
         self.assertNotIn("visual QA", flow)
         loop = _section(self.text, "**Review loop:**", "**Verify the claim")
         self.assertNotIn("visual QA", loop)
         self.assertIn("Gate 4.5 script fail", loop)
 
-        gate5 = _section(self.text, "#### Gate 5: Documentation Agent")
+        gate5 = _section(self.text, "#### Gate 5: Documentation Agent", "### Step 4:")
         self.assertIn("scripts/docs-check.py check", gate5)
         self.assertIn("documentation-agent", gate5)
         self.assertIn("⚠️ DEGRADED", gate5)
         self.assertIn("`--full-pipeline`", gate5)
-        self.assertEqual(_default_agent_markers(gate5.split("## Error Handling")[0]), [])
+        self.assertEqual(_default_agent_markers(gate5), [])
 
         control = _section(self.text, "**Control flow:**", "## Command Process")
         self.assertIn("--full-pipeline", control)
@@ -305,6 +357,89 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
     def test_yaml_description_is_not_full_sdlc(self) -> None:
         desc = self.text.split("description:", 1)[1].split("\n", 1)[0]
         self.assertNotIn("full SDLC pipeline", desc)
+
+
+class GateDemotionTests(unittest.TestCase):
+    """2026-11-06-lean-story-pipeline Story 2: gates whose gate-evidence.md row
+    reads `none recorded` with no kept dependent run only under --full-pipeline."""
+
+    def setUp(self) -> None:
+        self.text = COMMAND_PATH.read_text(encoding="utf-8")
+        self.paths = _gate_paths(self.text)
+        self.parents = _gate_parents(self.text)
+
+    def test_ac21_demoted_sections_sit_under_the_full_pipeline_heading(self) -> None:
+        """AC-2.1: section under the heading and `path: full-pipeline`."""
+        self.assertEqual(self.text.count(FULL_PIPELINE_HEADING + "\n"), 1)
+        demoted = {gid for gid, path in self.paths.items() if path == "full-pipeline"}
+        self.assertEqual(demoted, DEMOTED)
+        for gid in DEMOTED:
+            self.assertEqual(self.parents[gid], FULL_PIPELINE_HEADING, gid)
+        under = {gid for gid, parent in self.parents.items()
+                 if parent == FULL_PIPELINE_HEADING}
+        self.assertEqual(under, DEMOTED)
+
+    def test_ac22_kept_gates_stay_in_step_3_on_the_default_path(self) -> None:
+        """AC-2.2: kept sections stay in Step 3; their entry is not full-pipeline."""
+        self.assertEqual(set(self.paths), set(HEADING_TO_ID.values()))
+        for gid in set(self.paths) - DEMOTED:
+            self.assertIn(self.paths[gid], (None, "default"), gid)
+            self.assertEqual(self.parents[gid], STEP3_HEADING, gid)
+        # Gate 3's PAUSE lands in Gate 3.5 § A, and Step 4 reads its § B
+        # extraction, so Gate 3.5 must follow Gate 3 on the default path.
+        step3 = _section(self.text, STEP3_HEADING, FULL_PIPELINE_HEADING)
+        self.assertIn("##### A. Drift Response", step3)
+        self.assertIn('##### B. "What Was Built" Data Extraction', step3)
+        self.assertLess(step3.index("#### Gate 3: Review Agent"),
+                        step3.index("#### Gate 3.5:"))
+
+    def test_ac21_full_pipeline_section_says_default_runs_none_of_it(self) -> None:
+        """AC-2.1: the heading's lead states the skip and that it is not DEGRADED."""
+        section = _section(self.text, FULL_PIPELINE_HEADING, "### Step 4:")
+        lead = section.split("#### Gate 0:", 1)[0]
+        for phrase in ("default path", "`--quick`", "`--review-only`",
+                       "not `⚠️ DEGRADED`", "Gate 0 before Gate 0.5",
+                       "after Gate 4"):
+            self.assertIn(phrase, lead, phrase)
+        self.assertLess(section.index("#### Gate 0:"), section.index("#### Gate 4.5:"))
+        self.assertLess(section.index("#### Gate 4.5:"), section.index("#### Gate 5:"))
+
+    def test_ac23_default_path_wording_is_gone_from_demoted_gates(self) -> None:
+        """AC-2.3: no sentence still runs a demoted gate's script on default."""
+        section = _section(self.text, FULL_PIPELINE_HEADING, "### Step 4:")
+        for gone in ("**Default:**", "Default is script-only", "always on default",
+                     "immediately on default", "> **Skip in:**"):
+            self.assertNotIn(gone, section, gone)
+        self.assertNotIn("Default Gate 0 is script-only", self.text)
+        quick = _section(self.text, "## Quick Mode", "## Completion")
+        keeps = next(ln for ln in quick.splitlines() if ln.startswith("**Keeps:**"))
+        skips = next(ln for ln in quick.splitlines() if ln.startswith("**Skips:**"))
+        self.assertNotIn("Gate 0", keeps)
+        self.assertNotIn("Gate 5", keeps)
+        self.assertIn("Gates 0, 4.5 and 5", skips)
+        flow = _section(self.text, "**Control flow:**", "## Command Process")
+        self.assertIn("Gates 0, 4.5 and 5 run only under `--full-pipeline`", flow)
+        exit3 = next(ln for ln in self.text.splitlines() if "80 percent line coverage" in ln)
+        self.assertNotIn("scripts still run", exit3)
+        self.assertIn("Gates 0, 4.5 and 5", exit3)
+
+    def test_ac23_full_pipeline_behavior_is_unchanged(self) -> None:
+        """AC-2.3: agent plus script, ABORT, anchor re-run, and every verdict
+        branch survive the move."""
+        gate0 = _section(self.text, "#### Gate 0:", "#### Gate 4.5:")
+        self.assertLess(gate0.index("agents/architecture-check-agent.md"),
+                        gate0.index("python3 scripts/arch-check.py check"))
+        for phrase in ("**ABORT** → present findings", "never on ABORT",
+                       "**Anchor confirmation (ADR-024):**", "`rederived: caution`",
+                       "script `fail`", "`rederived: proceed`", "any `unverifiable` verdict"):
+            self.assertIn(phrase, gate0, phrase)
+        gate5 = _section(self.text, "#### Gate 5:", "### Step 4:")
+        self.assertLess(gate5.index("agents/documentation-agent.md"),
+                        gate5.index("python3 scripts/docs-check.py check"))
+        self.assertIn("restarting **Gate 5**", gate5)
+        gate45 = _section(self.text, "#### Gate 4.5:", "#### Gate 5:")
+        self.assertLess(gate45.index("python3 scripts/app-verify.py run"),
+                        gate45.index("agents/visual-qa-agent.md"))
 
 
 
