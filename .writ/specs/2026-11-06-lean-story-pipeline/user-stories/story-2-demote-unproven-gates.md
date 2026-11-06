@@ -1,6 +1,7 @@
 # Story 2: Demote gates with no recorded catch
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** c8c13a5ebea98b7215a63a54a555a6369e257431
 > **Priority:** High
 > **Dependencies:** Story 1
 
