@@ -1,6 +1,7 @@
 # Story 3: Drop the generic Definition of Done
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 2833bb4416539d4c7e344179ad3f929cc60f35ae
 > **Priority:** Medium
 > **Dependencies:** Story 2
 
