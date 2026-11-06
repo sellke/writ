@@ -614,6 +614,7 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("spec-analyze.py", ["check", "--spec", SPEC, "--repo", "{repo}"], {}),
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),
+    Smoke("verify-ledger.py", ["check", "--pr", "1", "--head", "a" * 40, "--repo", "{tmp}"], {}),
     Smoke("lint-skill.sh", ["{repo}/skills/tdd-cycle/SKILL.md"], {}),
 ]
 SMOKE_BY_KEY = {smoke_key(s): s for s in SMOKE_INVOCATIONS}

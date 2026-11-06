@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T09:22:11Z
+> Last Updated: 2026-11-06T19:40:00Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
-- **Status:** In Progress — task 4.6 waits on the Repro First substitute baseline (drift-log DEV-013); the trial kept Gate 0 Divergence, Safety Fact, and Reviewer Filters and held Repro First
-- **Story:** 4 of 4 — Act on the Labeled Trial (In Progress, 6/7 tasks)
-- **Progress:** 27/28 tasks complete; merged with Phase 15 (PR #64, 2026-11-05), released in v0.44.0
+- **Spec:** 2026-11-06-pr-ready-and-ledger — PR Ready and Verification Ledger
+- **Status:** In Progress — Phase 16 lane `writ/phase/16/2026-11-06-pr-ready-and-ledger`
+- **Story:** 2 of 3 — `pr-ready.py` snapshot and blocker classes (Not Started)
+- **Progress:** 7/20 tasks complete (35%)
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (Phases 14, 15, and 17 released in v0.44.0, 2026-11-06; ADR-033)
-- **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, trial-report.md, rating-handoff.md
+- **Product:** roadmap.md, mission.md, mission-lite.md
+- **Active spec:** .writ/specs/2026-11-06-pr-ready-and-ledger/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, recommendation-log.md
 - **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-029 `slug_vendor` and `origin_vendor` kept for `trial-record` — evidence-gated-review (Small)
-- DEV-028 A run-level stop after a failed prior check prints `fail` — evidence-gated-review (Small)
-- DEV-027 Manifest entries carry the normalized `content`, and a row 4a brief reads it — evidence-gated-review (Small)
+- DEV-004 `record`'s tracked-change check counts submodule state — pr-ready-and-ledger (Small)
+- DEV-003 Test harness uses unittest classes with temp dirs — pr-ready-and-ledger (Small)
+- DEV-002 Extra `patch_id_unavailable (git_failed)` cause — pr-ready-and-ledger (Small)
 
 ## Open Issues
 
-24 open issue files in .writ/issues/ (42 total; 18 closed with `## Resolution`)
+25 open issue files in .writ/issues/ (43 total; 18 closed with `## Resolution`)

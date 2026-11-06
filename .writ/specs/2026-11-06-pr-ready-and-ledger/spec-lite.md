@@ -11,7 +11,7 @@
 - Both scripts use the check shape: verdict on line 1, `reason:` lines, summary last. Stdlib, Python 3.9, standalone. Copy `_git`, `_resolve`, `printable` (`repro-order.py`), `_load_sibling` (`exit-criteria.py`), and the atomic write (`phase-state.py`).
 - `pr-ready.py check --snapshot <f> [--repo .] [--json]`. Exit 0 pass/unverifiable, 2 usage or bad snapshot, 3 conflicts, 4 unresolved_threads, 5 failing_checks, 6 merge_gates (first class present), never 1.
 - Ledger: `<repo>/.writ/state/verify-ledger.json`, schema `verify-ledger/1`, one writer (`record`), `mkstemp` + `os.replace`.
-- Patch-id: `git patch-id --verbatim` over a pinned `git diff` (technical-spec § Patch-id), passed as bytes; null when unsupported, empty, or no merge base.
+- Patch-id: `git patch-id --verbatim` over a pinned `git diff` (technical-spec § Patch-id, plus `-c diff.suppressBlankEmpty=false --inter-hunk-context=0 --indent-heuristic --ignore-submodules=none --submodule=short`, run without `GIT_DIFF_OPTS`/`GIT_EXTERNAL_DIFF`; DEV-001), passed as bytes; null when unsupported, empty, or no merge base.
 - `pr-ready.py` loads `verify-ledger.py` from its own directory and calls `ledger_check(repo, pr, head)` (Story 3).
 
 **Files in Scope:**
@@ -26,7 +26,7 @@
 **Error Handling:**
 - Bad snapshot (missing, not JSON, schema, GraphQL `errors`, field, enum, PR mismatch) → exit 2, stdout empty
 - Ledger unreadable → `check` exit 2; inside `pr-ready.py` → `merge_gates: not_verified ledger_unreadable`
-- Patch-id not computable → NOT VERIFIED (fail closed); `record` refusal → `fail`, exit 1, nothing written
+- Patch-id not computable → NOT VERIFIED (fail closed); any other git failure → `patch_id_unavailable (git_failed)` (DEV-002); `record` refusal → `fail`, exit 1, nothing written; its tracked-change check uses `--ignore-submodules=untracked` (DEV-004)
 
 **Integration Points:**
 - `2026-11-06-ship-watch-and-merge` runs both scripts and parses `pr-ready.py --json`; it replaces the Callers cells
@@ -83,4 +83,4 @@
 - New code: ≥80%. Critical paths and error paths: 100%
 
 **Test Strategy:**
-- Temp git repos under `tmp_path`; never the Writ checkout's `.writ/state/`. Run pytest alone.
+- Temp git repos in a temp dir (`unittest` + `tempfile`, house style; DEV-003); never the Writ checkout's `.writ/state/`. Run pytest alone.
