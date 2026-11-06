@@ -1,6 +1,6 @@
 # Ship Watch and Merge
 
-> **Status:** In Progress
+> **Status:** Complete
 > **Created:** 2026-11-06
 > **Owner:** @AdamSellke
 > **Dependencies:** [2026-11-06-pr-ready-and-ledger]
