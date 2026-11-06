@@ -65,7 +65,7 @@ gates:
     script: scripts/drift-format.py
     path: default
     catches: "A departure from the spec with no recorded decision; cost: the spec and the code disagree unnoticed"
-    evidence: "evidence-gated-review DEV-001 (2026-11-04): a Large drift pause put a spec conflict to the user, who amended the spec"
+    evidence: "ci-and-update-integrity DEV-007 (2026-10-20): an evaluator Large-drift PAUSE was rejected at Gate 3.5 and recoded, so customized Cursor files are no longer overwritten"
     kill_when: "sole_catches == 0 over 20 default-path records"
   - id: gate4_tests
     script: scripts/test-integrity.py

@@ -695,11 +695,12 @@ KNOWN_OVER_BUDGET = {
     # in the Overview, the reviewer-filters paragraph, the safety-fact sentence, and
     # Gate 3.5, less the leftover-config line and the `--panel` rejection. Stories
     # 3 + 4 + 7: net 0 (file 39929 -> 38551 bytes, at most 40759).
-    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 1): 13591 -> 16516 (file
-    # 38551 -> 41476); every gates: entry gains path, catches, evidence, and
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 1): 13591 -> 16566 (file
+    # 38551 -> 41526); every gates: entry gains path, catches, evidence, and
     # kill_when (spec Business Rule 1). Frontmatter only; no body change. The
-    # spec's Stories 2-3 shrink the file below 38551 (Success Criteria).
-    "commands/implement-story.md": 16516,
+    # Gate 3 recode replaced the gate3_5_drift citation (+50). The spec's
+    # Stories 2-3 shrink the file below 38551 (Success Criteria).
+    "commands/implement-story.md": 16566,
 }
 
 
