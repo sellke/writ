@@ -1,13 +1,14 @@
 ---
 name: ship
-description: "Take a green branch to an open PR - merge the default branch, organize commits, write the PR description, push, and open it."
+description: "Take a green branch to an open PR - merge the default branch, organize commits, write the PR description, push, and open it. With --watch, work the PR to merge-ready and merge it when verified."
 problem: "The last mile from green branch to open PR is a manual chain — merge default, split commits, write the body, push, open — and a skipped link yields a stale or unreviewable PR."
 outcome: "The branch has the default branch merged into it and its commits grouped by concern, and an open pull request states the change's spec, test and drift position."
 entry_level: standard
 exit_criteria:
   - "the current branch has an origin upstream and its local tip equals the pushed tip"
-  - "an open pull request exists whose head is the current branch and whose body carries Summary, Changes, Spec Reference and Test Results sections"
-  - "the default branch tip is an ancestor of the branch tip, and the PR is marked draft whenever tests failed or drift is unresolved"
+  - "a pull request exists whose head is the current branch, open or merged by --watch, and whose body carries Summary, Changes, Spec Reference and Test Results sections"
+  - "when the PR opened, the default branch tip was an ancestor of the branch tip, and the PR is marked draft whenever tests failed or drift is unresolved"
+  - "with --watch, the run ended merged, at merge-ready with an ask, or at a halt record, and any merge ran gh pr merge --match-head-commit after pr-ready.py passed and the doubt check passed for that head"
 loop:
   unit: "watch_pass"
   max_iterations: 24
@@ -29,11 +30,7 @@ Unified shipping workflow that takes a green branch to an open PR. Replaces the 
 
 `/writ:ship` assumes the code is ready (review complete, correctness established) and opens a PR. Tests do not run by default; use `/writ:ship --test` to run the suite after merging the default branch. `/writ:ship` is not a review gate; `/writ:review` is.
 
-Use `/writ:ship` standalone on any branch, or after `/writ:implement-story` completes.
-
-**How `/writ:ship` absorbs the PR agent concept:**
-
-The roadmap listed a "PR agent" and a "`/writ:ship` command" separately. Both create PRs. `/writ:ship` folds the PR agent's structured-description, auto-labeling, and draft/ready detection into its PR creation step. One command owns the full "branch to open PR" path: `/writ:implement-story` → pipeline green → `/writ:ship` → open PR.
+Use `/writ:ship` standalone on any branch, or after `/writ:implement-story` completes. With `--watch`, `/writ:ship` then works the PR to merge-ready one pass at a time and merges it when the ledger and the doubt check allow.
 
 ## Required Artifacts
 
@@ -98,21 +95,7 @@ git merge origin/[default-branch]
 
 **On already up-to-date:** Continue silently.
 
-**On conflict:**
-
-```
-⚠️ Merge conflict detected.
-
-Conflicting files:
-- src/components/Header.tsx
-- src/lib/auth.ts
-
-Options:
-1. Open in editor — resolve manually, then re-run /writ:ship
-2. Abort — stop shipping, resolve conflicts first
-```
-
-Do not auto-resolve merge conflicts. A bad resolution costs more than pausing for human judgment.
+**On conflict:** list the conflicting files and offer "Open in editor" (resolve by hand, then re-run `/writ:ship`) or "Abort". Never auto-resolve a conflict: a bad resolution costs more than a pause.
 
 **If `--rebase` flag or rebase convention detected:**
 
@@ -251,31 +234,11 @@ If any section has no data (no spec, no drift log, no review), use placeholder t
 2. **Auto-fix** safe metadata issues with no user prompts (README table, task totals, status headers, premature status, etc.).
 3. If **unfixable** problems remain (phantom stories, false completions, structural gaps): add a `## Spec Health` subsection to the PR body with short bullets. If everything is clean after fixes, **omit** `## Spec Health` entirely.
 
-**Auto-labeling — additive, not exclusive:**
-
-| Label | Applied When |
-|---|---|
-| `infra` | Config, CI, dependency, or migration files changed |
-| `feature` | New functionality added (detected from `feat:` commits or new files) |
-| `fix` | Bug fix (detected from `fix:` commits or issue references) |
-| `refactor` | Restructuring without behavior change (detected from `refactor:` commits) |
-| `docs` | Documentation-only changes |
-
-Multiple labels can apply to the same PR. A change that adds a feature and updates CI gets both `feature` and `infra`.
+**Auto-labeling (additive):** `infra` for config, CI, dependency, or migration files; `feature` for `feat:` commits or new files; `fix` for `fix:` commits or issue references; `refactor` for `refactor:` commits; `docs` for documentation-only changes.
 
 **Label fallback:** before applying labels, check they exist (`gh label list`); skip a missing one, log which were skipped (`gh label create <name>` adds one), and never fail `/writ:ship` over a label.
 
-**Draft vs. Ready determination:**
-
-| Condition | PR Status |
-|---|---|
-| Default (`/writ:ship` without `--test`), no `--draft`, drift acceptable | **Ready for review** — tests were not executed in this flow |
-| `/writ:ship --test` with all tests passing + drift acceptable | **Ready for review** |
-| `/writ:ship --test` with failures shipped as a draft | **Draft** with `tests-failing` label |
-| Test warnings or medium drift | **Draft** with notes explaining why |
-| `--draft` flag set | **Draft** regardless of status |
-
-User can override in both directions — force draft on a clean PR, or force ready on a draft. With `--watch`, record `draft_reason` (`tests_failed`, `drift`, or `flag` for `--draft`) in `branch-<slug>.json`, and a Step 3 failure that survives one fix pass opens the PR as a draft and ends the run at `asked`.
+**Draft vs. Ready:** the PR is a draft when `--draft` is set, when failing tests shipped as a draft (with the `tests-failing` label), or when tests warned or drift is medium (with a note saying why); otherwise ready for review, including `/writ:ship` without `--test`. The user can override either way. With `--watch`, record `draft_reason` (`tests_failed`, `drift`, or `flag` for `--draft`) in `branch-<slug>.json`, and a Step 3 failure that survives one fix pass opens the PR as a draft and ends the run at `asked`.
 
 **Push and open PR:**
 
@@ -309,13 +272,9 @@ When the trees differ, re-run the commands on HEAD, save, then record. A non-zer
    Labels: feature, auth
    verify-ledger: pass (recorded PR 42 head a1b2c3d, 2 command(s))   # --test only; else "not recorded (<reason>)"
    📝 Audit note attached to a1b2c3d (refs/notes/writ)   # once the branch lands; omitted if writ.auditNotes=false
-
-⚠️ The PR is now the source of truth. If you push more commits to this
-   branch, make sure the PR is still open — commits pushed after merge
-   will be orphaned. For follow-up changes, open a new branch.
 ```
 
-This warning prevents pushing commits to the branch after the PR has merged on GitHub, which orphans them and requires manual cherry-pick recovery.
+After the PR merges, open a new branch for follow-up changes; commits pushed to a merged branch are orphaned.
 
 ### Step 6: Audit Note (post-land)
 
@@ -347,7 +306,9 @@ this must be the commit that exists on the base branch):
 | Merge commit | the merge commit SHA on the base branch |
 | Rebase-and-merge (replays N commits) | the tip of the replayed commits on the base branch |
 
-If `/writ:ship` opened a PR that has not merged yet, the land happens when the PR merges
+With `--watch`, the merge happens in the pass, so Step 6 runs right after it.
+A PR `--watch` finds merged gives its landed SHA as `mergeCommit.oid` from `gh pr view <n> --json state,mergeCommit`, read after `git fetch origin`.
+Otherwise, if `/writ:ship` opened a PR that has not merged yet, the land happens when the PR merges
 and this step cannot complete in this session. **Re-entry:** the next `/writ:ship`
 invocation that finds the landed commit on the base branch runs Step 6 from 6.1
 (resolve the SHA per the table above) — re-running after merge is safe (see 6.4)
@@ -419,7 +380,7 @@ One pass per invocation: one action on the first blocker, one report line, then 
 
 | First match in the pr-ready output | Action | State |
 |---|---|---|
-| line 1 `pass` | Merge step (below) | `asked` |
+| line 1 `pass` | Merge step (below) | `merged` / `waiting` / `asked` |
 | `conflicts` | Rebase convention: ask. Otherwise merge `origin/<baseRefName>` and push | `acted` / `asked` |
 | `merge_gates: behind` | Rebase convention: ask. Otherwise merge the base and push | `acted` / `asked` |
 | `unresolved_threads` | Thread action (7.7) | `acted` / `waiting` / `asked` |
@@ -432,7 +393,17 @@ One pass per invocation: one action on the first blocker, one report line, then 
 
 A base merge here or in 7.8 that conflicts → `git merge --abort`, list the files, ask. Any other gh or git failure in 7.6–7.9 → `asked` with its message, except a rejected push → `waiting` (the next pass syncs).
 
-**Merge step.** Stop at merge-ready and ask one bounded question: "Merge PR #<n> now?" with "Merge now (Recommended)" and "Leave it at merge-ready". "Merge now" runs only `gh pr merge <n> --match-head-commit <view.headRefOid>`.
+**Merge step.**
+1. Save `pre_merge_base` = `git rev-parse origin/<baseRefName>` to the watch file.
+2. Write `.writ/state/ship/merge-record-pr-<n>.json`, adding `"/review: <recommendation line>"` to `evidence` when `.writ/state/review-<branch>.md` exists:
+   ```json
+   {"site": "merge", "question": "Merge PR #<n> into <baseRefName> now?", "options": ["Merge now (Recommended)", "Leave it at merge-ready"], "recommended": "Merge now", "evidence": ["the person ran /writ:ship --watch", "<pr-ready summary line>", "restore: revert the landed commit; <baseRefName> was <pre_merge_base> before the merge"], "reversible": true, "pr": <n>, "head_sha": "<view.headRefOid>", "snapshot": ".writ/state/pr-ready/pr-<n>.json"}
+   ```
+3. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py doubt --record .writ/state/ship/merge-record-pr-<n>.json`.
+4. `pass` → `gh pr merge <n> --match-head-commit <view.headRefOid> --<method>`, where `<method>` is `Merge Strategy` when it is `merge`, `squash`, or `rebase`; otherwise `merge`. Never `--delete-branch`, `--admin`, or `--auto`.
+5. Anything but `pass` → ask "Merge PR #<n> now?" ("Merge now (Recommended)", "Leave it at merge-ready"), then, when the output named an `id`, `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/jev-judge.py doubt-label --id <id> --outcome as_recommended|overridden`. "Merge now" → the step 4 command. "Leave it" → `asked`.
+6. Refused because the head moved → `waiting`; any other refusal → `asked` with gh's message.
+7. `gh pr view <n> --json state,mergeCommit`. `MERGED` → `git fetch origin`, then Step 6 in this pass with `mergeCommit.oid` as the landed SHA → `merged` with the doubt id. Any other state → `asked` with the state gh returned.
 
 **7.7 Thread action.**
 1. Fetch the comments into a file. The query is fixed; no PR text reaches the command line:
@@ -468,7 +439,7 @@ A base merge here or in 7.8 that conflicts → `git merge --abort`, list the fil
 
 Prints, step by step, what `/writ:ship` would do, and runs no git command that changes anything and creates no PR: the conventions found (Step 1), the merge it would run and how far behind the branch is (Step 2), the test command with `--test` (Step 3), the commit plan (Step 4), the PR title, labels, status, and body (Step 5), and the audit note it would attach under `refs/notes/writ`, unless `writ.auditNotes=false` (Step 6). It ends with `No changes made.`
 
-`--watch --dry-run` runs 7.1, 7.3, and 7.4 and prints the 7.6 row it would take; with no PR it prints the Steps 1–5 dry run and stops, and with a `MERGED` PR the Step 6 note it would attach. It runs no doubt check, changes no git or PR state, and does not count a pass.
+`--watch --dry-run` runs 7.1, 7.3, and 7.4 and prints the 7.6 row it would take (on `pass`, the merge record it would write); with no PR it prints the Steps 1–5 dry run and stops, and with a `MERGED` PR the Step 6 note it would attach. It runs no doubt check, changes no git or PR state, and does not count a pass.
 
 ## Error Handling
 
@@ -523,11 +494,11 @@ Or push manually and create the PR in your browser:
 
 ## Completion
 
-This command succeeds when the branch has an origin upstream whose tip matches local, the default branch is an ancestor of it, and an open pull request exists whose body carries Summary, Changes, Spec Reference, and Test Results.
+This command succeeds when the branch has an origin upstream whose tip matches local, the default branch was an ancestor of it when the PR opened, and a pull request exists, open or merged by `--watch`, whose body carries Summary, Changes, Spec Reference, and Test Results.
 
 Failing tests or unresolved drift do not stop the run; they make the pull request a draft.
 
-**Terminal constraint:** This command stops at an opened pull request. Do not merge it, request reviewers, or begin the next piece of work.
+**Terminal constraint:** Without `--watch`, this command stops at an opened pull request: do not merge it, request reviewers, or begin the next piece of work. With `--watch`, it stops merged, at merge-ready with an ask, or at a halt record. It never requests reviewers, releases, tags, or publishes.
 
 ---
 

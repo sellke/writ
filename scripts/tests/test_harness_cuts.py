@@ -397,8 +397,13 @@ IMPLEMENT_STORY_ITERATION = ("the floor attempt and its anchor re-run count as o
 MERGE_CLAIMS = ("merged pr", "branch to merged", "gets it merged")
 OPENS_A_PR = re.compile(r"\ban open (?:PR|pull request)\b|\bopens (?:a|the) (?:PR|pull request)\b")
 
-# ship.md frontmatter lines this story must not touch, as they read before it.
+# ship.md frontmatter lines this story kept. ADR-033 point 5 (Phase 16) let
+# `/ship --watch` merge a verified PR, so `description` and `exit_criteria` now
+# read as below; `problem` and `outcome` are as this story left them.
 SHIP_KEPT_FRONTMATTER = (
+    'description: "Take a green branch to an open PR - merge the default branch, organize'
+    ' commits, write the PR description, push, and open it. With --watch, work the PR to'
+    ' merge-ready and merge it when verified."',
     'problem: "The last mile from green branch to open PR is a manual chain \u2014 merge default,'
     ' split commits, write the body, push, open \u2014 and a skipped link yields a stale or'
     ' unreviewable PR."',
@@ -406,10 +411,13 @@ SHIP_KEPT_FRONTMATTER = (
     ' concern, and an open pull request states the change\'s spec, test and drift position."',
     'exit_criteria:\n'
     '  - "the current branch has an origin upstream and its local tip equals the pushed tip"\n'
-    '  - "an open pull request exists whose head is the current branch and whose body carries'
-    ' Summary, Changes, Spec Reference and Test Results sections"\n'
-    '  - "the default branch tip is an ancestor of the branch tip, and the PR is marked draft'
-    ' whenever tests failed or drift is unresolved"',
+    '  - "a pull request exists whose head is the current branch, open or merged by --watch, and'
+    ' whose body carries Summary, Changes, Spec Reference and Test Results sections"\n'
+    '  - "when the PR opened, the default branch tip was an ancestor of the branch tip, and the PR'
+    ' is marked draft whenever tests failed or drift is unresolved"\n'
+    '  - "with --watch, the run ended merged, at merge-ready with an ask, or at a halt record, and'
+    ' any merge ran gh pr merge --match-head-commit after pr-ready.py passed and the doubt check'
+    ' passed for that head"',
 )
 
 COMMAND_BYTE_BUDGET = 24960
@@ -567,8 +575,11 @@ class EscalateOnceUnchangedTest(unittest.TestCase):
 
 
 class ShipSaysItOpensAPRTest(unittest.TestCase):
-    """AC-3.3: `/ship` is described as opening a pull request, never as
-    merging one, and its contract frontmatter is untouched."""
+    """AC-3.3: `/ship` is described as opening a pull request. Since ADR-033
+    point 5 (Phase 16), `--watch` may merge a PR whose head the verification
+    ledger and the doubt check clear, so the description and Overview may say
+    so, but only of `--watch`; the MERGE_CLAIMS wording stays forbidden, and
+    the contract frontmatter reads exactly as pinned."""
 
     def test_ac_3_3_description_and_overview_make_no_merge_claim(self):
         frontmatter, overview = ship_frontmatter_and_overview()
@@ -585,7 +596,16 @@ class ShipSaysItOpensAPRTest(unittest.TestCase):
         self.assertRegex(description, OPENS_A_PR)
         self.assertRegex(overview, OPENS_A_PR)
 
-    def test_ac_3_3_problem_outcome_and_exit_criteria_are_unchanged(self):
+    def test_ac_3_3_a_merge_is_claimed_only_for_watch(self):
+        frontmatter, overview = ship_frontmatter_and_overview()
+        description = re.search(r'^description: "(.*)"$', frontmatter, re.MULTILINE).group(1)
+        for name, text in (("description", description), ("Overview", overview)):
+            for sentence in re.split(r"(?<=\.)\s+", " ".join(text.split())):
+                if re.search(r"\bmerges? (?:it|the PR)\b", sentence):
+                    with self.subTest(part=name, sentence=sentence):
+                        self.assertIn("--watch", sentence)
+
+    def test_ac_3_3_problem_outcome_and_exit_criteria_are_pinned(self):
         frontmatter, _ = ship_frontmatter_and_overview()
         lines = "\n" + frontmatter + "\n"
         for kept in SHIP_KEPT_FRONTMATTER:

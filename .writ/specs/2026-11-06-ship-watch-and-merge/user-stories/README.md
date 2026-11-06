@@ -9,7 +9,7 @@
 | 1 | [The merge rule re-derives readiness](story-1-merge-rule-re-derives-readiness.md) | Completed ✅ | High | 7 | 7/7 |
 | 2 | [`/ship` opens the PR without asking and records the ledger](story-2-ship-opens-without-asking.md) | Completed ✅ | High | 7 | 7/7 |
 | 3 | [A watch pass works a PR to merge-ready](story-3-watch-pass-to-merge-ready.md) | Completed ✅ | High | 7 | 7/7 |
-| 4 | [The watch merges on a green ledger](story-4-watch-merges-on-green-ledger.md) | Not Started | High | 6 | 0/6 |
+| 4 | [The watch merges on a green ledger](story-4-watch-merges-on-green-ledger.md) | Completed ✅ | High | 6 | 6/6 |
 
 **Total:** 4 stories, 27 tasks, 20 acceptance criteria.
 

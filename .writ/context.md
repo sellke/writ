@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T19:09:27Z
+> Last Updated: 2026-11-06T19:26:17Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-ship-watch-and-merge — Ship Watch and Merge
 - **Status:** In Progress — Phase 16 lane `writ/phase/16/2026-11-06-ship-watch-and-merge`
-- **Story:** 3 of 4 complete (last: A watch pass works a PR to merge-ready)
-- **Progress:** 21/27 tasks complete (78%)
+- **Story:** 4 of 4 complete (last: The watch merges on a green ledger)
+- **Progress:** 27/27 tasks complete (100%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-007 The Gate 3 halt repro ships as its own test file, which `test-integrity.py` cannot attribute to `ship.md` — ship-watch-and-merge (Small)
-- DEV-006 Step 7 is about twice the Story 3 byte estimate, and test fixtures learn the sixth loop command and `re-enter` — ship-watch-and-merge (Small)
-- DEV-005 `gh api graphql --input` checked from gh's help text, not a live call — ship-watch-and-merge (Small)
+- DEV-010 Step 6 names the landed SHA for a `--watch` merge, and the Gate 3 repro ships as its own test file — ship-watch-and-merge (Small)
+- DEV-009 `test_harness_cuts.py`'s AC-3.3 frontmatter test is renamed and joined by a `--watch` merge-claim test — ship-watch-and-merge (Small)
+- DEV-008 `commands/ship.md` ends 5,163 bytes over where the spec started, not at net ≤ 0 — ship-watch-and-merge (Small)
 
 ## Open Issues
 

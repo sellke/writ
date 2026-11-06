@@ -9,7 +9,7 @@
 
 **Implementation Approach:**
 - `jev-judge.py`: `merge` leaves `DOUBT_ALWAYS_ASK`, joins `DOUBT_FALLBACK_ASK`. Record fields `pr`, `head_sha`, `snapshot`. `merge_rule` resolves `--repo`, runs `pr-ready.py check --snapshot <s> --repo <r> --json` (subprocess, timeout), and maps the JSON; the info token is pr-ready's first class or code normalized to `[a-z0-9_]` (≤ 40 chars); a `head_sha` with surrounding whitespace or a blank `snapshot` exits 2 (DEV-001). No separate ledger call.
-- `ship.md`: Steps 1–5 route asks through the Doubt Rule (one `### Decisions` subsection states the record and the `doubt --record` / `doubt-label` calls; each site names its `decision-<name>.json`, site, options, and recommendation — DEV-003); `--test` runs Test Runner + `Eval Command` and calls `verify-ledger.py record` after `gh pr create`; Step 7 is the watch pass; the merge uses `gh pr merge <n> --match-head-commit <head>`.
+- `ship.md`: Steps 1–5 route asks through the Doubt Rule (one `### Decisions` subsection states the record and the `doubt --record` / `doubt-label` calls; each site names its `decision-<name>.json`, site, options, and recommendation — DEV-003); `--test` runs Test Runner + `Eval Command` and calls `verify-ledger.py record` after `gh pr create`; Step 7 is the watch pass; the merge uses `gh pr merge <n> --match-head-commit <head>`; after a `MERGED` read-back, `git fetch origin` and Step 6 with `mergeCommit.oid` as the landed SHA (DEV-010; repro `scripts/tests/test_ship_watch_landed_sha_repro.py`).
 - State under `.writ/state/ship/` (`branch-<slug>.json`, `watch-pr-<n>.json`, `threads-pr-<n>.json`, `reply-pr-<n>.json`, `run-<id>.log`, `merge-record-pr-<n>.json`); snapshot at `.writ/state/pr-ready/pr-<n>.json`.
 
 **Files in Scope:**
@@ -17,7 +17,7 @@
 - `commands/ship.md`, `scripts/tests/test_ship_watch.py` (new) — Stories 2–4; `scripts/tests/test_ship_watch_halt_repro.py` — the Story 3 Gate 3 repro, kept byte for byte (DEV-007)
 - `commands/_preamble.md:49`, `.writ/docs/recommendation-semantics.md`, `system-instructions.md:38-45`, `README.md:66`, `scripts/eval.sh:1081,1085`, ADR-033 amendment — rule text
 - `scripts/eval-loop-bounds.py`, `scripts/eval-leanness.py`, `scripts/eval-command-structure.py`, four `adapters/*.md` — registration
-- `scripts/tests/test_governor_enforcement.py` (re-pin), `scripts/tests/test_harness_cuts.py` (Story 4 pins), `.writ/docs/config-format.md` (`Eval Command`)
+- `scripts/tests/test_governor_enforcement.py` (re-pin), `scripts/tests/test_harness_cuts.py` (Story 4 pins; the AC-3.3 frontmatter test renamed `..._are_pinned`, plus a `--watch` merge-claim test — DEV-009), `.writ/docs/config-format.md` (`Eval Command`)
 - `scripts/tests/test_eval_leanness.sh`, `scripts/tests/test_gen_platform_trees.py`, `scripts/tests/fixtures/platform-trees/parity-no-file-search/codex.md` — fixtures for the sixth loop command and the `re-enter` row (DEV-006)
 - `.writ/docs/agent-cli-contract.md` — Callers cells of the two new rows only
 
@@ -33,7 +33,7 @@
 - First spec: `pr-ready.py` (text + `--json`, gate tokens), `verify-ledger.py record/check`, snapshot commands in `pr-ready.py --help`
 - Adapter `re-enter` row for the harness loop; `jev-judge.py doubt-label` after every ask
 
-**Line Budget Constraints:** re-pin `KNOWN_OVER_BUDGET["commands/ship.md"]` per story; keep `ship.md` above 24,960 bytes; aim net ≤ 0 vs 28,907. The PR-agent Overview paragraph cut moved from Story 2 to Story 4 because of the floor (DEV-002). The `loop:` block cites the watch file as `.writ/state/ship/watch-pr-*.json` so `eval-shipped-refs.py` passes (DEV-004). Story 3 nets about +7,600 bytes against a +3,000 estimate; the residual after Story 4 is disclosed, not closed (DEV-006).
+**Line Budget Constraints:** re-pin `KNOWN_OVER_BUDGET["commands/ship.md"]` per story; keep `ship.md` above 24,960 bytes; aim net ≤ 0 vs 28,907. The PR-agent Overview paragraph cut moved from Story 2 to Story 4 because of the floor (DEV-002). The `loop:` block cites the watch file as `.writ/state/ship/watch-pr-*.json` so `eval-shipped-refs.py` passes (DEV-004). Story 3 nets about +7,600 bytes against a +3,000 estimate; the residual after Story 4 is disclosed, not closed (DEV-006). After Story 4, `ship.md` is 34,070 bytes, 5,163 over 28,907, disclosed in the dated `KNOWN_OVER_BUDGET` line (DEV-008).
 
 ---
 

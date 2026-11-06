@@ -82,3 +82,34 @@
 - **Reason:** The evidence gate pins the repro by sha256 and fails `repro_removed` or `repro_modified` if it changes. The subject is a markdown command, so a prose test is the only kind there is; the repro did fail before the 7.2 fix and passes after it.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope names the repro file.
+
+## Story 4: The watch merges on a green ledger — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-008] `commands/ship.md` ends 5,163 bytes over where the spec started, not at net ≤ 0
+- **Severity:** Small
+- **Spec said:** technical-spec § Byte Budget: aim for net ≤ 0 against 28,907 bytes after Story 4; apply the reserve cuts first; disclose any residual in the dated comment.
+- **Implementation did:** Story 4 applies every listed cut (the PR-agent paragraph deferred from Story 2, the source-of-truth block, and the three reserve cuts: Step 2's conflict example, the auto-labeling table, the Draft vs. Ready table) and adds the merge step, frontmatter, Overview, Completion, and Step 6 sentences: net +1,024 after the Gate 3 recode. `commands/ship.md` ends at 34,070 bytes, 5,163 over 28,907; `KNOWN_OVER_BUDGET` is 9110, and the dated line states the residual.
+- **Reason:** Step 7 alone is about 7.3 KB (DEV-006). The cap is not a gate (ADR-023); no further cut was named by the spec, and cutting pinned or behavioral text to hit the number would trade correctness for bytes.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Line Budget Constraints states the residual.
+
+#### [DEV-009] `test_harness_cuts.py`'s AC-3.3 frontmatter test is renamed and joined by a `--watch` merge-claim test
+- **Severity:** Small
+- **Spec said:** Task 4.1: new `SHIP_KEPT_FRONTMATTER` values for `description` and `exit_criteria`, and an AC-3.3 docstring and assertion that allow the `--watch` merge sentence while keeping `MERGE_CLAIMS`.
+- **Implementation did:** `SHIP_KEPT_FRONTMATTER` gains the `description` line and the four exit criteria; `test_ac_3_3_problem_outcome_and_exit_criteria_are_unchanged` becomes `..._are_pinned`; a new `test_ac_3_3_a_merge_is_claimed_only_for_watch` requires every description or Overview sentence that says `/ship` merges to name `--watch`. The class docstring cites ADR-033 point 5. The file names no spec slug, so its harness-cuts AC tokens keep their owner.
+- **Reason:** "unchanged" no longer describes what the test checks; the new test is the assertion the task asks for.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope notes the rename.
+
+#### [DEV-010] Step 6 names the landed SHA for a `--watch` merge, and the Gate 3 repro ships as its own test file
+- **Severity:** Small
+- **Spec said:** technical-spec § Story 4: one Step 6 sentence ("With `--watch`, the merge happens in the pass, so Step 6 runs right after it."); merge step 7 reads the state back and runs Step 6.
+- **Implementation did:** Merge step 7 runs `git fetch origin`, then Step 6 with `mergeCommit.oid` as the landed SHA. Step 6 gains a second sentence giving the same rule for any PR `--watch` finds merged (7.1 and the `not_open MERGED` row), and the old re-entry sentence starts "Otherwise, if". `scripts/tests/test_ship_watch_landed_sha_repro.py` is the reviewer's confirmed repro, kept byte for byte; like DEV-007's, `test-integrity.py authenticity` cannot attribute it to `ship.md`.
+- **Reason:** The Gate 3 review found that no fetch runs between the merge and Step 6, and `gh pr merge` without `--delete-branch` updates no local ref, so Step 6.1's squash row resolved `origin/<base>` to `pre_merge_base` and the audit note would have overwritten the previous PR's note. No pinned Step 6 literal changed.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach names the landed-SHA rule and the repro file.

@@ -542,3 +542,163 @@ def test_watch_invocation_and_story_3_overage_line():
     comments = _known_over_budget_comments("commands/ship.md")
     assert any(c.startswith("# 2026-11-06 (2026-11-06-ship-watch-and-merge Story 3): ")
                for c in comments), comments
+
+
+# --------------------------------------------------------------------------
+# 2026-11-06-ship-watch-and-merge Story 4: the watch merges on a green ledger.
+# --------------------------------------------------------------------------
+
+HEAD_SHA = "3ddc8c8f0e1d2c3b4a5968778695a4b3c2d1e0f9"
+
+
+def merge_step() -> str:
+    text = watch()
+    start = text.index("**Merge step.**")
+    return text[start:text.index("\n**7.7", start)]
+
+
+def _merge_record_template() -> str:
+    blocks = re.findall(r"```json\n(.*?)```", merge_step(), re.S)
+    matches = [b for b in blocks if '"site": "merge"' in b]
+    assert len(matches) == 1, blocks
+    return matches[0]
+
+
+def _filled_merge_record(tmp_path: Path) -> Path:
+    filled = (_merge_record_template()
+              .replace('"pr": <n>', '"pr": 7').replace("<n>", "7")
+              .replace("<baseRefName>", "main").replace("<view.headRefOid>", HEAD_SHA)
+              .replace("<pre_merge_base>", "0" * 40)
+              .replace("<pr-ready summary line>",
+                       "pr-ready: pass (PR 7 head 3ddc8c8, ledger VERIFIED)"))
+    assert "<" not in filled, filled
+    data = json.loads(filled)
+    assert data["snapshot"] == ".writ/state/pr-ready/pr-7.json"
+    path = tmp_path / "merge-record-pr-7.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def doubt_helpers():
+    return _load("jev_doubt_tests_s4", "scripts/tests/test_jev_doubt.py")
+
+
+def test_merge_record_without_a_threshold_asks(tmp_path, capsys, monkeypatch, doubt_helpers):
+    """AC-4.1 — the filled merge record, a passing pr-ready, no threshold: fallback_merge."""
+    h = doubt_helpers
+    repo = h._repo(tmp_path)
+    h._stub_pr_ready(tmp_path, monkeypatch, h._pr_ready_json(pr=7, head=HEAD_SHA))
+    rc, lines = h._run(capsys, repo, ["doubt", "--record", str(_filled_merge_record(tmp_path))])
+    assert rc == 1 and lines[0] == "fail"
+    assert "reason: fallback_merge" in lines
+
+
+def test_merge_record_with_a_calibrated_threshold_acts(tmp_path, capsys, monkeypatch,
+                                                        doubt_helpers):
+    """AC-4.1 — the same record with a fixture threshold and p above it: pass."""
+    h = doubt_helpers
+    repo = h._repo(tmp_path, "vercel-gateway")
+    h._calibrated(repo)
+    h._stub_pr_ready(tmp_path, monkeypatch, h._pr_ready_json(pr=7, head=HEAD_SHA))
+    fake = h.Fake(p=0.8)
+    rc, lines = h._run(capsys, repo, ["doubt", "--record", str(_filled_merge_record(tmp_path))],
+                       env=h.ENABLED, transport=fake)
+    assert rc == 0 and lines[0] == "pass" and "reason: jev_clear" in lines
+    assert fake.calls == 1
+
+
+def test_merge_step_binds_the_head_and_reads_the_state_back():
+    """AC-4.2 — pre_merge_base saved before the doubt check, the doubt call, the
+    --match-head-commit merge with the configured method, no --delete-branch,
+    --admin, or --auto, the read-back, and Step 6 in the same pass."""
+    part = flat(merge_step())
+    saved = part.index("Save `pre_merge_base` = `git rev-parse origin/<baseRefName>` to the watch file")
+    assert saved < part.index(
+        "`python3 scripts/jev-judge.py doubt --record .writ/state/ship/merge-record-pr-<n>.json`")
+    assert "`gh pr merge <n> --match-head-commit <view.headRefOid> --<method>`" in part
+    assert ("`<method>` is `Merge Strategy` when it is `merge`, `squash`, or `rebase`; "
+            "otherwise `merge`") in part
+    for flag in ("--delete-branch", "--admin", "--auto"):
+        assert "`%s`" % flag in part  # named only to forbid it
+        assert "gh pr merge <n> --match-head-commit <view.headRefOid> --<method> %s" % flag \
+            not in part
+    assert "Never `--delete-branch`, `--admin`, or `--auto`" in part
+    assert "`gh pr view <n> --json state,mergeCommit`" in part
+    assert ("`MERGED` → `git fetch origin`, then Step 6 in this pass with `mergeCommit.oid` "
+            "as the landed SHA → `merged` with the doubt id") in part
+
+
+def test_merge_ask_path_is_labeled_and_bound_to_the_head():
+    """AC-4.3 — a doubt fail asks the two-option question, labels the answer, and a
+    "Merge now" answer runs the same bound command; a moved head waits, any other
+    refusal or state asks."""
+    part = flat(merge_step())
+    assert ('Anything but `pass` → ask "Merge PR #<n> now?" ("Merge now (Recommended)", '
+            '"Leave it at merge-ready")') in part
+    assert "when the output named an `id`, `python3 scripts/jev-judge.py doubt-label --id <id> " \
+           "--outcome as_recommended|overridden`" in part
+    assert '"Merge now" → the step 4 command' in part
+    assert "Refused because the head moved → `waiting`" in part
+    assert "any other refusal → `asked` with gh's message" in part
+    assert "Any other state → `asked` with the state gh returned" in part
+
+
+SHIP_DESCRIPTION = ('description: "Take a green branch to an open PR - merge the default branch, '
+                    'organize commits, write the PR description, push, and open it. With --watch, '
+                    'work the PR to merge-ready and merge it when verified."')
+SHIP_EXIT_CRITERIA = (
+    'exit_criteria:\n'
+    '  - "the current branch has an origin upstream and its local tip equals the pushed tip"\n'
+    '  - "a pull request exists whose head is the current branch, open or merged by --watch, and'
+    ' whose body carries Summary, Changes, Spec Reference and Test Results sections"\n'
+    '  - "when the PR opened, the default branch tip was an ancestor of the branch tip, and the PR'
+    ' is marked draft whenever tests failed or drift is unresolved"\n'
+    '  - "with --watch, the run ended merged, at merge-ready with an ask, or at a halt record, and'
+    ' any merge ran gh pr merge --match-head-commit after pr-ready.py passed and the doubt check'
+    ' passed for that head"')
+
+
+def test_frontmatter_names_watch_as_the_only_merge_path():
+    """AC-4.4 — the new description and four exit criteria, verbatim; the description
+    and Overview tie every merge to --watch."""
+    text = ship()
+    frontmatter = text[4:text.index("\n---\n")]
+    assert SHIP_DESCRIPTION in frontmatter.splitlines()
+    assert "\n" + SHIP_EXIT_CRITERIA + "\n" in "\n" + frontmatter + "\n"
+    overview = section(text, "## Overview")
+    assert ("With `--watch`, `/ship` then works the PR to merge-ready one pass at a time and "
+            "merges it when the ledger and the doubt check allow.") in flat(overview)
+    for part in (SHIP_DESCRIPTION, flat(overview)):
+        for sentence in re.split(r"(?<=\.) ", part):
+            if re.search(r"\bmerges? it\b", sentence):
+                assert "--watch" in sentence, sentence
+    assert "How `/ship` absorbs the PR agent concept" not in text
+
+
+@pytest.mark.parametrize("command", ["gh release", "git tag", "npm publish"])
+def test_ship_never_releases_tags_or_publishes(command):
+    """AC-4.5 — no release, tag, or publish step anywhere in ship.md."""
+    assert command not in ship()
+
+
+def test_completion_states_the_two_terminal_states():
+    """AC-4.5 — Completion: an opened PR without --watch; merged, an ask, or a halt with
+    it; never reviewers, release, tag, or publish."""
+    completion = flat(section(ship(), "## Completion"))
+    assert ("Without `--watch`, this command stops at an opened pull request: do not merge it, "
+            "request reviewers, or begin the next piece of work.") in completion
+    assert ("With `--watch`, it stops merged, at merge-ready with an ask, or at a halt record. "
+            "It never requests reviewers, releases, tags, or publishes.") in completion
+    assert ("With `--watch`, the merge happens in the pass, so Step 6 runs right after it."
+            in flat(section(ship(), "### Step 6")))
+    assert ("After the PR merges, open a new branch for follow-up changes; commits pushed to a "
+            "merged branch are orphaned.") in flat(ship())
+
+
+def test_story_4_overage_line():
+    """AC-4.5 — Story 4 left a dated overage line that discloses the residual."""
+    comments = _known_over_budget_comments("commands/ship.md")
+    story4 = [c for c in comments
+              if c.startswith("# 2026-11-06 (2026-11-06-ship-watch-and-merge Story 4): ")]
+    assert story4, comments
