@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T17:55:00Z
+> Last Updated: 2026-11-06T18:50:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-06-lean-story-tasks — Lean Story Tasks (branch `spec/lean-story-tasks`)
-- **Status:** In Progress — `/implement-spec` running; Stories 1–3 complete
-- **Story:** 4 of 5 — State each business rule once (Not Started)
-- **Progress:** 19/32 tasks complete
+- **Status:** In Progress — `/implement-spec` running; Stories 1–4 complete
+- **Story:** 5 of 5 — Trial lean tasks on one archived spec (Not Started)
+- **Progress:** 26/32 tasks complete
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-004 `/verify-spec` report example shows "—" for a story with no DoD — lean-story-tasks (Small)
-- DEV-003 `--from-prototype` Step 3 no longer names a Definition of Done — lean-story-tasks (Small)
-- DEV-002 Byte-offset trims in Step 2.6a item 1, the iteration paragraph, and Step 2.9 — lean-story-tasks (Small)
+- DEV-008 context-hint-format.md drops the "after the Definition of Done" placement — lean-story-tasks (Small)
+- DEV-007 Story 3's ledger test accepts any later dated entry — lean-story-tasks (Small)
+- DEV-006 Byte-offset trims in Step 2.4b — lean-story-tasks (Small)
 
 ## Open Issues
 

@@ -16,9 +16,11 @@
 **Files in Scope:**
 - `scripts/ac-trace.py`, `scripts/tests/test_ac_trace.py`, `.writ/docs/acceptance-criteria-ids.md` — the finding
 - `agents/user-story-generator.md` — task rules, no DoD, rule citations
-- `commands/create-spec.md` — Steps 2.4, 2.6, 2.6a, 2.8, 2.9, `--from-prototype` Step 3
+- `commands/create-spec.md` — Steps 1.4 (numbered Business Rules), 2.4, 2.4b (offset trims), 2.6, 2.6a, 2.8, 2.9, `--from-prototype` Step 3
 - `commands/verify-spec.md` — Checks 1d, 3b, Phase 5 report example
 - `scripts/tests/test_governor_enforcement.py` — byte ledger
+- `.writ/docs/context-hint-format.md` — `Business Rule N` hints; Context for Agents at the end of the story file
+- `scripts/tests/test_harness_cuts.py` — Story 3 ledger test accepts any later dated entry
 - `claude-code/agents/writ-story-gen.md`, `cursor/plugin/**` — generated
 
 **Error Handling:**

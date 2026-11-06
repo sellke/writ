@@ -55,3 +55,44 @@
 - **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: `verify-spec.md` adds the Phase 5 report example.
 
 ---
+
+## Story 4: State each business rule once — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] Step 1.4 contract template numbers its Business Rules
+- **Severity:** Small
+- **Spec said:** The contract's Included list names `create-spec.md` Steps 2.4, 2.6, 2.6a, 2.8, and Completion; Business Rule 4 (Expanded) says "The contract's numbered list is the source."
+- **Implementation did:** Step 1.4's Business Rules template changed from `-` bullets to `1.`/`2.`/`3.`.
+- **Reason:** Without numbers, `Business Rule N` resolves to nothing in a generated spec. No script, skill, or pin parses these bullets.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: `create-spec.md` adds Step 1.4.
+
+#### [DEV-006] Byte-offset trims in Step 2.4b
+- **Severity:** Small
+- **Spec said:** Target net-zero bytes for `create-spec.md`; Step 2.4b is not in the Included list.
+- **Implementation did:** Removed two parentheticals that restate `supersession-writeback.py` output; "domain edge cases" became "edge cases". File stays at 39081 bytes.
+- **Reason:** The removed detail lives in `supersession-writeback.py` and `spec-lifecycle.md`, which Step 2.4 links; no pin reads it.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: `create-spec.md` adds Step 2.4b offset trims.
+
+#### [DEV-007] Story 3's ledger test accepts any later dated entry
+- **Severity:** Small
+- **Spec said:** Story 4 owns `test_governor_enforcement.py` and the new test file; `test_harness_cuts.py` is Story 3's.
+- **Implementation did:** `test_ac_3_5` no longer pins the exact later size of `create-spec.md` or require a Story 3 line for `verify-spec.md`; it keeps the exact live-total assertion and requires a dated entry from the Story 3 start overage when a file's size changes.
+- **Reason:** The old form would fail on any later edit to either command, including the planned `2026-11-06-archived-dependencies-resolve` change to `verify-spec.md`.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: adds `scripts/tests/test_harness_cuts.py`.
+
+#### [DEV-008] context-hint-format.md drops the "after the Definition of Done" placement
+- **Severity:** Small
+- **Spec said:** Story 4 scopes this doc to the business-rule format and example.
+- **Implementation did:** Context for Agents is placed "at the end of the story file".
+- **Reason:** Follows from Business Rule 5; new stories have no DoD.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: adds `.writ/docs/context-hint-format.md` placement change.
+
+---

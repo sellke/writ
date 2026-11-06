@@ -266,9 +266,9 @@ Keyword matching, not semantic analysis; false positives are acceptable (the use
 - **Error experience:** [What failure looks like to the user — not the system]
 
 **📋 Business Rules:**
-- [Key rule 1 — e.g., "Only workspace admins can invite members"]
-- [Key rule 2 — e.g., "Free tier limited to 3 projects"]
-- [Edge cases or domain-specific constraints discovered during conversation]
+1. [Key rule — e.g., "Only workspace admins can invite members"]
+2. [Key rule — e.g., "Free tier limited to 3 projects"]
+3. [Edge cases or domain-specific constraints discovered during conversation]
 
 **Success Criteria:** [How we'll know it's working correctly]
 
@@ -402,7 +402,7 @@ Prefix `@`, strip spaces, and consult no external user directory. Unset or empty
   - **Supersession banners:** if the locked contract says this spec replaces or builds on prior spec work, add `> **Amends:**` (replaces/supersedes) or `> **Extends:**` (builds on) as a markdown link — link text the prior spec's folder name, target its relative `spec.md` path (e.g. `Amends:` → `2026-07-11-leanness-guardian` → `../2026-07-11-leanness-guardian/spec.md`). Step 2.4b writes the reverse pointer; convention in [`.writ/docs/spec-lifecycle.md`](../.writ/docs/spec-lifecycle.md#supersession-banners).
 - **Contract summary** — echo the locked contract verbatim
 - **Experience design** — expand the 🎯 section: user journey, state catalog (empty/loading/populated/error/edge), interaction patterns, responsive behavior
-- **Business rules** — expand the 📋 section: permissions, validation, state transitions, domain edge cases, compliance
+- **Business rules** — detail per contract rule, cited as `Business Rule N` (permissions, validation, state transitions, edge cases, compliance); never restate the rule
 - **Detailed requirements** — expanded from clarification responses
 - **Implementation approach** — technical strategy based on codebase analysis
 
@@ -414,7 +414,7 @@ If the new spec's header has an `> **Amends:**` or `> **Extends:**` line, write 
 python3 scripts/supersession-writeback.py apply --new-spec-file .writ/specs/[date]-[name]/spec.md
 ```
 
-It parses every link target on the line (there may be several, e.g. a spec **and** an ADR), resolves each against the new spec's folder, and writes or updates a `Superseded by:` line (link text the new folder name, target its relative `spec.md`) in each resolvable target's header, never duplicating it and leaving every other line — including the target's `> **Status:**` — untouched. Non-spec targets (e.g. an ADR) are reported under `skipped_other` and get no reverse pointer; broken paths or missing targets are reported under `broken`. **This step never blocks or fails spec package creation** — proceed to Step 2.5 regardless and surface any `broken` entries as an informational note.
+It parses every link target on the line, resolves each against the new spec's folder, and writes or updates a `Superseded by:` line in each resolvable target's header, never duplicating it and leaving every other line — including the target's `> **Status:**` — untouched. Non-spec targets (e.g. an ADR) are reported under `skipped_other` and get no reverse pointer; broken paths or missing targets are reported under `broken`. **This step never blocks or fails spec package creation** — proceed to Step 2.5 regardless and surface any `broken` entries as an informational note.
 
 **spec-lite.md** — condensed version for AI context with agent-specific sections. **Hard limit: under 100 lines.** Format:
 
@@ -581,7 +581,7 @@ After all subagents complete, create `user-stories/README.md` with: stories summ
 
 #### Step 2.8: Generate Technical Sub-Specs
 
-Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories.
+Can run in parallel with user story generation. Only create sub-specs the contract requires: `technical-spec.md` (always), plus `database-schema.md`, `api-spec.md`, `ui-wireframes.md` as needed. Each references relevant user stories and cites contract rules as `Business Rule N`; never restate a rule.
 
 **Error Mapping (Required for Data Flow Features):** include when the spec touches API routes, auth flows, payments, file operations, or external integrations; skip for pure UI/CSS, docs, config, or internal refactors; when in doubt, include it. `Read skills/error-rescue-mapping/SKILL.md` for how to build the Error & Rescue Map, Shadow Paths, and Interaction Edge Case tables and the `[UNPLANNED]` → `[OUT OF SCOPE — reason]` resolution discipline.
 

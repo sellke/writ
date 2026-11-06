@@ -914,9 +914,13 @@ VERIFY_SPEC_COPIES = ("cursor/plugin/commands/verify-spec.md",
 DOD_HEADING = "## Definition of Done"
 CHECK_3B_CONDITION = 'If story status is "Completed ✅" and the story has a Definition of Done:'
 CHECK_3B_NO_DOD = "No Definition of Done → no finding"
-# File sizes when Story 3 started. A change from either needs a dated ledger line.
+# File sizes when Story 3 started. A change from either needs a dated ledger
+# line that starts from that file's Story 3 overage: Story 3's own line for
+# create-spec.md (14169 -> 14121), or a later story's line. Any end value: a
+# later line may move the file again, and the governor test asserts the live
+# total exactly. Same form as test_rule_citations.py DATED_LEDGER_LINE_FROM.
 SIZE_AT_STORY_3_START = {CREATE_SPEC: 39129, VERIFY_SPEC: 35778}
-STORY_3_LEDGER_LINE = "# 2026-11-06 (2026-11-06-lean-story-tasks Story 3): %d -> %d"
+DATED_LEDGER_LINE_FROM = r"(?m)^\s*# \d{4}-\d{2}-\d{2}\b.*: %d -> \d+\b"
 
 
 def story_contents_sentence(text: str) -> str:
@@ -994,9 +998,7 @@ class NoGenericDefinitionOfDoneTest(unittest.TestCase):
                 size = len((REPO_ROOT / rel).read_bytes())
                 self.assertEqual(recorded[rel], size - COMMAND_BYTE_BUDGET)
                 if size != start:
-                    line = STORY_3_LEDGER_LINE % (start - COMMAND_BYTE_BUDGET,
-                                                  size - COMMAND_BYTE_BUDGET)
-                    self.assertIn(line, ledger)
+                    self.assertRegex(ledger, DATED_LEDGER_LINE_FROM % (start - COMMAND_BYTE_BUDGET))
 
 
 if __name__ == "__main__":

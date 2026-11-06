@@ -148,6 +148,7 @@ Rules for tasks:
 - At most 50 words per task, not counting the task number and AC tag. `/create-spec`
   Step 2.6a regenerates a story with a longer task
 - Probed facts, gotchas, and environment constraints go in Notes, not in tasks
+- A task may cite a business rule by number (`Business Rule N`) but never paraphrases it
 - Fill each `[AC-{story_number}.n]` placeholder with the actual criterion ordinal(s) that
   task satisfies — never leave the literal placeholder `n` in the written file
 
@@ -167,7 +168,7 @@ Format (include only categories with relevant content):
 
 - **Error map rows:** [Operation 1, Operation 2] — from technical-spec.md error map, or spec.md → Error Experience
 - **Shadow paths:** [Path name 1, Path name 2] — from technical-spec.md shadow paths, or spec.md → Happy Path Flow
-- **Business rules:** [Rule 1 (brief summary), Rule 2 (brief summary)] — from spec.md → Business Rules section
+- **Business rules:** [Business Rule 1, Business Rule 3] — numbers from the spec.md contract's Business Rules; never restate a rule
 - **Experience:** [Element 1 (detail), Element 2 (detail)] — from spec.md → Experience Design section
 
 **Selection criteria:**
@@ -177,7 +178,7 @@ Format (include only categories with relevant content):
 - Experience: Only include UX elements this story implements (error states, loading, feedback, empty states)
 
 **Quality rules:**
-- Be specific with names (use exact operation/path/rule names from spec)
+- Be specific with names (use exact operation and path names, and rule numbers, from spec)
 - Be concise (only what's directly relevant to this story)
 - Be accurate (reference content that actually exists)
 - Use empty brackets [] if a category has no relevant content
@@ -256,6 +257,7 @@ Each agent instance produces:
   never internal function names, signatures, or step order
 - At most 50 words, not counting the task number and AC tag; gotchas and constraints
   go in Notes
+- May cite a business rule by number; never paraphrase it
 - Must include test-first and verification tasks
 - Should not exceed 7 tasks (split story if needed)
 - Every task line ends with a trailing tag citing the criterion ID(s) it satisfies; every
