@@ -16,7 +16,7 @@
 
 **Files in Scope:**
 - `scripts/verify-ledger.py`, `scripts/pr-ready.py`: new
-- `scripts/tests/test_verify_ledger.py`, `scripts/tests/test_pr_ready.py`, `scripts/tests/fixtures/pr-ready/*`: new
+- `scripts/tests/test_verify_ledger.py`, `scripts/tests/test_pr_ready.py`, `scripts/tests/fixtures/pr-ready/*`: new; `scripts/tests/test_pr_ready_head_repro.py`: the Story 2 review repro, kept byte for byte (DEV-010)
 - `.writ/docs/agent-cli-contract.md`: two rows, two Notes entries, one Check-shape bullet
 - `.writ/decision-records/adr-029-agent-cli-contract.md`: 2026-11-06 amendment (rules 1-7 untouched)
 - `scripts/tests/test_agent_cli_contract.py`: two smokes, `FAIL_EXITS`, two appended tests (`test_fail_exits_are_documented`, `test_fail_exits_apply_only_to_listed_scripts`), and `test_every_test_names_its_ac_id` widened to accept a later spec's AC IDs beside its name (DEV-007)

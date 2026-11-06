@@ -98,3 +98,18 @@
 - **Reason:** `evaluate` stays pure and free of the ledger module's exception type. The Gate 3 review found that the plain load pattern wrote `__pycache__/verify-ledger.*.pyc` beside the script under a default Python, against Business Rule 1 ("writes nothing"). The CLI output, JSON shape, and exit codes are as specified.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach names `ledger_gate` and the bytecode guard.
+
+## Spec close-out — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-010] The Story 2 review repro ships as its own test file
+- **Severity:** Small
+- **Spec said:** spec-lite.md → Files in Scope lists `scripts/tests/test_verify_ledger.py`, `scripts/tests/test_pr_ready.py`, and the fixtures as the new test files.
+- **Implementation did:** Story 2 also adds `scripts/tests/test_pr_ready_head_repro.py`, the Gate 3 reviewer's confirmed repro (a `headRefOid` with a trailing newline exits 2), kept byte for byte.
+- **Reason:** implement-story's evidence gate pins the repro by sha256 in `.writ/state/evidence-story-2-pr-ready-blocker-classes.json` and fails `repro_removed` or `repro_modified` if it is deleted or edited. It tests only in-scope code. The spec supervisor flagged the file as outside Files in Scope.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope names the repro file.
