@@ -939,11 +939,17 @@ def test_gate1_stays_prose_only():
     """AC-4.2: the `gates:` frontmatter keeps `gate1_coding` as
     `verification: prose-only` with no `script:`, and
     `scripts/verdict-provenance.py check` passes, so no gate names both a
-    script and prose-only."""
+    script and prose-only.
+
+    Updated 2026-11-06 (2026-11-06-lean-story-pipeline Story 1): the entry
+    also carries `path:`, `catches:`, `evidence:`, and `kill_when:`, so the
+    pin reads its verdict-source lines only."""
     frontmatter = read(IMPLEMENT_STORY_REL).split("\n---\n", 1)[0] + "\n"
     entry = re.search(r"(?m)^  - id: gate1_coding\n((?:    \S.*\n)*)", frontmatter)
     assert entry, "gates: has no gate1_coding entry"
-    assert entry.group(1).split("\n")[:-1] == ["    verification: prose-only"], (
+    source = [ln for ln in entry.group(1).split("\n")[:-1]
+              if ln.startswith(("    script:", "    verification:"))]
+    assert source == ["    verification: prose-only"], (
         "gate1_coding changed: %r" % entry.group(1)
     )
     proc = subprocess.run(
