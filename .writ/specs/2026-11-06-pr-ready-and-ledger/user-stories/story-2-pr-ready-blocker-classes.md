@@ -1,6 +1,7 @@
 # Story 2: `pr-ready.py` snapshot and blocker classes
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 5fbaa73f6fe6fbc0327ac6a625a3c54e62a668f3
 > **Priority:** High
 > **Dependencies:** Story 1
 
