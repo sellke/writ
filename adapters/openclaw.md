@@ -17,6 +17,7 @@ Maps Cursor-specific tool calls to OpenClaw equivalents for running Writ command
 | `list_dir` | `exec({ command: "ls -la path/" })` | Direct equivalent |
 | `Task({ readonly: true })` | Add constraint to task prompt | "Do NOT modify any files" |
 | `canvas-preview` | `Write({ path: ".writ/prototypes/<date>-<slug>/<draft>.html" })`, one self-contained HTML file per draft | Inline CSS, no network fetch; send the user each path. Includes a run that cannot write files. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `re-enter` | No verified loop feature | Run one pass, print the resume command, and stop. |
 | `Plan Mode` | No agent-side mode: run discovery as a read-only conversation and say so | If the platform has no toggle, say so and proceed read-only. |
 
 #### Verification record — 2026-10-22

@@ -44,8 +44,8 @@ These apply to every command, agent, and session. No exceptions.
 - **Stay resumable and bounded.** Persist state before yielding or attempting
   external mutations, then reconcile repository and provider reality before
   retrying. Never infer completion from a prior attempt. Autonomy is
-  session-started and bounded to one spec or one roadmap phase; it never
-  becomes an unattended loop.
+  session-started and bounded to one spec, one roadmap phase, or one PR's
+  `/ship --watch` passes; it never becomes an unbounded loop.
 
 ### Recommendation Semantics
 

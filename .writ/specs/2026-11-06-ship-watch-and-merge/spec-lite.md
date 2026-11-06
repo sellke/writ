@@ -14,10 +14,11 @@
 
 **Files in Scope:**
 - `scripts/jev-judge.py`, `scripts/tests/test_jev_doubt.py` — merge rule (Story 1)
-- `commands/ship.md`, `scripts/tests/test_ship_watch.py` (new) — Stories 2–4
+- `commands/ship.md`, `scripts/tests/test_ship_watch.py` (new) — Stories 2–4; `scripts/tests/test_ship_watch_halt_repro.py` — the Story 3 Gate 3 repro, kept byte for byte (DEV-007)
 - `commands/_preamble.md:49`, `.writ/docs/recommendation-semantics.md`, `system-instructions.md:38-45`, `README.md:66`, `scripts/eval.sh:1081,1085`, ADR-033 amendment — rule text
 - `scripts/eval-loop-bounds.py`, `scripts/eval-leanness.py`, `scripts/eval-command-structure.py`, four `adapters/*.md` — registration
 - `scripts/tests/test_governor_enforcement.py` (re-pin), `scripts/tests/test_harness_cuts.py` (Story 4 pins), `.writ/docs/config-format.md` (`Eval Command`)
+- `scripts/tests/test_eval_leanness.sh`, `scripts/tests/test_gen_platform_trees.py`, `scripts/tests/fixtures/platform-trees/parity-no-file-search/codex.md` — fixtures for the sixth loop command and the `re-enter` row (DEV-006)
 - `.writ/docs/agent-cli-contract.md` — Callers cells of the two new rows only
 
 **Error Handling:**
@@ -32,7 +33,7 @@
 - First spec: `pr-ready.py` (text + `--json`, gate tokens), `verify-ledger.py record/check`, snapshot commands in `pr-ready.py --help`
 - Adapter `re-enter` row for the harness loop; `jev-judge.py doubt-label` after every ask
 
-**Line Budget Constraints:** re-pin `KNOWN_OVER_BUDGET["commands/ship.md"]` per story; keep `ship.md` above 24,960 bytes; aim net ≤ 0 vs 28,907. The PR-agent Overview paragraph cut moved from Story 2 to Story 4 because of the floor (DEV-002).
+**Line Budget Constraints:** re-pin `KNOWN_OVER_BUDGET["commands/ship.md"]` per story; keep `ship.md` above 24,960 bytes; aim net ≤ 0 vs 28,907. The PR-agent Overview paragraph cut moved from Story 2 to Story 4 because of the floor (DEV-002). The `loop:` block cites the watch file as `.writ/state/ship/watch-pr-*.json` so `eval-shipped-refs.py` passes (DEV-004). Story 3 nets about +7,600 bytes against a +3,000 estimate; the residual after Story 4 is disclosed, not closed (DEV-006).
 
 ---
 
@@ -91,3 +92,4 @@
 **Test Strategy:**
 - Stub `pr-ready.py` via `jev.SCRIPTS_DIR`; real scripts in a temp git repo for patch-id cases
 - Prose pins and filled-template tests for `ship.md`; no test touches GitHub or the Writ checkout's `.writ/state/`
+- `gh api graphql --input` is checked against `gh api --help` (gh 2.96.0); the live call is left to Human UAT (DEV-005)

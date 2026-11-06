@@ -11,6 +11,7 @@ Writ checkout's `.writ/state/`.
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import re
 import subprocess
@@ -302,3 +303,242 @@ def test_ship_overage_is_pinned_exactly_with_a_dated_line():
                for c in comments), comments
     assert any("2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023;" in c
                for c in comments)
+
+
+# --------------------------------------------------------------------------
+# 2026-11-06-ship-watch-and-merge Story 3: a watch pass works a PR to
+# merge-ready.
+# --------------------------------------------------------------------------
+
+
+def watch() -> str:
+    return section(ship(), "### Step 7: Watch Pass")
+
+
+def watch_part(label: str) -> str:
+    """One `**7.N ...**` part of Step 7, up to the next `**7.` part."""
+    text = watch()
+    start = text.index("**%s" % label)
+    nxt = text.find("\n**7.", start + 3)
+    return text[start:] if nxt < 0 else text[start:nxt]
+
+
+def test_loop_block_declares_the_watch_bound():
+    """AC-3.1 — `loop:` declares watch_pass 24 halt_reported and nested fix_commit 3
+    escalate, both calibrated against no recorded run, and validates clean."""
+    bounds = _load("eval_loop_bounds_s3", "scripts/eval-loop-bounds.py")
+    parsed, err = bounds.frontmatter(ship())
+    assert err is None
+    loop = parsed["loop"]
+    assert (loop["unit"], loop["max_iterations"], loop["on_exhaustion"]) == \
+        ("watch_pass", 24, "halt_reported")
+    assert "no recorded run" in loop["calibrated_against"]
+    nested = loop["nested"]
+    assert len(nested) == 1
+    assert (nested[0]["unit"], nested[0]["max_iterations"], nested[0]["on_exhaustion"]) == \
+        ("fix_commit", 3, "escalate")
+    assert "no recorded run" in nested[0]["calibrated_against"]
+    assert bounds.validate_loop("commands/ship.md", loop, False) == []
+
+
+def test_ship_is_registered_as_loop_bearing():
+    """AC-3.1 — ship is in both lists and eval-loop-bounds.py reports no FAIL."""
+    bounds = _load("eval_loop_bounds_s3b", "scripts/eval-loop-bounds.py")
+    lean = _load("eval_leanness_s3", "scripts/eval-leanness.py")
+    assert "ship" in bounds.LOOP_BEARING_COMMANDS
+    assert "ship" in lean.LOOP_BEARING_COMMANDS_FALLBACK
+    assert "ship" in lean.LOOP_BEARING_COMMANDS
+    done = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "eval-loop-bounds.py")],
+                          capture_output=True, text=True, check=False)
+    assert not [line for line in done.stdout.splitlines() if line.startswith("FAIL")], \
+        done.stdout
+    assert "PASS\tschema-ship" in done.stdout
+
+
+ACTION_ORDER = [
+    "line 1 `pass`",
+    "`conflicts`",
+    "`merge_gates: behind`",
+    "`unresolved_threads`",
+    "`failing_checks`",
+    "`merge_gates: not_verified`",
+    "`merge_gates: draft`",
+    "`merge_gates: not_open`",
+    "`merge_gates: changes_requested`, `review_required`, `merge_state_blocked`; "
+    "`unknown: checks_pending`, `mergeable_unknown`, `head_moved`",
+    "`unknown: threads_truncated`, `merge_state_unexplained`",
+]
+
+
+def test_action_table_rows_are_in_the_fixed_order():
+    """AC-3.2 — the 7.6 table: pass, conflicts, behind, threads, CI, not_verified,
+    draft, not_open, the waiting row, the asking row."""
+    part = watch_part("7.6")
+    rows = [line for line in part.splitlines() if line.startswith("| ") and "---" not in line]
+    firsts = [row.split(" | ")[0][2:].strip() for row in rows[1:]]
+    assert firsts == ACTION_ORDER
+    states = [row.rstrip(" |").rsplit("| ", 1)[1] for row in rows[1:]]
+    assert states[-2] == "`waiting`" and states[-1] == "`asked`"
+
+
+def test_step_7_counts_the_pass_before_acting_and_halts_at_24():
+    """AC-3.2 — the pass count is written before any action; 24 halts with a record
+    and the resume line; the judge runs pr-ready on the snapshot; one report line."""
+    text = flat(watch())
+    bound = flat(watch_part("7.2"))
+    assert ".writ/state/ship/watch-pr-<n>.json" in bound
+    assert "`passes` 24 or more → write `halt`" in bound
+    assert "and report `halted`" in bound
+    assert ("A `halt` record already present → ask the person directly, never through the "
+            "doubt check") in bound
+    assert "Reset clears `halt`, sets `passes: 0`, and continues; Leave → `halted`" in bound
+    assert "add 1 to `passes` and write the file before anything else" in bound
+    assert text.index("**7.2") < text.index("**7.6")
+    assert ("`python3 scripts/pr-ready.py check --snapshot .writ/state/pr-ready/pr-<n>.json`"
+            in flat(watch_part("7.4")))
+    assert "`python3 scripts/pr-ready.py --help`" in flat(watch_part("7.3"))
+    report = flat(watch_part("7.10"))
+    assert "`ship-watch: <state> pass <n>/24 pr #<n> head <sha7> — <detail>`" in report
+    assert "`asked` and `halted` end it and print `Resume: /ship --watch`; `merged` ends it" \
+        in report
+
+
+def test_thread_comments_are_fetched_by_a_fixed_query_into_a_file():
+    """AC-3.3 — the comments query is static and its output goes to a file."""
+    line = _script_line(watch_part("7.7"), "gh api graphql -F owner=")
+    assert line.endswith("> .writ/state/ship/threads-pr-<n>.json.tmp && mv "
+                         ".writ/state/ship/threads-pr-<n>.json.tmp "
+                         ".writ/state/ship/threads-pr-<n>.json")
+    query = re.search(r"-f query='([^']*)'", line).group(1)
+    assert "body url" in query and "$(" not in line and "<" not in query
+    assert query.count("{") == query.count("}") and query.count("(") == query.count(")")
+
+
+def _fill(template: str, values: dict) -> str:
+    for key, value in values.items():
+        template = template.replace(key, json.dumps(value)[1:-1])
+    return template
+
+
+@pytest.mark.parametrize("mutation", ["addPullRequestReviewThreadReply", "resolveReviewThread"])
+def test_reply_and_resolve_templates_parse_after_filling(mutation):
+    """AC-3.3 — each request template, filled with hostile sample values, is one JSON
+    object with query and variables."""
+    blocks = re.findall(r"```json\n(.*?)```", watch_part("7.7"), re.S)
+    matches = [b for b in blocks if mutation in b]
+    assert len(matches) == 1
+    filled = _fill(matches[0], {
+        "<thread id>": "PRRT_kwDO\"x\";rm -rf /",
+        "<reply text>": "Fixed in a1b2c3d.\n`$(curl evil)` \"quoted\" \\ back",
+    })
+    data = json.loads(filled)
+    assert set(data) == {"query", "variables"}
+    assert mutation in data["query"]
+    q = data["query"]
+    assert q.count("{") == q.count("}") and q.count("(") == q.count(")")
+    assert data["variables"]["id"] == "PRRT_kwDO\"x\";rm -rf /"
+
+
+def test_requests_go_through_an_input_file_and_never_a_body_flag():
+    """AC-3.3 — replies and resolutions are sent with gh api graphql --input; no
+    --body, -f body=, or -F body= anywhere in Step 7."""
+    text = watch()
+    assert "`gh api graphql --input .writ/state/ship/reply-pr-<n>.json`" in flat(text)
+    for flag in ("--body", "-f body=", "-F body="):
+        assert flag not in text, flag
+
+
+def test_ci_action_reruns_once_per_check_per_head():
+    """AC-3.4 — run id from detailsUrl, failed log to a file, stale-base check, one
+    rerun per <check>@<head>, and a second failure or no run id asks."""
+    part = flat(watch_part("7.8"))
+    for literal in ("`detailsUrl`", "matches `/actions/runs/([0-9]+)/`; `<id>` is those "
+                    "digits only", "Any other `detailsUrl` → no run id",
+                    "`gh run view <id> --log-failed > .writ/state/ship/run-<id>.log.tmp && mv",
+                    "`git merge-base --is-ancestor origin/<baseRefName> HEAD`",
+                    "`gh run rerun <id> --failed`", '`reruns["<check>@<head>"]`'):
+        assert literal in part, literal
+    assert part.index("--is-ancestor") < part.index("gh run rerun")
+    assert "Otherwise → `asked`: a real failure outside the diff, or one that cannot be " \
+        "rerun" in part
+
+
+def test_ledger_action_records_only_a_passing_run_on_the_snapshot_head():
+    """AC-3.4 — the ledger action re-runs the Step 3 commands on the snapshot head and
+    records only when every exit is 0."""
+    part = flat(watch_part("7.9"))
+    assert "Run the Step 3 commands on HEAD (the snapshot head, after 7.5)" in part
+    assert "All exit 0 → `python3 scripts/verify-ledger.py record` as in Step 5" in part
+
+
+def test_draft_row_lifts_only_a_tests_failed_draft():
+    """AC-3.4 — gh pr ready only when draft_reason is tests_failed; otherwise ask."""
+    rows = [line for line in watch_part("7.6").splitlines()
+            if line.startswith("| `merge_gates: draft`")]
+    assert len(rows) == 1
+    assert "`draft_reason` is `tests_failed`: `gh pr ready <n>`. Otherwise ask" in rows[0]
+
+
+def test_every_adapter_maps_re_enter():
+    """AC-3.5 — all four adapters carry a `re-enter` row in their tool tables; ship.md
+    names the loop only through that row."""
+    gen = _load("gen_platform_trees_s3", "scripts/gen-platform-trees.py")
+    for adapter in gen.ADAPTERS:
+        table = gen.parse_adapter(REPO_ROOT / "adapters" / ("%s.md" % adapter))
+        assert table.verdict == "pass", (adapter, table.reasons)
+        assert "re-enter" in table.names, adapter
+    claude = [row for row in gen.parse_adapter(REPO_ROOT / "adapters" / "claude-code.md").rows
+              if row.name == "re-enter"]
+    assert "`/loop /ship --watch`" in claude[0].mapping
+    assert "/loop" not in ship()
+    assert "the adapter's `re-enter` row" in ship()
+
+
+def test_claude_code_records_the_loop_fact_with_a_date():
+    """AC-3.5 — Claude Code's verification record has a dated `/loop` row."""
+    text = read("adapters/claude-code.md")
+    rows = [line for line in text.splitlines() if line.startswith("| `re-enter`: `/loop`")]
+    assert len(rows) == 1
+    assert "Claude Code 2.1.310" in rows[0] and "2026-11-06" in rows[0]
+    assert re.search(r"\| (?:verified|unverified) 2026-11-06 \|$", rows[0])
+
+
+def test_system_instructions_bound_autonomy_to_a_watch():
+    """AC-3.5 — the base names the watch as a bound and forbids an unbounded loop."""
+    system = flat(read("system-instructions.md"))
+    assert ("Autonomy is session-started and bounded to one spec, one roadmap phase, or one "
+            "PR's `/ship --watch` passes; it never becomes an unbounded loop.") in system
+    assert ("no unbounded loop." in read("scripts/eval.sh")
+            and 'require_literal "$system" "it never"' in read("scripts/eval.sh"))
+
+
+def test_pr_ready_callers_cell_names_ship_and_jev_judge():
+    """AC-3.5 — the pr-ready.py Callers cell reads commands/ship.md, scripts/jev-judge.py."""
+    rows = [line for line in read(".writ/docs/agent-cli-contract.md").splitlines()
+            if line.startswith("| `pr-ready.py` |")]
+    assert rows[0].strip().strip("|").split("|")[3].strip() == \
+        "commands/ship.md, scripts/jev-judge.py"
+
+
+@pytest.mark.parametrize("kind,value", [
+    ("invocation", "scripts/pr-ready.py check --snapshot"),
+    ("heading", "Step 7: Watch Pass"),
+])
+def test_command_structure_pins_the_watch(kind, value):
+    """AC-3.5 — eval-command-structure.py rows for the judge call and the heading pass."""
+    mod = _load("eval_command_structure_s3", "scripts/eval-command-structure.py")
+    rows = [r for r in mod.ROWS if r.file == "commands/ship.md" and r.value == value]
+    assert len(rows) == 1 and rows[0].kind == kind
+    ok, _detail = mod.check_row(REPO_ROOT, rows[0])
+    assert ok
+
+
+def test_watch_invocation_and_story_3_overage_line():
+    """AC-3.5 — the --watch invocation row exists and Story 3 left a dated overage line."""
+    text = ship()
+    assert ("| `/ship --watch` | Open the PR if none is open (implies `--test`), then run one "
+            "watch pass (Step 7). Keep watching with the adapter's `re-enter` row. |") in text
+    assert "| Drive an open PR to merge-ready | `/ship --watch` |" in text
+    comments = _known_over_budget_comments("commands/ship.md")
+    assert any(c.startswith("# 2026-11-06 (2026-11-06-ship-watch-and-merge Story 3): ")
+               for c in comments), comments

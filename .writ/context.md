@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T18:34:18Z
+> Last Updated: 2026-11-06T19:09:27Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-ship-watch-and-merge — Ship Watch and Merge
 - **Status:** In Progress — Phase 16 lane `writ/phase/16/2026-11-06-ship-watch-and-merge`
-- **Story:** 2 of 4 complete (last: /ship opens the PR without asking and records the ledger)
-- **Progress:** 14/27 tasks complete (52%)
+- **Story:** 3 of 4 complete (last: A watch pass works a PR to merge-ready)
+- **Progress:** 21/27 tasks complete (78%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-003 The Doubt Rule call is stated once, in a `### Decisions` subsection — ship-watch-and-merge (Small)
-- DEV-002 The PR-agent Overview paragraph cut moves to Story 4 — ship-watch-and-merge (Small)
-- DEV-001 The merge rule validates a little more than the technical spec, and resolves `--repo` first — ship-watch-and-merge (Small)
+- DEV-007 The Gate 3 halt repro ships as its own test file, which `test-integrity.py` cannot attribute to `ship.md` — ship-watch-and-merge (Small)
+- DEV-006 Step 7 is about twice the Story 3 byte estimate, and test fixtures learn the sixth loop command and `re-enter` — ship-watch-and-merge (Small)
+- DEV-005 `gh api graphql --input` checked from gh's help text, not a live call — ship-watch-and-merge (Small)
 
 ## Open Issues
 

@@ -147,6 +147,7 @@ On Codex, native memory is **`AGENTS.md`**, the primary instruction surface Code
 | `list_dir` | `ls` through the shell | Codex has no dedicated list-dir tool |
 | `todo_write` | `Write(".writ/state/...json")` | File-based tracking |
 | `canvas-preview` | CLI: `Write` one self-contained HTML file per draft to `.writ/prototypes/<date>-<slug>/`. Desktop: the app's docs say it opens workspace files and has a browser, and do not document rendering an HTML draft; write the same files. | Inline CSS, no network fetch; give the user each path. A read-only sandbox cannot write drafts. No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `re-enter` | No documented loop feature | Run one pass, print the resume command, and stop. |
 | `Plan Mode` | No agent-side mode: run discovery as a read-only conversation and say so; Codex's `/plan` is user-side | If the platform has no toggle, say so and proceed read-only. |
 
 #### Verification record — 2026-10-22

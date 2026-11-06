@@ -14,6 +14,7 @@
 | `list_dir` | `Glob("pattern")` or `Bash("ls")` | Codex has no dedicated list-dir tool |
 | `todo_write` | `Write(".writ/state/...json")` | File-based tracking |
 | `canvas-preview` | `Write` one self-contained HTML file per draft | No renderer: write a structural description of each draft and say the drafts were not rendered. |
+| `re-enter` | No documented loop feature | Run one pass, print the resume command, and stop. |
 | `Plan Mode` | No agent-side mode: run discovery as a read-only conversation and say so; Codex's `/plan` is user-side | If the platform has no toggle, say so and proceed read-only. |
 
 #### Verification record — 2026-10-22

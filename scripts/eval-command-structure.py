@@ -197,6 +197,14 @@ ROWS: Tuple[Row, ...] = (
         "check_command_structure",
         "ship.md must run each open-path decision through the doubt check "
         "(2026-11-06-ship-watch-and-merge Story 2)."),
+    Row("commands/ship.md", "invocation", "scripts/pr-ready.py check --snapshot",
+        "check_command_structure",
+        "ship.md Step 7 must judge each watch pass with pr-ready.py, never by itself "
+        "(2026-11-06-ship-watch-and-merge Story 3)."),
+    Row("commands/ship.md", "heading", "Step 7: Watch Pass",
+        "check_command_structure",
+        "ship.md must keep the Step 7 heading over the --watch pass "
+        "(2026-11-06-ship-watch-and-merge Story 3)."),
 )
 
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")

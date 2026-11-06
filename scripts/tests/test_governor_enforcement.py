@@ -654,7 +654,10 @@ KNOWN_OVER_BUDGET = {
     # 2026-11-06 (2026-11-06-ship-watch-and-merge Story 2): 3947 -> 421; open-path asks become
     # Doubt Rule decisions and Step 5 records the ledger row; ASCII pipeline, detection
     # details, and duplicate dry-run block cut. Acknowledged, not exempted.
-    "commands/ship.md": 421,
+    # 2026-11-06 (2026-11-06-ship-watch-and-merge Story 3): 421 -> 8086; Step 7 watch pass,
+    # loop: block, --watch rows; dry-run, When to Use, and label-fallback example cut.
+    # Over the Story 3 estimate; residual disclosed in Story 4. Acknowledged, not exempted.
+    "commands/ship.md": 8086,
     # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
     # Gate 4.5 rewritten as behavioral verification, old Results ladder and an
     # adjacent Gate 4 clause trimmed to offset (-7 bytes net).
