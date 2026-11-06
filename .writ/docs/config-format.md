@@ -19,6 +19,7 @@
 
 - **Default Branch:** main
 - **Test Runner:** jest (detected: package.json scripts.test)
+- **Eval Command:** make lint
 - **Merge Strategy:** squash
 - **Delivery Provider:** github
 - **Delivery Remote:** origin
@@ -45,6 +46,7 @@
 |-----|---------|-------------|
 | `Default Branch` | ship, release, status | The primary branch (main, master, develop) |
 | `Test Runner` | ship, release | Command to run tests (e.g., `npm test`, `pytest`) |
+| `Eval Command` | ship | Command `/ship --test` and `--watch` run after the Test Runner; its exit code goes into the verification ledger. Absent: the Test Runner alone. |
 | `Merge Strategy` | ship | How to integrate the default branch (merge, squash, rebase) |
 | `Delivery Provider` | implement-spec, ship | PR/check provider mapping (for example `github`) |
 | `Delivery Remote` | implement-spec, ship | Source remote used for branch identity and push |

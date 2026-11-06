@@ -189,6 +189,14 @@ ROWS: Tuple[Row, ...] = (
         "check_command_structure",
         "create-spec.md --from-issue Step 3 must open with its precondition: the "
         "Step 2 contract is locked at Step 1.4b."),
+    Row("commands/ship.md", "invocation", "scripts/verify-ledger.py record --pr",
+        "check_command_structure",
+        "ship.md Step 5 must record the tested head in the verification ledger "
+        "(2026-11-06-ship-watch-and-merge Story 2)."),
+    Row("commands/ship.md", "invocation", "scripts/jev-judge.py doubt --record",
+        "check_command_structure",
+        "ship.md must run each open-path decision through the doubt check "
+        "(2026-11-06-ship-watch-and-merge Story 2)."),
 )
 
 FENCE = re.compile(r"^\s*(`{3,}|~{3,})")

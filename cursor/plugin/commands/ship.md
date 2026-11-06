@@ -45,87 +45,33 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 
 ## Pipeline
 
-Default path **omits** tests. With `/ship --test`, the dashed box runs after merge.
-
-```
-┌──────────────┐   ┌──────────────┐   ┌ ╍╍╍╍╍╍╍╍╍╍╍╍ ┐   ┌──────────────┐   ┌──────────────┐
-│ DETECT       │──▶│ MERGE &      │ ╷ │ RUN TESTS    │ ╷ │ COMMIT       │──▶│ PR           │
-│ CONVENTIONS  │   │ REBASE       │ ╷ │ (--test)     │ ╷ │ INTELLIGENCE │   │ CREATION     │
-│              │   │              │ ╵ │ optional     │ ╵ │              │   │              │
-│ • branch     │   │ • fetch      │   └ ╍╍╍╍╍╍╍╍╍╍╍╍ ┘   │ • splitting  │   │ • structured │
-│ • test runner│   │ • merge /    │          ▲            │ • grouping   │   │   body       │
-│ • PR style   │   │   rebase     │    only if --test     │              │   │ • spec health│
-└──────────────┘   └──────────────┘          │            └──────────────┘   └──────────────┘
-                          │                  │                                      │
-                     conflict?          test fail? (--test only)           ┌─────┴─────┐
-                          ▼                  ▼                             │ PUSH &    │
-                   ┌──────────────┐   ┌──────────────┐                       │ OPEN PR   │
-                   │ PAUSE        │   │ FIX / DRAFT  │                       │ + URL     │
-                   │ show conflict│   │ / ABORT      │                       └───────────┘
-                   └──────────────┘   └──────────────┘
-```
+`detect conventions → merge the default branch → (--test) run tests and eval → organize commits → open the PR → (--test) record the ledger row`
 
 ## Command Process
 
+### Decisions
+
+Every question below is a decision. Write its record to `.writ/state/ship/decision-<name>.json`: `site`, `question`, `options`, `recommended`, `evidence` (a list of strings: the facts behind it), and `reversible: true` unless the decision says otherwise. Run `python3 scripts/jev-judge.py doubt --record .writ/state/ship/decision-<name>.json`; its last line carries the decision `id`. `pass` → act on the recommended option. Anything else → ask the options in one AskQuestion, then `python3 scripts/jev-judge.py doubt-label --id <id> --outcome as_recommended|overridden`. Opening the PR asks nothing. Every file under `.writ/state/ship/` is written to `<file>.tmp`, then moved over the target.
+
 ### Step 1: Detect Conventions
 
-Load project conventions using the following priority order:
-
-1. **Read `.writ/config.md`** — if present, parse supported keys (Default Branch, Test Runner, Merge Strategy) and use those values directly. See `.writ/docs/config-format.md` for the full key reference.
-2. **Detect missing keys** — for any convention not found in config, run the detection chain below.
-3. **Offer to persist** — after detection fills any key that was missing from config, offer once: *"Detected [values]. Save to `.writ/config.md`? (y/n)"* — only write on **y**.
+1. **Read `.writ/config.md`** — if present, use its supported keys (Default Branch, Test Runner, Eval Command, Merge Strategy) directly. See `.writ/docs/config-format.md`.
+2. **Detect missing keys** with the chain below.
 
 | Convention | Detection Chain | Fallback |
 |---|---|---|
-| **Default branch** | `git remote show origin` → check for `main`/`master`/`develop` | Ask user |
-| **Test runner** | `package.json` scripts → `Makefile` → `pytest.ini`/`setup.cfg` → `mix.exs` → `Cargo.toml` | Ask user |
-| **Merge strategy** | `.gitconfig` merge preference → repo convention detection | Default: merge |
-| **PR tool** | `gh` CLI available → `GITHUB_TOKEN` set → `.gitlab-ci.yml` exists | Default: `gh` |
+| **Default branch** | `git remote show origin` "HEAD branch:" → local `main`, `master`, `develop`, in that order | A decision with no recommendation (options: the branches found, "Other"), so it asks |
+| **Test runner** | `package.json` `scripts.test` (`npm test`) → `Makefile` `test:` (`make test`) → `pytest.ini`/`setup.cfg`/`pyproject.toml` (`pytest`) → `mix.exs` (`mix test`) → `Cargo.toml` (`cargo test`) | With `--test`: a decision with no recommendation (options: the test commands found, "Other"), so it asks |
+| **Merge strategy** | `git config pull.rebase` and `merge.ff` → recent merge commits on the default branch | merge: it keeps history for bisection and needs no force-push (`--rebase` overrides) |
+| **PR tool** | `gh` installed → `GITHUB_TOKEN` set → `.gitlab-ci.yml` (`glab`) | `gh` |
 
-**Detection chain details:**
-
-**Default branch:**
-1. Run `git remote show origin` and parse "HEAD branch:"
-2. If no remote, check local branches for `main`, `master`, `develop` (in that order)
-3. If ambiguous, ask user
-
-**Test runner:**
-1. Check `package.json` → look for `scripts.test` (run with `npm test`)
-2. Check `Makefile` → look for `test:` target (run with `make test`)
-3. Check `pytest.ini`, `setup.cfg`, `pyproject.toml` → Python (run with `pytest`)
-4. Check `mix.exs` → Elixir (run with `mix test`)
-5. Check `Cargo.toml` → Rust (run with `cargo test`)
-6. If none found, ask user
-
-**Merge strategy:**
-1. Check `git config pull.rebase` and `git config merge.ff`
-2. Scan recent merge commits on default branch for rebase vs merge patterns
-3. Default to merge — it preserves commit history for bisection
-
-**PR tool:**
-1. Check if `gh` CLI is installed (`which gh`)
-2. Check for `GITHUB_TOKEN` environment variable
-3. Check for `.gitlab-ci.yml` (suggests GitLab, use `glab` if available)
-4. Default to `gh` with guidance if unavailable
-
-**Opinionated defaults (Design Principle 6):**
-
-I recommend **merge** (not rebase) because it preserves commit history for bisection and avoids force-push risks on shared branches. Override with `--rebase` if your project uses a rebase-based workflow.
-
-I recommend **`gh` CLI** for PR creation because it's the most widely available and requires the least configuration. The detection chain catches GitLab projects automatically.
-
-**Output:**
+**Output:** the detected values and the `.writ/config.md` lines that would skip detection next time. Write nothing.
 
 ```
 📋 Detected: main branch, npm test, merge strategy, gh CLI
-   Override? [Enter to continue, or specify changes]
-```
-
-If any convention can't be detected:
-
-```
-❓ Couldn't detect test runner. What command runs your tests?
-   (e.g., npm test, pytest, mix test, cargo test)
+   To skip detection, add to .writ/config.md:
+   - **Default Branch:** main
+   - **Test Runner:** npm test
 ```
 
 ### Step 2: Merge Default Branch
@@ -168,38 +114,17 @@ Same conflict handling applies. On rebase conflict, offer `git rebase --abort` a
 
 ### Step 3: Run Tests (optional — `/ship --test`)
 
-**If `--test` is not set:** Skip this step entirely — go to Step 4.
+**If `--test` is not set:** skip to Step 4.
 
-**If `--test` is set:** Execute the test command detected in Step 1. Stream output so the user sees progress in real time.
+**If `--test` is set:** run the Test Runner from Step 1, streaming output, then the `Eval Command` when `.writ/config.md` sets one. Save each command, its exit code, `git rev-parse HEAD`, and `git rev-parse HEAD^{tree}` as `evidence` in `.writ/state/ship/branch-<slug>.json` (`<slug>` is the branch name with `/` as `-`).
 
-```bash
-# Runs the command detected in Step 1:
-npm test              # Node.js
-pytest                # Python
-mix test              # Elixir
-cargo test            # Rust
-make test             # Makefile-based
-```
+**On success:** continue to Step 4.
 
-**On success:** Continue silently to Step 4.
+**On failure:** summarize the failures (`❌ Tests failed (3 failures, 47 passing)`), then decide (`decision-tests.json`): `site: choice`; options "Fix and retry", "Ship as a draft PR with the tests-failing label", "Abort"; recommended "Fix and retry" when the failures name files in the diff, "Ship as a draft PR with the tests-failing label" after one fix pass, none otherwise.
 
-**On failure:**
-
-```
-❌ Tests failed (3 failures, 47 passing)
-
-[Failures summarized from runner output]
-
-1. Fix and retry
-2. Ship anyway — draft PR + tests-failing label, continue
-3. Abort
-```
-
-**On option 1:** Analyze failures against the diff, attempt one focused fix pass, re-run tests; if still failing, present 1–3 again.
-
-**On option 2:** Force `--draft`, add **`tests-failing`** label, include failure summary under **Test Results** in the PR body, continue to Step 4.
-
-**On option 3:** Offer `git merge --abort` / `git rebase --abort` if helpful; stop.
+- **Fix and retry:** analyze the failures against the diff, make one focused fix pass, commit it, re-run, and save the evidence again.
+- **Ship as a draft:** force `--draft`, add the **`tests-failing`** label, put the failure summary under **Test Results**, set `draft_reason: "tests_failed"` in `branch-<slug>.json`, and continue.
+- **Abort:** offer `git merge --abort` / `git rebase --abort` if helpful; stop.
 
 ### Step 4: Commit Intelligence
 
@@ -225,8 +150,6 @@ Each intermediate commit should leave the repo in a good state. When `/ship --te
 
 **Commit message authoring:** `Read skills/conventional-commits/SKILL.md` for the message grammar (type/scope/summary/body/footers) and the project-convention detection step. The skill owns how to phrase each commit; this command owns which data populates each component and adds the Writ-specific `Ref:` footer when the diff traces back to a spec story.
 
-> **Non-extraction note (Phase 7 skill extraction):** `/ship`'s high-traffic capability was already extracted as `conventional-commits`; the commit-splitting and PR-assembly logic above is command-specific orchestration, not a reusable capability. No further skill extraction from `/ship` was warranted — documented here so the four-skill decision (`code-explanation`, `tdd-cycle`, `error-rescue-mapping`, `safe-refactor-loop`) is not mistaken for an oversight.
-
 | Component | Source |
 |---|---|
 | Type (`feat`, `fix`, `chore`, `refactor`, `docs`) | Inferred from file types and change nature |
@@ -246,38 +169,17 @@ Ref: .writ/specs/2026-03-15-auth-system/story-3-session-management.md
 
 1. Analyze the full diff — categorize every changed file by layer
 2. Determine if splitting is beneficial (apply the "when NOT to split" rules)
-3. If splitting: stage files by layer group, create commits in dependency order (infra → models → logic → tests → version)
-4. After each commit, verify the repo is in a buildable state
-5. If any split commit would break the build, merge it with the adjacent commit
-
-**Present the plan and wait for approval before executing:**
+3. If splitting: save `presplit_sha` = `git rev-parse HEAD` to `branch-<slug>.json`, print the plan, and decide (below)
+4. On "Split as planned": stage files by layer group and commit in dependency order (infra → models → logic → tests → version); after each commit check the repo builds, and fold a commit that would break it into its neighbor
 
 ```
 📦 Commit plan (3 commits):
   1. chore(deps): update auth library to v3.2
   2. feat(auth): add session timeout with configurable TTL
   3. test(auth): add session expiration test coverage
-
-I recommend this split because it separates the dependency update from the feature,
-making bisection possible if the auth library upgrade causes issues.
 ```
 
-```
-AskQuestion({
-  title: "Confirm Commit Plan",
-  questions: [{
-    id: "commit_plan",
-    prompt: "Proceed with this commit plan?",
-    options: [
-      { id: "yes", label: "Execute this plan" },
-      { id: "no_split", label: "Ship as a single commit instead" },
-      { id: "edit", label: "Adjust the plan (I'll specify changes)" }
-    ]
-  }]
-})
-```
-
-Do not restructure git history without explicit approval.
+The plan's decision (`decision-plan.json`): `site: plan`; options "Split as planned", "Ship as a single commit"; recommended "Split as planned", with evidence saying why the split helps bisection. `reversible: true` only when the branch has no upstream or `git log origin/<branch>..HEAD` lists every commit the plan restructures, and `presplit_sha` is saved; otherwise `reversible: false`, so it asks. `pass` executes the plan; `git reset --hard <presplit_sha>` restores the branch. An ask adds a third option, "Adjust the plan".
 
 ### Step 5: PR Creation
 
@@ -365,7 +267,7 @@ Never fail the `/ship` flow because of missing labels.
 |---|---|
 | Default (`/ship` without `--test`), no `--draft`, drift acceptable | **Ready for review** — tests were not executed in this flow |
 | `/ship --test` with all tests passing + drift acceptable | **Ready for review** |
-| `/ship --test` with failures shipped via "Ship anyway" | **Draft** with `tests-failing` label |
+| `/ship --test` with failures shipped as a draft | **Draft** with `tests-failing` label |
 | Test warnings or medium drift | **Draft** with notes explaining why |
 | `--draft` flag set | **Draft** regardless of status |
 
@@ -385,6 +287,14 @@ Run: gh auth login
 Then re-run /ship.
 ```
 
+**Record the ledger row (`--test`).** After `gh pr create`, when every saved exit code is 0 and `git rev-parse HEAD^{tree}` equals the saved tree, record the pushed head, one `--evidence` per saved command, each command quoted for the shell:
+
+```bash
+python3 scripts/verify-ledger.py record --pr <n> --head "$(git rev-parse HEAD)" --base origin/<default-branch> --evidence <exit> '<command>'
+```
+
+When the trees differ, re-run the commands on HEAD, save, then record. A non-zero exit is never recorded, so the ledger reads NOT VERIFIED. `record` also refuses a dirty tree or a head that is not checked out and writes nothing; report its `reason:` lines.
+
 **Completion output:**
 
 ```
@@ -393,6 +303,7 @@ Then re-run /ship.
    Commits: 3 (infra → logic → tests)
    PR: https://github.com/user/repo/pull/42 (Ready for review)
    Labels: feature, auth
+   verify-ledger: pass (recorded PR 42 head a1b2c3d, 2 command(s))   # --test only; else "not recorded (<reason>)"
    📝 Audit note attached to a1b2c3d (refs/notes/writ)   # once the branch lands; omitted if writ.auditNotes=false
 
 ⚠️ The PR is now the source of truth. If you push more commits to this
@@ -486,22 +397,6 @@ default); that would clobber the user's own notes.
 
 View it later with `git log --notes=writ` or `git notes --ref=writ show <sha>`.
 
-**`--dry-run` output for Steps 4-5:**
-
-```
-Step 4 — Commit Intelligence:
-  Would split into 3 commits:
-    1. chore(deps): update auth library to v3.2 (2 files)
-    2. feat(auth): add session timeout (4 files)
-    3. test(auth): session expiration coverage (2 files)
-
-Step 5 — PR Creation:
-  Title: feat(auth): add session timeout with configurable TTL
-  Labels: feature
-  Status: Ready for review
-  Body: [preview of structured PR body]
-```
-
 ---
 
 ## Dry Run Mode (`--dry-run`)
@@ -547,16 +442,7 @@ No changes made.
 
 ## Error Handling
 
-**Not on a feature branch:**
-```
-⚠️ You're on the default branch (main). /ship works on feature branches.
-
-Options:
-1. Create a branch now — I'll name it from the diff and check it out
-2. Abort — create the branch yourself, then re-run /ship
-```
-
-If the user picks option 1, generate a branch name from the diff (e.g., `feat/session-timeout` from the most significant change), run `git checkout -b [name]`, and continue the pipeline. This eliminates the round-trip of telling the user to do something they'll immediately ask you to do anyway.
+**Not on a feature branch:** decide (`decision-branch.json`): `site: choice`; options "Create branch `<name>`", "Abort"; recommended "Create branch `<name>`", with `<name>` generated from the diff (e.g., `feat/session-timeout`). Creating it runs `git checkout -b <name>` and continues the pipeline.
 
 **No git remote configured:**
 ```
@@ -580,31 +466,9 @@ Or push manually and create the PR in your browser:
   git push -u origin [branch-name]
 ```
 
-**Uncommitted changes:**
-```
-⚠️ You have uncommitted changes. /ship works with committed code.
+**Uncommitted changes:** decide (`decision-commit.json`): `site: choice`; options "Commit now", "Stash changes", "Abort". With tracked modifications only: recommended "Commit now" (Step 4 reprocesses the commit, so its message is a draft). With untracked files present: no recommendation, so it asks, since an untracked file may not belong in the PR.
 
-Options:
-1. Commit now — I'll stage everything and create a commit, then continue shipping
-2. Stash changes — git stash, ship, then git stash pop
-3. Abort — commit or stash manually, then re-run /ship
-```
-
-Recommend **option 1** (commit now): it is the most common intent, and Step 4's splitting heuristic reprocesses the commit, so the initial commit message is a draft. Stashing risks losing track of uncommitted work.
-
-**Combined scenario — on main with uncommitted changes:**
-
-When both issues are present (on default branch + uncommitted changes), handle them in sequence: create the branch first, then commit. Don't present two separate error flows — combine into one:
-
-```
-⚠️ You're on main with uncommitted changes. Let me fix both:
-
-1. Create branch: git checkout -b [generated-name]
-2. Commit changes: git add -A && git commit -m "[draft message]"
-3. Continue /ship pipeline
-
-Proceed? [Enter to continue, or specify a branch name]
-```
+**On the default branch with uncommitted changes:** the branch decision first, then the commit decision.
 
 ## When to Use /ship vs Other Commands
 

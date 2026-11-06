@@ -9,7 +9,7 @@
 
 **Implementation Approach:**
 - `jev-judge.py`: `merge` leaves `DOUBT_ALWAYS_ASK`, joins `DOUBT_FALLBACK_ASK`. Record fields `pr`, `head_sha`, `snapshot`. `merge_rule` resolves `--repo`, runs `pr-ready.py check --snapshot <s> --repo <r> --json` (subprocess, timeout), and maps the JSON; the info token is pr-ready's first class or code normalized to `[a-z0-9_]` (≤ 40 chars); a `head_sha` with surrounding whitespace or a blank `snapshot` exits 2 (DEV-001). No separate ledger call.
-- `ship.md`: Steps 1–5 route asks through the Doubt Rule; `--test` runs Test Runner + `Eval Command` and calls `verify-ledger.py record` after `gh pr create`; Step 7 is the watch pass; the merge uses `gh pr merge <n> --match-head-commit <head>`.
+- `ship.md`: Steps 1–5 route asks through the Doubt Rule (one `### Decisions` subsection states the record and the `doubt --record` / `doubt-label` calls; each site names its `decision-<name>.json`, site, options, and recommendation — DEV-003); `--test` runs Test Runner + `Eval Command` and calls `verify-ledger.py record` after `gh pr create`; Step 7 is the watch pass; the merge uses `gh pr merge <n> --match-head-commit <head>`.
 - State under `.writ/state/ship/` (`branch-<slug>.json`, `watch-pr-<n>.json`, `threads-pr-<n>.json`, `reply-pr-<n>.json`, `run-<id>.log`, `merge-record-pr-<n>.json`); snapshot at `.writ/state/pr-ready/pr-<n>.json`.
 
 **Files in Scope:**
@@ -32,7 +32,7 @@
 - First spec: `pr-ready.py` (text + `--json`, gate tokens), `verify-ledger.py record/check`, snapshot commands in `pr-ready.py --help`
 - Adapter `re-enter` row for the harness loop; `jev-judge.py doubt-label` after every ask
 
-**Line Budget Constraints:** re-pin `KNOWN_OVER_BUDGET["commands/ship.md"]` per story; keep `ship.md` above 24,960 bytes; aim net ≤ 0 vs 28,907.
+**Line Budget Constraints:** re-pin `KNOWN_OVER_BUDGET["commands/ship.md"]` per story; keep `ship.md` above 24,960 bytes; aim net ≤ 0 vs 28,907. The PR-agent Overview paragraph cut moved from Story 2 to Story 4 because of the floor (DEV-002).
 
 ---
 
