@@ -1,6 +1,7 @@
 # Story 4: State each business rule once
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 66c4bebe665bb7f06c7c73f8c294d266c9096734
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
