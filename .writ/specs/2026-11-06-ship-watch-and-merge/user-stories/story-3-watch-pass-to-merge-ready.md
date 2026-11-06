@@ -1,6 +1,7 @@
 # Story 3: A watch pass works a PR to merge-ready
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 6646e2bea8964b2f29b84197957a08a660279f27
 > **Priority:** High
 > **Dependencies:** Story 2
 
