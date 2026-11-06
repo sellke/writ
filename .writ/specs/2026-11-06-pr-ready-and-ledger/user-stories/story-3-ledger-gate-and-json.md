@@ -1,6 +1,7 @@
 # Story 3: Ledger gate and machine output
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 76ea7874d4eb12ea9756d1434a12adb3f42219be
 > **Priority:** High
 > **Dependencies:** Story 1, Story 2
 
