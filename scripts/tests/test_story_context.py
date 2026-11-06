@@ -340,6 +340,181 @@ class ResolveBusinessRulesTests(unittest.TestCase):
         self.assertEqual(len(warnings), 2)
 
 
+# A spec in the create-spec Step 1.4 template shape: numbered rules inside the
+# contract, detail keyed by rule number in the expanded section.
+NUMBERED_CONTRACT_SPEC = (
+    "# Spec: Numbered\n\n"
+    "## Specification Contract\n\n"
+    "**Deliverable:** A thing.\n\n"
+    "**\U0001F4CB Business Rules:**\n"
+    "1. A task names its files.\n"
+    "2. A task is at most 50 words.\n"
+    "   Counting skips the AC tag.\n"
+    "3. Gotchas go in Notes.\n\n"
+    "**Success Criteria:**\n"
+    "- 9. Not a rule: belongs to Success Criteria.\n\n"
+    "## \U0001F4CB Business Rules (Expanded)\n\n"
+    "Detail beyond the contract.\n\n"
+    "- **Rule 1, external contract.** Something outside the story depends on it.\n"
+    "- **Rule 1, file names.** Naming a file is allowed.\n"
+    "- **Rule 12, unrelated.** Must not match Rule 1.\n"
+    "### Business Rule 3\n\n"
+    "Notes hold probed facts.\n\n"
+    "## Detailed Requirements\n\n"
+    "1. Topic-local list item, not rule 1.\n"
+)
+
+
+class ResolveRuleNumberTests(unittest.TestCase):
+    def test_number_fetches_contract_item_and_expanded_blocks(self) -> None:
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(["Business Rule 1"], NUMBERED_CONTRACT_SPEC, warnings)
+        self.assertEqual(warnings, [])
+        self.assertTrue(content.startswith("1. A task names its files."))
+        self.assertIn("Something outside the story depends on it.", content)
+        self.assertIn("Naming a file is allowed.", content)
+        self.assertNotIn("Must not match Rule 1", content)
+        self.assertNotIn("Topic-local", content)
+
+    def test_number_with_gloss_and_continuation_line(self) -> None:
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(
+            ["Business Rule 2 (word cap)"], NUMBERED_CONTRACT_SPEC, warnings
+        )
+        self.assertEqual(warnings, [])
+        self.assertEqual(content, "2. A task is at most 50 words.\n   Counting skips the AC tag.")
+
+    def test_expanded_heading_block(self) -> None:
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(["Business Rule 3"], NUMBERED_CONTRACT_SPEC, warnings)
+        self.assertEqual(warnings, [])
+        self.assertIn("3. Gotchas go in Notes.", content)
+        self.assertIn("### Business Rule 3\n\nNotes hold probed facts.", content)
+
+    def test_expanded_heading_without_emoji(self) -> None:
+        spec = NUMBERED_CONTRACT_SPEC.replace(
+            "## \U0001F4CB Business Rules (Expanded)", "## Business Rules (Expanded)"
+        )
+        content = sc.resolve_business_rules(["Business Rule 1"], spec, [])
+        self.assertIn("Naming a file is allowed.", content)
+
+    def test_range_cites_each_rule(self) -> None:
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(["Business Rules 2-3"], NUMBERED_CONTRACT_SPEC, warnings)
+        self.assertEqual(warnings, [])
+        self.assertIn("2. A task is at most 50 words.", content)
+        self.assertIn("3. Gotchas go in Notes.", content)
+
+    def test_repeated_number_is_deduplicated(self) -> None:
+        content = sc.resolve_business_rules(
+            ["Business Rule 2", "Business Rule 2 (again)"], NUMBERED_CONTRACT_SPEC, []
+        )
+        self.assertEqual(content.count("2. A task is at most 50 words."), 1)
+
+    def test_out_of_range_number_warns_and_fetches_nothing(self) -> None:
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(["Business Rule 9"], NUMBERED_CONTRACT_SPEC, warnings)
+        self.assertEqual(content, "")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('"Business Rule 9"', warnings[0])
+        self.assertIn("Specification Contract", warnings[0])
+
+    def test_out_of_range_does_not_block_valid_numbers(self) -> None:
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(
+            ["Business Rule 1", "Business Rule 7"], NUMBERED_CONTRACT_SPEC, warnings
+        )
+        self.assertIn("1. A task names its files.", content)
+        self.assertEqual(len(warnings), 1)
+
+    def test_unnumbered_contract_bullets_count_in_order(self) -> None:
+        spec = (
+            "## Specification Contract\n\n"
+            "**\U0001F4CB Business Rules:**\n\n"
+            "- First rule.\n"
+            "- Second rule.\n"
+            "  Wrapped detail.\n"
+            "- Third rule.\n\n"
+            "**Scope Boundaries:**\n"
+            "- Not a rule.\n"
+        )
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(["Business Rule 2", "Business Rule 4"], spec, warnings)
+        self.assertEqual(content, "2. Second rule.\n  Wrapped detail.")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn('"Business Rule 4"', warnings[0])
+
+    def test_contract_list_ends_at_prose_after_blank_line(self) -> None:
+        spec = (
+            "## Specification Contract\n\n"
+            "**\U0001F4CB Business Rules:**\n"
+            "1. Only rule.\n\n"
+            "Closing prose that is not a rule.\n"
+        )
+        self.assertEqual(sc.parse_contract_rules(spec), {1: "1. Only rule."})
+
+    def test_legacy_numbered_section_backs_numbers_when_contract_has_none(self) -> None:
+        # /edit-spec regenerating stories on a legacy spec: the hint cites a
+        # number, the rules live in a numbered `## 📋 Business Rules` section.
+        spec = (
+            "## Specification Contract\n\n"
+            "**Deliverable:** A thing.\n\n"
+            "## \U0001F4CB Business Rules\n\n"
+            "1. **Emit is not register.** Never registers a hook.\n"
+            "2. **`loop: no` does not emit.** Skip with unverifiable.\n"
+        )
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(["Business Rule 2", "Business Rule 3"], spec, warnings)
+        self.assertIn("Skip with unverifiable.", content)
+        self.assertNotIn("Never registers", content)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("spec.md (Business Rules)", warnings[0])
+
+    def test_legacy_bold_name_still_resolves_beside_numbers(self) -> None:
+        spec = NUMBERED_CONTRACT_SPEC + (
+            "\n## \U0001F4CB Business Rules\n\n"
+            "1. **One implementation per contract.** No duplicated parsers survive.\n"
+        )
+        warnings: list[str] = []
+        content = sc.resolve_business_rules(
+            ["One implementation per contract", "Business Rule 1"], spec, warnings
+        )
+        self.assertEqual(warnings, [])
+        self.assertIn("No duplicated parsers survive.", content)
+        self.assertIn("1. A task names its files.", content)
+
+    def test_name_that_starts_with_business_rule_word_is_not_a_number(self) -> None:
+        self.assertIsNone(sc.rule_numbers("Business Rules overview"))
+        self.assertIsNone(sc.rule_numbers("Business Rule 1a"))
+        self.assertEqual(sc.rule_numbers("Business Rule 10 (one writer)"), [10])
+        self.assertEqual(sc.rule_numbers("Business Rules 4–6"), [4, 5, 6])
+
+
+class SplitRefsTests(unittest.TestCase):
+    def test_commas_inside_gloss_stay_in_one_ref(self) -> None:
+        self.assertEqual(
+            sc.parse_category_value("[Business Rule 2 (snapshot, doubt pass), Business Rule 3]"),
+            ("bracket", ["Business Rule 2 (snapshot, doubt pass)", "Business Rule 3"]),
+        )
+
+    def test_unbalanced_parentheses_fall_back_to_plain_split(self) -> None:
+        self.assertEqual(sc.split_refs("A (open, B"), ["A (open", "B"])
+        self.assertEqual(sc.split_refs("A close), B"), ["A close)", "B"])
+
+
+class AssembleRuleNumberTests(unittest.TestCase):
+    def test_assemble_resolves_number_hints_without_warnings(self) -> None:
+        with TemporaryDirectory() as tmp:
+            hints = "- **Business rules:** [Business Rule 1, Business Rule 3]\n"
+            story = make_spec_tree(Path(tmp), spec_md=NUMBERED_CONTRACT_SPEC, hints=hints)
+            payload = sc.assemble(story, budget_bytes=sc.FETCHED_CONTEXT_BUDGET_BYTES)
+            self.assertEqual(payload["warnings"], [])
+            rules = payload["fetched_context"]["business_rules"]
+            self.assertIn("1. A task names its files.", rules)
+            self.assertIn("Notes hold probed facts.", rules)
+            self.assertEqual(payload["bytes"]["business_rules"], len(rules.encode("utf-8")))
+
+
 class ResolveExperienceTests(unittest.TestCase):
     def test_matches_subsection_by_exact_name(self) -> None:
         spec_text = "## \U0001F3AF Experience Design\n\n### Entry Point\n\nNo new surface.\n"

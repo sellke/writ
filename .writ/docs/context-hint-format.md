@@ -100,8 +100,11 @@ Cites business rules by their number in the specification contract, as `Business
 ```
 
 **Orchestrator behavior:**
-- Parse rule numbers
-- `scripts/story-context.py` does not yet fetch a rule by number: it warns per citation, and the agent reads the rule in `spec.md`
+- `scripts/story-context.py` fetches item N of the contract's `📋 Business Rules` list, then every block in the expanded business-rules section that opens with `**Rule N` or `**Business Rule N`, or sits under a `### Rule N` / `### Business Rule N` heading
+- A contract list of unnumbered bullets is counted in order from 1. A spec with no contract list falls back to item N of a numbered `## 📋 Business Rules` section
+- A trailing gloss is ignored (`Business Rule 4 (rules live once)`), and `Business Rules 4-6` cites a range
+- A number with no matching rule warns and fetches nothing; it never blocks
+- Legacy hints that name a bold rule under `## 📋 Business Rules` still resolve by name
 - Deliver to agents with context
 
 #### 4. Experience Elements
@@ -368,6 +371,7 @@ Generation (authoring hints for a new story) and parsing (resolving hints agains
 | 1.1 | 2026-03-27 | Added validation strategy section (Tasks 1.4-1.5) |
 | 2.0 | 2026-08-03 | Story 4 of `2026-08-03-deterministic-story-substrate`: retired the "Parsing Guide" algorithm restatement and "Parsing Validation (Task 1.5)" subsection now that `scripts/story-context.py` is the single tested implementation; fixed stale `context_hints_parsed`/`context_content_fetched` output names in "Integration with Pipeline" to match the command file's actual `fetched_context`/`context_warnings`; removed the stale "no automated test suite" premise from "Validation Strategy." Authoring guidance (Generation Guidelines, Format Structure, Examples, Validation Rules, Manual Usage) is unchanged — this doc's role narrows to authoring; the script now owns parsing. |
 | 2.1 | 2026-11-06 | Story 4 of `2026-11-06-lean-story-tasks`: business-rule hints cite `Business Rule N` and no longer summarize the rule; the section is placed at the end of the story file. |
+| 2.2 | 2026-11-06 | `scripts/story-context.py` resolves `Business Rule N` hints from the contract's numbered rules plus expanded-section blocks for that number ("Business Rules" → Orchestrator behavior). Bracket lists split on commas outside parentheses, so a gloss like `(snapshot, doubt pass)` stays one reference. |
 
 ## See Also
 

@@ -110,6 +110,18 @@ EXTENDED_REF = re.compile(r"`([^`]*\.md[^`]*" + ARROW + r"[^`]*)`")
 NUMBERED_ITEM = re.compile(r"^\d+\.\s+")
 NUMBERED_ITEM_BOLD = re.compile(r"^\d+\.\s+\*\*(.+?)\*\*\.?\s*")
 
+# `Business Rule N` hints (create-spec Step 1.4 numbers the contract's rules;
+# stories cite them). A trailing gloss is allowed and ignored:
+# "Business Rule 4 (rules live once)". "Business Rules 4-8" cites a range.
+RULE_NUMBER_REF = re.compile(r"^Business Rules?\s+(\d+)(?:\s*[-–]\s*(\d+))?(?!\w)")
+CONTRACT_RULES_LABEL = re.compile(r"^\*\*(?:\U0001F4CB\s*)?Business Rules:\*\*")
+CONTRACT_RULE_NUMBERED = re.compile(r"^(\d+)[.)]\s+")
+CONTRACT_RULE_BULLET = re.compile(r"^[-*+]\s+")
+EXPANDED_RULES_HEADINGS = (
+    "## \U0001F4CB Business Rules (Expanded)",
+    "## Business Rules (Expanded)",
+)
+
 
 def extract_markdown_section(text: str, heading_line: str) -> str | None:
     """Return the section body (heading through the next heading of equal or
@@ -293,32 +305,183 @@ def resolve_table_category(
     return fallback.strip()
 
 
-def resolve_business_rules(refs: list[str], spec_text: str, warnings: list[str]) -> str:
-    """Business rules category: match each ref against spec.md's numbered
-    Business Rules list by bold-phrase name (trailing period normalized on
-    both sides, since bracket hints omit it and spec.md doesn't). Warns per
-    unmatched ref, or per ref if the section itself is absent; matched item
-    bodies are deduplicated and joined with a blank line between them."""
-    section = extract_markdown_section(spec_text, "## \U0001F4CB Business Rules")
+def parse_contract_rules(spec_text: str) -> dict[int, str] | None:
+    """The `**📋 Business Rules:**` list inside `## Specification Contract`
+    -> {rule_number: item_text}. None when the contract or the list is absent.
+
+    Numbered items keep their written number. A list with no numbered items
+    counts its bullets in order from 1, and each bullet's marker is rewritten
+    to `N.` so the fetched text carries its number. An item runs through its
+    indented or wrapped continuation lines; the list ends at the next bold
+    field, heading, `---`, or prose after a blank line.
+    """
+    contract = extract_markdown_section(spec_text, "## Specification Contract")
+    if contract is None:
+        return None
+    lines = contract.splitlines()
+    start = next((i for i, line in enumerate(lines) if CONTRACT_RULES_LABEL.match(line.strip())), None)
+    if start is None:
+        return None
+
+    numbered: list[tuple[int, list[str]]] = []
+    bullets: list[list[str]] = []
+    current: list[str] | None = None
+    after_blank = False
+    for line in lines[start + 1 :]:
+        stripped = line.strip()
+        if not stripped:
+            after_blank = True
+            continue
+        indented = line[:1] in (" ", "\t")
+        if not indented and (stripped.startswith(("#", "**")) or stripped == "---"):
+            break
+        num_match = None if indented else CONTRACT_RULE_NUMBERED.match(stripped)
+        if num_match:
+            current = [stripped]
+            numbered.append((int(num_match.group(1)), current))
+        elif not indented and CONTRACT_RULE_BULLET.match(stripped):
+            current = [stripped]
+            bullets.append(current)
+        elif current is not None and (indented or not after_blank):
+            current.append(line.rstrip())
+        else:
+            break
+        after_blank = False
+
+    rules: dict[int, str] = {}
+    if numbered:
+        for number, block in numbered:
+            rules.setdefault(number, "\n".join(block))
+    else:
+        for position, block in enumerate(bullets, start=1):
+            first = CONTRACT_RULE_BULLET.sub(f"{position}. ", block[0], count=1)
+            rules[position] = "\n".join([first] + block[1:])
+    return rules
+
+
+def expanded_rule_blocks(spec_text: str, number: int) -> list[str]:
+    """Blocks for rule `number` in spec.md's Business Rules (Expanded) section.
+
+    A block is a `### Rule N` / `### Business Rule N` subsection (any level
+    below `##`), or a bullet or paragraph that opens with `**Rule N` or
+    `**Business Rule N` and runs through its continuation lines. Numbered-list
+    position is never used: expanded lists in older specs are not keyed to
+    contract rule numbers.
+    """
+    section = next(
+        (s for s in (extract_markdown_section(spec_text, h) for h in EXPANDED_RULES_HEADINGS) if s is not None),
+        None,
+    )
     if section is None:
-        for ref in refs:
-            _missing(warnings, ref, "spec.md")
-        return ""
-    items = parse_numbered_items(section)
+        return []
+    label = rf"(?:Business\s+)?Rule\s+{number}(?!\d)"
+    heading_re = re.compile(rf"^#{{3,6}}\s+{label}")
+    lead_re = re.compile(rf"^(?:[-*+]\s+)?\*\*{label}")
+    blocks: list[str] = []
+    lines = section.splitlines()
+    i = 1  # line 0 is the section heading
+    while i < len(lines):
+        stripped = lines[i].strip()
+        if heading_re.match(stripped):
+            sub = extract_markdown_section("\n".join(lines[i:]), stripped)
+            if sub is not None:
+                blocks.append(sub.strip())
+                i += len(sub.splitlines())
+                continue
+        if lead_re.match(stripped):
+            block = [stripped]
+            j = i + 1
+            while j < len(lines):
+                nxt = lines[j]
+                nxt_stripped = nxt.strip()
+                if not nxt_stripped or nxt_stripped.startswith("#"):
+                    break
+                if nxt[:1] not in (" ", "\t") and CONTRACT_RULE_BULLET.match(nxt_stripped):
+                    break
+                block.append(nxt.rstrip())
+                j += 1
+            blocks.append("\n".join(block))
+            i = j
+            continue
+        i += 1
+    return blocks
+
+
+def rule_numbers(ref: str) -> list[int] | None:
+    """`Business Rule N` (or `Business Rules N-M`) hint -> rule numbers, else None."""
+    match = RULE_NUMBER_REF.match(ref.strip())
+    if match is None:
+        return None
+    low = int(match.group(1))
+    high = int(match.group(2)) if match.group(2) else low
+    if high < low or high - low > 20:  # reversed or implausible range: cite the first number only
+        return [low]
+    return list(range(low, high + 1))
+
+
+def resolve_business_rules(refs: list[str], spec_text: str, warnings: list[str]) -> str:
+    """Business rules category. Two hint forms, decided per ref:
+
+    - `Business Rule N`: item N of the contract's `**📋 Business Rules:**`
+      list (`parse_contract_rules`), followed by any expanded-section blocks
+      for rule N. A spec with no contract list falls back to item N of a
+      numbered `## 📋 Business Rules` section, so a legacy spec whose stories
+      are regenerated with number hints still resolves. A number with no
+      item warns once and fetches nothing.
+    - Anything else: the legacy bold-name match against `## 📋 Business
+      Rules` (trailing period normalized on both sides, since bracket hints
+      omit it and spec.md doesn't).
+
+    Warns per unmatched ref; matched bodies are deduplicated and joined with
+    a blank line between them."""
+    legacy_section = extract_markdown_section(spec_text, "## \U0001F4CB Business Rules")
+    legacy_items = parse_numbered_items(legacy_section) if legacy_section is not None else []
+
+    by_number = parse_contract_rules(spec_text)
+    number_source = "spec.md (Specification Contract → Business Rules)"
+    if not by_number:
+        by_number = {}
+        for _, text in legacy_items:
+            num_match = CONTRACT_RULE_NUMBERED.match(text.strip())
+            if num_match:
+                by_number.setdefault(int(num_match.group(1)), text)
+        if by_number:
+            number_source = "spec.md (Business Rules)"
+
     matched: list[str] = []
+
+    def add(text: str) -> None:
+        if text not in matched:
+            matched.append(text)
+
     for ref in refs:
+        numbers = rule_numbers(ref)
+        if numbers is not None:
+            for number in numbers:
+                item = by_number.get(number)
+                if item is None:
+                    _missing(warnings, ref if len(numbers) == 1 else f"Business Rule {number}", number_source)
+                    continue
+                add(item)
+                for block in expanded_rule_blocks(spec_text, number):
+                    add(block)
+            continue
+
+        if legacy_section is None:
+            _missing(warnings, ref, "spec.md")
+            continue
         # Bracket hints omit the source's trailing period ("One implementation
         # per contract" vs. spec.md's "One implementation per contract.") —
         # normalize on that one point only; otherwise exact, case-sensitive.
         norm_ref = ref.strip().rstrip(".")
         hit = next(
-            (text for name, text in items if name is not None and name.strip().rstrip(".") == norm_ref),
+            (text for name, text in legacy_items if name is not None and name.strip().rstrip(".") == norm_ref),
             None,
         )
         if hit is None:
             _missing(warnings, ref, "spec.md")
-        elif hit not in matched:
-            matched.append(hit)
+        else:
+            add(hit)
     return "\n\n".join(matched)
 
 
@@ -383,8 +546,34 @@ def parse_category_value(rest: str) -> tuple[str, list[str]] | None:
         inner = match.group(1).strip()
         if inner == "":
             return "empty", []
-        return "bracket", [item.strip() for item in inner.split(",")]
+        return "bracket", split_refs(inner)
     return None
+
+
+def split_refs(inner: str) -> list[str]:
+    """Split a bracket list on commas outside parentheses, so a gloss such as
+    `Business Rule 2 (snapshot, doubt pass)` stays one ref. Unbalanced
+    parentheses fall back to a plain comma split."""
+    parts: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for char in inner:
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                break
+        if char == "," and depth == 0:
+            parts.append("".join(current))
+            current = []
+        else:
+            current.append(char)
+    else:
+        if depth == 0:
+            parts.append("".join(current))
+            return [part.strip() for part in parts]
+    return [item.strip() for item in inner.split(",")]
 
 
 def parse_hint_lines(section_text: str) -> tuple[dict[str, dict[str, list[str]]], list[str]]:
