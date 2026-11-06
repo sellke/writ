@@ -534,11 +534,11 @@ Launch up to 4 subagents simultaneously. If more than 4 stories, batch them.
 
 After **all** generators return, and before Step 2.6b:
 
-1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder (no story is Completed yet, and a repo-wide scan would misattribute other specs' `dangling_reference`s); `/verify-spec` keeps `--repo .`.
-2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`.
+1. Run `python3 scripts/ac-trace.py check --spec .writ/specs/{spec-folder} --repo .writ/specs/{spec-folder}` once; attribute each finding to its `story=`. `--repo` is the spec folder, so other specs' `dangling_reference`s stay out; `/verify-spec` keeps `--repo .`.
+2. Per file: 3–5 criteria (count `- [ ] Given` lines only), each ending in a `` `[AC-N.M]` `` tag; `> **AC IDs assigned through:**` equal to the highest criterion ID; 5–7 tasks (count `- [ ] N.M` lines only), each citing ≥1 ID; `**Status:** Not Started`. Any `oversized_task` finding fails its story.
 3. For each **failing** story: spawn one regeneration with the identical prompt at `anchor` (`model` = platform `inherit`), overwrite the floor file with the anchor result whether or not it passes, re-check once. A second failure surfaces in Step 2.9. A passing story is never regenerated.
 
-Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file follows the normal error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration. This command declares no loop bound; the single re-run is the whole budget.
+Escalation fires only on a *returned* file that fails the check — a Task error, timeout, or absent file follows the normal error path, never an escalation. Iteration accounting: the floor attempt and its anchor re-run count as one attempt — there is no second regeneration.
 
 #### Step 2.6b: Tag spec-lite.md Review Criteria with IDs
 
@@ -588,7 +588,8 @@ Can run in parallel with user story generation. Only create sub-specs the contra
 
 #### Step 2.9: Final Package Review
 
-Present the complete package: file tree, story count and total task count, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps. If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as **notes**; they never fail this review or block the package.
+Present the complete package: file tree, story and task counts, key items for the user to review (accuracy, story sizing, missing requirements), and suggested next steps. If Step 2.6c ran, include its `spec-analyze.py` verdict and `reason:` lines as **notes**; they never fail this review or block the package.
+List each story still failing Step 2.6a and each `oversized_task` as `story=N task N.M words=W`.
 Add one note: `jev: <J>/<T> stories judged, <M> escalated` from `spec-findings`, else `jev: <verdict> (<reason>)`.
 
 ## Completion

@@ -10,6 +10,7 @@
 **Implementation Approach:**
 - `ac-trace.py` gains informational `oversized_task` for `Not Started` stories; Step 2.6a treats it as a failure
 - Prose changes in the generator and two commands, each pinned by a test, platform trees regenerated
+- The shipped generator states rule content, not this spec's rule numbers; `create-spec.md` edits are offset to stay net-zero in bytes
 - Trial in two worktrees from the pre-implementation commit of one small archived spec
 
 **Files in Scope:**

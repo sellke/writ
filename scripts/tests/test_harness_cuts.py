@@ -808,5 +808,103 @@ class EvalLifecycleScenariosInvertedTest(unittest.TestCase):
             self.assertRegex(checks, r"(?m)^  %s$" % re.escape(name))
 
 
+# Story 2 of 2026-11-06-lean-story-tasks: lean task rules in the story
+# generator and Step 2.6a. ac-trace credits the tokens below to that spec.
+
+STORY_GENERATOR = "agents/user-story-generator.md"
+STORY_GENERATOR_COPIES = ("claude-code/agents/writ-story-gen.md",
+                          "cursor/plugin/agents/user-story-generator.md")
+
+RULE_FILES_AND_CONTRACTS = "Name every file the task creates or changes, and any external contract it fixes"
+RULE_NO_INTERNALS = "Do not prescribe internal function names, signatures, or step order"
+RULE_WORD_CAP = "At most 50 words per task, not counting the task number and AC tag"
+RULE_NOTES = "gotchas, and environment constraints go in Notes"
+SECOND_FAILURE_LINE = "`story=N task N.M words=W`"
+
+
+def task_rules(text: str) -> str:
+    return section(text, "Rules for tasks:\n", "\n## Notes")
+
+
+def task_quality_guideline(text: str) -> str:
+    return section(text, "### Implementation Tasks\n", "\n### Notes Section")
+
+
+def step_2_6a_item(number: int) -> str:
+    lines = [line for line in step_2_6a().splitlines() if line.startswith("%d. " % number)]
+    if len(lines) != 1:
+        raise RuntimeError("Step 2.6a has %d item %d lines" % (len(lines), number))
+    return lines[0]
+
+
+def step_2_9() -> str:
+    return section(read(CREATE_SPEC), "#### Step 2.9: Final Package Review", "\n## Completion")
+
+
+class LeanTaskRulesTest(unittest.TestCase):
+    """AC-2.1, AC-2.2: the generator's task rules and its Implementation
+    Tasks quality guideline say what a task names, what it leaves out, how
+    long it may be, and where gotchas go."""
+
+    def test_ac_2_1_rules_name_files_and_contracts_not_internals(self):
+        """AC-2.1"""
+        rules = task_rules(read(STORY_GENERATOR))
+        self.assertIn(RULE_FILES_AND_CONTRACTS, rules)
+        self.assertIn(RULE_NO_INTERNALS, rules)
+
+    def test_ac_2_2_rules_cap_each_task_at_50_words(self):
+        """AC-2.2"""
+        self.assertIn(RULE_WORD_CAP, task_rules(read(STORY_GENERATOR)))
+
+    def test_ac_2_2_rules_send_gotchas_and_constraints_to_notes(self):
+        """AC-2.2"""
+        self.assertIn(RULE_NOTES, task_rules(read(STORY_GENERATOR)))
+
+    def test_ac_2_1_ac_2_2_quality_guideline_says_the_same(self):
+        """AC-2.1, AC-2.2"""
+        guideline = task_quality_guideline(read(STORY_GENERATOR))
+        for phrase in ("any external contract it fixes", "never internal function names",
+                       "At most 50 words", "Notes"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, guideline)
+
+    def test_ac_2_2_template_keeps_its_definition_of_done(self):
+        """AC-2.2: Story 3 removes the Definition of Done, not this story."""
+        self.assertIn("## Definition of Done", read(STORY_GENERATOR))
+
+    def test_ac_2_4_generated_copies_carry_the_rules(self):
+        """AC-2.4"""
+        for rel in STORY_GENERATOR_COPIES:
+            with self.subTest(file=rel):
+                text = read(rel)
+                self.assertIn(RULE_WORD_CAP, text)
+                self.assertIn(RULE_FILES_AND_CONTRACTS, text)
+
+
+class Step26aOversizedTaskTest(unittest.TestCase):
+    """AC-2.3: an `oversized_task` finding fails its story in Step 2.6a, the
+    one anchor regeneration applies unchanged, and Step 2.9 lists a second
+    failure's task numbers and word counts."""
+
+    def test_ac_2_3_item_2_fails_a_story_with_an_oversized_task(self):
+        """AC-2.3"""
+        item = step_2_6a_item(2)
+        self.assertIn("`oversized_task`", item)
+        self.assertIn("fails its story", item)
+
+    def test_ac_2_3_item_3_regenerates_once_at_anchor(self):
+        """AC-2.3"""
+        item = step_2_6a_item(3)
+        self.assertIn("spawn one regeneration with the identical prompt at `anchor`", item)
+        self.assertIn("re-check once", item)
+        self.assertIn("A passing story is never regenerated.", item)
+
+    def test_ac_2_3_step_2_9_lists_second_failure_word_counts(self):
+        """AC-2.3"""
+        text = step_2_9()
+        self.assertIn("`oversized_task`", text)
+        self.assertIn(SECOND_FAILURE_LINE, text)
+
+
 if __name__ == "__main__":
     unittest.main()
