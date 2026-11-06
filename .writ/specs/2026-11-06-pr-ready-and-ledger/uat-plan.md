@@ -3,8 +3,8 @@
 > **Generated:** 2026-11-06
 > **Spec:** `.writ/specs/2026-11-06-pr-ready-and-ledger/`
 > **Stories Covered:** 3 of 3 completed
-> **Total Scenarios:** 7 (6 scripted, 1 human)
-> **Verification recipe:** none. Writ has no app to launch, so no `.writ/docs/app-verification.md` was drafted or saved, and no scenario is `machine`. A **scripted** scenario is decided by the commands in its Steps: the expected line 1, reason lines, and exit code. It cites no `evidence/uat/<id>/result.json`, so `exit-criteria.py check-uat` counts it as non-machine. A **human** scenario needs a person, and its Verification line says why. Items that a passing test already exercises are listed under Covered by Tests instead of becoming scenarios.
+> **Total Scenarios:** 7 (all human per `/create-uat-plan`: 6 decided by scripted steps, 1 needs a person)
+> **Verification recipe:** none. Writ has no app to launch, so no `.writ/docs/app-verification.md` was drafted or saved, and no scenario is `machine`. With no recipe, every scenario's Verification line reads `human — no recipe`, as `/create-uat-plan` requires. Six of them add `scripted:` and are decided by the commands in their Steps (the expected line 1, reason lines, and exit code); they cite no `evidence/uat/<id>/result.json`. The seventh needs a person, and its Verification line says why. Items that a passing test already exercises are listed under Covered by Tests instead of becoming scenarios.
 
 ## How to Use This Plan
 
@@ -98,7 +98,7 @@ The spec's success criteria name Python 3.9 and 3.14. Rerun any row on 3.14 with
 
 **Source:** Edge Case ("A commit added and then reverted, with the net diff unchanged") — Story 1
 **Feature:** none
-**Verification:** scripted — the line 1 and exit code of `verify-ledger.py check` in Step 4 decide it
+**Verification:** human — no recipe; scripted: the line 1 and exit code of `verify-ledger.py check` in Step 4 decide it
 
 **Preconditions:**
 - Setup block pasted in this shell.
@@ -127,7 +127,7 @@ The spec's success criteria name Python 3.9 and 3.14. Rerun any row on 3.14 with
 
 **Source:** Edge Case ("Rebase onto a base that changed a line inside the PR's hunk context") — Story 1
 **Feature:** none
-**Verification:** scripted — the line 1 and exit code of `verify-ledger.py check` in Step 4 decide it
+**Verification:** human — no recipe; scripted: the line 1 and exit code of `verify-ledger.py check` in Step 4 decide it
 
 **Preconditions:**
 - Setup block pasted in this shell.
@@ -156,7 +156,7 @@ The spec's success criteria name Python 3.9 and 3.14. Rerun any row on 3.14 with
 
 **Source:** Edge Case ("Two `record` runs at once") — Story 1
 **Feature:** none
-**Verification:** scripted — the exit codes in Step 2, the ledger parse in Step 3, and each `check`'s line 1 and exit code in Step 4 decide it
+**Verification:** human — no recipe; scripted: the exit codes in Step 2, the ledger parse in Step 3, and each `check`'s line 1 and exit code in Step 4 decide it
 
 **Preconditions:**
 - Setup block pasted in this shell.
@@ -185,7 +185,7 @@ The spec's success criteria name Python 3.9 and 3.14. Rerun any row on 3.14 with
 
 **Source:** Edge Case ("PR retargeted to another base branch after a record") — Story 1
 **Feature:** none
-**Verification:** scripted — the line 1 and exit code of each `verify-ledger.py check` in Steps 3 to 5 decide it
+**Verification:** human — no recipe; scripted: the line 1 and exit code of each `verify-ledger.py check` in Steps 3 to 5 decide it
 
 **Preconditions:**
 - Setup block pasted in this shell.
@@ -218,7 +218,7 @@ The spec's success criteria name Python 3.9 and 3.14. Rerun any row on 3.14 with
 
 **Source:** Error Map ("Validate snapshot": missing or mistyped field), as amended by DEV-006 — Story 2
 **Feature:** none
-**Verification:** scripted — the reason lines and exit code of `pr-ready.py check` in Step 3 decide it
+**Verification:** human — no recipe; scripted: the reason lines and exit code of `pr-ready.py check` in Step 3 decide it
 
 **Preconditions:**
 - Setup block pasted in this shell.
@@ -265,7 +265,7 @@ The spec's success criteria name Python 3.9 and 3.14. Rerun any row on 3.14 with
 
 **Source:** Error Map ("Validate snapshot": unrecognized enum value), as amended by DEV-008 — Story 2
 **Feature:** none
-**Verification:** scripted — the exit code, empty stdout, and the counted length in Steps 2 and 3 decide it
+**Verification:** human — no recipe; scripted: the exit code, empty stdout, and the counted length in Steps 2 and 3 decide it
 
 **Preconditions:**
 - Setup block pasted in this shell.
