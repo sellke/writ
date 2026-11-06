@@ -1,6 +1,7 @@
 # Story 1: The merge rule re-derives readiness
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 67952bf2edea0bca007d533b5c8376f7772e98aa
 > **Priority:** High
 > **Dependencies:** None (spec dependency: `2026-11-06-pr-ready-and-ledger` complete)
 
