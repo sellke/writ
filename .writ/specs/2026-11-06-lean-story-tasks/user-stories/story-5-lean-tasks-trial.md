@@ -1,6 +1,7 @@
 # Story 5: Trial lean tasks on one archived spec
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 59e5b7c012300cc6cbb8d8d42b1ee1697c6bcf86
 > **Priority:** Medium
 > **Dependencies:** Story 2, Story 3, Story 4
 
