@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T21:30:00Z
+> Last Updated: 2026-11-06T18:55:00Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-06-lean-story-tasks — Lean Story Tasks (branch `spec/lean-story-tasks`)
-- **Status:** In Progress — `/implement-spec` running; all 5 stories complete; integration check pending
+- **Status:** Complete — all 5 stories done; integration suite green (4261 passed on Python 3.9 and 3.14, eval.sh exit 0); not yet shipped
 - **Story:** 5 of 5 — Trial lean tasks on one archived spec (Completed ✅; verdict `lean-tasks: keep`)
 - **Progress:** 32/32 tasks complete
 
