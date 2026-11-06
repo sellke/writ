@@ -125,7 +125,7 @@ Line 1 `fail` (exit 1) means findings; the summary reads `app-verify: recipe inv
 
 ### Phase 2: Content Extraction
 
-Extract scenario source material from the spec package. Four categories, each producing a distinct scenario type.
+Extract scenario source material from the spec package. Four categories, each producing a distinct scenario type. A person gets only what no check decides: an item of any category that a passing automated test already exercises goes to the plan's `## Covered by Tests` table (item, test selection to run) instead of becoming a scenario. The story's What Was Built record or test results must name the test, and the item must need no live run or human judgment.
 
 Read `{spec-folder}/drift-log.md` first when it exists. A DEV entry that records what the implementation did differently overrides the spec text it names: the scenario expects what was built, and its `**Source:**` line adds the DEV ID. Drift handling amends only `spec-lite.md`, never the technical spec, so the log wins where they disagree.
 
@@ -137,7 +137,7 @@ For each **completed** story, read the `## Acceptance Criteria` section. Parse e
 Given [precondition], when [action], then [expected result]
 ```
 
-Each acceptance criterion becomes one scenario, unless a passing automated test already exercises it: the story's What Was Built record or test results name the test, and the criterion needs no live run or human judgment. List those criteria in the plan's `## Covered by Tests` table (criterion, test selection to run) instead of writing a scenario. Preserve the Given/When/Then structure — it maps directly to Preconditions/Steps/Expected Result.
+Each acceptance criterion becomes one scenario unless a passing test already covers it (see Phase 2's rule). Preserve the Given/When/Then structure — it maps directly to Preconditions/Steps/Expected Result.
 
 **Parsing rules:**
 - Look for `- [x]` checkboxes (completed stories have all criteria checked)
@@ -367,9 +367,9 @@ Build the complete `uat-plan.md`:
 
 ## Covered by Tests
 
-| Criterion | Test selection |
+| Item | Test selection |
 |-----------|----------------|
-| AC-1.2 | `<command that runs the test>` |
+| AC-1.2 or Error Map row | `<command that runs the test>` |
 
 ---
 

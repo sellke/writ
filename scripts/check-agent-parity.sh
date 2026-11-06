@@ -60,6 +60,7 @@ claude_counterpart() {
     documentation-agent) echo "writ-documenter.md" ;;
     evaluator-agent) echo "writ-evaluator.md" ;;
     review-agent) echo "writ-reviewer.md" ;;
+    supervisor-agent) echo "writ-supervisor.md" ;;
     testing-agent) echo "writ-tester.md" ;;
     user-story-generator) echo "writ-story-gen.md" ;;
     visual-qa-agent) echo "writ-visual-qa.md" ;;

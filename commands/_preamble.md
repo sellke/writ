@@ -15,17 +15,6 @@ When a command uses Plan Mode for discovery, the conversation is a phase, not th
 deliverable. After discovery, resume the command's documented phases and produce
 its artifacts. Planning commands create files and stop; they never offer to code.
 
-### Narrow Recommended-Delivery Exception
-
-Only a command that explicitly documents `--recommend` may act autonomously.
-`/create-spec --recommend` authors a locked spec package and **stops**; only
-`/implement-phase --recommend` continues into implementation, ending at the
-completion report with manual UAT handoff. Every `--recommend` command enters an
-explicit recommend-mode branch, validates its invocation matrix before mutation,
-records decisions in `recommendation-log.md`, and retains every pause. No
-`--recommend` command merges, opens PRs, or releases; without that explicit branch,
-planning commands create files and stop.
-
 ## User Challenge (Scope-Degradation Escalation)
 
 A **User Challenge** is a structured escalation used **only** when a proposed choice
@@ -46,21 +35,27 @@ trail; missing evidence, critical ambiguity, or material irreversible risk inste
 (validator: `scripts/phase-state.py validate-challenge`). A malformed challenge is a
 **contract error**, not a User Challenge.
 
-## Autonomy Gate Classes
+## Doubt Rule
 
-Extends ADR-013's select-or-pause boundary above; it does not replace it.
+Every question a command would ask is a decision. Write its record and run
+`python3 scripts/jev-judge.py doubt --record <json>` (schema:
+`.writ/docs/recommendation-semantics.md`). `pass` → act on the recommended
+option; a decision that shapes a spec also goes in its `recommendation-log.md`.
+Anything else → ask one bounded question, then `doubt-label` the answer. Plan
+Mode discovery is not a bounded choice and is not gated.
 
-| Class | Behavior |
+| `site` | Asks when |
 |---|---|
-| Product & spec direction | **Human gate** — contract lock is an explicit human action |
-| Production boundary (merge/PR/release/tag/publish) | **Human gate** — Prime Directive hard constraint |
-| Design & UX judgment | **Human gate** — taste is not evidence-decidable |
-| Destructive / irreversible | **Autonomous** only when the precondition below holds |
-| Everything else | **Autonomous** within ADR-013's boundary, with audit rationale |
+| `merge`, `release` (tag, publish, deploy) | Always |
+| Any | Not git-revertable; no recommendation, no evidence, or conflicting evidence |
+| `direction` (scope, priorities, contract lock), `design` (taste) | Jev is uncalibrated, or its confidence is not above the threshold |
+| `choice`, `route`, `plan`, `destructive` | Jev is calibrated and its confidence is not above the threshold |
+
+No script on hand: ask for `direction`, `design`, `merge`, and `release`; act otherwise.
 
 **Reversibility precondition.** A destructive-class operation runs unattended **only when both hold**: (1) its effect is provably git-revertable — confined to tracked files with a resolvable revert target; (2) the restore path is recorded **before** the mutation. If either fails, it **pauses** with a bounded `AskQuestion`.
 
-**Stakes triage (ADR-023).** Before spending diligence on any decision — a read, a gate, a question, a verification step — answer two questions from what you already know. **Does the answer change what happens?** If no, it is not a decision: drop it. **How bad if it's wrong?** Reversible and contained → decide, act, record, no verification step. Irreversible or wide blast radius → full rigor, and the gate class above applies. The triage must cost less than the decision it governs; if answering it needs investigation, that is the answer: escalate. Do not look for a universal ratio between a decision's stakes and its cost; none exists. **Safety gates are never capped by count.** A rare failure still justifies its gate. Each gate names the failure it catches and the cost of missing it; a gate that can name neither is the candidate for removal.
+**Stakes triage (ADR-023).** Before spending diligence on any decision — a read, a gate, a question, a verification step — answer two questions from what you already know. **Does the answer change what happens?** If no, it is not a decision: drop it. **How bad if it's wrong?** Reversible and contained → decide, act, record, no verification step. Irreversible or wide blast radius → full rigor, and the Doubt Rule applies. The triage must cost less than the decision it governs; if answering it needs investigation, that is the answer: escalate. Do not look for a universal ratio between a decision's stakes and its cost; none exists. **Safety gates are never capped by count.** A rare failure still justifies its gate. Each gate names the failure it catches and the cost of missing it; a gate that can name neither is the candidate for removal.
 
 ## File Organization
 

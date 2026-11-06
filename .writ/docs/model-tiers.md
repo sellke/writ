@@ -98,7 +98,7 @@ Every command that spawns agents (`/create-spec`, `/implement-story`, and `/impl
 | `anchor.effort` | `low` \| `medium` \| `high` \| … or `unknown` | the user's thinking level; Claude Code usually reveals none |
 | `anchor.platform` | `cursor` \| `claude-code` \| `codex` \| `openclaw` | |
 
-Where it goes: stamped as `origin=<model>/<effort>@<platform>` on ADR-017 audit records, on `recommendation-log.md` entries in `--recommend` runs, and on every `escalated`/`degraded` line. Never a new file under `.writ/state/`. Never shown to the user except through the entry notice.
+Where it goes: stamped as `origin=<model>/<effort>@<platform>` on ADR-017 audit records, on `recommendation-log.md` entries, and on every `escalated`/`degraded` line. Never a new file under `.writ/state/`. Never shown to the user except through the entry notice.
 
 **The anchor is the ceiling.** No spawn resolves above `anchor.model` or `anchor.effort`. Escalation returns *to* the anchor, never past it — the user's choice of model and thinking level is a cost decision Writ does not override.
 

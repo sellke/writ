@@ -50,10 +50,10 @@ has 'rotate it'
 ok "setup sub-step: one titled AskQuestion, four options mapped to setup, export line, never-paste"
 
 # --- No-prompt cases [AC-6.4] ---------------------------------------------------
-has '(not `--recommend`)'
-has '`--recommend`, non-interactive, or `none`: one `jev:` note'
+has '(not seeded by `/implement-phase`)'
+has 'Seeded, non-interactive, or `none`: one `jev:` note'
 has '`no_api_key`: note `jev: unverifiable (no_api_key) — export <VAR>`; no re-prompt'
-ok "setup sub-step: --recommend / non-interactive / none are notes; no_api_key has no re-prompt"
+ok "setup sub-step: seeded / non-interactive / none are notes; no_api_key has no re-prompt"
 
 # --- Item-3 sentence exempts only the setup prompt [AC-6.5] -------------------
 printf '%s\n' "$STEP_26C" \

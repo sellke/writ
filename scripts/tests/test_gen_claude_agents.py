@@ -43,6 +43,7 @@ FILE_MAP = {
     "documentation-agent": "writ-documenter.md",
     "evaluator-agent": "writ-evaluator.md",
     "review-agent": "writ-reviewer.md",
+    "supervisor-agent": "writ-supervisor.md",
     "testing-agent": "writ-tester.md",
     "user-story-generator": "writ-story-gen.md",
     "visual-qa-agent": "writ-visual-qa.md",
@@ -496,7 +497,7 @@ def test_committed_tree_passes_check() -> None:
     )
 
 
-def test_committed_tree_holds_eight_generated_agents() -> None:
+def test_committed_tree_holds_every_generated_agent() -> None:
     """AC-2.1 — one `writ-*.md` per canonical stem, `writ-visual-qa.md` included."""
     assert sorted(p.name for p in COMMITTED_DIR.glob("writ-*.md")) == sorted(FILE_MAP.values())
 

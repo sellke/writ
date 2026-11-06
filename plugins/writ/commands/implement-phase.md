@@ -49,18 +49,11 @@ Verify per the preamble's **Artifact Integrity** rule before starting.
 | `/writ:implement-phase --quick` | Passes `--quick` through to each `/writ:implement-spec` call |
 | `/writ:implement-phase --resume` | Resumes from last saved phase execution state |
 | `/writ:implement-phase --specs a,b` | No-roadmap fallback: treat the named specs as the phase |
-| `/writ:implement-phase --recommend` | End-to-end autonomous loop: auto-author missing specs (via `/writ:create-spec --recommend`) and run `/writ:implement-spec` per spec, without routine confirmations |
+| `/writ:implement-phase --recommend` | Accepted for older scripts and Goal Cards; prints `--recommend is the default now (Doubt Rule)` once and runs as above |
 
-## Recommended Mode (`--recommend`)
+## Initiative
 
-`/writ:implement-phase --recommend` runs the phase as a complete end-to-end loop with no routine confirmations. It is the only command that autonomously chains spec authoring into implementation.
-
-- **Auto-author missing specs.** When unspecced features exist, the decomposition pre-pass (Step 1.2b) runs without its approval gate, and each proposed spec is created with `/writ:create-spec --recommend` (autonomous, evidence-backed contract authoring) instead of the collaborative `/writ:create-spec`. Record each authoring decision in that spec's `recommendation-log.md`.
-- **Auto-accept the execution plan.** The single Step 2.3 execution-plan confirmation is auto-accepted; the loop then runs exactly as in normal mode (isolated lanes → `/writ:implement-spec` per spec → `/writ:create-uat-plan`).
-- **Terminal scope is unchanged.** The loop still ends at the completion report (Phase 4) and hands off manual UAT. It never ships, opens PRs, or releases.
-- **Non-routine pauses are retained** — the Question Policy conditions that are not routine confirmations still stop the loop: missing exit criteria that cannot be derived (never invent-and-self-certify, Step 2.2), an exit criterion that becomes unachievable mid-run (Step 4.3), and an ambiguous failure blast radius (Step 3.3).
-
-`--recommend` composes with `--all` and `--specs`. It is incompatible with `--quick`: full story, review, testing, and documentation gates are mandatory when authoring and implementation run autonomously.
+Every question this command would ask goes through the preamble's **Doubt Rule** first, so a phase runs end to end when the evidence carries it and stops for a person only on doubt. The Question Policy below names the decisions that exist; the Doubt Rule decides which reach a person. Specs the pre-pass authors go through `/writ:create-spec` with their seed, and its own Doubt Rule decides each lock. The loop still ends at the completion report: it never merges, opens PRs, or releases.
 
 ## Command Process
 
@@ -120,15 +113,15 @@ Seams:
 Rationale: [why these boundaries — coherence, independent testability, ownership]
 ```
 
-Confirm with AskQuestion: create these specs / edit the breakdown / stop. **The decomposition plan is an ask-worthy condition** (condition 4): the roadmap does not answer how many specs, where the seams fall, or who owns a shared file, and no artifact can derive it. This is a planning confirmation, distinct from and earlier than the Step 2.3 execution gate. **In `--recommend` mode this confirmation is auto-accepted**; the decomposition is treated as an evidence-backed autonomous decision and recorded.
+Run the Doubt Rule on the proposal (`site: direction`; evidence: the files each spec owns, the dependency edges, the seams). A passing check adopts it and records it; otherwise confirm with AskQuestion: create these specs / edit the breakdown / stop. This is a planning decision, distinct from and earlier than the Step 2.3 execution plan.
 
-**On approval, create the specs.** Contract-first still applies. For each proposed spec in dependency order, run `/writ:create-spec` seeded with its deliverable, files-in-scope, `dependencies:`, and ownership constraints from the proposal. Each spec is still contract-locked (per ADR-001, specs are never created without agreement); the seed shortens each discovery. Specs are authored collaboratively in this pre-pass; only implementation (Phase 3) runs autonomously. **In `--recommend` mode, run `/writ:create-spec --recommend` instead**: each spec's contract is auto-locked from evidence and its decisions recorded in `recommendation-log.md`; the seed still applies.
+**On approval, create the specs.** Contract-first still applies. For each proposed spec in dependency order, run `/writ:create-spec` seeded with its deliverable, files-in-scope, `dependencies:`, and ownership constraints from the proposal. Each spec is still contract-locked; the seed is its evidence, and `/writ:create-spec`'s Doubt Rule decides whether the lock reaches a person. Its decisions go in that spec's `recommendation-log.md`.
 
 **Closing a spec instead of building it.** The pre-pass may conclude a resolved spec should never be built: measured evidence retired its premise, another spec subsumes it, or the phase's scope moved. Record that with `phase-state.py close-spec --spec {id} --reason "{why}"` rather than leaving it `pending`: `pending` claims the work is still coming. The reason is mandatory and is printed in the completion report. Closure is **terminal** (no lane, no retry, no quarantine) and its declared dependents become `skipped_blocked`.
 
 **After the specs exist, re-resolve:** return to Step 1.2 classification. The freshly created specs are now **Specced** and enter the normal inventory, sequencing, and execution flow.
 
-> **`--all` boundary:** the pre-pass is never auto-entered in `--all` mode; creating specs requires human agreement. Unspecced features encountered under `--all` fall back to the "partially complete" path unless the phase is run interactively. **`--recommend` is the explicit exception:** it authorizes autonomous spec creation, so `--recommend` (with or without `--all`) auto-enters the pre-pass and authors missing specs via `/writ:create-spec --recommend`.
+> **`--all` boundary:** under `--all`, unspecced features go through the same Doubt Rule as an interactive run; a question that cannot reach a person (no question tool) ends that phase on the "partially complete" path.
 
 #### Step 1.3: Inventory Prior Progress
 
@@ -200,7 +193,7 @@ Exit criteria (from roadmap):
 Pre-flight flags: [any /writ:implement-spec sizing concerns, surfaced but non-blocking]
 ```
 
-Confirm with AskQuestion: execute / edit spec list / abort. This is the last routine question. Everything after this runs autonomously except the failure and exit-criteria conditions below. **In `--recommend` mode this confirmation is auto-accepted**; the loop proceeds directly to Phase 3.
+Run the Doubt Rule on the plan (`site: plan`; evidence: the validated dependency graph and the roadmap order). A passing check prints the plan and proceeds to Phase 3; otherwise confirm with AskQuestion: execute / edit spec list / abort. Everything after this runs autonomously except the failure and exit-criteria conditions below.
 
 ### Phase 3: The Loop
 
@@ -218,9 +211,10 @@ The orchestrator owns lane creation, result validation, merge, and UAT handoff. 
 2. **Spawn a fresh subagent** seeded only with artifact paths (spec path, phase-state path, lane branch/worktree, mode, inherited answer sources) and the expected `phase-spec-result-v1` schema. **No prior conversational transcript is forwarded**; required context is loaded from repository artifacts by path. The subagent runs `/writ:implement-spec {spec}` inside the lane worktree and returns the structured result. Pass through `--quick` if set.
 
    **A truncated or dropped result is not a failure; re-request it.** Harnesses sometimes deliver an opening line instead of the agent's final report. A stub is indistinguishable from a completed run unless the orchestrator checks; treating one as terminal either quarantines finished work or records a gate as passed that reported nothing. Before classifying any result, confirm it parses as `phase-spec-result-v1`; if it does not, resume the same agent and ask it to restate its report verbatim rather than re-running the lane.
-3. **Validate the result and merge only verified success** — `${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py validate-result` gates the merge: **only a verified** `phase-spec-result-v1` with `status: succeeded`, a real commit, and non-empty verification evidence merges (`--no-ff`) into the phase branch (`integrate`), after which the worktree is removed and the merge commit recorded.
-4. **Preserve anything else** — a missing, malformed, non-successful, or unverifiable result never touches the phase branch; its lane is preserved for Step 3.3 / Story 4 to classify, quarantine, and recover.
-5. **On a merged success, run `/writ:create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated after implementation so it reflects what was built. Update phase state and continue.
+3. **Supervise the result** — before anything else reads it, spawn `supervisor-agent` (fresh context, read-only) with the lane's report verbatim, the spec path, the lane branch, and its base commit. It re-derives each claim from git, the spec's files, and Writ's checkers, and returns `SUPERVISOR_RESULT: ACCEPT | RERUN | ESCALATE` with a claims table. `ACCEPT` → step 4. `RERUN` → classify the lane as a `transient` failure (Step 3.3; the `spec_attempt` cap applies) with the claims table as its evidence. `ESCALATE` → a `terminal` failure with the same evidence. A missing result line is a mid-task stop: resume the supervisor once and ask for its result.
+4. **Validate the result and merge only verified success** — `${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py validate-result` gates the merge: **only a verified** `phase-spec-result-v1` with `status: succeeded`, a real commit, and non-empty verification evidence merges (`--no-ff`) into the phase branch (`integrate`), after which the worktree is removed and the merge commit recorded.
+5. **Preserve anything else** — a missing, malformed, non-successful, or unverifiable result never touches the phase branch; its lane is preserved for Step 3.3 / Story 4 to classify, quarantine, and recover.
+6. **On a merged success, run `/writ:create-uat-plan {spec}`** — the UAT plan is the exit artifact of the iteration, generated after implementation so it reflects what was built. Update phase state and continue.
 
 **Iteration bound:** this loop is bounded at `loop.max_iterations` (12) **distinct specs per phase**: the counter resets at each phase boundary in `--all` mode, and a spec retried under Step 3.3 is the same iteration, not a second one (retries are bounded separately by the nested `spec_attempt` cap). On exhaustion, `loop.on_exhaustion: halt_reported` applies: **do not quarantine anything.** Nothing has failed at this point; the phase ran longer than declared, and fabricating a failure record would mark dependents `skipped_blocked` and degrade scope. Unstarted specs stay `pending` and the phase stays `status: executing`; report the unit (`spec`), the bound, the count reached, the last integrated spec, the `phase-execution-*.json` path, and the literal resume command `/writ:implement-phase --resume`. Persist the same facts with `${CLAUDE_PLUGIN_ROOT}/scripts/phase-state.py record-halt --unit spec --bound 12 --reached <n> --last-integrated <spec-id>`, which writes `haltReported` and never sets `terminalStatus`; a halted run has not reached a terminal status.
 
@@ -338,7 +332,7 @@ The command's value is autonomy. Questions are the exception, bounded to exactly
 3. **Ambiguous failure blast radius** — a spec failed and it's unclear whether a remaining spec is safe to run.
 4. **Decomposition approval** — unspecced features exist and the user chose to decompose; the breakdown into specs, the seams, and file ownership cannot be derived from any artifact. Ask once, upfront (Step 1.2b), before creating specs.
 
-Everything else is answered from artifacts (roadmap → spec contract → technical spec → story files, in that precedence order) or accepted as the downstream command's default. The single upfront execution-plan confirmation is the only routine interaction. When unspecced features are decomposed, the one decomposition confirmation of condition 4 precedes it.
+Everything else is answered from artifacts (roadmap → spec contract → technical spec → story files, in that precedence order) or accepted as the downstream command's default. Conditions 2 to 4 and the Step 2.3 plan still go through the Doubt Rule before reaching a person; condition 1 always does, because there is no recommendation to act on.
 
 ## Integration with Writ
 
@@ -361,7 +355,7 @@ This command succeeds when:
 3. **Machine-checkable exit criteria are verified with evidence** and human-judgment criteria are handed off, not self-certified
 4. **The phase report was presented** with a terminal status: `COMPLETE`, `IMPLEMENTED — pending human validation`, or `PARTIALLY COMPLETE`
 
-**Suggested next step:** Execute the UAT plans manually; then `/writ:ship`.
+**Suggested next step:** Execute the human scenarios the UAT plans hand off; then `/writ:ship`.
 
 **Terminal constraint:** After the phase report, stop. Do not offer to execute UAT scenarios on the human's behalf, auto-advance into uncommitted roadmap phases, or open PRs unprompted.
 

@@ -256,12 +256,12 @@ Preserve stable option identity across display, selection, rationale, and resume
 Adapters map interaction mechanics only; they do not choose recommendation policy.
 Equivalent observable semantics are required: recommendation label or disclosed equivalence, classified pause, concise rationale, and same-session continuation after an answer.
 
-For `--recommend`, translate the policy's selected stable identity to the
+When the doubt check passes, translate the policy's selected stable identity to the
 displayed number, or present its classified pause with missing evidence, bounded
 choices, and a safe next action. Show decision, evidence, material alternatives,
 risk, reversibility, selection source, and result/artifact without private
 chain-of-thought or transcript content. After a required composer reply,
-continue the active parent session with recommendation mode retained and do not
+continue the active parent session and do not
 repeat the answered decision. Durable or cross-session recovery remains the
 neutral orchestrator's responsibility. Sandbox, approval, authentication, and
 unavailable-capability failures remain hard platform blockers.
@@ -310,12 +310,12 @@ The former unattended CLI loop for multi-spec execution is retired and archived
 (see `archive/`). Use `/implement-phase` for supervised multi-spec execution: it
 sequences specs by cross-spec dependency, isolates each spec in a fresh execution
 lane (branch + worktree), quarantines terminal failures while independent specs
-continue, and reconciles state read-only on resume. Recommended autonomy is a
-separate supported path on two commands. `/create-spec --recommend` authors and
-locks one spec package from evidence, then stops. `/implement-phase --recommend`
-runs the phase end to end: it authors any missing specs, implements the phase's
-specs through the isolated lanes above, and ends at the completion report with
-manual UAT handoff. It never merges, opens PRs, or releases.
+continue, and reconciles state read-only on resume. Every question these
+commands would ask goes through the Doubt Rule (`commands/_preamble.md`), so a
+phase runs end to end when the evidence carries it: it authors any missing specs,
+implements them through the isolated lanes above, has the supervisor agent check
+each lane's report before it merges, and ends at the completion report with the
+UAT handoff. It never merges to the default branch, opens PRs, or releases.
 
 ---
 

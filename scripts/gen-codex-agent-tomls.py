@@ -52,6 +52,11 @@ PURPOSES: dict[str, str] = {
     "review-agent": (
         "Quality gate agent that verifies acceptance criteria, code quality, tests, and drift."
     ),
+    "supervisor-agent": (
+        "Fresh-context check of a subagent's report before an orchestrator accepts it;"
+        " re-derives each claim from git, spec files, and checkers; returns ACCEPT, RERUN,"
+        " or ESCALATE with a claims table."
+    ),
     "testing-agent": (
         "Test and coverage agent that verifies pass rate, regressions, and coverage thresholds."
     ),
@@ -67,6 +72,7 @@ SANDBOX: dict[str, str] = {
     "documentation-agent": "workspace-write",
     "evaluator-agent": "read-only",
     "review-agent": "read-only",
+    "supervisor-agent": "read-only",
     "testing-agent": "workspace-write",
     "user-story-generator": "workspace-write",
     "visual-qa-agent": "read-only",

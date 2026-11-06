@@ -2,6 +2,7 @@
 
 > **Date:** 2026-11-05
 > **Status:** Accepted
+> **Amended:** 2026-11-05 — what the Phase 17 build changed (see § Amendments)
 > **Category:** Autonomy & Governance
 > **Deciders:** @AdamSellke
 > **Origin:** `/plan-product --reconcile` (2026-11-05). The maintainer's direction: a person's time and judgment are called on only when there is reasonable doubt about the right answer; the harness takes initiative and keeps itself honest; a supervisor checks subagent work; Jev makes the first-pass call on whether a person is needed.
@@ -118,6 +119,38 @@ Roadmap Phase 17, Doubt-Gated Autonomy, in this order:
 **Success criteria:** asks per phase run fall against the Phase 15 transcripts as the baseline; a script finds zero autonomous decisions without a log entry; the supervisor catches at least one F6-class shortcut on a Phase 15 transcript replay; the bytes retired from `_preamble.md`, `system-instructions.md`, and the recommend branches are counted in the phase close; `bash scripts/eval.sh` passes with its pins updated.
 
 **Review:** at Phase 17 close, per site: ask rate before and after, overrides, and any autonomous decision later reverted. Reopen this record if an autonomous decision on an irreversible act is overridden, or if the fallback table fires on most decisions in a project (the oracle is unconfigured there, and the rule is doing nothing).
+
+## Amendments
+
+### 2026-11-05 — The Phase 17 build
+
+Phase 17 was built the same day on `phase/17-doubt-gated-autonomy`, ahead of the Principle 8 queue at the maintainer's direction. Four points of the decision changed in the build:
+
+1. **Jev shadows until its own record says otherwise.** Point 2 expected Jev to make the first-pass call. On 98 of the maintainer's past answers to bounded questions in this repository (88 taken as recommended, 10 overridden), Jev's score did not separate them: the threshold fitted on the dev half (0.38, zero overrides acted on) acted on 2 overrides in 16 on the held-out half, no better than the 10% base rate. `doubt-calibrate` therefore writes a threshold only when the held-out half shows no override it would have acted on, and it refused here ([report](../eval/doubt-calibration/report.md)). Jev still runs first on every decision the rules pass, and its score is logged; the decision's kind decides until the labels support it. Five of the ten overrides were scope or direction calls, which the fallback asks; five were reversible method choices, which it acts on and logs.
+2. **The fallback site for scope is `direction`, not "contract".** Point 1's three ADR-022 classes became sites: `direction` (scope, priorities, what gets built, a contract lock) and `design` (taste) ask without a calibrated judgment; `merge` and `release` always ask; `choice`, `route`, `plan`, and `destructive` act when the rules pass. Decisions about method, not scope, were where the labeled data said a person was not needed.
+3. **The supervisor runs at the anchor tier, and `subagent-result-completeness` stays.** Point 3 said floor tier. `.writ/docs/model-tiers.md` puts any agent that judges another agent's output at `anchor`, as the evaluator is. The completeness skill checks the verdict shape of gate agents inside a story at no spawn cost; the supervisor checks story and lane reports, so the two do not overlap. The supervisor runs once per story in `/implement-spec` and once per lane in `/implement-phase`, never both for one story. Removal measurement on Phase 15's lane 1: replayed blind on the lane report Phase 15's orchestrator merged (`exit-criteria.py`: `met`), it returned `ESCALATE`, naming the missing coding-agent run, two stories sharing one Gate 3 review, and three verify tasks ticked over a failed run ([trial](../eval/supervisor-trial/report.md)). It stays. The trial cost about 141k tokens, mostly a full-suite and `eval.sh` re-run in a clone; the prompt now re-runs only targeted checks.
+4. **`--recommend` is an accepted no-op, not an error.** Goal Cards and scripts that pass it keep working; it prints one line and runs the default. Without a configured judgment provider, a seeded `/create-spec` now asks at the contract lock where `--recommend` used to lock silently. That is the fallback this record chose, and the price of not acting looser without evidence.
+
+### 2026-11-05 — Jev scores confidence in the recommendation
+
+Point 2 had Jev answer whether a decision needs a person. That question asks two things at once: whether the recommendation is right, and whether the choice is the person's to make. The calibration labels record only whether the person took the recommendation. Jev now answers that directly: its p is its confidence that the recommended option is right, sound on the evidence and the option the person would choose. A score above the calibrated threshold acts; at or below it, Writ asks. The maintainer's five confidence bands map onto that one cut: high and medium-high act, medium and below ask, and the labels place the line between them.
+
+On the same 98 answers, with the person's request and the assistant's reasoning attached as evidence, the confidence score ranked overrides as more doubtful than accepted decisions 80% of the time, against 66% for the first question with no evidence ([report](../eval/doubt-calibration/report.md)). It passed the held-out check once (20 of 47 acted on, no override) and failed on an identical repeat (27 acted on, 1 override): Jev's scores moved by up to 0.11 between runs. No threshold is written, and Jev still shadows. Two changes follow:
+
+- **Scores carry the question's name.** Log rows, scored files, and thresholds record `judgment: recommendation_holds`. A score or threshold from another question is ignored, so a reworded question never calibrates on its predecessor's scale.
+- **Evidence includes the request.** A decision record's `evidence` names what the person asked for when it bears on the choice, because the calibration data carried it.
+
+Open: the calibration rule fits a threshold to one scoring, and a live decision is scored again with the same noise. A threshold that holds has to clear that noise.
+
+### 2026-11-05 — Calibration bounds the false-act share over repeated scores
+
+The held-out rule was a coin flip by construction: with 10 overrides split 6 and 4, it passed exactly when the highest-scoring override landed in the dev half, 50% of the time over 20,000 random splits of one run's scores. `doubt-calibrate` now uses one rule on all labels:
+
+- **Each decision is scored 3 times**, and the threshold is the highest draw of any override, rounded up to 0.01. Jev acts only above it.
+- **Leave one out.** An override slips when any of its draws is above the threshold fitted to the other overrides.
+- **The false-act share is bounded.** Overrides × slip rate, against accepted decisions × the share of their draws above the threshold, estimates the share of Jev's acts the person would have overridden. A threshold is written only when that share is at most 10% with the slip rate at its one-sided 95% upper bound. The maintainer set the 10% cap.
+
+On the 98 answers, two runs agree on the estimate (1 of 10 overrides slips; 2 to 3% of acts would be overrides) and split on the verdict: one passed with a 7.8% bound, one refused at 10.4%, and all six draws pooled refuse at 10.4% ([report](../eval/doubt-calibration/report.md)). One override's occasional high draw (0.57 against a mean of 0.48) decides whether the threshold sits at 0.49 or 0.57. No threshold is written, and Jev still shadows. With these data no rule can show the share under 10%; more overrides can. A threshold from each override's mean plus a margin from noise pooled over all decisions is steadier on these scores, but it was found after seeing them, so it waits for new labels.
 
 ## References
 

@@ -129,6 +129,7 @@ and is not installed.
 | documentation-agent | `agents/documentation-agent.md` | anchor | Framework-adaptive documentation agent for feature, component, and architecture docs. |
 | evaluator-agent | `agents/evaluator-agent.md` | anchor | Fresh-context rubric agent that adjudicates acceptance criteria and recorded test results; residual architecture, security, and taste; never applies a patch. |
 | review-agent | `agents/review-agent.md` | anchor | Quality gate agent that verifies acceptance criteria, code quality, tests, and drift. |
+| supervisor-agent | `agents/supervisor-agent.md` | anchor | Fresh-context check of a subagent's report before an orchestrator accepts it; re-derives each claim from git, spec files, and checkers; returns ACCEPT, RERUN, or ESCALATE with a claims table. |
 | testing-agent | `agents/testing-agent.md` | anchor | Test and coverage agent that verifies pass rate, regressions, and coverage thresholds. |
 | user-story-generator | `agents/user-story-generator.md` | floor | Parallel story authoring agent for create-spec workflows. |
 | visual-qa-agent | `agents/visual-qa-agent.md` | anchor | Optional UI validation gate that compares implementation screenshots against visual references. |

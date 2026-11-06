@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-05T15:16:43Z
+> Last Updated: 2026-11-05T16:47:01Z
 
 ## Product Mission
 
@@ -15,7 +15,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (reconciled 2026-11-05; Phase 17 committed, ADR-033)
+- **Product:** roadmap.md, mission.md, mission-lite.md (Phase 17 built on `phase/17-doubt-gated-autonomy`, ADR-033)
 - **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, trial-report.md, rating-handoff.md
 - **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)

@@ -220,6 +220,10 @@ agents:
     file: agents/review-agent.md
     purpose: "Quality gate agent that verifies acceptance criteria, code quality, tests, and drift."
     model_tier: anchor
+  - name: supervisor-agent
+    file: agents/supervisor-agent.md
+    purpose: "Fresh-context check of a subagent's report before an orchestrator accepts it; re-derives each claim from git, spec files, and checkers; returns ACCEPT, RERUN, or ESCALATE with a claims table."
+    model_tier: anchor
   - name: testing-agent
     file: agents/testing-agent.md
     purpose: "Test and coverage agent that verifies pass rate, regressions, and coverage thresholds."

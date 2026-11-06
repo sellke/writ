@@ -22,47 +22,38 @@ These apply to every command, agent, and session. No exceptions.
 - **Never let Plan Mode absorb a command's workflow.** When a command uses
   Plan Mode for discovery, the conversation is a phase — not the deliverable.
   After discovery, resume the command's documented phases and produce its
-  documented artifacts. Planning commands create files and stop by default.
-  The one exception applies only when the invoked command explicitly documents support for `--recommend` and the user invokes that modifier.
-  Commands without documented `--recommend` support never infer or inherit recommended-delivery authority.
+  documented artifacts. Planning commands create files and stop; only
+  `/implement-phase` implements the specs it authors.
 
-### Recommended Delivery Exception
+### Initiative and Doubt
 
-- **Keep automatic progress observable and auditable.** Every automatic choice
-  requires observable evidence and durable audit summaries recording the
-  decision, material alternatives, risk, reversibility, and result. Summaries
-  exclude private chain-of-thought, prompts, transcripts, and hidden scratch work.
-- **Select only within the evidence boundary.** Low-risk, reversible choices
-  with defensible evidence may proceed. Missing evidence, critical ambiguity,
-  destructive or material risk, and hard platform blockers pause safely with a
-  bounded question or actionable blocker.
-- **Make interruption resumable.** Persist state before yielding or attempting
+- **Decide, act, record.** A bounded choice is a decision, not an order to ask.
+  Recommend one option from evidence, run the doubt check, and on `pass` act
+  on it and record the decision, evidence, alternatives, reversibility, and
+  result. Records exclude private chain-of-thought, prompts, transcripts, and
+  hidden scratch work.
+- **Ask only on reasonable doubt.** The doubt check (`jev-judge.py doubt`)
+  decides: `pass` acts, anything else asks one bounded question. Label the
+  answer with `doubt-label`. The command line and the rule are in
+  `commands/_preamble.md` → Doubt Rule.
+- **Release stays a person's call.** Merging, releasing, tagging, and
+  publishing wait for a person's answer.
+  Nothing bypasses branch protection, required checks, authentication, or authorization.
+- **Stay resumable and bounded.** Persist state before yielding or attempting
   external mutations, then reconcile repository and provider reality before
-  retrying. Never infer completion from a prior attempt.
-- **Retain the human production boundary.** No `--recommend` command merges,
-  opens PRs, or releases — those remain explicit human actions. Never bypass
-  branch protection, required checks, authentication, or authorization.
-- **`--recommend` lives on exactly two commands.** `create-spec --recommend`
-  autonomously authors a locked spec package from evidence and **stops** (it
-  never implements). `implement-phase --recommend` is the end-to-end loop: it
-  authors missing specs (via `create-spec --recommend`) and runs
-  `/implement-spec` per spec, ending at the phase completion report with manual
-  UAT handoff. `implement-spec`, `ship`, and `create-uat-plan` carry no
-  `--recommend`.
-- **Reject opaque unbounded execution.** Recommended delivery is session-started
-  and finite — bounded to one authored spec or one roadmap phase. It never
-  becomes an unattended CLI loop, and it never crosses into autonomous
-  merge/release.
+  retrying. Never infer completion from a prior attempt. Autonomy is
+  session-started and bounded to one spec or one roadmap phase; it never
+  becomes an unattended loop.
 
 ### Recommendation Semantics
 
 - **Label normal bounded choices.** For every normal AskQuestion with bounded
   options, assess the options before presenting them. Exactly one option label ends with the literal suffix `(Recommended)`.
   If options remain explicitly equivalent after simplicity and reversibility analysis, label none and disclose the equivalence.
-  Normal mode remains human-selected; the label is advisory.
+  The labeled option is the one acted on when the doubt check passes.
   Do not use Plan Mode when the option space is already known.
 
-See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select-or-pause classification, audit rationale fields, and resume rule behind `--recommend`.
+See `.writ/docs/recommendation-semantics.md` for the evidence precedence, select-or-pause classification, audit rationale fields, decision record, and resume rule.
 
 ## Interaction Tool Selection
 

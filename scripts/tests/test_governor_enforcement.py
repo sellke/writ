@@ -632,7 +632,10 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-31 (retro 2026-10-30-phase-15.md F3): 15052 -> 15197, a disclosed
     # increase. Step 2.5 gains one sentence: every story leaves every check
     # green, and a new command ships with its registration. No new step or gate.
-    "commands/create-spec.md": 15197,
+    # 2026-11-05 (ADR-033, Phase 17): 15197 -> 14169; the --recommend branch, its
+    # matrix, and its authoring boundary become one doubt-gated "Authoring From
+    # Evidence" section that every run follows.
+    "commands/create-spec.md": 14169,
     "commands/verify-spec.md": 10818,
     # 2026-09-09 Stage 4a: 10208 -> 10200 after Step 1.4 emit hook + prose trim
     # 2026-10-02 (2026-10-01-product-check-direction Story 2): 10200 -> 10361
@@ -640,7 +643,10 @@ KNOWN_OVER_BUDGET = {
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 10361 -> 10256;
     # ADR and archived-spec links removed. 10256 -> 9921; calibrated_against
     # no longer cites Writ's own .writ/state/ records.
-    "commands/implement-phase.md": 9921,
+    # 2026-11-05 (ADR-033, Phase 17): 9921 -> 8957; the Recommended Mode section and
+    # its three auto-accept clauses become the Doubt Rule; the lane gains the
+    # supervisor step.
+    "commands/implement-phase.md": 8957,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.

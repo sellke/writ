@@ -119,6 +119,24 @@ OVERLAY: dict[str, dict] = {
             "Update memory with new patterns discovered during this evaluation."
         ),
     },
+    "supervisor-agent": {
+        "file": "writ-supervisor.md",
+        "frontmatter": [
+            ("name", "writ-supervisor"),
+            ("description", (
+                "Checks a subagent's report before a Writ orchestrator accepts it."
+                " Re-derives each claim from git, the spec's files, and Writ's checkers;"
+                " returns SUPERVISOR_RESULT ACCEPT, RERUN, or ESCALATE with a claims table."
+                " Never edits files."
+            )),
+            ("tools", "Read, Grep, Glob, Bash"),
+            ("disallowedTools", "Write, Edit"),
+            ("model", "inherit"),
+            ("permissionMode", "plan"),
+            ("maxTurns", "20"),
+        ],
+        "suffix": "",
+    },
     "review-agent": {
         "file": "writ-reviewer.md",
         "frontmatter": [
