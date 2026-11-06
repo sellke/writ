@@ -56,7 +56,8 @@ PLUGIN_COPY = REPO_ROOT / "plugins" / "writ" / "scripts" / "verify-ledger.py"
 CONTRACT_DOC = REPO_ROOT / ".writ" / "docs" / "agent-cli-contract.md"
 CONTRACT_TEST = REPO_ROOT / "scripts" / "tests" / "test_agent_cli_contract.py"
 LEDGER_REL = Path(".writ") / "state" / "verify-ledger.json"
-CALLERS = "none shipped yet; /ship --watch (spec 2026-11-06-ship-watch-and-merge)"
+# The Callers cell as the second Phase 16 spec left it (its Reconciliation 8).
+CALLERS = "commands/ship.md"
 REAL_GIT = shutil.which("git") or "git"
 
 

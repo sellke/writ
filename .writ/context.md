@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T17:22:00Z
+> Last Updated: 2026-11-06T21:26:03Z
 
 ## Product Mission
 
@@ -8,25 +8,25 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Active Spec
 
-- **Spec:** 2026-11-06-pr-ready-and-ledger — PR Ready and Verification Ledger
-- **Status:** Complete — Phase 16 lane `writ/phase/16/2026-11-06-pr-ready-and-ledger`, awaiting the phase merge
-- **Story:** 3 of 3 complete (last: Ledger gate and machine output)
-- **Progress:** 20/20 tasks complete (100%)
+- **Spec:** 2026-11-06-ship-watch-and-merge — Ship Watch and Merge
+- **Status:** Complete — Phase 16 lane `writ/phase/16/2026-11-06-ship-watch-and-merge`
+- **Story:** 4 of 4 complete (last: The watch merges on a green ledger)
+- **Progress:** 27/27 tasks complete (100%)
 
 ## Artifact Map
 
 - **Product:** roadmap.md, mission.md, mission-lite.md
-- **Active spec:** .writ/specs/2026-11-06-pr-ready-and-ledger/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, recommendation-log.md
+- **Active spec:** .writ/specs/2026-11-06-ship-watch-and-merge/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, recommendation-log.md
 - **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)
 - **Integrity:** ✅ all required present
 
 ## Recent Drift
 
-- DEV-010 The Story 2 review repro ships as its own test file — pr-ready-and-ledger (Small)
-- DEV-009 `evaluate` takes a `(pr, head)` gate that wraps `ledger_check`, and the loader checks the module and writes no bytecode — pr-ready-and-ledger (Small)
-- DEV-008 A rejected snapshot value prints in a bounded form — pr-ready-and-ledger (Small)
+- DEV-011 The first spec's contract tests follow the Callers cells — ship-watch-and-merge (Small)
+- DEV-010 Step 6 names the landed SHA for a `--watch` merge, and the Gate 3 repro ships as its own test file — ship-watch-and-merge (Small)
+- DEV-009 `test_harness_cuts.py`'s AC-3.3 frontmatter test is renamed and joined by a `--watch` merge-claim test — ship-watch-and-merge (Small)
 
 ## Open Issues
 
-25 open issue files in .writ/issues/ (43 total; 18 closed with `## Resolution`)
+27 open issue files in .writ/issues/ (45 total; 18 closed with `## Resolution`)

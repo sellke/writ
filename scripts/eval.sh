@@ -1078,11 +1078,12 @@ check_autonomy_governance() {
   # ADR-033 (2026-11-05): one doubt rule replaces the --recommend exception.
   require_literal "$system" 'The doubt check (`jev-judge.py doubt`)' "The system policy must route every question through the doubt check (ADR-033)."
   require_literal "$system" "record the decision, evidence, alternatives, reversibility, and" "The system policy must record every automatic decision with its evidence and alternatives."
-  require_literal "$system" "Release stays a person's call" "The system policy must keep merge, release, tag, and publish behind a person's answer (ADR-033)."
+  require_literal "$system" "Release stays a person's call" "The system policy must keep release, tag, and publish behind a person's answer, and merge behind pr-ready and the ledger (ADR-033)."
+  require_literal "$system" "A merge waits too unless" "The system policy must state when a merge may proceed without a person (ADR-033, Phase 16)."
   require_literal "$system" "Ask only on reasonable doubt" "The system policy must ask a person only on reasonable doubt (ADR-033)."
   require_literal "$system" "branch protection, required checks, authentication, or authorization" "The system policy must preserve platform protection and authentication boundaries."
   require_literal "$system" "exclude private chain-of-thought" "The system policy must keep audit summaries free of private reasoning."
-  require_literal "$system" "it never" "The system policy must keep autonomy bounded: no unattended loop."
+  require_literal "$system" "it never" "The system policy must keep autonomy bounded: no unbounded loop."
   require_literal "$cursor_rule" 'The doubt check (`jev-judge.py doubt`)' "The Cursor rule mirror must carry the doubt rule."
   forbid_literal "$system" '`--recommend` lives on exactly two commands' "system-instructions still scopes autonomy to --recommend; ADR-033 makes initiative the default."
 

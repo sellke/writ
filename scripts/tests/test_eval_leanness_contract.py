@@ -533,7 +533,7 @@ class LoopBoundsCheckTests(unittest.TestCase):
             else:
                 write_command(Path(tmp), name, loop_command_body())
 
-    def test_all_five_declared_emits_nothing(self):
+    def test_all_six_declared_emits_nothing(self):
         with TemporaryDirectory() as tmp:
             self._tree(tmp, {})
             self.assertEqual(lean.check_loop_bounds(tmp), [])
@@ -582,7 +582,7 @@ class LoopBoundsCheckTests(unittest.TestCase):
             self.assertEqual(len(findings), 1)
             self.assertIn("no frontmatter block", findings[0]["what"])
 
-    def test_real_repo_five_commands_are_all_bounded(self):
+    def test_real_repo_six_commands_are_all_bounded(self):
         self.assertEqual(lean.check_loop_bounds(str(REPO_ROOT)), [])
 
     def test_the_constant_matches_the_correctness_checker_that_shares_it(self):

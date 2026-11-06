@@ -141,13 +141,13 @@ build_repo() {
   write_command "$root/commands/beta.md" beta "an extra beta line"
   printf '# Preamble\n\ninfra only\n'  > "$root/commands/_preamble.md"
 
-  # The five loop-bearing commands the presence check measures. They are a
+  # The six loop-bearing commands the presence check measures. They are a
   # PRODUCT population (cross-read from scripts/eval-loop-bounds.py, which owns
   # the list), so a fixture standing in for the product surface must carry them
-  # — otherwise every scenario below inherits five "missing" findings and the
+  # — otherwise every scenario below inherits six "missing" findings and the
   # zero-warning assertions stop meaning anything.
   local loop_name
-  for loop_name in implement-phase implement-spec implement-story refactor verify-spec; do
+  for loop_name in implement-phase implement-spec implement-story refactor ship verify-spec; do
     write_command "$root/commands/$loop_name.md" "$loop_name" "" with-loop
   done
 
@@ -191,6 +191,7 @@ EOF
 | `/implement-spec` | loop-bearing command |
 | `/implement-story` | loop-bearing command |
 | `/refactor` | loop-bearing command |
+| `/ship` | loop-bearing command |
 | `/verify-spec` | loop-bearing command |
 EOF
 
@@ -251,7 +252,7 @@ fi
 ok "directional: command absent from curated allowlist is not an orphan"
 
 # Metrics count ALL command files including _preamble (matches baseline convention).
-[ "$(metric "$OUT1" commands)" -eq 9 ] || fail "commands metric should count all 9 files (alpha, beta, status, _preamble, and the five loop-bearing commands)"
+[ "$(metric "$OUT1" commands)" -eq 10 ] || fail "commands metric should count all 10 files (alpha, beta, status, _preamble, and the six loop-bearing commands)"
 ok "metrics: commands counts all files (incl. _preamble)"
 
 # ---------------------------------------------------------------------------

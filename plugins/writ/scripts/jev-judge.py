@@ -40,14 +40,29 @@ Subcommands:
   doubt --record F [--log P] [--repo .] [--backend B]
                       Does a decision need a person? `pass` = act on the
                       recommended option (exit 0); `fail` = ask (exit 1).
-                      Rules first, no network: merge and release always ask;
+                      Rules first, no network: release always asks; merge
+                      asks unless `pr-ready.py check --json`, run locally on
+                      the record's snapshot, passes for the record's pr and
+                      head_sha (its pass needs the ledger to read VERIFIED);
                       an act that is not git-revertable, no recommendation,
                       conflicting evidence, or no evidence asks. Then one Jev
                       Noul when the provider is enabled: p is its confidence
                       that the recommendation is right. With a calibrated
                       act threshold, p > act acts. Without one, the fallback
-                      asks for `direction` and `design` and acts elsewhere.
-                      Appends one row to <repo>/.writ/state/doubt-log.jsonl.
+                      asks for `direction`, `design`, and `merge` and acts
+                      elsewhere. Appends one row to
+                      <repo>/.writ/state/doubt-log.jsonl.
+                      Merge rule (2026-11-06-ship-watch-and-merge): a
+                      `site: merge` record carries `pr` (int > 0), `head_sha`
+                      (40 hex), and `snapshot` (path, relative to --repo). The
+                      rule runs `pr-ready.py` from this script's directory,
+                      then asks, in order: a missing field
+                      (no_verification_ledger); pr-ready missing, exit 1 or
+                      2, timeout, or stdout not its JSON object
+                      (merge_unverifiable); its pr or head differs from the
+                      record (merge_head_mismatch); a `not_verified` merge
+                      gate (merge_not_verified); any other verdict than pass
+                      (merge_not_ready, plus pr_ready_<first class or code>).
   doubt-label --id ID --outcome {as_recommended,overridden} [--log P]
                       Record what the person did with a logged decision.
   doubt-calibrate [--log P] [--extra F ...] [--live] [--save F] [--write]
@@ -99,6 +114,7 @@ import math
 import os
 import re
 import socket
+import subprocess
 import sys
 import time
 import urllib.error
@@ -1857,9 +1873,15 @@ DOUBT_SITES = ("choice", "route", "plan", "direction", "design", "destructive", 
                "release")
 # Without a calibrated judgment these sites ask; every other site acts.
 # `direction`: scope, priorities, what gets built, a contract lock. `design`: taste.
-DOUBT_FALLBACK_ASK = ("direction", "design")
+# `merge`: no merge acts until a threshold is calibrated (ADR-033, Phase 16).
+DOUBT_FALLBACK_ASK = ("direction", "design", "merge")
 # These sites ask whatever the judgment says.
-DOUBT_ALWAYS_ASK = {"merge": "no_verification_ledger", "release": "outward"}
+DOUBT_ALWAYS_ASK = {"release": "outward"}
+# The merge rule re-runs pr-ready.py from this script's directory (tests patch it).
+SCRIPTS_DIR = Path(__file__).resolve().parent
+PR_READY = "pr-ready.py"
+MERGE_CHECK_TIMEOUT = 120  # seconds
+HEAD_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 DOUBT_OUTCOMES = ("as_recommended", "overridden")
 # The Noul's name. A p, a log row, and a threshold count only under the name they
 # were scored with: a reworded question gets a new name, and older scores rescore.
@@ -1891,6 +1913,9 @@ class DoubtRecord(NamedTuple):
     evidence: List[str]
     reversible: bool
     conflict: bool
+    pr: Optional[int] = None  # merge only: the PR number
+    head_sha: str = ""  # merge only: the head the merge is bound to
+    snapshot: str = ""  # merge only: the pr-ready snapshot judged in this pass
 
 
 def _strip_recommended(label: str) -> str:
@@ -1940,8 +1965,81 @@ def parse_doubt_record(data: Any) -> DoubtRecord:
     conflict = data.get("conflict", False)
     if not isinstance(conflict, bool):
         raise UsageError("--record conflict must be true or false")
+    pr = data.get("pr")
+    if pr is not None and (isinstance(pr, bool) or not isinstance(pr, int) or pr < 1):
+        raise UsageError("--record pr must be an integer of 1 or more")
+    head_sha = data.get("head_sha")
+    if head_sha is not None and (not isinstance(head_sha, str) or not HEAD_SHA.match(head_sha)
+                                 or head_sha != head_sha.strip()):
+        raise UsageError("--record head_sha must be 40 hex characters")
+    snapshot = data.get("snapshot")
+    if snapshot is not None and (not isinstance(snapshot, str) or not snapshot.strip()):
+        raise UsageError("--record snapshot must be a non-empty path")
     return DoubtRecord(site, question.strip(), options, recommended,
-                       [e.strip() for e in evidence if e.strip()], reversible, conflict)
+                       [e.strip() for e in evidence if e.strip()], reversible, conflict,
+                       pr, head_sha or "", snapshot or "")
+
+
+def merge_rule(rec: DoubtRecord, repo: Path) -> Tuple[Optional[str], List[str]]:
+    """The merge site's rules: re-run `pr-ready.py check --json` on the record's
+    snapshot, locally, and ask unless it passes for the record's PR and head.
+    Returns (reason to ask or None, informational reasons). No network: pr-ready
+    reads the snapshot file, the ledger, and local git."""
+    if rec.pr is None or not rec.head_sha or not rec.snapshot:
+        return "no_verification_ledger", []
+    repo = repo.resolve()  # the child runs in repo, so its paths must not be cwd-relative
+    script = SCRIPTS_DIR / PR_READY
+    if not script.is_file():
+        return "merge_unverifiable", ["pr_ready_missing"]
+    snapshot = Path(rec.snapshot)
+    if not snapshot.is_absolute():
+        snapshot = repo / snapshot
+    try:
+        done = subprocess.run(
+            [sys.executable, str(script), "check", "--snapshot", str(snapshot),
+             "--repo", str(repo), "--json"],
+            cwd=str(repo), capture_output=True, text=True, timeout=MERGE_CHECK_TIMEOUT,
+            check=False)
+    except subprocess.TimeoutExpired:
+        return "merge_unverifiable", ["pr_ready_timeout"]
+    except OSError:
+        return "merge_unverifiable", ["pr_ready_not_run"]
+    if done.returncode not in (0, 3, 4, 5, 6):
+        return "merge_unverifiable", ["pr_ready_exit_%d" % done.returncode]
+    try:
+        data = json.loads(done.stdout)
+    except ValueError:
+        data = None
+    if not (isinstance(data, dict) and isinstance(data.get("verdict"), str)
+            and isinstance(data.get("pr"), int) and not isinstance(data.get("pr"), bool)
+            and isinstance(data.get("head"), str)
+            and isinstance(data.get("blockers"), list)
+            and isinstance(data.get("unknowns"), list)):
+        return "merge_unverifiable", ["pr_ready_unparseable"]
+    if data["pr"] != rec.pr or data["head"].lower() != rec.head_sha.lower():
+        return "merge_head_mismatch", []
+    blockers = [b for b in data["blockers"] if isinstance(b, dict)]
+    unknowns = [u for u in data["unknowns"] if isinstance(u, dict)]
+    for b in blockers:
+        detail = b.get("detail")
+        if (b.get("class") == "merge_gates" and isinstance(detail, str)
+                and detail.startswith("not_verified")):
+            return "merge_not_verified", []
+    if data["verdict"] != "pass":
+        if blockers and isinstance(blockers[0].get("class"), str):
+            first = blockers[0]["class"]
+        elif unknowns and isinstance(unknowns[0].get("code"), str):
+            first = unknowns[0]["code"]
+        else:
+            first = data["verdict"]
+        return "merge_not_ready", ["pr_ready_" + _merge_token(first)]
+    return None, []
+
+
+def _merge_token(value: str) -> str:
+    """pr-ready's class or code as a reason token: lowercase word characters only."""
+    token = re.sub(r"[^a-z0-9_]+", "_", value.lower()).strip("_")
+    return token[:40] or "unknown"
 
 
 def doubt_rule(rec: DoubtRecord) -> Optional[str]:
@@ -2039,8 +2137,14 @@ def doubt(args: argparse.Namespace, environ: Mapping[str, str],
         "recommended": rec.recommended, "evidence": rec.evidence,
         "reversible": rec.reversible, "conflict": rec.conflict,
         "judgment": None, "p": None, "act": None, "backend": None, "model": None}
+    if rec.site == "merge":
+        row.update(pr=rec.pr, head_sha=rec.head_sha or None)
     info: List[str] = []
-    rule = doubt_rule(rec)
+    rule: Optional[str] = None
+    if rec.site == "merge":
+        rule, info = merge_rule(rec, args.repo)
+    if rule is None:
+        rule = doubt_rule(rec)
     if rule is not None:
         act, source, reason = False, "rules", rule
     else:
@@ -2391,7 +2495,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--repo", "--project", dest="repo", type=Path, default=Path("."))
     p.add_argument("--record", type=Path, required=True,
                    help="decision record JSON: site, question, options, recommended, "
-                        "evidence, reversible, conflict")
+                        "evidence, reversible, conflict; merge also pr, head_sha, snapshot")
     p.add_argument("--log", type=Path, default=None,
                    help="decision log (default <repo>/.writ/state/doubt-log.jsonl)")
     p.add_argument("--backend", choices=sorted(BACKENDS),

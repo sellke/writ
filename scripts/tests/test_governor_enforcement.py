@@ -651,7 +651,17 @@ KNOWN_OVER_BUDGET = {
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 4023 -> 3947; ADR link removed.
-    "commands/ship.md": 3947,
+    # 2026-11-06 (2026-11-06-ship-watch-and-merge Story 2): 3947 -> 421; open-path asks become
+    # Doubt Rule decisions and Step 5 records the ledger row; ASCII pipeline, detection
+    # details, and duplicate dry-run block cut. Acknowledged, not exempted.
+    # 2026-11-06 (2026-11-06-ship-watch-and-merge Story 3): 421 -> 8086; Step 7 watch pass,
+    # loop: block, --watch rows; dry-run, When to Use, and label-fallback example cut.
+    # Over the Story 3 estimate; residual disclosed in Story 4. Acknowledged, not exempted.
+    # 2026-11-06 (2026-11-06-ship-watch-and-merge Story 4): 8086 -> 9110; merge step, new
+    # description, exit criteria, Overview, Completion; PR-agent paragraph, conflict example,
+    # labeling and draft tables, source-of-truth block cut. Spec residual: 5163 bytes over the
+    # 28,907 it started at (target net <= 0, not met). Acknowledged, not exempted.
+    "commands/ship.md": 9110,
     # 2026-10-01 (2026-10-01-behavioral-verification Story 4): 11110 -> 11103;
     # Gate 4.5 rewritten as behavioral verification, old Results ladder and an
     # adjacent Gate 4 clause trimmed to offset (-7 bytes net).

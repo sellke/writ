@@ -42,6 +42,9 @@
 | `evidence` | list of strings | Observable facts behind the recommendation, highest precedence first, including what the person asked for when it bears on the choice. Empty means no evidence. |
 | `reversible` | boolean, required | The act passes the reversibility precondition: git-revertable, restore path recorded first. |
 | `conflict` | boolean | Authoritative evidence conflicts. Default `false`. |
+| `pr` | integer, merge only | The PR number. |
+| `head_sha` | 40 hex characters, merge only | The head the merge is bound to. |
+| `snapshot` | path, merge only | The snapshot `pr-ready.py` judged in this pass. |
 
 ```json
 {"site": "plan", "question": "Run the two independent specs in which order?",
@@ -55,9 +58,9 @@
 
 ## How the check decides
 
-1. **Rules, no network.** `merge` and `release` always ask. Any site asks when `reversible` is false, `recommended` is empty, `conflict` is true, or `evidence` is empty.
+1. **Rules, no network.** `release` always asks. `merge` asks unless the record names `pr`, `head_sha`, and `snapshot`, and `pr-ready.py check --json` on that snapshot, run locally, passes for that PR and head; its pass needs the verification ledger to read VERIFIED. Any site asks when `reversible` is false, `recommended` is empty, `conflict` is true, or `evidence` is empty.
 2. **Jev, when the provider is enabled** (`jev-judge.py status` prints `pass`). One Noul scores Jev's confidence that the recommendation is right: sound on the evidence, and the option the person would choose. Its p is logged on every call, with the name of the question that produced it.
 3. **A calibrated threshold decides both ways.** With one (`.writ/doubt-thresholds.json`, written by `doubt-calibrate --write`), p above it acts and p at or below it asks, on every site the rules passed. A threshold fitted to another question, backend, or model is not applied.
-4. **Otherwise the site decides.** `direction` and `design` ask; `choice`, `route`, `plan`, and `destructive` act.
+4. **Otherwise the site decides.** `direction`, `design`, and `merge` ask; `choice`, `route`, `plan`, and `destructive` act.
 
 `doubt-calibrate` scores each labeled decision three times, because Jev's score moves a little between runs, and sets the threshold above every override's draws. It writes the threshold only when at most 10% of the decisions Jev would act on are ones the person would have overridden, at the 95% upper bound of a leave-one-out estimate. On Writ's own 98 past answers the estimate is 2 to 3% and the bound sits at the cap (7.8% on one run, 10.4% on another), so nothing is written. Until a project's own labels show otherwise, Jev's p is logged and the site decides.
