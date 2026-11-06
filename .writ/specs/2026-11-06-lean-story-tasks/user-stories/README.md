@@ -6,9 +6,9 @@
 | 2 | [Lean task rules in the story generator and Step 2.6a](story-2-lean-task-rules.md) | Completed ✅ | High | Story 1 | 6/6 |
 | 3 | [Drop the generic Definition of Done](story-3-drop-generic-dod.md) | Completed ✅ | Medium | Story 2 | 7/7 |
 | 4 | [State each business rule once](story-4-rules-stated-once.md) | Completed ✅ | Medium | Story 3 | 7/7 |
-| 5 | [Trial lean tasks on one archived spec](story-5-lean-tasks-trial.md) | Not Started | Medium | Stories 2, 3, 4 | 0/6 |
+| 5 | [Trial lean tasks on one archived spec](story-5-lean-tasks-trial.md) | Completed ✅ | Medium | Stories 2, 3, 4 | 6/6 |
 
-**Total: 26/32 tasks (81%)**
+**Total: 32/32 tasks (100%)**
 
 ## Dependencies
 

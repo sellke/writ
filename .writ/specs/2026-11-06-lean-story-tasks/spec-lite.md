@@ -62,7 +62,7 @@
 **Success Criteria:**
 1. `uv run --isolated --python 3.9 --with pytest pytest` and the 3.14 run pass, each run alone
 2. `bash scripts/eval.sh` passes; `python3 scripts/gen-platform-trees.py --check` clean
-3. `trial-report.md` exists with a verdict line
+3. `trial-report.md` exists with a verdict line (trial arms: reduced Gate 1 + Gate 3 loop, stories seeded from their first commit)
 
 **Shadow Paths to Verify:**
 - **Happy path:** all tasks ≤50 words → no finding

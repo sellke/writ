@@ -96,3 +96,28 @@
 - **Spec amendment:** spec-lite.md → For Coding Agents → Files in Scope: adds `.writ/docs/context-hint-format.md` placement change.
 
 ---
+
+## Story 5: Trial lean tasks on one archived spec — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-009] arm-original seeded from the pre-implementation commit, not the `archive/` copy
+- **Severity:** Small
+- **Spec said:** AC-5.2: `arm-original` holds the archived `user-stories/` unchanged.
+- **Implementation did:** Took the stories from `16048cd`, where they were first committed, and reset Story 1's completion bookkeeping (status, checkboxes, What Was Built, README counts).
+- **Reason:** Implementing a story needs a Not Started story; this is the actual pre-implementation text.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Testing Agents → Success Criteria: the trial arms ran a reduced loop and seeded from the first committed stories.
+
+#### [DEV-010] Reduced, hand-run pipeline instead of `/implement-story`
+- **Severity:** Medium
+- **Spec said:** Task 5.4 and technical-spec trial step 3: run `/implement-story` on every story in each arm.
+- **Implementation did:** Ran Gate 1, the orchestrator's test run, Gate 3 with filters and the evidence gate, a recode on FAIL, a drift log, and a commit. Gates 0, 0.5, 2, 2.5, 4, 4.5, and 5 were not run.
+- **Reason:** Neither arm has a recipe or coverage tooling at the old commit; the same loop ran in both arms and the report discloses it.
+- **Resolution:** ⚠️ Logged (Medium), PASS.
+- **Spec amendment:** None.
+
+---
