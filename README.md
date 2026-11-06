@@ -418,7 +418,7 @@ When Writ runs, it creates a `.writ/` directory in your project:
 
 ## Where Writ is going
 
-The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Shipped through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Phase 17, Doubt-Gated Autonomy, is built on its own branch: one rule replaces the human gates by category, Jev runs first on every decision, and a supervisor checks subagent reports. Next:
+The roadmap is in [`.writ/product/roadmap.md`](.writ/product/roadmap.md). Built and merged through Phase 15: the contract layer, script-backed gates, behavioral verification, one front door, plugin distribution, code-level rigor, and evidence-gated review. Phase 17, Doubt-Gated Autonomy, is merged too: one rule replaces the human gates by category, Jev runs first on every decision, and a supervisor checks subagent reports. Phases 14, 15, and 17 are in `main` but not yet in a release (the latest is v0.43.0). Next:
 
 - **Calibrate Jev on real decisions.** On 98 of the maintainer's past answers, Jev could not yet tell which ones the person would change, so it shadows and the decision's kind decides. Each answered question becomes a label; once they bound the share of its acts you would have overridden under 10%, Jev decides.
 - **Phase 16 — Verified Landing.** A read-only PR-readiness check, a verification ledger bound to the PR head, and a `/ship` watch mode that drives a PR to merge-ready and, with the ledger green and doubt low, merges it. Release, tag, and publish stay asks.
