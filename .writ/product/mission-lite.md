@@ -1,9 +1,9 @@
 # Writ — Product Mission (Lite)
 
 > Source: .writ/product/mission.md
-> Regenerated from mission.md on 2026-11-05
+> Regenerated from mission.md on 2026-11-06
 > Purpose: Efficient AI context for development sessions
-> Last Updated: 2026-11-05
+> Last Updated: 2026-11-06
 
 ## Core Value
 
@@ -32,7 +32,7 @@ Users reach all three through one front door, `/writ`, that restates, classifies
 3. **Initiative, with a decision log**
    - Normal `/implement-phase` uses one confirmation, fresh context per spec, quarantine on failure, and an honest report.
    - Until Phase 17, `--recommend` adds evidence-backed autonomy on two commands: `/create-spec` authors and locks a spec package then stops, and `/implement-phase` runs the phase as an end-to-end loop, both ending short of merge/PR/release ([ADR-013](../decision-records/adr-013-recommended-autonomous-delivery.md)).
-   - [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) (2026-11-05), built in Phase 17 on its own branch: every question is a decision that `jev-judge.py doubt` settles. Rules first (merge and release always ask; an act that is not git-revertable, or a recommendation without evidence, asks), then Jev ([ADR-027](../decision-records/adr-027-optional-judgment-provider.md)), then the decision's kind: scope and taste reach a person, method choices do not. A supervisor agent re-derives every story and lane report. `--recommend` is an accepted no-op.
+   - [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) (2026-11-05), built in Phase 17 and merged 2026-11-05: every question is a decision that `jev-judge.py doubt` settles. Rules first (merge and release always ask; an act that is not git-revertable, or a recommendation without evidence, asks), then Jev ([ADR-027](../decision-records/adr-027-optional-judgment-provider.md)), then the decision's kind: scope and taste reach a person, method choices do not. A supervisor agent re-derives every story and lane report. `--recommend` is an accepted no-op.
    - Jev shadows for now: it scores its confidence that a recommendation is right, and on 98 past answers about 2 to 3% of its acts would have been overridden, but the 95% bound sits at the 10% cap, so no threshold was written. Answered questions become labels that refit it. Opaque unbounded loops stay excluded.
 4. **Self-improvement with evidence** — `/refresh-command` refinements cite transcripts and pass evals. `/retro` reads a run's agent transcripts and proposes environment fixes, never code changes, in a fixed order (architecture, types, lint, test, docs) with a rule-to-enforcer table. Skills carry a candidate → proven → promoted lifecycle. Friction signals are retired ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)); Phase 17 adds the decision log as a third channel: overrides recalibrate the doubt thresholds.
 5. **Adaptive ceremony** — Process is right-sized to the work:
@@ -40,7 +40,7 @@ Users reach all three through one front door, `/writ`, that restates, classifies
    - Features get the gated pipeline.
    - Roadmap chunks get phase orchestration.
 
-   `/writ` (merged 2026-11-04) picks the level and confirms once; Phase 17 makes that confirmation ask only on doubt.
+   `/writ` (merged 2026-11-04) picks the level; since Phase 17 it confirms the route only on doubt.
 6. **Opinionated guidance** — Lead with the recommendation, challenge premises, push for the best version. Judgment, not menus.
 
 ## Success Definition
@@ -65,11 +65,11 @@ Code and methodology that score well on six production-grade criteria — audita
 
 **Phases 14–17 ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md), [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)):**
 - **14, Front Door and Distribution (✅ merged in PR #63, 2026-11-04; unreleased):** one entry command, plugin installs, and generated per-platform trees with an adapter coverage check. Open: five unrecorded person checks, and the keep-or-remove review of `/writ` (recommendation: keep, confirm only on doubt).
-- **15, Code-Level Rigor (◐ implemented, PR #64 open as a draft):** `/why`, the Gate 2.5 safety fact (floor `tested`), repro-first bug fixing, reviewer filters, `/retro`'s fix ladder, and evidence-gated review ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). The `design-divergence` skill lost its blind trial and is removed.
-- **17, Doubt-Gated Autonomy (◐ implemented on `phase/17-doubt-gated-autonomy`, not merged):** one rule replaces the gate classes; Jev runs first and shadows until calibrated; a supervisor agent checks every story and lane report; `--recommend` is a no-op and every `doubt` call is logged.
-- **16, Verified Landing (📋 committed, after 17):** a PR-readiness check, a ledger bound to the head SHA, and a `/ship` watch mode that merges on a green ledger with doubt low. Gated on Phase 17 and Phase 12's close.
+- **15, Code-Level Rigor (◐ merged in PR #64, 2026-11-05; unreleased):** `/why`, the Gate 2.5 safety fact (floor `tested`), repro-first bug fixing, reviewer filters, `/retro`'s fix ladder, and evidence-gated review ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)). The `design-divergence` skill lost its blind trial and is removed.
+- **17, Doubt-Gated Autonomy (◐ merged in PR #65, 2026-11-05; unreleased):** one rule replaces the gate classes; Jev runs first and shadows until calibrated; a supervisor agent checks every story and lane report; `--recommend` is a no-op and every `doubt` call is logged.
+- **16, Verified Landing (📋 committed, after Phase 12 closes):** a PR-readiness check, a ledger bound to the head SHA, and a `/ship` watch mode that merges on a green ledger with doubt low. Gated on Phase 12's close.
 
-**Current focus (2026-11-05):** land and release. `main` carries Phase 14 and Phase 13's two fixes, unreleased; v0.43.0 is the last tag. The queue, in order: merge PR #64 (Phase 15); release v0.44.0; close Phase 12 on its agent UAT run, the Gate 4.5 issue, and one real-project run; record or strike Phase 14's five person checks and decide the front door; ADR-023's review on 2026-11-11. Phase 17 was built ahead of that queue at the maintainer's direction and merges after PR #64; Phase 16 follows it.
+**Current focus (2026-11-06):** release and close. `main` carries Phases 14, 15, and 17 and Phase 13's two fixes, all unreleased; v0.43.0 is the last tag. PR #64 (Phase 15) and PR #65 (Phase 17) merged on 2026-11-05. The queue, in order: release v0.44.0; close Phase 12 on its agent UAT run, the Gate 4.5 issue, and one real-project run; record or strike Phase 14's five person checks and decide the front door; Phase 15's held Repro First and Phase 17's three open criteria; ADR-023's review on 2026-11-11. Phase 16 follows Phase 12's close.
 
 ## What Writ Is Not Building
 
