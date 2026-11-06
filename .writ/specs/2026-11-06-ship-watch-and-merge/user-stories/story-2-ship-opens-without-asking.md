@@ -1,6 +1,7 @@
 # Story 2: `/ship` opens the PR without asking and records the ledger
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 02a2fb23366e8badfbe512060a2d592a3998127c
 > **Priority:** High
 > **Dependencies:** Story 1
 
