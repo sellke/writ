@@ -4,7 +4,7 @@
 > Last Updated: 2026-11-06
 > Status: Active
 > Contract Locked: ✅ (2026-07-10 strategic refresh — ADR-010 to ADR-013; 2026-10-20 refresh — [ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md); 2026-11-05 refresh — [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md))
-> Last Revision: 2026-11-06 — Phases 15 and 17 recorded as merged (PR #64 and PR #65, 2026-11-05), both unreleased. The 2026-11-05 reconcile pass recorded the **direction change**: Writ asks a person on doubt, not on principle ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)). Earlier revisions are in the roadmap's [Revision Log](roadmap.md#revision-log).
+> Last Revision: 2026-11-06 — v0.44.0 released Phases 14, 15, and 17 (PR #63, #64, #65). The 2026-11-05 reconcile pass recorded the **direction change**: Writ asks a person on doubt, not on principle ([ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md)). Earlier revisions are in the roadmap's [Revision Log](roadmap.md#revision-log).
 
 ## Pitch
 
@@ -186,17 +186,17 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 ### Phases 14–17 ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md), [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md))
 
-- **Phase 14, Front Door and Distribution (✅ merged in PR #63, 2026-11-04; unreleased):**
+- **Phase 14, Front Door and Distribution (✅ merged in PR #63, 2026-11-04; released in v0.44.0):**
   - One entry command, `/writ`, that restates, classifies, and routes.
   - Plugin distribution for Cursor and Claude Code, with scripts inside the plugin.
   - Generated per-platform trees, with a CI check that fails on any platform term an adapter does not map.
   - Open: the five person checks the acceptance pass left were not recorded before the merge, and the keep-or-remove review of `/writ` (routing matched 10 of 20) is undecided. The recommendation on record is keep, with its confirm step asking only on doubt after Phase 17.
-- **Phase 15, Code-Level Rigor (◐ merged in PR #64, 2026-11-05; unreleased):**
+- **Phase 15, Code-Level Rigor (◐ merged in PR #64, 2026-11-05; released in v0.44.0):**
   - `/why`, answering from Writ's ledger first.
   - A blast-radius safety fact at Gate 2.5 (floor `tested`), repro-first bug fixing, reviewer judgment filters, and `/retro`'s fix ladder, each kept by the removal trial or held for a substitute baseline.
   - Evidence-gated review ([ADR-032](../decision-records/adr-032-evidence-gated-review.md)): a Gate 3 or `/review` finding blocks only on executed evidence; the review panel is removed.
   - The `design-divergence` skill lost its blind trial and is removed; `/prototype` keeps its drafts without it.
-- **Phase 17, Doubt-Gated Autonomy (◐ merged in PR #65, 2026-11-05; unreleased):**
+- **Phase 17, Doubt-Gated Autonomy (◐ merged in PR #65, 2026-11-05; released in v0.44.0):**
   - One rule replaces the gate-class table: decide, act, record; ask only on reasonable doubt.
   - Jev runs first on every decision; until a threshold bounds its false acts under 10%, it shadows and the decision's kind decides. On Writ's own 98 past answers the bound sits at the cap.
   - A supervisor agent re-derives every subagent report before an orchestrator trusts it.
@@ -209,6 +209,6 @@ Every command has explicit phases, defined handoffs, and predictable outcomes. A
 
 Phases 6–8 shipped the 2026 harness-audit strategy (supervised autonomy, evidence-based self-improvement, consolidating memory with external interop); Phase 9 made provenance and recovery git-native; Phase 10 made the surface deterministic and withdrew the byte goal ([ADR-023](../decision-records/adr-023-stakes-proportional-diligence.md)); Phase 11 moved quality guarantees from prose to scripts. **Phase 12 is implemented and released in v0.40.0:** Writ's verifiers so far checked Writ's own artifacts, and Phase 12 made one check the user's feature. Its three machinery criteria are met; an agent ran its UAT on 2026-10-31, and closing the phase is the open item, not more building. Inter-phase work since: `/retro` as a transcript review and the `gbrain-interop` removal (v0.41.0), and, in v0.42.0, the agent CLI contract ([ADR-029](../decision-records/adr-029-agent-cli-contract.md)) and `/prototype` as the exploration workflow (PR #59).
 
-**Phase 13 shipped in v0.43.0 and closed after human UAT** (2026-10-22); its two follow-up PRs merged on 2026-11-01. **Phase 14 merged on 2026-11-04** (PR #63). **Phase 15 merged on 2026-11-05** (PR #64), and **Phase 17 (Doubt-Gated Autonomy)**, committed that day by [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) and built ahead of the queue at the maintainer's direction, merged after it (PR #65). None of Phases 14, 15, or 17 is released. **Phase 12's UAT was run by an agent on 2026-10-31** (82 of 89 pass) and waits on one issue and one real-project run. The current work is releasing v0.44.0 and closing Phase 12 (the roadmap's *Current focus* section). **Phase 16 (Verified Landing)** comes next: Phase 17 made initiative the default and doubt the only reason to ask, and Phase 16 lets a verified PR land on its own. Together they replace the category-based human gates with a decision record the person can audit.
+**Phase 13 shipped in v0.43.0 and closed after human UAT** (2026-10-22); its two follow-up PRs merged on 2026-11-01. **Phase 14 merged on 2026-11-04** (PR #63). **Phase 15 merged on 2026-11-05** (PR #64), and **Phase 17 (Doubt-Gated Autonomy)**, committed that day by [ADR-033](../decision-records/adr-033-doubt-gated-autonomy.md) and built ahead of the queue at the maintainer's direction, merged after it (PR #65). All three shipped in **v0.44.0** (2026-11-06). **Phase 12's UAT was run by an agent on 2026-10-31** (82 of 89 pass) and waits on one issue and one real-project run. The current work is closing Phase 12 (the roadmap's *Current focus* section). **Phase 16 (Verified Landing)** comes next: Phase 17 made initiative the default and doubt the only reason to ask, and Phase 16 lets a verified PR land on its own. Together they replace the category-based human gates with a decision record the person can audit.
 
 > **Parking lot (kept as candidates):** cross-project learning corpus, `/writ-design` Mode A modernization, eval Tier 2 expansion, a measured-performance workflow, command consolidation (measured after Phase 17), and formal verification (watch only; checked 2026-11-05). **Partly covered by Phase 17's supervisor:** `/implement-phase` orchestration hygiene (pilot story, standing orders, and brief template stay candidates). **Superseded:** the decision-trail review (its panel is gone; the decision log is checked by the supervisor and read by `/retro`). **Retired:** friction signals ([ADR-030](../decision-records/adr-030-contract-verifier-boundary-front-door.md)). **Deferred until concrete signal:** team affordances (cross-dev drift reconciliation, `/review-spec`) per [ADR-007](../decision-records/adr-007-team-audience-sequencing.md); business-process sister pipeline. See the roadmap's *Beyond Phase 17* section for the authoritative list.

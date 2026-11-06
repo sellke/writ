@@ -11,11 +11,11 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 - **Spec:** 2026-10-25-gate-upgrade-removal-measurement — Gate Upgrade Removal Measurement
 - **Status:** In Progress — task 4.6 waits on the Repro First substitute baseline (drift-log DEV-013); the trial kept Gate 0 Divergence, Safety Fact, and Reviewer Filters and held Repro First
 - **Story:** 4 of 4 — Act on the Labeled Trial (In Progress, 6/7 tasks)
-- **Progress:** 27/28 tasks complete; merged into `main` with Phase 15 (PR #64, 2026-11-05), unreleased
+- **Progress:** 27/28 tasks complete; merged with Phase 15 (PR #64, 2026-11-05), released in v0.44.0
 
 ## Artifact Map
 
-- **Product:** roadmap.md, mission.md, mission-lite.md (Phases 15 and 17 merged 2026-11-05 in PR #64 and PR #65, unreleased; ADR-033)
+- **Product:** roadmap.md, mission.md, mission-lite.md (Phases 14, 15, and 17 released in v0.44.0, 2026-11-06; ADR-033)
 - **Active spec:** .writ/specs/2026-10-25-gate-upgrade-removal-measurement/ — spec.md + spec-lite.md, user-stories/, sub-specs/, drift-log.md, trial-report.md, rating-handoff.md
 - **Knowledge:** .writ/knowledge/ (29 entries)
 - **Docs:** .writ/docs/ (30 files)

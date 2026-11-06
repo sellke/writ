@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.44.0] - 2026-11-06
+
+**One front door, plugin installs, review that blocks only on evidence, and commands that ask only on doubt.** This release carries Phase 14 (Front Door and Distribution), Phase 15 (Code-Level Rigor), Phase 17 (Doubt-Gated Autonomy), and a Phase 13 follow-up fix.
+
+### Breaking Changes
+- **The review panel is removed** ([ADR-032](.writ/decision-records/adr-032-evidence-gated-review.md)). `--panel` stops with a pointer to ADR-032, and a leftover `Review Panel` line in `.writ/config.md` prints `review-panel: removed (ADR-032)`. Delete that line. ([spec](.writ/specs/2026-11-04-evidence-gated-review/spec.md))
+
+### Added
+- **`/writ`, the front door.** It restates a request as Goal, Problem, and Done check, routes it to the one command whose ceremony fits, and mirrors that command's phases on the todo list. ([spec](.writ/specs/2026-10-22-front-door/spec.md))
+- **Plugin installs** for Claude Code and Cursor. `install.sh` still works. ([spec](.writ/specs/2026-10-22-plugin-distribution/spec.md))
+- **`/why`** answers why something in the project is the way it is. It reads Writ's ledger first (ADRs, drift logs, specs, What Was Built records, git notes), then git history, then connected MCP servers, and gives every claim a confidence tier. `/writ` routes why-questions to it. ([spec](.writ/specs/2026-10-25-why-command/spec.md))
+- **Gate 2.5 safety fact.** On the review route, `/implement-story` names the one fact the change is safe because of and the evidence rung that fact reached, at least `tested`. ([spec](.writ/specs/2026-10-25-review-route-rigor/spec.md))
+- **Repro-first bug fixing.** `tdd-cycle` gains a bug path that commits a failing repro before the fix, and `repro-order.py` checks that order, again after integration. ([spec](.writ/specs/2026-10-25-repro-first-bug-fixing/spec.md))
+- **Evidence-gated findings.** `skills/evidence-gated-findings` defines four evidence kinds, and `review-override.py evidence` runs a reviewer's repro in the working tree and blocks only on a confirmed failure. A confirmed `test` repro is committed as a regression test. ([spec](.writ/specs/2026-11-04-evidence-gated-review/spec.md))
+- **Doubt-gated decisions** ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)). `jev-judge.py doubt` decides whether a question needs a person: rules first (merge and release always ask; so does an act that is not git-revertable, has no recommendation, or has conflicting or no evidence), then Jev's confidence that the recommendation is right, then the decision's kind (`direction` and `design` ask, others act). Every call is logged to `.writ/state/doubt-log.jsonl`. `doubt-label` and `doubt-calibrate` turn answered questions into a threshold; until one is calibrated, Jev only shadows. On Writ's own 98 answers none is written yet.
+- **Supervisor agent.** `/implement-spec` and `/implement-phase` accept a story or lane report only after `supervisor-agent` re-derives its claims and returns `ACCEPT`, `RERUN`, or `ESCALATE`.
+- **`/retro` fix ladder.** Fixes are ordered architecture, types, lint, test, docs, and a new check must fail on a real past mistake. `retro-check` validates the findings and the rule-to-enforcer table. ([spec](.writ/specs/2026-10-25-retro-fix-ladder/spec.md))
+- A prompting guide, `.writ/docs/prompting-guide.md`. ([spec](.writ/specs/2026-10-22-prompting-guide/spec.md))
+
+### Changed
+- **Commands ask on doubt, not on principle** ([ADR-033](.writ/decision-records/adr-033-doubt-gated-autonomy.md)). One rule in `_preamble.md` and `system-instructions.md` replaces the gate-class table: decide, act, record, and ask a person only on doubt. `/writ` confirms its route only on doubt. `--recommend` on `/create-spec` and `/implement-phase` is accepted and does nothing.
+- **Gate 3 and `/review` block only on executed evidence.** An agent FAIL with no confirmed evidence becomes PASS, and its findings become advisory. `/review` reports unconfirmed Critical and High findings as `Medium (unconfirmed)` and asks before running any repro. `- **Evidence Gate:** off` in `.writ/config.md` restores agent-verdict blocking.
+- Reviewer lead-judgment filters ship behind the `reviewer-filters` switch.
+- `/create-uat-plan` sends scenarios a passing test already covers to Covered by Tests, including error maps, shadow paths, and edge cases.
+- `/create-spec` prints the full contract before the lock prompt, and discovery asks one question at a time unless the choices are independent and bounded. ([PR #62](https://github.com/sellke/writ/pull/62))
+- The generated Claude Code `CLAUDE.md` block drops the command table and agent list: 8,615 to 2,333 characters.
+
+### Fixed
+- Codex installs carry the Prime Directive.
+- `/prototype` no longer strands its fix in a worktree.
+- Uninstall removes unmodified shipped scripts and docs and the `refs/notes/writ` refspecs, and `install.sh` no longer adds the `refs/notes/writ` push refspec.
+- `/new-skill` works in projects that installed Writ.
+- `repro-order.py` detects an unreadable `.writ/` on Python 3.14.
+- Checkers: `ac-trace` no longer counts coverage disclaimers as test citations; `app-verify` splits Safety pattern lists before unwrapping backticks; `drift-format` fails Auto-amended entries that leave `spec-lite.md` unchanged and counts Large drift only for the story being checked; `spec-analyze` flags stories that plan a red window; `test-integrity` treats Python HTTP and browser drivers as end-to-end.
+
+### Internal
+- **ADR-032** (evidence-gated review) and **ADR-033** (doubt-gated autonomy). ADR-033 supersedes ADR-022's gate-class table and ADR-013's flag-scoped autonomy.
+- `scripts/gen-platform-trees.py` renders the Cursor rule, the Claude Code block, the Codex `AGENTS.md` template, and both plugin trees from one source; `--check` fails on stale trees and on platform terms an adapter does not map. ([spec](.writ/specs/2026-10-22-generated-platform-trees/spec.md))
+- Adapter rows for how each platform renders `/prototype` drafts. ([spec](.writ/specs/2026-10-22-rendering-delegation-rows/spec.md))
+- New checks: `exit-criteria` `implement-spec.c4` (one Gate 3 verdict per story), the eval `size-pins` check, and a dev-only `zsh-guard` hook.
+- Trials and measurements:
+  - The `design-divergence` skill lost its blind trial (2 of 6 briefs; 4 needed) and was removed before release.
+  - The gate-upgrade removal trial kept Safety Fact and Reviewer Filters; Repro First is held for a baseline of bug-fix stories.
+  - The supervisor, replayed blind on a Phase 15 lane that `exit-criteria.py` passed, returned `ESCALATE`.
+  - Doubt calibration on 98 past answers: the false-act bound straddles the 10% cap (7.8% and 10.4%), so no threshold is written.
+- Records: Phase 13 UAT (173 of 176 pass), an agent run of Phase 12's UAT (82 of 89 pass), the Phase 14 acceptance pass (nine defects, all fixed), the Phase 15 retro, UAT plans for the Phase 14 and 15 specs, and reconciled product docs.
+
 ## [0.43.0] - 2026-10-21
 
 **Updates keep your files, Claude Code installs carry the Prime Directive, and `/design` is now `/writ-design`.** This is Phase 13, Subtract and Repair. It fixes every defect a full comparison of Writ against pstack turned up, and removes what no longer earned its place.
