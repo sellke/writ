@@ -70,3 +70,11 @@ Carried to Completed on that coverage evidence; this is the same importlib-by-pa
 gap already named above.
 
 **2026-09-26 (arch-lint-and-follow-ups):** the same verdict hits Python tests that only read markdown. `test_issue_closure_wiring.py` pins command prose and resolves no executed source, so it reads as `test_imports_no_source` although markdown is Writ's product source. Bash tests `test_eval_codex_tomls.sh` and `test_eval_drift_format.sh` were flagged the same way.
+
+## Second case: Python repro of a data file (2026-11-06)
+
+- `scripts/tests/test_gate_evidence_drift_citation_repro.py` (lean-story-pipeline Story 1) reads `commands/implement-story.md` and imports no project module. `authenticity` reported `test_imports_no_source` (blocking).
+- The claim is false: the test failed at `713af07` and passes after the fix in `31d8c29`.
+- ADR-032 requires evidence repros committed unchanged, so the two gates conflict for any repro that tests a data or markdown file. The maintainer recorded it as a false positive (`.writ/specs/2026-11-06-lean-story-pipeline/drift-log.md` DEV-005).
+- `SPECIFIER_PATTERNS` match only quoted specifiers (`from '…'`, `import('…')`, `require('…')`), so Python `import x` / `from x import y` lines are never seen either.
+
