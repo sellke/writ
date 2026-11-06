@@ -4,7 +4,7 @@
 > **Priority:** Normal
 > **Effort:** Medium
 > **Created:** 2026-11-06
-> **spec_ref:** _(set automatically when promoted via `/create-spec --from-issue`)_
+> **spec_ref:** .writ/specs/2026-11-06-lean-story-tasks/spec.md
 
 ## TL;DR
 
