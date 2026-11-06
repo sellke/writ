@@ -44,3 +44,42 @@
 - **Reason:** Business Rule 8 binds the evidence to the head's code. A submodule at another commit means the tests ran on other code. Untracked files stay ignored, as the spec says.
 - **Resolution:** Auto-amended spec-lite.md
 - **Spec amendment:** spec-lite.md → For Coding Agents → Error Handling names the submodule check.
+
+## Story 2: `pr-ready.py` snapshot and blocker classes — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-005] A running CheckRun may carry conclusion `""` or null
+- **Severity:** Small
+- **Spec said:** technical-spec § Fields read: any `conclusion` outside the `statusCheckRollup` table is exit 2; the table lists only `COMPLETED` conclusions.
+- **Implementation did:** Accepts `""` or null when `status` is not `COMPLETED`. A `COMPLETED` run still needs a listed conclusion.
+- **Reason:** `gh pr view` prints `"conclusion": ""` for a running check. Without this, every snapshot with a pending check would exit 2 instead of reporting `checks_pending`.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Error Handling notes the running-check conclusion.
+
+#### [DEV-006] A missing key in the comments chain reads as null
+- **Severity:** Small
+- **Spec said:** `comments.nodes[0].author.login` is a string or null at any level; a missing required field is exit 2.
+- **Implementation did:** A missing `comments`, `nodes`, `author`, or `login` key reads as null and prints `?`. A present value of the wrong type is still exit 2.
+- **Reason:** The S1 query always requests the chain, so only a hand-built snapshot lacks a key, and the only effect is a `?` login.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Error Handling notes the missing-key rule.
+
+#### [DEV-007] The contract test's AC-ID guard accepts a later spec's IDs, and two tests are appended
+- **Severity:** Small
+- **Spec said:** technical-spec § `scripts/tests/test_agent_cli_contract.py`: append one doc-coverage test under a docstring naming this spec.
+- **Implementation did:** Appends `test_fail_exits_are_documented` and `test_fail_exits_apply_only_to_listed_scripts`, and widens `test_every_test_names_its_ac_id` (AC-3.4 of `2026-10-12-agent-cli-contract`) to accept an `AC-N.M` beside a backticked spec name and `Story N`.
+- **Reason:** The old guard accepted only `AC-[35].[1-5]`, so it rejected this spec's AC-2.5 tags. ac-trace still attributes the tags to this spec through the section comment that names it.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → Files in Scope names the two appended tests and the widened guard.
+
+#### [DEV-008] A rejected snapshot value prints in a bounded form
+- **Severity:** Small
+- **Spec said:** spec.md § Snapshot validity: an enum value outside the tables, or a wrong `schema`, is exit 2 with the cause on stderr. The spec does not say how the rejected value prints.
+- **Implementation did:** The stderr cause shows a rejected enum or `schema` value as a string cut to 80 characters, a JSON scalar (`null`, `true`, `7`), or `<type>` for a list or object (`_shown` in `scripts/pr-ready.py`).
+- **Reason:** A hostile snapshot could put a long or crafted value in an enum field. Printing containers by type only keeps that text off stderr; the value still passes through `printable`.
+- **Resolution:** Auto-amended spec-lite.md
+- **Spec amendment:** spec-lite.md → For Coding Agents → Error Handling notes the bounded form.

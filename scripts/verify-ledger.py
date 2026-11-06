@@ -101,10 +101,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 SCHEMA = "verify-ledger/1"
 LEDGER_REL = Path(".writ") / "state" / "verify-ledger.json"
 SHORT = 7
-FULL_ID = re.compile(r"^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$")
+FULL_ID = re.compile(r"^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\Z")  # \Z: `$` would accept a final newline
 # C0, DEL, C1, and the Unicode line and paragraph separators: any of them in a
 # printed value could start a new output line.
-CONTROL = re.compile("[\x00-\x1f\x7f-\x9f  ]")
+CONTROL = re.compile("[\x00-\x1f\x7f-\x9f\u2028\u2029]")
 DIFF_CONFIG = ("-c", "diff.suppressBlankEmpty=false")
 DIFF_FLAGS = ("--no-color", "--no-ext-diff", "--no-textconv", "--binary", "--full-index",
               "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "--diff-algorithm=myers",
@@ -278,7 +278,7 @@ def load_ledger(repo: Path) -> Dict[str, Any]:
         raise LedgerError("cannot read %s (%s)" % (LEDGER_REL.as_posix(), exc))
     try:
         data = json.loads(text)
-    except ValueError as exc:
+    except (ValueError, RecursionError) as exc:
         raise LedgerError("%s is not JSON (%s)" % (LEDGER_REL.as_posix(), exc))
     if not isinstance(data, dict) or data.get("schema") != SCHEMA:
         raise LedgerError("%s schema is not %s" % (LEDGER_REL.as_posix(), SCHEMA))
@@ -501,7 +501,16 @@ def run(args: argparse.Namespace) -> Tuple[str, List[str], str]:
     return verdict, reasons, last
 
 
+def _guard_streams() -> None:
+    """A non-UTF-8 console never crashes output, help included."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="backslashreplace")
+
+
 def main(argv: Optional[List[str]] = None) -> int:
+    _guard_streams()
     try:
         args = build_parser().parse_args(argv)
     except SystemExit as exc:
@@ -511,9 +520,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     except (UsageError, LedgerError) as exc:
         print("verify-ledger: %s" % printable(str(exc)), file=sys.stderr)
         return 2
-    reconfigure = getattr(sys.stdout, "reconfigure", None)
-    if reconfigure is not None:
-        reconfigure(errors="backslashreplace")  # a non-UTF-8 console never crashes output
     print("\n".join([verdict] + ["reason: %s" % printable(r) for r in reasons]
                     + [printable(last)]))
     return 1 if verdict == "fail" else 0

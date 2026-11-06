@@ -7,7 +7,7 @@
 | # | Story | Status | Priority | Tasks | Progress |
 |---|---|---|---|---|---|
 | 1 | [Verification ledger](story-1-verification-ledger.md) | Completed ✅ | High | 7 | 7/7 |
-| 2 | [`pr-ready.py` snapshot and blocker classes](story-2-pr-ready-blocker-classes.md) | Not Started | High | 7 | 0/7 |
+| 2 | [`pr-ready.py` snapshot and blocker classes](story-2-pr-ready-blocker-classes.md) | Completed ✅ | High | 7 | 7/7 |
 | 3 | [Ledger gate and machine output](story-3-ledger-gate-and-json.md) | Not Started | High | 6 | 0/6 |
 
 **Total:** 3 stories, 20 tasks, 15 acceptance criteria.

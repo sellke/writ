@@ -720,6 +720,10 @@ class ContractTests(LedgerCase):
             json.dumps({"schema": "verify-ledger/1", "rows": [{
                 "pr": "7", "head": "a" * 40, "patch_id": None, "base_ref": "main",
                 "merge_base": None, "recorded_at": "x", "evidence": []}]}),
+            json.dumps({"schema": "verify-ledger/1", "rows": [{
+                "pr": 7, "head": "a" * 40 + "\n", "patch_id": None, "base_ref": "main",
+                "merge_base": None, "recorded_at": "x", "evidence": []}]}),
+            "[" * 200000 + "]" * 200000,
         ]
         self.ledger.parent.mkdir(parents=True)
         for text in bad_rows:
@@ -755,6 +759,19 @@ class ContractTests(LedgerCase):
         self.assertUsage(run_script(["check", "--pr", "7", "--head", "a" * 40, "--repo",
                                      str(self.tmp / "missing")], self.tmp), "not a directory")
         self.assertIsNone(self.ledger_bytes())
+
+    def test_head_with_trailing_newline_is_not_a_full_id(self) -> None:
+        """`--head <sha>\n` is not read as a full id; it fails closed with head_unavailable. [AC-1.4]"""
+        self.record(7)
+        reasons = self.assertVerdict(self.check(7, self.head + "\n"), "fail", "head_unavailable")
+        self.assertEqual(reasons, ["head_unavailable %s\\n" % self.head])
+
+    def test_help_on_a_non_utf8_stdout(self) -> None:
+        """`--help` exits 0 on an ASCII stdout. [AC-1.5]"""
+        env = dict(ENV, PYTHONIOENCODING="ascii")
+        result = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True,
+                                env=env, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr[-300:])
 
     def test_hostile_head_is_escaped(self) -> None:
         """A `--head` with control characters prints on one line. [AC-1.5]"""

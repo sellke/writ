@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-06T19:40:00Z
+> Last Updated: 2026-11-06T21:10:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-pr-ready-and-ledger — PR Ready and Verification Ledger
 - **Status:** In Progress — Phase 16 lane `writ/phase/16/2026-11-06-pr-ready-and-ledger`
-- **Story:** 2 of 3 — `pr-ready.py` snapshot and blocker classes (Not Started)
-- **Progress:** 7/20 tasks complete (35%)
+- **Story:** 3 of 3 — Ledger gate and machine output (Not Started)
+- **Progress:** 14/20 tasks complete (70%)
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-004 `record`'s tracked-change check counts submodule state — pr-ready-and-ledger (Small)
-- DEV-003 Test harness uses unittest classes with temp dirs — pr-ready-and-ledger (Small)
-- DEV-002 Extra `patch_id_unavailable (git_failed)` cause — pr-ready-and-ledger (Small)
+- DEV-008 A rejected snapshot value prints in a bounded form — pr-ready-and-ledger (Small)
+- DEV-007 The contract test's AC-ID guard accepts a later spec's IDs, and two tests are appended — pr-ready-and-ledger (Small)
+- DEV-006 A missing key in the comments chain reads as null — pr-ready-and-ledger (Small)
 
 ## Open Issues
 

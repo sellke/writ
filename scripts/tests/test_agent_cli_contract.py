@@ -78,6 +78,10 @@ TABLE_HEADER = ["Script", "Shape", "Allowances", "Callers"]
 SHAPES = ("data", "check")
 ALLOWANCES = ("network: opt-in", "bounded-wait")
 VERDICT_EXIT = {"pass": 0, "fail": 1, "unverifiable": 0}
+# Check tools whose classification note gives each class of `fail` its own
+# exit code (agent-cli-contract.md -> Check shape). Only these may exit a
+# listed code for `fail`; every other script keeps VERDICT_EXIT.
+FAIL_EXITS: Dict[str, Tuple[int, ...]] = {"pr-ready.py": (3, 4, 5, 6)}
 
 RULE_REFS = {
     "table": "Business Rules 1-2",
@@ -416,6 +420,8 @@ def check_exit_code(script: str, args: Sequence[str],
     verdict = lines[0] if lines else ""
     if verdict not in VERDICT_EXIT or result.returncode == VERDICT_EXIT[verdict]:
         return None
+    if verdict == "fail" and result.returncode in FAIL_EXITS.get(script, ()):
+        return None
     shown = " ".join([script] + [str(a) for a in args])
     return fail_msg(script, "exit_code", "`%s` printed %r but exited %d"
                     % (shown, verdict, result.returncode),
@@ -615,6 +621,9 @@ SMOKE_INVOCATIONS: List[Smoke] = [
     Smoke("verdict-provenance.py", ["check", "--command", "{repo}/commands/implement-story.md",
                                     "--repo", "{repo}"], {}),
     Smoke("verify-ledger.py", ["check", "--pr", "1", "--head", "a" * 40, "--repo", "{tmp}"], {}),
+    Smoke("pr-ready.py", ["check", "--snapshot",
+                          "{repo}/scripts/tests/fixtures/pr-ready/draft.json", "--repo", "{tmp}"],
+          {}),
     Smoke("lint-skill.sh", ["{repo}/skills/tdd-cycle/SKILL.md"], {}),
 ]
 SMOKE_BY_KEY = {smoke_key(s): s for s in SMOKE_INVOCATIONS}
@@ -1069,7 +1078,42 @@ def test_known_violation_xfail_and_strict_xpass(tmp_path):
 
 
 def test_every_test_names_its_ac_id():
-    """AC-3.4 — every test in this file names a Story 3 or Story 5 AC ID in its docstring."""
+    """AC-3.4 — every test in this file names a Story 3 or Story 5 AC ID in its docstring, or a later spec's ID beside that spec's name."""
+    later_spec = re.compile(r"`\d{4}-\d\d-\d\d-[a-z0-9-]+` Story \d+")
     for name, obj in sorted(globals().items()):
         if name.startswith("test_") and callable(obj):
-            assert re.search(r"\bAC-[35]\.[1-5]\b", obj.__doc__ or ""), name
+            doc = obj.__doc__ or ""
+            assert (re.search(r"\bAC-[35]\.[1-5]\b", doc)
+                    or (later_spec.search(doc) and re.search(r"\bAC-\d+\.\d+\b", doc))), name
+
+
+# --------------------------------------------------------------------------
+# Story 2 of `2026-11-06-pr-ready-and-ledger`: per-class fail exits
+# --------------------------------------------------------------------------
+
+def _fail_run(code: int) -> subprocess.CompletedProcess:
+    return subprocess.CompletedProcess([], code, "fail\nreason: x\nx: fail (y)\n", "")
+
+
+def test_fail_exits_are_documented():
+    """AC-2.5 of `2026-11-06-pr-ready-and-ledger` Story 2 — each FAIL_EXITS code is named in its script's Notes line, and Check shape names the exception."""
+    doc = _read(DOC)
+    shape = re.search(r"^## Check shape\n(.*?)(?=^## )", doc, re.M | re.S).group(1)
+    assert "its own exit code of 3 or higher in place of 1" in shape, shape
+    for script, codes in FAIL_EXITS.items():
+        assert TABLE[script].shape == "check", script
+        assert "`%s` is the one such tool." % script in shape, script
+        notes = [line for line in doc.splitlines() if line.startswith("- `%s` — check." % script)]
+        assert len(notes) == 1, script
+        for code in codes:
+            assert re.search(r"\b%d \(" % code, notes[0]), (script, code)
+        assert "never 1" in notes[0], script
+
+
+def test_fail_exits_apply_only_to_listed_scripts():
+    """AC-2.5 of `2026-11-06-pr-ready-and-ledger` Story 2 — a listed fail exit passes for pr-ready.py only; exit 1 still passes; others fail Business Rule 4."""
+    for code in FAIL_EXITS["pr-ready.py"] + (1,):
+        assert check_exit_code("pr-ready.py", [], _fail_run(code)) is None, code
+    for script, code in (("pr-ready.py", 2), ("pr-ready.py", 7), ("repro-order.py", 6)):
+        msg = check_exit_code(script, [], _fail_run(code))
+        assert msg and msg.startswith(script + ":") and "Business Rule 4" in msg, (script, code)
