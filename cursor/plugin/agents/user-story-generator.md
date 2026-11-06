@@ -159,14 +159,6 @@ Include:
 - Potential risks or challenges
 - Integration points with other stories (if dependencies exist)
 
-## Definition of Done
-
-- [ ] All tasks completed
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
-- [ ] Documentation updated
-
 ## Context for Agents
 
 Analyze the specification content provided above and identify which spec elements are relevant to THIS story specifically. Generate context hints that index into the spec — do not duplicate content, only reference it.

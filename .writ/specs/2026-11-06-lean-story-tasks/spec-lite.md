@@ -16,8 +16,8 @@
 **Files in Scope:**
 - `scripts/ac-trace.py`, `scripts/tests/test_ac_trace.py`, `.writ/docs/acceptance-criteria-ids.md` — the finding
 - `agents/user-story-generator.md` — task rules, no DoD, rule citations
-- `commands/create-spec.md` — Steps 2.4, 2.6, 2.6a, 2.8
-- `commands/verify-spec.md` — Checks 1d, 3b
+- `commands/create-spec.md` — Steps 2.4, 2.6, 2.6a, 2.8, 2.9, `--from-prototype` Step 3
+- `commands/verify-spec.md` — Checks 1d, 3b, Phase 5 report example
 - `scripts/tests/test_governor_enforcement.py` — byte ledger
 - `claude-code/agents/writ-story-gen.md`, `cursor/plugin/**` — generated
 

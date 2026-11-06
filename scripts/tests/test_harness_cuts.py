@@ -868,10 +868,6 @@ class LeanTaskRulesTest(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, guideline)
 
-    def test_ac_2_2_template_keeps_its_definition_of_done(self):
-        """AC-2.2: Story 3 removes the Definition of Done, not this story."""
-        self.assertIn("## Definition of Done", read(STORY_GENERATOR))
-
     def test_ac_2_4_generated_copies_carry_the_rules(self):
         """AC-2.4"""
         for rel in STORY_GENERATOR_COPIES:
@@ -904,6 +900,103 @@ class Step26aOversizedTaskTest(unittest.TestCase):
         text = step_2_9()
         self.assertIn("`oversized_task`", text)
         self.assertIn(SECOND_FAILURE_LINE, text)
+
+
+# Story 3 of 2026-11-06-lean-story-tasks: new stories carry no generic
+# Definition of Done, and /verify-spec checks one only when a story has it.
+# ac-trace credits the tokens below to that spec.
+
+VERIFY_SPEC = "commands/verify-spec.md"
+CREATE_SPEC_COPIES = ("cursor/plugin/commands/create-spec.md",
+                      "plugins/writ/commands/create-spec.md")
+VERIFY_SPEC_COPIES = ("cursor/plugin/commands/verify-spec.md",
+                      "plugins/writ/commands/verify-spec.md")
+DOD_HEADING = "## Definition of Done"
+CHECK_3B_CONDITION = 'If story status is "Completed ✅" and the story has a Definition of Done:'
+CHECK_3B_NO_DOD = "No Definition of Done → no finding"
+# File sizes when Story 3 started. A change from either needs a dated ledger line.
+SIZE_AT_STORY_3_START = {CREATE_SPEC: 39129, VERIFY_SPEC: 35778}
+STORY_3_LEDGER_LINE = "# 2026-11-06 (2026-11-06-lean-story-tasks Story 3): %d -> %d"
+
+
+def story_contents_sentence(text: str) -> str:
+    step = section(text, "#### Step 2.6:", "#### Step 2.6a:")
+    lines = [line for line in step.splitlines() if line.startswith("Each story file should contain:")]
+    if len(lines) != 1:
+        raise RuntimeError("Step 2.6 has %d story-contents sentences" % len(lines))
+    return lines[0]
+
+
+def check_1d(text: str) -> str:
+    return section(text, "**1d. Required sections present:**", "\n---")
+
+
+def check_3b(text: str) -> str:
+    return section(text, "**3b. Definition of Done verification", "**3c. ")
+
+
+class NoGenericDefinitionOfDoneTest(unittest.TestCase):
+    """AC-3.1 to AC-3.5: the story template and Step 2.6 emit no Definition
+    of Done, /verify-spec 1d does not require one, 3b checks one only when
+    present, and any byte change to the two commands is in the ledger."""
+
+    def test_ac_3_1_template_has_no_definition_of_done(self):
+        """AC-3.1"""
+        for rel in (STORY_GENERATOR,) + STORY_GENERATOR_COPIES:
+            with self.subTest(file=rel):
+                text = read(rel)
+                self.assertNotIn(DOD_HEADING, text)
+                for heading in ("## Implementation Tasks", "## Notes", "## Context for Agents"):
+                    self.assertIn(heading, text)
+
+    def test_ac_3_1_from_prototype_story_1_checks_no_definition_of_done(self):
+        """AC-3.1: --from-prototype Story 1 comes from the same template, so
+        its Step 3 asks for checked tasks only."""
+        step = section(read(CREATE_SPEC), "#### Step 3: Phase 2 with Story 1 Marked",
+                       "#### Step 3: Phase 2 with `spec_ref`")
+        self.assertNotIn("Definition of Done", step)
+        self.assertIn("has every Implementation Task (`- [x] [task]`) checked", step)
+
+    def test_ac_3_2_story_contents_sentence_names_no_definition_of_done(self):
+        """AC-3.2"""
+        for rel in (CREATE_SPEC,) + CREATE_SPEC_COPIES:
+            with self.subTest(file=rel):
+                sentence = story_contents_sentence(read(rel))
+                self.assertNotIn("definition of done", sentence.lower())
+                self.assertIn('technical notes, **and a "## Context for Agents" section', sentence)
+
+    def test_ac_3_3_check_1d_does_not_require_definition_of_done(self):
+        """AC-3.3"""
+        for rel in (VERIFY_SPEC,) + VERIFY_SPEC_COPIES:
+            with self.subTest(file=rel):
+                block = check_1d(read(rel))
+                self.assertNotIn("Definition of Done", block)
+                for name in ("User Story", "Acceptance Criteria", "Implementation Tasks"):
+                    self.assertIn(name, block)
+
+    def test_ac_3_4_check_3b_runs_only_when_a_definition_of_done_exists(self):
+        """AC-3.4"""
+        for rel in (VERIFY_SPEC,) + VERIFY_SPEC_COPIES:
+            with self.subTest(file=rel):
+                text = read(rel)
+                block = check_3b(text)
+                self.assertIn(CHECK_3B_CONDITION, block)
+                self.assertIn(CHECK_3B_NO_DOD, block)
+                self.assertIn("flag as incomplete DoD", block)
+                self.assertIn("[WARN-1] Unchecked Definition of Done", text)
+
+    def test_ac_3_5_byte_changes_are_in_the_ledger(self):
+        """AC-3.5"""
+        recorded = known_over_budget()
+        ledger = read(GOVERNOR_TEST)
+        for rel, start in SIZE_AT_STORY_3_START.items():
+            with self.subTest(file=rel):
+                size = len((REPO_ROOT / rel).read_bytes())
+                self.assertEqual(recorded[rel], size - COMMAND_BYTE_BUDGET)
+                if size != start:
+                    line = STORY_3_LEDGER_LINE % (start - COMMAND_BYTE_BUDGET,
+                                                  size - COMMAND_BYTE_BUDGET)
+                    self.assertIn(line, ledger)
 
 
 if __name__ == "__main__":

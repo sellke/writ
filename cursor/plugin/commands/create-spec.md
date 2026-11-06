@@ -119,7 +119,7 @@ Build on the Step 0 draft plus discovery answers; print it as a visible message,
 
 **Precondition:** the Step 2 contract is locked at the Step 1.4b Contract Decision.
 
-Run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) and Definition of Done item checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
+Run Phase 2 with one change. **Where Step 0 found an exploration record and no diff, Story 1 is an ordinary `Not Started` story to build the chosen draft and the rest of this paragraph does not apply.** Otherwise **Story 1** is generated with `Status: Completed ✅` (never Not Started — the work exists and `/implement-spec` must not re-implement it), describes the prototype work (what was implemented, files touched, done via `/prototype`), and has every Implementation Task (`- [x] [task]`) checked. All later stories start at `Status: Not Started`, and `user-stories/README.md` progress shows Story 1 complete.
 
 ---
 
@@ -524,7 +524,7 @@ For each story, spawn a Task subagent (`generalPurpose`, at the `floor` tier res
 - `spec_content` — full text of `spec.md`
 - `technical_spec_content` — full text of `technical-spec.md` if it exists; otherwise `""`, and add to the prompt: "Technical spec not yet generated — scope hints to spec.md sections only (e.g., 'spec.md → ## 🎯 Experience Design → ### Error Experience')." (Step 2.8 may still be running in parallel.)
 
-Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, definition of done, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
+Each story file should contain: status/priority/dependencies metadata, user story (As a / I want / So that), 3-5 acceptance criteria in Given/When/Then, 5-7 implementation tasks (tests first, verification last), technical notes, **and a "## Context for Agents" section with targeted hints** referencing relevant error map rows, shadow paths, business rules, and experience elements.
 
 **Criterion ID grammar (required):** every generated story carries the `> **AC IDs assigned through:** AC-N.M` marker directly beneath `## Acceptance Criteria`, a trailing `` `[AC-N.M]` `` tag on every criterion line, and a trailing `` `[AC-N.M, ...]` `` tag on every implementation task line citing the criterion IDs it satisfies. The literal template lives in `agents/user-story-generator.md`; the full grammar (ID form, marker rule, finding vocabulary) lives in `.writ/docs/acceptance-criteria-ids.md`.
 
