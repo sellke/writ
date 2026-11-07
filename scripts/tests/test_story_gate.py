@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import posixpath
 import re
 import shutil
 import subprocess
@@ -471,11 +472,18 @@ class PostReviewRecordTests(GateTestCase):
                          "check: gate3_override pass (%s)" % note)
 
     def test_without_a_readable_manifest_the_test_list_is_unchanged(self) -> None:
-        """No manifest, or one that does not parse: every changed test reaches both checks."""
+        """No manifest, one that does not parse, or one `review-override.py`
+        `_load_manifest` rejects as a whole (`evidence --prior` then reads
+        `bad_manifest` and guards no repro): every changed test reaches both checks."""
         (self.repo.root / "tests" / "test_r_repro.py").write_text(
             "from pathlib import Path\n", encoding="utf-8")
         review = self.repo.review(REVIEW_PASS)
-        for manifest in (None, "{not json"):
+        valid = {"path": "tests/test_r_repro.py", "sha256": "0" * 64}
+        no_sha256 = {"schema": "evidence-manifest-v1", "story": "story-1-thing",
+                     "repros": [{"path": "tests/test_r_repro.py"}]}
+        one_absolute = {"schema": "evidence-manifest-v1", "story": "story-1-thing",
+                        "repros": [valid, {"path": "/abs/x.py", "sha256": "0" * 64}]}
+        for manifest in (None, "{not json", json.dumps(no_sha256), json.dumps(one_absolute)):
             with self.subTest(manifest=manifest):
                 if manifest is not None:
                     self.repo.state.mkdir(parents=True, exist_ok=True)
@@ -489,6 +497,80 @@ class PostReviewRecordTests(GateTestCase):
                     self.assertEqual(self._tests_args(name, key),
                                      ["tests/test_a.py", "tests/test_r_repro.py"], key)
                 self.assertNotIn("adr032_repro", result.stdout)
+
+    def test_manifest_repros_mirror_review_override_load_manifest(self) -> None:
+        """story-gate exempts repros only from a manifest `review-override.py`
+        `_load_manifest` accepts, so every exempted repro is one `evidence --prior`
+        guards; any entry it rejects empties the whole set."""
+        gate = load_module()
+        spec = importlib.util.spec_from_file_location(
+            "review_override_for_story_gate_test", str(REPO_ROOT / "scripts" / "review-override.py"))
+        override = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(override)
+        ok = {"path": "tests/./test_r.py", "sha256": "0" * 64, "content": ""}
+
+        def doc(*entries: object, schema: object = "evidence-manifest-v1") -> str:
+            return json.dumps({"schema": schema, "story": "s", "repros": list(entries)})
+
+        cases = {
+            "valid": doc(ok, {"path": "tests/test_s.py", "sha256": "1" * 64}),
+            "empty_repros": doc(),
+            "wrong_schema": doc(ok, schema="evidence-manifest-v0"),
+            "repros_not_list": json.dumps({"schema": "evidence-manifest-v1", "repros": {}}),
+            "not_object": json.dumps([ok]),
+            "not_json": "{",
+            "not_utf8": None,
+            "no_sha256": doc(ok, {"path": "tests/test_s.py"}),
+            "sha256_not_str": doc(ok, {"path": "tests/test_s.py", "sha256": 1}),
+            "content_not_str": doc(ok, {"path": "tests/test_s.py", "sha256": "1", "content": 3}),
+            "absolute": doc(ok, {"path": "/abs/x.py", "sha256": "1"}),
+            "empty_path": doc(ok, {"path": "", "sha256": "1"}),
+            "path_not_str": doc(ok, {"path": 5, "sha256": "1"}),
+            "dot": doc(ok, {"path": "a/..", "sha256": "1"}),
+            "dotdot": doc(ok, {"path": "..", "sha256": "1"}),
+            "escapes": doc(ok, {"path": "tests/../../x.py", "sha256": "1"}),
+            "entry_not_dict": doc(ok, "tests/test_s.py"),
+        }
+        tmp = Path(tempfile.mkdtemp(prefix="story-gate-manifest-"))
+        self.addCleanup(shutil.rmtree, str(tmp), True)
+        for name, text in cases.items():
+            with self.subTest(case=name):
+                path = tmp / ("%s.json" % name)
+                if text is None:
+                    path.write_bytes(b"\xff\xfe{")
+                else:
+                    path.write_text(text, encoding="utf-8")
+                loaded = override._load_manifest(path)
+                expected = ({posixpath.normpath(e["path"]) for e in loaded["repros"]}
+                            if loaded is not None else set())
+                self.assertEqual(gate._manifest_repros(path), expected)
+        self.assertEqual(gate._manifest_repros(tmp / "valid.json"),
+                         {"tests/test_r.py", "tests/test_s.py"})
+        self.assertEqual(gate._manifest_repros(tmp / "missing.json"), set())
+
+    def test_check_gets_no_shell_tests(self) -> None:
+        """`review-override.py check --tests` feeds only test-integrity authenticity,
+        which fails every shell test by construction: shell tests stay out of it,
+        as they do for gate4_authenticity, and the reason line counts them."""
+        (self.repo.root / "tests" / "test_b.sh").write_text("bash x\n", encoding="utf-8")
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        self.assertEqual(self._tests_args("review-override.py", "check"), ["tests/test_a.py"])
+        self.assertEqual(line_for(result.stdout, "gate3_override"),
+                         "check: gate3_override pass "
+                         "(skipped 1 shell test(s): unsupported_stack)")
+
+    def test_check_runs_without_tests_when_every_test_is_shell(self) -> None:
+        """Only shell tests changed: check still runs (ac-trace applies), with no `--tests`."""
+        self.repo.base = git(self.repo.root, "rev-parse", "HEAD")
+        (self.repo.root / "tests" / "test_b.sh").write_text("bash x\n", encoding="utf-8")
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        self.assertIsNone(self._tests_args("review-override.py", "check"))
+        self.assertEqual(line_for(result.stdout, "gate3_override"),
+                         "check: gate3_override pass "
+                         "(skipped 1 shell test(s): unsupported_stack)")
 
     def test_only_evidence_repros_changed_skips_authenticity(self) -> None:
         """Only manifest repros changed: authenticity is skip with the reason and

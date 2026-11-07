@@ -33,8 +33,11 @@ drift-format check, test-integrity coverage and authenticity, repro-order
 Gate 3's first-match evidence table and prints `gate3: PASS|FAIL|PAUSE (...)`.
 The repros the evidence manifest records (ADR-032: committed unchanged) stay
 out of the `--tests` list given to review-override check and authenticity,
-with the reason `skipped <n> evidence repro(s): adr032_repro`; a missing or
-unreadable manifest leaves the list as it is.
+with the reason `skipped <n> evidence repro(s): adr032_repro`; a manifest that
+is missing, or that review-override.py's `_load_manifest` would reject (then
+`--prior` reads `bad_manifest`), leaves the list as it is. Tests authenticity
+cannot read (shell and other unsupported stacks) stay out of both lists too,
+with the reason `skipped <n> shell|unsupported-stack test(s): unsupported_stack`.
 Without `--review-output`, the review checks read `unverifiable
 (no_review_output)`.
 
@@ -226,18 +229,34 @@ def _git_list(repo: Path, *args: str) -> List[str]:
     return [p for p in (out or "").split("\0") if p]
 
 
+def _manifest_path_ok(raw: Any) -> bool:
+    """review-override.py's `_manifest_path_ok`: a relative path that stays
+    inside the repo on its face."""
+    if not isinstance(raw, str) or not raw or os.path.isabs(raw):
+        return False
+    rel = posixpath.normpath(raw)
+    return rel not in (".", "..") and not rel.startswith("../")
+
+
 def _manifest_repros(path: Path) -> Set[str]:
+    """The repo-relative repro paths of a manifest that review-override.py's
+    `_load_manifest` accepts, else the empty set. All or nothing, by the same
+    rules: when `evidence --prior` would read the manifest as `bad_manifest`, it
+    guards no repro, so none may be exempted. Copied rather than imported: the
+    sibling is a subprocess checker that may be missing or replaced."""
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, RecursionError):
+    except (OSError, ValueError, RecursionError):  # ValueError covers UnicodeDecodeError
         return set()
-    if not isinstance(doc, dict) or doc.get("schema") != MANIFEST_SCHEMA:
+    repros = doc.get("repros") if isinstance(doc, dict) else None
+    if not isinstance(repros, list) or doc.get("schema") != MANIFEST_SCHEMA:
         return set()
-    repros = doc.get("repros")
-    if not isinstance(repros, list):
-        return set()
-    return {posixpath.normpath(e["path"]) for e in repros
-            if isinstance(e, dict) and isinstance(e.get("path"), str) and e["path"]}
+    for entry in repros:
+        if not (isinstance(entry, dict) and isinstance(entry.get("sha256"), str)
+                and _manifest_path_ok(entry.get("path"))
+                and isinstance(entry.get("content", ""), str)):
+            return set()
+    return {posixpath.normpath(e["path"]) for e in repros}
 
 
 def _without_repros(ctx: "Ctx", tests: List[str]) -> Tuple[List[str], Optional[str]]:
@@ -249,6 +268,19 @@ def _without_repros(ctx: "Ctx", tests: List[str]) -> Tuple[List[str], Optional[s
     kept = [p for p in tests if posixpath.normpath(p) not in repros]
     dropped = len(tests) - len(kept)
     return kept, ("skipped %d evidence repro(s): adr032_repro" % dropped if dropped else None)
+
+
+def _authenticity_tests(tests: List[str]) -> Tuple[List[str], Optional[str]]:
+    """`tests` that test-integrity.py authenticity can read, and the reason note
+    when any were left out. It reads module specifiers, so it handles only the
+    stacks .writ/docs/quality-signal-classification.md supports (Node /
+    TypeScript, Python) and fails every shell test by construction."""
+    kept = [p for p in tests if p.endswith(AUTHENTICITY_SUFFIXES)]
+    dropped = [p for p in tests if p not in kept]
+    if not dropped:
+        return kept, None
+    kind = "shell" if all(p.endswith(SHELL_SUFFIXES) for p in dropped) else "unsupported-stack"
+    return kept, "skipped %d %s test(s): unsupported_stack" % (len(dropped), kind)
 
 
 def _is_test(path: str) -> bool:
@@ -561,13 +593,17 @@ def override(ctx: Ctx, row: Row) -> Dict[str, Any]:
     args = ["check", "--spec", str(ctx.spec), "--story", str(ctx.story), "--repo", str(ctx.repo)]
     if ctx.new_source:
         args += ["--new-files"] + ctx.new_source
-    tests, note = _without_repros(ctx, ctx.tests or [])
+    # `--tests` feeds only check's test-integrity authenticity step, so it gets
+    # the same input as gate4_authenticity.
+    tests, repro_note = _without_repros(ctx, ctx.tests or [])
+    tests, stack_note = _authenticity_tests(tests)
     if tests:
         args += ["--tests"] + tests
-    # No skip when only repros changed: `check` still runs ac-trace.
+    # No skip when no test is left: `check` still runs ac-trace.
     result = _check_shape(row, _invoke(ctx, row, args, "check"), "gate1")
-    if note:
-        result["reasons"] = list(result.get("reasons") or []) + [note]
+    notes = [n for n in (repro_note, stack_note) if n]
+    if notes:
+        result["reasons"] = list(result.get("reasons") or []) + notes
     return result
 
 
@@ -676,16 +712,8 @@ def authenticity(ctx: Ctx, row: Row) -> Dict[str, Any]:
     if not tests:
         return _skip(row, "no_test_files")
     tests, repro_note = _without_repros(ctx, tests)
-    # test-integrity.py authenticity reads module specifiers, so it handles only
-    # the stacks .writ/docs/quality-signal-classification.md supports (Node /
-    # TypeScript, Python). It fails every shell test by construction, so those
-    # stay out of its input and the reason line counts them.
-    kept = [p for p in tests if p.endswith(AUTHENTICITY_SUFFIXES)]
-    dropped = [p for p in tests if p not in kept]
-    notes = [repro_note] if repro_note else []
-    if dropped:
-        kind = "shell" if all(p.endswith(SHELL_SUFFIXES) for p in dropped) else "unsupported-stack"
-        notes.append("skipped %d %s test(s): unsupported_stack" % (len(dropped), kind))
+    kept, stack_note = _authenticity_tests(tests)
+    notes = [n for n in (repro_note, stack_note) if n]
     if not kept:
         return _result(row, "skip", notes or ["no_test_files"])
     args = ["authenticity", "--project", str(ctx.repo), "--tests"] + kept
