@@ -81,7 +81,7 @@
 
 ---
 
-## Story 3 (post-review): supervisor input and adapter wording — Drift Report
+## Story 3: Post-review supervisor input and adapter wording — Drift Report
 
 > Run: 2026-11-07
 > Overall Drift: Small
