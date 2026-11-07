@@ -1,7 +1,7 @@
 # Story 2: Health counts given sources; Goal emit leaves the phase
 
 > **Status:** Completed ✅ (2026-11-07)
-> **Commit:** fe022193131671686b32ed05b0d7f323d1a9300f
+> **Commit:** 84bcdae8dfedea93c0537f06f267eb73aa033c5e
 > **Priority:** Normal
 > **Dependencies:** Story 1
 
