@@ -239,5 +239,16 @@ class GeneratedCopiesAndBudget(unittest.TestCase):
                          r"# 2026-\d\d-\d\d \(lean-story-pipeline Story 4\)")
 
 
+class IntegrationRecheckIsProportional(unittest.TestCase):
+    """implement-spec Step 4.1: one full-suite run per spec; a contained fix
+    to its failures is re-checked by what it can break, not by a second run."""
+
+    def test_step_41_rechecks_a_contained_fix_without_a_second_full_run(self) -> None:
+        text = (REPO_ROOT / "commands" / "implement-spec.md").read_text(encoding="utf-8")
+        step = text[text.index("#### Step 4.1:"):text.index("#### Step 4.2:")]
+        self.assertIn("re-run only the failing tests, the failing eval checks, and a `git grep`", step)
+        self.assertIn("re-run the full suite only when the fix changes code other tests import", step)
+        self.assertIn("postRun.testSuiteDetail", step)
+
 if __name__ == "__main__":
     unittest.main()
