@@ -12,6 +12,7 @@
 - Frontmatter `evidence:` is a short dated citation with no `.writ/` path; `gate-evidence.md` § Sources holds the full path or commit (DEV-001).
 - A `full-pipeline` gate's `kill_when` may be a dated condition over its `gate-evidence.md` row, since full-pipeline runs write no `story-gate` record (DEV-002).
 - Story 2 demotes; Story 3 builds the runner over the default set that remains.
+- A standalone story's full suite runs in `/ship --test`; plain `/ship` runs no tests (DEV-018).
 - Kept entries read `path: default` (absent also means default); demoted sections keep their full-pipeline text and drop only default/`--quick`/`--review-only` clauses (DEV-006, DEV-007).
 - `story-gate.py` is a check-shape script (Python 3.9 stdlib). It computes changed files from `--base`, runs a fixed check table, writes `.writ/state/story-gate-<stem>-<phase>.json` atomically, and keeps history for `tally`.
 - A test asserts that the runner's check table equals the `gates:` entries with `path: default`.

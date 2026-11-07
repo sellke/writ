@@ -184,3 +184,34 @@
 - Post-review on the runner itself (orchestrator dogfood) found `dirty: true` from stripped porcelain output and bash tests in the authenticity input. Maintainer chose "Recode both"; fixed in `de09ac1`–`112ee2b`.
 - Gate 3 iteration 3: `review-agent` PASS.
 
+---
+
+## Story 4: Targeted-test ownership — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-018] Standalone full-suite run named as `/ship --test`, not `/ship`
+- **Severity:** Small
+- **Spec said:** Business Rule 6: "`/ship` runs it for a standalone story"; Story 4 AC-4.3 and task 4.4 say the same.
+- **Implementation did:** Gate 4 and the coding agent name `/ship --test` (`/writ:ship --test` in the plugin).
+- **Reason:** Plain `/ship` runs no tests (`commands/ship.md`: "Tests do not run by default"), so the spec's wording was false; Gate 3 iteration 1 failed on it (confirmed repro). Intent unchanged.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: a standalone story's full suite runs in `/ship --test`.
+
+#### [DEV-019] ⚠️ Runner change during Story 4: ADR-032 repros left out of the authenticity input
+- **Severity:** Medium
+- **Spec said:** Story 4 changes the agents' and Gate 4's test instructions; `story-gate.py` belongs to Story 3.
+- **Implementation did:** After Story 4's post-review failed Gate 3 row 2 on its unchanged repro (`test_imports_no_source`, the third such false positive), the maintainer chose "Fix the runner now". `e259a5f` and `9689250` leave evidence-manifest repro paths out of `review-override.py check --tests` and `test-integrity.py authenticity`, accept a manifest only when `review-override.py --prior` would (17-case parity test), and apply the shell-test filter to `check --tests` too.
+- **Reason:** A recode cannot clear the finding because ADR-032 requires the repro unchanged, so the loop had no exit. The repro stays guarded by `evidence --prior` (present, same SHA-256, passing). Targeted review: FAIL (manifest acceptance looser than `--prior`), recoded, PASS.
+- **Resolution:** ⚠️ Warned (Medium). Maintainer-approved scope addition; commits carry Story 3's `Ref:`.
+- **Spec amendment:** None.
+
+### Gate record
+
+- Gate 3 iteration 1: `review-agent` FAIL, F1 (Major: `/ship` runs no tests without `--test`), confirmed by `story-gate.py` post-review (row 7, `restart: gate1`). Recoded in `cbbe149` with the repro committed unchanged, plus the Gate 3 `recorded_test_results` selection, the evidence wording in both Gate 3 agents, and the size-pin test.
+- Gate 3 iteration 2: `review-agent` PASS.
+- Open maintainer question (outside this spec): a standalone `/implement-story` followed by plain `/ship` never runs the full suite; either `/ship` runs tests by default or the story report tells the user to run `/ship --test`.
+
