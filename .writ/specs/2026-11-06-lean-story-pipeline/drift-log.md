@@ -189,7 +189,7 @@
 ## Story 4: Targeted-test ownership — Drift Report
 
 > Run: 2026-11-06
-> Overall Drift: Small
+> Overall Drift: Medium
 
 ### Deviations
 
