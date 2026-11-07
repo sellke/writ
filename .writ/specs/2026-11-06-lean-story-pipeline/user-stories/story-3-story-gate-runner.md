@@ -1,6 +1,7 @@
 # Story 3: story-gate.py runner
 
 > **Status:** Completed ✅ (2026-11-06)
+> **Commit:** 603620566dfc41dd65770aca6398410e631a7360
 > **Priority:** High
 > **Dependencies:** Story 2
 
