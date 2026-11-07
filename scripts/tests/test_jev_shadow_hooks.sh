@@ -20,9 +20,11 @@ GATE3="$(awk '/^#### Gate 3: Review Agent/{f=1} /^#### Gate 3.5:/{f=0} f' "$STOR
 SHADOW_LINES="$(printf '%s\n' "$GATE3" | grep -F 'jev-judge.py ac-shadow' || true)"
 [ "$(printf '%s\n' "$SHADOW_LINES" | grep -c . || true)" = "1" ] \
   || fail "Gate 3 must carry exactly one ac-shadow line"
+# 2026-11-06 (lean-story-pipeline Story 3): story-gate.py
+# post-review runs `status`, then `ac-shadow` with the saved files; the prose
+# names the condition and keeps the advisory-only terms.
 for needle in \
-  'If `python3 scripts/jev-judge.py status` prints `pass`' \
-  'python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests> --diff <diff> --review-output <review>' \
+  'only when its `status` prints `pass`' \
   'story-report note' \
   'never changes PASS/FAIL/PAUSE' \
   'never counts toward the review loop' \
@@ -38,15 +40,25 @@ for needle in \
   '`recorded_test_results` to `<tests>` = `.writ/state/gate3-tests-<story-stem>.txt`'; do
   printf '%s\n' "$GATE3" | grep -Fq "$needle" || fail "Gate 3 must say: $needle"
 done
-python3 - "$STORY_CMD" <<'PY' || fail "the ac-shadow line must follow the review-override block inside Gate 3"
-import sys
+python3 - "$STORY_CMD" "$REPO/scripts/story-gate.py" <<'PY' || fail "the ac-shadow line must follow the post-review call inside Gate 3, and story-gate.py must run status then ac-shadow last with the saved files"
+import importlib.util, sys
 text = open(sys.argv[1], encoding="utf-8").read()
 g3 = text.find("#### Gate 3: Review Agent")
-override = text.find("python3 scripts/review-override.py check", g3)
-bullet = text.find("- **script `pass` or any `unverifiable` verdict**", override)
+override = text.find("python3 scripts/story-gate.py run --phase post-review", g3)
+bullet = text.find("A check `pass` or any `unverifiable` verdict → no override", override)
 shadow = text.find("jev-judge.py ac-shadow", bullet)
 g35 = text.find("#### Gate 3.5:", g3)
 assert -1 < g3 < override < bullet < shadow < g35, (g3, override, bullet, shadow, g35)
+spec = importlib.util.spec_from_file_location("story_gate", sys.argv[2])
+gate = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(gate)
+assert gate.CHECKS["post-review"][-1].id == "gate3_jev_shadow"
+assert gate.CHECKS["post-review"][-1].counted is False
+args = " ".join(gate.shadow_args("<story-file>", "<tests>", "<diff>", "<review>"))
+assert args == ("ac-shadow --story <story-file> --tests-output <tests> --diff <diff> "
+                "--review-output <review>"), args
+source = open(sys.argv[2], encoding="utf-8").read()
+assert '["status", "--repo", str(ctx.repo)]' in source
 PY
 ok "implement-story Gate 3 ac-shadow line pinned"
 

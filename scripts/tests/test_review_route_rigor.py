@@ -103,6 +103,22 @@ SCANNED_GLOBS = (
 # ---------------------------------------------------------------------------
 
 
+def story_gate():
+    """scripts/story-gate.py. Since lean-story-pipeline Story 3 (2026-11-06) its
+    pre-review resolves the switches and its post-review runs `safety-fact`."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "story_gate", str(REPO_ROOT / "scripts" / "story-gate.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+STORY_GATE = REPO_ROOT / "scripts" / "story-gate.py"
+# The Gate 3 paragraph that passes pre-review's resolved switch to every spawn.
+SWITCH_PARAGRAPH = "**Reviewer filters.** Pass pre-review's `reviewer_filters:` value"
+
+
 def read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
@@ -398,7 +414,7 @@ class Gate3WiringTest(unittest.TestCase):
         self.assertTrue(self.gate3, "Gate 3 section not found")
 
     def _switch_paragraph(self) -> str:
-        paragraphs = [p for p in self.gate3.split("\n\n") if SWITCH_COMMAND in p]
+        paragraphs = [p for p in self.gate3.split("\n\n") if p.startswith(SWITCH_PARAGRAPH)]
         self.assertEqual(len(paragraphs), 1, paragraphs)
         return paragraphs[0]
 
@@ -413,7 +429,12 @@ class Gate3WiringTest(unittest.TestCase):
         self.assertIn("`reviewer-filters: <on|off>`", self._switch_paragraph())
 
     def test_switch_only_in_gate3(self) -> None:
-        self.assertEqual(self.text.count(SWITCH_COMMAND), 1)
+        """lean-story-pipeline Story 3 (2026-11-06): `story-gate.py` pre-review
+        resolves the switch once per run; the command never calls it."""
+        self.assertEqual(self.text.count(SWITCH_COMMAND), 0)
+        self.assertEqual(read(STORY_GATE).count('"reviewer-filters"'), 1)
+        self.assertIn("python3 scripts/story-gate.py run --phase pre-review",
+                      slice_between(self.text, "#### Gate 2: Lint", "#### Gate 2.5:"))
         # 2026-11-06-lean-story-pipeline Story 2: Gate 4.5 follows Gate 0.
         gate0 = slice_between(self.text, "#### Gate 0: Architecture Check", "#### Gate 4.5:")
         step4 = slice_between(self.text, "### Step 4: Story Completion", "## Error Handling")
@@ -763,8 +784,12 @@ class Gate3SafetyFactTest(unittest.TestCase):
         self.assertTrue(self.gate3, "Gate 3 section not found")
 
     def test_gate3_carries_the_wiring(self) -> None:
+        """lean-story-pipeline Story 3 (2026-11-06): post-review runs the
+        verifier with the saved review, blast radius, and recorded run, routes
+        `safety_fact_contradicts_verdict` (decision row 3), and prints the
+        report line; Gate 3 keeps the re-spawn and the inputs."""
         for literal in (
-            "python3 scripts/review-override.py safety-fact",
+            "python3 scripts/story-gate.py run --phase post-review",
             ".writ/state/gate3-review-<story-stem>.md",
             "gate3-tests-<story-stem>.txt",
             "`recorded_test_results`",
@@ -772,17 +797,30 @@ class Gate3SafetyFactTest(unittest.TestCase):
             "`safety_fact`",
             "safety_fact_missing",
             "safety_fact_below_floor",
-            "safety_fact_contradicts_verdict",
             "same Gate 3 attempt",
             "review_cycle",
             "BLOCKED",
             "unverifiable",
             "a test that exercises the fact",
-            "safety-fact: off",
-            "safety-fact: not on route",
-            "safety-fact: <measured> (claimed <claimed>) — <fact>",
+            "`safety-fact:`",
         ):
             self.assertIn(literal, self.gate3)
+        module = story_gate()
+        row = next(r for r in module.CHECKS["post-review"] if r.id == "gate3_safety_fact")
+        self.assertEqual(row.script, "review-override.py")
+        source = read(STORY_GATE)
+        for literal in ('["safety-fact", "--review-output"', '"--blast-radius"',
+                        '"--tests-output"'):
+            self.assertIn(literal, source)
+        line = module.safety_fact_line
+        self.assertEqual(line({"verdict": "skip", "reasons": ["off"]}), "safety-fact: off")
+        self.assertEqual(line({"verdict": "skip", "reasons": ["not on route"]}),
+                         "safety-fact: not on route")
+        self.assertEqual(line({"verdict": "pass", "reasons": [], "detail": [
+            "rung: claimed=traced measured=tested", "fact: the cache key holds"]}),
+            "safety-fact: tested (claimed traced) — the cache key holds")
+        contradicts = {"verdict": "fail", "reasons": ["safety_fact_contradicts_verdict"]}
+        self.assertEqual(module.decide_gate3("PASS", None, contradicts, None)["restart"], "gate1")
 
     def test_gate_condition_is_pinned(self) -> None:
         """The paragraph runs only when `safety_fact` is on, and `safety_fact` is
@@ -794,20 +832,34 @@ class Gate3SafetyFactTest(unittest.TestCase):
         self.assertIn("`safety_fact` (`on` unless `blast_radius` is `(none)`)", same_inputs[0])
 
     def test_unverifiable_is_not_degraded(self) -> None:
-        paragraph = slice_between(self.gate3, "**Safety fact", "**Evidence.**")
-        self.assertIn("never `⚠️ DEGRADED`", paragraph)
+        """An unverifiable verifier never fails Gate 3 (post-review's
+        `→ no override` sentence covers every check it runs)."""
+        override = next(l for l in self.gate3.splitlines() if "→ no override" in l)
+        self.assertIn("never `⚠️ DEGRADED`", override)
+        unverifiable = {"verdict": "unverifiable", "reasons": ["review_output_unreadable"]}
+        self.assertEqual(story_gate().decide_gate3("PASS", None, unverifiable, None)["verdict"],
+                         "PASS")
 
     def test_contradicts_routes_before_re_review(self) -> None:
         """2026-11-04 (2026-11-04-evidence-gated-review Story 3): the contradicts
-        bullet moved into Gate 3's decision table as row 2, ahead of row 3
-        (missing or below floor)."""
-        table = slice_between(self.gate3, "**Evidence.**", "**Jev shadow")
-        self.assertLess(table.index("safety_fact_contradicts_verdict"),
-                        table.index("safety_fact_missing"))
+        bullet moved into Gate 3's decision table, ahead of missing or below
+        floor. 2026-11-06 (lean-story-pipeline Story 3): the table lives in
+        `story-gate.py` `decide_gate3`, rows 3 then 4."""
+        both = {"verdict": "fail",
+                "reasons": ["safety_fact_missing rung", "safety_fact_contradicts_verdict"]}
+        decision = story_gate().decide_gate3("PASS", None, both, None)
+        self.assertEqual((decision["row"], decision["restart"]), ("3", "gate1"))
+        missing = {"verdict": "fail", "reasons": ["safety_fact_missing rung"]}
+        decision = story_gate().decide_gate3("PASS", None, missing, None)
+        self.assertEqual((decision["row"], decision["restart"]), ("4", "gate3"))
 
     def test_verifier_runs_only_in_gate3(self) -> None:
-        self.assertEqual(self.text.count("review-override.py safety-fact"), 1)
-        self.assertEqual(self.gate3.count("review-override.py safety-fact"), 1)
+        """2026-11-06 (lean-story-pipeline Story 3): only post-review runs it."""
+        self.assertEqual(self.text.count("review-override.py safety-fact"), 0)
+        rows = [r.id for phase in story_gate().CHECKS.values() for r in phase
+                if r.run.__name__ == "safety_fact"]
+        self.assertEqual(rows, ["gate3_safety_fact"])
+        self.assertEqual(read(STORY_GATE).count('["safety-fact",'), 1)
         for start, end in (("#### Gate 0: Architecture Check", "#### Gate 4.5:"),
                            ("#### Gate 2.5:", "#### Gate 3: Review Agent"),
                            ("### Step 4: Story Completion", "## Error Handling")):

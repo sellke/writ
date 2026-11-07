@@ -66,7 +66,7 @@ gates:
     path: default
     catches: "A departure from the spec with no recorded decision; cost: the spec and the code disagree unnoticed"
     evidence: "ci-and-update-integrity DEV-007 (2026-10-20): an evaluator Large-drift PAUSE was rejected at Gate 3.5 and recoded, so customized Cursor files are no longer overwritten"
-    kill_when: "sole_catches == 0 over 20 default-path records"
+    kill_when: "20 default-path stories log no drift-log.md Resolution of Pipeline paused — rejected or spec modified"
   - id: gate4_tests
     script: scripts/test-integrity.py
     path: default
@@ -186,6 +186,8 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 
 ### Step 3: Run Pipeline
 
+> **`--full-pipeline`:** Gate 0 (§ Full-Pipeline Gates) runs before Gate 0.5.
+
 > **Context refresh:** `.writ/context.md` is regenerated once at Story Completion (Step 4), not between gates. Each write replaces the entire file — do not append, merge, or patch.
 
 > **File creation discipline:** Agents must only create files listed in the story's implementation tasks. Analysis artifacts stay in structured output. Do not commit files outside the task list or known pipeline outputs (drift-log, context.md, story status).
@@ -210,11 +212,9 @@ python3 scripts/story-context.py assemble --story <story-file-path> --budget-byt
 
 Before Gate 1, compute **`boundary_map`** (owned / readable / out-of-scope). **Advisory** — no hard file locking. Coding flags crossings; review verifies (Gate 3).
 
-**Not applicable — `/prototype`:** `/prototype` does not run `implement-story`; Gate 0.5 runs inline on default and `--full-pipeline`.
-
 `Read skills/boundary-map-computation/SKILL.md` for how the map is derived, including where assess-spec Check 5 overlap data is persisted and how it degrades when absent. This gate owns when it is computed and that Gates 1 and 3 receive it as `boundary_map`; the skill owns how.
 
-Run the script; pass stdout onward (treat `blocker` as empty) and save it for Gate 2.5:
+Run it; pass stdout onward (treat `blocker` as empty) and save it for pre-review:
 
 ```bash
 mkdir -p .writ/state && python3 scripts/boundary-map.py compute --story <story-file> --repo . [--overlap <check-5-overlap>] | tee .writ/state/boundary-<story-stem>.json
@@ -233,9 +233,11 @@ Spawns the coding agent to run the red → green → refactor loop via `Read ski
 
 **When Gate 0.5 was skipped** (`--quick`, `--review-only`): pass **`boundary_map`** = the literal `(none)` and do **not** pass a boundary block — coding/review agents treat `(none)` as “no boundary checking”.
 
+**Base:** record `git rev-parse HEAD` as `<base>` before the story's first Gate 1 spawn (`--review-only`: before the story's code); reuse it on recodes.
+
 **Report:** files changed, tests written, deviations from plan, concerns.
 
-**Bug path:** record `git rev-parse HEAD` before the story's first Gate 1 spawn and reuse it on recodes. When the report's `### Repro` block names commits, run `python3 scripts/repro-order.py check --repo . --base <that SHA>` after integration and print its first line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
+**Bug path:** when the report's `### Repro` block names commits, post-review runs `repro-order.py check` from `<base>` after integration; print its check line as `repro-order:` in the Step 4 report. `fail` marks the story `⚠️ DEGRADED` with its `reason:` lines; `unverifiable`, or exit 2 with its stderr cause, prints and continues.
 
 **On `STATUS: BLOCKED`:** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; skip-with-warning marks the story `In Progress` with the note *"Gate 1 skipped after BLOCKED — review required."*
 
@@ -249,33 +251,25 @@ Auto-detect and run project linters — **Node/TS:** `tsc --noEmit`, `eslint`, `
 
 **On failure:** auto-fix (`eslint --fix`, `prettier --write`, `black`, `cargo fmt`); re-run; typecheck fail → coding agent; still failing → flag for review.
 
-**Architecture ruleset.** After the linters, run `python3 scripts/arch-lint.py detect --repo .`, then run each `command:` line from the repo root; a non-zero exit takes the **On failure** path (no auto-fix exists, so flag for review). A missing or not-installed ruleset never fails the gate. Report `arch-lint: <names joined ", ">`, each name suffixed `(via eslint)`, `(via tests)` or `(not installed)` per its mode; no ruleset → `arch-lint: none — see .writ/docs/architecture-lint.md`; `unverifiable` → `arch-lint: unverifiable (<reason>)`.
+**Pre-review.** After the linters, in every mode, run:
 
-**Build smoke.** When the story changed source, also run `python3 scripts/build-smoke.py check --project .` and surface its verdict in the story report; it catches framework-level errors typechecking misses.
+```bash
+python3 scripts/story-gate.py run --phase pre-review --story <story-file> --spec <spec-folder> --base <base>
+```
 
-- **`build_failed_source`** → blocking. Apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 2**. No new control flow, no iteration cap.
-- **`build_failed_environment` or any `unverifiable` verdict** → the pipeline continues. Surface the reason verbatim; the story is **not** marked `⚠️ DEGRADED` on that basis. An unverifiable check is not a failed gate — DEGRADED means a gate could not be cleared, `unverifiable` means a check could not be run here.
+It runs build smoke (`build-smoke.py`, when source changed), the architecture ruleset (`arch-lint.py`, then each `command:` line; a failing one is advisory: flag it for review), then Gate 2.5. Report its `arch-lint:` line and build-smoke verdict. **`build_failed_source`** prints `restart: gate2` (no iteration cap). Any `unverifiable` verdict continues, surfaced verbatim, **not** `⚠️ DEGRADED`: DEGRADED means a gate could not be cleared, `unverifiable` means a check could not be run here.
 
 ---
 
 #### Gate 2.5: Change Surface Classification
 
-**Runs inline — no sub-agent needed.**
-
-After lint/typecheck, classify changed files as **style-only**, **single-component**, **cross-component** or **full-stack** and pass Gate 3 `change_surface`.
+Classify changed files as **style-only**, **single-component**, **cross-component** or **full-stack** and pass Gate 3 `change_surface`.
 
 `Read skills/change-surface-classification/SKILL.md` for how the classes are told apart. This gate owns when classification runs and who consumes `change_surface`; the skill owns how.
 
-Run the classifier (JSON `class` = `change_surface`; pass it as `--surface`), then, unless Gate 0.5 was skipped, the crossings check (`route` = `gate3_route`):
+Pre-review runs `change-surface.py classify` (`change_surface:`), then `boundary-map.py crossings` on the Gate 0.5 map, if any (`route:` = `gate3_route`). An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` with reason `unverifiable: <reason>`.
 
-```bash
-python3 scripts/change-surface.py classify --changed <files>
-python3 scripts/boundary-map.py crossings --map .writ/state/boundary-<story-stem>.json --changed <files> --story <story-file> --surface <class>
-```
-
-An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` with reason `unverifiable: <reason>`.
-
-**Blast radius.** When `gate3_route` names `review-agent`, run `python3 scripts/review-override.py switch --name safety-fact`. On `on`, run `python3 scripts/change-surface.py blast-radius --changed <files> --repo . > .writ/state/blast-radius-<story-stem>.json` and pass the file to Gate 3 as `blast_radius`. Otherwise `blast_radius` is `(none)`.
+**Blast radius.** When `gate3_route` names `review-agent` and the `safety-fact` switch is `on`, pre-review runs `change-surface.py blast-radius`; pass its `blast_radius:` file to Gate 3. Otherwise `blast_radius` is `(none)`.
 
 ---
 
@@ -287,9 +281,9 @@ An `unverifiable` verdict, or a helper that cannot run, routes `review-agent` wi
 
 Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's run (`command:`, `exit code: N`, output tail) of the story's tests and each path in `<manifest>` = `.writ/state/evidence-<story-stem>.json`, not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
-**Reviewer filters.** Once per story, run `python3 scripts/review-override.py switch --name reviewer-filters` and pass line 1 as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent` and any re-review. The story report prints `reviewer-filters: <on|off>`.
+**Reviewer filters.** Pass pre-review's `reviewer_filters:` value as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent` and any re-review. The story report prints `reviewer-filters: <on|off>`.
 
-**Evidence gate.** Likewise pass line 1 of `python3 scripts/review-override.py switch --name evidence-gate` as `evidence_gate` to every Gate 3 spawn.
+**Evidence gate.** Likewise pass its `evidence_gate:` value as `evidence_gate` to every Gate 3 spawn.
 
 **Risk route:** when `gate3_route` names `review-agent`, spawn `review-agent` in its place — a swap, not a third spawn — with the inputs below and the `reasons` as `boundary_overlap_summary`. `--review-only` has no map, so the evaluator runs; `--full-pipeline` always runs `review-agent`. The story report prints `gate3-route: <agent> (<reasons joined by "; ">)`, parentheses omitted when there are none.
 
@@ -304,46 +298,34 @@ Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_
 
 **Review loop:** Max 3 iterations across review and Gate 4.5. Gate 3 FAIL → recode, Gate 3.5 "Reject" → recode, Gate 3.5 "Modify spec" → re-review, and Gate 4.5 script fail → recode share one counter. An escalated Gate 0 re-run (or `/create-spec` Step 2.6a regeneration) never increments it. Gate 4 testing failures have a separate 2-iteration cap. After either cap → escalate to user via the existing `AskQuestion` escalations; no cap may be silently continued past (`loop.max_iterations`, nested `testing_cycle`, `on_exhaustion: escalate`).
 
-**Verify the claim, don't trust it.** After the Gate 3 agent returns, run:
-
-```bash
-python3 scripts/review-override.py check --spec <spec-folder> --story <story-file> [--new-files <story's new files>] [--tests <story's test files>]
-```
-
-Show both the agent's claim and the script's measurement in the story report.
-
-- **script `fail`** (`untested_criterion` after the story would be complete, `untasked_criterion`, `dangling_reference`, `duplicate_id`, or `coverage_below_threshold` / `coverage_regression` / `test_imports_no_source`) → blocking. Take the review-loop recode path.
-- **script `pass` or any `unverifiable` verdict** → no override; print the reason; never `⚠️ DEGRADED`.
-
 Save the review to `<review>` = `.writ/state/gate3-review-<story-stem>.md` (re-save on re-spawn) and `recorded_test_results` to `<tests>` = `.writ/state/gate3-tests-<story-stem>.txt`.
 
-**Safety fact (`safety_fact` on).** Run `python3 scripts/review-override.py safety-fact --review-output <review> --blast-radius <blast_radius> --tests-output <tests>`. First match wins:
+**Verify the claim, don't trust it.** After Gate 3.5 § A, run post-review (`--quick`: no output flags):
 
-- `safety_fact_missing` or `safety_fact_below_floor` → re-spawn `review-agent` once, appending the `rung:`/`reason:` lines; re-verify (same Gate 3 attempt, no `review_cycle` increment). Still missing → BLOCKED escalation (`review-agent`, restart Gate 3). Still below floor → Gate 3 FAIL; the coder gets the `fact:`/`rung:` lines to add a test that exercises the fact.
-- `pass`, `unverifiable`, or exit not 0/1/2 → continue, print the reason, never `⚠️ DEGRADED`.
+```bash
+python3 scripts/story-gate.py run --phase post-review --story <story-file> --spec <spec-folder> --base <base> --review-output <review> --tests-output <tests>
+```
 
-A fail is one review-loop increment. Report `safety-fact: <measured> (claimed <claimed>) — <fact>`, else `safety-fact: off` or `safety-fact: not on route`.
+It runs Gate 3's `review-override.py` checks, then Gates 3.5, 4 and 1 (bug path) and the Jev shadow; applies Gate 3's first-match decision (`gate3:`); and records the head SHA, which must be the final code commit. Show the agent's claim and the runner's measurement in the story report. A check `pass` or any `unverifiable` verdict → no override; print the reason; never `⚠️ DEGRADED`.
 
-**Evidence.** On an agent FAIL (once `<manifest>` exists: any verdict, with `--prior <manifest>`), after `check`, `safety-fact`, and any re-spawn, run `python3 scripts/review-override.py evidence --review-output <review> --changed <files> --tests-output <tests> --checks <checks> --manifest-out <manifest> --timeout 60`. First match wins, on any verdict:
+**Act on line 1.** `pass` → continue. `fail` → by `restart:`:
 
-| # | When | Gate 3 |
-|---|---|---|
-| 1 | `repro_mutated_tree` | BLOCKED escalation (Gate 3 agent, restart Gate 3) |
-| 2 | `check` `fail` | FAIL → recode |
-| 3 | `safety_fact_contradicts_verdict` | FAIL → recode |
-| 4 | `safety_fact_missing` or `safety_fact_below_floor` | its routing above |
-| 4a | `repro_removed`, `repro_modified`, `repro_still_failing` | FAIL → recode |
-| 5 | agent PASS or PAUSE | that verdict |
-| 6 | `evidence_gate` `off` | the FAIL stands |
-| 7 | line 1 `fail` | FAIL → recode with the `confirmed` findings |
-| 8 | line 1 `unverifiable`, exit 2, or no helper | the FAIL stands; never `⚠️ DEGRADED` |
-| 9 | line 1 `pass` | PASS |
+| `restart:` | Then |
+|---|---|
+| `gate1` | recode (one review-loop increment) with the failing lines |
+| `gate2` | [BLOCKED escalation](#blocked-agent-escalation) (`coding-agent`, restart **Gate 2**) |
+| `gate3` | the safety-fact re-spawn below |
+| `gate3-blocked` | BLOCKED escalation (Gate 3 agent, restart Gate 3) |
+| `gate4` | Gate 4's integrity rule |
+| none | `⚠️ DEGRADED` with the `reason:` lines |
+
+**Safety fact (`safety_fact` on).** On `restart: gate3` (`safety_fact_missing` or `safety_fact_below_floor`), re-spawn `review-agent` once, appending the `rung:`/`reason:` lines, and rerun post-review (same Gate 3 attempt, no `review_cycle` increment). Still missing → BLOCKED escalation (`review-agent`, restart Gate 3). Still below floor → Gate 3 FAIL; the coder gets the `fact:`/`rung:` lines to add a test that exercises the fact.
 
 Recode briefs add `## Evidence repros`: each `confirmed` `test` repro's (row 4a: from `<manifest>`) finding, path, fenced content, and "Create it exactly; do not edit it. Make it pass."
 
-Report `evidence-gate: <state>`: `off` when `evidence_gate` is off, on any verdict; else `not run (PASS|PAUSE)`, `blocked (<reason>)`, `fail (<reason>)` (re-review), `unverifiable (<reason>)`, or `<c> confirmed, <a> advisory, <u> unverifiable`; then `evidence-gate advisory: F<n> <Issue> (<reason>)` per advisory finding.
+The story report quotes post-review's `safety-fact:` and `evidence-gate:` lines, then `evidence-gate advisory: F<n> <Issue> (<reason>)` per advisory finding.
 
-**Jev shadow (opt-in).** If `python3 scripts/jev-judge.py status` prints `pass`, save the story diff to `.writ/state/` and run `python3 scripts/jev-judge.py ac-shadow --story <story-file> --tests-output <tests> --diff <diff> --review-output <review>`. Any verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
+**Jev shadow (opt-in).** Post-review runs `jev-judge.py ac-shadow` only when its `status` prints `pass`. Its verdict is one story-report note: it never changes PASS/FAIL/PAUSE, never counts toward the review loop, and never marks the story `⚠️ DEGRADED`.
 
 #### Gate 3.5: Drift Response Handling & "What Was Built" Extraction
 
@@ -357,13 +339,9 @@ Inspect the `### Drift Analysis` section and handle by severity: **Small** (nami
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
-**Verify the claim, don't trust it.** After the drift step, format-check only — this script never decides accept / reject / modify-spec:
+**Verify the claim, don't trust it.** § A runs before post-review, whose `drift-format.py` check is format-only — it never decides accept / reject / modify-spec.
 
-```bash
-python3 scripts/drift-format.py check --story <story-file> [--drift-log <spec>/drift-log.md] [--review-output <review-agent stdout>]
-```
-
-- **script `fail`** → apply the shared [BLOCKED escalation](#blocked-agent-escalation).
+- **script `fail`** → `restart: gate3-blocked`, the shared [BLOCKED escalation](#blocked-agent-escalation).
 - **any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ##### B. "What Was Built" Data Extraction
@@ -376,7 +354,7 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 #### Gate 4: Testing Agent (with Coverage Enforcement)
 
-**Default:** do not spawn `testing-agent`. Run the scripts below.
+**Default:** do not spawn `testing-agent`.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/testing-agent.md`
@@ -391,16 +369,11 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 **On `STATUS: BLOCKED` (`--full-pipeline`):** apply the shared [BLOCKED escalation](#blocked-agent-escalation) with agent `testing-agent`, restarting **Gate 4**; skip-with-warning continues to Gate 5 with the story marked `⚠️ DEGRADED`.
 
-**Verify the claim, don't trust it.** After scripts (and the testing agent on `--full-pipeline`) return, run:
+**Verify the claim, don't trust it.** Post-review runs `test-integrity.py coverage` on the story's new files and `authenticity` on its test files; on `--full-pipeline`, rerun post-review after the testing agent returns.
 
-```bash
-python3 scripts/test-integrity.py coverage --project . --new-files <story's new files>
-python3 scripts/test-integrity.py authenticity --project . --tests <story's test files>
-```
+The checker re-derives the agent's `Coverage threshold met: YES` from the coverage tool's own output; where they disagree the checker wins. Show both the claim and the measurement in the story report.
 
-`Coverage threshold met: YES` is a field the agent types. The checker re-derives it from the coverage tool's own output, and where they disagree the checker wins — a run may report `TEST_RESULT: PASS` and still not close. Show both the claim and the measurement in the story report.
-
-- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** → blocking. The story does not reach `Completed ✅`. `test-integrity.py` `fail`: default uses [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; `--full-pipeline` keeps `testing-agent`, restarting **Gate 4**. Do not downgrade the story silently.
+- **`coverage_below_threshold`, `coverage_regression`, or `test_imports_no_source`** (`restart: gate4`) → blocking. The story does not reach `Completed ✅`. `test-integrity.py` `fail`: default uses [BLOCKED escalation](#blocked-agent-escalation) with agent `coding-agent`, restarting **Gate 1**; `--full-pipeline` keeps `testing-agent`, restarting **Gate 4**. Do not downgrade the story silently.
 - **Any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
 
 ---
@@ -486,7 +459,7 @@ After all gates pass:
 5. **Update `user-stories/README.md`** progress percentages
 6. **Commit** with a descriptive message including story title, file counts, test results, and drift status
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
-8. **Report** pipeline results: per-gate status, file counts, drift summary, the `gate3-route:` and `arch-lint:` lines, and next action (`/ship`)
+8. **Report** pipeline results: per-gate status, file counts, drift summary, both `story-gate:` lines, the `gate3-route:` and `arch-lint:` lines, and next action (`/ship`)
 
 **Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
 

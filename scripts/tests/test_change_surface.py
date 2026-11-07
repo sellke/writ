@@ -133,15 +133,30 @@ class ChangeSurfaceTests(unittest.TestCase):
         self.assertEqual(_run(args + ["--json"])[:2], _run(args)[:2])
 
 
+def _story_gate():
+    """scripts/story-gate.py, the runner that now invokes Gate 2.5's checks."""
+    import importlib.util as _util
+    spec = _util.spec_from_file_location("story_gate", str(REPO_ROOT / "scripts" / "story-gate.py"))
+    module = _util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class Gate25WiringTests(unittest.TestCase):
     """AC-4.4 / AC-4.5 — Gate 2.5 runs the classifier."""
 
     def test_gate_2_5_invokes_classify(self) -> None:
+        """lean-story-pipeline Story 3 (2026-11-06): `story-gate.py` pre-review
+        runs the classifier; Gate 2.5 names it and the runner's table holds it."""
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
         start = text.index("#### Gate 2.5: Change Surface Classification")
         end = text.index("#### Gate 3:", start)
         gate = text[start:end]
-        self.assertIn("scripts/change-surface.py classify", gate)
+        self.assertIn("Pre-review runs `change-surface.py classify`", gate)
+        self.assertIn("python3 scripts/story-gate.py run --phase pre-review", text[:start])
+        rows = {row.id: row for row in _story_gate().CHECKS["pre-review"]}
+        self.assertEqual(rows["gate2_5_change_surface"].script, "change-surface.py")
+        self.assertEqual(rows["gate2_5_change_surface"].gate, "gate2_5_surface")
 
     def test_frontmatter_names_change_surface(self) -> None:
         text = (REPO_ROOT / "commands" / "implement-story.md").read_text(encoding="utf-8")
@@ -608,15 +623,21 @@ class Gate25BlastRadiusTextTests(unittest.TestCase):
         self.gate0 = text[g0:text.index("#### Gate 4.5:", g0)]
 
     def test_gate_2_5_names_switch_command_file_and_input(self) -> None:
-        for needle in ("review-override.py switch --name safety-fact",
-                       "change-surface.py blast-radius",
-                       ".writ/state/blast-radius-<story-stem>.json",
+        """lean-story-pipeline Story 3 (2026-11-06): pre-review resolves the
+        switch and writes the file; Gate 2.5 names both and the input. The
+        file path and the switch call are pinned in test_story_gate.py
+        (test_risk_route_runs_blast_radius_and_turns_safety_fact_on and
+        test_safety_fact_switch_off_skips_blast_radius)."""
+        for needle in ("the `safety-fact` switch is `on`",
+                       "change-surface.py blast-radius", "`blast_radius:`",
                        "`blast_radius`", "`(none)`", "`review-agent`"):
             self.assertIn(needle, self.gate)
+        ids = [row.id for row in _story_gate().CHECKS["pre-review"]]
+        self.assertLess(ids.index("gate0_5_crossings"), ids.index("gate2_5_blast_radius"))
 
     def test_blast_radius_follows_switch_and_unverifiable_sentence(self) -> None:
         unverifiable = self.gate.index("routes `review-agent` with reason `unverifiable: <reason>`")
-        switch = self.gate.index("review-override.py switch --name safety-fact")
+        switch = self.gate.index("the `safety-fact` switch is `on`")
         blast = self.gate.index("change-surface.py blast-radius")
         self.assertLess(unverifiable, switch)
         self.assertLess(switch, blast)

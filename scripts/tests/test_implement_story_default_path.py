@@ -108,6 +108,17 @@ def _gate_parents(text: str) -> dict[str, str]:
     return parents
 
 
+def _story_gate_row(check_id: str):
+    """One row of scripts/story-gate.py's check table."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "story_gate", str(REPO_ROOT / "scripts" / "story-gate.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    rows = [row for rows in module.CHECKS.values() for row in rows]
+    return next(row for row in rows if row.id == check_id)
+
+
 def _stems_in(line: str) -> set[str]:
     found = set()
     for m in re.finditer(r"([a-z0-9-]+-agent)", line):
@@ -243,7 +254,11 @@ class ImplementStoryDefaultPathTests(unittest.TestCase):
     def test_ac24_override_and_gate4_fail(self) -> None:
         gate3 = _section(self.text, "#### Gate 3: Review Agent", "#### Gate 3.5:")
         self.assertIn("Verify the claim, don't trust it.", gate3)
-        self.assertIn("scripts/review-override.py check", gate3)
+        # lean-story-pipeline Story 3 (2026-11-06): post-review runs
+        # `review-override.py check` first; Gate 3 names the runner call.
+        self.assertIn("python3 scripts/story-gate.py run --phase post-review", gate3)
+        self.assertIn("`review-override.py` checks", gate3)
+        self.assertEqual(_story_gate_row("gate3_override").script, "review-override.py")
         # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): the FAIL-only
         # sentence went; a check pass is "no override", and the decision table
         # (row 9) can now wash an agent FAIL.

@@ -28,6 +28,13 @@ is unconditional now, so Story 3's save condition moved with it. Its recode
 (DEV-026) moved the tree-mutation row to the top: the contract's Hardest
 Constraint makes any mutation BLOCKED, ahead of every other row.
 
+Story 3 of the 2026-11-06 lean-story-pipeline spec moved the evidence call, the
+switch, `--prior`, and the decision table out of the command prose into
+`scripts/story-gate.py` post-review (`evidence_args`, `evidence_runs`,
+`decide_gate3`, `evidence_gate_line`). The pins below assert the same
+guarantees against those functions; the replays run `review-override.py` with
+the runner's own arguments.
+
 Run: uv run --isolated --python 3.9 --with pytest pytest scripts/tests/test_evidence_gate_wiring.py
 """
 
@@ -57,14 +64,12 @@ EV_PROJECT = EV_FIXTURES / "pytest-project"
 SKILL_REL = "skills/evidence-gated-findings/SKILL.md"
 SWITCH_COMMAND = "python3 scripts/review-override.py switch --name evidence-gate"
 SWITCH_INPUT = "evidence_gate"
-OFF_CLAUSE = "`off` when `evidence_gate` is off, on any verdict"
-EVIDENCE_COMMAND = re.compile(r"`(python3 scripts/review-override\.py evidence [^`]*)`")
+STORY_GATE = REPO_ROOT / "scripts" / "story-gate.py"
+POST_REVIEW = "python3 scripts/story-gate.py run --phase post-review"
 GATE2_CHECKS = "`.writ/state/gate2-checks-<story-stem>.txt`"
 GATE3_REVIEW = ".writ/state/gate3-review-<story-stem>.md"
 GATE3_TESTS = "gate3-tests-<story-stem>.txt"
 MANIFEST = ".writ/state/evidence-<story-stem>.json"
-PRIOR_CLAUSE = "(once `<manifest>` exists: any verdict, with `--prior <manifest>`)"
-PRIOR_FLAG = re.compile(r"`(--prior <manifest>)`")
 PRIOR_REASONS = ("repro_removed", "repro_modified", "repro_still_failing")
 RECORDED_RUN_DEF = "of the story's tests and each path in `<manifest>` = `%s`" % MANIFEST
 REPROS_HEADING = "`## Evidence repros`"
@@ -190,30 +195,44 @@ def gate3() -> str:
 
 
 def evidence_block() -> str:
-    """The Gate 3 evidence paragraph, its decision table, and its report line."""
-    block = slice_between(gate3(), "**Evidence.**", "**Jev shadow")
-    if not block:
-        raise AssertionError("Gate 3 has no **Evidence.** paragraph")
-    return block
+    """Gate 3 from the post-review call on: the call, the restart table, the
+    re-spawn, the recode brief, and the report lines."""
+    text = gate3()
+    if POST_REVIEW not in text:
+        raise AssertionError("Gate 3 does not run story-gate.py post-review")
+    return text[text.index("**Verify the claim, don't trust it.**"):]
+
+
+_MODULE = None
+
+
+def story_gate():
+    """scripts/story-gate.py, loaded once."""
+    global _MODULE
+    if _MODULE is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("story_gate", str(STORY_GATE))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _MODULE = module
+    return _MODULE
+
+
+def evidence_tokens(prior: bool = False) -> List[str]:
+    """The `review-override.py evidence` call post-review makes, placeholders
+    for its inputs; `prior` once `<manifest>` exists."""
+    args = story_gate().evidence_args("<review>", ["<files>"], "<tests>", "<checks>",
+                                      "<manifest>", prior)
+    return ["python3", "scripts/review-override.py"] + args
 
 
 def evidence_command() -> str:
-    found = EVIDENCE_COMMAND.findall(read(IMPLEMENT_STORY))
-    if len(found) != 1:
-        raise AssertionError("expected one documented evidence command, found %r" % found)
-    return found[0]
+    return " ".join(evidence_tokens())
 
 
 def report_forms() -> List[str]:
-    """The documented `evidence-gate: <state>` forms, each with its prefix."""
-    lead = "Report `evidence-gate: <state>`"
-    lines = [l for l in evidence_block().splitlines() if l.startswith(lead)]
-    if len(lines) != 1:
-        raise AssertionError("expected one report-line sentence, found %d" % len(lines))
-    tail = lines[0][len(lead):]
-    tail = tail.split("evidence-gate advisory:")[0]
-    forms = [f for f in re.findall(r"`([^`]+)`", tail) if f != SWITCH_INPUT]
-    return ["evidence-gate: " + f for f in forms]
+    """The `evidence-gate: <state>` forms the runner prints, each with its prefix."""
+    return ["evidence-gate: " + f for f in story_gate().EVIDENCE_GATE_FORMS]
 
 
 def form_regex(form: str) -> "re.Pattern[str]":
@@ -239,49 +258,30 @@ def prior_failed(reasons: List[str]) -> bool:
     return any(r.split()[0] in PRIOR_REASONS for r in reasons if r.split())
 
 
+def evidence_result(lines: List[str]) -> Optional[dict]:
+    """An `evidence` run's stdout lines as the runner records them; [] = not run."""
+    if not lines:
+        return None
+    verdict = lines[0] if lines[0] in ("pass", "fail", "unverifiable") else "unverifiable"
+    return {"verdict": verdict, "reasons": evidence_reasons(lines),
+            "summary": lines[-1] if len(lines) > 1 else ""}
+
+
 def gate3_decision(*, verdict: str, evidence: List[str], check: str = "pass",
                    safety: Optional[str] = None, evidence_gate: str = "on") -> Tuple[str, str]:
-    """The Gate 3 decision table in `commands/implement-story.md` (DECISION_ROWS),
-    first match wins. Returns (Gate 3 result, row)."""
-    reasons = evidence_reasons(evidence)
-    if reasons and reasons[0].startswith("repro_mutated_tree"):
-        return "BLOCKED", "1"
-    if check == "fail":
-        return "FAIL", "2"
-    if safety == "safety_fact_contradicts_verdict":
-        return "FAIL", "3"
-    if safety in ("safety_fact_missing", "safety_fact_below_floor"):
-        return "safety-fact routing", "4"
-    if prior_failed(reasons):
-        return "FAIL", "4a"
-    if verdict in ("PASS", "PAUSE"):
-        return verdict, "5"
-    if evidence_gate == "off":
-        return "FAIL", "6"
-    line1 = evidence[0] if evidence else ""
-    if line1 == "fail":
-        return "FAIL", "7"
-    if line1 == "pass":
-        return "PASS", "9"
-    return "FAIL", "8"
+    """Gate 3's first-match decision (DECISION_ROWS), as `story-gate.py`
+    `decide_gate3` applies it. Returns (Gate 3 result, row)."""
+    sf = {"verdict": "fail", "reasons": [safety]} if safety else None
+    decision = story_gate().decide_gate3(
+        verdict, {"verdict": check, "reasons": [] if check != "fail" else ["untested_criterion"]},
+        sf, evidence_result(evidence), evidence_gate)
+    named = {"1": "BLOCKED", "4": "safety-fact routing"}
+    return named.get(decision["row"], decision["verdict"]), decision["row"]
 
 
 def gate3_report_line(*, verdict: str, evidence: List[str], evidence_gate: str = "on") -> str:
-    if evidence_gate == "off":
-        return "evidence-gate: off"
-    reasons = evidence_reasons(evidence)
-    if reasons and reasons[0].startswith("repro_mutated_tree"):
-        return "evidence-gate: blocked (%s)" % reasons[0]
-    if prior_failed(reasons[:1]):
-        return "evidence-gate: fail (%s)" % reasons[0]
-    if verdict in ("PASS", "PAUSE"):
-        return "evidence-gate: not run (%s)" % verdict
-    if not evidence or evidence[0] not in ("pass", "fail"):
-        return "evidence-gate: unverifiable (%s)" % (reasons[0] if reasons else "helper")
-    counts = re.search(r"\((\d+ confirmed, \d+ advisory, \d+ unverifiable)\)$", evidence[-1])
-    if counts is None:
-        raise AssertionError("no summary counts in %r" % evidence[-1])
-    return "evidence-gate: " + counts.group(1)
+    """The `evidence-gate:` line, as `story-gate.py` `evidence_gate_line` prints it."""
+    return story_gate().evidence_gate_line(verdict, evidence_result(evidence), evidence_gate)
 
 
 def finding_lines(lines: List[str]) -> Dict[str, str]:
@@ -309,11 +309,13 @@ class Gate2SaveTest(unittest.TestCase):
         self.assertIn("one per line", lines[0])
 
     def test_evidence_reads_the_gate2_record(self) -> None:
-        """Gate 2 binds `<checks>` once; the evidence command reads it (Story 4)."""
+        """Gate 2 binds `<checks>` once; the evidence call reads it (Story 4),
+        and post-review defaults `--checks` to that same path."""
         self.assertIn("`<checks>` = %s" % GATE2_CHECKS, gate2())
         self.assertEqual(read(IMPLEMENT_STORY).count(GATE2_CHECKS.strip("`")), 1)
-        argv = shlex.split(evidence_command())
+        argv = evidence_tokens()
         self.assertEqual(argv[argv.index("--checks") + 1], "<checks>")
+        self.assertIn('"gate2-checks-%s.txt"', read(STORY_GATE))
 
 
 class Gate3SaveTest(unittest.TestCase):
@@ -334,9 +336,12 @@ class Gate3SaveTest(unittest.TestCase):
         self.assertLess(gate3().index(save), gate3().index("**Safety fact"))
 
     def test_jev_shadow_reuses_the_saved_files(self) -> None:
+        """Post-review passes the saved `<tests>` and `<review>` to the shadow."""
         jev = [l for l in gate3().splitlines() if "jev-judge.py ac-shadow" in l]
         self.assertEqual(len(jev), 1, jev)
-        self.assertIn("--tests-output <tests> --diff <diff> --review-output <review>", jev[0])
+        args = " ".join(story_gate().shadow_args("<story-file>", "<tests>", "<diff>", "<review>"))
+        self.assertIn("--tests-output <tests> --diff <diff> --review-output <review>", args)
+        self.assertIn("--review-output <review> --tests-output <tests>", gate3())
 
     def test_save_binds_the_placeholders_and_re_saves(self) -> None:
         """`<review>` and `<tests>` name the saved paths; a re-spawn re-saves."""
@@ -349,7 +354,7 @@ class Gate3SaveTest(unittest.TestCase):
         self.assertIn("**Safety fact (`safety_fact` on).**", gate3())
 
     def test_evidence_reads_the_saved_review_and_tests(self) -> None:
-        argv = shlex.split(evidence_command())
+        argv = evidence_tokens()
         self.assertEqual(argv[argv.index("--review-output") + 1], "<review>")
         self.assertEqual(argv[argv.index("--tests-output") + 1], "<tests>")
 
@@ -364,26 +369,29 @@ class Gate3OrderTest(unittest.TestCase):
     agent FAIL with the technical spec's arguments. [AC-3.1]"""
 
     def test_check_then_safety_fact_then_evidence(self) -> None:
-        text = gate3()
-        positions = [text.find("review-override.py %s" % sub)
-                     for sub in ("check", "safety-fact", "evidence")]
-        self.assertNotIn(-1, positions, positions)
+        ids = [row.id for row in story_gate().CHECKS["post-review"]]
+        positions = [ids.index(c) for c in ("gate3_override", "gate3_safety_fact",
+                                            "gate3_evidence")]
         self.assertEqual(positions, sorted(positions))
+        self.assertIn(POST_REVIEW, gate3())
 
     def test_evidence_runs_only_in_gate3(self) -> None:
-        text = read(IMPLEMENT_STORY)
-        self.assertEqual(text.count("review-override.py evidence"), 1)
-        self.assertEqual(gate3().count("review-override.py evidence"), 1)
+        self.assertEqual(read(IMPLEMENT_STORY).count("review-override.py evidence"), 0)
+        rows = [row.id for phase in story_gate().CHECKS.values() for row in phase
+                if row.run.__name__ == "evidence"]
+        self.assertEqual(rows, ["gate3_evidence"])
 
     def test_evidence_runs_on_every_agent_fail_after_the_other_checks(self) -> None:
-        opening = evidence_block().split("\n\n")[0]
-        self.assertIn("On an agent FAIL", opening)
-        self.assertIn("after `check`, `safety-fact`, and any re-spawn", opening)
+        runs = story_gate().evidence_runs
+        self.assertTrue(runs("FAIL", False))
+        self.assertFalse(runs("PASS", False))
+        self.assertFalse(runs("PAUSE", False))
         # Rows 2 and 4 decide a PASS or PAUSE too, so the table applies on any verdict.
-        self.assertIn("First match wins, on any verdict", opening)
+        self.assertEqual(gate3_decision(verdict="PASS", evidence=[], check="fail"), ("FAIL", "2"))
+        self.assertIn("first-match decision", evidence_block())
 
     def test_evidence_arguments(self) -> None:
-        argv = shlex.split(evidence_command())
+        argv = evidence_tokens()
         self.assertEqual(argv[:3], ["python3", "scripts/review-override.py", "evidence"])
         self.assertNotIn("--repo", argv)  # `.` is the CLI default; cwd is the repo
         self.assertEqual(argv[argv.index("--changed") + 1], "<files>")
@@ -396,20 +404,41 @@ class Gate3OrderTest(unittest.TestCase):
 class Gate3DecisionTest(unittest.TestCase):
     """The nine rows of spec.md § Gate 3 decision, in order. [AC-3.1]"""
 
-    def setUp(self) -> None:
-        self.rows = table_rows(evidence_block())
+    # One input per row, in row order: (agent verdict, evidence lines, check,
+    # safety reason, evidence_gate switch).
+    CASES = {
+        "1": ("FAIL", ["fail", "reason: repro_mutated_tree src/x.py", "s"], "pass", None, "on"),
+        "2": ("PASS", [], "fail", None, "on"),
+        "3": ("PASS", [], "pass", "safety_fact_contradicts_verdict", "on"),
+        "4": ("PASS", [], "pass", "safety_fact_missing", "on"),
+        "4a": ("PASS", ["fail", "reason: repro_removed tests/x.py", "s"], "pass", None, "on"),
+        "5": ("PAUSE", [], "pass", None, "on"),
+        "6": ("FAIL", ["unverifiable", "reason: switch_off", "s"], "pass", None, "off"),
+        "7": ("FAIL", ["fail", "reason: confirmed F1", "s (1 confirmed, 0 advisory, 0 unverifiable)"],
+              "pass", None, "on"),
+        "8": ("FAIL", ["unverifiable", "reason: no_test_runner", "s"], "pass", None, "on"),
+        "9": ("FAIL", ["pass", "s (0 confirmed, 2 advisory, 0 unverifiable)"], "pass", None, "on"),
+    }
+
+    def decide(self, label: str) -> dict:
+        verdict, lines, check, safety, gate = self.CASES[label]
+        sf = {"verdict": "fail", "reasons": [safety]} if safety else None
+        chk = {"verdict": check, "reasons": ["untested_criterion"] if check == "fail" else []}
+        return story_gate().decide_gate3(verdict, chk, sf, evidence_result(lines), gate)
 
     def test_rows_numbered_in_order(self) -> None:
-        """Rows 1 to 9, with Story 4's `--prior` row 4a between 4 and 5."""
-        self.assertEqual([r[0] for r in self.rows], ROW_ORDER)
+        """Rows 1 to 9, with Story 4's `--prior` row 4a between 4 and 5: each
+        row's input reaches that row and no earlier one."""
+        self.assertEqual(list(self.CASES), ROW_ORDER)
+        for label in ROW_ORDER:
+            self.assertEqual(self.decide(label)["row"], label)
 
     def test_a_tree_mutation_outranks_every_row(self) -> None:
         """DEV-026: the contract's Hardest Constraint makes any tree mutation
         BLOCKED. Row 1 is the only row naming `repro_mutated_tree`, so a FAIL
         re-review with a failed prior check, or a `check` fail, and a mutation
         is BLOCKED, not a recode. [AC-3.1, AC-4.5]"""
-        named = [r[0] for r in self.rows if "repro_mutated_tree" in r[1]]
-        self.assertEqual(named, ["1"])
+        self.assertEqual(self.decide("1")["restart"], "gate3-blocked")
         mutated = ["fail", "reason: repro_mutated_tree src/x.py",
                    "reason: repro_removed %s" % REPRO, "review-override evidence: fail (x)"]
         self.assertEqual(gate3_decision(verdict="FAIL", evidence=mutated), ("BLOCKED", "1"))
@@ -419,13 +448,23 @@ class Gate3DecisionTest(unittest.TestCase):
                          "evidence-gate: blocked (repro_mutated_tree src/x.py)")
 
     def test_each_row_names_its_condition_and_result(self) -> None:
-        for row in self.rows:
-            label = row[0]
-            condition, result = DECISION_ROWS[label]
+        """Each row's documented condition and result, against the runner:
+        BLOCKED and re-spawn rows carry their own restart targets, recodes
+        `gate1`, and PASS/PAUSE rows none. The `decide_gate3` docstring lists
+        every row's condition."""
+        doc = story_gate().decide_gate3.__doc__
+        expected = {"1": ("FAIL", "gate3-blocked"), "2": ("FAIL", "gate1"),
+                    "3": ("FAIL", "gate1"), "4": ("FAIL", "gate3"), "4a": ("FAIL", "gate1"),
+                    "5": ("PAUSE", None), "6": ("FAIL", "gate1"), "7": ("FAIL", "gate1"),
+                    "8": ("FAIL", "gate1"), "9": ("PASS", None)}
+        for label in ROW_ORDER:
+            decision = self.decide(label)
+            self.assertEqual((decision["verdict"], decision["restart"]), expected[label], label)
+            condition, _ = DECISION_ROWS[label]
             for term in condition:
-                self.assertIn(term, row[1], "row %s condition: %r" % (label, row))
-            for term in result:
-                self.assertIn(term, row[2], "row %s result: %r" % (label, row))
+                self.assertIn(term.replace("`", "").split()[0], doc, "row %s: %s" % (label, term))
+        self.assertIn("never DEGRADED", doc)
+        self.assertIn("`confirmed`", doc)
 
 
 # ---------------------------------------------------------------------------
@@ -444,13 +483,12 @@ class Gate3ReportLineTest(unittest.TestCase):
                              % (state, line, matching_forms(line), report_forms()))
 
     def test_off_is_tied_to_the_switch_on_any_verdict(self) -> None:
-        """`off` follows `evidence_gate`, on every verdict, and leads the list."""
-        sentence = next(l for l in evidence_block().splitlines() if l.startswith("Report `"))
-        self.assertIn(OFF_CLAUSE, sentence)
-        self.assertNotIn("(row ", sentence)
+        """`off` follows `evidence_gate`, on every verdict, and leads the list;
+        row 6 reads the switch, not the `switch_off` reason."""
         self.assertEqual(report_forms()[0], "evidence-gate: off")
-        rows = {r[0]: r for r in table_rows(evidence_block())}
-        self.assertNotIn("switch_off", rows["6"][1])
+        decide = story_gate().decide_gate3
+        self.assertEqual(decide("FAIL", None, None, None, "off")["row"], "6")
+        self.assertIn("`evidence-gate:`", evidence_block())
 
     def test_report_mirror_prints_off_on_every_verdict(self) -> None:
         for verdict, evidence in (("PASS", []), ("PAUSE", []),
@@ -463,10 +501,14 @@ class Gate3ReportLineTest(unittest.TestCase):
         self.assertIn("`evidence-gate advisory: ", evidence_block())
 
     def test_switch_resolved_once_and_passed_to_every_spawn(self) -> None:
+        """Pre-review resolves the switch (story-gate.py); Gate 3 passes its
+        `evidence_gate:` value to every spawn and never calls the switch."""
         text = read(IMPLEMENT_STORY)
-        self.assertEqual(text.count(SWITCH_COMMAND), 1)
-        paragraphs = [p for p in gate3().split("\n\n") if SWITCH_COMMAND in p]
+        self.assertEqual(text.count(SWITCH_COMMAND), 0)
+        self.assertIn('("safety-fact", "reviewer-filters", "evidence-gate")', read(STORY_GATE))
+        paragraphs = [p for p in gate3().split("\n\n") if p.startswith("**Evidence gate.**")]
         self.assertEqual(len(paragraphs), 1, paragraphs)
+        self.assertIn("`evidence_gate:` value", paragraphs[0])
         self.assertIn("`evidence_gate`", paragraphs[0])
         self.assertIn("every Gate 3 spawn", paragraphs[0])
 
@@ -673,9 +715,7 @@ class ReplayCase(unittest.TestCase):
         (self.repo / tests_rel).write_text(tests, encoding="utf-8")
         (self.repo / checks_rel).write_text("", encoding="utf-8")
 
-        tokens = shlex.split(evidence_command())
-        if (self.repo / manifest_rel).exists():
-            tokens += shlex.split(PRIOR_FLAG.findall(evidence_block().split("\n\n")[0])[0])
+        tokens = evidence_tokens(prior=(self.repo / manifest_rel).exists())
         fill = {"<review>": [review_rel], "<tests>": [tests_rel], "<files>": list(changed),
                 "<checks>": [checks_rel], "<manifest>": [manifest_rel]}
         argv: List[str] = []
@@ -778,20 +818,23 @@ class RecodeBriefTest(unittest.TestCase):
 
     def test_manifest_is_bound_once_and_always_passed_as_manifest_out(self) -> None:
         """AC-4.5 — `<manifest>` names the manifest path once; the evidence
-        command writes to it, and adds `--prior` only once it exists."""
+        call writes to it, and adds `--prior` only once it exists. Post-review
+        defaults `--manifest` to that same path."""
         self.assertEqual(read(IMPLEMENT_STORY).count(MANIFEST), 1)
         self.assertIn("`<manifest>` = `%s`" % MANIFEST, gate3())
-        argv = shlex.split(evidence_command())
+        argv = evidence_tokens()
         self.assertEqual(argv[argv.index("--manifest-out") + 1], "<manifest>")
         self.assertNotIn("--prior", argv)
+        self.assertIn('"evidence-%s.json"', read(STORY_GATE))
 
     def test_prior_runs_on_every_verdict_once_the_manifest_exists(self) -> None:
         """AC-4.5 — spec.md § Gate 3 decision row 3a: once the manifest
         exists, every run, the FAIL case included, adds `--prior <manifest>`,
         and the step runs on PASS and PAUSE too."""
-        opening = evidence_block().split("\n\n")[0]
-        self.assertIn("On an agent FAIL " + PRIOR_CLAUSE + ", after", opening)
-        self.assertEqual(PRIOR_FLAG.findall(opening), ["--prior <manifest>"])
+        for verdict in ("PASS", "PAUSE", "FAIL"):
+            self.assertTrue(story_gate().evidence_runs(verdict, True), verdict)
+        argv = " ".join(evidence_tokens(prior=True))
+        self.assertIn("--prior <manifest>", argv)
 
     def test_re_review_recorded_run_includes_every_manifest_path(self) -> None:
         """AC-4.5 — `recorded_test_results` is defined, before any Gate 3
@@ -805,10 +848,10 @@ class RecodeBriefTest(unittest.TestCase):
     def test_row_4a_follows_row_4_and_recodes(self) -> None:
         """AC-4.5 — row 4a names the three `--prior` reasons and recodes,
         ahead of row 5, so an agent PASS or PAUSE recodes too."""
-        rows = table_rows(evidence_block())
-        labels = [r[0] for r in rows]
-        self.assertEqual(labels.index("4a"), labels.index("4") + 1)
-        self.assertLess(labels.index("4a"), labels.index("5"))
+        both = ["fail", "reason: repro_modified %s" % REPRO, "review-override evidence: fail (x)"]
+        self.assertEqual(gate3_decision(verdict="PASS", evidence=both,
+                                        safety="safety_fact_missing"),
+                         ("safety-fact routing", "4"))
         self.assertEqual(gate3_decision(verdict="PASS", evidence=[
             "fail", "reason: repro_modified %s" % REPRO, "review-override evidence: fail (x)"]),
             ("FAIL", "4a"))
@@ -817,9 +860,12 @@ class RecodeBriefTest(unittest.TestCase):
         for rel in ("cursor/plugin/commands/implement-story.md",
                     "plugins/writ/commands/implement-story.md"):
             text = read(REPO_ROOT / rel)
-            for term in (REPROS_HEADING, NO_EDIT, PRIOR_CLAUSE, BRIEF_SOURCE,
-                         "--manifest-out <manifest>", RECORDED_RUN_DEF):
+            for term in (REPROS_HEADING, NO_EDIT, BRIEF_SOURCE, RECORDED_RUN_DEF):
                 self.assertIn(term, text, rel)
+            self.assertIn("story-gate.py run --phase post-review", text, rel)
+        # The plugin carries the runner itself, byte for byte.
+        self.assertEqual(read(REPO_ROOT / "plugins" / "writ" / "scripts" / "story-gate.py"),
+                         read(STORY_GATE))
 
 
 class ReReviewReplayTest(ReplayCase):
@@ -1150,10 +1196,15 @@ class PanelRemovalWiringTest(unittest.TestCase):
         self.assertEqual(gate3().count(LEFTOVER_LINE), 1)
 
     def test_safety_fact_fail_is_one_review_loop_increment(self) -> None:
-        paragraphs = [p for p in gate3().split("\n\n") if "`safety-fact: <measured>" in p]
+        """2026-11-06 (lean-story-pipeline Story 3): a safety-fact fail ends in
+        Gate 3 FAIL, a recode, and the `gate1` row counts one increment."""
+        paragraphs = [p for p in gate3().split("\n\n")
+                      if p.startswith("**Safety fact (`safety_fact` on).**")]
         self.assertEqual(len(paragraphs), 1, paragraphs)
-        self.assertIn("A fail is one review-loop increment.", paragraphs[0])
+        self.assertIn("Gate 3 FAIL", paragraphs[0])
         self.assertNotIn("panel", paragraphs[0])
+        row = next(l for l in gate3().splitlines() if l.startswith("| `gate1` |"))
+        self.assertIn("one review-loop increment", row)
 
     def test_overview_gate0_gate35_and_report_name_no_panel(self) -> None:
         blocks = {
@@ -1175,7 +1226,7 @@ class PanelRemovalWiringTest(unittest.TestCase):
         self.assertEqual(len(paragraphs), 1, paragraphs)
         paragraph = paragraphs[0]
         self.assertNotIn("panel", paragraph)
-        for phrase in ("python3 scripts/review-override.py switch --name reviewer-filters",
+        for phrase in ("pre-review's `reviewer_filters:` value",
                        "`reviewer_filters`", "every Gate 3 spawn", "re-review",
                        "`reviewer-filters: <on|off>`"):
             self.assertIn(phrase, paragraph, phrase)

@@ -369,7 +369,17 @@ class Gate3WiringTests(unittest.TestCase):
         end = text.index("#### Gate 3.5:", start)
         gate3 = text[start:end]
         self.assertIn("Verify the claim, don't trust it.", gate3)
-        self.assertIn("scripts/review-override.py check", gate3)
+        # 2026-11-06 (lean-story-pipeline Story 3): `story-gate.py`
+        # post-review runs `review-override.py check` first in its table.
+        self.assertIn("python3 scripts/story-gate.py run --phase post-review", gate3)
+        self.assertIn("`review-override.py` checks", gate3)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "story_gate", str(REPO_ROOT / "scripts" / "story-gate.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        first = module.CHECKS["post-review"][0]
+        self.assertEqual((first.id, first.script), ("gate3_override", "review-override.py"))
         # 2026-11-04 (2026-11-04-evidence-gated-review Story 3): "FAIL-only" and
         # "does not force PASS" went with the sentence; the bullet says "no override".
         self.assertIn("→ no override", gate3)

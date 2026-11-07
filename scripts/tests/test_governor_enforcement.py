@@ -704,7 +704,14 @@ KNOWN_OVER_BUDGET = {
     # 41526 -> 41128); Gates 0, 4.5 and 5 move under the --full-pipeline heading
     # and lose their default-path text. Still temporary: 2577 bytes above 38551,
     # which Story 3 closes when the runner replaces the per-script blocks.
-    "commands/implement-story.md": 16168,
+    # 2026-11-06 (2026-11-06-lean-story-pipeline Story 3): 16168 -> 13585 (file
+    # 41128 -> 38545, under the spec-start 38551); two `story-gate.py` runs
+    # replace the per-script blocks of Gates 1 (repro-order), 2 (arch-lint, build
+    # smoke), 2.5 (classify, crossings, switch, blast radius), 3 (two switches,
+    # check, safety-fact, evidence and its nine-row table, Jev shadow), 3.5
+    # (drift-format), and 4 (test-integrity), less a restart table and a
+    # Step 3 pointer to Gate 0. The temporary raise is closed.
+    "commands/implement-story.md": 13585,
 }
 
 
