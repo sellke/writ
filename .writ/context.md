@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-08T01:30:00Z
+> Last Updated: 2026-11-08T00:30:00Z
 
 ## Product Mission
 
@@ -9,7 +9,7 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-06-lean-implement-phase — Lean Implement Phase (branch `spec/lean-implement-phase`, worktree `.claude/worktrees/lean-implement-phase`)
-- **Status:** In Progress — 4/4 stories; integration check pending
+- **Status:** Complete — 4/4 stories; implement-spec checker verdict met; integration suite green (pytest 3.9 and 3.14: 4459 passed; bash tests; eval.sh 0 findings); not yet shipped
 - **Story:** 4 of 4 complete; `implement-phase.md` 366 → 236 lines
 - **Progress:** 24/24 tasks complete
 
