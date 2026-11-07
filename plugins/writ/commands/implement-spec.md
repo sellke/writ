@@ -159,17 +159,9 @@ Skipping (already complete): Story 1, Story 2
 For each batch in order:
 
 **If parallel batch:**
-- Spawn `/writ:implement-story {story-id}` for each story in the batch concurrently
-- Wait for all to complete before proceeding to next batch
+- Run `/writ:implement-story {story-id}` for each story one after another: the stories share this working tree, and each story's `story-gate` record must name its own final code commit on a clean tree. Stories run concurrently only in separate worktrees (`/writ:implement-phase` lanes).
+- The batch's stories are independent, so their order does not matter.
 - If any story fails, decide: continue with independent stories or halt
-
-**Platform note:** on a harness where invoking `/writ:implement-story` loads its
-instructions into the current context rather than running it as a
-backgrounded subagent, "spawn ... concurrently" means the orchestrator issues
-one parallel tool-call per story (each running that story's own gate
-sequence) — not a nested command call the harness
-auto-parallelizes. Confirm which behavior your platform's invocation gives
-before assuming concurrency.
 
 **If sequential batch:**
 - Run `/writ:implement-story {story-id}` one at a time

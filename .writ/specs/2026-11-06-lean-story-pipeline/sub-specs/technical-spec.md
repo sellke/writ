@@ -148,6 +148,7 @@ This reads `story-gate-history/*.json` and prints `pass` on line 1, then one lin
 |---|---|
 | Coder commits again after post-review `pass` | Supervisor sees head ≠ record → `RERUN` (Business Rule 5) |
 | Two stories in one parallel batch write records at once | Separate files per story stem; atomic replace; no shared file |
+| Parallel batch in one working tree | stories run one after another; each record names its own final code commit |
 | `--full-pipeline` | `story-gate.py` runs as on default; the full-pipeline-only gates run in their own sections in addition |
 | `--review-only` | Post-review only; a `fail` ends the run as today |
 

@@ -2,23 +2,26 @@
 """The supervisor reads the story-gate record (2026-11-06-lean-story-pipeline
 Story 5, Business Rule 5).
 
-The supervisor takes an optional `story_gate_record` input, returns `RERUN`
-when the post-review record is missing, unreadable, stale against the story's
-final code commit, or written on a dirty tree, marks a report's check-verdict
-claim false when the record disagrees, and reads the three checkers' verdicts
-from the record instead of re-running them. `implement-spec.md` drops Step 2.3
-and its per-story `.writ/context.md` regeneration, and passes the record path.
+The supervisor takes an optional `story_gate_record` input (for a lane,
+resolved in the lane's worktree), returns `RERUN` when the post-review record
+is missing, unreadable, followed by a code commit, written on a dirty tree, or
+failing, marks a report's check-verdict claim false when the record disagrees,
+and reads the three checkers' verdicts from the record instead of re-running
+them. `implement-spec.md` drops Step 2.3 and its per-story `.writ/context.md`
+regeneration, passes the record path, and runs a parallel batch's stories one
+after another in its shared working tree.
 
 Pins key phrases, not whole paragraphs, so later prose edits break only the
 rule they change. Reads source files and generated copies as text, runs
-`gen-platform-trees.py --check` (writes nothing), and builds a throwaway git
-repo under a temp dir to check the final-code-commit command.
+`gen-platform-trees.py --check` (writes nothing), and builds throwaway git
+repos under a temp dir to run the pinned record-currency commands.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import os
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -40,13 +43,28 @@ CLAIM_UNREADABLE = "`story-gate record unreadable`"
 # AC-5.2: head mismatch and dirty tree.
 CLAIM_HEAD = "`story-gate record head <sha> ≠ final code commit <sha>`"
 CLAIM_DIRTY = "`story-gate record written on a dirty tree`"
-FINAL_CODE_COMMIT = (
-    "the last commit in `{base_commit}..{head_ref}` that touches a file "
-    "outside `.writ/`"
+STALE_RULE = "A code commit after the record needs a new record."
+END_RULE = (
+    "`<end>` is the SHA on the story file's `> **Commit:** <sha>` line, or "
+    "`{head_ref}` when the story file has none."
 )
-FINAL_CODE_COMMIT_CMD = (
-    "git log -1 --format=%H {base_commit}..{head_ref} -- . ':(exclude).writ'"
+# The record is current when ANCESTOR_CMD succeeds and AFTER_CMD prints nothing;
+# a lane also needs LANE_TAIL_CMD to print nothing.
+ANCESTOR_CMD = "git merge-base --is-ancestor <head_sha> <end>"
+AFTER_CMD = "git log --format=%H <head_sha>..<end> -- . ':(exclude).writ'"
+LANE_TAIL_CMD = "git log --format=%H <last-commit>..{head_ref} -- . ':(exclude).writ'"
+SECOND_SHA = "The first `<sha>` is `head_sha`; the second is the first SHA"
+RETIRED_HEAD_CMD = "git log -1 --format=%H {base_commit}..{head_ref}"
+# Lane record path (F2).
+LANE_WORKTREE = (
+    "`git worktree list --porcelain` names the worktree whose `branch` is "
+    "`refs/heads/{head_ref}`"
 )
+LANE_STORY_FILES = "`git show {head_ref}:<path>`"
+# Recommendations accepted at Gate 3: failing record, precedence, ACCEPT row.
+CLAIM_VERDICT = "`story-gate record verdict fail`"
+PRECEDENCE = "When an ESCALATE condition and a story-gate RERUN rule both apply, ESCALATE wins."
+ACCEPT_ROW = "| story-gate post-review pass | verified |"
 # AC-5.3: the record decides check-verdict claims; no checker re-runs.
 DISAGREE_RULE = "A report claim about a check's verdict that disagrees with the record is false."
 NO_RERUN_RULE = (
@@ -64,6 +82,18 @@ REGEN_BULLET = "**Regenerate `.writ/context.md`**"
 SPAWN_RECORD = "`story_gate_record`: `" + RECORD_PATH + "`"
 POSTRUN_FIELDS = "`postRun: {typecheck, testSuite, contextRewritten, at}`"
 CONTEXT_SOURCE = "`contextRewritten` is a boolean: `true` when `implement-story` Step 4"
+# Maintainer decision: a parallel batch in one working tree runs serially.
+# Starts after the command name: the plugin copy namespaces it (`/writ:...`).
+SERIAL_BATCH = (
+    "for each story one after another: the "
+    "stories share this working tree, and each story's `story-gate` record must "
+    "name its own final code commit on a clean tree."
+)
+RETIRED_CONCURRENT = (
+    "Spawn `/implement-story {story-id}` for each story in the batch concurrently",
+    "one parallel tool-call per story",
+    "**Platform note:**",
+)
 # Carry-forwards from Story 2 and 4 reviews.
 STALE_PHASES = "arch-check → code → lint → review → test → docs"
 STALE_GATE4_RUN = "Per-story tests already ran in each `/implement-story` Gate 4"
@@ -83,8 +113,10 @@ GENERATED = {
 }
 PINS = {
     SUPERVISOR: (INPUT_ROW, CLAIM_MISSING, CLAIM_HEAD, CLAIM_DIRTY,
-                 FINAL_CODE_COMMIT, DISAGREE_RULE, NO_RERUN_RULE),
-    IMPLEMENT_SPEC: (SPAWN_RECORD, POSTRUN_FIELDS, CONTEXT_SOURCE),
+                 STALE_RULE, ANCESTOR_CMD, AFTER_CMD, LANE_TAIL_CMD,
+                 LANE_WORKTREE, CLAIM_VERDICT, PRECEDENCE,
+                 DISAGREE_RULE, NO_RERUN_RULE),
+    IMPLEMENT_SPEC: (SPAWN_RECORD, POSTRUN_FIELDS, CONTEXT_SOURCE, SERIAL_BATCH),
 }
 
 # implement-spec.md before this story; the cuts must not grow it.
@@ -153,47 +185,168 @@ class SupervisorHeadAndDirty(unittest.TestCase):
         self.assertIn("`dirty`", line)
         self.assertIn("RERUN", line)
 
-    def test_ac52_final_code_commit_is_defined_with_a_command(self) -> None:
-        """AC-5.2: the final code commit skips `.writ/`-only commits."""
+    def test_ac52_head_rule_is_bounded_by_the_story_commit(self) -> None:
+        """AC-5.2: a code commit after the record makes it stale; each story's
+        range ends at its own `> **Commit:**` SHA; the second SHA is defined."""
         rules = story_gate_rules(read(SUPERVISOR))
-        self.assertIn(FINAL_CODE_COMMIT, rules)
-        self.assertIn(FINAL_CODE_COMMIT_CMD, rules)
+        for pin in (STALE_RULE, END_RULE, ANCESTOR_CMD, AFTER_CMD, LANE_TAIL_CMD, SECOND_SHA):
+            self.assertIn(pin, rules)
+        self.assertNotIn(RETIRED_HEAD_CMD, rules)
 
-    def test_ac52_final_code_commit_command_skips_writ_only_commits(self) -> None:
-        """AC-5.2: the pinned command returns the code commit, not the
-        story-completion or SHA-record commits after it, and moves when the
-        coder commits code again (Interaction Edge Case)."""
-        env = dict(os.environ, GIT_AUTHOR_NAME="T", GIT_AUTHOR_EMAIL="t@example.com",
-                   GIT_COMMITTER_NAME="T", GIT_COMMITTER_EMAIL="t@example.com")
 
-        def git(repo: Path, *args: str) -> str:
-            return subprocess.run(
-                ["git", "-C", str(repo), "-c", "commit.gpgsign=false", *args],
-                env=env, capture_output=True, text=True, check=True,
-            ).stdout.strip()
+ENV = dict(os.environ, GIT_AUTHOR_NAME="T", GIT_AUTHOR_EMAIL="t@example.com",
+           GIT_COMMITTER_NAME="T", GIT_COMMITTER_EMAIL="t@example.com")
 
-        def commit(repo: Path, rel: str, msg: str) -> str:
-            path = repo / rel
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(msg + "\n", encoding="utf-8")
-            git(repo, "add", rel)
-            git(repo, "commit", "-q", "-m", msg)
-            return git(repo, "rev-parse", "HEAD")
 
-        def final_code_commit(repo: Path, base: str) -> str:
-            argv = ["log", "-1", "--format=%H", base + "..HEAD", "--", ".", ":(exclude).writ"]
-            return git(repo, *argv)
+def git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", "-C", str(repo), "-c", "commit.gpgsign=false", *args],
+        env=ENV, capture_output=True, text=True, check=check,
+    )
 
-        with tempfile.TemporaryDirectory() as tmp:
-            repo = Path(tmp)
-            git(repo, "init", "-q")
-            base = commit(repo, "README.md", "base")
-            code = commit(repo, "src/a.py", "feat: code")
-            commit(repo, ".writ/specs/s/user-stories/story-1.md", "docs: complete story")
-            commit(repo, ".writ/specs/s/user-stories/story-1.md", "chore: record sha")
-            self.assertEqual(final_code_commit(repo, base), code)
-            later = commit(repo, "src/a.py", "fix: after post-review")
-            self.assertEqual(final_code_commit(repo, base), later)
+
+def commit(repo: Path, rel: str, msg: str) -> str:
+    path = repo / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(msg + "\n")
+    git(repo, "add", rel)
+    git(repo, "commit", "-q", "-m", msg)
+    return git(repo, "rev-parse", "HEAD").stdout.strip()
+
+
+def run_pinned(repo: Path, template: str, **subs: str) -> subprocess.CompletedProcess:
+    """Run a command exactly as the supervisor prompt pins it, placeholders filled."""
+    cmd = template
+    for key, value in subs.items():
+        cmd = cmd.replace(key, value)
+    argv = shlex.split(cmd)
+    assert argv[0] == "git"
+    return git(repo, *argv[1:], check=False)
+
+
+def stale_sha(repo: Path, head_sha: str, end: str) -> str:
+    """'' when the record is current; otherwise the second SHA the head claim names."""
+    if run_pinned(repo, ANCESTOR_CMD, **{"<head_sha>": head_sha, "<end>": end}).returncode != 0:
+        return end
+    out = run_pinned(repo, AFTER_CMD, **{"<head_sha>": head_sha, "<end>": end}).stdout.split()
+    return out[0] if out else ""
+
+
+def lane_tail(repo: Path, last_commit: str) -> str:
+    out = run_pinned(repo, LANE_TAIL_CMD, **{"<last-commit>": last_commit,
+                                            "{head_ref}": "HEAD"}).stdout.split()
+    return out[0] if out else ""
+
+
+STORY = ".writ/specs/s/user-stories/story-%d.md"
+
+
+class SupervisorHeadRuleGit(unittest.TestCase):
+    """AC-5.2: the pinned commands, run against throwaway git histories."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        git(self.repo, "init", "-q")
+        commit(self.repo, "README.md", "base")
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_ac52_two_story_lane_both_records_current(self) -> None:
+        """AC-5.2: in a two-story lane, each story's record is current against
+        its own Commit SHA, and no code follows the last story."""
+        repo = self.repo
+        head1 = commit(repo, "src/a.py", "feat: story 1 code")
+        end1 = commit(repo, STORY % 1, "docs: complete story 1")
+        commit(repo, STORY % 1, "chore: record story 1 sha")
+        head2 = commit(repo, "src/b.py", "feat: story 2 code")
+        end2 = commit(repo, STORY % 2, "docs: complete story 2")
+        commit(repo, STORY % 2, "chore: record story 2 sha")
+        self.assertEqual(stale_sha(repo, head1, end1), "")
+        self.assertEqual(stale_sha(repo, head2, end2), "")
+        self.assertEqual(lane_tail(repo, end2), "")
+
+    def test_ac52_writ_only_story_record_is_current(self) -> None:
+        """AC-5.2 (review Minor): a story that changed only `.writ/` passes."""
+        repo = self.repo
+        head = commit(repo, ".writ/docs/x.md", "docs: writ-only change")
+        end = commit(repo, STORY % 1, "docs: complete story 1")
+        self.assertEqual(stale_sha(repo, head, end), "")
+        # No Commit line yet: <end> falls back to {head_ref}.
+        self.assertEqual(stale_sha(repo, head, "HEAD"), "")
+
+    def test_ac52_writ_only_commits_around_the_record_keep_it_current(self) -> None:
+        """AC-5.2 (review Minor): a `.writ/`-only commit before post-review (so
+        it is `head_sha`) or after the record never makes the record stale."""
+        repo = self.repo
+        commit(repo, "src/a.py", "feat: code")
+        head = commit(repo, ".writ/docs/x.md", "docs: writ-only before post-review")
+        commit(repo, ".writ/specs/s/drift-log.md", "docs: writ-only after the record")
+        end = commit(repo, STORY % 1, "docs: complete story 1")
+        self.assertEqual(stale_sha(repo, head, end), "")
+
+    def test_ac52_code_commit_after_the_record_is_stale(self) -> None:
+        """AC-5.2 (Interaction Edge Case): a code commit after the record fails,
+        and the claim's second SHA is that commit."""
+        repo = self.repo
+        head = commit(repo, "src/a.py", "feat: code")
+        later = commit(repo, "src/a.py", "fix: after post-review")
+        end = commit(repo, STORY % 1, "docs: complete story 1")
+        self.assertEqual(stale_sha(repo, head, end), later)
+
+    def test_ac52_record_off_the_story_history_is_stale(self) -> None:
+        """AC-5.2: a `head_sha` that is not an ancestor of <end> fails, naming <end>."""
+        repo = self.repo
+        git(repo, "checkout", "-q", "-b", "side")
+        head = commit(repo, "src/a.py", "feat: abandoned code")
+        git(repo, "checkout", "-q", "-")
+        commit(repo, "src/a.py", "feat: code")
+        end = commit(repo, STORY % 1, "docs: complete story 1")
+        self.assertEqual(stale_sha(repo, head, end), end)
+
+    def test_ac52_lane_code_commit_after_the_last_story_fails(self) -> None:
+        """AC-5.2: a lane code commit after the last story's Commit SHA has no record."""
+        repo = self.repo
+        head = commit(repo, "src/a.py", "feat: story 1 code")
+        end = commit(repo, STORY % 1, "docs: complete story 1")
+        stray = commit(repo, "src/b.py", "feat: unreviewed code")
+        self.assertEqual(stale_sha(repo, head, end), "")
+        self.assertEqual(lane_tail(repo, end), stray)
+
+
+class SupervisorLaneRecordPath(unittest.TestCase):
+    """AC-5.1 (lane): the record and story files resolve in the lane worktree."""
+
+    def test_ac51_lane_record_resolves_in_the_lane_worktree(self) -> None:
+        """AC-5.1: an empty record path for a lane resolves via `git worktree list`."""
+        text = read(SUPERVISOR)
+        inputs = section(text, "## Input Requirements", "## Prompt Template")
+        rules = story_gate_rules(text)
+        for block in (inputs, rules):
+            self.assertIn(LANE_WORKTREE, block)
+            self.assertIn("<that worktree>/" + RECORD_PATH, block)
+            self.assertIn(LANE_STORY_FILES, block)
+
+
+class SupervisorVerdictAndPrecedence(unittest.TestCase):
+    """AC-5.3 (accepted Gate 3 recommendations)"""
+
+    def test_ac53_failing_record_reruns_unless_drift_log_accepts(self) -> None:
+        """AC-5.3: a `fail` record, or a non-PASS `gate3.verdict`, → RERUN,
+        unless drift-log.md names the check and file as accepted."""
+        rules = story_gate_rules(read(SUPERVISOR))
+        line = next(x for x in rules.splitlines() if CLAIM_VERDICT in x)
+        for word in ("`verdict` is `fail`", "`gate3.verdict` is not `PASS`",
+                     "RERUN", "`drift-log.md`", "maintainer-accepted false positive"):
+            self.assertIn(word, line)
+
+    def test_ac53_escalate_wins_and_accept_example_has_a_record_row(self) -> None:
+        """AC-5.3: ESCALATE beats a story-gate RERUN; the ACCEPT example cites the record."""
+        text = read(SUPERVISOR)
+        self.assertIn(PRECEDENCE, section(prompt(text), "## Decide", "## Output Format"))
+        self.assertIn(ACCEPT_ROW, section(text, "### ACCEPT", "### ESCALATE"))
 
 
 class SupervisorReadsVerdicts(unittest.TestCase):
@@ -243,6 +396,15 @@ class ImplementSpecCuts(unittest.TestCase):
         self.assertIn(CONTEXT_SOURCE, step)
         # eval-artifact-integrity.py: implement-spec still names the Artifact Map.
         self.assertIn("Artifact Map", step)
+
+    def test_parallel_batch_runs_serially_in_one_working_tree(self) -> None:
+        """Maintainer decision (Gate 3 F3): a parallel batch's stories run one
+        after another in the shared tree; nothing spawns them concurrently."""
+        step = section(read(IMPLEMENT_SPEC), "#### Step 3.2: Execute Batches", "\n#### ")
+        self.assertIn(SERIAL_BATCH, step)
+        self.assertIn("separate worktrees (`/implement-phase` lanes)", step)
+        for retired in RETIRED_CONCURRENT:
+            self.assertNotIn(retired, step)
 
     def test_ac54_stale_gate_text_is_corrected(self) -> None:
         """AC-5.4 (carry-forward): no stale phase list or Gate 4 test-run claim."""

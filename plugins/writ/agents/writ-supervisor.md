@@ -50,7 +50,7 @@ exit_criteria:
 | `base_commit` | The commit the work started from |
 | `head_ref` | The branch or commit the work produced |
 | `state_file` | **Optional.** The execution or phase state file the run wrote |
-| `story_gate_record` | **Optional.** The story's post-review record, `.writ/state/story-gate-<story-stem>-post-review.json`, the `story-gate-v1` JSON that `${CLAUDE_PLUGIN_ROOT}/scripts/story-gate.py run --phase post-review` writes. Empty: read that path for the story file, or, for a lane, for each story the report marks completed. |
+| `story_gate_record` | **Optional.** The story's post-review record, `.writ/state/story-gate-<story-stem>-post-review.json`, the `story-gate-v1` JSON that `${CLAUDE_PLUGIN_ROOT}/scripts/story-gate.py run --phase post-review` writes. Empty: read that path for the story file, or, for a lane, for each story the report marks completed, inside the lane's worktree: `git worktree list --porcelain` names the worktree whose `branch` is `refs/heads/{head_ref}`, and the record is `<that worktree>/.writ/state/story-gate-<story-stem>-post-review.json`. Read a lane's story files from that worktree or with `git show {head_ref}:<path>`. |
 
 ## Prompt Template
 
@@ -85,20 +85,22 @@ Run what applies; each prints a verdict line you can cite:
 A script that is missing or exits 2 makes its claims unverified, not false.
 
 ## Story-gate record
-Read the post-review record for each story, in any mode, `--quick` included. Each failed rule adds its claim to the table:
+Read the post-review record for each story, in any mode, `--quick` included. For a lane with an empty record path, the records and story files are in the lane's worktree: `git worktree list --porcelain` names the worktree whose `branch` is `refs/heads/{head_ref}`; read `<that worktree>/.writ/state/story-gate-<story-stem>-post-review.json`, and read story files there or with `git show {head_ref}:<path>`. Each failed rule adds its claim to the table:
 - No file at the path → claim `story-gate record missing`, marked `false` → RERUN.
 - Not JSON, or `schema` is not `story-gate-v1` → claim `story-gate record unreadable`, marked `false` → RERUN.
-- `head_sha` is not the final code commit → claim `story-gate record head <sha> ≠ final code commit <sha>`, marked `false` → RERUN.
+- A code commit follows `head_sha` (rule below) → claim `story-gate record head <sha> ≠ final code commit <sha>`, marked `false` → RERUN. The first `<sha>` is `head_sha`; the second is the first SHA the `git log` below printed, or `<end>` when `head_sha` is not an ancestor of `<end>`.
 - `dirty` is `true` → claim `story-gate record written on a dirty tree`, marked `false` → RERUN.
+- `verdict` is `fail`, or `gate3.verdict` is not `PASS` → claim `story-gate record verdict fail`, marked `false` → RERUN, unless the spec's `drift-log.md` has an entry naming each failing check and its file as a maintainer-accepted false positive.
 
-The final code commit is the last commit in `{base_commit}..{head_ref}` that touches a file outside `.writ/`: git log -1 --format=%H {base_commit}..{head_ref} -- . ':(exclude).writ'. The story-completion and SHA-record commits touch only `.writ/` and never move it; a code commit after the record does, so the record is stale.
+A code commit after the record needs a new record. `<end>` is the SHA on the story file's `> **Commit:** <sha>` line, or `{head_ref}` when the story file has none. The record is current when git merge-base --is-ancestor <head_sha> <end> succeeds and git log --format=%H <head_sha>..<end> -- . ':(exclude).writ' prints nothing. Commits that touch only `.writ/` (story completion, SHA record, a `.writ/`-only story) never make a record stale. For a lane, also run git log --format=%H <last-commit>..{head_ref} -- . ':(exclude).writ', where `<last-commit>` is the `**Commit:**` SHA of the last story the lane completed. A SHA it prints is a code commit no record covers: the head claim, naming that story's `head_sha` and the first SHA printed.
 
-A record that passes all four is valid. Do not re-run `review-override.py`, `test-integrity.py`, or `drift-format.py`: read their verdicts from the record. Its `checks` list holds `gate3_override`, `gate3_safety_fact`, and `gate3_evidence` (review-override.py), `gate3_5_drift_format` (drift-format.py), and `gate4_coverage` and `gate4_authenticity` (test-integrity.py), each with a `verdict` of `pass`, `fail`, `unverifiable`, or `skip`. `skip` means the check did not apply; it is not a failure. A check with `counted: false` decides nothing. The record's `verdict` is the overall result and `gate3.verdict` the Gate 3 decision. A report claim about a check's verdict that disagrees with the record is false. Git and story-file claims are re-derived as above.
+A record that passes all five is valid. Do not re-run `review-override.py`, `test-integrity.py`, or `drift-format.py`: read their verdicts from the record. Its `checks` list holds `gate3_override`, `gate3_safety_fact`, and `gate3_evidence` (review-override.py), `gate3_5_drift_format` (drift-format.py), and `gate4_coverage` and `gate4_authenticity` (test-integrity.py), each with a `verdict` of `pass`, `fail`, `unverifiable`, or `skip`. `skip` means the check did not apply; it is not a failure. A check with `counted: false` decides nothing. The record's `verdict` is the overall result and `gate3.verdict` the Gate 3 decision. A report claim about a check's verdict that disagrees with the record is false. Git and story-file claims are re-derived as above.
 
 ## Decide
 - ESCALATE: a claim is false and running the work again would not fix it: code committed with no gate verdict for it, a change outside the stated scope, a report that contradicts the locked contract, or a destructive change.
 - RERUN: a claim acceptance depends on is unverified or false and running the work again could fix it: a story-gate record claim above, a missing verdict line, a test run that was claimed and not shown, a truncated report.
 - ACCEPT: no claim is false, and every claim acceptance depends on is verified.
+When an ESCALATE condition and a story-gate RERUN rule both apply, ESCALATE wins.
 
 ## Output Format
 SUPERVISOR_RESULT: [ACCEPT/RERUN/ESCALATE]
@@ -127,9 +129,10 @@ SUPERVISOR_RESULT: ACCEPT
 | Story 2 completed, 5/5 tasks | verified | story-2-*.md: Status Completed ✅, 5 of 5 boxes ticked |
 | Gate 3 PASS from the evaluator | verified | story-2-*.md § Review Outcome: PASS, 2026-11-05 |
 | Tests in test_export.py pass | verified | pytest scripts/tests/test_export.py: 14 passed |
+| story-gate post-review pass | verified | .writ/state/story-gate-story-2-export-post-review.json: story-gate-v1, verdict pass, dirty false; git log <head_sha>..<Commit> outside .writ/: empty |
 
 ### Reason
-Every claim the story's acceptance rests on re-derives from the story file and a test run.
+Every claim the story's acceptance rests on re-derives from the story file, the story-gate record, and a test run.
 ```
 
 ### ESCALATE
