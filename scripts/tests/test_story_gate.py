@@ -441,6 +441,75 @@ class PostReviewRecordTests(GateTestCase):
         self.assertFalse(any(n == "test-integrity.py" and a[0] == "authenticity"
                              for n, a in self.repo.calls()))
 
+    def _manifest(self, *paths: str) -> None:
+        self.repo.state.mkdir(parents=True, exist_ok=True)
+        doc = {"schema": "evidence-manifest-v1", "story": "story-1-thing",
+               "repros": [{"finding": "F1", "path": p, "sha256": "0" * 64, "kind": "test",
+                           "content": "", "location": "src/a.py:1"} for p in paths]}
+        (self.repo.state / "evidence-story-1-thing.json").write_text(json.dumps(doc),
+                                                                     encoding="utf-8")
+
+    def _tests_args(self, name: str, key: str) -> Optional[List[str]]:
+        args = next(a for n, a in self.repo.calls() if n == name and a[0] == key)
+        return args[args.index("--tests") + 1:] if "--tests" in args else None
+
+    def test_evidence_repros_stay_out_of_check_and_authenticity(self) -> None:
+        """ADR-032: a repro the evidence manifest records must stay unchanged, and
+        authenticity reads it as `test_imports_no_source` when it reads a command
+        file; neither review-override check nor authenticity gets it."""
+        (self.repo.root / "tests" / "test_r_repro.py").write_text(
+            "from pathlib import Path\n", encoding="utf-8")
+        self._manifest("tests/test_r_repro.py")
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        for name, key in (("review-override.py", "check"), ("test-integrity.py", "authenticity")):
+            self.assertEqual(self._tests_args(name, key), ["tests/test_a.py"], key)
+        note = "skipped 1 evidence repro(s): adr032_repro"
+        self.assertEqual(line_for(result.stdout, "gate4_authenticity"),
+                         "check: gate4_authenticity pass (%s)" % note)
+        self.assertEqual(line_for(result.stdout, "gate3_override"),
+                         "check: gate3_override pass (%s)" % note)
+
+    def test_without_a_readable_manifest_the_test_list_is_unchanged(self) -> None:
+        """No manifest, or one that does not parse: every changed test reaches both checks."""
+        (self.repo.root / "tests" / "test_r_repro.py").write_text(
+            "from pathlib import Path\n", encoding="utf-8")
+        review = self.repo.review(REVIEW_PASS)
+        for manifest in (None, "{not json"):
+            with self.subTest(manifest=manifest):
+                if manifest is not None:
+                    self.repo.state.mkdir(parents=True, exist_ok=True)
+                    (self.repo.state / "evidence-story-1-thing.json").write_text(
+                        manifest, encoding="utf-8")
+                if self.repo.log.exists():
+                    self.repo.log.unlink()
+                result = self.repo.run("--review-output", str(review), phase="post-review")
+                for name, key in (("review-override.py", "check"),
+                                  ("test-integrity.py", "authenticity")):
+                    self.assertEqual(self._tests_args(name, key),
+                                     ["tests/test_a.py", "tests/test_r_repro.py"], key)
+                self.assertNotIn("adr032_repro", result.stdout)
+
+    def test_only_evidence_repros_changed_skips_authenticity(self) -> None:
+        """Only manifest repros changed: authenticity is skip with the reason and
+        never runs; check runs without `--tests` (its ac-trace part still applies)
+        and carries the same reason."""
+        self.repo.base = git(self.repo.root, "rev-parse", "HEAD")
+        (self.repo.root / "tests" / "test_r_repro.py").write_text(
+            "from pathlib import Path\n", encoding="utf-8")
+        self._manifest("tests/test_r_repro.py")
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        note = "skipped 1 evidence repro(s): adr032_repro"
+        self.assertEqual(line_for(result.stdout, "gate4_authenticity"),
+                         "check: gate4_authenticity skip (%s)" % note)
+        self.assertFalse(any(n == "test-integrity.py" and a[0] == "authenticity"
+                             for n, a in self.repo.calls()))
+        self.assertIsNone(self._tests_args("review-override.py", "check"))
+        self.assertEqual(line_for(result.stdout, "gate3_override"),
+                         "check: gate3_override pass (%s)" % note)
+        self.assertEqual(result.returncode, 0, result.stdout)
+
     def test_parallel_stories_write_separate_records(self) -> None:
         """Interaction edge case: two stories in one batch never share a file."""
         review = self.repo.review(REVIEW_PASS)

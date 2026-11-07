@@ -85,3 +85,11 @@ gap already named above.
 - Why: the runner passes every changed test file, and the check fails every shell test by construction. Shell is not in the stack matrix of `.writ/docs/quality-signal-classification.md`. Story 3's own post-review failed on `scripts/tests/test_jev_shadow_hooks.sh`.
 - The check's reason line counts the exclusions (`skipped N shell test(s): unsupported_stack`). When every changed test is excluded, the check records `skip` with that reason.
 - This works around the issue in the runner. The checker itself still flags a shell test passed to it directly, and the Python cases above (importlib by path, markdown-reading tests) are still open.
+
+## Runner excludes ADR-032 evidence repros (2026-11-07)
+
+- `scripts/story-gate.py` (lean-story-pipeline, during Story 4) now leaves every repro path the evidence manifest (`<state-dir>/evidence-<story-stem>.json`, `evidence-manifest-v1`) records out of the `--tests` list it passes to `review-override.py check` and to `test-integrity.py authenticity`. A missing or unreadable manifest leaves the list unchanged.
+- Why: ADR-032 requires the coder to commit a Gate 3 repro unchanged, and a repro often reads a command or data file instead of importing source. `authenticity` then reports `test_imports_no_source` (blocking), through `check` as Gate 3 row 2 (`restart: gate1`) and through Gate 4 directly: a loop the coder cannot fix. Story 4's post-review hit row 2 on `scripts/tests/test_ship_suite_claim_repro.py`; Story 3 hit the Gate 4 form on `test_story_gate_respawn_repro.py`; Story 1 on `test_gate_evidence_drift_citation_repro.py`.
+- Both checks carry the reason `skipped N evidence repro(s): adr032_repro`. When only repros are left, `authenticity` records `skip` with that reason; `check` still runs without `--tests`, because its ac-trace part applies regardless.
+- The repro's own integrity is covered elsewhere: `review-override.py evidence --prior` checks each recorded repro is present, unchanged (SHA-256), and passing.
+- Like the shell exclusion, this works around the checker in the runner; `test-integrity.py` itself still flags such a file passed to it directly.

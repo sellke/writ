@@ -31,6 +31,10 @@ drift-format check, test-integrity coverage and authenticity, repro-order
 (only when a commit since `--base` has a `Repro:` line), then the Jev shadow
 (only when `jev-judge.py status` prints `pass`; never counted). It applies
 Gate 3's first-match evidence table and prints `gate3: PASS|FAIL|PAUSE (...)`.
+The repros the evidence manifest records (ADR-032: committed unchanged) stay
+out of the `--tests` list given to review-override check and authenticity,
+with the reason `skipped <n> evidence repro(s): adr032_repro`; a missing or
+unreadable manifest leaves the list as it is.
 Without `--review-output`, the review checks read `unverifiable
 (no_review_output)`.
 
@@ -76,13 +80,14 @@ import argparse
 import datetime as _dt
 import json
 import os
+import posixpath
 import re
 import shlex
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, Tuple
 
 SCHEMA = "story-gate-v1"
 SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -98,6 +103,7 @@ AUTHENTICITY_SUFFIXES = (".py", ".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".
 SHELL_SUFFIXES = (".sh", ".bash", ".zsh")
 REPRO_LINE = re.compile(r"^Repro:\s*\S", re.MULTILINE)
 PRIOR_CODES = ("repro_removed", "repro_modified", "repro_still_failing")
+MANIFEST_SCHEMA = "evidence-manifest-v1"  # review-override.py --manifest-out
 
 
 class UsageError(Exception):
@@ -141,6 +147,7 @@ class Ctx:
         self.pre: Dict[str, Any] = {}
         self.evidence_gate = "on"
         self.agent_why = "no_review_output"
+        self._repros: Optional[Set[str]] = None
         if self.git_ok:
             sha = _git(self.repo, "rev-parse", "--verify", "--quiet", self.base + "^{commit}")
             if sha is None:
@@ -180,6 +187,14 @@ class Ctx:
         return [p for p in self.changed if not p.startswith(".writ/") and _is_test(p)]
 
     @property
+    def repros(self) -> Set[str]:
+        """Repro paths the evidence manifest records for this story (empty when
+        the manifest is missing, unreadable, or not `evidence-manifest-v1`)."""
+        if self._repros is None:
+            self._repros = _manifest_repros(self.manifest)
+        return self._repros
+
+    @property
     def new_source(self) -> Optional[List[str]]:
         if self.new_files is None:
             return None
@@ -209,6 +224,31 @@ def _git_list(repo: Path, *args: str) -> List[str]:
     # may be a space (` M path`), and a path may start or end with a space.
     out = _git(repo, *args, strip=False)
     return [p for p in (out or "").split("\0") if p]
+
+
+def _manifest_repros(path: Path) -> Set[str]:
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, RecursionError):
+        return set()
+    if not isinstance(doc, dict) or doc.get("schema") != MANIFEST_SCHEMA:
+        return set()
+    repros = doc.get("repros")
+    if not isinstance(repros, list):
+        return set()
+    return {posixpath.normpath(e["path"]) for e in repros
+            if isinstance(e, dict) and isinstance(e.get("path"), str) and e["path"]}
+
+
+def _without_repros(ctx: "Ctx", tests: List[str]) -> Tuple[List[str], Optional[str]]:
+    """`tests` less the ADR-032 evidence repros, and the reason note when any
+    were left out. A repro must be committed unchanged and often reads a
+    command or data file instead of importing source, which authenticity
+    reports as `test_imports_no_source`: a fail the coder cannot fix."""
+    repros = ctx.repros
+    kept = [p for p in tests if posixpath.normpath(p) not in repros]
+    dropped = len(tests) - len(kept)
+    return kept, ("skipped %d evidence repro(s): adr032_repro" % dropped if dropped else None)
 
 
 def _is_test(path: str) -> bool:
@@ -521,9 +561,14 @@ def override(ctx: Ctx, row: Row) -> Dict[str, Any]:
     args = ["check", "--spec", str(ctx.spec), "--story", str(ctx.story), "--repo", str(ctx.repo)]
     if ctx.new_source:
         args += ["--new-files"] + ctx.new_source
-    if ctx.tests:
-        args += ["--tests"] + ctx.tests
-    return _check_shape(row, _invoke(ctx, row, args, "check"), "gate1")
+    tests, note = _without_repros(ctx, ctx.tests or [])
+    if tests:
+        args += ["--tests"] + tests
+    # No skip when only repros changed: `check` still runs ac-trace.
+    result = _check_shape(row, _invoke(ctx, row, args, "check"), "gate1")
+    if note:
+        result["reasons"] = list(result.get("reasons") or []) + [note]
+    return result
 
 
 def safety_fact(ctx: Ctx, row: Row) -> Dict[str, Any]:
@@ -630,22 +675,23 @@ def authenticity(ctx: Ctx, row: Row) -> Dict[str, Any]:
         return _unverifiable(row, "no_git")
     if not tests:
         return _skip(row, "no_test_files")
+    tests, repro_note = _without_repros(ctx, tests)
     # test-integrity.py authenticity reads module specifiers, so it handles only
     # the stacks .writ/docs/quality-signal-classification.md supports (Node /
     # TypeScript, Python). It fails every shell test by construction, so those
     # stay out of its input and the reason line counts them.
     kept = [p for p in tests if p.endswith(AUTHENTICITY_SUFFIXES)]
     dropped = [p for p in tests if p not in kept]
-    note = None
+    notes = [repro_note] if repro_note else []
     if dropped:
         kind = "shell" if all(p.endswith(SHELL_SUFFIXES) for p in dropped) else "unsupported-stack"
-        note = "skipped %d %s test(s): unsupported_stack" % (len(dropped), kind)
+        notes.append("skipped %d %s test(s): unsupported_stack" % (len(dropped), kind))
     if not kept:
-        return _skip(row, note or "no_test_files")
+        return _result(row, "skip", notes or ["no_test_files"])
     args = ["authenticity", "--project", str(ctx.repo), "--tests"] + kept
     result = _json_verdict(row, _invoke(ctx, row, args, "json"), "gate4")
-    if note:
-        result["reasons"] = list(result.get("reasons") or []) + [note]
+    if notes:
+        result["reasons"] = list(result.get("reasons") or []) + notes
     return result
 
 
