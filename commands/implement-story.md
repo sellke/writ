@@ -278,7 +278,7 @@ Pre-review runs `change-surface.py classify` (`change_surface:`), then `boundary
 > **Skip in:** `--quick` mode
 > **`--review-only`:** evaluator-only (+ scripts); FAIL ends the run; no recode; no silent hatch
 
-Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's run (`command:`, `exit code: N`, output tail) of the story's tests and each path in `<manifest>` = `.writ/state/evidence-<story-stem>.json`, not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
+Default spawn is `evaluator-agent` (AC, recorded tests, `contract_content`). `recorded_test_results` = the orchestrator's run (`command:`, `exit code: N`, output tail) of the story's tests, each test file that imports a changed source file, and each path in `<manifest>` = `.writ/state/evidence-<story-stem>.json`, not the coding agent's report. Verdict field: `EVALUATION_RESULT` or `REVIEW_RESULT`.
 
 **Reviewer filters.** Pass pre-review's `reviewer_filters:` value as `reviewer_filters` to every Gate 3 spawn: the evaluator or `review-agent` and any re-review. The story report prints `reviewer-filters: <on|off>`.
 
@@ -352,7 +352,7 @@ Data flow: **Gate 3.5** extracts and validates; **Gate 4** updates `what_was_bui
 
 #### Gate 4: Testing Agent (with Coverage Enforcement)
 
-**Default:** do not spawn `testing-agent`. Gate 3's recorded run is targeted: the story's tests and any test that imports a changed file. The full suite runs once, at `implement-spec` Step 4.1, or in `/ship` for a standalone story.
+**Default:** do not spawn `testing-agent`. Gate 3's recorded run is targeted. The full suite runs once, at `implement-spec` Step 4.1, or in `/ship --test` for a standalone story.
 
 **`--full-pipeline`:**
 > **Agent:** `agents/testing-agent.md`

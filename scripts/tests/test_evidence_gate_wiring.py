@@ -71,7 +71,10 @@ GATE3_REVIEW = ".writ/state/gate3-review-<story-stem>.md"
 GATE3_TESTS = "gate3-tests-<story-stem>.txt"
 MANIFEST = ".writ/state/evidence-<story-stem>.json"
 PRIOR_REASONS = ("repro_removed", "repro_modified", "repro_still_failing")
-RECORDED_RUN_DEF = "of the story's tests and each path in `<manifest>` = `%s`" % MANIFEST
+RECORDED_RUN_DEF = (
+    "of the story's tests, each test file that imports a changed source file, "
+    "and each path in `<manifest>` = `%s`" % MANIFEST
+)
 REPROS_HEADING = "`## Evidence repros`"
 NO_EDIT = "Create it exactly; do not edit it. Make it pass."
 BRIEF_SOURCE = "(row 4a: from `<manifest>`)"

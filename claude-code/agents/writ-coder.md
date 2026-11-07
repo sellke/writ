@@ -24,7 +24,7 @@ subagent_type: "generalPurpose"
 model: default (inherits from parent)
 model_tier: anchor
 readonly: false
-problem: "Story tasks turn into code with no test written first and no suite run before handoff, so the review gate inherits work whose failures nobody has seen yet."
+problem: "Story tasks turn into code with no test written first and no test run before handoff, so the review gate inherits work whose failures nobody has seen yet."
 outcome: "The story's tasks implemented test-first, with a summary naming every file touched, every test written, and the result of running them."
 exit_criteria:
   - "every path under Files Created traces to a task in the story; no verification guide, validation report, or criteria checklist was added beside them"
@@ -137,7 +137,7 @@ _When empty or absent: no dependency stories, or upstream stories not yet comple
 
 After completing implementation, verify your own work before handing off:
 
-1. **Run the story's targeted tests** — Use the auto-detected test runner (vitest, jest, pytest, cargo test, go test, etc.). Run only the story's test files and any test file that imports a changed source file. Never run the full suite, however fast: `implement-spec` Step 4.1 runs it once per spec, and `/ship` runs it for a standalone story.
+1. **Run the story's targeted tests** — Use the auto-detected test runner (vitest, jest, pytest, cargo test, go test, etc.). Run only the story's test files and any test file that imports a changed source file. Never run the full suite, however fast: `implement-spec` Step 4.1 runs it once per spec, and `/ship --test` runs it for a standalone story.
 2. **Run typecheck** — `tsc --noEmit`, `mypy`, `cargo check`, or equivalent for the project's language.
 3. **If tests fail** — Fix the failures yourself, then re-run to confirm the fix.
 4. **If typecheck fails** — Fix type errors yourself. Re-run to confirm.

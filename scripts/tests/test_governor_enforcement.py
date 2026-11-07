@@ -720,7 +720,11 @@ KNOWN_OVER_BUDGET = {
     # Step 4.1 or in /ship (spec Business Rule 6), offset by shortening the
     # --full-pipeline context routing and the unverifiable bullet, and by
     # dropping a sentence the Completed-status rule already covers.
-    "commands/implement-story.md": 13578,
+    # 2026-11-06 (lean-story-pipeline Story 4, Gate 3 recode): 13578 -> 13577
+    # (file 38538 -> 38537); plain /ship runs no tests, so Gate 4 names
+    # /ship --test, and Gate 3's recorded run adds test files that import a
+    # changed source file, offset by dropping Gate 4's restatement of it.
+    "commands/implement-story.md": 13577,
 }
 
 
