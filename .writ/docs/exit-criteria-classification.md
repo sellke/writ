@@ -251,7 +251,7 @@ avoided the same way.
 ## `implement-spec.c3`
 
 > "one typecheck plus full test suite ran after the final story, separate from
-> the targeted per-story Gate 4 runs, and .writ/context.md was rewritten to the
+> the targeted per-story runs, and .writ/context.md was rewritten to the
 > post-run story counts"
 
 **Bucket:** needs-run-record

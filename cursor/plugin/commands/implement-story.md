@@ -460,7 +460,7 @@ After all gates pass:
 7. **Record the story commit SHA** into the story file header as `> **Commit:** <full-sha>`, beside `> **Status:**`
 8. **Report** pipeline results: per-gate status, file counts, drift summary, both `story-gate:` lines, the `gate3-route:` and `arch-lint:` lines, and next action (`/ship`)
 
-**Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `implement-spec` and `status` regenerate the same schema.
+**Item 3 — the snapshot.** `Read skills/project-context-snapshot/SKILL.md` for what `.writ/context.md` contains. This step owns when regeneration happens — once, here, never between gates. `status` regenerates the same schema.
 
 **Item 4 — the record.** `Read skills/what-was-built-authoring/SKILL.md` for how the record is extracted and formatted. A `--quick` run reaches this step with no `what_was_built_data` and still writes the minimal record, which is why the skill loads here, not at Gate 3.5.
 

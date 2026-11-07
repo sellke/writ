@@ -724,7 +724,9 @@ KNOWN_OVER_BUDGET = {
     # (file 38538 -> 38537); plain /ship runs no tests, so Gate 4 names
     # /ship --test, and Gate 3's recorded run adds test files that import a
     # changed source file, offset by dropping Gate 4's restatement of it.
-    "commands/implement-story.md": 13577,
+    # 2026-11-07 (lean-story-pipeline spec-end cleanup, DEV-022): Step 4 item 3
+    # no longer says implement-spec regenerates context.md. 38537 -> 38517.
+    "commands/implement-story.md": 13557,
 }
 
 
