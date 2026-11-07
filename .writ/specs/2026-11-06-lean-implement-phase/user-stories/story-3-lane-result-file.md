@@ -100,7 +100,7 @@
 
 ### Deviations from Spec
 
-See `drift-log.md` Story 3: DEV-004 (Medium, maintainer-approved), DEV-005, DEV-006 (Small, auto-amended in spec-lite).
+See `drift-log.md` Story 3: DEV-004 (Medium, maintainer-approved), DEV-005, DEV-006 (Small, auto-amended in spec-lite). Post-review: DEV-007, DEV-008 (Small; the supervisor escalated them as unlogged, the maintainer accepted both).
 
 ### Lessons Learned
 

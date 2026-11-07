@@ -80,3 +80,28 @@
 - **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: the two blocker codes.
 
 ---
+
+## Story 3 (post-review): supervisor input and adapter wording — Drift Report
+
+> Run: 2026-11-07
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-007] The supervisor gets the result file's contents, not its path
+- **Severity:** Small
+- **Spec said:** technical-spec.md → Lane result file: "The supervisor gets the file path in place of the verbatim report"; task 3.4: "supervisor gets the file path".
+- **Implementation did:** Step 3.2 item 3 passes `report` = the contents of `{result_path}` (the lane's whole report, verbatim). Applied by the orchestrator after Gate 3, from reviewer recommendation 1.
+- **Reason:** `agents/supervisor-agent.md` defines `report` as the verbatim report; passing the contents keeps that input and the agent file unchanged (Business Rule 8), while passing a path would change the supervisor's input. The supervisor escalated the unlogged change; the maintainer accepted it (AskQuestion, 2026-11-07).
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: the supervisor gets the result file's contents.
+
+#### [DEV-008] Adapters updated to describe the lane result file
+- **Severity:** Small
+- **Spec said:** Story 3's tasks name no adapter file; the reviewer suggested updating the adapters in Story 4 or a follow-up.
+- **Implementation did:** `adapters/claude-code.md`, `adapters/codex.md`, `adapters/cursor.md` now say the lane writes its `phase-spec-result-v1` to the brief's result file and the parent validates it with `validate-result --input`; `claude-code.md` notes the result file as the one write outside the lane worktree. Applied by the orchestrator after Gate 3; no Gate 3 re-review.
+- **Reason:** Without it the adapters contradict Step 3.2. Wording only. The supervisor escalated the unlogged change; the maintainer accepted it (AskQuestion, 2026-11-07).
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: the adapters' lane-result wording.
+
+---
