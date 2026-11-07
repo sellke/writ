@@ -93,6 +93,9 @@ TEST_NAME = re.compile(r"^(test_.*|.*_test\..*|.*\.test\..*|.*\.spec\..*|.*_spec
 # review-override.py's VERDICT_LINE: the heading line, first match wins.
 AGENT_VERDICT = re.compile(r"^#{1,6}\s*(?:EVALUATION_RESULT|REVIEW_RESULT):\s*\**\s*([A-Za-z]+)",
                            re.MULTILINE)
+# Test suffixes test-integrity.py authenticity can read: its SOURCE_SUFFIXES plus .py.
+AUTHENTICITY_SUFFIXES = (".py", ".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs")
+SHELL_SUFFIXES = (".sh", ".bash", ".zsh")
 REPRO_LINE = re.compile(r"^Repro:\s*\S", re.MULTILINE)
 PRIOR_CODES = ("repro_removed", "repro_modified", "repro_still_failing")
 
@@ -627,8 +630,23 @@ def authenticity(ctx: Ctx, row: Row) -> Dict[str, Any]:
         return _unverifiable(row, "no_git")
     if not tests:
         return _skip(row, "no_test_files")
-    args = ["authenticity", "--project", str(ctx.repo), "--tests"] + tests
-    return _json_verdict(row, _invoke(ctx, row, args, "json"), "gate4")
+    # test-integrity.py authenticity reads module specifiers, so it handles only
+    # the stacks .writ/docs/quality-signal-classification.md supports (Node /
+    # TypeScript, Python). It fails every shell test by construction, so those
+    # stay out of its input and the reason line counts them.
+    kept = [p for p in tests if p.endswith(AUTHENTICITY_SUFFIXES)]
+    dropped = [p for p in tests if p not in kept]
+    note = None
+    if dropped:
+        kind = "shell" if all(p.endswith(SHELL_SUFFIXES) for p in dropped) else "unsupported-stack"
+        note = "skipped %d %s test(s): unsupported_stack" % (len(dropped), kind)
+    if not kept:
+        return _skip(row, note or "no_test_files")
+    args = ["authenticity", "--project", str(ctx.repo), "--tests"] + kept
+    result = _json_verdict(row, _invoke(ctx, row, args, "json"), "gate4")
+    if note:
+        result["reasons"] = list(result.get("reasons") or []) + [note]
+    return result
 
 
 def repro_order(ctx: Ctx, row: Row) -> Dict[str, Any]:

@@ -78,3 +78,10 @@ gap already named above.
 - ADR-032 requires evidence repros committed unchanged, so the two gates conflict for any repro that tests a data or markdown file. The maintainer recorded it as a false positive (`.writ/specs/2026-11-06-lean-story-pipeline/drift-log.md` DEV-005).
 - `SPECIFIER_PATTERNS` match only quoted specifiers (`from '…'`, `import('…')`, `require('…')`), so Python `import x` / `from x import y` lines are never seen either.
 
+
+## Runner excludes shell tests (2026-11-06)
+
+- `scripts/story-gate.py` (lean-story-pipeline Story 3) now passes `authenticity` only test files with a suffix it can read: `.py` and the Node / TypeScript suffixes. Shell tests (`.sh`, `.bash`, `.zsh`) and other suffixes stay out of its input.
+- Why: the runner passes every changed test file, and the check fails every shell test by construction. Shell is not in the stack matrix of `.writ/docs/quality-signal-classification.md`. Story 3's own post-review failed on `scripts/tests/test_jev_shadow_hooks.sh`.
+- The check's reason line counts the exclusions (`skipped N shell test(s): unsupported_stack`). When every changed test is excluded, the check records `skip` with that reason.
+- This works around the issue in the runner. The checker itself still flags a shell test passed to it directly, and the Python cases above (importlib by path, markdown-reading tests) are still open.
