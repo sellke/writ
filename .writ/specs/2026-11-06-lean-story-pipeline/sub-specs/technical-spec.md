@@ -104,13 +104,17 @@ This reads `story-gate-history/*.json` and prints `pass` on line 1, then one lin
 
 ## Supervisor change (Story 5)
 
-- New optional input `story_gate_record`: the post-review record path.
-- New rule:
-  - Absent post-review record, on any mode (`--quick` writes one too) → claim `story-gate record missing`, marked `false` → `RERUN`.
-  - Record `head_sha` ≠ the last commit in `base_commit..head_ref` that touches a non-Writ-artifact file → claim `story-gate record head <sha> ≠ final code commit <sha>` → `RERUN`.
-  - `dirty: true` → claim `story-gate record written on a dirty tree` → `RERUN`.
-  - A report claim about a check's verdict that disagrees with the record is `false`.
-- The supervisor no longer re-runs `review-override.py`, `test-integrity.py`, or `drift-format.py` when a valid record exists. It reads their verdicts from the record and verifies git and story-file claims as today.
+As shipped (drift-log DEV-021 records how it grew from the first draft):
+
+- **Input** `story_gate_record`: the post-review record path. Empty for a lane → the record inside the lane's worktree, found with `git worktree list --porcelain` (the worktree whose branch is `refs/heads/{head_ref}`).
+- **RERUN** claims, each marked `false`:
+  - `story-gate record missing` — any mode, `--quick` included.
+  - `story-gate record unreadable` — not JSON, or schema not `story-gate-v1`.
+  - `story-gate record head <sha> ≠ final code commit <sha>` — a code commit (outside `.writ/`) follows `head_sha` up to `<end>`, or `head_sha` is not an ancestor of `<end>`; `<end>` is the story's `> **Commit:**` SHA, else `{head_ref}`.
+  - `story-gate record written on a dirty tree` — `dirty: true`.
+  - `story-gate record verdict fail` — `verdict: fail` or `gate3.verdict: FAIL`; a record with no `gate3` (`--quick`) or `gate3.verdict: PAUSE` is judged on `verdict`. Exception: a `drift-log.md` entry naming the check id and file and recording the maintainer's BLOCKED answer; unavailable in lanes.
+- **ESCALATE**: a code commit after the last `> **Commit:**` SHA up to `{head_ref}` (checked for every story). ESCALATE wins when both apply.
+- With a valid record, the verdicts of `review-override.py`, `test-integrity.py`, and `drift-format.py` are read from the record, not re-run; a report claim that disagrees with the record is `false`.
 
 ## `implement-spec.md` cuts (Story 5)
 
