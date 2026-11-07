@@ -60,7 +60,7 @@
 - **`.writ/docs/phase-execution-state-format.md`**, **`.writ/docs/quality-signal-classification.md`** (Health wording: only passed sources can be missing)
 - **`adapters/claude-code.md`** (Goal emit clause names only `/create-goal`)
 - **`scripts/eval-phase-health.py`** (two scenarios pass a nonexistent path instead of omitting the flag)
-- **`scripts/tests/test_phase_state.py`** (`HealthGivenSourcesTests`, 6 tests)
+- **`scripts/tests/test_phase_state.py`** (`HealthGivenSourcesTests`, 6 tests; `HealthCallSitesPassOnlyProducedSources`, 3 tests for AC-2.3)
 - **`scripts/tests/test_goal_emit_command_hooks.sh`** (implement-phase emit block removed; new check that `/create-goal` is the only emit caller)
 - **`scripts/tests/test_exit_criteria.py`** (Step 1.3 slice ends at `### Phase 2:`; no assertion changed)
 - **`scripts/tests/test_governor_enforcement.py`** (`KNOWN_OVER_BUDGET` for `implement-phase.md` 10297 → 9825, dated)
@@ -77,6 +77,7 @@
 **Verification:** Automated
 
 - ✅ Orchestrator's recorded run (Python 3.9): 868 passed across 11 files; `test_goal_emit_command_hooks.sh` all PASS
+- ✅ After the AC-2.3 recode: `test_phase_state.py` 40 passed
 - ✅ `eval.sh` checks `phase-health` 8/8, `phase-closure` 39/39, `goal-emit`, `command-structure` 44/44, `size-pins`, `exit-criteria` 18/18 (coder and reviewer runs)
 - ✅ `gen-platform-trees.py --check`: pass
 - Full suite and `eval.sh`: run once at spec end
@@ -87,7 +88,7 @@
 
 **Result:** PASS
 
-- **Iteration count:** 1 iteration(s)
+- **Iteration count:** 1 iteration(s), then one post-review recode: on the committed tree `review-override` failed `untested_criterion` (AC-2.3 had no test citation once the story read Completed). The orchestrator added three tests that pin Step 1.4's removal, Step 4.1c's sources, and `/status`'s call; no Gate 3 re-review, since the recode adds tests only
 - **Gate 3 route:** `review-agent` (cross-component; 9 boundary crossings: generated copies and direct consequences of Business Rules 4 and 5)
 - **Drift:** Small
 - **Security:** Clean

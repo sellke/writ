@@ -22,6 +22,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 MODULE_PATH = Path(__file__).resolve().parent.parent / "phase-state.py"
+REPO_ROOT = Path(__file__).resolve().parents[2]
 _spec = importlib.util.spec_from_file_location("phase_state", MODULE_PATH)
 ps = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(ps)  # type: ignore[union-attr]
@@ -631,6 +632,33 @@ class HealthGivenSourcesTests(unittest.TestCase):
                            self._write("drift-c.md", "Nothing open.\n"))
         self.assertEqual(out["sources"]["drift"], "none")
         self.assertEqual(out["category"], "Healthy")
+
+
+class HealthCallSitesPassOnlyProducedSources(unittest.TestCase):
+    """AC-2.3: Step 1.4 (Goal emit) is gone from /implement-phase, Step 4.1c
+    passes only the sources the phase produced and never --verification, and
+    /status passes only the sources it has."""
+
+    def test_step_1_4_goal_emit_is_removed(self) -> None:
+        text = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+        self.assertNotIn("#### Step 1.4", text)
+        self.assertNotIn("goal-emit.py", text)
+
+    def test_step_4_1c_health_call_has_no_verification(self) -> None:
+        text = (REPO_ROOT / "commands" / "implement-phase.md").read_text(encoding="utf-8")
+        start = text.index("#### Step 4.1c:")
+        step = text[start:text.index("#### Step 4.2:", start)]
+        call = step[step.index("phase-state.py health"):]
+        call = call[:call.index("```")]
+        self.assertIn("--drift", call)
+        self.assertIn("--eval", call)
+        self.assertNotIn("--verification", call)
+        self.assertIn("never", step)
+
+    def test_status_passes_only_sources_it_has(self) -> None:
+        text = (REPO_ROOT / "commands" / "status.md").read_text(encoding="utf-8")
+        self.assertIn("Pass only the sources you have", text)
+        self.assertIn("not_requested", text)
 
 
 if __name__ == "__main__":
