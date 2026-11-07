@@ -1,6 +1,7 @@
 # Story 6: Before/after pipeline trial
 
 > **Status:** Completed ✅ (2026-11-07)
+> **Commit:** 2b3f934df102530e7d133b9f7acec52192b291d4
 > **Priority:** Medium
 > **Dependencies:** Story 4, Story 5
 
