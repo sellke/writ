@@ -86,8 +86,9 @@ sys.stdout.write(out)
 sys.exit(code)
 '''
 
-REVIEW_PASS = "## Review\n\nEVALUATION_RESULT: PASS\n"
-REVIEW_FAIL = "## Review\n\nREVIEW_RESULT: FAIL\n"
+# The heading form the evaluator and review agents emit.
+REVIEW_PASS = "### EVALUATION_RESULT: PASS\n\n### Summary\nok\n"
+REVIEW_FAIL = "### REVIEW_RESULT: FAIL\n\n### Summary\nF1\n"
 
 
 def git(repo: Path, *args: str) -> str:
@@ -160,7 +161,9 @@ class Repo:
             encoding="utf-8")
 
     def review(self, text: str) -> Path:
-        path = self.root / ".writ" / "review.md"
+        # Under the gitignored state dir, as Gate 3 saves `<review>`.
+        self.state.mkdir(parents=True, exist_ok=True)
+        path = self.state / "review.md"
         path.write_text(text, encoding="utf-8")
         return path
 
@@ -292,7 +295,7 @@ class PostReviewRecordTests(GateTestCase):
     def test_order_record_and_first_failing_restart(self) -> None:
         """AC-3.2: one failing and one passing stub; every check runs in order."""
         review = self.repo.review(REVIEW_PASS)
-        tests_out = self.repo.root / ".writ" / "tests.txt"
+        tests_out = self.repo.state / "tests.txt"
         tests_out.write_text("command: pytest\nexit code: 0\n", encoding="utf-8")
         self.repo.stub("drift-format.py", "check",
                        "fail\nreason: missing_field DEV-001 Severity\ndrift-format: fail\n", 1)
@@ -338,17 +341,27 @@ class PostReviewRecordTests(GateTestCase):
         self.assertEqual(record["verdict"], "pass")
         self.assertEqual(len(list((self.repo.state / "story-gate-history").iterdir())), 2)
 
-    def test_dirty_tree_outside_writ_is_recorded(self) -> None:
-        """Business Rule 5: an uncommitted code change sets dirty; `.writ/` edits do not."""
+    def test_dirty_tree_outside_the_spec_folder_is_recorded(self) -> None:
+        """Business Rule 5: only edits under the `--spec` folder (Gate 3.5 § A's
+        drift-log.md and spec-lite.md) leave dirty false; any other uncommitted
+        path, `.writ/` included, sets it."""
         review = self.repo.review(REVIEW_PASS)
         (self.repo.spec / "drift-log.md").write_text("# log\n", encoding="utf-8")
+        (self.repo.spec / "spec-lite.md").write_text("# lite\n", encoding="utf-8")
         clean = record_of(self.repo.run("--review-output", str(review),
                                         phase="post-review").stdout)
         self.assertIs(clean["dirty"], False)
-        (self.repo.root / "src" / "a.py").write_text("x = 3\n", encoding="utf-8")
-        dirty = record_of(self.repo.run("--review-output", str(review),
-                                        phase="post-review").stdout)
-        self.assertIs(dirty["dirty"], True)
+        for path in (self.repo.root / ".writ" / "config.md",
+                     self.repo.root / ".writ" / "docs" / "shipped.md",
+                     self.repo.root / ".writ" / "specs" / "other" / "spec-lite.md",
+                     self.repo.root / "src" / "a.py"):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("changed\n", encoding="utf-8")
+            dirty = record_of(self.repo.run("--review-output", str(review),
+                                            phase="post-review").stdout)
+            self.assertIs(dirty["dirty"], True, path)
+            git(self.repo.root, "add", "-A")
+            git(self.repo.root, "commit", "-q", "-m", "commit %s" % path.name)
 
     def test_changed_new_and_test_files_come_from_base(self) -> None:
         """The runner computes the file lists from `--base`, plus untracked files."""
@@ -409,6 +422,34 @@ class UnverifiableTests(GateTestCase):
         self.assertIn("helper_error: exit 0, empty stdout",
                       line_for(result.stdout, "gate3_5_drift_format"))
 
+    def test_checker_exit_2_is_helper_error_and_the_agent_fail_stands(self) -> None:
+        """Evidence table row 8: an evidence checker that exits 2 reads
+        unverifiable (helper_error: exit 2 ...), and the agent FAIL stands."""
+        self.repo.stub("review-override.py", "evidence", "unverifiable\nreason: bad_args\n", 2)
+        review = self.repo.review(REVIEW_FAIL)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("gate3_evidence unverifiable (helper_error: exit 2",
+                      line_for(result.stdout, "gate3_evidence"))
+        gate3 = record_of(result.stdout)["gate3"]
+        self.assertEqual((gate3["verdict"], gate3["row"]), ("FAIL", "8"))
+        self.assertIn("restart: gate1", result.stdout)
+        self.assertIn("evidence-gate: unverifiable (helper_error: exit 2", result.stdout)
+
+    def test_missing_review_output_path_is_unreadable(self) -> None:
+        """Error map: a `--review-output` path that does not exist marks every
+        review check unverifiable (review_output_unreadable); no Gate 3 decision."""
+        missing = self.repo.state / "no-such-review.md"
+        result = self.repo.run("--review-output", str(missing), phase="post-review")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(result.stdout.splitlines()[0], "pass")
+        for cid in ("gate3_override", "gate3_safety_fact", "gate3_evidence", "gate3_verdict",
+                    "gate3_5_drift_format", "gate3_jev_shadow"):
+            self.assertIn("unverifiable (review_output_unreadable)",
+                          line_for(result.stdout, cid), cid)
+        self.assertNotIn("gate3", record_of(result.stdout))
+        self.assertNotIn("gate3:", result.stdout)
+
     def test_timeout_is_unverifiable(self) -> None:
         """Error map: a check over its time limit reads unverifiable (timeout)."""
         stub = self.repo.scripts / "drift-format.py"
@@ -456,7 +497,8 @@ class UnverifiableTests(GateTestCase):
         """Error map: an unwritable state dir adds reason: record_write_failed."""
         self.repo.state.parent.mkdir(parents=True, exist_ok=True)
         self.repo.state.write_text("not a directory", encoding="utf-8")
-        review = self.repo.review(REVIEW_PASS)
+        review = self.repo.spec / "review.md"  # the state dir is a file here
+        review.write_text(REVIEW_PASS, encoding="utf-8")
         result = self.repo.run("--review-output", str(review), phase="post-review")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertEqual(result.stdout.splitlines()[0], "pass")
@@ -571,6 +613,25 @@ class RouteAndGate3Tests(GateTestCase):
         review = self.repo.review(REVIEW_PASS)
         result = self.repo.run("--review-output", str(review), phase="post-review")
         self.assertIn("restart: gate3\n", result.stdout)
+
+    def test_verdict_line_agrees_with_the_gate3_result(self) -> None:
+        """No `gate3_verdict` line reads `pass` beside `gate3: FAIL`: a row 1-4a
+        decision reads `skip` with that row, so the deciding check's catch is
+        counted once; rows 5-9 read the decision."""
+        self.repo.stub("review-override.py", "check",
+                       "fail\nreason: untested_criterion AC-1.1\nreview-override: fail\n", 1)
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        record = record_of(result.stdout)
+        self.assertEqual((record["gate3"]["verdict"], record["gate3"]["row"]), ("FAIL", "2"))
+        self.assertIn("gate3_verdict skip (FAIL (row 2: check fail: untested_criterion",
+                      line_for(result.stdout, "gate3_verdict"))
+        counted = [c["id"] for c in record["checks"] if c["counted"] and c["verdict"] == "fail"]
+        self.assertEqual(counted, ["gate3_override"])
+        self.repo.stub("review-override.py", "check", "pass\nreview-override: pass\n", 0)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        self.assertIn("gate3_verdict pass (PASS (row 5))", line_for(result.stdout, "gate3_verdict"))
+        self.assertIn("gate3: PASS (row 5", result.stdout)
 
     def test_prior_manifest_runs_evidence_on_pass(self) -> None:
         """Row 4a: once the manifest exists, evidence runs on any verdict with --prior."""

@@ -386,6 +386,19 @@ class Gate3OrderTest(unittest.TestCase):
         self.assertTrue(runs("FAIL", False))
         self.assertFalse(runs("PASS", False))
         self.assertFalse(runs("PAUSE", False))
+        # Evidence runs after `check`, `safety-fact`, and any re-spawn: never in a
+        # run whose safety-fact result re-spawns Gate 3 (row 4), manifest or not.
+        respawn = {"verdict": "fail", "restart": "gate3",
+                   "reasons": ["safety_fact_below_floor traced"]}
+        for verdict in ("FAIL", "PASS"):
+            self.assertFalse(runs(verdict, True, respawn), verdict)
+        self.assertFalse(runs("FAIL", False, respawn))
+        recode = {"verdict": "fail", "restart": "gate1",
+                  "reasons": ["safety_fact_contradicts_verdict"]}
+        self.assertTrue(runs("FAIL", False, recode))
+        self.assertEqual(gate3_decision(verdict="FAIL", evidence=[], check="pass",
+                                        safety="safety_fact_below_floor"),
+                         ("safety-fact routing", "4"))
         # Rows 2 and 4 decide a PASS or PAUSE too, so the table applies on any verdict.
         self.assertEqual(gate3_decision(verdict="PASS", evidence=[], check="fail"), ("FAIL", "2"))
         self.assertIn("first-match decision", evidence_block())

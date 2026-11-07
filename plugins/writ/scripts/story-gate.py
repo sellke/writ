@@ -24,8 +24,9 @@ It resolves the three `review-override.py switch` states and prints `route:`,
 `change_surface:`, `blast_radius:`, `safety_fact:`, `reviewer_filters:` and
 `evidence_gate:` lines for Gate 3. post-review: review-override check,
 safety-fact (when pre-review turned it on), evidence (on an agent FAIL, or any
-verdict once the manifest exists, with `--prior`), the agent verdict
-(`EVALUATION_RESULT`/`REVIEW_RESULT` in `--review-output`, after evidence),
+verdict once the manifest exists, with `--prior`; never when safety-fact
+re-spawns Gate 3), the Gate 3 decision (the `EVALUATION_RESULT`/`REVIEW_RESULT`
+heading in `--review-output`, first match, after evidence),
 drift-format check, test-integrity coverage and authenticity, repro-order
 (only when a commit since `--base` has a `Repro:` line), then the Jev shadow
 (only when `jev-judge.py status` prints `pass`; never counted). It applies
@@ -57,7 +58,7 @@ line. The record is written atomically to
 `<state-dir>/story-gate-<story-stem>-<phase>.json`, replacing the last one, and
 a copy goes to `<state-dir>/story-gate-history/<stem>-<phase>-<at>.json`. It
 holds `head_sha` (`git rev-parse HEAD`) and `dirty` (uncommitted changes
-outside `.writ/`).
+outside the `--spec` folder).
 
 `tally` reads the history and prints `pass`, one `tally: <id> runs=<n>
 fails=<n> sole_catches=<n>` line per check id (sole catch: the record's only
@@ -89,7 +90,9 @@ DEFAULT_TIMEOUT = 600
 VERDICTS = ("pass", "fail", "unverifiable")
 TEST_DIRS = {"test", "tests", "__tests__", "spec", "e2e", "cypress"}
 TEST_NAME = re.compile(r"^(test_.*|.*_test\..*|.*\.test\..*|.*\.spec\..*|.*_spec\..*|conftest\.py)$")
-AGENT_VERDICT = re.compile(r"(?:EVALUATION_RESULT|REVIEW_RESULT)\W*(PASS|FAIL|PAUSE)\b")
+# review-override.py's VERDICT_LINE: the heading line, first match wins.
+AGENT_VERDICT = re.compile(r"^#{1,6}\s*(?:EVALUATION_RESULT|REVIEW_RESULT):\s*\**\s*([A-Za-z]+)",
+                           re.MULTILINE)
 REPRO_LINE = re.compile(r"^Repro:\s*\S", re.MULTILINE)
 PRIOR_CODES = ("repro_removed", "repro_modified", "repro_still_failing")
 
@@ -159,7 +162,13 @@ class Ctx:
                 continue
             paths.append(entry[3:])
             skip = entry[:1] in ("R", "C")
-        self.dirty = any(not p.startswith(".writ/") for p in paths)
+        try:
+            own = self.spec.relative_to(self.repo).as_posix().rstrip("/") + "/"
+        except ValueError:
+            own = None
+        # Gate 3.5 § A edits drift-log.md and spec-lite.md in the story's spec
+        # folder before post-review; every other uncommitted path is dirty.
+        self.dirty = any(own is None or not p.startswith(own) for p in paths)
 
     @property
     def tests(self) -> Optional[List[str]]:
@@ -529,10 +538,19 @@ def safety_fact(ctx: Ctx, row: Row) -> Dict[str, Any]:
     return result
 
 
-def evidence_runs(agent: Optional[str], manifest_exists: bool) -> bool:
+def evidence_runs(agent: Optional[str], manifest_exists: bool,
+                  safety: Optional[Dict[str, Any]] = None) -> bool:
     """`evidence` runs on an agent FAIL, and on any verdict once the manifest
-    exists (then with `--prior`)."""
+    exists (then with `--prior`), after `check`, `safety-fact`, and any
+    re-spawn: never in a run whose safety-fact result re-spawns Gate 3, since
+    that review is replaced and its repros must not reach the manifest."""
+    if _respawns(safety):
+        return False
     return agent == "FAIL" or manifest_exists
+
+
+def _respawns(safety: Optional[Dict[str, Any]]) -> bool:
+    return bool(safety) and safety.get("verdict") == "fail" and safety.get("restart") == "gate3"
 
 
 def evidence(ctx: Ctx, row: Row) -> Dict[str, Any]:
@@ -540,7 +558,10 @@ def evidence(ctx: Ctx, row: Row) -> Dict[str, Any]:
     if early:
         return early
     prior = ctx.manifest.is_file()
-    if not evidence_runs(ctx.agent, prior):
+    safety = ctx.results.get("gate3_safety_fact")
+    if _respawns(safety):
+        return _skip(row, "safety_fact_respawn_first")
+    if not evidence_runs(ctx.agent, prior, safety):
         return _skip(row, "not run (%s)" % (ctx.agent or "no verdict"))
     if ctx.changed is None:
         return _unverifiable(row, "no_git")
@@ -556,14 +577,19 @@ def evidence(ctx: Ctx, row: Row) -> Dict[str, Any]:
 
 
 def agent_verdict(ctx: Ctx, row: Row) -> Dict[str, Any]:
-    """The Gate 3 agent's own verdict after the evidence gate (table rows 5-9)."""
+    """Gate 3's decision, the same one the record's `gate3` key holds. Rows 1-4a
+    are decided by another check's fail, so this line reads `skip` there and the
+    tally counts that catch once; rows 5-9 are the agent verdict after evidence."""
     early = _needs_review(ctx, row)
     if early:
         return early
     if ctx.agent is None:
         return _unverifiable(row, ctx.agent_why or "no_verdict_line")
-    decision = decide_gate3(ctx.agent, None, None, ctx.results.get("gate3_evidence"),
-                            ctx.evidence_gate)
+    r = ctx.results
+    decision = decide_gate3(ctx.agent, r.get("gate3_override"), r.get("gate3_safety_fact"),
+                            r.get("gate3_evidence"), ctx.evidence_gate)
+    if decision["row"] in ("1", "2", "3", "4", "4a"):
+        return _skip(row, "FAIL (row %s: %s)" % (decision["row"], decision["why"]))
     if decision["verdict"] == "FAIL":
         return _result(row, "fail", ["FAIL (row %s: %s)" % (decision["row"], decision["why"])],
                        restart="gate1")
@@ -757,7 +783,8 @@ def _now() -> _dt.datetime:
 
 
 def _read_agent(ctx: Ctx) -> None:
-    """The Gate 3 agent's verdict field; the last one in the output wins."""
+    """The Gate 3 agent's verdict from its heading line; the first one wins, so a
+    later mention of the field in the review's prose never changes it."""
     if ctx.review is None or not ctx.review.is_file():
         return
     try:
@@ -765,9 +792,10 @@ def _read_agent(ctx: Ctx) -> None:
     except OSError:
         ctx.agent_why = "review_output_unreadable"
         return
-    found = AGENT_VERDICT.findall(text)
-    ctx.agent = found[-1] if found else None
-    ctx.agent_why = "" if found else "no_verdict_line"
+    match = AGENT_VERDICT.search(text)
+    verdict = match.group(1).upper() if match else ""
+    ctx.agent = verdict if verdict in ("PASS", "FAIL", "PAUSE") else None
+    ctx.agent_why = "" if ctx.agent else "no_verdict_line"
 
 
 def run(args: argparse.Namespace) -> int:
