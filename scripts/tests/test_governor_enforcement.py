@@ -711,7 +711,10 @@ KNOWN_OVER_BUDGET = {
     # check, safety-fact, evidence and its nine-row table, Jev shadow), 3.5
     # (drift-format), and 4 (test-integrity), less a restart table and a
     # Step 3 pointer to Gate 0. The temporary raise is closed.
-    "commands/implement-story.md": 13585,
+    # 2026-11-06 (lean-story-pipeline Story 3, Gate 3 recode): 13585 -> 13582
+    # (file 38545 -> 38542); Gate 3.5 § A states its order against post-review
+    # and Quick Mode keeps post-review, offset by tightening the § A text.
+    "commands/implement-story.md": 13582,
 }
 
 

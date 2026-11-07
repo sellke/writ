@@ -300,7 +300,7 @@ Spawn `review-agent` instead. Same inputs: `spec_lite_for_review` as `spec_lite_
 
 Save the review to `<review>` = `.writ/state/gate3-review-<story-stem>.md` (re-save on re-spawn) and `recorded_test_results` to `<tests>` = `.writ/state/gate3-tests-<story-stem>.txt`.
 
-**Verify the claim, don't trust it.** After Gate 3.5 § A, run post-review (`--quick`: no output flags):
+**Verify the claim, don't trust it.** Run post-review, ordered by Gate 3.5 § A (`--quick`: no output flags):
 
 ```bash
 python3 scripts/story-gate.py run --phase post-review --story <story-file> --spec <spec-folder> --base <base> --review-output <review> --tests-output <tests>
@@ -335,14 +335,13 @@ After the Gate 3 agent returns, perform two operations:
 
 ##### A. Drift Response
 
-Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision; this is the only place those options are offered). `spec.md` is never auto-modified.
+Inspect the `### Drift Analysis` section and handle by severity: **Small** (naming/cosmetic — auto-amend `spec-lite.md` only, log a `DEV-NNN` entry, PASS; the check below fails `auto_amend_unapplied` if `spec-lite.md` is left unchanged); **Medium** (scope impact — ⚠️ warn, log, PASS); **Large** (fundamental deviation — the **PAUSE** Gate 3 emitted lands here: present accept / reject / modify-spec, wait for the decision). `spec.md` is never auto-modified.
 
 `Read skills/drift-triage/SKILL.md` for how each severity is handled, including the mixed-severity rule and the append-only `drift-log.md` rules. This gate owns when triage runs and that a Large drift pauses the pipeline and asks the user; the skill owns how.
 
-**Verify the claim, don't trust it.** § A runs before post-review, whose `drift-format.py` check is format-only — it never decides accept / reject / modify-spec.
+**Verify the claim, don't trust it.** On an agent PASS or PAUSE, § A runs before post-review, whose `drift-format.py` check is format-only — it never decides accept / reject / modify-spec. On an agent FAIL, post-review runs first; on `gate3: PASS` (row 9), run § A, then post-review again. After a safety-fact re-spawn, rerun § A first.
 
-- **script `fail`** → `restart: gate3-blocked`, the shared [BLOCKED escalation](#blocked-agent-escalation).
-- **any `unverifiable` verdict** → the pipeline continues, the reason is surfaced verbatim, and the story is **not** marked `⚠️ DEGRADED` on that basis alone.
+- **script `fail`** → `restart: gate3-blocked`; **`unverifiable`** → continue, print the reason, never `⚠️ DEGRADED`.
 
 ##### B. "What Was Built" Data Extraction
 
@@ -502,7 +501,7 @@ AskQuestion({
 ## Quick Mode (`--quick`)
 
 **Skips:** Gates 0, 4.5 and 5 (as on default), **Gate 0.5 (boundary map)**, Gate 3 (evaluator), Gate 3.5 (drift handling). `--quick` never escalates.
-**Keeps:** Gate 1 (`coding-agent` + scripts), Gate 2 (lint + build smoke), Gate 4 scripts
+**Keeps:** Gate 1 (`coding-agent` + scripts), Gate 2 (lint + build smoke), post-review (Gate 4 scripts)
 
 Use for prototyping, spikes, internal tools. Hatch later via `--full-pipeline`:
 ```

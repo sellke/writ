@@ -52,7 +52,8 @@ Each source below was read on 2026-11-06.
 
 `kill_when` is written to be checkable later (Business Rule 7). Story 1 does not build the tally.
 
-- **Gates with their own catch** (`gate3_review`, `gate3_5_drift`, `gate4_tests`): `sole_catches == 0 over 20 default-path records`, read from `story-gate.py tally`.
+- **Gates with their own catch** (`gate3_review`, `gate4_tests`): `sole_catches == 0 over 20 default-path records`, read from `story-gate.py tally`.
+- **`gate3_5_drift`**: 20 default-path stories log no `drift-log.md` Resolution of `Pipeline paused — rejected, sent back to coding agent` or `Pipeline paused — spec modified by user`, matching the `kill_when` in the `gates:` frontmatter. Its catch is § A's human decision on a Large-drift PAUSE, not `drift-format.py`, so a tally of the drift-format check would measure the wrong thing (Story 3, 2026-11-06).
 - **Rule 3 producers** (`gate0_5_boundary`, `gate2_5_surface`, `gate2_build`): `gate3_review` leaves the default path, read from the `gates:` frontmatter. `gate2_build` also needs `sole_catches == 0 over 20 default-path records`.
 - **`gate1_coding`**: every other entry leaves the default path, read from the `gates:` frontmatter.
 - **Demoted gates** (`gate0_arch`, `gate4_5_behavior`, `gate5_docs`): this file still reads `none recorded` for the gate on 2027-05-06. A `full-pipeline` run writes no `story-gate` record, so this file is the only place a later catch can be recorded.
