@@ -363,6 +363,42 @@ class PostReviewRecordTests(GateTestCase):
             git(self.repo.root, "add", "-A")
             git(self.repo.root, "commit", "-q", "-m", "commit %s" % path.name)
 
+    def test_worktree_only_modification_keeps_porcelain_columns(self) -> None:
+        """Business Rule 5: a ` M` entry (tracked file, modified in the worktree
+        only) is parsed with its leading status column intact. Stripping git's
+        output turned the first ` M .writ/specs/...` into `M .writ/...`, whose
+        path read `writ/specs/...` and set dirty on a clean spec-folder edit."""
+        review = self.repo.review(REVIEW_PASS)
+        for name in ("drift-log.md", "spec-lite.md"):
+            (self.repo.spec / name).write_text("# v1\n", encoding="utf-8")
+        git(self.repo.root, "add", "-A")
+        git(self.repo.root, "commit", "-q", "-m", "spec files")
+        for name in ("drift-log.md", "spec-lite.md"):
+            (self.repo.spec / name).write_text("# v2\n", encoding="utf-8")
+        status = subprocess.run(["git", "-C", str(self.repo.root), "status", "--porcelain"],
+                                capture_output=True, text=True, check=True).stdout
+        self.assertTrue(status.startswith(" M .writ/specs/s/"), status)
+        clean = record_of(self.repo.run("--review-output", str(review),
+                                        phase="post-review").stdout)
+        self.assertIs(clean["dirty"], False)
+        git(self.repo.root, "add", "-A")
+        git(self.repo.root, "commit", "-q", "-m", "spec files v2")
+        (self.repo.root / "src" / "a.py").write_text("x = 2\n", encoding="utf-8")
+        dirty = record_of(self.repo.run("--review-output", str(review),
+                                        phase="post-review").stdout)
+        self.assertIs(dirty["dirty"], True)
+
+    def test_git_lists_keep_leading_spaces(self) -> None:
+        """`_git_list` never strips: NUL-separated entries keep their own spaces."""
+        module = load_module()
+        name = " lead.py"  # sorts first, so it opens git's output
+        (self.repo.root / name).write_text("y = 1\n", encoding="utf-8")
+        self.assertEqual(module._git_list(
+            self.repo.root, "ls-files", "--others", "--exclude-standard", "-z"), [name])
+        git(self.repo.root, "add", "-A")
+        self.assertEqual(module._git_list(
+            self.repo.root, "diff", "--name-only", "-z", "--cached"), [name])
+
     def test_changed_new_and_test_files_come_from_base(self) -> None:
         """The runner computes the file lists from `--base`, plus untracked files."""
         (self.repo.root / "src" / "new.py").write_text("z = 1\n", encoding="utf-8")
