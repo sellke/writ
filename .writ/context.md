@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-07T01:10:00Z
+> Last Updated: 2026-11-07T04:30:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-lean-story-pipeline — Lean Story Pipeline (branch `spec/lean-story-pipeline`, worktree `.claude/worktrees/lean-story-pipeline`)
 - **Status:** In Progress — `/implement-spec` run started 2026-11-06T22:24:40Z
-- **Story:** 2 of 6 — Demote gates with no recorded catch (Completed ✅); next: Story 3, `story-gate.py` runner
-- **Progress:** 12/40 tasks complete
+- **Story:** 3 of 6 — `story-gate.py` runner (Completed ✅); next: Stories 4 and 5 in parallel
+- **Progress:** 19/40 tasks complete
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-007 Demoted sections lost their default-path clauses; Gate 0 agent block now precedes its script — lean-story-pipeline (Small)
-- DEV-006 Kept gates read `path: default` instead of having no `path:` line — lean-story-pipeline (Small)
-- DEV-005 Gate 4 authenticity finding on the ADR-032 repro recorded as a false positive — lean-story-pipeline (Medium)
+- DEV-017 Gate 4 authenticity finding on the F2 repro recorded as a false positive — lean-story-pipeline (Medium)
+- DEV-016 Authenticity records `skip`, not `unverifiable`, for unsupported-stack tests — lean-story-pipeline (Medium)
+- DEV-012 Post-review vs Gate 3.5 § A ordering has residual gaps — lean-story-pipeline (Medium)
 
 ## Open Issues
 

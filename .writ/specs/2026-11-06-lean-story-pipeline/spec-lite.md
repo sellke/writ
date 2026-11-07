@@ -15,6 +15,7 @@
 - Kept entries read `path: default` (absent also means default); demoted sections keep their full-pipeline text and drop only default/`--quick`/`--review-only` clauses (DEV-006, DEV-007).
 - `story-gate.py` is a check-shape script (Python 3.9 stdlib). It computes changed files from `--base`, runs a fixed check table, writes `.writ/state/story-gate-<stem>-<phase>.json` atomically, and keeps history for `tally`.
 - A test asserts that the runner's check table equals the `gates:` entries with `path: default`.
+- Runner details (DEV-008–011, 013–015): restarts `gate1`, `gate2`, `gate3`, `gate3-blocked`, `gate4` (none → DEGRADED); a check may read `skip` (never counted); `dirty` ignores only the story's spec folder; `--review-only` runs both phases; repro-order runs when a commit since `<base>` has a `Repro:` trailer; `gate3_5_drift` `kill_when` reads drift-log PAUSE resolutions.
 - Kept gates (Safety Fact, Reviewer Filters, evidence gate) and the inputs they need stay on the default path (Business Rule 3). Gate 0 Divergence was removed on 2026-11-04 (`31b868a`) and has no entry (DEV-004).
 
 **Files in Scope:**

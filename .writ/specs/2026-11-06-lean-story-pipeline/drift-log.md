@@ -88,3 +88,99 @@
 - **Resolution:** Auto-amended (Small).
 - **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: demoted sections drop only default/`--quick`/`--review-only` clauses.
 
+---
+
+## Story 3: story-gate.py runner — Drift Report
+
+> Run: 2026-11-06
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-008] Restart targets beyond gate1/gate2/gate3
+- **Severity:** Small
+- **Spec said:** technical-spec.md `story-gate.py` → Restart: `gate1`, `gate2`, `gate3`.
+- **Implementation did:** Adds `gate3-blocked` (row 1, drift-format fail) and `gate4` (test-integrity); a repro-order fail has no target and marks the story DEGRADED.
+- **Reason:** The three targets could not express the BLOCKED escalations and Gate 4's integrity rule the old prose had; each target routes to the same handling as at `078e265`.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-009] A fourth per-check verdict, `skip`
+- **Severity:** Small
+- **Spec said:** Per-check verdicts are line 1 of each checker: `pass`, `fail`, `unverifiable`.
+- **Implementation did:** A check that does not apply records `skip (<why>)`; tally never counts it as a run.
+- **Reason:** Keeps `runs` honest for `sole_catches`; Story 5's supervisor must accept the value.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-010] `dirty` ignores the story's spec folder
+- **Severity:** Small
+- **Spec said:** Business Rules (Expanded) → Rule 5: the record stores HEAD plus the dirty-tree flag.
+- **Implementation did:** `dirty` ignores uncommitted paths only under the `--spec` folder, the files Gate 3.5 § A edits before post-review.
+- **Reason:** Iteration 1 excluded all of `.writ/`, which hid shipped docs and config; narrowed in the recode `bcb1cb5`.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-011] `--review-only` runs both phases
+- **Severity:** Small
+- **Spec said:** technical-spec.md Interaction Edge Cases: `--review-only` | post-review only.
+- **Implementation did:** Pre-review runs in every mode.
+- **Reason:** Gates 2 and 2.5 already ran under `--review-only` at `078e265`; Gate 3 needs the switch values pre-review prints.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-012] ⚠️ Post-review vs Gate 3.5 § A ordering has residual gaps
+- **Severity:** Medium
+- **Spec said:** Happy path: Gate 3 agent → post-review → completion.
+- **Implementation did:** On an agent FAIL post-review runs first and § A only after a row-9 PASS; on PASS or PAUSE § A runs first. Remaining: (1) on a PAUSE § A asks the user before rows 1–4a, which outrank PAUSE, are checked; (2) the re-spawn sentence does not say what happens when the re-spawned review is FAIL; (3) a row-9 iteration, a re-spawn, and `--full-pipeline` each write two history records that `tally` counts.
+- **Reason:** Drift-format must see § A's edits, and one call cannot sit both before and after § A. Gaps (1)–(3) affect ordering clarity and tally counts, not Gate 3 verdicts.
+- **Resolution:** ⚠️ Warned (Medium). Follow-up recorded in What Was Built → Next Story.
+- **Spec amendment:** None. Proposed: § A runs once per Gate 3 attempt on the review post-review accepts; tally counts one record per `(story, head_sha)`.
+
+#### [DEV-013] Prose removed outside the per-script blocks
+- **Severity:** Small
+- **Spec said:** Story 3 task 3.3: keep Gate 3 and Gate 4 wording otherwise unchanged.
+- **Implementation did:** Dropped the Gate 0.5 `/prototype` line, Gate 4's "a run may report TEST_RESULT: PASS and still not close", "Run the scripts below.", and § A's "only place those options are offered".
+- **Reason:** Each statement is still made elsewhere in the file (Pipeline table, Control flow, restart table); no pin guarded them.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-014] Repro-order trigger reads commit trailers
+- **Severity:** Small
+- **Spec said:** Gate 1 bug path: run repro-order when the report's `### Repro` block names commits.
+- **Implementation did:** The runner runs it when a commit since `<base>` has a `Repro:` trailer; the Gate 1 prose still states the report-block condition.
+- **Reason:** The runner cannot read the report; `tdd-cycle` writes the trailer only on a real repro commit, so the conditions agree in practice.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-015] `gate3_5_drift` `kill_when` reads drift-log PAUSE resolutions
+- **Severity:** Small
+- **Spec said:** `gate-evidence.md` § Kill conditions: `sole_catches == 0 over 20 default-path records`.
+- **Implementation did:** The frontmatter and `gate-evidence.md` now read a drift-log condition: 20 default-path stories with no "Pipeline paused — rejected / spec modified" Resolution.
+- **Reason:** The recorded catch is § A's human decision, which tally cannot see.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: runner details bullet.
+
+#### [DEV-016] ⚠️ Authenticity records `skip`, not `unverifiable`, when only unsupported-stack tests changed
+- **Severity:** Medium
+- **Spec said:** Business Rule 4: today's `unverifiable` semantics carry over unchanged; `.writ/docs/quality-signal-classification.md` registers `unsupported_stack` only as an `unverifiable` reason.
+- **Implementation did:** After the maintainer-approved recode (`cda6412`, `112ee2b`), the runner passes only Python and Node/TypeScript test files to `test-integrity.py authenticity`; with none left the check records `skip (skipped N shell test(s): unsupported_stack)`, which tally does not count and the summary's `unverifiable` count omits.
+- **Reason:** The input filter is the approved workaround for the bash-test false positive (2026-09-03 issue). Neither verdict blocks; the difference is vocabulary and tally counting.
+- **Resolution:** ⚠️ Warned (Medium). Follow-up: return `unverifiable` instead of `skip` (one line).
+- **Spec amendment:** None.
+
+#### [DEV-017] ⚠️ Gate 4 authenticity finding on the ADR-032 repro `test_story_gate_respawn_repro.py` recorded as a false positive
+- **Severity:** Medium
+- **Spec said:** Gate 4: `test_imports_no_source` is blocking and takes the BLOCKED escalation.
+- **Implementation did:** The repro, committed unchanged as ADR-032 requires, imports `test_story_gate.Repo` and drives `story-gate.py` by subprocess; `authenticity` reports `test_imports_no_source`. It failed on `517c975` and passes after `bcb1cb5`.
+- **Reason:** Same false-positive class as DEV-005 (the extractor sees only quoted JS-style specifiers). The orchestrator applied the maintainer's DEV-005 decision as precedent and reported it in the run output.
+- **Resolution:** ⚠️ Warned (Medium). Recorded as a false positive under the DEV-005 precedent; not DEGRADED.
+- **Spec amendment:** None.
+
+### Gate record
+
+- Gate 3 iteration 1: `review-agent` FAIL, F1 (verdict read from the last token) and F2 (evidence before the safety-fact re-spawn), both Major, both confirmed by the evidence gate. Recoded in `bcb1cb5` and `8ca6c42` with both repros committed unchanged, plus DEV-003 narrowing, § A ordering, `--quick` post-review, and `gate3_verdict` agreement.
+- Gate 3 iteration 2: `review-agent` PASS. Advisory Minor: the F2 fix skips evidence on any safety-fact `restart: gate3`, including two paths where no re-spawn follows; Gate 3 results unchanged. Follow-up.
+- Post-review on the runner itself (orchestrator dogfood) found `dirty: true` from stripped porcelain output and bash tests in the authenticity input. Maintainer chose "Recode both"; fixed in `de09ac1`–`112ee2b`.
+- Gate 3 iteration 3: `review-agent` PASS.
+
