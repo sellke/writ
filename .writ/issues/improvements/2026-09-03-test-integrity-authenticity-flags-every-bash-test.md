@@ -95,3 +95,12 @@ gap already named above.
 - Residual: anyone who can write `.writ/state/` can forge a well-formed manifest with a correct hash for an ordinary test and so exempt it from authenticity; `--prior` would accept it. The runner does not compare the manifest's repros with the findings Gate 3 confirmed.
 - The shell and unsupported-stack exclusion now applies to `check --tests` as well (it feeds only check's authenticity step), so a changed `.sh` test no longer fails Gate 3 row 2 there.
 - Like the shell exclusion, this works around the checker in the runner; `test-integrity.py` itself still flags such a file passed to it directly.
+
+## Checker resolves Python doc-pin tests (2026-11-07)
+
+- `scripts/test-integrity.py authenticity` (lean-story-pipeline Story 5) now credits a Python test that reads a project file it names by path: a string like `"commands/implement-story.md"` or a chain like `ROOT / "adapters" / "claude-code.md"`, resolving to an existing file outside test directories and `.writ/state/`, in a file that calls `read_text`, `read_bytes` or `open(`.
+- `from pkg import mod` now resolves `pkg/mod.py` when `pkg/` has no `__init__.py`. Plain `import x` of a project module was already resolved; the 2026-11-06 note above was wrong on that point.
+- A test that imports a test helper counts when the helper itself imports, runs or reads project source (cycle-safe). This clears `test_story_gate_respawn_repro.py`, which drives `story-gate.py` through `test_story_gate.Repo`.
+- Measured on `scripts/tests/*.py` (100 files): 20 flagged before, 2 after. The 18 cleared are doc-pin tests and repros, including `test_claude_code_adapter_claims.py`, `test_gate_evidence_drift_citation_repro.py`, `test_ship_suite_claim_repro.py` and `test_issue_closure_wiring.py`. The 2 still flagged (`test_edit_spec_ac_stability_fixtures.py`, `test_recommend_state_ac_tag_compat.py`) copy their subject inline and touch no project file: true positives.
+- Resolved here: the Python cases in this issue (importlib by path, earlier; markdown-reading tests, now).
+- Still open: shell. The checker still flags a `.sh` / `.bash` test passed to it directly; only `story-gate.py` filters shell tests out. The runner's ADR-032 repro exclusion is now redundant for Python repros that read or run source, but still needed for any repro that does neither.

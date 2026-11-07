@@ -204,6 +204,16 @@ has to a self-reported COMPLETE.
 string)` — a copy annotated "matches implementation" — then asserts against the copy. It
 cannot fail when the route changes. It passed review and testing gates for months.
 
+**What counts as project source for a Python test.** Besides a JS/TS module specifier, a
+Python test exercises source when it imports a project module (`import x`, `from x import y`),
+runs a project script by path (subprocess, importlib, runpy), reads a project file it names by
+path (`ROOT / "commands" / "x.md"` or `"commands/x.md"`, with `read_text`, `read_bytes` or
+`open(` in the file), or imports a test helper that does one of these. A test that pins shipped
+markdown or config fails when that file changes, so it is not a `test_imports_no_source` case.
+None of these count: a fixture under a test directory, a file under `.writ/state/`, a path that
+does not exist, a bare filename used as asserted text, or a file the test names but never reads.
+Shell tests still have no handler.
+
 **A test that legitimately tests only types or only constants will trip this code.** That is a
 waiver case, recorded in the baseline, not a bug. But if the waiver list grows past a handful
 on a real project, the heuristic is wrong and should be narrowed rather than waived around.

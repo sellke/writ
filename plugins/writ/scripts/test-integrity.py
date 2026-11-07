@@ -16,8 +16,15 @@ Two claims Writ has always stated and never verified:
   authenticity  Flags a test file that resolves zero module specifiers into
                 project source — a test that cannot fail when the code it
                 claims to cover changes. A Python test also counts as
-                exercising source when it imports a project module or runs a
-                project script by path (subprocess, importlib, runpy).
+                exercising source when it (a) imports a project module with
+                plain `import x` / `from x import y`, (b) runs a project
+                script by path (subprocess, importlib, runpy), (c) reads a
+                project file it names by path (`read_text`, `read_bytes`,
+                `open(`) — a doc-pin test of a shipped markdown or config
+                file fails when that file changes — or (d) imports a test
+                helper that itself does (a)–(c). Fixtures under a test
+                directory, `.writ/state/` files and paths that do not exist
+                never count.
 
 **The specifier extractor is the whole story, and a line-oriented regex is
 the wrong implementation.** Measured against 147 real unit-test files:
@@ -27,8 +34,10 @@ the wrong implementation.** Measured against 147 real unit-test files:
     whole-file specifier extraction ->  4 files  (ground truth)
 
 Multi-line `import {\\n…\\n} from '…'` blocks and dynamic
-`await import('…')` calls both escape a per-line match. Specifiers are
-therefore extracted from the entire file text, never line by line.
+`await import('…')` calls both escape a per-line match. JS/TS specifiers are
+therefore extracted from the entire file text, never line by line. Python
+`import` statements carry no quoted specifier; `python_exercises_source`
+resolves them separately, also over the whole file.
 
 A false positive costs more than a false negative here: a check that cries
 about good tests gets muted, and takes the real findings with it. So where a
@@ -284,10 +293,13 @@ def imports_project_source(text: str, test_file: Path, project: Path,
 # subprocess (`subprocess.run([sys.executable, str(SCRIPT)])` with
 # `SCRIPT = ROOT / "scripts" / "x.py"`) or loads it by path through importlib.
 # Neither leaves a JS-style module specifier, so without this pass every such
-# test reads as `test_imports_no_source`. A path literal counts only when the
-# file also executes something (subprocess / importlib / runpy / os.system)
-# and the literal resolves to an existing, non-test file inside the project;
-# a test that merely mentions a path, or runs only fixtures, is still flagged.
+# test reads as `test_imports_no_source`. A script path literal counts only
+# when the file also executes something (subprocess / importlib / runpy /
+# os.system) and the literal resolves to an existing, non-test file inside the
+# project; a test that merely mentions a path, or runs only fixtures, is still
+# flagged. The same holds for a doc-pin test: a path it names counts only when
+# the file also reads something (read_text / read_bytes / open) and the path
+# resolves to an existing, non-test file outside `.writ/state/`.
 
 SCRIPT_SUFFIXES = (".py", ".sh", ".bash") + SOURCE_SUFFIXES
 PY_STRING_RE = re.compile(r"""[rbuRBU]{0,2}(['"])([^'"\\\n]+)\1""")
@@ -298,6 +310,14 @@ PY_EXEC_RE = re.compile(
     r"\b(?:subprocess|importlib|runpy|os\.system|os\.exec\w*|os\.spawn\w*"
     r"|exec_module|spec_from_file_location)\b"
 )
+# The quoted operand(s) of a `/` path operator: `ROOT / "a" / "b.md"`, or a
+# single segment, `ROOT / "README.md"`.
+PY_PATH_OPERAND_RE = re.compile(
+    r"""/\s*(['"][^'"\s]+['"](?:\s*/\s*['"][^'"\s]+['"])*)"""
+)
+PY_READ_RE = re.compile(r"\.read_text\s*\(|\.read_bytes\s*\(|\bopen\s*\(")
+# Files a test may read that are run output, not shipped source.
+READ_EXCLUDED = (r"^\.writ/state/",)
 PY_IMPORT_RE = re.compile(
     r"^[ \t]*(?:from[ \t]+([\w.]+)[ \t]+import\b|import[ \t]+([\w.]+(?:[ \t]*,[ \t]*[\w.]+)*))",
     re.MULTILINE,
@@ -347,9 +367,59 @@ def _project_source(candidate: Path, project: Path) -> bool:
     return not is_test_shaped(relative)
 
 
-def python_exercises_source(text: str, test_file: Path, project: Path) -> bool:
-    """True when a Python test imports a project module or runs a project
-    script by path. `project` must already be resolved."""
+def _resolves_to_source(literal: str, roots: list[Path], project: Path) -> bool:
+    """True when a relative path literal names an existing, non-test file
+    inside the project from one of `roots`."""
+    if any(ch.isspace() for ch in literal) or Path(literal).is_absolute():
+        return False
+    return any(_project_source(root / literal, project) for root in roots)
+
+
+def _read_targets(code: str, literals: list[str]) -> list[str]:
+    """Path literals a test may read: a string with a `/` in it, or the
+    quoted operand(s) of a `/` path operator (`ROOT / "README.md"`). A bare
+    filename that is not a path operand is asserted text, not a path."""
+    targets = [lit for lit in literals if "/" in lit and "://" not in lit]
+    for operand in PY_PATH_OPERAND_RE.finditer(code):
+        parts = re.findall(r"""['"]([^'"\s]+)['"]""", operand.group(1))
+        targets.append("/".join(parts))
+    return list(dict.fromkeys(targets))
+
+
+def _reads_project_file(code: str, literals: list[str], roots: list[Path],
+                        project: Path) -> bool:
+    """True when the test reads something and names by path an existing
+    project file outside test directories and `.writ/state/`."""
+    if not PY_READ_RE.search(code):
+        return False
+    for target in _read_targets(code, literals):
+        if any(ch.isspace() for ch in target) or Path(target).is_absolute():
+            continue
+        for root in roots:
+            candidate = root / target
+            if not _project_source(candidate, project):
+                continue
+            relative = candidate.resolve().relative_to(project).as_posix()
+            if not is_ignored_by_project(relative, READ_EXCLUDED):
+                return True
+    return False
+
+
+def _imported_module_files(name: str, roots: list[Path]) -> list[Path]:
+    rel = Path(*name.split("."))
+    return [path for root in roots
+            for path in (root / rel.with_suffix(".py"), root / rel / "__init__.py")]
+
+
+def python_exercises_source(text: str, test_file: Path, project: Path,
+                            _seen: set[Path] | None = None) -> bool:
+    """True when a Python test imports a project module, runs a project
+    script by path, or reads a project file it names by path. Importing a
+    test helper counts only when that helper itself exercises source by
+    these same rules (`_seen` stops import cycles). `project` must already
+    be resolved."""
+    seen = _seen if _seen is not None else set()
+    seen.add(test_file.resolve())
     code = _strip_py_comments(text)
     literals = [m.group(2) for m in PY_STRING_RE.finditer(code)]
     for chain in PY_PATH_CHAIN_RE.finditer(code):
@@ -357,27 +427,46 @@ def python_exercises_source(text: str, test_file: Path, project: Path) -> bool:
         literals.append("/".join(parts))
     roots = _py_search_roots(test_file, project, literals)
 
+    names: list[str] = []
     for match in PY_IMPORT_RE.finditer(code):
-        names = match.group(1) or match.group(2) or ""
-        for name in re.split(r"[ \t]*,[ \t]*", names):
-            if not name or name.startswith("."):
-                continue
-            rel = Path(*name.split("."))
-            for root in roots:
-                if (_project_source(root / rel.with_suffix(".py"), project)
-                        or _project_source(root / rel / "__init__.py", project)):
-                    return True
-
-    if not PY_EXEC_RE.search(code):
-        return False
-    for literal in literals:
-        if any(ch.isspace() for ch in literal) or not literal.endswith(SCRIPT_SUFFIXES):
+        names.extend(re.split(r"[ \t]*,[ \t]*", match.group(1) or match.group(2) or ""))
+    # `from pkg import mod` names module `pkg.mod`; python_imports yields both.
+    names.extend(python_imports(code))
+    helpers: list[Path] = []
+    for name in dict.fromkeys(names):
+        if not name or name.startswith("."):
             continue
-        if Path(literal).is_absolute():
-            continue
-        for root in roots:
-            if _project_source(root / literal, project):
+        for path in _imported_module_files(name, roots):
+            if _project_source(path, project):
                 return True
+            if path.is_file() and path.resolve() not in seen:
+                try:
+                    path.resolve().relative_to(project)
+                except ValueError:
+                    continue
+                helpers.append(path.resolve())
+
+    if PY_EXEC_RE.search(code):
+        for literal in literals:
+            if literal.endswith(SCRIPT_SUFFIXES) and _resolves_to_source(literal, roots, project):
+                return True
+
+    if _reads_project_file(code, literals, roots, project):
+        return True
+
+    # A test-shaped helper inside the project (a harness in the test dir) is
+    # not source itself, but a test that imports a harness which runs or
+    # reads source exercises that source through it.
+    for helper in helpers:
+        if helper in seen:
+            continue
+        try:
+            helper_text = helper.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            seen.add(helper)
+            continue
+        if python_exercises_source(helper_text, helper, project, seen):
+            return True
     return False
 
 

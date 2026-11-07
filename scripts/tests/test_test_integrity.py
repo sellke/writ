@@ -1334,3 +1334,168 @@ class SearchRootsWalkTests(unittest.TestCase):
             project = Path(tmp).resolve()
             test_file = Path(other).resolve() / "test_x.py"
             self.assertEqual(ti._py_search_roots(test_file, project, []), [project])
+
+
+class PythonReadsProjectFileTests(unittest.TestCase):
+    """A Python test that reads a shipped project file it names by path
+    (a markdown command, an adapter, a config) fails whenever that file
+    changes, so it exercises source. The pass stays conservative: a fixture
+    under a test dir, a path that does not exist, a `.writ/state/` file, or a
+    named file the test never reads does not count."""
+
+    def setUp(self) -> None:
+        self.fx = ProjectFixture()
+        self.addCleanup(self.fx.cleanup)
+        self.fx.write("commands/implement-story.md", "# Implement story\n")
+        self.fx.write("README.md", "# readme\n")
+        self.fx.write("scripts/tool.py", "print('ok')\n")
+        self.fx.write("scripts/tests/fixtures/sample.md", "# fixture\n")
+        self.fx.write(".writ/state/run.json", "{}\n")
+
+    def _flagged(self, name: str, text: str) -> set:
+        path = self.fx.write("scripts/tests/" + name, text)
+        _, result = ti.authenticity(self.fx.root, tests=[path])
+        self.assertEqual(result["inspected"]["files"], 1)
+        return flagged_files(result)
+
+    def test_doc_pin_reading_a_path_chain_is_source(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "DOC = ROOT / \"commands\" / \"implement-story.md\"\n"
+            "def test_pin():\n"
+            "    assert 'Implement' in DOC.read_text(encoding='utf-8')\n"
+        )
+        self.assertEqual(self._flagged("test_pin_chain.py", text), set())
+
+    def test_doc_pin_reading_a_path_literal_is_source(self) -> None:
+        text = (
+            "def test_pin():\n"
+            "    with open('commands/implement-story.md', encoding='utf-8') as fh:\n"
+            "        assert 'Implement' in fh.read()\n"
+        )
+        self.assertEqual(self._flagged("test_pin_literal.py", text), set())
+
+    def test_single_segment_after_a_path_operator_is_source(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "def test_pin():\n"
+            "    assert (ROOT / 'README.md').read_bytes()\n"
+        )
+        self.assertEqual(self._flagged("test_pin_single.py", text), set())
+
+    def test_reading_a_fixture_under_the_test_dir_is_flagged(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "FIXTURE = Path(__file__).parent / \"fixtures\" / \"sample.md\"\n"
+            "def test_it():\n"
+            "    assert FIXTURE.read_text()\n"
+        )
+        self.assertEqual(
+            self._flagged("test_fixture_read.py", text),
+            {"scripts/tests/test_fixture_read.py"},
+        )
+
+    def test_reading_a_nonexistent_path_is_flagged(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "def test_it():\n"
+            "    assert (ROOT / 'commands' / 'missing.md').read_text()\n"
+        )
+        self.assertEqual(
+            self._flagged("test_missing_read.py", text),
+            {"scripts/tests/test_missing_read.py"},
+        )
+
+    def test_naming_a_file_without_reading_it_is_flagged(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "DOC = ROOT / 'commands' / 'implement-story.md'\n"
+            "def test_it():\n"
+            "    assert DOC.name.endswith('.md')\n"
+        )
+        self.assertEqual(
+            self._flagged("test_named_only.py", text),
+            {"scripts/tests/test_named_only.py"},
+        )
+
+    def test_reading_a_writ_state_file_is_flagged(self) -> None:
+        text = (
+            "from pathlib import Path\n"
+            "ROOT = Path(__file__).resolve().parents[2]\n"
+            "def test_it():\n"
+            "    assert (ROOT / '.writ' / 'state' / 'run.json').read_text()\n"
+        )
+        self.assertEqual(
+            self._flagged("test_state_read.py", text),
+            {"scripts/tests/test_state_read.py"},
+        )
+
+    def test_bare_filename_in_an_assertion_does_not_count(self) -> None:
+        # "README.md" exists at the root, but here it is asserted text, not a
+        # path the test reads; the only file read is a fixture.
+        text = (
+            "from pathlib import Path\n"
+            "FIXTURE = Path(__file__).parent / 'fixtures' / 'sample.md'\n"
+            "def test_it():\n"
+            "    assert 'README.md' not in FIXTURE.read_text()\n"
+        )
+        self.assertEqual(
+            self._flagged("test_bare_name.py", text),
+            {"scripts/tests/test_bare_name.py"},
+        )
+
+    def test_from_namespace_package_import_module_is_source(self) -> None:
+        # `scripts/` has no __init__.py: the module is `scripts.tool`, named
+        # by the `from ... import` clause, not by the package alone.
+        text = (
+            "import sys\n"
+            "from pathlib import Path\n"
+            "sys.path.insert(0, str(Path(__file__).resolve().parents[2]))\n"
+            "from scripts import tool\n"
+        )
+        self.assertEqual(self._flagged("test_from_pkg.py", text), set())
+
+    def test_import_of_helper_that_runs_a_project_script_is_source(self) -> None:
+        self.fx.write("scripts/tests/harness.py", (
+            "import subprocess, sys\n"
+            "from pathlib import Path\n"
+            "SCRIPT = Path(__file__).resolve().parents[1] / 'tool.py'\n"
+            "def run():\n"
+            "    return subprocess.run([sys.executable, str(SCRIPT)])\n"
+        ))
+        text = "from harness import run\n\ndef test_it():\n    assert run()\n"
+        self.assertEqual(self._flagged("test_via_harness.py", text), set())
+
+    def test_import_of_helper_touching_no_source_is_flagged(self) -> None:
+        self.fx.write("scripts/tests/plain_helper.py", "def two():\n    return 2\n")
+        text = "from plain_helper import two\n\ndef test_it():\n    assert two() == 2\n"
+        self.assertEqual(
+            self._flagged("test_plain_helper.py", text),
+            {"scripts/tests/test_plain_helper.py"},
+        )
+
+    def test_cyclic_helper_imports_terminate_and_flag(self) -> None:
+        self.fx.write("scripts/tests/cyc_a.py", "import cyc_b\n")
+        self.fx.write("scripts/tests/cyc_b.py", "import cyc_a\n")
+        text = "import cyc_a\n\ndef test_it():\n    assert cyc_a\n"
+        self.assertEqual(
+            self._flagged("test_cycle.py", text), {"scripts/tests/test_cycle.py"}
+        )
+
+    def test_writ_doc_pin_and_repro_tests_are_not_flagged(self) -> None:
+        repo = HELPER_PATH.parent.parent
+        names = (
+            "test_claude_code_adapter_claims.py",
+            "test_gate_evidence_drift_citation_repro.py",
+            "test_ship_suite_claim_repro.py",
+            "test_story_gate_respawn_repro.py",
+        )
+        tests = [repo / "scripts" / "tests" / name for name in names]
+        code, result = ti.authenticity(repo, tests=tests)
+        self.assertEqual(flagged_files(result), set())
+        self.assertEqual(result["inspected"]["files"], 4)
+        self.assertEqual(code, 0)
