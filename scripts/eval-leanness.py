@@ -1171,7 +1171,11 @@ def compute_metrics(root: str) -> tuple[dict, list[dict]]:
     story_context_bytes = sum(story_context_components(root).values())
 
     metrics = {
-        "commands": len(surface_files(root, SURFACE_BY_NAME["commands"])),
+        # 2026-11-07 (2026-11-06-lean-implement-phase Story 3): the count, and
+        # so MAX_COMMANDS, covers invocable commands only. Underscore files
+        # (`_preamble.md`, `_lane-brief.md`) are shared partials and templates,
+        # excluded by is_infra(); their bytes still count in per_surface.
+        "commands": len(command_names(root)),
         "agents": len(surface_files(root, SURFACE_BY_NAME["agents"])),
         "skills": len(surface_files(root, SURFACE_BY_NAME["skills"])),
         "command_lines": per_surface["commands"]["lines"],

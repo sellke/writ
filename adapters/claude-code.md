@@ -306,14 +306,17 @@ native subagents and git worktrees:
 - **Isolated worktree.** The orchestrator runs `scripts/phase-state.py create-lane`
   to create the lane branch `writ/phase/{phase-id}/{spec-id}` and an
   isolated worktree from the phase-branch head. The subagent works only inside
-  that worktree; the primary checkout is untouched during lane work.
+  that worktree; the primary checkout is untouched during lane work, apart
+  from the result file named in the brief.
 - **Fresh context.** Dispatch the spec to a native subagent seeded only with
   artifact paths (spec path, phase-state path, lane branch/worktree, mode) —
   **no prior conversational transcript** is forwarded. Claude Code subagents
   already start with clean context; do not replay the parent transcript.
 - **Run identifier.** Record the subagent invocation ID as `agentRunId`.
-- **Structured result.** The subagent returns a single `phase-spec-result-v1`
-  object; the parent validates it with `scripts/phase-state.py validate-result`
+- **Structured result.** The subagent writes a single `phase-spec-result-v1`
+  object to the result file named in its brief (`commands/_lane-brief.md`) and
+  replies with the path; the parent validates that file with
+  `scripts/phase-state.py validate-result --input`
   and merges only a verified success into the phase branch.
 
 ### Quarantine and Resume

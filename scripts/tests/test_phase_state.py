@@ -661,5 +661,182 @@ class HealthCallSitesPassOnlyProducedSources(unittest.TestCase):
         self.assertIn("not_requested", text)
 
 
+
+VALID_RESULT = {
+    "spec_id": "a", "status": "succeeded", "stories_completed": 1,
+    "stories_total": 1,
+    "verification": {"summary": "green", "evidence": ["pytest -> 3 passed"]},
+    "files_changed": ["b.txt"], "commit": "0" * 40, "failure": None,
+    "challenge": None,
+}
+
+
+class LaneResultFileTests(unittest.TestCase):
+    """2026-11-06-lean-implement-phase Story 3: `create-lane` names the file a
+    lane writes its `phase-spec-result-v1` to, under the main checkout's
+    `.writ/state/` so it outlives the lane worktree (AC-3.1), and
+    `validate-result --input` reads that file, naming a missing or unparseable
+    one so the orchestrator can resume the lane once (AC-3.3)."""
+
+    def setUp(self) -> None:
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
+        for args in (("init", "-q"), ("config", "user.email", "t@writ.test"),
+                     ("config", "user.name", "Writ Test"),
+                     ("checkout", "-q", "-b", "phase/6")):
+            self._git(*args)
+        (self.repo / "b.txt").write_text("b\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base")
+        self.state = self.tmp / "state.json"
+        code, _ = run_cli("init", "--state", str(self.state), "--repo", str(self.repo),
+                          "--phase", "6", "--phase-branch", "phase/6",
+                          "--spec-order", "a,b")
+        self.assertEqual(code, 0)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _git(self, *args: str) -> None:
+        import subprocess
+        subprocess.run(["git", "-C", str(self.repo), *args],
+                       capture_output=True, text=True, check=True)
+
+    def _create_lane(self, spec: str = "a") -> tuple[int, dict]:
+        return run_cli("create-lane", "--state", str(self.state), "--repo", str(self.repo),
+                       "--spec", spec, "--worktree-root", str(self.tmp / "lanes"))
+
+    def _expected_path(self, spec: str = "a") -> Path:
+        return self.repo.resolve() / ".writ" / "state" / f"lane-result-6-{spec}.json"
+
+    def test_create_lane_records_result_path_in_main_checkout_state(self) -> None:
+        """AC-3.1: resultPath is absolute, under the main checkout's
+        .writ/state/, named lane-result-<phase>-<spec>.json, and not inside
+        the lane worktree."""
+        code, out = self._create_lane()
+        self.assertEqual(code, 0, out)
+        record = json.loads(self.state.read_text(encoding="utf-8"))["specs"]["a"]
+        result_path = Path(record["resultPath"])
+        self.assertTrue(result_path.is_absolute())
+        self.assertEqual(result_path, self._expected_path())
+        self.assertNotIn(str(Path(record["worktreePath"])), str(result_path))
+        self.assertEqual(out["resultPath"], record["resultPath"])
+
+    def test_create_lane_names_one_result_file_per_spec(self) -> None:
+        """AC-3.1: each spec's lane gets its own file."""
+        self._create_lane("a")
+        self._create_lane("b")
+        specs = json.loads(self.state.read_text(encoding="utf-8"))["specs"]
+        self.assertEqual(Path(specs["b"]["resultPath"]), self._expected_path("b"))
+        self.assertNotEqual(specs["a"]["resultPath"], specs["b"]["resultPath"])
+
+    def test_resume_candidate_reports_the_recorded_result_path(self) -> None:
+        """AC-3.1: a resumed lane is told the same file to write."""
+        _, first = self._create_lane()
+        code, again = self._create_lane()
+        self.assertEqual(code, 0, again)
+        self.assertEqual(again["status"], "resume_candidate")
+        self.assertEqual(again["resultPath"], first["resultPath"])
+
+    def test_validate_result_reads_the_lane_result_file(self) -> None:
+        """AC-3.3: the orchestrator validates the file at resultPath."""
+        _, lane = self._create_lane()
+        path = Path(lane["resultPath"])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(VALID_RESULT), encoding="utf-8")
+        code, out = run_cli("validate-result", "--input", str(path))
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out, {"schema": "phase-spec-result-v1",
+                               "status": "succeeded", "verified": True})
+
+    def test_missing_result_file_is_a_result_missing_blocker(self) -> None:
+        """AC-3.3: a lane that never wrote its file gets a named blocker, not a
+        traceback, so the orchestrator resumes the lane once."""
+        _, lane = self._create_lane()
+        code, out = run_cli("validate-result", "--input", lane["resultPath"])
+        self.assertEqual(code, 1)
+        self.assertEqual(out["blocker"]["code"], "result_missing")
+        self.assertIn(lane["resultPath"], out["blocker"]["summary"])
+
+    def test_unparseable_result_file_is_an_invalid_result_blocker(self) -> None:
+        """AC-3.3: a file that is not JSON, or JSON that is not an object, does
+        not parse as phase-spec-result-v1."""
+        path = self.tmp / "lane-result-6-a.json"
+        for text in ('{"spec_id": "a", "status": "succ', "[1, 2]"):
+            path.write_text(text, encoding="utf-8")
+            code, out = run_cli("validate-result", "--input", str(path))
+            self.assertEqual(code, 1, text)
+            self.assertEqual(out["blocker"]["code"], "invalid_result", text)
+
+
+def _section(text: str, start: str, end: str) -> str:
+    begin = text.index(start)
+    return text[begin:text.index(end, begin + len(start))]
+
+
+class LaneBriefTemplateTests(unittest.TestCase):
+    """2026-11-06-lean-implement-phase Story 3: the lane brief is a shipped
+    template, the lane writes its result to `{result_path}` before replying,
+    and the orchestrator validates that file (AC-3.2, AC-3.3)."""
+
+    PLACEHOLDERS = ("{spec_path}", "{phase_state}", "{lane_branch}", "{worktree}",
+                    "{mode}", "{result_path}", "{answer_sources}")
+
+    def setUp(self) -> None:
+        commands = REPO_ROOT / "commands"
+        self.brief = (commands / "_lane-brief.md").read_text(encoding="utf-8")
+        phase = (commands / "implement-phase.md").read_text(encoding="utf-8")
+        self.step = _section(phase, "#### Step 3.2:", "#### Step 3.2b:")
+        spec = (commands / "implement-spec.md").read_text(encoding="utf-8")
+        self.lane_mode = _section(spec, "## Phase-Orchestrated Lane Mode", "## Resume Support")
+
+    def test_template_names_every_placeholder(self) -> None:
+        """AC-3.2: spec path, phase state, lane branch, worktree, mode, result
+        path and answer sources."""
+        for placeholder in self.PLACEHOLDERS:
+            self.assertIn(placeholder, self.brief)
+
+    def test_template_writes_the_result_file_before_replying(self) -> None:
+        """AC-3.2: the lane writes phase-spec-result-v1 JSON to {result_path}
+        as its last action, then replies with the path."""
+        self.assertIn("phase-spec-result-v1", self.brief)
+        write = self.brief.index("write")
+        self.assertLess(write, self.brief.index("reply"))
+        self.assertIn("last action", self.brief)
+
+    def test_template_is_shorter_than_the_brief_it_replaces(self) -> None:
+        """AC-3.2: Phase 15's first brief was 2,962 characters and grew to
+        6,323; the template stays under the starting size."""
+        self.assertLess(len(self.brief), 2962)
+
+    def test_step_3_2_fills_the_template_and_validates_the_file(self) -> None:
+        """AC-3.2: Step 3.2 fills the template, validates {result_path}, and
+        hands the supervisor the file path, not a pasted report."""
+        self.assertIn("(_lane-brief.md)", self.step)
+        self.assertIn("validate-result --input {result_path}", self.step)
+        supervise = _section(self.step, "**Supervise the result**", "4. **")
+        self.assertIn("{result_path}", supervise)
+        self.assertNotIn("report verbatim", supervise)
+
+    def test_step_3_2_resumes_once_then_classifies_transient(self) -> None:
+        """AC-3.3: a missing or unparseable file → resume the same lane agent
+        once to write it → a second miss is classified transient. The
+        truncated-result paragraph is gone."""
+        self.assertIn("result_missing", self.step)
+        self.assertIn("resume the same lane agent once", self.step)
+        self.assertIn("`transient`", self.step)
+        self.assertNotIn("A truncated or dropped result", self.step)
+        self.assertNotIn("restate its report verbatim", self.step)
+
+    def test_lane_mode_writes_the_result_file_before_replying(self) -> None:
+        """AC-3.2: implement-spec's lane mode cites the template and writes
+        the result to {result_path} before it replies."""
+        self.assertIn("(_lane-brief.md)", self.lane_mode)
+        self.assertIn("{result_path}", self.lane_mode)
+        self.assertIn("before", self.lane_mode[self.lane_mode.index("{result_path}"):])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -658,7 +658,13 @@ KNOWN_OVER_BUDGET = {
     # 2026-11-07 (2026-11-06-lean-implement-phase Story 2): 10297 -> 9825 (file
     # 35257 -> 34785); Step 1.4 Goal emit removed (only /create-goal emits), and
     # Step 4.1c passes only the health sources the phase produced.
-    "commands/implement-phase.md": 9825,
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 3): 9825 -> 10119 (file
+    # 34785 -> 35079); Step 3.2 fills the shipped brief commands/_lane-brief.md,
+    # validates the lane's result file, hands the supervisor its contents, and
+    # resumes the lane once, then classifies `transient`, when the file is
+    # missing; the truncated-result paragraph is gone. The template itself is
+    # an underscore partial, outside the command budget.
+    "commands/implement-phase.md": 10119,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.

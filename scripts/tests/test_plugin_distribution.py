@@ -336,7 +336,9 @@ def split_frontmatter(text: str) -> Tuple[str, str]:
 
 
 def command_names(root: Path) -> List[str]:
-    return sorted(p.stem for p in (root / "commands").glob("*.md") if p.stem != "_preamble")
+    """Every command stem but the underscore partials (`_preamble`,
+    `_lane-brief`), which ship beside the commands and never register."""
+    return sorted(p.stem for p in (root / "commands").glob("*.md") if not p.stem.startswith("_"))
 
 
 def ship_filter() -> str:
@@ -428,11 +430,13 @@ class TestPluginManifest:
 
     def test_commands_list_every_command_but_the_preamble(self, rendered):
         """V02, V11: the `commands` key replaces the default scan, so listing
-        every command but `_preamble.md` keeps `/writ:_preamble` from
-        registering while the preamble file still ships."""
+        every command but the underscore partials keeps `/writ:_preamble`
+        and `/writ:_lane-brief` from registering while both files still ship."""
         manifest = load_json(rendered.out / MANIFEST_REL)
         assert manifest["commands"] == ["./commands/%s.md" % n for n in command_names(REPO_ROOT)]
-        assert len(manifest["commands"]) == len(list((REPO_ROOT / "commands").glob("*.md"))) - 1
+        partials = [p for p in (REPO_ROOT / "commands").glob("_*.md")]
+        assert {p.name for p in partials} >= {"_preamble.md", "_lane-brief.md"}
+        assert len(manifest["commands"]) == len(list((REPO_ROOT / "commands").glob("*.md"))) - len(partials)
         for rel in manifest["commands"]:
             assert (rendered.plugin / rel).is_file(), rel
         assert (rendered.plugin / "commands" / "_preamble.md").is_file()
@@ -593,7 +597,7 @@ AGENT_SPAWN = re.compile(r"(?:^|[^a-z0-9_:/.-])writ-(%s)\b(?!\.md)" % "|".join(C
 PLUGIN_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)")
 NAMESPACED = re.compile(r"(?<![A-Za-z0-9_./-])/writ:([a-z][a-z0-9-]*)")
 RELATIVE_LINK = re.compile(
-    r"\]\((?:\.\./(?:scripts|agents|skills|commands)/|\.\./system-instructions\.md|_preamble\.md)")
+    r"\]\((?:\.\./(?:scripts|agents|skills|commands)/|\.\./system-instructions\.md|_[a-z0-9-]+\.md)")
 PROJECT_DOC = re.compile(r"\.writ/docs/[a-z0-9_.-]+")
 
 
@@ -606,12 +610,14 @@ def unnamespaced_command(names: List[str]) -> re.Pattern:
 
 def normalize(text: str) -> str:
     """Undo the inventory rewrites: the plugin root prefix and the command
-    namespace go, and the relative and preamble forms take one spelling."""
+    namespace go, and the relative and partial (`_preamble.md`,
+    `_lane-brief.md`) forms take one spelling."""
     text = text.replace(ROOT_VAR + "/", "").replace("/writ:", "/")
-    for rel in ("scripts/", "agents/", "skills/", "commands/_preamble.md", "system-instructions.md"):
+    for rel in ("scripts/", "agents/", "skills/", "system-instructions.md"):
         text = text.replace("../" + rel, rel)
-    text = text.replace("(_preamble.md)", "(commands/_preamble.md)")
-    return text.replace("`_preamble.md`", "`commands/_preamble.md`")
+    text = re.sub(r"\.\./commands/(_[a-z0-9-]+\.md)", r"commands/\1", text)
+    text = re.sub(r"\((_[a-z0-9-]+\.md)\)", r"(commands/\1)", text)
+    return re.sub(r"`(_[a-z0-9-]+\.md)`", r"`commands/\1`", text)
 
 
 class TestPluginTree:

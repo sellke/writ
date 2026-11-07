@@ -200,8 +200,10 @@ Task subagents and git worktrees:
   mode) — **no prior conversational transcript** is forwarded. The subagent loads
   what it needs from repository artifacts by path.
 - **Run identifier.** Record the Task subagent's ID as `agentRunId` in phase state.
-- **Structured result.** The subagent returns a single `phase-spec-result-v1`
-  object; the parent validates it with `scripts/phase-state.py validate-result` and
+- **Structured result.** The subagent writes a single `phase-spec-result-v1`
+  object to the result file named in its brief (`commands/_lane-brief.md`) and
+  replies with the path; the parent validates that file with
+  `scripts/phase-state.py validate-result --input` and
   merges only a verified success back into the phase branch.
 
 ### Quarantine and Resume

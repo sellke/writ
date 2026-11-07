@@ -47,3 +47,36 @@
 - **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: `--drift` repeats, with the aggregation rule.
 
 ---
+
+## Story 3: Lane result file and shipped brief template — Drift Report
+
+> Run: 2026-11-07
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-004] ⚠️ `commands` leanness metric counts invocable commands only
+- **Severity:** Medium
+- **Spec said:** Nothing; the spec does not mention `scripts/eval-leanness.py` or `MAX_COMMANDS`.
+- **Implementation did:** `compute_metrics` counts non-underscore command files, so `_preamble.md` and `_lane-brief.md` no longer count against `MAX_COMMANDS = 35` (count 34); their bytes still count in `per_surface`. `test_eval_leanness.sh` pins the new rule.
+- **Reason:** The spec-mandated `commands/_lane-brief.md` took the count to 36 and failed `test_the_real_roster_is_under_the_cap_with_headroom`. The maintainer chose this option over moving the template or raising the cap (AskQuestion, 2026-11-07).
+- **Resolution:** ⚠️ Logged (Medium), PASS. Maintainer-approved.
+- **Spec amendment:** None.
+
+#### [DEV-005] Plugin generator excludes every underscore partial, not a listed one
+- **Severity:** Small
+- **Spec said:** technical-spec.md → Lane result file: "If either skips underscore files other than `_preamble.md`, add it to their lists in this story."
+- **Implementation did:** `gen-platform-trees.py` uses `is_partial(stem)` (any `_` prefix) for the plugin manifest filter and the link rewrite; `test_plugin_distribution.py` helpers match.
+- **Reason:** Same intent as a list entry, as a rule; a future partial needs no generator edit.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: every underscore file in `commands/` is a partial.
+
+#### [DEV-006] `validate-result` gains `result_missing` and `invalid_result` blocker codes
+- **Severity:** Small
+- **Spec said:** "`validate-result --input` already takes a path; no new subcommand." No blocker named for a missing file.
+- **Implementation did:** No new subcommand. A missing file returns blocker `result_missing`; non-JSON or a non-object returns `invalid_result` (previously a traceback).
+- **Reason:** Makes Step 3.2's resume-once branch detectable by code.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: the two blocker codes.
+
+---

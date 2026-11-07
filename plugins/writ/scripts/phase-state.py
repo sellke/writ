@@ -215,7 +215,8 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
         # ambiguous and we must stop rather than clobber someone's branch.
         if record.get("laneBranch") == lane_branch and record.get("status") == "implementing":
             return {"status": "resume_candidate", "laneBranch": lane_branch,
-                    "worktreePath": record.get("worktreePath")}
+                    "worktreePath": record.get("worktreePath"),
+                    "resultPath": record.get("resultPath")}
         raise ContractError(
             "lane_collision",
             f"branch {lane_branch} already exists without matching live state",
@@ -226,6 +227,11 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
     )
     worktree_root.mkdir(parents=True, exist_ok=True)
     worktree_path = worktree_root / args.spec
+    # The lane writes its phase-spec-result-v1 here. It sits in the main
+    # checkout, outside the worktree, so it survives worktree removal after a
+    # merge or a quarantine.
+    result_path = repo.resolve() / ".writ" / "state" / \
+        f"lane-result-{state['phase']}-{args.spec}.json"
 
     _git(repo, "worktree", "add", "-b", lane_branch, str(worktree_path), phase_branch)
 
@@ -234,11 +240,13 @@ def cmd_create_lane(args: argparse.Namespace) -> dict[str, Any]:
         "attempts": record.get("attempts", 0) + 1,
         "laneBranch": lane_branch,
         "worktreePath": str(worktree_path),
+        "resultPath": str(result_path),
     })
     state["updatedAt"] = _now()
     _atomic_write(state_path, state)
     return {"status": "lane_created", "laneBranch": lane_branch,
-            "worktreePath": str(worktree_path), "base": phase_branch}
+            "worktreePath": str(worktree_path), "resultPath": str(result_path),
+            "base": phase_branch}
 
 
 def validate_result(payload: dict[str, Any]) -> dict[str, Any]:
@@ -276,7 +284,17 @@ def validate_result(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def cmd_validate_result(args: argparse.Namespace) -> dict[str, Any]:
-    payload = json.loads(Path(args.input).read_text(encoding="utf-8"))
+    # A missing or unparseable lane result file is a named blocker, not a
+    # traceback: the orchestrator resumes the lane once to write it.
+    path = Path(args.input)
+    if not path.is_file():
+        raise ContractError("result_missing", f"no lane result file at {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ContractError("invalid_result", f"lane result is not valid JSON: {exc}")
+    if not isinstance(payload, dict):
+        raise ContractError("invalid_result", "result must be a JSON object")
     if payload.get("status") == "challenge_required":
         validate_challenge(payload.get("challenge"))
     return validate_result(payload)

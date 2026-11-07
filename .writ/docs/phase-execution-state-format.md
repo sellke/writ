@@ -41,6 +41,7 @@ Later Phase 6 stories extend this schema:
       "attempts": 1,
       "laneBranch": "writ/phase/6/spec-a",
       "worktreePath": "/abs/path/.writ-lanes-6/spec-a",
+      "resultPath": "/abs/path/repo/.writ/state/lane-result-6-spec-a.json",
       "agentRunId": null,
       "mergeCommit": null,
       "quarantineBranch": null,
@@ -68,6 +69,7 @@ Later Phase 6 stories extend this schema:
 | `specs.{id}.attempts` | Incremented on each lane launch; Story 4 bounds retries against it. |
 | `specs.{id}.laneBranch` | The active lane branch `writ/phase/{phase}/{spec}`. |
 | `specs.{id}.worktreePath` | The isolated worktree path while active; nulled after a successful merge removes it. |
+| `specs.{id}.resultPath` | Written by `create-lane`: the absolute path `<repo>/.writ/state/lane-result-<phase>-<spec>.json` in the main checkout, outside the lane worktree, so it survives worktree removal after a merge or quarantine. The lane writes its `phase-spec-result-v1` there; the orchestrator runs `validate-result --input` on it. A state file written before the field has none. |
 | `specs.{id}.agentRunId` | The platform-native fresh-subagent run identifier when available. |
 | `specs.{id}.mergeCommit` | The no-ff merge commit recorded on a verified success. |
 | `specs.{id}.evidence` | Verification evidence strings copied from the structured result. |
@@ -143,10 +145,14 @@ spec_path: repo-relative path
 phase_state_path: repo-relative path
 lane_branch: string
 lane_worktree: path
+result_path: absolute path        # specs.{id}.resultPath
 mode: standard | quick
 inherited_answer_sources: [roadmap, spec contract, technical spec, story files]
 expected_result_schema: phase-spec-result-v1
 ```
+
+`commands/_lane-brief.md` is the shipped brief that carries this payload. The lane
+writes its result to `result_path` as its last action and replies with the path.
 
 ### `phase-spec-result-v1`
 
@@ -164,7 +170,9 @@ challenge: object | null         # required when challenge_required (Story 3)
 
 `scripts/phase-state.py validate-result` is the authoritative validator. A
 `succeeded` result without a commit or without verification evidence is rejected as
-`invalid_result` and treated as a preserved (non-merged) lane.
+`invalid_result` and treated as a preserved (non-merged) lane. Given a path with
+no file, it reports `result_missing`; a file that is not a JSON object reports
+`invalid_result`.
 
 ## User Challenges (D5 — Story 3)
 

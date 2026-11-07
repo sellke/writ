@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-07T22:00:00Z
+> Last Updated: 2026-11-07T23:30:00Z
 
 ## Product Mission
 
@@ -9,9 +9,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-06-lean-implement-phase — Lean Implement Phase (branch `spec/lean-implement-phase`, worktree `.claude/worktrees/lean-implement-phase`)
-- **Status:** In Progress — 2/4 stories
-- **Story:** 2 of 4 complete (UAT on request; health given sources); next Story 3
-- **Progress:** 12/24 tasks complete
+- **Status:** In Progress — 3/4 stories
+- **Story:** 3 of 4 complete (UAT on request; health given sources; lane result file); next Story 4
+- **Progress:** 18/24 tasks complete
 
 ## Artifact Map
 
@@ -23,8 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-003 `--drift` repeatable with an unstated aggregation rule — lean-implement-phase (Small)
-- DEV-002 Handoff lines printed per merged spec — lean-implement-phase (Small)
+- DEV-006 `validate-result` gains `result_missing` / `invalid_result` — lean-implement-phase (Small)
+- DEV-005 Plugin generator treats every underscore file as a partial — lean-implement-phase (Small)
+- DEV-004 ⚠️ Leanness `commands` metric counts invocable commands only — lean-implement-phase (Medium)
 
 ## Open Issues
 
