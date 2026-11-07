@@ -1,6 +1,7 @@
 # Story 4: Targeted-test ownership
 
 > **Status:** Completed ✅ (2026-11-07)
+> **Commit:** ba4df922206c2721c7d5cde845a22606c44473fa
 > **Priority:** Medium
 > **Dependencies:** Story 3
 
