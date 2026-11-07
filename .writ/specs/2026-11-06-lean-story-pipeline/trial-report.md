@@ -55,7 +55,7 @@ The lean-story-tasks trial already screened the other archived specs with 3 or f
 
 ## Limits
 
-- **Sample size: one spec, two stories, one run per arm.** Model variance alone could explain the Story 1 difference between a Large-drift PAUSE and a Major FAIL. The trial can show a regression; it cannot prove an improvement.
+- **Sample size: one spec, two stories, one run per arm.** Model variance alone could explain the Story 1 difference between a Large-drift PAUSE and a Critical FAIL. The trial can show a regression; it cannot prove an improvement.
 - The Story 2 difference is mechanical: `arm-after`'s runner leaves shell tests out of the authenticity input. A rerun would most likely give the same result.
 - Both arms ran at the same time on the same account; neither run was retried.
 - `arm-before`'s Story 2 ran on a tree that still held Story 1's uncommitted, paused work; `arm-after`'s Story 2 ran on a committed Story 1.

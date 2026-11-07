@@ -262,3 +262,33 @@
 - Gate 3 iteration 2: FAIL — tail check lane-only, verdict rule rejected `--quick`/PAUSE records (Major ×2, confirmed row 7). Recoded in `f20108e`.
 - Gate 3 iteration 3: PASS. Advisory Minor: in a lane, a non-last story without a Commit line gets `<end>` = `{head_ref}` and a spurious RERUN.
 
+---
+
+## Story 6: Before/after pipeline trial — Drift Report
+
+> Run: 2026-11-07
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-024] ⚠️ Full-suite escaped-defect check replaced
+- **Severity:** Medium
+- **Spec said:** technical-spec.md → Trial procedure step 4: escapes are checked by a post-run read against the known defect and a full-suite run on each arm.
+- **Implementation did:** No full suite ran on either arm. Each arm was checked with a replay of the planted data-loss defect plus its story and regression bash tests.
+- **Reason:** Each arm mixes an August 2026 tree with an overlay of today's pipeline scripts, so suite failures would come from the mix, not from the stories. Disclosed in `trial-report.md` → Limits.
+- **Resolution:** ⚠️ Warned (Medium).
+- **Spec amendment:** None.
+
+#### [DEV-025] ⚠️ The orchestrator ran the trial and wrote Story 6's files, not a Gate 1 coding agent
+- **Severity:** Medium
+- **Spec said:** `/implement-story` Gate 1 spawns the coding agent for the story's tasks.
+- **Implementation did:** The orchestrator built the arms, launched the two headless `claude -p` runs under the permission bypass the maintainer approved for this trial, measured them, and wrote `trial-report.md` and its test. Gate 3, post-review, and the supervisor ran as usual.
+- **Reason:** The trial's work is launching and measuring headless sessions under a maintainer-approved permission mode, which the orchestrator holds. Gate 3 iteration 1 caught two wrong measure rows in the orchestrator's report (confirmed, row 7); iteration 2 passed.
+- **Resolution:** ⚠️ Warned (Medium). Retro F6 pattern, disclosed.
+- **Spec amendment:** None.
+
+### Gate record
+
+- Gate 3 iteration 1: `evaluator-agent` FAIL — token row summed one of three result events and reversed the comparison; gate row omitted two post-review failures (both Major, confirmed row 7). Fixed in `dcac507` with both repros committed unchanged.
+- Gate 3 iteration 2: PASS.
+
