@@ -413,6 +413,34 @@ class PostReviewRecordTests(GateTestCase):
         self.assertIn("tests/test_a.py", auth)
         self.assertNotIn("src/a.py", auth)
 
+    def test_authenticity_gets_only_supported_stack_tests(self) -> None:
+        """test-integrity.py authenticity has no shell handler (quality-signal-
+        classification.md stack matrix), so shell tests stay out of its input and
+        the check's reason line counts them."""
+        (self.repo.root / "tests" / "test_b.sh").write_text("bash x\n", encoding="utf-8")
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        auth = next(a for n, a in self.repo.calls()
+                    if n == "test-integrity.py" and a[0] == "authenticity")
+        self.assertIn("tests/test_a.py", auth)
+        self.assertNotIn("tests/test_b.sh", auth)
+        self.assertEqual(line_for(result.stdout, "gate4_authenticity"),
+                         "check: gate4_authenticity pass "
+                         "(skipped 1 shell test(s): unsupported_stack)")
+
+    def test_authenticity_skips_when_every_test_is_shell(self) -> None:
+        """Only shell tests changed: the check is skip, and authenticity never runs."""
+        self.repo.base = git(self.repo.root, "rev-parse", "HEAD")
+        (self.repo.root / "tests" / "test_b.sh").write_text("bash x\n", encoding="utf-8")
+        (self.repo.root / "tests" / "test_c.bash").write_text("bash y\n", encoding="utf-8")
+        review = self.repo.review(REVIEW_PASS)
+        result = self.repo.run("--review-output", str(review), phase="post-review")
+        self.assertEqual(line_for(result.stdout, "gate4_authenticity"),
+                         "check: gate4_authenticity skip "
+                         "(skipped 2 shell test(s): unsupported_stack)")
+        self.assertFalse(any(n == "test-integrity.py" and a[0] == "authenticity"
+                             for n, a in self.repo.calls()))
+
     def test_parallel_stories_write_separate_records(self) -> None:
         """Interaction edge case: two stories in one batch never share a file."""
         review = self.repo.review(REVIEW_PASS)
