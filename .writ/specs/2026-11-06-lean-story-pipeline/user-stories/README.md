@@ -1,6 +1,6 @@
 # User Stories: Lean Story Pipeline
 
-> Spec: [../spec.md](../spec.md) · Progress: 4/6 stories (67%)
+> Spec: [../spec.md](../spec.md) · Progress: 5/6 stories (83%)
 
 | # | Story | Status | Tasks | AC | Dependencies |
 |---|---|---|---|---|---|
@@ -8,7 +8,7 @@
 | 2 | [Demote gates with no recorded catch](story-2-demote-unproven-gates.md) | Completed ✅ | 6/6 | 5 | Story 1 |
 | 3 | [story-gate.py runner](story-3-story-gate-runner.md) | Completed ✅ | 7/7 | 5 | Story 2 |
 | 4 | [Targeted-test ownership](story-4-targeted-test-ownership.md) | Completed ✅ | 7/7 | 4 | Story 3 |
-| 5 | [Supervisor reads the story-gate record](story-5-supervisor-reads-record.md) | Not Started | 0/7 | 5 | Story 3 |
+| 5 | [Supervisor reads the story-gate record](story-5-supervisor-reads-record.md) | Completed ✅ | 7/7 | 5 | Story 3 |
 | 6 | [Before/after pipeline trial](story-6-lean-pipeline-trial.md) | Not Started | 0/7 | 5 | Story 4, Story 5 |
 
 ## Dependencies

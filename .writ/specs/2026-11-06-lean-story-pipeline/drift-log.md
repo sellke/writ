@@ -215,3 +215,50 @@
 - Gate 3 iteration 2: `review-agent` PASS.
 - Open maintainer question (outside this spec): a standalone `/implement-story` followed by plain `/ship` never runs the full suite; either `/ship` runs tests by default or the story report tells the user to run `/ship --test`.
 
+---
+
+## Story 5: Supervisor reads the story-gate record — Drift Report
+
+> Run: 2026-11-07
+> Overall Drift: Medium
+
+### Deviations
+
+#### [DEV-020] ⚠️ Parallel batches run one after another in one working tree
+- **Severity:** Medium
+- **Spec said:** The `implement-spec.md` cuts were Step 2.3, the Step 3.3 regeneration bullet, and the record pass-through; parallel batches ran concurrently.
+- **Implementation did:** Step 3.2 runs a parallel batch's stories one after another in one working tree; concurrency only across worktrees (`/implement-phase` lanes). Platform note removed; `adapters/claude-code.md` and `adapters/codex.md` reworded; technical-spec Interaction Edge Cases rows merged.
+- **Reason:** Gate 3 iteration 1 found that concurrent stories in one tree interleave commits and dirty each other's records, so the supervisor would fail them at random. Maintainer chose "Serialize in one tree".
+- **Resolution:** ⚠️ Warned (Medium). Maintainer decision.
+- **Spec amendment:** None (technical-spec.md Interaction Edge Cases already records it).
+
+#### [DEV-021] ⚠️ Supervisor rules beyond the technical spec's four
+- **Severity:** Medium
+- **Spec said:** technical-spec.md Supervisor change: missing record, head ≠ last code commit in `base..head`, dirty, disagreeing claims.
+- **Implementation did:** The head rule is "no code commit after the record" bounded by each story's `> **Commit:**` SHA; a tail check for every story (code after the last Commit SHA → ESCALATE); lane records resolved in the lane worktree via `git worktree list --porcelain`; a verdict rule (`verdict: fail` or `gate3.verdict: FAIL` → RERUN; no-`gate3` and PAUSE records judged on `verdict`), with a false-positive exception that needs the check id and the maintainer's BLOCKED answer and is unavailable in lanes; ESCALATE precedence.
+- **Reason:** The technical spec's single-range head rule broke every multi-story lane (Gate 3 iteration 1, two Critical findings, confirmed); iteration 2 found a missed tail and `--quick`/PAUSE false rejections (two Majors, confirmed). Each was recoded with its repro committed unchanged.
+- **Resolution:** ⚠️ Warned (Medium). Follow-up: bring technical-spec.md → Supervisor change up to date.
+- **Spec amendment:** None.
+
+#### [DEV-022] Stale wording outside Story 5's files
+- **Severity:** Small
+- **Spec said:** `implement-spec` no longer regenerates `.writ/context.md`; per-story tests no longer run at Gate 4.
+- **Implementation did:** `commands/implement-story.md` Step 4 item 3 still says "`implement-spec` and `status` regenerate the same schema"; exit criterion c3 (`commands/implement-spec.md`, `scripts/exit-criteria.py`, `.writ/docs/exit-criteria-classification.md`) still says "targeted per-story Gate 4 runs".
+- **Reason:** Wording only; the checker reads `postRun` fields. The c3 text is mirrored across three files and must change together.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: spec-end cleanup bullet.
+
+#### [DEV-023] ⚠️ Shipped checker change during Story 5: `test-integrity.py authenticity` credits Python doc-pin tests
+- **Severity:** Medium
+- **Spec said:** Story 5 changes the supervisor and `implement-spec.md`; `test-integrity.py` is outside this spec's files.
+- **Implementation did:** After Gate 3 iteration 3 passed, post-review failed row 2 on `test_claude_code_adapter_claims.py` (`test_imports_no_source`). Maintainer chose "Fix the extractor first". `cad5e27` credits a Python test that reads an existing project file it names by path (outside test dirs and `.writ/state/`), namespace-package imports, and helpers that touch source; `64af23a` stops crediting temp-dir path chains and documents the per-file read rule. Of 100 `scripts/tests/*.py`, flagged went from 20 to 2 (both true positives).
+- **Reason:** Writ's shipped code is mostly markdown, so its Python pin tests read files rather than import modules; the false positive blocked Gate 3 or Gate 4 four times in this spec (DEV-005, DEV-017, DEV-019, this one). Targeted review: PASS with two Minor gaps, both addressed in `64af23a`. The `story-gate.py` repro exclusion (DEV-019) is now redundant for Python repros that read or run source; it stays for repros that do neither.
+- **Resolution:** ⚠️ Warned (Medium). Maintainer-approved scope addition.
+- **Spec amendment:** None.
+
+### Gate record
+
+- Gate 3 iteration 1: `review-agent` FAIL — lane head rule and lane record path (Critical), parallel batches in one tree (Major); `story-gate.py` post-review confirmed (row 7). Maintainer: "Serialize in one tree". Recoded in `a078d1d`.
+- Gate 3 iteration 2: FAIL — tail check lane-only, verdict rule rejected `--quick`/PAUSE records (Major ×2, confirmed row 7). Recoded in `f20108e`.
+- Gate 3 iteration 3: PASS. Advisory Minor: in a lane, a non-last story without a Commit line gets `<end>` = `{head_ref}` and a spurious RERUN.
+

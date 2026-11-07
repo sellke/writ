@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-07T07:10:00Z
+> Last Updated: 2026-11-07T12:00:00Z
 
 ## Product Mission
 
@@ -10,8 +10,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 - **Spec:** 2026-11-06-lean-story-pipeline — Lean Story Pipeline (branch `spec/lean-story-pipeline`, worktree `.claude/worktrees/lean-story-pipeline`)
 - **Status:** In Progress — `/implement-spec` run started 2026-11-06T22:24:40Z
-- **Story:** 4 of 6 — Targeted-test ownership (Completed ✅); next: Story 5, supervisor reads the `story-gate` record
-- **Progress:** 26/40 tasks complete
+- **Story:** 5 of 6 — Supervisor reads the story-gate record (Completed ✅); next: Story 6, before/after trial
+- **Progress:** 33/40 tasks complete
 
 ## Artifact Map
 
@@ -23,9 +23,9 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 
 ## Recent Drift
 
-- DEV-019 Runner change during Story 4: ADR-032 repros left out of the authenticity input — lean-story-pipeline (Medium)
-- DEV-018 Standalone full-suite run named as `/ship --test`, not `/ship` — lean-story-pipeline (Small)
-- DEV-017 Gate 4 authenticity finding on the F2 repro recorded as a false positive — lean-story-pipeline (Medium)
+- DEV-023 Shipped checker change: `test-integrity.py` credits Python doc-pin tests — lean-story-pipeline (Medium)
+- DEV-021 Supervisor rules beyond the technical spec's four — lean-story-pipeline (Medium)
+- DEV-020 Parallel batches run one after another in one working tree — lean-story-pipeline (Medium)
 
 ## Open Issues
 
