@@ -134,21 +134,6 @@ For each specced feature, determine its actual state so `--resume` and re-runs s
 
 `uat-plan.md` never decides a skip. **`--resume --uat` on a run started without `--uat`** sets `uatRequested: true` in phase state from then on (temp file + rename), so item 3 covers the integrated specs that lack a plan. Skipped specs are reported as such.
 
-#### Step 1.4: Emit Goal files when origin is a Goal Card
-
-When a spec `Origin:` or issue `spec_ref` resolves to a Goal Card, emit paste-ready `/goal` files. Do not register a `/goal` hook, AskQuestion on emit notes, or change `/implement-story` spawn.
-
-1. No path → `add_note` `unverifiable` and continue. Do not invent a card.
-2. Missing `scripts/goal-emit.py` → `add_finding` and continue.
-3. Else run:
-
-```bash
-python3 scripts/goal-emit.py emit --card <path>
-```
-
-4. On `pass`, print the invoke line above the helper summary.
-5. `pass` / `fail` / `unverifiable` → `add_note`; helper exit 2 → `add_finding`. Notes never fail the phase.
-
 ### Phase 2: Sequencing & The One Confirmation
 
 #### Step 2.1: Validate and Order the Specs
@@ -270,11 +255,11 @@ Before writing the report, capture the phase's **progress**, **production health
 ```bash
 python3 scripts/phase-state.py progress --state .writ/state/phase-execution-{timestamp}.json
 python3 scripts/phase-state.py health   --state .writ/state/phase-execution-{timestamp}.json --repo . \
-  --eval <latest-eval-summary> --verification <latest-verification-report> --drift <drift-log>
+  [--eval <eval-summary>] [--drift <spec-drift-log> ...]
 python3 scripts/exit-criteria.py check  --command implement-phase --state .writ/state/phase-execution-{timestamp}.json --repo .
 ```
 
-`progress` reports the current spec/lane, per-status spec counts, quarantine branches, each spec closed by decision with its reason, and each blocked spec with the cause that blocked it. `health` returns a **categorical** disposition (`Healthy` / `Warning` / `Attention`), never a score: missing or stale evidence degrades to `Warning` (never a silent pass), and `Attention` requires an affirmative current failure (eval findings, failing verification, unresolved material drift, or a `phase-state`/git mismatch). `exit-criteria.py check` is an independent, read-only re-derivation of `implement-phase.c1`–`c4` against the same state file (`met`/`unmet`/`impossible` overall, plus each criterion's own verdict and evidence) that Step 4.2 defers to rather than the run's own self-assessment. Carry all three into the completion report so the maintainer sees phase progress, production health, and the checker's verdict together with the evidence behind each. The same reducers back `/status`, so an interrupted phase reports identically on resume.
+`progress` reports the current spec/lane, per-status spec counts, quarantine branches, each spec closed by decision with its reason, and each blocked spec with the cause that blocked it. Pass `--drift` once per merged spec whose `drift-log.md` exists and `--eval` only when this phase ran `eval.sh`; never `--verification`, which no step produces. An omitted source is `not_requested`. `health` returns a **categorical** disposition (`Healthy` / `Warning` / `Attention`), never a score: a passed source that is missing or stale degrades to `Warning` (never a silent pass), and `Attention` requires an affirmative current failure (eval findings, failing verification, unresolved material drift, or a `phase-state`/git mismatch). `exit-criteria.py check` is an independent, read-only re-derivation of `implement-phase.c1`–`c4` against the same state file (`met`/`unmet`/`impossible` overall, plus each criterion's own verdict and evidence) that Step 4.2 defers to rather than the run's own self-assessment. Carry all three into the completion report so the maintainer sees phase progress, production health, and the checker's verdict together with the evidence behind each. The same reducers back `/status`, so an interrupted phase reports identically on resume.
 
 This check does not use a harness `/goal` Stop hook. That hook exists on one platform and asks a model to judge a prose condition; `exit-criteria.py` evaluates predicates over files on disk.
 

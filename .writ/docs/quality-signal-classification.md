@@ -94,7 +94,7 @@ stack look like a broken tool.
 ### Mapping onto `/status`'s existing health vocabulary
 
 `/status` already renders a categorical verdict from `scripts/phase-state.py health`, where
-missing or stale evidence is a `Warning` — "never a silent pass" — and `Attention` requires an
+passed evidence that is missing or stale is a `Warning` — "never a silent pass" — and `Attention` requires an
 affirmative current failure. That is the same trichotomy under different names, and this spec
 reuses it rather than inventing a fourth way to say the same thing:
 

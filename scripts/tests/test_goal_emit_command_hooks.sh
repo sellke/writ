@@ -1,26 +1,27 @@
 #!/usr/bin/env bash
-# Spec 2026-09-09-phase11-stage4-goal-emit, Story 2: create-goal after save + implement-phase origin emit
-# name goal-emit.py and treat emit verdicts as notes. [AC-2.1, AC-2.2, AC-2.3, AC-2.5]
+# Spec 2026-09-09-phase11-stage4-goal-emit, Story 2: create-goal after save names
+# goal-emit.py and treats emit verdicts as notes. [AC-2.1, AC-2.2, AC-2.3, AC-2.5]
+# Spec 2026-11-06-lean-implement-phase, Story 2: /implement-phase no longer emits;
+# only /create-goal does. [AC-2.4]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 CREATE="$REPO/commands/create-goal.md"
 PHASE="$REPO/commands/implement-phase.md"
 STORY="$REPO/commands/implement-story.md"
+CONTRACT="$REPO/.writ/docs/agent-cli-contract.md"
 
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 ok() { printf 'PASS: %s\n' "$1"; }
 
-# Work in a temp tree copy of the two command files so the assertion
+# Work in a temp tree copy of the create-goal command so the assertion
 # harness never writes the real repo.
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/goal-emit-hooks.XXXXXX")"
 cleanup() { rm -rf "$TMP"; }
 trap cleanup EXIT
 mkdir -p "$TMP/commands"
 cp "$CREATE" "$TMP/commands/create-goal.md"
-cp "$PHASE" "$TMP/commands/implement-phase.md"
 CREATE_COPY="$TMP/commands/create-goal.md"
-PHASE_COPY="$TMP/commands/implement-phase.md"
 
 grep -q '### Phase 3: Decision and Save' "$CREATE_COPY" \
   || fail "create-goal.md must keep Phase 3 Decision and Save"
@@ -44,24 +45,24 @@ grep -q 'loop_no' "$CREATE_COPY" \
   || fail "create-goal.md must name unverifiable loop_no as a note"
 ok "create-goal loop: no is notes-only"
 
-grep -F 'python3 scripts/goal-emit.py emit --card' "$PHASE_COPY" \
-  || fail "implement-phase.md must invoke python3 scripts/goal-emit.py emit --card"
-grep -q 'Origin:' "$PHASE_COPY" \
-  || fail "implement-phase.md must resolve origin from spec Origin:"
-grep -q 'spec_ref' "$PHASE_COPY" \
-  || fail "implement-phase.md must resolve origin from issue spec_ref"
-grep -q 'add_note' "$PHASE_COPY" \
-  || fail "implement-phase.md must add_note missing origin / emit verdicts"
-ok "implement-phase origin emit named"
-
 # Notes-only for fail/unverifiable; finding only for missing helper / exit 2
-for file in "$CREATE_COPY" "$PHASE_COPY"; do
-  grep -q 'add_finding' "$file" \
-    || fail "$(basename "$file") must add_finding when helper is missing or exits 2"
-  grep -q 'exits 2' "$file" || grep -q 'exit 2' "$file" \
-    || fail "$(basename "$file") must name helper exit 2 as a finding"
-done
+grep -q 'add_finding' "$CREATE_COPY" \
+  || fail "create-goal.md must add_finding when helper is missing or exits 2"
+grep -q 'exits 2' "$CREATE_COPY" || grep -q 'exit 2' "$CREATE_COPY" \
+  || fail "create-goal.md must name helper exit 2 as a finding"
 ok "helper missing / exit 2 is a finding"
+
+# /create-goal is the only command that emits: the phase command no longer
+# runs goal-emit.py, and the contract row no longer lists it as a caller.
+if grep -q 'goal-emit.py' "$PHASE"; then
+  fail "implement-phase.md must not name goal-emit.py (emit lives in /create-goal)"
+fi
+grep -E '^\| `goal-emit\.py` \|' "$CONTRACT" | grep -q 'commands/create-goal.md' \
+  || fail "agent-cli-contract.md goal-emit.py row must list commands/create-goal.md"
+if grep -E '^\| `goal-emit\.py` \|' "$CONTRACT" | grep -q 'commands/implement-phase.md'; then
+  fail "agent-cli-contract.md goal-emit.py row must not list commands/implement-phase.md"
+fi
+ok "implement-phase emits no Goal files; create-goal is the only emit caller"
 
 # Core Rule 4 and no /goal registration
 grep -q 'never registers a `/goal` hook' "$CREATE_COPY" \

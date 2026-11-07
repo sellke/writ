@@ -355,17 +355,19 @@ numeric score — over three ordered categories:
 
 - **Healthy** — every *available* evidence source passes and recorded state agrees
   with git.
-- **Warning** — one or more required evidence sources are **missing or stale**.
-  Absent evidence is a Warning input, never silently upgraded to Healthy and never
-  counted as a failure; mixed-age evidence cannot exceed Warning without an
-  affirmative current failure signal.
+- **Warning** — one or more evidence sources the caller passed are **missing or
+  stale**. A passed path that does not exist is a Warning input, never silently
+  upgraded to Healthy and never counted as a failure; mixed-age evidence cannot
+  exceed Warning without an affirmative current failure signal. A source the
+  caller did not pass is `not_requested` and does not affect the category.
 - **Attention** — an **affirmative current failure** exists: eval findings present,
   a failing verification report, unresolved material drift, or a `phase-state`/git
   mismatch surfaced by read-only reconciliation.
 
-Health draws on the latest eval summary, verification report, drift log, and
-reconciliation result. It performs no deep, external, or mutating checks, and the
-absence of a source degrades the category rather than fabricating a pass.
+Health draws on the eval summary, verification report, and drift logs it is given
+(`--drift` repeats, one per log), plus the reconciliation result. It performs no
+deep, external, or mutating checks, and a passed source that is absent degrades
+the category rather than fabricating a pass.
 
 ## Atomic Writes
 

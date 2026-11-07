@@ -9,7 +9,7 @@
 
 **Implementation Approach:**
 - Story 1: `phase-state.py init --uat` → `uatRequested`; c2 skips plan checks only on an explicit `false` (a missing key or any other value checks plans); resume uses phase state and story statuses, not `uat-plan.md`.
-- Story 2: `health` marks omitted sources `not_requested`; Step 4.1c passes only produced sources; Step 1.4 Goal emit removed.
+- Story 2: `health` marks omitted sources `not_requested`; `--drift` repeats (any material log → `material`, else any missing → `missing`); Step 4.1c passes only produced sources; Step 1.4 Goal emit removed.
 - Story 3: lanes write `phase-spec-result-v1` to `<repo>/.writ/state/lane-result-<phase>-<spec>.json`; brief template `commands/_lane-brief.md`.
 - Story 4: cut prose to ≤ 240 lines; rationale moves to `phase-execution-state-format.md`; every `eval.sh` literal stays.
 - Scripts are Python 3.9 stdlib. Refresh generated trees with `python3 scripts/gen-platform-trees.py`.

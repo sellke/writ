@@ -30,3 +30,20 @@
 - **Spec amendment:** spec-lite.md → For Review Agents → Experience Design: one `/create-uat-plan {spec}` line per merged spec.
 
 ---
+
+## Story 2: Health counts given sources; Goal emit leaves the phase — Drift Report
+
+> Run: 2026-11-07
+> Overall Drift: Small
+
+### Deviations
+
+#### [DEV-003] `--drift` repeatable with an unstated aggregation rule
+- **Severity:** Small
+- **Spec said:** technical-spec.md `health` sources table: one row per flag state; Step 4.1c passes `--drift` for each merged spec's drift log. It does not say how several logs combine.
+- **Implementation did:** `--drift` is `action="append"`. The source is `material` if any log is material, else `missing` if any passed log is absent, else `none`; each missing log adds `drift log` to `unavailable`.
+- **Reason:** Step 4.1c needs one flag per merged spec; the old CLI kept only the last. Single-flag callers are unaffected.
+- **Resolution:** Auto-amended (Small).
+- **Spec amendment:** spec-lite.md → For Coding Agents → Implementation Approach: `--drift` repeats, with the aggregation rule.
+
+---

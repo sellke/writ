@@ -529,5 +529,109 @@ class InitUatRequestedTests(unittest.TestCase):
             self.assertIs(written["uatRequested"], False)
 
 
+class HealthGivenSourcesTests(unittest.TestCase):
+    """2026-11-06-lean-implement-phase Story 2: `health` judges only the
+    sources the caller passes. An omitted `--eval`, `--verification` or
+    `--drift` reads `not_requested` and adds no Warning; a passed path that
+    does not exist reads `missing` and is a Warning (AC-2.1, AC-2.2)."""
+
+    def setUp(self) -> None:
+        self._tmp = TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+        self.repo = self.tmp / "repo"
+        self.repo.mkdir()
+        for args in (("init", "-q"), ("config", "user.email", "t@writ.test"),
+                     ("config", "user.name", "Writ Test"),
+                     ("checkout", "-q", "-b", "phase/6")):
+            self._git(*args)
+        (self.repo / "b.txt").write_text("b\n", encoding="utf-8")
+        self._git("add", "-A")
+        self._git("commit", "-q", "-m", "base")
+        self.state = self.tmp / "state.json"
+        code, _ = run_cli("init", "--state", str(self.state), "--repo", str(self.repo),
+                          "--phase", "6", "--phase-branch", "phase/6",
+                          "--spec-order", "a,b")
+        self.assertEqual(code, 0)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _git(self, *args: str) -> None:
+        import subprocess
+        subprocess.run(["git", "-C", str(self.repo), *args],
+                       capture_output=True, text=True, check=True)
+
+    def _write(self, name: str, text: str) -> str:
+        path = self.tmp / name
+        path.write_text(text, encoding="utf-8")
+        return str(path)
+
+    def _health(self, *extra: str) -> dict:
+        code, payload = run_cli("health", "--state", str(self.state),
+                                "--repo", str(self.repo), *extra)
+        self.assertEqual(code, 0, payload)
+        return payload
+
+    def test_no_source_flags_reads_not_requested_and_healthy(self) -> None:
+        """AC-2.1: no --eval/--verification/--drift on a reconciling state →
+        every omitted source is not_requested and the category is Healthy."""
+        out = self._health()
+        self.assertEqual(out["sources"]["state"], "consistent")
+        for source in ("eval", "verification", "drift"):
+            self.assertEqual(out["sources"][source], "not_requested", out)
+        self.assertEqual(out["unavailable"], [])
+        self.assertEqual(out["category"], "Healthy")
+
+    def test_only_produced_clean_sources_is_healthy(self) -> None:
+        """AC-2.1: the phase's own sources (eval + drift, no verification) all
+        clean → Healthy; the omitted verification report is not_requested."""
+        out = self._health("--eval", self._write("eval.md", "- Findings: 0\n"),
+                           "--drift", self._write("drift.md", "All resolved.\n"))
+        self.assertEqual(out["sources"]["eval"], "pass")
+        self.assertEqual(out["sources"]["drift"], "none")
+        self.assertEqual(out["sources"]["verification"], "not_requested")
+        self.assertEqual(out["category"], "Healthy")
+
+    def test_passed_missing_verification_is_missing_and_warning(self) -> None:
+        """AC-2.2: a --verification path that does not exist → missing, Warning."""
+        out = self._health("--verification", str(self.tmp / "no-such-report.md"))
+        self.assertEqual(out["sources"]["verification"], "missing")
+        self.assertIn("verification report", out["unavailable"])
+        self.assertEqual(out["category"], "Warning")
+
+    def test_passed_missing_drift_is_missing_and_warning(self) -> None:
+        """AC-2.2: a --drift path that does not exist → missing, Warning. This
+        is the caller that used to get `missing` from an omitted --drift."""
+        out = self._health("--drift", str(self.tmp / "no-such-drift-log.md"))
+        self.assertEqual(out["sources"]["drift"], "missing")
+        self.assertIn("drift log", out["unavailable"])
+        self.assertEqual(out["category"], "Warning")
+
+    def test_passed_missing_eval_is_missing_and_warning(self) -> None:
+        """AC-2.2: the same rule holds for --eval."""
+        out = self._health("--eval", str(self.tmp / "no-such-eval.md"))
+        self.assertEqual(out["sources"]["eval"], "missing")
+        self.assertEqual(out["category"], "Warning")
+
+    def test_repeated_drift_flags_judge_every_log(self) -> None:
+        """AC-2.1, AC-2.2: Step 4.1c passes --drift once per merged spec's log;
+        every log counts, so one material log is Attention and one missing
+        path is a Warning input."""
+        clean = self._write("drift-a.md", "All resolved.\n")
+        material = self._write("drift-b.md", "unresolved material issue\n")
+        out = self._health("--drift", material, "--drift", clean)
+        self.assertEqual(out["sources"]["drift"], "material")
+        self.assertEqual(out["category"], "Attention")
+
+        out = self._health("--drift", str(self.tmp / "gone.md"), "--drift", clean)
+        self.assertEqual(out["sources"]["drift"], "missing")
+        self.assertEqual(out["category"], "Warning")
+
+        out = self._health("--drift", clean, "--drift",
+                           self._write("drift-c.md", "Nothing open.\n"))
+        self.assertEqual(out["sources"]["drift"], "none")
+        self.assertEqual(out["category"], "Healthy")
+
+
 if __name__ == "__main__":
     unittest.main()

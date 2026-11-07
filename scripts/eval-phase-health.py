@@ -105,8 +105,8 @@ def main() -> int:
         bad_eval = write(tmp / "evalbad.md", "# Report\n\n- Findings: 3\n")
         good_verify = write(tmp / "ver.md", "# Verification\n\n- Findings: 0\n")
 
-        # Healthy: passing eval + verification, consistent state, no drift... but
-        # drift missing would make it Warning, so pass a clean drift file.
+        # Healthy: passing eval + verification, consistent state, and a clean
+        # drift file passed explicitly.
         clean_drift = write(tmp / "drift.md", "# Drift\n\nAll resolved.\n")
 
     # Fresh consistent repo/state for health category tests (no active lane).
@@ -125,8 +125,11 @@ def main() -> int:
                            "--drift", str(clean_drift))
         emit("healthy-when-all-pass", out.get("category") == "Healthy", out)
 
+        # A passed drift path that does not exist is missing → Warning. An
+        # omitted --drift is not_requested and adds nothing (lean-implement-phase S2).
         code, out = helper("health", "--state", str(state), "--repo", str(repo),
-                           "--eval", str(good_eval), "--verification", str(good_verify))
+                           "--eval", str(good_eval), "--verification", str(good_verify),
+                           "--drift", str(tmp / "no-drift-log.md"))
         emit("warning-when-drift-missing",
              out.get("category") == "Warning" and "drift log" in out.get("unavailable", []), out)
 
@@ -144,6 +147,7 @@ def main() -> int:
 
         # mixed-age: eval missing (Warning input) + passing verification cannot exceed Warning
         code, out = helper("health", "--state", str(state), "--repo", str(repo),
+                           "--eval", str(tmp / "no-eval-summary.md"),
                            "--verification", str(good_verify), "--drift", str(clean_drift))
         emit("mixed-age-cannot-exceed-warning",
              out.get("category") == "Warning" and "eval summary" in out.get("unavailable", []), out)

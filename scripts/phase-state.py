@@ -941,12 +941,14 @@ def cmd_progress(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _artifact_status(path: str | None) -> str:
-    """Classify a summary artifact as pass / fail / missing.
+    """Classify a summary artifact as pass / fail / missing / not_requested.
 
-    An eval or verification report is 'pass' only when it records zero findings;
-    a missing file is 'missing' (a Warning input, never a failure)."""
-    if not path:
-        return "missing"
+    An omitted flag (None) is 'not_requested': the caller did not produce that
+    source, so it adds no Warning. A passed path that is not a file is 'missing'
+    (a Warning input, never a failure). An eval or verification report is
+    'pass' only when it records zero findings."""
+    if path is None:
+        return "not_requested"
     p = Path(path)
     if not p.is_file():
         return "missing"
@@ -961,22 +963,31 @@ def _artifact_status(path: str | None) -> str:
 
 
 def cmd_health(args: argparse.Namespace) -> dict[str, Any]:
-    """Categorical health (D7). Missing/stale evidence is a Warning, never a
-    failure; Attention requires an affirmative current failure, unresolved
+    """Categorical health (D7). Only the sources the caller passes are judged:
+    an omitted flag is not_requested and adds nothing. A passed source that is
+    missing or stale is a Warning, never a failure; Attention requires an affirmative current failure, unresolved
     material drift, or a state/git mismatch. No score, no deep or external checks."""
-    eval_status = _artifact_status(args.eval or None)
-    verify_status = _artifact_status(args.verification or None)
+    eval_status = _artifact_status(args.eval)
+    verify_status = _artifact_status(args.verification)
 
-    drift_status = "none"
-    if args.drift:
-        dp = Path(args.drift)
-        if not dp.is_file():
-            drift_status = "missing"
-        else:
+    # --drift repeats, one per merged spec's drift log. Omitted → not_requested;
+    # any passed path that is not a file → missing; any unresolved/material log
+    # → material (material outranks missing for the source value, but a missing
+    # log still lands in `unavailable`).
+    drift_missing = False
+    drift_status = "not_requested"
+    if args.drift is not None:
+        drift_status = "none"
+        for raw in args.drift:
+            dp = Path(raw)
+            if not dp.is_file():
+                drift_missing = True
+                continue
             text = dp.read_text(encoding="utf-8").lower()
-            drift_status = "material" if ("unresolved" in text or "material" in text) else "none"
-    else:
-        drift_status = "missing"
+            if "unresolved" in text or "material" in text:
+                drift_status = "material"
+        if drift_missing and drift_status != "material":
+            drift_status = "missing"
 
     state_status = "n/a"
     if args.state and args.repo:
@@ -988,7 +999,7 @@ def cmd_health(args: argparse.Namespace) -> dict[str, Any]:
         unavailable.append("eval summary")
     if verify_status == "missing":
         unavailable.append("verification report")
-    if drift_status == "missing":
+    if drift_missing:
         unavailable.append("drift log")
 
     failures = []
@@ -1139,9 +1150,11 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("health")
     p.add_argument("--state", default="")
     p.add_argument("--repo", default="")
-    p.add_argument("--eval", default="")
-    p.add_argument("--verification", default="")
-    p.add_argument("--drift", default="")
+    # An omitted source flag stays None → not_requested; a given path is judged.
+    p.add_argument("--eval", default=None)
+    p.add_argument("--verification", default=None)
+    p.add_argument("--drift", action="append", default=None,
+                   help="drift log; repeat once per merged spec")
     p.set_defaults(func=cmd_health)
 
     p = sub.add_parser("show")

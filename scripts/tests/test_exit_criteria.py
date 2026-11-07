@@ -659,7 +659,7 @@ class ImplementPhaseUatOnRequestWordingTests(unittest.TestCase):
 
     def test_step_1_3_skips_by_phase_state_and_story_status(self) -> None:
         """AC-1.4: phase state first, then story statuses; uat-plan.md never decides a skip."""
-        section = self._section("#### Step 1.3:", "#### Step 1.4:")
+        section = self._section("#### Step 1.3:", "### Phase 2:")
         state_at = section.index("**Phase state**")
         stories_at = section.index("**Story statuses**")
         self.assertLess(state_at, stories_at)

@@ -655,7 +655,10 @@ KNOWN_OVER_BUDGET = {
     # resume order by phase state and story status, the Step 2.3 `UAT:` plan line,
     # the Step 4.2 `/create-uat-plan {spec}` handoff lines, and the new c2 text.
     # Story 4 of the same spec cuts the file to at most 240 lines.
-    "commands/implement-phase.md": 10297,
+    # 2026-11-07 (2026-11-06-lean-implement-phase Story 2): 10297 -> 9825 (file
+    # 35257 -> 34785); Step 1.4 Goal emit removed (only /create-goal emits), and
+    # Step 4.1c passes only the health sources the phase produced.
+    "commands/implement-phase.md": 9825,
     # 2026-10-21 (2026-10-20-shipped-command-hygiene Story 1): 7655 -> 7571; ADR link removed.
     "commands/release.md": 7571,
     # 2026-10-20 (2026-10-20-harness-cuts Story 3): 4030 -> 4023; says open PR, not merged PR.
