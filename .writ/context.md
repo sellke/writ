@@ -1,6 +1,6 @@
 # Writ Project Context
 
-> Last Updated: 2026-11-07T17:30:00Z
+> Last Updated: 2026-11-07T17:25:00Z
 
 ## Product Mission
 
@@ -9,8 +9,8 @@ Writ is the thin, portable methodology layer on top of capable AI harnesses. It 
 ## Active Spec
 
 - **Spec:** 2026-11-06-lean-story-pipeline — Lean Story Pipeline (branch `spec/lean-story-pipeline`, worktree `.claude/worktrees/lean-story-pipeline`)
-- **Status:** In Progress — `/implement-spec` run started 2026-11-06T22:24:40Z
-- **Story:** 6 of 6 — Before/after pipeline trial (Completed ✅; verdict `lean-pipeline: keep`); next: integration suite
+- **Status:** Complete — 6/6 stories; implement-spec checker verdict met; integration suite green after fix `bdff146`; not yet shipped
+- **Story:** 6 of 6 complete; trial verdict `lean-pipeline: keep`
 - **Progress:** 40/40 tasks complete
 
 ## Artifact Map
